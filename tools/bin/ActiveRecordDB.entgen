@@ -1,0 +1,1090 @@
+{
+	"EditOutputFileName": "C:\\DEV\\dmvcframework\\tools\\sample\\EntitiesU.pas",
+	"cboConnectionDefs": "activerecorddb",
+	"lstSchema": "<all>",
+	"rgNameCase": 0,
+	"rgFieldNameFormatting": 1,
+	"chkGenerateMapping": true,
+	"tables": [
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema._pg_foreign_data_wrappers",
+			"CLASS_NAME": "TInformationSchemaPgForeignDataWrappers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema._pg_foreign_servers",
+			"CLASS_NAME": "TInformationSchemaPgForeignServers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema._pg_foreign_table_columns",
+			"CLASS_NAME": "TInformationSchemaPgForeignTableColumns"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema._pg_foreign_tables",
+			"CLASS_NAME": "TInformationSchemaPgForeignTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema._pg_user_mappings",
+			"CLASS_NAME": "TInformationSchemaPgUserMappings"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.administrable_role_authorizations",
+			"CLASS_NAME": "TInformationSchemaAdministrableRoleAuthorizations"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.applicable_roles",
+			"CLASS_NAME": "TInformationSchemaApplicableRoles"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.attributes",
+			"CLASS_NAME": "TInformationSchemaAttributes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.character_sets",
+			"CLASS_NAME": "TInformationSchemaCharacterSets"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.check_constraint_routine_usage",
+			"CLASS_NAME": "TInformationSchemaCheckConstraintRoutineUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.check_constraints",
+			"CLASS_NAME": "TInformationSchemaCheckConstraints"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.collation_character_set_applicability",
+			"CLASS_NAME": "TInformationSchemaCollationCharacterSetApplicability"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.collations",
+			"CLASS_NAME": "TInformationSchemaCollations"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.column_column_usage",
+			"CLASS_NAME": "TInformationSchemaColumnColumnUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.column_domain_usage",
+			"CLASS_NAME": "TInformationSchemaColumnDomainUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.column_options",
+			"CLASS_NAME": "TInformationSchemaColumnOptions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.column_privileges",
+			"CLASS_NAME": "TInformationSchemaColumnPrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.column_udt_usage",
+			"CLASS_NAME": "TInformationSchemaColumnUdtUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.columns",
+			"CLASS_NAME": "TInformationSchemaColumns"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.constraint_column_usage",
+			"CLASS_NAME": "TInformationSchemaConstraintColumnUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.constraint_table_usage",
+			"CLASS_NAME": "TInformationSchemaConstraintTableUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.data_type_privileges",
+			"CLASS_NAME": "TInformationSchemaDataTypePrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.domain_constraints",
+			"CLASS_NAME": "TInformationSchemaDomainConstraints"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.domain_udt_usage",
+			"CLASS_NAME": "TInformationSchemaDomainUdtUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.domains",
+			"CLASS_NAME": "TInformationSchemaDomains"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.element_types",
+			"CLASS_NAME": "TInformationSchemaElementTypes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.enabled_roles",
+			"CLASS_NAME": "TInformationSchemaEnabledRoles"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_data_wrapper_options",
+			"CLASS_NAME": "TInformationSchemaForeignDataWrapperOptions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_data_wrappers",
+			"CLASS_NAME": "TInformationSchemaForeignDataWrappers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_server_options",
+			"CLASS_NAME": "TInformationSchemaForeignServerOptions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_servers",
+			"CLASS_NAME": "TInformationSchemaForeignServers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_table_options",
+			"CLASS_NAME": "TInformationSchemaForeignTableOptions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.foreign_tables",
+			"CLASS_NAME": "TInformationSchemaForeignTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.information_schema_catalog_name",
+			"CLASS_NAME": "TInformationSchemaInformationSchemaCatalogName"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.key_column_usage",
+			"CLASS_NAME": "TInformationSchemaKeyColumnUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.parameters",
+			"CLASS_NAME": "TInformationSchemaParameters"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.referential_constraints",
+			"CLASS_NAME": "TInformationSchemaReferentialConstraints"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.role_column_grants",
+			"CLASS_NAME": "TInformationSchemaRoleColumnGrants"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.role_routine_grants",
+			"CLASS_NAME": "TInformationSchemaRoleRoutineGrants"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.role_table_grants",
+			"CLASS_NAME": "TInformationSchemaRoleTableGrants"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.role_udt_grants",
+			"CLASS_NAME": "TInformationSchemaRoleUdtGrants"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.role_usage_grants",
+			"CLASS_NAME": "TInformationSchemaRoleUsageGrants"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routine_column_usage",
+			"CLASS_NAME": "TInformationSchemaRoutineColumnUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routine_privileges",
+			"CLASS_NAME": "TInformationSchemaRoutinePrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routine_routine_usage",
+			"CLASS_NAME": "TInformationSchemaRoutineRoutineUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routine_sequence_usage",
+			"CLASS_NAME": "TInformationSchemaRoutineSequenceUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routine_table_usage",
+			"CLASS_NAME": "TInformationSchemaRoutineTableUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.routines",
+			"CLASS_NAME": "TInformationSchemaRoutines"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.schemata",
+			"CLASS_NAME": "TInformationSchemaSchemata"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.sequences",
+			"CLASS_NAME": "TInformationSchemaSequences"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.sql_features",
+			"CLASS_NAME": "TInformationSchemaSqlFeatures"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.sql_implementation_info",
+			"CLASS_NAME": "TInformationSchemaSqlImplementationInfo"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.sql_parts",
+			"CLASS_NAME": "TInformationSchemaSqlParts"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.sql_sizing",
+			"CLASS_NAME": "TInformationSchemaSqlSizing"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.table_constraints",
+			"CLASS_NAME": "TInformationSchemaTableConstraints"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.table_privileges",
+			"CLASS_NAME": "TInformationSchemaTablePrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.tables",
+			"CLASS_NAME": "TInformationSchemaTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.transforms",
+			"CLASS_NAME": "TInformationSchemaTransforms"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.triggered_update_columns",
+			"CLASS_NAME": "TInformationSchemaTriggeredUpdateColumns"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.triggers",
+			"CLASS_NAME": "TInformationSchemaTriggers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.udt_privileges",
+			"CLASS_NAME": "TInformationSchemaUdtPrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.usage_privileges",
+			"CLASS_NAME": "TInformationSchemaUsagePrivileges"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.user_defined_types",
+			"CLASS_NAME": "TInformationSchemaUserDefinedTypes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.user_mapping_options",
+			"CLASS_NAME": "TInformationSchemaUserMappingOptions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.user_mappings",
+			"CLASS_NAME": "TInformationSchemaUserMappings"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.view_column_usage",
+			"CLASS_NAME": "TInformationSchemaViewColumnUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.view_routine_usage",
+			"CLASS_NAME": "TInformationSchemaViewRoutineUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.view_table_usage",
+			"CLASS_NAME": "TInformationSchemaViewTableUsage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "information_schema.views",
+			"CLASS_NAME": "TInformationSchemaViews"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_aggregate",
+			"CLASS_NAME": "TPgCatalogPgAggregate"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_am",
+			"CLASS_NAME": "TPgCatalogPgAm"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_amop",
+			"CLASS_NAME": "TPgCatalogPgAmop"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_amproc",
+			"CLASS_NAME": "TPgCatalogPgAmproc"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_attrdef",
+			"CLASS_NAME": "TPgCatalogPgAttrdef"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_attribute",
+			"CLASS_NAME": "TPgCatalogPgAttribute"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_auth_members",
+			"CLASS_NAME": "TPgCatalogPgAuthMembers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_authid",
+			"CLASS_NAME": "TPgCatalogPgAuthid"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_available_extension_versions",
+			"CLASS_NAME": "TPgCatalogPgAvailableExtensionVersions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_available_extensions",
+			"CLASS_NAME": "TPgCatalogPgAvailableExtensions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_backend_memory_contexts",
+			"CLASS_NAME": "TPgCatalogPgBackendMemoryContexts"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_cast",
+			"CLASS_NAME": "TPgCatalogPgCast"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_class",
+			"CLASS_NAME": "TPgCatalogPgClass"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_collation",
+			"CLASS_NAME": "TPgCatalogPgCollation"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_config",
+			"CLASS_NAME": "TPgCatalogPgConfig"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_constraint",
+			"CLASS_NAME": "TPgCatalogPgConstraint"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_conversion",
+			"CLASS_NAME": "TPgCatalogPgConversion"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_cursors",
+			"CLASS_NAME": "TPgCatalogPgCursors"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_database",
+			"CLASS_NAME": "TPgCatalogPgDatabase"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_db_role_setting",
+			"CLASS_NAME": "TPgCatalogPgDbRoleSetting"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_default_acl",
+			"CLASS_NAME": "TPgCatalogPgDefaultAcl"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_depend",
+			"CLASS_NAME": "TPgCatalogPgDepend"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_description",
+			"CLASS_NAME": "TPgCatalogPgDescription"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_enum",
+			"CLASS_NAME": "TPgCatalogPgEnum"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_event_trigger",
+			"CLASS_NAME": "TPgCatalogPgEventTrigger"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_extension",
+			"CLASS_NAME": "TPgCatalogPgExtension"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_file_settings",
+			"CLASS_NAME": "TPgCatalogPgFileSettings"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_foreign_data_wrapper",
+			"CLASS_NAME": "TPgCatalogPgForeignDataWrapper"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_foreign_server",
+			"CLASS_NAME": "TPgCatalogPgForeignServer"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_foreign_table",
+			"CLASS_NAME": "TPgCatalogPgForeignTable"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_group",
+			"CLASS_NAME": "TPgCatalogPgGroup"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_hba_file_rules",
+			"CLASS_NAME": "TPgCatalogPgHbaFileRules"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_index",
+			"CLASS_NAME": "TPgCatalogPgIndex"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_indexes",
+			"CLASS_NAME": "TPgCatalogPgIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_inherits",
+			"CLASS_NAME": "TPgCatalogPgInherits"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_init_privs",
+			"CLASS_NAME": "TPgCatalogPgInitPrivs"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_language",
+			"CLASS_NAME": "TPgCatalogPgLanguage"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_largeobject",
+			"CLASS_NAME": "TPgCatalogPgLargeobject"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_largeobject_metadata",
+			"CLASS_NAME": "TPgCatalogPgLargeobjectMetadata"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_locks",
+			"CLASS_NAME": "TPgCatalogPgLocks"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_matviews",
+			"CLASS_NAME": "TPgCatalogPgMatviews"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_namespace",
+			"CLASS_NAME": "TPgCatalogPgNamespace"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_opclass",
+			"CLASS_NAME": "TPgCatalogPgOpclass"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_operator",
+			"CLASS_NAME": "TPgCatalogPgOperator"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_opfamily",
+			"CLASS_NAME": "TPgCatalogPgOpfamily"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_partitioned_table",
+			"CLASS_NAME": "TPgCatalogPgPartitionedTable"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_policies",
+			"CLASS_NAME": "TPgCatalogPgPolicies"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_policy",
+			"CLASS_NAME": "TPgCatalogPgPolicy"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_prepared_statements",
+			"CLASS_NAME": "TPgCatalogPgPreparedStatements"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_prepared_xacts",
+			"CLASS_NAME": "TPgCatalogPgPreparedXacts"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_proc",
+			"CLASS_NAME": "TPgCatalogPgProc"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_publication",
+			"CLASS_NAME": "TPgCatalogPgPublication"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_publication_rel",
+			"CLASS_NAME": "TPgCatalogPgPublicationRel"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_publication_tables",
+			"CLASS_NAME": "TPgCatalogPgPublicationTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_range",
+			"CLASS_NAME": "TPgCatalogPgRange"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_replication_origin",
+			"CLASS_NAME": "TPgCatalogPgReplicationOrigin"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_replication_origin_status",
+			"CLASS_NAME": "TPgCatalogPgReplicationOriginStatus"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_replication_slots",
+			"CLASS_NAME": "TPgCatalogPgReplicationSlots"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_rewrite",
+			"CLASS_NAME": "TPgCatalogPgRewrite"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_roles",
+			"CLASS_NAME": "TPgCatalogPgRoles"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_rules",
+			"CLASS_NAME": "TPgCatalogPgRules"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_seclabel",
+			"CLASS_NAME": "TPgCatalogPgSeclabel"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_seclabels",
+			"CLASS_NAME": "TPgCatalogPgSeclabels"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_sequence",
+			"CLASS_NAME": "TPgCatalogPgSequence"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_sequences",
+			"CLASS_NAME": "TPgCatalogPgSequences"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_settings",
+			"CLASS_NAME": "TPgCatalogPgSettings"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_shadow",
+			"CLASS_NAME": "TPgCatalogPgShadow"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_shdepend",
+			"CLASS_NAME": "TPgCatalogPgShdepend"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_shdescription",
+			"CLASS_NAME": "TPgCatalogPgShdescription"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_shmem_allocations",
+			"CLASS_NAME": "TPgCatalogPgShmemAllocations"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_shseclabel",
+			"CLASS_NAME": "TPgCatalogPgShseclabel"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_activity",
+			"CLASS_NAME": "TPgCatalogPgStatActivity"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_all_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatAllIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_all_tables",
+			"CLASS_NAME": "TPgCatalogPgStatAllTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_archiver",
+			"CLASS_NAME": "TPgCatalogPgStatArchiver"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_bgwriter",
+			"CLASS_NAME": "TPgCatalogPgStatBgwriter"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_database",
+			"CLASS_NAME": "TPgCatalogPgStatDatabase"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_database_conflicts",
+			"CLASS_NAME": "TPgCatalogPgStatDatabaseConflicts"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_gssapi",
+			"CLASS_NAME": "TPgCatalogPgStatGssapi"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_analyze",
+			"CLASS_NAME": "TPgCatalogPgStatProgressAnalyze"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_basebackup",
+			"CLASS_NAME": "TPgCatalogPgStatProgressBasebackup"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_cluster",
+			"CLASS_NAME": "TPgCatalogPgStatProgressCluster"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_copy",
+			"CLASS_NAME": "TPgCatalogPgStatProgressCopy"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_create_index",
+			"CLASS_NAME": "TPgCatalogPgStatProgressCreateIndex"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_progress_vacuum",
+			"CLASS_NAME": "TPgCatalogPgStatProgressVacuum"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_replication",
+			"CLASS_NAME": "TPgCatalogPgStatReplication"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_replication_slots",
+			"CLASS_NAME": "TPgCatalogPgStatReplicationSlots"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_slru",
+			"CLASS_NAME": "TPgCatalogPgStatSlru"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_ssl",
+			"CLASS_NAME": "TPgCatalogPgStatSsl"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_subscription",
+			"CLASS_NAME": "TPgCatalogPgStatSubscription"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_sys_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatSysIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_sys_tables",
+			"CLASS_NAME": "TPgCatalogPgStatSysTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_user_functions",
+			"CLASS_NAME": "TPgCatalogPgStatUserFunctions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_user_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatUserIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_user_tables",
+			"CLASS_NAME": "TPgCatalogPgStatUserTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_wal",
+			"CLASS_NAME": "TPgCatalogPgStatWal"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_wal_receiver",
+			"CLASS_NAME": "TPgCatalogPgStatWalReceiver"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_xact_all_tables",
+			"CLASS_NAME": "TPgCatalogPgStatXactAllTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_xact_sys_tables",
+			"CLASS_NAME": "TPgCatalogPgStatXactSysTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_xact_user_functions",
+			"CLASS_NAME": "TPgCatalogPgStatXactUserFunctions"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stat_xact_user_tables",
+			"CLASS_NAME": "TPgCatalogPgStatXactUserTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_all_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatioAllIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_all_sequences",
+			"CLASS_NAME": "TPgCatalogPgStatioAllSequences"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_all_tables",
+			"CLASS_NAME": "TPgCatalogPgStatioAllTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_sys_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatioSysIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_sys_sequences",
+			"CLASS_NAME": "TPgCatalogPgStatioSysSequences"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_sys_tables",
+			"CLASS_NAME": "TPgCatalogPgStatioSysTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_user_indexes",
+			"CLASS_NAME": "TPgCatalogPgStatioUserIndexes"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_user_sequences",
+			"CLASS_NAME": "TPgCatalogPgStatioUserSequences"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statio_user_tables",
+			"CLASS_NAME": "TPgCatalogPgStatioUserTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statistic",
+			"CLASS_NAME": "TPgCatalogPgStatistic"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statistic_ext",
+			"CLASS_NAME": "TPgCatalogPgStatisticExt"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_statistic_ext_data",
+			"CLASS_NAME": "TPgCatalogPgStatisticExtData"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stats",
+			"CLASS_NAME": "TPgCatalogPgStats"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stats_ext",
+			"CLASS_NAME": "TPgCatalogPgStatsExt"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_stats_ext_exprs",
+			"CLASS_NAME": "TPgCatalogPgStatsExtExprs"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_subscription",
+			"CLASS_NAME": "TPgCatalogPgSubscription"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_subscription_rel",
+			"CLASS_NAME": "TPgCatalogPgSubscriptionRel"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_tables",
+			"CLASS_NAME": "TPgCatalogPgTables"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_tablespace",
+			"CLASS_NAME": "TPgCatalogPgTablespace"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_timezone_abbrevs",
+			"CLASS_NAME": "TPgCatalogPgTimezoneAbbrevs"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_timezone_names",
+			"CLASS_NAME": "TPgCatalogPgTimezoneNames"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_transform",
+			"CLASS_NAME": "TPgCatalogPgTransform"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_trigger",
+			"CLASS_NAME": "TPgCatalogPgTrigger"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_ts_config",
+			"CLASS_NAME": "TPgCatalogPgTsConfig"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_ts_config_map",
+			"CLASS_NAME": "TPgCatalogPgTsConfigMap"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_ts_dict",
+			"CLASS_NAME": "TPgCatalogPgTsDict"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_ts_parser",
+			"CLASS_NAME": "TPgCatalogPgTsParser"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_ts_template",
+			"CLASS_NAME": "TPgCatalogPgTsTemplate"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_type",
+			"CLASS_NAME": "TPgCatalogPgType"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_user",
+			"CLASS_NAME": "TPgCatalogPgUser"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_user_mapping",
+			"CLASS_NAME": "TPgCatalogPgUserMapping"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_user_mappings",
+			"CLASS_NAME": "TPgCatalogPgUserMappings"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "pg_catalog.pg_views",
+			"CLASS_NAME": "TPgCatalogPgViews"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "articles",
+			"CLASS_NAME": "TArticles"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "complex_types",
+			"CLASS_NAME": "TComplexTypes"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "customers",
+			"CLASS_NAME": "TCustomers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "\"customers with spaces\"",
+			"CLASS_NAME": "TCustomersWithSpaces"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "customers_plain",
+			"CLASS_NAME": "TCustomersPlain"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "customers_with_code",
+			"CLASS_NAME": "TCustomersWithCode"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "customers_with_guid",
+			"CLASS_NAME": "TCustomersWithGuid"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "nullables_test",
+			"CLASS_NAME": "TNullablesTest"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "order_details",
+			"CLASS_NAME": "TOrderDetails"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "orders",
+			"CLASS_NAME": "TOrders"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "people",
+			"CLASS_NAME": "TPeople"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "phones",
+			"CLASS_NAME": "TPhones"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "t1",
+			"CLASS_NAME": "TT1"
+		}
+	]
+}

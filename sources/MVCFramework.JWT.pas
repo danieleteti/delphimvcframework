@@ -32,7 +32,7 @@ uses
   System.Generics.Collections,
   JsonDataObjects,
   MVCFramework,
-  MVCFramework.Patches;
+  MVCFramework.Patches, MVCFramework.HMAC;
 
 type
 
@@ -262,7 +262,10 @@ type
     function GetLiveValidityWindowInSeconds: Cardinal;
     function IsValidToken(const Token: string; out Header, Payload: TJDOJSONObject; out Error: string): Boolean;
   public
-    constructor Create(const SecretKey: string; const ALeewaySeconds: Cardinal = 300); virtual;
+    constructor Create(
+      const SecretKey: string;
+      const ALeewaySeconds: Cardinal = 300;
+      const HMACAlgorithm: String = HMAC_HS512); virtual;
     destructor Destroy; override;
     function GetToken: string;
     function LoadToken(const Token: string; out Error: string): Boolean;
@@ -286,7 +289,6 @@ implementation
 uses
   System.SysUtils,
   MVCFramework.Commons,
-  MVCFramework.HMAC,
   System.DateUtils,
   IdGlobal;
 
@@ -508,7 +510,7 @@ begin
   Result := True;
 end;
 
-constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal = 300);
+constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal; const HMACAlgorithm: String);
 begin
   inherited Create;
   FSecretKey := SecretKey;
@@ -587,6 +589,7 @@ begin
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
   begin
+    Error := Error + ' (step1)';
     Exit(False);
   end;
 
@@ -594,6 +597,7 @@ begin
   try
     if not Assigned(Header) then
     begin
+      Error := Error + ' (step2)';
       Exit(False);
     end;
 
@@ -601,11 +605,13 @@ begin
     try
       if not Assigned(Payload) then
       begin
+        Error := Error + ' (step3)';
         Exit(False);
       end;
 
       if not Header.Contains('alg') then
       begin
+        Error := Error + ' (step4)';
         Exit(False);
       end;
 
@@ -623,6 +629,7 @@ begin
           if not CheckExpirationTime(Payload, Error) then
           begin
             Exit(False);
+            Error := Error + ' (step6)';
           end;
 
         end;
@@ -632,6 +639,7 @@ begin
           if not CheckNotBefore(Payload, Error) then
           begin
             Exit(False);
+            Error := Error + ' (step7)';
           end;
         end;
 
@@ -640,10 +648,16 @@ begin
           if not CheckIssuedAt(Payload, Error) then
           begin
             Exit(False);
+            Error := Error + ' (step8)';
           end;
         end;
+
+        Error := '';
+      end
+      else
+      begin
+        Error := Error + ' (step5)';
       end;
-      Error := '';
     finally
       if not Result then
         FreeAndNil(Payload);

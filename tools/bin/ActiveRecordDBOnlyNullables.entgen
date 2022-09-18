@@ -1,0 +1,77 @@
+{
+	"cboConnectionDefs": "activerecorddb",
+	"lstCatalog": "activerecorddb",
+	"lstSchema": "public",
+	"rgNameCase": 4,
+	"rgFieldNameFormatting": 1,
+	"chkGenerateMapping": false,
+	"edtGeneratedCodeOutput": "C:\\DEV\\dmvcframework\\tools\\sample\\EntitiesU.pas",
+	"EditOutputFileName": "C:\\DEV\\dmvcframework\\tools\\sample\\EntitiesU.pas",
+	"tables": [
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "articles",
+			"CLASS_NAME": "TArticles"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "complex_types",
+			"CLASS_NAME": "TComplexTypes"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "customers",
+			"CLASS_NAME": "TCustomers"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "\"customers with spaces\"",
+			"CLASS_NAME": "TCustomersWithSpaces"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "customers_plain",
+			"CLASS_NAME": "TCustomersPlain"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "customers_with_code",
+			"CLASS_NAME": "TCustomersWithCode"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "customers_with_guid",
+			"CLASS_NAME": "TCustomersWithGuid"
+		},
+		{
+			"GENERATE": "True",
+			"TABLE_NAME": "nullables_test",
+			"CLASS_NAME": "TNullablesTest"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "order_details",
+			"CLASS_NAME": "TOrderDetails"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "orders",
+			"CLASS_NAME": "TOrders"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "people",
+			"CLASS_NAME": "TPeople"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "phones",
+			"CLASS_NAME": "TPhones"
+		},
+		{
+			"GENERATE": "False",
+			"TABLE_NAME": "t1",
+			"CLASS_NAME": "TT1"
+		}
+	]
+}

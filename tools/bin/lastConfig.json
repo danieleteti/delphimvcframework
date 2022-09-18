@@ -1,0 +1,6 @@
+{
+	"cboConnectionDefs": "activerecorddb",
+	"rgNameCase": 0,
+	"rgFieldNameFormatting": 1,
+	"chkGenerateMapping": true
+}

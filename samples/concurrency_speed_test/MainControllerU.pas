@@ -12,6 +12,7 @@ type
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
     procedure Index;
   end;
 

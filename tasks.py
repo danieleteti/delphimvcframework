@@ -146,7 +146,7 @@ def copy_sources():
         "dmvcframeworkDT.dpk",
     ]
 
-    folders = ["d100", "d101", "d102", "d103", "d104"]
+    folders = ["d100", "d101", "d102", "d103", "d104","d110","d111","d112"]
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")
@@ -155,6 +155,15 @@ def copy_sources():
             copy2(
                 rf"packages\{folder}\{file}", g_output_folder + rf"\packages\{folder}"
             )
+    copy2(
+        rf"packages\common_contains.inc", g_output_folder + rf"\packages"
+    )
+    copy2(
+        rf"packages\common_defines.inc", g_output_folder + rf"\packages"
+    )
+    copy2(
+        rf"packages\common_defines_design.inc", g_output_folder + rf"\packages"
+    )
 
 
 def copy_libs(ctx):
@@ -280,6 +289,12 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\loggerpro\packages\d103\Win32\Debug", True)
     rmtree(folder + r"\lib\loggerpro\packages\d104\__history", True)
     rmtree(folder + r"\lib\loggerpro\packages\d104\Win32\Debug", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d110\__history", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d110\Win32\Debug", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d111\__history", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d111\Win32\Debug", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d112\__history", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d112\Win32\Debug", True)
     rmtree(folder + r"\lib\dmustache\.git", True)
     rmtree(folder + r"\lib\swagdoc\lib", True)
     rmtree(folder + r"\lib\swagdoc\deploy", True)
