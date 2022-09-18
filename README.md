@@ -208,10 +208,6 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
 
-## Next Release: 3.2.3-radium-beta ("repo" version)
-
-The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
-
 ## What's new in DelphiMVCFramework-3.2.2-nitrogen
 
 - ⚡New! Support for Delphi 11.x Alexandria
@@ -1411,6 +1407,15 @@ end;
 
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
 
+## Next Release: 3.2.3-radium-beta ("repo" version)
+
+The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
+
+
+### What's New in 3.2.3-radium-beta
+- Fixed a rendering problem in swagger interface format in case of specific JSON structure
+
+
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
 If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, all the main developers works there.
@@ -1718,4 +1723,3 @@ count() - Returns the count of the number of records in the query's result set
 ## Links
 
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
-
