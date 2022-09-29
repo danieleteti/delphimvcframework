@@ -8,6 +8,25 @@ type
     function DoCalc(a,b: Integer): Integer;
   end;
 
+  TMyService = class(TInterfacedObject, ICalculator)
+  public
+    function DoCalc(a,b: Integer): Integer;
+    destructor Destroy; override;
+  end;
+
 implementation
+
+{ TMyService }
+
+destructor TMyService.Destroy;
+begin
+
+  inherited;
+end;
+
+function TMyService.DoCalc(a, b: Integer): Integer;
+begin
+  Result := a + b;
+end;
 
 end.
