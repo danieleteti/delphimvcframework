@@ -29,6 +29,7 @@ type
 implementation
 
 uses
+  System.IOUtils,
   System.SysUtils,
   MVCFramework.Serializer.JSONDataObjects,
   MVCFramework.Serializer.Commons,
@@ -39,7 +40,7 @@ uses
 procedure TApp1MainController.GetImage;
 begin
   Context.Response.ContentType := TMVCMediaType.IMAGE_PNG;
-  SendFile(IncludeTrailingPathDelimiter(AppPath) + 'www\logo.png');
+  SendFile(TPath.Combine(AppPath, 'logo.png'));
 end;
 
 procedure TApp1MainController.Welcome(const Name: string);

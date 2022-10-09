@@ -1691,7 +1691,7 @@ begin
 end;
 
 
-function ReasonStringByHTTPStatusCode(const HTTPStatusCode: Integer): String;
+function ReasonStringByHTTPStatusCode(const HTTPStatusCode: Integer): String; inline;
 var
   I: Integer;
 begin

@@ -3352,9 +3352,12 @@ begin
   Result := TFile.Exists(ARealFileName);
 end;
 
-class procedure TMVCStaticContents.SendFile(const AFileName, AMediaType: string;
-AContext: TWebContext);
-var FileDate: TDateTime; ReqDate: TDateTime; S: TFileStream;
+class procedure TMVCStaticContents.SendFile(
+  const AFileName, AMediaType: string; AContext: TWebContext);
+var
+  FileDate: TDateTime;
+  IfModifiedSinceDate: TDateTime;
+  lIfModifiedSince: string;
 begin
   if not FileExists(AFileName) then
   begin
@@ -3362,18 +3365,29 @@ begin
   end
   else
   begin
-    FileDate := IndyFileAge(AFileName);
-    ReqDate := GMTToLocalDateTime(AContext.Request.Headers['If-Modified-Since']);
-    if (ReqDate <> 0) and (abs(ReqDate - FileDate) < 2 * (1 / (24 * 60 * 60))) then
+    //https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Modified-Since
+    if AContext.Request.HTTPMethod in [httpGET, httpHEAD] then
     begin
-      AContext.Response.ContentType := AMediaType;
-      AContext.Response.StatusCode := 304;
+      lIfModifiedSince := AContext.Request.Headers['If-Modified-Since'];
+      if lIfModifiedSince <> '' then
+      begin
+        FileDate := IndyFileAge(AFileName);
+        IfModifiedSinceDate := GMTToLocalDateTime(lIfModifiedSince);
+        if (IfModifiedSinceDate <> 0) and (abs(IfModifiedSinceDate - FileDate) < 2 * (1 / (24 * 60 * 60))) then
+        begin
+          AContext.Response.ContentType := AMediaType;
+          AContext.Response.StatusCode := 304;
+          Exit;
+        end
+      end;
+      AContext.Response.SetCustomHeader('Last-Modified', LocalDateTimeToHttpStr(FileDate));
+      AContext.Response.SetContentStream(
+        TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone), AMediaType);
     end
     else
     begin
-      S := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
-      AContext.Response.SetCustomHeader('Last-Modified', LocalDateTimeToHttpStr(FileDate));
-      AContext.Response.SetContentStream(S, AMediaType);
+      AContext.Response.SetContentStream(
+        TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone), AMediaType);
     end;
   end;
 end;

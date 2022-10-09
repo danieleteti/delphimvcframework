@@ -1436,7 +1436,7 @@ DMVCFramework allows to create powerful RESTful servers without effort. You can 
 
 ## DelphiMVCFramework Installation
 
-- DMVCFramework *must* be installed using the [Github release](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron). Download the zip file
+- DMVCFramework *must* be installed using the [Github release](https://github.com/danieleteti/delphimvcframework/releases/latest). Download the zip file
 
 - Unzip it the release zip in a folder named `C:\dmvc` (or where you prefer).
 

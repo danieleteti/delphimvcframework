@@ -99,9 +99,11 @@ type
 implementation
 
 uses
+  MVCFramework.Logger,
   System.SysUtils,
   System.NetEncoding,
-  System.IOUtils, System.Classes;
+  System.IOUtils,
+  System.Classes;
 
 { TMVCStaticFilesMiddleware }
 
@@ -283,7 +285,9 @@ begin
 
     AHandled := SendStaticFileIfPresent(AContext, lRealFileName);
     if AHandled then
+    begin
       Exit;
+    end;
   end;
 
   // check if a directory request
@@ -335,6 +339,10 @@ begin
     end;
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
+    Log(TLogLevel.levDebug, AContext.Request.HTTPMethodAsString + ':' +
+      AContext.Request.PathInfo + ' [' + AContext.Request.ClientIp + '] -> ' +
+      ClassName + ' - ' + IntToStr(AContext.Response.StatusCode) + ' ' +
+      AContext.Response.ReasonString);
   end;
 end;
 
