@@ -67,6 +67,7 @@ begin
     lServer.MaxConnections := 0;
     lServer.ListenQueue := 200;
     lServer.Active := True;
+    WriteLn('Running on port ', APort);
     Write('CTRL+C to Quit');
     WaitForTerminationSignal;
   finally

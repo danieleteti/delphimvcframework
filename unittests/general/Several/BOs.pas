@@ -120,7 +120,7 @@ type
     [MVCTableField('creation_date')]
     fCreationDate: NullableTDate;
   public
-    procedure Assign(Customer: TCustomer); overload;
+    procedure Assign(Customer: TCustomer); reintroduce; overload;
     function Clone: TCustomer;
     function ToString: String; override;
     property ID: NullableInt32 read fID write fID;

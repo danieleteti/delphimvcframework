@@ -1391,14 +1391,21 @@ begin
         if lOwnedAttribute.ClassRef <> nil then
         begin
           ChildObject := TMVCSerializerHelper.CreateObject(lOwnedAttribute.ClassRef.QualifiedClassName);
+          AValue := ChildObject; //dt20221006
         end
         else
         begin
           case AType of
             stUnknown, stDefault, stProperties:
+            begin
               ChildObject := TMVCSerializerHelper.CreateObject(TRttiProperty(ARttiMember).PropertyType);
+              AValue := ChildObject; //dt20221006
+            end;
             stFields:
+            begin
               ChildObject := TMVCSerializerHelper.CreateObject(TRttiField(ARttiMember).FieldType);
+              AValue := ChildObject; //dt20221006
+            end;
           end;
         end;
         lTypeInfo := ChildObject.ClassInfo;

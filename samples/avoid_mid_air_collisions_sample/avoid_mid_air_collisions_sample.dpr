@@ -13,10 +13,32 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdContext,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Phys.MySQL,
+  FireDAC.Phys.MySQLDef,
+  FireDAC.VCLUI.Wait,
+  Data.DB,
+  FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  MVCFramework.SQLGenerators.PostgreSQL,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas';
+  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
+  Entities in '..\activerecord_restful_crud\Entities.pas',
+  MVCFramework.ActiveRecord;
 
 {$R *.res}
 
@@ -53,10 +75,46 @@ end;
 
 procedure LoadFakeData;
 begin
-  TMVCCacheSingleton.Instance.SetValue('1', TPerson.GetNew(1, 'Daniele','Teti'));
-  TMVCCacheSingleton.Instance.SetValue('2', TPerson.GetNew(2, 'Peter','Parker'));
-  TMVCCacheSingleton.Instance.SetValue('3', TPerson.GetNew(3, 'Bruce','Banner'));
-  TMVCCacheSingleton.Instance.SetValue('4', TPerson.GetNew(4, 'Sue','Storm'));
+  ActiveRecordConnectionsRegistry.AddDefaultConnection('activerecorddb');
+  try
+    TMVCActiveRecord.DeleteAll(TPerson);
+
+    with TPerson.Create do
+    try
+      FirstName := 'Daniele';
+      LastName := 'Teti';
+      DOB := nil;
+      IsMale := True;
+      Insert;
+    finally
+      Free;
+    end;
+
+    with TPerson.Create do
+    try
+      FirstName := 'Peter';
+      LastName := 'Parker';
+      DOB := EncodeDate(1960,10,11);
+      IsMale := True;
+      Insert;
+    finally
+      Free;
+    end;
+
+    with TPerson.Create do
+    try
+      FirstName := 'Sue';
+      LastName := 'Storm';
+      DOB := EncodeDate(1970,2,11);
+      IsMale := False;
+      Insert;
+    finally
+      Free;
+    end;
+
+  finally
+    ActiveRecordConnectionsRegistry.RemoveDefaultConnection();
+  end;
 end;
 
 begin

@@ -27,8 +27,8 @@ uses
 procedure TMyController.Index;
 begin
   Render(ObjectDict().Add('people',
-    TMVCActiveRecord.SelectRQL<TPerson>('and(gt(id, 2),lt(id,6))', 100)
-    //TMVCActiveRecord.All<TPerson>
+    //TMVCActiveRecord.SelectRQL<TPerson>('and(gt(id, 2),lt(id,6))', 100)
+    TMVCActiveRecord.SelectRQL<TPerson>('sort(+personSurname)', 10)
     ));
 end;
 

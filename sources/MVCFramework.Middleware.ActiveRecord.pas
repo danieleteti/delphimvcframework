@@ -112,7 +112,10 @@ begin
       begin
         FDManager.ConnectionDefFileAutoLoad := False;
         FDManager.ConnectionDefFileName := fConnectionDefFileName;
-        FDManager.LoadConnectionDefFile;
+        if not FDManager.ConnectionDefFileLoaded then
+        begin
+          FDManager.LoadConnectionDefFile;
+        end;
         if not FDManager.IsConnectionDef(fConnectionDefName) then
         begin
           raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',

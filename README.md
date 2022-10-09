@@ -269,13 +269,13 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 
-- ✅ Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+- ✅ Improved! MVCActiveRecord does a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
 
 - ✅ Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
 
 - ✅ Improved Nullable Types. Now it's possible to assign `nil` to a nullable type and to check its state using the new property `IsNull` which is the negation of the already available property `HasValue`.
 
-- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the documetn web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
+- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the document web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
 
 - ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
 
@@ -1415,6 +1415,11 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 ### What's New in 3.2.3-radium-beta
 - Fixed a rendering problem in swagger interface format in case of specific JSON structure
+- Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
+- Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
+- Improved handling of `TMVCErrorResponse` information 
+- mid-air-collision handling now uses SHA1 instead of MD5
+- Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes wich its `ReasonString`
 
 
 ## Trainings, consultancy or custom development service
