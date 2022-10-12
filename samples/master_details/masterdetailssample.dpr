@@ -15,8 +15,6 @@ uses
   Controllers.Orders in 'Controllers.Orders.pas',
   BusinessObjects in 'BusinessObjects.pas',
   Commons in 'Commons.pas',
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas';
 
 {$R *.res}
