@@ -1415,16 +1415,75 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 ### What's New in 3.2.3-radium-beta
 - Fixed a rendering problem in swagger interface format in case of specific JSON structure
+
 - Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
+
 - Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
+
 - Improved handling of `TMVCErrorResponse` information 
+
 - mid-air-collision handling now uses SHA1 instead of MD5
-- Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes wich its `ReasonString`
+
+- Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`
+
+- New built-in profiler (usable with Delphi 10.4+) - to profile a block of code, write the following 
+
+  ```delphi
+  procedure TMyController.ProfilerSample1;
+  begin
+    NotProfiled(); //this line is not profiled
+    //the following begin..end block will be profiled
+    //timing will be saved in a "profiler" log
+    begin var lProf := Profiler.Start(Context.ActionQualifiedName);
+      DoSomething();
+      DoSomethingElse();
+      Render('Just executed ' + Context.ActionQualifiedName);
+    end; // profiler writes automatically to the log
+    NotProfiled(); //this line is not profiled
+  end;
+  
+  procedure TMyController.DoSomething;
+  begin
+    begin var lProf := Profiler.Start('DoSomething');
+      Sleep(100);
+    end;
+  end;
+  
+  procedure TMyController.DoSomethingElse;
+  begin
+    begin var lProf := Profiler.Start('DoSomethingElse');
+      Sleep(100);
+      DoSomething();
+    end;
+  end;
+  
+  procedure TMyController.NotProfiled;
+  begin
+    Sleep(100);
+  end;
+  ```
+
+  The log contains the following lines - check the caller/called relationship shown using `>>` and `<<` and the deep level
+
+  ```
+  [>>][     1][MainControllerU.TMyController.ProfilerSample1] [profiler]
+  [ >>][     2][DoSomething] [profiler]
+  [ <<][     2][DoSomething][ELAPSED: 00:00:00.1088214] [profiler]
+  [ >>][     2][DoSomethingElse] [profiler]
+  [  >>][     3][DoSomething] [profiler]
+  [  <<][     3][DoSomething][ELAPSED: 00:00:00.1096617] [profiler]
+  [ <<][     2][DoSomethingElse][ELAPSED: 00:00:00.2188468] [profiler]
+  [<<][     1][MainControllerU.TMyController.ProfilerSample1][ELAPSED: 00:00:00.3277806] [profiler]
+  ```
+
+  To get more info check the "profiling" example
+
+- New `Context` property named `ActionQualifiedName` which contains the currently executed action in the form `UnitName.ClassName.ActionName`. It is available where the `Context` property is available. Obviously is not available in the `OnBeforeRouting` middleware events.
 
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
-If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, all the main developers works there.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, the lead developer works there.
 
 ## Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.

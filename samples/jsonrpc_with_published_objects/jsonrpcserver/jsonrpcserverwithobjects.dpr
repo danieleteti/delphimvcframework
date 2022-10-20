@@ -15,11 +15,10 @@ uses
   MVCFramework.Signal,
   MyObjectU in 'MyObjectU.pas',
   MainWebModuleU in 'MainWebModuleU.pas' {MyWebModule: TWebModule},
-  MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
-  BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
-  RandomUtilsU in '..\commons\RandomUtilsU.pas',
-  MainDM in '..\articles_crud_server\MainDM.pas' {dmMain: TDataModule},
-  CommonTypesU in 'CommonTypesU.pas';
+  BusinessObjectsU in '..\..\commons\BusinessObjectsU.pas',
+  RandomUtilsU in '..\..\commons\RandomUtilsU.pas',
+  MainDM in '..\..\articles_crud_server\MainDM.pas' {dmMain: TDataModule},
+  CommonTypesU in '..\CommonTypesU.pas';
 
 {$R *.res}
 

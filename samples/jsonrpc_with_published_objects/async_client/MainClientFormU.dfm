@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'JSON-RPC 2.0 Client'
-  ClientHeight = 604
-  ClientWidth = 842
+  Caption = 'JSON-RPC 2.0 Async Client'
+  ClientHeight = 603
+  ClientWidth = 838
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,11 +15,13 @@ object MainForm: TMainForm
   object PageControl1: TPageControl
     Left = 0
     Top = 0
-    Width = 842
-    Height = 604
-    ActivePage = TabSheet6
+    Width = 838
+    Height = 603
+    ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
+    ExplicitWidth = 834
+    ExplicitHeight = 602
     object TabSheet1: TTabSheet
       Caption = 'Invoking Plain PODO'
       object GroupBox1: TGroupBox
@@ -255,6 +257,15 @@ object MainForm: TMainForm
           TabOrder = 22
           OnClick = btnExceptionClick
         end
+        object btnParallel: TButton
+          Left = 320
+          Top = 134
+          Width = 131
+          Height = 25
+          Caption = 'Parallel Calls'
+          TabOrder = 23
+          OnClick = btnParallelClick
+        end
       end
       object GroupBox2: TGroupBox
         Left = 3
@@ -357,7 +368,7 @@ object MainForm: TMainForm
         Top = 202
         Width = 304
         Height = 367
-        ActivePage = TabSheet4
+        ActivePage = TabSheet3
         TabOrder = 3
         object TabSheet3: TTabSheet
           Caption = 'Get DataSet'
@@ -526,8 +537,8 @@ object MainForm: TMainForm
       Caption = 'Using record as parameters'
       ImageIndex = 3
       DesignSize = (
-        834
-        576)
+        830
+        575)
       object btnSingleRec: TButton
         Left = 16
         Top = 16
@@ -540,8 +551,8 @@ object MainForm: TMainForm
       object lbLogRec: TMemo
         Left = 216
         Top = 16
-        Width = 601
-        Height = 545
+        Width = 589
+        Height = 544
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText

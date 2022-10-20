@@ -306,6 +306,7 @@ type
     function GetError: TJSONRPCResponseError;
     function GetID: TValue;
     function GetResult: TValue;
+    procedure CheckForError;
     function ResultAsJSONObject: TJDOJsonObject;
     function ResultAsJSONArray: TJDOJsonArray;
     function IsError: Boolean;
@@ -335,6 +336,9 @@ type
     property ErrMessage: String read fErrMessage;
   end;
 
+  EMVCJSONRPCProtocolException = class(EMVCJSONRPCRemoteException)
+
+  end;
 
   EMVCJSONRPCErrorResponse = class abstract(Exception)
   protected
@@ -2182,7 +2186,6 @@ begin
 end;
 
 { TJSONRCPResponse }
-
 constructor TJSONRPCResponse.Create;
 begin
   inherited;
@@ -2698,6 +2701,11 @@ begin
 end;
 
 { TJSONRPCNullResponse }
+
+procedure TJSONRPCNullResponse.CheckForError;
+begin
+
+end;
 
 function TJSONRPCNullResponse.GetError: TJSONRPCResponseError;
 begin

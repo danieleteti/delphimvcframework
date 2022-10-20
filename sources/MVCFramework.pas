@@ -536,6 +536,7 @@ type
     function GetIntfObject: IInterface;
     procedure SetIntfObject(const Value: IInterface);
   protected
+    fActionQualifiedName: String;
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
     function SendSessionCookie(const AContext: TWebContext): string;
@@ -564,6 +565,7 @@ type
     property Data: TMVCStringDictionary read GetData;
     property CustomIntfObject: IInterface read GetIntfObject write SetIntfObject;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
+    property ActionQualifiedName: String read fActionQualifiedName;
   end;
 
   TMVCJSONRPCExceptionErrorInfo = record
@@ -2396,6 +2398,8 @@ var
   lHandled: Boolean;
   lResponseContentMediaType: string;
   lResponseContentCharset: string;
+  lRouterMethodToCallName: string;
+  lRouterControllerClazzQualifiedClassName: string;
   lSelectedController: TMVCController;
   lActionFormalParams: TArray<TRttiParameter>;
   lActualParams: TArray<TValue>;
@@ -2457,12 +2461,21 @@ begin
                       'Cannot create controller');
                   end;
                 end;
+                lRouterMethodToCallName := lRouter.MethodToCall.Name;
+                lRouterControllerClazzQualifiedClassName := lRouter.ControllerClazz.QualifiedClassName;
+
+                MVCFramework.Logger.InitThreadVars;
+
+                lContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
                 lSelectedController.Engine := Self;
                 lSelectedController.Context := lContext;
                 lSelectedController.ApplicationSession := FApplicationSession;
                 lContext.ParamsTable := lParamsTable;
-                ExecuteBeforeControllerActionMiddleware(lContext,
-                  lRouter.ControllerClazz.QualifiedClassName, lRouter.MethodToCall.name, lHandled);
+                ExecuteBeforeControllerActionMiddleware(
+                  lContext,
+                  lRouterControllerClazzQualifiedClassName,
+                  lRouterMethodToCallName,
+                  lHandled);
                 if lHandled then
                   Exit(True);
 
@@ -2485,15 +2498,15 @@ begin
                   else
                   begin
                     FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
-                      lRouter.MethodToCall.name, lActualParams, lBodyParameter);
+                      lRouterMethodToCallName, lActualParams, lBodyParameter);
                   end;
-                  lSelectedController.OnBeforeAction(lContext, lRouter.MethodToCall.name, lHandled);
+                  lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
                   if not lHandled then
                   begin
                     try
                       lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
                     finally
-                      lSelectedController.OnAfterAction(lContext, lRouter.MethodToCall.name);
+                      lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
                     end;
                   end;
                 finally
@@ -2509,8 +2522,8 @@ begin
                   lSelectedController.MVCControllerBeforeDestroy;
                 end;
                 ExecuteAfterControllerActionMiddleware(lContext,
-                  lRouter.ControllerClazz.QualifiedClassName,
-                  lRouter.MethodToCall.name,
+                  lRouterControllerClazzQualifiedClassName,
+                  lRouterMethodToCallName,
                   lHandled);
                 lContext.Response.ContentType := lSelectedController.ContentType;
                 fOnRouterLog(lRouter, rlsRouteFound, lContext);
