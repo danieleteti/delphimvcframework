@@ -1145,6 +1145,10 @@ begin
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger = 1);
         end
+		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
+        begin
+          TValue(AField.AsInteger).ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
+        end
         else
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger);

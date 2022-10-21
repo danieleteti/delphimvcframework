@@ -2037,7 +2037,7 @@ begin
         end
         else
         begin
-          aParam.AsInteger := Ord(aValue.AsInteger);
+          aParam.AsInteger := aValue.AsOrdinal;
         end;
       end;
     tkFloat:
