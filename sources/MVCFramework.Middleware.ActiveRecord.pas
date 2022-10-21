@@ -140,7 +140,7 @@ end;
 
 procedure TMVCActiveRecordMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
-  ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
+  ActiveRecordConnectionsRegistry.RemoveDefaultConnection(False);
 end;
 
 procedure TMVCActiveRecordMiddleware.OnBeforeControllerAction(
