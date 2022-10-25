@@ -234,6 +234,8 @@
         <DCCReference Include="Entities.pas"/>
         <DCCReference Include="EntitiesProcessors.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Nullables.pas"/>
+        <DCCReference Include="IntfObjectPoolTestU.pas"/>
+        <DCCReference Include="ObjectPoolTestU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -329,9 +331,21 @@
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="CONSOLE" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="CONSOLE" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="GUI" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
                 <DeployClass Name="AdditionalDebugSymbols">

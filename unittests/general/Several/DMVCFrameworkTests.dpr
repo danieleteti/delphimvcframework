@@ -69,7 +69,9 @@ uses
   MVCFramework.RQL.Parser in '..\..\..\sources\MVCFramework.RQL.Parser.pas',
   Entities in 'Entities.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
-  MVCFramework.Nullables in '..\..\..\sources\MVCFramework.Nullables.pas';
+  MVCFramework.Nullables in '..\..\..\sources\MVCFramework.Nullables.pas',
+  IntfObjectPoolTestU in 'IntfObjectPoolTestU.pas',
+  ObjectPoolTestU in 'ObjectPoolTestU.pas';
 
 {$R *.RES}
 
