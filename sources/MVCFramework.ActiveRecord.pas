@@ -1160,7 +1160,7 @@ begin
         if foPrimaryKey in MVCTableFieldAttribute(lAttribute).FieldOptions then
         begin
           fPrimaryKey := lRTTIField;
-          lPrimaryFieldTypeAsStr := fPrimaryKey.FieldType.ToString.ToLower;
+          lPrimaryFieldTypeAsStr := fPrimaryKey.FieldType.ToString.ToLowerInvariant;
           if lPrimaryFieldTypeAsStr.EndsWith('int64') then
           begin
             fPrimaryKeyFieldType := ftLargeInt;

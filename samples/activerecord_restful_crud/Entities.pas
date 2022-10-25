@@ -179,7 +179,7 @@ begin
   inherited;
   if fDOB.HasValue then
   begin
-    fAge := Yearsbetween(fDOB, now);
+    fAge := YearsBetween(fDOB, now);
   end
   else
   begin

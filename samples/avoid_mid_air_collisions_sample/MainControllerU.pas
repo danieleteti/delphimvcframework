@@ -88,7 +88,7 @@ begin
     lPerson.Assign(Person);
     lPerson.Update();
 
-    //set the new ETag value base on the data status
+    //(optional) set the new ETag value base on the data status
     SetETag(lPerson.GetUniqueString);
 
     //reply with a 200 OK

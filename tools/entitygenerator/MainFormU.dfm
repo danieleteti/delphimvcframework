@@ -32,8 +32,8 @@ object MainForm: TMainForm
     ActivePage = tsTablesMapping
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 1189
-    ExplicitHeight = 644
+    ExplicitWidth = 1169
+    ExplicitHeight = 542
     object tsConnectionDefinition: TTabSheet
       Caption = 'Connection Definition'
       ImageIndex = 1
@@ -57,11 +57,10 @@ object MainForm: TMainForm
           AlignWithMargins = True
           Left = 4
           Top = 4
-          Width = 1157
+          Width = 152
           Height = 13
           Align = alTop
           Caption = 'FireDAC connection parameters'
-          ExplicitWidth = 152
         end
         object mmConnectionParams: TMemo
           AlignWithMargins = True
@@ -118,10 +117,6 @@ object MainForm: TMainForm
               Align = alClient
               ItemHeight = 13
               TabOrder = 0
-              ExplicitLeft = 191
-              ExplicitTop = 50
-              ExplicitWidth = 191
-              ExplicitHeight = 386
             end
           end
         end
@@ -152,7 +147,7 @@ object MainForm: TMainForm
           Left = 573
           Top = 11
           Width = 581
-          Height = 67
+          Height = 63
           Margins.Left = 10
           Margins.Top = 10
           Margins.Right = 10
@@ -165,8 +160,6 @@ object MainForm: TMainForm
             'generated from that set of tables.'
           Layout = tlCenter
           WordWrap = True
-          ExplicitLeft = 589
-          ExplicitHeight = 63
         end
         object cboConnectionDefs: TComboBox
           AlignWithMargins = True
@@ -192,8 +185,8 @@ object MainForm: TMainForm
         Caption = 'Panel3'
         ShowCaption = False
         TabOrder = 0
-        ExplicitWidth = 1181
-        ExplicitHeight = 608
+        ExplicitWidth = 1161
+        ExplicitHeight = 506
         object Panel4: TPanel
           Left = 1
           Top = 1
@@ -204,6 +197,7 @@ object MainForm: TMainForm
           Caption = 'Panel4'
           ShowCaption = False
           TabOrder = 0
+          ExplicitWidth = 1159
           DesignSize = (
             1163
             151)
@@ -216,8 +210,7 @@ object MainForm: TMainForm
             Anchors = [akRight, akBottom]
             Caption = 'Generate Entities'
             TabOrder = 0
-            ExplicitLeft = 1232
-            ExplicitTop = 57
+            ExplicitLeft = 1212
           end
           object chkGenerateMapping: TCheckBox
             AlignWithMargins = True
@@ -234,8 +227,7 @@ object MainForm: TMainForm
             State = cbChecked
             TabOrder = 1
             WordWrap = True
-            ExplicitLeft = 9
-            ExplicitTop = 119
+            ExplicitWidth = 1146
           end
           object rgNameCase: TRadioGroup
             Left = 7
@@ -276,9 +268,8 @@ object MainForm: TMainForm
           ActivePage = TabSheet1
           Align = alClient
           TabOrder = 1
-          ExplicitTop = 311
-          ExplicitWidth = 1173
-          ExplicitHeight = 293
+          ExplicitWidth = 1153
+          ExplicitHeight = 296
           object TabSheet1: TTabSheet
             Caption = 'Tables'
             object DBGrid1: TDBGrid
@@ -330,8 +321,8 @@ object MainForm: TMainForm
               Align = alBottom
               BevelOuter = bvNone
               TabOrder = 1
-              ExplicitLeft = -3
-              ExplicitTop = 132
+              ExplicitTop = 219
+              ExplicitWidth = 1145
               object Label4: TLabel
                 Left = 3
                 Top = 9
@@ -359,6 +350,7 @@ object MainForm: TMainForm
           Caption = 'Panel10'
           ShowCaption = False
           TabOrder = 2
+          ExplicitWidth = 1159
           object SpeedButton1: TSpeedButton
             AlignWithMargins = True
             Left = 180
@@ -425,6 +417,8 @@ object MainForm: TMainForm
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
+    ExplicitTop = 632
+    ExplicitWidth = 1169
     object btnPrev: TButton
       AlignWithMargins = True
       Left = 956
@@ -434,8 +428,7 @@ object MainForm: TMainForm
       Action = TabPreviousTab1
       Align = alRight
       TabOrder = 0
-      ExplicitLeft = 972
-      ExplicitHeight = 38
+      ExplicitLeft = 952
     end
     object btnNext: TButton
       AlignWithMargins = True
@@ -446,8 +439,7 @@ object MainForm: TMainForm
       Action = TabNextTab1
       Align = alRight
       TabOrder = 1
-      ExplicitLeft = 1082
-      ExplicitHeight = 38
+      ExplicitLeft = 1062
     end
     object Panel5: TPanel
       AlignWithMargins = True
@@ -461,7 +453,6 @@ object MainForm: TMainForm
       Caption = 'Panel5'
       ShowCaption = False
       TabOrder = 2
-      ExplicitHeight = 71
       object Label6: TLabel
         Left = 7
         Top = 11
@@ -504,7 +495,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     Caption = 'Panel12'
     TabOrder = 2
-    ExplicitTop = 601
+    ExplicitTop = 545
+    ExplicitWidth = 1169
     object lbLog: TListBox
       Left = 0
       Top = 0
@@ -522,6 +514,7 @@ object MainForm: TMainForm
       ParentFont = False
       ScrollWidth = 5000
       TabOrder = 0
+      ExplicitWidth = 1169
     end
   end
   object FDConnection: TFDConnection
@@ -964,7 +957,7 @@ object MainForm: TMainForm
     Left = 840
     Top = 72
     Bitmap = {
-      494C010101000800040018001800FFFFFFFF0500FFFFFFFFFFFFFFFF424D7600
+      494C010101000800040018001800FFFFFFFF0510FFFFFFFFFFFFFFFF424D7600
       0000000000007600000028000000600000001800000001000400000000008004
       0000000000000000000000000000000000000000000000008000008000000080
       800080000000800080008080000080808000C0C0C0000000FF0000FF000000FF
@@ -1015,7 +1008,8 @@ object MainForm: TMainForm
       00000000BF81FD000000000000000000BFFFFD00000000000000000081FF8100
       0000000000000000DDFFBB000000000000000000FDFFBF000000000000000000
       FDC3BF000000000000000000F9DB9F000000000000000000FC183F0000000000
-      00000000FFBDFF000000000000000000}
+      00000000FFBDFF00000000000000000000000000000000000000000000000000
+      000000000000}
   end
   object qryMeta: TFDMetaInfoQuery
     Connection = FDConnection

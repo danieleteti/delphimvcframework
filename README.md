@@ -1479,7 +1479,8 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
   To get more info check the "profiling" example
 
 - New `Context` property named `ActionQualifiedName` which contains the currently executed action in the form `UnitName.ClassName.ActionName`. It is available where the `Context` property is available. Obviously is not available in the `OnBeforeRouting` middleware events.
-
+- [Issue 583](https://github.com/danieleteti/delphimvcframework/issues/583) (Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto)) 
+- [Issue 585](https://github.com/danieleteti/delphimvcframework/issues/585)
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
