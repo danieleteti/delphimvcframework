@@ -708,6 +708,8 @@ type
     procedure RenderResponseStream; virtual;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
+    procedure Render(const AStatusCode: Integer; const AContent: string); overload;
+    procedure Render(const AStatusCode: Integer); overload;
     // PODO renders
     procedure Render(const AStatusCode: Integer; const AObject: TObject;
       const ASerializationAction: TMVCSerializationAction = nil;
@@ -743,7 +745,7 @@ type
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '';
+    procedure RenderStatusMessage(const AStatusCode: Integer; const AReasonMessage: string = '';
       const AErrorClassName: string = ''; const ADataObject: TObject = nil); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
@@ -3596,6 +3598,17 @@ begin
   Render(AObject, AOwns, stDefault, ASerializationAction, AIgnoredFields);
 end;
 
+procedure TMVCRenderer.Render(const AStatusCode: Integer; const AContent: string);
+begin
+  SetStatusCode(AStatusCode);
+  Render(AContent);
+end;
+
+procedure TMVCRenderer.Render(const AStatusCode: Integer);
+begin
+  RenderStatusMessage(AStatusCode, HTTP_STATUS.ReasonStringFor(AStatusCode));
+end;
+
 procedure TMVCRenderer.Render(const AContent: string);
 var lContentType: string;
   lOutEncoding: TEncoding; lCharset: string;
@@ -3802,19 +3815,19 @@ begin
   SendStream(AStream, AOwns);
 end;
 
-procedure TMVCRenderer.Render(
-  const AErrorCode: Integer;
-  const AErrorMessage, AErrorClassName: string;
+procedure TMVCRenderer.RenderStatusMessage(
+  const AStatusCode: Integer;
+  const AReasonMessage, AErrorClassName: string;
   const ADataObject: TObject);
 var
   R: TMVCErrorResponse;
 begin
-  ResponseStatus(AErrorCode, AErrorMessage);
+  ResponseStatus(AStatusCode, AReasonMessage);
   R := TMVCErrorResponse.Create;
   try
-    R.StatusCode := AErrorCode;
-    R.ReasonString := HTTP_STATUS.ReasonStringFor(AErrorCode);
-    R.Message := AErrorMessage;
+    R.StatusCode := AStatusCode;
+    R.ReasonString := HTTP_STATUS.ReasonStringFor(AStatusCode);
+    R.Message := AReasonMessage;
     R.Classname := AErrorClassName;
     R.Data := ADataObject;
     Render(R, False, stProperties);
@@ -3862,15 +3875,18 @@ begin
     raise EMVCException.Create('Can not render an empty dataset.');
 end;
 
-procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: IInterface;
-const ASerializationAction: TMVCSerializationAction);
+procedure TMVCRenderer.Render(
+  const AStatusCode: Integer;
+  const AObject: IInterface;
+  const ASerializationAction: TMVCSerializationAction);
 begin
   SetStatusCode(AStatusCode);
   Render(AObject, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const AObject: IInterface;
-const ASerializationAction: TMVCSerializationAction);
+procedure TMVCRenderer.Render(
+  const AObject: IInterface;
+  const ASerializationAction: TMVCSerializationAction);
 begin
   Render(TObject(AObject), False, ASerializationAction);
 end;

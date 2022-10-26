@@ -1483,6 +1483,8 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 - Added ObjectPool and IntfObjectPool (and related unit tests). Thanks to our sponsor [Vivaticket S.p.A.](https://corporate.vivaticket.com)
 - [Issue 583](https://github.com/danieleteti/delphimvcframework/issues/583) (Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto)) 
 - [Issue 585](https://github.com/danieleteti/delphimvcframework/issues/585)
+- Method `procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '' ... ` has been renamed to `RenderStatusMessage` with a better parameter names.
+
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.

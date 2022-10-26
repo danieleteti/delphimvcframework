@@ -92,7 +92,7 @@ begin
     SetETag(lPerson.GetUniqueString);
 
     //reply with a 200 OK
-    Render(HTTP_STATUS.OK);
+    RenderStatusMessage(HTTP_STATUS.OK);
   finally
     lPerson.Free;
   end;
