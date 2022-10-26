@@ -181,7 +181,7 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 |[Centro Software](https://www.centrosoftware.com)                      | ![](docs/sponsorlogos/centrosoftware.png) |
 |[Delphi Studio ES](http://www.delphistudio.es)                         | ![](docs/sponsorlogos/delphistudio.png)   |
 |[Orion Law](https://orionlaw.com/)                                     | ![](docs/sponsorlogos/orionlaw.png)       |
-|[VIVATicket](https://www.vivaticket.com/)                              | ![](docs/sponsorlogos/vivaticket.png)     |
+|[Vivaticket](https://www.vivaticket.com/)                              | ![](docs/sponsorlogos/vivaticket.png)     |
 
 
 
@@ -1480,7 +1480,7 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
   To get more info check the "profiling" example
 
 - New `Context` property named `ActionQualifiedName` which contains the currently executed action in the form `UnitName.ClassName.ActionName`. It is available where the `Context` property is available. Obviously is not available in the `OnBeforeRouting` middleware events.
-- Added ObjectPool and IntfObjectPool (and related unit tests). Thanks to our sponsor [VIVATicket S.p.A.](https://www.vivaticket.com/)
+- Added ObjectPool and IntfObjectPool (and related unit tests). Thanks to our sponsor [Vivaticket S.p.A.](https://corporate.vivaticket.com)
 - [Issue 583](https://github.com/danieleteti/delphimvcframework/issues/583) (Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto)) 
 - [Issue 585](https://github.com/danieleteti/delphimvcframework/issues/585)
 
