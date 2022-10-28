@@ -474,27 +474,38 @@ var
   lCTypes: TComplexTypes;
   lID: Int64;
 begin
-  TMVCActiveRecord.DeleteAll(TComplexTypes);
+  if GetBackEndByConnection(TMVCActiveRecord.CurrentConnection) = TMVCActiveRecordBackEnd.PostgreSQL then
+  begin
+    TMVCActiveRecord.DeleteAll(TComplexTypes);
 
-  lCTypes := TComplexTypes.Create;
-  try
-    lCTypes.JSON := '{"field_type":"json"}';
-    lCTypes.JSONB := '{"field_type":"jsonb"}';
-    lCTypes.XML := '<field_type>xml</field_type>';
-    lCTypes.Insert;
-    lID := lCTypes.ID;
-  finally
-    lCTypes.Free;
-  end;
+    lCTypes := TComplexTypes.Create;
+    try
+      lCTypes.JSON := '{"field_type":"json"}';
+      lCTypes.JSONB := '{"field_type":"jsonb"}';
+      lCTypes.XML := '<field_type>xml</field_type>';
+      lCTypes.Insert;
+      lID := lCTypes.ID;
+    finally
+      lCTypes.Free;
+    end;
 
-  lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
-  try
-    lCTypes.JSON := '{"field_type":"json", "updated": true}';
-    lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
-    lCTypes.XML := '<field_type updated="true">xml</field_type>';
-    lCTypes.Update;
-  finally
-    lCTypes.Free;
+    lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
+    try
+      lCTypes.JSON := '{"field_type":"json", "updated": true}';
+      lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
+      lCTypes.XML := '<field_type updated="true">xml</field_type>';
+      lCTypes.Update;
+    finally
+      lCTypes.Free;
+    end;
+
+    Log('Executing ==> (jsonb_field ->> ''updated'')::bool = true');
+    lCTypes := TMVCActiveRecord.GetFirstByWhere<TComplexTypes>('(jsonb_field ->> ''updated'')::bool = true', []);
+    try
+      Log('JSON ==> ' + lCTypes.JSON);
+    finally
+      lCTypes.Free;
+    end;
   end;
 end;
 
@@ -547,7 +558,9 @@ begin
       //all the other customers will be deleted
 
       //calculate the unit-of-work to merge the lists
-      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+      var lUOW := TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges);
+      //apply the UnitOfWork
+      lUOW.Apply(
         procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
         begin
           Handled := False; //set it to true to execute action manually
@@ -557,6 +570,8 @@ begin
             eaDelete: Log('Deleting Customer  : ' + Customer.ToString);
           end;
         end);
+
+
     finally
       lCustomersChanges.Free;
     end;

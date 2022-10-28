@@ -130,6 +130,26 @@ type
     property OrderItems: TObjectList<TOrderDetail> read fDetails;
   end;
 
+  [MVCNameCase(ncCamelCase)]
+  TOrderIn = class
+  private
+    fID: NullableUInt64;
+    fIDCustomer: NullableUInt64;
+    fOrderDate: NullableTDate;
+    fTotal: NullableCurrency;
+    [MVCOwned(TOrderDetail)]
+    fDetails: TObjectList<TOrderDetail>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property ID: NullableUInt64 read fID write fID;
+    [MVCNameAs('idCustomer')]
+    property IDCustomer: NullableUInt64 read fIDCustomer write fIDCustomer;
+    property OrderDate: NullableTDate read fOrderDate write fOrderDate;
+    property Total: NullableCurrency read fTotal write fTotal;
+    property OrderItems: TObjectList<TOrderDetail> read fDetails;
+  end;
+
 implementation
 
 uses
@@ -297,5 +317,19 @@ begin
   end;
 end;
 
+
+{ TOrderIn }
+
+constructor TOrderIn.Create;
+begin
+  inherited;
+  fDetails := TObjectList<TOrderDetail>.Create(true);
+end;
+
+destructor TOrderIn.Destroy;
+begin
+  fDetails.Free;
+  inherited;
+end;
 
 end.

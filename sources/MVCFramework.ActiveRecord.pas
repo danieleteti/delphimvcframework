@@ -654,9 +654,34 @@ type
     destructor Destroy; override;
   end;
 
+  TMVCActiveRecordBackEnd = record
+  public
+  const
+    Unknown = 'unknown';
+    Oracle = 'oracle';
+    MSSql = 'mssql';
+    MSAccess  = 'msaccess';
+    MySQL ='mysql';
+    DB2 = 'db2';
+    SQLAnywhere = 'sqlanywhere';
+    Advantage = 'advantage';
+    Interbase = 'interbase';
+    FirebirdSQL = 'firebird';
+    SQLite = 'sqlite';
+    PostgreSQL = 'postgresql';
+    NexusDB = 'nexusdb';
+    DataSnap = 'dataSnap';
+    Informix = 'informix';
+    Teradata = 'teradata';
+    MongoDB = 'mongodb';
+    Other = 'other';
+  end;
+
 function ActiveRecordConnectionsRegistry: IMVCActiveRecordConnections;
 function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
 function GetBackEndByConnection(aConnection: TFDConnection): string;
+
+
 
 implementation
 
@@ -681,41 +706,41 @@ function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
   case Ord(aConnection.RDBMSKind) of
     0:
-      Exit('unknown');
+      Exit(TMVCActiveRecordBackEnd.Unknown);
     1:
-      Exit('oracle');
+      Exit(TMVCActiveRecordBackEnd.Oracle);
     2:
-      Exit('mssql');
+      Exit(TMVCActiveRecordBackEnd.MSSql);
     3:
-      Exit('msaccess');
+      Exit(TMVCActiveRecordBackEnd.MSAccess);
     4:
-      Exit('mysql');
+      Exit(TMVCActiveRecordBackEnd.MySQL);
     5:
-      Exit('db2');
+      Exit(TMVCActiveRecordBackEnd.DB2);
     6:
-      Exit('sqlanywhere');
+      Exit(TMVCActiveRecordBackEnd.SQLAnywhere);
     7:
-      Exit('advantage');
+      Exit(TMVCActiveRecordBackEnd.Advantage);
     8:
-      Exit('interbase');
+      Exit(TMVCActiveRecordBackEnd.Interbase);
     9:
-      Exit('firebird');
+      Exit(TMVCActiveRecordBackEnd.FirebirdSQL);
     10:
-      Exit('sqlite');
+      Exit(TMVCActiveRecordBackEnd.SQLite);
     11:
-      Exit('postgresql');
+      Exit(TMVCActiveRecordBackEnd.PostgreSQL);
     12:
-      Exit('nexusdb');
+      Exit(TMVCActiveRecordBackEnd.NexusDB);
     13:
-      Exit('dataSnap');
+      Exit(TMVCActiveRecordBackEnd.DataSnap);
     14:
-      Exit('informix');
+      Exit(TMVCActiveRecordBackEnd.Informix);
     15:
-      Exit('teradata');
+      Exit(TMVCActiveRecordBackEnd.Teradata);
     16:
-      Exit('mongodb');
+      Exit(TMVCActiveRecordBackEnd.MongoDB);
     17:
-      Exit('other');
+      Exit(TMVCActiveRecordBackEnd.Other);
   else
     raise EMVCActiveRecord.Create('Unknown RDBMS Kind');
   end;

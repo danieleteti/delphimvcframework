@@ -542,7 +542,7 @@ object MainForm: TMainForm
       object lbLogRec: TMemo
         Left = 216
         Top = 16
-        Width = 597
+        Width = 593
         Height = 545
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = ANSI_CHARSET
@@ -555,6 +555,7 @@ object MainForm: TMainForm
         ScrollBars = ssBoth
         TabOrder = 1
         WordWrap = False
+        ExplicitWidth = 597
         ExplicitHeight = 544
       end
       object btnGetArrayOfRecords: TButton

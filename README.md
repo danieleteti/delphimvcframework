@@ -284,7 +284,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
 
-- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (check `activerecord_showcase` sample project).
 
 - ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
 
@@ -1484,6 +1484,7 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 - [Issue 583](https://github.com/danieleteti/delphimvcframework/issues/583) (Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto)) 
 - [Issue 585](https://github.com/danieleteti/delphimvcframework/issues/585)
 - Method `procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '' ... ` has been renamed to `RenderStatusMessage` with a better parameter names.
+- `IMVCJSONRPCExecutor` supports async call. Thanks to our sponsor [Orion Law](https://orionlaw.com/). Check the new Async sample in `samples\jsonrpc_with_published_objects\`.
 
 
 ## Trainings, consultancy or custom development service

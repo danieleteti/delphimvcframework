@@ -583,8 +583,7 @@ begin
   lIDBad := CreateACustomer('Daniele', 1);
   lIDGood := CreateACustomer('Jack', 5);
 
-  var
-  lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
+  var lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
   try
     Assert.IsNotNull(lAGoodCustomer);
   finally
@@ -598,8 +597,7 @@ begin
     lAGoodCustomer.Free;
   end;
 
-  var
-  lCustomer := TBadCustomer.Create;
+  var lCustomer := TBadCustomer.Create;
   try
     lCustomer.LoadByPK(lIDBad);
     lCustomer.Rating := 5;
@@ -609,8 +607,7 @@ begin
     lCustomer.Free;
   end;
 
-  var
-  lCustomer1 := TGoodCustomer.Create;
+  var lCustomer1 := TGoodCustomer.Create;
   try
     lCustomer1.LoadByPK(lIDGood);
     lCustomer1.Rating := 1;
@@ -629,8 +626,7 @@ begin
     CreateACustomer('Company' + I.ToString, I);
   end;
 
-  var
-  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
+  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
   try
     Assert.AreEqual(2, lGoodCustomers.Count);
   finally
@@ -658,6 +654,8 @@ begin
   finally
     lGoodCustomers.Free;
   end;
+
+
 end;
 
 procedure TTestActiveRecordBase.TestDefaultFilteringSelectOneByRQL;
@@ -1344,11 +1342,9 @@ begin
   CreateACustomer('Jack', 'Rome', 2);
   CreateACustomer('Bruce', 'Tokyo', 3);
   CreateACustomer('John', 'New York', 4);
-  var
-  lID5 := CreateACustomer('Scott', 'New York', 5);
+  var lID5 := CreateACustomer('Scott', 'New York', 5);
 
-  var
-  lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
+  var lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
   try
     lGoodNewYorkCustomer.Delete;
     Assert.Pass;

@@ -729,24 +729,24 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestCustomerEchoWithRootNode;
-var
-  lCustomer1, lCustomer2: TCustomer;
-begin
-  lCustomer1 := Context.Request.BodyAs<TCustomer>('customer1');
-  try
-    lCustomer2 := Context.Request.BodyAs<TCustomer>('customer2');
+  procedure TTestServerController.TestCustomerEchoWithRootNode;
+  var
+    lCustomer1, lCustomer2: TCustomer;
+  begin
+    lCustomer1 := Context.Request.BodyAs<TCustomer>('customer1');
     try
-      Render(ObjectDict(False)
-        .Add('customer1', lCustomer1)
-        .Add('customer2', lCustomer2));
+      lCustomer2 := Context.Request.BodyAs<TCustomer>('customer2');
+      try
+        Render(ObjectDict(False)
+          .Add('customer1', lCustomer1)
+          .Add('customer2', lCustomer2));
+      finally
+        lCustomer2.Free;
+      end;
     finally
-      lCustomer2.Free;
+      lCustomer1.Free;
     end;
-  finally
-    lCustomer1.Free;
   end;
-end;
 
 procedure TTestServerController.TestDeserializeAndSerializeNullables;
 var
