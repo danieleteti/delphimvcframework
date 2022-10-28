@@ -281,7 +281,7 @@ type
 {$IFNDEF LINUX}
     property Logo: TBitmap read fLogo write SetLogo;
 {$ENDIF}
-    class function GetList: TObjectList<TCustomer>;
+    class function GetList(Count: Integer = 1000): TObjectList<TCustomer>;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -504,13 +504,13 @@ begin
   inherited;
 end;
 
-class function TCustomer.GetList: TObjectList<TCustomer>;
+class function TCustomer.GetList(Count: Integer): TObjectList<TCustomer>;
 var
   C1: TCustomer;
   I: Integer;
 begin
   Result := TObjectList<TCustomer>.Create(true);
-  for I := 1 to 1000 do
+  for I := 1 to Count do
   begin
     C1 := TCustomer.Create;
     C1.name := I.ToString + ': bit Time Professionals';

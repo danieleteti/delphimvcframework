@@ -90,6 +90,8 @@ type
     [Test]
     procedure TestCustomerEcho;
     [Test]
+    procedure TestCustomerEchoWithRootNode;
+    [Test]
     procedure TestEchoWithAllVerbs;
     [Test]
     procedure TestCustomerEchoBodyFor;
@@ -902,6 +904,84 @@ begin
       THashMD5.GetHashStringFromFile('customer_logo_after_received.bmp'));
   finally
     lCustomer.Free;
+  end;
+end;
+
+procedure TServerTest.TestCustomerEchoWithRootNode;
+var
+  r: IMVCRESTResponse;
+  lCustomer1, lCustomer2: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lJSON: TJSONObject;
+  lSer: IMVCSerializer;
+begin
+  lSer := GetDefaultSerializer;
+  RegisterOptionalCustomTypesSerializers(lSer);
+  lCustomers := TCustomer.GetList(2);
+  try
+    lJSON := TJsonObject.Create;
+    try
+    (lSer as TMVCJsonDataObjectsSerializer)
+      .ObjectToJsonObject(lCustomers[0], lJSON.O['customer1'], TMVCSerializationType.stDefault, []);
+    (lSer as TMVCJsonDataObjectsSerializer)
+      .ObjectToJsonObject(lCustomers[1], lJSON.O['customer2'], TMVCSerializationType.stDefault, []);
+    r := RESTClient
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/customerecho2', lJSON.ToJSON);
+    finally
+      lJSON.Free;
+    end;
+
+
+    lJSON := StrToJSONObject(r.Content);
+    try
+      lCustomer1 := TCustomer.Create;
+      try
+        (lSer as TMVCJsonDataObjectsSerializer)
+          .JsonObjectToObject(
+            lJSON.O['customer1'],
+            lCustomer1,
+            TMVCSerializationType.stDefault,
+            []
+            );
+
+          Assert.AreEqual(lCustomers[0].name, lCustomer1.name);
+          Assert.AreEqual('', lCustomer1.ContactFirst);
+          Assert.AreEqual('', lCustomer1.ContactLast);
+          Assert.AreEqual(lCustomers[0].AddressLine1, lCustomer1.AddressLine1);
+          Assert.AreEqual(lCustomers[0].AddressLine2, lCustomer1.AddressLine2);
+          Assert.AreEqual(lCustomers[0].Logo.Width, lCustomer1.Logo.Width);
+          Assert.AreEqual(lCustomers[0].Logo.Height, lCustomer1.Logo.Height);
+
+        lCustomer2 := TCustomer.Create;
+        try
+          (lSer as TMVCJsonDataObjectsSerializer)
+            .JsonObjectToObject(
+              lJSON.O['customer2'],
+              lCustomer2,
+              TMVCSerializationType.stDefault,
+              []
+              );
+
+          Assert.AreEqual(lCustomers[1].name, lCustomer2.name);
+          Assert.AreEqual('', lCustomer2.ContactFirst);
+          Assert.AreEqual('', lCustomer2.ContactLast);
+          Assert.AreEqual(lCustomers[1].AddressLine1, lCustomer2.AddressLine1);
+          Assert.AreEqual(lCustomers[1].AddressLine2, lCustomer2.AddressLine2);
+          Assert.AreEqual(lCustomers[1].Logo.Width, lCustomer2.Logo.Width);
+          Assert.AreEqual(lCustomers[1].Logo.Height, lCustomer2.Logo.Height);
+
+        finally
+          lCustomer2.Free;
+        end;
+      finally
+        lCustomer1.Free;
+      end;
+    finally
+      lJSON.Free;
+    end;
+  finally
+    lCustomers.Free;
   end;
 end;
 

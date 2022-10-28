@@ -132,7 +132,6 @@ begin
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
-//    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', 'www', 'index.html', False))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
 {$IFDEF MSWINDOWS}
