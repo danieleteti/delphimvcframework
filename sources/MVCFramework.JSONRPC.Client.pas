@@ -108,6 +108,11 @@ type
     function SetOnReceiveHTTPResponseAsync(const aOnReceiveHTTPResponseAsync: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     function SetOnBeginAsyncRequest(const Proc: TProc): IMVCJSONRPCExecutor;
     function SetOnEndAsyncRequest(const Proc: TProc): IMVCJSONRPCExecutor;
+    /// <summary>
+    ///   Invoked internally just before each async requests/notifications.
+    ///   Use it to customize properties and events of HTTP client used in async operations.
+    /// </summary>
+    function SetConfigureHTTPClientAsync(const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //end events
 
   end;
@@ -133,6 +138,7 @@ type
     fOnReceiveResponseAsync: TProc<IJSONRPCObject, IJSONRPCObject>;
     fOnBeginAsyncRequest: TProc;
     fOnEndAsyncRequest: TProc;
+    fConfigProcAsync: TProc<THTTPClient>;
     //end async events
     function GetHTTPRequestHeaders: TList<TNetHeader>;
     procedure DoBeginAsyncRequest;
@@ -205,6 +211,7 @@ type
     function SetOnReceiveResponseAsync(const aOnReceiveResponseAsyncProc: TProc<IJSONRPCObject, IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnSendCommandAsync(const aOnSendCommandAsyncProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnReceiveHTTPResponseAsync(const aOnReceiveHTTPResponseAsync: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
+    function SetConfigureHTTPClientAsync(const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //end events
     function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   public
@@ -490,6 +497,10 @@ begin
   begin
     lHTTP := THTTPClient.Create;
     try
+      if Assigned(fConfigProcAsync) then
+      begin
+        fConfigProcAsync(lHttp);
+      end;
       lHTTP.OnNeedClientCertificate := fHTTP.OnNeedClientCertificate;
       lHTTP.OnReceiveData := fHTTP.OnReceiveData;
       lHTTP.OnValidateServerCertificate := fHTTP.OnValidateServerCertificate;
@@ -583,7 +594,7 @@ begin
                 if Assigned(AJSONRPCErrorHandler) then
                   AJSONRPCErrorHandler(lCurrException)
                 else
-                  DefaultTaskErrorHandler(lCurrException, lExceptionAddress);
+                  gDefaultTaskErrorHandler(lCurrException, lExceptionAddress);
               finally
                 FreeAndNil(lCurrException);
               end;
@@ -602,6 +613,12 @@ end;
 function TMVCJSONRPCExecutor.HTTPResponse: IHTTPResponse;
 begin
   Result := fHTTPResponse;
+end;
+
+function TMVCJSONRPCExecutor.SetConfigureHTTPClientAsync(
+  const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+begin
+  fConfigProcAsync := aConfigProcAsync;
 end;
 
 function TMVCJSONRPCExecutor.SetOnBeginAsyncRequest(

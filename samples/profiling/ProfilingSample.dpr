@@ -13,8 +13,7 @@ uses
   IdContext,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas';
+  WebModuleU in 'WebModuleU.pas', MVCFramework.Logger {MyWebModule: TWebModule};
 
 {$R *.res}
 

@@ -31,22 +31,22 @@ uses
   System.Threading;
 
 type
-  TAsyncBackgroundTask<T> = reference to function: T;
-  TAsyncSuccessCallback<T> = reference to procedure(const TaskResult: T);
-  TAsyncErrorCallback = reference to procedure(const E: Exception);
-  TAsyncDefaultErrorCallback = reference to procedure(const E: Exception;
+  TMVCAsyncBackgroundTask<T> =  reference to function: T;
+  TMVCAsyncSuccessCallback<T> = reference to procedure(const BackgroundTaskResult: T);
+  TMVCAsyncErrorCallback = reference to procedure(const Expt: Exception);
+  TMVCAsyncDefaultErrorCallback = reference to procedure(const Expt: Exception;
     const ExptAddress: Pointer);
 
-  Async = class sealed
+  MVCAsync = class sealed
   public
     class function Run<T>(
-      Task: TAsyncBackgroundTask<T>;
-      Success: TAsyncSuccessCallback<T>;
-      Error: TAsyncErrorCallback = nil): ITask;
+      Task: TMVCAsyncBackgroundTask<T>;
+      Success: TMVCAsyncSuccessCallback<T>;
+      Error: TMVCAsyncErrorCallback = nil): ITask;
   end;
 
 var
-  DefaultTaskErrorHandler: TAsyncDefaultErrorCallback = nil;
+  gDefaultTaskErrorHandler: TMVCAsyncDefaultErrorCallback = nil;
 
 implementation
 
@@ -55,9 +55,10 @@ uses
 
 { Async }
 
-class function Async.Run<T>(Task: TAsyncBackgroundTask<T>;
-  Success: TAsyncSuccessCallback<T>;
-  Error: TAsyncErrorCallback): ITask;
+class function MVCAsync.Run<T>(
+  Task: TMVCAsyncBackgroundTask<T>;
+  Success: TMVCAsyncSuccessCallback<T>;
+  Error: TMVCAsyncErrorCallback): ITask;
 var
   LRes: T;
 begin
@@ -91,7 +92,7 @@ begin
               if Assigned(Error) then
                 Error(LCurrException)
               else
-                DefaultTaskErrorHandler(LCurrException, ExceptionAddress);
+                gDefaultTaskErrorHandler(LCurrException, ExceptionAddress);
             finally
               FreeAndNil(LCurrException);
             end;
@@ -102,8 +103,8 @@ end;
 
 initialization
 
-DefaultTaskErrorHandler :=
-    procedure(const E: Exception; const ExceptionAddress: Pointer)
+gDefaultTaskErrorHandler :=
+  procedure(const E: Exception; const ExceptionAddress: Pointer)
   begin
     ShowException(E, ExceptionAddress);
   end;

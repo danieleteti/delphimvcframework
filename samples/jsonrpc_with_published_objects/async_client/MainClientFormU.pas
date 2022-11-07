@@ -516,7 +516,9 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+
+  FExecutor
+    .ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(JSONRPCResp: IJSONRPCResponse)
     begin
       edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
@@ -832,6 +834,15 @@ begin
     begin
       Log.Debug('RESPONSE: ' + HTTPResp.ContentAsString(), 'jsonrpc');
     end);
+
+
+  FExecutor.SetConfigureHTTPClientAsync(
+      procedure (HTTPClient: THTTPClient)
+      begin
+        HTTPClient.ResponseTimeout := 20000;
+        HTTPClient.CustomHeaders['X-DMVCFRAMEWORK'] := 'DMVCFRAMEWORK_VERSION ' + DMVCFRAMEWORK_VERSION;
+      end);
+
 
   dtNextMonday.Date := Date;
   // these are the methods to handle http headers in JSONRPC
