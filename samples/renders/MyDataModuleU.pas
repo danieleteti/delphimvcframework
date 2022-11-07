@@ -73,6 +73,8 @@ type
     qryCustomersCOUNTRY: TStringField;
     qryCustomersPOSTAL_CODE: TStringField;
     qryCustomersON_HOLD: TStringField;
+    qryCustomersCN_HELLO: TWideStringField;
+    qryCustomersSR_HELLO: TWideStringField;
   private
     { Private declarations }
   public

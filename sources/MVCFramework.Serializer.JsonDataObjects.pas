@@ -328,7 +328,6 @@ var
   lJsonDataType: TJsonDataType;
   lTypeInfo: PTypeInfo;
   lBuffer: Pointer;
-  // lValue: TValue;
   lCurrentArrayItem: TValue;
 begin
   if SameText(AName, 'RefCount') then
