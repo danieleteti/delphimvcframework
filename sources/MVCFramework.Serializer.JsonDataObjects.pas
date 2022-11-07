@@ -338,9 +338,18 @@ begin
 
   if AValue.IsEmpty then
   begin
-    AJSONObject[AName] := Null;
+    if AValue.IsArray then
+    begin
+      AJSONObject.A[AName] := TJDOJsonArray.Create;
+    end
+    else
+    begin
+      AJSONObject[AName] := Null;
+    end;
     Exit;
   end;
+
+
 
   lTypeInfo := AValue.TypeInfo;
   // AValue.TypeInfo does not show the correct TypeInfo of the class instantiated for the object or interface
