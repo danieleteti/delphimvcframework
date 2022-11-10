@@ -1190,7 +1190,9 @@ begin
           begin
             fPrimaryKeyFieldType := ftLargeInt;
           end
-          else if lPrimaryFieldTypeAsStr.EndsWith('integer') or lPrimaryFieldTypeAsStr.EndsWith('int32') then
+          else if lPrimaryFieldTypeAsStr.EndsWith('integer')
+            or lPrimaryFieldTypeAsStr.EndsWith('int16')
+            or lPrimaryFieldTypeAsStr.EndsWith('int32') then
           begin
             fPrimaryKeyFieldType := ftInteger;
           end
@@ -1205,7 +1207,7 @@ begin
           else
           begin
             raise EMVCActiveRecord.Create
-              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int64, (Nullable)String, GUID - found: ' +
+              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int16, (Nullable)Int32, (Nullable)Int64, (Nullable)String, GUID - found: ' +
               lPrimaryFieldTypeAsStr);
           end;
           fPrimaryKeyFieldName := MVCTableFieldAttribute(lAttribute).FieldName;
@@ -1603,7 +1605,7 @@ begin
   Result := aEntityAction in fEntityAllowedActions;
   if (not Result) and aRaiseException then
     raise EMVCActiveRecord.CreateFmt
-      ('Action [%s] not allowed on entity [%s]. [HINT] Add the entity action in MVCEntityActions attribute.',
+      ('Action [%s] not allowed on entity [%s]. [HINT] If this isn''t the expected behavior, add the entity action in MVCEntityActions attribute.',
       [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]);
 end;
 
@@ -2871,7 +2873,8 @@ var
 begin
   lAR := aClass.Create;
   try
-    Result := Select(aClass, lAR.GenerateSelectSQL, []);
+    Result := Select(aClass,
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
   finally
     lAR.Free;
   end;
@@ -2888,7 +2891,8 @@ var
 begin
   lAR := T.Create;
   try
-    Result := Select<T>(lAR.GenerateSelectSQL, []);
+    Result := Select<T>(
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
   finally
     lAR.Free;
   end;
@@ -3208,6 +3212,10 @@ begin
   if not PKFieldName.IsEmpty then
   begin
     Result := Result + ' where ' + GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName);
+  end
+  else
+  begin
+    raise EMVCActiveRecord.Create('Cannot perform an update without an entity primary key');
   end;
 end;
 
@@ -3435,9 +3443,6 @@ begin
     begin
       lQry.Connection := Connection;
     end;
-//    lQry.SQL.Clear;
-//    lQry.SQL.Add(SQL);
-    // lQry.Prepare;
     if Length(ValueTypes) = 0 then
     begin
       lQry.Open(SQL, Values);

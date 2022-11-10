@@ -54,6 +54,8 @@ type
     btnTableFilter: TButton;
     btnPartitioning: TButton;
     btnCRUDWithGUID: TButton;
+    btnOOP: TButton;
+    btnReadOnly: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -78,6 +80,8 @@ type
     procedure btnTableFilterClick(Sender: TObject);
     procedure btnPartitioningClick(Sender: TObject);
     procedure btnCRUDWithGUIDClick(Sender: TObject);
+    procedure btnOOPClick(Sender: TObject);
+    procedure btnReadOnlyClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -942,6 +946,18 @@ begin
   end;
 end;
 
+procedure TMainForm.btnReadOnlyClick(Sender: TObject);
+begin
+  var lROCustomer := TMVCActiveRecord.GetFirstByWhere<TReadOnlyCustomer>('',[]);
+  try
+    lROCustomer.Code := '1234';
+    ShowMessage('An exception is going to be raised');
+    lROCustomer.Update();
+  finally
+    lROCustomer.Free;
+  end;
+end;
+
 procedure TMainForm.btnRelationsClick(Sender: TObject);
 var
   lCustomer: TCustomerEx;
@@ -1326,7 +1342,7 @@ begin
   end;
 
 
-  Log('Retrieving only best customers...');
+  Log('Retrieving only worst customers...');
 
   lNotAGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TCustomer>('eq(rating,1)', True);
   try
@@ -1527,6 +1543,44 @@ begin
     end;
   finally
     lList.Free;
+  end;
+end;
+
+procedure TMainForm.btnOOPClick(Sender: TObject);
+begin
+  Log('** OOP with ActiveRecord (person, employee, manager)');
+  TMVCActiveRecord.DeleteAll(TPerson);
+
+  var lEmployee := TEmployee.Create;
+  try
+    lEmployee.FirstName := 'Peter';
+    lEmployee.LastName := 'Parker';
+    lEmployee.Dob := EncodeDate(1985,11,4);
+    lEmployee.IsMale := True;
+    lEmployee.Salary := 2100;
+    lEmployee.Store;
+  finally
+    lEmployee.Free;
+  end;
+
+  var lManager := TManager.Create;
+  try
+    lManager.FirstName := 'Bruce';
+    lManager.LastName := 'Banner';
+    lManager.Dob := EncodeDate(1975,11,4);
+    lManager.IsMale := True;
+    lManager.Salary := 2800;
+    lManager.AnnualBonus := 5000;
+    lManager.Store;
+  finally
+    lManager.Free;
+  end;
+
+  var lPeople := TMVCActiveRecord.All<TPerson>;
+  try
+    Assert(lPeople.Count = 2);
+  finally
+    lPeople.Free;
   end;
 end;
 

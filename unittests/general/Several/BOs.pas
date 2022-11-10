@@ -337,7 +337,7 @@ type
   [MVCTable('nullables_test')]
   TNullablesTest = class(TMVCActiveRecord)
   private
-    [MVCTableField('f_int2')]
+    [MVCTableField('f_int2', [foPrimaryKey])]
     ff_int2: NullableInt16;
     [MVCTableField('f_int4')]
     ff_int4: NullableInt32;

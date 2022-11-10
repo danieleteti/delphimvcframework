@@ -45,6 +45,9 @@ end;
 
 procedure TMainForm.btnWithExClick(Sender: TObject);
 begin
+  var lSavedCaption := btnWithEx.Caption;
+  btnWithEx.Caption := 'processing...';
+  btnWithEx.Enabled := False;
   MVCAsync.Run<String>(
     function: String
     begin
@@ -57,6 +60,9 @@ begin
     end,
     procedure(const Expt: Exception)
     begin
+      btnWithEx.Caption := lSavedCaption;
+      btnWithEx.Enabled := True;
+      btnWithEx.Update;
       ShowMessage(Expt.Message);
     end
   );

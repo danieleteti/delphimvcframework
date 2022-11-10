@@ -3,20 +3,18 @@ object Form5: TForm5
   Top = 0
   Anchors = [akLeft, akTop, akRight, akBottom]
   Caption = 'DMVCFramework RESTClient'
-  ClientHeight = 425
-  ClientWidth = 758
+  ClientHeight = 415
+  ClientWidth = 927
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   DesignSize = (
-    758
-    425)
-  PixelsPerInch = 96
+    927
+    415)
   TextHeight = 13
   object Button1: TButton
     Left = 8
@@ -30,18 +28,20 @@ object Form5: TForm5
   object PageControl1: TPageControl
     Left = 8
     Top = 47
-    Width = 742
-    Height = 370
+    Width = 911
+    Height = 360
     ActivePage = TabSheet1
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 2
+    ExplicitWidth = 738
+    ExplicitHeight = 369
     object TabSheet1: TTabSheet
       Caption = 'Wines'
       object DBGrid1: TDBGrid
         Left = 0
         Top = 0
-        Width = 734
-        Height = 342
+        Width = 903
+        Height = 332
         Align = alClient
         DataSource = DataSource1
         Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
@@ -203,8 +203,8 @@ object Form5: TForm5
       object Memo1: TMemo
         Left = 0
         Top = 0
-        Width = 734
-        Height = 342
+        Width = 903
+        Height = 332
         Align = alClient
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -214,6 +214,8 @@ object Form5: TForm5
         ParentFont = False
         ReadOnly = True
         TabOrder = 0
+        ExplicitWidth = 734
+        ExplicitHeight = 342
       end
     end
   end

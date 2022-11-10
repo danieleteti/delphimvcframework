@@ -4,6 +4,8 @@ program SSESample;
 
 uses
   System.SysUtils,
+  MVCFramework,
+  MVCFramework.Signal,
   MVCFramework.Logger,
   MVCFramework.Commons,
 {$IFDEF MSWINDOWS}
@@ -30,20 +32,20 @@ begin
   try
     LServer.KeepAlive := True;
     LServer.DefaultPort := APort;
-    LServer.Active := True;
-    LogI(Format('Server started on port 8080', [APort]));
     { more info about MaxConnections
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }
     LServer.MaxConnections := 0;
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
+    LServer.Active := True;
     { Comment the next line to avoid the default browser startup }
 {$IFDEF MSWINDOWS}
     ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort) + '/static'), nil, nil, SW_SHOWMAXIMIZED);
 {$ENDIF}
-    Writeln('Press RETURN to stop the server');
-    ReadLn;
+    Write('CTRL+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

@@ -230,8 +230,27 @@ object MainForm: TMainForm
     TabOrder = 21
     OnClick = btnCRUDWithGUIDClick
   end
+  object btnOOP: TButton
+    Left = 144
+    Top = 402
+    Width = 121
+    Height = 34
+    Caption = 'OOP with Partitioning and Filtering'
+    TabOrder = 22
+    WordWrap = True
+    OnClick = btnOOPClick
+  end
+  object btnReadOnly: TButton
+    Left = 8
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Read/Only Entities'
+    TabOrder = 23
+    OnClick = btnReadOnlyClick
+  end
   object FDConnection1: TFDConnection
-    Left = 168
-    Top = 464
+    Left = 200
+    Top = 504
   end
 end

@@ -1199,7 +1199,6 @@ begin
     Assert.IsFalse(lTest.f_float8.HasValue);
     Assert.IsFalse(lTest.f_bool.HasValue);
     Assert.IsNotNull(lTest);
-    lTest.f_int2 := lTest.f_int2.Value + 2;
     lTest.f_int4 := lTest.f_int4.Value + 4;
     lTest.f_int8 := lTest.f_int8.Value + 8;
     lTest.f_blob.Free;
@@ -1209,9 +1208,9 @@ begin
     lTest.Free;
   end;
 
-  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
   try
-    Assert.IsTrue(lTest.f_int2.ValueOrDefault = 4);
+    Assert.IsTrue(lTest.f_int2.ValueOrDefault = 2);
     Assert.IsTrue(lTest.f_int4.ValueOrDefault = 8);
     Assert.IsTrue(lTest.f_int8.ValueOrDefault = 16);
     Assert.IsFalse(lTest.f_string.HasValue);
@@ -1223,12 +1222,12 @@ begin
     Assert.IsFalse(lTest.f_float8.HasValue);
     Assert.IsFalse(lTest.f_bool.HasValue);
     Assert.IsFalse(Assigned(lTest.f_blob), 'Blob contains a value when should not');
-    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
+    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,2)');
   finally
     lTest.Free;
   end;
 
-  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False));
+  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 2', [], False));
 
   lTest := TNullablesTest.Create;
   try

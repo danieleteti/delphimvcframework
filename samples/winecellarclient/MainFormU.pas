@@ -68,17 +68,18 @@ uses
 
 
 procedure TForm5.Button1Click(Sender: TObject);
-var
-  response: IMVCRESTResponse;
 begin
-  response := RESTClient.Get('/api/wines');
-  Memo1.Lines.Text := response.Content;
-  FDMemTable1.Close;
-  FDMemTable1.Open;
-  Loading := True;
-  FDMemTable1.AppendFromJSONArrayString(response.Content);
-  FDMemTable1.First;
-  Loading := False;
+  RESTClient.Async(
+    procedure (Resp: IMVCRESTResponse)
+    begin
+      Memo1.Lines.Text := Resp.Content;
+      FDMemTable1.Close;
+      FDMemTable1.Open;
+      Loading := True;
+      FDMemTable1.AppendFromJSONArrayString(Resp.Content);
+      FDMemTable1.First;
+      Loading := False;
+    end, nil, True).Get('/api/wines');
 end;
 
 procedure TForm5.DBGrid1DblClick(Sender: TObject);
