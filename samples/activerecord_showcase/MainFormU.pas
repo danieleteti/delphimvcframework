@@ -39,7 +39,7 @@ type
     btnValidation: TButton;
     btnMultiThreading: TButton;
     btnRQL: TButton;
-    btnTransientFields: TButton;
+    btnReadOnlyFields: TButton;
     FDConnection1: TFDConnection;
     btnNullTest: TButton;
     btnCRUDNoAutoInc: TButton;
@@ -64,7 +64,7 @@ type
     procedure btnSelectClick(Sender: TObject);
     procedure btnValidationClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure btnTransientFieldsClick(Sender: TObject);
+    procedure btnReadOnlyFieldsClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure btnNullablesClick(Sender: TObject);
     procedure btnNullTestClick(Sender: TObject);
@@ -1388,41 +1388,54 @@ begin
   end;
 end;
 
-procedure TMainForm.btnTransientFieldsClick(Sender: TObject);
+procedure TMainForm.btnReadOnlyFieldsClick(Sender: TObject);
 var
-  lCustomer: TCustomerWithTransient;
+  lCustomer: TCustomerWithReadOnlyFields;
   lID: Integer;
 begin
-  Log('** CRUD test with transient fields');
-  lCustomer := TCustomerWithTransient.Create;
+  Log('** CRUD test with read-only fields');
+  lCustomer := TCustomerWithReadOnlyFields.Create;
   try
     {
-      'Code' will not be persisted because defined as 'transient'
+      'Code' will not be persisted on table because defined as 'foReadOnly'
     }
     lCustomer.Code := '1234';
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Log('Just inserted "transient" Customer ' + lID.ToString);
+    Log('Just inserted Customer ' + lID.ToString + ' with a R/O field');
   finally
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  //let's check that code is empty
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
   try
+    Assert(lCustomer.Code.IsEmpty);
+  finally
+    lCustomer.Free;
+  end;
+
+  //if underlying field is not null, it is loaded as usual
+  TMVCActiveRecord.CurrentConnection.ExecSQL('update customers set code = ''XYZ'' where id = ?', [lID]);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
+  try
+    Assert('XYZ' = lCustomer.Code);
     lCustomer.CompanyName := lCustomer.CompanyName + ' changed!';
     lCustomer.Code := 'this code will not be saved';
-    lCustomer.Update;
+    lCustomer.Update; //do not save field "code"
     Log('Just updated Customer ' + lID.ToString);
   finally
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  //but being foReadOnly is not updated
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
   try
+    Assert('XYZ' = lCustomer.Code);
     lCustomer.Delete;
-    Log('Just deleted "transient" Customer ' + lID.ToString);
+    Log('Just deleted Customer ' + lID.ToString + ' with a R/O field');
   finally
     lCustomer.Free;
   end;

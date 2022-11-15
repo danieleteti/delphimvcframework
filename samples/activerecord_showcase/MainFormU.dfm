@@ -103,14 +103,14 @@ object MainForm: TMainForm
     TabOrder = 7
     OnClick = btnRQLClick
   end
-  object btnTransientFields: TButton
+  object btnReadOnlyFields: TButton
     Left = 8
     Top = 203
     Width = 121
     Height = 33
-    Caption = 'CRUD Transient'
+    Caption = 'CRUD With R/O Field'
     TabOrder = 8
-    OnClick = btnTransientFieldsClick
+    OnClick = btnReadOnlyFieldsClick
   end
   object btnNullTest: TButton
     Left = 144
