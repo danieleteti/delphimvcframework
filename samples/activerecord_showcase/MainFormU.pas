@@ -1263,7 +1263,7 @@ var
   lSW: TStopWatch;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  SetLength(lCustomers, 1000000);
+  SetLength(lCustomers, 2000000);
   lSW := TStopwatch.StartNew;
   for I := Low(lCustomers) to High(lCustomers) do
   begin

@@ -1217,116 +1217,110 @@ begin
   begin
     Exit;
   end;
-  lTableMap := TMVCTableMap.Create;
-  SetLength(lTableMap.fMapping, 0);
-  lTableMap.fPartitionInfoInternal := nil;
-  lTableMap.fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate,
-    TMVCEntityAction.eaDelete];
-  lTableMap.fTableName := '';
-  lTableMap.fPartitionClause := '';
-  lTableMap.fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
-  lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
-  for lAttribute in lTableMap.fObjAttributes do
-  begin
-    if lAttribute is MVCTableAttribute then
+  TMonitor.Enter(gTableMapLock);
+  try
+    if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then //double check here
     begin
-      lTableMap.fTableName := MVCTableAttribute(lAttribute).Name;
-      lTableMap.fDefaultRQLFilter := MVCTableAttribute(lAttribute).RQLFilter;
-      Continue;
+      Exit;
     end;
-    if lAttribute is MVCEntityActionsAttribute then
+    lTableMap := TMVCTableMap.Create;
+    SetLength(lTableMap.fMapping, 0);
+    lTableMap.fPartitionInfoInternal := nil;
+    lTableMap.fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate,
+      TMVCEntityAction.eaDelete];
+    lTableMap.fTableName := '';
+    lTableMap.fPartitionClause := '';
+    lTableMap.fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
+    lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
+    for lAttribute in lTableMap.fObjAttributes do
     begin
-      lTableMap.fEntityAllowedActions := MVCEntityActionsAttribute(lAttribute).EntityAllowedActions;
-    end;
-    if lAttribute is MVCPartitionAttribute then
-    begin
-      lTableMap.fPartitionClause := MVCPartitionAttribute(lAttribute).PartitionClause;
-      Continue;
-    end;
-  end;
-
-  if lTableMap.fTableName = '' then
-  begin
-    if [eaCreate, eaUpdate, eaDelete] * lTableMap.fEntityAllowedActions <> [] then
-    begin
-      raise Exception.Create('Cannot find TableNameAttribute');
-    end;
-  end;
-
-  lTableMap.fProps := lTableMap.fRTTIType.GetFields;
-  for lRTTIField in lTableMap.fProps do
-  begin
-    lTableMap.fPropsAttributes := lRTTIField.GetAttributes;
-    if Length(lTableMap.fPropsAttributes) = 0 then
-      Continue;
-    for lAttribute in lTableMap.fPropsAttributes do
-    begin
-      if lAttribute is MVCTableFieldAttribute then
+      if lAttribute is MVCTableAttribute then
       begin
-        if foPrimaryKey in MVCTableFieldAttribute(lAttribute).FieldOptions then
+        lTableMap.fTableName := MVCTableAttribute(lAttribute).Name;
+        lTableMap.fDefaultRQLFilter := MVCTableAttribute(lAttribute).RQLFilter;
+        Continue;
+      end;
+      if lAttribute is MVCEntityActionsAttribute then
+      begin
+        lTableMap.fEntityAllowedActions := MVCEntityActionsAttribute(lAttribute).EntityAllowedActions;
+      end;
+      if lAttribute is MVCPartitionAttribute then
+      begin
+        lTableMap.fPartitionClause := MVCPartitionAttribute(lAttribute).PartitionClause;
+        Continue;
+      end;
+    end;
+
+    if lTableMap.fTableName = '' then
+    begin
+      if [eaCreate, eaUpdate, eaDelete] * lTableMap.fEntityAllowedActions <> [] then
+      begin
+        raise Exception.Create('Cannot find TableNameAttribute');
+      end;
+    end;
+
+    lTableMap.fProps := lTableMap.fRTTIType.GetFields;
+    for lRTTIField in lTableMap.fProps do
+    begin
+      lTableMap.fPropsAttributes := lRTTIField.GetAttributes;
+      if Length(lTableMap.fPropsAttributes) = 0 then
+        Continue;
+      for lAttribute in lTableMap.fPropsAttributes do
+      begin
+        if lAttribute is MVCTableFieldAttribute then
         begin
-          lTableMap.fPrimaryKey := lRTTIField;
-          lPrimaryFieldTypeAsStr := lTableMap.fPrimaryKey.FieldType.ToString.ToLowerInvariant;
-          if lPrimaryFieldTypeAsStr.EndsWith('int64') then
+          if foPrimaryKey in MVCTableFieldAttribute(lAttribute).FieldOptions then
           begin
-            lTableMap.fPrimaryKeyFieldType := ftLargeInt;
-          end
-          else if lPrimaryFieldTypeAsStr.EndsWith('integer')
-            or lPrimaryFieldTypeAsStr.EndsWith('int16')
-            or lPrimaryFieldTypeAsStr.EndsWith('int32') then
-          begin
-            lTableMap.fPrimaryKeyFieldType := ftInteger;
-          end
-          else if lPrimaryFieldTypeAsStr.EndsWith('string') then
-          begin
-            lTableMap.fPrimaryKeyFieldType := ftString;
-          end
-          else if lPrimaryFieldTypeAsStr.EndsWith('guid') then
-          begin
-            lTableMap.fPrimaryKeyFieldType := ftGuid;
-          end
-          else
-          begin
-            raise EMVCActiveRecord.Create
-              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int16, (Nullable)Int32, (Nullable)Int64, (Nullable)String, GUID - found: ' +
-              lPrimaryFieldTypeAsStr);
+            lTableMap.fPrimaryKey := lRTTIField;
+            lPrimaryFieldTypeAsStr := lTableMap.fPrimaryKey.FieldType.ToString.ToLowerInvariant;
+            if lPrimaryFieldTypeAsStr.EndsWith('int64') then
+            begin
+              lTableMap.fPrimaryKeyFieldType := ftLargeInt;
+            end
+            else if lPrimaryFieldTypeAsStr.EndsWith('integer')
+              or lPrimaryFieldTypeAsStr.EndsWith('int16')
+              or lPrimaryFieldTypeAsStr.EndsWith('int32') then
+            begin
+              lTableMap.fPrimaryKeyFieldType := ftInteger;
+            end
+            else if lPrimaryFieldTypeAsStr.EndsWith('string') then
+            begin
+              lTableMap.fPrimaryKeyFieldType := ftString;
+            end
+            else if lPrimaryFieldTypeAsStr.EndsWith('guid') then
+            begin
+              lTableMap.fPrimaryKeyFieldType := ftGuid;
+            end
+            else
+            begin
+              raise EMVCActiveRecord.Create
+                ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int16, (Nullable)Int32, (Nullable)Int64, (Nullable)String, GUID - found: ' +
+                lPrimaryFieldTypeAsStr);
+            end;
+            lTableMap.fPrimaryKeyFieldName := MVCTableFieldAttribute(lAttribute).FieldName;
+            lTableMap.fPrimaryKeyOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
+            lTableMap.fPrimaryKeySequenceName := MVCTableFieldAttribute(lAttribute).SequenceName;
+            Continue;
           end;
-          lTableMap.fPrimaryKeyFieldName := MVCTableFieldAttribute(lAttribute).FieldName;
-          lTableMap.fPrimaryKeyOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
-          lTableMap.fPrimaryKeySequenceName := MVCTableFieldAttribute(lAttribute).SequenceName;
-          Continue;
-        end;
 
-        lFieldInfo := TFieldInfo.Create;
-        lTableMap.fMap.Add(lRTTIField, lFieldInfo);
-        lFieldInfo.FieldName := MVCTableFieldAttribute(lAttribute).FieldName;
-        lFieldInfo.FieldOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
-        lFieldInfo.DataTypeName := MVCTableFieldAttribute(lAttribute).DataTypeName;
+          lFieldInfo := TFieldInfo.Create;
+          lTableMap.fMap.Add(lRTTIField, lFieldInfo);
+          lFieldInfo.FieldName := MVCTableFieldAttribute(lAttribute).FieldName;
+          lFieldInfo.FieldOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
+          lFieldInfo.DataTypeName := MVCTableFieldAttribute(lAttribute).DataTypeName;
+        end;
       end;
     end;
-  end;
-  lTableMap.fMap.EndUpdates;
-  Assert(lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount > 0,
-    'No fields defined [HINT] Use MVCTableField in private fields');
-  lTableMap.fPartitionInfoInternal := nil;
+    lTableMap.fMap.EndUpdates;
+    Assert(lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount > 0,
+      'No fields defined [HINT] Use MVCTableField in private fields');
+    lTableMap.fPartitionInfoInternal := nil;
 
-  //fTableMap := lTableMap;
-  ActiveRecordTableMapRegistry.ExecWithExclusiveLock(
-    procedure(C: IMVCActiveRecordTableMap)
-    var
-      lDummy: TMVCTableMap;
-    begin
-      if not C.TryGetValue(Self, lDummy) then
-      begin
-        C.AddTableMap(Self, lTableMap);
-        fTableMap := lTableMap;
-      end
-      else
-      begin
-        lTableMap.Free;
-        fTableMap := lDummy;
-      end;
-    end);
+    ActiveRecordTableMapRegistry.AddTableMap(Self, lTableMap);
+    fTableMap := lTableMap;
+  finally
+    TMonitor.Exit(gTableMapLock);
+  end;
 end;
 
 procedure TMVCActiveRecord.Insert;
