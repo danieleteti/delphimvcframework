@@ -46,7 +46,7 @@ type
     function CreateACustomer(CompanyName: String; City: String; Rating: Integer): Integer; overload;
   public
     [SetupFixture]
-    procedure SetupFixturePG;
+    procedure SetupFixture;
     [Teardown]
     procedure Teardown;
     [Test]
@@ -1951,8 +1951,9 @@ begin
   end;
 end;
 
-procedure TTestActiveRecordBase.SetupFixturePG;
+procedure TTestActiveRecordBase.SetupFixture;
 begin
+//  ActiveRecordTableMapRegistry.FlushCache;
   LogI('** Setup Fixture: ' + ClassName);
   InternalSetupFixture;
 end;

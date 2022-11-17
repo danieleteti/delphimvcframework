@@ -249,6 +249,15 @@ object MainForm: TMainForm
     TabOrder = 23
     OnClick = btnReadOnlyClick
   end
+  object btnSpeed: TButton
+    Left = 8
+    Top = 482
+    Width = 121
+    Height = 34
+    Caption = 'Speed Test'
+    TabOrder = 24
+    OnClick = btnSpeedClick
+  end
   object FDConnection1: TFDConnection
     Left = 200
     Top = 504

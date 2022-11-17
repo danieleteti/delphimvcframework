@@ -27,7 +27,7 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
-  System.Generics.Collections;
+  System.Generics.Collections, System.Diagnostics;
 
 type
   TMainForm = class(TForm)
@@ -56,6 +56,7 @@ type
     btnCRUDWithGUID: TButton;
     btnOOP: TButton;
     btnReadOnly: TButton;
+    btnSpeed: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -82,6 +83,7 @@ type
     procedure btnCRUDWithGUIDClick(Sender: TObject);
     procedure btnOOPClick(Sender: TObject);
     procedure btnReadOnlyClick(Sender: TObject);
+    procedure btnSpeedClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -1252,6 +1254,26 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TMainForm.btnSpeedClick(Sender: TObject);
+var
+  I: Integer;
+  lCustomers: TArray<TCustomer>;
+  lSW: TStopWatch;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  SetLength(lCustomers, 1000000);
+  lSW := TStopwatch.StartNew;
+  for I := Low(lCustomers) to High(lCustomers) do
+  begin
+    lCustomers[I] := TCustomer.Create;
+  end;
+  Log('Created ' + Length(lCustomers).ToString + ' TCustomer instances in ' + lSW.ElapsedMilliseconds.ToString + 'ms');
+  for I := Low(lCustomers) to High(lCustomers) do
+  begin
+    lCustomers[I].Free;
+  end;
 end;
 
 procedure TMainForm.btnTableFilterClick(Sender: TObject);
