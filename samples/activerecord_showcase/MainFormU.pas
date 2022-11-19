@@ -1261,16 +1261,21 @@ var
   I: Integer;
   lCustomers: TArray<TCustomer>;
   lSW: TStopWatch;
+  lElapsedMS: UInt32;
+const
+  INSTANCES_COUNT = 2000000;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  SetLength(lCustomers, 2000000);
+  SetLength(lCustomers, INSTANCES_COUNT);
   lSW := TStopwatch.StartNew;
-  for I := Low(lCustomers) to High(lCustomers) do
+  for I := 0 to INSTANCES_COUNT - 1 do
   begin
     lCustomers[I] := TCustomer.Create;
   end;
-  Log('Created ' + Length(lCustomers).ToString + ' TCustomer instances in ' + lSW.ElapsedMilliseconds.ToString + 'ms');
-  for I := Low(lCustomers) to High(lCustomers) do
+  lElapsedMS := lSW.ElapsedMilliseconds;
+  Log(Format('Created %s TCustomer instances in %d ms',
+    [FormatFloat('###,###,###', INSTANCES_COUNT), lElapsedMS]));
+  for I := 0 to INSTANCES_COUNT - 1 do
   begin
     lCustomers[I].Free;
   end;

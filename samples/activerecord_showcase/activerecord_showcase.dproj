@@ -164,6 +164,12 @@
             </Delphi.Personality>
             <Deployment Version="4">
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BUILD" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BUILD" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>activerecord_showcase.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BULD" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="POSTGRESQL" Class="ProjectOutput"/>
