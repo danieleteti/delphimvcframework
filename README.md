@@ -1413,7 +1413,6 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 
 ### What's New in 3.2.3-radium-beta
-- Fixed a rendering problem in swagger interface format in case of specific JSON structure
 
 - Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
 
@@ -1484,6 +1483,10 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 - Method `procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '' ... ` has been renamed to `RenderStatusMessage` with a better parameter names.
 - `IMVCJSONRPCExecutor` supports async call. Thanks to our sponsor [Orion Law](https://orionlaw.com/). Check the new Async sample in `samples\jsonrpc_with_published_objects\`.
 - Removed `foTransient` if TMVCActiveRecord FieldOptions. It became obsolete after introduction of `foReadOnly` and `foWriteOnly`.
+
+#### Bug Fix in 3.2.3-radium-beta
+- Fixed a rendering problem in swagger interface format in case of specific JSON structure
+- Fix [issue 594](https://github.com/danieleteti/delphimvcframework/issues/594) (Thanks to [biware-repo](https://github.com/biware-repo))
 
 
 ## Trainings, consultancy or custom development service

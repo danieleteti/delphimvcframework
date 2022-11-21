@@ -1003,6 +1003,7 @@ begin
         raise;
       end;
     end;
+   fCurrentConnectionsByThread.Remove(TThread.CurrentThread.ThreadID);
   finally
     fMREW.EndWrite;
   end;
