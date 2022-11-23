@@ -34,6 +34,7 @@
   - [Roadmap](#roadmap)
   - [Next Release: 3.2.3-radium-beta ("repo" version)](#next-release-323-radium-beta-repo-version)
     - [What's New in 3.2.3-radium-beta](#whats-new-in-323-radium-beta)
+      - [Bug Fix in 3.2.3-radium-beta](#bug-fix-in-323-radium-beta)
   - [Trainings, consultancy or custom development service](#trainings-consultancy-or-custom-development-service)
   - [Samples and documentation](#samples-and-documentation)
 - [Getting Started: 5 minutes guide](#getting-started-5-minutes-guide)
