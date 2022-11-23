@@ -69,6 +69,9 @@ type
     function ProxyUsername: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
+    function ProxyScheme(const aProxyScheme: string): IMVCRESTClient; overload;
+    function ProxyScheme: string; overload;
+
 
 {$IF defined(TOKYOORBETTER)}
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
