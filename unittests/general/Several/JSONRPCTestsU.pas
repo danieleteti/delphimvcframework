@@ -46,6 +46,8 @@ type
     procedure TestRequestWithMalformedJSON;
     [Test]
     procedure TestNotificationWithNoParameters;
+    [Test]
+    procedure TestIssue595;
   end;
 
 
@@ -55,6 +57,16 @@ implementation
 { TJSONRPCTest }
 
 uses MVCFramework.JSONRPC;
+
+procedure TTestJSONRPC.TestIssue595;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      raise EMVCJSONRPCRemoteException.Create(100, 'ErrMessage');
+    end,
+    EMVCJSONRPCRemoteException);
+end;
 
 procedure TTestJSONRPC.TestNotificationWithNoParameters;
 var

@@ -2801,7 +2801,7 @@ end;
 
 constructor EMVCJSONRPCRemoteException.Create(const ErrCode: Integer; const ErrMessage: String);
 begin
-  Create(ErrCode, ErrMessage);
+  Create(ErrCode, ErrMessage, TValue.Empty);
 end;
 
 constructor EMVCJSONRPCRemoteException.Create(const ErrCode: Integer; const ErrMessage: String;
