@@ -1198,7 +1198,9 @@ begin
                 aRTTIField.SetValue(AObject, TWideMemoField(AField).AsWideString)
               else
               begin
-                lSStream := TStringStream.Create('', TEncoding.Unicode);
+                //https://github.com/danieleteti/delphimvcframework/issues/490 (24 nov 2022)
+                //lSStream := TStringStream.Create('', TEncoding.Unicode);
+                lSStream := TStringStream.Create('');
                 try
                   TBlobField(AField).SaveToStream(lSStream);
                   aRTTIField.SetValue(AObject, lSStream.DataString);
