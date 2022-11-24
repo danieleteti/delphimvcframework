@@ -541,9 +541,10 @@ type
 
   IMVCActiveRecordConnections = interface
     ['{7B87473C-1784-489F-A838-925E7DDD0DE2}']
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const Owns: Boolean = false);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const Owns: Boolean = false); overload;
     procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false); overload;
     procedure AddDefaultConnection(const aConnectionDefName: String); overload;
+    procedure AddConnection(const aName, aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
@@ -569,7 +570,8 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false); overload;
+    procedure AddConnection(const aName, aConnectionDefName: String); overload;
     procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false); overload;
     procedure AddDefaultConnection(const aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
@@ -883,14 +885,15 @@ begin
   AddConnection('default', aConnection, aOwns);
 end;
 
-procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnectionDefName: String);
+procedure TMVCConnectionsRepository.AddConnection(const aName,
+  aConnectionDefName: String);
 var
   lConn: TFDConnection;
 begin
   lConn := TFDConnection.Create(nil);
   try
     lConn.ConnectionDefName := aConnectionDefName;
-    AddDefaultConnection(lConn, True);
+    AddConnection(aName, lConn, True);
   except
     on E: Exception do
     begin
@@ -898,6 +901,11 @@ begin
       raise;
     end;
   end;
+end;
+
+procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnectionDefName: String);
+begin
+  AddConnection('default', aConnectionDefName);
 end;
 
 constructor TMVCConnectionsRepository.Create;
