@@ -57,7 +57,7 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
 
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
   Web.ApacheHTTP,
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 
@@ -66,7 +66,7 @@ uses
   // Delphi XE4 (all update) and XE5 (with no update) don't contains this unit. Look for the bug in QC
   // https://quality.embarcadero.com/browse/RSP-17216
 
-{$IFNDEF MOBILE} // file upload is not supported on mobile
+{$IF NOT Defined(MOBILE)} // file upload is not supported on mobile
 {$IF Defined(SeattleOrBetter)}
   Web.ReqMulti,
 {$ELSE}
@@ -75,14 +75,13 @@ uses
 {$ENDIF}
   Web.HTTPApp,
 
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
   Web.Win.IsapiHTTP,
 {$ENDIF}
   Web.WebReq,
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
-  // IdHTTPWebBrokerBridge,
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
@@ -425,7 +424,7 @@ type
     property Files: TAbstractWebRequestFiles read GetFiles;
   end;
 
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
 
   TMVCApacheWebRequest = class(TMVCWebRequest)
   private
@@ -1301,7 +1300,7 @@ begin
     lEncoding := TEncoding.GetEncoding(lCurrCharset);
     try
 
-{$IFDEF BERLINORBETTER}
+{$IF Defined(BERLINORBETTER)}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
       FBody := lEncoding.GetString(FWebRequest.RawContent);
 {$ELSE}
@@ -1977,20 +1976,20 @@ begin
   end
   else
   begin
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
     if ARequest.ClassType = TApacheRequest then
     begin
       FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
     end
     else
-{$IFNDEF LINUX}
+{$IF Defined(MSWINDOWS)}
       if ARequest.ClassType = TISAPIRequest then
       begin
         FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
       end
       else
-{$ENDIF}
-{$ENDIF}
+{$ENDIF} //MSWINDOWS
+{$ENDIF} //WEBAPACHEHTTP
       begin
         FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
       end;
@@ -2044,13 +2043,13 @@ end;
 
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
   if FRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
   end;
 {$ENDIF}
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
     if FRequest.ClassType = TISAPIRequest then
     begin
       Exit(hftISAPI);
@@ -2090,13 +2089,6 @@ begin
   inherited Create;
   FMessage := AMessage;
 end;
-
-{ TMVCIndyWebRequest }
-
-// function TMVCIndyWebRequest.RawHeaders: TStrings;
-// begin
-// Result := TMVCHackHTTPAppRequest(FWebRequest).GetHeaders;
-// end;
 
 function TWebContext.GetLoggedUser: TUser;
 begin
@@ -2197,7 +2189,6 @@ begin
     begin
       raise EMVCSessionExpiredException.Create('Session not started');
     end;
-    //SId := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
     GlobalSessionList.Remove(SId);
     if SId <> '' then
     begin
@@ -2416,7 +2407,7 @@ begin
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 
-{$IFDEF BERLINORBETTER}
+{$IF Defined(BERLINORBETTER)}
   ARequest.ReadTotalContent;
 
   // Double check for malicious content-length header

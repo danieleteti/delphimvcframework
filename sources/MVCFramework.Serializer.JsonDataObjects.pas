@@ -240,9 +240,7 @@ type
   public
     // records
     class function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject): T; overload; static;
-    class function JSONObjectToRecord<T: record >(const JSONRPCResponse: IInterface): T; overload; static;
     class function JSONArrayToArrayOfRecord<T: record >(const JSONArray: TJsonArray): TArray<T>; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record >(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
     // objects
     class function JsonObjectToObject<T: class, constructor>(const JSONObject: TJsonObject): T; overload; static;
     class function JSONArrayToListOf<T: class, constructor>(const JSONArray: TJsonArray): TObjectList<T>;
@@ -266,7 +264,6 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.JSONRPC,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables;
@@ -3951,20 +3948,6 @@ begin
   end;
 end;
 
-class function TJSONUtils.JSONArrayToArrayOfRecord<T>(const JSONRPCResponse: IInterface): TArray<T>;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONArrayToArrayOfRecord<T>(lIntf.ResultAsJSONArray);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
-  end;
-end;
-
 class function TJSONUtils.JSONArrayToListOf<T>(const JSONArray: TJsonArray): TObjectList<T>;
 var
   I: Integer;
@@ -4003,20 +3986,6 @@ begin
     end;
   finally
     lSer.Free;
-  end;
-end;
-
-class function TJSONUtils.JSONObjectToRecord<T>(const JSONRPCResponse: IInterface): T;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONObjectToRecord<T>(lIntf.ResultAsJSONObject);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
   end;
 end;
 

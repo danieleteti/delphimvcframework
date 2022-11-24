@@ -1488,6 +1488,8 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 #### Bug Fix in 3.2.3-radium-beta
 - Fixed a rendering problem in swagger interface format in case of specific JSON structure
 - Fix [issue 594](https://github.com/danieleteti/delphimvcframework/issues/594) (Thanks to [biware-repo](https://github.com/biware-repo))
+- Fix [issue 595](https://github.com/danieleteti/delphimvcframework/issues/595)
+- Fix [issue 590](https://github.com/danieleteti/delphimvcframework/issues/590)
 
 
 ## Trainings, consultancy or custom development service
