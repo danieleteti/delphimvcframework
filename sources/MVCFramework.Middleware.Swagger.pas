@@ -289,11 +289,17 @@ begin
 end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
+var
+  ServerPort: Int64;
 begin
   ASwagDoc.Host := fHost;
   if ASwagDoc.Host.IsEmpty then
   begin
-    ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, AContext.Request.RawWebRequest.ServerPort]);
+	ServerPort := AContext.Request.RawWebRequest.ServerPort;
+    if ServerPort < 0 then
+      ASwagDoc.Host := AContext.Request.RawWebRequest.Host
+    else
+      ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, ServerPort]);
   end;
 
   ASwagDoc.BasePath := fBasePath;
