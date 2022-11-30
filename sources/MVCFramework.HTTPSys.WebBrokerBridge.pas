@@ -202,6 +202,7 @@ begin
   fRequest := ARequest;
   inherited Create;
   fHeaders := TMVCHeaders.Create;
+  fHeaders.NameValueSeparator := ':';
   ExtractFields([#13], [], String(fRequest.InHeaders), fHeaders);
 end;
 
@@ -243,7 +244,7 @@ end;
 
 function TMVCHTTPSysAppRequest.GetRawContent: TBytes;
 begin
-  Result := TBytes(fRequest.InContent);
+  Result := TEncoding.UTF8.GetBytes(string(fRequest.InContent));
 end;
 
 function TMVCHTTPSysAppRequest.GetStringVariable(Index: Integer): string;

@@ -54,7 +54,11 @@ type
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TMVCHeaders = class(TStringList)
-
+  private
+    function GetValue(const Name: string): string;
+    procedure SetValue(const Name, Value: string);
+  public
+    property Values[const Name: string]: string read GetValue write SetValue;
   end;
 
   TMVCMediaType = record
@@ -697,6 +701,15 @@ uses
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
 
+function TMVCHeaders.GetValue(const Name: string): string;
+begin
+  Result := TStringList(Self).Values[Name].Trim();
+end;
+
+procedure TMVCHeaders.SetValue(const Name, Value: string);
+begin
+  TStringList(Self).Values[Name] := Value;
+end;
 
 function URLEncode(const Value: string): string; overload;
 begin
