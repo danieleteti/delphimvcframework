@@ -1276,7 +1276,6 @@ begin
         begin
           lInternalStream := TMemoryStream.Create;
           aRTTIField.SetValue(AObject, lInternalStream);
-          // raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
         end;
         lInternalStream.Position := 0;
         TBlobField(AField).SaveToStream(lInternalStream);

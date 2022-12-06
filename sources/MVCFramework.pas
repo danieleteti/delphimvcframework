@@ -1284,20 +1284,17 @@ end;
 function TMVCWebRequest.Body: string;
 var
   lEncoding: TEncoding;
-  lCurrCharset: string;
-
-{$IFNDEF BERLINORBETTER}
+{$IF not Defined(BERLINORBETTER)}
   lBuffer: TArray<Byte>;
-
 {$ENDIF}
 begin
-  { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
+  { DONE -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
   begin
-    lCurrCharset := FCharset;
-    if (lCurrCharset = EmptyStr) then
-      lCurrCharset := 'UTF-8';
-    lEncoding := TEncoding.GetEncoding(lCurrCharset);
+    if FCharset = EmptyStr then
+      lEncoding := TEncoding.GetEncoding('UTF-8')
+    else
+      lEncoding := TEncoding.GetEncoding(FCharset);
     try
 
 {$IF Defined(BERLINORBETTER)}
