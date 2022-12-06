@@ -65,7 +65,7 @@ type
     GroupBox1: TGroupBox;
     edtValue1: TEdit;
     edtValue2: TEdit;
-    btnSubstract: TButton;
+    btnSubtract: TButton;
     edtResult: TEdit;
     edtReverseString: TEdit;
     btnReverseString: TButton;
@@ -124,7 +124,8 @@ type
     btnPassAndGetRecord: TButton;
     btnEchoComplexArray: TButton;
     btnComplex: TButton;
-    procedure btnSubstractClick(Sender: TObject);
+    btnSet: TButton;
+    procedure btnSubtractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
     procedure btnGetUserClick(Sender: TObject);
@@ -154,9 +155,9 @@ type
     procedure btnPassAndGetRecordClick(Sender: TObject);
     procedure btnEchoComplexArrayClick(Sender: TObject);
     procedure btnComplexClick(Sender: TObject);
+    procedure btnSetClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
-    // FExecutor2: IMVCJSONRPCExecutor;
   public
     { Public declarations }
   end;
@@ -463,6 +464,19 @@ begin
   // lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
 end;
 
+procedure TMainForm.btnSetClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetSetBySet';
+  lReq.RequestID := Random(1000);
+  lReq.Params.Add('ptEnumValue1,ptEnumValue2', TJSONRPCParamDataType.pdtString);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  ShowMessage(lResp.Result.AsString);
+end;
+
 procedure TMainForm.btnSingleRecClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
@@ -479,17 +493,19 @@ begin
   lbLogRec.Lines.Add(lPersonRec.ToString);
 end;
 
-procedure TMainForm.btnSubstractClick(Sender: TObject);
+procedure TMainForm.btnSubtractClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
+  lExecutor: IMVCJSONRPCExecutor;
 begin
+  lExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'subtract';
   lReq.RequestID := Random(1000);
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := lExecutor.ExecuteRequest('/jsonrpc', lReq);
   edtResult.Text := lResp.Result.AsInteger.ToString;
 end;
 
@@ -682,8 +698,10 @@ var
   lMultiDS: TMultiDataset;
 begin
   FDMemTable1.Active := False;
+
+
   lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
 
   lMultiDS := TMultiDataset.Create;
   try

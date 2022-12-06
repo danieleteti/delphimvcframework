@@ -44,9 +44,9 @@ type
     // function GetPeopleDataset: TFDMemTable;
     procedure FillPeopleDataset(const DataSet: TDataSet);
   public
-    procedure OnBeforeCall(const JSONRequest: TJDOJsonObject);
-    procedure OnBeforeRouting(const JSON: TJDOJsonObject);
-    procedure OnBeforeSendResponse(const JSONResponse: TJDOJsonObject);
+    procedure OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
+    procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJDOJsonObject);
+    procedure OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(Value1, Value2: Integer): Integer;
@@ -71,6 +71,7 @@ type
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
     //enums and sets support
     function PassingEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
+    function GetSetBySet(Value: TSetTest): TSetTest;
 
     //records support
     function SavePersonRec(PersonRec: TTestRec): TTestRec;
@@ -284,6 +285,22 @@ begin
   Result := TTestRec.Create(99);
 end;
 
+function TMyObject.GetSetBySet(Value: TSetTest): TSetTest;
+begin
+  Result := [];
+  for var lItem := ptEnumValue1 to ptEnumValue4 do
+  begin
+    if lItem in Value then
+    begin
+      Result := Result - [lItem];
+    end
+    else
+    begin
+      Result := Result + [lItem];
+    end;
+  end;
+end;
+
 function TMyObject.GetStringDictionary: TMVCStringDictionary;
 begin
   Result := TMVCStringDictionary.Create;
@@ -391,25 +408,25 @@ end;
 
 { TMyObjectWithHooks }
 
-procedure TMyObject.OnBeforeCall(const JSONRequest: TJDOJsonObject);
+procedure TMyObject.OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
 begin
-  Log.Info('TMyObjectWithHooks.OnBeforeCall >> ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeCallHook >> ', 'jsonrpc');
   Log.Info(JSONRequest.ToJSON(False), 'jsonrpc');
-  Log.Info('TMyObjectWithHooks.OnBeforeCall << ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeCallHook << ', 'jsonrpc');
 end;
 
-procedure TMyObject.OnBeforeRouting(const JSON: TJDOJsonObject);
+procedure TMyObject.OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJDOJsonObject);
 begin
-  Log.Info('TMyObjectWithHooks.OnBeforeRouting >> ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeRoutingHook >> ', 'jsonrpc');
   Log.Info(JSON.ToJSON(False), 'jsonrpc');
-  Log.Info('TMyObjectWithHooks.OnBeforeRouting << ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeRoutingHook << ', 'jsonrpc');
 end;
 
-procedure TMyObject.OnBeforeSendResponse(const JSONResponse: TJDOJsonObject);
+procedure TMyObject.OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
 begin
-  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse >> ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnAfterCallHook >> ', 'jsonrpc');
   Log.Info(JSONResponse.ToJSON(False), 'jsonrpc');
-  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse << ', 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnAfterCallHook << ', 'jsonrpc');
 end;
 
 end.

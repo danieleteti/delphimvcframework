@@ -65,7 +65,7 @@ type
     GroupBox1: TGroupBox;
     edtValue1: TEdit;
     edtValue2: TEdit;
-    btnSubstract: TButton;
+    btnSubtract: TButton;
     edtResult: TEdit;
     edtReverseString: TEdit;
     btnReverseString: TButton;
@@ -125,7 +125,7 @@ type
     btnEchoComplexArray: TButton;
     btnComplex: TButton;
     btnParallel: TButton;
-    procedure btnSubstractClick(Sender: TObject);
+    procedure btnSubtractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
     procedure btnGetUserClick(Sender: TObject);
@@ -157,7 +157,7 @@ type
     procedure btnComplexClick(Sender: TObject);
     procedure btnParallelClick(Sender: TObject);
   private
-    FExecutor: IMVCJSONRPCExecutor;
+    FExecutor: IMVCJSONRPCExecutorAsync;
     fGeneralErrorHandler : TJSONRPCErrorHandlerProc;
     fWaiting: TWaitingForm;
   public
@@ -357,13 +357,17 @@ end;
 procedure TMainForm.btnInvalid2Click(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
-  lResp: IJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteNotification('/jsonrpc', lReq);
-  ShowMessage(lResp.Error.ErrMessage);
+  FExecutor.ExecuteNotificationAsync(
+    '/jsonrpc',
+    lReq,
+    procedure (Exc: Exception)
+    begin
+      ShowMessage(Exc.Message);
+    end);
 end;
 
 procedure TMainForm.btnInvalidMethodClick(Sender: TObject);
@@ -507,23 +511,24 @@ begin
     end, fGeneralErrorHandler);
 end;
 
-procedure TMainForm.btnSubstractClick(Sender: TObject);
-var
-  lReq: IJSONRPCRequest;
-begin
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'subtract';
-  lReq.RequestID := Random(1000);
-  lReq.Params.Add(StrToInt(edtValue1.Text));
-  lReq.Params.Add(StrToInt(edtValue2.Text));
-
-  FExecutor
-    .ExecuteRequestAsync('/jsonrpc', lReq,
-    procedure(JSONRPCResp: IJSONRPCResponse)
-    begin
-      edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
-    end);
-end;
+  procedure TMainForm.btnSubtractClick(Sender: TObject);
+  var
+    lReq: IJSONRPCRequest;
+    lExecutorAsync: IMVCJSONRPCExecutorAsync;
+  begin
+    lExecutorAsync := TMVCJSONRPCExecutor.Create('http://localhost:8080');
+    lReq := TJSONRPCRequest.Create;
+    lReq.Method := 'subtract';
+    lReq.RequestID := Random(1000);
+    lReq.Params.Add(StrToInt(edtValue1.Text));
+    lReq.Params.Add(StrToInt(edtValue2.Text));
+    lExecutorAsync
+      .ExecuteRequestAsync('/jsonrpc', lReq,
+      procedure(JSONRPCResp: IJSONRPCResponse)
+      begin
+        edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
+      end);
+  end;
 
 procedure TMainForm.btnSubtractWithNamedParamsClick(Sender: TObject);
 var

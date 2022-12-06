@@ -56,13 +56,30 @@ type
       const aLastEndPointSegment: string;
       const aJSONRPCNotification: IJSONRPCNotification;
       const UseVerb: TJSONRPCHTTPVerb = jrpcDefault): IJSONRPCResponse; overload;
+    function HTTPResponse: IHTTPResponse;
+    // Http headers handling
+    procedure AddHTTPHeader(const aNetHeader: TNetHeader);
+    procedure ClearHTTPHeaders;
+    function HTTPHeadersCount: Integer;
+    function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+    //events
+    //sync
+    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
+      : IMVCJSONRPCExecutor;
+    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
+    function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
+    //end events
+
+  end;
+
+  IMVCJSONRPCExecutorAsync = interface
+    ['{16E930C2-0318-48A3-9633-614FB5BF8BAE}']
     //async
-    procedure InternalExecuteAsync(
-      const aEndPoint: string;
-      const aJSONRPCObject: IJSONRPCObject;
-      const AJSONRPCResponseHandler: TJSONRPCResponseHandlerProc;
-      const AJSONRPCErrorHandler: TJSONRPCErrorHandlerProc;
-      const UseVerb: TJSONRPCHTTPVerb = jrpcDefault);
     procedure ExecuteRequestAsync(
       const aJSONRPCRequest: IJSONRPCRequest;
       const AJSONRPCResponseHandler: TJSONRPCResponseHandlerProc;
@@ -84,8 +101,7 @@ type
       const AJSONRPCErrorHandler: TJSONRPCErrorHandlerProc = nil;
       const UseVerb: TJSONRPCHTTPVerb = jrpcDefault); overload;
     // end async
-    function HTTPResponse: IHTTPResponse;
-    // Http headers handling
+    // http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
@@ -93,14 +109,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
-    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //events
-    //sync
-    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
-    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
-      : IMVCJSONRPCExecutor;
-    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
-    function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     //async
     function SetOnReceiveResponseAsync(const aOnReceiveResponseAsyncProc: TProc<IJSONRPCObject, IJSONRPCObject>)
       : IMVCJSONRPCExecutor;
@@ -114,10 +123,10 @@ type
     /// </summary>
     function SetConfigureHTTPClientAsync(const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //end events
-
   end;
 
-  TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor)
+
+  TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor, IMVCJSONRPCExecutorAsync)
   private
     fDefaultHTTPVerb: TJSONRPCHTTPVerb;
     fURL: string;

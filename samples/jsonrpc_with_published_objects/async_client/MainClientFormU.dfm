@@ -47,14 +47,14 @@ object MainForm: TMainForm
           TabOrder = 1
           Text = '10'
         end
-        object btnSubstract: TButton
+        object btnSubtract: TButton
           Left = 87
           Top = 30
           Width = 100
           Height = 25
           Caption = 'Subtract'
           TabOrder = 2
-          OnClick = btnSubstractClick
+          OnClick = btnSubtractClick
         end
         object edtResult: TEdit
           Left = 193
@@ -552,7 +552,7 @@ object MainForm: TMainForm
       object lbLogRec: TMemo
         Left = 216
         Top = 16
-        Width = 589
+        Width = 585
         Height = 544
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = ANSI_CHARSET
