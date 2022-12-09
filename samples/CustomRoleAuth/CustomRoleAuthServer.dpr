@@ -7,6 +7,8 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
+  MVCFramework,
+  MVCFramework.Signal,
   MyWebModuleU in 'MyWebModuleU.pas' {MyWebModule: TWebModule},
   PrivateControllerU in 'PrivateControllerU.pas',
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler in '..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas',
@@ -25,8 +27,9 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
-    Writeln('Press RETURN to stop the server');
-    ReadLn;
+    Writeln('CTRL+C to stop server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;
