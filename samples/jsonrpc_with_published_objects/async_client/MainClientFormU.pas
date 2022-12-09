@@ -511,24 +511,24 @@ begin
     end, fGeneralErrorHandler);
 end;
 
-  procedure TMainForm.btnSubtractClick(Sender: TObject);
-  var
-    lReq: IJSONRPCRequest;
-    lExecutorAsync: IMVCJSONRPCExecutorAsync;
-  begin
-    lExecutorAsync := TMVCJSONRPCExecutor.Create('http://localhost:8080');
-    lReq := TJSONRPCRequest.Create;
-    lReq.Method := 'subtract';
-    lReq.RequestID := Random(1000);
-    lReq.Params.Add(StrToInt(edtValue1.Text));
-    lReq.Params.Add(StrToInt(edtValue2.Text));
-    lExecutorAsync
-      .ExecuteRequestAsync('/jsonrpc', lReq,
-      procedure(JSONRPCResp: IJSONRPCResponse)
-      begin
-        edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
-      end);
-  end;
+procedure TMainForm.btnSubtractClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lExecutorAsync: IMVCJSONRPCExecutorAsync;
+begin
+  lExecutorAsync := TMVCJSONRPCExecutor.Create('http://localhost:8080');
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'subtract';
+  lReq.RequestID := Random(1000);
+  lReq.Params.Add(StrToInt(edtValue1.Text));
+  lReq.Params.Add(StrToInt(edtValue2.Text));
+  lExecutorAsync
+    .ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(JSONRPCResp: IJSONRPCResponse)
+    begin
+      edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
+    end);
+end;
 
 procedure TMainForm.btnSubtractWithNamedParamsClick(Sender: TObject);
 var

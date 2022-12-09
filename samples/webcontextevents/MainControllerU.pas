@@ -33,7 +33,9 @@ end;
 
 procedure TMyController.DoSum(const a, b: Integer);
 begin
-  Render((Context.CustomIntfObject as ICalculator).DoCalc(a,b).ToString);
+  var lSvc := Context.CustomIntfObject as ICalculator;
+
+  Render(lSvc.DoCalc(a,b).ToString);
 end;
 
 end.

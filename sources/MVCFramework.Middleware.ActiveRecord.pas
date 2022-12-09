@@ -72,6 +72,8 @@ type
       const AHandled: Boolean);
   public
     constructor Create(
+      const DefaultConnectionDefName: string); overload; virtual;
+    constructor Create(
       const DefaultConnectionDefName: string;
       const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
     constructor Create(
@@ -96,10 +98,7 @@ var
 constructor TMVCActiveRecordMiddleware.Create(const DefaultConnectionDefName: string;
   const ConnectionDefFileName: string);
 begin
-  inherited Create;
-  fConnectionLoaded := False;
-  fDefaultConnectionDefName := DefaultConnectionDefName;
-  fConnectionDefFileName := ConnectionDefFileName;
+  Create(DefaultConnectionDefName, [], [], ConnectionDefFileName);
 end;
 
 constructor TMVCActiveRecordMiddleware.Create(
@@ -107,11 +106,18 @@ constructor TMVCActiveRecordMiddleware.Create(
   const AdditionalARConnectionNames, AdditionalConnectionDefNames: TArray<String>;
   const ConnectionDefFileName: string);
 begin
+  inherited Create;
   fConnectionLoaded := False;
   fDefaultConnectionDefName := DefaultConnectionDefName;
   fConnectionDefFileName := ConnectionDefFileName;
   fAdditionalARConnectionNames := AdditionalARConnectionNames;
   fAdditionalConnectionDefNames := AdditionalConnectionDefNames;
+end;
+
+constructor TMVCActiveRecordMiddleware.Create(
+  const DefaultConnectionDefName: string);
+begin
+  Create(DefaultConnectionDefName, 'FDConnectionDefs.ini');
 end;
 
 procedure TMVCActiveRecordMiddleware.EnsureConnection;
