@@ -3936,6 +3936,8 @@ var
   I: Integer;
   lSer: TMVCJsonDataObjectsSerializer;
 begin
+  if not assigned(JSONArray) then
+    Exit;
   lSer := TMVCJsonDataObjectsSerializer.Create(nil);
   try
     SetLength(Result, JSONArray.Count);
