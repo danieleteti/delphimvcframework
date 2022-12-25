@@ -51,6 +51,8 @@ type
   private
     fSerializer: IMVCSerializer;
   public
+    [SetupFixture]
+    procedure SetupFixture;
     [Setup]
     procedure Setup;
     [TearDown]
@@ -234,6 +236,13 @@ begin
   fSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
   fSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>),
     TMVCNullableIntegerSerializerJsonDataObjects.Create);
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.SetupFixture;
+begin
+  FormatSettings.ShortDateFormat := 'dd/mm/yyyy';
+  FormatSettings.DateSeparator:= '/';
+  FormatSettings.TimeSeparator:= ':';
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TearDown;
