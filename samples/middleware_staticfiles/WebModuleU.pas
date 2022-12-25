@@ -88,6 +88,12 @@ begin
         begin
           Context.Response.StatusCode := HTTP_STATUS.NotFound;
         end;
+      end,
+      procedure(const MediaTypes: TMVCStringDictionary)
+      begin
+        //https://github.com/danieleteti/delphimvcframework/issues/607
+        //Firefox browser extension - this is an *.xpi file with a mime type of "application/x-xpinstall"
+        MediaTypes.Add('.xpi', 'application/x-xpinstall');
       end)
     );
 
