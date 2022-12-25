@@ -53,6 +53,8 @@ type
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
+  TMVCTransferProtocolSchemes = set of (psHTTP, psHTTPS);
+
   TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
