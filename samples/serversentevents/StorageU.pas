@@ -34,7 +34,7 @@ begin
     lJOBJ.AddPair('value', TJSONNumber.Create((500 + Random(200)) +
       (Random(50) / 100)));
     Result := lJOBJ.ToJSON;
-    CurrentEventID := lIndex;
+    CurrentEventID := LastID + 1;
   finally
     lJOBJ.Free;
   end;

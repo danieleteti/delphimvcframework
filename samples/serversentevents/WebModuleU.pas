@@ -51,7 +51,11 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
-  FMVC.AddController(TSSEController);
+  FMVC.AddController(TMySSEController,
+    function : TMVCController
+    begin
+      Result := TMySSEController.Create;
+    end);
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static', { StaticFilesPath }
     'www', { DocumentRoot }
