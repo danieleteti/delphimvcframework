@@ -98,9 +98,14 @@ const
   EOL = #13#10;
 begin
   inherited;
-  lLastEventID := Context.Request.Headers[TMVCConstants.SSE_LAST_EVENT_ID].Trim;
-  {TODO -oDanieleT -cSSE : We've to find a workaround for Apache modules and ISAPIs}
+  if not (Context.Response.RawWebResponse is TIdHTTPAppResponse) then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.InternalServerError, ClassName + ' can only be used with INDY based application server');
+  end;
+
   lRawContext := TIdHTTPAppResponseAccess(Context.Response.RawWebResponse).FThread;
+
+  lLastEventID := Context.Request.Headers[TMVCConstants.SSE_LAST_EVENT_ID].Trim;
 
   lIOHandler := lRawContext.Connection.IOHandler;
   lIOHandler.WriteBufferOpen();
@@ -144,6 +149,7 @@ begin
     end;
     Sleep(200); //arbitrary... some better approches?
   end;
+  lRawContext.Connection.Disconnect;
 end;
 
 end.
