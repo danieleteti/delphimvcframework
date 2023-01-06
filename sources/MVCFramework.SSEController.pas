@@ -34,19 +34,16 @@ uses
 
 type
   TMVCSSEDefaults = class sealed
-  public const
-    /// <summary>
-    /// Charset of SSE messages encoding
-    /// </summary>
-    SSE_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
-    /// <summary>
-    /// Keep the messages in correct order and resend lost messages after reconnection
-    ///
-    /// Hint:
-    /// If you don't case about message order (i.e. raising current time, current temperature) leave it false
-    /// If you need to push events without data loss and in the right order use True (i.e. bank transactions)
-    /// </summary>
-    SSE_KEEP_ORDER = false;
+    public const
+      /// <summary>
+      /// Charset of SSE messages encoding
+      /// </summary>
+      SSE_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
+
+      /// <summary>
+      /// Force client to reconnect again after specified milliseconds
+      /// </summary>
+      SSE_RETRY_TIMEOUT = 10000;
   end;
 
   TSSEMessage = record
@@ -61,12 +58,15 @@ type
   TMVCSSEController = class abstract(TMVCController)
   protected
     fSSECharset: string;
+    fRetryTimeout: UInt32;
     /// <summary>
     /// Overwrite this method in inherited class !
     /// </summary>
     function GetServerSentEvents(const LastEventID: String): TMVCSSEMessages; virtual; abstract;
   public
-    constructor Create(const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET); reintroduce; overload;
+    constructor Create(
+      const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
+      const ARetryTimeout: UInt32 = TMVCSSEDefaults.SSE_RETRY_TIMEOUT); reintroduce; overload;
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces('text/event-stream')]
@@ -78,10 +78,13 @@ implementation
 uses
   IdContext, IdHTTPWebBrokerBridge, IdIOHandler;
 
-constructor TMVCSSEController.Create(const ASSECharset: string);
+constructor TMVCSSEController.Create(
+  const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
+  const ARetryTimeout: UInt32 = TMVCSSEDefaults.SSE_RETRY_TIMEOUT);
 begin
   inherited Create;
   fSSECharset := ASSECharset;
+  fRetryTimeout := ARetryTimeout;
 end;
 
 type
@@ -143,7 +146,8 @@ begin
         begin
           lIOHandler.Write(Format('event: %s' + EOL, [lSSEData.Event]));
         end;
-        lIOHandler.Write(Format('data: %s' + EOL + EOL { end of message } , [lSSEData.Data]));
+        lIOHandler.Write(Format('data: %s' + EOL, [lSSEData.Data]));
+        lIOHandler.Write(Format('retry: %d' + EOL + EOL { end of message } , [FRetryTimeout]));
       end;
       lIOHandler.WriteBufferClose;
     end;

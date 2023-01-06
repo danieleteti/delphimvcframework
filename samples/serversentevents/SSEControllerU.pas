@@ -23,9 +23,9 @@ uses
 function TMySSEController.GetServerSentEvents(const LastEventID: String): TMVCSSEMessages;
 var
   lCurrentEventID: Integer;
+  lSSEMessage: TSSEMessage;
 begin
   Sleep(1000);
-  var lSSEMessage: TSSEMessage;
   lSSEMessage.Event := 'stockupdate';
   lSSEMessage.Data := GetNextDataToSend(StrToIntDef(LastEventID, 0), lCurrentEventID);
   lSSEMessage.Id := lCurrentEventID.ToString;
