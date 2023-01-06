@@ -19,7 +19,8 @@ uses
   System.IOUtils,
   FireDAC.Comp.Client,
   FireDAC.Moni.Base,
-  FireDAC.Moni.FlatFile, FireDAC.Stan.Intf
+  FireDAC.Moni.FlatFile,
+  FireDAC.Stan.Intf
   ;
 
 
@@ -43,6 +44,7 @@ begin
     LParams.Add('Password=root');
     LParams.Add('TinyIntFormat=Boolean'); { it's the default }
     LParams.Add('CharacterSet=utf8mb4'); // not utf8!!
+    LParams.Add('MonitorBy=FlatFile');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -77,10 +79,7 @@ begin
   try
     LParams.Add('Database=activerecorddb');
     LParams.Add('OSAuthent=Yes');
-//    LParams.Add('User_Name=sa');
-//    LParams.Add('Password=sa');
     LParams.Add('Server=DANIELETETI\SQLEXPRESS');
-    // LParams.Add('TinyIntFormat=Boolean'); { it's the default }
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -213,9 +212,8 @@ initialization
 gFlatFileMonitor := TFDMoniFlatFileClientLink.Create(nil);
 gFlatFileMonitor.FileColumns := [tiRefNo, tiTime, tiThreadID, tiClassName, tiObjID, tiMsgText];
 gFlatFileMonitor.EventKinds := [
-    ekLiveCycle, ekError, ekConnTransact,
+    ekVendor, ekConnConnect, ekLiveCycle, ekError, ekConnTransact,
     ekCmdPrepare, ekCmdExecute, ekCmdDataIn, ekCmdDataOut];
-
 gFlatFileMonitor.ShowTraces := False;
 gFlatFileMonitor.FileAppend := False;
 gFlatFileMonitor.FileName := TPath.ChangeExtension(ParamStr(0), '.trace.log');

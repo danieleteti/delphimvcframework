@@ -746,7 +746,6 @@ begin
     Assert(not lTest.f_float8.HasValue);
     Assert(not lTest.f_bool.HasValue);
     Assert(Assigned(lTest));
-    lTest.f_int2 := lTest.f_int2.Value + 2;
     lTest.f_int4 := lTest.f_int4.Value + 4;
     lTest.f_int8 := lTest.f_int8.Value + 8;
     lTest.f_blob.Size := 0;
@@ -755,9 +754,9 @@ begin
     lTest.Free;
   end;
 
-  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
   try
-    Assert(lTest.f_int2.ValueOrDefault = 4);
+    Assert(lTest.f_int2.ValueOrDefault = 2);
     Assert(lTest.f_int4.ValueOrDefault = 8);
     Assert(lTest.f_int8.ValueOrDefault = 16);
     Assert(not lTest.f_string.HasValue);
@@ -769,12 +768,12 @@ begin
     Assert(not lTest.f_float8.HasValue);
     Assert(not lTest.f_bool.HasValue);
     Assert(lTest.f_blob.Size = 0, 'Blob contains a value when should not');
-    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
+    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,2)');
   finally
     lTest.Free;
   end;
 
-  Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False) = nil);
+  Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 2', [], False) = nil);
 
   lTest := TNullablesTest.Create;
   try
@@ -1176,7 +1175,7 @@ begin
   LoadCustomers;
 
   Log('** Query SQL returning DataSet');
-  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', []);
+  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', [], True);
   try
     while not lDS.Eof do
     begin

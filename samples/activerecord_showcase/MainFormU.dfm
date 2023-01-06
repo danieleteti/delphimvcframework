@@ -254,12 +254,12 @@ object MainForm: TMainForm
     Top = 482
     Width = 121
     Height = 34
-    Caption = 'Speed Test'
+    Caption = 'Metadata Speed Test'
     TabOrder = 24
     OnClick = btnSpeedClick
   end
   object FDConnection1: TFDConnection
-    Left = 200
-    Top = 504
+    Left = 312
+    Top = 40
   end
 end
