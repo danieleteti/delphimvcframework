@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{4A748032-8D79-477C-97CC-13AC36704CA5}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="SSEClientViewer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SSEIndyBasedSample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SSEClientViewer">
+        <MSBuild Projects="SSEClientViewer.dproj"/>
+    </Target>
+    <Target Name="SSEClientViewer:Clean">
+        <MSBuild Projects="SSEClientViewer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSEClientViewer:Make">
+        <MSBuild Projects="SSEClientViewer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SSEIndyBasedSample">
+        <MSBuild Projects="SSEIndyBasedSample.dproj"/>
+    </Target>
+    <Target Name="SSEIndyBasedSample:Clean">
+        <MSBuild Projects="SSEIndyBasedSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSEIndyBasedSample:Make">
+        <MSBuild Projects="SSEIndyBasedSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SSEClientViewer;SSEIndyBasedSample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SSEClientViewer:Clean;SSEIndyBasedSample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SSEClientViewer:Make;SSEIndyBasedSample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
