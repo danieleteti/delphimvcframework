@@ -47,12 +47,21 @@
 // adding ENetHTTPResponseException to debugger ignored exceptions
 // ***************************************************************************
 unit MVCFramework.SSEClient;
+
 interface
 
 uses
   System.Net.HttpClient, System.Net.HttpClientComponent, System.SysUtils, System.Net.URLClient, System.Classes, System.Threading;
 
 type
+  TMVCSSEClientDefaults = class sealed
+    public const
+      /// <summary>
+      /// Accept certificate errors i.e. self signed
+      /// </summary>
+      SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS = true;
+  end;
+
   TOnSSEEvent = procedure(Sender: TObject; const MessageID: integer; const event, data: string) of object;
   TOnQueryExtraHeaders = procedure(Sender: TObject; headers: TURLHeaders) of object;
 
@@ -68,10 +77,12 @@ type
     fOnQueryExtraHeaders: TOnQueryExtraHeaders;
     fTerminated: boolean;
     procedure ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var AAbort: Boolean);
+    procedure ValidateServerCertificate(const Sender: TObject; const ARequest: TURLRequest; const Certificate: TCertificate;
+      var Accepted: Boolean);
   protected
     procedure ExtractMessage(const ASSEMessage: string); virtual;
   public
-    constructor Create(const AURL: string);
+    constructor Create(const AURL: string; const AIgnoreCertificateErrors: boolean = TMVCSSEClientDefaults.SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS);
     destructor Destroy; override;
     property OnSSEEvent: TOnSSEEvent read fOnSSEEvent write fOnSSEEvent;
     property OnQueryExtraHeaders: TOnQueryExtraHeaders read fOnQueryExtraHeaders write fOnQueryExtraHeaders;
@@ -88,7 +99,7 @@ const
   DefaultReconnectTimeout = 10000;
   CRLF = #13#10;
 
-constructor TMVCSSEClient.Create(const AURL: string);
+constructor TMVCSSEClient.Create(const AURL: string; const AIgnoreCertificateErrors: boolean = TMVCSSEClientDefaults.SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS);
 begin
   inherited Create;
   fTerminated := False;
@@ -97,6 +108,8 @@ begin
   fSSERequest.ResponseTimeout := 100;
   fSSERequest.Accept := 'text/event-stream';
   fSSERequest.OnReceiveData := ReceiveData;
+  if AIgnoreCertificateErrors then
+    fSSERequest.OnValidateServerCertificate := ValidateServerCertificate;
   fEventStream := TStringStream.Create('', TEncoding.UTF8); ;
   fLastEventId := -1;
 end;
@@ -220,6 +233,12 @@ begin
   begin
     TTask.WaitForAll([fWorkingTask]);
   end;
+end;
+
+procedure TMVCSSEClient.ValidateServerCertificate(const Sender: TObject; const ARequest: TURLRequest; const Certificate: TCertificate;
+  var Accepted: Boolean);
+begin
+  Accepted := true;
 end;
 
 end.
