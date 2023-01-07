@@ -50,7 +50,6 @@ type
     Event: string;
     Data: string;
     Id: String;
-    Retry: Integer;
   end;
 
   TMVCSSEMessages = TArray<TSSEMessage>;
