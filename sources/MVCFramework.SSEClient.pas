@@ -33,55 +33,48 @@
 //                                                        
 //  With reference to the specification the only "data"   
 //  field of SSE Message if required                      
+//
+//             !!!!!! Please note !!!!!!
 //                                                        
-//  If you want to use https put the                      
-//  libeay32.dll and ssleay32.dll (64 or 32 bit)          
-//  in the exe folder                                     
-//                                                        
-//             !!!!!! Please note !!!!!!                  
-//                                                        
-//  Event OnSSEEvent is raised from the thread            
-//  make sure you handler is thread safe !                
-//                                                        
-//  Use OnQueryExtraHeaders to add custom headers such as 
-//  cookies (Set-Cookie) or                               
-//  Authentication: Bearer XXX.YYY.ZZZ     
-//  
+//  Event OnSSEEvent is raised from the thread
+//  make sure your handler is thread safe !
+//
+//  Use OnQueryExtraHeaders to add custom headers such as
+//  cookies (Set-Cookie) or
+//  Authentication: Bearer XXX.YYY.ZZZ
+//
+// ENetHTTPResponseException is raised regularly, this is expected bahaviour so recommended
+// adding ENetHTTPResponseException to debugger ignored exceptions
 // ***************************************************************************
-
 unit MVCFramework.SSEClient;
-
 interface
 
 uses
-  IdHTTP, IdGlobal, System.SysUtils, IdSSLOpenSSL,
-  System.Classes, System.Threading, IdComponent;
+  System.Net.HttpClient, System.Net.HttpClientComponent, System.SysUtils, System.Net.URLClient, System.Classes, System.Threading;
 
 type
-  TOnSSEEvent = procedure(Sender: TObject; const MessageID: Integer; const Event, Data: string) of object;
-  TOnQueryExtraHeaders = procedure(Sender: TObject; Headers: TStrings) of object;
+  TOnSSEEvent = procedure(Sender: TObject; const MessageID: integer; const event, data: string) of object;
+  TOnQueryExtraHeaders = procedure(Sender: TObject; headers: TURLHeaders) of object;
 
   TMVCSSEClient = class(TObject)
   private
     fWorkingTask: ITask;
     fLastEventId: integer;
     fReconnectTimeout: integer;
-    fEventStream: TIdEventStream;
-    fIdHTTP: TIdHTTP;
-    fIdSSL: TIdSSLIOHandlerSocketOpenSSL;
+    fEventStream: TStringStream;
+    fSSERequest: TNetHTTPClient;
     fURL: string;
     fOnSSEEvent: TOnSSEEvent;
     fOnQueryExtraHeaders: TOnQueryExtraHeaders;
-    fTerminated: Boolean;
+    fTerminated: boolean;
+    procedure ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var AAbort: Boolean);
   protected
-    procedure DataAvailable(const ABuffer: TIdBytes; AOffset, ACount: Longint; var VResult: Longint);
     procedure ExtractMessage(const ASSEMessage: string); virtual;
-    procedure OnSSEWork(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
   public
     constructor Create(const AURL: string);
     destructor Destroy; override;
-    property OnSSEEvent: TOnSSEEvent read FOnSSEEvent write FOnSSEEvent;
-    property OnQueryExtraHeaders: TOnQueryExtraHeaders read FOnQueryExtraHeaders write FOnQueryExtraHeaders;
+    property OnSSEEvent: TOnSSEEvent read fOnSSEEvent write fOnSSEEvent;
+    property OnQueryExtraHeaders: TOnQueryExtraHeaders read fOnQueryExtraHeaders write fOnQueryExtraHeaders;
     procedure Start;
     procedure Stop;
   end;
@@ -100,21 +93,11 @@ begin
   inherited Create;
   fTerminated := False;
   fURL := AURL;
-  fIdHTTP := TIdHTTP.Create(nil);
-
-  fIdSSL := nil;
-  if AURL.ToLower.StartsWith('https') then
-  begin
-    fIdSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
-    fIdSSL.SSLOptions.Method := sslvSSLv23; //wildcard for accepting all versions
-    fIdHTTP.IOHandler := fIdSSL;
-  end;
-  fIdHTTP.Request.Accept := 'text/event-stream';
-  fIdHTTP.Request.CacheControl := 'no-store';
-
-  fEventStream := TIdEventStream.Create;
-  fEventStream.OnWrite := DataAvailable;
-
+  fSSERequest := TNetHTTPClient.Create(nil);
+  fSSERequest.ResponseTimeout := 100;
+  fSSERequest.Accept := 'text/event-stream';
+  fSSERequest.OnReceiveData := ReceiveData;
+  fEventStream := TStringStream.Create('', TEncoding.UTF8); ;
   fLastEventId := -1;
 end;
 
@@ -122,8 +105,7 @@ destructor TMVCSSEClient.Destroy;
 begin
   Stop;
 
-  fIdHTTP.Free;
-  fIdSSL.Free;
+  fSSERequest.Free;
   fEventStream.Free;
   inherited;
 end;
@@ -153,42 +135,37 @@ begin
   end;
 end;
 
-procedure TMVCSSEClient.OnSSEWork(ASender: TObject; AWorkMode: TWorkMode;
-  AWorkCount: Int64);
-begin
-  if fTerminated then
-  begin
-    IndyRaiseLastError;
-  end;
-end;
-
-procedure TMVCSSEClient.DataAvailable(const ABuffer: TIdBytes; AOffset, ACount: Longint; var VResult: Longint);
+procedure TMVCSSEClient.ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var AAbort: Boolean);
 var
-  lData: string;
+  lData, lSSEItem: string;
   lSSEItems: TArray<string>;
-  lSSEItem: string;
 begin
-  lData := IndyTextEncoding_UTF8.GetString(ABuffer).Trim;
+  AAbort := (fTerminated);
+  if not AAbort then
+  begin
 
-  //==============================================================================
-  // PARSE THE FOLLOWING:
-  //
-  //    id: 1
-  //    event: sampleEvent
-  //    data: testData1
-  //    retry: 10000
-  //
-  //
-  //    id: 2
-  //    event: sampleEvent
-  //    data: testData2
-  //    retry: 10000
-  //==============================================================================
+    lData := fEventStream.DataString.Trim;
+    //==============================================================================
+    // PARSE THE FOLLOWING:
+    //
+    //    id: 1
+    //    event: sampleEvent
+    //    data: testData1
+    //    retry: 10000
+    //
+    //
+    //    id: 2
+    //    event: sampleEvent
+    //    data: testData2
+    //    retry: 10000
+    //==============================================================================
 
-  lSSEItems := lData.Split([CRLF+CRLF]);
-  for lSSEItem in lSSEItems do
-    ExtractMessage(lSSEItem);
+    lSSEItems := lData.Split([CRLF+CRLF]);
+    for lSSEItem in lSSEItems do
+      ExtractMessage(lSSEItem);
 
+    fEventStream.Clear;
+  end;
 end;
 
 procedure TMVCSSEClient.Start;
@@ -199,27 +176,37 @@ begin
   if not Assigned(fOnSSEEvent) then
     raise Exception.Create('No event handler defined for OnSSEEvent');
 
-  if Assigned(FOnQueryExtraHeaders) then
-    fOnQueryExtraHeaders(Self, fIdHTTP.Request.CustomHeaders);
+  if Assigned(fOnQueryExtraHeaders) then
+    fOnQueryExtraHeaders(Self, fSSERequest.CustHeaders);
+
+  fTerminated := false;
 
   fWorkingTask := TTask.Run(
   procedure
   begin
-    //while (fWorkingTask.Status = TTaskStatus.Running) do
-    while not fTerminated do
+    while (not fTerminated) do
     begin
       try
-        fIdHTTP.Request.CustomHeaders.AddValue('Last-Event-ID', fLastEventId.ToString);
-        fIdHTTP.OnWork := OnSSEWork;
-        fIdHTTP.Get(FURL, fEventStream);
+        fSSERequest.CustHeaders.Add('Last-Event-ID', fLastEventId.ToString);
+        fSSERequest.Get(FURL, fEventStream);
       except
-        //non blocking Sleep
-        lNextRetry := IncMilliSecond(Now, fReconnectTimeout);
-        while Now < lNextRetry do
+        on e: exception do
         begin
-          if fWorkingTask.Status <> TTaskStatus.Running then
+          if not (e is ENetHTTPResponseException) then
+          begin
+            //connection to server lost, use fReconnectTimeout
+            //non blocking Sleep
+            lNextRetry := IncMilliSecond(Now, fReconnectTimeout);
+            while Now < lNextRetry do
+            begin
+              if (fTerminated) then
+                Break;
+            end;
+          end
+          else
+          //expected read timeout - check if we should leave loop
+          if (fTerminated) then
             Break;
-          TThread.Yield;
         end;
       end;
     end;
@@ -231,10 +218,8 @@ begin
   fTerminated := True;
   if Assigned(fWorkingTask) then
   begin
-//    fWorkingTask.Cancel;
-    TTask.WaitForAll([fWorkingTask]); //this never returns...
+    TTask.WaitForAll([fWorkingTask]);
   end;
-  fIdHTTP.Disconnect;
 end;
 
 end.
