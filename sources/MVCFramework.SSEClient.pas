@@ -214,6 +214,7 @@ begin
             begin
               if (fTerminated) then
                 Break;
+              Sleep(100);//prevent from draining processor  
             end;
           end
           else
