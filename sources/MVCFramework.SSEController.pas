@@ -50,7 +50,6 @@ type
     Event: string;
     Data: string;
     Id: String;
-    Retry: Integer;
   end;
 
   TMVCSSEMessages = TArray<TSSEMessage>;
@@ -76,7 +75,7 @@ type
 implementation
 
 uses
-  IdContext, IdHTTPWebBrokerBridge, IdIOHandler;
+  IdContext, IdHTTPWebBrokerBridge, IdIOHandler, idGlobal;
 
 constructor TMVCSSEController.Create(
   const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
@@ -144,9 +143,9 @@ begin
         end;
         if not lSSEData.Event.IsEmpty then
         begin
-          lIOHandler.Write(Format('event: %s' + EOL, [lSSEData.Event]));
+          lIOHandler.Write(Format('event: %s' + EOL, [lSSEData.Event]), IndyTextEncoding(fSSECharset));
         end;
-        lIOHandler.Write(Format('data: %s' + EOL, [lSSEData.Data]));
+        lIOHandler.Write(Format('data: %s' + EOL, [lSSEData.Data]), IndyTextEncoding(fSSECharset));
         lIOHandler.Write(Format('retry: %d' + EOL + EOL { end of message } , [FRetryTimeout]));
       end;
       lIOHandler.WriteBufferClose;
