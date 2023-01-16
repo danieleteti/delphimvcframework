@@ -648,6 +648,7 @@ function URLDecode(const Value: string): string;
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
+function StreamToBase64String(Source: TStream): string;
 function FileToBase64String(const FileName: string): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
@@ -1466,6 +1467,20 @@ begin
   end;
 end;
 
+function StreamToBase64String(Source: TStream): string;
+var
+  lTemplateFileB64: TStringStream;
+  lTemplateFile: TFileStream;
+begin
+  lTemplateFileB64 := TStringStream.Create;
+  try
+    TMVCSerializerHelper.EncodeStream(Source, lTemplateFileB64);
+    Result := lTemplateFileB64.DataString;
+  finally
+    lTemplateFileB64.Free;
+  end;
+end;
+
 function FileToBase64String(const FileName: string): string;
 var
   lTemplateFileB64: TStringStream;
@@ -1474,14 +1489,10 @@ begin
   lTemplateFileB64 := TStringStream.Create;
   try
     lTemplateFile := TFileStream.Create(FileName, fmOpenRead);
-    try
-      TMVCSerializerHelper.EncodeStream(lTemplateFile, lTemplateFileB64);
-    finally
-      lTemplateFile.Free;
-    end;
-    Result := lTemplateFileB64.DataString;
+    Result := StreamToBase64String(lTemplateFile);
   finally
     lTemplateFileB64.Free;
+    lTemplateFile.Free;
   end;
 end;
 
