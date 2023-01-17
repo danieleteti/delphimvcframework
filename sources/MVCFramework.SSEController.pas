@@ -66,6 +66,7 @@ type
     constructor Create(
       const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
       const ARetryTimeout: UInt32 = TMVCSSEDefaults.SSE_RETRY_TIMEOUT); reintroduce; overload;
+    constructor Create; overload; override;
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces('text/event-stream')]
@@ -88,6 +89,13 @@ end;
 
 type
   TIdHTTPAppResponseAccess = class(TIdHTTPAppResponse);
+
+constructor TMVCSSEController.Create;
+begin
+  inherited;
+  fSSECharset := TMVCSSEDefaults.SSE_CONTENT_CHARSET;
+  fRetryTimeout := TMVCSSEDefaults.SSE_RETRY_TIMEOUT;
+end;
 
 procedure TMVCSSEController.Index;
 var
