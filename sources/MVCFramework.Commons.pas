@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1469,15 +1469,14 @@ end;
 
 function StreamToBase64String(Source: TStream): string;
 var
-  lTemplateFileB64: TStringStream;
-  lTemplateFile: TFileStream;
+  lTmpStream: TStringStream;
 begin
-  lTemplateFileB64 := TStringStream.Create;
+  lTmpStream := TStringStream.Create;
   try
-    TMVCSerializerHelper.EncodeStream(Source, lTemplateFileB64);
-    Result := lTemplateFileB64.DataString;
+    TMVCSerializerHelper.EncodeStream(Source, lTmpStream);
+    Result := lTmpStream.DataString;
   finally
-    lTemplateFileB64.Free;
+    lTmpStream.Free;
   end;
 end;
 

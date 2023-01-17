@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //           
@@ -203,9 +203,9 @@ begin
         fSSERequest.CustHeaders.Add('Last-Event-ID', fLastEventId.ToString);
         fSSERequest.Get(FURL, fEventStream);
       except
-        on e: exception do
+        on E: Exception do
         begin
-          if not (e is ENetHTTPResponseException) then
+          if not (E is ENetHTTPResponseException) then
           begin
             //connection to server lost, use fReconnectTimeout
             //non blocking Sleep
@@ -214,13 +214,15 @@ begin
             begin
               if (fTerminated) then
                 Break;
-              Sleep(100);//prevent from draining processor  
+              Sleep(100);//prevent from draining processor
             end;
           end
           else
-          //request cancelled
-          if (fTerminated) then
-            Break;
+          begin
+            //request cancelled
+            if (fTerminated) then
+              Break;
+          end;
         end;
       end;
     end;

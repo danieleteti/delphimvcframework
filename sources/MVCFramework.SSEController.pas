@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -64,8 +64,8 @@ type
     function GetServerSentEvents(const LastEventID: String): TMVCSSEMessages; virtual; abstract;
   public
     constructor Create(
-      const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
-      const ARetryTimeout: UInt32 = TMVCSSEDefaults.SSE_RETRY_TIMEOUT); reintroduce; overload;
+      const ASSECharset: string;
+      const ARetryTimeout: UInt32); reintroduce; overload;
     constructor Create; overload; override;
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
@@ -79,8 +79,8 @@ uses
   IdContext, IdHTTPWebBrokerBridge, IdIOHandler, idGlobal;
 
 constructor TMVCSSEController.Create(
-  const ASSECharset: string = TMVCSSEDefaults.SSE_CONTENT_CHARSET;
-  const ARetryTimeout: UInt32 = TMVCSSEDefaults.SSE_RETRY_TIMEOUT);
+  const ASSECharset: string;
+  const ARetryTimeout: UInt32);
 begin
   inherited Create;
   fSSECharset := ASSECharset;
@@ -92,9 +92,7 @@ type
 
 constructor TMVCSSEController.Create;
 begin
-  inherited;
-  fSSECharset := TMVCSSEDefaults.SSE_CONTENT_CHARSET;
-  fRetryTimeout := TMVCSSEDefaults.SSE_RETRY_TIMEOUT;
+  Create(TMVCSSEDefaults.SSE_CONTENT_CHARSET, TMVCSSEDefaults.SSE_RETRY_TIMEOUT);
 end;
 
 procedure TMVCSSEController.Index;

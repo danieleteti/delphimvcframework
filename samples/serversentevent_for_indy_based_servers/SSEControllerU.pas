@@ -29,7 +29,6 @@ begin
   lSSEMessage.Event := 'stockupdate';
   lSSEMessage.Data := GetNextDataToSend(StrToIntDef(LastEventID, 0), lCurrentEventID);
   lSSEMessage.Id := lCurrentEventID.ToString;
-  lSSEMessage.Retry := 300;
   Result := [
     lSSEMessage
   ];
