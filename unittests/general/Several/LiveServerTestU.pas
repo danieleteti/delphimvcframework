@@ -345,6 +345,9 @@ type
     procedure TestRequestWithParams_I_I_ret_A;
     [Test]
     procedure TestRequestWithParams_DT_T_ret_DT;
+    // objects tests
+    [Test]
+    procedure TestRequestWithObjectParameters;
     // hooks tests
     [Test]
     procedure TestHooks;
@@ -1185,19 +1188,19 @@ begin
     try
       GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
-      Assert.areEqual(4, Length(lObj2.Names));
+      Assert.AreEqual<Integer>(4, Length(lObj2.Names));
       Assert.areEqual(lObj1.Names[0], lObj2.Names[0]);
       Assert.areEqual(lObj1.Names[1], lObj2.Names[1]);
       Assert.areEqual(lObj1.Names[2], lObj2.Names[2]);
       Assert.areEqual('added', lObj2.Names[3]);
 
-      Assert.areEqual(4, Length(lObj2.Values));
+      Assert.AreEqual<Integer>(4, Length(lObj2.Values));
       Assert.areEqual(lObj1.Values[0], lObj2.Values[0]);
       Assert.areEqual(lObj1.Values[1], lObj2.Values[1]);
       Assert.areEqual(lObj1.Values[2], lObj2.Values[2]);
       Assert.areEqual(99, lObj2.Values[3]);
 
-      Assert.areEqual(3, Length(lObj2.Booleans));
+      Assert.AreEqual<Integer>(3, Length(lObj2.Booleans));
       Assert.areEqual(lObj1.Booleans[0], lObj2.Booleans[0]);
       Assert.areEqual(lObj1.Booleans[1], lObj2.Booleans[1]);
       Assert.areEqual(true, lObj2.Booleans[2]);
@@ -1224,13 +1227,13 @@ begin
     try
       GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
-      Assert.areEqual(1, Length(lObj2.Names));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Names));
       Assert.areEqual('added', lObj2.Names[0]);
 
-      Assert.areEqual(1, Length(lObj2.Values));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Values));
       Assert.areEqual(99, lObj2.Values[0]);
 
-      Assert.areEqual(1, Length(lObj2.Booleans));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Booleans));
       Assert.areEqual(true, lObj2.Booleans[0]);
     finally
       lObj2.Free;
@@ -2714,7 +2717,7 @@ begin
       lCount := 1001;
       Continue;
     end;
-    Assert.areEqual(9, Length(lLinePieces));
+    Assert.AreEqual<Integer>(9, Length(lLinePieces));
     Assert.areEqual(lCount, lLinePieces[0].ToInteger);
     Inc(lCount);
   end;
@@ -3103,6 +3106,30 @@ begin
   Assert.areEqual(1234, lResp.RequestID.AsInteger);
 end;
 
+procedure TJSONRPCServerTest.TestRequestWithObjectParameters;
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lPersSrc, lPersDst: TPerson;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'handlingobjects';
+  lPersSrc := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,12,1), True);
+  lReq.Params.AddByName('MyObj', lPersSrc);
+  lReq.RequestID := 1;
+  lResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lResp.IsError);
+
+  lPersDst := TPerson.Create;
+  try
+    lResp.ResultAs(lPersDst);
+    Assert.AreEqual(lPersSrc.ToString, lPersDst.ToString);
+  finally
+    lPersDst.Free;
+  end;
+end;
+
+
 procedure TJSONRPCServerTest.TestRequestWithoutParams;
 var
   lReq: IJSONRPCRequest;
@@ -3281,7 +3308,7 @@ begin
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   lSimpleRecArray := TJSONUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp);
-  Assert.AreEqual(3, Length(lSimpleRecArray));
+  Assert.AreEqual<Integer>(3, Length(lSimpleRecArray));
   Assert.AreEqual(0, lSimpleRecArray[0].IntegerProperty);
   Assert.AreEqual(1, lSimpleRecArray[1].IntegerProperty);
   Assert.AreEqual(2, lSimpleRecArray[2].IntegerProperty);
@@ -3322,7 +3349,7 @@ begin
   Assert.IsTrue(lRec.SimpleRecord.SetProperty - [EnumItem1, EnumItem3] = []);
 
   //Dynamic Array Records
-  Assert.AreEqual(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
+  Assert.AreEqual<Integer>(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
   Assert.AreEqual('1', lRec.SimpleRecordDynArray[0].StringProperty);
   Assert.AreEqual('2', lRec.SimpleRecordDynArray[1].StringProperty);
 

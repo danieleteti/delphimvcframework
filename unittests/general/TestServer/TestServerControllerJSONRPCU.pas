@@ -44,6 +44,11 @@ type
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 
+    //objects support
+    [MVCInheritable]
+    function HandlingObjects(MyObj: TPerson): TPerson;
+
+
     //enums support
     [MVCInheritable]
     function ProcessEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
@@ -132,6 +137,16 @@ end;
 function TTestJSONRPCClass.GetSingleRecord: TSimpleRecord;
 begin
   Result := TSimpleRecord.Create;
+end;
+
+function TTestJSONRPCClass.HandlingObjects(MyObj: TPerson): TPerson;
+begin
+  Result := TPerson.Create;
+  Result.ID := MyObj.ID;
+  Result.FirstName := MyObj.FirstName;
+  Result.LastName := MyObj.LastName;
+  Result.DOB := MyObj.DOB;
+  Result.Married := MyObj.Married;
 end;
 
 function TTestJSONRPCController.MultiplyString(aString: string; Multiplier: Int64): string;

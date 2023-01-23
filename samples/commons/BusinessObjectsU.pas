@@ -59,6 +59,7 @@ type
     function GetFullName: string;
   public
     function Equals(Obj: TObject): boolean; override;
+    function ToString: String; override;
 
     property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
@@ -484,6 +485,18 @@ end;
 procedure TPerson.SetMarried(const Value: boolean);
 begin
   FMarried := Value;
+end;
+
+function TPerson.ToString: String;
+begin
+  Result :=
+    Format('ID: %d, LAST_NAME: %s, FIRST_NAME: %s, MARRIED: %s, DOB: %s',[
+      Self.ID,
+      Self.LastName,
+      Self.FirstName,
+      BoolToStr(Self.Married, True),
+      DateToISODate(Self.DOB)
+    ]);
 end;
 
 { TCustomer }

@@ -45,6 +45,10 @@ begin
   Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
   Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
   Writeln(' ');
+  Write('PLATFORM: ');
+  {$IF Defined(Win32)} Writeln('WIN32'); {$ENDIF}
+  {$IF Defined(Win64)} Writeln('WIN64'); {$ENDIF}
+  {$IF Defined(Linux64)} Writeln('Linux64'); {$ENDIF}
   TextColor(TConsoleColor.Yellow);
   Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
   TextColor(TConsoleColor.White);

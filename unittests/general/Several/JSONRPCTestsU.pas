@@ -56,7 +56,7 @@ implementation
 
 { TJSONRPCTest }
 
-uses MVCFramework.JSONRPC;
+uses MVCFramework.JSONRPC, BusinessObjectsU, System.SysUtils;
 
 procedure TTestJSONRPC.TestIssue595;
 begin
