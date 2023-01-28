@@ -889,22 +889,45 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllNullableTypes;
 var
   lObj1, lObj2: BusinessObjectsU.TNullablesTest;
-  lSer: string;
+  lSerWithNulls, lSerWithoutNulls: string;
 begin
+  Assert.IsTrue(MVCSerializeNulls, 'By Default "MVCSerializeNulls" must be true');
   lObj1 := BusinessObjectsU.TNullablesTest.Create;
   try
     lObj1.LoadSomeData;
-    lSer := fSerializer.SerializeObject(lObj1);
+    lSerWithNulls := fSerializer.SerializeObject(lObj1);
     lObj2 := BusinessObjectsU.TNullablesTest.Create;
     try
-      fSerializer.DeserializeObject(lSer, lObj2);
-      Assert.isTrue(lObj1.Equals(lObj2));
+      fSerializer.DeserializeObject(lSerWithNulls, lObj2);
+      Assert.IsTrue(lObj1.Equals(lObj2));
     finally
       lObj2.Free;
     end;
   finally
     lObj1.Free;
   end;
+
+  MVCSerializeNulls := False;
+  try
+    lObj1 := BusinessObjectsU.TNullablesTest.Create;
+    try
+      //lObj1.LoadSomeData;
+      lSerWithoutNulls := fSerializer.SerializeObject(lObj1);
+      Assert.AreNotEqual(lSerWithNulls, lSerWithoutNulls);
+      lObj2 := BusinessObjectsU.TNullablesTest.Create;
+      try
+        fSerializer.DeserializeObject(lSerWithoutNulls, lObj2);
+        Assert.IsTrue(lObj1.Equals(lObj2));
+      finally
+        lObj2.Free;
+      end;
+    finally
+      lObj1.Free;
+    end;
+  finally
+    MVCSerializeNulls := True;
+  end;
+
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllTypes;

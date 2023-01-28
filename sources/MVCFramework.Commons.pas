@@ -629,6 +629,15 @@ TMVCListOfBoolean = TList<Boolean>;
 TMVCListOfDouble =  TList<Double>;
 { GENERIC TYPE ALIASES // END}
 
+{ GLOBAL CONFIG VARS }
+var
+  /// <summary>
+  /// When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
+  /// When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+  /// </summary>
+  MVCSerializeNulls: Boolean = True;
+{ GLOBAL CONFIG VARS // END}
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;

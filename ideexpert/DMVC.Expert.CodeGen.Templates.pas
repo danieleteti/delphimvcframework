@@ -101,6 +101,10 @@ resourcestring
     'begin' + sLineBreak +
     '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
     '  IsMultiThread := True;' + sLineBreak +
+    '  // DMVCFramework Specific Configuration ' + sLineBreak +
+    '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
+    '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +

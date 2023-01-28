@@ -1,0 +1,1374 @@
+/*
+ *	PROGRAM:		Firebird interface.
+ *	MODULE:			firebird/Interface.idl
+ *	DESCRIPTION:	Collection of interfaces used by FB to talk with outer world.
+ *
+ *  The contents of this file are subject to the Initial
+ *  Developer's Public License Version 1.0 (the "License");
+ *  you may not use this file except in compliance with the
+ *  License. You may obtain a copy of the License at
+ *  http://www.ibphoenix.com/main.nfs?a=ibphoenix&page=ibp_idpl.
+ *
+ *  Software distributed under the License is distributed AS IS,
+ *  WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing rights
+ *  and limitations under the License.
+ *
+ *  The Original Code was created by Alex Peshkov
+ *  for the Firebird Open Source RDBMS project.
+ *
+ *  Copyright (c) 2010 Alex Peshkov <peshkoff at mail.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+ *
+ *
+ */
+
+typedef ISC_DATE;
+typedef ISC_QUAD;
+typedef ISC_TIME;
+
+// Versioned interface - base for all FB interfaces
+interface Versioned
+{
+}
+
+// Reference counted interface - base for refCounted FB interfaces
+interface ReferenceCounted : Versioned
+{
+	void addRef();
+	int release();
+}
+
+// Disposable interface - base for disposable FB interfaces
+interface Disposable : Versioned
+{
+	void dispose();
+}
+
+// Interface to work with status vector
+[exception]
+interface Status : Disposable
+{
+	// flags in value returned by getState()
+	const uint STATE_WARNINGS	= 0x01;
+	const uint STATE_ERRORS 	= 0x02;
+
+	// completion codes - not used in Status, but I must have them somewhere
+	const int RESULT_ERROR = -1;
+	const int RESULT_OK = 0;
+	const int RESULT_NO_DATA = 1;
+	const int RESULT_SEGMENT = 2;
+
+	void init();
+	uint getState() const;
+
+	void setErrors2(uint length, const intptr* value);
+	void setWarnings2(uint length, const intptr* value);
+	void setErrors(const intptr* value);
+	void setWarnings(const intptr* value);
+
+	[onError stubError]
+	const intptr* getErrors() const;
+	[onError stubError]
+	const intptr* getWarnings() const;
+
+	Status clone() const;
+}
+
+// Master interface is used to access almost all other interfaces.
+interface Master : Versioned
+{
+	Status getStatus();
+	Provider getDispatcher();
+	PluginManager getPluginManager();
+	TimerControl getTimerControl();
+	Dtc getDtc();
+	Attachment registerAttachment(Provider provider, Attachment attachment);
+	Transaction registerTransaction(Attachment attachment, Transaction transaction);
+
+	MetadataBuilder getMetadataBuilder(Status status, uint fieldCount);
+	int serverMode(int mode);
+	Util getUtilInterface();
+	ConfigManager getConfigManager();
+	boolean getProcessExiting();
+}
+
+/*
+ * Firebird plugins are accessed using methods of PluginLoader interface.
+ * For each plugin_module tag found, it constructs a Plugin object, reads the corresponding
+ * plugin_config tag and inserts all config information in the object.
+ *
+ * When requested, the engine gets the attribute value of plugin_module/filename, load it as a
+ * dynamic (shared) library and calls the exported function firebirdPlugin (FB_PLUGIN_ENTRY_POINT
+ * definition, PluginEntrypoint prototype) passing the Plugin object as parameter.
+ *
+ * The plugin library may save the plugin object and call they methods later. The object and all
+ * pointers returned by it are valid until the plugin is unloaded (done through OS unload of the
+ * dynamic library) when Firebird is shutting down.
+ *
+ * Inside the plugin entry point (firebirdPlugin), the plugin may register extra functionality that
+ * may be obtained by Firebird when required. Currently only External Engines may be registered
+ * through Plugin::setExternalEngineFactory.
+ *
+ * Example plugin configuration file:
+ *
+ * <external_engine UDR>
+ *     plugin_module UDR_engine
+ * </external_engine>
+ *
+ * <plugin_module UDR_engine>
+ *     filename $(this)/udr_engine
+ *     plugin_config UDR_config
+ * </plugin_module>
+ *
+ * <plugin_config UDR_config>
+ *     path $(this)/udr
+ * </plugin_config>
+ *
+ * Note that the external_engine tag is ignored at this stage. Only plugin_module and plugin_config
+ * are read. The dynamic library extension may be ommitted, and $(this) expands to the directory of
+ * the .conf file.
+ *
+ * Plugins may access Firebird API through the fbclient library.
+ */
+
+// IPluginBase interface - base for master plugin interfaces (factories are registered for them)
+interface PluginBase : ReferenceCounted
+{
+	// Additional (compared with Interface) functions getOwner() and setOwner()
+	// are needed to release() owner of the plugin. This is done in releasePlugin()
+	// function in PluginManager. Such method is needed to make sure that owner is released
+	// after plugin itself, and therefore module is unloaded after release of last plugin from it.
+	// Releasing owner from release() of plugin will unload module and after returning control
+	// to missing code segfault is unavoidable.
+	void setOwner(ReferenceCounted r);
+	ReferenceCounted getOwner();
+}
+
+// PluginSet - low level tool to access plugins according to parameter from firebird.conf
+interface PluginSet : ReferenceCounted
+{
+	const string getName() const;
+	const string getModuleName() const;
+	PluginBase getPlugin(Status status);
+	void next(Status status);
+	void set(Status status, const string s);
+}
+
+// Entry in configuration file
+interface ConfigEntry : ReferenceCounted
+{
+	const string getName();
+	const string getValue();
+	int64 getIntValue();
+	boolean getBoolValue();
+	Config getSubConfig(Status status);
+}
+
+// Generic form of access to configuration file - find specific entry in it
+interface Config : ReferenceCounted
+{
+	ConfigEntry find(Status status, const string name);
+	ConfigEntry findValue(Status status, const string name, const string value);
+	ConfigEntry findPos(Status status, const string name, uint pos);
+}
+
+// Used to access config values from firebird.conf (may be DB specific)
+interface FirebirdConf : ReferenceCounted
+{
+	// Get integer key by it's name
+	// Value ~0 means name is invalid
+	// Keys are stable: one can use once obtained key in other instances of this interface
+	uint getKey(const string name);
+	// Use to access integer values
+	int64 asInteger(uint key);
+	// Use to access string values
+	const string asString(uint key);
+	// Use to access boolean values
+	boolean asBoolean(uint key);
+}
+
+// This interface is passed to plugin's factory as it's single parameter
+// and contains methods to access specific plugin's configuration data
+interface PluginConfig : ReferenceCounted
+{
+	const string getConfigFileName();
+	Config getDefaultConfig(Status status);
+	FirebirdConf getFirebirdConf(Status status);
+	void setReleaseDelay(Status status, uint64 microSeconds);
+}
+
+// Required to creat instances of given plugin
+interface PluginFactory : Versioned
+{
+	PluginBase createPlugin(Status status, PluginConfig factoryParameter);
+}
+
+// Required to let plugins manager invoke module's cleanup routine before unloading it.
+// For some OS/compiler this may be done in dtor of global variable in module itself.
+// Others (Windows/VC) fail to create some very useful resources (threads) when module is unloading.
+interface PluginModule : Versioned
+{
+	void doClean();
+
+version:		// 3.0.3 => 3.0.4
+	// Used to release resources allocated per-thread 
+	void threadDetach();
+}
+
+// Interface to deal with plugins here and there, returned by master interface
+interface PluginManager : Versioned
+{
+	// Plugin types
+	const uint TYPE_PROVIDER = 1;
+	const uint TYPE_FIRST_NON_LIB = 2;
+	const uint TYPE_AUTH_SERVER = 3;
+	const uint TYPE_AUTH_CLIENT = 4;
+	const uint TYPE_AUTH_USER_MANAGEMENT = 5;
+	const uint TYPE_EXTERNAL_ENGINE = 6;
+	const uint TYPE_TRACE = 7;
+	const uint TYPE_WIRE_CRYPT = 8;
+	const uint TYPE_DB_CRYPT = 9;
+	const uint TYPE_KEY_HOLDER = 10;
+	const uint TYPE_COUNT = 11;	// keep in sync
+	//// TODO: TYPE_COUNT is not count. And these constants starts from 1, different than DIR_* ones.
+
+	// Main function called by plugin modules in firebird_plugin()
+	void registerPluginFactory(uint pluginType, const string defaultName, PluginFactory factory);
+	// Sets cleanup for plugin module
+	// Pay attention - this should be called at plugin-register time!
+	// Only at this moment manager knows, which module sets his cleanup
+	void registerModule(PluginModule cleanup);
+	// Remove registered module before cleanup routine.
+	// This method must be called by module which detects that it's unloaded,
+	// but not notified prior to it by PluginManager via PluginModule.
+	void unregisterModule(PluginModule cleanup);
+	// Main function called to access plugins registered in plugins manager
+	// Has front-end in GetPlugins.h - template GetPlugins
+	// In namesList parameter comma or space separated list of names of configured plugins is passed
+	// in case when plugin's version is less than desired
+	// If caller already has an interface for firebird.conf, it may be passed here
+	// If parameter is missing, plugins will get access to default (non database specific) config
+	PluginSet getPlugins(Status status, uint pluginType,
+						const string namesList, FirebirdConf firebirdConf);
+	// Get generic config interface for given file
+	Config getConfig(Status status, const string filename);
+	// Plugins must be released using this function - use of plugin's release()
+	// will cause resources leak
+	void releasePlugin(PluginBase plugin);
+}
+
+
+// Helper interface to pass wire crypt key from authentication to crypt plugin
+interface CryptKey : Versioned
+{
+	// In 2 following methods NULL type means auth plugin's name is used as key type
+	void setSymmetric(Status status, const string type, uint keyLength, const void* key);
+	void setAsymmetric(Status status, const string type, uint encryptKeyLength,
+		const void* encryptKey, uint decryptKeyLength, const void* decryptKey);
+
+	const void* getEncryptKey(uint* length);
+	const void* getDecryptKey(uint* length);
+}
+
+
+// Generic access to all config interfaces
+interface ConfigManager : Versioned
+{
+	// Codes for ConfigManager::getDirectory()
+	const uint DIR_BIN = 0;
+	const uint DIR_SBIN = 1;
+	const uint DIR_CONF = 2;
+	const uint DIR_LIB = 3;
+	const uint DIR_INC = 4;
+	const uint DIR_DOC = 5;
+	const uint DIR_UDF = 6;
+	const uint DIR_SAMPLE = 7;
+	const uint DIR_SAMPLEDB = 8;
+	const uint DIR_HELP = 9;
+	const uint DIR_INTL = 10;
+	const uint DIR_MISC = 11;
+	const uint DIR_SECDB = 12;
+	const uint DIR_MSG = 13;
+	const uint DIR_LOG = 14;
+	const uint DIR_GUARD = 15;
+	const uint DIR_PLUGINS = 16;
+	const uint DIR_COUNT = 17;	// keep in sync
+
+	const string getDirectory(uint code);
+	FirebirdConf getFirebirdConf();
+	FirebirdConf getDatabaseConf(const string dbName);
+	Config getPluginConfig(const string configuredPlugin);
+	const string getInstallDirectory();
+	const string getRootDirectory();
+
+version:		// 3.0.5 => 3.0.6
+	const string getDefaultSecurityDb();
+}
+
+
+// Provider interface - how we talk to databases
+// This interfaces are implemented by yvalve code and by each of providers.
+
+interface EventCallback : ReferenceCounted
+{
+	// eventCallbackFunction is missing error status cause it's always called from places
+	// where an ability to report an error to the user is missing
+	void eventCallbackFunction(uint length, const uchar* events);
+}
+
+interface Blob : ReferenceCounted
+{
+	void getInfo(Status status,
+						 uint itemsLength, const uchar* items,
+						 uint bufferLength, uchar* buffer);
+
+	[notImplemented(Status::RESULT_ERROR)]
+	int getSegment(Status status, uint bufferLength, void* buffer, uint* segmentLength);
+
+	void putSegment(Status status, uint length,
+									const void* buffer);
+	void cancel(Status status);
+	void close(Status status);
+	int seek(Status status, int mode, int offset);			// returns position
+}
+
+interface Transaction : ReferenceCounted
+{
+	void getInfo(Status status,
+						 uint itemsLength, const uchar* items,
+						 uint bufferLength, uchar* buffer);
+	void prepare(Status status,
+						 uint msgLength, const uchar* message);
+	void commit(Status status);
+	void commitRetaining(Status status);
+	void rollback(Status status);
+	void rollbackRetaining(Status status);
+	void disconnect(Status status);
+	Transaction join(Status status, Transaction transaction);
+	Transaction validate(Status status, Attachment attachment);
+	Transaction enterDtc(Status status);
+}
+
+interface MessageMetadata : ReferenceCounted
+{
+	uint getCount(Status status);
+	const string getField(Status status, uint index);
+	const string getRelation(Status status, uint index);
+	const string getOwner(Status status, uint index);
+	const string getAlias(Status status, uint index);
+	uint getType(Status status, uint index);
+	boolean isNullable(Status status, uint index);
+	int getSubType(Status status, uint index);
+	uint getLength(Status status, uint index);
+	int getScale(Status status, uint index);
+	uint getCharSet(Status status, uint index);
+	uint getOffset(Status status, uint index);
+	uint getNullOffset(Status status, uint index);
+
+	MetadataBuilder getBuilder(Status status);
+	uint getMessageLength(Status status);
+}
+
+interface MetadataBuilder : ReferenceCounted
+{
+	void setType(Status status, uint index, uint type);
+	void setSubType(Status status, uint index, int subType);
+	void setLength(Status status, uint index, uint length);
+	void setCharSet(Status status, uint index, uint charSet);
+	void setScale(Status status, uint index, int scale);
+
+	void truncate(Status status, uint count);
+	void moveNameToIndex(Status status, const string name, uint index);
+	void remove(Status status, uint index);
+	uint addField(Status status);
+
+	MessageMetadata getMetadata(Status status);
+}
+
+interface ResultSet : ReferenceCounted
+{
+	[notImplemented(Status::RESULT_ERROR)] int fetchNext(Status status, void* message);
+	[notImplemented(Status::RESULT_ERROR)] int fetchPrior(Status status, void* message);
+	[notImplemented(Status::RESULT_ERROR)] int fetchFirst(Status status, void* message);
+	[notImplemented(Status::RESULT_ERROR)] int fetchLast(Status status, void* message);
+	[notImplemented(Status::RESULT_ERROR)] int fetchAbsolute(Status status, int position, void* message);
+	[notImplemented(Status::RESULT_ERROR)] int fetchRelative(Status status, int offset, void* message);
+	boolean isEof(Status status);
+	boolean isBof(Status status);
+	MessageMetadata getMetadata(Status status);
+	void close(Status status);
+
+	// This item is for ISC API emulation only
+	// It may be gone in future versions
+	// Please do not use it!
+	void setDelayedOutputFormat(Status status, MessageMetadata format);
+}
+
+interface Statement : ReferenceCounted
+{
+	// Prepare flags.
+	const uint PREPARE_PREFETCH_NONE 				= 0x00;
+	const uint PREPARE_PREFETCH_TYPE 				= 0x01;
+	const uint PREPARE_PREFETCH_INPUT_PARAMETERS 	= 0x02;
+	const uint PREPARE_PREFETCH_OUTPUT_PARAMETERS	= 0x04;
+	const uint PREPARE_PREFETCH_LEGACY_PLAN			= 0x08;
+	const uint PREPARE_PREFETCH_DETAILED_PLAN		= 0x10;
+	const uint PREPARE_PREFETCH_AFFECTED_RECORDS	= 0x20;	// not used yet
+	const uint PREPARE_PREFETCH_FLAGS				= 0x40;
+	const uint PREPARE_PREFETCH_METADATA =
+		PREPARE_PREFETCH_TYPE | PREPARE_PREFETCH_FLAGS |
+		PREPARE_PREFETCH_INPUT_PARAMETERS | PREPARE_PREFETCH_OUTPUT_PARAMETERS;
+	const uint PREPARE_PREFETCH_ALL =
+		PREPARE_PREFETCH_METADATA | PREPARE_PREFETCH_LEGACY_PLAN | PREPARE_PREFETCH_DETAILED_PLAN |
+		PREPARE_PREFETCH_AFFECTED_RECORDS;
+
+	// Statement flags.
+	const uint FLAG_HAS_CURSOR	 					= 0x01;
+	const uint FLAG_REPEAT_EXECUTE				 	= 0x02;
+
+	// Cursor flags.
+	const uint CURSOR_TYPE_SCROLLABLE 				= 0x01;
+
+	void getInfo(Status status,
+								 uint itemsLength, const uchar* items,
+								 uint bufferLength, uchar* buffer);
+	uint getType(Status status);
+	const string getPlan(Status status, boolean detailed);
+	uint64 getAffectedRecords(Status status);
+	MessageMetadata getInputMetadata(Status status);
+	MessageMetadata getOutputMetadata(Status status);
+	Transaction execute(Status status, Transaction transaction,
+		MessageMetadata inMetadata, void* inBuffer, MessageMetadata outMetadata, void* outBuffer);
+	ResultSet openCursor(Status status, Transaction transaction,
+		MessageMetadata inMetadata, void* inBuffer, MessageMetadata outMetadata, uint flags);
+	void setCursorName(Status status, const string name);
+	void free(Status status);
+	uint getFlags(Status status);
+}
+
+interface Request : ReferenceCounted
+{
+	void receive(Status status, int level, uint msgType,
+						 uint length, uchar* message);
+	void send(Status status, int level, uint msgType,
+					  uint length, const uchar* message);
+	void getInfo(Status status, int level,
+						 uint itemsLength, const uchar* items,
+						 uint bufferLength, uchar* buffer);
+	void start(Status status, Transaction tra, int level);
+	void startAndSend(Status status, Transaction tra, int level, uint msgType,
+							  uint length, const uchar* message);
+	void unwind(Status status, int level);
+	void free(Status status);
+}
+
+interface Events : ReferenceCounted
+{
+	void cancel(Status status);
+}
+
+interface Attachment : ReferenceCounted
+{
+	void getInfo(Status status,
+						 uint itemsLength, const uchar* items,
+						 uint bufferLength, uchar* buffer);
+	Transaction startTransaction(Status status,
+		uint tpbLength, const uchar* tpb);
+	Transaction reconnectTransaction(Status status,
+		uint length, const uchar* id);
+	Request compileRequest(Status status,
+		uint blrLength, const uchar* blr);
+	void transactRequest(Status status, Transaction transaction,
+								 uint blrLength, const uchar* blr,
+								 uint inMsgLength, const uchar* inMsg,
+								 uint outMsgLength, uchar* outMsg);
+	Blob createBlob(Status status, Transaction transaction, ISC_QUAD* id,
+							 uint bpbLength, const uchar* bpb);
+	Blob openBlob(Status status, Transaction transaction, ISC_QUAD* id,
+						   uint bpbLength, const uchar* bpb);
+	int getSlice(Status status, Transaction transaction, ISC_QUAD* id,
+						 uint sdlLength, const uchar* sdl,
+						 uint paramLength, const uchar* param,
+						 int sliceLength, uchar* slice);
+	void putSlice(Status status, Transaction transaction, ISC_QUAD* id,
+						  uint sdlLength, const uchar* sdl,
+						  uint paramLength, const uchar* param,
+						  int sliceLength, uchar* slice);
+	void executeDyn(Status status, Transaction transaction, uint length,
+		const uchar* dyn);
+	Statement prepare(Status status, Transaction tra,
+		uint stmtLength, const string sqlStmt, uint dialect, uint flags);
+	Transaction execute(Status status, Transaction transaction,
+		uint stmtLength, const string sqlStmt, uint dialect,
+		MessageMetadata inMetadata, void* inBuffer, MessageMetadata outMetadata, void* outBuffer);
+	ResultSet openCursor(Status status, Transaction transaction,
+		uint stmtLength, const string sqlStmt, uint dialect,
+		MessageMetadata inMetadata, void* inBuffer, MessageMetadata outMetadata,
+		const string cursorName, uint cursorFlags);
+	Events queEvents(Status status, EventCallback callback,
+						   uint length, const uchar* events);
+	void cancelOperation(Status status, int option);
+	void ping(Status status);
+	void detach(Status status);
+	void dropDatabase(Status status);
+}
+
+interface Service : ReferenceCounted
+{
+	void detach(Status status);
+	void query(Status status,
+					   uint sendLength, const uchar* sendItems,
+					   uint receiveLength, const uchar* receiveItems,
+					   uint bufferLength, uchar* buffer);
+	void start(Status status,
+					   uint spbLength, const uchar* spb);
+}
+
+interface Provider : PluginBase
+{
+	Attachment attachDatabase(Status status, const string fileName,
+		uint dpbLength, const uchar* dpb);
+	Attachment createDatabase(Status status, const string fileName,
+		uint dpbLength, const uchar* dpb);
+	Service attachServiceManager(Status status, const string service,
+		 uint spbLength, const uchar* spb);
+	void shutdown(Status status, uint timeout, const int reason);
+	void setDbCryptCallback(Status status, CryptKeyCallback cryptCallback);
+}
+
+// Helper to start transaction over >1 attachments (former TEB)
+interface DtcStart : Disposable
+{
+	void addAttachment(Status status, Attachment att);
+	void addWithTpb(Status status, Attachment att, uint length, const uchar* tpb);
+	Transaction start(Status status);	// successfull call disposes interfaces
+}
+
+// Distributed transactions coordinator
+interface Dtc : Versioned
+{
+	Transaction join(Status status, Transaction one, Transaction two);
+	DtcStart startBuilder(Status status);
+}
+
+
+//Interfaces, used by authentication plugins
+
+interface Auth : PluginBase
+{
+	const int AUTH_FAILED = -1;
+	const int AUTH_SUCCESS = 0;
+	const int AUTH_MORE_DATA = 1;
+	const int AUTH_CONTINUE = 2;
+}
+
+interface Writer : Versioned
+{
+	void reset();
+	void add(Status status, const string name);
+	void setType(Status status, const string value);
+	void setDb(Status status, const string value);
+}
+
+// Representation of auth-related data, passed to/from server auth plugin
+interface ServerBlock : Versioned
+{
+	const string getLogin();
+	const uchar* getData(uint* length);
+	void putData(Status status, uint length, const void* data);
+	CryptKey newKey(Status status);
+}
+
+// Representation of auth-related data, passed to/from client auth plugin
+interface ClientBlock : ReferenceCounted
+{
+	const string getLogin();
+	const string getPassword();
+	const uchar* getData(uint* length);
+	void putData(Status status, uint length, const void* data);
+	CryptKey newKey(Status status);
+version:	// 3.0 => 4.0
+	AuthBlock getAuthBlock(Status status);
+}
+
+// server part of authentication plugin
+interface Server : Auth
+{
+	[notImplemented(Auth::AUTH_FAILED)]
+	int authenticate(Status status, ServerBlock sBlock, Writer writerInterface);
+version:		// 3.0.1 => 4.0
+	void setDbCryptCallback(Status status, CryptKeyCallback cryptCallback);
+}
+
+// .. and corresponding client
+interface Client : Auth
+{
+	[notImplemented(Auth::AUTH_FAILED)]
+	int authenticate(Status status, ClientBlock cBlock);
+}
+
+interface UserField : Versioned
+{
+	int entered();
+	int specified();
+	void setEntered(Status status, int newValue);
+}
+
+interface CharUserField : UserField
+{
+	const string get();
+	void set(Status status, const string newValue);
+}
+
+interface IntUserField : UserField
+{
+	int get();
+	void set(Status status, int newValue);
+}
+
+interface User : Versioned
+{
+	uint operation();
+
+	CharUserField userName();
+	CharUserField password();
+
+	CharUserField firstName();
+	CharUserField lastName();
+	CharUserField middleName();
+
+	CharUserField comment();
+	CharUserField attributes();
+	IntUserField active();
+
+	IntUserField admin();
+
+	void clear(Status status);
+
+	// code of operation()
+	const uint OP_USER_ADD = 1;
+	const uint OP_USER_MODIFY = 2;
+	const uint OP_USER_DELETE = 3;
+	const uint OP_USER_DISPLAY = 4;
+	const uint OP_USER_SET_MAP = 5;
+	const uint OP_USER_DROP_MAP = 6;
+}
+
+interface ListUsers : Versioned
+{
+	void list(Status status, User user);
+}
+
+interface LogonInfo : Versioned
+{
+	const string name();
+	const string role();
+	const string networkProtocol();
+	const string remoteAddress();
+	const uchar* authBlock(uint* length);
+
+version:
+	Attachment attachment(Status status);
+	Transaction transaction(Status status);
+}
+
+interface Management : PluginBase
+{
+	void start(Status status, LogonInfo logonInfo);
+	int execute(Status status, User user, ListUsers callback);
+	void commit(Status status);
+	void rollback(Status status);
+}
+
+interface AuthBlock : Versioned
+{
+	const string getType();
+	const string getName();
+	const string getPlugin();
+	const string getSecurityDb();
+	const string getOriginalPlugin();
+	boolean next(Status status);
+	boolean first(Status status);
+}
+
+
+// Encryption
+
+// Part 1. Network crypt.
+
+// Plugins of this type are used to crypt data, sent over the wire
+// Plugin must support encrypt and decrypt operations.
+// Interface of plugin is the same for both client and server,
+// and it may have different or same implementations for client and server.
+interface WireCryptPlugin : PluginBase
+{
+	// getKnownTypes() function must return list of acceptable keys' types
+	// special type 'builtin' means that crypt plugin knows itself where to get the key from
+	const string getKnownTypes(Status status);
+	void setKey(Status status, CryptKey key);
+	void encrypt(Status status, uint length, const void* from, void* to);
+	void decrypt(Status status, uint length, const void* from, void* to);
+}
+
+
+// Part 2. Database crypt.
+
+// This interface is used to transfer some data (related to crypt keys)
+// between different components of firebird.
+interface CryptKeyCallback : Versioned
+{
+	// First two parameters can be used by calling side to identify
+	// itself for callback object.
+	// Buffer must be big enough to hold a key.
+	// It may be NULL, in this case just a key size will be returned
+	// (not recommended because callback may cause network roundtrip).
+	// Returning value is a real size of the key.
+	// Returning of zero means error, but there is no way to provide
+	// any further details.
+	uint callback(uint dataLength, const void* data,
+		uint bufferLength, void* buffer);
+}
+
+
+// Key holder accepts key(s) from attachment at database attach time
+// (or gets them it some other arbitrary way)
+// and sends it to database crypt plugin on request.
+interface KeyHolderPlugin : PluginBase
+{
+	// keyCallback() signals that a new attachment will need a key.
+	// Key holder can call callback to send upstairs a request for
+	// some additional information (if needed). For example, RSA key
+	// holder can send request to end user application for passphrase.
+	// Return value is 1 if key is ready.
+	int keyCallback(Status status, CryptKeyCallback callback);
+	// Crypt plugin calls keyHandle() when it needs a key with a given name, stored in key holder.
+	// Key is not returned directly - instead of it callback interface is returned.
+	// Missing key with given name is not an error condition for keyHandle().
+	// It should just return NULL in this case
+	CryptKeyCallback keyHandle(Status status, const string keyName);
+
+version:		// 3.0.1 => 3.0.2
+	// With returning true here KeyHolder attachment can use only keys, provided by this KeyHolder.
+	// Use of keys, got by database crypt plugin from other attachments, is prohibited.
+	boolean useOnlyOwnKeys(Status status);
+	// Communication in a chain of key holders - get callback interface for chaining holders
+	CryptKeyCallback chainHandle(Status status);
+}
+
+
+// Information calls available for crypt plugin
+interface DbCryptInfo : ReferenceCounted
+{
+	const string getDatabaseFullPath(Status status);
+}
+
+
+interface DbCryptPlugin : PluginBase
+{
+	// When database crypt plugin is loaded, setKey() is called to provide information
+	// about key holders, available for a given database and key name for database.
+	// It's supposed that crypt plugin will invoke keyHandle() function from them
+	// to access callback interface for getting actual crypt key.
+	// If crypt plugin fails to find appropriate key in sources, it should raise error.
+	void setKey(Status status, uint length, KeyHolderPlugin* sources, const string keyName);
+	void encrypt(Status status, uint length, const void* from, void* to);
+	void decrypt(Status status, uint length, const void* from, void* to);
+
+version:		// 3.0.1 => 3.0.2
+	// Crypto manager may pass some additional info to plugin
+	void setInfo(Status status, DbCryptInfo info);
+}
+
+
+
+// External procedures, functions & triggers
+
+
+// Connection to current database in external engine.
+// Context passed to ExternalEngine has SYSDBA privileges.
+// Context passed to ExternalFunction, ExternalProcedure and ExternalTrigger
+// has user privileges.
+// There is one IExternalContext per attachment. The privileges and character
+// set properties are changed during the calls.
+interface ExternalContext : Versioned
+{
+	// Gets the Master associated with this context.
+	Master getMaster();
+
+	// Gets the ExternalEngine associated with this context.
+	ExternalEngine getEngine(Status status);
+
+	// Gets the Attachment associated with this context.
+	Attachment getAttachment(Status status);
+
+	// Obtained transaction is valid only before control is returned to the engine
+	// or in ExternalResultSet::fetch calls of correspondent ExternalProcedure::open.
+	Transaction getTransaction(Status status);
+
+	const string getUserName();
+	const string getDatabaseName();
+
+	// Get user attachment character set.
+	const string getClientCharSet();
+
+	// Misc info associated with a context. The pointers are never accessed or freed by Firebird.
+
+	// Obtains an unique (across all contexts) code to associate plugin and/or user information.
+	int obtainInfoCode();
+	// Gets a value associated with this code or FB_NULL if no value was set.
+	void* getInfo(int code);
+	// Sets a value associated with this code and returns the last value.
+	void* setInfo(int code, void* value);
+}
+
+
+// To return set of rows in selectable procedures.
+interface ExternalResultSet : Disposable
+{
+	boolean fetch(Status status);
+}
+
+
+
+interface ExternalFunction : Disposable
+{
+	// This method is called just before execute and informs the engine our requested character
+	// set for data exchange inside that method.
+	// During this call, the context uses the character set obtained from ExternalEngine::getCharSet.
+	void getCharSet(Status status, ExternalContext context,
+		string name, uint nameSize);
+
+	void execute(Status status, ExternalContext context,
+		void* inMsg, void* outMsg);
+}
+
+
+
+interface ExternalProcedure : Disposable
+{
+	// This method is called just before open and informs the engine our requested character
+	// set for data exchange inside that method and ExternalResultSet::fetch.
+	// During this call, the context uses the character set obtained from ExternalEngine::getCharSet.
+	void getCharSet(Status status, ExternalContext context,
+		string name, uint nameSize);
+
+	// Returns a ExternalResultSet for selectable procedures.
+	// Returning NULL results in a result set of one record.
+	// Procedures without output parameters should return NULL.
+	ExternalResultSet open(Status status, ExternalContext context,
+		void* inMsg, void* outMsg);
+}
+
+
+
+interface ExternalTrigger : Disposable
+{
+	// types
+	const uint TYPE_BEFORE = 1;
+	const uint TYPE_AFTER = 2;
+	const uint TYPE_DATABASE = 3;
+
+	// actions
+	const uint ACTION_INSERT = 1;
+	const uint ACTION_UPDATE = 2;
+	const uint ACTION_DELETE = 3;
+	const uint ACTION_CONNECT = 4;
+	const uint ACTION_DISCONNECT = 5;
+	const uint ACTION_TRANS_START = 6;
+	const uint ACTION_TRANS_COMMIT = 7;
+	const uint ACTION_TRANS_ROLLBACK = 8;
+	const uint ACTION_DDL = 9;
+
+	// This method is called just before execute and informs the engine our requested character
+	// set for data exchange inside that method.
+	// During this call, the context uses the character set obtained from ExternalEngine::getCharSet.
+	void getCharSet(Status status, ExternalContext context,
+		string name, uint nameSize);
+
+	void execute(Status status, ExternalContext context,
+		uint action, void* oldMsg, void* newMsg);
+}
+
+
+
+interface RoutineMetadata : Versioned
+{
+	const string getPackage(Status status) const;
+	const string getName(Status status) const;
+	const string getEntryPoint(Status status) const;
+	const string getBody(Status status) const;
+	MessageMetadata getInputMetadata(Status status) const;
+	MessageMetadata getOutputMetadata(Status status) const;
+	MessageMetadata getTriggerMetadata(Status status) const;
+	const string getTriggerTable(Status status) const;
+	uint getTriggerType(Status status) const;
+}
+
+
+// In SuperServer, shared by all attachments to one database and disposed when last (non-external)
+// user attachment to the database is closed.
+interface ExternalEngine : PluginBase
+{
+	// This method is called once (per ExternalEngine instance) before any following methods.
+	// The requested character set for data exchange inside methods of this interface should
+	// be copied to charSet parameter.
+	// During this call, the context uses the UTF-8 character set.
+	void open(Status status, ExternalContext context,
+		string charSet, uint charSetSize);
+
+	// Attachment is being opened.
+	void openAttachment(Status status, ExternalContext context);
+
+	// Attachment is being closed.
+	void closeAttachment(Status status, ExternalContext context);
+
+	// Called when engine wants to load object in the cache. Objects are disposed when
+	// going out of the cache.
+	ExternalFunction makeFunction(Status status, ExternalContext context,
+		RoutineMetadata metadata,
+		MetadataBuilder inBuilder, MetadataBuilder outBuilder);
+	ExternalProcedure makeProcedure(Status status, ExternalContext context,
+		RoutineMetadata metadata,
+		MetadataBuilder inBuilder, MetadataBuilder outBuilder);
+	ExternalTrigger makeTrigger(Status status, ExternalContext context,
+		RoutineMetadata metadata, MetadataBuilder fieldsBuilder);
+}
+
+
+// Identifies particular timer.
+// Callback handler is invoked when timer fires.
+interface Timer : ReferenceCounted
+{
+	void handler();
+}
+
+// Interface to set timer for particular time
+interface TimerControl : Versioned
+{
+	// Set timer
+	void start(Status status, Timer timer, uint64 microSeconds);
+	// Stop timer
+	void stop(Status status, Timer timer);
+}
+
+
+// Misc calls
+
+interface VersionCallback : Versioned
+{
+	void callback(Status status, const string text);
+}
+
+interface Util : Versioned
+{
+	void getFbVersion(Status status, Attachment att, VersionCallback callback);
+	void loadBlob(Status status, ISC_QUAD* blobId,
+		Attachment att, Transaction tra, const string file, boolean txt);
+	void dumpBlob(Status status, ISC_QUAD* blobId,
+		Attachment att, Transaction tra, const string file, boolean txt);
+	void getPerfCounters(Status status, Attachment att,
+		const string countersSet, int64* counters);
+	Attachment executeCreateDatabase(Status status,
+		uint stmtLength, const string creatDBstatement, uint dialect,
+		boolean* stmtIsCreateDb);
+	void decodeDate(ISC_DATE date, uint* year, uint* month, uint* day);
+	void decodeTime(ISC_TIME time, uint* hours, uint* minutes, uint* seconds, uint* fractions);
+	ISC_DATE encodeDate(uint year, uint month, uint day);
+	ISC_TIME encodeTime(uint hours, uint minutes, uint seconds, uint fractions);
+	uint formatStatus(string buffer, uint bufferSize, Status status);
+	uint getClientVersion();	// Returns major * 256 + minor
+	XpbBuilder getXpbBuilder(Status status, uint kind, const uchar* buf, uint len);
+	uint setOffsets(Status status, MessageMetadata metadata, OffsetsCallback callback);
+}
+
+interface OffsetsCallback : Versioned
+{
+	void setOffset(Status status, uint index, uint offset, uint nullOffset);
+}
+
+interface XpbBuilder : Disposable
+{
+	const uint DPB = 1;
+	const uint SPB_ATTACH = 2;
+	const uint SPB_START = 3;
+	const uint TPB = 4;
+
+	// removing data
+	void clear(Status status);
+	void removeCurrent(Status status);
+
+	// adding data
+	void insertInt(Status status, uchar tag, int value);
+	void insertBigInt(Status status, uchar tag, int64 value);
+	void insertBytes(Status status, uchar tag, const void* bytes, uint length);
+	void insertString(Status status, uchar tag, const string str);
+	void insertTag(Status status, uchar tag);
+
+	// navigation
+	boolean isEof(Status status);
+	void moveNext(Status status);
+	void rewind(Status status);
+	boolean findFirst(Status status, uchar tag);
+	boolean findNext(Status status);
+
+	// Methods which work with current selection
+	uchar getTag(Status status);
+	uint getLength(Status status);
+	int getInt(Status status);
+	int64 getBigInt(Status status);
+	const string getString(Status status);
+	const uchar* getBytes(Status status);
+
+	// Methods which work with resulting buffer
+	uint getBufferLength(Status status);
+	const uchar* getBuffer(Status status);
+}
+
+// Database trace objects
+
+struct PerformanceInfo;
+struct dsc;
+
+interface TraceConnection : Versioned
+{
+	const uint KIND_DATABASE = 1;
+	const uint KIND_SERVICE = 2;
+
+	uint getKind();
+
+	int getProcessID();
+	const string getUserName();
+	const string getRoleName();
+	const string getCharSet();
+	const string getRemoteProtocol();
+	const string getRemoteAddress();
+	int getRemoteProcessID();
+	const string getRemoteProcessName();
+}
+
+interface TraceDatabaseConnection : TraceConnection
+{
+	int64 getConnectionID();
+	const string getDatabaseName();
+}
+
+interface TraceTransaction : Versioned
+{
+	const uint ISOLATION_CONSISTENCY = 1;
+	const uint ISOLATION_CONCURRENCY = 2;
+	const uint ISOLATION_READ_COMMITTED_RECVER = 3;
+	const uint ISOLATION_READ_COMMITTED_NORECVER = 4;
+
+	int64 getTransactionID();
+	boolean getReadOnly();
+	int getWait();
+	uint getIsolation();
+	PerformanceInfo* getPerf();
+
+version: // 3.0.4 -> 3.0.5
+	int64 getInitialID();
+	int64 getPreviousID();
+}
+
+interface TraceParams : Versioned
+{
+	uint getCount();
+	const dsc* getParam(uint idx);
+
+version:
+	const string getTextUTF8(Status status, uint idx);
+}
+
+interface TraceStatement : Versioned
+{
+	int64 getStmtID();
+	PerformanceInfo* getPerf();
+}
+
+interface TraceSQLStatement : TraceStatement
+{
+	const string getText();
+	const string getPlan();
+	TraceParams getInputs();
+	const string getTextUTF8();
+	const string getExplainedPlan();
+}
+
+interface TraceBLRStatement : TraceStatement
+{
+	const uchar* getData();
+	uint getDataLength();
+	const string getText();
+}
+
+interface TraceDYNRequest : Versioned
+{
+	const uchar* getData();
+	uint getDataLength();
+	const string getText();
+}
+
+interface TraceContextVariable : Versioned
+{
+	const string getNameSpace();
+	const string getVarName();
+	const string getVarValue();
+}
+
+interface TraceProcedure : Versioned
+{
+	const string getProcName();
+	TraceParams getInputs();
+	PerformanceInfo* getPerf();
+}
+
+interface TraceFunction : Versioned
+{
+	const string getFuncName();
+	TraceParams getInputs();
+	TraceParams getResult();
+	PerformanceInfo* getPerf();
+}
+
+interface TraceTrigger : Versioned
+{
+	//// TODO: TYPE or WHICH? ExternalTrigger has similar constants.
+	const uint TYPE_ALL = 0;
+	const uint TYPE_BEFORE = 1;
+	const uint TYPE_AFTER = 2;
+	//// TODO: What about database triggers?
+
+	//// TODO: Action constants?
+
+	const string getTriggerName();
+	const string getRelationName();
+	int getAction();
+	int getWhich();
+	PerformanceInfo* getPerf();
+}
+
+interface TraceServiceConnection : TraceConnection
+{
+	void* getServiceID();
+	const string getServiceMgr();
+	const string getServiceName();
+}
+
+interface TraceStatusVector : Versioned
+{
+	boolean hasError();
+	boolean hasWarning();
+	Status getStatus();
+	const string getText();
+}
+
+interface TraceSweepInfo : Versioned
+{
+	int64 getOIT();
+	int64 getOST();
+	int64 getOAT();
+	int64 getNext();
+	PerformanceInfo* getPerf();
+}
+
+interface TraceLogWriter : ReferenceCounted
+{
+	uint write(const void* buf, uint size);
+version: // 3.0.4 -> 3.0.5
+	uint write_s(Status status, const void* buf, uint size);
+}
+
+interface TraceInitInfo : Versioned
+{
+	const string getConfigText();
+	int getTraceSessionID();
+	const string getTraceSessionName();
+	const string getFirebirdRootDirectory();
+	const string getDatabaseName();
+	TraceDatabaseConnection getConnection();
+	TraceLogWriter getLogWriter();
+}
+
+// API of trace plugin. Used to deliver notifications for each database
+interface TracePlugin : ReferenceCounted
+{
+	const uint RESULT_SUCCESS = 0;
+	const uint RESULT_FAILED = 1;
+	const uint RESULT_UNAUTHORIZED = 2;
+
+	// Function to return error string for hook failure
+	const string trace_get_error();
+
+	// Events supported:
+
+	// Create/close attachment
+
+	[notImplemented(true)]
+	boolean trace_attach(TraceDatabaseConnection connection, boolean create_db, uint att_result);
+
+	[notImplemented(true)]
+	boolean trace_detach(TraceDatabaseConnection connection, boolean drop_db);
+
+	// Start/end transaction
+
+	[notImplemented(true)]
+	boolean trace_transaction_start(TraceDatabaseConnection connection, TraceTransaction transaction,
+			uint tpb_length, const uchar* tpb, uint tra_result);
+
+	[notImplemented(true)]
+	boolean trace_transaction_end(TraceDatabaseConnection connection, TraceTransaction transaction,
+			boolean commit, boolean retain_context, uint tra_result);
+
+	// Stored procedures and triggers execution
+
+	[notImplemented(true)]
+	boolean trace_proc_execute (TraceDatabaseConnection connection, TraceTransaction transaction, TraceProcedure procedure,
+			boolean started, uint proc_result);
+
+	[notImplemented(true)]
+	boolean trace_trigger_execute(TraceDatabaseConnection connection, TraceTransaction transaction, TraceTrigger trigger,
+			boolean started, uint trig_result);
+
+	// Assignment to context variables
+
+	[notImplemented(true)]
+	boolean trace_set_context(TraceDatabaseConnection connection, TraceTransaction transaction, TraceContextVariable variable);
+
+	// DSQL statement lifecycle
+
+	[notImplemented(true)]
+	boolean trace_dsql_prepare(TraceDatabaseConnection connection, TraceTransaction transaction,
+			TraceSQLStatement statement, int64 time_millis, uint req_result);
+
+	[notImplemented(true)]
+	boolean trace_dsql_free(TraceDatabaseConnection connection, TraceSQLStatement statement, uint option);
+
+	[notImplemented(true)]
+	boolean trace_dsql_execute(TraceDatabaseConnection connection, TraceTransaction transaction, TraceSQLStatement statement,
+			boolean started, uint req_result);
+
+	// BLR requests
+
+	[notImplemented(true)]
+	boolean trace_blr_compile(TraceDatabaseConnection connection, TraceTransaction transaction,
+			TraceBLRStatement statement, int64 time_millis, uint req_result);
+
+	[notImplemented(true)]
+	boolean trace_blr_execute(TraceDatabaseConnection connection, TraceTransaction transaction,
+			TraceBLRStatement statement, uint req_result);
+
+	// DYN requests
+
+	[notImplemented(true)]
+	boolean trace_dyn_execute(TraceDatabaseConnection connection, TraceTransaction transaction,
+			TraceDYNRequest request, int64 time_millis, uint req_result);
+
+	// Using the services
+
+	[notImplemented(true)]
+	boolean trace_service_attach(TraceServiceConnection service, uint att_result);
+
+	[notImplemented(true)]
+	boolean trace_service_start(TraceServiceConnection service, uint switches_length, const string switches,
+			uint start_result);
+
+	[notImplemented(true)]
+	boolean trace_service_query(TraceServiceConnection service, uint send_item_length,
+			const uchar* send_items, uint recv_item_length,
+			const uchar* recv_items, uint query_result);
+
+	[notImplemented(true)]
+	boolean trace_service_detach(TraceServiceConnection service, uint detach_result);
+
+	// Errors happened
+
+	[notImplemented(true)]
+	boolean trace_event_error(TraceConnection connection, TraceStatusVector status, const string function);
+
+	// Sweep activity
+
+	const uint SWEEP_STATE_STARTED = 1;
+	const uint SWEEP_STATE_FINISHED = 2;
+	const uint SWEEP_STATE_FAILED = 3;
+	const uint SWEEP_STATE_PROGRESS = 4;
+
+	[notImplemented(true)]
+	boolean trace_event_sweep(TraceDatabaseConnection connection, TraceSweepInfo sweep,
+			uint sweep_state);
+
+	// Stored functions execution
+
+	[notImplemented(true)]
+	boolean trace_func_execute (TraceDatabaseConnection connection, TraceTransaction transaction, TraceFunction function,
+			boolean started, uint func_result);
+}
+
+// Trace plugin second level factory (this is what is known to PluginManager as "trace plugin")
+interface TraceFactory : PluginBase
+{
+	// Known notifications
+	const uint TRACE_EVENT_ATTACH = 0;
+	const uint TRACE_EVENT_DETACH = 1;
+	const uint TRACE_EVENT_TRANSACTION_START = 2;
+	const uint TRACE_EVENT_TRANSACTION_END = 3;
+	const uint TRACE_EVENT_SET_CONTEXT = 4;
+	const uint TRACE_EVENT_PROC_EXECUTE = 5;
+	const uint TRACE_EVENT_TRIGGER_EXECUTE = 6;
+	const uint TRACE_EVENT_DSQL_PREPARE = 7;
+	const uint TRACE_EVENT_DSQL_FREE = 8;
+	const uint TRACE_EVENT_DSQL_EXECUTE = 9;
+	const uint TRACE_EVENT_BLR_COMPILE = 10;
+	const uint TRACE_EVENT_BLR_EXECUTE = 11;
+	const uint TRACE_EVENT_DYN_EXECUTE = 12;
+	const uint TRACE_EVENT_SERVICE_ATTACH = 13;
+	const uint TRACE_EVENT_SERVICE_START = 14;
+	const uint TRACE_EVENT_SERVICE_QUERY = 15;
+	const uint TRACE_EVENT_SERVICE_DETACH = 16;
+	const uint TRACE_EVENT_ERROR = 17;
+	const uint TRACE_EVENT_SWEEP = 18;
+	const uint TRACE_EVENT_FUNC_EXECUTE = 19;
+	const uint TRACE_EVENT_MAX = 20;	// keep it last
+
+	// What notifications does plugin need
+	uint64 trace_needs();
+
+	// Create plugin
+	TracePlugin trace_create(Status status, TraceInitInfo init_info);
+}
+
+// UDR Factory interfaces. They should be singletons instances created by user's modules and
+// registered. When UDR engine is going to load a routine, it calls newItem.
+
+interface UdrFunctionFactory : Disposable
+{
+	void setup(Status status, ExternalContext context, RoutineMetadata metadata,
+		MetadataBuilder inBuilder, MetadataBuilder outBuilder);
+	ExternalFunction newItem(Status status, ExternalContext context, RoutineMetadata metadata);
+}
+
+interface UdrProcedureFactory : Disposable
+{
+	void setup(Status status, ExternalContext context, RoutineMetadata metadata,
+		MetadataBuilder inBuilder, MetadataBuilder outBuilder);
+	ExternalProcedure newItem(Status status, ExternalContext context, RoutineMetadata metadata);
+}
+
+interface UdrTriggerFactory : Disposable
+{
+	void setup(Status status, ExternalContext context, RoutineMetadata metadata,
+		MetadataBuilder fieldsBuilder);
+	ExternalTrigger newItem(Status status, ExternalContext context, RoutineMetadata metadata);
+}
+
+interface UdrPlugin : Versioned
+{
+	Master getMaster();
+
+	void registerFunction(Status status, const string name, UdrFunctionFactory factory);
+	void registerProcedure(Status status, const string name, UdrProcedureFactory factory);
+	void registerTrigger(Status status, const string name, UdrTriggerFactory factory);
+}

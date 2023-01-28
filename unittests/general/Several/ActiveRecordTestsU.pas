@@ -2091,8 +2091,8 @@ var
   lPGHome, lDataDir: String;
 begin
   inherited;
-  lPGHome := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql');
-  lDataDir := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql\testdatadir');
+  lPGHome := TPath.Combine(TPath.GetDirectoryName(TPath.GetDirectoryName(ParamStr(0))), 'pgsql');
+  lDataDir := TPath.Combine(lPGHome, 'testdatadir');
   fPGUtil := TPGUtil.Create(lPGHome, lDataDir, PG_PORT);
 end;
 
@@ -2105,7 +2105,7 @@ begin
   lDriver.Name := 'PG';
   // lDriver.AsString['BaseDriverID'] := 'PG';
   lDriver.AsString['DriverID'] := 'PG';
-  lDriver.AsString['VendorLib'] := TPath.Combine(fPGUtil.PGHome, 'libpq.dll');
+  //lDriver.AsString['VendorLib'] := TPath.Combine(fPGUtil.PGHome, 'libpq.dll');
   lDriver.Apply;
 
   LParams := TStringList.Create;

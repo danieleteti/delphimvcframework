@@ -56,6 +56,7 @@ type
     class operator Implicit(const Value: String): NullableString;
     class operator Implicit(const Value: NullableString): String;
     class operator Implicit(const Value: Pointer): NullableString;	
+	class operator Equal(LeftValue: NullableString; RightValue: NullableString) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableString contains a value
     ///</summary>	
@@ -103,6 +104,7 @@ type
     class operator Implicit(const Value: Currency): NullableCurrency;
     class operator Implicit(const Value: NullableCurrency): Currency;
     class operator Implicit(const Value: Pointer): NullableCurrency;	
+	class operator Equal(LeftValue: NullableCurrency; RightValue: NullableCurrency) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableCurrency contains a value
     ///</summary>	
@@ -150,6 +152,7 @@ type
     class operator Implicit(const Value: Boolean): NullableBoolean;
     class operator Implicit(const Value: NullableBoolean): Boolean;
     class operator Implicit(const Value: Pointer): NullableBoolean;	
+	class operator Equal(LeftValue: NullableBoolean; RightValue: NullableBoolean) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableBoolean contains a value
     ///</summary>	
@@ -197,6 +200,7 @@ type
     class operator Implicit(const Value: TDate): NullableTDate;
     class operator Implicit(const Value: NullableTDate): TDate;
     class operator Implicit(const Value: Pointer): NullableTDate;	
+	class operator Equal(LeftValue: NullableTDate; RightValue: NullableTDate) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTDate contains a value
     ///</summary>	
@@ -244,6 +248,7 @@ type
     class operator Implicit(const Value: TTime): NullableTTime;
     class operator Implicit(const Value: NullableTTime): TTime;
     class operator Implicit(const Value: Pointer): NullableTTime;	
+	class operator Equal(LeftValue: NullableTTime; RightValue: NullableTTime) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTTime contains a value
     ///</summary>	
@@ -291,6 +296,7 @@ type
     class operator Implicit(const Value: TDateTime): NullableTDateTime;
     class operator Implicit(const Value: NullableTDateTime): TDateTime;
     class operator Implicit(const Value: Pointer): NullableTDateTime;	
+	class operator Equal(LeftValue: NullableTDateTime; RightValue: NullableTDateTime) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTDateTime contains a value
     ///</summary>	
@@ -338,6 +344,7 @@ type
     class operator Implicit(const Value: Single): NullableSingle;
     class operator Implicit(const Value: NullableSingle): Single;
     class operator Implicit(const Value: Pointer): NullableSingle;	
+	class operator Equal(LeftValue: NullableSingle; RightValue: NullableSingle) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableSingle contains a value
     ///</summary>	
@@ -385,6 +392,7 @@ type
     class operator Implicit(const Value: Double): NullableDouble;
     class operator Implicit(const Value: NullableDouble): Double;
     class operator Implicit(const Value: Pointer): NullableDouble;	
+	class operator Equal(LeftValue: NullableDouble; RightValue: NullableDouble) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableDouble contains a value
     ///</summary>	
@@ -432,6 +440,7 @@ type
     class operator Implicit(const Value: Extended): NullableExtended;
     class operator Implicit(const Value: NullableExtended): Extended;
     class operator Implicit(const Value: Pointer): NullableExtended;	
+	class operator Equal(LeftValue: NullableExtended; RightValue: NullableExtended) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableExtended contains a value
     ///</summary>	
@@ -479,6 +488,7 @@ type
     class operator Implicit(const Value: Int16): NullableInt16;
     class operator Implicit(const Value: NullableInt16): Int16;
     class operator Implicit(const Value: Pointer): NullableInt16;	
+	class operator Equal(LeftValue: NullableInt16; RightValue: NullableInt16) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt16 contains a value
     ///</summary>	
@@ -526,6 +536,7 @@ type
     class operator Implicit(const Value: UInt16): NullableUInt16;
     class operator Implicit(const Value: NullableUInt16): UInt16;
     class operator Implicit(const Value: Pointer): NullableUInt16;	
+	class operator Equal(LeftValue: NullableUInt16; RightValue: NullableUInt16) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt16 contains a value
     ///</summary>	
@@ -573,6 +584,7 @@ type
     class operator Implicit(const Value: Int32): NullableInt32;
     class operator Implicit(const Value: NullableInt32): Int32;
     class operator Implicit(const Value: Pointer): NullableInt32;	
+	class operator Equal(LeftValue: NullableInt32; RightValue: NullableInt32) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt32 contains a value
     ///</summary>	
@@ -620,6 +632,7 @@ type
     class operator Implicit(const Value: UInt32): NullableUInt32;
     class operator Implicit(const Value: NullableUInt32): UInt32;
     class operator Implicit(const Value: Pointer): NullableUInt32;	
+	class operator Equal(LeftValue: NullableUInt32; RightValue: NullableUInt32) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt32 contains a value
     ///</summary>	
@@ -667,6 +680,7 @@ type
     class operator Implicit(const Value: Int64): NullableInt64;
     class operator Implicit(const Value: NullableInt64): Int64;
     class operator Implicit(const Value: Pointer): NullableInt64;	
+	class operator Equal(LeftValue: NullableInt64; RightValue: NullableInt64) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt64 contains a value
     ///</summary>	
@@ -714,6 +728,7 @@ type
     class operator Implicit(const Value: UInt64): NullableUInt64;
     class operator Implicit(const Value: NullableUInt64): UInt64;
     class operator Implicit(const Value: Pointer): NullableUInt64;	
+	class operator Equal(LeftValue: NullableUInt64; RightValue: NullableUInt64) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt64 contains a value
     ///</summary>	
@@ -761,6 +776,7 @@ type
     class operator Implicit(const Value: TGUID): NullableTGUID;
     class operator Implicit(const Value: NullableTGUID): TGUID;
     class operator Implicit(const Value: Pointer): NullableTGUID;	
+	class operator Equal(LeftValue: NullableTGUID; RightValue: NullableTGUID) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTGUID contains a value
     ///</summary>	
@@ -815,6 +831,9 @@ function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
 
 implementation
 
+uses
+  System.Math, MVCFramework.Serializer.Commons;
+
 
 { NullableString }
 
@@ -822,7 +841,7 @@ procedure NullableString.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableString value is null');
   end;
 end;
 
@@ -833,7 +852,7 @@ end;
 
 function NullableString.Equals(const Value: NullableString): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableString.GetHasValue: Boolean;
@@ -874,6 +893,12 @@ begin
   end;
 end;
 
+class operator NullableString.Equal(LeftValue: NullableString; RightValue: NullableString) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableString.SetNull;
 begin
   fValue := Default (String);
@@ -906,7 +931,7 @@ procedure NullableCurrency.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableCurrency value is null');
   end;
 end;
 
@@ -917,7 +942,7 @@ end;
 
 function NullableCurrency.Equals(const Value: NullableCurrency): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableCurrency.GetHasValue: Boolean;
@@ -958,6 +983,12 @@ begin
   end;
 end;
 
+class operator NullableCurrency.Equal(LeftValue: NullableCurrency; RightValue: NullableCurrency) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableCurrency.SetNull;
 begin
   fValue := Default (Currency);
@@ -990,7 +1021,7 @@ procedure NullableBoolean.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableBoolean value is null');
   end;
 end;
 
@@ -1001,7 +1032,7 @@ end;
 
 function NullableBoolean.Equals(const Value: NullableBoolean): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableBoolean.GetHasValue: Boolean;
@@ -1042,6 +1073,12 @@ begin
   end;
 end;
 
+class operator NullableBoolean.Equal(LeftValue: NullableBoolean; RightValue: NullableBoolean) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableBoolean.SetNull;
 begin
   fValue := Default (Boolean);
@@ -1074,7 +1111,7 @@ procedure NullableTDate.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableTDate value is null');
   end;
 end;
 
@@ -1085,7 +1122,7 @@ end;
 
 function NullableTDate.Equals(const Value: NullableTDate): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableTDate.GetHasValue: Boolean;
@@ -1126,6 +1163,12 @@ begin
   end;
 end;
 
+class operator NullableTDate.Equal(LeftValue: NullableTDate; RightValue: NullableTDate) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (DateToISODate(LeftValue.Value) = DateToISODate(RightValue.Value)));
+end;
+
 procedure NullableTDate.SetNull;
 begin
   fValue := Default (TDate);
@@ -1158,7 +1201,7 @@ procedure NullableTTime.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableTTime value is null');
   end;
 end;
 
@@ -1169,7 +1212,7 @@ end;
 
 function NullableTTime.Equals(const Value: NullableTTime): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableTTime.GetHasValue: Boolean;
@@ -1210,6 +1253,12 @@ begin
   end;
 end;
 
+class operator NullableTTime.Equal(LeftValue: NullableTTime; RightValue: NullableTTime) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (TimeToISOTime(LeftValue.Value) = TimeToISOTime(RightValue.Value)));
+end;
+
 procedure NullableTTime.SetNull;
 begin
   fValue := Default (TTime);
@@ -1242,7 +1291,7 @@ procedure NullableTDateTime.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableTDateTime value is null');
   end;
 end;
 
@@ -1253,7 +1302,7 @@ end;
 
 function NullableTDateTime.Equals(const Value: NullableTDateTime): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableTDateTime.GetHasValue: Boolean;
@@ -1294,6 +1343,12 @@ begin
   end;
 end;
 
+class operator NullableTDateTime.Equal(LeftValue: NullableTDateTime; RightValue: NullableTDateTime) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 (DateTimeToISOTimeStamp(LeftValue.Value) = DateTimeToISOTimeStamp(RightValue.Value)));
+end;
+
 procedure NullableTDateTime.SetNull;
 begin
   fValue := Default (TDateTime);
@@ -1326,7 +1381,7 @@ procedure NullableSingle.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableSingle value is null');
   end;
 end;
 
@@ -1337,7 +1392,7 @@ end;
 
 function NullableSingle.Equals(const Value: NullableSingle): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableSingle.GetHasValue: Boolean;
@@ -1378,6 +1433,12 @@ begin
   end;
 end;
 
+class operator NullableSingle.Equal(LeftValue: NullableSingle; RightValue: NullableSingle) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 SameValue(LeftValue.Value, RightValue.Value, 0.000001));
+end;
+
 procedure NullableSingle.SetNull;
 begin
   fValue := Default (Single);
@@ -1410,7 +1471,7 @@ procedure NullableDouble.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableDouble value is null');
   end;
 end;
 
@@ -1421,7 +1482,7 @@ end;
 
 function NullableDouble.Equals(const Value: NullableDouble): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableDouble.GetHasValue: Boolean;
@@ -1462,6 +1523,12 @@ begin
   end;
 end;
 
+class operator NullableDouble.Equal(LeftValue: NullableDouble; RightValue: NullableDouble) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 SameValue(LeftValue.Value, RightValue.Value, 0.000000001));
+end;
+
 procedure NullableDouble.SetNull;
 begin
   fValue := Default (Double);
@@ -1494,7 +1561,7 @@ procedure NullableExtended.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableExtended value is null');
   end;
 end;
 
@@ -1505,7 +1572,7 @@ end;
 
 function NullableExtended.Equals(const Value: NullableExtended): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableExtended.GetHasValue: Boolean;
@@ -1546,6 +1613,12 @@ begin
   end;
 end;
 
+class operator NullableExtended.Equal(LeftValue: NullableExtended; RightValue: NullableExtended) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
+	 SameValue(LeftValue.Value, RightValue.Value, 0.000000001));
+end;
+
 procedure NullableExtended.SetNull;
 begin
   fValue := Default (Extended);
@@ -1578,7 +1651,7 @@ procedure NullableInt16.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableInt16 value is null');
   end;
 end;
 
@@ -1589,7 +1662,7 @@ end;
 
 function NullableInt16.Equals(const Value: NullableInt16): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableInt16.GetHasValue: Boolean;
@@ -1630,6 +1703,11 @@ begin
   end;
 end;
 
+class operator NullableInt16.Equal(LeftValue: NullableInt16; RightValue: NullableInt16) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableInt16.SetNull;
 begin
   fValue := Default (Int16);
@@ -1662,7 +1740,7 @@ procedure NullableUInt16.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableUInt16 value is null');
   end;
 end;
 
@@ -1673,7 +1751,7 @@ end;
 
 function NullableUInt16.Equals(const Value: NullableUInt16): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableUInt16.GetHasValue: Boolean;
@@ -1714,6 +1792,11 @@ begin
   end;
 end;
 
+class operator NullableUInt16.Equal(LeftValue: NullableUInt16; RightValue: NullableUInt16) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableUInt16.SetNull;
 begin
   fValue := Default (UInt16);
@@ -1746,7 +1829,7 @@ procedure NullableInt32.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableInt32 value is null');
   end;
 end;
 
@@ -1757,7 +1840,7 @@ end;
 
 function NullableInt32.Equals(const Value: NullableInt32): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableInt32.GetHasValue: Boolean;
@@ -1798,6 +1881,11 @@ begin
   end;
 end;
 
+class operator NullableInt32.Equal(LeftValue: NullableInt32; RightValue: NullableInt32) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableInt32.SetNull;
 begin
   fValue := Default (Int32);
@@ -1830,7 +1918,7 @@ procedure NullableUInt32.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableUInt32 value is null');
   end;
 end;
 
@@ -1841,7 +1929,7 @@ end;
 
 function NullableUInt32.Equals(const Value: NullableUInt32): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableUInt32.GetHasValue: Boolean;
@@ -1882,6 +1970,11 @@ begin
   end;
 end;
 
+class operator NullableUInt32.Equal(LeftValue: NullableUInt32; RightValue: NullableUInt32) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableUInt32.SetNull;
 begin
   fValue := Default (UInt32);
@@ -1914,7 +2007,7 @@ procedure NullableInt64.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableInt64 value is null');
   end;
 end;
 
@@ -1925,7 +2018,7 @@ end;
 
 function NullableInt64.Equals(const Value: NullableInt64): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableInt64.GetHasValue: Boolean;
@@ -1966,6 +2059,11 @@ begin
   end;
 end;
 
+class operator NullableInt64.Equal(LeftValue: NullableInt64; RightValue: NullableInt64) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableInt64.SetNull;
 begin
   fValue := Default (Int64);
@@ -1998,7 +2096,7 @@ procedure NullableUInt64.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableUInt64 value is null');
   end;
 end;
 
@@ -2009,7 +2107,7 @@ end;
 
 function NullableUInt64.Equals(const Value: NullableUInt64): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableUInt64.GetHasValue: Boolean;
@@ -2050,6 +2148,11 @@ begin
   end;
 end;
 
+class operator NullableUInt64.Equal(LeftValue: NullableUInt64; RightValue: NullableUInt64) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
 procedure NullableUInt64.SetNull;
 begin
   fValue := Default (UInt64);
@@ -2082,7 +2185,7 @@ procedure NullableTGUID.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('NullableTGUID value is null');
   end;
 end;
 
@@ -2093,7 +2196,7 @@ end;
 
 function NullableTGUID.Equals(const Value: NullableTGUID): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function NullableTGUID.GetHasValue: Boolean;
@@ -2132,6 +2235,11 @@ begin
   begin
     raise EInvalidPointer.Create('Pointer value can only be "nil"');
   end;
+end;
+
+class operator NullableTGUID.Equal(LeftValue: NullableTGUID; RightValue: NullableTGUID) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
 end;
 
 procedure NullableTGUID.SetNull;

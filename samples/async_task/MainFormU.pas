@@ -11,8 +11,10 @@ type
     btnAsync1: TButton;
     Edit1: TEdit;
     btnWithEx: TButton;
+    btnWithExcDefault: TButton;
     procedure btnAsync1Click(Sender: TObject);
     procedure btnWithExClick(Sender: TObject);
+    procedure btnWithExcDefaultClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -66,6 +68,42 @@ begin
       ShowMessage(Expt.Message);
     end
   );
+end;
+
+procedure TMainForm.btnWithExcDefaultClick(Sender: TObject);
+begin
+  var lSavedCaption := btnWithExcDefault.Caption;
+  btnWithExcDefault.Caption := 'processing...';
+  btnWithExcDefault.Enabled := False;
+  MVCAsync.Run<String>(
+    function: String
+    begin
+      Sleep(1000);
+      raise Exception.Create('BOOOM!');
+    end,
+    procedure(const Value: String)
+    begin
+      //never called
+    end
+  );
+
+
+  //just to re-enable the button
+  MVCAsync.Run<Boolean>(
+    function: Boolean
+    begin
+      Sleep(3000);
+      Result := True;
+    end,
+    procedure(const Value: Boolean)
+    begin
+      btnWithExcDefault.Caption := lSavedCaption;
+      btnWithExcDefault.Enabled := True;
+      btnWithExcDefault.Update;
+    end
+  );
+
+
 end;
 
 end.

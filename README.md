@@ -1425,6 +1425,14 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 - Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`
 
+- New global configuration variable `MVCSerializeNulls`.
+  When MVCSerializeNulls = True (default) empty nullables and nil are serialized as json null.
+  When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+
+- Nullable types now have `Equal` support and a better "equality check" strategy.
+
+- Unit tests now are always executed for Win32 and Win64 bit (both client and server).
+
 - New built-in profiler (usable with Delphi 10.4+) - to profile a block of code, write the following 
 
   ```delphi
@@ -1475,7 +1483,11 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
   [<<][     1][MainControllerU.TMyController.ProfilerSample1][ELAPSED: 00:00:00.3277806] [profiler]
   ```
 
-  To get more info check the "profiling" example
+  To get more info check the "profiling" example.
+  
+  All profiler logs are generated with a log level `info`. If measured time is greater than `WarningThreshold` the log level is `warning`.
+  
+  `WarningThreshold` is expressed in milliseconds and by default is equals to 1000.
 
 - New `Context` property named `ActionQualifiedName` which contains the currently executed action in the form `UnitName.ClassName.ActionName`. It is available where the `Context` property is available. Obviously is not available in the `OnBeforeRouting` middleware events.
 - Added ObjectPool and IntfObjectPool (and related unit tests). Thanks to our sponsor [Vivaticket S.p.A.](https://corporate.vivaticket.com)

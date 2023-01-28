@@ -50,8 +50,16 @@ var
 
 implementation
 
+{$I dmvcframework.inc}
+
 uses
-  System.Classes;
+  System.Classes
+  {$IF Defined(MOBILE)}
+  , FMX.DialogService
+  , System.UITypes
+  , FMX.Dialogs
+  {$ENDIF}
+  ;
 
 { Async }
 
@@ -106,7 +114,19 @@ initialization
 gDefaultTaskErrorHandler :=
   procedure(const E: Exception; const ExceptionAddress: Pointer)
   begin
-    ShowException(E, ExceptionAddress);
+    {$IF Defined(MOBILE)}
+      TDialogService.MessageDialog(Format('[%s] %s', [E.ClassName, E.Message]), TMsgDlgType.mtError, [TMsgDlgBtn.mbOK], TMsgDlgBtn.mbOK, 0, nil);
+    {$ELSE}
+      {TODO -oDanieleT -cGeneral : Should be better to inspect if stderr is available}
+      if not (IsConsole or IsLibrary) then
+      begin
+        ShowException(E, ExceptionAddress);
+      end
+      else
+      begin
+        WriteLn(E.ClassName, ' ', E.Message);
+      end;
+    {$ENDIF}
   end;
 
 end.

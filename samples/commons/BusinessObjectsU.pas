@@ -698,17 +698,18 @@ var
 begin
   lOtherObj := Obj as TNullablesTest;
   Result := true;
-  Result := Result and Self.ff_int2.Equals(lOtherObj.ff_int2);
-  Result := Result and Self.ff_int4.Equals(lOtherObj.ff_int4);
-  Result := Result and Self.ff_int8.Equals(lOtherObj.ff_int8);
-  Result := Result and Self.ff_bool.Equals(lOtherObj.ff_bool);
-  Result := Result and (DateToISODate(Self.ff_date) = DateToISODate(lOtherObj.ff_date));
-  Result := Result and (TimeToISOTime(Self.ff_time) = TimeToISOTime(lOtherObj.ff_time));
-  Result := Result and (DateTimeToISOTimeStamp(Self.ff_datetime) = DateTimeToISOTimeStamp(lOtherObj.ff_datetime));
-  Result := Result and Self.ff_float4.Equals(lOtherObj.ff_float4);
-  Result := Result and Self.ff_float8.Equals(lOtherObj.ff_float8);
-  Result := Result and Self.ff_string.Equals(lOtherObj.ff_string);
-  Result := Result and Self.ff_currency.Equals(lOtherObj.ff_currency);
+  Result := Result and (Self.ff_int2 = lOtherObj.ff_int2);
+  Result := Result and (Self.ff_int4 = lOtherObj.ff_int4);
+  Result := Result and (Self.ff_int8 = lOtherObj.ff_int8);
+  Result := Result and (Self.ff_bool = lOtherObj.ff_bool);
+  Result := Result and (Self.ff_date = lOtherObj.ff_date);
+  Result := Result and (Self.ff_time = lOtherObj.ff_time);
+  Result := Result and (Self.ff_datetime = lOtherObj.ff_datetime);
+  Result := Result and (Self.ff_float4 = lOtherObj.ff_float4);
+  Result := Result and (Self.ff_float8 = lOtherObj.ff_float8);
+  Result := Result and (Self.ff_string = lOtherObj.ff_string);
+  Result := Result and (Self.ff_currency = lOtherObj.ff_currency);
+
   { TODO -oDanieleT -cGeneral : Deserialize a stream over a nil pointer... should we create the TMemoryStream? }
   // Result := Result and ((Self.ff_blob as TStringStream).DataString = (lOtherObj.ff_blob as TStringStream).DataString);
 end;

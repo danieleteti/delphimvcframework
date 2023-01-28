@@ -42,6 +42,7 @@ def build_delphi_project(
     project_filename,
     config="DEBUG",
     delphi_version=DEFAULT_DELPHI_VERSION,
+    platform="Win32"
 ):
     delphi_versions = {
         "10": {"path": "17.0", "desc": "Delphi 10 Seattle"},
@@ -73,7 +74,7 @@ def build_delphi_project(
         + '"'
         + " & msbuild /t:Build /p:Config="
         + config
-        + ' /p:Platform=Win32 "'
+        + f' /p:Platform={platform} "'
         + project_filename
         + '"'
     )
@@ -193,7 +194,7 @@ def copy_libs(ctx):
 
 
 def printkv(key, value):
-    print(Fore.RESET + key + ": " + Fore.GREEN + value.rjust(60) + Fore.RESET)
+    print(Fore.RESET + key + ": " + Fore.GREEN + RightValue.rjust(60) + Fore.RESET)
 
 
 def init_build(version):
@@ -303,7 +304,7 @@ def clean(ctx, folder=None):
 
 
 @task()
-def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+def tests32(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds and execute the unit tests"""
     import os
 
@@ -313,9 +314,9 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
-    build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version)
+    build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version, platform="Win32")
     print("\nBuilding Test Server")
-    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version)
+    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version, platform="Win32")
 
     # import subprocess
     # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
@@ -324,7 +325,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
-    r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
+    r = subprocess.run([r"unittests\general\Several\bin32\DMVCFrameworkTests.exe"])
     if r.returncode != 0:
         return Exit("Compilation failed: \n" + str(r.stdout))
     subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
@@ -333,6 +334,42 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
         print("Unit Tests Failed")
         return Exit("Unit tests failed")
 
+
+@task()
+def tests64(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+    """Builds and execute the unit tests"""
+    import os
+
+    apppath = os.path.dirname(os.path.realpath(__file__))
+    res = True
+    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testserver = r"unittests\general\TestServer\TestServer.dproj"
+
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version, platform="Win64")
+    print("\nBuilding Test Server")
+    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version, platform="Win64")
+
+    # import subprocess
+    # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
+    # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
+    import subprocess
+
+    print("\nExecuting tests...")
+    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
+    r = subprocess.run([r"unittests\general\Several\bin64\DMVCFrameworkTests.exe"])
+    if r.returncode != 0:
+        return Exit("Compilation failed: \n" + str(r.stdout))
+    subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
+    if r.returncode > 0:
+        print(r)
+        print("Unit Tests Failed")
+        return Exit("Unit tests failed")
+
+
+@task(pre=[tests32, tests64])
+def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+    pass
 
 @task(pre=[tests])
 def release(
@@ -420,22 +457,22 @@ def generate_nullables(ctx):
     main_tmpl, intf_tmpl, impl_tmpl = parse_template(rows)
 
     delphi_types = [
-        "String",
-        "Currency",
-        "Boolean",
-        "TDate",
-        "TTime",
-        "TDateTime",
-        "Single",
-        "Double",
-        "Extended",
-        "Int16",
-        "UInt16",
-        "Int32",
-        "UInt32",
-        "Int64",
-        "UInt64",
-        "TGUID",
+        ["String", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (LeftValue.Value = RightValue.Value))"],
+        ["Currency", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (LeftValue.Value = RightValue.Value))"],
+        ["Boolean", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (LeftValue.Value = RightValue.Value))"],
+        ["TDate", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateToISODate(LeftValue.Value) = DateToISODate(RightValue.Value)))"],
+        ["TTime", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (TimeToISOTime(LeftValue.Value) = TimeToISOTime(RightValue.Value)))"],
+        ["TDateTime", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateTimeToISOTimeStamp(LeftValue.Value) = DateTimeToISOTimeStamp(RightValue.Value)))"],
+        ["Single", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000001))"],
+        ["Double", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))"],
+        ["Extended", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))"],
+        ["Int16", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["UInt16", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["Int32", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["UInt32", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["Int64", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["UInt64", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
+        ["TGUID", "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))"],
     ]
 
     str_main_tmpl = "".join(main_tmpl)
@@ -447,7 +484,7 @@ def generate_nullables(ctx):
 
     enum_declaration = ["ntInvalidNullableType"]
     enum_detect_line = []
-    for delphi_type in delphi_types:
+    for delphi_type, type_compare in delphi_types:
         enum_declaration.append('ntNullable' + delphi_type)
         enum_detect_line.append(f"  if aTypeInfo = TypeInfo(Nullable{delphi_type}) then \n    Exit(ntNullable{delphi_type}); ")
 
@@ -455,7 +492,10 @@ def generate_nullables(ctx):
             f"//**************************\n// ** Nullable{delphi_type}\n//**************************\n\n"
             + str_intf_tmpl.replace("$TYPE$", delphi_type)
         )
-        impl_out += str_impl_tmpl.replace("$TYPE$", delphi_type) + "\n"
+        impl_out += str_impl_tmpl \
+            .replace("$TYPE$", delphi_type) \
+            .replace("$COMPARE$", type_compare) + "\n"
+
 
     enum_declaration = '  TNullableType = (\n     ' + '\n   , '.join(enum_declaration) + ');\n\n' 
     enum_detect_function = []

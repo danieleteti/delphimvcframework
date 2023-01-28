@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -53,6 +53,7 @@ type
     class operator Implicit(const Value: $TYPE$): Nullable$TYPE$;
     class operator Implicit(const Value: Nullable$TYPE$): $TYPE$;
     class operator Implicit(const Value: Pointer): Nullable$TYPE$;	
+	class operator Equal(LeftValue: Nullable$TYPE$; RightValue: Nullable$TYPE$) : Boolean;	
     ///<summary>
     ///Returns `True` if the Nullable$TYPE$ contains a value
     ///</summary>	
@@ -87,6 +88,9 @@ type
 
 implementation
 
+uses
+  System.Math, MVCFramework.Serializer.Commons;
+
 ///IMPLEMENTATION.BEGIN
 
 { Nullable$TYPE$ }
@@ -95,7 +99,7 @@ procedure Nullable$TYPE$.CheckHasValue;
 begin
   if not GetHasValue then
   begin
-    raise EMVCNullable.Create('Value is null');
+    raise EMVCNullable.Create('Nullable$TYPE$ value is null');
   end;
 end;
 
@@ -106,7 +110,7 @@ end;
 
 function Nullable$TYPE$.Equals(const Value: Nullable$TYPE$): Boolean;
 begin
-  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+  Result := Self = Value;
 end;
 
 function Nullable$TYPE$.GetHasValue: Boolean;
@@ -145,6 +149,11 @@ begin
   begin
     raise EInvalidPointer.Create('Pointer value can only be "nil"');
   end;
+end;
+
+class operator Nullable$TYPE$.Equal(LeftValue: Nullable$TYPE$; RightValue: Nullable$TYPE$) : Boolean;
+begin
+  Result := $COMPARE$;
 end;
 
 procedure Nullable$TYPE$.SetNull;

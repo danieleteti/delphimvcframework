@@ -121,3 +121,4 @@ samples/serversideviews_lua/bin/templates/__compiled/
 samples/serversideviews_lua/lua4delphi/unittests/Win32/
 /unittests/general/Several/bin/EchoSingleComplexRecord_RESPONSE.json
 /unittests/general/Several/bin/TestRequest_Echo_ComplexRecords_RESPONSE.json
+unittests/general/Several/pgsql/testdatadir/

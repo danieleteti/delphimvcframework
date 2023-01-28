@@ -45,6 +45,7 @@ begin
   Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
   Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
   Writeln(' ');
+  TextColor(TConsoleColor.White);
   Write('PLATFORM: ');
   {$IF Defined(Win32)} Writeln('WIN32'); {$ENDIF}
   {$IF Defined(Win64)} Writeln('WIN64'); {$ENDIF}

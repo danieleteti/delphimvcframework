@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'MVCAsync Sample'
   ClientHeight = 181
-  ClientWidth = 503
+  ClientWidth = 693
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -29,12 +29,22 @@ object MainForm: TMainForm
     Text = 'Edit1'
   end
   object btnWithEx: TButton
-    Left = 224
+    Left = 448
     Top = 16
     Width = 161
     Height = 41
     Caption = 'Async Test With Exception'
     TabOrder = 2
     OnClick = btnWithExClick
+  end
+  object btnWithExcDefault: TButton
+    Left = 272
+    Top = 16
+    Width = 161
+    Height = 41
+    Caption = 'Async Test With Exception (default)'
+    TabOrder = 3
+    WordWrap = True
+    OnClick = btnWithExcDefaultClick
   end
 end

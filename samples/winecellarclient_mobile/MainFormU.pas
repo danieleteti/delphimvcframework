@@ -91,7 +91,7 @@ const
   URL = 'http://localhost:3000/api';
 {$ENDIF}
 {$IF Defined(ANDROID)}
-  URL = 'http://192.168.1.46:3000/api';
+  URL = 'http://192.168.1.153:3000/api';
 {$ENDIF}
 
 var
