@@ -258,6 +258,15 @@ object MainForm: TMainForm
     TabOrder = 24
     OnClick = btnSpeedClick
   end
+  object btnRefresh: TButton
+    Left = 144
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Manual Refresh'
+    TabOrder = 25
+    OnClick = btnRefreshClick
+  end
   object FDConnection1: TFDConnection
     Left = 312
     Top = 40

@@ -236,7 +236,6 @@
         <DCCReference Include="StandaloneServerTestU.pas"/>
         <DCCReference Include="webmodules\StandAloneServerWebModuleTest.pas">
             <Form>TestWebModule2</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="..\..\..\sources\MVCFramework.Commons.pas"/>

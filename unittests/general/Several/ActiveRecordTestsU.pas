@@ -52,6 +52,8 @@ type
     [Test]
     procedure TestCRUD;
     [Test]
+    procedure TestRefresh;
+    [Test]
     procedure Test_ISSUE485;
     [Test]
     procedure TestDeleteIfNotFound;
@@ -1488,8 +1490,7 @@ begin
   CreateACustomer('New York 1', 'New York', 5);
   CreateACustomer('Toyko 1', 'Tokyo', 4);
 
-  var
-  lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
+  var lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
   try
     Assert.IsNotNull(lRomeCustomer);
   finally
@@ -1510,6 +1511,48 @@ begin
     Assert.IsNull(lRomeCustomer);
   finally
     lRomeCustomer.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestRefresh;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>());
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+    lCustomer.CompanyName.Clear;
+    lCustomer.City := '';
+    lCustomer.Note := '';
+    lCustomer.CreationTime := 0;
+    lCustomer.CreationDate := 0;
+    lCustomer.Refresh;
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.ValueOrDefault);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.AreEqual('note1', lCustomer.Note);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.ID := lID;
+    lCustomer.Refresh;
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.ValueOrDefault);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.AreEqual('note1', lCustomer.Note);
+  finally
+    lCustomer.Free;
   end;
 end;
 

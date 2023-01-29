@@ -1423,15 +1423,21 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 - mid-air-collision handling now uses SHA1 instead of MD5
 
-- Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`
+- Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`.
+
+- Support for `TObject` descendants in JSONRPC APIs (not only for JSONObject and JSONArray).
 
 - New global configuration variable `MVCSerializeNulls`.
   When MVCSerializeNulls = True (default) empty nullables and nil are serialized as json null.
   When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
 
-- Nullable types now have `Equal` support and a better "equality check" strategy.
+- Nullable types now have `Equal` method support, the new method `TryHasValue(out Value)` works like `HasValue` but returns the contained value if present. Also there is a better "equality check" strategy.
 
 - Unit tests now are always executed for Win32 and Win64 bit (both client and server).
+
+- Added `TMVCActiveRecord.Refresh` method
+
+- Unit test suites generates one NUnit XML output file for each platform
 
 - New built-in profiler (usable with Delphi 10.4+) - to profile a block of code, write the following 
 

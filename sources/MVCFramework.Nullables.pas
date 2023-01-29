@@ -32,7 +32,7 @@ unit MVCFramework.Nullables;
 interface
 
 uses
-  System.SysUtils, System.Classes, System.TypInfo;
+  System.SysUtils, System.Classes, System.TypInfo, System.RTTI;
 
 type
   EMVCNullable = class(Exception)
@@ -56,7 +56,7 @@ type
     class operator Implicit(const Value: String): NullableString;
     class operator Implicit(const Value: NullableString): String;
     class operator Implicit(const Value: Pointer): NullableString;	
-	class operator Equal(LeftValue: NullableString; RightValue: NullableString) : Boolean;	
+	  class operator Equal(LeftValue: NullableString; RightValue: NullableString) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableString contains a value
     ///</summary>	
@@ -82,6 +82,14 @@ type
     /// </summary>
     function Equals(const Value: NullableString): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: String): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: String read GetValue write SetValue;
@@ -104,7 +112,7 @@ type
     class operator Implicit(const Value: Currency): NullableCurrency;
     class operator Implicit(const Value: NullableCurrency): Currency;
     class operator Implicit(const Value: Pointer): NullableCurrency;	
-	class operator Equal(LeftValue: NullableCurrency; RightValue: NullableCurrency) : Boolean;	
+	  class operator Equal(LeftValue: NullableCurrency; RightValue: NullableCurrency) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableCurrency contains a value
     ///</summary>	
@@ -130,6 +138,14 @@ type
     /// </summary>
     function Equals(const Value: NullableCurrency): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Currency): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Currency read GetValue write SetValue;
@@ -152,7 +168,7 @@ type
     class operator Implicit(const Value: Boolean): NullableBoolean;
     class operator Implicit(const Value: NullableBoolean): Boolean;
     class operator Implicit(const Value: Pointer): NullableBoolean;	
-	class operator Equal(LeftValue: NullableBoolean; RightValue: NullableBoolean) : Boolean;	
+	  class operator Equal(LeftValue: NullableBoolean; RightValue: NullableBoolean) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableBoolean contains a value
     ///</summary>	
@@ -178,6 +194,14 @@ type
     /// </summary>
     function Equals(const Value: NullableBoolean): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Boolean): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Boolean read GetValue write SetValue;
@@ -200,7 +224,7 @@ type
     class operator Implicit(const Value: TDate): NullableTDate;
     class operator Implicit(const Value: NullableTDate): TDate;
     class operator Implicit(const Value: Pointer): NullableTDate;	
-	class operator Equal(LeftValue: NullableTDate; RightValue: NullableTDate) : Boolean;	
+	  class operator Equal(LeftValue: NullableTDate; RightValue: NullableTDate) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTDate contains a value
     ///</summary>	
@@ -226,6 +250,14 @@ type
     /// </summary>
     function Equals(const Value: NullableTDate): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TDate): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: TDate read GetValue write SetValue;
@@ -248,7 +280,7 @@ type
     class operator Implicit(const Value: TTime): NullableTTime;
     class operator Implicit(const Value: NullableTTime): TTime;
     class operator Implicit(const Value: Pointer): NullableTTime;	
-	class operator Equal(LeftValue: NullableTTime; RightValue: NullableTTime) : Boolean;	
+	  class operator Equal(LeftValue: NullableTTime; RightValue: NullableTTime) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTTime contains a value
     ///</summary>	
@@ -274,6 +306,14 @@ type
     /// </summary>
     function Equals(const Value: NullableTTime): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TTime): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: TTime read GetValue write SetValue;
@@ -296,7 +336,7 @@ type
     class operator Implicit(const Value: TDateTime): NullableTDateTime;
     class operator Implicit(const Value: NullableTDateTime): TDateTime;
     class operator Implicit(const Value: Pointer): NullableTDateTime;	
-	class operator Equal(LeftValue: NullableTDateTime; RightValue: NullableTDateTime) : Boolean;	
+	  class operator Equal(LeftValue: NullableTDateTime; RightValue: NullableTDateTime) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTDateTime contains a value
     ///</summary>	
@@ -322,6 +362,14 @@ type
     /// </summary>
     function Equals(const Value: NullableTDateTime): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TDateTime): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: TDateTime read GetValue write SetValue;
@@ -344,7 +392,7 @@ type
     class operator Implicit(const Value: Single): NullableSingle;
     class operator Implicit(const Value: NullableSingle): Single;
     class operator Implicit(const Value: Pointer): NullableSingle;	
-	class operator Equal(LeftValue: NullableSingle; RightValue: NullableSingle) : Boolean;	
+	  class operator Equal(LeftValue: NullableSingle; RightValue: NullableSingle) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableSingle contains a value
     ///</summary>	
@@ -370,6 +418,14 @@ type
     /// </summary>
     function Equals(const Value: NullableSingle): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Single): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Single read GetValue write SetValue;
@@ -392,7 +448,7 @@ type
     class operator Implicit(const Value: Double): NullableDouble;
     class operator Implicit(const Value: NullableDouble): Double;
     class operator Implicit(const Value: Pointer): NullableDouble;	
-	class operator Equal(LeftValue: NullableDouble; RightValue: NullableDouble) : Boolean;	
+	  class operator Equal(LeftValue: NullableDouble; RightValue: NullableDouble) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableDouble contains a value
     ///</summary>	
@@ -418,6 +474,14 @@ type
     /// </summary>
     function Equals(const Value: NullableDouble): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Double): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Double read GetValue write SetValue;
@@ -440,7 +504,7 @@ type
     class operator Implicit(const Value: Extended): NullableExtended;
     class operator Implicit(const Value: NullableExtended): Extended;
     class operator Implicit(const Value: Pointer): NullableExtended;	
-	class operator Equal(LeftValue: NullableExtended; RightValue: NullableExtended) : Boolean;	
+	  class operator Equal(LeftValue: NullableExtended; RightValue: NullableExtended) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableExtended contains a value
     ///</summary>	
@@ -466,6 +530,14 @@ type
     /// </summary>
     function Equals(const Value: NullableExtended): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Extended): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Extended read GetValue write SetValue;
@@ -488,7 +560,7 @@ type
     class operator Implicit(const Value: Int16): NullableInt16;
     class operator Implicit(const Value: NullableInt16): Int16;
     class operator Implicit(const Value: Pointer): NullableInt16;	
-	class operator Equal(LeftValue: NullableInt16; RightValue: NullableInt16) : Boolean;	
+	  class operator Equal(LeftValue: NullableInt16; RightValue: NullableInt16) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt16 contains a value
     ///</summary>	
@@ -514,6 +586,14 @@ type
     /// </summary>
     function Equals(const Value: NullableInt16): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Int16): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Int16 read GetValue write SetValue;
@@ -536,7 +616,7 @@ type
     class operator Implicit(const Value: UInt16): NullableUInt16;
     class operator Implicit(const Value: NullableUInt16): UInt16;
     class operator Implicit(const Value: Pointer): NullableUInt16;	
-	class operator Equal(LeftValue: NullableUInt16; RightValue: NullableUInt16) : Boolean;	
+	  class operator Equal(LeftValue: NullableUInt16; RightValue: NullableUInt16) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt16 contains a value
     ///</summary>	
@@ -562,6 +642,14 @@ type
     /// </summary>
     function Equals(const Value: NullableUInt16): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: UInt16): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: UInt16 read GetValue write SetValue;
@@ -584,7 +672,7 @@ type
     class operator Implicit(const Value: Int32): NullableInt32;
     class operator Implicit(const Value: NullableInt32): Int32;
     class operator Implicit(const Value: Pointer): NullableInt32;	
-	class operator Equal(LeftValue: NullableInt32; RightValue: NullableInt32) : Boolean;	
+	  class operator Equal(LeftValue: NullableInt32; RightValue: NullableInt32) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt32 contains a value
     ///</summary>	
@@ -610,6 +698,14 @@ type
     /// </summary>
     function Equals(const Value: NullableInt32): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Int32): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Int32 read GetValue write SetValue;
@@ -632,7 +728,7 @@ type
     class operator Implicit(const Value: UInt32): NullableUInt32;
     class operator Implicit(const Value: NullableUInt32): UInt32;
     class operator Implicit(const Value: Pointer): NullableUInt32;	
-	class operator Equal(LeftValue: NullableUInt32; RightValue: NullableUInt32) : Boolean;	
+	  class operator Equal(LeftValue: NullableUInt32; RightValue: NullableUInt32) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt32 contains a value
     ///</summary>	
@@ -658,6 +754,14 @@ type
     /// </summary>
     function Equals(const Value: NullableUInt32): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: UInt32): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: UInt32 read GetValue write SetValue;
@@ -680,7 +784,7 @@ type
     class operator Implicit(const Value: Int64): NullableInt64;
     class operator Implicit(const Value: NullableInt64): Int64;
     class operator Implicit(const Value: Pointer): NullableInt64;	
-	class operator Equal(LeftValue: NullableInt64; RightValue: NullableInt64) : Boolean;	
+	  class operator Equal(LeftValue: NullableInt64; RightValue: NullableInt64) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableInt64 contains a value
     ///</summary>	
@@ -706,6 +810,14 @@ type
     /// </summary>
     function Equals(const Value: NullableInt64): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: Int64): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: Int64 read GetValue write SetValue;
@@ -728,7 +840,7 @@ type
     class operator Implicit(const Value: UInt64): NullableUInt64;
     class operator Implicit(const Value: NullableUInt64): UInt64;
     class operator Implicit(const Value: Pointer): NullableUInt64;	
-	class operator Equal(LeftValue: NullableUInt64; RightValue: NullableUInt64) : Boolean;	
+	  class operator Equal(LeftValue: NullableUInt64; RightValue: NullableUInt64) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableUInt64 contains a value
     ///</summary>	
@@ -754,6 +866,14 @@ type
     /// </summary>
     function Equals(const Value: NullableUInt64): Boolean;
     ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: UInt64): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
     property Value: UInt64 read GetValue write SetValue;
@@ -776,7 +896,7 @@ type
     class operator Implicit(const Value: TGUID): NullableTGUID;
     class operator Implicit(const Value: NullableTGUID): TGUID;
     class operator Implicit(const Value: Pointer): NullableTGUID;	
-	class operator Equal(LeftValue: NullableTGUID; RightValue: NullableTGUID) : Boolean;	
+	  class operator Equal(LeftValue: NullableTGUID; RightValue: NullableTGUID) : Boolean;	
     ///<summary>
     ///Returns `True` if the NullableTGUID contains a value
     ///</summary>	
@@ -801,6 +921,14 @@ type
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
     function Equals(const Value: NullableTGUID): Boolean;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TGUID): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
     ///<summary>
     ///Returns the value stored or raises exception if no value is stored
     ///</summary>	
@@ -844,6 +972,25 @@ begin
     raise EMVCNullable.Create('NullableString value is null');
   end;
 end;
+
+function NullableString.TryHasValue(out Value: String): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableString.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<String>(fValue);    
+  end;
+end;
+
 
 procedure NullableString.Clear;
 begin
@@ -935,6 +1082,25 @@ begin
   end;
 end;
 
+function NullableCurrency.TryHasValue(out Value: Currency): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableCurrency.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Currency>(fValue);    
+  end;
+end;
+
+
 procedure NullableCurrency.Clear;
 begin
   SetNull;
@@ -1024,6 +1190,25 @@ begin
     raise EMVCNullable.Create('NullableBoolean value is null');
   end;
 end;
+
+function NullableBoolean.TryHasValue(out Value: Boolean): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableBoolean.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Boolean>(fValue);    
+  end;
+end;
+
 
 procedure NullableBoolean.Clear;
 begin
@@ -1115,6 +1300,25 @@ begin
   end;
 end;
 
+function NullableTDate.TryHasValue(out Value: TDate): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableTDate.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<TDate>(fValue);    
+  end;
+end;
+
+
 procedure NullableTDate.Clear;
 begin
   SetNull;
@@ -1204,6 +1408,25 @@ begin
     raise EMVCNullable.Create('NullableTTime value is null');
   end;
 end;
+
+function NullableTTime.TryHasValue(out Value: TTime): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableTTime.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<TTime>(fValue);    
+  end;
+end;
+
 
 procedure NullableTTime.Clear;
 begin
@@ -1295,6 +1518,25 @@ begin
   end;
 end;
 
+function NullableTDateTime.TryHasValue(out Value: TDateTime): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableTDateTime.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<TDateTime>(fValue);    
+  end;
+end;
+
+
 procedure NullableTDateTime.Clear;
 begin
   SetNull;
@@ -1384,6 +1626,25 @@ begin
     raise EMVCNullable.Create('NullableSingle value is null');
   end;
 end;
+
+function NullableSingle.TryHasValue(out Value: Single): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableSingle.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Single>(fValue);    
+  end;
+end;
+
 
 procedure NullableSingle.Clear;
 begin
@@ -1475,6 +1736,25 @@ begin
   end;
 end;
 
+function NullableDouble.TryHasValue(out Value: Double): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableDouble.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Double>(fValue);    
+  end;
+end;
+
+
 procedure NullableDouble.Clear;
 begin
   SetNull;
@@ -1564,6 +1844,25 @@ begin
     raise EMVCNullable.Create('NullableExtended value is null');
   end;
 end;
+
+function NullableExtended.TryHasValue(out Value: Extended): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableExtended.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Extended>(fValue);    
+  end;
+end;
+
 
 procedure NullableExtended.Clear;
 begin
@@ -1655,6 +1954,25 @@ begin
   end;
 end;
 
+function NullableInt16.TryHasValue(out Value: Int16): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableInt16.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Int16>(fValue);    
+  end;
+end;
+
+
 procedure NullableInt16.Clear;
 begin
   SetNull;
@@ -1743,6 +2061,25 @@ begin
     raise EMVCNullable.Create('NullableUInt16 value is null');
   end;
 end;
+
+function NullableUInt16.TryHasValue(out Value: UInt16): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableUInt16.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<UInt16>(fValue);    
+  end;
+end;
+
 
 procedure NullableUInt16.Clear;
 begin
@@ -1833,6 +2170,25 @@ begin
   end;
 end;
 
+function NullableInt32.TryHasValue(out Value: Int32): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableInt32.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Int32>(fValue);    
+  end;
+end;
+
+
 procedure NullableInt32.Clear;
 begin
   SetNull;
@@ -1921,6 +2277,25 @@ begin
     raise EMVCNullable.Create('NullableUInt32 value is null');
   end;
 end;
+
+function NullableUInt32.TryHasValue(out Value: UInt32): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableUInt32.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<UInt32>(fValue);    
+  end;
+end;
+
 
 procedure NullableUInt32.Clear;
 begin
@@ -2011,6 +2386,25 @@ begin
   end;
 end;
 
+function NullableInt64.TryHasValue(out Value: Int64): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableInt64.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Int64>(fValue);    
+  end;
+end;
+
+
 procedure NullableInt64.Clear;
 begin
   SetNull;
@@ -2100,6 +2494,25 @@ begin
   end;
 end;
 
+function NullableUInt64.TryHasValue(out Value: UInt64): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableUInt64.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<UInt64>(fValue);    
+  end;
+end;
+
+
 procedure NullableUInt64.Clear;
 begin
   SetNull;
@@ -2188,6 +2601,25 @@ begin
     raise EMVCNullable.Create('NullableTGUID value is null');
   end;
 end;
+
+function NullableTGUID.TryHasValue(out Value: TGUID): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function NullableTGUID.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<TGUID>(fValue);    
+  end;
+end;
+
 
 procedure NullableTGUID.Clear;
 begin

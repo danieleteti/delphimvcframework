@@ -57,6 +57,7 @@ type
     btnOOP: TButton;
     btnReadOnly: TButton;
     btnSpeed: TButton;
+    btnRefresh: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -84,6 +85,7 @@ type
     procedure btnOOPClick(Sender: TObject);
     procedure btnReadOnlyClick(Sender: TObject);
     procedure btnSpeedClick(Sender: TObject);
+    procedure btnRefreshClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -1462,6 +1464,44 @@ begin
     Assert('XYZ' = lCustomer.Code);
     lCustomer.Delete;
     Log('Just deleted Customer ' + lID.ToString + ' with a R/O field');
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnRefreshClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Log('** Refresh test');
+  lCustomer := TCustomer.Create;
+  try
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.City := 'Montain View, CA';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCustomer.Insert;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
+    lCustomer.City := '';
+    lCustomer.Note := '';
+    Log('Refreshing the customer');
+    lCustomer.Refresh;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    Log('Loading customer using Refresh');
+    lCustomer.ID := lID;
+    lCustomer.Refresh;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
   finally
     lCustomer.Free;
   end;

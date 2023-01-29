@@ -195,7 +195,6 @@ type
     fDefaultRQLFilter: string;
     fMap: TFieldsMap;
     fPrimaryKey: TRTTIField;
-    //fBackendDriver: string;
     fMapping: TMVCFieldsMapping;
     fPropsAttributes: TArray<TCustomAttribute>;
     fProps: TArray<TRTTIField>;
@@ -224,25 +223,7 @@ type
     procedure SetAttributes(const AttrName: string; const Value: TValue);
     function GetTableName: string;
   protected
-//    fPrimaryKeyFieldName: string;
-//    fPrimaryKeyOptions: TMVCActiveRecordFieldOptions;
-//    fPrimaryKeySequenceName: string;
-//    fPrimaryKeyFieldType: TFieldType;
-//    fEntityAllowedActions: TMVCEntityActions;
-//    fRTTIType: TRttiInstanceType;
-//    fObjAttributes: TArray<TCustomAttribute>;
-//    fTableName: string;
-//    fDefaultRQLFilter: string;
-//    fMap: TFieldsMap;
-//    fPrimaryKey: TRTTIField;
     fBackendDriver: string;
-//    fMapping: TMVCFieldsMapping;
-//    fPropsAttributes: TArray<TCustomAttribute>;
-//    fProps: TArray<TRTTIField>;
-
-//    fPartitionInfoInternal: TPartitionInfo;
-//    fPartitionClause: String;
-
     fTableMap: TMVCTableMap;
     function GetPartitionInfo: TPartitionInfo;
     function GetBackEnd: string;
@@ -279,6 +260,7 @@ type
       overload;
     class function GetByPK(aActiveRecord: TMVCActiveRecord; const aValue: string; const aFieldType: TFieldType;
       const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord; overload;
+
 
     // load events
     /// <summary>
@@ -364,6 +346,10 @@ type
     /// Executes an Insert (pk is null) or an Update (pk is not null)
     /// </summary>
     procedure Store;
+    /// <summary>
+    ///   Reload the current instance from database if the primary key is not empty.
+    /// </summary>
+    procedure Refresh; virtual;
     function CheckAction(const aEntityAction: TMVCEntityAction;
       const aRaiseException: Boolean = True): Boolean;
     procedure Insert;
@@ -2381,6 +2367,29 @@ begin
   // do nothing
 end;
 
+procedure TMVCActiveRecord.Refresh;
+begin
+  if not GetPK.IsEmpty then
+  begin
+    case GetPrimaryKeyFieldType of
+      ftLargeInt: begin
+        LoadByPK(GetPK.AsInt64);
+      end;
+      ftInteger: begin
+        LoadByPK(GetPK.AsInteger);
+      end;
+      ftString: begin
+        LoadByPK(GetPK.AsString);
+      end;
+      ftGuid: begin
+        LoadByPK(GetPK.AsType<TGUID>);
+      end;
+      else
+        raise EMVCActiveRecord.Create('Unknown primary key type');
+    end;
+  end;
+end;
+
 procedure TMVCActiveRecord.RemoveChildren(const ChildObject: TObject);
 begin
   if fChildren <> nil then
@@ -2885,51 +2894,35 @@ begin
   begin
     if Value.IsType<NullableInt32>() then
     begin
-      Result := Value.AsType<NullableInt32>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableInt32>().Value;
+      Result := Value.AsType<NullableInt32>().TryHasValue(Value);
     end
     else if Value.IsType<NullableInt64>() then
     begin
-      Result := Value.AsType<NullableInt64>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableInt64>().Value;
+      Result := Value.AsType<NullableInt64>().TryHasValue(Value)
     end
     else if Value.IsType<NullableUInt32>() then
     begin
-      Result := Value.AsType<NullableUInt32>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableUInt32>().Value;
+      Result := Value.AsType<NullableUInt32>().TryHasValue(Value)
     end
     else if Value.IsType<NullableUInt64>() then
     begin
-      Result := Value.AsType<NullableUInt64>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableUInt64>().Value;
+      Result := Value.AsType<NullableUInt64>().TryHasValue(Value)
     end
     else if Value.IsType<NullableInt16>() then
     begin
-      Result := Value.AsType<NullableInt16>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableInt16>().Value;
+      Result := Value.AsType<NullableInt16>().TryHasValue(Value)
     end
     else if Value.IsType<NullableUInt16>() then
     begin
-      Result := Value.AsType<NullableUInt16>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableUInt16>().Value;
+      Result := Value.AsType<NullableUInt16>().TryHasValue(Value)
     end
     else if Value.IsType<NullableString>() then
     begin
-      Result := Value.AsType<NullableString>().HasValue;
-      if Result then
-        Value := Value.AsType<NullableString>().Value;
+      Result := Value.AsType<NullableString>().TryHasValue(Value)
     end
     else if Value.IsType<NullableTGUID>() then
     begin
-      Result := Value.AsType<NullableTGUID>().HasValue;
-      if Result then
-        Value := TValue.From<TGuid>(Value.AsType<NullableTGUID>().Value);
+      Result := Value.AsType<NullableTGUID>().TryHasValue(Value)
     end
     else
       raise EMVCActiveRecord.Create
