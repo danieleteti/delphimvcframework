@@ -1,0 +1,598 @@
+object HeaderFooterForm: THeaderFooterForm
+  Left = 0
+  Top = 0
+  Caption = 'Header Footer Form'
+  ClientHeight = 587
+  ClientWidth = 422
+  FormFactor.Width = 1440
+  FormFactor.Height = 900
+  FormFactor.Devices = [Desktop]
+  OnKeyUp = FormKeyUp
+  OnShow = FormShow
+  DesignerMasterStyle = 3
+  object Header: TToolBar
+    Size.Width = 422.000000000000000000
+    Size.Height = 48.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object HeaderLabel: TLabel
+      Align = Contents
+      Size.Width = 422.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'toollabel'
+      TextSettings.HorzAlign = Center
+      Text = 'Wine Cellar'
+    end
+    object Button1: TButton
+      Align = Right
+      Position.X = 374.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'refreshtoolbutton'
+      TabOrder = 0
+      Text = 'Button1'
+      OnClick = Button1Click
+    end
+    object Button2: TButton
+      Action = PreviousTabAction1
+      Align = Left
+      Enabled = True
+      ImageIndex = -1
+      Margins.Left = 2.000000000000000000
+      Margins.Top = 2.000000000000000000
+      Margins.Right = 2.000000000000000000
+      Margins.Bottom = 2.000000000000000000
+      Position.X = 2.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'backtoolbutton'
+      TabOrder = 1
+    end
+  end
+  object Footer: TToolBar
+    Align = Bottom
+    Position.Y = 539.000000000000000000
+    Size.Width = 422.000000000000000000
+    Size.Height = 48.000000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'bottomtoolbar'
+    TabOrder = 1
+  end
+  object TabControl1: TTabControl
+    Align = Client
+    Size.Width = 422.000000000000000000
+    Size.Height = 491.000000000000000000
+    Size.PlatformDefault = False
+    TabHeight = 49.000000000000000000
+    TabIndex = 0
+    TabOrder = 6
+    TabPosition = None
+    Sizes = (
+      422s
+      491s
+      422s
+      491s)
+    object TabItem1: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'TabItem1'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      object ListView1: TListView
+        ItemAppearanceClassName = 'TImageListItemBottomDetailAppearance'
+        ItemEditAppearanceClassName = 'TImageListItemBottomDetailShowCheckAppearance'
+        HeaderAppearanceClassName = 'TListHeaderObjects'
+        FooterAppearanceClassName = 'TListHeaderObjects'
+        AlternatingColors = True
+        ItemIndex = 0
+        Align = Client
+        Size.Width = 422.000000000000000000
+        Size.Height = 491.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        ItemAppearanceObjects.ItemObjects.Accessory.AccessoryType = Detail
+        OnItemClick = ListView1ItemClick
+        OnDeleteItem = ListView1DeleteItem
+      end
+    end
+    object TabItem2: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'TabItem2'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      object Layout1: TLayout
+        Align = Client
+        Margins.Left = 10.000000000000000000
+        Margins.Top = 10.000000000000000000
+        Margins.Right = 10.000000000000000000
+        Margins.Bottom = 10.000000000000000000
+        Size.Width = 402.000000000000000000
+        Size.Height = 471.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        object Layout2: TLayout
+          Align = Top
+          Margins.Left = 10.000000000000000000
+          Margins.Top = 10.000000000000000000
+          Margins.Right = 10.000000000000000000
+          Margins.Bottom = 10.000000000000000000
+          Position.X = 10.000000000000000000
+          Position.Y = 10.000000000000000000
+          Size.Width = 382.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          object Label1: TLabel
+            Align = Top
+            Padding.Left = 2.000000000000000000
+            Padding.Top = 2.000000000000000000
+            Padding.Right = 2.000000000000000000
+            Padding.Bottom = 2.000000000000000000
+            Margins.Left = 2.000000000000000000
+            Margins.Top = 2.000000000000000000
+            Margins.Right = 2.000000000000000000
+            Margins.Bottom = 2.000000000000000000
+            Position.X = 2.000000000000000000
+            Position.Y = 2.000000000000000000
+            Size.Width = 378.000000000000000000
+            Size.Height = 20.000000000000000000
+            Size.PlatformDefault = False
+            Text = 'Name'
+            TabOrder = 0
+          end
+          object Edit1: TEdit
+            Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Align = Top
+            TabOrder = 1
+            ReadOnly = True
+            Text = 'nome'
+            Position.Y = 24.000000000000000000
+            Size.Width = 382.000000000000000000
+            Size.Height = 32.000000000000000000
+            Size.PlatformDefault = False
+          end
+        end
+        object Layout3: TLayout
+          Align = Top
+          Margins.Left = 10.000000000000000000
+          Margins.Top = 10.000000000000000000
+          Margins.Right = 10.000000000000000000
+          Margins.Bottom = 10.000000000000000000
+          Position.X = 10.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 382.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          object Label2: TLabel
+            Align = Top
+            Padding.Left = 2.000000000000000000
+            Padding.Top = 2.000000000000000000
+            Padding.Right = 2.000000000000000000
+            Padding.Bottom = 2.000000000000000000
+            Margins.Left = 2.000000000000000000
+            Margins.Top = 2.000000000000000000
+            Margins.Right = 2.000000000000000000
+            Margins.Bottom = 2.000000000000000000
+            Position.X = 2.000000000000000000
+            Position.Y = 2.000000000000000000
+            Size.Width = 378.000000000000000000
+            Size.Height = 20.000000000000000000
+            Size.PlatformDefault = False
+            Text = 'Region'
+            TabOrder = 0
+          end
+          object Edit2: TEdit
+            Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Align = Top
+            TabOrder = 1
+            ReadOnly = True
+            Position.Y = 24.000000000000000000
+            Size.Width = 382.000000000000000000
+            Size.Height = 32.000000000000000000
+            Size.PlatformDefault = False
+          end
+        end
+        object Layout4: TLayout
+          Align = Top
+          Margins.Left = 10.000000000000000000
+          Margins.Top = 10.000000000000000000
+          Margins.Right = 10.000000000000000000
+          Margins.Bottom = 10.000000000000000000
+          Position.X = 10.000000000000000000
+          Position.Y = 220.000000000000000000
+          Size.Width = 382.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          object lblYear: TLabel
+            Align = Top
+            Padding.Left = 2.000000000000000000
+            Padding.Top = 2.000000000000000000
+            Padding.Right = 2.000000000000000000
+            Padding.Bottom = 2.000000000000000000
+            Margins.Left = 2.000000000000000000
+            Margins.Top = 2.000000000000000000
+            Margins.Right = 2.000000000000000000
+            Margins.Bottom = 2.000000000000000000
+            Position.X = 2.000000000000000000
+            Position.Y = 2.000000000000000000
+            Size.Width = 378.000000000000000000
+            Size.Height = 20.000000000000000000
+            Size.PlatformDefault = False
+            Text = 'Country'
+            TabOrder = 0
+          end
+          object Edit3: TEdit
+            Touch.InteractiveGestures = [LongTap, DoubleTap]
+            Align = Top
+            TabOrder = 1
+            ReadOnly = True
+            Position.Y = 24.000000000000000000
+            Size.Width = 382.000000000000000000
+            Size.Height = 32.000000000000000000
+            Size.PlatformDefault = False
+          end
+        end
+        object Layout5: TLayout
+          Align = Top
+          Margins.Left = 10.000000000000000000
+          Margins.Top = 10.000000000000000000
+          Margins.Right = 10.000000000000000000
+          Margins.Bottom = 10.000000000000000000
+          Position.X = 10.000000000000000000
+          Position.Y = 150.000000000000000000
+          Size.Width = 382.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          object Layout6: TLayout
+            Align = Left
+            Margins.Right = 5.000000000000000000
+            Size.Width = 57.000000000000000000
+            Size.Height = 50.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 3
+            object Label3: TLabel
+              Align = Top
+              Padding.Left = 2.000000000000000000
+              Padding.Top = 2.000000000000000000
+              Padding.Right = 2.000000000000000000
+              Padding.Bottom = 2.000000000000000000
+              Margins.Left = 2.000000000000000000
+              Margins.Top = 2.000000000000000000
+              Margins.Right = 2.000000000000000000
+              Margins.Bottom = 2.000000000000000000
+              Position.X = 2.000000000000000000
+              Position.Y = 2.000000000000000000
+              Size.Width = 53.000000000000000000
+              Size.Height = 20.000000000000000000
+              Size.PlatformDefault = False
+              Text = 'Year'
+              TabOrder = 0
+            end
+            object Edit4: TEdit
+              Touch.InteractiveGestures = [LongTap, DoubleTap]
+              Align = Top
+              TabOrder = 1
+              ReadOnly = True
+              Position.Y = 24.000000000000000000
+              Size.Width = 57.000000000000000000
+              Size.Height = 32.000000000000000000
+              Size.PlatformDefault = False
+            end
+          end
+          object Layout7: TLayout
+            Align = Client
+            Margins.Left = 5.000000000000000000
+            Size.Width = 315.000000000000000000
+            Size.Height = 50.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 2
+            object Label4: TLabel
+              Align = Top
+              Padding.Left = 2.000000000000000000
+              Padding.Top = 2.000000000000000000
+              Padding.Right = 2.000000000000000000
+              Padding.Bottom = 2.000000000000000000
+              Margins.Left = 2.000000000000000000
+              Margins.Top = 2.000000000000000000
+              Margins.Right = 2.000000000000000000
+              Margins.Bottom = 2.000000000000000000
+              Position.X = 2.000000000000000000
+              Position.Y = 2.000000000000000000
+              Size.Width = 311.000000000000000000
+              Size.Height = 20.000000000000000000
+              Size.PlatformDefault = False
+              Text = 'Grapes'
+              TabOrder = 0
+            end
+            object Edit5: TEdit
+              Touch.InteractiveGestures = [LongTap, DoubleTap]
+              Align = Top
+              TabOrder = 1
+              ReadOnly = True
+              Position.Y = 24.000000000000000000
+              Size.Width = 315.000000000000000000
+              Size.Height = 32.000000000000000000
+              Size.PlatformDefault = False
+            end
+          end
+        end
+        object Layout8: TLayout
+          Align = Client
+          Margins.Left = 10.000000000000000000
+          Margins.Top = 10.000000000000000000
+          Margins.Right = 10.000000000000000000
+          Margins.Bottom = 10.000000000000000000
+          Size.Width = 382.000000000000000000
+          Size.Height = 171.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          object Label5: TLabel
+            Align = Top
+            Padding.Left = 2.000000000000000000
+            Padding.Top = 2.000000000000000000
+            Padding.Right = 2.000000000000000000
+            Padding.Bottom = 2.000000000000000000
+            Margins.Left = 2.000000000000000000
+            Margins.Top = 2.000000000000000000
+            Margins.Right = 2.000000000000000000
+            Margins.Bottom = 2.000000000000000000
+            Position.X = 2.000000000000000000
+            Position.Y = 2.000000000000000000
+            Size.Width = 378.000000000000000000
+            Size.Height = 20.000000000000000000
+            Size.PlatformDefault = False
+            Text = 'Description'
+            TabOrder = 0
+          end
+          object Memo1: TMemo
+            Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+            DataDetectorTypes = []
+            ReadOnly = True
+            TextSettings.WordWrap = True
+            Align = Client
+            Size.Width = 382.000000000000000000
+            Size.Height = 147.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 1
+            Viewport.Width = 374.000000000000000000
+            Viewport.Height = 139.000000000000000000
+          end
+        end
+      end
+    end
+  end
+  object FDMemTable1: TFDMemTable
+    Active = True
+    FieldDefs = <
+      item
+        Name = 'id'
+        DataType = ftAutoInc
+      end
+      item
+        Name = 'name'
+        DataType = ftString
+        Size = 50
+      end
+      item
+        Name = 'year'
+        DataType = ftInteger
+      end
+      item
+        Name = 'grapes'
+        DataType = ftString
+        Size = 20
+      end
+      item
+        Name = 'country'
+        DataType = ftString
+        Size = 50
+      end
+      item
+        Name = 'region'
+        DataType = ftString
+        Size = 50
+      end
+      item
+        Name = 'description'
+        DataType = ftString
+        Size = 300
+      end>
+    IndexDefs = <>
+    FetchOptions.AssignedValues = [evMode]
+    FetchOptions.Mode = fmAll
+    ResourceOptions.AssignedValues = [rvPersistent, rvSilentMode]
+    ResourceOptions.Persistent = True
+    ResourceOptions.SilentMode = True
+    UpdateOptions.AssignedValues = [uvCheckRequired]
+    UpdateOptions.CheckRequired = False
+    UpdateOptions.KeyFields = 'id'
+    StoreDefs = True
+    Left = 192
+    Top = 280
+    Content = {
+      414442531000000025030000FF00010001FF02FF03040016000000460044004D
+      0065006D005400610062006C006500310005000A0000005400610062006C0065
+      00060000000000070000080032000000090000FF0AFF0B040004000000690064
+      00050004000000690064000C00010000000E000D000F00011000011100011200
+      011300FFFFFFFF1400FFFFFFFF1500011600011700011800011900011A000400
+      000069006400FEFF0B0400080000006E0061006D0065000500080000006E0061
+      006D0065000C00020000000E001B001C00320000000F00011000011200011500
+      011600011700011A00080000006E0061006D0065001D0032000000FEFF0B0400
+      08000000790065006100720005000800000079006500610072000C0003000000
+      0E000D000F00011000011200011500011600011700011A000800000079006500
+      61007200FEFF0B04000C00000067007200610070006500730005000C00000067
+      00720061007000650073000C00040000000E001B001C00140000000F00011000
+      011200011500011600011700011A000C0000006700720061007000650073001D
+      0014000000FEFF0B04000E00000063006F0075006E0074007200790005000E00
+      000063006F0075006E007400720079000C00050000000E001B001C0032000000
+      0F00011000011200011500011600011700011A000E00000063006F0075006E00
+      7400720079001D0032000000FEFF0B04000C00000072006500670069006F006E
+      0005000C00000072006500670069006F006E000C00060000000E001B001C0032
+      0000000F00011000011200011500011600011700011A000C0000007200650067
+      0069006F006E001D0032000000FEFF0B04001600000064006500730063007200
+      69007000740069006F006E000500160000006400650073006300720069007000
+      740069006F006E000C00070000000E001B001C002C0100000F00011000011200
+      011500011600011700011A001600000064006500730063007200690070007400
+      69006F006E001D002C010000FEFEFF1EFEFF1FFEFF20FF21220000000000FF23
+      0000FFFFFFFF0100040000006E6F6D65FEFEFEFEFEFF24FEFF25260002000000
+      FF27FEFEFE0E004D0061006E0061006700650072001E00550070006400610074
+      00650073005200650067006900730074007200790012005400610062006C0065
+      004C006900730074000A005400610062006C00650008004E0061006D00650014
+      0053006F0075007200630065004E0061006D0065000A00540061006200490044
+      00240045006E0066006F0072006300650043006F006E00730074007200610069
+      006E00740073001E004D0069006E0069006D0075006D00430061007000610063
+      00690074007900180043006800650063006B004E006F0074004E0075006C006C
+      00140043006F006C0075006D006E004C006900730074000C0043006F006C0075
+      006D006E00100053006F007500720063006500490044000E006400740049006E
+      0074003300320010004400610074006100540079007000650014005300650061
+      00720063006800610062006C006500120041006C006C006F0077004E0075006C
+      006C000E004100750074006F0049006E00630008004200610073006500220041
+      00750074006F0049006E006300720065006D0065006E00740053006500650064
+      0022004100750074006F0049006E006300720065006D0065006E007400530074
+      006500700014004F0041006C006C006F0077004E0075006C006C0012004F0049
+      006E0055007000640061007400650010004F0049006E00570068006500720065
+      000C004F0049006E004B006500790020004F004100660074006500720049006E
+      0073004300680061006E006700650064001A004F0072006900670069006E0043
+      006F006C004E0061006D00650018006400740041006E00730069005300740072
+      0069006E0067000800530069007A006500140053006F00750072006300650053
+      0069007A0065001C0043006F006E00730074007200610069006E0074004C0069
+      0073007400100056006900650077004C006900730074000E0052006F0077004C
+      00690073007400060052006F0077000A0052006F0077004900440010004F0072
+      006900670069006E0061006C001800520065006C006100740069006F006E004C
+      006900730074001C0055007000640061007400650073004A006F00750072006E
+      0061006C001200530061007600650050006F0069006E0074000E004300680061
+      006E00670065007300}
+    object FDMemTable1id: TIntegerField
+      AutoGenerateValue = arAutoInc
+      FieldName = 'id'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+    end
+    object FDMemTable1name: TStringField
+      FieldName = 'name'
+      Size = 50
+    end
+    object FDMemTable1year: TIntegerField
+      FieldName = 'year'
+    end
+    object FDMemTable1grapes: TStringField
+      FieldName = 'grapes'
+    end
+    object FDMemTable1country: TStringField
+      FieldName = 'country'
+      Size = 50
+    end
+    object FDMemTable1region: TStringField
+      FieldName = 'region'
+      Size = 50
+    end
+    object FDMemTable1description: TStringField
+      FieldName = 'description'
+      Size = 300
+    end
+  end
+  object BindSourceDB12: TBindSourceDB
+    DataSet = FDMemTable1
+    ScopeMappings = <>
+    Left = 192
+    Top = 200
+  end
+  object BindingsList1: TBindingsList
+    Methods = <>
+    OutputConverters = <>
+    Left = 220
+    Top = 45
+    object LinkListControlToField1: TLinkListControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'name'
+      Control = ListView1
+      FillExpressions = <
+        item
+          SourceMemberName = 'grapes'
+          ControlMemberName = 'Detail'
+        end>
+      FillHeaderExpressions = <>
+      FillBreakGroups = <>
+    end
+    object LinkControlToField1: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'description'
+      Control = Memo1
+      Track = False
+    end
+    object LinkControlToField2: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'country'
+      Control = Edit3
+      Track = False
+    end
+    object LinkControlToField3: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'region'
+      Control = Edit2
+      Track = False
+    end
+    object LinkControlToField4: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'year'
+      Control = Edit4
+      Track = False
+    end
+    object LinkControlToField5: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'name'
+      Control = Edit1
+      Track = False
+    end
+    object LinkControlToField6: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'grapes'
+      Control = Edit5
+      Track = False
+    end
+  end
+  object ActionList1: TActionList
+    Left = 304
+    Top = 112
+    object NextTabAction1: TNextTabAction
+      Category = 'Tab'
+      TabControl = TabControl1
+    end
+    object ChangeTabAction1: TChangeTabAction
+      Category = 'Tab'
+    end
+    object PreviousTabAction1: TPreviousTabAction
+      Category = 'Tab'
+      TabControl = TabControl1
+      OnUpdate = PreviousTabAction1Update
+    end
+  end
+end

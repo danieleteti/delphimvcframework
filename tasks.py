@@ -403,7 +403,7 @@ def build_samples(
     )
 
 
-@task(post=[tests])
+@task(post=[])
 def build_core(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds core packages extensions"""
     init_build(version)

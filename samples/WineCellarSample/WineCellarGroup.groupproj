@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{B19EB9AA-EAF1-4439-9E1C-9A9438BDE163}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="winecellarserver\WineCellarServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="winecellarclient_vcl\WineCellarVCLClient.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="winecellarclient_mobile\WineCellarMobileClient.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="winecellarclient_mobile_withrestadapter\WineCellarMobileClientWithRESTAdapter.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="WineCellarServer">
+        <MSBuild Projects="winecellarserver\WineCellarServer.dproj"/>
+    </Target>
+    <Target Name="WineCellarServer:Clean">
+        <MSBuild Projects="winecellarserver\WineCellarServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarServer:Make">
+        <MSBuild Projects="winecellarserver\WineCellarServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WineCellarVCLClient">
+        <MSBuild Projects="winecellarclient_vcl\WineCellarVCLClient.dproj"/>
+    </Target>
+    <Target Name="WineCellarVCLClient:Clean">
+        <MSBuild Projects="winecellarclient_vcl\WineCellarVCLClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarVCLClient:Make">
+        <MSBuild Projects="winecellarclient_vcl\WineCellarVCLClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WineCellarMobileClient">
+        <MSBuild Projects="winecellarclient_mobile\WineCellarMobileClient.dproj"/>
+    </Target>
+    <Target Name="WineCellarMobileClient:Clean">
+        <MSBuild Projects="winecellarclient_mobile\WineCellarMobileClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarMobileClient:Make">
+        <MSBuild Projects="winecellarclient_mobile\WineCellarMobileClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WineCellarMobileClientWithRESTAdapter">
+        <MSBuild Projects="winecellarclient_mobile_withrestadapter\WineCellarMobileClientWithRESTAdapter.dproj"/>
+    </Target>
+    <Target Name="WineCellarMobileClientWithRESTAdapter:Clean">
+        <MSBuild Projects="winecellarclient_mobile_withrestadapter\WineCellarMobileClientWithRESTAdapter.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarMobileClientWithRESTAdapter:Make">
+        <MSBuild Projects="winecellarclient_mobile_withrestadapter\WineCellarMobileClientWithRESTAdapter.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="WineCellarServer;WineCellarVCLClient;WineCellarMobileClient;WineCellarMobileClientWithRESTAdapter"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="WineCellarServer:Clean;WineCellarVCLClient:Clean;WineCellarMobileClient:Clean;WineCellarMobileClientWithRESTAdapter:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="WineCellarServer:Make;WineCellarVCLClient:Make;WineCellarMobileClient:Make;WineCellarMobileClientWithRESTAdapter:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
