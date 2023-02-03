@@ -10,7 +10,6 @@ type
   strict protected
   public
     destructor Destroy; override;
-
   end;
 
   [MVCPath('/private')]
@@ -37,7 +36,7 @@ end;
 
 procedure TPrivateController.DeleteAllArticles;
 begin
-//  GetArticlesService.DeleteAllArticles();
+  raise EMVCException.Create(HTTP_STATUS.NotImplemented, 'Not Implemented');
 end;
 
 end.

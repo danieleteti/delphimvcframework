@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -762,6 +762,8 @@ begin
   FHTTP.Request.CustomHeaders.FoldLines := False;
   FHTTP.Request.BasicAuthentication := False; // DT 2018/07/24
 
+  // https://www.indyproject.org/2016/01/10/new-tidhttp-flags-and-onchunkreceived-event/
+  FHTTP.HTTPOptions := FHTTP.HTTPOptions + [hoWantProtocolErrorContent, hoNoProtocolErrorException]; //DT 2022/05/24
   FSerializer := GetDefaultSerializer;
 end;
 

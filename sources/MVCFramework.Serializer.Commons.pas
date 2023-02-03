@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -193,6 +193,13 @@ type
     constructor Create(const ClassRef: TClass = nil);
     property ClassRef: TClass read fClassRef;
   end;
+  
+  /// <summary>
+  ///  Use this attribute in the model class to define a field of type TGuid if at the time of attribute serialization the value
+  ///  of the guid field will be obtained without braces.
+  ///  Sample: 61013848-8736-4d8b-ad25-91df4c255561
+  /// </summary>
+  MVCSerializeGuidWithoutBracesAttribute = class(TCustomAttribute);
 
   TMVCSerializerHelper = record
   private
@@ -225,6 +232,7 @@ type
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
     class function IsAPropertyToSkip(const aPropName: string): Boolean; static; inline;
   end;
+
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
@@ -305,11 +313,13 @@ type
   IMVCObjectDictionary = interface
     ['{B54F02EE-4B3B-4E55-9E6B-FB6CFE746028}']
     function Add(const Name: string; const Value: TObject;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
+      const SerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
-      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -332,19 +342,23 @@ type
       fDataSetSerializationAction: TMVCDataSetSerializationAction;
       fDataSetFieldNameCase: TMVCNameCase;
       fDataSetSerializationType: TMVCDatasetSerializationType;
+      fIgnoredFields: TMVCIgnoredList;
     public
       constructor Create(const Owns: Boolean; const Data: TObject;
-        const SerializationAction: TMVCSerializationAction); overload;
+        const SerializationAction: TMVCSerializationAction;
+        const AIgnoredFields: TMVCIgnoredList = nil); overload;
       constructor Create(const Owns: Boolean; const Data: TDataset;
         const SerializationAction: TMVCDataSetSerializationAction;
         const DataSetSerializationType: TMVCDatasetSerializationType;
-        const NameCase: TMVCNameCase); overload;
+        const NameCase: TMVCNameCase;
+        const AIgnoredFields: TMVCIgnoredList = nil); overload;
       destructor Destroy; override;
       property Data: TObject read fData;
       property SerializationAction: TMVCSerializationAction read fSerializationAction;
       property DataSetSerializationAction: TMVCDataSetSerializationAction
         read fDataSetSerializationAction;
       property DataSetFieldNameCase: TMVCNameCase read fDataSetFieldNameCase;
+      property IgnoredFields: TMVCIgnoredList read fIgnoredFields;
       property DataSetSerializationType: TMVCDatasetSerializationType
         read fDataSetSerializationType;
     end;
@@ -361,11 +375,13 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name: string; const Value: TObject;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
+      const SerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
-      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -376,6 +392,9 @@ type
   IMVCJSONSerializer = interface
     ['{1FB9E04A-D1D6-4C92-B945-257D81B39A25}']
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+    procedure RecordToJsonObject(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;
+      const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
@@ -432,6 +451,7 @@ function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
   const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
+procedure RaiseDeSerializationError(const Msg: string);
 
 implementation
 
@@ -442,7 +462,12 @@ uses
 
 procedure RaiseSerializationError(const Msg: string);
 begin
-  raise EMVCSerializationException.Create(Msg);
+  raise EMVCSerializationException.Create(Msg) at ReturnAddress;
+end;
+
+procedure RaiseDeSerializationError(const Msg: string);
+begin
+  raise EMVCDeSerializationException.Create(Msg) at ReturnAddress;
 end;
 
 function StrDict: TMVCStringDictionary; overload;
@@ -1068,6 +1093,21 @@ begin
             begin
               aRTTIField.SetValue(AObject, AField.AsString);
             end;
+          tkWideString:
+            begin
+              aRTTIField.SetValue(AObject, AField.AsWideString);
+            end;
+          tkRecord:
+            begin
+              if TypeInfo(TGUID) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(AField.AsString)));
+              end
+              else
+              begin
+                raise EMVCException.CreateFmt('Unsupported record type: %s.%s', [aRTTIField.Parent.Name, aRTTIField.Name]);
+              end;
+            end;
           tkClass: { mysql - maps a tiny field, identified as string, into a TStream }
             begin
               lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
@@ -1099,7 +1139,20 @@ begin
       end;
     ftInteger, ftSmallint, ftShortint, ftByte:
       begin
-        aRTTIField.SetValue(AObject, AField.AsInteger);
+        // sqlite doesn't support boolean, so are identified as integers
+        // so we need to do some more checks...
+        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.Name.ToLower.Contains('bool')) then
+        begin
+          aRTTIField.SetValue(AObject, AField.AsInteger = 1);
+        end
+		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
+        begin
+          TValue(AField.AsInteger).ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
+        end
+        else
+        begin
+          aRTTIField.SetValue(AObject, AField.AsInteger);
+        end;
       end;
     ftLongWord, ftWord:
       begin
@@ -1145,7 +1198,9 @@ begin
                 aRTTIField.SetValue(AObject, TWideMemoField(AField).AsWideString)
               else
               begin
-                lSStream := TStringStream.Create('', TEncoding.Unicode);
+                //https://github.com/danieleteti/delphimvcframework/issues/490 (24 nov 2022)
+                //lSStream := TStringStream.Create('', TEncoding.Unicode);
+                lSStream := TStringStream.Create('');
                 try
                   TBlobField(AField).SaveToStream(lSStream);
                   aRTTIField.SetValue(AObject, lSStream.DataString);
@@ -1170,8 +1225,19 @@ begin
               end
               else
               begin
-                raise EMVCDeserializationException.Create('Cannot deserialize field ' +
+                RaiseDeSerializationError('Cannot deserialize field ' +
                   AField.FieldName);
+              end;
+            end;
+          tkRecord:
+            begin
+              if TypeInfo(TGUID) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(AField.AsString)));
+              end
+              else
+              begin
+                raise EMVCException.CreateFmt('Unsupported record type: %s.%s', [aRTTIField.Parent.Name, aRTTIField.Name]);
               end;
             end
         else
@@ -1210,7 +1276,6 @@ begin
         begin
           lInternalStream := TMemoryStream.Create;
           aRTTIField.SetValue(AObject, lInternalStream);
-          // raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
         end;
         lInternalStream.Position := 0;
         TBlobField(AField).SaveToStream(lInternalStream);
@@ -1219,7 +1284,18 @@ begin
     ftGuid:
       begin
 {$IF Defined(TokyoOrBetter)}
-        aRTTIField.SetValue(AObject, TValue.From<TGUID>(AField.AsGuid));
+        if AField.IsNull then
+        begin
+          aRTTIField.SetValue(AObject, TValue.Empty)
+        end
+        else if TypeInfo(NullableTGUID) = aRTTIField.FieldType.Handle then
+        begin
+          aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid));
+        end
+        else
+        begin
+          aRTTIField.SetValue(AObject, TValue.From<TGUID>(AField.AsGuid));
+        end;
 {$ELSE}
         lFieldValue := AField.AsString;
         if lFieldValue.IsEmpty then
@@ -1459,6 +1535,23 @@ begin
     end;
     Result := True;
   end
+  else if AValue.IsType(TypeInfo(NullableTGUID)) then
+  begin
+    if AField.IsNull then
+    begin
+      aRTTIField.GetValue(AObject).AsType<NullableTGUID>().Clear;
+    end
+    else
+    begin
+{$IF defined(TOKYOORBETTER)}
+      if AField.DataType = ftGuid then
+        aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid))
+      else
+{$ENDIF}
+        aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(StringToGUID(AField.AsString)))
+    end;
+    Result := True;
+  end
 end;
 
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
@@ -1651,20 +1744,33 @@ end;
 { TMVCObjectDictionary }
 
 function TMVCObjectDictionary.Add(const Name: string; const Value: TObject;
-const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
+  const SerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
-    SerializationAction));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(
+    fOwnsValueItemData,
+    Value,
+    SerializationAction,
+    AIgnoredFields
+    ));
   Result := Self;
 end;
 
-function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase)
-  : IMVCObjectDictionary;
+function TMVCObjectDictionary.Add(
+  const Name: string;
+  const Value: TDataset;
+  const SerializationAction: TMVCDataSetSerializationAction;
+  const DataSetSerializationType: TMVCDatasetSerializationType;
+  const NameCase: TMVCNameCase;
+  const AIgnoredFields: TMVCIgnoredList): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
-    SerializationAction, DataSetSerializationType, NameCase));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(
+    fOwnsValueItemData,
+    Value,
+    SerializationAction,
+    DataSetSerializationType,
+    NameCase,
+    AIgnoredFields));
   Result := Self;
 end;
 
@@ -1724,21 +1830,29 @@ end;
 
 { TMVCObjectDictionary.TMVCObjectDictionaryValueItem }
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
-const Data: TObject; const SerializationAction: TMVCSerializationAction);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean;
+  const Data: TObject;
+  const SerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
   inherited Create;
   fOwns := Owns;
   fData := Data;
   fSerializationAction := SerializationAction;
   fDataSetFieldNameCase := ncAsIs; { not used }
+  fIgnoredFields := AIgnoredFields;
 end;
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
-const Data: TDataset; const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean;
+  const Data: TDataset;
+  const SerializationAction: TMVCDataSetSerializationAction;
+  const DataSetSerializationType: TMVCDatasetSerializationType;
+  const NameCase: TMVCNameCase;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
-  Create(Owns, Data, nil);
+  Create(Owns, Data, nil, AIgnoredFields);
   fDataSetFieldNameCase := NameCase;
   fDataSetSerializationType := DataSetSerializationType;
   fDataSetSerializationAction := SerializationAction;
@@ -1758,6 +1872,9 @@ begin
   inherited Create;
   fClassRef := ClassRef;
 end;
+
+
+
 
 initialization
 

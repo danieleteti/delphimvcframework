@@ -22,6 +22,6 @@
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'DMVCFramework - Copyright (2010-2021) Daniele Teti and the DMVCFramework Team'}
+{$DESCRIPTION 'DMVCFramework - Copyright (2010-2022) Daniele Teti and the DMVCFramework Team'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}

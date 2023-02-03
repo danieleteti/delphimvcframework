@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,49 +43,28 @@ type
   /// 7232</see>
   /// </summary>
   TMVCETagMiddleware = class(TInterfacedObject, IMVCMiddleware)
-  private
-    function GetHashMD5FromStream(AStream: TStream): string;
   public
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
 
 uses
-{$IF defined(TOKYOORBETTER)}
-  System.Hash,
-{$ELSE}
-  IdHashMessageDigest,
-{$ENDIF}
   System.SysUtils,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework.Utils;
 
 { TMVCETagMiddleware }
 
-function TMVCETagMiddleware.GetHashMD5FromStream(AStream: TStream): string;
-{$IF not defined(TOKYOORBETTER)}
-var
-  lMD5Hash: TIdHashMessageDigest5;
-{$ENDIF}
-begin
-{$IF defined(TOKYOORBETTER)}
-  Result := THashMD5.GetHashString(AStream);
-{$ELSE}
-  lMD5Hash := TIdHashMessageDigest5.Create;
-  try
-    Result := lMD5Hash.HashStreamAsHex(AStream);
-  finally
-    lMD5Hash.Free;
-  end;
-{$ENDIF}
-end;
 
-procedure TMVCETagMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
-  const AHandled: Boolean);
+procedure TMVCETagMiddleware.OnAfterControllerAction(AContext: TWebContext;
+	const AControllerQualifiedClassName: string;
+    const AActionName: string;
+	const AHandled: Boolean);
 begin
   // do nothing
 end;
@@ -98,10 +77,18 @@ var
 begin
   lContentStream := AContext.Response.RawWebResponse.ContentStream;
   if not Assigned(lContentStream) then
+  begin
     Exit;
+  end;
 
+  if not AContext.Response.RawWebResponse.GetCustomHeader('ETag').IsEmpty then
+  begin
+    Exit;
+  end;
+
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#caching_of_unchanged_resources
   lRequestETag := AContext.Request.Headers['If-None-Match'];
-  lETag := GetHashMD5FromStream(lContentStream);
+  lETag := GetSHA1HashFromStream(lContentStream);
   lContentStream.Position := 0;
 
   AContext.Response.SetCustomHeader('ETag', lETag);
@@ -118,7 +105,7 @@ begin
       lContentStream.Size := 0;
     end;
     AContext.Response.StatusCode := HTTP_STATUS.NotModified;
-    AContext.Response.ReasonString := 'Not Modified'
+    AContext.Response.ReasonString := HTTP_STATUS.ReasonStringFor(HTTP_STATUS.NotModified);
   end;
 end;
 

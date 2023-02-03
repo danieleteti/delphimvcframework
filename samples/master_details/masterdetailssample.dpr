@@ -8,13 +8,13 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
+  MVCFramework,
+  MVCFramework.Signal,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   Controllers.Base in 'Controllers.Base.pas',
   Controllers.Orders in 'Controllers.Orders.pas',
   BusinessObjects in 'BusinessObjects.pas',
   Commons in 'Commons.pas',
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas';
 
 {$R *.res}
@@ -30,8 +30,9 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    WriteLn('Press RETURN to stop the server');
-    ReadLn;
+    WriteLn('Press Ctrl+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

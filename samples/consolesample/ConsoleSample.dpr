@@ -9,7 +9,7 @@ uses
   MVCFramework.Console;
 
 var
-  F, B, I: Integer;
+  F, B: Integer;
   lFGColorName, lBGColorName: String;
   lSize: TMVCConsoleSize;
 

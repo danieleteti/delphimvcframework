@@ -57,11 +57,6 @@ begin
     end);
   FMVC.AddController(TMyController);
   // To enable compression (deflate, gzip) just add this middleware as the last one
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
 end;
 

@@ -1,3 +1,5 @@
+and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))
+starts(nome,"J")
 out(name,["daniele","scott"])
 out ( value , [ 1 , 2 , 3 ] ) 
 and(eq(nome,"Marca d'água"), contains(nome,"Marca d'água"), in(nome, ["Marca", "D'água"]))

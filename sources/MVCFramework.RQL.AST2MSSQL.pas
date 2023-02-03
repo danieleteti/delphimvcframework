@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -33,16 +33,14 @@ uses
 type
   TRQLMSSQLCompiler = class(TRQLCompiler)
   private
-    FMapping: TMVCFieldsMapping;
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string;
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
-  public
-    constructor Create(const Mapping: TMVCFieldsMapping); override;
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
+  protected
+    procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); override;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   end;
 
 implementation
@@ -52,10 +50,32 @@ uses
 
 { TRQLMSSQLCompiler }
 
-constructor TRQLMSSQLCompiler.Create(const Mapping: TMVCFieldsMapping);
+procedure TRQLMSSQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
+var
+  lLimit, lTmp: TRQLCustom;
+  lSort: TRQLSort;
 begin
-  inherited Create(Mapping);
-  FMapping := Mapping;
+  inherited;
+  if aRQLAST.TreeContainsToken(tkLimit, lLimit) then
+  begin
+    if TRQLLimit(lLimit).Count = 0 then
+    begin
+      raise ERQLException.Create('MSSQL Server do not support "FETCH NEXT 0"');
+    end;
+    if not aRQLAST.TreeContainsToken(tkSort, lTmp) then
+    begin
+      if aRQLAST.Last is TRQLLimit then
+      begin
+        lSort := TRQLSort.Create;
+        aRQLAST.Insert(aRQLAST.Count-1, lSort);
+        lSort.Add('+', GetPKFieldName);
+      end
+      else
+      begin
+        raise ERQLException.Create('Invalid position for RQLLimit');
+      end;
+    end;
+  end;
 end;
 
 function TRQLMSSQLCompiler.RQLCustom2SQL(
@@ -89,7 +109,7 @@ function TRQLMSSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
-  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
+  if (aRQLFIlter.RightValueType = vtString) and not(aRQLFIlter.Token in [tkContains, tkStarts]) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else if aRQLFIlter.RightValueType = vtBoolean then
   begin
@@ -137,6 +157,11 @@ begin
     tkContains:
       begin
         lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
+      end;
+    tkStarts:
+      begin
+        lValue := Format('%s%%', [lValue]).QuotedString('''');
         Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:
@@ -238,50 +263,6 @@ end;
 function TRQLMSSQLCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
   Result := ' WHERE ';
-end;
-
-procedure TRQLMSSQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
-  out aSQL: string);
-var
-  lBuff: TStringBuilder;
-  lItem: TRQLCustom;
-  lFoundSort: Boolean;
-  lItemSort: TRQLSort;
-begin
-  inherited;
-
-  {
-    Here you can rearrange tokens in the list, for example:
-    For firebird and mysql syntax you have: filters, sort, limit (default)
-    For MSSQL syntax you need to rearrange in: limit, filters, sort
-  }
-
-  LFoundSort := False;
-  lBuff := TStringBuilder.Create;
-  try
-    for lItem in aRQLAST do
-    begin
-
-      if (lItem is TRQLLimit) and (not LFoundSort) then
-      begin
-        lItemSort := TRQLSort.Create;
-        try
-          lItemSort.Add('+', FMapping[0].InstanceFieldName);
-          lBuff.Append(RQLCustom2SQL(LitemSort));
-        finally
-          lItemSort.Free;
-        end;
-      end;
-
-      lBuff.Append(RQLCustom2SQL(lItem));
-
-      if (lItem is TRQLSort) then
-        LFoundSort := True;
-    end;
-    aSQL := lBuff.ToString;
-  finally
-    lBuff.Free;
-  end;
 end;
 
 initialization

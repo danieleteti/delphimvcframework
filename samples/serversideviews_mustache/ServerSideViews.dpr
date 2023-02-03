@@ -5,6 +5,8 @@ program ServerSideViews;
 
 uses
   System.SysUtils,
+  MVCFramework,
+  MVCFramework.Signal,
   {$IFDEF MSWINDOWS}
   Winapi.ShellAPI,
   Winapi.Windows,
@@ -30,15 +32,13 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press RETURN to stop the server');
-
     {$IFDEF MSWINDOWS}
-
     ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
-
     {$ENDIF}
-
-    ReadLn;
+    Write('Ctrl+C  to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
+    LServer.Active := False;
   finally
     LServer.Free;
   end;

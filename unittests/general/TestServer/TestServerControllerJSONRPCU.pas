@@ -3,7 +3,8 @@ unit TestServerControllerJSONRPCU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects;
+  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects,
+  BusinessObjectsU;
 
 type
   TTestJSONRPCController = class(TMVCJSONRPCController)
@@ -20,6 +21,7 @@ type
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
     [MVCInheritable]
     function MultiplyString(aString: string; Multiplier: Int64): string;
+
   end;
 
   [MVCJSONRPCAllowGET]
@@ -41,6 +43,33 @@ type
     function MultiplyString(aString: string; Multiplier: Int64): string;
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
+
+    //objects support
+    [MVCInheritable]
+    function HandlingObjects(MyObj: TPerson): TPerson;
+
+
+    //enums support
+    [MVCInheritable]
+    function ProcessEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
+
+    //sets support
+    [MVCInheritable]
+    function ProcessSets(Value1: TSetOfEnumTest; Value2: TEnumTest): TSetOfEnumTest;
+
+    //records support
+    [MVCInheritable]
+    function GetSingleRecord: TSimpleRecord;
+    [MVCInheritable]
+    function GetArrayOfRecords: TArray<TSimpleRecord>;
+    [MVCInheritable]
+    function EchoSingleRecord(const SimpleRecord: TSimpleRecord): TSimpleRecord;
+    [MVCInheritable]
+    function GetSingleComplexRecord: TComplexRecord;
+    [MVCInheritable]
+    function EchoSingleComplexRecord(const ComplexRecord: TComplexRecord): TComplexRecord;
+    [MVCInheritable]
+    function EchoArrayOfRecords(const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
   end;
 
   [MVCJSONRPCAllowGET]
@@ -100,6 +129,26 @@ begin
     Result.Add(I);
 end;
 
+function TTestJSONRPCClass.GetSingleComplexRecord: TComplexRecord;
+begin
+  Result := TComplexRecord.Create;
+end;
+
+function TTestJSONRPCClass.GetSingleRecord: TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
+end;
+
+function TTestJSONRPCClass.HandlingObjects(MyObj: TPerson): TPerson;
+begin
+  Result := TPerson.Create;
+  Result.ID := MyObj.ID;
+  Result.FirstName := MyObj.FirstName;
+  Result.LastName := MyObj.LastName;
+  Result.DOB := MyObj.DOB;
+  Result.Married := MyObj.Married;
+end;
+
 function TTestJSONRPCController.MultiplyString(aString: string; Multiplier: Int64): string;
 var
   I: Integer;
@@ -140,6 +189,36 @@ begin
   Result := aDateTime + aTime;
 end;
 
+function TTestJSONRPCClass.EchoArrayOfRecords(
+  const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
+begin
+  Result := ComplexRecordArray;
+end;
+
+function TTestJSONRPCClass.EchoSingleComplexRecord(
+  const ComplexRecord: TComplexRecord): TComplexRecord;
+begin
+  Result := ComplexRecord;
+end;
+
+function TTestJSONRPCClass.EchoSingleRecord(
+  const SimpleRecord: TSimpleRecord): TSimpleRecord;
+begin
+  Result := SimpleRecord;
+end;
+
+function TTestJSONRPCClass.GetArrayOfRecords: TArray<TSimpleRecord>;
+begin
+  SetLength(Result, 3);
+  Result[0] := TSimpleRecord.Create;
+  Result[1] := TSimpleRecord.Create;
+  Result[2] := TSimpleRecord.Create;
+
+  Result[0].IntegerProperty := 0;
+  Result[1].IntegerProperty := 1;
+  Result[2].IntegerProperty := 2;
+end;
+
 function TTestJSONRPCClass.GetListFromTo(aFrom, aTo: Int64): TJsonArray;
 var
   I: Cardinal;
@@ -164,6 +243,18 @@ procedure TTestJSONRPCClass.MyNotify;
 begin
   // this is a notify with no parameters and no result code
   Self.ClassName;
+end;
+
+function TTestJSONRPCClass.ProcessEnums(Value1, Value2: TEnumTest): TEnumTest;
+begin
+  Result := TEnumTest((Ord(Value1) + Ord(Value2)) mod 3);
+end;
+
+function TTestJSONRPCClass.ProcessSets(Value1: TSetOfEnumTest;
+  Value2: TEnumTest): TSetOfEnumTest;
+begin
+  Include(Value1, Value2);
+  Result := Value1;
 end;
 
 function TTestJSONRPCClass.Subtract(Value1, Value2: Int64): Integer;

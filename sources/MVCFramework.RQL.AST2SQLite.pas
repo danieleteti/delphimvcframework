@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,9 +37,8 @@ type
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
-  public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
+  protected
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   end;
 
 implementation
@@ -82,10 +81,19 @@ function TRQLSQLiteCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string
 var
   lValue, lDBFieldName: string;
 begin
-  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
+  if (aRQLFIlter.RightValueType = vtString) and not(aRQLFIlter.Token in [tkContains, tkStarts]) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
+  else if aRQLFIlter.RightValueType = vtBoolean then
+  begin
+    if SameText(aRQLFIlter.OpRight, 'true') then
+      lValue := '1'
+    else
+      lValue := '0';
+  end
   else
+  begin
     lValue := aRQLFIlter.OpRight;
+  end;
 
   lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft, True);
 
@@ -123,6 +131,11 @@ begin
     tkContains:
       begin
         lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(%s LIKE %s)', [lDBFieldName, lValue.ToLower])
+      end;
+    tkStarts:
+      begin
+        lValue := Format('%s%%', [lValue]).QuotedString('''');
         Result := Format('(%s LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:
@@ -224,32 +237,6 @@ end;
 function TRQLSQLiteCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
   Result := ' WHERE ';
-end;
-
-procedure TRQLSQLiteCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
-  out aSQL: string);
-var
-  lBuff: TStringBuilder;
-  lItem: TRQLCustom;
-begin
-  inherited;
-
-  {
-    Here you can rearrange tokens in the list, for example:
-    For firebird and mysql syntax you have: filters, sort, limit (default)
-    For MSSQL syntax you need to rearrange in: limit, filters, sort
-  }
-
-  lBuff := TStringBuilder.Create;
-  try
-    for lItem in aRQLAST do
-    begin
-      lBuff.Append(RQLCustom2SQL(lItem));
-    end;
-    aSQL := lBuff.ToString;
-  finally
-    lBuff.Free;
-  end;
 end;
 
 initialization

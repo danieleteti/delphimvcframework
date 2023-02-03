@@ -5,7 +5,9 @@ interface
 uses
   MVCFramework,
   MVCFramework.ActiveRecord,
-  MVCFramework.Commons;
+  MVCFramework.Commons,
+  System.Generics.Collections,
+  EntitiesU;
 
 type
 
@@ -14,7 +16,7 @@ type
   public
     [MVCPath]
     [MVCHTTPMethods([httpGET])]
-    procedure GetCustomers;
+    procedure GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
 
     [MVCPath('/($ID)')]
     [MVCHTTPMethods([httpGET])]
@@ -22,7 +24,11 @@ type
 
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
-    procedure CreateCustomers;
+    procedure CreateCustomer([MVCFromBody] const Customer: TCustomer);
+
+    [MVCPath('/_bulk')]
+    [MVCHTTPMethods([httpPOST])]
+    procedure BulkCreateCustomers([MVCFromBody] const Customers: TObjectList<TCustomer>);
   end;
 
 implementation
@@ -33,21 +39,14 @@ uses
   FireDAC.Stan.Param,
   MVCFramework.Logger,
   MVCFramework.Serializer.Commons,
-  JsonDataObjects, EntitiesU;
+  JsonDataObjects;
 
 { TCustomersController }
 
-procedure TCustomersController.CreateCustomers;
-var
-  lCustomer: TCustomer;
+procedure TCustomersController.CreateCustomer(const Customer: TCustomer);
 begin
-  lCustomer := Context.Request.BodyAs<TCustomer>;
-  try
-    lCustomer.Insert;
-    Render201Created('/api/customers/' + lCustomer.ID.Value.ToString);
-  finally
-    lCustomer.Free;
-  end;
+  Customer.Insert;
+  Render201Created('/api/customers/' + Customer.ID.Value.ToString);
 end;
 
 procedure TCustomersController.GetCustomerByID(const ID: Integer);
@@ -55,9 +54,27 @@ begin
   Render(ObjectDict().Add('data', TMVCActiveRecord.GetByPK<TCustomer>(ID)));
 end;
 
-procedure TCustomersController.GetCustomers;
+procedure TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
 begin
-  Render(ObjectDict().Add('data', TMVCActiveRecord.All<TCustomer>));
+  if RQLFilter.IsEmpty then
+    Render(ObjectDict().Add('data', TMVCActiveRecord.All<TCustomer>))
+  else
+    Render(ObjectDict().Add('data', TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000)));
+end;
+
+procedure TCustomersController.BulkCreateCustomers(const Customers: TObjectList<TCustomer>);
+begin
+  TMVCActiveRecord.CurrentConnection.StartTransaction;
+  try
+    for var lCustomer in Customers do
+    begin
+      lCustomer.Insert;
+    end;
+    TMVCActiveRecord.CurrentConnection.Commit;
+    Render201Created();
+  except
+    TMVCActiveRecord.CurrentConnection.Rollback;
+  end;
 end;
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -81,7 +81,9 @@ type
       AAuthData: String; var VUsername, VPassword: String;
       var VHandled: Boolean);
     procedure OnGetSSLPassword(var APassword: string);
+{$IF Defined(RIOORBETTER)}
     procedure QuerySSLPort(APort: Word; var VUseSSL: boolean);
+{$ENDIF}
   protected
     function GetActive: Boolean;
 
@@ -265,7 +267,7 @@ begin
     FBridgeSSLHandler.SSLOptions.KeyFile := lSSLKeyFile;
     FBridgeSSLHandler.OnGetPassword := OnGetSSLPassword;
     FBridge.IOHandler := FBridgeSSLHandler;
-    {$IF CompilerVersion >= 33}
+    {$IF Defined(RIOORBETTER)}
     FBridge.OnQuerySSLPort := QuerySSLPort;
     {$ENDIF}
   end;
@@ -288,10 +290,13 @@ begin
   vhandled := True;
 end;
 
+
+{$IF Defined(RIOORBETTER)}
 procedure TMVCListener.QuerySSLPort(APort: Word; var VUseSSL: boolean);
 begin
   VUseSSL := true;
 end;
+{$ENDIF}
 
 function TMVCListener.GetActive: Boolean;
 begin

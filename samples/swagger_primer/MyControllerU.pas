@@ -67,8 +67,10 @@ begin
 end;
 
 procedure TMyController.CreateCustomer;
+var
+  lCustomer: TCustomer;
 begin
-  var lCustomer := Self.Context.Request.BodyAs<TCustomer>;
+  lCustomer := Self.Context.Request.BodyAs<TCustomer>;
   try
     if not lCustomer.IsValid then
     begin
@@ -82,8 +84,10 @@ begin
 end;
 
 procedure TMyController.UpdateCustomer(id: Integer);
+var
+  lCustomer: TCustomer;
 begin
-  var lCustomer := Self.Context.Request.BodyAs<TCustomer>;
+  lCustomer := Self.Context.Request.BodyAs<TCustomer>;
   try
     lCustomer.ID := id; //dont be confident of the user!
     if not lCustomer.IsValid then

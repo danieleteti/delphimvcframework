@@ -1,5 +1,4 @@
 object MyDataModule: TMyDataModule
-  OldCreateOrder = False
   Height = 308
   Width = 560
   object FDConnection1: TFDConnection
@@ -9,8 +8,10 @@ object MyDataModule: TMyDataModule
       'Password=masterkey'
       'Protocol=TCPIP'
       'Server=localhost'
+      'CharacterSet=UTF8'
       'DriverID=FB')
     ConnectedStoredUsage = []
+    Connected = True
     LoginPrompt = False
     Left = 160
     Top = 40
@@ -23,7 +24,9 @@ object MyDataModule: TMyDataModule
     UpdateOptions.EnableInsert = False
     UpdateOptions.EnableUpdate = False
     SQL.Strings = (
-      'select * from customer')
+      
+        'select customer.*, '#39#20320#22909#39' as cn_hello, '#39#1047#1076#1088#1072#1074#1086#39' as sr_hello from c' +
+        'ustomer')
     Left = 160
     Top = 112
     object qryCustomersCUST_NO: TIntegerField
@@ -86,6 +89,24 @@ object MyDataModule: TMyDataModule
       Origin = 'ON_HOLD'
       FixedChar = True
       Size = 1
+    end
+    object qryCustomersCN_HELLO: TWideStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'CN_HELLO'
+      Origin = 'CN_HELLO'
+      ProviderFlags = []
+      ReadOnly = True
+      FixedChar = True
+      Size = 2
+    end
+    object qryCustomersSR_HELLO: TWideStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'SR_HELLO'
+      Origin = 'SR_HELLO'
+      ProviderFlags = []
+      ReadOnly = True
+      FixedChar = True
+      Size = 6
     end
   end
   object FDPhysFBDriverLink1: TFDPhysFBDriverLink

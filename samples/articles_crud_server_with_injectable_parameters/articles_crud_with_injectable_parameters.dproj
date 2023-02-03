@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{1576AA4D-0623-40AC-97D3-AA4BB4381A0A}</ProjectGuid>
-        <ProjectVersion>19.2</ProjectVersion>
+        <ProjectVersion>19.3</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>articles_crud_with_injectable_parameters.dpr</MainSource>
         <Base>True</Base>
@@ -106,66 +106,15 @@
         <DCCReference Include="Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
-        <None Include="ModelSupport_ordersmanager\default.txvpck"/>
-        <None Include="ModelSupport_ordersmanager\Services\default.txvpck"/>
-        <None Include="ModelSupport_ordersmanager\ordersmanager\default.txvpck"/>
-        <None Include="ModelSupport_ordersmanager\Services\default.txaPackage"/>
-        <None Include="ModelSupport_ordersmanager\BusinessObjects\default.txaPackage"/>
-        <None Include="ModelSupport_ordersmanager\BusinessObjects\default.txvpck"/>
-        <None Include="ModelSupport_ordersmanager\Controllers\Articoli\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\Commons\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\MainDM\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\BusinessObjects\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\Services\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\articles_crud\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\WebModuleUnit1\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\Controllers\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\Controllers\Articoli\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\Controllers\Base\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud\MainDM\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\Controllers\Base\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\Services\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\Controllers\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\WebModuleUnit1\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\articles_crud\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\Commons\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\BusinessObjects\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\Controllers\Articoli\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud\MVCFramework\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Services\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\articles_crud_with_injectable_parameters\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\BusinessObjects\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Articles\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Base\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MainDM\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\ActiveRecord\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Commons\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\WebModuleUnit1\default.txvpck"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\articles_crud_with_injectable_parameters\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\WebModuleUnit1\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Articles\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\ActiveRecord\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\BusinessObjects\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Base\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Services\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Commons\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\Controllers\default.txaPackage"/>
-        <None Include="ModelSupport_articles_crud_with_injectable_parameters\MainDM\default.txaPackage"/>
-        <BuildConfiguration Include="Release">
-            <Key>Cfg_2</Key>
-            <CfgParent>Base</CfgParent>
-        </BuildConfiguration>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
         </BuildConfiguration>
     </ItemGroup>
@@ -185,315 +134,9 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="ModelSupport_articles_crud\MainDM\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\ActiveRecord\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="bin\articles_crud_with_injectable_parameters.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>articles_crud_with_injectable_parameters.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Base\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Services\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\Articoli\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Commons\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\WebModuleUnit1\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\BusinessObjects\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\Articoli\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Services\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Services\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\articles_crud\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MainDM\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\BusinessObjects\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Base\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Commons\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\WebModuleUnit1\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\Services\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\articles_crud_with_injectable_parameters\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\Base\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\WebModuleUnit1\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\Base\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\articles_crud_with_injectable_parameters\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\BusinessObjects\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\BusinessObjects\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\MainDM\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\Services\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\WebModuleUnit1\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MainDM\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\ordersmanager\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Articles\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\BusinessObjects\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\articles_crud\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\ActiveRecord\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Services\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Commons\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\Articles\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\BusinessObjects\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\Controllers\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud\MVCFramework\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Controllers\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\MVCFramework\default.txvpck" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_ordersmanager\Controllers\Articoli\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="ModelSupport_articles_crud_with_injectable_parameters\Commons\default.txaPackage" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -503,6 +146,16 @@
                     </Platform>
                     <Platform Name="Win32">
                         <Operation>0</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidClasses">
+                    <Platform Name="Android">
+                        <RemoteDir>classes</RemoteDir>
+                        <Operation>64</Operation>
+                    </Platform>
+                    <Platform Name="Android64">
+                        <RemoteDir>classes</RemoteDir>
+                        <Operation>64</Operation>
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="AndroidClassesDexFile">
@@ -804,6 +457,10 @@
                         <Operation>1</Operation>
                         <Extensions>.framework</Extensions>
                     </Platform>
+                    <Platform Name="OSXARM64">
+                        <Operation>1</Operation>
+                        <Extensions>.framework</Extensions>
+                    </Platform>
                     <Platform Name="Win32">
                         <Operation>0</Operation>
                     </Platform>
@@ -814,6 +471,10 @@
                         <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="OSX64">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSXARM64">
                         <Operation>1</Operation>
                         <Extensions>.dylib</Extensions>
                     </Platform>
@@ -843,6 +504,10 @@
                         <Operation>1</Operation>
                         <Extensions>.dylib</Extensions>
                     </Platform>
+                    <Platform Name="OSXARM64">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
                     <Platform Name="Win32">
                         <Operation>0</Operation>
                         <Extensions>.bpl</Extensions>
@@ -868,6 +533,9 @@
                         <Operation>0</Operation>
                     </Platform>
                     <Platform Name="OSX64">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="OSXARM64">
                         <Operation>0</Operation>
                     </Platform>
                     <Platform Name="Win32">
@@ -1423,6 +1091,10 @@
                         <RemoteDir>Contents\Resources</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
+                    <Platform Name="OSXARM64">
+                        <RemoteDir>Contents\Resources</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
                 </DeployClass>
                 <DeployClass Required="true" Name="ProjectOutput">
                     <Platform Name="Android">
@@ -1449,6 +1121,9 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="OSX64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="OSXARM64">
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="Win32">
@@ -1489,16 +1164,17 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
-                <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>
-                <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="Linux64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="OSX32" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="Android" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="OSX64" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Android64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="Android" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="OSXARM64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Linux64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
             </Deployment>
             <Platforms>
                 <Platform value="Win32">True</Platform>

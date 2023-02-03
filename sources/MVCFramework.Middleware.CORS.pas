@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -82,9 +82,8 @@ type
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
-      const AActionName: string;
-      const AHandled: Boolean
-      );
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 
     procedure OnAfterRouting(
       AContext: TWebContext;
@@ -123,8 +122,10 @@ begin
   FAllowsMethods := AAllowsMethods;
 end;
 
-procedure TMVCCORSMiddleware.OnAfterControllerAction(AContext: TWebContext;
-  const AActionName: string; const AHandled: Boolean);
+procedure TMVCCORSMiddleware.OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // Implement as needed
 end;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -187,6 +187,40 @@ type
   end;
 
   /// <summary>
+  /// Use this attribute in controller to define a default model for all
+  /// the actions which refer to "SWAGUseDefulatControllerModel" as Model class.
+  /// It is useful when, using a base controller, you need to override the model
+  /// used by child controller actions
+  /// </summary>
+  MVCSWAGDefaultModel = class(TCustomAttribute)
+  private
+    fJsonSchemaClass: TClass;
+    fSingularModelName: string;
+    fPluralModelName: string;
+  public
+    constructor Create(const aJsonSchemaClass: TClass; const aSingularModelName: String; const aPluralModelName: String);
+    property JsonSchemaClass: TClass read fJsonSchemaClass;
+    property SingularModelName: string read fSingularModelName;
+    property PluralModelName: string read fPluralModelName;
+  end;
+
+  /// <summary>
+  /// Use this attribute in controller to define a default Summary Tag for all
+  /// the actions which refer to "USE_DEFAULT_SUMMARY_TAG" as tag.
+  /// It is useful when, using a base controller, you need to override the tag
+  /// used by child controller actions
+  /// </summary>
+  MVCSWAGDefaultSummaryTags = class(TCustomAttribute)
+  private
+    fDefaultTags: String;
+  public
+    constructor Create(const aDefaultTags: String);
+    function GetTags: TArray<string>;
+    property DefaultTags: String read fDefaultTags;
+  end;
+
+
+  /// <summary>
   /// Use this attribute in the class or method to ignore the path in creating swagger documentation.
   /// </summary>
   MVCSwagIgnorePathAttribute = class(TCustomAttribute);
@@ -207,20 +241,45 @@ type
     class function GetJsonFieldClass(const aSchemaFieldType: TMVCSwagSchemaType): TJsonFieldClass;
     class function TypeKindToMVCSwagSchemaType(aPropType: TRttiType): TMVCSwagSchemaType; static;
     class function TypeIsEnumerable(const aRttiType: TRttiType): Boolean; static;
+    class function ApplyModelName(const Value: String; const Singular: String; const Plural: String): String;
+    class procedure AddRequestModelDefinition(
+      const aSwagReqParam:  TSwagRequestParameter;
+      const aParamSchemaClass: TClass;
+      const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aComparer: IComparer<TSwagDefinition>;
+      const aMVCSwagParamType: TMVCSwagParamType);
   public
     class constructor Create;
     class destructor Destroy;
     class function MVCHttpMethodToSwagPathOperation(const aMVCHTTPMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     class function MVCPathToSwagPath(const aResourcePath: string): string;
     class function GetParamsFromMethod(const aResourcePath: string; const aMethod: TRttiMethod;
-      const aSwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
+      const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aControllerDefaultModelClass: TClass;
+      const aControllerDefaultModelSingularName: String;
+      const aControllerDefaultModelPluralName: String
+      ): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const aRttiType: TRttiType): TSwagTypeParameter;
-    class procedure FillOperationSummary(const aSwagPathOperation: TSwagPathOperation; const aMethod: TRttiMethod;
-      const aSwagDefinitions: TObjectList<TSwagDefinition>; const aHTTPMethod: TMVCHTTPMethodType);
+    class procedure FillOperationSummary(
+      const aSwagPathOperation: TSwagPathOperation;
+      const aMethod: TRttiMethod; const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aHTTPMethod: TMVCHTTPMethodType;
+      const aControllerDefaultModel: TClass;
+      const aControllerDefaultModelSingularName: String;
+      const aControllerDefaultModelPluralName: String;
+      const aControllerDefaultSummaryTags: TArray<String>);
     class function MethodRequiresAuthentication(const aMethod: TRttiMethod; const aType: TRttiType;
       out aAuthenticationTypeName: string): Boolean;
     class function GetJWTAuthenticationPath(const aJWTUrlSegment: string;
       aUserNameHeaderName, aPasswordHeaderName: string): TSwagPath;
+  end;
+
+  SWAGUseDefaultControllerModel = class sealed
+
+  end;
+
+
+  EMVCSWAGError = class(EMVCException)
   end;
 
   TArrayHelper = class
@@ -228,16 +287,28 @@ type
     class procedure QuickSort<T>(var Values: array of T; const Comparer: IComparer<T>;  L, R: Integer); static;
   end;
 
+  TSwaggerConst = record
+    const USE_DEFAULT_SUMMARY_TAGS = '{default}';
+    const SINGULAR_MODEL_NAME = '{singularmodel}';
+    const PLURAL_MODEL_NAME = '{pluralmodel}';
+  end;
+
 const
   JWT_AUTHENTICATION_TAG = 'JWT Authentication';
   SECURITY_BEARER_NAME = 'bearer';
   SECURITY_BASIC_NAME = 'basic';
-  JWT_JSON_SCHEMA = '{' + sLineBreak + '	 "type": "object",' + sLineBreak + '	 "properties": {' + sLineBreak +
-    '		 "token": {' + sLineBreak + '			 "type": "string",' + sLineBreak + '			 "description": "JWT Token"' +
-    sLineBreak + '		 }' + sLineBreak + '	 }' + sLineBreak + '}';
+  JWT_JSON_SCHEMA = '{' + sLineBreak +
+    '	 "type": "object",' + sLineBreak +
+    '	 "properties": {' + sLineBreak +
+    '		 "token": {' + sLineBreak +
+    '			 "type": "string",' + sLineBreak +
+    '			 "description": "JWT Token"' + sLineBreak +
+    '		 }' + sLineBreak +
+    '	 }' + sLineBreak +
+    '}';
   JWT_DEFAULT_DESCRIPTION = 'For accessing the API a valid JWT token must be passed in all the queries ' +
     'in the ''Authorization'' header.' + sLineBreak + sLineBreak +
-    'A valid JWT token is generated by the API and retourned as answer of a call ' + 'to the route defined ' +
+    'A valid JWT token is generated by the API and returned as answer of a call ' + 'to the route defined ' +
     'in the JWT middleware giving a valid username and password.' + sLineBreak + sLineBreak +
     'The following syntax must be used in the ''Authorization'' header :' + sLineBreak + sLineBreak +
     '    Bearer xxxxxx.yyyyyyy.zzzzzz' + sLineBreak;
@@ -261,6 +332,47 @@ uses
   Json.Schema.Field.Booleans;
 
 { TSwaggerUtils }
+
+class procedure TMVCSwagger.AddRequestModelDefinition(
+  const aSwagReqParam: TSwagRequestParameter; const aParamSchemaClass: TClass;
+  const aSwagDefinitions: TObjectList<TSwagDefinition>;
+  const aComparer: IComparer<TSwagDefinition>;
+  const aMVCSwagParamType: TMVCSwagParamType);
+var
+  lClassName: String;
+  lSwagDef: TSwagDefinition;
+  lSwagDefinition: TSwagDefinition;
+  lIndex: Integer;
+begin
+  lClassName := aParamSchemaClass.ClassName;
+  if lClassName.ToUpper.StartsWith('T') then
+    lClassName := lClassName.Remove(0, 1);
+
+  aSwagDefinitions.Sort(aComparer);
+  lSwagDef := TSwagDefinition.Create;
+  try
+    lSwagDef.Name := lClassName;
+    if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, aComparer) then
+    begin
+      lSwagDefinition := TSwagDefinition.Create;
+      lSwagDefinition.Name := lClassName;
+      lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
+        aParamSchemaClass,
+        aMVCSwagParamType = ptArray);
+      aSwagDefinitions.Add(lSwagDefinition);
+    end;
+  finally
+    lSwagDef.Free;
+  end;
+  aSwagReqParam.Schema.Name := lClassName;
+end;
+
+class function TMVCSwagger.ApplyModelName(const Value, Singular,
+  Plural: String): String;
+begin
+  Result := StringReplace(Value, TSwaggerConst.SINGULAR_MODEL_NAME, Singular, [rfReplaceAll]);
+  Result := StringReplace(Result, TSwaggerConst.PLURAL_MODEL_NAME, Plural, [rfReplaceAll]);
+end;
 
 class constructor TMVCSwagger.Create;
 begin
@@ -498,9 +610,14 @@ begin
   end;
 end;
 
-class procedure TMVCSwagger.FillOperationSummary(const aSwagPathOperation: TSwagPathOperation;
+class procedure TMVCSwagger.FillOperationSummary(
+  const aSwagPathOperation: TSwagPathOperation;
   const aMethod: TRttiMethod; const aSwagDefinitions: TObjectList<TSwagDefinition>;
-  const aHTTPMethod: TMVCHTTPMethodType);
+  const aHTTPMethod: TMVCHTTPMethodType;
+  const aControllerDefaultModel: TClass;
+  const aControllerDefaultModelSingularName: String;
+  const aControllerDefaultModelPluralName: String;
+  const aControllerDefaultSummaryTags: TArray<String>);
 var
   lAttr: TCustomAttribute;
   lSwagResponse: TSwagResponse;
@@ -511,20 +628,42 @@ var
   lClassName: string;
   lIndex: Integer;
   lJsonSchema: TJsonFieldArray;
+  lModelClass: TClass;
 begin
   for lAttr in aMethod.GetAttributes do
   begin
     if lAttr is MVCSwagSummaryAttribute then
     begin
-      aSwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
-      aSwagPathOperation.Description := MVCSwagSummaryAttribute(lAttr).Description;
-      aSwagPathOperation.OperationID := GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) + '.' +
-        MVCSwagSummaryAttribute(lAttr).OperationID;
+      if MVCSwagSummaryAttribute(lAttr).fTags = TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS then
+      begin
+        if Length(aControllerDefaultSummaryTags) = 0 then
+        begin
+          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+            Format('SWAGGER Definition Error: Action "%s" uses "USE_DEFAULT_SUMMARY_TAG" but its controller "%s" doesn''t define a "MVCSWAGDefaultSummaryTags" attribute',
+              [aMethod.ToString, aMethod.Parent.ToString]));
+        end;
 
+        aSwagPathOperation.Tags.AddRange(aControllerDefaultSummaryTags);
+      end
+      else
+      begin
+        aSwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
+      end;
+      aSwagPathOperation.Description := ApplyModelName(
+          MVCSwagSummaryAttribute(lAttr).Description,
+          aControllerDefaultModelSingularName,
+          aControllerDefaultModelPluralName);
+      aSwagPathOperation.OperationID :=
+          //GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) + '.' +
+          ApplyModelName(
+            MVCSwagSummaryAttribute(lAttr).OperationID,
+            aControllerDefaultModelSingularName,
+            aControllerDefaultModelPluralName);
       if MVCSwagSummaryAttribute(lAttr).OperationID.IsEmpty then
       begin
-        aSwagPathOperation.OperationID := GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) +
-         '.' + aMethod.Parent.QualifiedName + '.' + aMethod.Name;
+        aSwagPathOperation.OperationID :=
+          //GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) + '.' +
+          aMethod.Parent.QualifiedName + '_' + aMethod.Name;
       end;
       // dt [2019-10-31]
       aSwagPathOperation.Deprecated := MVCSwagSummaryAttribute(lAttr).Deprecated;
@@ -556,10 +695,24 @@ begin
             Result := CompareText(Left.Name, Right.Name);
           end);
 
-        lClassName := lSwagResponsesAttr.JsonSchemaClass.ClassName;
+        if lSwagResponsesAttr.JsonSchemaClass = SWAGUseDefaultControllerModel then
+        begin
+          if not Assigned(aControllerDefaultModel) then
+          begin
+            raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+              Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
+                [aMethod.ToString, aMethod.Parent.ToString]));
+          end;
+          lModelClass := aControllerDefaultModel;
+        end
+        else
+        begin
+          lModelClass := lSwagResponsesAttr.JsonSchemaClass;
+        end;
+
+        lClassName := lModelClass.ClassName;
         if lClassName.ToUpper.StartsWith('T') then
           lClassName := lClassName.Remove(0, 1);
-
         aSwagDefinitions.Sort(lComparer);
         lSwagDef := TSwagDefinition.Create;
         try
@@ -568,8 +721,7 @@ begin
           begin
             lSwagDefinition := TSwagDefinition.Create;
             lSwagDefinition.Name := lClassName;
-            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
-              False);
+            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, False);
             aSwagDefinitions.Add(lSwagDefinition);
           end;
         finally
@@ -603,10 +755,10 @@ begin
     aSwagPathOperation.Produces.Add(TMVCMediaType.APPLICATION_JSON);
 
   if aSwagPathOperation.Responses.Count <= 0 then
-  begin
+  begin {add default responses}
     lSwagResponse := TSwagResponse.Create;
     lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
-    lSwagResponse.Description := 'Ok';
+    lSwagResponse.Description := 'OK';
     aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
     lSwagResponse := TSwagResponse.Create;
@@ -661,6 +813,8 @@ begin
         if (aPropType.Handle = TypeInfo(TStream)) or (aPropType.Handle = TypeInfo(TMemoryStream)) or
           (aPropType.Handle = TypeInfo(TStringStream)) then
           Result := stString
+        else if aPropType.Handle = TypeInfo(TMVCStringDictionary) then
+          Result := stObject
         else if TypeIsEnumerable(aPropType) then
           Result := stArray
         else
@@ -798,7 +952,10 @@ begin
 end;
 
 class function TMVCSwagger.GetParamsFromMethod(const aResourcePath: string; const aMethod: TRttiMethod;
-  const aSwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
+  const aSwagDefinitions: TObjectList<TSwagDefinition>;
+  const aControllerDefaultModelClass: TClass;
+  const aControllerDefaultModelSingularName: String;
+  const aControllerDefaultModelPluralName: String): TArray<TSwagRequestParameter>;
 
   function TryGetMVCPathParamByName(const AParams: TArray<MVCSwagParamAttribute>; const aParamName: string;
     out AMVCParam: MVCSwagParamAttribute; out AIndex: Integer): Boolean;
@@ -822,18 +979,25 @@ var
   lMatch: TMatch;
   lParamName: string;
   lMethodParam: TRttiParameter;
-  lSwagParam: TSwagRequestParameter;
+  lSwagReqParam: TSwagRequestParameter;
   lMVCSwagParams: TArray<MVCSwagParamAttribute>;
   lMVCParam: MVCSwagParamAttribute;
   lIndex: Integer;
   I: Integer;
   lComparer: IComparer<TSwagDefinition>;
-  lClassName: string;
-  lSwagDef: TSwagDefinition;
-  lSwagDefinition: TSwagDefinition;
+  lParamSchemaClass: TClass;
 begin
-  lMVCSwagParams := GetMVCSwagParamsFromMethod(aMethod);
+  lComparer := TDelegatedComparer<TSwagDefinition>.Create(
+    function(const Left, Right: TSwagDefinition): Integer
+    begin
+      Result := CompareText(Left.Name, Right.Name);
+    end);
 
+  lMVCSwagParams := GetMVCSwagParamsFromMethod(aMethod);
+  if aMethod.Name.Contains('Create') then
+  begin
+    SetLength(Result, 0); //just for breakpoint
+  end;
   SetLength(Result, 0);
 
   // Path parameters
@@ -845,60 +1009,35 @@ begin
     begin
       if SameText(lMethodParam.Name, lParamName) then
       begin
-        lSwagParam := TSwagRequestParameter.Create;
+        lSwagReqParam := TSwagRequestParameter.Create;
 
         if TryGetMVCPathParamByName(lMVCSwagParams, lParamName, lMVCParam, lIndex) then
         begin
-          lSwagParam.Name := lParamName;
-          lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
-          lSwagParam.Required := lMVCParam.Required;
-          lSwagParam.Default := lMVCParam.DefaultValue;
-          lSwagParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
-          lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
-          lSwagParam.Description := lMVCParam.ParamDescription;
+          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+          lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
+          lSwagReqParam.Required := lMVCParam.Required;
+          lSwagReqParam.Default := lMVCParam.DefaultValue;
+          lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
+          lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
+          lSwagReqParam.Description := ApplyModelName(lMVCParam.ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
           if not lMVCParam.JsonSchema.IsEmpty then
           begin
-            lSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
+            lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
           end
           else if Assigned(lMVCParam.JsonSchemaClass) then
           begin
-            lComparer := TDelegatedComparer<TSwagDefinition>.Create(
-              function(const Left, Right: TSwagDefinition): Integer
-              begin
-                Result := CompareText(Left.Name, Right.Name);
-              end);
-
-            lClassName := lMVCParam.JsonSchemaClass.ClassName;
-            if lClassName.ToUpper.StartsWith('T') then
-              lClassName := lClassName.Remove(0, 1);
-
-            aSwagDefinitions.Sort(lComparer);
-            lSwagDef := TSwagDefinition.Create;
-            try
-              lSwagDef.Name := lClassName;
-              if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
-              begin
-                lSwagDefinition := TSwagDefinition.Create;
-                lSwagDefinition.Name := lClassName;
-                lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lMVCParam.JsonSchemaClass,
-                  lMVCParam.ParamType = ptArray);
-                aSwagDefinitions.Add(lSwagDefinition);
-              end;
-            finally
-              lSwagDef.Free;
-            end;
-            lSwagParam.Schema.Name := lClassName;
+            AddRequestModelDefinition(lSwagReqParam, lMVCParam.JsonSchemaClass, aSwagDefinitions, lComparer, lMVCParam.ParamType);
           end;
           Delete(lMVCSwagParams, lIndex, 1);
         end
         else
         begin
-          lSwagParam.Name := lParamName;
-          lSwagParam.InLocation := rpiPath;
-          lSwagParam.Required := True;
-          lSwagParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
+          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+          lSwagReqParam.InLocation := rpiPath;
+          lSwagReqParam.Required := True;
+          lSwagReqParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
         end;
-        Insert([lSwagParam], Result, High(Result));
+        Insert([lSwagReqParam], Result, High(Result));
       end;
     end;
   end;
@@ -906,27 +1045,42 @@ begin
   // Other parameters
   for I := Low(lMVCSwagParams) to High(lMVCSwagParams) do
   begin
-    lSwagParam := TSwagRequestParameter.Create;
-    lSwagParam.Name := lMVCSwagParams[I].ParamName;
-    lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
-    lSwagParam.Required := lMVCSwagParams[I].Required;
-    lSwagParam.Default := lMVCSwagParams[I].DefaultValue;
-    lSwagParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
-    lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
-    lSwagParam.Description := lMVCSwagParams[I].ParamDescription;
+    lSwagReqParam := TSwagRequestParameter.Create;
+    lSwagReqParam.Name := {lMVCSwagParams[I].ParamName} ApplyModelName(lMVCSwagParams[I].ParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+    lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
+    lSwagReqParam.Required := lMVCSwagParams[I].Required;
+    lSwagReqParam.Default := lMVCSwagParams[I].DefaultValue;
+    lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
+    lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
+    lSwagReqParam.Description := ApplyModelName(lMVCSwagParams[I].ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
     if not lMVCSwagParams[I].JsonSchema.IsEmpty then
     begin
-      lSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
+      lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
     end
     else if Assigned(lMVCSwagParams[I].JsonSchemaClass) then
     begin
-      lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass,
-        lMVCSwagParams[I].ParamType = ptArray);
+      if lMVCSwagParams[I].JsonSchemaClass = SWAGUseDefaultControllerModel then
+      begin
+        if not Assigned(aControllerDefaultModelClass) then
+        begin
+          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+            Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
+              [aMethod.ToString, aMethod.Parent.ToString]));
+        end;
+        lParamSchemaClass := aControllerDefaultModelClass;
+//        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(aControllerDefaultModelClass,
+//          lMVCSwagParams[I].ParamType = ptArray);
+      end
+      else
+      begin
+        lParamSchemaClass := lMVCSwagParams[I].JsonSchemaClass;
+//        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass,
+//          lMVCSwagParams[I].ParamType = ptArray);
+      end;
+      AddRequestModelDefinition(lSwagReqParam, lParamSchemaClass, aSwagDefinitions, lComparer, lMVCSwagParams[I].ParamType);
     end;
-
-    Insert([lSwagParam], Result, High(Result));
+    Insert([lSwagReqParam], Result, High(Result));
   end;
-
 end;
 
 class function TMVCSwagger.MethodRequiresAuthentication(const aMethod: TRttiMethod; const aType: TRttiType;
@@ -1201,5 +1355,29 @@ begin
     until L >= R;
   end;
 end;
+
+{ MVCSWAGDefaultModel }
+
+constructor MVCSWAGDefaultModel.Create(const aJsonSchemaClass: TClass; const aSingularModelName: String; const aPluralModelName: String);
+begin
+  inherited Create;
+  fJsonSchemaClass := aJsonSchemaClass;
+  fSingularModelName := aSingularModelName;
+  fPluralModelName := aPluralModelName;
+end;
+
+{ MVCSWAGDefaultSummaryTags }
+
+constructor MVCSWAGDefaultSummaryTags.Create(const aDefaultTags: String);
+begin
+  inherited Create;
+  fDefaultTags := aDefaultTags;
+end;
+
+function MVCSWAGDefaultSummaryTags.GetTags: TArray<string>;
+begin
+  Result := fDefaultTags.Split([',']);
+end;
+
 
 end.

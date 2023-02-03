@@ -26,7 +26,7 @@ type
     /// </summary>
     procedure PrepareMessage(const aLogItem: TLogItem; out aSubject, aBody: String); virtual;
   public
-    constructor Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String); reintroduce;
+    constructor Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -38,12 +38,9 @@ implementation
 uses
   System.SysUtils, IdMessage;
 
-const
-  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-8s] %3:s [%4:s]';
-
-constructor TLoggerProEMailAppender.Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String);
+constructor TLoggerProEMailAppender.Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogFormat: string);
 begin
-  inherited Create;
+  inherited Create(aLogFormat);
   FSMTP := aSMTP;
   FFromAddresses := aFromAddresses;
   FToAddresses := aToAddresses;
@@ -55,14 +52,12 @@ procedure TLoggerProEMailAppender.PrepareMessage(const aLogItem: TLogItem;
   out aSubject, aBody: String);
 begin
   aSubject := 'LoggerPro ' + aLogItem.LogTypeAsString.ToUpper + ' [' + aLogItem.LogTag + ']';
-  aBody := Format(DEFAULT_LOG_FORMAT, [datetimetostr(aLogItem.TimeStamp),
-    aLogItem.ThreadID, aLogItem.LogTypeAsString, aLogItem.LogMessage,
-    aLogItem.LogTag]);
+  aBody := FormatLog(aLogItem);
 end;
 
 procedure TLoggerProEMailAppender.Setup;
 begin
-  //
+  inherited;
 end;
 
 procedure TLoggerProEMailAppender.TearDown;

@@ -91,7 +91,7 @@ begin
     end);
   FMVC
     .AddController(TMainController)
-    .AddMiddleware(TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics));
+    .AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static', { StaticFilesPath }
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }

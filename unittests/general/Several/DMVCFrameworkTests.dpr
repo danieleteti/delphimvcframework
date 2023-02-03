@@ -8,9 +8,11 @@ program DMVCFrameworkTests;
 
 uses
   System.SysUtils,
+  System.IOUtils,
   DUnitX.TestFramework,
   {$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
+  DUnitX.Loggers.XML.NUnit,
   {$ENDIF }
   {$IFDEF TESTINSIGHT}
   TestInsight.DUnitX,
@@ -47,10 +49,10 @@ uses
   MVCFramework.ActiveRecord in '..\..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.ActiveRecordController in '..\..\..\sources\MVCFramework.ActiveRecordController.pas',
   ActiveRecordControllerTestU in 'ActiveRecordControllerTestU.pas',
-  WebModuleU in 'webmodules\WebModuleU.pas' {MyWebModule: TWebModule},
-  FDConnectionConfigU in 'webmodules\FDConnectionConfigU.pas',
-  StandaloneServerTestU in '..\StandaloneServer\StandaloneServerTestU.pas',
-  StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
+  ActiveRecordControllerWebModuleU in 'webmodules\ActiveRecordControllerWebModuleU.pas' {ActiveRecordControllerWebModule: TWebModule},
+  FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
+  StandaloneServerTestU in 'StandaloneServerTestU.pas',
+  StandAloneServerWebModuleTest in 'webmodules\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
   MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas',
   MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
   MVCFramework.SQLGenerators.Firebird in '..\..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
@@ -66,7 +68,12 @@ uses
   MVCFramework.RQL.AST2MySQL in '..\..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
   MVCFramework.RQL.AST2PostgreSQL in '..\..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas',
   MVCFramework.RQL.AST2SQLite in '..\..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
-  MVCFramework.RQL.Parser in '..\..\..\sources\MVCFramework.RQL.Parser.pas';
+  MVCFramework.RQL.Parser in '..\..\..\sources\MVCFramework.RQL.Parser.pas',
+  Entities in 'Entities.pas',
+  EntitiesProcessors in 'EntitiesProcessors.pas',
+  MVCFramework.Nullables in '..\..\..\sources\MVCFramework.Nullables.pas',
+  IntfObjectPoolTestU in 'IntfObjectPoolTestU.pas',
+  ObjectPoolTestU in 'ObjectPoolTestU.pas';
 
 {$R *.RES}
 
@@ -78,6 +85,7 @@ var
   runner: ITestRunner;
   results: IRunResults;
   logger: ITestLogger;
+  OutputNUnitFolder: String;
 begin
   try
     // Check command line options, will exit if invalid
@@ -90,9 +98,25 @@ begin
     // Log to the console window
     logger := TDUnitXConsoleLogger.Create(True);
     runner.AddLogger(logger);
+
     // Generate an NUnit compatible XML File
-    // nunitLogger := TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile);
-    // runner.AddLogger(nunitLogger);
+    if TDUnitX.Options.XMLOutputFile.IsEmpty then
+    begin
+      OutputNUnitFolder := TPath.Combine(
+        TDirectory.GetParent(TDirectory.GetParent(TDirectory.GetParent(AppPath))), 'UnitTestReports');
+      TDirectory.CreateDirectory(OutputNUnitFolder);
+      {$if defined(win32)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder,'dmvcframework_nunit_win32.xml');
+      {$endif}
+      {$if defined(win64)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder, 'dmvcframework_nunit_win64.xml');
+      {$endif}
+      {$if defined(linux64)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder, 'dmvcframework_nunit_linux64.xml');
+      {$endif}
+    end;
+
+    runner.AddLogger(TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile));
     runner.FailsOnNoAsserts := False; // When true, Assertions must be made during tests;
 
     // Run tests

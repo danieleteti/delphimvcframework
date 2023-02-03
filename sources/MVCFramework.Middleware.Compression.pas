@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,8 +37,10 @@ type
   private
     fCompressionThreshold: Integer;
   protected
-    procedure OnAfterControllerAction(AContext: TWebContext;
-      const AActionNAme: string; const AHandled: Boolean);
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string;
@@ -64,8 +66,10 @@ begin
   fCompressionThreshold := aCompressionThreshold;
 end;
 
-procedure TMVCCompressionMiddleware.OnAfterControllerAction
-  (AContext: TWebContext; const AActionNAme: string; const AHandled: Boolean);
+procedure TMVCCompressionMiddleware.OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // do nothing
 end;

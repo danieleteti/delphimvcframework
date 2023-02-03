@@ -21,7 +21,7 @@ type
     FLogKeyPrefix: string;
     FMaxSize: Int64;
   public
-    constructor Create(aRedis: IRedisClient; aMaxSize: Int64 = 5000; aKeyPrefix: string = 'loggerpro'); reintroduce;
+    constructor Create(aRedis: IRedisClient; aMaxSize: Int64 = 5000; aKeyPrefix: string = 'loggerpro'; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -33,12 +33,9 @@ implementation
 uses
   System.SysUtils;
 
-const
-  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-8s] %3:s [%4:s]';
-
-constructor TLoggerProRedisAppender.Create(aRedis: IRedisClient; aMaxSize: Int64; aKeyPrefix: string);
+constructor TLoggerProRedisAppender.Create(aRedis: IRedisClient; aMaxSize: Int64; aKeyPrefix: string; aLogFormat: string);
 begin
-  inherited Create;
+  inherited Create(aLogFormat);
   FRedis := aRedis;
   FLogKeyPrefix := aKeyPrefix;
   FMaxSize := aMaxSize;
@@ -46,6 +43,7 @@ end;
 
 procedure TLoggerProRedisAppender.Setup;
 begin
+  inherited;
   FRedis.Connect;
 end;
 
@@ -74,9 +72,7 @@ var
   lText: string;
   lKey: string;
 begin
-  lText := Format(DEFAULT_LOG_FORMAT, [datetimetostr(aLogItem.TimeStamp),
-    aLogItem.ThreadID, aLogItem.LogTypeAsString, aLogItem.LogMessage,
-    aLogItem.LogTag]);
+  lText := FormatLog(aLogItem);
   lKey := FLogKeyPrefix + '::logs'; // + aLogItem.LogTypeAsString.ToLower;
   // Push the log item to the right of the list (logs:info, logs:warning, log:error)
   FRedis.RPUSH(lKey, [lText]);

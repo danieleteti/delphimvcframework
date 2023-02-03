@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -55,6 +55,7 @@ implementation
 
 constructor TSourceFile.Create(const Source: string; const Args: array of const );
 begin
+  inherited Create;
   FSource := Format(Source, Args);
 end;
 

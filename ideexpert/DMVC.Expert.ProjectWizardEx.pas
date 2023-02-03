@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -86,10 +86,13 @@ begin
       Project: IOTAProject;
       Config: IOTABuildConfiguration;
       ControllerUnit: IOTAModule;
+      JSONRPCUnit: IOTAModule;
       WebModuleUnit: IOTAModule;
       ControllerCreator: IOTACreator;
+      JSONRPCUnitCreator: IOTACreator;
       WebModuleCreator: IOTAModuleCreator;
       lProjectSourceCreator: IOTACreator;
+    lJSONRPCUnitName: string;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try
@@ -114,8 +117,12 @@ begin
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
-            ControllerCreator := TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod, WizardForm.CreateCRUDMethods,
-              WizardForm.CreateActionFiltersMethods, WizardForm.ControllerClassName, APersonality);
+            ControllerCreator := TNewControllerUnitEx.Create(
+              WizardForm.CreateIndexMethod,
+              WizardForm.CreateCRUDMethods,
+              WizardForm.CreateActionFiltersMethods,
+              WizardForm.ControllerClassName,
+              APersonality);
             ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
             if Project <> nil then
             begin
@@ -123,9 +130,31 @@ begin
             end;
           end;
 
+          lJSONRPCUnitName := '';
+          // Create JSONRPC Unit
+          if not WizardForm.JSONRPCClassName.IsEmpty then
+          begin
+            JSONRPCUnitCreator := TNewJSONRPCUnitEx.Create(
+              WizardForm.JSONRPCClassName,
+              APersonality);
+            JSONRPCUnit := ModuleServices.CreateModule(JSONRPCUnitCreator);
+            lJSONRPCUnitName := GetUnitName(JSONRPCUnit.FileName);
+            if Project <> nil then
+            begin
+              Project.AddFile(JSONRPCUnit.FileName, True);
+            end;
+          end;
+
+
           // Create Webmodule Unit
-          WebModuleCreator := TNewWebModuleUnitEx.Create(WizardForm.WebModuleClassName, WizardForm.ControllerClassName,
-            GetUnitName(ControllerUnit.FileName), WizardForm.Middlewares, APersonality);
+          WebModuleCreator := TNewWebModuleUnitEx.Create(
+            WizardForm.WebModuleClassName,
+            WizardForm.ControllerClassName,
+            GetUnitName(ControllerUnit.FileName),
+            WizardForm.Middlewares,
+            WizardForm.JSONRPCClassName,
+            lJSONRPCUnitName,
+            APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
           if Project <> nil then
           begin

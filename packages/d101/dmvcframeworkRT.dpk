@@ -67,8 +67,6 @@ contains
   MVCFramework.SQLGenerators.PostgreSQL in '..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
   MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
   MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
-  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
-  MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
   MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
   MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas',
