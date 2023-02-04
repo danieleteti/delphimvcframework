@@ -34,7 +34,8 @@ uses
   FireDAC.Comp.Client,
   System.Generics.Collections,
   Data.DB,
-  BusinessObjectsU;
+  BusinessObjectsU, MVCFramework.Serializer.Commons, System.Classes,
+  System.UITypes;
 
 type
 
@@ -412,6 +413,60 @@ type
     procedure Action1or2;
   end;
 
+
+// action result types
+  [MVCNameCase(ncLowerCase)]
+  TSum = class
+  private
+    fValue: Integer;
+  public
+    property Value: Integer read fValue write fValue;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TComplexObject = class
+  private
+    fValue: Integer;
+    FPeople: TPeople;
+    FPerson: TPerson;
+    procedure SetPeople(const Value: TPeople);
+    procedure SetPerson(const Value: TPerson);
+  public
+    destructor Destroy; override;
+    property Value: Integer read fValue write fValue;
+    property Person: TPerson read FPerson write SetPerson;
+    property People: TPeople read FPeople write SetPeople;
+  end;
+// action result types - end
+
+  [MVCPath('/api/v1/actionresult')]
+  TTestActionResultController = class(TMVCController)
+  public
+    [MVCPath('/sums/($a)/($b)')]
+    [MVCHTTPMethod([httpGET])]
+    function GetObject(a,b: Integer): TSum;
+    [MVCPath('/complex')]
+    [MVCHTTPMethod([httpGET])]
+    function GetComplexObject: TComplexObject;
+    [MVCPath('/people')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPeople: TObjectList<TPerson>;
+    [MVCPath('/photo')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPhoto: TStream;
+    [MVCPath('/string')]
+    [MVCHTTPMethod([httpGET])]
+    function GetString: String;
+    [MVCPath('/enum')]
+    [MVCHTTPMethod([httpGET])]
+    function GetEnum: TFontStyle;
+    [MVCPath('/bool')]
+    [MVCHTTPMethod([httpGET])]
+    function GetBool: Boolean;
+  end;
+
+
+
 implementation
 
 uses
@@ -419,11 +474,9 @@ uses
   System.JSON,
   Web.HTTPApp,
   Generics.Collections,
-  MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
-  System.IOUtils,
-  System.Classes, MVCFramework.Tests.Serializer.Entities;
+  System.IOUtils, MVCFramework.Tests.Serializer.Entities;
 
 { TTestServerController }
 
@@ -1224,6 +1277,69 @@ end;
 procedure TTestMultiPathController.Action1or2;
 begin
   Render(HTTP_STATUS.OK);
+end;
+
+{ TTestActionResultController }
+
+function TTestActionResultController.GetBool: Boolean;
+begin
+  Result := True;
+end;
+
+function TTestActionResultController.GetComplexObject: TComplexObject;
+begin
+  Result := TComplexObject.Create;
+  Result.Value := 1234;
+  Result.Person := TPerson.GetNew('Danielem', 'Teti', EncodeDate(1920,12,23), True);
+  Result.People := TPerson.GetList();
+end;
+
+function TTestActionResultController.GetEnum: TFontStyle;
+begin
+  Result := TFontStyle.fsBold;
+end;
+
+function TTestActionResultController.GetPeople: TObjectList<TPerson>;
+begin
+  Result := TPerson.GetList();
+end;
+
+function TTestActionResultController.GetPhoto: TStream;
+begin
+  Context.Response.ContentType := TMVCMediaType.IMAGE_X_PNG;
+  Result := TFileStream.Create('sample.png', fmOpenRead or fmShareDenyNone);
+end;
+
+function TTestActionResultController.GetString: String;
+begin
+  Result := 'Hello World';
+end;
+
+function TTestActionResultController.GetObject(a, b: Integer): TSum;
+begin
+  StatusCode := 201;
+  Context.Response.SetCustomHeader('X-PIPPO','PLUTO');
+  Result := TSum.Create;
+  Result.Value := a+b;
+end;
+
+{ TComplexObject }
+
+destructor TComplexObject.Destroy;
+begin
+  FPerson.Free;
+  FPeople.Free;
+  inherited;
+end;
+
+procedure TComplexObject.SetPeople(const Value: TPeople);
+begin
+  FPeople := Value;
+end;
+
+procedure TComplexObject.SetPerson(const Value: TPerson);
+begin
+  FPerson := Value;
 end;
 
 end.

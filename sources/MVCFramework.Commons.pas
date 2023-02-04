@@ -621,6 +621,27 @@ type
     ReasonString: String;
   end;
 
+  { TMVCActionResult hierarchy}
+  IMVCActionResult = interface
+    ['{9FEDD192-C050-4123-B361-E88C13121928}']
+    function GetStatusCode: UInt16;
+    function HasBody: Boolean;
+    function GetData: TObject;
+  end;
+  TMVCActionResult = class(TInterfacedObject, IMVCActionResult)
+  protected
+    fStatusCode: UInt16;
+    fData: TObject;
+    function GetStatusCode: UInt16;
+    function HasBody: Boolean;
+    function GetData: TObject;
+  public
+    constructor Create(const StatusCode: UInt16); overload;
+    constructor Create(const StatusCode: UInt16; const Data: TObject); overload;
+    destructor Destroy; override;
+    // properties
+  end;
+  { TMVCActionResult hierarchy -- end}
 
 { GENERIC TYPE ALIASES }
 TMVCListOfString = TList<string>;
@@ -1735,6 +1756,42 @@ end;
 class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): String;
 begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
+end;
+
+{ TMVCActionResult }
+
+constructor TMVCActionResult.Create(const StatusCode: UInt16);
+begin
+  Create(StatusCode, nil);
+end;
+
+constructor TMVCActionResult.Create(const StatusCode: UInt16;
+  const Data: TObject);
+begin
+  inherited Create;
+  fStatusCode := StatusCode;
+  fData := Data;
+end;
+
+destructor TMVCActionResult.Destroy;
+begin
+  fData.Free;
+  inherited;
+end;
+
+function TMVCActionResult.GetData: TObject;
+begin
+  Result := fData;
+end;
+
+function TMVCActionResult.HasBody: Boolean;
+begin
+  Result := fData <> nil;
+end;
+
+function TMVCActionResult.GetStatusCode: UInt16;
+begin
+  Result := fStatusCode;
 end;
 
 initialization

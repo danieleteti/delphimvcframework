@@ -2393,7 +2393,9 @@ var
   lSelectedController: TMVCController;
   lActionFormalParams: TArray<TRttiParameter>;
   lActualParams: TArray<TValue>;
-  lBodyParameter: TObject;
+  lBodyParameter, lResponseObject: TObject;
+  lInvokeResult: TValue;
+  lObjList: IMVCList;
 begin
   Result := False;
 
@@ -2494,7 +2496,56 @@ begin
                   if not lHandled then
                   begin
                     try
-                      lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                      if lRouter.MethodToCall.MethodKind = mkProcedure then
+                      begin
+                        lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                      end
+                      else
+                      begin
+                        lInvokeResult := lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                        case lInvokeResult.Kind of
+                          tkClass:
+                          begin
+                            lResponseObject := lInvokeResult.AsObject;
+                            try
+                              // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
+                              if lResponseObject is TStream then
+                              begin
+                                lContext.Response.RawWebResponse.Content := EmptyStr;
+                                lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
+                                lContext.Response.RawWebResponse.ContentStream := TStream(lResponseObject);
+                                lContext.Response.RawWebResponse.FreeContentStream := True;
+                                lResponseObject := nil; //do not free it!!
+                              end
+                              else
+                              begin
+                                if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
+                                begin
+                                  lSelectedController.Render(lObjList);
+                                end
+                                else
+                                begin
+                                  lSelectedController.Render(lResponseObject, False);
+                                end;
+                              end;
+                            finally
+                              lResponseObject.Free;
+                            end
+                          end;
+                          tkUString, tkString:
+                          begin
+                            lSelectedController.Render(lInvokeResult.AsString);
+                          end;
+                          tkEnumeration:
+                          begin
+                            lSelectedController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
+                          end
+                          else
+                          begin
+                            RaiseSerializationError('Cannot serialize type ' + lInvokeResult.TypeInfo.Name);
+                          end;
+                        end;
+                      end;
                     finally
                       lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
                     end;
@@ -3724,8 +3775,9 @@ begin
   GetContext.Response.RawWebResponse.FreeContentStream := True;
 end;
 
-function TMVCRenderer.Serializer(const AContentType: string;
-const ARaiseExceptionIfNotExists: Boolean): IMVCSerializer;
+function TMVCRenderer.Serializer(
+  const AContentType: string;
+  const ARaiseExceptionIfNotExists: Boolean): IMVCSerializer;
 var lContentMediaType: string;
   lContentCharSet: string;
 begin
