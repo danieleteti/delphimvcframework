@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -52,6 +52,8 @@ type
     httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
+
+  TMVCTransferProtocolSchemes = set of (psHTTP, psHTTPS);
 
   TMVCMediaType = record
   public const
@@ -124,6 +126,7 @@ type
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
+    COPYRIGHT = 'Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
@@ -352,6 +355,11 @@ type
     /// request MUST NOT be repeated until it is requested by a separate user action.
     /// </summary>
     InsufficientStorage = 507;
+
+    /// <summary>
+    ///   Returns standard ReasonString for a given HTTP status code
+    /// </summary>
+    class function ReasonStringFor(const HTTPStatusCode: Integer): String; static;
   end;
 
   EMVCException = class(Exception)
@@ -608,6 +616,11 @@ type
 {$SCOPEDENUMS ON}
   TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
 
+  TMVCHTTPStatusCode = record
+    Code: Integer;
+    ReasonString: String;
+  end;
+
 
 { GENERIC TYPE ALIASES }
 TMVCListOfString = TList<string>;
@@ -615,6 +628,15 @@ TMVCListOfInteger =  TList<Integer>;
 TMVCListOfBoolean = TList<Boolean>;
 TMVCListOfDouble =  TList<Double>;
 { GENERIC TYPE ALIASES // END}
+
+{ GLOBAL CONFIG VARS }
+var
+  /// <summary>
+  /// When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
+  /// When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+  /// </summary>
+  MVCSerializeNulls: Boolean = True;
+{ GLOBAL CONFIG VARS // END}
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
@@ -636,6 +658,7 @@ function URLDecode(const Value: string): string;
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
+function StreamToBase64String(Source: TStream): string;
 function FileToBase64String(const FileName: string): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
@@ -676,6 +699,71 @@ const
     ('198.18.0.0', '198.19.255.255'),
     ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
+
+
+const
+  MVC_HTTP_STATUS_CODES: array [0..57] of TMVCHTTPStatusCode =
+    (
+      (Code: 100; ReasonString: 'Continue'),
+      (Code: 101; ReasonString: 'Switching Protocols'),
+      (Code: 102; ReasonString: 'Processing'),
+      (Code: 200; ReasonString: 'OK'),
+      (Code: 201; ReasonString: 'Created'),
+      (Code: 202; ReasonString: 'Accepted'),
+      (Code: 203; ReasonString: 'Non-Authoritative Information'),
+      (Code: 204; ReasonString: 'No Content'),
+      (Code: 205; ReasonString: 'Reset Content'),
+      (Code: 206; ReasonString: 'Partial Content'),
+      (Code: 207; ReasonString: 'Multi-Status'),
+      (Code: 208; ReasonString: 'Already Reported'),
+      (Code: 226; ReasonString: 'IM Used'),
+      (Code: 300; ReasonString: 'Multiple Choices'),
+      (Code: 301; ReasonString: 'Moved Permanently'),
+      (Code: 302; ReasonString: 'Found'),
+      (Code: 303; ReasonString: 'See Other'),
+      (Code: 304; ReasonString: 'Not Modified'),
+      (Code: 305; ReasonString: 'Use Proxy'),
+      (Code: 306; ReasonString: 'Reserved'),
+      (Code: 307; ReasonString: 'Temporary Redirect'),
+      (Code: 308; ReasonString: 'Permanent Redirect'),
+      (Code: 400; ReasonString: 'Bad Request'),
+      (Code: 401; ReasonString: 'Unauthorized'),
+      (Code: 402; ReasonString: 'Payment Required'),
+      (Code: 403; ReasonString: 'Forbidden'),
+      (Code: 404; ReasonString: 'Not Found'),
+      (Code: 405; ReasonString: 'Method Not Allowed'),
+      (Code: 406; ReasonString: 'Not Acceptable'),
+      (Code: 407; ReasonString: 'Proxy Authentication Required'),
+      (Code: 408; ReasonString: 'Request Timeout'),
+      (Code: 409; ReasonString: 'Conflict'),
+      (Code: 410; ReasonString: 'Gone'),
+      (Code: 411; ReasonString: 'Length Required'),
+      (Code: 412; ReasonString: 'Precondition Failed'),
+      (Code: 413; ReasonString: 'Request Entity Too Large'),
+      (Code: 414; ReasonString: 'Request-URI Too Long'),
+      (Code: 415; ReasonString: 'Unsupported Media Type'),
+      (Code: 416; ReasonString: 'Requested Range Not Satisfiable'),
+      (Code: 417; ReasonString: 'Expectation Failed'),
+      (Code: 422; ReasonString: 'Unprocessable Entity'),
+      (Code: 423; ReasonString: 'Locked'),
+      (Code: 424; ReasonString: 'Failed Dependency'),
+      (Code: 426; ReasonString: 'Upgrade Required'),
+      (Code: 428; ReasonString: 'Precondition Required'),
+      (Code: 429; ReasonString: 'Too Many Requests'),
+      (Code: 431; ReasonString: 'Request Header Fields Too Large'),
+      (Code: 500; ReasonString: 'Internal Server Error'),
+      (Code: 501; ReasonString: 'Not Implemented'),
+      (Code: 502; ReasonString: 'Bad Gateway'),
+      (Code: 503; ReasonString: 'Service Unavailable'),
+      (Code: 504; ReasonString: 'Gateway Timeout'),
+      (Code: 505; ReasonString: 'HTTP Version Not Supported'),
+      (Code: 506; ReasonString: 'Variant Also Negotiates (Experimental)'),
+      (Code: 507; ReasonString: 'Insufficient Storage'),
+      (Code: 508; ReasonString: 'Loop Detected'),
+      (Code: 510; ReasonString: 'Not Extended'),
+      (Code: 511; ReasonString: 'Network Authentication Required')
+    );
+
 
 type
   TMVCParseAuthentication = class
@@ -1389,6 +1477,19 @@ begin
   end;
 end;
 
+function StreamToBase64String(Source: TStream): string;
+var
+  lTmpStream: TStringStream;
+begin
+  lTmpStream := TStringStream.Create;
+  try
+    TMVCSerializerHelper.EncodeStream(Source, lTmpStream);
+    Result := lTmpStream.DataString;
+  finally
+    lTmpStream.Free;
+  end;
+end;
+
 function FileToBase64String(const FileName: string): string;
 var
   lTemplateFileB64: TStringStream;
@@ -1398,11 +1499,10 @@ begin
   try
     lTemplateFile := TFileStream.Create(FileName, fmOpenRead);
     try
-      TMVCSerializerHelper.EncodeStream(lTemplateFile, lTemplateFileB64);
+      Result := StreamToBase64String(lTemplateFile);
     finally
       lTemplateFile.Free;
     end;
-    Result := lTemplateFileB64.DataString;
   finally
     lTemplateFileB64.Free;
   end;
@@ -1615,6 +1715,27 @@ begin
   end;
 end;
 
+
+function ReasonStringByHTTPStatusCode(const HTTPStatusCode: Integer): String; inline;
+var
+  I: Integer;
+begin
+  for I := Low(MVC_HTTP_STATUS_CODES) to High(MVC_HTTP_STATUS_CODES) do
+  begin
+    if MVC_HTTP_STATUS_CODES[I].Code = HTTPStatusCode then
+    begin
+      Exit(MVC_HTTP_STATUS_CODES[I].ReasonString);
+    end;
+  end;
+  raise EMVCException.Create('Invalid HTTP status code: ' + IntToStr(HTTPStatusCode));
+end;
+
+{ HTTP_STATUS }
+
+class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): String;
+begin
+  Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
+end;
 
 initialization
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 // Contribution on this file: Copyright (c) 2018 - João Antônio Duarte
@@ -28,13 +28,20 @@ unit MVCFramework.Controllers.Register;
 interface
 
 uses
-  System.Generics.Collections,
-  MVCFramework;
+  System.Generics.Collections, MVCFramework;
 
 type
+  TControllerDelegateItem = record
+    Clazz: TMVCControllerClazz;
+    CreateAction: TMVCControllerCreateAction;
+    ServerName: string;
+    constructor Create(AClazz: TMVCControllerClazz; ACreateAction: TMVCControllerCreateAction; AServerName: string);
+  end;
+
   TControllersRegister = class
   private
     FControllers: TDictionary<TMVCControllerClazz, string>;
+    FControllersDelegate: TList<TControllerDelegateItem>;
     class var FInstance: TControllersRegister;
     class function GetInstance: TControllersRegister; static;
     class procedure ReleaseInstance;
@@ -50,9 +57,14 @@ type
     /// <summary>register your controller using this procedure</summary>
     /// <param name="AController">Your controller class</param>
     /// <param name="AServerName">Name of the controller server. Useful when you have multiple servers in a server container</param>
-    procedure RegisterController(AController: TMVCControllerClazz; const AServerName: string = '');
+    procedure RegisterController(AController: TMVCControllerClazz; const AServerName: string = ''); overload;
 
-    property Controllers: TDictionary<TMVCControllerClazz, string> read FControllers;
+    /// <summary>register your controller using this procedure when need a create action</summary>
+    /// <param name="AControllerClazz">Your controller class</param>
+    /// <param name="ACreateAction">Your create action to initialize construtor class</param>
+    /// <param name="AServerName">Name of the controller server. Useful when you have multiple servers in a server container</param>
+    procedure RegisterController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AServerName: string = ''); overload;
+
     class property Instance: TControllersRegister read GetInstance;
   end;
 
@@ -61,12 +73,23 @@ implementation
 uses
   System.SysUtils;
 
+{ TControllerDelegateItem }
+
+constructor TControllerDelegateItem.Create(AClazz: TMVCControllerClazz;
+  ACreateAction: TMVCControllerCreateAction; AServerName: string);
+begin
+  Clazz := AClazz;
+  CreateAction := ACreateAction;
+  ServerName := AServerName;
+end;
+
 { TControllersRegister }
 
 procedure TControllersRegister.AddControllersInEngine(AEngine: TMVCEngine;
   const AServerName: string);
 var
   LControllerClass: TMVCControllerClazz;
+  delegate: TControllerDelegateItem;
 begin
   FControllers.TrimExcess;
 
@@ -77,17 +100,28 @@ begin
       AEngine.AddController(LControllerClass);
     end;
   end;
+
+  FControllersDelegate.TrimExcess;
+  for delegate in FControllersDelegate do
+  begin
+    if SameText(delegate.ServerName, AServerName) then
+    begin
+      AEngine.AddController(delegate.Clazz, delegate.CreateAction);
+    end;
+  end;
 end;
 
 constructor TControllersRegister.Create;
 begin
   inherited;
   FControllers := TDictionary<TMVCControllerClazz, string>.Create;
+  FControllersDelegate := TList<TControllerDelegateItem>.Create;
 end;
 
 destructor TControllersRegister.Destroy;
 begin
   FControllers.Free;
+  FControllersDelegate.Free;
   inherited;
 end;
 
@@ -104,6 +138,13 @@ procedure TControllersRegister.RegisterController(AController: TMVCControllerCla
   const AServerName: string);
 begin
   FControllers.Add(AController, AServerName);
+end;
+
+procedure TControllersRegister.RegisterController(
+  const AControllerClazz: TMVCControllerClazz;
+  const ACreateAction: TMVCControllerCreateAction; const AServerName: string);
+begin
+  FControllersDelegate.Add(TControllerDelegateItem.Create(AControllerClazz, ACreateAction, AServerName));
 end;
 
 class procedure TControllersRegister.ReleaseInstance;

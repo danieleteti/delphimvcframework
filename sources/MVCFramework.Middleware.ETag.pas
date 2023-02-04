@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -88,7 +88,7 @@ begin
 
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#caching_of_unchanged_resources
   lRequestETag := AContext.Request.Headers['If-None-Match'];
-  lETag := GetMD5HashFromStream(lContentStream);
+  lETag := GetSHA1HashFromStream(lContentStream);
   lContentStream.Position := 0;
 
   AContext.Response.SetCustomHeader('ETag', lETag);
@@ -105,7 +105,7 @@ begin
       lContentStream.Size := 0;
     end;
     AContext.Response.StatusCode := HTTP_STATUS.NotModified;
-    AContext.Response.ReasonString := 'Not Modified'
+    AContext.Response.ReasonString := HTTP_STATUS.ReasonStringFor(HTTP_STATUS.NotModified);
   end;
 end;
 

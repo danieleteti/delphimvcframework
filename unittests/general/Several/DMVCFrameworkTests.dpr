@@ -8,9 +8,11 @@ program DMVCFrameworkTests;
 
 uses
   System.SysUtils,
+  System.IOUtils,
   DUnitX.TestFramework,
   {$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
+  DUnitX.Loggers.XML.NUnit,
   {$ENDIF }
   {$IFDEF TESTINSIGHT}
   TestInsight.DUnitX,
@@ -69,7 +71,9 @@ uses
   MVCFramework.RQL.Parser in '..\..\..\sources\MVCFramework.RQL.Parser.pas',
   Entities in 'Entities.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
-  MVCFramework.Nullables in '..\..\..\sources\MVCFramework.Nullables.pas';
+  MVCFramework.Nullables in '..\..\..\sources\MVCFramework.Nullables.pas',
+  IntfObjectPoolTestU in 'IntfObjectPoolTestU.pas',
+  ObjectPoolTestU in 'ObjectPoolTestU.pas';
 
 {$R *.RES}
 
@@ -81,6 +85,7 @@ var
   runner: ITestRunner;
   results: IRunResults;
   logger: ITestLogger;
+  OutputNUnitFolder: String;
 begin
   try
     // Check command line options, will exit if invalid
@@ -93,9 +98,25 @@ begin
     // Log to the console window
     logger := TDUnitXConsoleLogger.Create(True);
     runner.AddLogger(logger);
+
     // Generate an NUnit compatible XML File
-    // nunitLogger := TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile);
-    // runner.AddLogger(nunitLogger);
+    if TDUnitX.Options.XMLOutputFile.IsEmpty then
+    begin
+      OutputNUnitFolder := TPath.Combine(
+        TDirectory.GetParent(TDirectory.GetParent(TDirectory.GetParent(AppPath))), 'UnitTestReports');
+      TDirectory.CreateDirectory(OutputNUnitFolder);
+      {$if defined(win32)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder,'dmvcframework_nunit_win32.xml');
+      {$endif}
+      {$if defined(win64)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder, 'dmvcframework_nunit_win64.xml');
+      {$endif}
+      {$if defined(linux64)}
+      TDUnitX.Options.XMLOutputFile := TPath.Combine(OutputNUnitFolder, 'dmvcframework_nunit_linux64.xml');
+      {$endif}
+    end;
+
+    runner.AddLogger(TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile));
     runner.FailsOnNoAsserts := False; // When true, Assertions must be made during tests;
 
     // Run tests

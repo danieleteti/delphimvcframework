@@ -82,16 +82,18 @@ begin
     .AddController(TAdminController)
     .AddMiddleware(
     TMVCJWTAuthenticationMiddleware.Create(
-    TAuthenticationSample.Create,
-    lClaimsSetup,
-    'mys3cr37',
-    '/login',
-    [
-    TJWTCheckableClaim.ExpirationTime,
-    TJWTCheckableClaim.NotBefore,
-    TJWTCheckableClaim.IssuedAt
-    ], 300))
-    .AddMiddleware(TMVCJWTBlackListMiddleware.Create(lOnAcceptToken, lOnNewJWTToBlackList));
+      TAuthenticationSample.Create,
+      lClaimsSetup,
+      'mys3cr37',
+      '/login',
+      [
+      TJWTCheckableClaim.ExpirationTime,
+      TJWTCheckableClaim.NotBefore,
+      TJWTCheckableClaim.IssuedAt
+      ], 300))
+    .AddMiddleware(
+      TMVCJWTBlackListMiddleware.Create(lOnAcceptToken, lOnNewJWTToBlackList)
+    );
 end;
 
 end.

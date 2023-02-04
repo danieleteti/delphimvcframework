@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -59,11 +59,11 @@ type
   end;
 
   TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
-
+  TMVCStaticFileMediaTypesCustomizer = reference to procedure(const MediaTypes: TMVCStringDictionary);
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     fSanityCheckOK: Boolean;
-    fMediaTypes: TDictionary<string, string>;
+    fMediaTypes: TMVCStringDictionary;
     fStaticFilesPath: string;
     fDocumentRoot: string;
     fIndexDocument: string;
@@ -82,7 +82,8 @@ type
       const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
       const ASPAWebAppSupport: Boolean = True;
       const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
-      const ARules: TMVCStaticFileRulesProc = nil);
+      const ARules: TMVCStaticFileRulesProc = nil;
+      const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer = nil);
     destructor Destroy; override;
 
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
@@ -99,9 +100,11 @@ type
 implementation
 
 uses
+  MVCFramework.Logger,
   System.SysUtils,
   System.NetEncoding,
-  System.IOUtils, System.Classes;
+  System.IOUtils,
+  System.Classes;
 
 { TMVCStaticFilesMiddleware }
 
@@ -129,12 +132,13 @@ begin
 end;
 
 constructor TMVCStaticFilesMiddleware.Create(
-      const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
-      const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
-      const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
-      const ASPAWebAppSupport: Boolean = True;
-      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
-      const ARules: TMVCStaticFileRulesProc = nil);
+      const AStaticFilesPath: string;
+      const ADocumentRoot: string;
+      const AIndexDocument: string;
+      const ASPAWebAppSupport: Boolean;
+      const AStaticFilesCharset: string;
+      const ARules: TMVCStaticFileRulesProc;
+      const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer);
 begin
   inherited Create;
   fSanityCheckOK := False;
@@ -153,9 +157,13 @@ begin
   fIndexDocument := AIndexDocument;
   fStaticFilesCharset := AStaticFilesCharset;
   fSPAWebAppSupport := ASPAWebAppSupport;
-  fMediaTypes := TDictionary<string, string>.Create;
+  fMediaTypes := TMVCStringDictionary.Create;
   fRules := ARules;
   AddMediaTypes;
+  if Assigned(AMediaTypesCustomizer) then
+  begin
+    AMediaTypesCustomizer(fMediaTypes);
+  end;
 end;
 
 destructor TMVCStaticFilesMiddleware.Destroy;
@@ -283,7 +291,9 @@ begin
 
     AHandled := SendStaticFileIfPresent(AContext, lRealFileName);
     if AHandled then
+    begin
       Exit;
+    end;
   end;
 
   // check if a directory request
@@ -335,6 +345,10 @@ begin
     end;
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
+    Log(TLogLevel.levDebug, AContext.Request.HTTPMethodAsString + ':' +
+      AContext.Request.PathInfo + ' [' + AContext.Request.ClientIp + '] -> ' +
+      ClassName + ' - ' + IntToStr(AContext.Response.StatusCode) + ' ' +
+      AContext.Response.ReasonString);
   end;
 end;
 

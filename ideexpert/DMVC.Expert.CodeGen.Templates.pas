@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -101,6 +101,10 @@ resourcestring
     'begin' + sLineBreak +
     '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
     '  IsMultiThread := True;' + sLineBreak +
+    '  // DMVCFramework Specific Configuration ' + sLineBreak +
+    '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
+    '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +

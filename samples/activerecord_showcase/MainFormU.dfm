@@ -55,6 +55,8 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
+    ExplicitWidth = 812
+    ExplicitHeight = 552
   end
   object btnRelations: TButton
     Left = 8
@@ -101,14 +103,14 @@ object MainForm: TMainForm
     TabOrder = 7
     OnClick = btnRQLClick
   end
-  object btnTransientFields: TButton
+  object btnReadOnlyFields: TButton
     Left = 8
     Top = 203
     Width = 121
     Height = 33
-    Caption = 'CRUD Transient'
+    Caption = 'CRUD With R/O Field'
     TabOrder = 8
-    OnClick = btnTransientFieldsClick
+    OnClick = btnReadOnlyFieldsClick
   end
   object btnNullTest: TButton
     Left = 144
@@ -228,8 +230,45 @@ object MainForm: TMainForm
     TabOrder = 21
     OnClick = btnCRUDWithGUIDClick
   end
+  object btnOOP: TButton
+    Left = 144
+    Top = 402
+    Width = 121
+    Height = 34
+    Caption = 'OOP with Partitioning and Filtering'
+    TabOrder = 22
+    WordWrap = True
+    OnClick = btnOOPClick
+  end
+  object btnReadOnly: TButton
+    Left = 8
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Read/Only Entities'
+    TabOrder = 23
+    OnClick = btnReadOnlyClick
+  end
+  object btnSpeed: TButton
+    Left = 8
+    Top = 482
+    Width = 121
+    Height = 34
+    Caption = 'Metadata Speed Test'
+    TabOrder = 24
+    OnClick = btnSpeedClick
+  end
+  object btnRefresh: TButton
+    Left = 144
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Manual Refresh'
+    TabOrder = 25
+    OnClick = btnRefreshClick
+  end
   object FDConnection1: TFDConnection
-    Left = 168
-    Top = 464
+    Left = 312
+    Top = 40
   end
 end

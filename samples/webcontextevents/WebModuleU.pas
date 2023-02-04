@@ -33,12 +33,6 @@ uses
   MVCFramework.Middleware.Compression;
 
 
-type
-  TMyService = class(TInterfacedObject, ICalculator)
-  public
-    function DoCalc(a,b: Integer): Integer;
-  end;
-
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
@@ -69,25 +63,17 @@ begin
     end);
   FMVC.AddController(TMyController);
 
-  // Enable the following middleware declaration if you want to
-  // serve static files from this dmvcframework service.
-  // The folder mapped as documentroot must exists!
-  // FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( 
-  //    '/static', 
-  //    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')) 
-  //  );	
   FMVC.OnWebContextCreate(
-    procedure(const Ctx: TWebContext)
+    procedure(const Context: TWebContext)
     begin
-      Ctx.CustomIntfObject := TMyService.Create;
+      Context.CustomIntfObject := TMyService.Create;
     end);
-  FMVC.OnWebContextDestroy(
-    procedure(const Ctx: TWebContext)
-    begin
 
+  FMVC.OnWebContextDestroy(
+    procedure(const Context: TWebContext)
+    begin
+      //do nothing
     end);
-  // To enable compression (deflate, gzip) just add this middleware as the last one
-  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
@@ -95,11 +81,6 @@ begin
   FMVC.Free;
 end;
 
-{ TMyService }
 
-function TMyService.DoCalc(a, b: Integer): Integer;
-begin
-  Result := a + b;
-end;
 
 end.

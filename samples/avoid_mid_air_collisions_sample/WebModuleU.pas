@@ -81,17 +81,18 @@ begin
   
   // CORS middleware handles... well, CORS
   //FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
-  
+
   // Simplifies TMVCActiveRecord connection definition
-  //FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('MyConnDef','FDConnectionDefs.ini'));
-  
+  FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('activerecorddb'));
+
+
   // Compression middleware must be the last in the chain, just before the ETag, if present.
   //FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
-  
+
   // ETag middleware must be the latest in the chain
   //FMVC.AddMiddleware(TMVCETagMiddleware.Create);
- 
-   
+
+
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

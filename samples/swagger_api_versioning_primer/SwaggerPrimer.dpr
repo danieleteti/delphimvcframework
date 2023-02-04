@@ -9,10 +9,9 @@ uses
 {$ENDIF}
   System.SysUtils,
   MVCFramework,
-  MVCFramework.Signal,
   MVCFramework.Logger,
   MVCFramework.Commons,
-  MVCFramework.REPLCommandsHandlerU,
+  MVCFramework.Signal,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -36,6 +35,7 @@ begin
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
     LServer.Active := True;
+
     Writeln('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;

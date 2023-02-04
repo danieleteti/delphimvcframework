@@ -17,7 +17,15 @@ implementation
 uses
   System.Classes,
   System.IOUtils,
-  FireDAC.Comp.Client;
+  FireDAC.Comp.Client,
+  FireDAC.Moni.Base,
+  FireDAC.Moni.FlatFile,
+  FireDAC.Stan.Intf
+  ;
+
+
+var
+  gFlatFileMonitor: TFDMoniFlatFileClientLink = nil;
 
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
 var
@@ -36,6 +44,7 @@ begin
     LParams.Add('Password=root');
     LParams.Add('TinyIntFormat=Boolean'); { it's the default }
     LParams.Add('CharacterSet=utf8mb4'); // not utf8!!
+    LParams.Add('MonitorBy=FlatFile');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -70,10 +79,7 @@ begin
   try
     LParams.Add('Database=activerecorddb');
     LParams.Add('OSAuthent=Yes');
-//    LParams.Add('User_Name=sa');
-//    LParams.Add('Password=sa');
     LParams.Add('Server=DANIELETETI\SQLEXPRESS');
-    // LParams.Add('TinyIntFormat=Boolean'); { it's the default }
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -95,7 +101,7 @@ var
 begin
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..',
+    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..\..',
       'data\ACTIVERECORDDB.FDB')));
     LParams.Add('Protocol=TCPIP');
     LParams.Add('Server=localhost');
@@ -156,6 +162,7 @@ begin
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=postgres');
     LParams.Add('Password=postgres');
+    LParams.Add('MonitorBy=FlatFile');
 
     // https://quality.embarcadero.com/browse/RSP-19755?jql=text%20~%20%22firedac%20guid%22
     LParams.Add('GUIDEndian=Big');
@@ -199,5 +206,21 @@ begin
     LParams.Free;
   end;
 end;
+
+initialization
+
+gFlatFileMonitor := TFDMoniFlatFileClientLink.Create(nil);
+gFlatFileMonitor.FileColumns := [tiRefNo, tiTime, tiThreadID, tiClassName, tiObjID, tiMsgText];
+gFlatFileMonitor.EventKinds := [
+    ekVendor, ekConnConnect, ekLiveCycle, ekError, ekConnTransact,
+    ekCmdPrepare, ekCmdExecute, ekCmdDataIn, ekCmdDataOut];
+gFlatFileMonitor.ShowTraces := False;
+gFlatFileMonitor.FileAppend := False;
+gFlatFileMonitor.FileName := TPath.ChangeExtension(ParamStr(0), '.trace.log');
+gFlatFileMonitor.Tracing := True;
+
+finalization
+
+gFlatFileMonitor.Free;
 
 end.

@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
-![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.2--nitrogen-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.2.3--radium--beta-red)  
+![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.3--radium-blue)
+![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.3.0--fluorine--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -16,7 +16,8 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [Next Release: 3.2.3-radium-beta ("repo" version)](#next-release-323-radium-beta-repo-version)
+  - [What's New in 3.2.3-radium](#whats-new-in-323-radium)
+    - [Bug Fix in 3.2.3-radium](#bug-fix-in-323-radium)
   - [What's new in DelphiMVCFramework-3.2.2-nitrogen](#whats-new-in-delphimvcframework-322-nitrogen)
     - [Bug Fixes in 3.2.2-nitrogen](#bug-fixes-in-322-nitrogen)
     - [Breaking Changes in 3.2.2-nitrogen](#breaking-changes-in-322-nitrogen)
@@ -33,6 +34,8 @@
     - [What's New in 2.1.2-helium](#whats-new-in-212-helium)
     - [What's New in 2.1.1-hydrogen](#whats-new-in-211-hydrogen)
   - [Roadmap](#roadmap)
+  - [Next Release: 3.3.0-fluorine-beta ("repo" version)](#next-release-330-fluorine-beta-repo-version)
+  - [What's new in: 3.3.0-fluorine-beta ("repo" version)](#whats-new-in-330-fluorine-beta-repo-version)
   - [Trainings, consultancy or custom development service](#trainings-consultancy-or-custom-development-service)
   - [Samples and documentation](#samples-and-documentation)
 - [Getting Started: 5 minutes guide](#getting-started-5-minutes-guide)
@@ -129,7 +132,7 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 
 > If you are not involved in development or testing, do not clone the repo! Use the Github release!
 
-The last stable version is **dmvcframework-3.2.2-nitrogen** available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
+The last stable version is **dmvcframework-3.2.3-radium** available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
 
 ## Book: "DelphiMVCFramework - the official guide"
 
@@ -180,6 +183,7 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 |[Centro Software](https://www.centrosoftware.com)                      | ![](docs/sponsorlogos/centrosoftware.png) |
 |[Delphi Studio ES](http://www.delphistudio.es)                         | ![](docs/sponsorlogos/delphistudio.png)   |
 |[Orion Law](https://orionlaw.com/)                                     | ![](docs/sponsorlogos/orionlaw.png)       |
+|[Vivaticket](https://www.vivaticket.com/)                              | ![](docs/sponsorlogos/vivaticket.png)     |
 
 
 
@@ -208,9 +212,108 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
 
-## Next Release: 3.2.3-radium-beta ("repo" version)
 
-The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
+## What's New in 3.2.3-radium
+
+- ⚡ Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
+
+- ⚡ Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
+
+- ⚡ Improved handling of `TMVCErrorResponse` information 
+
+- ⚡ mid-air-collision handling now uses SHA1 instead of MD5
+
+- ⚡ Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`.
+
+- ⚡ Support for `TObject` descendants in JSONRPC APIs (not only for JSONObject and JSONArray).
+
+- ⚡ New global configuration variable `MVCSerializeNulls`.
+  
+  - When MVCSerializeNulls = True (default) empty nullables and nil are serialized as json null.
+  - When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+  
+- ⚡ Nullable types now have `Equal` method support, the new method `TryHasValue(out Value)` works like `HasValue` but returns the contained value if present. Also there is a better "equality check" strategy.
+
+- ⚡ Unit tests now are always executed for Win32 and Win64 bit (both client and server).
+
+- ⚡ Added `TMVCActiveRecord.Refresh` method
+
+- ⚡ Unit test suites generates one NUnit XML output file for each platform
+
+- ⚡ New built-in profiler (usable with Delphi 10.4+) - to profile a block of code, write the following 
+
+  ```delphi
+  procedure TMyController.ProfilerSample1;
+  begin
+    NotProfiled(); //this line is not profiled
+    //the following begin..end block will be profiled
+    //timing will be saved in a "profiler" log
+    begin var lProf := Profiler.Start(Context.ActionQualifiedName);
+      DoSomething();
+      DoSomethingElse();
+      Render('Just executed ' + Context.ActionQualifiedName);
+    end; // profiler writes automatically to the log
+    NotProfiled(); //this line is not profiled
+  end;
+  
+  procedure TMyController.DoSomething;
+  begin
+    begin var lProf := Profiler.Start('DoSomething');
+      Sleep(100);
+    end;
+  end;
+  
+  procedure TMyController.DoSomethingElse;
+  begin
+    begin var lProf := Profiler.Start('DoSomethingElse');
+      Sleep(100);
+      DoSomething();
+    end;
+  end;
+  
+  procedure TMyController.NotProfiled;
+  begin
+    Sleep(100);
+  end;
+  ```
+
+  The log contains the following lines - check the caller/called relationship shown using `>>` and `<<` and the deep level
+
+  ```
+  [>>][     1][MainControllerU.TMyController.ProfilerSample1] [profiler]
+  [ >>][     2][DoSomething] [profiler]
+  [ <<][     2][DoSomething][ELAPSED: 00:00:00.1088214] [profiler]
+  [ >>][     2][DoSomethingElse] [profiler]
+  [  >>][     3][DoSomething] [profiler]
+  [  <<][     3][DoSomething][ELAPSED: 00:00:00.1096617] [profiler]
+  [ <<][     2][DoSomethingElse][ELAPSED: 00:00:00.2188468] [profiler]
+  [<<][     1][MainControllerU.TMyController.ProfilerSample1][ELAPSED: 00:00:00.3277806] [profiler]
+  ```
+
+  To get more info check the "profiling" example.
+  
+  All profiler logs are generated with a log level `info`. If measured time is greater than `WarningThreshold` the log level is `warning`.
+  
+  `WarningThreshold` is expressed in milliseconds and by default is equals to 1000.
+
+- ⚡ New `Context` property named `ActionQualifiedName` which contains the currently executed action in the form `UnitName.ClassName.ActionName`. It is available where the `Context` property is available. Obviously is not available in the `OnBeforeRouting` middleware events.
+- ⚡ Added ObjectPool and IntfObjectPool (and related unit tests). Thanks to our sponsor [Vivaticket S.p.A.](https://corporate.vivaticket.com)
+- ⚡ Method `procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '' ... ` has been renamed to `RenderStatusMessage` with a better parameter names.
+- ⚡ `IMVCJSONRPCExecutor` supports async call. Thanks to our sponsor [Orion Law](https://orionlaw.com/). Check the new Async sample in `samples\jsonrpc_with_published_objects\`.
+- ⚡ Removed `foTransient` if `TMVCActiveRecord` `FieldOptions`. It became obsolete after introduction of `foReadOnly` and `foWriteOnly`.
+- ⚡ Improved `TMVCActiveRecordMiddleware`. Now it can handle multiple connections for the same request. Also, you can completely omit the 'default' connection and just specify wich connection you want to use before starting to create your `TMVCActiveRecord` inherited entities.
+
+### Bug Fix in 3.2.3-radium
+- Fixed a rendering problem in swagger interface format in case of specific JSON structure
+- Fix [issue 594](https://github.com/danieleteti/delphimvcframework/issues/594) (Thanks to [biware-repo](https://github.com/biware-repo))
+- Fix [issue 595](https://github.com/danieleteti/delphimvcframework/issues/595)
+- Fix [issue 590](https://github.com/danieleteti/delphimvcframework/issues/590)
+- Fix [issue 490](https://github.com/danieleteti/delphimvcframework/issues/490)
+- Fix [Issue 583](https://github.com/danieleteti/delphimvcframework/issues/583) (Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto)) 
+- Fix [Issue 585](https://github.com/danieleteti/delphimvcframework/issues/585)
+
+More details about dmvcframework-3.2.3-radium fixes [here](https://github.com/danieleteti/delphimvcframework/milestone/8?closed=1)
+
 
 ## What's new in DelphiMVCFramework-3.2.2-nitrogen
 
@@ -272,13 +375,13 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 - ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 
-- ✅ Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+- ✅ Improved! MVCActiveRecord does a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
 
 - ✅ Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
 
 - ✅ Improved Nullable Types. Now it's possible to assign `nil` to a nullable type and to check its state using the new property `IsNull` which is the negation of the already available property `HasValue`.
 
-- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the documetn web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
+- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the document web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
 
 - ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
 
@@ -286,7 +389,7 @@ The current beta release is named 3.2.3-radium-beta. If you want to stay on the-
 
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
 
-- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (check `activerecord_showcase` sample project).
 
 - ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
 
@@ -584,7 +687,6 @@ This version introduced new features in many different areas (swagger, server si
 
   - *foPrimaryKey* { it's the primary key of the mapped table }
   - *foAutoGenerated* { not written, read - similar to foReadOnly but is reloaded after insert and update }
-  - *foTransient* { never stored nor read - managed only at run-time }
   - *foReadOnly* { not written, read }
   - *foWriteOnly* { written, not read }
 
@@ -613,7 +715,6 @@ This version introduced new features in many different areas (swagger, server si
     private
       [MVCTableField('ID', [foPrimaryKey, foReadOnly])]
       fID: NullableInt32;
-      [MVCTableField('code', [foTransient])]
       fCode: NullableString;
       [MVCTableField('description', [foReadOnly])]
       fDescrizione: string;
@@ -1411,9 +1512,17 @@ end;
 
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
 
+## Next Release: 3.3.0-fluorine-beta ("repo" version)
+
+The current beta release is named 3.3.0-fluorine-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
+
+## What's new in: 3.3.0-fluorine-beta ("repo" version)
+
+Nothing, so far
+
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
-If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, all the main developers works there.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, the lead developer works there.
 
 ## Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
@@ -1425,7 +1534,7 @@ DMVCFramework allows to create powerful RESTful servers without effort. You can 
 
 ## DelphiMVCFramework Installation
 
-- DMVCFramework *must* be installed using the [Github release](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron). Download the zip file
+- DMVCFramework *must* be installed using the [Github release](https://github.com/danieleteti/delphimvcframework/releases/latest). Download the zip file
 
 - Unzip it the release zip in a folder named `C:\dmvc` (or where you prefer).
 
@@ -1718,4 +1827,3 @@ count() - Returns the count of the number of records in the query's result set
 ## Links
 
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
-

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -240,9 +240,7 @@ type
   public
     // records
     class function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject): T; overload; static;
-    class function JSONObjectToRecord<T: record >(const JSONRPCResponse: IInterface): T; overload; static;
     class function JSONArrayToArrayOfRecord<T: record >(const JSONArray: TJsonArray): TArray<T>; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record >(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
     // objects
     class function JsonObjectToObject<T: class, constructor>(const JSONObject: TJsonObject): T; overload; static;
     class function JSONArrayToListOf<T: class, constructor>(const JSONArray: TJsonArray): TObjectList<T>;
@@ -266,7 +264,6 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.JSONRPC,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables;
@@ -328,7 +325,6 @@ var
   lJsonDataType: TJsonDataType;
   lTypeInfo: PTypeInfo;
   lBuffer: Pointer;
-  // lValue: TValue;
   lCurrentArrayItem: TValue;
 begin
   if SameText(AName, 'RefCount') then
@@ -338,9 +334,21 @@ begin
 
   if AValue.IsEmpty then
   begin
-    AJSONObject[AName] := Null;
+    if AValue.IsArray then
+    begin
+      AJSONObject.A[AName] := TJDOJsonArray.Create;
+    end
+    else
+    begin
+      if MVCSerializeNulls then
+      begin
+        AJSONObject[AName] := Null;
+      end;
+    end;
     Exit;
   end;
+
+
 
   lTypeInfo := AValue.TypeInfo;
   // AValue.TypeInfo does not show the correct TypeInfo of the class instantiated for the object or interface
@@ -1391,14 +1399,21 @@ begin
         if lOwnedAttribute.ClassRef <> nil then
         begin
           ChildObject := TMVCSerializerHelper.CreateObject(lOwnedAttribute.ClassRef.QualifiedClassName);
+          AValue := ChildObject; //dt20221006
         end
         else
         begin
           case AType of
             stUnknown, stDefault, stProperties:
+            begin
               ChildObject := TMVCSerializerHelper.CreateObject(TRttiProperty(ARttiMember).PropertyType);
+              AValue := ChildObject; //dt20221006
+            end;
             stFields:
+            begin
               ChildObject := TMVCSerializerHelper.CreateObject(TRttiField(ARttiMember).FieldType);
+              AValue := ChildObject; //dt20221006
+            end;
           end;
         end;
         lTypeInfo := ChildObject.ClassInfo;
@@ -3224,219 +3239,153 @@ end;
 
 function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue; const AJSONObject: TJDOJsonObject;
   const AName: string; const ACustomAttributes: TArray<TCustomAttribute>): Boolean;
+var
+  lFoundANullable: Boolean;
 begin
   Result := False;
+  lFoundANullable := False;
   if (AValue.TypeInfo = System.TypeInfo(NullableString)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableString>().HasValue then
     begin
       AJSONObject.S[AName] := AValue.AsType<NullableString>().Value;
+      Result := True;
     end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
-    end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableInt32)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableInt32)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableInt32>().HasValue then
     begin
       AJSONObject.I[AName] := AValue.AsType<NullableInt32>().Value;
+      Result := True;
     end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
-    end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableInt64)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableInt64)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableInt64>().HasValue then
     begin
       AJSONObject.L[AName] := AValue.AsType<NullableInt64>().Value;
+      Result := True;
     end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
-    end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableInt16)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableInt16)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableInt16>().HasValue then
     begin
       AJSONObject.I[AName] := AValue.AsType<NullableInt16>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableTDate)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableTDate)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableTDate>().HasValue then
     begin
       AJSONObject.S[AName] := DateToISODate(AValue.AsType<NullableTDate>().Value);
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableTDateTime)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableTDateTime)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableTDateTime>().HasValue then
     begin
       AJSONObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsType<NullableTDateTime>().Value);
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableTTime)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableTTime)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableTTime>().HasValue then
     begin
       AJSONObject.S[AName] := TimeToISOTime(AValue.AsType<NullableTTime>().Value);
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableBoolean)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableBoolean)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableBoolean>().HasValue then
     begin
       AJSONObject.B[AName] := AValue.AsType<NullableBoolean>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableCurrency)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableCurrency)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableCurrency>().HasValue then
     begin
       AJSONObject.F[AName] := AValue.AsType<NullableCurrency>().Value;
+      Result := True;
     end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
-    end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableSingle)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableSingle)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableSingle>().HasValue then
     begin
       AJSONObject.F[AName] := AValue.AsType<NullableSingle>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableDouble)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableDouble)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableDouble>().HasValue then
     begin
       AJSONObject.F[AName] := AValue.AsType<NullableDouble>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableExtended)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableExtended)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableExtended>().HasValue then
     begin
       AJSONObject.F[AName] := AValue.AsType<NullableExtended>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  { from here all nullable integers }
-  if (AValue.TypeInfo = System.TypeInfo(NullableUInt16)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableUInt16)) then { from here all nullable integers }
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableUInt16>().HasValue then
     begin
       AJSONObject.I[AName] := AValue.AsType<NullableUInt16>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableUInt32)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableUInt32)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableUInt32>().HasValue then
     begin
       AJSONObject.I[AName] := AValue.AsType<NullableUInt32>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableUInt64)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableUInt64)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableUInt64>().HasValue then
     begin
       AJSONObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
-  end;
-
-  if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then
+  end else if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then
   begin
+    lFoundANullable := True;
     if AValue.AsType<NullableTGUID>().HasValue then
     begin
       if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(ACustomAttributes) then
         AJSONObject.S[AName] := TMVCGuidHelper.GUIDToStringEx(AValue.AsType<NullableTGUID>().Value)
       else
         AJSONObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
-    end
-    else
-    begin
-      AJSONObject.Values[AName] := nil;
+      Result := True;
     end;
-    Exit(True);
   end;
+
+
+  { if the type is a nullable but doesn't contains a value... }
+  if lFoundANullable and (not Result) and MVCSerializeNulls then
+  begin
+    AJSONObject.Values[AName] := nil;
+  end;
+  { if MVCSerializeEmptyNullableAsNull = False, an empty nullable doesn't have to contains "null"}
+
+  Result := lFoundANullable; {caller needs to know if AJSONObject contains a valid data}
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;
@@ -3936,20 +3885,6 @@ begin
   end;
 end;
 
-class function TJSONUtils.JSONArrayToArrayOfRecord<T>(const JSONRPCResponse: IInterface): TArray<T>;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONArrayToArrayOfRecord<T>(lIntf.ResultAsJSONArray);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
-  end;
-end;
-
 class function TJSONUtils.JSONArrayToListOf<T>(const JSONArray: TJsonArray): TObjectList<T>;
 var
   I: Integer;
@@ -3988,20 +3923,6 @@ begin
     end;
   finally
     lSer.Free;
-  end;
-end;
-
-class function TJSONUtils.JSONObjectToRecord<T>(const JSONRPCResponse: IInterface): T;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONObjectToRecord<T>(lIntf.ResultAsJSONObject);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
   end;
 end;
 

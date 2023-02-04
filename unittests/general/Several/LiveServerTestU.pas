@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -89,6 +89,8 @@ type
     procedure TestPOSTWithObjectJSONBody;
     [Test]
     procedure TestCustomerEcho;
+    [Test]
+    procedure TestCustomerEchoWithRootNode;
     [Test]
     procedure TestEchoWithAllVerbs;
     [Test]
@@ -343,6 +345,9 @@ type
     procedure TestRequestWithParams_I_I_ret_A;
     [Test]
     procedure TestRequestWithParams_DT_T_ret_DT;
+    // objects tests
+    [Test]
+    procedure TestRequestWithObjectParameters;
     // hooks tests
     [Test]
     procedure TestHooks;
@@ -905,6 +910,84 @@ begin
   end;
 end;
 
+procedure TServerTest.TestCustomerEchoWithRootNode;
+var
+  r: IMVCRESTResponse;
+  lCustomer1, lCustomer2: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lJSON: TJSONObject;
+  lSer: IMVCSerializer;
+begin
+  lSer := GetDefaultSerializer;
+  RegisterOptionalCustomTypesSerializers(lSer);
+  lCustomers := TCustomer.GetList(2);
+  try
+    lJSON := TJsonObject.Create;
+    try
+    (lSer as TMVCJsonDataObjectsSerializer)
+      .ObjectToJsonObject(lCustomers[0], lJSON.O['customer1'], TMVCSerializationType.stDefault, []);
+    (lSer as TMVCJsonDataObjectsSerializer)
+      .ObjectToJsonObject(lCustomers[1], lJSON.O['customer2'], TMVCSerializationType.stDefault, []);
+    r := RESTClient
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/customerecho2', lJSON.ToJSON);
+    finally
+      lJSON.Free;
+    end;
+
+
+    lJSON := StrToJSONObject(r.Content);
+    try
+      lCustomer1 := TCustomer.Create;
+      try
+        (lSer as TMVCJsonDataObjectsSerializer)
+          .JsonObjectToObject(
+            lJSON.O['customer1'],
+            lCustomer1,
+            TMVCSerializationType.stDefault,
+            []
+            );
+
+          Assert.AreEqual(lCustomers[0].name, lCustomer1.name);
+          Assert.AreEqual('', lCustomer1.ContactFirst);
+          Assert.AreEqual('', lCustomer1.ContactLast);
+          Assert.AreEqual(lCustomers[0].AddressLine1, lCustomer1.AddressLine1);
+          Assert.AreEqual(lCustomers[0].AddressLine2, lCustomer1.AddressLine2);
+          Assert.AreEqual(lCustomers[0].Logo.Width, lCustomer1.Logo.Width);
+          Assert.AreEqual(lCustomers[0].Logo.Height, lCustomer1.Logo.Height);
+
+        lCustomer2 := TCustomer.Create;
+        try
+          (lSer as TMVCJsonDataObjectsSerializer)
+            .JsonObjectToObject(
+              lJSON.O['customer2'],
+              lCustomer2,
+              TMVCSerializationType.stDefault,
+              []
+              );
+
+          Assert.AreEqual(lCustomers[1].name, lCustomer2.name);
+          Assert.AreEqual('', lCustomer2.ContactFirst);
+          Assert.AreEqual('', lCustomer2.ContactLast);
+          Assert.AreEqual(lCustomers[1].AddressLine1, lCustomer2.AddressLine1);
+          Assert.AreEqual(lCustomers[1].AddressLine2, lCustomer2.AddressLine2);
+          Assert.AreEqual(lCustomers[1].Logo.Width, lCustomer2.Logo.Width);
+          Assert.AreEqual(lCustomers[1].Logo.Height, lCustomer2.Logo.Height);
+
+        finally
+          lCustomer2.Free;
+        end;
+      finally
+        lCustomer1.Free;
+      end;
+    finally
+      lJSON.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+end;
+
 procedure TServerTest.TestCustomAuthLoginLogout;
 var
   lRes: IMVCRESTResponse;
@@ -983,7 +1066,7 @@ begin
     Assert.areEqual<string>('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual<string>('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
     Assert.areEqual<Integer>(500, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual<string>('error', lJSON.S['reasonstring'], lJSON.ToJSON());
+    Assert.areEqual<string>('Internal Server Error', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
   finally
@@ -1004,7 +1087,7 @@ begin
     Assert.areEqual<string>('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual<string>('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
     Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual<string>('error', lJSON.S['reasonstring'], lJSON.ToJSON());
+    Assert.areEqual<string>('Bad Request', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
   finally
@@ -1024,7 +1107,7 @@ begin
     Assert.areEqual('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
     Assert.areEqual(HTTP_STATUS.Created, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual('error', lJSON.S['reasonstring'], lJSON.ToJSON());
+    Assert.areEqual('Created', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(999, lJSON.I['apperrorcode'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
@@ -1046,7 +1129,7 @@ begin
     Assert.areEqual('detailedmessage', lJSON.S['detailedmessage'], lJSON.ToJSON());
     Assert.areEqual('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
     Assert.areEqual(HTTP_STATUS.Created, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual('error', lJSON.S['reasonstring'], lJSON.ToJSON());
+    Assert.areEqual('Created', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(999, lJSON.I['apperrorcode'], lJSON.ToJSON());
     Assert.areEqual(2, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.areEqual('erritem1', lJSON.A['items'].O[0].S['message'], lJSON.ToJSON());
@@ -1105,19 +1188,19 @@ begin
     try
       GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
-      Assert.areEqual(4, Length(lObj2.Names));
+      Assert.AreEqual<Integer>(4, Length(lObj2.Names));
       Assert.areEqual(lObj1.Names[0], lObj2.Names[0]);
       Assert.areEqual(lObj1.Names[1], lObj2.Names[1]);
       Assert.areEqual(lObj1.Names[2], lObj2.Names[2]);
       Assert.areEqual('added', lObj2.Names[3]);
 
-      Assert.areEqual(4, Length(lObj2.Values));
+      Assert.AreEqual<Integer>(4, Length(lObj2.Values));
       Assert.areEqual(lObj1.Values[0], lObj2.Values[0]);
       Assert.areEqual(lObj1.Values[1], lObj2.Values[1]);
       Assert.areEqual(lObj1.Values[2], lObj2.Values[2]);
       Assert.areEqual(99, lObj2.Values[3]);
 
-      Assert.areEqual(3, Length(lObj2.Booleans));
+      Assert.AreEqual<Integer>(3, Length(lObj2.Booleans));
       Assert.areEqual(lObj1.Booleans[0], lObj2.Booleans[0]);
       Assert.areEqual(lObj1.Booleans[1], lObj2.Booleans[1]);
       Assert.areEqual(true, lObj2.Booleans[2]);
@@ -1144,13 +1227,13 @@ begin
     try
       GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
-      Assert.areEqual(1, Length(lObj2.Names));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Names));
       Assert.areEqual('added', lObj2.Names[0]);
 
-      Assert.areEqual(1, Length(lObj2.Values));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Values));
       Assert.areEqual(99, lObj2.Values[0]);
 
-      Assert.areEqual(1, Length(lObj2.Booleans));
+      Assert.AreEqual<Integer>(1, Length(lObj2.Booleans));
       Assert.areEqual(true, lObj2.Booleans[0]);
     finally
       lObj2.Free;
@@ -2456,7 +2539,7 @@ begin
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
     Assert.areEqual(404, lRes.StatusCode);
     Assert.Contains(lRes.Content, '[EMVCException] Not Found', true);
-    Assert.Contains(lRes.Content, '<p>HTTP 404</p>', true);
+    Assert.Contains(lRes.Content, '<p>404 Not Found</p>', true);
   end;
 end;
 
@@ -2634,7 +2717,7 @@ begin
       lCount := 1001;
       Continue;
     end;
-    Assert.areEqual(9, Length(lLinePieces));
+    Assert.AreEqual<Integer>(9, Length(lLinePieces));
     Assert.areEqual(lCount, lLinePieces[0].ToInteger);
     Inc(lCount);
   end;
@@ -3023,6 +3106,30 @@ begin
   Assert.areEqual(1234, lResp.RequestID.AsInteger);
 end;
 
+procedure TJSONRPCServerTest.TestRequestWithObjectParameters;
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lPersSrc, lPersDst: TPerson;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'handlingobjects';
+  lPersSrc := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,12,1), True);
+  lReq.Params.AddByName('MyObj', lPersSrc);
+  lReq.RequestID := 1;
+  lResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lResp.IsError);
+
+  lPersDst := TPerson.Create;
+  try
+    lResp.ResultAs(lPersDst);
+    Assert.AreEqual(lPersSrc.ToString, lPersDst.ToString);
+  finally
+    lPersDst.Free;
+  end;
+end;
+
+
 procedure TJSONRPCServerTest.TestRequestWithoutParams;
 var
   lReq: IJSONRPCRequest;
@@ -3201,7 +3308,7 @@ begin
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   lSimpleRecArray := TJSONUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp);
-  Assert.AreEqual(3, Length(lSimpleRecArray));
+  Assert.AreEqual<Integer>(3, Length(lSimpleRecArray));
   Assert.AreEqual(0, lSimpleRecArray[0].IntegerProperty);
   Assert.AreEqual(1, lSimpleRecArray[1].IntegerProperty);
   Assert.AreEqual(2, lSimpleRecArray[2].IntegerProperty);
@@ -3242,7 +3349,7 @@ begin
   Assert.IsTrue(lRec.SimpleRecord.SetProperty - [EnumItem1, EnumItem3] = []);
 
   //Dynamic Array Records
-  Assert.AreEqual(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
+  Assert.AreEqual<Integer>(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
   Assert.AreEqual('1', lRec.SimpleRecordDynArray[0].StringProperty);
   Assert.AreEqual('2', lRec.SimpleRecordDynArray[1].StringProperty);
 

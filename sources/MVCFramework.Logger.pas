@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -32,6 +32,7 @@ uses
   System.Classes,
   System.SysUtils,
   MVCFramework.Commons,
+  System.Diagnostics,
   LoggerPro,
   LoggerPro.FileAppender;
 
@@ -40,6 +41,24 @@ const
 
 type
   TLogLevel = (levDebug = 0, levNormal = 1, levWarning = 2, levError = 3, levException = 4);
+
+{$IF Defined(SYDNEYORBETTER)}
+
+  Profiler = record
+  private
+    fMessage: string;
+    fStopWatch: TStopWatch;
+    fIndent: string;
+  public
+    class operator Finalize(var Dest: Profiler);
+    constructor Start(const Message: string); overload;
+    constructor Start(const Message: string; const Params: array of TVarRec); overload;
+    constructor Start(const Message: string; const Params: array of TVarRec; const TAG: String); overload;
+    class var ProfileLogger: ILogWriter;
+    class var LoggerTag: String;
+    class var WarningThreshold: Int64;
+  end;
+{$ENDIF}
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
 procedure Log(AMessage: string); overload;
@@ -72,6 +91,8 @@ procedure InitializeDefaultLogger;
 }
 procedure ReleaseGlobalLogger;
 
+procedure InitThreadVars;
+
 var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
 
@@ -82,10 +103,19 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
 
+{$IF Defined(SYDNEYORBETTER)}
+threadvar
+  gIndent: NativeUInt;
+  gReqNr: NativeUInt;
+
+const
+  PROFILER_LOG_TYPE: array [false..true] of TLogType = (TLogType.Info, TLogType.Warning);
+{$ENDIF}
+
 var
-  _lock: TObject;
-  _DefaultLogger: ILogWriter;
-  _LevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
+  gLock: TObject;
+  gDefaultLogger: ILogWriter;
+  gLevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
     (
       TLogType.Debug
     ),
@@ -105,62 +135,62 @@ var
 
 function Log: ILogWriter;
 begin
-  if _DefaultLogger = nil then
-  begin
-    SetDefaultLogger(nil);
-  end;
+    if gDefaultLogger = nil then
+    begin
+      SetDefaultLogger(nil);
+    end;
 
-  Result := _DefaultLogger;
+    Result := gDefaultLogger;
 end;
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
 begin
-  case ALogLevel of
-    levNormal:
-      Result := ''; // normal is '' because is more readable
-    levWarning:
-      Result := 'WARNING';
-    levError:
-      Result := 'ERROR';
-    levException:
-      Result := 'EXCEPTION';
-  else
-    Result := 'UNKNOWN';
-  end;
+    case ALogLevel of
+      levNormal:
+        Result := ''; // normal is '' because is more readable
+      levWarning:
+        Result := 'WARNING';
+      levError:
+        Result := 'ERROR';
+      levException:
+        Result := 'EXCEPTION';
+    else
+      Result := 'UNKNOWN';
+    end;
 end;
 
 function ObjectToJSON(const AObject: TObject): String;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  lSer := TMVCJsonDataObjectsSerializer.Create;
-  try
-    if TDuckTypedList.CanBeWrappedAsList(AObject) then
-    begin
-      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeCollection(AObject);
-    end
-    else
-    begin
-      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeObject(AObject);
+    lSer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      if TDuckTypedList.CanBeWrappedAsList(AObject) then
+      begin
+        Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeCollection(AObject);
+      end
+      else
+      begin
+        Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeObject(AObject);
+      end;
+    finally
+      lSer.Free;
     end;
-  finally
-    lSer.Free;
-  end;
 end;
 
 procedure LogW(AMessage: string);
 begin
-  Log.Warn(AMessage, LOGGERPRO_TAG);
+    Log.Warn(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogE(AMessage: string);
 begin
-  Log.Error(AMessage, LOGGERPRO_TAG);
+    Log.Error(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogException(const E: Exception; const AMessage: String);
 begin
-  LogE(E.ClassName + ': ' + AMessage);
+    LogE(E.ClassName + ': ' + AMessage);
 end;
 
 // procedure LogException(
@@ -173,166 +203,230 @@ end;
 
 procedure LogEnterMethod(const AMethodName: string);
 begin
-  LogI('>> ' + AMethodName);
+    LogI('>> ' + AMethodName);
 end;
 
 procedure LogExitMethod(const AMethodName: string);
 begin
-  LogI('<< ' + AMethodName);
+    LogI('<< ' + AMethodName);
 end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 begin
-  case _LevelsMap[LogLevel] of
-    TLogType.Debug:
-      Log.Debug(AMessage, LOGGERPRO_TAG);
-    TLogType.Info:
-      Log.Info(AMessage, LOGGERPRO_TAG);
-    TLogType.Warning:
-      Log.Warn(AMessage, LOGGERPRO_TAG);
-    TLogType.Error:
-      Log.Error(AMessage, LOGGERPRO_TAG);
-  else
-    raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
-  end;
+    case gLevelsMap[LogLevel] of
+      TLogType.Debug:
+        Log.Debug(AMessage, LOGGERPRO_TAG);
+      TLogType.Info:
+        Log.Info(AMessage, LOGGERPRO_TAG);
+      TLogType.Warning:
+        Log.Warn(AMessage, LOGGERPRO_TAG);
+      TLogType.Error:
+        Log.Error(AMessage, LOGGERPRO_TAG);
+    else
+      raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
+    end;
 
 end;
 
 procedure Log(AMessage: string); overload;
 begin
-  LogI(AMessage);
+    LogI(AMessage);
 end;
 
 procedure Log(AObject: TObject); overload;
 begin
-  Log(ObjectToJSON(AObject));
+    Log(ObjectToJSON(AObject));
 end;
 
 procedure LogI(AMessage: string); overload;
 begin
-  Log.Info(AMessage, LOGGERPRO_TAG);
+    Log.Info(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogD(AMessage: string); overload;
 begin
-  Log.Debug(AMessage, LOGGERPRO_TAG);
+    Log.Debug(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogD(AMessage: TObject); overload;
 begin
-  LogD(ObjectToJSON(AMessage));
+    LogD(ObjectToJSON(AMessage));
 end;
 
 procedure LogI(AObject: TObject); overload;
 begin
-  LogI(ObjectToJSON(AObject));
+    LogI(ObjectToJSON(AObject));
 end;
 
 procedure LogW(AObject: TObject); overload;
 begin
-  LogW(ObjectToJSON(AObject));
+    LogW(ObjectToJSON(AObject));
 end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
-  if _DefaultLogger = nil then
-  begin
-    TMonitor.Enter(_lock); // double check here
-    try
-      if _DefaultLogger = nil then
-      begin
-        if aLogWriter <> nil then
+    if gDefaultLogger = nil then
+    begin
+      TMonitor.Enter(gLock); // double check here
+      try
+        if gDefaultLogger = nil then
         begin
-          _DefaultLogger := aLogWriter;
-          Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
-        end
-        else
-        begin
-          InitializeDefaultLogger;
-          Log.Info('Default Logger initialized', LOGGERPRO_TAG);
+          if aLogWriter <> nil then
+          begin
+            gDefaultLogger := aLogWriter;
+            Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
+          end
+          else
+          begin
+            InitializeDefaultLogger;
+            Log.Info('Default Logger initialized', LOGGERPRO_TAG);
+          end;
         end;
+      finally
+        TMonitor.Exit(gLock);
       end;
-    finally
-      TMonitor.Exit(_lock);
     end;
-  end;
 end;
 
 procedure InitializeDefaultLogger;
 var
   lLogsFolder: String;
 begin
-  { This procedure must be called in a synchronized context
-    (Normally only SetDefaultLogger should be the caller) }
-  if not Assigned(_DefaultLogger) then
-  begin
+    { This procedure must be called in a synchronized context
+      (Normally only SetDefaultLogger should be the caller) }
+    if not Assigned(gDefaultLogger) then
+    begin
 {$IF NOT DEFINED(MOBILE)}
-    lLogsFolder := AppPath + 'logs';
+      lLogsFolder := AppPath + 'logs';
 {$ELSE}
-    lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
+      lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
-  end;
+      gDefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
+    end;
 end;
 
 procedure ReleaseGlobalLogger;
 begin
-  if _DefaultLogger <> nil then
-  begin
-    TMonitor.Enter(_lock);
-    try
-      if _DefaultLogger <> nil then // double check
-      begin
-        _DefaultLogger := nil;
+    if gDefaultLogger <> nil then
+    begin
+      TMonitor.Enter(gLock);
+      try
+        if gDefaultLogger <> nil then // double check
+        begin
+          gDefaultLogger := nil;
+        end;
+      finally
+        TMonitor.Exit(gLock);
       end;
-    finally
-      TMonitor.Exit(_lock);
     end;
-  end;
+end;
+
+
+{ ****************************************** }
+{ *************** PROFILER ***************** }
+{ ****************************************** }
+{$IF Defined(SYDNEYORBETTER)}
+
+constructor Profiler.Start(const Message: string; const Params: array of TVarRec);
+begin
+  Start(Message, Params, LoggerTag);
+end;
+
+constructor Profiler.Start(const Message: string; const Params: array of TVarRec; const TAG: String);
+begin
+  if Profiler.ProfileLogger = nil then
+    Exit;
+  fMessage := Format(Message, Params);
+  fStopWatch := TStopWatch.StartNew;
+  fIndent := StringOfChar(' ', gIndent);
+  Inc(gReqNr);
+  ProfileLogger.Info('[%s>>][%6d][%s]', [
+    fIndent,
+    gReqNr,
+    fMessage], TAG);
+  Inc(gIndent);
+end;
+
+class operator Profiler.Finalize(var Dest: Profiler);
+begin
+  if Profiler.ProfileLogger = nil then
+    Exit;
+  Dest.fStopWatch.Stop;
+  ProfileLogger.Log(
+    PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
+    '[%s<<][%6d][%s][ELAPSED: %s]',
+    [
+      Dest.fIndent,
+      gReqNr,
+      Dest.fMessage,
+      Dest.fStopWatch.Elapsed.ToString
+    ], LoggerTag);
+  Dec(gIndent);
+  Dec(gReqNr);
+end;
+
+constructor Profiler.Start(const Message: string);
+begin
+  Start(Message, []);
+end;
+{$ENDIF}
+
+procedure InitThreadVars;
+begin
+{$IF Defined(SYDNEYORBETTER)}
+  gIndent := 0;
+  gReqNr := 0;
+{$ENDIF}
 end;
 
 initialization
 
-_lock := TObject.Create;
+  gLock := TObject.Create;
 
-{ The TLoggerProFileAppender has its defaults defined as follows:
-  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
-  DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
-  DEFAULT_MAX_FILE_SIZE_KB = 1000;
+{$IF Defined(SYDNEYORBETTER)}
+  Profiler.LoggerTag := 'profiler';
+  Profiler.WarningThreshold := 1000; //one sec
+{$ENDIF}
+  { The TLoggerProFileAppender has its defaults defined as follows:
+    DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
+    DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
+    DEFAULT_MAX_FILE_SIZE_KB = 1000;
 
-  You can override these dafaults passing parameters to the constructor.
-  Here's some configuration examples:
-  @longcode(#
-  // Creates log in the same exe folder without PID in the filename
-  _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-  [TFileAppenderOption.LogsInTheSameFolder])]);
+    You can override these dafaults passing parameters to the constructor.
+    Here's some configuration examples:
+    @longcode(#
+    // Creates log in the same exe folder without PID in the filename
+    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
+    [TFileAppenderOption.LogsInTheSameFolder])]);
+
+    // Creates log in the AppData/Roaming with PID in the filename
+    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
+    [TFileAppenderOption.IncludePID])]);
+
+    // Creates log in the same folder with PID in the filename
+    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
+    [TFileAppenderOption.IncludePID])]);
+    #)
+  }
+
+  // Creates log in the ..\..\ folder without PID in the filename
+
+  // DefaultDMVCFrameworkLogger := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
+  // Create logs in the exe' same folder
+  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
 
   // Creates log in the AppData/Roaming with PID in the filename
-  _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-  [TFileAppenderOption.IncludePID])]);
+  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
+  // [TFileAppenderOption.IncludePID])]);
 
   // Creates log in the same folder with PID in the filename
-  _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-  [TFileAppenderOption.IncludePID])]);
-  #)
-}
+  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
+  // [TFileAppenderOption.IncludePID])]);
 
-// Creates log in the ..\..\ folder without PID in the filename
-
-// DefaultDMVCFrameworkLogger := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
-// Create logs in the exe' same folder
-// _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
-
-// Creates log in the AppData/Roaming with PID in the filename
-// _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-// [TFileAppenderOption.IncludePID])]);
-
-// Creates log in the same folder with PID in the filename
-// _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-// [TFileAppenderOption.IncludePID])]);
 
 finalization
 
-_lock.Free;
+  gLock.Free;
+
 
 end.

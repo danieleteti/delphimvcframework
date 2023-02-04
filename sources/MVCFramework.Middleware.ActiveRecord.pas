@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -40,9 +40,13 @@ type
 
   TMVCActiveRecordMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    fConnectionDefName: string;
+    fDefaultConnectionDefName: string;
     fConnectionDefFileName: string;
     fConnectionLoaded: Boolean;
+    fAdditionalARConnectionNames: TArray<String>;
+    fAdditionalConnectionDefNames: TArray<String>;
+    fAdditionalARConnectionNamesCount: Integer;
+    fAdditionalConnectionDefNamesCount: Integer;
   protected
     procedure EnsureConnection;
     procedure OnBeforeRouting(
@@ -68,8 +72,15 @@ type
       const AHandled: Boolean);
   public
     constructor Create(
-      const ConnectionDefName: string;
-      const ConnectionDefFileName: string = 'FDConnectionDefs.ini'); virtual;
+      const DefaultConnectionDefName: string); overload; virtual;
+    constructor Create(
+      const DefaultConnectionDefName: string;
+      const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
+    constructor Create(
+      const DefaultConnectionDefName: string;
+      const AdditionalARConnectionNames: TArray<String>;
+      const AdditionalConnectionDefNames: TArray<String>;
+      const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
   end;
 
 implementation
@@ -84,16 +95,34 @@ var
 
 { TMVCActiveRecordMiddleware }
 
-constructor TMVCActiveRecordMiddleware.Create(const ConnectionDefName: string;
+constructor TMVCActiveRecordMiddleware.Create(const DefaultConnectionDefName: string;
+  const ConnectionDefFileName: string);
+begin
+  Create(DefaultConnectionDefName, [], [], ConnectionDefFileName);
+end;
+
+constructor TMVCActiveRecordMiddleware.Create(
+  const DefaultConnectionDefName: string;
+  const AdditionalARConnectionNames, AdditionalConnectionDefNames: TArray<String>;
   const ConnectionDefFileName: string);
 begin
   inherited Create;
   fConnectionLoaded := False;
-  fConnectionDefName := ConnectionDefName;
+  fDefaultConnectionDefName := DefaultConnectionDefName;
   fConnectionDefFileName := ConnectionDefFileName;
+  fAdditionalARConnectionNames := AdditionalARConnectionNames;
+  fAdditionalConnectionDefNames := AdditionalConnectionDefNames;
+end;
+
+constructor TMVCActiveRecordMiddleware.Create(
+  const DefaultConnectionDefName: string);
+begin
+  Create(DefaultConnectionDefName, 'FDConnectionDefs.ini');
 end;
 
 procedure TMVCActiveRecordMiddleware.EnsureConnection;
+var
+  I: Integer;
 begin
   if fConnectionLoaded then
   begin
@@ -112,11 +141,38 @@ begin
       begin
         FDManager.ConnectionDefFileAutoLoad := False;
         FDManager.ConnectionDefFileName := fConnectionDefFileName;
-        FDManager.LoadConnectionDefFile;
-        if not FDManager.IsConnectionDef(fConnectionDefName) then
+        if not FDManager.ConnectionDefFileLoaded then
         begin
-          raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
-            [fConnectionDefName, FDManager.ActualConnectionDefFileName]);
+          FDManager.LoadConnectionDefFile;
+        end;
+      end;
+
+      //loading default connection
+      if not fDefaultConnectionDefName.IsEmpty then
+      begin
+        if not FDManager.IsConnectionDef(fDefaultConnectionDefName) then
+        begin
+          raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s" - or config file not present',
+            [fDefaultConnectionDefName, FDManager.ActualConnectionDefFileName]);
+        end;
+      end;
+
+      //loading additional connections
+      fAdditionalARConnectionNamesCount := Length(fAdditionalARConnectionNames);
+      fAdditionalConnectionDefNamesCount := Length(fAdditionalConnectionDefNames);
+      if (fAdditionalARConnectionNamesCount > 0) or (fAdditionalConnectionDefNamesCount > 0) then
+      begin
+        if fAdditionalARConnectionNamesCount <> fAdditionalConnectionDefNamesCount then
+        begin
+          raise EMVCConfigException.Create('AdditionalARConnectionNames must have the same length of AdditionalConnectionDefNames');
+        end;
+        for I := 0 to fAdditionalConnectionDefNamesCount - 1 do
+        begin
+          if not FDManager.IsConnectionDef(fAdditionalConnectionDefNames[I]) then
+          begin
+            raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
+              [fAdditionalConnectionDefNames[I], FDManager.ActualConnectionDefFileName]);
+          end;
         end;
       end;
     end;
@@ -136,8 +192,17 @@ begin
 end;
 
 procedure TMVCActiveRecordMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+var
+  I: Integer;
 begin
-  ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
+  if not fDefaultConnectionDefName.IsEmpty then
+  begin
+    ActiveRecordConnectionsRegistry.RemoveDefaultConnection(False);
+  end;
+  for I := 0 to fAdditionalConnectionDefNamesCount - 1 do
+  begin
+    ActiveRecordConnectionsRegistry.RemoveConnection(fAdditionalARConnectionNames[I], False);
+  end;
 end;
 
 procedure TMVCActiveRecordMiddleware.OnBeforeControllerAction(
@@ -149,9 +214,18 @@ begin
 end;
 
 procedure TMVCActiveRecordMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+var
+  I: Integer;
 begin
   EnsureConnection;
-  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnectionDefName);
+  if not fDefaultConnectionDefName.IsEmpty then
+  begin
+    ActiveRecordConnectionsRegistry.AddDefaultConnection(fDefaultConnectionDefName);
+  end;
+  for I := 0 to fAdditionalConnectionDefNamesCount - 1 do
+  begin
+    ActiveRecordConnectionsRegistry.AddConnection(fAdditionalARConnectionNames[I], fAdditionalConnectionDefNames[I]);
+  end;
   AHandled := False;
 end;
 

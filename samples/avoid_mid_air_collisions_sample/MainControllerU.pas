@@ -3,35 +3,17 @@ unit MainControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons;
+  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, Entities;
 
 type
-  [MVCNameCase(ncCamelCase)]
-  TPerson = class
-  private
-    fName: String;
-    fSurname: String;
-    fID: Integer;
-  public
-    function GetHash: String;
-    class function GetNew(const id: Integer; const Name, Surname: String): TPerson;
-    property ID: Integer read fID write fID;
-    property Name: String read fName write fName;
-    property Surname: String read fSurname write fSurname;
-  end;
-
-
   [MVCPath('/api/people')]
   TMyController = class(TMVCController)
-  private
-    function GetPersonByID(const ID: Integer): TPerson;
-    procedure UpdatePersonByID(const ID: Integer; const Person: TPerson);
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure Index;
-  public
-    // Sample CRUD Actions for a "person" entity
+    procedure GetPeople;
+
+
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure Getperson(id: Integer);
@@ -55,37 +37,19 @@ implementation
 
 uses
   System.SysUtils, MVCFramework.Logger, System.StrUtils, MVCFramework.Cache,
-  System.Rtti, MVCFramework.Rtti.Utils;
+  System.Rtti, MVCFramework.Rtti.Utils, MVCFramework.ActiveRecord;
 
-procedure TMyController.Index;
+procedure TMyController.GetPeople;
 begin
-  // use Context property to access to the HTTP request and response
-  Render('Hello DelphiMVCFramework World');
-end;
-
-function TMyController.GetPersonByID(const ID: Integer): TPerson;
-var
-  lPerson: TPerson;
-begin
-  lPerson := nil;
-  if not TMVCCacheSingleton.Instance.ExecOnItemWithWriteLock(id.ToString,
-    procedure(Value: TValue)
-    begin
-      lPerson := TRttiUtils.Clone(Value.AsObject) as TPerson;
-    end) then
-  begin
-    raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
-  end;
-  Result := lPerson;
+  Render(ObjectDict().Add('people', TMVCActiveRecord.All<TPerson>));
 end;
 
 procedure TMyController.Getperson(id: Integer);
 var
-  lItem: TMVCCacheItem;
   lPerson: TPerson;
 begin
-  lPerson := GetPersonByID(id);
-  SetETag(lPerson.GetHash);
+  lPerson := TMVCActiveRecord.GetByPK<TPerson>(ID);
+  SetETag(lPerson.GetUniqueString);
   Render(lPerson, True);
 end;
 
@@ -111,57 +75,43 @@ end;
 
 procedure TMyController.UpdatePerson(id: Integer; [MVCFromBody] const Person: TPerson);
 var
-  lItem: TMVCCacheItem;
   lPerson: TPerson;
 begin
   // retrieve data from storage
-  lPerson := GetPersonByID(id);
+  lPerson := TMVCActiveRecord.GetByPK<TPerson>(ID);
+  try
+    //check if the client modified the current version (a.k.a. mid-air collisions)
+    //raises an exception if client send a wrong If-Match header value
+    CheckIfMatch(lPerson.GetUniqueString);
 
-  //check if the client modified the current version (a.k.a. mid-air collisions)
-  //raises an exception if client send a wrong If-Match header value
-  CheckIfMatch(lPerson.GetHash);
+    //perform the actual update and save to the storage
+    lPerson.Assign(Person);
+    lPerson.Update();
 
-  //perform the actual update and save to the storage
-  lPerson.Name := Person.Name;
-  lPerson.Surname := Person.Surname;
-  UpdatePersonByID(lPerson.ID, lPerson);
+    //(optional) set the new ETag value base on the data status
+    SetETag(lPerson.GetUniqueString);
 
-  //set the new ETag value base on the data status
-  SetETag(lPerson.GetHash);
-
-  //reply with a 200 OK
-  Render(HTTP_STATUS.OK);
+    //reply with a 200 OK
+    RenderStatusMessage(HTTP_STATUS.OK);
+  finally
+    lPerson.Free;
+  end;
 end;
 
-procedure TMyController.UpdatePersonByID(const ID: Integer;
-  const Person: TPerson);
-begin
-  TMVCCacheSingleton.Instance.SetValue(ID.ToString, Person);
-end;
 
 procedure TMyController.DeletePerson(id: Integer);
 var
   lPerson: TPerson;
 begin
-  lPerson := GetPersonByID(ID);
-  CheckIfMatch(lPerson.GetHash);
-  TMVCCacheSingleton.Instance.RemoveItem(ID.ToString);
-  Render204NoContent();
-end;
-
-{ TPerson }
-
-function TPerson.GetHash: String;
-begin
-  Result := Format('%d|%s|%s', [fID, fName, fSurname]);
-end;
-
-class function TPerson.GetNew(const id: Integer; const Name, Surname: String): TPerson;
-begin
-  Result := TPerson.Create;
-  Result.fID := id;
-  Result.fName := Name;
-  Result.fSurname := Surname;
+  lPerson := TMVCActiveRecord.GetByPK<TPerson>(ID);
+  try
+    CheckIfMatch(lPerson.GetUniqueString);
+    lPerson.Delete();
+    Render204NoContent();
+  except
+    lPerson.Free;
+    raise;
+  end;
 end;
 
 end.

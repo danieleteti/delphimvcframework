@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -362,11 +362,11 @@ begin
     Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(http_status.Created, entityname.ToLower + ' created', '', lAR);
+      RenderStatusMessage(http_status.Created, entityname.ToLower + ' created', '', lAR);
     end
     else
     begin
-      Render(http_status.Created, entityname.ToLower + ' created');
+      RenderStatusMessage(http_status.Created, entityname.ToLower + ' created');
     end;
   finally
     lAR.Free;
@@ -411,11 +411,11 @@ begin
     Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(http_status.OK, entityname.ToLower + ' updated', '', lAR);
+      RenderStatusMessage(http_status.OK, entityname.ToLower + ' updated', '', lAR);
     end
     else
     begin
-      Render(http_status.OK, entityname.ToLower + ' updated');
+      RenderStatusMessage(http_status.OK, entityname.ToLower + ' updated');
     end;
   finally
     lAR.Free;

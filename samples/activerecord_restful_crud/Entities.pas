@@ -7,7 +7,10 @@ uses
   MVCFramework.ActiveRecord,
   MVCFramework.Nullables,
   System.Classes,
-  MVCFramework, System.Generics.Collections;
+  System.DateUtils,
+  MVCFramework,
+  MVCFramework.Utils,
+  System.Generics.Collections;
 
 type
 
@@ -51,6 +54,8 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    function GetUniqueString: String;
+    procedure Assign(ActiveRecord: TMVCActiveRecord); override;
     property ID: Int64 read fID write SetID;
     [MVCNameAs('person_surname')]
     property LastName: string read fLastName write SetLastName;
@@ -119,10 +124,27 @@ type
 implementation
 
 uses
-  System.DateUtils,
   System.SysUtils;
 
 { TPersona }
+
+procedure TPerson.Assign(ActiveRecord: TMVCActiveRecord);
+begin
+  if ActiveRecord is TPerson then
+  begin
+    var lPerson := TPerson(ActiveRecord);
+    Self.LastName := lPerson.LastName;
+    Self.FirstName := lPerson.FirstName;
+    Self.DOB := lPerson.DOB;
+    Self.IsMale := lPerson.IsMale;
+    Self.Note := lPerson.Note;
+    Self.Photo.Size := 0;
+    Self.Photo.CopyFrom(lPerson.Photo);
+    Self.Photo.Position := 0;
+  end
+  else
+    inherited;
+end;
 
 constructor TPerson.Create;
 begin
@@ -141,12 +163,23 @@ begin
   Result := fFullName;
 end;
 
+function TPerson.GetUniqueString: String;
+begin
+  Result :=
+    fID.ToString + '|' +
+    fFirstName + '|' +
+    fLastName + '|' +
+    DateToISODate(fDOB.ValueOrDefault) + '|' +
+    BoolToStr(fIsMale.ValueOrDefault, True) + '|' +
+    GetSHA1HashFromStream(fPhoto);
+end;
+
 procedure TPerson.OnAfterLoad;
 begin
   inherited;
   if fDOB.HasValue then
   begin
-    fAge := Yearsbetween(fDOB, now);
+    fAge := YearsBetween(fDOB, now);
   end
   else
   begin
@@ -157,7 +190,6 @@ end;
 procedure TPerson.OnBeforeInsert;
 begin
   inherited;
-  // TMemoryStream(fPhoto).LoadFromFile('C:\DEV\dmvcframework\samples\_\customer_small.png');
 end;
 
 procedure TPerson.OnBeforeInsertOrUpdate;

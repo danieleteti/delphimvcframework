@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -151,6 +151,8 @@ type
     function ProxyUsername: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
+    function ProxyScheme(const aProxyScheme: string): IMVCRESTClient; overload;
+    function ProxyScheme: string; overload;
 
 {$IF defined(TOKYOORBETTER)}
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
@@ -939,7 +941,6 @@ begin
   fBodyFormData := nil;
   fSerializer := nil;
   fRttiContext := TRttiContext.Create;
-  fProxySettings := TProxySettings.Create('', 0);
   fLock := TObject.Create;
   fBaseURL := '';
   fResource := '';
@@ -1588,6 +1589,17 @@ function TMVCRESTClient.ProxyServer(const aProxyServer: string): IMVCRESTClient;
 begin
   Result := Self;
   fProxySettings.Host := aProxyServer;
+end;
+
+function TMVCRESTClient.ProxyScheme: string;
+begin
+  Result := fProxySettings.Scheme;
+end;
+
+function TMVCRESTClient.ProxyScheme(const aProxyScheme: string): IMVCRESTClient;
+begin
+  fProxySettings.Scheme := aProxyScheme;
+  Result := Self;
 end;
 
 function TMVCRESTClient.ProxyServer: string;

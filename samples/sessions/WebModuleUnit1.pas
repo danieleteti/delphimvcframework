@@ -34,7 +34,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
-      Config[TMVCConfigKey.DefaultContentType] := 'application/json';
+      Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
     end);
   MVC.AddController(TApp1MainController);
 end;

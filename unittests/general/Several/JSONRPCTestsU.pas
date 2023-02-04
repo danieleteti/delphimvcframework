@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -46,6 +46,8 @@ type
     procedure TestRequestWithMalformedJSON;
     [Test]
     procedure TestNotificationWithNoParameters;
+    [Test]
+    procedure TestIssue595;
   end;
 
 
@@ -54,7 +56,17 @@ implementation
 
 { TJSONRPCTest }
 
-uses MVCFramework.JSONRPC;
+uses MVCFramework.JSONRPC, BusinessObjectsU, System.SysUtils;
+
+procedure TTestJSONRPC.TestIssue595;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      raise EMVCJSONRPCRemoteException.Create(100, 'ErrMessage');
+    end,
+    EMVCJSONRPCRemoteException);
+end;
 
 procedure TTestJSONRPC.TestNotificationWithNoParameters;
 var

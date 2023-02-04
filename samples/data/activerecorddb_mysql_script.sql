@@ -95,6 +95,9 @@ CREATE TABLE people (
 	is_male BOOLEAN DEFAULT TRUE NOT NULL,
 	note  TEXT,
 	photo BLOB,
+	person_type varchar(40),
+	salary numeric(18,4),
+	annual_bonus numeric(18,4),	
 	CONSTRAINT people_pkey PRIMARY KEY (id)
 );
 

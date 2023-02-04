@@ -8,8 +8,8 @@ uses
   FireDAC.Phys.MySQL,
   FireDAC.Phys.SQLite,
   System.SysUtils,
+  MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.REPLCommandsHandlerU,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -34,7 +34,6 @@ uses
 procedure RunServer(APort: Integer);
 var
   lServer: TIdHTTPWebBrokerBridge;
-  lCustomHandler: TMVCCustomREPLCommandsHandler;
   lCmd: string;
 begin
   ConnectionDefinitionName := CON_DEF_NAME;
@@ -63,12 +62,15 @@ begin
 
   lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    lServer.KeepAlive := True;
     lServer.DefaultPort := APort;
     lServer.MaxConnections := 0;
     lServer.ListenQueue := 200;
     lServer.Active := True;
+    WriteLn('Running on port ', APort);
     Write('CTRL+C to Quit');
     WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     lServer.Free;
   end;

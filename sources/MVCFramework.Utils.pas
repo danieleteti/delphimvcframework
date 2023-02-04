@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,6 +24,8 @@
 
 unit MVCFramework.Utils;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -37,6 +39,8 @@ function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean =
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 function GetMD5HashFromStream(AStream: TStream): string;
 function GetMD5HashFromString(const AString: String): string;
+function GetSHA1HashFromString(const AString: String): string;
+function GetSHA1HashFromStream(AStream: TStream): string;
 
 implementation
 
@@ -45,6 +49,7 @@ uses
   System.Hash,
 {$ELSE}
   IdHashMessageDigest,
+  IdHashSHA,
 {$ENDIF}
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Commons,
@@ -69,6 +74,24 @@ begin
 {$ENDIF}
 end;
 
+function GetSHA1HashFromStream(AStream: TStream): string;
+{$IF not defined(TOKYOORBETTER)}
+var
+  lSHA1Hash: TIdHashSHA1;
+{$ENDIF}
+begin
+{$IF defined(TOKYOORBETTER)}
+  Result := THashSHA1.GetHashString(AStream);
+{$ELSE}
+  lSHA1Hash := TIdHashSHA1.Create;
+  try
+    Result := lSHA1Hash.HashStreamAsHex(AStream);
+  finally
+    lSHA1Hash.Free;
+  end;
+{$ENDIF}
+end;
+
 function GetMD5HashFromString(const AString: String): string;
 {$IF not defined(TOKYOORBETTER)}
 var
@@ -76,13 +99,31 @@ var
 {$ENDIF}
 begin
 {$IF defined(TOKYOORBETTER)}
-  Result := THashMD5.GetHashString(AStream);
+  Result := THashMD5.GetHashString(AString);
 {$ELSE}
   lMD5Hash := TIdHashMessageDigest5.Create;
   try
     Result := lMD5Hash.HashStringAsHex(AString);
   finally
     lMD5Hash.Free;
+  end;
+{$ENDIF}
+end;
+
+function GetSHA1HashFromString(const AString: String): string;
+{$IF not defined(TOKYOORBETTER)}
+var
+  lSHA1Hash: TIdHashSHA1;
+{$ENDIF}
+begin
+{$IF defined(TOKYOORBETTER)}
+  Result := THashSHA1.GetHashString(AString);
+{$ELSE}
+  lSHA1Hash := TIdHashSHA1.Create;
+  try
+    Result := lSHA1Hash.HashStringAsHex(AString);
+  finally
+    lSHA1Hash.Free;
   end;
 {$ENDIF}
 end;
