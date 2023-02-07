@@ -1,0 +1,283 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
+unit MVCFramework.Middleware.SessionBasedAuthentication;
+
+{$I dmvcframework.inc}
+
+interface
+
+uses
+  System.SysUtils,
+  System.StrUtils,
+  System.Generics.Collections,
+  System.JSON,
+  MVCFramework,
+  MVCFramework.Commons;
+
+type
+  TMVCSessionBasedAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  private
+    FAuthenticationHandler: IMVCAuthenticationHandler;
+    FLoginUrl: string;
+    FLogoutUrl: string;
+    procedure SendResponse(AContext: TWebContext; var AHandled: Boolean; AHttpStatus: Word = HTTP_STATUS.Unauthorized);
+
+    procedure OnBeforeRouting(
+      AContext: TWebContext;
+      var AHandled: Boolean
+      );
+
+    procedure OnBeforeControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var AHandled: Boolean
+      ); virtual;
+
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
+
+    procedure OnAfterRouting(
+      AContext: TWebContext;
+      const AHandled: Boolean
+      );
+  protected
+    procedure DoLogin(AContext: TWebContext; var AHandled: Boolean); virtual;
+    procedure DoLogout(AContext: TWebContext; var AHandled: Boolean); virtual;
+  public
+    constructor Create(
+      const AAuthenticationHandler: IMVCAuthenticationHandler;
+      const ALoginUrl: string = '/login';
+      const ALogoutUrl: string = '/logout'
+      ); virtual;
+  end;
+
+implementation
+
+const
+  CONTENT_HTML_FORMAT = '<html><body><h1>%s</h1><p>%s</p></body></html>';
+
+constructor TMVCSessionBasedAuthenticationMiddleware.Create(
+  const AAuthenticationHandler: IMVCAuthenticationHandler;
+  const ALoginUrl, ALogoutUrl: string);
+begin
+  inherited Create;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FLoginUrl := ALoginUrl;
+  FLogoutUrl := ALogoutUrl;
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.DoLogin(
+  AContext: TWebContext;
+  var AHandled: Boolean);
+var
+  Jo: TJSONObject;
+  UserName, Password: string;
+  RolesList: TList<string>;
+  SessionPair: TPair<string, string>;
+  SessionData: TSessionData;
+  IsValid: Boolean;
+begin
+  AContext.SessionStop(False);
+  AContext.LoggedUser.Clear;
+  if not AContext.Request.ThereIsRequestBody then
+  begin
+    AHandled := True;
+    AContext.Response.StatusCode := HTTP_STATUS.BadRequest;
+    AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+    AContext.Response.RawWebResponse.Content :=
+      '{"status":"error", "message":"username and password are mandatory in the body request as json object"}';
+    Exit;
+  end;
+
+  Jo := TJSONObject.ParseJSONValue(AContext.Request.Body) as TJSONObject;
+  try
+    if not Assigned(Jo) then
+    begin
+      AHandled := True;
+      SendResponse(AContext, AHandled, HTTP_STATUS.BadRequest);
+      Exit;
+    end;
+
+    UserName := EmptyStr;
+    if (Jo.Get('username') <> nil) then
+      UserName := Jo.Get('username').JsonValue.Value;
+
+    Password := EmptyStr;
+    if (Jo.Get('password') <> nil) then
+      Password := Jo.Get('password').JsonValue.Value;
+
+    if UserName.IsEmpty or Password.IsEmpty then
+    begin
+      AHandled := True;
+      SendResponse(AContext, AHandled);
+      Exit;
+    end;
+
+    RolesList := TList<string>.Create;
+    try
+      SessionData := TSessionData.Create;
+      try
+        IsValid := False;
+        FAuthenticationHandler.OnAuthentication(AContext, UserName, Password, RolesList, IsValid, SessionData);
+        if not IsValid then
+        begin
+          SendResponse(AContext, AHandled);
+          Exit;
+        end;
+
+        AContext.LoggedUser.Roles.AddRange(RolesList);
+        AContext.LoggedUser.UserName := UserName;
+        AContext.LoggedUser.LoggedSince := Now;
+        AContext.LoggedUser.Realm := 'custom';
+        AContext.LoggedUser.SaveToSession(AContext.Session);
+
+        for SessionPair in SessionData do
+          AContext.Session[SessionPair.Key] := SessionPair.Value;
+
+        AContext.Response.StatusCode := HTTP_STATUS.OK;
+        AContext.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLogoutUrl;
+        AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+        AContext.Response.RawWebResponse.Content := '{"status":"OK"}';
+
+        AHandled := True;
+      finally
+        SessionData.Free;
+      end;
+    finally
+      RolesList.Free;
+    end;
+  finally
+    Jo.Free;
+  end;
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.DoLogout(
+  AContext: TWebContext; var AHandled: Boolean);
+begin
+  AContext.SessionStop(False);
+  SendResponse(AContext, AHandled, HTTP_STATUS.OK);
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext;
+  const AControllerQualifiedClassName, AActionName: string;
+  var AHandled: Boolean);
+var
+  IsValid: Boolean;
+  IsAuthorized: Boolean;
+  AuthRequired: Boolean;
+begin
+  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
+  if not AuthRequired then
+  begin
+    AHandled := False;
+    Exit;
+  end;
+
+  AContext.LoggedUser.LoadFromSession(AContext.Session);
+  IsValid := AContext.LoggedUser.IsValid;
+  if not IsValid then
+  begin
+    AContext.SessionStop(False);
+    SendResponse(AContext, AHandled);
+    Exit;
+  end;
+
+  IsAuthorized := False;
+  FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName,
+    AActionName, IsAuthorized);
+  if IsAuthorized then
+    AHandled := False
+  else
+  begin
+    if IsValid then
+      SendResponse(AContext, AHandled, HTTP_STATUS.Forbidden)
+    else
+      SendResponse(AContext, AHandled, HTTP_STATUS.Unauthorized);
+  end;
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.OnBeforeRouting(
+  AContext: TWebContext; var AHandled: Boolean);
+begin
+  if AnsiSameText(AContext.Request.PathInfo, FLoginUrl) then
+  begin
+    AHandled := False;
+
+    if (AContext.Request.HTTPMethod = httpPOST) and
+      (AContext.Request.ContentType.StartsWith(TMVCMediaType.APPLICATION_JSON)) then
+      DoLogin(AContext, AHandled);
+  end
+  else
+  if AnsiSameText(AContext.Request.PathInfo, FLogoutUrl) then
+  begin
+    AHandled := False;
+    DoLogout(AContext, AHandled);
+  end
+end;
+
+procedure TMVCSessionBasedAuthenticationMiddleware.SendResponse(
+  AContext: TWebContext; var AHandled: Boolean; AHttpStatus: Word);
+var
+  IsPositive: Boolean;
+  Msg: string;
+begin
+  AContext.LoggedUser.Clear;
+  AContext.Response.CustomHeaders.Values['X-LOGIN-URL'] := FLoginUrl;
+  AContext.Response.CustomHeaders.Values['X-LOGIN-METHOD'] := 'POST';
+  AContext.Response.StatusCode := AHttpStatus;
+  if AContext.Request.ClientPreferHTML then
+  begin
+    AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
+    AContext.Response.RawWebResponse.Content :=
+      Format(CONTENT_HTML_FORMAT, [IntToStr(AHttpStatus), AContext.Config[TMVCConfigKey.ServerName]]);
+  end
+  else
+  begin
+    IsPositive := (AHttpStatus div 100) = 2;
+    Msg := IfThen(IsPositive, 'OK', 'KO');
+    AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+    AContext.Response.RawWebResponse.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
+  end;
+  AHandled := True;
+end;
+
+end.

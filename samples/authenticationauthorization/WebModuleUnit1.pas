@@ -31,7 +31,7 @@ implementation
 uses
   AppControllerU,
   System.Generics.Collections,
-  MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.BasicAuthentication,
   MVCFramework.Middleware.StaticFiles,
   AuthenticationU;
 

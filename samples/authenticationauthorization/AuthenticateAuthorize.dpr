@@ -13,8 +13,8 @@ uses
   IdHTTPWebBrokerBridge,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
-  MVCFramework.Middleware.Authentication
-    in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Middleware.BasicAuthentication
+    in '..\..\sources\MVCFramework.Middleware.BasicAuthentication.pas',
   AuthenticationU in 'AuthenticationU.pas';
 
 {$R *.res}
