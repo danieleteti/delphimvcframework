@@ -1,0 +1,704 @@
+{
+  "swagger":"2.0",
+  "info":
+  {
+    "version":"v1",
+    "title":"Sample API",
+    "description":"Sample API Description",
+    "termsOfService":"http:\/\/www.apache.org\/licenses\/LICENSE-2.0.txt",
+    "contact":
+    {
+      "name":"Marcelo Jaloto",
+      "email":"marcelojaloto@gmail.com",
+      "url":"https:\/\/github.com\/marcelojaloto\/SwagDoc"
+    }
+,
+    "license":
+    {
+      "name":"Apache License - Version 2.0, January 2004",
+      "url":"http:\/\/www.apache.org\/licenses\/LICENSE-2.0"
+    }
+  }
+,
+  "host":"localhost",
+  "basePath":"\/api",
+  "schemes":
+  [
+    "http"
+  ]
+,
+  "consumes":
+  [
+    "application\/json"
+  ]
+,
+  "produces":
+  [
+    "application\/json"
+  ]
+,
+  "paths":
+  {
+    "\/employees":
+    {
+      "get":
+      {
+        "tags":
+        [
+          "API Employee"
+        ]
+,
+        "description":"Returns a employee list.",
+        "operationId":"{A9A8D343-00EB-402A-8248-94BDA7B6ECD4}",
+        "responses":
+        {
+          "200":
+          {
+            "description":"Successfully returns data",
+            "schema":
+            {
+              "type":"object",
+              "properties":
+              {
+                "employees":
+                {
+                  "type":"array",
+                  "description":"The employee datas.",
+                  "items":
+                  {
+                    "type":"object",
+                    "properties":
+                    {
+                      "employee":
+                      {
+                        "type":"object",
+                        "description":"Employee request data",
+                        "required":
+                        [
+                          "name",
+                          "gender"
+                        ]
+,
+                        "properties":
+                        {
+                          "id":
+                          {
+                            "type":"integer",
+                            "description":"The employee identification code.",
+                            "format":"int64"
+                          }
+,
+                          "name":
+                          {
+                            "type":"string",
+                            "description":"The employee full name.",
+                            "maxLength":80
+                          }
+,
+                          "phone":
+                          {
+                            "type":"string",
+                            "description":"The employee phone number."
+                          }
+,
+                          "hireDate":
+                          {
+                            "type":"string",
+                            "description":"The employee hire date.",
+                            "format":"yyyy-MM-dd"
+                          }
+,
+                          "salary":
+                          {
+                            "type":"number",
+                            "description":"The employee gross salary."
+                          }
+,
+                          "gender":
+                          {
+                            "type":"string",
+                            "description":"The employee gender.",
+                            "enum":
+                            [
+                              "male",
+                              "female"
+                            ]
+                          }
+,
+                          "address":
+                          {
+                            "type":"object",
+                            "description":"The employee full address.",
+                            "properties":
+                            {
+                              "description":
+                              {
+                                "type":"string",
+                                "description":"The employee address description."
+                              }
+,
+                              "city":
+                              {
+                                "type":"string",
+                                "description":"The employee address city."
+                              }
+,
+                              "region":
+                              {
+                                "type":"string",
+                                "description":"The employee address region."
+                              }
+,
+                              "country":
+                              {
+                                "type":"string",
+                                "description":"The employee address country."
+                              }
+,
+                              "postalCode":
+                              {
+                                "type":"string",
+                                "description":"The employee address postal code."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+,
+      "post":
+      {
+        "tags":
+        [
+          "API Employee"
+        ]
+,
+        "description":"Creates a employee.",
+        "operationId":"{C450E1E0-341D-4947-A156-9C167BE021D5}",
+        "parameters":
+        [
+                    {
+            "in":"body",
+            "name":"employee",
+            "required":true,
+            "schema":
+            {
+              "$ref":"#\/definitions\/employee"
+            }
+          }
+        ]
+,
+        "responses":
+        {
+          "201":
+          {
+            "description":"Successfully creates data",
+            "schema":
+            {
+              "type":"object",
+              "properties":
+              {
+                "employee":
+                {
+                  "type":"object",
+                  "description":"Employee request data",
+                  "required":
+                  [
+                    "name",
+                    "gender"
+                  ]
+,
+                  "properties":
+                  {
+                    "id":
+                    {
+                      "type":"integer",
+                      "description":"The employee identification code.",
+                      "format":"int64"
+                    }
+,
+                    "name":
+                    {
+                      "type":"string",
+                      "description":"The employee full name.",
+                      "maxLength":80
+                    }
+,
+                    "phone":
+                    {
+                      "type":"string",
+                      "description":"The employee phone number."
+                    }
+,
+                    "hireDate":
+                    {
+                      "type":"string",
+                      "description":"The employee hire date.",
+                      "format":"yyyy-MM-dd"
+                    }
+,
+                    "salary":
+                    {
+                      "type":"number",
+                      "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
+                    }
+,
+                    "address":
+                    {
+                      "type":"object",
+                      "description":"The employee full address.",
+                      "properties":
+                      {
+                        "description":
+                        {
+                          "type":"string",
+                          "description":"The employee address description."
+                        }
+,
+                        "city":
+                        {
+                          "type":"string",
+                          "description":"The employee address city."
+                        }
+,
+                        "region":
+                        {
+                          "type":"string",
+                          "description":"The employee address region."
+                        }
+,
+                        "country":
+                        {
+                          "type":"string",
+                          "description":"The employee address country."
+                        }
+,
+                        "postalCode":
+                        {
+                          "type":"string",
+                          "description":"The employee address postal code."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+,
+    "\/employees\/{id}":
+    {
+      "get":
+      {
+        "tags":
+        [
+          "API Employee"
+        ]
+,
+        "description":"Returns a employee.",
+        "operationId":"{2DDE05B6-C01A-4EB8-B7CD-2041C51C97C7}",
+        "parameters":
+        [
+                    {
+            "in":"path",
+            "name":"id",
+            "required":true,
+            "type":"integer"
+          }
+        ]
+,
+        "responses":
+        {
+          "200":
+          {
+            "description":"Successfully returns data",
+            "schema":
+            {
+              "type":"object",
+              "properties":
+              {
+                "employee":
+                {
+                  "type":"object",
+                  "description":"Employee request data",
+                  "required":
+                  [
+                    "name",
+                    "gender"
+                  ]
+,
+                  "properties":
+                  {
+                    "id":
+                    {
+                      "type":"integer",
+                      "description":"The employee identification code.",
+                      "format":"int64"
+                    }
+,
+                    "name":
+                    {
+                      "type":"string",
+                      "description":"The employee full name.",
+                      "maxLength":80
+                    }
+,
+                    "phone":
+                    {
+                      "type":"string",
+                      "description":"The employee phone number."
+                    }
+,
+                    "hireDate":
+                    {
+                      "type":"string",
+                      "description":"The employee hire date.",
+                      "format":"yyyy-MM-dd"
+                    }
+,
+                    "salary":
+                    {
+                      "type":"number",
+                      "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
+                    }
+,
+                    "address":
+                    {
+                      "type":"object",
+                      "description":"The employee full address.",
+                      "properties":
+                      {
+                        "description":
+                        {
+                          "type":"string",
+                          "description":"The employee address description."
+                        }
+,
+                        "city":
+                        {
+                          "type":"string",
+                          "description":"The employee address city."
+                        }
+,
+                        "region":
+                        {
+                          "type":"string",
+                          "description":"The employee address region."
+                        }
+,
+                        "country":
+                        {
+                          "type":"string",
+                          "description":"The employee address country."
+                        }
+,
+                        "postalCode":
+                        {
+                          "type":"string",
+                          "description":"The employee address postal code."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+,
+      "put":
+      {
+        "tags":
+        [
+          "API Employee"
+        ]
+,
+        "description":"Updates a employee.",
+        "operationId":"{28E989FB-0225-40BD-A97E-8D1EA80D09AF}",
+        "parameters":
+        [
+                    {
+            "in":"path",
+            "name":"id",
+            "required":true,
+            "type":"integer"
+          }
+,
+          
+          {
+            "in":"body",
+            "name":"employee",
+            "required":true,
+            "schema":
+            {
+              "$ref":"#\/definitions\/employee"
+            }
+          }
+        ]
+,
+        "responses":
+        {
+          "200":
+          {
+            "description":"Successfully updates data",
+            "schema":
+            {
+              "type":"object",
+              "properties":
+              {
+                "employee":
+                {
+                  "type":"object",
+                  "description":"Employee request data",
+                  "required":
+                  [
+                    "name",
+                    "gender"
+                  ]
+,
+                  "properties":
+                  {
+                    "id":
+                    {
+                      "type":"integer",
+                      "description":"The employee identification code.",
+                      "format":"int64"
+                    }
+,
+                    "name":
+                    {
+                      "type":"string",
+                      "description":"The employee full name.",
+                      "maxLength":80
+                    }
+,
+                    "phone":
+                    {
+                      "type":"string",
+                      "description":"The employee phone number."
+                    }
+,
+                    "hireDate":
+                    {
+                      "type":"string",
+                      "description":"The employee hire date.",
+                      "format":"yyyy-MM-dd"
+                    }
+,
+                    "salary":
+                    {
+                      "type":"number",
+                      "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
+                    }
+,
+                    "address":
+                    {
+                      "type":"object",
+                      "description":"The employee full address.",
+                      "properties":
+                      {
+                        "description":
+                        {
+                          "type":"string",
+                          "description":"The employee address description."
+                        }
+,
+                        "city":
+                        {
+                          "type":"string",
+                          "description":"The employee address city."
+                        }
+,
+                        "region":
+                        {
+                          "type":"string",
+                          "description":"The employee address region."
+                        }
+,
+                        "country":
+                        {
+                          "type":"string",
+                          "description":"The employee address country."
+                        }
+,
+                        "postalCode":
+                        {
+                          "type":"string",
+                          "description":"The employee address postal code."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+,
+      "delete":
+      {
+        "tags":
+        [
+          "API Employee"
+        ]
+,
+        "description":"Deletes a employee.",
+        "operationId":"{F47F38F3-2B99-4481-AFDD-ECD89893FEA0}",
+        "parameters":
+        [
+                    {
+            "in":"path",
+            "name":"id",
+            "required":true,
+            "type":"integer"
+          }
+        ]
+,
+        "responses":
+        {
+          "204":
+          {
+            "description":"Successfully deletes data"
+          }
+        }
+      }
+    }
+  }
+,
+  "definitions":
+  {
+    "employee":
+    {
+      "type":"object",
+      "description":"Employee response data",
+      "required":
+      [
+        "name",
+        "gender"
+      ]
+,
+      "properties":
+      {
+        "name":
+        {
+          "type":"string",
+          "description":"The employee full name.",
+          "maxLength":80
+        }
+,
+        "phone":
+        {
+          "type":"string",
+          "description":"The employee phone number."
+        }
+,
+        "hireDate":
+        {
+          "type":"string",
+          "description":"The employee hire date.",
+          "format":"yyyy-MM-dd"
+        }
+,
+        "salary":
+        {
+          "type":"number",
+          "description":"The employee gross salary."
+        }
+,
+        "gender":
+        {
+          "type":"string",
+          "description":"The employee gender.",
+          "enum":
+          [
+            "male",
+            "female"
+          ]
+        }
+,
+        "address":
+        {
+          "type":"object",
+          "description":"The employee full address.",
+          "properties":
+          {
+            "description":
+            {
+              "type":"string",
+              "description":"The employee address description."
+            }
+,
+            "city":
+            {
+              "type":"string",
+              "description":"The employee address city."
+            }
+,
+            "region":
+            {
+              "type":"string",
+              "description":"The employee address region."
+            }
+,
+            "country":
+            {
+              "type":"string",
+              "description":"The employee address country."
+            }
+,
+            "postalCode":
+            {
+              "type":"string",
+              "description":"The employee address postal code."
+            }
+          }
+        }
+      }
+    }
+  }
+}
