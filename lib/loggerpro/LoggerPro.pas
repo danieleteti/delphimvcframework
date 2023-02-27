@@ -779,7 +779,7 @@ begin
   if Assigned(FOnLogRow) then
     FOnLogRow(ALogItem, Result)
   else
-    Result := Format(FLogFormat, [datetimetostr(ALogItem.TimeStamp, FFormatSettings),
+    Result := Format(FLogFormat, [DateTimeToStr(ALogItem.TimeStamp, FFormatSettings),
       ALogItem.ThreadID, ALogItem.LogTypeAsString, ALogItem.LogMessage, ALogItem.LogTag]);
 end;
 
