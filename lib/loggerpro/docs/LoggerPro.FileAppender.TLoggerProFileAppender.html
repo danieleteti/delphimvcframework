@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+<title>LoggerPro: LoggerPro.FileAppender: Class TLoggerProFileAppender</title>
+<meta name="generator" content="PasDoc 0.14.0">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="StyleSheet" type="text/css" href="pasdoc.css">
+</head>
+<body>
+<table class="container"><tr><td class="navigation">
+<h2>LoggerPro</h2><p><a href="AllUnits.html" class="navigation">Units</a></p><p><a href="ClassHierarchy.html" class="navigation">Class Hierarchy</a></p><p><a href="AllClasses.html" class="navigation">Classes, Interfaces, Objects and Records</a></p><p><a href="AllTypes.html" class="navigation">Types</a></p><p><a href="AllVariables.html" class="navigation">Variables</a></p><p><a href="AllConstants.html" class="navigation">Constants</a></p><p><a href="AllFunctions.html" class="navigation">Functions and Procedures</a></p><p><a href="AllIdentifiers.html" class="navigation">Identifiers</a></p></td><td class="content">
+<h2>LoggerPro (1.0)</h2><p>A simple, pluggable and modern logging framework for Delphi</p>
+<a name="TLoggerProFileAppender"></a><h1 class="cio">Class TLoggerProFileAppender</h1>
+<table class="sections wide_list">
+<tr>
+<td><a class="section" href="#PasDoc-Description">Description</a></td><td><a class="section" href="#PasDoc-Hierarchy">Hierarchy</a></td><td><a class="section" href="#PasDoc-Fields">Fields</a></td><td><a class="section" href="#PasDoc-Methods">Methods</a></td><td>Properties</td></tr></table>
+<a name="PasDoc-Description"></a><h2 class="unit">Unit</h2>
+<p class="unitlink">
+<a  href="LoggerPro.FileAppender.html">LoggerPro.FileAppender</a></p>
+<h2 class="declaration">Declaration</h2>
+<p class="declaration">
+<code>type TLoggerProFileAppender = class(<a class="normal" href="LoggerPro.TLoggerProAppenderBase.html">TLoggerProAppenderBase</a>)</code></p>
+<h2 class="description">Description</h2>
+<p>
+The default file appender</p>
+<p>
+ To learn how to use this appender, check the sample <code>file_appender.dproj</code></p>
+<a name="PasDoc-Hierarchy"></a><h2 class="hierarchy">Hierarchy</h2>
+<ul class="hierarchy"><li class="ancestor">TInterfacedObject</li>
+<li class="ancestor"><a class="normal" href="LoggerPro.TLoggerProAppenderBase.html">TLoggerProAppenderBase</a></li>
+<li class="thisitem">TLoggerProFileAppender</li></ul><h2 class="overview">Overview</h2>
+<a name="PasDoc-Fields"></a><h3 class="summary">Fields</h3>
+<table class="summary wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>internal const <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_LOG_FORMAT">DEFAULT_LOG_FORMAT</a></b> = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>internal const <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_BACKUP_FILE_COUNT">DEFAULT_MAX_BACKUP_FILE_COUNT</a></b> = 5;</code></td>
+</tr>
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>internal const <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_FILE_SIZE_KB">DEFAULT_MAX_FILE_SIZE_KB</a></b> = 1000;</code></td>
+</tr>
+</table>
+<a name="PasDoc-Methods"></a><h3 class="summary">Methods</h3>
+<table class="summary wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>constructor <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#Create">Create</a></b>(aMaxBackupFileCount : Integer = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_BACKUP_FILE_COUNT">DEFAULT_MAX_BACKUP_FILE_COUNT</a>; aMaxFileSizeInKiloByte: Integer = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_FILE_SIZE_KB">DEFAULT_MAX_FILE_SIZE_KB</a>; aLogsFolder: string = ''; aFileAppenderOptions: <a  href="LoggerPro.FileAppender.html#TFileAppenderOptions">TFileAppenderOptions</a> = []; aLogFormat: string = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_LOG_FORMAT">DEFAULT_LOG_FORMAT</a>); reintroduce;</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#Setup">Setup</a></b>; override;</code></td>
+</tr>
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#TearDown">TearDown</a></b>; override;</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#WriteLog">WriteLog</a></b>(const aLogItem: <a  href="LoggerPro.TLogItem.html">TLogItem</a>); overload; override;</code></td>
+</tr>
+</table>
+<h2 class="description">Description</h2>
+<h3 class="detail">Fields</h3>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="DEFAULT_LOG_FORMAT"></a><code>internal const <b>DEFAULT_LOG_FORMAT</b> = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+Defines the default format string used by the <a class="normal" href="LoggerPro.FileAppender.TLoggerProFileAppender.html">TLoggerProFileAppender</a>.</p>
+<p>
+ The positional parameters are the followings: </p>
+
+<ol class="paragraph_spacing">
+  <li value="0"><p>TimeStamp</p></li>
+  <li value="1"><p>ThreadID</p></li>
+  <li value="2"><p>LogType</p></li>
+  <li value="3"><p>LogMessage</p></li>
+  <li value="4"><p>LogTag</p></li>
+</ol>
+
+<p></p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="DEFAULT_MAX_BACKUP_FILE_COUNT"></a><code>internal const <b>DEFAULT_MAX_BACKUP_FILE_COUNT</b> = 5;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+Defines number of log file set to mantain during logs rotation</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="DEFAULT_MAX_FILE_SIZE_KB"></a><code>internal const <b>DEFAULT_MAX_FILE_SIZE_KB</b> = 1000;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+Defines the max size of each log file</p>
+<p>
+ The actual meaning is: &quot;If the file size is &gt; than <a class="normal" href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_FILE_SIZE_KB">DEFAULT_MAX_FILE_SIZE_KB</a> then rotate logs.</p>
+</td></tr>
+</table>
+<h3 class="detail">Methods</h3>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="Create"></a><code>constructor <b>Create</b>(aMaxBackupFileCount : Integer = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_BACKUP_FILE_COUNT">DEFAULT_MAX_BACKUP_FILE_COUNT</a>; aMaxFileSizeInKiloByte: Integer = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_MAX_FILE_SIZE_KB">DEFAULT_MAX_FILE_SIZE_KB</a>; aLogsFolder: string = ''; aFileAppenderOptions: <a  href="LoggerPro.FileAppender.html#TFileAppenderOptions">TFileAppenderOptions</a> = []; aLogFormat: string = <a  href="LoggerPro.FileAppender.TLoggerProFileAppender.html#DEFAULT_LOG_FORMAT">DEFAULT_LOG_FORMAT</a>); reintroduce;</code></td>
+</tr>
+<tr><td colspan="2">
+&nbsp;</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="Setup"></a><code>procedure <b>Setup</b>; override;</code></td>
+</tr>
+<tr><td colspan="2">
+&nbsp;</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="TearDown"></a><code>procedure <b>TearDown</b>; override;</code></td>
+</tr>
+<tr><td colspan="2">
+&nbsp;</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="WriteLog"></a><code>procedure <b>WriteLog</b>(const aLogItem: <a  href="LoggerPro.TLogItem.html">TLogItem</a>); overload; override;</code></td>
+</tr>
+<tr><td colspan="2">
+&nbsp;</td></tr>
+</table>
+Copyright 2016 Daniele Teti
+<hr noshade size="1"><span class="appinfo"><em>Generated by <a  href="http://pasdoc.sourceforge.net/">PasDoc 0.14.0</a>. </em>
+</span>
+</td></tr></table></body></html>
