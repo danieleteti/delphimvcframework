@@ -1,0 +1,96 @@
+object Form2: TForm2
+  Left = 0
+  Top = 0
+  Caption = 'Form2'
+  ClientHeight = 569
+  ClientWidth = 343
+  Padding.Left = 10.000000000000000000
+  Padding.Top = 10.000000000000000000
+  Padding.Right = 10.000000000000000000
+  Padding.Bottom = 10.000000000000000000
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 3
+  object btnDEBUG: TButton
+    Align = Top
+    Margins.Left = 5.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 5.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Position.X = 15.000000000000000000
+    Position.Y = 54.000000000000000000
+    Size.Width = 313.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Text = 'Send DEBUG Message'
+    OnClick = btnDEBUGClick
+    Left = 8
+    Top = 8
+  end
+  object btnWARNING: TButton
+    Align = Top
+    Margins.Left = 5.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 5.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Position.X = 15.000000000000000000
+    Position.Y = 188.000000000000000000
+    Size.Width = 313.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Send WARNING Message'
+    OnClick = btnWARNINGClick
+    Left = 151
+    Top = 8
+  end
+  object btnINFO: TButton
+    Align = Top
+    Margins.Left = 5.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 5.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Position.X = 15.000000000000000000
+    Position.Y = 121.000000000000000000
+    Size.Width = 313.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Send INFO Message'
+    OnClick = btnINFOClick
+    Left = 294
+    Top = 8
+  end
+  object btnERROR: TButton
+    Align = Top
+    Margins.Left = 5.000000000000000000
+    Margins.Top = 5.000000000000000000
+    Margins.Right = 5.000000000000000000
+    Margins.Bottom = 5.000000000000000000
+    Position.X = 15.000000000000000000
+    Position.Y = 255.000000000000000000
+    Size.Width = 313.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Send ERROR Message'
+    OnClick = btnERRORClick
+    Left = 437
+    Top = 8
+  end
+  object Label1: TLabel
+    Align = MostTop
+    Position.X = 10.000000000000000000
+    Position.Y = 10.000000000000000000
+    Size.Width = 323.000000000000000000
+    Size.Height = 39.000000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'listboxheaderlabel'
+    TextSettings.HorzAlign = Center
+    Text = 'LoggerPro - REST Appender DEMO'
+    TabOrder = 4
+  end
+end
