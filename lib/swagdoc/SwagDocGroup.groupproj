@@ -1,0 +1,84 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{3C1FCD51-30A3-4F2F-AF40-D8969DF3C49A}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Source\SwagDoc.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demos\GenerateSwaggerJsonFromCode\GenerateSwagger.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demos\LoadSwaggerJsonToObject\LoadSwaggerJsonToObject.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demos\SampleApi\SampleApi.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SwagDoc">
+        <MSBuild Projects="Source\SwagDoc.dproj"/>
+    </Target>
+    <Target Name="SwagDoc:Clean">
+        <MSBuild Projects="Source\SwagDoc.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SwagDoc:Make">
+        <MSBuild Projects="Source\SwagDoc.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="GenerateSwagger">
+        <MSBuild Projects="Demos\GenerateSwaggerJsonFromCode\GenerateSwagger.dproj"/>
+    </Target>
+    <Target Name="GenerateSwagger:Clean">
+        <MSBuild Projects="Demos\GenerateSwaggerJsonFromCode\GenerateSwagger.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GenerateSwagger:Make">
+        <MSBuild Projects="Demos\GenerateSwaggerJsonFromCode\GenerateSwagger.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LoadSwaggerJsonToObject">
+        <MSBuild Projects="Demos\LoadSwaggerJsonToObject\LoadSwaggerJsonToObject.dproj"/>
+    </Target>
+    <Target Name="LoadSwaggerJsonToObject:Clean">
+        <MSBuild Projects="Demos\LoadSwaggerJsonToObject\LoadSwaggerJsonToObject.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LoadSwaggerJsonToObject:Make">
+        <MSBuild Projects="Demos\LoadSwaggerJsonToObject\LoadSwaggerJsonToObject.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SampleApi">
+        <MSBuild Projects="Demos\SampleApi\SampleApi.dproj"/>
+    </Target>
+    <Target Name="SampleApi:Clean">
+        <MSBuild Projects="Demos\SampleApi\SampleApi.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SampleApi:Make">
+        <MSBuild Projects="Demos\SampleApi\SampleApi.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="GenerateUnitFileForMVCFramework">
+        <MSBuild Projects="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj"/>
+    </Target>
+    <Target Name="GenerateUnitFileForMVCFramework:Clean">
+        <MSBuild Projects="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GenerateUnitFileForMVCFramework:Make">
+        <MSBuild Projects="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SwagDoc;GenerateSwagger;LoadSwaggerJsonToObject;SampleApi;GenerateUnitFileForMVCFramework"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SwagDoc:Clean;GenerateSwagger:Clean;LoadSwaggerJsonToObject:Clean;SampleApi:Clean;GenerateUnitFileForMVCFramework:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SwagDoc:Make;GenerateSwagger:Make;LoadSwaggerJsonToObject:Make;SampleApi:Make;GenerateUnitFileForMVCFramework:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
