@@ -40,7 +40,8 @@ requires
   FireDACMySQLDriver,
   loggerproRT,
   FireDACPgDriver,
-  FireDACSqliteDriver;
+  FireDACSqliteDriver,
+  SwagDoc;
 
 contains
   MVCFramework in '..\..\sources\MVCFramework.pas',
@@ -100,7 +101,9 @@ contains
   MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
-  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas';
+  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
+  MVCFramework.AsyncTask in '..\..\sources\MVCFramework.AsyncTask.pas';
 
 end.
 
