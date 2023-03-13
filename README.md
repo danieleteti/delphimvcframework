@@ -213,7 +213,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
 
 
-## What's New in 3.2.3-radium
+## What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")
+
+- 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
+
+## What's New in dmvcframework-3.2.3-radium
 
 - ⚡ Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
 

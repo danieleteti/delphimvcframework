@@ -3816,7 +3816,8 @@ begin
         (not IsIgnoredAttribute(AIgnoredAttributes, lField.Name)) then
       begin
         lKeyName := TMVCSerializerHelper.GetKeyName(lField, lRTTIType);
-        if lField.FieldType.IsRecord then
+        //issue 648
+        if lField.FieldType.IsRecord and not lField.FieldType.Handle.NameFld.ToString.StartsWith('Nullable') then
         begin
           JSONObjectToNestedRecordField(JSONObject.O[lKeyName], lField, 0, lBuffer);
         end

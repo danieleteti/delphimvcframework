@@ -397,6 +397,16 @@ type
 
   TComplexRecordArray = TArray<TComplexRecord>;
 
+  TCustomerIssue648 = record
+    Id: NullableInt32;
+    Added: TDateTime;
+    Name: NullableString;
+    ExpirationDate: NullableTDate;
+    MaxUpdateDate: NullableTDate;
+    AppVersion: NullableString;
+    Activated: NullableTDateTime;
+  end;
+
 
 implementation
 

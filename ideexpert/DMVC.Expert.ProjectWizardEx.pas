@@ -50,6 +50,8 @@ type
 
 implementation
 
+{$I dmvcframework.inc}
+
 uses
   DccStrs,
   System.IOUtils,
@@ -168,7 +170,11 @@ begin
     function: Cardinal
     begin
       Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
-    end, TArray<string>.Create(cWin32Platform, cWin64Platform), nil));
+    end, TArray<string>.Create(cWin32Platform, cWin64Platform
+    {$IF Defined(TOKYOORBETTER)}
+    , cLinux64Platform
+    {$ENDIF}
+    ), nil));
 end;
 
 end.

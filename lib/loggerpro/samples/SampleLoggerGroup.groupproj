@@ -1,0 +1,192 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CF29FFBC-223E-49C3-9A58-4DC5ACC9CE5D}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="01_global_logger\global_logger.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="02_file_appender\file_appender.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="03_console_appender\console_appender.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="04_outputdebugstring_appender\outputdebugstring_appender.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="10_multiple_appenders\multiple_appenders.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="20_multiple_loggers\multiple_loggers.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="50_custom_appender\custom_appender.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="05_vcl_appenders\vcl_appenders.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="100_udp_syslog\udp_syslog.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="110_rest_appender\RESTAppenderSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="110_rest_appender_mobile\RESTAppenderMobileSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="rest_logs_collector\RESTLogsCollector.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="90_remote_logging_with_redis\REDISAppenderSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="90_remote_logging_with_redis\redis_logs_viewer\REDISLogsViewer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="global_logger">
+        <MSBuild Projects="01_global_logger\global_logger.dproj"/>
+    </Target>
+    <Target Name="global_logger:Clean">
+        <MSBuild Projects="01_global_logger\global_logger.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="global_logger:Make">
+        <MSBuild Projects="01_global_logger\global_logger.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="file_appender">
+        <MSBuild Projects="02_file_appender\file_appender.dproj"/>
+    </Target>
+    <Target Name="file_appender:Clean">
+        <MSBuild Projects="02_file_appender\file_appender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="file_appender:Make">
+        <MSBuild Projects="02_file_appender\file_appender.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="console_appender">
+        <MSBuild Projects="03_console_appender\console_appender.dproj"/>
+    </Target>
+    <Target Name="console_appender:Clean">
+        <MSBuild Projects="03_console_appender\console_appender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="console_appender:Make">
+        <MSBuild Projects="03_console_appender\console_appender.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="outputdebugstring_appender">
+        <MSBuild Projects="04_outputdebugstring_appender\outputdebugstring_appender.dproj"/>
+    </Target>
+    <Target Name="outputdebugstring_appender:Clean">
+        <MSBuild Projects="04_outputdebugstring_appender\outputdebugstring_appender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="outputdebugstring_appender:Make">
+        <MSBuild Projects="04_outputdebugstring_appender\outputdebugstring_appender.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="multiple_appenders">
+        <MSBuild Projects="10_multiple_appenders\multiple_appenders.dproj"/>
+    </Target>
+    <Target Name="multiple_appenders:Clean">
+        <MSBuild Projects="10_multiple_appenders\multiple_appenders.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="multiple_appenders:Make">
+        <MSBuild Projects="10_multiple_appenders\multiple_appenders.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="multiple_loggers">
+        <MSBuild Projects="20_multiple_loggers\multiple_loggers.dproj"/>
+    </Target>
+    <Target Name="multiple_loggers:Clean">
+        <MSBuild Projects="20_multiple_loggers\multiple_loggers.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="multiple_loggers:Make">
+        <MSBuild Projects="20_multiple_loggers\multiple_loggers.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="custom_appender">
+        <MSBuild Projects="50_custom_appender\custom_appender.dproj"/>
+    </Target>
+    <Target Name="custom_appender:Clean">
+        <MSBuild Projects="50_custom_appender\custom_appender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="custom_appender:Make">
+        <MSBuild Projects="50_custom_appender\custom_appender.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="vcl_appenders">
+        <MSBuild Projects="05_vcl_appenders\vcl_appenders.dproj"/>
+    </Target>
+    <Target Name="vcl_appenders:Clean">
+        <MSBuild Projects="05_vcl_appenders\vcl_appenders.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="vcl_appenders:Make">
+        <MSBuild Projects="05_vcl_appenders\vcl_appenders.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="udp_syslog">
+        <MSBuild Projects="100_udp_syslog\udp_syslog.dproj"/>
+    </Target>
+    <Target Name="udp_syslog:Clean">
+        <MSBuild Projects="100_udp_syslog\udp_syslog.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="udp_syslog:Make">
+        <MSBuild Projects="100_udp_syslog\udp_syslog.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="RESTAppenderSample">
+        <MSBuild Projects="110_rest_appender\RESTAppenderSample.dproj"/>
+    </Target>
+    <Target Name="RESTAppenderSample:Clean">
+        <MSBuild Projects="110_rest_appender\RESTAppenderSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RESTAppenderSample:Make">
+        <MSBuild Projects="110_rest_appender\RESTAppenderSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="RESTAppenderMobileSample">
+        <MSBuild Projects="110_rest_appender_mobile\RESTAppenderMobileSample.dproj"/>
+    </Target>
+    <Target Name="RESTAppenderMobileSample:Clean">
+        <MSBuild Projects="110_rest_appender_mobile\RESTAppenderMobileSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RESTAppenderMobileSample:Make">
+        <MSBuild Projects="110_rest_appender_mobile\RESTAppenderMobileSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="RESTLogsCollector">
+        <MSBuild Projects="rest_logs_collector\RESTLogsCollector.dproj"/>
+    </Target>
+    <Target Name="RESTLogsCollector:Clean">
+        <MSBuild Projects="rest_logs_collector\RESTLogsCollector.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RESTLogsCollector:Make">
+        <MSBuild Projects="rest_logs_collector\RESTLogsCollector.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="REDISAppenderSample">
+        <MSBuild Projects="90_remote_logging_with_redis\REDISAppenderSample.dproj"/>
+    </Target>
+    <Target Name="REDISAppenderSample:Clean">
+        <MSBuild Projects="90_remote_logging_with_redis\REDISAppenderSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="REDISAppenderSample:Make">
+        <MSBuild Projects="90_remote_logging_with_redis\REDISAppenderSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="REDISLogsViewer">
+        <MSBuild Projects="90_remote_logging_with_redis\redis_logs_viewer\REDISLogsViewer.dproj"/>
+    </Target>
+    <Target Name="REDISLogsViewer:Clean">
+        <MSBuild Projects="90_remote_logging_with_redis\redis_logs_viewer\REDISLogsViewer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="REDISLogsViewer:Make">
+        <MSBuild Projects="90_remote_logging_with_redis\redis_logs_viewer\REDISLogsViewer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="global_logger;file_appender;console_appender;outputdebugstring_appender;multiple_appenders;multiple_loggers;custom_appender;vcl_appenders;udp_syslog;RESTAppenderSample;RESTAppenderMobileSample;RESTLogsCollector;REDISAppenderSample;REDISLogsViewer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="global_logger:Clean;file_appender:Clean;console_appender:Clean;outputdebugstring_appender:Clean;multiple_appenders:Clean;multiple_loggers:Clean;custom_appender:Clean;vcl_appenders:Clean;udp_syslog:Clean;RESTAppenderSample:Clean;RESTAppenderMobileSample:Clean;RESTLogsCollector:Clean;REDISAppenderSample:Clean;REDISLogsViewer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="global_logger:Make;file_appender:Make;console_appender:Make;outputdebugstring_appender:Make;multiple_appenders:Make;multiple_loggers:Make;custom_appender:Make;vcl_appenders:Make;udp_syslog:Make;RESTAppenderSample:Make;RESTAppenderMobileSample:Make;RESTLogsCollector:Make;REDISAppenderSample:Make;REDISLogsViewer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
