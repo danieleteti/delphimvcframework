@@ -463,6 +463,21 @@ type
     [MVCPath('/bool')]
     [MVCHTTPMethod([httpGET])]
     function GetBool: Boolean;
+    [MVCPath('/strdict')]
+    [MVCHTTPMethod([httpGET])]
+    function GetStrDict: TMVCStringDictionary;
+    [MVCPath('/TSimpleRecord')]
+    [MVCHTTPMethod([httpGET])]
+    function GetTSimpleRecord: TSimpleRecord;
+    [MVCPath('/ArrayOf/TSimpleRecord')]
+    [MVCHTTPMethod([httpGET])]
+    function GetArrayOfTSimpleRecord: TArray<TSimpleRecord>;
+    [MVCPath('/TComplexRecord')]
+    [MVCHTTPMethod([httpGET])]
+    function GetTComplexRecord: TComplexRecord;
+    [MVCPath('/ArrayOf/TComplexRecord')]
+    [MVCHTTPMethod([httpGET])]
+    function GetArrayOfTComplexRecord: TComplexRecordArray;
   end;
 
 
@@ -1281,6 +1296,26 @@ end;
 
 { TTestActionResultController }
 
+function TTestActionResultController.GetArrayOfTComplexRecord: TComplexRecordArray;
+begin
+  SetLength(Result,3);
+  Result[0] := TComplexRecord.Create;
+  Result[1] := TComplexRecord.Create;
+  Result[2] := TComplexRecord.Create;
+
+  Result[0].StringProperty := 'item 0';
+  Result[1].StringProperty := 'item 1';
+  Result[2].StringProperty := 'item 2';
+end;
+
+function TTestActionResultController.GetArrayOfTSimpleRecord: TArray<TSimpleRecord>;
+begin
+  SetLength(Result, 3);
+  Result[0] := TSimpleRecord.Create;
+  Result[1] := TSimpleRecord.Create;
+  Result[2] := TSimpleRecord.Create;
+end;
+
 function TTestActionResultController.GetBool: Boolean;
 begin
   Result := True;
@@ -1310,9 +1345,24 @@ begin
   Result := TFileStream.Create('sample.png', fmOpenRead or fmShareDenyNone);
 end;
 
+function TTestActionResultController.GetStrDict: TMVCStringDictionary;
+begin
+  Result := StrDict.Add('first_name','Daniele').Add('last_name','Teti');
+end;
+
 function TTestActionResultController.GetString: String;
 begin
   Result := 'Hello World';
+end;
+
+function TTestActionResultController.GetTComplexRecord: TComplexRecord;
+begin
+  Result := TComplexRecord.Create;
+end;
+
+function TTestActionResultController.GetTSimpleRecord: TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
 end;
 
 function TTestActionResultController.GetObject(a, b: Integer): TSum;
