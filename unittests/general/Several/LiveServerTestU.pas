@@ -391,6 +391,10 @@ type
     [Test]
     procedure TestInvalidSet;
 
+    //test issues
+    [Test]
+    procedure TestGetTCustomer_ISSUE648;
+
   end;
 
   [TestFixture]
@@ -2849,6 +2853,15 @@ begin
     GetEnumValue(TypeInfo(TEnumTest), 'etValue2'),
     GetEnumValue(TypeInfo(TEnumTest), lResp.Result.AsString)
     );
+end;
+
+procedure TJSONRPCServerTest.TestGetTCustomer_ISSUE648;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'GetTCustomer_ISSUE648');
+  var lResp := FExecutor2.ExecuteRequest(lRequest1);
+  var lCustomer := TJSONUtils.JsonObjectToRecord<TCustomerIssue648>(lResp);
+  Assert.AreEqual(155, lCustomer.Id.Value);
+  Assert.AreEqual('Daniele Teti', lCustomer.Name.Value);
 end;
 
 procedure TJSONRPCServerTest.TestHooks;
