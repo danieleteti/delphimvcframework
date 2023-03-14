@@ -2532,6 +2532,21 @@ begin
                               lResponseObject.Free;
                             end
                           end;
+                          tkRecord:
+                          begin
+                            lSelectedController.Render(
+                              lSelectedController.Serializer(lSelectedController.GetContentType)
+                                .SerializeRecord(lInvokeResult.GetReferenceToRawData,
+                                lInvokeResult.TypeInfo,
+                                TMVCSerializationType.stFields,nil,nil));
+                          end;
+                          tkArray, tkDynArray:
+                          begin
+                            lSelectedController.Render(
+                              lSelectedController.Serializer(lSelectedController.GetContentType)
+                                .SerializeArrayOfRecord(lInvokeResult,
+                                  TMVCSerializationType.stFields,nil,nil));
+                          end;
                           tkUString, tkString:
                           begin
                             lSelectedController.Render(lInvokeResult.AsString);

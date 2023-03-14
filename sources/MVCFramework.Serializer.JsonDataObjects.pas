@@ -174,6 +174,13 @@ type
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil): string; overload;
 
+    function SerializeArrayOfRecord(
+      var ATValueContainingAnArray: TValue;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
+
     procedure RecordToJsonObject(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;
       const AJSONObject: TJDOJsonObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
@@ -3039,6 +3046,48 @@ begin
     finally
       JSONArray.Free;
     end;
+  end;
+end;
+
+function TMVCJsonDataObjectsSerializer.SerializeArrayOfRecord(
+  var ATValueContainingAnArray: TValue; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction): string;
+var
+  I: Integer;
+  lCurrentArrayItem: TValue;
+  lJSONArr: TJsonArray;
+  lJObj: TJsonObject;
+begin
+  if not ATValueContainingAnArray.IsArray then
+  begin
+    raise EMVCSerializationException.Create(String(ATValueContainingAnArray.TypeInfo^.Name) + ' is not an array');
+  end;
+  if ATValueContainingAnArray.GetArrayLength = 0 then
+  begin
+    Result := '[]';
+  end;
+
+  lJSONArr := TJsonArray.Create;
+  try
+    for I := 0 to ATValueContainingAnArray.GetArrayLength - 1 do
+    begin
+      lJObj := lJSONArr.AddObject;
+      lCurrentArrayItem := ATValueContainingAnArray.GetArrayElement(I);
+      InternalRecordToJsonObject(
+        lCurrentArrayItem.GetReferenceToRawData,
+        lCurrentArrayItem.TypeInfo,
+        lJObj,
+        TMVCSerializationType.stFields,
+        nil,
+        nil,
+        nil,
+        nil
+        );
+    end;
+    Result := lJSONArr.ToJSON();
+  finally
+    lJSONArr.free;
   end;
 end;
 
