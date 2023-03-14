@@ -16,7 +16,7 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")](#whats-new-in-dmvcframework-330-fluorine-currently-in-beta-aka-repo-version)
+  - [What's New in dmvcframework-3.3.0-fluorine-beta (currently in beta a.k.a. "repo version")](#whats-new-in-dmvcframework-330-fluorine-beta-currently-in-beta-aka-repo-version)
   - [What's New in dmvcframework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
     - [Bug Fix in 3.2.3-radium](#bug-fix-in-323-radium)
   - [What's new in DelphiMVCFramework-3.2.2-nitrogen](#whats-new-in-delphimvcframework-322-nitrogen)
