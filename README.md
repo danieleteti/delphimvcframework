@@ -216,6 +216,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ## What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")
 
+- ⚡ Support for Delphi 11.3 Alexandria
+- ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
 - 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
 
 ## What's New in dmvcframework-3.2.3-radium
