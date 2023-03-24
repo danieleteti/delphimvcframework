@@ -347,8 +347,10 @@ uses
   Json.Schema.Field.Booleans;
 
 function GetRecordType(const aQualifiedName: String): TRttiType;
+var
+  lContext: TRttiContext;
 begin
-  var lContext := TRttiContext.Create;
+  lContext := TRttiContext.Create;
   try
     result := lContext.FindType(aQualifiedName);
   finally
@@ -705,7 +707,6 @@ var
   lEnumMappedValues: TList<string>;
   I: Integer;
 begin
-  var lContext := TRttiContext.Create;
   for lField in aRttiType.GetFields do
   begin
     lSkipProp := False;
@@ -823,7 +824,9 @@ begin
     lJsonField.Required := lFieldSchemaDef.Required;
     lJsonField.Nullable := lFieldSchemaDef.Nullable;
     if not lFieldSchemaDef.Description.IsEmpty then
+    begin
       TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
+    end;
 
     aJsonFieldRoot.AddField(lJsonField);
   end;

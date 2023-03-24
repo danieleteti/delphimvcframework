@@ -218,6 +218,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - ⚡ Support for Delphi 11.3 Alexandria
 - ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
+- ⚡ Improved Wizard - now it produces commented code to show how to use `ContextEvents`
+- ⚡ Improved compatibility with Delphi 10.2 Tokyo and older versions (Thanks Mark Lobanov)
 - 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
 
 ## What's New in dmvcframework-3.2.3-radium
