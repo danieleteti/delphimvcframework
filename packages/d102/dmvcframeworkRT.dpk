@@ -25,8 +25,7 @@ package dmvcframeworkRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team'}
-{$LIBSUFFIX '113'}
+{$LIBSUFFIX '102'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
 
