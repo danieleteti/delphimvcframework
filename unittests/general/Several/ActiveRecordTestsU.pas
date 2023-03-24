@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -46,11 +46,13 @@ type
     function CreateACustomer(CompanyName: String; City: String; Rating: Integer): Integer; overload;
   public
     [SetupFixture]
-    procedure SetupFixturePG;
+    procedure SetupFixture;
     [Teardown]
     procedure Teardown;
     [Test]
     procedure TestCRUD;
+    [Test]
+    procedure TestRefresh;
     [Test]
     procedure Test_ISSUE485;
     [Test]
@@ -583,8 +585,7 @@ begin
   lIDBad := CreateACustomer('Daniele', 1);
   lIDGood := CreateACustomer('Jack', 5);
 
-  var
-  lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
+  var lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
   try
     Assert.IsNotNull(lAGoodCustomer);
   finally
@@ -598,8 +599,7 @@ begin
     lAGoodCustomer.Free;
   end;
 
-  var
-  lCustomer := TBadCustomer.Create;
+  var lCustomer := TBadCustomer.Create;
   try
     lCustomer.LoadByPK(lIDBad);
     lCustomer.Rating := 5;
@@ -609,8 +609,7 @@ begin
     lCustomer.Free;
   end;
 
-  var
-  lCustomer1 := TGoodCustomer.Create;
+  var lCustomer1 := TGoodCustomer.Create;
   try
     lCustomer1.LoadByPK(lIDGood);
     lCustomer1.Rating := 1;
@@ -629,8 +628,7 @@ begin
     CreateACustomer('Company' + I.ToString, I);
   end;
 
-  var
-  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
+  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
   try
     Assert.AreEqual(2, lGoodCustomers.Count);
   finally
@@ -658,6 +656,8 @@ begin
   finally
     lGoodCustomers.Free;
   end;
+
+
 end;
 
 procedure TTestActiveRecordBase.TestDefaultFilteringSelectOneByRQL;
@@ -1201,7 +1201,6 @@ begin
     Assert.IsFalse(lTest.f_float8.HasValue);
     Assert.IsFalse(lTest.f_bool.HasValue);
     Assert.IsNotNull(lTest);
-    lTest.f_int2 := lTest.f_int2.Value + 2;
     lTest.f_int4 := lTest.f_int4.Value + 4;
     lTest.f_int8 := lTest.f_int8.Value + 8;
     lTest.f_blob.Free;
@@ -1211,9 +1210,9 @@ begin
     lTest.Free;
   end;
 
-  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
   try
-    Assert.IsTrue(lTest.f_int2.ValueOrDefault = 4);
+    Assert.IsTrue(lTest.f_int2.ValueOrDefault = 2);
     Assert.IsTrue(lTest.f_int4.ValueOrDefault = 8);
     Assert.IsTrue(lTest.f_int8.ValueOrDefault = 16);
     Assert.IsFalse(lTest.f_string.HasValue);
@@ -1225,12 +1224,12 @@ begin
     Assert.IsFalse(lTest.f_float8.HasValue);
     Assert.IsFalse(lTest.f_bool.HasValue);
     Assert.IsFalse(Assigned(lTest.f_blob), 'Blob contains a value when should not');
-    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
+    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,2)');
   finally
     lTest.Free;
   end;
 
-  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False));
+  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 2', [], False));
 
   lTest := TNullablesTest.Create;
   try
@@ -1344,11 +1343,9 @@ begin
   CreateACustomer('Jack', 'Rome', 2);
   CreateACustomer('Bruce', 'Tokyo', 3);
   CreateACustomer('John', 'New York', 4);
-  var
-  lID5 := CreateACustomer('Scott', 'New York', 5);
+  var lID5 := CreateACustomer('Scott', 'New York', 5);
 
-  var
-  lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
+  var lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
   try
     lGoodNewYorkCustomer.Delete;
     Assert.Pass;
@@ -1493,8 +1490,7 @@ begin
   CreateACustomer('New York 1', 'New York', 5);
   CreateACustomer('Toyko 1', 'Tokyo', 4);
 
-  var
-  lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
+  var lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
   try
     Assert.IsNotNull(lRomeCustomer);
   finally
@@ -1515,6 +1511,48 @@ begin
     Assert.IsNull(lRomeCustomer);
   finally
     lRomeCustomer.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestRefresh;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>());
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+    lCustomer.CompanyName.Clear;
+    lCustomer.City := '';
+    lCustomer.Note := '';
+    lCustomer.CreationTime := 0;
+    lCustomer.CreationDate := 0;
+    lCustomer.Refresh;
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.ValueOrDefault);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.AreEqual('note1', lCustomer.Note);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.ID := lID;
+    lCustomer.Refresh;
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.ValueOrDefault);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.AreEqual('note1', lCustomer.Note);
+  finally
+    lCustomer.Free;
   end;
 end;
 
@@ -1956,8 +1994,9 @@ begin
   end;
 end;
 
-procedure TTestActiveRecordBase.SetupFixturePG;
+procedure TTestActiveRecordBase.SetupFixture;
 begin
+//  ActiveRecordTableMapRegistry.FlushCache;
   LogI('** Setup Fixture: ' + ClassName);
   InternalSetupFixture;
 end;
@@ -2095,8 +2134,8 @@ var
   lPGHome, lDataDir: String;
 begin
   inherited;
-  lPGHome := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql');
-  lDataDir := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql\testdatadir');
+  lPGHome := TPath.Combine(TPath.GetDirectoryName(TPath.GetDirectoryName(ParamStr(0))), 'pgsql');
+  lDataDir := TPath.Combine(lPGHome, 'testdatadir');
   fPGUtil := TPGUtil.Create(lPGHome, lDataDir, PG_PORT);
 end;
 
@@ -2109,7 +2148,7 @@ begin
   lDriver.Name := 'PG';
   // lDriver.AsString['BaseDriverID'] := 'PG';
   lDriver.AsString['DriverID'] := 'PG';
-  lDriver.AsString['VendorLib'] := TPath.Combine(fPGUtil.PGHome, 'libpq.dll');
+  //lDriver.AsString['VendorLib'] := TPath.Combine(fPGUtil.PGHome, 'libpq.dll');
   lDriver.Apply;
 
   LParams := TStringList.Create;

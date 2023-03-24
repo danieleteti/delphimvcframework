@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1198,7 +1198,9 @@ begin
                 aRTTIField.SetValue(AObject, TWideMemoField(AField).AsWideString)
               else
               begin
-                lSStream := TStringStream.Create('', TEncoding.Unicode);
+                //https://github.com/danieleteti/delphimvcframework/issues/490 (24 nov 2022)
+                //lSStream := TStringStream.Create('', TEncoding.Unicode);
+                lSStream := TStringStream.Create('');
                 try
                   TBlobField(AField).SaveToStream(lSStream);
                   aRTTIField.SetValue(AObject, lSStream.DataString);
@@ -1274,7 +1276,6 @@ begin
         begin
           lInternalStream := TMemoryStream.Create;
           aRTTIField.SetValue(AObject, lInternalStream);
-          // raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
         end;
         lInternalStream.Position := 0;
         TBlobField(AField).SaveToStream(lInternalStream);

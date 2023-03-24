@@ -1,0 +1,11 @@
+{
+  "id": "{E35C7797-DC25-4F38-95B7-5D7133D85A2F}",
+  "name": "LoggerPro",
+  "license_type": "Apache 2.0",
+  "license_file": "LICENSE",
+  "platforms": "Win32;Win64",
+  "package_compiler_min": 23,
+  "package_compiler_max": 32,
+  "compiler_min": 23,
+  "compiler_max": 32
+}

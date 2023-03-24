@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -31,33 +31,42 @@ uses
   System.Threading;
 
 type
-  TAsyncBackgroundTask<T> = reference to function: T;
-  TAsyncSuccessCallback<T> = reference to procedure(const TaskResult: T);
-  TAsyncErrorCallback = reference to procedure(const E: Exception);
-  TAsyncDefaultErrorCallback = reference to procedure(const E: Exception;
+  TMVCAsyncBackgroundTask<T> =  reference to function: T;
+  TMVCAsyncSuccessCallback<T> = reference to procedure(const BackgroundTaskResult: T);
+  TMVCAsyncErrorCallback = reference to procedure(const Expt: Exception);
+  TMVCAsyncDefaultErrorCallback = reference to procedure(const Expt: Exception;
     const ExptAddress: Pointer);
 
-  Async = class sealed
+  MVCAsync = class sealed
   public
     class function Run<T>(
-      Task: TAsyncBackgroundTask<T>;
-      Success: TAsyncSuccessCallback<T>;
-      Error: TAsyncErrorCallback = nil): ITask;
+      Task: TMVCAsyncBackgroundTask<T>;
+      Success: TMVCAsyncSuccessCallback<T>;
+      Error: TMVCAsyncErrorCallback = nil): ITask;
   end;
 
 var
-  DefaultTaskErrorHandler: TAsyncDefaultErrorCallback = nil;
+  gDefaultTaskErrorHandler: TMVCAsyncDefaultErrorCallback = nil;
 
 implementation
 
+{$I dmvcframework.inc}
+
 uses
-  System.Classes;
+  System.Classes
+  {$IF Defined(MOBILE)}
+  , FMX.DialogService
+  , System.UITypes
+  , FMX.Dialogs
+  {$ENDIF}
+  ;
 
 { Async }
 
-class function Async.Run<T>(Task: TAsyncBackgroundTask<T>;
-  Success: TAsyncSuccessCallback<T>;
-  Error: TAsyncErrorCallback): ITask;
+class function MVCAsync.Run<T>(
+  Task: TMVCAsyncBackgroundTask<T>;
+  Success: TMVCAsyncSuccessCallback<T>;
+  Error: TMVCAsyncErrorCallback): ITask;
 var
   LRes: T;
 begin
@@ -91,7 +100,7 @@ begin
               if Assigned(Error) then
                 Error(LCurrException)
               else
-                DefaultTaskErrorHandler(LCurrException, ExceptionAddress);
+                gDefaultTaskErrorHandler(LCurrException, ExceptionAddress);
             finally
               FreeAndNil(LCurrException);
             end;
@@ -102,10 +111,22 @@ end;
 
 initialization
 
-DefaultTaskErrorHandler :=
-    procedure(const E: Exception; const ExceptionAddress: Pointer)
+gDefaultTaskErrorHandler :=
+  procedure(const E: Exception; const ExceptionAddress: Pointer)
   begin
-    ShowException(E, ExceptionAddress);
+    {$IF Defined(MOBILE)}
+      TDialogService.MessageDialog(Format('[%s] %s', [E.ClassName, E.Message]), TMsgDlgType.mtError, [TMsgDlgBtn.mbOK], TMsgDlgBtn.mbOK, 0, nil);
+    {$ELSE}
+      {TODO -oDanieleT -cGeneral : Should be better to inspect if stderr is available}
+      if not (IsConsole or IsLibrary) then
+      begin
+        ShowException(E, ExceptionAddress);
+      end
+      else
+      begin
+        WriteLn(E.ClassName, ' ', E.Message);
+      end;
+    {$ENDIF}
   end;
 
 end.

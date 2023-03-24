@@ -94,7 +94,6 @@
         </DelphiCompile>
         <DCCReference Include="WebModuleUnit1.pas">
             <Form>WebModule1</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="Controllers.Base.pas"/>
@@ -103,7 +102,6 @@
         <DCCReference Include="BusinessObjects.pas"/>
         <DCCReference Include="MainDM.pas">
             <Form>dmMain</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="Commons.pas"/>

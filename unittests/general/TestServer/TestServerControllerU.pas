@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -144,6 +144,11 @@ type
     [MVCHTTPMethod([httpPOST])]
     [MVCProduces('application/json')]
     procedure TestCustomerEcho;
+
+    [MVCPath('/customerecho2')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('application/json')]
+    procedure TestCustomerEchoWithRootNode;
 
     [MVCPath('/customerechobodyfor')]
     [MVCHTTPMethod([httpPOST])]
@@ -717,16 +722,31 @@ begin
   lCustomer := TCustomer.Create;
   try
     Context.Request.BodyFor<TCustomer>(lCustomer);
-    // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
     lCustomer.Name := lCustomer.Name + ' changed';
-  {$IFNDEF LINUX}
-    //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
-  {$ENDIF}
     Render(lCustomer, False);
   finally
     lCustomer.Free;
   end;
 end;
+
+  procedure TTestServerController.TestCustomerEchoWithRootNode;
+  var
+    lCustomer1, lCustomer2: TCustomer;
+  begin
+    lCustomer1 := Context.Request.BodyAs<TCustomer>('customer1');
+    try
+      lCustomer2 := Context.Request.BodyAs<TCustomer>('customer2');
+      try
+        Render(ObjectDict(False)
+          .Add('customer1', lCustomer1)
+          .Add('customer2', lCustomer2));
+      finally
+        lCustomer2.Free;
+      end;
+    finally
+      lCustomer1.Free;
+    end;
+  end;
 
 procedure TTestServerController.TestDeserializeAndSerializeNullables;
 var
@@ -1130,7 +1150,6 @@ var
   lPerson: TPerson;
 begin
   lPerson := Context.Request.BodyAs<TPerson>();
-  // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
   Render(lPerson, True);
 end;
 

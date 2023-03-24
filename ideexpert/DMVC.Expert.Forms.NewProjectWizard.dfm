@@ -378,9 +378,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = Image1Click
   end
   object lblFrameworkVersion: TLabel
-    Left = 287
+    Left = 424
     Top = 100
-    Width = 381
+    Width = 257
     Height = 16
     Cursor = crHandPoint
     Alignment = taRightJustify
@@ -420,6 +420,19 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnMouseLeave = lblBookMouseLeave
     ExplicitLeft = 8
   end
+  object lblCopyRight: TLabel
+    Left = 24
+    Top = 102
+    Width = 330
+    Height = 13
+    Caption = 'Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
   object btnOK: TButton
     Left = 532
     Top = 483
@@ -431,7 +444,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
-    ExplicitLeft = 508
   end
   object btnCancel: TButton
     Left = 615
@@ -443,7 +455,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitLeft = 591
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -604,7 +615,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'Analytics'
       TabOrder = 0
-      ExplicitLeft = 21
     end
     object chkCompression: TCheckBox
       Left = 27
@@ -614,7 +624,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'Compression'
       TabOrder = 1
-      ExplicitLeft = 21
     end
     object chkStaticFiles: TCheckBox
       Left = 27
@@ -624,7 +633,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'Static Files'
       TabOrder = 2
-      ExplicitLeft = 21
     end
     object chkTrace: TCheckBox
       Left = 192
@@ -653,7 +661,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'ETag (Cache of unchanged resources)'
       TabOrder = 5
-      ExplicitLeft = 175
     end
     object chkActiveRecord: TCheckBox
       Left = 27
@@ -663,7 +670,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'ActiveRecord'
       TabOrder = 6
-      ExplicitLeft = 21
     end
     object EdtFDConnDefFileName: TEdit
       Left = 161
@@ -682,7 +688,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 8
       TextHint = 'MyConnDef'
-      ExplicitWidth = 204
     end
   end
   object GroupBoxJSONRPC: TGroupBox
@@ -693,7 +698,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Anchors = [akLeft, akTop, akRight]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
-    ExplicitWidth = 381
     DesignSize = (
       405
       105)
@@ -712,7 +716,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
       TextHint = 'TMyJSONRPCObject'
-      ExplicitWidth = 350
     end
     object chkJSONRPC: TCheckBox
       Left = 16
@@ -724,7 +727,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Checked = True
       State = cbChecked
       TabOrder = 1
-      ExplicitWidth = 343
     end
   end
   object ApplicationEvents: TApplicationEvents

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -337,7 +337,7 @@ type
   [MVCTable('nullables_test')]
   TNullablesTest = class(TMVCActiveRecord)
   private
-    [MVCTableField('f_int2')]
+    [MVCTableField('f_int2', [foPrimaryKey])]
     ff_int2: NullableInt16;
     [MVCTableField('f_int4')]
     ff_int4: NullableInt32;

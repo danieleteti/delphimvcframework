@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -316,7 +316,9 @@ var
     begin
       Result := '<h1>' + FConfig[TMVCConfigKey.ServerName] + '</h1>';
     end;
-    Result := Result + '<div class="error"><p>HTTP ' + HTTPStatusCode.ToString + '</p>';
+    Result := Result + '<div class="error"><p>' +
+      HTTPStatusCode.ToString + ' ' +
+      HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</p>';
     Result := Result + '<p>' + HTMLEntitiesEncode(Value) + '</p></div>';
   end;
 
@@ -332,11 +334,15 @@ begin
         EmitExceptionClass(lMVCException.ClassName) + sLineBreak +
         '<p>' + HTMLEntitiesEncode(lMVCException.DetailedMessage) + '</p>' + sLineBreak +
         '<div class="info">' +
-        '<p> Application Error Code: ' + lMVCException.ApplicationErrorCode.ToString + '</p>' + sLineBreak +
-        '<p> Error Items: <ul>' + sLineBreak;
-      for lErr in lMVCException.ErrorItems do
+        '<p> Application Error Code: ' + lMVCException.ApplicationErrorCode.ToString + '</p>' + sLineBreak;
+      if Length(lMVCException.ErrorItems) > 0 then
       begin
-        lBody := lBody + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
+        lBody := lBody + '<p> Error Items: <ul>' + sLineBreak;
+        for lErr in lMVCException.ErrorItems do
+        begin
+          lBody := lBody + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
+        end;
+        lBody := lBody + '<ul></p>';
       end;
       lBody := lBody + '<ul></p></div>';
     end
@@ -356,13 +362,17 @@ begin
       EmitExceptionClass(lErrResponse.ClassName) + sLineBreak +
       '<div class="info">' +
       '<p>' + HTMLEntitiesEncode(lErrResponse.DetailedMessage) + '</p>' + sLineBreak +
-      '<p>Application Error Code: ' + lErrResponse.AppErrorCode.ToString + '</p>' + sLineBreak +
-      '<p>Error Items: <ul>' + sLineBreak;
-    for lErrResponseItem in lErrResponse.Items do
+      '<p>Application Error Code: ' + lErrResponse.AppErrorCode.ToString + '</p>' + sLineBreak;
+    if lErrResponse.Items.Count > 0 then
     begin
-      lBody := lBody + '<li>' + HTMLEntitiesEncode(lErrResponseItem.Message) + '</li>';
+      lBody := lBody + '<p>Error Items: <ul>' + sLineBreak;
+      for lErrResponseItem in lErrResponse.Items do
+      begin
+        lBody := lBody + '<li>' + HTMLEntitiesEncode(lErrResponseItem.Message) + '</li>';
+      end;
+      lBody := lBody + '<ul></p>';
     end;
-    lBody := lBody + '<ul></p></div>';
+    lBody := lBody + '</div>';
   end;
 
   if lBody.IsEmpty then

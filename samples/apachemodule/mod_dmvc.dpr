@@ -10,10 +10,10 @@ uses
   MVCFramework.Logger,
   Winapi.Windows,
   System.Classes,
-  MainWebModuleUnit in '..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule} ,
-  MainDataModuleUnit in '..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule} ,
-  WineCellarAppControllerU in '..\winecellarserver\WineCellarAppControllerU.pas',
-  WinesBO in '..\winecellarserver\WinesBO.pas';
+  MainDataModuleUnit in '..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  MainWebModuleUnit in '..\WineCellarSample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  WineCellarAppControllerU in '..\WineCellarSample\winecellarserver\WineCellarAppControllerU.pas',
+  WinesBO in '..\WineCellarSample\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 // httpd.conf entries:

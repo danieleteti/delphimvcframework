@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -46,7 +46,11 @@ uses
   VCL.Forms,
   VCL.Dialogs,
   VCL.StdCtrls,
-  VCL.Imaging.pngimage, VCL.ExtCtrls, System.Actions, Vcl.ActnList, Vcl.AppEvnts;
+  VCL.Imaging.pngimage,
+  VCL.ExtCtrls,
+  System.Actions,
+  Vcl.ActnList,
+  Vcl.AppEvnts;
 
 type
   TfrmDMVCNewProject = class(TForm)
@@ -88,6 +92,7 @@ type
     Label5: TLabel;
     EdtConnDefName: TEdit;
     ApplicationEvents: TApplicationEvents;
+    lblCopyRight: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -135,7 +140,8 @@ implementation
 
 uses
   DMVC.Expert.CodeGen.Templates,
-  MVCFramework.Commons, System.StrUtils;
+  MVCFramework.Commons,
+  System.StrUtils;
 
 {$R *.dfm}
 
@@ -170,6 +176,7 @@ begin
   edtServerPort.TextHint := sDefaultServerPort;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
+  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;

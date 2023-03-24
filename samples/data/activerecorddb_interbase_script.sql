@@ -78,6 +78,9 @@ CREATE TABLE people (
 	is_male BOOLEAN DEFAULT TRUE NOT NULL,
 	note  blob sub_type 1,
 	photo blob sub_type 0,
+	person_type varchar(40),
+	salary number(18,4),
+	annual_bonus number(18,4),	
 	CONSTRAINT people_pkey PRIMARY KEY (id)
 );
 

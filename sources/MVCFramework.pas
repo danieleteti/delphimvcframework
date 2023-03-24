@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -57,7 +57,7 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
 
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
   Web.ApacheHTTP,
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 
@@ -66,7 +66,7 @@ uses
   // Delphi XE4 (all update) and XE5 (with no update) don't contains this unit. Look for the bug in QC
   // https://quality.embarcadero.com/browse/RSP-17216
 
-{$IFNDEF MOBILE} // file upload is not supported on mobile
+{$IF NOT Defined(MOBILE)} // file upload is not supported on mobile
 {$IF Defined(SeattleOrBetter)}
   Web.ReqMulti,
 {$ELSE}
@@ -75,14 +75,13 @@ uses
 {$ENDIF}
   Web.HTTPApp,
 
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
   Web.Win.IsapiHTTP,
 {$ENDIF}
   Web.WebReq,
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
-  // IdHTTPWebBrokerBridge,
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
@@ -425,7 +424,7 @@ type
     property Files: TAbstractWebRequestFiles read GetFiles;
   end;
 
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
 
   TMVCApacheWebRequest = class(TMVCWebRequest)
   private
@@ -708,6 +707,8 @@ type
     procedure RenderResponseStream; virtual;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
+    procedure Render(const AStatusCode: Integer; const AContent: string); overload;
+    procedure Render(const AStatusCode: Integer); overload;
     // PODO renders
     procedure Render(const AStatusCode: Integer; const AObject: TObject;
       const ASerializationAction: TMVCSerializationAction = nil;
@@ -743,7 +744,7 @@ type
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string = '';
+    procedure RenderStatusMessage(const AStatusCode: Integer; const AReasonMessage: string = '';
       const AErrorClassName: string = ''; const ADataObject: TObject = nil); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
@@ -1138,7 +1139,7 @@ end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.Add(gIsShuttingDown, 1);
+  TInterlocked.CompareExchange(gIsShuttingDown, 1, 0);
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
@@ -1283,23 +1284,20 @@ end;
 function TMVCWebRequest.Body: string;
 var
   lEncoding: TEncoding;
-  lCurrCharset: string;
-
-{$IFNDEF BERLINORBETTER}
+{$IF not Defined(BERLINORBETTER)}
   lBuffer: TArray<Byte>;
-
 {$ENDIF}
 begin
-  { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
+  { DONE -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
   begin
-    lCurrCharset := FCharset;
-    if (lCurrCharset = EmptyStr) then
-      lCurrCharset := 'UTF-8';
-    lEncoding := TEncoding.GetEncoding(lCurrCharset);
+    if FCharset = EmptyStr then
+      lEncoding := TEncoding.GetEncoding('UTF-8')
+    else
+      lEncoding := TEncoding.GetEncoding(FCharset);
     try
 
-{$IFDEF BERLINORBETTER}
+{$IF Defined(BERLINORBETTER)}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
       FBody := lEncoding.GetString(FWebRequest.RawContent);
 {$ELSE}
@@ -1975,20 +1973,20 @@ begin
   end
   else
   begin
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
     if ARequest.ClassType = TApacheRequest then
     begin
       FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
     end
     else
-{$IFNDEF LINUX}
+{$IF Defined(MSWINDOWS)}
       if ARequest.ClassType = TISAPIRequest then
       begin
         FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
       end
       else
-{$ENDIF}
-{$ENDIF}
+{$ENDIF} //MSWINDOWS
+{$ENDIF} //WEBAPACHEHTTP
       begin
         FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
       end;
@@ -2042,13 +2040,13 @@ end;
 
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
-{$IFDEF WEBAPACHEHTTP}
+{$IF Defined(WEBAPACHEHTTP)}
   if FRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
   end;
 {$ENDIF}
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
     if FRequest.ClassType = TISAPIRequest then
     begin
       Exit(hftISAPI);
@@ -2088,13 +2086,6 @@ begin
   inherited Create;
   FMessage := AMessage;
 end;
-
-{ TMVCIndyWebRequest }
-
-// function TMVCIndyWebRequest.RawHeaders: TStrings;
-// begin
-// Result := TMVCHackHTTPAppRequest(FWebRequest).GetHeaders;
-// end;
 
 function TWebContext.GetLoggedUser: TUser;
 begin
@@ -2195,7 +2186,6 @@ begin
     begin
       raise EMVCSessionExpiredException.Create('Session not started');
     end;
-    //SId := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
     GlobalSessionList.Remove(SId);
     if SId <> '' then
     begin
@@ -2414,7 +2404,7 @@ begin
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 
-{$IFDEF BERLINORBETTER}
+{$IF Defined(BERLINORBETTER)}
   ARequest.ReadTotalContent;
 
   // Double check for malicious content-length header
@@ -3596,6 +3586,17 @@ begin
   Render(AObject, AOwns, stDefault, ASerializationAction, AIgnoredFields);
 end;
 
+procedure TMVCRenderer.Render(const AStatusCode: Integer; const AContent: string);
+begin
+  SetStatusCode(AStatusCode);
+  Render(AContent);
+end;
+
+procedure TMVCRenderer.Render(const AStatusCode: Integer);
+begin
+  RenderStatusMessage(AStatusCode, HTTP_STATUS.ReasonStringFor(AStatusCode));
+end;
+
 procedure TMVCRenderer.Render(const AContent: string);
 var lContentType: string;
   lOutEncoding: TEncoding; lCharset: string;
@@ -3802,19 +3803,19 @@ begin
   SendStream(AStream, AOwns);
 end;
 
-procedure TMVCRenderer.Render(
-  const AErrorCode: Integer;
-  const AErrorMessage, AErrorClassName: string;
+procedure TMVCRenderer.RenderStatusMessage(
+  const AStatusCode: Integer;
+  const AReasonMessage, AErrorClassName: string;
   const ADataObject: TObject);
 var
   R: TMVCErrorResponse;
 begin
-  ResponseStatus(AErrorCode, AErrorMessage);
+  ResponseStatus(AStatusCode, AReasonMessage);
   R := TMVCErrorResponse.Create;
   try
-    R.StatusCode := AErrorCode;
-    R.ReasonString := HTTP_STATUS.ReasonStringFor(AErrorCode);
-    R.Message := AErrorMessage;
+    R.StatusCode := AStatusCode;
+    R.ReasonString := HTTP_STATUS.ReasonStringFor(AStatusCode);
+    R.Message := AReasonMessage;
     R.Classname := AErrorClassName;
     R.Data := ADataObject;
     Render(R, False, stProperties);
@@ -3862,15 +3863,18 @@ begin
     raise EMVCException.Create('Can not render an empty dataset.');
 end;
 
-procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: IInterface;
-const ASerializationAction: TMVCSerializationAction);
+procedure TMVCRenderer.Render(
+  const AStatusCode: Integer;
+  const AObject: IInterface;
+  const ASerializationAction: TMVCSerializationAction);
 begin
   SetStatusCode(AStatusCode);
   Render(AObject, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const AObject: IInterface;
-const ASerializationAction: TMVCSerializationAction);
+procedure TMVCRenderer.Render(
+  const AObject: IInterface;
+  const ASerializationAction: TMVCSerializationAction);
 begin
   Render(TObject(AObject), False, ASerializationAction);
 end;

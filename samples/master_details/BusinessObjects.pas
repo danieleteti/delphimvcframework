@@ -4,7 +4,7 @@ unit BusinessObjects;
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -127,6 +127,26 @@ type
     property IDCustomer: Integer read fIDCustomer write fIDCustomer;
     property OrderDate: TDate read fOrderDate write fOrderDate;
     property Total: Currency read fTotal write fTotal;
+    property OrderItems: TObjectList<TOrderDetail> read fDetails;
+  end;
+
+  [MVCNameCase(ncCamelCase)]
+  TOrderIn = class
+  private
+    fID: NullableUInt64;
+    fIDCustomer: NullableUInt64;
+    fOrderDate: NullableTDate;
+    fTotal: NullableCurrency;
+    [MVCOwned(TOrderDetail)]
+    fDetails: TObjectList<TOrderDetail>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property ID: NullableUInt64 read fID write fID;
+    [MVCNameAs('idCustomer')]
+    property IDCustomer: NullableUInt64 read fIDCustomer write fIDCustomer;
+    property OrderDate: NullableTDate read fOrderDate write fOrderDate;
+    property Total: NullableCurrency read fTotal write fTotal;
     property OrderItems: TObjectList<TOrderDetail> read fDetails;
   end;
 
@@ -297,5 +317,19 @@ begin
   end;
 end;
 
+
+{ TOrderIn }
+
+constructor TOrderIn.Create;
+begin
+  inherited;
+  fDetails := TObjectList<TOrderDetail>.Create(true);
+end;
+
+destructor TOrderIn.Destroy;
+begin
+  fDetails.Free;
+  inherited;
+end;
 
 end.

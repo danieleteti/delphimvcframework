@@ -1,0 +1,368 @@
+object TabbedForm: TTabbedForm
+  Left = 0
+  Top = 0
+  Caption = 'TabbedForm'
+  ClientHeight = 567
+  ClientWidth = 384
+  FormFactor.Width = 1440
+  FormFactor.Height = 900
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object HeaderToolBar: TToolBar
+    Anchors = []
+    Size.Width = 384.000000000000000000
+    Size.Height = 48.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object ToolBarLabel: TLabel
+      Align = Contents
+      Size.Width = 384.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'toollabel'
+      TextSettings.HorzAlign = Center
+      Text = 'Wine Cellar Cool Client'
+    end
+    object DrawerBtn: TButton
+      Align = Left
+      Size.Width = 80.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'detailstoolbutton'
+      TabOrder = 1
+      Text = 'DrawerBtn'
+    end
+  end
+  object TabControl1: TTabControl
+    Align = Client
+    FullSize = True
+    Size.Width = 384.000000000000000000
+    Size.Height = 519.000000000000000000
+    Size.PlatformDefault = False
+    TabHeight = 49.000000000000000000
+    TabIndex = 0
+    TabOrder = 1
+    TabPosition = None
+    Sizes = (
+      384s
+      519s
+      384s
+      519s)
+    object WineListTabItem: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'tabitemtoprated'
+      TabOrder = 0
+      Text = 'Wine Lists'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      object BtnWineList: TButton
+        Action = acWineList
+        Align = Bottom
+        Enabled = True
+        ImageIndex = -1
+        Position.Y = 473.000000000000000000
+        Size.Width = 384.000000000000000000
+        Size.Height = 46.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+      end
+      object WineListView: TListView
+        ItemAppearanceClassName = 'TListItemRightDetailAppearance'
+        ItemEditAppearanceClassName = 'TListItemRightDetailDeleteAppearance'
+        HeaderAppearanceClassName = 'TListHeaderObjects'
+        FooterAppearanceClassName = 'TListHeaderObjects'
+        Align = Client
+        Size.Width = 384.000000000000000000
+        Size.Height = 473.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        OnItemClick = WineListViewItemClick
+      end
+    end
+    object EdtTabItem: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'tabitemcontacts'
+      TabOrder = 0
+      Text = 'EdtTabItem'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      object EdtName: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 6
+        Position.X = 16.000000000000000000
+        Position.Y = 65.000000000000000000
+        Size.Width = 345.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object LblName: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 41.000000000000000000
+        Text = 'Name'
+        TabOrder = 7
+      end
+      object LblCountry: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 151.000000000000000000
+        Text = 'Country'
+        TabOrder = 8
+      end
+      object EdtCountry: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 4
+        Position.X = 16.000000000000000000
+        Position.Y = 175.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object EdtRegion: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 9
+        Position.X = 201.000000000000000000
+        Position.Y = 175.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object LblRegion: TLabel
+        Position.X = 200.000000000000000000
+        Position.Y = 153.000000000000000000
+        Text = 'Region'
+        TabOrder = 10
+      end
+      object EdtYear: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 11
+        Position.X = 17.000000000000000000
+        Position.Y = 278.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object EdtGrapes: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 12
+        Position.X = 201.000000000000000000
+        Position.Y = 278.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object LblYear: TLabel
+        Position.X = 17.000000000000000000
+        Position.Y = 257.000000000000000000
+        Text = 'Year'
+        TabOrder = 13
+      end
+      object LblGrapes: TLabel
+        Position.X = 200.000000000000000000
+        Position.Y = 257.000000000000000000
+        Text = 'Grapes'
+        TabOrder = 14
+      end
+      object ToolBar1: TToolBar
+        Align = Bottom
+        Position.Y = 479.000000000000000000
+        Size.Width = 384.000000000000000000
+        Size.Height = 40.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 15
+        object Button1: TButton
+          Action = acSaveWine
+          Align = Client
+          Enabled = True
+          ImageIndex = -1
+          Size.Width = 384.000000000000000000
+          Size.Height = 40.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+        end
+      end
+      object EdtID: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 5
+        Position.X = 16.000000000000000000
+        Position.Y = 17.000000000000000000
+        Size.Width = 345.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        Visible = False
+      end
+    end
+  end
+  object MultiView1: TMultiView
+    TargetControl = TabControl1
+    MasterButton = DrawerBtn
+    Mode = Drawer
+    Size.Width = 250.000000000000000000
+    Size.Height = 519.000000000000000000
+    Size.PlatformDefault = False
+    Visible = False
+    TabOrder = 4
+    object ListBox1: TListBox
+      Align = Client
+      Size.Width = 250.000000000000000000
+      Size.Height = 519.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      DisableFocusEffect = True
+      DefaultItemStyles.ItemStyle = ''
+      DefaultItemStyles.GroupHeaderStyle = ''
+      DefaultItemStyles.GroupFooterStyle = ''
+      Viewport.Width = 246.000000000000000000
+      Viewport.Height = 515.000000000000000000
+      object ListBoxItem1: TListBoxItem
+        TabOrder = 0
+        Text = 'Wine List'
+        OnClick = ListBoxItem1Click
+      end
+      object ListBoxItem2: TListBoxItem
+        Position.Y = 19.000000000000000000
+        TabOrder = 1
+        Text = 'New Wine'
+        OnClick = ListBoxItem2Click
+      end
+    end
+  end
+  object ActionList1: TActionList
+    Left = 312
+    Top = 152
+    object acWineList: TAction
+      Text = 'Wine List'
+      OnExecute = acWineListExecute
+    end
+    object ChangeTabActionEdtWine: TChangeTabAction
+      Tab = EdtTabItem
+    end
+    object ChangeTabActionWineList: TChangeTabAction
+      Tab = WineListTabItem
+    end
+    object acSaveWine: TAction
+      Text = 'Save Wine'
+      OnExecute = acSaveWineExecute
+    end
+  end
+  object PrototypeBindSource1: TPrototypeBindSource
+    AutoActivate = False
+    AutoPost = True
+    RecordCount = 50
+    FieldDefs = <
+      item
+        Name = 'id'
+        FieldType = ftUInteger
+        Generator = 'AlphaColors'
+        ReadOnly = False
+      end
+      item
+        Name = 'name'
+        Generator = 'BitmapNames'
+        ReadOnly = False
+      end
+      item
+        Name = 'year'
+        FieldType = ftUInteger
+        Generator = 'AlphaColors'
+        ReadOnly = False
+      end
+      item
+        Name = 'grapes'
+        Generator = 'ColorsNames'
+        ReadOnly = False
+      end
+      item
+        Name = 'country'
+        Generator = 'ColorsNames'
+        ReadOnly = False
+      end
+      item
+        Name = 'region'
+        Generator = 'ColorsNames'
+        ReadOnly = False
+      end
+      item
+        Name = 'description'
+        FieldType = ftTStrings
+        Generator = 'LoremIpsum'
+        ReadOnly = False
+      end>
+    ScopeMappings = <>
+    OnCreateAdapter = PrototypeBindSource1CreateAdapter
+    Left = 312
+    Top = 72
+  end
+  object BindingsList1: TBindingsList
+    Methods = <>
+    OutputConverters = <>
+    Left = 44
+    Top = 69
+    object LinkControlToField1: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'name'
+      Control = EdtName
+      Track = False
+    end
+    object LinkControlToField2: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'year'
+      Control = EdtYear
+      Track = False
+    end
+    object LinkControlToField3: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'grapes'
+      Control = EdtGrapes
+      Track = False
+    end
+    object LinkControlToField4: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'country'
+      Control = EdtCountry
+      Track = False
+    end
+    object LinkControlToField5: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'region'
+      Control = EdtRegion
+      Track = False
+    end
+    object LinkListControlToField1: TLinkListControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'name'
+      Control = WineListView
+      FillExpressions = <
+        item
+          SourceMemberName = 'country'
+          ControlMemberName = 'Detail'
+        end>
+      FillHeaderExpressions = <>
+      FillBreakGroups = <>
+    end
+    object LinkControlToField6: TLinkControlToField
+      Category = 'Quick Bindings'
+      DataSource = PrototypeBindSource1
+      FieldName = 'id'
+      Control = EdtID
+      Track = False
+    end
+  end
+end

@@ -121,3 +121,16 @@ samples/serversideviews_lua/bin/templates/__compiled/
 samples/serversideviews_lua/lua4delphi/unittests/Win32/
 /unittests/general/Several/bin/EchoSingleComplexRecord_RESPONSE.json
 /unittests/general/Several/bin/TestRequest_Echo_ComplexRecords_RESPONSE.json
+unittests/general/Several/pgsql/testdatadir/
+unittests/general/Several/bin32/EchoSingleComplexRecord_RESPONSE.json
+TestRequest_Echo_ComplexRecords_RESPONSE.json
+EchoSingleComplexRecord_RESPONSE.json
+samples/middleware_analytics/bin/analytics/middleware_analytics.00.csv
+unittests/general/Several/bin64/dunitx-results.xml
+unittests/general/Several/bin64/sqlitetest.db
+unittests/general/Several/bin64/firebirdtest2.fdb
+unittests/general/Several/bin64/firebirdtest.fdb
+unittests/general/Several/bin32/sqlitetest.db
+unittests/general/Several/bin32/firebirdtest2.fdb
+unittests/general/Several/bin32/firebirdtest.fdb
+samples/WineCellarSample/winecellarclient_mobile/Android64/

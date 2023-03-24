@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -101,6 +101,10 @@ resourcestring
     'begin' + sLineBreak +
     '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
     '  IsMultiThread := True;' + sLineBreak +
+    '  // DMVCFramework Specific Configuration ' + sLineBreak +
+    '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
+    '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
@@ -304,18 +308,31 @@ resourcestring
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
     '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
     '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
-	'      //Enable Server Signature in response' + sLineBreak +
+	  '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-	'      //Enable X-Powered-By Header in response' + sLineBreak +
-    '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +	
-//    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
-//    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
+  	'      //Enable X-Powered-By Header in response' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +
     '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +    
     '  %4:s ' + sLineBreak +
     '  %5:s ' + sLineBreak +
+    '  ' + sLineBreak +
+    '  {' + sLineBreak +
+    '  FMVC.OnWebContextCreate( ' + sLineBreak +
+    '    procedure(const Context: TWebContext) ' + sLineBreak +
+    '    begin ' + sLineBreak +
+    '      // Initialize services to make them accessibile from Context ' + sLineBreak +
+    '      // Context.CustomIntfObject := TMyService.Create; ' + sLineBreak +
+    '    end); ' + sLineBreak +
+    '  ' + sLineBreak +
+    '  FMVC.OnWebContextDestroy(' + sLineBreak +
+    '    procedure(const Context: TWebContext)' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      //Cleanup services, if needed' + sLineBreak +
+    '    end);' + sLineBreak +
+    '  }' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +

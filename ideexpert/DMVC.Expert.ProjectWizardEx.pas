@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -49,6 +49,8 @@ type
   end;
 
 implementation
+
+{$I dmvcframework.inc}
 
 uses
   DccStrs,
@@ -168,7 +170,11 @@ begin
     function: Cardinal
     begin
       Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
-    end, TArray<string>.Create(cWin32Platform, cWin64Platform), nil));
+    end, TArray<string>.Create(cWin32Platform, cWin64Platform
+    {$IF Defined(TOKYOORBETTER)}
+    , cLinux64Platform
+    {$ENDIF}
+    ), nil));
 end;
 
 end.

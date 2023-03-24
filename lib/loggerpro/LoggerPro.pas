@@ -430,9 +430,9 @@ end;
 
 procedure TCustomLogWriter.AddAppender(const aAppender: ILogAppender);
 begin
-  Self.FLoggerThread.FAppenders.Add(aAppender);
   Self.FLogAppenders.Add(aAppender);
-  Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
+  if Assigned( Self.FLoggerThread.FAppendersDecorators) then
+   Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
 end;
 
 procedure TCustomLogWriter.DelAppender(const aAppender: ILogAppender);
@@ -771,7 +771,7 @@ begin
   Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
   Self.FLogFormat := ALogFormat;
-  Self.FOnLogRow := nil;
+  Self.FOnLogRow := Nil;
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;

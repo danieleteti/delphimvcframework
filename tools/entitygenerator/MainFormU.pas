@@ -420,7 +420,7 @@ begin
         begin
           if dsTablesMappingGENERATE.Value then
           begin
-            lSelectedTables.Add(dsTablesMappingTABLE_NAME.Value);
+            lSelectedTables.Add(dsTablesMappingTABLE_NAME.AsString);
           end;
           dsTablesMapping.Next;
         end;
@@ -900,9 +900,6 @@ begin
 end;
 
 function TMainForm.GetFieldName(const Value: string): string;
-var
-  Pieces: TArray<string>;
-  Piece: string;
 begin
   if Value.Length <= 2 then
   begin
@@ -915,7 +912,6 @@ function TMainForm.GetOutputFileName(out OutputFileName: String): Boolean;
 var
   lFName: String;
 begin
-  Result := False;
   lFName := EditOutputFileName.Text;
   if lFName.IsEmpty then
   begin

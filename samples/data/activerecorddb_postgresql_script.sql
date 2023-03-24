@@ -343,7 +343,10 @@ CREATE TABLE public.people (
     full_name character varying(80),
     is_male boolean,
     note text,
-    photo bytea
+    photo bytea,
+	person_type varchar(40),
+	salary money,
+	annual_bonus money	
 );
 
 

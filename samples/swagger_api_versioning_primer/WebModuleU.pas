@@ -90,7 +90,7 @@ begin
   FMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(FMVC, GetSwagInfoV1, '/api/swagger-v1.json',
     'Method for authentication using JSON Web Token (JWT)', False, '','','/api/v1'));
   FMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(FMVC, GetSwagInfoV2, '/api/swagger-v2.json',
-    'Method for authentication using JSON Web Token (JWT)', False, '','','/api/v2'));
+    'Method for authentication using JSON Web Token (JWT)', False, '','','/api/v2', [psHTTP, psHTTPS]));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

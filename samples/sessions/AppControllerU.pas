@@ -49,11 +49,11 @@ begin
   if Context.SessionStarted then
   begin
     // automaticaly create the session
-    Render('Hello ' + Session['username']);
+    Render(200, 'Hello ' + Session['username']);
   end
   else
   begin
-    Render(400, 'Session not created. Do login first');
+    RenderStatusMessage(http_status.BadRequest, 'Session not created. Do login first');
   end;
 end;
 

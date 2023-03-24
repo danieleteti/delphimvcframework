@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -38,7 +38,7 @@ uses
   MVCFramework.Swagger.Commons,
   Swag.Doc.SecurityDefinition,
   Swag.Common.Types,
-  System.JSON;
+  System.JSON, MVCFramework.Commons;
 
 type
   TMVCSwaggerMiddleware = class(TInterfacedObject, IMVCMiddleware)
@@ -51,6 +51,7 @@ type
     fHost: string;
     fBasePath: string;
     fPathFilter: string;
+    fTransferProtocolSchemes: TMVCTransferProtocolSchemes;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -58,11 +59,16 @@ type
     procedure SortApiPaths(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
-    constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
-      const ASwaggerDocumentationURL: string = '/swagger.json'; const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
+    constructor Create(
+      const AEngine: TMVCEngine;
+      const ASwaggerInfo: TMVCSwaggerInfo;
+      const ASwaggerDocumentationURL: string = '/swagger.json';
+      const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
       const AEnableBasicAuthentication: Boolean = False;
-      const AHost: string = ''; const ABasePath: string = '';
-      const APathFilter: String = '');
+      const AHost: string = '';
+      const ABasePath: string = '';
+      const APathFilter: String = '';
+      const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS]);
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
@@ -77,7 +83,6 @@ implementation
 
 uses
   System.SysUtils,
-  MVCFramework.Commons,
   System.Classes,
   JsonDataObjects,
   System.Rtti,
@@ -99,7 +104,8 @@ uses
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
   const AHost, ABasePath: string;
-  const APathFilter: String);
+  const APathFilter: String;
+  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
@@ -110,6 +116,7 @@ begin
   fHost := AHost;
   fBasePath := ABasePath;
   fPathFilter := APathFilter;
+  fTransferProtocolSchemes := ATransferProtocolSchemes;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -370,6 +377,8 @@ begin
 end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
+var
+  lSwagSchemes: TSwagTransferProtocolSchemes;
 begin
   ASwagDoc.Host := fHost;
   if ASwagDoc.Host.IsEmpty then
@@ -387,7 +396,16 @@ begin
     ASwagDoc.BasePath := '/';
   end;
 
-  ASwagDoc.Schemes := [tpsHttp, tpsHttps];
+  lSwagSchemes := [];
+  if psHTTP in fTransferProtocolSchemes then
+  begin
+    Include(lSwagSchemes, tpsHttp);
+  end;
+  if psHTTPS in fTransferProtocolSchemes then
+  begin
+    Include(lSwagSchemes, tpsHttps);
+  end;
+  ASwagDoc.Schemes := lSwagSchemes;
 end;
 
 procedure TMVCSwaggerMiddleware.InternalRender(AContent: string; AContext: TWebContext);
