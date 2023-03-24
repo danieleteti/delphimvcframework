@@ -171,10 +171,12 @@ begin
   FAddress := TAddress.Create;
   FPhones := TPhones.Create;
   FStringDictionary := TMVCStringDictionary.Create;
+  FListField := TList<String>.Create;
 end;
 
 destructor TPerson.Destroy;
 begin
+  FListField.Free;
   FAddress.Free;
   FPhones.Free;
   FStringDictionary.Free;

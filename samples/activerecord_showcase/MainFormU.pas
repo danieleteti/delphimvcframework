@@ -27,7 +27,7 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
-  System.Generics.Collections;
+  System.Generics.Collections, System.Diagnostics;
 
 type
   TMainForm = class(TForm)
@@ -39,7 +39,7 @@ type
     btnValidation: TButton;
     btnMultiThreading: TButton;
     btnRQL: TButton;
-    btnTransientFields: TButton;
+    btnReadOnlyFields: TButton;
     FDConnection1: TFDConnection;
     btnNullTest: TButton;
     btnCRUDNoAutoInc: TButton;
@@ -54,6 +54,10 @@ type
     btnTableFilter: TButton;
     btnPartitioning: TButton;
     btnCRUDWithGUID: TButton;
+    btnOOP: TButton;
+    btnReadOnly: TButton;
+    btnSpeed: TButton;
+    btnRefresh: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -62,7 +66,7 @@ type
     procedure btnSelectClick(Sender: TObject);
     procedure btnValidationClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure btnTransientFieldsClick(Sender: TObject);
+    procedure btnReadOnlyFieldsClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure btnNullablesClick(Sender: TObject);
     procedure btnNullTestClick(Sender: TObject);
@@ -78,6 +82,10 @@ type
     procedure btnTableFilterClick(Sender: TObject);
     procedure btnPartitioningClick(Sender: TObject);
     procedure btnCRUDWithGUIDClick(Sender: TObject);
+    procedure btnOOPClick(Sender: TObject);
+    procedure btnReadOnlyClick(Sender: TObject);
+    procedure btnSpeedClick(Sender: TObject);
+    procedure btnRefreshClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -474,27 +482,38 @@ var
   lCTypes: TComplexTypes;
   lID: Int64;
 begin
-  TMVCActiveRecord.DeleteAll(TComplexTypes);
+  if GetBackEndByConnection(TMVCActiveRecord.CurrentConnection) = TMVCActiveRecordBackEnd.PostgreSQL then
+  begin
+    TMVCActiveRecord.DeleteAll(TComplexTypes);
 
-  lCTypes := TComplexTypes.Create;
-  try
-    lCTypes.JSON := '{"field_type":"json"}';
-    lCTypes.JSONB := '{"field_type":"jsonb"}';
-    lCTypes.XML := '<field_type>xml</field_type>';
-    lCTypes.Insert;
-    lID := lCTypes.ID;
-  finally
-    lCTypes.Free;
-  end;
+    lCTypes := TComplexTypes.Create;
+    try
+      lCTypes.JSON := '{"field_type":"json"}';
+      lCTypes.JSONB := '{"field_type":"jsonb"}';
+      lCTypes.XML := '<field_type>xml</field_type>';
+      lCTypes.Insert;
+      lID := lCTypes.ID;
+    finally
+      lCTypes.Free;
+    end;
 
-  lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
-  try
-    lCTypes.JSON := '{"field_type":"json", "updated": true}';
-    lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
-    lCTypes.XML := '<field_type updated="true">xml</field_type>';
-    lCTypes.Update;
-  finally
-    lCTypes.Free;
+    lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
+    try
+      lCTypes.JSON := '{"field_type":"json", "updated": true}';
+      lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
+      lCTypes.XML := '<field_type updated="true">xml</field_type>';
+      lCTypes.Update;
+    finally
+      lCTypes.Free;
+    end;
+
+    Log('Executing ==> (jsonb_field ->> ''updated'')::bool = true');
+    lCTypes := TMVCActiveRecord.GetFirstByWhere<TComplexTypes>('(jsonb_field ->> ''updated'')::bool = true', []);
+    try
+      Log('JSON ==> ' + lCTypes.JSON);
+    finally
+      lCTypes.Free;
+    end;
   end;
 end;
 
@@ -547,7 +566,9 @@ begin
       //all the other customers will be deleted
 
       //calculate the unit-of-work to merge the lists
-      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+      var lUOW := TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges);
+      //apply the UnitOfWork
+      lUOW.Apply(
         procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
         begin
           Handled := False; //set it to true to execute action manually
@@ -557,6 +578,8 @@ begin
             eaDelete: Log('Deleting Customer  : ' + Customer.ToString);
           end;
         end);
+
+
     finally
       lCustomersChanges.Free;
     end;
@@ -725,7 +748,6 @@ begin
     Assert(not lTest.f_float8.HasValue);
     Assert(not lTest.f_bool.HasValue);
     Assert(Assigned(lTest));
-    lTest.f_int2 := lTest.f_int2.Value + 2;
     lTest.f_int4 := lTest.f_int4.Value + 4;
     lTest.f_int8 := lTest.f_int8.Value + 8;
     lTest.f_blob.Size := 0;
@@ -734,9 +756,9 @@ begin
     lTest.Free;
   end;
 
-  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
   try
-    Assert(lTest.f_int2.ValueOrDefault = 4);
+    Assert(lTest.f_int2.ValueOrDefault = 2);
     Assert(lTest.f_int4.ValueOrDefault = 8);
     Assert(lTest.f_int8.ValueOrDefault = 16);
     Assert(not lTest.f_string.HasValue);
@@ -748,12 +770,12 @@ begin
     Assert(not lTest.f_float8.HasValue);
     Assert(not lTest.f_bool.HasValue);
     Assert(lTest.f_blob.Size = 0, 'Blob contains a value when should not');
-    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
+    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,2)');
   finally
     lTest.Free;
   end;
 
-  Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False) = nil);
+  Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 2', [], False) = nil);
 
   lTest := TNullablesTest.Create;
   try
@@ -924,6 +946,18 @@ begin
 
   finally
     lArtWO.Free;
+  end;
+end;
+
+procedure TMainForm.btnReadOnlyClick(Sender: TObject);
+begin
+  var lROCustomer := TMVCActiveRecord.GetFirstByWhere<TReadOnlyCustomer>('',[]);
+  try
+    lROCustomer.Code := '1234';
+    ShowMessage('An exception is going to be raised');
+    lROCustomer.Update();
+  finally
+    lROCustomer.Free;
   end;
 end;
 
@@ -1143,7 +1177,7 @@ begin
   LoadCustomers;
 
   Log('** Query SQL returning DataSet');
-  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', []);
+  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', [], True);
   try
     while not lDS.Eof do
     begin
@@ -1221,6 +1255,31 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TMainForm.btnSpeedClick(Sender: TObject);
+var
+  I: Integer;
+  lCustomers: TArray<TCustomer>;
+  lSW: TStopWatch;
+  lElapsedMS: UInt32;
+const
+  INSTANCES_COUNT = 2000000;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  SetLength(lCustomers, INSTANCES_COUNT);
+  lSW := TStopwatch.StartNew;
+  for I := 0 to INSTANCES_COUNT - 1 do
+  begin
+    lCustomers[I] := TCustomer.Create;
+  end;
+  lElapsedMS := lSW.ElapsedMilliseconds;
+  Log(Format('Created %s TCustomer instances in %d ms',
+    [FormatFloat('###,###,###', INSTANCES_COUNT), lElapsedMS]));
+  for I := 0 to INSTANCES_COUNT - 1 do
+  begin
+    lCustomers[I].Free;
+  end;
 end;
 
 procedure TMainForm.btnTableFilterClick(Sender: TObject);
@@ -1311,7 +1370,7 @@ begin
   end;
 
 
-  Log('Retrieving only best customers...');
+  Log('Retrieving only worst customers...');
 
   lNotAGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TCustomer>('eq(rating,1)', True);
   try
@@ -1357,41 +1416,92 @@ begin
   end;
 end;
 
-procedure TMainForm.btnTransientFieldsClick(Sender: TObject);
+procedure TMainForm.btnReadOnlyFieldsClick(Sender: TObject);
 var
-  lCustomer: TCustomerWithTransient;
+  lCustomer: TCustomerWithReadOnlyFields;
   lID: Integer;
 begin
-  Log('** CRUD test with transient fields');
-  lCustomer := TCustomerWithTransient.Create;
+  Log('** CRUD test with read-only fields');
+  lCustomer := TCustomerWithReadOnlyFields.Create;
   try
     {
-      'Code' will not be persisted because defined as 'transient'
+      'Code' will not be persisted on table because defined as 'foReadOnly'
     }
     lCustomer.Code := '1234';
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Log('Just inserted "transient" Customer ' + lID.ToString);
+    Log('Just inserted Customer ' + lID.ToString + ' with a R/O field');
   finally
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  //let's check that code is empty
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
   try
+    Assert(lCustomer.Code.IsEmpty);
+  finally
+    lCustomer.Free;
+  end;
+
+  //if underlying field is not null, it is loaded as usual
+  TMVCActiveRecord.CurrentConnection.ExecSQL('update customers set code = ''XYZ'' where id = ?', [lID]);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
+  try
+    Assert('XYZ' = lCustomer.Code);
     lCustomer.CompanyName := lCustomer.CompanyName + ' changed!';
     lCustomer.Code := 'this code will not be saved';
-    lCustomer.Update;
+    lCustomer.Update; //do not save field "code"
     Log('Just updated Customer ' + lID.ToString);
   finally
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  //but being foReadOnly is not updated
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
   try
+    Assert('XYZ' = lCustomer.Code);
     lCustomer.Delete;
-    Log('Just deleted "transient" Customer ' + lID.ToString);
+    Log('Just deleted Customer ' + lID.ToString + ' with a R/O field');
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnRefreshClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Log('** Refresh test');
+  lCustomer := TCustomer.Create;
+  try
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.City := 'Montain View, CA';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCustomer.Insert;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
+    lCustomer.City := '';
+    lCustomer.Note := '';
+    Log('Refreshing the customer');
+    lCustomer.Refresh;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    Log('Loading customer using Refresh');
+    lCustomer.ID := lID;
+    lCustomer.Refresh;
+    Assert('Montain View, CA' = lCustomer.City);
+    Assert('Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁' = lCustomer.Note);
   finally
     lCustomer.Free;
   end;
@@ -1512,6 +1622,44 @@ begin
     end;
   finally
     lList.Free;
+  end;
+end;
+
+procedure TMainForm.btnOOPClick(Sender: TObject);
+begin
+  Log('** OOP with ActiveRecord (person, employee, manager)');
+  TMVCActiveRecord.DeleteAll(TPerson);
+
+  var lEmployee := TEmployee.Create;
+  try
+    lEmployee.FirstName := 'Peter';
+    lEmployee.LastName := 'Parker';
+    lEmployee.Dob := EncodeDate(1985,11,4);
+    lEmployee.IsMale := True;
+    lEmployee.Salary := 2100;
+    lEmployee.Store;
+  finally
+    lEmployee.Free;
+  end;
+
+  var lManager := TManager.Create;
+  try
+    lManager.FirstName := 'Bruce';
+    lManager.LastName := 'Banner';
+    lManager.Dob := EncodeDate(1975,11,4);
+    lManager.IsMale := True;
+    lManager.Salary := 2800;
+    lManager.AnnualBonus := 5000;
+    lManager.Store;
+  finally
+    lManager.Free;
+  end;
+
+  var lPeople := TMVCActiveRecord.All<TPerson>;
+  try
+    Assert(lPeople.Count = 2);
+  finally
+    lPeople.Free;
   end;
 end;
 

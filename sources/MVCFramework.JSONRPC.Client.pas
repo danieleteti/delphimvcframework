@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -56,13 +56,30 @@ type
       const aLastEndPointSegment: string;
       const aJSONRPCNotification: IJSONRPCNotification;
       const UseVerb: TJSONRPCHTTPVerb = jrpcDefault): IJSONRPCResponse; overload;
+    function HTTPResponse: IHTTPResponse;
+    // Http headers handling
+    procedure AddHTTPHeader(const aNetHeader: TNetHeader);
+    procedure ClearHTTPHeaders;
+    function HTTPHeadersCount: Integer;
+    function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+    //events
+    //sync
+    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
+      : IMVCJSONRPCExecutor;
+    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
+    function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
+    //end events
+
+  end;
+
+  IMVCJSONRPCExecutorAsync = interface
+    ['{16E930C2-0318-48A3-9633-614FB5BF8BAE}']
     //async
-    procedure InternalExecuteAsync(
-      const aEndPoint: string;
-      const aJSONRPCObject: IJSONRPCObject;
-      const AJSONRPCResponseHandler: TJSONRPCResponseHandlerProc;
-      const AJSONRPCErrorHandler: TJSONRPCErrorHandlerProc;
-      const UseVerb: TJSONRPCHTTPVerb = jrpcDefault);
     procedure ExecuteRequestAsync(
       const aJSONRPCRequest: IJSONRPCRequest;
       const AJSONRPCResponseHandler: TJSONRPCResponseHandlerProc;
@@ -84,8 +101,7 @@ type
       const AJSONRPCErrorHandler: TJSONRPCErrorHandlerProc = nil;
       const UseVerb: TJSONRPCHTTPVerb = jrpcDefault); overload;
     // end async
-    function HTTPResponse: IHTTPResponse;
-    // Http headers handling
+    // http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
@@ -93,14 +109,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
-    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //events
-    //sync
-    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
-    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
-      : IMVCJSONRPCExecutor;
-    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
-    function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     //async
     function SetOnReceiveResponseAsync(const aOnReceiveResponseAsyncProc: TProc<IJSONRPCObject, IJSONRPCObject>)
       : IMVCJSONRPCExecutor;
@@ -108,11 +117,16 @@ type
     function SetOnReceiveHTTPResponseAsync(const aOnReceiveHTTPResponseAsync: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     function SetOnBeginAsyncRequest(const Proc: TProc): IMVCJSONRPCExecutor;
     function SetOnEndAsyncRequest(const Proc: TProc): IMVCJSONRPCExecutor;
+    /// <summary>
+    ///   Invoked internally just before each async requests/notifications.
+    ///   Use it to customize properties and events of HTTP client used in async operations.
+    /// </summary>
+    function SetConfigureHTTPClientAsync(const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //end events
-
   end;
 
-  TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor)
+
+  TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor, IMVCJSONRPCExecutorAsync)
   private
     fDefaultHTTPVerb: TJSONRPCHTTPVerb;
     fURL: string;
@@ -133,6 +147,7 @@ type
     fOnReceiveResponseAsync: TProc<IJSONRPCObject, IJSONRPCObject>;
     fOnBeginAsyncRequest: TProc;
     fOnEndAsyncRequest: TProc;
+    fConfigProcAsync: TProc<THTTPClient>;
     //end async events
     function GetHTTPRequestHeaders: TList<TNetHeader>;
     procedure DoBeginAsyncRequest;
@@ -205,6 +220,7 @@ type
     function SetOnReceiveResponseAsync(const aOnReceiveResponseAsyncProc: TProc<IJSONRPCObject, IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnSendCommandAsync(const aOnSendCommandAsyncProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnReceiveHTTPResponseAsync(const aOnReceiveHTTPResponseAsync: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
+    function SetConfigureHTTPClientAsync(const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
     //end events
     function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   public
@@ -490,6 +506,10 @@ begin
   begin
     lHTTP := THTTPClient.Create;
     try
+      if Assigned(fConfigProcAsync) then
+      begin
+        fConfigProcAsync(lHttp);
+      end;
       lHTTP.OnNeedClientCertificate := fHTTP.OnNeedClientCertificate;
       lHTTP.OnReceiveData := fHTTP.OnReceiveData;
       lHTTP.OnValidateServerCertificate := fHTTP.OnValidateServerCertificate;
@@ -583,7 +603,7 @@ begin
                 if Assigned(AJSONRPCErrorHandler) then
                   AJSONRPCErrorHandler(lCurrException)
                 else
-                  DefaultTaskErrorHandler(lCurrException, lExceptionAddress);
+                  gDefaultTaskErrorHandler(lCurrException, lExceptionAddress);
               finally
                 FreeAndNil(lCurrException);
               end;
@@ -602,6 +622,12 @@ end;
 function TMVCJSONRPCExecutor.HTTPResponse: IHTTPResponse;
 begin
   Result := fHTTPResponse;
+end;
+
+function TMVCJSONRPCExecutor.SetConfigureHTTPClientAsync(
+  const aConfigProcAsync: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+begin
+  fConfigProcAsync := aConfigProcAsync;
 end;
 
 function TMVCJSONRPCExecutor.SetOnBeginAsyncRequest(

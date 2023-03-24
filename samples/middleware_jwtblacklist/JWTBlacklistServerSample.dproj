@@ -103,7 +103,6 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="AppControllerU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
         <DCCReference Include="AuthenticationU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -169,6 +168,12 @@
             </Delphi.Personality>
             <Deployment Version="4">
                 <DeployFile LocalName="Win32\Debug\JWTBlacklistServerSample.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="Win32\Debug\JWTBlacklistServerSample.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>JWTBlacklistServerSample.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

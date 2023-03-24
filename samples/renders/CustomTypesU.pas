@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -66,11 +66,15 @@ type
     fStrings: TArray<string>;
     fIntegers: TArray<Integer>;
     fDoubles: TArray<Double>;
+    fEmptyIntegers: TArray<Integer>;
+    fNilArrayOfIntegers: TArray<Integer>;
   public
     constructor Create;
     property Integers: TArray<Integer> read fIntegers write fIntegers;
     property Strings: TArray<string> read fStrings write fStrings;
     property Doubles: TArray<Double> read fDoubles write fDoubles;
+    property EmptyIntegers: TArray<Integer> read fEmptyIntegers write fEmptyIntegers;
+    property NilArrayOfIntegers: TArray<Integer> read fNilArrayOfIntegers write fNilArrayOfIntegers;
   end;
 
   TSimpleListTest = class
@@ -117,6 +121,8 @@ var
   I: Integer;
 begin
   inherited;
+  fNilArrayOfIntegers := nil;
+  SetLength(fEmptyIntegers, 0);
   SetLength(fStrings, 5);
   for I := 0 to Length(fStrings) - 1 do
   begin

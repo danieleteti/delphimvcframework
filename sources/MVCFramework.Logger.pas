@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -56,6 +56,7 @@ type
     constructor Start(const Message: string; const Params: array of TVarRec; const TAG: String); overload;
     class var ProfileLogger: ILogWriter;
     class var LoggerTag: String;
+    class var WarningThreshold: Int64;
   end;
 {$ENDIF}
 
@@ -103,15 +104,18 @@ uses
   MVCFramework.DuckTyping;
 
 {$IF Defined(SYDNEYORBETTER)}
-  threadvar
+threadvar
   gIndent: NativeUInt;
   gReqNr: NativeUInt;
+
+const
+  PROFILER_LOG_TYPE: array [false..true] of TLogType = (TLogType.Info, TLogType.Warning);
 {$ENDIF}
 
 var
-  _lock: TObject;
-  _DefaultLogger: ILogWriter;
-  _LevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
+  gLock: TObject;
+  gDefaultLogger: ILogWriter;
+  gLevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
     (
       TLogType.Debug
     ),
@@ -129,16 +133,14 @@ var
     )
   );
 
-
-
 function Log: ILogWriter;
 begin
-    if _DefaultLogger = nil then
+    if gDefaultLogger = nil then
     begin
       SetDefaultLogger(nil);
     end;
 
-    Result := _DefaultLogger;
+    Result := gDefaultLogger;
 end;
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
@@ -211,7 +213,7 @@ end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 begin
-    case _LevelsMap[LogLevel] of
+    case gLevelsMap[LogLevel] of
       TLogType.Debug:
         Log.Debug(AMessage, LOGGERPRO_TAG);
       TLogType.Info:
@@ -263,15 +265,15 @@ end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
-    if _DefaultLogger = nil then
+    if gDefaultLogger = nil then
     begin
-      TMonitor.Enter(_lock); // double check here
+      TMonitor.Enter(gLock); // double check here
       try
-        if _DefaultLogger = nil then
+        if gDefaultLogger = nil then
         begin
           if aLogWriter <> nil then
           begin
-            _DefaultLogger := aLogWriter;
+            gDefaultLogger := aLogWriter;
             Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
           end
           else
@@ -281,7 +283,7 @@ begin
           end;
         end;
       finally
-        TMonitor.Exit(_lock);
+        TMonitor.Exit(gLock);
       end;
     end;
 end;
@@ -292,37 +294,37 @@ var
 begin
     { This procedure must be called in a synchronized context
       (Normally only SetDefaultLogger should be the caller) }
-    if not Assigned(_DefaultLogger) then
+    if not Assigned(gDefaultLogger) then
     begin
 {$IF NOT DEFINED(MOBILE)}
       lLogsFolder := AppPath + 'logs';
 {$ELSE}
       lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-      _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
+      gDefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
     end;
 end;
 
 procedure ReleaseGlobalLogger;
 begin
-    if _DefaultLogger <> nil then
+    if gDefaultLogger <> nil then
     begin
-      TMonitor.Enter(_lock);
+      TMonitor.Enter(gLock);
       try
-        if _DefaultLogger <> nil then // double check
+        if gDefaultLogger <> nil then // double check
         begin
-          _DefaultLogger := nil;
+          gDefaultLogger := nil;
         end;
       finally
-        TMonitor.Exit(_lock);
+        TMonitor.Exit(gLock);
       end;
     end;
 end;
 
 
+{ ****************************************** }
 { *************** PROFILER ***************** }
-{ *************** PROFILER ***************** }
-{ *************** PROFILER ***************** }
+{ ****************************************** }
 {$IF Defined(SYDNEYORBETTER)}
 
 constructor Profiler.Start(const Message: string; const Params: array of TVarRec);
@@ -349,11 +351,16 @@ class operator Profiler.Finalize(var Dest: Profiler);
 begin
   if Profiler.ProfileLogger = nil then
     Exit;
-  ProfileLogger.Info('[%s<<][%6d][%s][ELAPSED: %s]', [
-    Dest.fIndent,
-    gReqNr,
-    Dest.fMessage,
-    Dest.fStopWatch.Elapsed.ToString], LoggerTag);
+  Dest.fStopWatch.Stop;
+  ProfileLogger.Log(
+    PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
+    '[%s<<][%6d][%s][ELAPSED: %s]',
+    [
+      Dest.fIndent,
+      gReqNr,
+      Dest.fMessage,
+      Dest.fStopWatch.Elapsed.ToString
+    ], LoggerTag);
   Dec(gIndent);
   Dec(gReqNr);
 end;
@@ -374,10 +381,11 @@ end;
 
 initialization
 
-  _lock := TObject.Create;
+  gLock := TObject.Create;
 
 {$IF Defined(SYDNEYORBETTER)}
   Profiler.LoggerTag := 'profiler';
+  Profiler.WarningThreshold := 1000; //one sec
 {$ENDIF}
   { The TLoggerProFileAppender has its defaults defined as follows:
     DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
@@ -418,7 +426,7 @@ initialization
 
 finalization
 
-  _lock.Free;
+  gLock.Free;
 
 
 end.

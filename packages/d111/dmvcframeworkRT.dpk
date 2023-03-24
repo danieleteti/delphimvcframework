@@ -1,7 +1,34 @@
 package dmvcframeworkRT;
 
-{$I ..\common_defines.inc}
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '111'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
 
 requires
   rtl,
@@ -13,11 +40,20 @@ requires
   FireDACMySQLDriver,
   loggerproRT,
   FireDACPgDriver,
-  FireDACSqliteDriver;
+  FireDACSqliteDriver,
+  SwagDoc;
 
 contains
-  {$I '..\common_contains.inc'}
+  Web.HTTPDImpl,
+  Web.ApacheConst,
+  Web.ApacheHTTP,
+  Web.Win.IsapiHTTP,
+  Web.HTTPDMethods,
   MVCFramework in '..\..\sources\MVCFramework.pas',
+  MVCFramework.AsyncTask in '..\..\sources\MVCFramework.AsyncTask.pas',
+  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
+  MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
+  MVCFramework.Middleware.ETag in '..\..\sources\MVCFramework.Middleware.ETag.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
   MVCFramework.ApplicationSession in '..\..\sources\MVCFramework.ApplicationSession.pas',
@@ -74,9 +110,11 @@ contains
   MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
-  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas';
+  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas';
 
 end.
+
 
 
 

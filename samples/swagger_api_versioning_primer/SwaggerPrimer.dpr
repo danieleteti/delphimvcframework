@@ -8,9 +8,10 @@ uses
   WinAPI.Windows,
 {$ENDIF}
   System.SysUtils,
+  MVCFramework,
   MVCFramework.Logger,
   MVCFramework.Commons,
-  MVCFramework.REPLCommandsHandlerU,
+  MVCFramework.Signal,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -25,56 +26,19 @@ uses
 procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
-  LCustomHandler: TMVCCustomREPLCommandsHandler;
-  LCmd: string;
 begin
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
-  LCmd := 'start';
-  if ParamCount >= 1 then
-    LCmd := ParamStr(1);
-
-  LCustomHandler :=
-      function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean)
-      : THandleCommandResult
-    begin
-      Handled := False;
-      Result := THandleCommandResult.Unknown;
-    end;
-
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
+    LServer.Active := True;
 
-    Writeln('Write "quit" or "exit" to shutdown the server');
-    repeat
-      if LCmd.IsEmpty then
-      begin
-        Write('-> ');
-        ReadLn(LCmd)
-      end;
-      try
-        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of
-          THandleCommandResult.Continue:
-            begin
-              Continue;
-            end;
-          THandleCommandResult.Break:
-            begin
-              Break;
-            end;
-          THandleCommandResult.Unknown:
-            begin
-              REPLEmit('Unknown command: ' + LCmd);
-            end;
-        end;
-      finally
-        LCmd := '';
-      end;
-    until False;
-
+    Writeln('CTRL+C to shutdown the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

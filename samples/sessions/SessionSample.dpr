@@ -5,6 +5,8 @@ program SessionSample;
 
 uses
   System.SysUtils,
+  MVCFramework,
+  MVCFramework.Signal,
 
   {$IFDEF MSWINDOWS}
 
@@ -31,15 +33,12 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-
     {$IFDEF MSWINDOWS}
-
     ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
-
     {$ENDIF}
-
-    Writeln('Press RETURN to stop the server');
-    ReadLn;
+    Writeln('CTRL+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

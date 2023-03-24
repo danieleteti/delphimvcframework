@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -52,6 +52,8 @@ type
     httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
+
+  TMVCTransferProtocolSchemes = set of (psHTTP, psHTTPS);
 
   TMVCMediaType = record
   public const
@@ -124,6 +126,7 @@ type
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
+    COPYRIGHT = 'Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
@@ -626,6 +629,15 @@ TMVCListOfBoolean = TList<Boolean>;
 TMVCListOfDouble =  TList<Double>;
 { GENERIC TYPE ALIASES // END}
 
+{ GLOBAL CONFIG VARS }
+var
+  /// <summary>
+  /// When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
+  /// When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+  /// </summary>
+  MVCSerializeNulls: Boolean = True;
+{ GLOBAL CONFIG VARS // END}
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
@@ -646,6 +658,7 @@ function URLDecode(const Value: string): string;
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
+function StreamToBase64String(Source: TStream): string;
 function FileToBase64String(const FileName: string): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
@@ -1464,6 +1477,19 @@ begin
   end;
 end;
 
+function StreamToBase64String(Source: TStream): string;
+var
+  lTmpStream: TStringStream;
+begin
+  lTmpStream := TStringStream.Create;
+  try
+    TMVCSerializerHelper.EncodeStream(Source, lTmpStream);
+    Result := lTmpStream.DataString;
+  finally
+    lTmpStream.Free;
+  end;
+end;
+
 function FileToBase64String(const FileName: string): string;
 var
   lTemplateFileB64: TStringStream;
@@ -1473,11 +1499,10 @@ begin
   try
     lTemplateFile := TFileStream.Create(FileName, fmOpenRead);
     try
-      TMVCSerializerHelper.EncodeStream(lTemplateFile, lTemplateFileB64);
+      Result := StreamToBase64String(lTemplateFile);
     finally
       lTemplateFile.Free;
     end;
-    Result := lTemplateFileB64.DataString;
   finally
     lTemplateFileB64.Free;
   end;

@@ -47,7 +47,7 @@ type
     [MVCHTTPMethod([httpPUT])]
     procedure UpdateOrderByID(
       const id: Integer;
-      [MVCFromBody] OrderIn: TOrder
+      [MVCFromBody] OrderIn: TOrderIn
       );
 
     [MVCDoc('Updates the Order Items and return "200: OK" - merge childs')]
@@ -183,7 +183,7 @@ begin
                     end;
                 end;
               end);
-        lCurrentOrder.Update(); // update the master, insert and update details
+        lCurrentOrder.Update(); // fires logic, update the master, insert and update details
       finally
         lCurrentOrder.Free;
       end;
@@ -200,7 +200,7 @@ end;
 
 procedure TOrdersController.UpdateOrderByID(
       const id: Integer;
-      [MVCFromBody] OrderIn: TOrder);
+      [MVCFromBody] OrderIn: TOrderIn);
 var
   lCurrentOrder: TOrder;
   lResp: TJSONArray;
@@ -209,9 +209,10 @@ begin
   try
     lCurrentOrder := TMVCActiveRecord.GetByPk<TOrder>(id);
     try
-      lCurrentOrder.IDCustomer := OrderIn.IDCustomer;
-      lCurrentOrder.OrderDate := OrderIn.OrderDate;
-      lCurrentOrder.Total := OrderIn.Total;
+      if OrderIn.IDCustomer.HasValue then
+        lCurrentOrder.IDCustomer := OrderIn.IDCustomer.Value;
+      if OrderIn.OrderDate.HasValue then
+        lCurrentOrder.OrderDate := OrderIn.OrderDate.Value;
       TMVCActiveRecord
         .Merge<TOrderDetail>(lCurrentOrder.OrderItems, OrderIn.OrderItems).Apply(
           procedure(

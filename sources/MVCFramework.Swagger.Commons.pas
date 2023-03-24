@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -108,6 +108,7 @@ type
     fJsonSchema: string;
     fJsonSchemaClass: TClass;
     fIsArray: Boolean;
+    fRecordType: TRttiType;
   public
     constructor Create(const aStatusCode: Integer; const aDescription: string; const aJsonSchema: string = '');
       overload;
@@ -115,11 +116,15 @@ type
     constructor Create(const aStatusCode: Integer; const aDescription: string; const aJsonSchemaClass: TClass;
       const aIsArray: Boolean = False); overload;
 
+    constructor Create(const aFullyQualifiedRecordName: String; const aStatusCode: Integer; const aDescription: string;
+      const aIsArray: Boolean = false; const aJsonSchema: String = ''); overload;
+
     property StatusCode: Integer read fStatusCode;
     property Description: string read fDescription;
     property JsonSchema: string read fJsonSchema;
     property JsonSchemaClass: TClass read fJsonSchemaClass;
     property IsArray: Boolean read fIsArray;
+    property RecordType: TRttiType read fRecordType;
   end;
 
   /// <summary>
@@ -136,6 +141,7 @@ type
     fJsonSchemaClass: TClass;
     fDefaultValue: string;
     fEnumValues: string;
+    fRecordType: TRttiType;
     function GetEnumValues: TArray<string>;
   public
     constructor Create(const aParamLocation: TMVCSwagParamLocation; const aParamName: string;
@@ -143,6 +149,11 @@ type
       const aDefaultValue: string = ''; const aEnumValues: string = ''; const aJsonSchema: string = ''); overload;
     constructor Create(const aParamLocation: TMVCSwagParamLocation; const aParamName: string;
       const aParamDescription: string; const aJsonSchemaClass: TClass;
+      const aParamType: TMVCSwagParamType = ptNotDefined; const aRequired: Boolean = True;
+      const aDefaultValue: string = ''; const aEnumValues: string = ''); overload;
+
+    constructor Create(const aParamLocation: TMVCSwagParamLocation; const aParamName: string;
+      const aParamDescription: string; const aFullyQualifiedRecordName: string;
       const aParamType: TMVCSwagParamType = ptNotDefined; const aRequired: Boolean = True;
       const aDefaultValue: string = ''; const aEnumValues: string = ''); overload;
 
@@ -155,6 +166,7 @@ type
     property EnumValues: TArray<string> read GetEnumValues;
     property JsonSchema: string read fJsonSchema;
     property JsonSchemaClass: TClass read fJsonSchemaClass;
+    property RecordType: TRttiType read fRecordType;
   end;
 
   /// <summary>
@@ -238,6 +250,8 @@ type
     class procedure ExtractJsonSchemaFromClass(const aJsonFieldRoot: TJsonFieldObject; const aClass: TClass); overload;
     class function ExtractJsonSchemaFromClass(const aClass: TClass; const aIsArray: Boolean = False)
       : TJSONObject; overload;
+    class procedure ExtractJsonSchemaFromRecord(const aRttiType: TRttiType; const aJsonFieldRoot: TJsonFieldObject); overload;
+    class function ExtractJsonSchemaFromRecord(const aTypeName: String; const aIsArray: Boolean = False): TJSONObject; overload;
     class function GetJsonFieldClass(const aSchemaFieldType: TMVCSwagSchemaType): TJsonFieldClass;
     class function TypeKindToMVCSwagSchemaType(aPropType: TRttiType): TMVCSwagSchemaType; static;
     class function TypeIsEnumerable(const aRttiType: TRttiType): Boolean; static;
@@ -247,7 +261,8 @@ type
       const aParamSchemaClass: TClass;
       const aSwagDefinitions: TObjectList<TSwagDefinition>;
       const aComparer: IComparer<TSwagDefinition>;
-      const aMVCSwagParamType: TMVCSwagParamType);
+      const aMVCSwagParamType: TMVCSwagParamType;
+      const aRecordType: TRttiType);
   public
     class constructor Create;
     class destructor Destroy;
@@ -331,20 +346,36 @@ uses
   Json.Schema.Field.Enums,
   Json.Schema.Field.Booleans;
 
+function GetRecordType(const aQualifiedName: String): TRttiType;
+var
+  lContext: TRttiContext;
+begin
+  lContext := TRttiContext.Create;
+  try
+    result := lContext.FindType(aQualifiedName);
+  finally
+    lContext.Free;
+  end;
+end;
+
 { TSwaggerUtils }
 
 class procedure TMVCSwagger.AddRequestModelDefinition(
   const aSwagReqParam: TSwagRequestParameter; const aParamSchemaClass: TClass;
   const aSwagDefinitions: TObjectList<TSwagDefinition>;
   const aComparer: IComparer<TSwagDefinition>;
-  const aMVCSwagParamType: TMVCSwagParamType);
+  const aMVCSwagParamType: TMVCSwagParamType;
+  const aRecordType: TRttiType);
 var
   lClassName: String;
   lSwagDef: TSwagDefinition;
   lSwagDefinition: TSwagDefinition;
   lIndex: Integer;
 begin
-  lClassName := aParamSchemaClass.ClassName;
+  if Assigned(aRecordType) then
+    lClassName := aRecordType.Name
+  else
+    lClassName := aParamSchemaClass.ClassName;
   if lClassName.ToUpper.StartsWith('T') then
     lClassName := lClassName.Remove(0, 1);
 
@@ -356,9 +387,14 @@ begin
     begin
       lSwagDefinition := TSwagDefinition.Create;
       lSwagDefinition.Name := lClassName;
-      lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
-        aParamSchemaClass,
-        aMVCSwagParamType = ptArray);
+      if Assigned(aRecordType) then
+        lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(
+          aRecordType.QualifiedName,
+          aMVCSwagParamType = ptArray)
+      else
+        lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
+          aParamSchemaClass,
+          aMVCSwagParamType = ptArray);
       aSwagDefinitions.Add(lSwagDefinition);
     end;
   finally
@@ -610,6 +646,192 @@ begin
   end;
 end;
 
+class function TMVCSwagger.ExtractJsonSchemaFromRecord(const aTypeName: String; const aIsArray: Boolean): TJSONObject;
+var
+  lJsonSchema: TJsonField;
+  lJsonRoot: TJsonFieldObject;
+  lContext: TRttiContext;
+  lTypeInfo: TRttiType;
+begin
+  if aIsArray then
+  begin
+    lJsonSchema := TJsonFieldArray.Create
+  end
+  else
+  begin
+    lJsonSchema := TJsonFieldObject.Create;
+  end;
+  try
+    if aIsArray then
+    begin
+      lJsonRoot := TJsonFieldObject.Create;
+      TJsonFieldArray(lJsonSchema).ItemFieldType := lJsonRoot;
+      TJsonFieldArray(lJsonSchema).Name := 'items';
+    end
+    else
+    begin
+      lJsonRoot := lJsonSchema as TJsonFieldObject;
+    end;
+    lContext := TRttiContext.Create;
+    try
+      lTypeInfo := lContext.FindType(aTypeName);
+    finally
+      lContext.Free;
+    end;
+    if lTypeInfo = nil then
+      raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+            'SWAGGER Definition Error: Type "'+aTypeName+'" not found. Is the unit name included to create a fully '+
+            'qualified name for "'+aTypeName+'"?');
+    ExtractJsonSchemaFromRecord(lTypeInfo, lJsonRoot);
+    Result := lJsonSchema.ToJsonSchema;
+  finally
+    lJsonSchema.Free;
+  end;
+end;
+
+class procedure TMVCSwagger.ExtractJsonSchemaFromRecord(const aRttiType: TRttiType; const aJsonFieldRoot: TJsonFieldObject);
+var
+  lFieldSchemaDef: TFieldSchemaDefinition;
+  lField: TRttiField;
+  lSkipProp: Boolean;
+  lAttr: TCustomAttribute;
+  lEnumAttr: MVCEnumSerializationAttribute;
+  lJSFieldAttr: MVCSwagJSONSchemaFieldAttribute;
+  lJsonFieldClass: TJsonFieldClass;
+  lJsonField: TJsonField;
+  lJsonFieldType: TRttiType;
+  lJsonFieldObject: TJsonFieldObject;
+  lAbstractSer: TMVCAbstractSerializer;
+  lClassType: TRttiType;
+  lEnumSerType: TMVCEnumSerializationType;
+  lEnumMappedValues: TList<string>;
+  I: Integer;
+begin
+  for lField in aRttiType.GetFields do
+  begin
+    lSkipProp := False;
+    lFieldSchemaDef := TFieldSchemaDefinition.Create;
+
+    for lAttr in lField.GetAttributes do
+    begin
+      if lAttr is MVCDoNotSerializeAttribute then
+      begin
+        lSkipProp := True;
+        Break;
+      end;
+
+      if lAttr is MVCSwagJSONSchemaFieldAttribute then
+      begin
+        lJSFieldAttr := MVCSwagJSONSchemaFieldAttribute(lAttr);
+        lFieldSchemaDef.SchemaFieldType := lJSFieldAttr.SchemaFieldType;
+        lFieldSchemaDef.FieldName := lJSFieldAttr.FieldName;
+        lFieldSchemaDef.Description := lJSFieldAttr.Description;
+        lFieldSchemaDef.Required := lJSFieldAttr.Required;
+        lFieldSchemaDef.Nullable := lJSFieldAttr.Nullable;
+        lFieldSchemaDef.MinLength := lJSFieldAttr.MinLength;
+        lFieldSchemaDef.MaxLength := lJSFieldAttr.MaxLength;
+        Break;
+      end;
+    end;
+
+    if lSkipProp then
+      Continue;
+
+    if lFieldSchemaDef.SchemaFieldType = stUnknown then
+    begin
+      lFieldSchemaDef.SchemaFieldType := TypeKindToMVCSwagSchemaType(lField.FieldType);
+      lFieldSchemaDef.FieldName := TMVCSerializerHelper.GetKeyName(lField, lField.FieldType);
+    end;
+
+    lJsonFieldClass := GetJsonFieldClass(lFieldSchemaDef.SchemaFieldType);
+    if not Assigned(lJsonFieldClass) then
+      Continue;
+
+    lJsonField := lJsonFieldClass.Create;
+
+    if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lField.FieldType)) then
+    begin
+      ExtractJsonSchemaFromRecord(lField.FieldType, (lJsonField as TJsonFieldObject));
+    end;
+
+    if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lField.FieldType) then
+    begin
+      lAbstractSer := TMVCAbstractSerializer.Create;
+      try
+        if lAbstractSer.GetObjectTypeOfGenericList(lField.FieldType.Handle, lJsonFieldType) then
+        begin
+          if lJsonFieldType.IsInstance then
+          begin
+            lClassType := lJsonFieldType;
+            lJsonFieldObject := TJsonFieldObject.Create;
+            ExtractJsonSchemaFromClass(lJsonFieldObject, lClassType.ClassType);
+            TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+          end
+          else
+          begin
+            lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
+            if Assigned(lJsonFieldClass) then
+              TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+          end;
+        end;
+      finally
+        lAbstractSer.Free;
+      end;
+    end
+    else if (lJsonField is TJsonFieldArray) and (lField.FieldType is TRttiDynamicArrayType) then
+    begin
+      lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
+        TRttiDynamicArrayType(lField.FieldType).ElementType));
+      if Assigned(lJsonFieldClass) then
+        TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+    end
+    else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
+    begin
+      lEnumSerType := estEnumName;
+      lEnumMappedValues := nil;
+      if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lField, lEnumAttr) then
+      begin
+        lEnumSerType := lEnumAttr.SerializationType;
+        lEnumMappedValues := lEnumAttr.MappedValues;
+      end;
+      case lEnumSerType of
+        estEnumName, estEnumOrd :
+          begin
+            if lEnumSerType = estEnumName then
+              TJsonFieldEnum(lJsonField).EnumType := etString
+            else
+              TJsonFieldEnum(lJsonField).EnumType := etNumber;
+
+            for I := lField.FieldType.AsOrdinal.MinValue to lField.FieldType.AsOrdinal.MaxValue do
+            begin
+              TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lField.FieldType.Handle, I));
+            end;
+          end;
+        estEnumMappedValues:
+          begin
+            TJsonFieldEnum(lJsonField).EnumType := etString;
+            TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
+          end;
+      end;
+    end
+    else if lJsonField is TJsonFieldString then
+    begin
+      TJsonFieldString(lJsonField).MinLength := lFieldSchemaDef.MinLength;
+      TJsonFieldString(lJsonField).MaxLength := lFieldSchemaDef.MaxLength;
+    end;
+
+    lJsonField.Name := lFieldSchemaDef.FieldName;
+    lJsonField.Required := lFieldSchemaDef.Required;
+    lJsonField.Nullable := lFieldSchemaDef.Nullable;
+    if not lFieldSchemaDef.Description.IsEmpty then
+    begin
+      TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
+    end;
+
+    aJsonFieldRoot.AddField(lJsonField);
+  end;
+end;
+
 class procedure TMVCSwagger.FillOperationSummary(
   const aSwagPathOperation: TSwagPathOperation;
   const aMethod: TRttiMethod; const aSwagDefinitions: TObjectList<TSwagDefinition>;
@@ -687,7 +909,7 @@ begin
       begin
         lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(lSwagResponsesAttr.JsonSchema) as TJSONObject
       end
-      else if Assigned(lSwagResponsesAttr.JsonSchemaClass) then
+      else if ((Assigned(lSwagResponsesAttr.JsonSchemaClass)) or (Assigned(lSwagResponsesAttr.RecordType))) then
       begin
         lComparer := TDelegatedComparer<TSwagDefinition>.Create(
           function(const Left, Right: TSwagDefinition): Integer
@@ -710,7 +932,10 @@ begin
           lModelClass := lSwagResponsesAttr.JsonSchemaClass;
         end;
 
-        lClassName := lModelClass.ClassName;
+        if Assigned(lSwagResponsesAttr.RecordType) then
+          lClassName := lSwagResponsesAttr.RecordType.Name
+        else
+          lClassName := lModelClass.ClassName;
         if lClassName.ToUpper.StartsWith('T') then
           lClassName := lClassName.Remove(0, 1);
         aSwagDefinitions.Sort(lComparer);
@@ -721,7 +946,10 @@ begin
           begin
             lSwagDefinition := TSwagDefinition.Create;
             lSwagDefinition.Name := lClassName;
-            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, False);
+            if Assigned(lSwagResponsesAttr.RecordType) then
+              lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(lSwagResponsesAttr.RecordType.QualifiedName, False)
+            else
+              lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, False);
             aSwagDefinitions.Add(lSwagDefinition);
           end;
         finally
@@ -857,7 +1085,9 @@ begin
         else if aPropType.Handle = TypeInfo(NullableInt64) then
           Result := stInt64
         else if aPropType.Handle = TypeInfo(NullableUInt64) then
-          Result := stInt64;
+          Result := stInt64
+        else if aPropType.IsRecord then
+          Result := stObject;
       end;
     tkInteger:
       Result := stInteger;
@@ -1026,8 +1256,15 @@ begin
           end
           else if Assigned(lMVCParam.JsonSchemaClass) then
           begin
-            AddRequestModelDefinition(lSwagReqParam, lMVCParam.JsonSchemaClass, aSwagDefinitions, lComparer, lMVCParam.ParamType);
+            AddRequestModelDefinition(
+              lSwagReqParam,
+              lMVCParam.JsonSchemaClass,
+              aSwagDefinitions,
+              lComparer,
+              lMVCParam.ParamType,
+              lMVCParam.RecordType);
           end;
+
           Delete(lMVCSwagParams, lIndex, 1);
         end
         else
@@ -1057,7 +1294,7 @@ begin
     begin
       lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
     end
-    else if Assigned(lMVCSwagParams[I].JsonSchemaClass) then
+    else if Assigned(lMVCSwagParams[I].JsonSchemaClass) or Assigned(lMVCSwagParams[I].RecordType) then
     begin
       if lMVCSwagParams[I].JsonSchemaClass = SWAGUseDefaultControllerModel then
       begin
@@ -1077,7 +1314,13 @@ begin
 //        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass,
 //          lMVCSwagParams[I].ParamType = ptArray);
       end;
-      AddRequestModelDefinition(lSwagReqParam, lParamSchemaClass, aSwagDefinitions, lComparer, lMVCSwagParams[I].ParamType);
+      AddRequestModelDefinition(
+        lSwagReqParam,
+        lParamSchemaClass,
+        aSwagDefinitions,
+        lComparer,
+        lMVCSwagParams[I].ParamType,
+        lMVCSwagParams[i].RecordType);
     end;
     Insert([lSwagReqParam], Result, High(Result));
   end;
@@ -1230,6 +1473,14 @@ begin
   fIsArray := aIsArray;
 end;
 
+constructor MVCSwagResponsesAttribute.Create(const aFullyQualifiedRecordName: String; const aStatusCode: Integer;
+  const aDescription: string; const aIsArray: Boolean; const aJsonSchema: String);
+begin
+  Create(aStatusCode, aDescription, aJsonSchema);
+  fRecordType := GetRecordType(aFullyQualifiedRecordName);
+  fIsArray := aIsArray;
+end;
+
 { MVCSwagParamAttribute }
 
 constructor MVCSwagParamAttribute.Create(const aParamLocation: TMVCSwagParamLocation;
@@ -1245,6 +1496,7 @@ begin
   fEnumValues := aEnumValues;
   fJsonSchema := aJsonSchema;
   fJsonSchemaClass := nil;
+  fRecordType := nil;
 end;
 
 constructor MVCSwagParamAttribute.Create(const aParamLocation: TMVCSwagParamLocation;
@@ -1253,6 +1505,14 @@ constructor MVCSwagParamAttribute.Create(const aParamLocation: TMVCSwagParamLoca
 begin
   Create(aParamLocation, aParamName, aParamDescription, aParamType, aRequired, aDefaultValue, aEnumValues, '');
   fJsonSchemaClass := aJsonSchemaClass;
+end;
+
+constructor MVCSwagParamAttribute.Create(const aParamLocation: TMVCSwagParamLocation; const aParamName,
+  aParamDescription, aFullyQualifiedRecordName: string; const aParamType: TMVCSwagParamType; const aRequired: Boolean;
+  const aDefaultValue, aEnumValues: string);
+begin
+  Create(aParamLocation, aParamName, aParamDescription, aParamType, aRequired, aDefaultValue, aEnumValues, '');
+  fRecordType := GetRecordType(aFullyQualifiedRecordName);
 end;
 
 function MVCSwagParamAttribute.GetEnumValues: TArray<string>;

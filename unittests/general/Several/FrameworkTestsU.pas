@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1759,7 +1759,7 @@ var
   lMultiMap: IMVCInterfaceMultiMap<IMyInterface>;
 begin
   lMultiMap := TMVCInterfaceMultiMap<IMyInterface>.Create;
-  Assert.areEqual(0, Length(lMultiMap.Keys));
+  Assert.AreEqual<Integer>(0, Length(lMultiMap.Keys));
   lMultiMap.Clear;
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
@@ -1793,7 +1793,7 @@ var
   lMultiMap: IMVCObjectMultiMap<TMyClass>;
 begin
   lMultiMap := TMVCObjectMultiMap<TMyClass>.Create;
-  Assert.areEqual(0, Length(lMultiMap.Keys));
+  Assert.AreEqual<Integer>(0, Length(lMultiMap.Keys));
   lMultiMap.Clear;
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));

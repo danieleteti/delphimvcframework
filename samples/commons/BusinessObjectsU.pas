@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -59,6 +59,7 @@ type
     function GetFullName: string;
   public
     function Equals(Obj: TObject): boolean; override;
+    function ToString: String; override;
 
     property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
@@ -281,7 +282,7 @@ type
 {$IFNDEF LINUX}
     property Logo: TBitmap read fLogo write SetLogo;
 {$ENDIF}
-    class function GetList: TObjectList<TCustomer>;
+    class function GetList(Count: Integer = 1000): TObjectList<TCustomer>;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -396,6 +397,16 @@ type
 
   TComplexRecordArray = TArray<TComplexRecord>;
 
+  TCustomerIssue648 = record
+    Id: NullableInt32;
+    Added: TDateTime;
+    Name: NullableString;
+    ExpirationDate: NullableTDate;
+    MaxUpdateDate: NullableTDate;
+    AppVersion: NullableString;
+    Activated: NullableTDateTime;
+  end;
+
 
 implementation
 
@@ -486,6 +497,18 @@ begin
   FMarried := Value;
 end;
 
+function TPerson.ToString: String;
+begin
+  Result :=
+    Format('ID: %d, LAST_NAME: %s, FIRST_NAME: %s, MARRIED: %s, DOB: %s',[
+      Self.ID,
+      Self.LastName,
+      Self.FirstName,
+      BoolToStr(Self.Married, True),
+      DateToISODate(Self.DOB)
+    ]);
+end;
+
 { TCustomer }
 
 constructor TCustomer.Create;
@@ -504,13 +527,13 @@ begin
   inherited;
 end;
 
-class function TCustomer.GetList: TObjectList<TCustomer>;
+class function TCustomer.GetList(Count: Integer): TObjectList<TCustomer>;
 var
   C1: TCustomer;
   I: Integer;
 begin
   Result := TObjectList<TCustomer>.Create(true);
-  for I := 1 to 1000 do
+  for I := 1 to Count do
   begin
     C1 := TCustomer.Create;
     C1.name := I.ToString + ': bit Time Professionals';
@@ -685,17 +708,18 @@ var
 begin
   lOtherObj := Obj as TNullablesTest;
   Result := true;
-  Result := Result and Self.ff_int2.Equals(lOtherObj.ff_int2);
-  Result := Result and Self.ff_int4.Equals(lOtherObj.ff_int4);
-  Result := Result and Self.ff_int8.Equals(lOtherObj.ff_int8);
-  Result := Result and Self.ff_bool.Equals(lOtherObj.ff_bool);
-  Result := Result and (DateToISODate(Self.ff_date) = DateToISODate(lOtherObj.ff_date));
-  Result := Result and (TimeToISOTime(Self.ff_time) = TimeToISOTime(lOtherObj.ff_time));
-  Result := Result and (DateTimeToISOTimeStamp(Self.ff_datetime) = DateTimeToISOTimeStamp(lOtherObj.ff_datetime));
-  Result := Result and Self.ff_float4.Equals(lOtherObj.ff_float4);
-  Result := Result and Self.ff_float8.Equals(lOtherObj.ff_float8);
-  Result := Result and Self.ff_string.Equals(lOtherObj.ff_string);
-  Result := Result and Self.ff_currency.Equals(lOtherObj.ff_currency);
+  Result := Result and (Self.ff_int2 = lOtherObj.ff_int2);
+  Result := Result and (Self.ff_int4 = lOtherObj.ff_int4);
+  Result := Result and (Self.ff_int8 = lOtherObj.ff_int8);
+  Result := Result and (Self.ff_bool = lOtherObj.ff_bool);
+  Result := Result and (Self.ff_date = lOtherObj.ff_date);
+  Result := Result and (Self.ff_time = lOtherObj.ff_time);
+  Result := Result and (Self.ff_datetime = lOtherObj.ff_datetime);
+  Result := Result and (Self.ff_float4 = lOtherObj.ff_float4);
+  Result := Result and (Self.ff_float8 = lOtherObj.ff_float8);
+  Result := Result and (Self.ff_string = lOtherObj.ff_string);
+  Result := Result and (Self.ff_currency = lOtherObj.ff_currency);
+
   { TODO -oDanieleT -cGeneral : Deserialize a stream over a nil pointer... should we create the TMemoryStream? }
   // Result := Result and ((Self.ff_blob as TStringStream).DataString = (lOtherObj.ff_blob as TStringStream).DataString);
 end;

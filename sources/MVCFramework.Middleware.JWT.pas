@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -57,6 +57,10 @@ type
     /// Default AUTH schema
     /// </summary>
     AUTH_SCHEMA = 'Bearer';
+    /// <summary>
+    /// Default url authorization token
+    /// </summary>
+    AUTHORIZATION_ACCESS_TOKEN = 'access_token';
   end;
 
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
@@ -70,6 +74,7 @@ type
     FLeewaySeconds: Cardinal;
     FLoginURLSegment: string;
     FAuthorizationHeaderName: string;
+    FAuthorizationAccessToken: string;
     FUserNameHeaderName: string;
     FPasswordHeaderName: string;
     FHMACAlgorithm: String;
@@ -164,6 +169,7 @@ begin
   FLoginURLSegment := ALoginURLSegment;
   FLeewaySeconds := ALeewaySeconds;
   FAuthorizationHeaderName := TMVCJWTDefaults.AUTHORIZATION_HEADER;
+  FAuthorizationAccessToken := TMVCJWTDefaults.AUTHORIZATION_ACCESS_TOKEN;
   FUserNameHeaderName := TMVCJWTDefaults.USERNAME_HEADER;
   FPasswordHeaderName := TMVCJWTDefaults.PASSWORD_HEADER;
   FHMACAlgorithm := AHMACAlgorithm;
@@ -225,6 +231,7 @@ var
   IsAuthorized: Boolean;
   JWTValue: TJWT;
   AuthHeader: string;
+  AuthAccessToken: string;
   AuthToken: string;
   ErrorMsg: string;
 begin
@@ -241,7 +248,12 @@ begin
         If there isn't a token, we don't have to raise exceptions, just make sure that the LoggedUser doesn't contain
         information.
       }
+      // retrieve the token from the "authentication Bearer" header
       AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
+      if AuthHeader.IsEmpty then
+        // retrieve the token from the "access_token" query param
+        AuthHeader := AContext.Request.Params[FAuthorizationAccessToken];
+
       if not AuthHeader.IsEmpty then
       begin
         { load and verify token even for an action that doesn't require it }
@@ -278,18 +290,30 @@ begin
   JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
   try
     JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
-    AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
-    if AuthHeader.IsEmpty then
-      raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Authorization Required');
-
     // retrieve the token from the "authentication Bearer" header
-    AuthToken := '';
-    if AuthHeader.Substring(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).ToLower = 'bearer' then
+    AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
+    if (not AuthHeader.IsEmpty) then
     begin
-      AuthToken := AuthHeader.Remove(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).Trim;
-      AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+      AuthToken := '';
+      if AuthHeader.Substring(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).ToLower = 'bearer' then
+      begin
+        AuthToken := AuthHeader.Remove(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).Trim;
+        AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+      end;
+    end
+    else
+    begin
+      // retrieve the token from the "access_token" query param
+      AuthAccessToken := AContext.Request.Params[FAuthorizationAccessToken];
+      if (not AuthAccessToken.IsEmpty) then
+      begin
+        AuthToken := AuthAccessToken.Trim;
+        AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+      end;
     end;
 
+    if AuthToken.IsEmpty then
+      raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Authorization Required');
     if not JWTValue.LoadToken(AuthToken, ErrorMsg) then
       raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, ErrorMsg);
 

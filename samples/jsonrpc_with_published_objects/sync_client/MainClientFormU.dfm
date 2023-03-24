@@ -47,14 +47,14 @@ object MainForm: TMainForm
           TabOrder = 1
           Text = '10'
         end
-        object btnSubstract: TButton
+        object btnSubtract: TButton
           Left = 87
           Top = 30
           Width = 100
           Height = 25
           Caption = 'Subtract'
           TabOrder = 2
-          OnClick = btnSubstractClick
+          OnClick = btnSubtractClick
         end
         object edtResult: TEdit
           Left = 193
@@ -421,6 +421,15 @@ object MainForm: TMainForm
           end
         end
       end
+      object btnSet: TButton
+        Left = 379
+        Top = 536
+        Width = 75
+        Height = 25
+        Caption = 'Using Sets'
+        TabOrder = 4
+        OnClick = btnSetClick
+      end
     end
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
@@ -542,7 +551,7 @@ object MainForm: TMainForm
       object lbLogRec: TMemo
         Left = 216
         Top = 16
-        Width = 597
+        Width = 589
         Height = 545
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = ANSI_CHARSET
@@ -555,7 +564,6 @@ object MainForm: TMainForm
         ScrollBars = ssBoth
         TabOrder = 1
         WordWrap = False
-        ExplicitHeight = 544
       end
       object btnGetArrayOfRecords: TButton
         Left = 16

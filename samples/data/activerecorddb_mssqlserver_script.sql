@@ -65,6 +65,9 @@ CREATE TABLE people (
 	is_male bit DEFAULT 1 NOT NULL,
 	note  nvarchar(max),
 	photo VARBINARY(MAX),
+	person_type nvarchar(40) NOT NULL,
+	salary numeric(18,4),
+	annual_bonus numeric(18,4),
 	CONSTRAINT people_pkey PRIMARY KEY (id)
 );
 
