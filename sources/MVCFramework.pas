@@ -1139,7 +1139,7 @@ end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.Add(gIsShuttingDown, 1);
+  TInterlocked.CompareExchange(gIsShuttingDown, 1, 0);
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
