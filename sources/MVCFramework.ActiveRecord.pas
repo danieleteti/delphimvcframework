@@ -2039,7 +2039,7 @@ begin
       begin
         if not aValue.AsType<NullableTGUID>().HasValue then
         begin
-          aParam.DataType := TFieldType.ftCurrency;
+          aParam.DataType := TFieldType.ftGuid;
           aParam.Clear;
           Exit(True);
         end
