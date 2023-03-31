@@ -190,6 +190,8 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 ## What users say about DMVCFramework
 
+> "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
+
 > "I'm still amazed by the DelphiMVCFramework code and documentation. Thank you very much and I am amazed by your quick feedback." -- [Benjamin Yang](https://www.linkedin.com/in/benjamin-yang-4b0609159/) (Director of [SQLGate](https://www.sqlgate.com/))
 
 > "DMVCFramework and the Entity utility are fantastic!" -- Roberto
@@ -211,8 +213,6 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
-> "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
-
 
 ## What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")
 
@@ -221,34 +221,24 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ⚡ Improved Wizard - now it produces commented code to show how to use `ContextEvents`
 - ⚡ Improved compatibility with Delphi 10.2 Tokyo and older versions (Thanks Mark Lobanov)
 - 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
+- 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
 
 ## What's New in dmvcframework-3.2.3-radium
 
 - ⚡ Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
-
 - ⚡ Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
-
 - ⚡ Improved handling of `TMVCErrorResponse` information 
-
 - ⚡ mid-air-collision handling now uses SHA1 instead of MD5
-
 - ⚡ Added `MVCFramework.Commons.MVC_HTTP_STATUS_CODES` const array containing all the HTTP status codes with its `ReasonString`.
-
 - ⚡ Support for `TObject` descendants in JSONRPC APIs (not only for JSONObject and JSONArray).
-
 - ⚡ New global configuration variable `MVCSerializeNulls`.
-  
   - When MVCSerializeNulls = True (default) empty nullables and nil are serialized as json null.
   - When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
   
 - ⚡ Nullable types now have `Equal` method support, the new method `TryHasValue(out Value)` works like `HasValue` but returns the contained value if present. Also there is a better "equality check" strategy.
-
 - ⚡ Unit tests now are always executed for Win32 and Win64 bit (both client and server).
-
 - ⚡ Added `TMVCActiveRecord.Refresh` method
-
 - ⚡ Unit test suites generates one NUnit XML output file for each platform
-
 - ⚡ New built-in profiler (usable with Delphi 10.4+) - to profile a block of code, write the following 
 
   ```delphi
