@@ -11,9 +11,12 @@ type
     btnSimple: TButton;
     btnNestedCalls: TButton;
     btnNestedCallsInLoop: TButton;
+    chkLogsThreshold: TCheckBox;
     procedure btnSimpleClick(Sender: TObject);
     procedure btnNestedCallsClick(Sender: TObject);
     procedure btnNestedCallsInLoopClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure chkLogsThresholdClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -67,6 +70,11 @@ begin
   DoSomething;
 end;
 
+procedure TMainForm.chkLogsThresholdClick(Sender: TObject);
+begin
+  Profiler.LogsOnlyIfOverThreshold := chkLogsThreshold.Checked;
+end;
+
 procedure TMainForm.DoSomething;
 begin
   begin var lProf := Profiler.Start('DoSomething');
@@ -80,6 +88,11 @@ begin
     Sleep(1000);
     DoSomething();
   end;
+end;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+  chkLogsThreshold.Checked := Profiler.LogsOnlyIfOverThreshold;
 end;
 
 procedure TMainForm.NotProfiled;
