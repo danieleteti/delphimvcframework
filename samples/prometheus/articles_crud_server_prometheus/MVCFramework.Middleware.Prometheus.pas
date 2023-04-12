@@ -24,12 +24,19 @@ type
     constructor Create(const PrometheusRoute: String = '/metrics'; const OnBeforeMetricsGet: TProc = nil);
   end;
 
+  {Simplified access to the most common Prometheus metrics}
   Metrics = class sealed
   public
-    class procedure Inc(const MetricName: string; const Amount: Double = 1); overload;
-    class procedure Inc(const MetricName: string; const Amount: Double; const Labels: TArray<String>); overload;
+    // "Counter" metric
+    class procedure IncCounterValue(const MetricName: string; const Amount: Double = 1); overload;
+    class procedure IncCounterValue(const MetricName: string; const Amount: Double; const Labels: TArray<String>); overload;
+    // "Gauge" metric
     class procedure SetGaugeValue(const MetricName: string; const Amount: Double = 1); overload;
     class procedure SetGaugeValue(const MetricName: string; const Amount: Double; const Labels: TArray<String>); overload;
+    class procedure IncGaugeValue(const MetricName: string; const Amount: Double = 1); overload;
+    class procedure IncGaugeValue(const MetricName: string; const Amount: Double; const Labels: TArray<String>); overload;
+    class procedure DecGaugeValue(const MetricName: string; const Amount: Double = -1); overload;
+    class procedure DecGaugeValue(const MetricName: string; const Amount: Double; const Labels: TArray<String>); overload;
   end;
 
 
@@ -61,7 +68,7 @@ end;
 procedure TMVCPrometheusMiddleware.OnAfterRouting(AContext: TWebContext;
   const AHandled: Boolean);
 begin
-  Metrics.Inc('http_requests_handled', 1,
+  Metrics.IncCounterValue('http_requests_handled', 1,
     [AContext.Request.PathInfo, IntToStr(AContext.Response.StatusCode)]);
 end;
 
@@ -78,7 +85,7 @@ begin
   if not SameText(AContext.Request.PathInfo, fPrometheusRoute) then
   begin
     // Get the metric counter and increment it.
-    Metrics.Inc('http_requests_count');
+    Metrics.IncCounterValue('http_requests_count');
   end
   else
   begin
@@ -101,7 +108,7 @@ end;
 
 { Metrics }
 
-class procedure Metrics.Inc(const MetricName: string; const Amount: Double);
+class procedure Metrics.IncCounterValue(const MetricName: string; const Amount: Double);
 begin
   TCollectorRegistry
     .DefaultRegistry
@@ -109,12 +116,46 @@ begin
     .Inc(Amount);
 end;
 
-class procedure Metrics.Inc(const MetricName: string; const Amount: Double;
+class procedure Metrics.DecGaugeValue(const MetricName: string;
+  const Amount: Double; const Labels: TArray<String>);
+begin
+  TCollectorRegistry.DefaultRegistry
+    .GetCollector<TGauge>(MetricName)
+    .Labels(Labels)
+    .Dec(Amount);
+end;
+
+class procedure Metrics.DecGaugeValue(const MetricName: string;
+  const Amount: Double);
+begin
+  TCollectorRegistry.DefaultRegistry
+    .GetCollector<TGauge>(MetricName)
+    .Dec(Amount);
+end;
+
+class procedure Metrics.IncCounterValue(const MetricName: string; const Amount: Double;
   const Labels: TArray<String>);
 begin
   TCollectorRegistry
     .DefaultRegistry
     .GetCollector<TCounter>(MetricName)
+    .Labels(Labels)
+    .Inc(Amount);
+end;
+
+class procedure Metrics.IncGaugeValue(const MetricName: string;
+  const Amount: Double);
+begin
+  TCollectorRegistry.DefaultRegistry
+    .GetCollector<TGauge>(MetricName)
+    .Inc(Amount);
+end;
+
+class procedure Metrics.IncGaugeValue(const MetricName: string;
+  const Amount: Double; const Labels: TArray<String>);
+begin
+  TCollectorRegistry.DefaultRegistry
+    .GetCollector<TGauge>(MetricName)
     .Labels(Labels)
     .Inc(Amount);
 end;

@@ -70,7 +70,7 @@ procedure TArticlesController.CreateArticle(const Article: TArticle);
 begin
   GetArticlesService.Add(Article);
   Render201Created('/articles/' + Article.id.ToString, 'Article Created');
-  Metrics.Inc('new_article');
+  Metrics.IncCounterValue('new_article');
 end;
 
 procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
@@ -84,7 +84,7 @@ begin
       GetArticlesService.Add(lArticle);
     end;
     GetArticlesService.Commit;
-    Metrics.Inc('new_article', ArticleList.Count);
+    Metrics.IncCounterValue('new_article', ArticleList.Count);
   except
     GetArticlesService.Rollback;
     raise;
@@ -130,7 +130,7 @@ begin
       lDict := ObjectDict().Add('data', GetArticlesService.GetArticles(Search));
     end;
     Render(lDict);
-    Metrics.Inc('searches');
+    Metrics.IncCounterValue('searches');
   except
     on E: EServiceException do
     begin
