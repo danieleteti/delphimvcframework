@@ -220,7 +220,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
 - ⚡ Improved Wizard - now it produces commented code to show how to use `ContextEvents`
 - ⚡ Improved compatibility with Delphi 10.2 Tokyo and older versions (Thanks Mark Lobanov)
-- ⚡ Added Prometheus middleware in the samples
+- ⚡ Added sample and middleware for Prometheus (using https://github.com/marcobreveglieri/prometheus-client-delphi)
+- ⚡ Added "Profiler.LogsOnlyIfOverThreshold" which logs only if over the defined threshold
 - 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
 - 🐞 FIX [Issue 652](https://github.com/danieleteti/delphimvcframework/issues/652) Thanks to [BssdTS](https://github.com/BssdTS)
 - 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
