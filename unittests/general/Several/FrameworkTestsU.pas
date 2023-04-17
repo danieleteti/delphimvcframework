@@ -1613,12 +1613,14 @@ var
   lToken: string;
   lJWT: TJWT;
   lError: string;
+  lExp: TDateTime;
 begin
+  lExp := Now + OneHour * 2;
   FJWT.Claims.Issuer := 'bit Time Professionals';
   FJWT.Claims.Subject := 'DelphiMVCFramework';
   FJWT.Claims.Audience := 'DelphiDevelopers';
   FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
-  FJWT.Claims.ExpirationTime := Now + OneHour * 2;
+  FJWT.Claims.ExpirationTime := lExp;
   FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
   FJWT.Claims.JWT_ID := '123456';
   FJWT.CustomClaims['username'] := 'dteti';
@@ -1635,7 +1637,7 @@ begin
     Assert.areEqual('DelphiDevelopers', lJWT.Claims.Audience);
     Assert.areEqual('123456', lJWT.Claims.JWT_ID);
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.IssuedAt);
-    Assert.areEqual(Roundto(lJWT.Claims.IssuedAt + OneHour * 2, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
+    Assert.areEqual(Roundto(lExp, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.NotBefore);
     Assert.areEqual('dteti', lJWT.CustomClaims['username']);
     Assert.areEqual('admin', lJWT.CustomClaims['userrole']);
