@@ -12,7 +12,7 @@ uses
   Web.WebBroker,
   IdContext,
   IdHTTPWebBrokerBridge,
-  Controller.Customer in 'src\controller\Controller.Customer.pas',
+  Controller.Customers in 'src\controller\Controller.Customers.pas',
   WebModule.Main in 'src\services\WebModule.Main.pas' {wmMain: TWebModule},
   Model.Customer in 'src\model\Model.Customer.pas';
 
