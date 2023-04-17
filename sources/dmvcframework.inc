@@ -91,7 +91,9 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 
 {$DEFINE SYSTEMJSON}
 {$IFNDEF MOBILE}
+{$IFNDEF MACOS}
 {$DEFINE WEBAPACHEHTTP}
+{$ENDIF}
 {$ENDIF}
 {$DEFINE USEFIREDAC}
 
