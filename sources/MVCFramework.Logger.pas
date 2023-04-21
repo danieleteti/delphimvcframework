@@ -56,7 +56,8 @@ type
     constructor Start(const Message: string; const Params: array of TVarRec; const TAG: String); overload;
     class var ProfileLogger: ILogWriter;
     class var LoggerTag: String;
-    class var WarningThreshold: Int64;
+    class var WarningThreshold: UInt32;
+    class var LogsOnlyIfOverThreshold: Boolean;
   end;
 {$ENDIF}
 
@@ -338,13 +339,16 @@ begin
     Exit;
   fMessage := Format(Message, Params);
   fStopWatch := TStopWatch.StartNew;
-  fIndent := StringOfChar(' ', gIndent);
-  Inc(gReqNr);
-  ProfileLogger.Info('[%s>>][%6d][%s]', [
-    fIndent,
-    gReqNr,
-    fMessage], TAG);
-  Inc(gIndent);
+  if not LogsOnlyIfOverThreshold then
+  begin
+    Inc(gReqNr);
+    fIndent := StringOfChar(' ', gIndent);
+    ProfileLogger.Info('[%s>>][%6d][%s]', [
+      fIndent,
+      gReqNr,
+      fMessage], TAG);
+    Inc(gIndent);
+  end;
 end;
 
 class operator Profiler.Finalize(var Dest: Profiler);
@@ -352,17 +356,34 @@ begin
   if Profiler.ProfileLogger = nil then
     Exit;
   Dest.fStopWatch.Stop;
-  ProfileLogger.Log(
-    PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
-    '[%s<<][%6d][%s][ELAPSED: %s]',
-    [
-      Dest.fIndent,
-      gReqNr,
-      Dest.fMessage,
-      Dest.fStopWatch.Elapsed.ToString
-    ], LoggerTag);
-  Dec(gIndent);
-  Dec(gReqNr);
+  if not LogsOnlyIfOverThreshold then
+  begin
+    ProfileLogger.Log(
+      PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
+      '[%s<<][%6d][%s][ELAPSED: %s]',
+      [
+        Dest.fIndent,
+        gReqNr,
+        Dest.fMessage,
+        Dest.fStopWatch.Elapsed.ToString
+      ], LoggerTag);
+    Dec(gIndent);
+    Dec(gReqNr);
+  end
+  else
+  begin
+    if Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold then
+    begin
+      ProfileLogger.Log(
+        PROFILER_LOG_TYPE[True],
+        '[%s][ELAPSED: %s][THRESHOLD %d ms]',
+        [
+          Dest.fMessage,
+          Dest.fStopWatch.Elapsed.ToString,
+          WarningThreshold
+        ], LoggerTag);
+    end;
+  end;
 end;
 
 constructor Profiler.Start(const Message: string);

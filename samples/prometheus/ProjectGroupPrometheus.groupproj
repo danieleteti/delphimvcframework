@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AF04BD45-3137-4757-B1AC-147D4136E52C}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="articles_crud_server_prometheus\articles_crud_service_with_prometheus.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="articles_crud_vcl_client\articles_crud_vcl_client.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="articles_crud_service_with_prometheus">
+        <MSBuild Projects="articles_crud_server_prometheus\articles_crud_service_with_prometheus.dproj"/>
+    </Target>
+    <Target Name="articles_crud_service_with_prometheus:Clean">
+        <MSBuild Projects="articles_crud_server_prometheus\articles_crud_service_with_prometheus.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_service_with_prometheus:Make">
+        <MSBuild Projects="articles_crud_server_prometheus\articles_crud_service_with_prometheus.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client">
+        <MSBuild Projects="articles_crud_vcl_client\articles_crud_vcl_client.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Clean">
+        <MSBuild Projects="articles_crud_vcl_client\articles_crud_vcl_client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Make">
+        <MSBuild Projects="articles_crud_vcl_client\articles_crud_vcl_client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="articles_crud_service_with_prometheus;articles_crud_vcl_client"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="articles_crud_service_with_prometheus:Clean;articles_crud_vcl_client:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="articles_crud_service_with_prometheus:Make;articles_crud_vcl_client:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

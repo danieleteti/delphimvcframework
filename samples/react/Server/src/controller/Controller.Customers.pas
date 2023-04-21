@@ -1,4 +1,4 @@
-unit Controller.Customer;
+unit Controller.Customers;
 
 interface
 
@@ -17,13 +17,9 @@ uses
 type
 
   [MVCPath('/api')]
-  TCustomerController = class(TMVCController)
+  TCustomersController = class(TMVCController)
   private
     FDConn : TFDConnection;
-  protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;
-    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
-
   public
     [MVCPath('/customers')]
     [MVCHTTPMethod([httpGET])]
@@ -56,31 +52,13 @@ uses
   System.SysUtils, MVCFramework.Logger, System.StrUtils;
 
 
-procedure TCustomerController.OnAfterAction(Context: TWebContext; const AActionName: string); 
-begin
-  { Executed after each action }
-  inherited;
-end;
-
-procedure TCustomerController.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);
-begin
-  { Executed before each action
-    if handled is true (or an exception is raised) the actual
-    action will not be called }
-  inherited;
-end;
-
 //Sample CRUD Actions for a "Customer" entity
-procedure TCustomerController.GetCustomers;
-var
-  lCustomers : TObjectList<TCustomer>;
+procedure TCustomersController.GetCustomers;
 begin
-  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('', 20);
-
-  Render<TCustomer>(lCustomers);
+  Render<TCustomer>(TMVCActiveRecord.SelectRQL<TCustomer>('sort(+id)', 200));
 end;
 
-procedure TCustomerController.GetCustomer(id: Integer);
+procedure TCustomersController.GetCustomer(id: Integer);
 var
   lCustomer : TCustomer;
 begin
@@ -89,7 +67,7 @@ begin
   Render(lCustomer);
 end;
 
-constructor TCustomerController.Create;
+constructor TCustomersController.Create;
 begin
   inherited;
   FDConn := TFDConnection.Create(nil);
@@ -101,17 +79,20 @@ begin
   ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConn);
 end;
 
-procedure TCustomerController.CreateCustomer;
+procedure TCustomersController.CreateCustomer;
 var
   lCustomer : TCustomer;
 begin
   lCustomer := Context.Request.BodyAs<TCustomer>;
-
-  lCustomer.Insert;
-  Render(lCustomer);
+  try
+    lCustomer.Insert;
+  finally
+    lCustomer.Free;
+  end;
+  Render201Created();
 end;
 
-procedure TCustomerController.UpdateCustomer(id: Integer);
+procedure TCustomersController.UpdateCustomer(id: Integer);
 var
   lCustomer : TCustomer;
 begin
@@ -122,7 +103,7 @@ begin
   Render(lCustomer);
 end;
 
-procedure TCustomerController.DeleteCustomer(id: Integer);
+procedure TCustomersController.DeleteCustomer(id: Integer);
 var
   lCustomer : TCustomer;
 begin
@@ -132,7 +113,7 @@ begin
   Render(TJSONObject.Create(TJSONPair.Create('result', 'register successefully deleted')));
 end;
 
-destructor TCustomerController.Destroy;
+destructor TCustomersController.Destroy;
 begin
   ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
   inherited;

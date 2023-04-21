@@ -133,6 +133,10 @@
         <DCCReference Include="FireDACSqliteDriver.dcp"/>
         <DCCReference Include="SwagDoc.dcp"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.ETag.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ApplicationSession.pas"/>
@@ -191,7 +195,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Utils.pas"/>
         <DCCReference Include="..\..\sources\JsonDataObjects.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

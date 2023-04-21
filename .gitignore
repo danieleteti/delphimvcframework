@@ -134,3 +134,5 @@ unittests/general/Several/bin32/sqlitetest.db
 unittests/general/Several/bin32/firebirdtest2.fdb
 unittests/general/Several/bin32/firebirdtest.fdb
 samples/WineCellarSample/winecellarclient_mobile/Android64/
+samples/prometheus/articles_crud_server_prometheus/bin/data/
+samples/prometheus/bin/data/
