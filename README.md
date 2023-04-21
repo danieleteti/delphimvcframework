@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
-![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.3--radium-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.3.0--fluorine--beta-red)  
+![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.3.0--fluorine-blue)
+![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.4.0--neon--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -214,7 +214,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
 
-## What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")
+## What's New in dmvcframework-3.3.0-fluorine
 
 - ⚡ Support for Delphi 11.3 Alexandria
 - ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
