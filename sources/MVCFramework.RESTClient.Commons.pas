@@ -75,7 +75,7 @@ type
   TMVCRESTClientConsts = record
   public const
     DEFAULT_ACCEPT_ENCODING = 'gzip,deflate';
-    DEFAULT_ACCEPT = TMVCMediaType.APPLICATION_JSON + ', ' + TMVCMediaType.TEXT_PLAIN + ', ' + TMVCMediaType.TEXT_HTML;
+    DEFAULT_ACCEPT = '*/*';
     DEFAULT_USER_AGENT = 'DelphiMVCFramework RESTClient/' + DMVCFRAMEWORK_VERSION;
     DEFAULT_FILE_NAME = 'file';
     AUTHORIZATION_HEADER = 'Authorization';

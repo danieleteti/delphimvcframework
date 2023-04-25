@@ -46,7 +46,8 @@ uses
   MVCFramework.RESTClient.Commons,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  Data.DB, JsonDataObjects;
+  Data.DB,
+  JsonDataObjects;
 
 type
   /// <summary>
@@ -381,6 +382,10 @@ type
     /// </param>
     function AddFile(const aName, aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
     function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+{$IF defined(RIOORBETTER)}
+    function AddFile(const aName: string; aFileStreamValue: TStream; const aFileName: string = '';
+      const aContentType: string = ''): IMVCRESTClient; overload;
+{$ENDIF}
 
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
 {$IF defined(RIOORBETTER)}
@@ -665,7 +670,7 @@ function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: 
   const aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
-  GetBodyFormData.AddStream(aName, aStreamValue, aContentType);
+  GetBodyFormData.AddStream(aName, aStreamValue, '', aContentType);
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
@@ -695,6 +700,15 @@ begin
   GetBodyFormData.AddFile(aName, aFileName {$IF defined(RIOORBETTER)}, aContentType{$ENDIF});
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
+
+{$IF defined(RIOORBETTER)}
+function TMVCRESTClient.AddFile(const aName: string; aFileStreamValue: TStream; const aFileName, aContentType: string): IMVCRESTClient;
+begin
+  Result := Self;
+  GetBodyFormData.AddStream(aName, aFileStreamValue, aFileName, aContentType);
+  SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
+end;
+{$ENDIF}
 
 function TMVCRESTClient.AddHeader(const aName, aValue: string): IMVCRESTClient;
 begin
