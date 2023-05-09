@@ -70,6 +70,10 @@ type
     function EchoSingleComplexRecord(const ComplexRecord: TComplexRecord): TComplexRecord;
     [MVCInheritable]
     function EchoArrayOfRecords(const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
+
+    //issues
+    [MVCInheritable]
+    function GetTCustomer_ISSUE648: TCustomerIssue648;
   end;
 
   [MVCJSONRPCAllowGET]
@@ -137,6 +141,17 @@ end;
 function TTestJSONRPCClass.GetSingleRecord: TSimpleRecord;
 begin
   Result := TSimpleRecord.Create;
+end;
+
+function TTestJSONRPCClass.GetTCustomer_ISSUE648: TCustomerIssue648;
+begin
+  Result.Id := 155;
+  Result.Added := Now;
+  Result.Name := 'Daniele Teti';
+  Result.ExpirationDate := Now + 7;
+  Result.MaxUpdateDate.Clear;
+  Result.AppVersion.Clear;
+  Result.Activated.Clear;
 end;
 
 function TTestJSONRPCClass.HandlingObjects(MyObj: TPerson): TPerson;

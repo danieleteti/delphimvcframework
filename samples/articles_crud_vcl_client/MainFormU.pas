@@ -71,7 +71,7 @@ end;
 procedure TMainForm.btnFilterClick(Sender: TObject);
 begin
   dsArticles.Close;
-  Filter := EditFilter.Text;;
+  Filter := EditFilter.Text;
   dsArticles.Open;
 end;
 

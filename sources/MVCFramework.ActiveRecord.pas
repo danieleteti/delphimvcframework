@@ -545,6 +545,7 @@ type
     procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
     function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
+    function GetCurrentConnectionName(const RaiseExceptionIfNotAvailable: Boolean = False): String;
     function GetCurrentBackend: string;
     procedure SetDefault;
   end;
@@ -574,6 +575,7 @@ type
     procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
     function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
+    function GetCurrentConnectionName(const RaiseExceptionIfNotAvailable: Boolean = False): String;
     function GetByName(const aName: string): TFDConnection;
     function GetCurrentBackend: string;
     procedure SetDefault;
@@ -934,6 +936,32 @@ begin
     if not fConnectionsDict.TryGetValue(lKeyName, lConnHolder) then
       raise Exception.CreateFmt('Unknown connection %s', [aName]);
     Result := lConnHolder.Connection;
+  finally
+    fMREW.EndRead;
+  end;
+end;
+
+function TMVCConnectionsRepository.GetCurrentConnectionName(
+  const RaiseExceptionIfNotAvailable: Boolean): String;
+var
+  lName: string;
+begin
+{$IF not Defined(TokyoOrBetter)}
+  Result := '';
+{$ENDIF}
+  fMREW.BeginRead;
+  try
+    if fCurrentConnectionsByThread.TryGetValue(TThread.CurrentThread.ThreadID, lName) then
+    begin
+      Result := lName;
+    end
+    else
+    begin
+      if RaiseExceptionIfNotAvailable then
+        raise EMVCActiveRecord.Create('No current connection for thread')
+      else
+        Result := '';
+    end;
   finally
     fMREW.EndRead;
   end;
@@ -2011,7 +2039,7 @@ begin
       begin
         if not aValue.AsType<NullableTGUID>().HasValue then
         begin
-          aParam.DataType := TFieldType.ftCurrency;
+          aParam.DataType := TFieldType.ftGuid;
           aParam.Clear;
           Exit(True);
         end

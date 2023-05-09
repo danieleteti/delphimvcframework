@@ -47,6 +47,8 @@ type
 
 implementation
 
+{$I dmvcframework.inc}
+
 uses
   DMVC.Expert.Forms.NewUnitWizard,
   DMVC.Expert.CodeGen.NewControllerUnit,
@@ -96,7 +98,11 @@ begin
     function: Cardinal
     begin
       Result := LoadIcon(HInstance, 'DMVCNewUnitIcon');
-    end, TArray<string>.Create(cWin32Platform, cWin64Platform), nil));
+    end, TArray<string>.Create(cWin32Platform, cWin64Platform
+    {$IF Defined(TOKYOORBETTER)}
+    , cLinux64Platform
+    {$ENDIF}
+    ), nil));
 end;
 
 end.

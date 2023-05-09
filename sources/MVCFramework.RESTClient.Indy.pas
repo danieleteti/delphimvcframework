@@ -1543,7 +1543,11 @@ begin
   if AEnabled then
   begin
     if not Assigned(FHTTP.IOHandler) then
-      FHTTP.IOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(FHTTP);
+    begin
+      FHTTP.IOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+      TIdSSLIOHandlerSocketOpenSSL(FHTTP.IOHandler).SSLOptions.SSLVersions :=
+        [sslvSSLv2, sslvSSLv23, sslvSSLv3, sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
+    end;
   end
   else
   begin
