@@ -69,9 +69,9 @@ begin
     .AddMiddleware(
       TMVCJWTAuthenticationMiddleware.Create(
         TAuthenticationSample.Create,
+        lClaimsSetup,
         'mys3cr37',
         '/login',
-        lClaimsSetup,
         [
           TJWTCheckableClaim.ExpirationTime,
           TJWTCheckableClaim.NotBefore,

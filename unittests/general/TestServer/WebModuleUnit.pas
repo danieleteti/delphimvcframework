@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -58,6 +58,7 @@ uses
   TestServerControllerExceptionU,
   SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication,
+  MVCFramework.ActiveRecordController,
   System.Generics.Collections,
   MVCFramework.Commons,
   TestServerControllerPrivateU,
@@ -67,7 +68,8 @@ uses
   MVCFramework.View.Renderers.Mustache,
   {$ENDIF}
   MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
+  MVCFramework.ActiveRecord, FDConnectionConfigU;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -80,14 +82,21 @@ begin
       Config[TMVCConfigKey.ViewPath] := '..\templates';
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
-  MVCEngine.AddController(TTestServerController)
+  MVCEngine
+    .AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
+    .AddController(TTestMultiPathController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
+    .AddController(TMVCActiveRecordController,
+        function: TMVCController
+        begin
+          Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
+        end, '/api/entities')
     .PublishObject(
     function: TObject
     begin
@@ -108,7 +117,11 @@ begin
     begin
       Result := TTestJSONRPCHookClassWithGet.Create
     end, '/jsonrpcclass1withget')
-
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCHookClassWithGet.Create
+    end, '/jsonrpcclass1withget')
     .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
     function: TMVCController
@@ -119,7 +132,6 @@ begin
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
-//    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', 'www', 'index.html', False))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
 {$IFDEF MSWINDOWS}

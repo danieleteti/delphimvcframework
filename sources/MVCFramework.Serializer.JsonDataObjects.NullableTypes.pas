@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -185,6 +185,7 @@ implementation
 uses
   System.SysUtils,
   JsonDataObjects,
+  MVCFramework.Commons,
   MVCFramework.NullableTypes;
 
 procedure RegisterNullableTypeSerializersInSerializer(ASerializer: IMVCSerializer);
@@ -566,9 +567,16 @@ var
 begin
   LNullGuid := AElementValue.AsType<TNullableGuid>;
   if LNullGuid.HasValue then
-    (ASerializerObject as TJDOJsonObject).S[APropertyName] := LNullGuid.Value.ToString
+  begin
+    if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(AAttributes) then
+      (ASerializerObject as TJDOJsonObject).S[APropertyName] := TMVCGuidHelper.GUIDToStringEx(LNullGuid.Value)
+    else
+      (ASerializerObject as TJDOJsonObject).S[APropertyName] := LNullGuid.Value.ToString
+  end
   else
+  begin
     (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
+  end;
 end;
 
 procedure TNullableGuidSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;

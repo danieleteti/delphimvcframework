@@ -1,0 +1,2 @@
+<?lua for _, person in pairs(people) do?>"<?lua=person.guid?>";"<?lua=person.first_name?>";"<?lua=person.last_name?>";<?lua=person.age?>
+<?lua end ?>

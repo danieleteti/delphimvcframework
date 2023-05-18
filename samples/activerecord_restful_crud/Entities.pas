@@ -5,12 +5,16 @@ interface
 uses
   MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord,
+  MVCFramework.Nullables,
   System.Classes,
-  MVCFramework, System.Generics.Collections;
+  System.DateUtils,
+  MVCFramework,
+  MVCFramework.Utils,
+  System.Generics.Collections;
 
 type
 
-  [MVCNameCase(ncLowerCase)]
+  [MVCNameCase(ncCamelCase)]
   [MVCTable('people')]
   [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
   TPerson = class(TMVCActiveRecord)
@@ -22,25 +26,25 @@ type
     [MVCTableField('FIRST_NAME')]
     fFirstName: string;
     [MVCTableField('DOB')]
-    fDOB: TDate;
+    fDOB: NullableTDate;
     [MVCTableField('FULL_NAME')]
     fFullName: string;
     [MVCTableField('IS_MALE')]
-    fIsMale: Boolean;
+    fIsMale: NullableBoolean;
     [MVCTableField('NOTE')]
     fNote: string;
     [MVCTableField('PHOTO')]
     fPhoto: TStream;
 
     // transient fields
-    fAge: Integer;
+    fAge: NullableInt32;
 
     procedure SetLastName(const Value: string);
     procedure SetID(const Value: Int64);
     procedure SetFirstName(const Value: string);
-    procedure SetDOB(const Value: TDate);
+    procedure SetDOB(const Value: NullableTDate);
     function GetFullName: string;
-    procedure SetIsMale(const Value: Boolean);
+    procedure SetIsMale(const Value: NullableBoolean);
     procedure SetNote(const Value: string);
   protected
     procedure OnAfterLoad; override;
@@ -50,13 +54,17 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    function GetUniqueString: String;
+    procedure Assign(ActiveRecord: TMVCActiveRecord); override;
     property ID: Int64 read fID write SetID;
+    [MVCNameAs('person_surname')]
     property LastName: string read fLastName write SetLastName;
+    [MVCNameAs('person_name')]
     property FirstName: string read fFirstName write SetFirstName;
-    property Age: Integer read fAge;
-    property DOB: TDate read fDOB write SetDOB;
+    property Age: NullableInt32 read fAge;
+    property DOB: NullableTDate read fDOB write SetDOB;
     property FullName: string read GetFullName;
-    property IsMale: Boolean read fIsMale write SetIsMale;
+    property IsMale: NullableBoolean read fIsMale write SetIsMale;
     property Note: string read fNote write SetNote;
     property Photo: TStream read fPhoto;
   end;
@@ -116,10 +124,27 @@ type
 implementation
 
 uses
-  System.DateUtils,
   System.SysUtils;
 
 { TPersona }
+
+procedure TPerson.Assign(ActiveRecord: TMVCActiveRecord);
+begin
+  if ActiveRecord is TPerson then
+  begin
+    var lPerson := TPerson(ActiveRecord);
+    Self.LastName := lPerson.LastName;
+    Self.FirstName := lPerson.FirstName;
+    Self.DOB := lPerson.DOB;
+    Self.IsMale := lPerson.IsMale;
+    Self.Note := lPerson.Note;
+    Self.Photo.Size := 0;
+    Self.Photo.CopyFrom(lPerson.Photo);
+    Self.Photo.Position := 0;
+  end
+  else
+    inherited;
+end;
 
 constructor TPerson.Create;
 begin
@@ -138,16 +163,33 @@ begin
   Result := fFullName;
 end;
 
+function TPerson.GetUniqueString: String;
+begin
+  Result :=
+    fID.ToString + '|' +
+    fFirstName + '|' +
+    fLastName + '|' +
+    DateToISODate(fDOB.ValueOrDefault) + '|' +
+    BoolToStr(fIsMale.ValueOrDefault, True) + '|' +
+    GetSHA1HashFromStream(fPhoto);
+end;
+
 procedure TPerson.OnAfterLoad;
 begin
   inherited;
-  fAge := Yearsbetween(fDOB, now);
+  if fDOB.HasValue then
+  begin
+    fAge := YearsBetween(fDOB, now);
+  end
+  else
+  begin
+    fAge.Clear;
+  end;
 end;
 
 procedure TPerson.OnBeforeInsert;
 begin
   inherited;
-  // TMemoryStream(fPhoto).LoadFromFile('C:\DEV\dmvcframework\samples\_\customer_small.png');
 end;
 
 procedure TPerson.OnBeforeInsertOrUpdate;
@@ -176,7 +218,7 @@ begin
   fNote := Value;
 end;
 
-procedure TPerson.SetDOB(const Value: TDate);
+procedure TPerson.SetDOB(const Value: NullableTDate);
 begin
   fDOB := Value;
 end;
@@ -186,7 +228,7 @@ begin
   fID := Value;
 end;
 
-procedure TPerson.SetIsMale(const Value: Boolean);
+procedure TPerson.SetIsMale(const Value: NullableBoolean);
 begin
   fIsMale := Value;
 end;

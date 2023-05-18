@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -81,6 +81,14 @@ type
 
     function SerializeObject(
       const AObject: IInterface;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
+
+    function SerializeRecord(
+      const ARecord: Pointer;
+      const ARecordTypeInfo: PTypeInfo;
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil

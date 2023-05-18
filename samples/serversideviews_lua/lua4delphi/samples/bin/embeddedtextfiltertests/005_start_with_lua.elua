@@ -1,0 +1,2 @@
+<?lua local x = 1 ?>
+Hello World <?lua= x?>

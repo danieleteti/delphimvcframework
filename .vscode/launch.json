@@ -13,6 +13,16 @@
                 "generate-nullables"
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python TASK build-samples",
+            "type": "python",
+            "request": "launch",
+            "module": "invoke",
+            "args": [
+                "build-samples"
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

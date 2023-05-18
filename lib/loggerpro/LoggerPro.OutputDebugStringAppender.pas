@@ -17,7 +17,7 @@ type
     FModuleName: string;
     {$ENDIF}
   public
-    constructor Create; override;
+    constructor Create(ALogFormat: string = DEFAULT_LOG_FORMAT); override;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -34,17 +34,16 @@ uses
 {$ENDIF}
   ;
 
-{ TStringsLogAppender }
-const
-  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
+{ TLoggerProOutputDebugStringAppender }
 
-constructor TLoggerProOutputDebugStringAppender.Create;
+constructor TLoggerProOutputDebugStringAppender.Create(ALogFormat: string);
 begin
-  inherited Create;
+  inherited;
 end;
 
 procedure TLoggerProOutputDebugStringAppender.Setup;
 begin
+  inherited;
 {$IFDEF MSWINDOWS}
   FModuleName := TPath.GetFileName(GetModuleName(HInstance));
 {$ENDIF}
@@ -55,17 +54,14 @@ begin
   // do nothing
 end;
 
-procedure TLoggerProOutputDebugStringAppender.WriteLog(const aLogItem
-  : TLogItem);
+procedure TLoggerProOutputDebugStringAppender.WriteLog(const aLogItem : TLogItem);
 {$IFDEF MSWINDOWS}
 var
   lLog: string;
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
-  lLog := '(' + FModuleName + ') ' + Format(DEFAULT_LOG_FORMAT,
-    [datetimetostr(aLogItem.TimeStamp), aLogItem.ThreadID,
-    aLogItem.LogTypeAsString, aLogItem.LogMessage, aLogItem.LogTag]);
+  lLog := '(' + FModuleName + ') ' + FormatLog(aLogItem);
   OutputDebugString(PChar(lLog));
 {$ENDIF}
 end;

@@ -10,10 +10,10 @@ uses
   Web.WebBroker,
   Web.Win.ISAPIApp,
   Web.Win.ISAPIThreadPool,
-  MainDataModuleUnit in '..\..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
-  MainWebModuleUnit in '..\..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
-  WineCellarAppControllerU in '..\..\winecellarserver\WineCellarAppControllerU.pas',
-  WinesBO in '..\..\winecellarserver\WinesBO.pas';
+  MainDataModuleUnit in '..\..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  MainWebModuleUnit in '..\..\WineCellarSample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  WinesBO in '..\..\WineCellarSample\winecellarserver\WinesBO.pas',
+  WineCellarAppControllerU in '..\..\WineCellarSample\winecellarserver\WineCellarAppControllerU.pas';
 
 {$R *.res}
 

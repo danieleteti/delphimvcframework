@@ -12,7 +12,6 @@ object MainForm: TMainForm
   Font.Style = []
   OnDestroy = FormDestroy
   OnShow = FormShow
-  PixelsPerInch = 96
   DesignSize = (
     1104
     569)
@@ -28,7 +27,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 203
+    Top = 242
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -56,10 +55,12 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
+    ExplicitWidth = 812
+    ExplicitHeight = 552
   end
   object btnRelations: TButton
     Left = 8
-    Top = 242
+    Top = 281
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -68,7 +69,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 283
+    Top = 322
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -77,7 +78,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 323
+    Top = 362
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -95,21 +96,21 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 363
+    Top = 402
     Width = 121
     Height = 34
     Caption = 'RQL Query'
     TabOrder = 7
     OnClick = btnRQLClick
   end
-  object btnTransientFields: TButton
+  object btnReadOnlyFields: TButton
     Left = 8
-    Top = 164
+    Top = 203
     Width = 121
     Height = 33
-    Caption = 'CRUD Transient'
+    Caption = 'CRUD With R/O Field'
     TabOrder = 8
-    OnClick = btnTransientFieldsClick
+    OnClick = btnReadOnlyFieldsClick
   end
   object btnNullTest: TButton
     Left = 144
@@ -122,7 +123,7 @@ object MainForm: TMainForm
   end
   object btnCRUDNoAutoInc: TButton
     Left = 8
-    Top = 47
+    Top = 86
     Width = 121
     Height = 33
     Caption = 'CRUD (no autoinc)'
@@ -131,7 +132,7 @@ object MainForm: TMainForm
   end
   object btnCRUDWithStringPKs: TButton
     Left = 8
-    Top = 86
+    Top = 125
     Width = 121
     Height = 33
     Caption = 'CRUD (string pks)'
@@ -140,7 +141,7 @@ object MainForm: TMainForm
   end
   object btnWithSpaces: TButton
     Left = 8
-    Top = 125
+    Top = 164
     Width = 121
     Height = 33
     Caption = 'CRUD (entity with spaces)'
@@ -220,8 +221,54 @@ object MainForm: TMainForm
     TabOrder = 20
     OnClick = btnPartitioningClick
   end
+  object btnCRUDWithGUID: TButton
+    Left = 8
+    Top = 47
+    Width = 121
+    Height = 33
+    Caption = 'CRUD (with GUID PK)'
+    TabOrder = 21
+    OnClick = btnCRUDWithGUIDClick
+  end
+  object btnOOP: TButton
+    Left = 144
+    Top = 402
+    Width = 121
+    Height = 34
+    Caption = 'OOP with Partitioning and Filtering'
+    TabOrder = 22
+    WordWrap = True
+    OnClick = btnOOPClick
+  end
+  object btnReadOnly: TButton
+    Left = 8
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Read/Only Entities'
+    TabOrder = 23
+    OnClick = btnReadOnlyClick
+  end
+  object btnSpeed: TButton
+    Left = 8
+    Top = 482
+    Width = 121
+    Height = 34
+    Caption = 'Metadata Speed Test'
+    TabOrder = 24
+    OnClick = btnSpeedClick
+  end
+  object btnRefresh: TButton
+    Left = 144
+    Top = 442
+    Width = 121
+    Height = 34
+    Caption = 'Manual Refresh'
+    TabOrder = 25
+    OnClick = btnRefreshClick
+  end
   object FDConnection1: TFDConnection
-    Left = 56
-    Top = 408
+    Left = 312
+    Top = 40
   end
 end

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -383,105 +383,6 @@ begin
   FMVCActionParamsCache.Free;
   FConfig.Free;
 end;
-
-// procedure TTestRouting.TestClassNameMethodNameRouting;
-// var
-// Params: TMVCRequestParamsTable;
-// ResponseContentType: string;
-// ResponseContentEncoding: string;
-// begin
-// Params := TMVCRequestParamsTable.Create;
-// try
-// Assert.isTrue(Router.ExecuteRouting('/TNotSoSimpleController/Method1', httpGET, 'text/plain', Controllers,
-// Params, ResponseContentType, ResponseContentEncoding));
-// Assert.areEqual(0, Params.Count);
-// Assert.areEqual('TSimpleController', Router.MVCControllerClass.ClassName);
-// Assert.areEqual('Index', Router.MethodToCall.Name);
-// finally
-// Params.Free;
-// end;
-// end;
-
-// procedure TTestMappers.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
-// var
-// Obj: TMyStreamObject;
-// JSONObj: TJSONObject;
-// DesObj: TMyStreamObject;
-// begin
-// // ARRANGE
-// Obj := TMyStreamObject.Create;
-// try
-// Obj.PropStream := nil;
-// Obj.Prop8Stream := nil;
-// // ACT
-// JSONObj := TSystemJSON.ObjectToJSONObject(Obj);
-// try
-// GetDefaultSerializer.de
-// DesObj := TSystemJSON.JSONObjectToObject<TMyStreamObject>(JSONObj);
-// try
-// // ASSERT
-// Assert.isTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
-// Assert.isTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
-// finally
-// DesObj.Free;
-// end;
-// finally
-// JSONObj.Free;
-// end;
-// finally
-// Obj.Free;
-// end;
-// end;
-
-// procedure TTestMappers.TestComplexObjectToJSONObjectAndBack;
-// var
-// Obj: TMyComplexObject;
-// JObj: TJSONObject;
-// Obj2: TMyComplexObject;
-// begin
-// Obj := GetMyComplexObject;
-// try
-// JObj := Mapper.ObjectToJSONObject(Obj);
-// try
-// Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
-// try
-// Assert.isTrue(Obj.Equals(Obj2));
-// finally
-// Obj2.Free;
-// end;
-// finally
-// JObj.Free;
-// end;
-// finally
-// Obj.Free;
-// end;
-// end;
-//
-// procedure TTestMappers.TestComplexObjectToJSONObjectAndBackWithNilReference;
-// var
-// Obj: TMyComplexObject;
-// JObj: TJSONObject;
-// Obj2: TMyComplexObject;
-// begin
-// Obj := GetMyComplexObject;
-// try
-// Obj.ChildObject.Free;
-// Obj.ChildObject := nil;
-// JObj := Mapper.ObjectToJSONObject(Obj);
-// try
-// Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
-// try
-// Assert.isTrue(Obj.Equals(Obj2));
-// finally
-// Obj2.Free;
-// end;
-// finally
-// JObj.Free;
-// end;
-// finally
-// Obj.Free;
-// end;
-// end;
 
 procedure TTestRouting.TestComplexRoutings;
 var
@@ -1323,10 +1224,10 @@ var
   I: Integer;
 begin
   // this test just tests the IP2Long implementation
-  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+  for I := low(RESERVED_IPv4) to high(RESERVED_IPv4) do
   begin
-    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][1]), IP2Long(RESERVED_IPS[I][1]));
-    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][2]), IP2Long(RESERVED_IPS[I][2]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPv4[I][1]), IP2Long(RESERVED_IPv4[I][1]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPv4[I][2]), IP2Long(RESERVED_IPv4[I][2]));
   end;
 end;
 
@@ -1722,12 +1623,14 @@ var
   lToken: string;
   lJWT: TJWT;
   lError: string;
+  lExp: TDateTime;
 begin
+  lExp := Now + OneHour * 2;
   FJWT.Claims.Issuer := 'bit Time Professionals';
   FJWT.Claims.Subject := 'DelphiMVCFramework';
   FJWT.Claims.Audience := 'DelphiDevelopers';
   FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
-  FJWT.Claims.ExpirationTime := Now + OneHour * 2;
+  FJWT.Claims.ExpirationTime := lExp;
   FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
   FJWT.Claims.JWT_ID := '123456';
   FJWT.CustomClaims['username'] := 'dteti';
@@ -1744,7 +1647,7 @@ begin
     Assert.areEqual('DelphiDevelopers', lJWT.Claims.Audience);
     Assert.areEqual('123456', lJWT.Claims.JWT_ID);
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.IssuedAt);
-    Assert.areEqual(Roundto(lJWT.Claims.IssuedAt + OneHour * 2, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
+    Assert.areEqual(Roundto(lExp, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.NotBefore);
     Assert.areEqual('dteti', lJWT.CustomClaims['username']);
     Assert.areEqual('admin', lJWT.CustomClaims['userrole']);
@@ -1868,7 +1771,7 @@ var
   lMultiMap: IMVCInterfaceMultiMap<IMyInterface>;
 begin
   lMultiMap := TMVCInterfaceMultiMap<IMyInterface>.Create;
-  Assert.areEqual(0, Length(lMultiMap.Keys));
+  Assert.AreEqual<Integer>(0, Length(lMultiMap.Keys));
   lMultiMap.Clear;
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
@@ -1902,7 +1805,7 @@ var
   lMultiMap: IMVCObjectMultiMap<TMyClass>;
 begin
   lMultiMap := TMVCObjectMultiMap<TMyClass>.Create;
-  Assert.areEqual(0, Length(lMultiMap.Keys));
+  Assert.AreEqual<Integer>(0, Length(lMultiMap.Keys));
   lMultiMap.Clear;
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));

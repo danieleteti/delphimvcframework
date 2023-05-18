@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -33,8 +33,9 @@ uses
   System.Classes,
   System.Rtti,
   System.Generics.Collections,
-  MVCFramework.Serializer.Commons, 
-  MVCFramework.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Commons,
+  MVCFramework.Nullables;
 
 type
 
@@ -220,12 +221,31 @@ type
   TEntityCustomWithGuid = class(TEntityCustom)
   private
     FGuidValue: TGUID;
+    FGuidValue2: TGUID;
+    FNullableGuid: NullableTGUID;
+    FNullableGuid2: NullableTGUID;
   public
     property GuidValue: TGUID read FGuidValue write FGuidValue;
+    [MVCSerializeGuidWithoutBraces]
+    property GuidValue2: TGUID read FGuidValue2 write FGuidValue2;
+    property NullableGuid: NullableTGUID read FNullableGuid write FNullableGuid;
+    [MVCSerializeGuidWithoutBraces]
+    property NullableGuid2: NullableTGUID read FNullableGuid2 write FNullableGuid2;
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
   TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
+  TMonths = set of TMonthEnum;
+  TColors = set of TColorEnum;
+
+  TEntityWithSets = class
+  private
+    fMonthsSet: TMonths;
+    fColorsSet: TColors;
+  public
+    property MonthsSet: TMonths read fMonthsSet write fMonthsSet;
+    property ColorsSet: TColors read fColorsSet write fColorsSet;
+  end;
 
   TEntityWithEnums = class
   private

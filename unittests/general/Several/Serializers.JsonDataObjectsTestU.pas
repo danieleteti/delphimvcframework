@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -51,6 +51,8 @@ type
   private
     fSerializer: IMVCSerializer;
   public
+    [SetupFixture]
+    procedure SetupFixture;
     [Setup]
     procedure Setup;
     [TearDown]
@@ -113,6 +115,8 @@ type
     { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
+    [Test]
+    procedure TestSerializeDeSerializeEntityWithSet;
     [Test]
     procedure TestStringDictionary;
     [Test]
@@ -232,6 +236,13 @@ begin
   fSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
   fSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>),
     TMVCNullableIntegerSerializerJsonDataObjects.Create);
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.SetupFixture;
+begin
+  FormatSettings.ShortDateFormat := 'dd/mm/yyyy';
+  FormatSettings.DateSeparator:= '/';
+  FormatSettings.TimeSeparator:= ':';
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TearDown;
@@ -878,22 +889,45 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllNullableTypes;
 var
   lObj1, lObj2: BusinessObjectsU.TNullablesTest;
-  lSer: string;
+  lSerWithNulls, lSerWithoutNulls: string;
 begin
+  Assert.IsTrue(MVCSerializeNulls, 'By Default "MVCSerializeNulls" must be true');
   lObj1 := BusinessObjectsU.TNullablesTest.Create;
   try
     lObj1.LoadSomeData;
-    lSer := fSerializer.SerializeObject(lObj1);
+    lSerWithNulls := fSerializer.SerializeObject(lObj1);
     lObj2 := BusinessObjectsU.TNullablesTest.Create;
     try
-      fSerializer.DeserializeObject(lSer, lObj2);
-      Assert.isTrue(lObj1.Equals(lObj2));
+      fSerializer.DeserializeObject(lSerWithNulls, lObj2);
+      Assert.IsTrue(lObj1.Equals(lObj2));
     finally
       lObj2.Free;
     end;
   finally
     lObj1.Free;
   end;
+
+  MVCSerializeNulls := False;
+  try
+    lObj1 := BusinessObjectsU.TNullablesTest.Create;
+    try
+      //lObj1.LoadSomeData;
+      lSerWithoutNulls := fSerializer.SerializeObject(lObj1);
+      Assert.AreNotEqual(lSerWithNulls, lSerWithoutNulls);
+      lObj2 := BusinessObjectsU.TNullablesTest.Create;
+      try
+        fSerializer.DeserializeObject(lSerWithoutNulls, lObj2);
+        Assert.IsTrue(lObj1.Equals(lObj2));
+      finally
+        lObj2.Free;
+      end;
+    finally
+      lObj1.Free;
+    end;
+  finally
+    MVCSerializeNulls := True;
+  end;
+
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllTypes;
@@ -1508,6 +1542,65 @@ begin
   Assert.areEqual('Child Entity', LEntity.ChildEntity.Description);
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeSerializeEntityWithSet;
+const
+  O1 = '{"MonthsSet":"meJanuary,meMarch","ColorsSet":""}';
+  O2 = '{"MonthsSet":"","ColorsSet":"RED"}';
+  O3 = '{"MonthsSet":"meJanuary,meFebruary,meMarch","ColorsSet":"RED,GREEN,BLUE"}';
+var
+  O: TEntityWithSets;
+  S: string;
+  OClone: TEntityWithSets;
+begin
+  O := TEntityWithSets.Create;
+  try
+    O.MonthsSet := [meJanuary, meMarch];
+    O.ColorsSet := [];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O1, S);
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = [meJanuary,meMarch]);
+      Assert.IsTrue(OClone.ColorsSet = []);
+    finally
+      OClone.Free;
+    end;
+
+    ////////
+    O.MonthsSet := [];
+    O.ColorsSet := [TColorEnum.RED];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O2, S);
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = []);
+      Assert.IsTrue(OClone.ColorsSet = [RED]);
+    finally
+      OClone.Free;
+    end;
+
+
+    ///////
+    O.MonthsSet := [meJanuary, meMarch, meFebruary];
+    O.ColorsSet := [TColorEnum.RED, TColorEnum.GREEN, TColorEnum.BLUE];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O3, S);
+
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = [meJanuary, meFebruary, meMarch]);
+      Assert.IsTrue(OClone.ColorsSet = [RED, GREEN, BLUE]);
+    finally
+      OClone.Free;
+    end;
+  finally
+    O.Free;
+  end;
+end;
+
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGenericEntity;
 const
   JSON = '{' + '"Code":1,' + '"Description":"General Description",' + '"Items":[' + '{"Description":"Description 01"},'
@@ -1619,7 +1712,11 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
 const
-  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' + '"Id":1,' + '"Code":2,' +
+  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
+    '"GuidValue2":"ca09dc98-85ba-46e8-aba2-117c2fa8ef25",' +
+    '"NullableGuid":"{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}",' +
+    '"NullableGuid2":"fa51caa7-7d48-46ba-bfde-34c1f740e066",' +
+    '"Id":1,' + '"Code":2,' +
     '"Name":"João Antônio"' + '}';
 var
   LEntity: TEntityCustomWithGuid;
@@ -1631,9 +1728,12 @@ begin
     LEntity.Code := 2;
     LEntity.Name := 'João Antônio';
     LEntity.GuidValue := StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
+    LEntity.GuidValue2 := StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}');
+    LEntity.NullableGuid := StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}');
+    LEntity.NullableGuid2 := StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}');
 
     LJson := fSerializer.SerializeObject(LEntity);
-    Assert.areEqual(JSON, LJson);
+    Assert.AreEqual(JSON, LJson);
   finally
     LEntity.Free;
   end;
@@ -1641,10 +1741,13 @@ begin
   LEntity := TEntityCustomWithGuid.Create;
   try
     fSerializer.DeserializeObject(LJson, LEntity);
-    Assert.areEqual(int64(1), LEntity.Id);
-    Assert.areEqual(Integer(2), LEntity.Code);
-    Assert.areEqual('João Antônio', LEntity.Name);
-    Assert.areEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+    Assert.AreEqual(int64(1), LEntity.Id);
+    Assert.AreEqual(Integer(2), LEntity.Code);
+    Assert.AreEqual('João Antônio', LEntity.Name);
+    Assert.AreEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+    Assert.AreEqual(StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}'), LEntity.GuidValue2);
+    Assert.AreEqual(StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}'), LEntity.NullableGuid.Value);
+    Assert.AreEqual(StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}'), LEntity.NullableGuid2.Value);
   finally
     LEntity.Free;
   end;

@@ -1,0 +1,58 @@
+package dmvcframeworkDT;
+
+{$R *.res}
+{$R *.dres}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'DelphiMVCFramework 3.x - Design Time Support'}
+{$LIBSUFFIX '112'}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  designide,
+  ExpertsCreators,
+  IndySystem,
+  IndyProtocols,
+  IndyCore,
+  dbrtl,
+  dmvcframeworkRT;
+
+contains
+  DMVC.Expert.CodeGen.NewControllerUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewControllerUnit.pas',
+  DMVC.Expert.CodeGen.NewDMVCProject in '..\..\ideexpert\DMVC.Expert.CodeGen.NewDMVCProject.pas',
+  DMVC.Expert.CodeGen.NewProject in '..\..\ideexpert\DMVC.Expert.CodeGen.NewProject.pas',
+  DMVC.Expert.CodeGen.NewUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewUnit.pas',
+  DMVC.Expert.CodeGen.NewWebModuleUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewWebModuleUnit.pas',
+  DMVC.Expert.CodeGen.SourceFile in '..\..\ideexpert\DMVC.Expert.CodeGen.SourceFile.pas',
+  DMVC.Expert.CodeGen.Templates in '..\..\ideexpert\DMVC.Expert.CodeGen.Templates.pas',
+  DMVC.Expert.Forms.NewProjectWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewProjectWizard.pas' {frmDMVCNewProject},
+  DMVC.Expert.Forms.NewUnitWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewUnitWizard.pas' {frmDMVCNewUnit},
+  DMVC.Expert.NewUnitWizardEx in '..\..\ideexpert\DMVC.Expert.NewUnitWizardEx.pas',
+  DMVC.Expert.ProjectWizardEx in '..\..\ideexpert\DMVC.Expert.ProjectWizardEx.pas',
+  DMVC.Expert.Registration in '..\..\ideexpert\DMVC.Expert.Registration.pas',
+  DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas';
+
+end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,11 +27,14 @@ unit MVCFramework.RQL.AST2InterbaseSQL;
 interface
 
 uses
+  System.Generics.Defaults,
   MVCFramework.RQL.Parser,
   MVCFramework.RQL.AST2FirebirdSQL;
 
 type
   TRQLInterbaseCompiler = class(TRQLFirebirdCompiler)
+  protected
+    function GetLiteralBoolean(const Value: Boolean): String; override;
   end;
 
 implementation
@@ -39,6 +42,17 @@ implementation
 uses
   System.SysUtils,
   MVCFramework.ActiveRecord;
+
+{ TRQLInterbaseCompiler }
+
+function TRQLInterbaseCompiler.GetLiteralBoolean(const Value: Boolean): String;
+begin
+  if Value then
+  begin
+    Exit('1');
+  end;
+  Exit('0');
+end;
 
 initialization
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -91,7 +91,9 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 
 {$DEFINE SYSTEMJSON}
 {$IFNDEF MOBILE}
+{$IFNDEF MACOS}
 {$DEFINE WEBAPACHEHTTP}
+{$ENDIF}
 {$ENDIF}
 {$DEFINE USEFIREDAC}
 

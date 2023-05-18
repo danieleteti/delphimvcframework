@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{162C2B63-ECD5-4626-8E5B-156604960725}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="unittests\LuaBindingUnitTests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="samples\01\LuaEmbedded.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="samples\02\LuaConsole.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="LuaBindingUnitTests">
+        <MSBuild Projects="unittests\LuaBindingUnitTests.dproj"/>
+    </Target>
+    <Target Name="LuaBindingUnitTests:Clean">
+        <MSBuild Projects="unittests\LuaBindingUnitTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LuaBindingUnitTests:Make">
+        <MSBuild Projects="unittests\LuaBindingUnitTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LuaEmbedded">
+        <MSBuild Projects="samples\01\LuaEmbedded.dproj"/>
+    </Target>
+    <Target Name="LuaEmbedded:Clean">
+        <MSBuild Projects="samples\01\LuaEmbedded.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LuaEmbedded:Make">
+        <MSBuild Projects="samples\01\LuaEmbedded.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LuaConsole">
+        <MSBuild Projects="samples\02\LuaConsole.dproj"/>
+    </Target>
+    <Target Name="LuaConsole:Clean">
+        <MSBuild Projects="samples\02\LuaConsole.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LuaConsole:Make">
+        <MSBuild Projects="samples\02\LuaConsole.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="LuaBindingUnitTests;LuaEmbedded;LuaConsole"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="LuaBindingUnitTests:Clean;LuaEmbedded:Clean;LuaConsole:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="LuaBindingUnitTests:Make;LuaEmbedded:Make;LuaConsole:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

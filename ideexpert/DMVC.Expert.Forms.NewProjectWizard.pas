@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -46,39 +46,64 @@ uses
   VCL.Forms,
   VCL.Dialogs,
   VCL.StdCtrls,
-  VCL.Imaging.pngimage, VCL.ExtCtrls;
+  VCL.Imaging.pngimage,
+  VCL.ExtCtrls,
+  System.Actions,
+  Vcl.ActnList,
+  Vcl.AppEvnts;
 
 type
-  TWebServerType = (wstIndy, wstHTTPSys, wstApache, wstWindowsService, wstISAPI);
-  TBuiltInWebServerType = wstIndy .. wstHTTPSys;
-
   TfrmDMVCNewProject = class(TForm)
-    gbControllerUnitOptions: TGroupBox;
     btnOK: TButton;
     btnCancel: TButton;
-    chkCreateIndexMethod: TCheckBox;
-    chkCreateControllerUnit: TCheckBox;
     chkAddToProjectGroup: TCheckBox;
-    edtClassName: TEdit;
-    lblClassName: TLabel;
     edtWebModuleName: TEdit;
-    Label1: TLabel;
     lblWbModule: TLabel;
-    chkCreateActionFiltersMethods: TCheckBox;
     edtServerPort: TEdit;
     Label2: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
+    Panel2: TPanel;
+    gbControllerUnitOptions: TGroupBox;
+    lblClassName: TLabel;
+    Label1: TLabel;
+    chkCreateIndexMethod: TCheckBox;
+    edtClassName: TEdit;
+    chkCreateActionFiltersMethods: TCheckBox;
     chkCreateCRUDMethods: TCheckBox;
+    chkCreateControllerUnit: TCheckBox;
+    Shape1: TShape;
+    GroupBox1: TGroupBox;
     chkAnalyticsMiddleware: TCheckBox;
+    chkCompression: TCheckBox;
+    chkStaticFiles: TCheckBox;
+    chkTrace: TCheckBox;
+    chkCORS: TCheckBox;
+    chkETAG: TCheckBox;
     lblBook: TLabel;
-    rgType: TRadioGroup;
+    chkActiveRecord: TCheckBox;
+    EdtFDConnDefFileName: TEdit;
+    GroupBoxJSONRPC: TGroupBox;
+    Label3: TLabel;
+    EdtJSONRPCClassName: TEdit;
+    chkJSONRPC: TCheckBox;
+    Label4: TLabel;
+    Bevel1: TBevel;
+    Label5: TLabel;
+    EdtConnDefName: TEdit;
+    ApplicationEvents: TApplicationEvents;
+    lblCopyRight: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
     procedure lblBookMouseLeave(Sender: TObject);
     procedure lblBookClick(Sender: TObject);
+    procedure lblFrameworkVersionMouseEnter(Sender: TObject);
+    procedure lblFrameworkVersionMouseLeave(Sender: TObject);
+    procedure lblFrameworkVersionClick(Sender: TObject);
+    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure btnOKClick(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -89,21 +114,21 @@ type
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
     function GetCreateCRUDMethods: boolean;
-    function GetAnalyticsSupport: boolean;
     function GetMiddlewares: TArray<String>;
-    function GetBuiltInWebServerType: TBuiltInWebServerType;
+    function GetCreateJSONRPCInterface: boolean;
+    function GetJSONRPCClassName: String;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
-    property BuiltInWebServerType: TBuiltInWebServerType read GetBuiltInWebServerType;
     property ControllerClassName: string read GetControllerClassName;
     property CreateControllerUnit: boolean read GetCreateControllerUnit;
+    property JSONRPCClassName: String read GetJSONRPCClassName;
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property AnalyticsSupport: boolean read GetAnalyticsSupport;
     property Middlewares: TArray<String> read GetMiddlewares;
-    property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
+    property CreateActionFiltersMethods: boolean
+      read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
     property ServerPort: Integer read GetServerPort;
   end;
@@ -115,13 +140,29 @@ implementation
 
 uses
   DMVC.Expert.CodeGen.Templates,
-  MVCFramework.Commons;
+  MVCFramework.Commons,
+  System.StrUtils;
 
 {$R *.dfm}
 
+procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
+  var Done: Boolean);
+begin
+  EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
+  EdtConnDefName.Enabled := chkActiveRecord.Checked;
+  EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
+end;
+
+procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+begin
+  if chkActiveRecord.Checked then
+  begin
+    ShowMessage('Remember to include required FireDAC units in your project');
+  end;
+end;
+
 procedure TfrmDMVCNewProject.chkCreateControllerUnitClick(Sender: TObject);
 begin
-  gbControllerUnitOptions.Enabled := chkCreateIndexMethod.Checked;
   chkCreateIndexMethod.Enabled := chkCreateControllerUnit.Checked;
   chkCreateActionFiltersMethods.Enabled := chkCreateControllerUnit.Checked;
   chkCreateCRUDMethods.Enabled := chkCreateControllerUnit.Checked;
@@ -133,7 +174,9 @@ begin
   edtClassName.TextHint := sDefaultControllerName;
   edtWebModuleName.TextHint := sDefaultWebModuleName;
   edtServerPort.TextHint := sDefaultServerPort;
-  lblFrameworkVersion.Caption := DMVCFRAMEWORK_VERSION;
+  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
+  chkJSONRPC.Checked := False;
+  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
@@ -141,35 +184,70 @@ begin
   Result := chkAddToProjectGroup.Checked;
 end;
 
-function TfrmDMVCNewProject.GetAnalyticsSupport: boolean;
-begin
-  Result := chkAnalyticsMiddleware.Checked;
-end;
-
-function TfrmDMVCNewProject.GetBuiltInWebServerType: TBuiltInWebServerType;
-begin
-  case rgType.ItemIndex of
-    0:
-      Exit(wstHTTPSys);
-    1:
-      Exit(wstIndy);
-  else
-    raise Exception.Create('Invalid Built-In Web Server Type');
-  end;
-end;
-
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
 end;
 
+function TfrmDMVCNewProject.GetCreateJSONRPCInterface: boolean;
+begin
+  Result := chkJSONRPC.Checked;
+end;
+
+function TfrmDMVCNewProject.GetJSONRPCClassName: String;
+begin
+  if GetCreateJSONRPCInterface then
+  begin
+    Result := EdtJSONRPCClassName.Text;
+    if Result.IsEmpty then
+    begin
+      Result := EdtJSONRPCClassName.TextHint;
+    end;
+  end
+  else
+  begin
+    Result := '';
+  end;
+end;
+
 function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
+const
+  M_ANALYTICS = 'FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));';
+  M_STATICFILES = 'FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
+  M_TRACE = 'FMVC.AddMiddleware(TMVCTraceMiddleware.Create);';
+  M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
+  M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
+  M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
+  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''%s'',''%s''));';
+
+  function GetText(const Edit: TCustomEdit): String;
+  begin
+    if Edit.Text = '' then
+    begin
+      Result := Edit.TextHint;
+    end
+    else
+    begin
+      Result := Edit.Text;
+    end;
+  end;
 begin
   Result := [];
-  if AnalyticsSupport then
-  begin
-    Result := Result + ['TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics)'];
-  end;
+  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do trafic analysis'];
+  Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
+  Result := Result + ['', '// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
+  Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
+  Result := Result + ['', '// Trace middlewares produces a much detailed log for debug purposes'];
+  Result := Result + [ifthen(not chkTrace.Checked, '//') + M_TRACE];
+  Result := Result + ['', '// CORS middleware handles... well, CORS'];
+  Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
+  Result := Result + ['', '// Simplifies TMVCActiveRecord connection definition'];
+  Result := Result + [ifthen(not chkActiveRecord.Checked, '//') + Format(M_ACTIVERECORD,
+    [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)])];
+  Result := Result + ['', '// Compression middleware must be the last in the chain, just before the ETag, if present.'];
+  Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
+  Result := Result + ['', '// ETag middleware must be the latest in the chain'];
+  Result := Result + [ifthen(not chkETAG.Checked, '//') + M_ETAG];
 end;
 
 function TfrmDMVCNewProject.GetServerPort: Integer;
@@ -177,7 +255,8 @@ var
   lServerPort: Integer;
 begin
   Result := StrToInt(sDefaultServerPort);
-  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text, lServerPort) then
+  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
+    lServerPort) then
   begin
     if (lServerPort > 0) and (lServerPort < 65535) then
       Result := lServerPort;
@@ -198,12 +277,16 @@ end;
 
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
-  ShellExecute(0, PChar('open'), PChar('https://github.com/danieleteti/delphimvcframework'), nil, nil, SW_SHOW);
+  ShellExecute(0, PChar('open'),
+    PChar('https://github.com/danieleteti/delphimvcframework'),
+    nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
-  ShellExecute(0, PChar('open'), PChar('https://leanpub.com/delphimvcframework'), nil, nil, SW_SHOW);
+  ShellExecute(0, PChar('open'),
+    PChar('https://leanpub.com/delphimvcframework'),
+    nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);
@@ -216,6 +299,25 @@ procedure TfrmDMVCNewProject.lblBookMouseLeave(Sender: TObject);
 begin
   lblBook.Font.Color := Font.Color;
   lblBook.Font.Style := lblBook.Font.Style - [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionClick(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'),
+    nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionMouseEnter(Sender: TObject);
+begin
+  lblFrameworkVersion.Font.Color := clHighlight;
+  lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style + [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionMouseLeave(Sender: TObject);
+begin
+  lblFrameworkVersion.Font.Color := Font.Color;
+  lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style - [fsUnderline];
 end;
 
 function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;

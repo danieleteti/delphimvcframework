@@ -7,10 +7,20 @@
         <TargetedPlatforms>129</TargetedPlatforms>
         <AppType>Console</AppType>
         <FrameworkType>None</FrameworkType>
-        <ProjectVersion>19.0</ProjectVersion>
-        <Platform Condition="'$(Platform)'==''">Linux64</Platform>
+        <ProjectVersion>19.5</ProjectVersion>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Android' and '$(Base)'=='true') or '$(Base_Android)'!=''">
+        <Base_Android>true</Base_Android>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Android64' and '$(Base)'=='true') or '$(Base_Android64)'!=''">
+        <Base_Android64>true</Base_Android64>
+        <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
@@ -42,6 +52,18 @@
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Android)'!=''">
+        <Android_LauncherIcon192>$(BDS)\bin\Artwork\Android\FM_LauncherIcon_192x192.png</Android_LauncherIcon192>
+        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
+        <BT_BuildType>Debug</BT_BuildType>
+        <EnabledSysJars>annotation-1.2.0.dex.jar;asynclayoutinflater-1.0.0.dex.jar;billing-4.0.0.dex.jar;browser-1.0.0.dex.jar;cloud-messaging.dex.jar;collection-1.0.0.dex.jar;coordinatorlayout-1.0.0.dex.jar;core-1.5.0-rc02.dex.jar;core-common-2.0.1.dex.jar;core-runtime-2.0.1.dex.jar;cursoradapter-1.0.0.dex.jar;customview-1.0.0.dex.jar;documentfile-1.0.0.dex.jar;drawerlayout-1.0.0.dex.jar;firebase-annotations-16.0.0.dex.jar;firebase-common-20.0.0.dex.jar;firebase-components-17.0.0.dex.jar;firebase-datatransport-18.0.0.dex.jar;firebase-encoders-17.0.0.dex.jar;firebase-encoders-json-18.0.0.dex.jar;firebase-iid-interop-17.1.0.dex.jar;firebase-installations-17.0.0.dex.jar;firebase-installations-interop-17.0.0.dex.jar;firebase-measurement-connector-19.0.0.dex.jar;firebase-messaging-22.0.0.dex.jar;fmx.dex.jar;fragment-1.0.0.dex.jar;google-play-licensing.dex.jar;interpolator-1.0.0.dex.jar;javax.inject-1.dex.jar;legacy-support-core-ui-1.0.0.dex.jar;legacy-support-core-utils-1.0.0.dex.jar;lifecycle-common-2.0.0.dex.jar;lifecycle-livedata-2.0.0.dex.jar;lifecycle-livedata-core-2.0.0.dex.jar;lifecycle-runtime-2.0.0.dex.jar;lifecycle-service-2.0.0.dex.jar;lifecycle-viewmodel-2.0.0.dex.jar;listenablefuture-1.0.dex.jar;loader-1.0.0.dex.jar;localbroadcastmanager-1.0.0.dex.jar;play-services-ads-20.1.0.dex.jar;play-services-ads-base-20.1.0.dex.jar;play-services-ads-identifier-17.0.0.dex.jar;play-services-ads-lite-20.1.0.dex.jar;play-services-base-17.5.0.dex.jar;play-services-basement-17.6.0.dex.jar;play-services-cloud-messaging-16.0.0.dex.jar;play-services-drive-17.0.0.dex.jar;play-services-games-21.0.0.dex.jar;play-services-location-18.0.0.dex.jar;play-services-maps-17.0.1.dex.jar;play-services-measurement-base-18.0.0.dex.jar;play-services-measurement-sdk-api-18.0.0.dex.jar;play-services-places-placereport-17.0.0.dex.jar;play-services-stats-17.0.0.dex.jar;play-services-tasks-17.2.0.dex.jar;print-1.0.0.dex.jar;room-common-2.1.0.dex.jar;room-runtime-2.1.0.dex.jar;slidingpanelayout-1.0.0.dex.jar;sqlite-2.0.1.dex.jar;sqlite-framework-2.0.1.dex.jar;swiperefreshlayout-1.0.0.dex.jar;transport-api-3.0.0.dex.jar;transport-backend-cct-3.0.0.dex.jar;transport-runtime-3.0.0.dex.jar;user-messaging-platform-1.0.0.dex.jar;versionedparcelable-1.1.1.dex.jar;viewpager-1.0.0.dex.jar;work-runtime-2.1.0.dex.jar</EnabledSysJars>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Android64)'!=''">
+        <Android_LauncherIcon192>$(BDS)\bin\Artwork\Android\FM_LauncherIcon_192x192.png</Android_LauncherIcon192>
+        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
+        <BT_BuildType>Debug</BT_BuildType>
+        <EnabledSysJars>annotation-1.2.0.dex.jar;asynclayoutinflater-1.0.0.dex.jar;billing-4.0.0.dex.jar;browser-1.0.0.dex.jar;cloud-messaging.dex.jar;collection-1.0.0.dex.jar;coordinatorlayout-1.0.0.dex.jar;core-1.5.0-rc02.dex.jar;core-common-2.0.1.dex.jar;core-runtime-2.0.1.dex.jar;cursoradapter-1.0.0.dex.jar;customview-1.0.0.dex.jar;documentfile-1.0.0.dex.jar;drawerlayout-1.0.0.dex.jar;firebase-annotations-16.0.0.dex.jar;firebase-common-20.0.0.dex.jar;firebase-components-17.0.0.dex.jar;firebase-datatransport-18.0.0.dex.jar;firebase-encoders-17.0.0.dex.jar;firebase-encoders-json-18.0.0.dex.jar;firebase-iid-interop-17.1.0.dex.jar;firebase-installations-17.0.0.dex.jar;firebase-installations-interop-17.0.0.dex.jar;firebase-measurement-connector-19.0.0.dex.jar;firebase-messaging-22.0.0.dex.jar;fmx.dex.jar;fragment-1.0.0.dex.jar;google-play-licensing.dex.jar;interpolator-1.0.0.dex.jar;javax.inject-1.dex.jar;legacy-support-core-ui-1.0.0.dex.jar;legacy-support-core-utils-1.0.0.dex.jar;lifecycle-common-2.0.0.dex.jar;lifecycle-livedata-2.0.0.dex.jar;lifecycle-livedata-core-2.0.0.dex.jar;lifecycle-runtime-2.0.0.dex.jar;lifecycle-service-2.0.0.dex.jar;lifecycle-viewmodel-2.0.0.dex.jar;listenablefuture-1.0.dex.jar;loader-1.0.0.dex.jar;localbroadcastmanager-1.0.0.dex.jar;play-services-ads-20.1.0.dex.jar;play-services-ads-base-20.1.0.dex.jar;play-services-ads-identifier-17.0.0.dex.jar;play-services-ads-lite-20.1.0.dex.jar;play-services-base-17.5.0.dex.jar;play-services-basement-17.6.0.dex.jar;play-services-cloud-messaging-16.0.0.dex.jar;play-services-drive-17.0.0.dex.jar;play-services-games-21.0.0.dex.jar;play-services-location-18.0.0.dex.jar;play-services-maps-17.0.1.dex.jar;play-services-measurement-base-18.0.0.dex.jar;play-services-measurement-sdk-api-18.0.0.dex.jar;play-services-places-placereport-17.0.0.dex.jar;play-services-stats-17.0.0.dex.jar;play-services-tasks-17.2.0.dex.jar;print-1.0.0.dex.jar;room-common-2.1.0.dex.jar;room-runtime-2.1.0.dex.jar;slidingpanelayout-1.0.0.dex.jar;sqlite-2.0.1.dex.jar;sqlite-framework-2.0.1.dex.jar;swiperefreshlayout-1.0.0.dex.jar;transport-api-3.0.0.dex.jar;transport-backend-cct-3.0.0.dex.jar;transport-runtime-3.0.0.dex.jar;user-messaging-platform-1.0.0.dex.jar;versionedparcelable-1.1.1.dex.jar;viewpager-1.0.0.dex.jar;work-runtime-2.1.0.dex.jar</EnabledSysJars>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
@@ -63,15 +85,15 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <BuildConfiguration Include="Debug">
-            <Key>Cfg_2</Key>
-            <CfgParent>Base</CfgParent>
-        </BuildConfiguration>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
         <BuildConfiguration Include="Release">
             <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
         </BuildConfiguration>
     </ItemGroup>
@@ -85,6 +107,8 @@
                 </Source>
             </Delphi.Personality>
             <Platforms>
+                <Platform value="Android">False</Platform>
+                <Platform value="Android64">False</Platform>
                 <Platform value="Linux64">True</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>

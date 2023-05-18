@@ -12,7 +12,7 @@ uses
   Web.WebBroker,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   MyControllerU in 'MyControllerU.pas',
-  MyObjectsU in 'MyObjectsU.pas';
+  MyObjectsU in 'MyObjectsU.pas', MVCFramework.Commons;
 
 {$R *.res}
 
@@ -43,6 +43,7 @@ begin
   LGetSSLPassword := nil;
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LGetSSLPassword := TSSLEventHandlers.Create;
     LIOHandleSSL := TIdServerIOHandlerSSLOpenSSL.Create(LServer);
     LIOHandleSSL.SSLOptions.SSLVersions := [

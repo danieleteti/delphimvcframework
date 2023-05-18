@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -232,6 +232,21 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/arrays')]
     procedure GetClassWithArrays;
+
+    //Records
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/record')]
+    procedure GetSingleRecord;
+
+
+    // Enums
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/enums')]
+    procedure GetClassWithEnums;
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/enums')]
+    procedure EchoClassWithEnums;
   end;
 
 implementation
@@ -381,6 +396,16 @@ begin
   Render(Person, False);
 end;
 
+procedure TRenderSampleController.EchoClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := Context.Request.BodyAs<TClassWithEnums>;
+  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
+  lObj.EnumWithName := ctBlue;
+  Render(lObj, True);
+end;
+
 procedure TRenderSampleController.GetBinaryData(const filename: string);
 var
   lFilesFolder: string;
@@ -409,6 +434,19 @@ begin
   lClass.ArrayOfInt64 := [high(Int64), high(Int64) - 1, high(Int64) - 2];
   lClass.ArrayOfDouble := [1234.5678, 2345.6789, 3456.78901];
   Render(lClass);
+end;
+
+procedure TRenderSampleController.GetClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := TClassWithEnums.Create;
+  lObj.RGBSet := [ctGreen, ctBlue];
+  lObj.EnumDefaultSerialization := ctGreen;
+  lObj.EnumWithName := ctGreen;
+  lObj.EnumWithOrdValue := ctGreen;
+  lObj.EnumWithMappedValues := ctGreen;
+  Render(lObj);
 end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
@@ -487,10 +525,16 @@ begin
     Render(lDM.qryCustomers, False,
       procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self')
+            .Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+            .Add(HATEOAS.REL, 'orders')
+            .Add(HATEOAS._TYPE, 'application/json');
       end);
   finally
     lDM.Free;
@@ -580,20 +624,21 @@ begin
     lDM.qryCustomers.Open;
     lDict := ObjectDict(False { data are not freed after ObjectDict if freed } )
       .Add('customers', lDM.qryCustomers,
-      procedure(const DS: TDataset; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
-      end).Add('singleCustomer', lDM.qryCustomers,
-      procedure(const DS: TDataset; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
-      end, dstSingleRecord, ncPascalCase);
+        procedure(const DS: TDataset; const Links: IMVCLinks)
+        begin
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
+            '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        end)
+      .Add('singleCustomer', lDM.qryCustomers,
+        procedure(const DS: TDataset; const Links: IMVCLinks)
+        begin
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
+            '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        end, dstSingleRecord, ncPascalCase);
     Render(lDict);
   finally
     lDM.Free;
@@ -742,8 +787,11 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
-  ResponseStream.AppendLine('ID        :  ' + ID.ToString).AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream
+    .AppendLine('ID        :  ' + ID.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;
@@ -784,6 +832,14 @@ end;
 procedure TRenderSampleController.GetSimpleLists;
 begin
   Render(TSimpleListTest.Create);
+end;
+
+procedure TRenderSampleController.GetSingleRecord;
+var
+  lSR: TSimpleRecord;
+begin
+  lSR := TSimpleRecord.Create;
+  Render<TSimpleRecord>(200, lSR);
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;
@@ -840,36 +896,15 @@ end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList;
 var
-  p: TPerson;
   People: TObjectList<TPerson>;
 begin
   People := TObjectList<TPerson>.Create(True);
+  People.Add(TPerson.GetNew('Daniele','Teti', EncodeDate(1979, 11, 4), True));
+  People.Add(TPerson.GetNew('John','Doe', EncodeDate(1879, 10, 2), False));
+  People.Add(TPerson.GetNew('Jane','Doe', EncodeDate(1883, 1, 5), True));
 
-{$REGION 'Fake data'}
-  p := TPerson.Create;
-  p.FirstName := 'Daniele';
-  p.LastName := 'Teti';
-  p.DOB := EncodeDate(1979, 11, 4);
-  p.Married := True;
-  People.Add(p);
-
-  p := TPerson.Create;
-  p.FirstName := 'John';
-  p.LastName := 'Doe';
-  p.DOB := EncodeDate(1879, 10, 2);
-  p.Married := False;
-  People.Add(p);
-
-  p := TPerson.Create;
-  p.FirstName := 'Jane';
-  p.LastName := 'Doe';
-  p.DOB := EncodeDate(1883, 1, 5);
-  p.Married := True;
-  People.Add(p);
-
-{$ENDREGION}
   { classic approach }
-  // Render<TPerson>(HTTP_STATUS.OK, People, True);
+  //Render<TPerson>(HTTP_STATUS.OK, People, True);
   { new approach with ObjectDict }
   Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
 end;

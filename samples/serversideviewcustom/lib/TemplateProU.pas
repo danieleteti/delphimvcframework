@@ -300,14 +300,20 @@ var
 begin
   fDataSources.Clear;
 
-  for lDatasetPair in aDatasetDictionary do
+  if Assigned(aDatasetDictionary) then
   begin
-    fDataSources.Add(lDatasetPair.Key, TTPDatasetAdapter.Create(lDatasetPair.Value));
+    for lDatasetPair in aDatasetDictionary do
+    begin
+      fDataSources.Add(lDatasetPair.Key, TTPDatasetAdapter.Create(lDatasetPair.Value));
+    end;
   end;
 
-  for lObjectPair in aObjectDictionary do
+  if Assigned(aObjectDictionary) then
   begin
-    fDataSources.Add(lObjectPair.Key, TTPObjectListAdapter.Create(lObjectPair.Value));
+    for lObjectPair in aObjectDictionary do
+    begin
+      fDataSources.Add(lObjectPair.Key, TTPObjectListAdapter.Create(lObjectPair.Value));
+    end;
   end;
 end;
 

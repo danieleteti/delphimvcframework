@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -54,7 +54,10 @@ type
   public
     constructor Create(const aConnectionFactory: TFunc<TFDConnection>;
       const aAuthorization: TMVCActiveRecordAuthFunc = nil;
-      const aURLSegment: String = ''); reintroduce;
+      const aURLSegment: String = ''); reintroduce; overload;
+    constructor Create(const aConnectionDefName: String;
+      const aAuthorization: TMVCActiveRecordAuthFunc = nil;
+      const aURLSegment: String = ''); reintroduce; overload;
     destructor Destroy; override;
 
     [MVCPath('/($entityname)')]
@@ -314,6 +317,15 @@ begin
   fAuthorization := aAuthorization;
 end;
 
+constructor TMVCActiveRecordController.Create(const aConnectionDefName: String;
+  const aAuthorization: TMVCActiveRecordAuthFunc; const aURLSegment: String);
+begin
+  inherited Create;
+  fURLSegment := aURLSegment;
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(aConnectionDefName);
+  fAuthorization := aAuthorization;
+end;
+
 procedure TMVCActiveRecordController.CreateEntity(const entityname: string);
 var
   lAR: TMVCActiveRecord;
@@ -350,11 +362,11 @@ begin
     Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(http_status.Created, entityname.ToLower + ' created', '', lAR);
+      RenderStatusMessage(http_status.Created, entityname.ToLower + ' created', '', lAR);
     end
     else
     begin
-      Render(http_status.Created, entityname.ToLower + ' created');
+      RenderStatusMessage(http_status.Created, entityname.ToLower + ' created');
     end;
   finally
     lAR.Free;
@@ -399,11 +411,11 @@ begin
     Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(http_status.OK, entityname.ToLower + ' updated', '', lAR);
+      RenderStatusMessage(http_status.OK, entityname.ToLower + ' updated', '', lAR);
     end
     else
     begin
-      Render(http_status.OK, entityname.ToLower + ' updated');
+      RenderStatusMessage(http_status.OK, entityname.ToLower + ' updated');
     end;
   finally
     lAR.Free;

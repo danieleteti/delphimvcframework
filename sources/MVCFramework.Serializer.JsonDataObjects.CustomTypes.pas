@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -38,7 +38,8 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
   JsonDataObjects,
-  MVCFramework.Commons, MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Commons,
+  MVCFramework.Serializer.JsonDataObjects;
 
 type
 
@@ -54,9 +55,6 @@ type
 
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
-
-  public
-    { public declarations }
   end;
 
   TMVCStringDictionarySerializer = class(TInterfacedObject, IMVCTypeSerializer)
@@ -98,8 +96,6 @@ type
       const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
-    // internal use
-    // class procedure Serialize(const ADict: TMVCStringDictionary; const AJSONObject: TJsonObject); inline;
   end;
 
   TMVCListOfStringSerializer = class(TInterfacedObject, IMVCTypeSerializer)
@@ -173,8 +169,9 @@ uses
   System.Generics.Collections,
   MVCFramework.DataSet.Utils;
 
-procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(var AElementValue: TValue;
-  const APropertyName: string; const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string; const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
 var
   lStream: TStream;
   SS: TStringStream;
@@ -344,7 +341,7 @@ begin
   if lJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
     LGuid := TGUID.Empty
   else
-    LGuid := TMVCGuidHelper.GuidFromString(lJSON.S[APropertyName]);
+    LGuid := TMVCGuidHelper.StringToGUIDEx(lJSON.S[APropertyName]);
   AElementValue := TValue.From<TGUID>(LGuid);
 end;
 
@@ -356,8 +353,14 @@ end;
 
 procedure TMVCGUIDSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
   const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+var
+  lGuid: TGUID;
 begin
-  (ASerializerObject as TJDOJsonObject).S[APropertyName] := AElementValue.AsType<TGUID>.ToString;
+  lGuid := AElementValue.AsType<TGUID>;
+  if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(AAttributes) then
+    (ASerializerObject as TJDOJsonObject).S[APropertyName] := TMVCGuidHelper.GUIDToStringEx(lGuid)
+  else
+    (ASerializerObject as TJDOJsonObject).S[APropertyName] := lGuid.ToString;
 end;
 
 procedure TMVCGUIDSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
@@ -484,7 +487,7 @@ var
   lJSONValue: TJsonBaseObject;
 
 begin
-  lObjDict := AObject as TMVCObjectDictionary;
+  lObjDict := TMVCObjectDictionary(AObject);
   lOutObject := TJsonObject.Create;
   try
     for lName in lObjDict.Keys do
@@ -518,7 +521,11 @@ begin
 
       if TDuckTypedList.CanBeWrappedAsList(lObj.Data, lList) then
       begin
-        fCurrentSerializer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [],
+        fCurrentSerializer.ListToJsonArray(
+          lList,
+          lOutObject.A[lName],
+          TMVCSerializationType.stDefault,
+          lObj.IgnoredFields,
           lObj.SerializationAction)
       end
       else if lObj.Data is TDataSet then
@@ -534,7 +541,7 @@ begin
               fCurrentSerializer.InternalSerializeDataSetRecord(
                 TDataSet(lObj.Data),
                 lOutObject.O[lName],
-                [],
+                lObj.IgnoredFields,
                 lObj.DataSetFieldNameCase,
                 lObj.DataSetSerializationAction)
             end;
@@ -543,7 +550,7 @@ begin
               fCurrentSerializer.InternalSerializeDataSet(
                 TDataSet(lObj.Data),
                 lOutObject.A[lName],
-                [],
+                lObj.IgnoredFields,
                 lObj.DataSetFieldNameCase,
                 lObj.DataSetSerializationAction)
             end;
@@ -557,7 +564,7 @@ begin
         end;
 
         lJSONValue := fCurrentSerializer.ConvertObjectToJsonValue(lObj.Data, TMVCSerializationType.stDefault,
-          [], nil, lObj.SerializationAction, lJSONType);
+          lObj.IgnoredFields, nil, lObj.SerializationAction, lJSONType);
         case lJSONType of
           jdtArray:
             begin

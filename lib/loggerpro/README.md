@@ -1,21 +1,40 @@
 # LoggerPro for Delphi
+
 An modern and pluggable logging framework for Delphi
 
 ## Compatibility
+
 LoggerPro is compatibile with
-- Delphi XE2
-- Delphi XE3
-- Delphi XE4
-- Delphi XE5
-- Delphi XE6
-- Delphi XE7
-- Delphi XE8
-- Delphi 10 Seattle
-- Delphi 10.1 Berlin
-- Delphi 10.2 Tokyo (Added Linux compatibility)
+- Delphi 11 Alexandria
+- Delphi 10.4 Sydney
 - Delphi 10.3 Rio
+- Delphi 10.2 Tokyo (Added Linux compatibility)
+- Delphi 10.1 Berlin
+- Delphi 10 Seattle
+- Delphi XE8
+- Delphi XE7
+- Delphi XE6
+- Delphi XE5
+- Delphi XE4
+- Delphi XE3
+- Delphi XE2
+
+
+## What's new in 1.4.0
+
+- Improved VCL and FMX visual appenders
+- Appenders can be added and removed programmatically
+- Added packages for latest versions of Delphi
+- Improved algorithm used to handle slow consumers
+- Added [DMSContainer's EventStreams](http://dmscontainer.bittimeprofessionals.com/) Appender
+- Added very basic console appender that assumes is running from console in order to provide simple Linux console logging
+- FIX [Issue 50](https://github.com/danieleteti/loggerpro/issues/50)
+- New filtering log file appender that allows to pick individual tags to be written into a file.
+- FIX [Issue 57](https://github.com/danieleteti/loggerpro/issues/57)
+- FIX [Issue 60](https://github.com/danieleteti/loggerpro/issues/60)
 
 ## What's new in 1.3.2
+
 - Added support for Android API level 26 in mobile demo
 - Added packages for Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin and Delphi 10.0 Seattle.
 - Added packages for Delphi XE7 and Delphi XE8 (these packages do not contain appenders which uses `System.Net.HttpClient`)

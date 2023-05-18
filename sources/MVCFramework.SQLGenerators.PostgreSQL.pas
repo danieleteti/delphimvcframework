@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -38,6 +38,7 @@ type
   protected
     function GetCompilerClass: TRQLCompilerClass; override;
   public
+    function HasNativeUUID: Boolean; override;
     function CreateInsertSQL(
       const TableName: string;
       const Map: TFieldsMap;
@@ -137,6 +138,11 @@ function TMVCSQLGeneratorPostgreSQL.GetSequenceValueSQL(const PKFieldName,
   SequenceName: string; const Step: Integer): string;
 begin
   Result := Format('SELECT nextval(''%s'') %s', [SequenceName, GetFieldNameForSQL(PKFieldName)]);
+end;
+
+function TMVCSQLGeneratorPostgreSQL.HasNativeUUID: Boolean;
+begin
+  Result := True;
 end;
 
 initialization

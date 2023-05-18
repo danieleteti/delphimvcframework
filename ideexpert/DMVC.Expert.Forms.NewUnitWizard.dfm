@@ -13,13 +13,11 @@ object frmDMVCNewUnit: TfrmDMVCNewUnit
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   Position = poMainFormCenter
   OnCreate = FormCreate
   DesignSize = (
     271
     236)
-  PixelsPerInch = 96
   TextHeight = 13
   object GroupBox1: TGroupBox
     Left = 8

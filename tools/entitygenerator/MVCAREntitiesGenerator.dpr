@@ -2,7 +2,8 @@ program MVCAREntitiesGenerator;
 
 uses
   Vcl.Forms,
-  MainFormU in 'MainFormU.pas' {MainForm};
+  MainFormU in 'MainFormU.pas' {MainForm},
+  UtilsU in 'UtilsU.pas';
 
 {$R *.res}
 

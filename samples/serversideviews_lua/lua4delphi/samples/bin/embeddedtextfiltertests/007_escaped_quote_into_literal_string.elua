@@ -1,0 +1,9 @@
+Hello There
+<?lua 
+local x = "Here there is an \" escaped double quote\""
+?>
+<?lua=x?>
+<?lua 
+local y = "Here there is only one \" escaped double quote"
+?>
+<?lua=y?>

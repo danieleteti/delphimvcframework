@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -56,10 +56,13 @@ type
     constructor Create;
     destructor Destroy; override;
     function SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
+    procedure RemoveItem(const AName: string);
     function Contains(const AName: string; out AValue: TValue): Boolean;
     function ContainsItem(const AName: string; out AItem: TMVCCacheItem): Boolean;
     function GetValue(const AName: string): TValue;
     function ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
+    procedure BeginWrite;
+    procedure EndWrite;
   end;
 
   TMVCCacheSingleton = class
@@ -123,6 +126,11 @@ begin
   Result := lCacheItem;
 end;
 
+procedure TMVCCache.EndWrite;
+begin
+  FMREW.EndWrite;
+end;
+
 function TMVCCache.ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
 var
   lItem: TMVCCacheItem;
@@ -140,6 +148,11 @@ begin
   end;
 end;
 
+procedure TMVCCache.BeginWrite;
+begin
+  FMREW.BeginWrite;
+end;
+
 function TMVCCache.Contains(const AName: string; out AValue: TValue): Boolean;
 var
   lItem: TMVCCacheItem;
@@ -149,8 +162,7 @@ begin
     AValue := lItem.Value;
 end;
 
-function TMVCCache.ContainsItem(const AName: string;
-out AItem: TMVCCacheItem): Boolean;
+function TMVCCache.ContainsItem(const AName: string; out AItem: TMVCCacheItem): Boolean;
 var
   lItem: TMVCCacheItem;
   lRes: Boolean;
@@ -194,6 +206,24 @@ begin
       end;
     end);
   Result := lResult;
+end;
+
+procedure TMVCCache.RemoveItem(const AName: string);
+begin
+  FMREW.DoWithWriteLock(
+    procedure
+    var
+      lItem: TMVCCacheItem;
+    begin
+      if FStorage.TryGetValue(AName, lItem) then
+      begin
+        if lItem.Value.IsObjectInstance then
+        begin
+          lItem.Value.AsObject.Free;
+        end;
+        FStorage.Remove(AName);
+      end
+    end);
 end;
 
 { TMVCFrameworkCacheItem }
@@ -280,8 +310,7 @@ begin
   inherited;
 end;
 
-function TMVCThreadedObjectCache<T>.TryGetValue(const Key: String;
-  out Value: T): Boolean;
+function TMVCThreadedObjectCache<T>.TryGetValue(const Key: String; out Value: T): Boolean;
 begin
   fCS.Enter;
   try
@@ -290,7 +319,5 @@ begin
     fCS.Leave;
   end;
 end;
-
-
 
 end.

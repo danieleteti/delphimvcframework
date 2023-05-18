@@ -1,0 +1,120 @@
+package dmvcframeworkRT;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team'}
+{$LIBSUFFIX '111'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  inet,
+  FireDAC,
+  IndyCore,
+  IndyProtocols,
+  FireDACIBDriver,
+  FireDACMySQLDriver,
+  loggerproRT,
+  FireDACPgDriver,
+  FireDACSqliteDriver,
+  SwagDoc;
+
+contains
+  Web.HTTPDImpl,
+  Web.ApacheConst,
+  Web.ApacheHTTP,
+  Web.Win.IsapiHTTP,
+  Web.HTTPDMethods,
+  MVCFramework in '..\..\sources\MVCFramework.pas',
+  MVCFramework.AsyncTask in '..\..\sources\MVCFramework.AsyncTask.pas',
+  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
+  MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
+  MVCFramework.Middleware.ETag in '..\..\sources\MVCFramework.Middleware.ETag.pas',
+  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
+  MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
+  MVCFramework.ApplicationSession in '..\..\sources\MVCFramework.ApplicationSession.pas',
+  MVCFramework.Cache in '..\..\sources\MVCFramework.Cache.pas',
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.Console in '..\..\sources\MVCFramework.Console.pas',
+  MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas',
+  MVCFramework.DuckTyping in '..\..\sources\MVCFramework.DuckTyping.pas',
+  MVCFramework.FireDAC.Utils in '..\..\sources\MVCFramework.FireDAC.Utils.pas',
+  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas',
+  MVCFramework.JSONRPC.Client in '..\..\sources\MVCFramework.JSONRPC.Client.pas',
+  MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
+  MVCFramework.JWT in '..\..\sources\MVCFramework.JWT.pas',
+  MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas',
+  MVCFramework.Middleware.Analytics in '..\..\sources\MVCFramework.Middleware.Analytics.pas',
+  MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler in '..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas',
+  MVCFramework.Middleware.Compression in '..\..\sources\MVCFramework.Middleware.Compression.pas',
+  MVCFramework.Middleware.CORS in '..\..\sources\MVCFramework.Middleware.CORS.pas',
+  MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
+  MVCFramework.Middleware.SecurityHeaders in '..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas',
+  MVCFramework.MultiMap in '..\..\sources\MVCFramework.MultiMap.pas',
+  MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas',
+  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
+  MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
+  MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
+  MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
+  MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
+  MVCFramework.RQL.AST2PostgreSQL in '..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas',
+  MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
+  MVCFramework.RQL.Parser in '..\..\sources\MVCFramework.RQL.Parser.pas',
+  MVCFramework.Rtti.Utils in '..\..\sources\MVCFramework.Rtti.Utils.pas',
+  MVCFramework.Serializer.Abstract in '..\..\sources\MVCFramework.Serializer.Abstract.pas',
+  MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
+  MVCFramework.Serializer.Defaults in '..\..\sources\MVCFramework.Serializer.Defaults.pas',
+  MVCFramework.Serializer.Intf in '..\..\sources\MVCFramework.Serializer.Intf.pas',
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
+  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
+  MVCFramework.Session in '..\..\sources\MVCFramework.Session.pas',
+  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
+  MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
+  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas',
+  MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
+  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
+  MVCFramework.SQLGenerators.PostgreSQL in '..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
+  MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
+  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
+  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas',
+  MVCFramework.RESTClient.Commons in '..\..\sources\MVCFramework.RESTClient.Commons.pas',
+  MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
+  MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
+  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas';
+
+end.
+
+
+
+

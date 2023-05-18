@@ -1,5 +1,4 @@
 object MainWebModule: TMainWebModule
-  OldCreateOrder = False
   OnCreate = WebModuleCreate
   Actions = <>
   Height = 230

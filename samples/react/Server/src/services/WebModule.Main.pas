@@ -26,7 +26,7 @@ implementation
 {$R *.dfm}
 
 uses 
-  Controller.Customer,
+  Controller.Customers,
   System.IOUtils, 
   MVCFramework.Commons, 
   MVCFramework.Middleware.StaticFiles, 
@@ -53,13 +53,13 @@ begin
       //view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
       //Max Record Count for automatic Entities CRUD
-      Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
+      Config[TMVCConfigKey.MaxEntitiesRecordCount] := '200';
       //Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
       // Max request size in bytes
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
-  FMVC.AddController(TCustomerController);
+  FMVC.AddController(TCustomersController);
   FMVC.AddMiddleware(TMVCCORSMiddleware.Create());
 
   // Required to enable serving of static files 
