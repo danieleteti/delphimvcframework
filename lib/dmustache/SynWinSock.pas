@@ -6,7 +6,7 @@ unit SynWinSock;
 {
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2023 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -27,7 +27,7 @@ unit SynWinSock;
   Portions created by Lukas Gebauer are Copyright (C) 2003.
   All Rights Reserved.
 
-  Portions created by Arnaud Bouchez are Copyright (C) 2020 Arnaud Bouchez.
+  Portions created by Arnaud Bouchez are Copyright (C) 2023 Arnaud Bouchez.
   All Rights Reserved.
 
   Contributor(s):
@@ -406,7 +406,7 @@ const
 
 { Windows Sockets definitions of regular Microsoft C error constants }
 
-  WSAEINTR                = (WSABASEERR+4);
+  WSAEINTR                = (WSABASEERR+4); // legacy error
   WSAEBADF                = (WSABASEERR+9);
   WSAEACCES               = (WSABASEERR+13);
   WSAEFAULT               = (WSABASEERR+14);
@@ -844,6 +844,7 @@ type
     Sizes: TSecPkgContextStreamSizes;
     Data, Input: AnsiString;
     InputSize, DataPos, DataCount, InputCount: integer;
+    SessionClosed: boolean;
     procedure HandshakeLoop(aSocket: THandle);
     procedure AppendData(const aBuffer: TSecBuffer);
   public
@@ -1708,9 +1709,9 @@ begin
     RaiseLastError;
   CheckSocket(SynWinSock.Send(aSocket, buf.buf[2].pvBuffer, buf.buf[2].cbBuffer, 0));
   CheckSEC_E_OK(FreeContextBuffer(buf.buf[2].pvBuffer));
+  SetLength(Data, TLSRECMAXSIZE);
   HandshakeLoop(aSocket);
   CheckSEC_E_OK(QueryContextAttributes(@Ctxt, SECPKG_ATTR_STREAM_SIZES, @Sizes));
-  SetLength(Data, Sizes.cbMaximumMessage);
   InputSize := Sizes.cbHeader + Sizes.cbMaximumMessage + Sizes.cbTrailer;
   if InputSize > TLSRECMAXSIZE then
     raise ESChannel.CreateFmt('InputSize=%d>%d', [InputSize, TLSRECMAXSIZE]);
@@ -1722,21 +1723,16 @@ end;
 procedure TSChannelClient.HandshakeLoop(aSocket: THandle);
 var
   buf: THandshakeBuf;
-  len: integer;
-  tmp: AnsiString;
   res, f: cardinal;
 begin
-  len := 0;
-  SetLength(tmp, 65536);
   res := SEC_I_CONTINUE_NEEDED;
   while (res = SEC_I_CONTINUE_NEEDED) or (res = SEC_E_INCOMPLETE_MESSAGE) do begin
-    if res <> SEC_E_INCOMPLETE_MESSAGE then
-      len := 0;
-    inc(len, CheckSocket(Recv(aSocket, @PByteArray(tmp)[len], length(tmp) - len, 0)));
+    inc(DataCount, CheckSocket(Recv(aSocket,
+      @PByteArray(Data)[DataCount], length(Data) - DataCount, 0)));
     buf.Init;
-    buf.buf[0].cbBuffer := len;
+    buf.buf[0].cbBuffer := DataCount;
     buf.buf[0].BufferType := SECBUFFER_TOKEN;
-    buf.buf[0].pvBuffer := pointer(tmp);
+    buf.buf[0].pvBuffer := pointer(Data);
     res := InitializeSecurityContext(@Cred, @Ctxt, nil, ISC_REQ_FLAGS, 0,
       SECURITY_NATIVE_DREP, @buf.input, 0, @Ctxt, @buf.output, @f, nil);
     if res = SEC_I_INCOMPLETE_CREDENTIALS then
@@ -1746,16 +1742,23 @@ begin
     if (res = SEC_E_OK) or (res = SEC_I_CONTINUE_NEEDED) or
        ((f and ISC_REQ_EXTENDED_ERROR) <> 0) then begin
       if (buf.buf[2].cbBuffer <> 0) and (buf.buf[2].pvBuffer <> nil) then begin
-        CheckSocket(SynWinSock.Send(aSocket, buf.buf[2].pvBuffer, buf.buf[2].cbBuffer, 0));
+        CheckSocket(
+          SynWinSock.Send(aSocket, buf.buf[2].pvBuffer, buf.buf[2].cbBuffer, 0));
         CheckSEC_E_OK(FreeContextBuffer(buf.buf[2].pvBuffer));
       end;
     end;
+    if buf.buf[1].BufferType = SECBUFFER_EXTRA then begin
+      // reuse pending Data bytes to avoid SEC_E_INVALID_TOKEN
+      Move(PByteArray(Data)[cardinal(DataCount) - buf.buf[1].cbBuffer],
+           PByteArray(Data)[0], buf.buf[1].cbBuffer);
+      DataCount := buf.buf[1].cbBuffer;
+    end else
+    if res <> SEC_E_INCOMPLETE_MESSAGE then
+      DataCount := 0;
   end;
   // TODO: handle SEC_I_INCOMPLETE_CREDENTIALS ?
   // see https://github.com/curl/curl/blob/master/lib/vtls/schannel.c
   CheckSEC_E_OK(res);
-  if buf.buf[1].BufferType = SECBUFFER_EXTRA then
-    AppendData(buf.buf[1]);
 end;
 
 procedure TSChannelClient.BeforeDisconnection(aSocket: THandle);
@@ -1794,7 +1797,8 @@ begin
   end;
 end;
 
-function TSChannelClient.Receive(aSocket: THandle; aBuffer: pointer; aLength: integer): integer;
+function TSChannelClient.Receive(aSocket: THandle;
+  aBuffer: pointer; aLength: integer): integer;
 var
   desc: TSecBufferDesc;
   buf: array[0..3] of TSecBuffer;
@@ -1823,47 +1827,49 @@ begin
     exit;
   end;
   result := 0;
-  while DataCount = 0 do
-  try
-    DataPos := 0;
-    desc.ulVersion := SECBUFFER_VERSION;
-    desc.cBuffers := 4;
-    desc.pBuffers := @buf[0];
-    repeat
-      read := Recv(aSocket, @PByteArray(Input)[InputCount], InputSize - InputCount, MSG_NOSIGNAL);
-      if read <= 0 then begin
-        result := read; // return socket error (may be WSATRY_AGAIN)
-        exit;
-      end;
-      inc(InputCount, read);
-      res := DecryptInput;
-    until res <> SEC_E_INCOMPLETE_MESSAGE;
-    needsRenegotiate := false;
-    repeat
-      case res of
-        SEC_I_RENEGOTIATE: needsRenegotiate := true;
-        SEC_I_CONTEXT_EXPIRED: exit;
-        SEC_E_INCOMPLETE_MESSAGE: break;
-        else CheckSEC_E_OK(res);
-      end;
-      InputCount := 0;
-      for i := 1 to 3 do
-        case buf[i].BufferType of
-          SECBUFFER_DATA: AppendData(buf[i]);
-          SECBUFFER_EXTRA: begin
-            Move(buf[i].pvBuffer^, pointer(Input)^, buf[i].cbBuffer);
-            InputCount := buf[i].cbBuffer;
-          end;
+  if not SessionClosed then
+    while DataCount = 0 do
+    try
+      DataPos := 0;
+      desc.ulVersion := SECBUFFER_VERSION;
+      desc.cBuffers := 4;
+      desc.pBuffers := @buf[0];
+      repeat
+        read := Recv(aSocket, @PByteArray(Input)[InputCount],
+          InputSize - InputCount, MSG_NOSIGNAL);
+        if read <= 0 then begin
+          result := read; // return socket error (may be WSATRY_AGAIN)
+          exit;
         end;
-      if InputCount = 0 then
-        break;
-      res := DecryptInput;
-    until false;
-    if needsRenegotiate then
-      HandshakeLoop(aSocket);
-  except
-    exit; // shutdown the connection on ESChannel fatal error
-  end;
+        inc(InputCount, read);
+        res := DecryptInput;
+      until res <> SEC_E_INCOMPLETE_MESSAGE;
+      needsRenegotiate := false;
+      repeat
+        case res of
+          SEC_I_RENEGOTIATE: needsRenegotiate := true;
+          SEC_I_CONTEXT_EXPIRED: SessionClosed := true;
+          SEC_E_INCOMPLETE_MESSAGE: break;
+          else CheckSEC_E_OK(res);
+        end;
+        InputCount := 0;
+        for i := 1 to 3 do
+          case buf[i].BufferType of
+            SECBUFFER_DATA: AppendData(buf[i]);
+            SECBUFFER_EXTRA: begin
+              Move(buf[i].pvBuffer^, pointer(Input)^, buf[i].cbBuffer);
+              InputCount := buf[i].cbBuffer;
+            end;
+          end;
+        if InputCount = 0 then
+          break;
+        res := DecryptInput;
+      until false;
+      if needsRenegotiate then
+        HandshakeLoop(aSocket);
+    except
+      exit; // shutdown the connection on ESChannel fatal error
+    end;
   result := DataCount;
   if aLength < result then
     result := aLength;
@@ -1920,7 +1926,7 @@ begin
         exit;  // report connection closed
       if integer(s) < 0 then begin
         res := WSAGetLastError;
-        if (res <> WSATRY_AGAIN) and (res <> WSAEINTR) then begin
+        if res <> WSATRY_AGAIN then begin
           result := s;
           exit; // report socket fatal error
         end;

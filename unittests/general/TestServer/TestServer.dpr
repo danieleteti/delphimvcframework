@@ -134,7 +134,12 @@ begin
     RunServer(9999);
   except
     on E: Exception do
+    begin
+      TextColor(TConsoleColor.Red);
+      TextBackground(TConsoleColor.Black);
       Writeln(E.ClassName, ': ', E.Message);
+      TextColor(TConsoleColor.White);
+    end;
   end;
 
 end.

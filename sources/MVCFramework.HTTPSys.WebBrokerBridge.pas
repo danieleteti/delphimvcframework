@@ -147,7 +147,8 @@ type
 implementation
 
 uses
-  Math, System.NetEncoding, IdGlobal, System.DateUtils, System.IOUtils, SynZip;
+  Math, System.NetEncoding, IdGlobal, System.DateUtils, System.IOUtils, SynZip,
+  Winapi.Windows;
 
 const
   RespIDX_Version = 0;
@@ -244,7 +245,7 @@ end;
 
 function TMVCHTTPSysAppRequest.GetRawContent: TBytes;
 begin
-  Result := TEncoding.UTF8.GetBytes(string(fRequest.InContent));
+  Result := BytesOf(fRequest.InContent);
 end;
 
 function TMVCHTTPSysAppRequest.GetStringVariable(Index: Integer): string;
@@ -750,6 +751,8 @@ begin
 end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetActive(const Value: Boolean);
+var
+  lError: Integer;
 begin
   if fActive = Value then
   begin
@@ -758,15 +761,30 @@ begin
   if Value then
   begin
     fHttpServer := TMVCHTTPSysServer.Create(fUseSSL);
-    fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
-    if fUseCompression then
-    begin
-      fHttpServer.RegisterCompress(CompressGZip);
-      fHttpServer.RegisterCompress(CompressDeflate);
+    try
+      lError := fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
+      if lError <> NO_ERROR then
+      begin
+        FreeAndNil(fHttpServer);
+        if lError = ERROR_ACCESS_DENIED {Access Forbidden, probably cannot register the url} then
+          raise EMVCHTTPSysAccessDenied.Create('ERROR_ACCESS_DENIED (5). HINT, the first time you launch an HTTP.sys module administrator rights are required')
+        else
+          raise EMVCHTTPSysWebBrokerBridgeException.CreateFmt('Windows Error (%d)', [lError]);
+      end;
+      if fUseCompression then
+      begin
+        fHttpServer.RegisterCompress(CompressGZip);
+        fHttpServer.RegisterCompress(CompressDeflate);
+      end;
+      fHttpServer.OnRequest := DoHandleRequest;
+      { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
+      fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
+    except
+      on E: Exception do
+      begin
+        raise EMVCHTTPSysWebBrokerBridgeException.Create(E.Message);
+      end;
     end;
-    fHttpServer.OnRequest := DoHandleRequest;
-    { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
-    fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
     fActive := True;
   end
   else

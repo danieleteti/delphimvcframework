@@ -42,6 +42,7 @@ uses
 
 type
   EMVCHTTPSysException = class(EMVCException);
+  EMVCHTTPSysAccessDenied = class(EMVCHTTPSysException);
 
   TMVCHTTPSysServer = class(THttpApiServer)
   protected

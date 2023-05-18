@@ -227,7 +227,6 @@
         <DCCReference Include="PGUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecordController.pas"/>
-        <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <DCCReference Include="ActiveRecordControllerTestU.pas"/>
         <DCCReference Include="webmodules\ActiveRecordControllerWebModuleU.pas">
             <Form>ActiveRecordControllerWebModule</Form>
@@ -349,8 +348,12 @@
             </Delphi.Personality>
             <Deployment Version="4">
                 <DeployFile LocalName="$(BDS)\Redist\iossim32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
+                <DeployFile LocalName="$(BDS)\Redist\iossim32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
+                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
                     <Platform Name="Win64">
@@ -365,6 +368,8 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="CONSOLE" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="CONSOLE" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
@@ -374,6 +379,8 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="CONSOLE" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="CONSOLE" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="GUI" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="GUI" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">

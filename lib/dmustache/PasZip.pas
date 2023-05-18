@@ -6,7 +6,7 @@ unit PasZip;
 {
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2023 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
     This library is free software; you can redistribute it and/or modify it

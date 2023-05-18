@@ -55,6 +55,14 @@ type
 
   TMVCTransferProtocolSchemes = set of (psHTTP, psHTTPS);
 
+  TMVCHeaders = class(TStringList)
+  private
+    function GetValue(const Name: string): string;
+    procedure SetValue(const Name, Value: string);
+  public
+    property Values[const Name: string]: string read GetValue write SetValue;
+  end;
+
   TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
@@ -1735,6 +1743,18 @@ end;
 class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): String;
 begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
+end;
+
+{ TMVCHeaders }
+
+function TMVCHeaders.GetValue(const Name: string): string;
+begin
+  Result := TStringList(Self).Values[Name].Trim();
+end;
+
+procedure TMVCHeaders.SetValue(const Name, Value: string);
+begin
+  TStringList(Self).Values[Name] := Value;
 end;
 
 initialization

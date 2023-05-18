@@ -6,7 +6,7 @@ unit SynZipFiles;
 (*
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2023 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynZipFiles;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2020
+  Portions created by the Initial Developer are Copyright (C) 2023
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -168,7 +168,7 @@ type
     fAlgorithmStream: THeapMemoryStream;
     fAlgorithmID: integer; // =0 if not Assigned(fAlgorithm)
     fCRC: Cardinal;
-    fBlobDataHeaderPosition: integer;
+    fBlobDataHeaderPosition: Int64;
     fBufferIn, fBufferOut: array[word] of byte; // two 64kb buffers
     procedure Finish;
     function FlushBufferOut: integer;
@@ -910,12 +910,12 @@ constructor TZipCompressor.CreateAsBlobData(outStream: TStream;
   CompressionLevel, Algorithm: Integer);
 begin
   Create(outStream,CompressionLevel,Algorithm);
-  fBlobDataHeaderPosition := outStream.Seek(0,soFromCurrent);
+  fBlobDataHeaderPosition := outStream.Seek(0,soCurrent);
   outStream.WriteBuffer(FBufferOut,BLOBDATA_HEADSIZE); // save Bulk header
 end;
 
 destructor TZipCompressor.Destroy;
-var p: integer;
+var p: Int64;
     blob: TBlobData;
 begin
   if FInitialized then begin
@@ -927,7 +927,7 @@ begin
     FreeAndNil(fAlgorithm);
   end;
   if fBlobDataHeaderPosition>=0 then begin // CreateAsBlobData() -> update header
-    p := fDestStream.Seek(0,soFromCurrent);
+    p := fDestStream.Seek(0,soCurrent);
     with blob do begin
       dataFullSize := SizeIn;
       dataSize := p-fBlobDataHeaderPosition-BLOBDATA_HEADSIZE;
@@ -938,9 +938,9 @@ begin
         dataMethod := 8 else
         dataMethod := fAlgorithmID shl 4; // stored + AlgoID
     end;
-    fDestStream.Seek(fBlobDataHeaderPosition,soFromBeginning);
+    fDestStream.Seek(fBlobDataHeaderPosition,soBeginning);
     fDestStream.WriteBuffer(blob,BLOBDATA_HEADSIZE);
-    fDestStream.Seek(p,soFromBeginning);
+    fDestStream.Seek(p,soBeginning);
   end;
   inherited;
 end;
@@ -952,7 +952,7 @@ begin
     if assigned(fAlgorithmStream) then begin
       fAlgorithmStream.WriteBuffer(fBufferIn,fStrm.avail_in); // write pending data
       fStrm.total_in := fAlgorithm.Compress( // compress whole data at once
-        fAlgorithmStream.Memory,fAlgorithmStream.Seek(0,soFromCurrent),@fCRC);
+        fAlgorithmStream.Memory,fAlgorithmStream.Seek(0,soCurrent),@fCRC);
     end else
     if FStrm.avail_in>0 then
       inc(fStrm.total_in,fAlgorithm.Compress(@fBufferIn,FStrm.avail_in,@fCRC));
@@ -1291,7 +1291,7 @@ begin
   outFile := TFileStream.Create(fFileName,fmCreate);
   if fromStream.InheritsFrom(TMemoryStream) then
     fromMemory := PAnsiChar(TMemoryStream(fromStream).Memory)+
-      fromStream.Seek(0,soFromCurrent) else
+      fromStream.Seek(0,soCurrent) else
     fromMemory := nil;
   srcLen := 0;
   src := nil;
@@ -1363,7 +1363,7 @@ begin
     thisFiles     := Count;
     totalFiles    := Count;
     headerSize    := 0;
-    headerOffset  := outFile.seek(0,soFromCurrent); // position of file entries
+    headerOffset  := outFile.seek(0,soCurrent); // position of file entries
     commentLen    := 0;
   end;
   // 2. write file entries from Entry[]
@@ -1497,7 +1497,7 @@ begin
     if Zip.FInitialized then
       Header.fileInfo.zzipSize := Zip.SizeOut else
       Header.fileInfo.zzipSize := Header.fileInfo.zfullSize;
-    p := outFile.Seek(0,soFromCurrent);
+    p := outFile.Seek(0,soCurrent);
     outFile.Seek(Header.localHeadOff+sizeof(dword),soBeginning);
     outFile.WriteBuffer(Header.fileInfo,sizeof(Header.fileInfo)); // save updated fileInfo
     outFile.Seek(p,soBeginning);

@@ -6,7 +6,7 @@ unit SynCommons;
 (*
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2022 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2023 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynCommons;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2022
+  Portions created by the Initial Developer are Copyright (C) 2023
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -1788,11 +1788,11 @@ type
 
 /// convert the endianness of a given unsigned 32-bit integer into BigEndian
 function bswap32(a: cardinal): cardinal;
-  {$ifndef CPUINTEL}inline;{$endif}
+  {$ifdef FPC}{$ifndef CPUINTEL}inline;{$endif}{$endif}
 
 /// convert the endianness of a given unsigned 64-bit integer into BigEndian
 function bswap64({$ifdef FPC_X86}constref{$else}const{$endif} a: QWord): QWord;
-  {$ifndef CPUINTEL}inline;{$endif}
+  {$ifdef FPC}{$ifndef CPUINTEL}inline;{$endif}{$endif}
 
 /// convert the endianness of an array of unsigned 64-bit integer into BigEndian
 // - n is required to be > 0
@@ -43350,14 +43350,14 @@ asm // eax=source edx=dest ecx=count
       mov     esi, eax
       mov     edi, edx
       cld
-      rep movsb
+      rep movsb // (much) slower on small blocks moves
       pop     edi
       pop     esi
 @none:ret
 @down:lea     esi, [eax + ecx - 1]
       lea     edi, [edx + ecx - 1]
       std
-      rep     movsb
+      rep     movsb // backward move does not support ERMSB so is slow
       pop     edi
       pop     esi
       cld
@@ -49650,7 +49650,7 @@ begin
     end else
   if (AT<=varNull) or (BT<=varNull) then
     result := ord(AT>varNull)-ord(BT>varNull) else
-  if (AT<varString) and (BT<varString) then
+  if (AT<varString) and (BT<varString) and (AT<>varOleStr) and (BT<>varOleStr) then
     result := ICMP[VarCompareValue(variant(A),variant(B))] else
     result := CMP[caseInsensitive](variant(A),variant(B));
 end;
@@ -49815,9 +49815,8 @@ begin
 end;
 
 function TDynArray.ElemPtr(index: PtrInt): pointer;
-label ok;
 var c: PtrUInt;
-begin // very efficient code on FPC and modern Delphi
+begin // no goto/label, because it does not properly inline on modern Delphi
   result := pointer(fValue);
   if result=nil then
     exit;
@@ -49825,17 +49824,17 @@ begin // very efficient code on FPC and modern Delphi
   if result=nil then
     exit;
   c := PtrUInt(fCountP);
-  if c<>0 then begin
+  if c<>0 then
     if PtrUInt(index)<PCardinal(c)^ then
-ok:   inc(PByte(result),PtrUInt(index)*ElemSize) else
+      inc(PByte(result),PtrUInt(index)*ElemSize) else
       result := nil
-  end else
+  else
     {$ifdef FPC}
     if PtrUInt(index)<=PPtrUInt(PtrUInt(result)-_DALEN)^ then
     {$else}
     if PtrUInt(index)<PPtrUInt(PtrUInt(result)-_DALEN)^ then
     {$endif FPC}
-      goto ok else
+      inc(PByte(result),PtrUInt(index)*ElemSize) else
       result := nil;
 end;
 
@@ -50465,7 +50464,7 @@ begin
   if (Source=nil) or (fValue=nil) then
     exit;
   // ignore legacy element size for cross-platform compatibility
-  if not FromVarUInt32(Source,SourceMax,n) or
+  if not FromVarUInt32(Source,SourceMax,n) or // n=0 from mORMot 2 anyway
      ((SourceMax<>nil) and (PAnsiChar(Source)>=PAnsiChar(SourceMax))) then
     exit;
   // check stored element type
