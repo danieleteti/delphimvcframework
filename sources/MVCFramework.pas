@@ -2428,113 +2428,114 @@ begin
         try // only for lSelectedController
           try // global exception handler
             ExecuteBeforeRoutingMiddleware(lContext, lHandled);
-            if not lHandled then
-            begin
-              if lRouter.ExecuteRouting(ARequest.PathInfo,
-                lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
-                ARequest.ContentType, ARequest.Accept, FControllers,
-                FConfigCache_DefaultContentType, FConfigCache_DefaultContentCharset,
-                FConfigCache_PathPrefix, lParamsTable, lResponseContentMediaType,
-                lResponseContentCharset) then
+            try
+              if not lHandled then
               begin
-                try
-                  if Assigned(lRouter.ControllerCreateAction) then
-                    lSelectedController := lRouter.ControllerCreateAction()
-                  else
-                    lSelectedController := lRouter.ControllerClazz.Create;
-                except
-                  on Ex: Exception do
-                  begin
-                    Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                      [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
-                    raise EMVCException.Create(http_status.InternalServerError,
-                      'Cannot create controller');
+                if lRouter.ExecuteRouting(ARequest.PathInfo,
+                  lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
+                  ARequest.ContentType, ARequest.Accept, FControllers,
+                  FConfigCache_DefaultContentType, FConfigCache_DefaultContentCharset,
+                  FConfigCache_PathPrefix, lParamsTable, lResponseContentMediaType,
+                  lResponseContentCharset) then
+                begin
+                  try
+                    if Assigned(lRouter.ControllerCreateAction) then
+                      lSelectedController := lRouter.ControllerCreateAction()
+                    else
+                      lSelectedController := lRouter.ControllerClazz.Create;
+                  except
+                    on Ex: Exception do
+                    begin
+                      Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                        [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
+                      raise EMVCException.Create(http_status.InternalServerError,
+                        'Cannot create controller');
+                    end;
                   end;
-                end;
-                lRouterMethodToCallName := lRouter.MethodToCall.Name;
-                lRouterControllerClazzQualifiedClassName := lRouter.ControllerClazz.QualifiedClassName;
+                  lRouterMethodToCallName := lRouter.MethodToCall.Name;
+                  lRouterControllerClazzQualifiedClassName := lRouter.ControllerClazz.QualifiedClassName;
 
-                MVCFramework.Logger.InitThreadVars;
+                  MVCFramework.Logger.InitThreadVars;
 
-                lContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
-                lSelectedController.Engine := Self;
-                lSelectedController.Context := lContext;
-                lSelectedController.ApplicationSession := FApplicationSession;
-                lContext.ParamsTable := lParamsTable;
-                ExecuteBeforeControllerActionMiddleware(
-                  lContext,
-                  lRouterControllerClazzQualifiedClassName,
-                  lRouterMethodToCallName,
-                  lHandled);
-                if lHandled then
-                  Exit(True);
+                  lContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
+                  lSelectedController.Engine := Self;
+                  lSelectedController.Context := lContext;
+                  lSelectedController.ApplicationSession := FApplicationSession;
+                  lContext.ParamsTable := lParamsTable;
+                  ExecuteBeforeControllerActionMiddleware(
+                    lContext,
+                    lRouterControllerClazzQualifiedClassName,
+                    lRouterMethodToCallName,
+                    lHandled);
+                  if lHandled then
+                    Exit(True);
 
-                lBodyParameter := nil;
-                lSelectedController.MVCControllerAfterCreate;
-                try
-                  lHandled := False;
-                  lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
-                    lResponseContentCharset);
-                  lActionFormalParams := lRouter.MethodToCall.GetParameters;
-                  if (Length(lActionFormalParams) = 0) then
-                    SetLength(lActualParams, 0)
-                  else if (Length(lActionFormalParams) = 1) and
-                    (SameText(lActionFormalParams[0].ParamType.QualifiedName,
-                    'MVCFramework.TWebContext')) then
+                  lBodyParameter := nil;
+                  lSelectedController.MVCControllerAfterCreate;
+                  try
+                    lHandled := False;
+                    lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
+                      lResponseContentCharset);
+                    lActionFormalParams := lRouter.MethodToCall.GetParameters;
+                    if (Length(lActionFormalParams) = 0) then
+                      SetLength(lActualParams, 0)
+                    else if (Length(lActionFormalParams) = 1) and
+                      (SameText(lActionFormalParams[0].ParamType.QualifiedName,
+                      'MVCFramework.TWebContext')) then
+                    begin
+                      SetLength(lActualParams, 1);
+                      lActualParams[0] := lContext;
+                    end
+                    else
+                    begin
+                      FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
+                        lRouterMethodToCallName, lActualParams, lBodyParameter);
+                    end;
+                    lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
+                    if not lHandled then
+                    begin
+                      try
+                        lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                      finally
+                        lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
+                      end;
+                    end;
+                  finally
+                    try
+                      lBodyParameter.Free;
+                    except
+                      on E: Exception do
+                      begin
+                        LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
+                          [E.Classname, E.Message]));
+                      end;
+                    end;
+                    lSelectedController.MVCControllerBeforeDestroy;
+                  end;
+                  ExecuteAfterControllerActionMiddleware(lContext,
+                    lRouterControllerClazzQualifiedClassName,
+                    lRouterMethodToCallName,
+                    lHandled);
+                  lContext.Response.ContentType := lSelectedController.ContentType;
+                  fOnRouterLog(lRouter, rlsRouteFound, lContext);
+                end
+                else // execute-routing
+                begin
+                  if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
                   begin
-                    SetLength(lActualParams, 1);
-                    lActualParams[0] := lContext;
+                    lContext.Response.StatusCode := http_status.NotFound;
+                    lContext.Response.ReasonString := 'Not Found';
+                    fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
+                    raise EMVCException.Create(lContext.Response.ReasonString,
+                      lContext.Request.HTTPMethodAsString + ' ' + lContext.Request.PathInfo, 0,
+                      http_status.NotFound);
                   end
                   else
                   begin
-                    FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
-                      lRouterMethodToCallName, lActualParams, lBodyParameter);
+                    lContext.Response.FlushOnDestroy := False;
                   end;
-                  lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
-                  if not lHandled then
-                  begin
-                    try
-                      lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                    finally
-                      lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
-                    end;
-                  end;
-                finally
-                  try
-                    lBodyParameter.Free;
-                  except
-                    on E: Exception do
-                    begin
-                      LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
-                        [E.Classname, E.Message]));
-                    end;
-                  end;
-                  lSelectedController.MVCControllerBeforeDestroy;
-                end;
-                ExecuteAfterControllerActionMiddleware(lContext,
-                  lRouterControllerClazzQualifiedClassName,
-                  lRouterMethodToCallName,
-                  lHandled);
-                lContext.Response.ContentType := lSelectedController.ContentType;
-                fOnRouterLog(lRouter, rlsRouteFound, lContext);
-              end
-              else // execute-routing
-              begin
-                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-                begin
-                  lContext.Response.StatusCode := http_status.NotFound;
-                  lContext.Response.ReasonString := 'Not Found';
-                  fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
-                  raise EMVCException.Create(lContext.Response.ReasonString,
-                    lContext.Request.HTTPMethodAsString + ' ' + lContext.Request.PathInfo, 0,
-                    http_status.NotFound);
-                end
-                else
-                begin
-                  lContext.Response.FlushOnDestroy := False;
-                end;
-              end; // end-execute-routing
-            end; // if not handled by beforerouting
+                end; // end-execute-routing
+              end; // if not handled by beforerouting
           except
             on ESess: EMVCSessionExpiredException do
             begin
@@ -2603,25 +2604,32 @@ begin
               end;
             end;
           end;
-          try
-            ExecuteAfterRoutingMiddleware(lContext, lHandled);
-          except
-            on Ex: Exception do
-            begin
-              if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
+          finally
+            try
+              // ExecuteAfterRoutingMiddleware must always be executed if
+              // at least one ExecuteBeforeRoutingMiddleware has been executed.
+              // There could be the case that a specific "before routing" middleware
+              // has not been executed.
+              // The "AfterRouting" should be take in consideration this case
+              ExecuteAfterRoutingMiddleware(lContext, lHandled);
+            except
+              on Ex: Exception do
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'After Routing Exception Handler'], LOGGERPRO_TAG);
-                if Assigned(lSelectedController) then
+                if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
                 begin
-                  { middlewares *must* not raise unhandled exceptions }
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
-                  lSelectedController.Render(Ex);
-                end
-                else
-                begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
-                    Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+                  Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                    [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'After Routing Exception Handler'], LOGGERPRO_TAG);
+                  if Assigned(lSelectedController) then
+                  begin
+                    { middlewares *must* not raise unhandled exceptions }
+                    lSelectedController.ResponseStatus(http_status.InternalServerError);
+                    lSelectedController.Render(Ex);
+                  end
+                  else
+                  begin
+                    SendRawHTTPStatus(lContext, http_status.InternalServerError,
+                      Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+                  end;
                 end;
               end;
             end;
@@ -4050,36 +4058,6 @@ begin
     if (GetContext.Response.StatusCode = http_status.OK) then
       ResponseStatus(http_status.InternalServerError, AException.Message + ' [' +
         AException.Classname + ']');
-
-    // if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
-    // begin
-    // SetContentType(TMVCMediaType.TEXT_HTML);
-    // Render(AException, False);
-    // exit;
-    // ResponseStream.Clear;
-    // ResponseStream.Append
-    // ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
-    // .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
-    // .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
-    // [GetContext.Response.StatusCode]).AppendFormat('HTTP Reason Text: "%s"</pre>',
-    // [GetContext.Response.ReasonString])
-    // .Append('<h3><pre>').AppendFormat('Exception Class Name : %s' + sLineBreak, [AException.Classname])
-    // .AppendFormat('Exception Message    : %s' + sLineBreak, [AException.Message]).Append('</pre></h3>');
-    // if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
-    // begin
-    // ResponseStream.Append('<h2><pre>');
-    // for S in AExceptionItems do
-    // ResponseStream.AppendLine('- ' + S);
-    // ResponseStream.Append('</pre><h2>');
-    // end
-    // else
-    // begin
-    // ResponseStream.AppendLine('<pre>No other information available</pre>');
-    // end;
-    // ResponseStream.Append('</body></html>');
-    // RenderResponseStream;
-    // end
-    // else
     begin
       R := TMVCErrorResponse.Create;
       try
