@@ -417,6 +417,7 @@ implementation
 uses
   JsonDataObjects,
   System.JSON,
+  System.DateUtils,
   Web.HTTPApp,
   Generics.Collections,
   MVCFramework.Serializer.Commons,
@@ -489,26 +490,26 @@ begin
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings1';
   c.value := 'usersettings1-value';
-  c.Path := '/usersettings1';
-  c.Expires := 0;
+  c.Path := '/';
+  c.Expires := Tomorrow;
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings2';
   c.value := 'usersettings2-value';
-  c.Path := '/usersettings2';
-  c.Expires := 0;
+  c.Path := '/';
+  c.Expires := Tomorrow;
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings3';
   c.value := 'usersettings3-value';
-  c.Path := '/usersettings3';
-  c.Expires := 0;
+  c.Path := '/';
+  c.Expires := Tomorrow;
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings4';
   c.value := 'usersettings4-value';
-  c.Path := '/usersettings4';
-  c.Expires := 0;
+  c.Path := '/';
+  c.Expires := Tomorrow;
 
 end;
 
