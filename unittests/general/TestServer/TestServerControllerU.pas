@@ -47,9 +47,10 @@ type
     fDataSet: TFDMemTable;
   protected
     procedure MVCControllerAfterCreate; override;
-    function GetDataSet: TDataSet;
     procedure MVCControllerBeforeDestroy; override;
   public
+    class function GetDataSet: TDataSet;
+
     [MVCPath('/req/with/params/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpGET, httpDELETE])]
     procedure ReqWithParams;
@@ -445,39 +446,58 @@ type
     [MVCPath('/sums/($a)/($b)')]
     [MVCHTTPMethod([httpGET])]
     function GetObject(a,b: Integer): TSum;
+
     [MVCPath('/complex')]
     [MVCHTTPMethod([httpGET])]
     function GetComplexObject: TComplexObject;
+
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET])]
     function GetPeople: TObjectList<TPerson>;
+
     [MVCPath('/photo')]
     [MVCHTTPMethod([httpGET])]
     function GetPhoto: TStream;
+
     [MVCPath('/string')]
     [MVCHTTPMethod([httpGET])]
     function GetString: String;
+
     [MVCPath('/enum')]
     [MVCHTTPMethod([httpGET])]
     function GetEnum: TFontStyle;
+
     [MVCPath('/bool')]
     [MVCHTTPMethod([httpGET])]
     function GetBool: Boolean;
+
+    [MVCPath('/float')]
+    [MVCHTTPMethod([httpGET])]
+    function GetFloat: Double;
+
     [MVCPath('/strdict')]
     [MVCHTTPMethod([httpGET])]
     function GetStrDict: TMVCStringDictionary;
+
     [MVCPath('/TSimpleRecord')]
     [MVCHTTPMethod([httpGET])]
     function GetTSimpleRecord: TSimpleRecord;
+
     [MVCPath('/ArrayOf/TSimpleRecord')]
     [MVCHTTPMethod([httpGET])]
     function GetArrayOfTSimpleRecord: TArray<TSimpleRecord>;
+
     [MVCPath('/TComplexRecord')]
     [MVCHTTPMethod([httpGET])]
     function GetTComplexRecord: TComplexRecord;
+
     [MVCPath('/ArrayOf/TComplexRecord')]
     [MVCHTTPMethod([httpGET])]
     function GetArrayOfTComplexRecord: TComplexRecordArray;
+
+    [MVCPath('/dataset/list')]
+    [MVCHTTPMethod([httpGET])]
+    function GetDataSetRecords: TDataSet;
   end;
 
 
@@ -580,7 +600,7 @@ begin
 
 end;
 
-function TTestServerController.GetDataSet: TDataSet;
+class function TTestServerController.GetDataSet: TDataSet;
 begin
   Result := TFDMemTable.Create(nil);
   TFDMemTable(Result).LoadFromFile(TPath.Combine(AppPath, 'customers.json'));
@@ -1329,9 +1349,19 @@ begin
   Result.People := TPerson.GetList();
 end;
 
+function TTestActionResultController.GetDataSetRecords: TDataSet;
+begin
+  Result := TTestServerController.GetDataSet;
+end;
+
 function TTestActionResultController.GetEnum: TFontStyle;
 begin
   Result := TFontStyle.fsBold;
+end;
+
+function TTestActionResultController.GetFloat: Double;
+begin
+  Result := 3.1415;
 end;
 
 function TTestActionResultController.GetPeople: TObjectList<TPerson>;

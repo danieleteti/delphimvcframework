@@ -2315,7 +2315,6 @@ begin
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
-
   WebRequestHandler.CacheConnections := True;
   WebRequestHandler.MaxConnections := 4096;
 
@@ -2554,6 +2553,10 @@ begin
                           tkEnumeration:
                           begin
                             lSelectedController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
+                          end;
+                          tkFloat:
+                          begin
+                            lSelectedController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
                           end
                           else
                           begin
