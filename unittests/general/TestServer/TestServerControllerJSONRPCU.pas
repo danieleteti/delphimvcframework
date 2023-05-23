@@ -44,6 +44,10 @@ type
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 
+    //exceptions
+    [MVCInheritable]
+    function DoError(MyObj: TPerson): TPerson;
+
     //objects support
     [MVCInheritable]
     function HandlingObjects(MyObj: TPerson): TPerson;
@@ -202,6 +206,11 @@ end;
 function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 begin
   Result := aDateTime + aTime;
+end;
+
+function TTestJSONRPCClass.DoError(MyObj: TPerson): TPerson;
+begin
+  raise Exception.Create('BOOOM!! (TTestJSONRPCClass.DoError)');
 end;
 
 function TTestJSONRPCClass.EchoArrayOfRecords(

@@ -538,7 +538,7 @@ type
     function Headers: TStrings;
     function HeaderValue(const aName: string): string;
     function Cookies: TCookies;
-    function CookieByName(const aName: string): TCookie;
+    function CookieByName(const aName: string; const RaiseExceptionIfNotFound: Boolean = False): TCookie;
     function Server: string;
     function ContentType: string;
     function ContentEncoding: string;
@@ -1928,7 +1928,7 @@ begin
   Result := fContentType;
 end;
 
-function TMVCRESTResponse.CookieByName(const aName: string): TCookie;
+function TMVCRESTResponse.CookieByName(const aName: string; const RaiseExceptionIfNotFound: Boolean): TCookie;
 var
   lCookie: TCookie;
 begin
@@ -1938,6 +1938,11 @@ begin
     if SameText(lCookie.Name, aName) then
       Exit(lCookie);
   end;
+  if RaiseExceptionIfNotFound then
+  begin
+    raise EMVCRESTClientException.CreateFmt('Cookie "%s" not found', [aName]);
+  end;
+
 end;
 
 function TMVCRESTResponse.Cookies: TCookies;

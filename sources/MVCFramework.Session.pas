@@ -232,16 +232,12 @@ begin
   inherited Destroy;
 end;
 
-// class procedure TMVCSessionFactory.DestroyInstance;
-// begin
-// if Assigned(cInstance) then
-// cInstance.Free;
-// end;
-
 class function TMVCSessionFactory.GetInstance: TMVCSessionFactory;
 begin
   if not Assigned(cInstance) then
+  begin
     cInstance := TMVCSessionFactory.Create;
+  end;
   Result := cInstance;
 end;
 

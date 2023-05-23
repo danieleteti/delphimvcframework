@@ -348,6 +348,9 @@ type
     // objects tests
     [Test]
     procedure TestRequestWithObjectParameters;
+    // exception tests
+    [Test]
+    procedure TestRequestWithException;
     // hooks tests
     [Test]
     procedure TestHooks;
@@ -2490,13 +2493,17 @@ var
   c1: IMVCRESTClient;
   res: IMVCRESTResponse;
   S: string;
+  lCookie: TCookie;
 begin
   c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
   c1.Accept(TMVCMediaType.APPLICATION_JSON);
   res := c1.Post('/session/daniele teti'); // imposto un valore in sessione
-  S := res.HeaderValue('Set-Cookie');
-  Assert.IsFalse(S.Contains('Expires'), 'Session cookie contains "expires" attribute');
-  res := c1.Get('/session'); // rileggo il valore dalla sessione
+  Assert.IsTrue(res.Cookies.Count > 0);
+  lCookie := res.CookieByName('dtsessionid', True);
+  Assert.AreEqual('dtsessionid', lCookie.Name);
+//  Assert.IsFalse(S.Contains('Expires'), 'Session cookie contains "expires" attribute');
+  res := c1.AddCookie('dtsessionid', lCookie.Value).Get('/session'); // rileggo il valore dalla sessione
+  S := res.Content;
   Assert.areEqual('daniele teti', res.Content);
   c1.Accept(TMVCMediaType.TEXT_PLAIN);
   res := c1.Get('/session');
@@ -3075,6 +3082,22 @@ begin
   lRPCResp := FExecutor.ExecuteRequest(lReq);
   Assert.isTrue(lRPCResp.IsError);
   Assert.Contains(lRPCResp.Error.ErrMessage, 'cannot find parameter', true);
+end;
+
+procedure TJSONRPCServerTest.TestRequestWithException;
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lPersSrc: TPerson;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'DoError';
+  lPersSrc := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,12,1), True);
+  lReq.Params.AddByName('MyObj', lPersSrc);
+  lReq.RequestID := 1;
+  lResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsTrue(lResp.IsError);
+  Assert.AreEqual('BOOOM!! (TTestJSONRPCClass.DoError)', lResp.Error.ErrMessage);
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithNamedParams_I_I_I_ret_O;

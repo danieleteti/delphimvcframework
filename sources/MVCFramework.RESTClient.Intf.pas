@@ -481,7 +481,7 @@ type
     function Headers: TStrings;
     function HeaderValue(const aName: string): string;
     function Cookies: TCookies;
-    function CookieByName(const aName: string): TCookie;
+    function CookieByName(const aName: string; const RaiseExceptionIfNotFound: Boolean = False): TCookie;
     function Server: string;
     function ContentType: string;
     function ContentEncoding: string;
