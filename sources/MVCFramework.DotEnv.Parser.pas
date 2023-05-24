@@ -253,8 +253,7 @@ function TMVCDotEnvParser.MatchString(out Value: String): Boolean;
   end;
   procedure MatchUpToCharacterMultiLine(out Value: String; const Delimiter1: Char);
   begin
-    while (fIndex < fCodeLength) and (fCode.Chars[fIndex] <> Delimiter1) and
-      (not CharInSet(fCode.Chars[fIndex], [#13, #10])) do
+    while (fIndex < fCodeLength) and (fCode.Chars[fIndex] <> Delimiter1) do
     begin
       Value := Value + fCode.Chars[fIndex];
       NextChar;

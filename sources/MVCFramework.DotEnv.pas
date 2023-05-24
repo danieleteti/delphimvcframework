@@ -44,6 +44,7 @@ type
     function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
     function Env(const Name: string): string; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
+    function ToArray(): TArray<String>;
     function IsFrozen: Boolean;
   end;
 
@@ -64,9 +65,11 @@ var
 { TDotEnv }
 
 type
+{$SCOPEDENUMS ON}
+  TdotEnvEngineState = (created, building, built);
   TMVCDotEnv = class(TInterfacedObject, IMVCDotEnv)
   strict private
-    fFrozen: Boolean;
+    fState: TdotEnvEngineState;
     fPriority: TMVCDotEnvPriority;
     fEnvPath: string;
     fEnvDict: TMVCDotEnvDictionary;
@@ -76,7 +79,6 @@ type
     function ExplodePlaceholders(const Value: string): string;
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
     procedure CheckAlreadyBuilt;
-    procedure CheckNotBuilt;
     procedure ExplodeReferences;
   strict protected
     function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnv; overload;
@@ -86,6 +88,7 @@ type
     function IsFrozen: Boolean;
     function Env(const Name: string): string; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
+    function ToArray(): TArray<String>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -98,11 +101,22 @@ begin
 end;
 
 function TMVCDotEnv.Env(const Name: string): string;
+var
+  lTmp: String;
 begin
-  CheckNotBuilt;
+  if fState = TdotEnvEngineState.created then
+  begin
+    raise EMVCDotEnv.Create('dotEnv Engine not built');
+  end;
+
   if fPriority in [TMVCDotEnvPriority.FileThenEnv, TMVCDotEnvPriority.OnlyFile] then
   begin
     Result := GetDotEnvVar(name);
+    if Result.Contains('${' + Name + '}') then
+    begin
+      raise EMVCDotEnv.CreateFmt('Configuration loop detected with key "%s"', [Name]);
+    end;
+
     if fPriority = TMVCDotEnvPriority.OnlyFile then
     begin
       // OnlyFile
@@ -125,7 +139,12 @@ begin
     // EnvThenFile
     if Result.IsEmpty then
     begin
-      Exit(GetDotEnvVar(Name));
+      lTmp := GetDotEnvVar(Name);
+      if lTmp.Contains('${' + Name + '}') then
+      begin
+        raise EMVCDotEnv.CreateFmt('Configuration loop detected with key "%s"', [Name]);
+      end;
+      Exit(lTmp);
     end;
   end
   else
@@ -150,7 +169,11 @@ end;
 
 function TMVCDotEnv.Build(const DotEnvDirectory: string): IMVCDotEnv;
 begin
-  CheckNotBuilt;
+  if fState <> TdotEnvEngineState.created then
+  begin
+    raise EMVCDotEnv.Create('dotEnv engine already built');
+  end;
+  fState := TdotEnvEngineState.building;
   Result := Self;
   fEnvPath := TDirectory.GetParent(GetModuleName(HInstance));
   if not DotEnvDirectory.IsEmpty then
@@ -160,22 +183,14 @@ begin
   fEnvDict.Clear;
   ReadEnvFile;
   ExplodeReferences;
-  fFrozen := True;
+  fState := TdotEnvEngineState.built;
 end;
 
 procedure TMVCDotEnv.CheckAlreadyBuilt;
 begin
-  if fFrozen then
+  if fState in [TdotEnvEngineState.built] then
   begin
     raise Exception.Create('DotEnv Engine Already Built');
-  end;
-end;
-
-procedure TMVCDotEnv.CheckNotBuilt;
-begin
-  if fFrozen then
-  begin
-    raise EMVCDotEnv.Create('Build must be called before use the engine');
   end;
 end;
 
@@ -189,7 +204,7 @@ end;
 constructor TMVCDotEnv.Create;
 begin
   inherited;
-  fFrozen := False;
+  fState := TdotEnvEngineState.created;
   fProfiles := TList<String>.Create;
   fEnvDict := TMVCDotEnvDictionary.Create;
   fEnvPath := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
@@ -205,7 +220,7 @@ end;
 
 function TMVCDotEnv.IsFrozen: Boolean;
 begin
-  Result := fFrozen;
+  Result := fState = TdotEnvEngineState.built;
 end;
 
 function TMVCDotEnv.ExplodePlaceholders(const Value: string): string;
@@ -257,6 +272,23 @@ begin
     lSL.Free;
   end;
   Result := Self;
+end;
+
+function TMVCDotEnv.ToArray: TArray<String>;
+var
+  lKeys: TArray<String>;
+  lKey: String;
+  I: Integer;
+begin
+  lKeys := fEnvDict.Keys.ToArray;
+  TArray.Sort<String>(lKeys);
+  SetLength(Result, Length(lKeys));
+  I := 0;
+  for lKey in lKeys do
+  begin
+    Result[I] := lKey + '=' + GetDotEnvVar(lKey);
+    Inc(I);
+  end;
 end;
 
 procedure TMVCDotEnv.PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);

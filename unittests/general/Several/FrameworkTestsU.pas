@@ -310,6 +310,8 @@ type
     [Test]
     procedure TestKeyValueWithQuotedValues;
     [Test]
+    procedure TestValueWithMultiline;
+    [Test]
     procedure TestVarPlaceHolders;
     [Test]
     procedure TestInLineComments;
@@ -2298,6 +2300,29 @@ begin
       Assert.AreEqual('value2', lDict['key2']);
       Assert.AreEqual('uno''due''', lDict['key3']);
       Assert.AreEqual('uno"due"', lDict['key4']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestValueWithMultiline;
+const
+  DOTENVCODE =
+    'key1= "value1' + sLineBreak +
+    'value2' + sLineBreak +
+    'value3" # comment' + sLineBreak +
+    'key2 = value2' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1' + slinebreak + 'value2' + sLineBreak + 'value3', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
     finally
       lDict.Free;
     end;
