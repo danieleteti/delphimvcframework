@@ -671,7 +671,7 @@ procedure TTestServerController.SessionGet;
 var
   s: string;
 begin
-  ContentType := Context.Request.Accept;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   s := Session['value'];
   Render(s);
 end;

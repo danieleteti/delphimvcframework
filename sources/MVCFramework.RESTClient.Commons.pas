@@ -67,7 +67,7 @@ type
     /// <summary>
     /// Get the response string, if it is of any type of text.
     /// </summary>
-    class function GetResponseContentAsString(aContentRawBytes: TArray<Byte>; const aContentType: string): string;
+    class function GetResponseContentAsString(var aContentRawBytes: TArray<Byte>; const aContentType: string): string;
   end;
 
   EMVCRESTClientException = class(Exception);
@@ -211,7 +211,7 @@ begin
   end;
 end;
 
-class function TMVCRESTClientHelper.GetResponseContentAsString(aContentRawBytes: TArray<Byte>;
+class function TMVCRESTClientHelper.GetResponseContentAsString(var aContentRawBytes: TArray<Byte>;
   const aContentType: string): string;
 var
   lContentIsString: Boolean;

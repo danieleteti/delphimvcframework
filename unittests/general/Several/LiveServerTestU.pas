@@ -686,7 +686,7 @@ procedure TServerTest.TestControllerWithExceptionInCreate(const URLSegment: stri
 var
   res: IMVCRESTResponse;
 begin
-  res := RESTClient.Get(URLSegment);
+  res := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Get(URLSegment);
   Assert.areEqual(HTTP_STATUS.InternalServerError, res.StatusCode);
   // Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
   Assert.Contains(res.ContentType, 'application/json', true,
@@ -2495,14 +2495,18 @@ var
   S: string;
   lCookie: TCookie;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
-  c1.Accept(TMVCMediaType.APPLICATION_JSON);
+  c1 := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Accept(TMVCMediaType.APPLICATION_JSON);
   res := c1.Post('/session/daniele teti'); // imposto un valore in sessione
   Assert.IsTrue(res.Cookies.Count > 0);
   lCookie := res.CookieByName('dtsessionid', True);
   Assert.AreEqual('dtsessionid', lCookie.Name);
 //  Assert.IsFalse(S.Contains('Expires'), 'Session cookie contains "expires" attribute');
-  res := c1.AddCookie('dtsessionid', lCookie.Value).Get('/session'); // rileggo il valore dalla sessione
+  res := c1
+    .AddCookie('dtsessionid', lCookie.Value)
+    .Get('/session'); // rileggo il valore dalla sessione
   S := res.Content;
   Assert.areEqual('daniele teti', res.Content);
   c1.Accept(TMVCMediaType.TEXT_PLAIN);
