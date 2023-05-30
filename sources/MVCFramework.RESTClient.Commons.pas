@@ -67,7 +67,7 @@ type
     /// <summary>
     /// Get the response string, if it is of any type of text.
     /// </summary>
-    class function GetResponseContentAsString(aContentRawBytes: TArray<Byte>; const aContentType: string): string;
+    class function GetResponseContentAsString(var aContentRawBytes: TArray<Byte>; const aContentType: string): string;
   end;
 
   EMVCRESTClientException = class(Exception);
@@ -75,7 +75,7 @@ type
   TMVCRESTClientConsts = record
   public const
     DEFAULT_ACCEPT_ENCODING = 'gzip,deflate';
-    DEFAULT_ACCEPT = TMVCMediaType.APPLICATION_JSON + ', ' + TMVCMediaType.TEXT_PLAIN + ', ' + TMVCMediaType.TEXT_HTML;
+    DEFAULT_ACCEPT = '*/*';
     DEFAULT_USER_AGENT = 'DelphiMVCFramework RESTClient/' + DMVCFRAMEWORK_VERSION;
     DEFAULT_FILE_NAME = 'file';
     AUTHORIZATION_HEADER = 'Authorization';
@@ -211,7 +211,7 @@ begin
   end;
 end;
 
-class function TMVCRESTClientHelper.GetResponseContentAsString(aContentRawBytes: TArray<Byte>;
+class function TMVCRESTClientHelper.GetResponseContentAsString(var aContentRawBytes: TArray<Byte>;
   const aContentType: string): string;
 var
   lContentIsString: Boolean;
