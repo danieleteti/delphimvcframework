@@ -38,19 +38,20 @@ type
 
   IMVCDotEnv = interface
     ['{5FD2C3CB-0895-4CCD-985F-27394798E4A8}']
-    function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnv;
-    function UseProfile(const ProfileName: String): IMVCDotEnv;
-    function ClearProfiles: IMVCDotEnv;
-    function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
     function Env(const Name: string): string; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
-    function IsFrozen: Boolean;
   end;
 
+  IMVCDotEnvBuilder = interface
+    ['{1A5EDD44-7226-40BC-A8EE-789E27522392}']
+    function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function ClearProfiles: IMVCDotEnvBuilder;
+    function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
+  end;
 
-function GlobalDotEnv: IMVCDotEnv;
-function NewDotEnv: IMVCDotEnv;
+function NewDotEnv: IMVCDotEnvBuilder;
 
 implementation
 
@@ -60,14 +61,14 @@ uses
   System.Classes;
 
 var
-  gDotEnv: IMVCDotEnv = nil;
+  gDotEnv: IMVCDotEnvBuilder = nil;
 
 { TDotEnv }
 
 type
 {$SCOPEDENUMS ON}
   TdotEnvEngineState = (created, building, built);
-  TMVCDotEnv = class(TInterfacedObject, IMVCDotEnv)
+  TMVCDotEnv = class(TInterfacedObject, IMVCDotEnv, IMVCDotEnvBuilder)
   strict private
     fState: TdotEnvEngineState;
     fPriority: TMVCDotEnvPriority;
@@ -81,11 +82,10 @@ type
     procedure CheckAlreadyBuilt;
     procedure ExplodeReferences;
   strict protected
-    function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnv; overload;
-    function UseProfile(const ProfileName: String): IMVCDotEnv;
-    function ClearProfiles: IMVCDotEnv;
+    function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
-    function IsFrozen: Boolean;
     function Env(const Name: string): string; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
@@ -149,18 +149,18 @@ begin
   end
   else
   begin
-    raise Exception.Create('Unknown Strategy');
+    raise EMVCDotEnv.CreateFmt('Unknown dotEnv Priority: %s', [GetEnumName(TypeInfo(TMVCDotEnvPriority), Ord(fPriority))]);
   end;
 end;
 
-function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnv;
+function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
   fProfiles.Add(ProfileName);
   Result := Self;
 end;
 
-function TMVCDotEnv.WithStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnv;
+function TMVCDotEnv.WithStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
   Result := Self;
@@ -194,7 +194,7 @@ begin
   end;
 end;
 
-function TMVCDotEnv.ClearProfiles: IMVCDotEnv;
+function TMVCDotEnv.ClearProfiles: IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
   fProfiles.Clear;
@@ -216,11 +216,6 @@ begin
   FreeAndNil(fEnvDict);
   fProfiles.Free;
   inherited;
-end;
-
-function TMVCDotEnv.IsFrozen: Boolean;
-begin
-  Result := fState = TdotEnvEngineState.built;
 end;
 
 function TMVCDotEnv.ExplodePlaceholders(const Value: string): string;
@@ -323,19 +318,9 @@ begin
   end;
 end;
 
-
-function GlobalDotEnv: IMVCDotEnv;
-begin
-  Result := gDotEnv;
-end;
-
-function NewDotEnv: IMVCDotEnv;
+function NewDotEnv: IMVCDotEnvBuilder;
 begin
   Result := TMVCDotEnv.Create;
 end;
-
-initialization
-
-gDotEnv := NewDotEnv;
 
 end.

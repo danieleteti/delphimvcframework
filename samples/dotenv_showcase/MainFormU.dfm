@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'dotEnv :: ShowCase'
   ClientHeight = 442
-  ClientWidth = 628
+  ClientWidth = 824
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,14 +11,15 @@ object MainForm: TMainForm
   Font.Name = 'Segoe UI'
   Font.Style = []
   DesignSize = (
-    628
+    824
     442)
   TextHeight = 15
   object Shape1: TShape
     Left = 8
     Top = 181
     Width = 169
-    Height = 20
+    Height = 4
+    Brush.Color = clGray
   end
   object btnSimple: TButton
     Left = 8
@@ -32,7 +33,7 @@ object MainForm: TMainForm
   object mmVars: TMemo
     Left = 183
     Top = 16
-    Width = 437
+    Width = 633
     Height = 418
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
@@ -65,7 +66,7 @@ object MainForm: TMainForm
   end
   object btnSingleEnv: TButton
     Left = 8
-    Top = 207
+    Top = 191
     Width = 169
     Height = 49
     Caption = 'Single ENV without inheritance (only prod)'
