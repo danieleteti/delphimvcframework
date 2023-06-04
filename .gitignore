@@ -136,3 +136,10 @@ unittests/general/Several/bin32/firebirdtest.fdb
 samples/WineCellarSample/winecellarclient_mobile/Android64/
 samples/prometheus/articles_crud_server_prometheus/bin/data/
 samples/prometheus/bin/data/
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/AndroidManifest.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/colors.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/splash_image_def.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/strings.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/styles.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/styles-v21.xml
+samples/WineCellarSample/winecellarclient_mobile/Android/Debug/WineCellarMobileClient.classes/classes.dex

@@ -3372,9 +3372,9 @@ begin
     if AContext.Request.HTTPMethod in [httpGET, httpHEAD] then
     begin
       lIfModifiedSince := AContext.Request.Headers['If-Modified-Since'];
+      FileDate := IndyFileAge(AFileName);
       if lIfModifiedSince <> '' then
       begin
-        FileDate := IndyFileAge(AFileName);
         IfModifiedSinceDate := GMTToLocalDateTime(lIfModifiedSince);
         if (IfModifiedSinceDate <> 0) and (abs(IfModifiedSinceDate - FileDate) < 2 * (1 / (24 * 60 * 60))) then
         begin

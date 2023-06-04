@@ -104,10 +104,9 @@
         <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
         <DCC_UNSUPPORTED_CONSTRUCT>false</DCC_UNSUPPORTED_CONSTRUCT>
         <DCC_RunTimeTypeInfo>true</DCC_RunTimeTypeInfo>
-        <VerInfo_Keys>CompanyName=Daniele Teti and the DMVCFramework Team;FileDescription=DelphiMVCFramework 3.2.2-nitrogen;FileVersion=3.2.2.0;InternalName=DelphiMVCFramework 3.2.2-nitrogen;LegalCopyright=Daniele Teti and the DMVCFramework Team - Apache License 2;LegalTrademarks=DelphiMVCFramework;OriginalFilename=$(MSBuildProjectName);ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DelphiMVCFramework;ProductVersion=3.2.2;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Daniele Teti and the DMVCFramework Team;FileDescription=DelphiMVCFramework 3.4.0-neon;FileVersion=3.4.0.0;InternalName=DelphiMVCFramework 3.4.0-neon;LegalCopyright=Daniele Teti and the DMVCFramework Team - Apache License 2;LegalTrademarks=DelphiMVCFramework;OriginalFilename=$(MSBuildProjectName);ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DelphiMVCFramework;ProductVersion=3.2.2;Comments=</VerInfo_Keys>
         <VerInfo_MajorVer>3</VerInfo_MajorVer>
-        <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Release>2</VerInfo_Release>
+        <VerInfo_MinorVer>4</VerInfo_MinorVer>
         <DllSuffix>113</DllSuffix>
         <DCC_Description>DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team</DCC_Description>
     </PropertyGroup>
