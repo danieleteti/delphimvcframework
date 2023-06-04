@@ -230,7 +230,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ## What's New in the next "repo version" a.k.a. 3.4.0-neon
 
-🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
+- Added support for dotEnv multiline keys - added dotEnv show case
+- 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
 
 
 
@@ -1827,6 +1828,65 @@ recurse(<property?>) - Recursively searches, looking in children of the object a
 first() - Returns the first record of the query's result set
 one() - Returns the first and only record of the query's result set, or produces an error if the query's result set has more or less than one record in it.
 count() - Returns the count of the number of records in the query's result set
+```
+
+
+
+# dotEnv syntax
+
+Since 3.4.0-neon dmvcframework supports dotEnv configuration files. 
+
+> TL:DR "Read key-value pairs from a .env file and set them as environment variables"
+
+The format is not formally specified and still improves over time. That being said, .env files should mostly look like Bash files.
+
+Keys can be unquoted or single-quoted. Values can be unquoted, single- or double-quoted. Spaces before and after keys, equal signs, and values are ignored. Values can be followed by a comment.
+
+**Variable expansion**
+dmvcframework' dotEnv can interpolate variables using POSIX variable expansion.
+
+This is a valid .env file:
+
+```bash
+############
+# ENV FILE #
+############
+
+mode=dev
+
+#DB Name
+dbhostname=my_product_db_dev
+
+#The DB username
+dbuser=my_user
+
+#The DB password (in this example is read from an EnvVariable)
+dbpassword="XYZ${USERNAME}!$"
+
+#DB Hostname
+dbhostname="127.0.0.1"
+
+#user preferences
+user_preferences_path=${APPDATA}
+
+email_template="This is a ${mode} email template
+second template email line
+third template email line"
+
+
+```
+
+
+
+*Utilization*
+
+```delphi
+ var dotEnv := NewDotEnv
+    .WithStrategy(TMVCDotEnvPriority.EnvThenFile)
+    .UseProfile('prod')
+    .Build();
+  mmVars.Clear;
+  mmVars.Lines.AddStrings(dotEnv.ToArray);
 ```
 
 
