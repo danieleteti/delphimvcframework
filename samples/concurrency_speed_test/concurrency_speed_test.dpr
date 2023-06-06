@@ -4,7 +4,7 @@ program concurrency_speed_test;
 
 
 uses
-  RDPMM64,
+//  RDPMM64,
   System.SysUtils,
   MVCFramework,
   MVCFramework.Logger,
@@ -42,7 +42,7 @@ begin
 end;
 
 begin
-  ReportMemoryLeaksOnShutdown := True;
+  //ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
   try
     if WebRequestHandler <> nil then

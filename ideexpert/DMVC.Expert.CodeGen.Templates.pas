@@ -90,31 +90,31 @@ resourcestring
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
-    '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
-    '  IsMultiThread := True;' + sLineBreak +
+    '  { Enable ReportMemoryLeaksOnShutdown during debug }' + sLineBreak +
+	'  // ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+    '  IsMultiThread := True;' + sLineBreak + sLineBreak +	
     '  // DMVCFramework Specific Configuration ' + sLineBreak +
     '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
     '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
-    '  MVCSerializeNulls := True;' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
     '' + sLineBreak +
     '    dotEnv(' + sLineBreak +
     '      NewDotEnv' + sLineBreak +
-    '        .UseLogger(procedure (LogItem: String)' + sLineBreak +
-    '                   begin' + sLineBreak +
-    '                     LogW(''dotEnv: '' + LogItem);' + sLineBreak +
-    '                   end)' + sLineBreak +
-    '' + sLineBreak +
     '        .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
     '                            //if available, by default, loads default environment (.env)' + sLineBreak +
     '        .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
     '        .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +
+    '        .UseLogger(procedure(LogItem: String)' + sLineBreak +
+    '                   begin' + sLineBreak +
+    '                     LogW(''dotEnv: '' + LogItem);' + sLineBreak +
+    '                   end)' + sLineBreak +	
     '        .Build()            //uses the executable folder to look for .env* files' + sLineBreak +
     '        );' + sLineBreak +
     '' + sLineBreak +
-    '    WebRequestHandlerProc.MaxConnections := 1024;' + sLineBreak +
+    '    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);' + sLineBreak +	
     '    RunServer(dotEnv.Env(''dmvc.server.port'', %1:d));' + sLineBreak +
     '  except' + sLineBreak +
     '    on E: Exception do' + sLineBreak +

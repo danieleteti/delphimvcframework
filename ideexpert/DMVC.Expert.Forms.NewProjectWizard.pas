@@ -245,8 +245,11 @@ begin
   Result := Result + ['', '// CORS middleware handles... well, CORS'];
   Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
   Result := Result + ['', '// Simplifies TMVCActiveRecord connection definition'];
-  Result := Result + [ifthen(not chkActiveRecord.Checked, '//') + Format(M_ACTIVERECORD,
-    [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)])];
+  Result := Result + [
+    ifthen(not chkActiveRecord.Checked, '{') + sLineBreak +
+    '  ' + Format(M_ACTIVERECORD, [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)]) + sLineBreak +
+    ifthen(not chkActiveRecord.Checked, '  }') + sLineBreak
+    ];
   Result := Result + ['', '// Compression middleware must be the last in the chain, just before the ETag, if present.'];
   Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
   Result := Result + ['', '// ETag middleware must be the latest in the chain'];
