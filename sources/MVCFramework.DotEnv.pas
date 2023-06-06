@@ -39,6 +39,8 @@ type
   IMVCDotEnv = interface
     ['{5FD2C3CB-0895-4CCD-985F-27394798E4A8}']
     function Env(const Name: string): string; overload;
+    function Env(const Name: string; const DefaultValue: String): string; overload;
+    function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -87,6 +89,8 @@ type
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
     function Env(const Name: string): string; overload;
+    function Env(const Name: string; const DefaultValue: String): string; overload;
+    function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   public
@@ -216,6 +220,34 @@ begin
   FreeAndNil(fEnvDict);
   fProfiles.Free;
   inherited;
+end;
+
+function TMVCDotEnv.Env(const Name, DefaultValue: String): string;
+begin
+  Result := Env(Name);
+  if Result.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end;
+end;
+
+function TMVCDotEnv.Env(const Name: string;
+  const DefaultValue: Integer): Integer;
+var
+  lTmp: string;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    if not TryStrToInt(lTmp, Result) then
+    begin
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer', [Name]);
+    end;
+  end;
 end;
 
 function TMVCDotEnv.ExplodePlaceholders(const Value: string): string;
