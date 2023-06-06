@@ -41,7 +41,8 @@ uses
   IdContext,
   System.Generics.Collections,
   MVCFramework.DuckTyping,
-  JsonDataObjects, MVCFramework.DotEnv;
+  JsonDataObjects,
+  MVCFramework.DotEnv;
 
 {$I dmvcframeworkbuildconsts.inc}
 

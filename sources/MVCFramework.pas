@@ -1127,19 +1127,19 @@ uses
   MVCFramework.Utils;
 
 var
-  gIsShuttingDown: Int64 = 0;
+  gIsShuttingDown: Boolean = False;
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
 
 
 function IsShuttingDown: Boolean;
 begin
-  Result := TInterlocked.Read(gIsShuttingDown) = 1
+  Result := gIsShuttingDown;
 end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.CompareExchange(gIsShuttingDown, 1, 0);
+  gIsShuttingDown := True;
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
@@ -4310,7 +4310,7 @@ initialization
 // https://quality.embarcadero.com/browse/RSP-38281
 TRttiContext.KeepContext;
 
-gIsShuttingDown := 0;
+gIsShuttingDown := False;
 
 gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 

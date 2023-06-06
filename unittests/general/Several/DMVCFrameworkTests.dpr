@@ -10,6 +10,7 @@ uses
   System.SysUtils,
   System.IOUtils,
   DUnitX.TestFramework,
+  DUnitX.Loggers.XML.NUnit,
   {$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
   {$ENDIF }

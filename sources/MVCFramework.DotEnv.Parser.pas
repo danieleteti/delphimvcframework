@@ -175,6 +175,10 @@ begin
   fIndex := -1;
   fCurLine := 0;
   fSavedIndex := 0;
+  if fCodeLength = 0 then { empty .env file }
+  begin
+    Exit;
+  end;
   NextChar;
   while fIndex < Length(DotEnvCode) do
   begin
