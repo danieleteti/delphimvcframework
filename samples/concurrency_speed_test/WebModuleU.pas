@@ -41,7 +41,7 @@ begin
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := Config.dotEnv.Env('dmvc.session_timeout', '0');
       //default content-type
-      Config[TMVCConfigKey.DefaultContentType] := Config.dotEnv.Env('dmvc.defaults.content_type', TMVCConstants.DEFAULT_CONTENT_TYPE);
+      Config[TMVCConfigKey.DefaultContentType] := Config.dotEnv.Env('dmvc.default.content_type', TMVCConstants.DEFAULT_CONTENT_TYPE);
       //default content charset
       Config[TMVCConfigKey.DefaultContentCharset] := Config.dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
       //unhandled actions are permitted?

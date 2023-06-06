@@ -4,6 +4,7 @@ program concurrency_speed_test;
 
 
 uses
+  RDPMM64,
   System.SysUtils,
   MVCFramework,
   MVCFramework.Logger,

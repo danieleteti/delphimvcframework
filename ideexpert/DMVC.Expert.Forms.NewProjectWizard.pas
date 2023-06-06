@@ -218,7 +218,10 @@ const
   M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
   M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
   M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
-  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''%s'',''%s''));';
+  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(' + sLineBreak + 
+  '    dotEnv.Env(''firedac.connection_definition_name'', ''%s''), ' + sLineBreak +
+  '    dotEnv.Env(''firedac.connection_definitions_filename'', ''%s'')' + sLineBreak +
+  '  ));';
 
   function GetText(const Edit: TCustomEdit): String;
   begin
@@ -233,7 +236,7 @@ const
   end;
 begin
   Result := [];
-  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do trafic analysis'];
+  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do traffic analysis'];
   Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
   Result := Result + ['', '// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
   Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
