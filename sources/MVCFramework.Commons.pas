@@ -760,8 +760,8 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
-procedure dotEnv(const dotEnv: IMVCDotEnv); overload;
 function dotEnv: IMVCDotEnv; overload;
+procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 
 
 implementation
@@ -779,6 +779,7 @@ var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
 var
   GdotEnv: IMVCDotEnv = nil;
+  GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
 
 
 function URLEncode(const Value: string): string; overload;
@@ -1735,16 +1736,37 @@ begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
 end;
 
-
-procedure dotEnv(const dotEnv: IMVCDotEnv);
+procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin
-  Assert(GdotEnv = nil, 'dotEnv already set');
-  GdotEnv := dotEnv;
+  if GdotEnv <> nil then
+  begin
+    raise EMVCDotEnv.Create('dotEnv already initialized');
+  end;
+  GdotEnvDelegate := dotEnvDelegate;
 end;
 
 function dotEnv: IMVCDotEnv;
 begin
-  Assert(GdotEnv <> nil, 'dotEnv not set');
+  if GdotEnv = nil then
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if GdotEnv = nil then
+      begin
+        if GdotEnvDelegate = nil then
+        begin
+          raise EMVCDotEnv.Create('"dotEnvConfigure" not called');
+        end;
+        GdotEnv := GdotEnvDelegate();
+        if GdotEnv = nil then
+        begin
+          raise EMVCDotEnv.Create('Delegated passed to "dotEnvConfigure" must return a valid IMVCDotEnv instance');
+        end;
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
+  end;
   Result := GdotEnv;
 end;
 

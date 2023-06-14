@@ -6,7 +6,11 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+  MVCFramework.DotEnv
+  ;
 
 type
   Twm = class(TWebModule)
@@ -14,9 +18,6 @@ type
 
   private
     MVCEngine: TMVCEngine;
-
-  public
-    { Public declarations }
   end;
 
 var
@@ -26,7 +27,6 @@ implementation
 
 uses
   WineCellarAppControllerU,
-  MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
   System.IOUtils;
 

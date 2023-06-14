@@ -1,5 +1,4 @@
 object WineCellarDataModule: TWineCellarDataModule
-  OldCreateOrder = False
   Height = 211
   Width = 336
   object Connection: TFDConnection

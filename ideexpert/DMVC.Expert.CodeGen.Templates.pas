@@ -101,18 +101,20 @@ resourcestring
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
     '' + sLineBreak +
-    '    dotEnv(' + sLineBreak +
-    '      NewDotEnv' + sLineBreak +
-    '        .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
-    '                            //if available, by default, loads default environment (.env)' + sLineBreak +
-    '        .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
-    '        .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +
-    '        .UseLogger(procedure(LogItem: String)' + sLineBreak +
-    '                   begin' + sLineBreak +
-    '                     LogW(''dotEnv: '' + LogItem);' + sLineBreak +
-    '                   end)' + sLineBreak +	
-    '        .Build()            //uses the executable folder to look for .env* files' + sLineBreak +
-    '        );' + sLineBreak +
+    '    dotEnvConfigure(' + sLineBreak +
+    '      function: IMVCDotEnv' + sLineBreak +
+    '      begin' + sLineBreak +
+    '        Result := NewDotEnv' + sLineBreak +
+    '                 .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
+    '                                       //if available, by default, loads default environment (.env)' + sLineBreak +
+    '                 .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
+    '                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +
+    '                 .UseLogger(procedure(LogItem: String)' + sLineBreak +
+    '                            begin' + sLineBreak +
+    '                              LogW(''dotEnv: '' + LogItem);' + sLineBreak +
+    '                            end)' + sLineBreak +
+    '                 .Build();             //uses the executable folder to look for .env* files' + sLineBreak +
+    '      end);' + sLineBreak +
     '' + sLineBreak +
     '    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);' + sLineBreak +	
     '    RunServer(dotEnv.Env(''dmvc.server.port'', %1:d));' + sLineBreak +

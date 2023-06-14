@@ -48,14 +48,16 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
 
-    dotEnv(
-      NewDotEnv
+    dotEnvConfigure(
+      function : IMVCDotEnv
+      begin
+        Result := NewDotEnv
         .WithStrategy(TMVCDotEnvPriority.FileThenEnv)
                             //if available, by default, loads default environment (.env)
         .UseProfile('test') //if available loads the test environment (.env.test)
         .UseProfile('prod') //if available loads the prod environment (.env.prod)
-        .Build()            //uses the executable folder to look for .env* files
-        );
+        .Build();           //uses the executable folder to look for .env* files
+      end);
 
     WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
     RunServer(dotEnv.Env('dmvc.server.port', 9999));
