@@ -1351,7 +1351,7 @@ begin
       end;
     end;
     lTableMap.fMap.EndUpdates;
-    if (lPKCount + lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount) > 0 then
+    if (lPKCount + lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount) = 0 then
       raise EMVCActiveRecord.Create(
         'No fields nor PKs defined. [HINT] Use MVCTableField in private fields');
     lTableMap.fPartitionInfoInternal := nil;
