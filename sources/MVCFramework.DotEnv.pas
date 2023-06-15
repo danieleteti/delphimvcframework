@@ -42,6 +42,7 @@ type
     function Env(const Name: string): string; overload;
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
+    function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -96,6 +97,7 @@ type
     function Env(const Name: string): string; overload;
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
+    function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   public
@@ -202,6 +204,7 @@ begin
   begin
     fEnvPath := TPath.Combine(fEnvPath, DotEnvDirectory);
   end;
+  DoLog('Path = ' + DotEnvDirectory);
   fEnvDict.Clear;
   lAllProfiles := ['default'] + fProfiles.ToArray();
   DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');
@@ -274,6 +277,25 @@ begin
     if not TryStrToInt(lTmp, Result) then
     begin
       raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer', [Name]);
+    end;
+  end;
+end;
+
+function TMVCDotEnv.Env(const Name: string;
+  const DefaultValue: Boolean): Boolean;
+var
+  lTmp: string;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    if not TryStrToBool(lTmp, Result) then
+    begin
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean', [Name]);
     end;
   end;
 end;

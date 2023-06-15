@@ -1753,7 +1753,7 @@ begin
     try
       if GdotEnv = nil then
       begin
-        if GdotEnvDelegate = nil then
+        if not Assigned(GdotEnvDelegate) then
         begin
           raise EMVCDotEnv.Create('"dotEnvConfigure" not called');
         end;
