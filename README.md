@@ -16,16 +16,16 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [What's New in dmvcframework-3.3.0-fluorine (currently in beta a.k.a. "repo version")](#whats-new-in-dmvcframework-330-fluorine-currently-in-beta-aka-repo-version)
-  - [What's New in dmvcframework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
+  - [What's New in dmvcframework-3.3.0-fluorine (last stable version)](#whats-new-in-dmvcframework-330-fluorine-last-stable-version)
+  - [What's New in the next "repo version" a.k.a. 3.4.0-neon](#whats-new-in-the-next-repo-version-aka-340-neon)
+  - [Hystorical Versions](#hystorical-versions)
+    - [What's New in dmvcframework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
     - [Bug Fix in 3.2.3-radium](#bug-fix-in-323-radium)
-  - [What's new in DelphiMVCFramework-3.2.2-nitrogen](#whats-new-in-delphimvcframework-322-nitrogen)
+    - [What's new in DelphiMVCFramework-3.2.2-nitrogen](#whats-new-in-delphimvcframework-322-nitrogen)
     - [Bug Fixes in 3.2.2-nitrogen](#bug-fixes-in-322-nitrogen)
     - [Breaking Changes in 3.2.2-nitrogen](#breaking-changes-in-322-nitrogen)
-  - [What's New in DelphiMVCFramework 3.2.1-carbon](#whats-new-in-delphimvcframework-321-carbon)
-    - [Improvements](#improvements)
-    - [Bug Fixes](#bug-fixes)
-  - [Older Releases](#older-releases)
+    - [What's New in DelphiMVCFramework 3.2.1-carbon](#whats-new-in-delphimvcframework-321-carbon)
+      - [Improvements](#improvements)
     - [What's New in 3.2.0-boron](#whats-new-in-320-boron)
       - [Breaking Changes in 3.2.0-boron](#breaking-changes-in-320-boron)
       - [Bug Fixes in 3.2.0-boron](#bug-fixes-in-320-boron)
@@ -45,6 +45,7 @@
   - [How to create a dmvcframework servers container](#how-to-create-a-dmvcframework-servers-container)
 - [RQL Introduction](#rql-introduction)
     - [RQL as Implemented by DMVCFramework](#rql-as-implemented-by-dmvcframework)
+- [dotEnv syntax](#dotenv-syntax)
   - [Links](#links)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -214,7 +215,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
 
-## What's New in dmvcframework-3.3.0-fluorine
+## What's New in dmvcframework-3.3.0-fluorine (last stable version)
 
 - ⚡ Support for Delphi 11.3 Alexandria
 - ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
@@ -226,7 +227,18 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - 🐞 FIX [Issue 652](https://github.com/danieleteti/delphimvcframework/issues/652) Thanks to [BssdTS](https://github.com/BssdTS)
 - 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
 
-## What's New in dmvcframework-3.2.3-radium
+
+
+## What's New in the next "repo version" a.k.a. 3.4.0-neon
+
+- Added support for dotEnv multiline keys - added dotEnv show case
+- 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
+
+
+
+## Hystorical Versions
+
+### What's New in dmvcframework-3.2.3-radium
 
 - ⚡ Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
 - ⚡ Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
@@ -316,8 +328,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 More details about dmvcframework-3.2.3-radium fixes [here](https://github.com/danieleteti/delphimvcframework/milestone/8?closed=1)
 
-
-## What's new in DelphiMVCFramework-3.2.2-nitrogen
+### What's new in DelphiMVCFramework-3.2.2-nitrogen
 
 - ⚡New! Support for Delphi 11.x Alexandria
 
@@ -616,13 +627,13 @@ More details about dmvcframework-3.2.3-radium fixes [here](https://github.com/da
 - Removed deprecated constructor for `TMVCJWTAuthenticationMiddleware` - was deprecated since 2019. Just use the other one as suggested.
 - Changed signature of method `IMVCMiddleware.OnAfterControllerAction`
 
-## What's New in DelphiMVCFramework 3.2.1-carbon
+### What's New in DelphiMVCFramework 3.2.1-carbon
 
 > This version is the version referenced by the [DelphiMVCFramework - The Official Guide](http://www.danieleteti.it/books/) book (available in english, portuguese and spanish). 
 
 This version introduced new features in many different areas (swagger, server side view, MVCActiveRecord, renders etc.) however there is no a single-big-feature. This version contains also a good number of bugfixes. It's not a critical updated, but this is the *best version ever* (at least, so far...) and is the suggested version for starting new projects. Enjoy!
 
-### Improvements
+#### Improvements
 
 - [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
 
@@ -838,8 +849,6 @@ This version introduced new features in many different areas (swagger, server si
 
 - **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
 
-###  Bug Fixes
-
 - Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
 
 - Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
@@ -863,8 +872,6 @@ This version introduced new features in many different areas (swagger, server si
 - Fix for [issue408](https://github.com/danieleteti/delphimvcframework/issues/408) a.k.a. *docExpansion parameter for Swagger*
 
   Check [all the issues closed in this release](https://github.com/danieleteti/delphimvcframework/issues?q=+is%3Aissue+milestone%3A3.2.1-carbon).
-
-## Older Releases
 
 ### What's New in 3.2.0-boron
 
@@ -1822,6 +1829,65 @@ recurse(<property?>) - Recursively searches, looking in children of the object a
 first() - Returns the first record of the query's result set
 one() - Returns the first and only record of the query's result set, or produces an error if the query's result set has more or less than one record in it.
 count() - Returns the count of the number of records in the query's result set
+```
+
+
+
+# dotEnv syntax
+
+Since 3.4.0-neon dmvcframework supports dotEnv configuration files. 
+
+> TL:DR "Read key-value pairs from a .env file and set them as environment variables"
+
+The format is not formally specified and still improves over time. That being said, .env files should mostly look like Bash files.
+
+Keys can be unquoted or single-quoted. Values can be unquoted, single- or double-quoted. Spaces before and after keys, equal signs, and values are ignored. Values can be followed by a comment.
+
+**Variable expansion**
+dmvcframework' dotEnv can interpolate variables using POSIX variable expansion.
+
+This is a valid .env file:
+
+```bash
+############
+# ENV FILE #
+############
+
+mode=dev
+
+#DB Name
+dbhostname=my_product_db_dev
+
+#The DB username
+dbuser=my_user
+
+#The DB password (in this example is read from an EnvVariable)
+dbpassword="XYZ${USERNAME}!$"
+
+#DB Hostname
+dbhostname="127.0.0.1"
+
+#user preferences
+user_preferences_path=${APPDATA}
+
+email_template="This is a ${mode} email template
+second template email line
+third template email line"
+
+
+```
+
+
+
+*Utilization*
+
+```delphi
+ var dotEnv := NewDotEnv
+    .WithStrategy(TMVCDotEnvPriority.EnvThenFile)
+    .UseProfile('prod')
+    .Build();
+  mmVars.Clear;
+  mmVars.Lines.AddStrings(dotEnv.ToArray);
 ```
 
 

@@ -8,6 +8,9 @@ uses
   Web.ApacheApp,
   Web.HTTPD24Impl,
   MVCFramework.Logger,
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  Web.HTTPDMethods,
   Winapi.Windows,
   System.Classes,
   MainDataModuleUnit in '..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
@@ -45,7 +48,37 @@ exports
   Navigate to http://localhost/winecellar/
 }
 
+procedure RegisterLogger(const p: Pointer);
 begin
+  dotEnv(
+    NewDotEnv
+      .WithStrategy(TMVCDotEnvPriority.FileThenEnv)
+                          //if available, by default, loads default environment (.env)
+      .UseProfile('test') //if available loads the test environment (.env.test)
+      .UseProfile('prod') //if available loads the prod environment (.env.prod)
+      .UseLogger(procedure(LogItem: String)
+                 begin
+                   LogW('dotEnv: ' + LogItem);
+                 end)
+      .Build()            //uses the executable folder to look for .env* files
+      );
+end;
+
+begin
+  UseDotEnvDelegate(
+    function : IMVCDotEnv
+    begin
+      Result := NewDotEnv
+                  .WithStrategy(TMVCDotEnvPriority.FileThenEnv)
+                                      //if available, by default, loads default environment (.env)
+                  .UseProfile('test') //if available loads the test environment (.env.test)
+                  .UseProfile('prod') //if available loads the prod environment (.env.prod)
+                  .UseLogger(procedure(LogItem: String)
+                             begin
+                               LogW('dotEnv: ' + LogItem);
+                             end)
+                  .Build();           //uses the executable folder to look for .env* files
+    end);
   CoInitFlags := COINIT_MULTITHREADED;
   Web.ApacheApp.InitApplication(@GModuleData);
   Application.Initialize;

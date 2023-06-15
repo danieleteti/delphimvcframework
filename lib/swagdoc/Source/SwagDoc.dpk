@@ -27,7 +27,7 @@ package SwagDoc;
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'SwagDoc Library'}
 {$RUNONLY}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   rtl;
