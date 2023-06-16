@@ -129,7 +129,7 @@ procedure TMVCDotEnvParser.EatLineBreaks;
 begin
   while CharInSet(fCode.Chars[fIndex], [#13, #10]) do
   begin
-    NextChar;
+    fCurrChar := NextChar;
     if (fCurrChar = String(LINE_BREAKS[fLineBreakStyle])[1]) then
     begin
       Inc(fCurLine);
@@ -148,7 +148,7 @@ end;
 
 procedure TMVCDotEnvParser.EatUpToLineBreak;
 begin
-  while not CharInSet(fCode.Chars[fIndex], [#13, #10]) do
+  while not CharInSet(fCode.Chars[fIndex], [#13, #10, #0]) do
   begin
     NextChar;
   end;
@@ -191,6 +191,8 @@ begin
       EatSpaces;
       Check(MatchValue(lValue), 'Expected "Value"');
       EnvDictionay.AddOrSetValue(lKey, lValue);
+      EatSpaces;
+      MatchInLineComment;
     end
     else if fCurrChar = #0 then
     begin
@@ -251,6 +253,7 @@ function TMVCDotEnvParser.MatchString(out Value: String): Boolean;
     while (fIndex < fCodeLength) and (fCode.Chars[fIndex] <> Delimiter1) and
       (not CharInSet(fCode.Chars[fIndex], [#13, #10])) do
     begin
+      Check(fCode.Chars[fIndex] <> #0, 'Unexpected end of file');
       Value := Value + fCode.Chars[fIndex];
       NextChar;
     end;
@@ -259,6 +262,7 @@ function TMVCDotEnvParser.MatchString(out Value: String): Boolean;
   begin
     while (fIndex < fCodeLength) and (fCode.Chars[fIndex] <> Delimiter1) do
     begin
+      Check(fCode.Chars[fIndex] <> #0, 'Unexpected end of file');
       Value := Value + fCode.Chars[fIndex];
       NextChar;
     end;
@@ -296,6 +300,11 @@ end;
 
 function TMVCDotEnvParser.NextChar: Char;
 begin
+  if fIndex >= (fCodeLength - 1) then
+  begin
+    fIndex := fCodeLength;
+    Exit(#0);
+  end;
   Inc(fIndex);
   Result := fCode.Chars[fIndex];
   fCurrChar := Result;
