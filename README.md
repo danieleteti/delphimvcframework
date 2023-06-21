@@ -237,7 +237,10 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
 - Wizard updated to be dotEnv aware
-
+- Removed Controller Application Session (very seldom used but potentially breaking change)
+- Removed Middlewares in favor of a simpler alternative named "Filters"
+	- Added Protocol Filters
+	- Added Controller Filters
 
 
 ## Hystorical Versions

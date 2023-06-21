@@ -33,6 +33,7 @@ interface
 uses
   System.Classes,
   System.SysUtils,
+  System.StrUtils,
   System.SyncObjs,
   System.IOUtils,
   Data.DB,
@@ -42,7 +43,7 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv;
+  MVCFramework.DotEnv, Web.HTTPApp;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -516,6 +517,17 @@ type
     procedure Add(const Name: string; Value: T);
   end;
 
+  TMVCActionParamCacheItem = class
+  private
+    FValue: string;
+    FParams: TList<string>;
+  public
+    constructor Create(aValue: string; aParams: TList<string>); virtual;
+    destructor Destroy; override;
+    function Value: string;
+    function Params: TList<string>; // this should be read-only...
+  end;
+
   TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
   private
     { private declarations }
@@ -662,6 +674,8 @@ function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCL
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
 function SnakeCase(const Value: string): string;
 
+function GetRequestShortDescription(const AWebRequest: TWebRequest): String;
+
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
@@ -773,7 +787,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions;
+  System.RegularExpressions, System.Math;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1768,6 +1782,39 @@ begin
     end;
   end;
   Result := GdotEnv;
+end;
+
+function GetRequestShortDescription(const AWebRequest: TWebRequest): String;
+begin
+  Result := Format('%s %s%s', [AWebRequest.Method, AWebRequest.PathInfo,
+    ifthen(AWebRequest.Query = '', '', '?' + AWebRequest.Query)]);
+end;
+
+
+{ TMVCActionParamCacheItem }
+
+constructor TMVCActionParamCacheItem.Create(aValue: string;
+  aParams: TList<string>);
+begin
+  inherited Create;
+  FValue := aValue;
+  FParams := aParams;
+end;
+
+destructor TMVCActionParamCacheItem.Destroy;
+begin
+  FParams.Free;
+  inherited;
+end;
+
+function TMVCActionParamCacheItem.Params: TList<string>;
+begin
+  Result := FParams;
+end;
+
+function TMVCActionParamCacheItem.Value: string;
+begin
+  Result := FValue;
 end;
 
 initialization

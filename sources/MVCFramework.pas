@@ -361,7 +361,6 @@ type
     procedure DefineContentType;
     function GetContentFields: TDictionary<string, string>;
     function GetQueryParams: TDictionary<string, string>;
-    function GetHeader(const AName: string): string;
     function GetPathInfo: string;
     function GetParams(const AParamName: string): string;
     function GetIsAjax: Boolean;
@@ -379,6 +378,7 @@ type
     constructor Create(const AWebRequest: TWebRequest;
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
+    function GetHeader(const AName: string): string;
     function ClientIp: string;
     function ClientPrefer(const AMediaType: string): Boolean;
     function ClientPreferHTML: Boolean;
@@ -924,10 +924,65 @@ type
   TWebContextCreateEvent = reference to procedure(const AContext: TWebContext);
   TWebContextDestroyEvent = reference to procedure(const AContext: TWebContext);
 
+  { Protocol Filters }
+  IProtocolFilter = interface
+    ['{43000B86-A2EC-49F1-99CD-86C7F45026FA}']
+    procedure DoFilter(Context:  TWebContext);
+    procedure SetNext(NextFilter: IProtocolFilter);
+  end;
+
+  IProtocolFilterChain = interface
+    ['{AC865ED9-092F-46F6-A22B-CDE2964A9097}']
+    procedure Execute(Context: TWebContext);
+  end;
+
+  IProtocolFilterChainBuilder = interface
+    ['{3589290E-4305-4FDE-BCC0-9F4D8155E531}']
+    function Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
+    function Build: IProtocolFilterChain;
+  end;
+  { END - Protocol Filters }
+
+  { Controller Filters}
+  IControllerFilter = interface
+    ['{F47DDC56-7631-4838-AD8C-22883269197E}']
+    procedure DoFilter(Context:  TWebContext);
+    procedure SetNext(NextFilter: IControllerFilter);
+  end;
+
+  IControllerFilterChain = interface
+    ['{2BEE7B64-10BE-4293-B02D-878CC3DF4D9E}']
+    procedure Execute(Context: TWebContext);
+  end;
+
+  IControllerFilterChainBuilder = interface
+    ['{41F0524A-534E-4900-9724-FD514D34B219}']
+    function Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
+    function Build: IProtocolFilterChain;
+  end;
+  { END - Controller Filters}
+
+  TProtocolFilter = class abstract(TInterfacedObject, IProtocolFilter)
+  private
+    fNext: IProtocolFilter;
+  protected
+    procedure DoNext(Context: TWebContext);
+    procedure DoFilter(Context: TWebContext); virtual; abstract;
+    procedure SetNext(NextFilter: IProtocolFilter);
+  end;
+
+  TProtocolFilterChain = class(TInterfacedObject, IProtocolFilterChainBuilder, IProtocolFilterChain)
+  private
+    fItems: TList<IProtocolFilter>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
+    procedure Execute(Context:  TWebContext);
+    function Build: IProtocolFilterChain;
+  end;
+
   TMVCEngine = class(TComponent)
-  private const
-    ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
-      'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime, String and TGUID';
   private
     FViewEngineClass: TMVCViewEngineClass;
     FWebModule: TWebModule;
@@ -941,30 +996,25 @@ type
     FConfigCache_PathPrefix: String;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
+    FProtocolFilters: IProtocolFilterChainBuilder;
+    FProtocolFiltersChain: IProtocolFilterChain;
     FControllers: TObjectList<TMVCControllerDelegate>;
     FApplicationSession: TWebApplicationSession;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
-    fOnRouterLog: TMVCRouterLogHandlerProc;
-    fWebContextCreateEvent: TWebContextCreateEvent;
-    fWebContextDestroyEvent: TWebContextDestroyEvent;
-    procedure FillActualParamsForAction(const ASelectedController: TMVCController;
-      const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
-      const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
+    FOnRouterLog: TMVCRouterLogHandlerProc;
+    FWebContextCreateEvent: TWebContextCreateEvent;
+    FWebContextDestroyEvent: TWebContextDestroyEvent;
     procedure RegisterDefaultsSerializers;
     function GetViewEngineClass: TMVCViewEngineClass;
-    procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
-      const InjectableParamAttribute: MVCInjectableParamAttribute);
   protected
     procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
     procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
-    function GetActualParam(const AFormalParam: TRttiParameter; const AStringValue: String): TValue;
-    function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
-      const AContext: TWebContext): Boolean;
     procedure ConfigDefaultValues; virtual;
     procedure SaveCacheConfigValues;
     procedure LoadSystemControllers; virtual;
     procedure FixUpWebModule;
+    procedure EnsureFilters;
     procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
     procedure ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
@@ -981,6 +1031,8 @@ type
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
   public
+    function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
+      const AContext: TWebContext): Boolean;
     class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TWebSession; static;
     class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string; static;
@@ -988,6 +1040,8 @@ type
     class function SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
       overload; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
+  public
+    class var gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
   public
     constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil;
       const ACustomLogger: ILogWriter = nil); reintroduce;
@@ -1003,6 +1057,11 @@ type
     function AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer)
       : TMVCEngine;
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
+
+    { filters }
+    function AddFilter(const AFilter: IProtocolFilter): TMVCEngine;
+    { end - filters }
+
     function AddController(const AControllerClazz: TMVCControllerClazz;
       const AURLSegment: string = ''): TMVCEngine; overload;
     function AddController(const AControllerClazz: TMVCControllerClazz;
@@ -1121,16 +1180,16 @@ uses
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.JSONRPC,
-  MVCFramework.Router,
   MVCFramework.Rtti.Utils,
-  MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract,
-  MVCFramework.Utils;
+  MVCFramework.Serializer.HTML,
+  MVCFramework.Serializer.Abstract,
+  MVCFramework.Utils,
+  MVCFramework.Router,
+  MVCFramework.Filters.Router;
 
 var
   gIsShuttingDown: Boolean = False;
-  gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
-
 
 function IsShuttingDown: Boolean;
 begin
@@ -1146,12 +1205,6 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
   const Message: string = ''): TMVCResponse;
 begin
   Result := TMVCResponse.Create(StatusCode, ReasonString, message);
-end;
-
-function GetRequestShortDescription(const AWebRequest: TWebRequest): String;
-begin
-  Result := Format('%s %s%s', [AWebRequest.Method, AWebRequest.PathInfo,
-    ifthen(AWebRequest.Query = '', '', '?' + AWebRequest.Query)]);
 end;
 
 { MVCHTTPMethodsAttribute }
@@ -2224,6 +2277,12 @@ begin
   Result := Self;
 end;
 
+function TMVCEngine.AddFilter(const AFilter: IProtocolFilter): TMVCEngine;
+begin
+  FProtocolFilters.Use(AFilter);
+  Result := Self;
+end;
+
 function TMVCEngine.AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
 begin
   FMiddlewares.Add(AMiddleware);
@@ -2309,9 +2368,11 @@ begin
   inherited Create(AWebModule);
   FWebModule := AWebModule;
   FixUpWebModule;
+  FProtocolFiltersChain := nil;
   FConfig := TMVCConfig.Create;
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
+  FProtocolFilters := TProtocolFilterChain.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
@@ -2379,21 +2440,31 @@ begin
   end;
 end;
 
+procedure TMVCEngine.EnsureFilters;
+begin
+  { this cose runs in a single thread at once }
+  if FProtocolFiltersChain = nil then
+  begin
+    {
+      as last protocol filters is registered the TMVCRouterFilter which will call
+      also the Controller Filters
+    }
+    FProtocolFilters.Use(TMVCRouterFilter.Create(
+      Self,
+      Config,
+      FControllers,
+      FConfigCache_DefaultContentType,
+      FConfigCache_DefaultContentCharset,
+      FConfigCache_PathPrefix
+    ));
+    FProtocolFiltersChain := FProtocolFilters.Build;
+  end;
+end;
+
 function TMVCEngine.ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
   const AResponse: TWebResponse): Boolean;
 var
-  lParamsTable: TMVCRequestParamsTable;
   lContext: TWebContext;
-  lRouter: TMVCRouter;
-  lHandled: Boolean;
-  lResponseContentMediaType: string;
-  lResponseContentCharset: string;
-  lRouterMethodToCallName: string;
-  lRouterControllerClazzQualifiedClassName: string;
-  lSelectedController: TMVCController;
-  lActionFormalParams: TArray<TRttiParameter>;
-  lActualParams: TArray<TValue>;
-  lBodyParameter: TObject;
 begin
   Result := False;
 
@@ -2415,229 +2486,15 @@ begin
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 {$ENDIF}
-  lParamsTable := TMVCRequestParamsTable.Create;
+  lContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
   try
-    lContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
-    try
-      DefineDefaultResponseHeaders(lContext);
-      DoWebContextCreateEvent(lContext);
-      lHandled := False;
-      lRouter := TMVCRouter.Create(FConfig, gMVCGlobalActionParamsCache);
-      try // finally
-        lSelectedController := nil;
-        try // only for lSelectedController
-          try // global exception handler
-            ExecuteBeforeRoutingMiddleware(lContext, lHandled);
-            if not lHandled then
-            begin
-              if lRouter.ExecuteRouting(ARequest.PathInfo,
-                lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
-                ARequest.ContentType, ARequest.Accept, FControllers,
-                FConfigCache_DefaultContentType, FConfigCache_DefaultContentCharset,
-                FConfigCache_PathPrefix, lParamsTable, lResponseContentMediaType,
-                lResponseContentCharset) then
-              begin
-                try
-                  if Assigned(lRouter.ControllerCreateAction) then
-                    lSelectedController := lRouter.ControllerCreateAction()
-                  else
-                    lSelectedController := lRouter.ControllerClazz.Create;
-                except
-                  on Ex: Exception do
-                  begin
-                    Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                      [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
-                    raise EMVCException.Create(http_status.InternalServerError,
-                      'Cannot create controller');
-                  end;
-                end;
-                lRouterMethodToCallName := lRouter.MethodToCall.Name;
-                lRouterControllerClazzQualifiedClassName := lRouter.ControllerClazz.QualifiedClassName;
-
-                MVCFramework.Logger.InitThreadVars;
-
-                lContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
-                lSelectedController.Engine := Self;
-                lSelectedController.Context := lContext;
-                lSelectedController.ApplicationSession := FApplicationSession;
-                lContext.ParamsTable := lParamsTable;
-                ExecuteBeforeControllerActionMiddleware(
-                  lContext,
-                  lRouterControllerClazzQualifiedClassName,
-                  lRouterMethodToCallName,
-                  lHandled);
-                if lHandled then
-                  Exit(True);
-
-                lBodyParameter := nil;
-                lSelectedController.MVCControllerAfterCreate;
-                try
-                  lHandled := False;
-                  lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
-                    lResponseContentCharset);
-                  lActionFormalParams := lRouter.MethodToCall.GetParameters;
-                  if (Length(lActionFormalParams) = 0) then
-                    SetLength(lActualParams, 0)
-                  else if (Length(lActionFormalParams) = 1) and
-                    (SameText(lActionFormalParams[0].ParamType.QualifiedName,
-                    'MVCFramework.TWebContext')) then
-                  begin
-                    SetLength(lActualParams, 1);
-                    lActualParams[0] := lContext;
-                  end
-                  else
-                  begin
-                    FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
-                      lRouterMethodToCallName, lActualParams, lBodyParameter);
-                  end;
-                  lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
-                  if not lHandled then
-                  begin
-                    try
-                      lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                    finally
-                      lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
-                    end;
-                  end;
-                finally
-                  try
-                    lBodyParameter.Free;
-                  except
-                    on E: Exception do
-                    begin
-                      LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
-                        [E.Classname, E.Message]));
-                    end;
-                  end;
-                  lSelectedController.MVCControllerBeforeDestroy;
-                end;
-                ExecuteAfterControllerActionMiddleware(lContext,
-                  lRouterControllerClazzQualifiedClassName,
-                  lRouterMethodToCallName,
-                  lHandled);
-                lContext.Response.ContentType := lSelectedController.ContentType;
-                fOnRouterLog(lRouter, rlsRouteFound, lContext);
-              end
-              else // execute-routing
-              begin
-                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-                begin
-                  lContext.Response.StatusCode := http_status.NotFound;
-                  lContext.Response.ReasonString := 'Not Found';
-                  fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
-                  raise EMVCException.Create(lContext.Response.ReasonString,
-                    lContext.Request.HTTPMethodAsString + ' ' + lContext.Request.PathInfo, 0,
-                    http_status.NotFound);
-                end
-                else
-                begin
-                  lContext.Response.FlushOnDestroy := False;
-                end;
-              end; // end-execute-routing
-            end; // if not handled by beforerouting
-          except
-            on ESess: EMVCSessionExpiredException do
-            begin
-              if not CustomExceptionHandling(ESess, lSelectedController, lContext) then
-              begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [ESess.Classname, ESess.Message, GetRequestShortDescription(ARequest),
-                  ESess.DetailedMessage], LOGGERPRO_TAG);
-                lContext.SessionStop;
-                lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
-                lSelectedController.Render(ESess);
-              end;
-            end;
-            on E: EMVCException do
-            begin
-              if not CustomExceptionHandling(E, lSelectedController, lContext) then
-              begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [E.Classname, E.Message, GetRequestShortDescription(ARequest), E.DetailedMessage], LOGGERPRO_TAG);
-                if Assigned(lSelectedController) then
-                begin
-                  lSelectedController.ResponseStatus(E.HTTPErrorCode);
-                  lSelectedController.Render(E);
-                end
-                else
-                begin
-                  SendRawHTTPStatus(lContext, E.HTTPErrorCode,
-                    Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
-                end;
-              end;
-            end;
-            on EIO: EInvalidOp do
-            begin
-              if not CustomExceptionHandling(EIO, lSelectedController, lContext) then
-              begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [EIO.Classname, EIO.Message, GetRequestShortDescription(ARequest), 'Invalid Op'], LOGGERPRO_TAG);
-                if Assigned(lSelectedController) then
-                begin
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
-                  lSelectedController.Render(EIO);
-                end
-                else
-                begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
-                    Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
-                end;
-              end;
-            end;
-            on Ex: Exception do
-            begin
-              if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
-              begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Global Action Exception Handler'], LOGGERPRO_TAG);
-                if Assigned(lSelectedController) then
-                begin
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
-                  lSelectedController.Render(Ex);
-                end
-                else
-                begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
-                    Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
-                end;
-              end;
-            end;
-          end;
-          try
-            ExecuteAfterRoutingMiddleware(lContext, lHandled);
-          except
-            on Ex: Exception do
-            begin
-              if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
-              begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'After Routing Exception Handler'], LOGGERPRO_TAG);
-                if Assigned(lSelectedController) then
-                begin
-                  { middlewares *must* not raise unhandled exceptions }
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
-                  lSelectedController.Render(Ex);
-                end
-                else
-                begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
-                    Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
-                end;
-              end;
-            end;
-          end;
-        finally
-          FreeAndNil(lSelectedController);
-        end;
-      finally
-        lRouter.Free;
-      end;
-    finally
-      DoWebContextDestroyEvent(lContext);
-      lContext.Free;
-    end;
+    DefineDefaultResponseHeaders(lContext);
+    DoWebContextCreateEvent(lContext);
+    EnsureFilters;
+    FProtocolFiltersChain.Execute(lContext);
   finally
-    lParamsTable.Free;
+    DoWebContextDestroyEvent(lContext);
+    lContext.Free;
   end;
 end;
 
@@ -2708,246 +2565,10 @@ begin
     Result := TIdURI.URLDecode(Result);
 end;
 
-procedure TMVCEngine.FillActualParamsForAction(const ASelectedController: TMVCController;
-  const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
-  const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
-var
-  lParamName: string;
-  I: Integer;
-  lStrValue: string;
-  lFromBodyAttribute: MVCFromBodyAttribute;
-  lFromQueryStringAttribute: MVCFromQueryStringAttribute;
-  lFromHeaderAttribute: MVCFromHeaderAttribute;
-  lFromCookieAttribute: MVCFromCookieAttribute;
-  lAttributeInjectedParamCount: Integer;
-  lInjectedParamValue: string;
-  lList: IMVCList;
-  lItemClass: TClass;
-begin
-  ABodyParameter := nil;
-  lAttributeInjectedParamCount := 0;
-  SetLength(AActualParams, Length(AActionFormalParams));
-  for I := 0 to Length(AActionFormalParams) - 1 do
-  begin
-    lParamName := AActionFormalParams[I].name;
-    if Length(AActionFormalParams[I].GetAttributes) > 0 then
-    begin
-      // Let's check how to inject this parameter
-      if TRttiUtils.HasAttribute<MVCFromBodyAttribute>(AActionFormalParams[I], lFromBodyAttribute)
-      then
-      begin
-        Inc(lAttributeInjectedParamCount, 1);
-        if AActionFormalParams[I].ParamType.QualifiedName <> 'System.string' then
-        begin
-          ABodyParameter := TRttiUtils.CreateObject(AActionFormalParams[I].ParamType.QualifiedName);
-          if TDuckTypedList.CanBeWrappedAsList(ABodyParameter, lList) then
-          begin
-            lItemClass := TMVCAbstractSerializer(ASelectedController.Serializer).GetObjectTypeOfGenericList(ABodyParameter.ClassInfo);
-            ASelectedController.Serializer.DeserializeCollection(ASelectedController.Context.Request.Body,
-              ABodyParameter, lItemClass, stDefault, [], lFromBodyAttribute.RootNode);
-          end
-          else
-          begin
-            ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
-              ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
-          end;
-          AActualParams[I] := ABodyParameter;
-        end
-        else
-        begin
-          AActualParams[I] := ASelectedController.Context.Request.Body;
-          Continue;
-        end;
-      end
-      else if TRttiUtils.HasAttribute<MVCFromQueryStringAttribute>(AActionFormalParams[I],
-        lFromQueryStringAttribute) then
-      begin
-        Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.QueryStringParam
-          (lFromQueryStringAttribute.ParamName);
-        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromQueryStringAttribute);
-        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
-      end
-      else if TRttiUtils.HasAttribute<MVCFromHeaderAttribute>(AActionFormalParams[I],
-        lFromHeaderAttribute) then
-      begin
-        Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.GetHeader(lFromHeaderAttribute.ParamName);
-        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromHeaderAttribute);
-        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
-      end
-      else if TRttiUtils.HasAttribute<MVCFromCookieAttribute>(AActionFormalParams[I],
-        lFromCookieAttribute) then
-      begin
-        Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.Cookie(lFromCookieAttribute.ParamName);
-        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromCookieAttribute);
-        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
-      end
-      else
-      begin
-        raise EMVCException.Create(http_status.InternalServerError,
-          'Unknown custom attribute on action parameter: ' + AActionFormalParams[I].name +
-          '. [HINT: Allowed attributes are MVCFromBody, MVCFromQueryString, MVCFromHeader, MVCFromCookie]');
-      end;
-      Continue;
-    end;
-
-    // From now on we'll check for url mapped parameters
-    if not AContext.Request.SegmentParam(lParamName, lStrValue) then
-      raise EMVCException.CreateFmt(http_status.BadRequest,
-        'Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
-        [lParamName, AActionName]);
-    AActualParams[I] := GetActualParam(AActionFormalParams[I], lStrValue);
-  end;
-
-  if (AContext.Request.SegmentParamsCount + lAttributeInjectedParamCount) <>
-    Length(AActionFormalParams) then
-    raise EMVCException.CreateFmt(http_status.BadRequest,
-      'Parameters count mismatch (expected %d actual %d) for action "%s"',
-      [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
-end;
-
 procedure TMVCEngine.FixUpWebModule;
 begin
   FSavedOnBeforeDispatch := FWebModule.BeforeDispatch;
   FWebModule.BeforeDispatch := OnBeforeDispatch;
-end;
-
-function TMVCEngine.GetActualParam(const AFormalParam: TRttiParameter;
-  const AStringValue: String): TValue;
-var lWasDateTime: Boolean; lQualifiedName: String;
-  lFormatSettings: TFormatSettings;
-begin
-  case AFormalParam.ParamType.TypeKind of
-    tkInteger:
-      try
-        Result := StrToInt(AStringValue);
-      except
-        on E: Exception do
-        begin
-          raise EMVCException.CreateFmt(http_status.BadRequest,
-            'Invalid Integer value for param [%s] - [CLASS: %s][MSG: %s]',
-            [AFormalParam.name, E.Classname, E.Message]);
-        end;
-      end;
-    tkInt64:
-      try
-        Result := StrToInt64(AStringValue);
-      except
-        on E: Exception do
-        begin
-          raise EMVCException.CreateFmt(http_status.BadRequest,
-            'Invalid Int64 value for param [%s] - [CLASS: %s][MSG: %s]',
-            [AFormalParam.name, E.Classname, E.Message]);
-        end;
-      end;
-    tkUString:
-      begin
-        Result := AStringValue;
-      end;
-    tkFloat:
-      begin
-        lWasDateTime := False;
-        lQualifiedName := AFormalParam.ParamType.QualifiedName;
-        if lQualifiedName = 'System.TDate' then
-        begin
-          try
-            lWasDateTime := True;
-            Result := ISODateToDate(AStringValue);
-          except
-            on E: Exception do
-            begin
-              raise EMVCException.CreateFmt(http_status.BadRequest,
-                'Invalid TDate value for param [%s] - [CLASS: %s][MSG: %s]',
-                [AFormalParam.name, E.Classname, E.Message]);
-            end;
-          end;
-        end
-        else if lQualifiedName = 'System.TDateTime' then
-        begin
-          try
-            lWasDateTime := True;
-            Result := ISOTimeStampToDateTime(AStringValue);
-          except
-            on E: Exception do
-            begin
-              raise EMVCException.CreateFmt(http_status.BadRequest,
-                'Invalid TDateTime value for param [%s] - [CLASS: %s][MSG: %s]',
-                [AFormalParam.name, E.Classname, E.Message]);
-            end;
-          end;
-        end
-        else if lQualifiedName = 'System.TTime' then
-        begin
-          try
-            lWasDateTime := True;
-            Result := ISOTimeToTime(AStringValue);
-          except
-            on E: Exception do
-            begin
-              raise EMVCException.CreateFmt(http_status.BadRequest,
-                'Invalid TTime value for param [%s] - [CLASS: %s][MSG: %s]',
-                [AFormalParam.name, E.Classname, E.Message]);
-            end;
-          end;
-        end;
-        if not lWasDateTime then
-          try
-            lFormatSettings.DecimalSeparator := '.';
-            Result := StrToFloat(AStringValue, lFormatSettings);
-          except
-            on E: Exception do
-            begin
-              raise EMVCException.CreateFmt(http_status.BadRequest,
-                'Invalid Float value for param [%s] - [CLASS: %s][MSG: %s]',
-                [AFormalParam.name, E.Classname, E.Message]);
-            end;
-          end;
-      end;
-    tkEnumeration:
-      begin
-        if AFormalParam.ParamType.QualifiedName = 'System.Boolean' then
-        begin
-          if SameText(AStringValue, 'true') or SameText(AStringValue, '1') then
-            Result := True
-          else if SameText(AStringValue, 'false') or SameText(AStringValue, '0') then
-            Result := False
-          else
-          begin
-            raise EMVCException.CreateFmt(http_status.BadRequest,
-              'Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
-              [AFormalParam.name]);
-          end;
-        end
-        else
-        begin
-          raise EMVCException.CreateFmt(http_status.BadRequest,
-            'Invalid type for parameter %s. Allowed types are ' +
-            ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [AFormalParam.name]);
-        end;
-      end;
-    tkRecord:
-      begin
-        if AFormalParam.ParamType.QualifiedName = 'System.TGUID' then
-        begin
-          try
-            Result := TValue.From<TGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
-          except
-            raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AFormalParam.name]);
-          end;
-        end
-        else
-          raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
-            ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [AFormalParam.name]);
-      end
-  else
-    begin
-      raise EMVCException.CreateFmt(http_status.BadRequest,
-        'Invalid type for parameter %s. Allowed types are ' + ALLOWED_TYPED_ACTION_PARAMETERS_TYPES,
-        [AFormalParam.name]);
-    end;
-  end;
 end;
 
 class function TMVCEngine.GetCurrentSession(const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TWebSession;
@@ -2998,24 +2619,6 @@ begin
     raise EMVCConfigException.Create
       ('No View Engine configured. [HINT: Use TMVCEngine.SetViewEngine() to set a valid view engine]');
   Result := FViewEngineClass;
-end;
-
-procedure TMVCEngine.HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
-  const InjectableParamAttribute: MVCInjectableParamAttribute);
-begin
-  if InjectedParamValue.IsEmpty then
-  begin
-    if InjectableParamAttribute.CanBeUsedADefaultValue then
-    begin
-      InjectedParamValue := InjectableParamAttribute.DefaultValueAsString;
-    end
-    else
-    begin
-      raise EMVCException.CreateFmt
-        ('Required parameter "%s" injected using "%s" has not provided and cannot be used a default value for it',
-        [InjectableParamAttribute.ParamName, InjectableParamAttribute.Classname]);
-    end;
-  end;
 end;
 
 procedure TMVCEngine.HTTP404(const AContext: TWebContext);
@@ -3093,11 +2696,6 @@ procedure TMVCEngine.OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest;
   AResponse: TWebResponse; var AHandled: Boolean);
 begin
   AHandled := False;
-  { there is a bug in WebBroker Linux on 10.2.1 tokyo }
-  // if Assigned(FSavedOnBeforeDispatch) then
-  // begin
-  // FSavedOnBeforeDispatch(ASender, ARequest, AResponse, AHandled);
-  // end;
 
   if IsShuttingDown then
   begin
@@ -3252,21 +2850,8 @@ end;
 { TMVCBase }
 
 class function TMVCBase.GetApplicationFileName: string;
-// var
-// Name: PChar;
-// Size: Integer;
 begin
   Result := GetModuleName(HInstance);
-  // Result := EmptyStr;
-  // Name := GetMemory(2048);
-  // try
-  // GetModuleName()
-  // Size := GetModuleFileName(0, Name, 2048);
-  // if Size > 0 then
-  // Result := Name;
-  // finally
-  // FreeMem(Name, 2048);
-  // end;
 end;
 
 class function TMVCBase.GetApplicationFileNamePath: string;
@@ -4305,6 +3890,55 @@ begin
   FFormat := AFormat;
 end;
 
+{ TFilter }
+
+procedure TProtocolFilter.DoNext(Context: TWebContext);
+begin
+  if Assigned(fNext) then
+  begin
+    fNext.DoFilter(Context);
+  end;
+end;
+
+procedure TProtocolFilter.SetNext(NextFilter: IProtocolFilter);
+begin
+  fNext := NextFilter;
+end;
+
+{ TFilterChain }
+
+function TProtocolFilterChain.Build: IProtocolFilterChain;
+begin
+  for var I := 0 to fItems.Count - 2 do
+  begin
+    fItems[I].SetNext(fItems[I+1]);
+  end;
+  Result := Self;
+end;
+
+constructor TProtocolFilterChain.Create;
+begin
+  inherited;
+  fItems := TList<IProtocolFilter>.Create;
+end;
+
+destructor TProtocolFilterChain.Destroy;
+begin
+  fItems.Free;
+  inherited;
+end;
+
+procedure TProtocolFilterChain.Execute(Context: TWebContext);
+begin
+  fItems.First.DoFilter(Context);
+end;
+
+function TProtocolFilterChain.Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
+begin
+  fItems.Add(Filter);
+  Result := Self;
+end;
+
 initialization
 
 // https://quality.embarcadero.com/browse/RSP-38281
@@ -4312,12 +3946,11 @@ TRttiContext.KeepContext;
 
 gIsShuttingDown := False;
 
-gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+TMVCEngine.gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 
 finalization
 
-FreeAndNil(gMVCGlobalActionParamsCache);
-
+FreeAndNil(TMVCEngine.gMVCGlobalActionParamsCache);
 
 // https://quality.embarcadero.com/browse/RSP-38281
 TRttiContext.DropContext;

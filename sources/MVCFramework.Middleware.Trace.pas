@@ -64,7 +64,8 @@ begin
   fMaxBodySize := MaxBodySizeInTrace;
 end;
 
-procedure TMVCTraceMiddleware.OnAfterControllerAction(AContext: TWebContext;
+procedure TMVCTraceMiddleware.OnAfterControllerAction(
+      AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean);
 var

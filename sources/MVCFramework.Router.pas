@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -40,17 +40,6 @@ uses
   IdURI, System.Classes;
 
 type
-  TMVCActionParamCacheItem = class
-  private
-    FValue: string;
-    FParams: TList<string>;
-  public
-    constructor Create(aValue: string; aParams: TList<string>); virtual;
-    destructor Destroy; override;
-    function Value: string;
-    function Params: TList<string>; // this should be read-only...
-  end;
-
   TMVCRouter = class(TMVCCustomRouter)
   private
     FRttiContext: TRttiContext;
@@ -521,32 +510,6 @@ begin
   if aValue = 'TRACE' then
     Exit(httpTRACE);
   raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
-end;
-
-{ TMVCActionParamCacheItem }
-
-constructor TMVCActionParamCacheItem.Create(aValue: string;
-  aParams: TList<string>);
-begin
-  inherited Create;
-  FValue := aValue;
-  FParams := aParams;
-end;
-
-destructor TMVCActionParamCacheItem.Destroy;
-begin
-  FParams.Free;
-  inherited;
-end;
-
-function TMVCActionParamCacheItem.Params: TList<string>;
-begin
-  Result := FParams;
-end;
-
-function TMVCActionParamCacheItem.Value: string;
-begin
-  Result := FValue;
 end;
 
 end.

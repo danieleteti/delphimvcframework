@@ -58,7 +58,7 @@ uses
   LoggerPro.FileAppender,
   LoggerPro,
   System.DateUtils,
-  MVCFramework.Middleware.Trace;
+  MVCFramework.Filters.Trace;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -81,7 +81,9 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'false';
     end);
   FMVC.AddController(TMainController);
-  FMVC.AddMiddleware(TMVCTraceMiddleware.Create);
+
+  //FMVC.AddMiddleware(TMVCTraceMiddleware.Create);
+  FMVC.AddFilter(TMVCTraceFilter.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
