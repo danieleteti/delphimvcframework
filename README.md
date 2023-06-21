@@ -232,8 +232,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 ## What's New in the next "repo version" a.k.a. 3.4.0-neon
 
 - Added support for dotEnv multiline keys - added dotEnv show case
+- Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
 - 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
+- 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
+- Wizard updated to be dotEnv aware
 
 
 
