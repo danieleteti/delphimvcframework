@@ -2209,8 +2209,11 @@ var
   lDotEnv: IMVCDotEnv;
 begin
   lDotEnv := NewDotEnv.UseProfile('dev').UseProfile('test').Build('..\dotEnv');
-  lDotEnv.SaveToFile('..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt');
-  Assert.IsTrue(Are2FilesEqual('..\dotEnv\dotEnvDump-profile-dev-and-test.correct.txt','..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt'), 'Files are different');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt')),
+    'Files are different');
 end;
 
 procedure TTestDotEnv.TestWithDevProfile;
@@ -2218,8 +2221,11 @@ var
   lDotEnv: IMVCDotEnv;
 begin
   lDotEnv := NewDotEnv.UseProfile('dev').Build('..\dotEnv');
-  lDotEnv.SaveToFile('..\dotEnv\dotEnvDump-profile-dev.test.txt');
-  Assert.IsTrue(Are2FilesEqual('..\dotEnv\dotEnvDump-profile-dev.correct.txt','..\dotEnv\dotEnvDump-profile-dev.test.txt'), 'Files are different');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt')),
+    'Files are different');
 end;
 
 procedure TTestDotEnv.TestWithoutProfiles;
@@ -2227,8 +2233,11 @@ var
   lDotEnv: IMVCDotEnv;
 begin
   lDotEnv := NewDotEnv.Build('..\dotEnv');
-  lDotEnv.SaveToFile('..\dotEnv\dotEnvDump-noprofile.test.txt');
-  Assert.IsTrue(Are2FilesEqual('..\dotEnv\dotEnvDump-noprofile.correct.txt','..\dotEnv\dotEnvDump-noprofile.test.txt'), 'Files are different');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.test.txt')),
+    'Files are different');
 end;
 
 { TTestDotEnvParser }
