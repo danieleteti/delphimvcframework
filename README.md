@@ -233,6 +233,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Added support for dotEnv multiline keys - added dotEnv show case
 - 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
+- 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
 
 
 
