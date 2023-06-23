@@ -14,8 +14,9 @@ uses
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  MVCFramework.Filters.Trace in 'MVCFramework.Filters.Trace.pas',
-  MVCFramework.Filters.Router in 'MVCFramework.Filters.Router.pas';
+  MVCFramework.Filters.Trace in '..\..\sources\MVCFramework.Filters.Trace.pas',
+  MVCFramework.Filters.Router in '..\..\sources\MVCFramework.Filters.Router.pas',
+  MVCFramework.Filters.Action in '..\..\sources\MVCFramework.Filters.Action.pas';
 
 {$R *.res}
 

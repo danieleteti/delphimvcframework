@@ -37,17 +37,20 @@ uses
   System.RegularExpressions,
   MVCFramework,
   MVCFramework.Commons,
-  IdURI, System.Classes;
+  IdURI,
+  System.Classes;
 
 type
-  TMVCRouter = class(TMVCCustomRouter)
+  TMVCRouter = class(TInterfacedObject, IMVCRouter)
   private
     FRttiContext: TRttiContext;
     FConfig: TMVCConfig;
-    FMethodToCall: TRttiMethod;
+    FActionMethod: TRttiMethod;
     FControllerClazz: TMVCControllerClazz;
     FControllerCreateAction: TMVCControllerCreateAction;
     FActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
+    FResponseContentCharset: String;
+    FResponseContentMediaType: String;
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
 
@@ -76,25 +79,25 @@ type
       const aControllerAttributes: TArray<TCustomAttribute>;
       const aControllerMappedPaths: TStringList);
   public
-    class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
     constructor Create(const aConfig: TMVCConfig;
       const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
-    function ExecuteRouting(const ARequestPathInfo: string;
+    function TryFindRoute(const ARequestPathInfo: string;
       const ARequestMethodType: TMVCHTTPMethodType;
       const ARequestContentType, ARequestAccept: string;
       const AControllers: TObjectList<TMVCControllerDelegate>;
       const ADefaultContentType: string;
       const ADefaultContentCharset: string;
       const APathPrefix: string;
-      var ARequestParams: TMVCRequestParamsTable;
-      out AResponseContentMediaType: string;
-      out AResponseContentCharset: string): Boolean;
-    function GetQualifiedActionName: string; override;
-
-    property MethodToCall: TRttiMethod read FMethodToCall;
-    property ControllerClazz: TMVCControllerClazz read FControllerClazz;
-    property ControllerCreateAction: TMVCControllerCreateAction read FControllerCreateAction;
+      var ARequestParams: TMVCRequestParamsTable): Boolean;
+    function GetQualifiedActionName: string;
+    function CreateControllerInstance: TMVCController;
+    function ActionMethod: TRttiMethod;
+    function ControllerClazz: TMVCControllerClazz;
+    function ControllerCreateAction: TMVCControllerCreateAction;
+    function ResponseContentMediaType: string;
+    function ResponseContentCharset: string;
+    function ActionQualifiedName: String;
   end;
 
 implementation
@@ -105,16 +108,39 @@ uses
 
 { TMVCRouter }
 
+function TMVCRouter.ActionQualifiedName: String;
+begin
+  Result := FControllerClazz.QualifiedClassName + '.' + FActionMethod.Name;
+end;
+
+function TMVCRouter.ControllerClazz: TMVCControllerClazz;
+begin
+  Result := FControllerClazz;
+end;
+
+function TMVCRouter.ControllerCreateAction: TMVCControllerCreateAction;
+begin
+  Result := FControllerCreateAction;
+end;
+
 constructor TMVCRouter.Create(const aConfig: TMVCConfig;
   const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
 begin
   inherited Create;
   FRttiContext := TRttiContext.Create;
   FConfig := aConfig;
-  FMethodToCall := nil;
+  FActionMethod := nil;
   FControllerClazz := nil;
   FControllerCreateAction := nil;
   FActionParamsCache := aActionParamsCache;
+end;
+
+function TMVCRouter.CreateControllerInstance: TMVCController;
+begin
+  if Assigned(FControllerCreateAction) then
+    Result := FControllerCreateAction()
+  else
+    Result := FControllerClazz.Create;
 end;
 
 destructor TMVCRouter.Destroy;
@@ -123,16 +149,14 @@ begin
   inherited Destroy;
 end;
 
-function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
+function TMVCRouter.TryFindRoute(const ARequestPathInfo: string;
   const ARequestMethodType: TMVCHTTPMethodType;
   const ARequestContentType, ARequestAccept: string;
   const AControllers: TObjectList<TMVCControllerDelegate>;
   const ADefaultContentType: string;
   const ADefaultContentCharset: string;
   const APathPrefix: string;
-  var ARequestParams: TMVCRequestParamsTable;
-  out AResponseContentMediaType: string;
-  out AResponseContentCharset: string): Boolean;
+  var ARequestParams: TMVCRequestParamsTable): Boolean;
 var
   LRequestPathInfo: string;
   LRequestAccept: string;
@@ -156,7 +180,7 @@ var
 begin
   Result := False;
 
-  FMethodToCall := nil;
+  FActionMethod := nil;
   FControllerClazz := nil;
   FControllerCreateAction := nil;
 
@@ -254,19 +278,19 @@ begin
                   if IsCompatiblePath(APathPrefix + LControllerMappedPath + LMethodPath,
                     LRequestPathInfo, ARequestParams) then
                   begin
-                    FMethodToCall := LMethod;
+                    FActionMethod := LMethod;
                     FControllerClazz := LControllerDelegate.Clazz;
                     FControllerCreateAction := LControllerDelegate.CreateAction;
                     LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                     if LProduceAttribute <> nil then
                     begin
-                      AResponseContentMediaType := LProduceAttribute.Value;
-                      AResponseContentCharset := LProduceAttribute.Charset;
+                      FResponseContentMediaType := LProduceAttribute.Value;
+                      FResponseContentCharset := LProduceAttribute.Charset;
                     end
                     else
                     begin
-                      AResponseContentMediaType := ADefaultContentType;
-                      AResponseContentCharset := ADefaultContentCharset;
+                      FResponseContentMediaType := ADefaultContentType;
+                      FResponseContentCharset := ADefaultContentCharset;
                     end;
                     Exit(True);
                   end;
@@ -407,7 +431,7 @@ end;
 
 function TMVCRouter.GetQualifiedActionName: string;
 begin
-  Result := Self.FControllerClazz.QualifiedClassName + '.' + Self.MethodToCall.Name;
+  Result := Self.FControllerClazz.QualifiedClassName + '.' + Self.ActionMethod.Name;
 end;
 
 function TMVCRouter.IsHTTPAcceptCompatible(
@@ -491,25 +515,19 @@ begin
   Result := (not MustBeCompatible) or (MustBeCompatible and Result);
 end;
 
-class function TMVCRouter.StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;
+function TMVCRouter.ResponseContentCharset: string;
 begin
-  if aValue = 'GET' then
-    Exit(httpGET);
-  if aValue = 'POST' then
-    Exit(httpPOST);
-  if aValue = 'DELETE' then
-    Exit(httpDELETE);
-  if aValue = 'PUT' then
-    Exit(httpPUT);
-  if aValue = 'HEAD' then
-    Exit(httpHEAD);
-  if aValue = 'OPTIONS' then
-    Exit(httpOPTIONS);
-  if aValue = 'PATCH' then
-    Exit(httpPATCH);
-  if aValue = 'TRACE' then
-    Exit(httpTRACE);
-  raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
+  Result := FResponseContentCharset;
+end;
+
+function TMVCRouter.ResponseContentMediaType: string;
+begin
+  Result := FResponseContentMediaType;
+end;
+
+function TMVCRouter.ActionMethod: TRttiMethod;
+begin
+  Result := FActionMethod;
 end;
 
 end.

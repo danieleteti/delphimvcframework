@@ -241,6 +241,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Removed Middlewares in favor of a simpler alternative named "Filters"
 	- Added Protocol Filters
 	- Added Controller Filters
+- `TMVCRouterLogHandlerProc` changed prototype (breaking change)
 
 
 ## Hystorical Versions

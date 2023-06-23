@@ -130,8 +130,9 @@
             <Form>MyWebModule</Form>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="MVCFramework.Filters.Trace.pas"/>
-        <DCCReference Include="MVCFramework.Filters.Router.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Trace.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Router.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Action.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

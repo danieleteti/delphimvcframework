@@ -43,7 +43,8 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv, Web.HTTPApp;
+  MVCFramework.DotEnv,
+  Web.HTTPApp;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -594,10 +595,10 @@ type
     Alias: String; // allows to use "MVCNameAs" attribute in RQL queries
   end;
 
-  TMVCCustomRouter = class abstract
-  public
-    function GetQualifiedActionName(): string; virtual; abstract;
-  end;
+//  TMVCCustomRouter = class abstract
+//  public
+//    function GetQualifiedActionName(): string; virtual; abstract;
+//  end;
 
   TMVCGuidHelper = record
   public
@@ -774,6 +775,7 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
+function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 
@@ -1816,6 +1818,28 @@ function TMVCActionParamCacheItem.Value: string;
 begin
   Result := FValue;
 end;
+
+function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;
+begin
+  if aValue = 'GET' then
+    Exit(httpGET);
+  if aValue = 'POST' then
+    Exit(httpPOST);
+  if aValue = 'DELETE' then
+    Exit(httpDELETE);
+  if aValue = 'PUT' then
+    Exit(httpPUT);
+  if aValue = 'HEAD' then
+    Exit(httpHEAD);
+  if aValue = 'OPTIONS' then
+    Exit(httpOPTIONS);
+  if aValue = 'PATCH' then
+    Exit(httpPATCH);
+  if aValue = 'TRACE' then
+    Exit(httpTRACE);
+  raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
+end;
+
 
 initialization
 

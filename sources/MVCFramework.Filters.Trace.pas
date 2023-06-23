@@ -31,13 +31,20 @@ uses MVCFramework;
 {$I dmvcframework.inc}
 
 type
-  TMVCTraceFilter = class(TProtocolFilter)
+  TMVCTraceProtocolFilter = class(TProtocolFilter)
   private
     fMaxBodySize: Int64;
   protected
     procedure DoFilter(Context: TWebContext); override;
   public
     constructor Create(const MaxBodySizeInTrace: UInt64 = 1024);
+  end;
+
+  TMVCTraceControllerFilter = class(TControllerFilter)
+  protected
+    procedure DoFilter(
+      const Context: TWebContext;
+      const Router: IMVCRouter); override;
   end;
 
 implementation
@@ -47,17 +54,17 @@ uses
   System.Classes,
   MVCFramework.Commons,
   MVCFramework.Logger,
-  Web.HTTPApp;
+  Web.HTTPApp, System.Math;
 
-{ TMVCTraceFilter }
+{ TMVCTraceProtocolFilter }
 
-constructor TMVCTraceFilter.Create(const MaxBodySizeInTrace: UInt64 = 1024);
+constructor TMVCTraceProtocolFilter.Create(const MaxBodySizeInTrace: UInt64 = 1024);
 begin
   inherited Create;
   fMaxBodySize := MaxBodySizeInTrace;
 end;
 
-procedure TMVCTraceFilter.DoFilter(Context: TWebContext);
+procedure TMVCTraceProtocolFilter.DoFilter(Context: TWebContext);
 var
   lContentStream: TStringStream;
   lContentType: string;
@@ -67,23 +74,19 @@ begin
   try
     Context.Request.RawWebRequest.ReadTotalContent;
     lReq := Context.Request;
-    Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d]', [
-      lReq.HTTPMethodAsString,
-      lReq.ClientIp,
-      lReq.RawWebRequest.PathInfo,
-      lReq.RawWebRequest.QueryFields.DelimitedText,
-      lReq.RawWebRequest.ContentLength
-      ],'trace');
+    Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d]',
+      [lReq.HTTPMethodAsString, lReq.ClientIp, lReq.RawWebRequest.PathInfo,
+      lReq.RawWebRequest.QueryFields.DelimitedText, lReq.RawWebRequest.ContentLength], 'trace');
     if Context.Request.HTTPMethod in [httpPOST, httpPUT] then
     begin
       lContentType := Context.Request.Headers['content-type'].ToLower;
       if lContentType.StartsWith(TMVCMediaType.APPLICATION_JSON, true) or
         lContentType.StartsWith(TMVCMediaType.APPLICATION_XML, true) or
-        lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
-        lContentType.StartsWith('text/') then
+        lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or lContentType.StartsWith('text/')
+      then
       begin
-        lContentStream.WriteString(EncodingGetString(lContentType,
-          Context.Request.RawWebRequest.RawContent).Substring(0, fMaxBodySize));
+        lContentStream.WriteString(EncodingGetString(lContentType, Context.Request.RawWebRequest.RawContent)
+          .Substring(0, fMaxBodySize));
       end
       else
       begin
@@ -95,6 +98,37 @@ begin
     lContentStream.Free;
   end;
   DoNext(Context);
+  Log.Debug('[RESPONSE][STATUS] ' + Format('%d: %s', [Context.Response.StatusCode,
+    Context.Response.ReasonString]), 'trace');
+  Log.Debug('[RESPONSE][CUSTOM HEADERS] ' + string.Join(' | ',
+    Context.Response.CustomHeaders.ToStringArray), 'trace');
+  Log.Debug('[RESPONSE][CONTENT-TYPE] ' + Context.Response.ContentType, 'trace');
+  lContentStream := TStringStream.Create;
+  try
+    if Assigned(Context.Response.RawWebResponse.ContentStream) then
+    begin
+      lContentStream.CopyFrom(Context.Response.RawWebResponse.ContentStream,
+        Min(Context.Response.RawWebResponse.ContentStream.Size, fMaxBodySize));
+      Context.Response.RawWebResponse.ContentStream.Position := 0;
+    end
+    else
+    begin
+      lContentStream.WriteString(Context.Response.RawWebResponse.Content.Substring(0, fMaxBodySize));
+    end;
+    Log.Debug('[AFTER ROUTING][RESPONSE][BODY] ' + lContentStream.DataString, 'trace');
+  finally
+    lContentStream.Free;
+  end;
+end;
+
+{ TMVCTraceControllerFilter }
+
+procedure TMVCTraceControllerFilter.DoFilter(
+      const Context: TWebContext;
+      const Router: IMVCRouter);
+begin
+  Log.Debug('[ACTION_QUALIFIED_NAME %s]', [Router.ActionQualifiedName], 'trace');
+  DoNext(Context, Router);
 end;
 
 end.

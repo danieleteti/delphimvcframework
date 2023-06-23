@@ -49,7 +49,8 @@ type
   private
     fMaxBackupFileCount: Integer;
     fMaxFileSizeInKiloByte: Integer;
-    fLogFileNameFormat: string;
+    fLogFileNamePrefix: String;
+    fLogFileNameExt: String;
     fFileAppenderOptions: TFileAppenderOptions;
     fLogsFolder: string;
     fEncoding: TEncoding;
@@ -70,7 +71,9 @@ type
       @item LogTag
       )
     }
-    DEFAULT_FILENAME_FORMAT = '%0:s.%1:2.2d.%2:s.log';
+    //DEFAULT_FILENAME_FORMAT = '%0:s.%1:2.2d.%2:s.log';
+    DEFAULT_FILENAME_PREFIX = 'default';
+    DEFAULT_FILENAME_EXT = '.log';
     { @abstract(Defines number of log file set to maintain during logs rotation) }
     DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
     { @abstract(Defines the max size of each log file)
@@ -82,7 +85,9 @@ type
     RETRY_COUNT = 5;
     constructor Create(aMaxBackupFileCount: Integer = DEFAULT_MAX_BACKUP_FILE_COUNT;
       aMaxFileSizeInKiloByte: Integer = DEFAULT_MAX_FILE_SIZE_KB; aLogsFolder: string = ''; aFileAppenderOptions: TFileAppenderOptions = [];
-      aLogFileNameFormat: string = DEFAULT_FILENAME_FORMAT; aLogFormat: string = DEFAULT_LOG_FORMAT; aEncoding: TEncoding = nil);
+      aLogFileNamePrefix: string = DEFAULT_FILENAME_PREFIX;
+      aLogFileNameExt: string = DEFAULT_FILENAME_EXT;
+      aLogFormat: string = DEFAULT_LOG_FORMAT; aEncoding: TEncoding = nil);
       reintroduce;
     procedure Setup; override;
   end;
@@ -137,29 +142,46 @@ uses
 
 { TLoggerProFileAppenderBase }
 
+function OccurrencesOfChar(const S: string; const C: char): integer;
+var
+  i: Integer;
+begin
+  result := 0;
+  for i := 1 to Length(S) do
+    if S[i] = C then
+      inc(result);
+end;
+
 function TLoggerProFileAppenderBase.GetLogFileName(const aTag: string; const aFileNumber: Integer): string;
 var
   lExt: string;
   lModuleName: string;
   lPath: string;
-  lFormat: string;
 begin
-{$IF Defined(Android)}
-  lModuleName := TAndroidHelper.ApplicationTitle.Replace(' ', '_', [rfReplaceAll]);
-{$ENDIF}
-{$IF not Defined(Mobile)}
-  lModuleName := TPath.GetFileNameWithoutExtension(GetModuleName(HInstance));
-{$ENDIF}
-{$IF Defined(IOS)}
-  raise Exception.Create('Platform not supported');
-{$ENDIF}
-  lFormat := fLogFileNameFormat;
+  if fLogFileNamePrefix = DEFAULT_FILENAME_PREFIX then
+  begin
+  {$IF Defined(Android)}
+    lModuleName := TAndroidHelper.ApplicationTitle.Replace(' ', '_', [rfReplaceAll]);
+  {$ENDIF}
+  {$IF not Defined(Mobile)}
+    lModuleName := TPath.GetFileNameWithoutExtension(GetModuleName(HInstance));
+  {$ENDIF}
+  {$IF Defined(IOS)}
+    raise Exception.Create('Platform not supported');
+  {$ENDIF}
+  end
+  else
+  begin
+    lModuleName := fLogFileNamePrefix;
+  end;
 
   if TFileAppenderOption.IncludePID in fFileAppenderOptions then
     lModuleName := lModuleName + '_pid_' + IntToStr(CurrentProcessId).PadLeft(6, '0');
 
+  lModuleName := lModuleName + '.%0:2.2d.%1:s' + fLogFileNameExt;
+
   lPath := fLogsFolder;
-  lExt := Format(lFormat, [lModuleName, aFileNumber, aTag]);
+  lExt := Format(lModuleName, [aFileNumber, aTag]);
   Result := TPath.Combine(lPath, lExt);
 end;
 
@@ -246,13 +268,14 @@ begin
 end;
 
 constructor TLoggerProFileAppenderBase.Create(aMaxBackupFileCount: Integer; aMaxFileSizeInKiloByte: Integer; aLogsFolder: string;
-  aFileAppenderOptions: TFileAppenderOptions; aLogFileNameFormat: string; aLogFormat: string; aEncoding: TEncoding);
+  aFileAppenderOptions: TFileAppenderOptions; aLogFileNamePrefix: string; aLogFileNameExt: String; aLogFormat: string; aEncoding: TEncoding);
 begin
   inherited Create(ALogFormat);
-  fLogsFolder := aLogsFolder;  
+  fLogsFolder := aLogsFolder;
   fMaxBackupFileCount:= Min(1, aMaxBackupFileCount);
   fMaxFileSizeInKiloByte := aMaxFileSizeInKiloByte;
-  fLogFileNameFormat := aLogFileNameFormat;
+  fLogFileNamePrefix := aLogFileNamePrefix;
+  fLogFileNameExt := aLogFileNameExt;
   fFileAppenderOptions := aFileAppenderOptions;
   if Assigned(aEncoding) then
     fEncoding := aEncoding

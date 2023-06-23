@@ -83,7 +83,8 @@ begin
   FMVC.AddController(TMainController);
 
   //FMVC.AddMiddleware(TMVCTraceMiddleware.Create);
-  FMVC.AddFilter(TMVCTraceFilter.Create);
+  FMVC.AddFilter(TMVCTraceProtocolFilter.Create);
+  FMVC.AddFilter(TMVCTraceControllerFilter.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

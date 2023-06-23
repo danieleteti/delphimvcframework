@@ -914,7 +914,7 @@ type
   TMVCExceptionHandlerProc = reference to procedure(E: Exception;
     SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
   TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
-  TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
+  TMVCRouterLogHandlerProc = reference to procedure(
     const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
   TMVCJSONRPCExceptionHandlerProc = reference to procedure(E: Exception;
     { SelectedController: TMVCController; //YAGNI }
@@ -924,7 +924,28 @@ type
   TWebContextCreateEvent = reference to procedure(const AContext: TWebContext);
   TWebContextDestroyEvent = reference to procedure(const AContext: TWebContext);
 
-  { Protocol Filters }
+  { IMVCRouter}
+  IMVCRouter = interface
+    ['{10F805DB-BE2F-4100-81D0-75B03217052C}']
+    function TryFindRoute(const ARequestPathInfo: string;
+      const ARequestMethodType: TMVCHTTPMethodType;
+      const ARequestContentType, ARequestAccept: string;
+      const AControllers: TObjectList<TMVCControllerDelegate>;
+      const ADefaultContentType: string;
+      const ADefaultContentCharset: string;
+      const APathPrefix: string;
+      var ARequestParams: TMVCRequestParamsTable): Boolean;
+    function ActionQualifiedName: string;
+    function ActionMethod: TRttiMethod;
+    function ControllerClazz: TMVCControllerClazz;
+    function ControllerCreateAction: TMVCControllerCreateAction;
+    function CreateControllerInstance: TMVCController;
+    function ResponseContentMediaType: String;
+    function ResponseContentCharSet: String;
+  end;
+  { END - IMVCRouter}
+
+  { Filters }
   IProtocolFilter = interface
     ['{43000B86-A2EC-49F1-99CD-86C7F45026FA}']
     procedure DoFilter(Context:  TWebContext);
@@ -941,26 +962,27 @@ type
     function Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
     function Build: IProtocolFilterChain;
   end;
-  { END - Protocol Filters }
 
-  { Controller Filters}
   IControllerFilter = interface
     ['{F47DDC56-7631-4838-AD8C-22883269197E}']
-    procedure DoFilter(Context:  TWebContext);
+    procedure DoFilter(
+      const Context: TWebContext;
+      const Router: IMVCRouter);
     procedure SetNext(NextFilter: IControllerFilter);
+    procedure SetEngine(const Engine: TMVCEngine);
   end;
 
   IControllerFilterChain = interface
     ['{2BEE7B64-10BE-4293-B02D-878CC3DF4D9E}']
-    procedure Execute(Context: TWebContext);
+    procedure Execute(Context:  TWebContext;
+      const Router: IMVCRouter);
   end;
 
   IControllerFilterChainBuilder = interface
     ['{41F0524A-534E-4900-9724-FD514D34B219}']
-    function Use(Filter: IProtocolFilter): IProtocolFilterChainBuilder;
-    function Build: IProtocolFilterChain;
+    function Use(Filter: IControllerFilter): IControllerFilterChainBuilder;
+    function Build(const Engine: TMVCEngine): IControllerFilterChain;
   end;
-  { END - Controller Filters}
 
   TProtocolFilter = class abstract(TInterfacedObject, IProtocolFilter)
   private
@@ -982,6 +1004,36 @@ type
     function Build: IProtocolFilterChain;
   end;
 
+  TControllerFilterChain = class(TInterfacedObject, IControllerFilterChainBuilder, IControllerFilterChain)
+  private
+    fItems: TList<IControllerFilter>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Use(Filter: IControllerFilter): IControllerFilterChainBuilder;
+    procedure Execute(
+      Context:  TWebContext;
+      const Router: IMVCRouter);
+    function Build(const Engine: TMVCEngine): IControllerFilterChain;
+  end;
+
+  TControllerFilter = class abstract(TInterfacedObject, IControllerFilter)
+  private
+    fNext: IControllerFilter;
+    fEngine: TMVCEngine;
+  protected
+    function GetEngine: TMVCEngine;
+    procedure DoFilter(
+      const Context: TWebContext;
+      const Router: IMVCRouter); virtual; abstract;
+    procedure SetNext(NextFilter: IControllerFilter);
+    procedure SetEngine(const Engine: TMVCEngine);
+    procedure DoNext(Context: TWebContext;
+      const Router: IMVCRouter);
+  end;
+
+  {END - filters}
+
   TMVCEngine = class(TComponent)
   private
     FViewEngineClass: TMVCViewEngineClass;
@@ -996,15 +1048,16 @@ type
     FConfigCache_PathPrefix: String;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
-    FProtocolFilters: IProtocolFilterChainBuilder;
-    FProtocolFiltersChain: IProtocolFilterChain;
     FControllers: TObjectList<TMVCControllerDelegate>;
-    FApplicationSession: TWebApplicationSession;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
     FOnRouterLog: TMVCRouterLogHandlerProc;
     FWebContextCreateEvent: TWebContextCreateEvent;
     FWebContextDestroyEvent: TWebContextDestroyEvent;
+    {filters}
+    FProtocolFilters: IProtocolFilterChainBuilder;
+    FProtocolFiltersChain: IProtocolFilterChain;
+    FControllerFilters: IControllerFilterChainBuilder;
     procedure RegisterDefaultsSerializers;
     function GetViewEngineClass: TMVCViewEngineClass;
   protected
@@ -1059,7 +1112,8 @@ type
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
 
     { filters }
-    function AddFilter(const AFilter: IProtocolFilter): TMVCEngine;
+    function AddFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine; overload;
+    function AddFilter(const AControllerFilter: IControllerFilter): TMVCEngine; overload;
     { end - filters }
 
     function AddController(const AControllerClazz: TMVCControllerClazz;
@@ -1083,8 +1137,6 @@ type
     property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
-    property ApplicationSession: TWebApplicationSession read FApplicationSession
-      write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
   end;
 
@@ -1184,8 +1236,8 @@ uses
   MVCFramework.Serializer.HTML,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Utils,
-  MVCFramework.Router,
-  MVCFramework.Filters.Router;
+  MVCFramework.Filters.Router,
+  MVCFramework.Filters.Action;
 
 var
   gIsShuttingDown: Boolean = False;
@@ -1601,7 +1653,7 @@ end;
 
 function TMVCWebRequest.GetHTTPMethod: TMVCHTTPMethodType;
 begin
-  Result := TMVCRouter.StringMethodToHTTPMetod(FWebRequest.Method);
+  Result := StringMethodToHTTPMetod(FWebRequest.Method);
 end;
 
 function TMVCWebRequest.GetHTTPMethodAsString: string;
@@ -1625,7 +1677,7 @@ begin
   end
   else
   begin
-    Result := TMVCRouter.StringMethodToHTTPMetod(FWebRequest.Method);
+    Result := StringMethodToHTTPMetod(FWebRequest.Method);
   end;
 end;
 
@@ -2277,9 +2329,16 @@ begin
   Result := Self;
 end;
 
-function TMVCEngine.AddFilter(const AFilter: IProtocolFilter): TMVCEngine;
+function TMVCEngine.AddFilter(
+  const AControllerFilter: IControllerFilter): TMVCEngine;
 begin
-  FProtocolFilters.Use(AFilter);
+  FControllerFilters.Use(AControllerFilter);
+  Result := Self;
+end;
+
+function TMVCEngine.AddFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine;
+begin
+  FProtocolFilters.Use(AProtocolFilter);
   Result := Self;
 end;
 
@@ -2338,28 +2397,28 @@ begin
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
-  fOnRouterLog :=
-      procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState;
-      const Context: TWebContext)
-    begin
-      case RouterLogState of
-        rlsRouteFound:
-          begin
-            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
-              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
-              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
-              Context.Response.ReasonString);
-          end;
-        rlsRouteNotFound:
-          begin
-            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
-              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {NOT FOUND} - ' +
-              IntToStr(Context.Response.StatusCode) + ' ' + Context.Response.ReasonString);
-          end;
-      else
-        raise EMVCException.Create('Invalid RouterLogState');
-      end;
-    end;
+//  fOnRouterLog :=
+//      procedure(const Sender: IMVCRouter; const RouterLogState: TMVCRouterLogState;
+//      const Context: TWebContext)
+//    begin
+//      case RouterLogState of
+//        rlsRouteFound:
+//          begin
+//            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
+//              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
+//              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+//              Context.Response.ReasonString);
+//          end;
+//        rlsRouteNotFound:
+//          begin
+//            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
+//              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {NOT FOUND} - ' +
+//              IntToStr(Context.Response.StatusCode) + ' ' + Context.Response.ReasonString);
+//          end;
+//      else
+//        raise EMVCException.Create('Invalid RouterLogState');
+//      end;
+//    end;
 end;
 
 constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>;
@@ -2372,9 +2431,11 @@ begin
   FConfig := TMVCConfig.Create;
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
+  {filters}
   FProtocolFilters := TProtocolFilterChain.Create;
+  FControllerFilters := TControllerFilterChain.Create;
+  {end - filters}
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
 
   WebRequestHandler.CacheConnections := True;
@@ -2449,13 +2510,15 @@ begin
       as last protocol filters is registered the TMVCRouterFilter which will call
       also the Controller Filters
     }
+    FControllerFilters.Use(TMVCActionControllerFilter.Create);
     FProtocolFilters.Use(TMVCRouterFilter.Create(
       Self,
       Config,
       FControllers,
       FConfigCache_DefaultContentType,
       FConfigCache_DefaultContentCharset,
-      FConfigCache_PathPrefix
+      FConfigCache_PathPrefix,
+      FControllerFilters.Build(Self)
     ));
     FProtocolFiltersChain := FProtocolFilters.Build;
   end;
@@ -3937,6 +4000,71 @@ function TProtocolFilterChain.Use(Filter: IProtocolFilter): IProtocolFilterChain
 begin
   fItems.Add(Filter);
   Result := Self;
+end;
+
+{ TControllerFilterChain }
+
+function TControllerFilterChain.Build(const Engine: TMVCEngine): IControllerFilterChain;
+begin
+  for var I := 0 to fItems.Count - 2 do
+  begin
+    fItems[I].SetNext(fItems[I+1]);
+    fItems[I].SetEngine(Engine);
+  end;
+  Result := Self;
+end;
+
+constructor TControllerFilterChain.Create;
+begin
+  inherited;
+  fItems := TList<IControllerFilter>.Create;
+end;
+
+destructor TControllerFilterChain.Destroy;
+begin
+  fItems.Free;
+  inherited;
+end;
+
+procedure TControllerFilterChain.Execute(
+      Context:  TWebContext;
+      const Router: IMVCRouter);
+begin
+  fItems.First.DoFilter(Context, Router);
+end;
+
+function TControllerFilterChain.Use(
+  Filter: IControllerFilter): IControllerFilterChainBuilder;
+begin
+  fItems.Add(Filter);
+  Result := Self;
+end;
+
+{ TControllerFilter }
+
+procedure TControllerFilter.DoNext(
+      Context: TWebContext;
+      const Router: IMVCRouter);
+begin
+  if Assigned(fNext) then
+  begin
+    fNext.DoFilter(Context, Router);
+  end;
+end;
+
+function TControllerFilter.GetEngine: TMVCEngine;
+begin
+  Result := fEngine;
+end;
+
+procedure TControllerFilter.SetEngine(const Engine: TMVCEngine);
+begin
+  fEngine := Engine;
+end;
+
+procedure TControllerFilter.SetNext(NextFilter: IControllerFilter);
+begin
+  fNext := NextFilter;
 end;
 
 initialization
