@@ -4011,6 +4011,8 @@ begin
     fItems[I].SetNext(fItems[I+1]);
     fItems[I].SetEngine(Engine);
   end;
+  fItems.Last.SetNext(nil);
+  fItems.Last.SetEngine(Engine);
   Result := Self;
 end;
 
