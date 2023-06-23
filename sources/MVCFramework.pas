@@ -1079,7 +1079,7 @@ type
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
   public
-    function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
+    function CustomExceptionHandling(const Ex: Exception; const AController: TMVCController;
       const AContext: TWebContext): Boolean;
     class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TWebSession; static;
@@ -2452,12 +2452,12 @@ begin
 end;
 
 function TMVCEngine.CustomExceptionHandling(const Ex: Exception;
-  const ASelectedController: TMVCController; const AContext: TWebContext): Boolean;
+  const AController: TMVCController; const AContext: TWebContext): Boolean;
 begin
   Result := False;
   if Assigned(FOnException) then
   begin
-    FOnException(Ex, ASelectedController, AContext, Result);
+    FOnException(Ex, AController, AContext, Result);
   end;
 end;
 

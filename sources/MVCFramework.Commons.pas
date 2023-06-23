@@ -365,6 +365,10 @@ type
     class function ReasonStringFor(const HTTPStatusCode: Integer): String; static;
   end;
 
+  EMVCRouteNotFound = class(Exception)
+
+  end;
+
   EMVCException = class(Exception)
   protected
     FHttpErrorCode: UInt16;

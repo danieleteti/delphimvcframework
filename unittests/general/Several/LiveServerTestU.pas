@@ -2659,7 +2659,7 @@ var
   res: IMVCRESTResponse;
 begin
   res := RESTClient.Get('/typed/integer1/boom');
-  Assert.isTrue(res.StatusCode = HTTP_STATUS.BadRequest, 'Cannot route');
+  Assert.AreEqual(HTTP_STATUS.BadRequest, res.StatusCode, 'Cannot route');
   Assert.Contains(res.Content, 'EConvertError');
   Assert.Contains(res.Content, '''boom'' is not a valid');
 end;
