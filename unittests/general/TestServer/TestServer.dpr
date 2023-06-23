@@ -24,7 +24,9 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
   Entities in '..\Several\Entities.pas',
-  EntitiesProcessors in '..\Several\EntitiesProcessors.pas';
+  EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
+  MVCFramework.Filters.Action in '..\..\..\sources\MVCFramework.Filters.Action.pas',
+  MVCFramework.Filters.Router in '..\..\..\sources\MVCFramework.Filters.Router.pas';
 
 {$R *.res}
 

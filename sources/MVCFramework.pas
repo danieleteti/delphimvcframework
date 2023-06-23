@@ -526,7 +526,7 @@ type
     FLoggedUser: TUser;
     FWebSession: TWebSession;
     FData: TMVCStringDictionary;
-    fIntfObject: IInterface;
+    FIntfObject: IInterface;
     function GetWebSession: TWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -535,7 +535,7 @@ type
     function GetIntfObject: IInterface;
     procedure SetIntfObject(const Value: IInterface);
   protected
-    fActionQualifiedName: String;
+    FActionQualifiedName: String;
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
     function SendSessionCookie(const AContext: TWebContext): string;
@@ -578,11 +578,8 @@ type
   TMVCBase = class
   private
     FEngine: TMVCEngine;
-    FApplicationSession: TWebApplicationSession;
     function GetEngine: TMVCEngine;
     function GetConfig: TMVCConfig;
-    function GetApplicationSession: TWebApplicationSession;
-    procedure SetApplicationSession(const AValue: TWebApplicationSession);
     procedure SetEngine(const AValue: TMVCEngine);
   protected
     class function GetApplicationFileName: string; static;
@@ -590,8 +587,6 @@ type
   public
     property Engine: TMVCEngine read GetEngine write SetEngine;
     property Config: TMVCConfig read GetConfig;
-    property ApplicationSession: TWebApplicationSession read GetApplicationSession
-      write SetApplicationSession;
   end;
 
   TMVCResponse = class;
@@ -2922,14 +2917,6 @@ begin
   Result := IncludeTrailingPathDelimiter(ExtractFilePath(GetApplicationFileName));
 end;
 
-function TMVCBase.GetApplicationSession: TWebApplicationSession;
-begin
-  if not Assigned(FApplicationSession) then
-    raise EMVCException.CreateFmt('ApplicationSession not assigned to this %s instance.',
-      [Classname]);
-  Result := FApplicationSession;
-end;
-
 function TMVCBase.GetConfig: TMVCConfig;
 begin
   Result := Engine.Config;
@@ -2940,11 +2927,6 @@ begin
   if not Assigned(FEngine) then
     raise EMVCException.CreateFmt('MVCEngine not assigned to this %s instance.', [Classname]);
   Result := FEngine;
-end;
-
-procedure TMVCBase.SetApplicationSession(const AValue: TWebApplicationSession);
-begin
-  FApplicationSession := AValue;
 end;
 
 procedure TMVCBase.SetEngine(const AValue: TMVCEngine);
@@ -3698,36 +3680,6 @@ begin
     if (GetContext.Response.StatusCode = http_status.OK) then
       ResponseStatus(http_status.InternalServerError, AException.Message + ' [' +
         AException.Classname + ']');
-
-    // if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
-    // begin
-    // SetContentType(TMVCMediaType.TEXT_HTML);
-    // Render(AException, False);
-    // exit;
-    // ResponseStream.Clear;
-    // ResponseStream.Append
-    // ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
-    // .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
-    // .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
-    // [GetContext.Response.StatusCode]).AppendFormat('HTTP Reason Text: "%s"</pre>',
-    // [GetContext.Response.ReasonString])
-    // .Append('<h3><pre>').AppendFormat('Exception Class Name : %s' + sLineBreak, [AException.Classname])
-    // .AppendFormat('Exception Message    : %s' + sLineBreak, [AException.Message]).Append('</pre></h3>');
-    // if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
-    // begin
-    // ResponseStream.Append('<h2><pre>');
-    // for S in AExceptionItems do
-    // ResponseStream.AppendLine('- ' + S);
-    // ResponseStream.Append('</pre><h2>');
-    // end
-    // else
-    // begin
-    // ResponseStream.AppendLine('<pre>No other information available</pre>');
-    // end;
-    // ResponseStream.Append('</body></html>');
-    // RenderResponseStream;
-    // end
-    // else
     begin
       R := TMVCErrorResponse.Create;
       try

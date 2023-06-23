@@ -52,15 +52,14 @@ procedure TMVCActionControllerFilter.DoFilter(
       const Context: TWebContext;
       const Router: IMVCRouter);
 var
-  lSelectedController: TMVCController;
+  lControllerInstance: TMVCController;
   lBodyParameter: TObject;
   lActionFormalParams: TArray<TRttiParameter>;
   lActualParams: TArray<TValue>;
-  lRouterMethodToCallName: string;
   lHandled: Boolean;
 begin
   try
-    lSelectedController := Router.CreateControllerInstance;
+    lControllerInstance := Router.CreateControllerInstance;
   except
     on Ex: Exception do
     begin
@@ -70,51 +69,75 @@ begin
       raise EMVCException.Create(http_status.InternalServerError, 'Cannot create controller');
     end;
   end;
-
-  TWebContextHack(Context).fActionQualifiedName := Router.ActionQualifiedName;
-  lSelectedController.Engine := Self.GetEngine;
-  TMVCControllerHack(lSelectedController).Context := Context;
-  lBodyParameter := nil;
-  TMVCControllerHack(lSelectedController).MVCControllerAfterCreate;
   try
-    TMVCControllerHack(lSelectedController).ContentType :=
-      BuildContentType(Router.ResponseContentMediaType, Router.ResponseContentCharSet);
-    lActionFormalParams := Router.ActionMethod.GetParameters;
-    if (Length(lActionFormalParams) = 0) then
-      SetLength(lActualParams, 0)
-    else if (Length(lActionFormalParams) = 1) and
-      (SameText(lActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
-    begin
-      SetLength(lActualParams, 1);
-      lActualParams[0] := Context;
-    end
-    else
-    begin
-      FillActualParamsForAction(lSelectedController, Context, lActionFormalParams, lRouterMethodToCallName,
-        lActualParams, lBodyParameter);
-    end;
-    TMVCControllerHack(lSelectedController).OnBeforeAction(Context, lRouterMethodToCallName, lHandled);
-    if not lHandled then
-    begin
-      try
-        Router.ActionMethod.Invoke(lSelectedController, lActualParams);
-      finally
-        TMVCControllerHack(lSelectedController).OnAfterAction(Context, lRouterMethodToCallName);
-      end;
-    end;
-  finally
+    TWebContextHack(Context).FActionQualifiedName := Router.ActionQualifiedName;
+    lControllerInstance.Engine := Self.GetEngine;
+    TMVCControllerHack(lControllerInstance).Context := Context;
+    lBodyParameter := nil;
+    TMVCControllerHack(lControllerInstance).MVCControllerAfterCreate;
     try
-      lBodyParameter.Free;
-    except
-      on E: Exception do
+      TMVCControllerHack(lControllerInstance).ContentType :=
+        BuildContentType(Router.ResponseContentMediaType, Router.ResponseContentCharSet);
+      lActionFormalParams := Router.ActionMethod.GetParameters;
+      if (Length(lActionFormalParams) = 0) then
+        SetLength(lActualParams, 0)
+      else if (Length(lActionFormalParams) = 1) and
+        (SameText(lActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
       begin
-        LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]', [E.Classname, E.Message]));
+        SetLength(lActualParams, 1);
+        lActualParams[0] := Context;
+      end
+      else
+      begin
+        FillActualParamsForAction(lControllerInstance, Context, lActionFormalParams,
+          Router.ActionMethod.Name,
+          lActualParams, lBodyParameter);
       end;
+      TMVCControllerHack(lControllerInstance).OnBeforeAction(Context, Router.ActionMethod.Name, lHandled);
+      if not lHandled then
+      begin
+        try
+          try
+            Router.ActionMethod.Invoke(lControllerInstance, lActualParams);
+            Context.Response.ContentType := TMVCControllerHack(lControllerInstance).ContentType;
+          finally
+            TMVCControllerHack(lControllerInstance).OnAfterAction(Context, Router.ActionMethod.Name);
+          end;
+        except
+          on E: EMVCException do
+          begin
+            if not GetEngine.CustomExceptionHandling(E, lControllerInstance, Context) then
+            begin
+              Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                [E.Classname, E.Message, GetRequestShortDescription(Context.Request.RawWebRequest), E.DetailedMessage], LOGGERPRO_TAG);
+              if Assigned(lControllerInstance) then
+              begin
+                lControllerInstance.ResponseStatus(E.HTTPErrorCode);
+                lControllerInstance.Render(E);
+              end
+              else
+              begin
+                GetEngine.SendRawHTTPStatus(Context, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
+              end;
+            end;
+          end;
+        end;
+      end;
+    finally
+      try
+        lBodyParameter.Free;
+      except
+        on E: Exception do
+        begin
+          LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]', [E.Classname, E.Message]));
+        end;
+      end;
+      TMVCControllerHack(lControllerInstance).MVCControllerBeforeDestroy;
     end;
-    TMVCControllerHack(lSelectedController).MVCControllerBeforeDestroy;
+    // fOnRouterLog(lRouter, rlsRouteFound, lContext);
+  finally
+    lControllerInstance.Free;
   end;
-  Context.Response.ContentType := TMVCControllerHack(lSelectedController).ContentType;
-  // fOnRouterLog(lRouter, rlsRouteFound, lContext);
 end;
 
 procedure TMVCActionControllerFilter.FillActualParamsForAction(

@@ -390,48 +390,18 @@ type
   end;
 
   EMVCSessionExpiredException = class(EMVCException)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
   end;
 
   EMVCConfigException = class(EMVCException)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
   end;
 
   EMVCFrameworkViewException = class(EMVCException)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
   end;
 
   EMVCJWTException = class(EMVCException)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
   end;
 
   EMVCViewError = class(EMVCException)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
   end;
 
   TMVCStringDictionaryList = class;

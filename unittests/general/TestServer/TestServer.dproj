@@ -141,6 +141,8 @@
         <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
         <DCCReference Include="..\Several\Entities.pas"/>
         <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Filters.Action.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Filters.Router.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

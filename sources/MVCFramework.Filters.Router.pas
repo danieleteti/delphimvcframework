@@ -148,53 +148,53 @@ begin
             end;
           end; // end-execute-routing
       except
-        on ESess: EMVCSessionExpiredException do
-        begin
-          if not fEngine.CustomExceptionHandling(ESess, lSelectedController, Context) then
-          begin
-            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-              [ESess.Classname, ESess.Message, GetRequestShortDescription(Context.Request.RawWebRequest), ESess.DetailedMessage],
-              LOGGERPRO_TAG);
-            Context.SessionStop;
-            lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
-            lSelectedController.Render(ESess);
-          end;
-        end;
-        on E: EMVCException do
-        begin
-          if not fEngine.CustomExceptionHandling(E, lSelectedController, Context) then
-          begin
-            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-              [E.Classname, E.Message, GetRequestShortDescription(Context.Request.RawWebRequest), E.DetailedMessage], LOGGERPRO_TAG);
-            if Assigned(lSelectedController) then
-            begin
-              lSelectedController.ResponseStatus(E.HTTPErrorCode);
-              lSelectedController.Render(E);
-            end
-            else
-            begin
-              fEngine.SendRawHTTPStatus(Context, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
-            end;
-          end;
-        end;
-        on EIO: EInvalidOp do
-        begin
-          if not fEngine.CustomExceptionHandling(EIO, lSelectedController, Context) then
-          begin
-            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-              [EIO.Classname, EIO.Message, GetRequestShortDescription(Context.Request.RawWebRequest), 'Invalid Op'], LOGGERPRO_TAG);
-            if Assigned(lSelectedController) then
-            begin
-              lSelectedController.ResponseStatus(http_status.InternalServerError);
-              lSelectedController.Render(EIO);
-            end
-            else
-            begin
-              fEngine.SendRawHTTPStatus(Context, http_status.InternalServerError,
-                Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
-            end;
-          end;
-        end;
+//        on ESess: EMVCSessionExpiredException do
+//        begin
+//          if not fEngine.CustomExceptionHandling(ESess, lSelectedController, Context) then
+//          begin
+//            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+//              [ESess.Classname, ESess.Message, GetRequestShortDescription(Context.Request.RawWebRequest), ESess.DetailedMessage],
+//              LOGGERPRO_TAG);
+//            Context.SessionStop;
+//            lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
+//            lSelectedController.Render(ESess);
+//          end;
+//        end;
+//        on E: EMVCException do
+//        begin
+//          if not fEngine.CustomExceptionHandling(E, lSelectedController, Context) then
+//          begin
+//            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+//              [E.Classname, E.Message, GetRequestShortDescription(Context.Request.RawWebRequest), E.DetailedMessage], LOGGERPRO_TAG);
+//            if Assigned(lSelectedController) then
+//            begin
+//              lSelectedController.ResponseStatus(E.HTTPErrorCode);
+//              lSelectedController.Render(E);
+//            end
+//            else
+//            begin
+//              fEngine.SendRawHTTPStatus(Context, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
+//            end;
+//          end;
+//        end;
+//        on EIO: EInvalidOp do
+//        begin
+//          if not fEngine.CustomExceptionHandling(EIO, lSelectedController, Context) then
+//          begin
+//            Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+//              [EIO.Classname, EIO.Message, GetRequestShortDescription(Context.Request.RawWebRequest), 'Invalid Op'], LOGGERPRO_TAG);
+//            if Assigned(lSelectedController) then
+//            begin
+//              lSelectedController.ResponseStatus(http_status.InternalServerError);
+//              lSelectedController.Render(EIO);
+//            end
+//            else
+//            begin
+//              fEngine.SendRawHTTPStatus(Context, http_status.InternalServerError,
+//                Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
+//            end;
+//          end;
+//        end;
         on Ex: Exception do
         begin
           if not fEngine.CustomExceptionHandling(Ex, lSelectedController, Context) then
