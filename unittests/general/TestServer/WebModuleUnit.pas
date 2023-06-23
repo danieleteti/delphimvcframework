@@ -69,7 +69,8 @@ uses
   {$ENDIF}
   MVCFramework.Middleware.Compression,
   MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
-  MVCFramework.ActiveRecord, FDConnectionConfigU;
+  MVCFramework.ActiveRecord, FDConnectionConfigU, SpeedProtocolFilterU,
+  MVCFramework.Filters.Compression;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -128,12 +129,14 @@ begin
     begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
-    .AddMiddleware(TMVCSpeedMiddleware.Create)
+    .AddFilter(TSpeedProtocolFilter.Create)
+    //.AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
-    .AddMiddleware(TMVCCompressionMiddleware.Create);
+    //.AddMiddleware(TMVCCompressionMiddleware.Create);
+    .AddFilter(TMVCCompressionProtocolFilter.Create);
 {$IFDEF MSWINDOWS}
   MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
   RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);

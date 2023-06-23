@@ -26,7 +26,9 @@ uses
   Entities in '..\Several\Entities.pas',
   EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
   MVCFramework.Filters.Action in '..\..\..\sources\MVCFramework.Filters.Action.pas',
-  MVCFramework.Filters.Router in '..\..\..\sources\MVCFramework.Filters.Router.pas';
+  MVCFramework.Filters.Router in '..\..\..\sources\MVCFramework.Filters.Router.pas',
+  SpeedProtocolFilterU in 'SpeedProtocolFilterU.pas',
+  MVCFramework.Filters.Compression in '..\..\..\sources\MVCFramework.Filters.Compression.pas';
 
 {$R *.res}
 

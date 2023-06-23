@@ -143,6 +143,8 @@
         <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Filters.Action.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Filters.Router.pas"/>
+        <DCCReference Include="SpeedProtocolFilterU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Filters.Compression.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

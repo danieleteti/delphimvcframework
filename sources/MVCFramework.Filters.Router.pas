@@ -108,6 +108,7 @@ var
   lRouter: IMVCRouter;
   lParamsTable: TMVCRequestParamsTable;
 begin
+  {TODO -odanielet -cGeneral : ParamsTable in an objectpool?}
   lParamsTable := TMVCRequestParamsTable.Create;
   try
     lRouter := TMVCRouter.Create(FConfig, fEngine.gMVCGlobalActionParamsCache);
