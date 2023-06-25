@@ -945,6 +945,7 @@ type
     ['{43000B86-A2EC-49F1-99CD-86C7F45026FA}']
     procedure DoFilter(Context:  TWebContext);
     procedure SetNext(NextFilter: IProtocolFilter);
+    procedure DoNext(Context: TWebContext);
   end;
 
   IProtocolFilterChain = interface
