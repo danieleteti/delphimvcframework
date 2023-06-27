@@ -30,7 +30,7 @@ uses
    
   System.IOUtils, 
   MVCFramework.Commons, 
-  MVCFramework.Middleware.ActiveRecord;
+  MVCFramework.Filters.ActiveRecord;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -61,7 +61,7 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
   FMVC.AddController(TMyController);
-  FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('activerecorddb'));
+  FMVC.UseFilter(TMVCActiveRecordProtocolFilter.Create('activerecorddb'));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

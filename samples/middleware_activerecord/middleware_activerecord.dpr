@@ -16,7 +16,8 @@ uses
   FireDAC.Phys.PG,
   MainControllerU in 'MainControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  Entities in '..\activerecord_restful_crud\Entities.pas';
+  Entities in '..\activerecord_restful_crud\Entities.pas',
+  MVCFramework.Filters.ActiveRecord in '..\..\sources\MVCFramework.Filters.ActiveRecord.pas';
 
 {$R *.res}
 

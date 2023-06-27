@@ -1105,11 +1105,10 @@ type
 
     function AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer)
       : TMVCEngine;
-    function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
 
     { filters }
-    function AddFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine; overload;
-    function AddFilter(const AControllerFilter: IControllerFilter): TMVCEngine; overload;
+    function UseFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine; overload;
+    function UseFilter(const AControllerFilter: IControllerFilter): TMVCEngine; overload;
     { end - filters }
 
     function AddController(const AControllerClazz: TMVCControllerClazz;
@@ -2325,22 +2324,16 @@ begin
   Result := Self;
 end;
 
-function TMVCEngine.AddFilter(
+function TMVCEngine.UseFilter(
   const AControllerFilter: IControllerFilter): TMVCEngine;
 begin
   FControllerFilters.Use(AControllerFilter);
   Result := Self;
 end;
 
-function TMVCEngine.AddFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine;
+function TMVCEngine.UseFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine;
 begin
   FProtocolFilters.Use(AProtocolFilter);
-  Result := Self;
-end;
-
-function TMVCEngine.AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
-begin
-  FMiddlewares.Add(AMiddleware);
   Result := Self;
 end;
 
