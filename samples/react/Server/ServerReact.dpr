@@ -6,7 +6,7 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,
-  MVCFramework.REPLCommandsHandlerU,
+  MVCFramework.Signal,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -14,7 +14,9 @@ uses
   IdHTTPWebBrokerBridge,
   Controller.Customers in 'src\controller\Controller.Customers.pas',
   WebModule.Main in 'src\services\WebModule.Main.pas' {wmMain: TWebModule},
-  Model.Customer in 'src\model\Model.Customer.pas';
+  Model.Customer in 'src\model\Model.Customer.pas',
+  MVCFramework.Filters.CORS in '..\..\..\sources\MVCFramework.Filters.CORS.pas',
+  MVCFramework.Filters.StaticFiles in '..\..\..\sources\MVCFramework.Filters.StaticFiles.pas';
 
 {$R *.res}
 
@@ -22,35 +24,9 @@ uses
 procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
-  LCustomHandler: TMVCCustomREPLCommandsHandler;
-  LCmd: string;
 begin
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
-  LCmd := 'start';
-  if ParamCount >= 1 then
-    LCmd := ParamStr(1);
-
-  LCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
-    begin
-      Handled := False;
-      Result := THandleCommandResult.Unknown;
-
-      // Write here your custom command for the REPL using the following form...
-      // ***
-      // Handled := False;
-      // if (Value = 'apiversion') then
-      // begin
-      // REPLEmit('Print my API version number');
-      // Result := THandleCommandResult.Continue;
-      // Handled := True;
-      // end
-      // else if (Value = 'datetime') then
-      // begin
-      // REPLEmit(DateTimeToStr(Now));
-      // Result := THandleCommandResult.Continue;
-      // Handled := True;
-      // end;
-    end;
+  Writeln('Listening on port ', APort);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -66,34 +42,9 @@ begin
     LServer.ListenQueue := 200;
     {required if you use JWT middleware }
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
-
-    WriteLn('Write "quit" or "exit" to shutdown the server');
-    repeat
-      if LCmd.IsEmpty then
-      begin
-        Write('-> ');
-        ReadLn(LCmd)
-      end;
-      try
-        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of
-          THandleCommandResult.Continue:
-            begin
-              Continue;
-            end;
-          THandleCommandResult.Break:
-            begin
-              Break;
-            end;
-          THandleCommandResult.Unknown:
-            begin
-              REPLEmit('Unknown command: ' + LCmd);
-            end;
-        end;
-      finally
-        LCmd := '';
-      end;
-    until False;
-
+    LServer.Active := True;
+    WriteLn('CTRL+C to shutdown the server');
+    WaitForTerminationSignal;
   finally
     LServer.Free;
   end;

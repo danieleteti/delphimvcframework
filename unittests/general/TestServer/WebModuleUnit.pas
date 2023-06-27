@@ -70,7 +70,7 @@ uses
   MVCFramework.Middleware.Compression,
   MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
   MVCFramework.ActiveRecord, FDConnectionConfigU, SpeedProtocolFilterU,
-  MVCFramework.Filters.Compression;
+  MVCFramework.Filters.Compression, MVCFramework.Filters.StaticFiles;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -132,8 +132,10 @@ begin
     .AddFilter(TSpeedProtocolFilter.Create)
     //.AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
+    .AddFilter(TMVCStaticFilesProtocolFilter.Create('/static', 'www', 'index.html', False))
+    .AddFilter(TMVCStaticFilesProtocolFilter.Create('/spa', 'www', 'index.html', True))
+    //.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
+    //.AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     //.AddMiddleware(TMVCCompressionMiddleware.Create);
     .AddFilter(TMVCCompressionProtocolFilter.Create);

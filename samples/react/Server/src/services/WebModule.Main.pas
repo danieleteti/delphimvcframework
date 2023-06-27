@@ -28,10 +28,10 @@ implementation
 uses 
   Controller.Customers,
   System.IOUtils, 
-  MVCFramework.Commons, 
-  MVCFramework.Middleware.StaticFiles, 
-  MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.CORS;
+  MVCFramework.Commons,
+  MVCFramework.Filters.Compression,
+  MVCFramework.Filters.StaticFiles,
+  MVCFramework.Filters.CORS;
 
 procedure TwmMain.WebModuleCreate(Sender: TObject);
 begin
@@ -60,18 +60,26 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
   FMVC.AddController(TCustomersController);
-  FMVC.AddMiddleware(TMVCCORSMiddleware.Create());
+  //FMVC.AddMiddleware(TMVCCORSMiddleware.Create());
+  FMVC.AddFilter(TMVCCORSProtocolFilter.Create());
 
-  // Required to enable serving of static files 
-  // Remove the following middleware declaration if you don't  
+  FMVC.AddFilter(TMVCStaticFilesProtocolFilter.Create(
+    '/',
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), '..\..\WebApp\build\'))
+  );
+
+
+  // Required to enable serving of static files
+  // Remove the following middleware declaration if you don't
   // serve static files from this dmvcframework service.
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( 
-      '/static', 
-      TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')) 
-    );	
+//  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+//      '/static',
+//      TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'))
+//    );
 
-  // To enable compression (deflate, gzip) just add this middleware as the last one 
-  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  // To enable compression (deflate, gzip) just add this middleware as the last one
+  //FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  FMVC.AddFilter(TMVCCompressionProtocolFilter.Create);
 end;
 
 procedure TwmMain.WebModuleDestroy(Sender: TObject);

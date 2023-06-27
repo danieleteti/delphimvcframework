@@ -30,6 +30,7 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  Writeln('Listening on port ', APort);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try

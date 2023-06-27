@@ -28,7 +28,8 @@ uses
   MVCFramework.Filters.Action in '..\..\..\sources\MVCFramework.Filters.Action.pas',
   MVCFramework.Filters.Router in '..\..\..\sources\MVCFramework.Filters.Router.pas',
   SpeedProtocolFilterU in 'SpeedProtocolFilterU.pas',
-  MVCFramework.Filters.Compression in '..\..\..\sources\MVCFramework.Filters.Compression.pas';
+  MVCFramework.Filters.Compression in '..\..\..\sources\MVCFramework.Filters.Compression.pas',
+  MVCFramework.Filters.StaticFiles in '..\..\..\sources\MVCFramework.Filters.StaticFiles.pas';
 
 {$R *.res}
 

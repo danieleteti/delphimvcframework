@@ -121,6 +121,8 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="src\model\Model.Customer.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Filters.CORS.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Filters.StaticFiles.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -163,6 +165,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="Win32\Debug\ServerReact.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\ServerReact.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>ServerReact.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

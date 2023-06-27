@@ -2,6 +2,7 @@ object wmMain: TwmMain
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <>
-  Height = 230
-  Width = 415
+  Height = 575
+  Width = 1038
+  PixelsPerInch = 240
 end

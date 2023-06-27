@@ -135,7 +135,7 @@ begin
             Context.Response.StatusCode := http_status.NotFound;
             Context.Response.ReasonString := 'Not Found';
             //fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
-            raise EMVCRouteNotFound.CreateFmt('"%s %s" - not found',[Context.Request.HTTPMethodAsString, Context.Request.PathInfo]);
+            //raise EMVCRouteNotFound.CreateFmt('"%s %s" - not found',[Context.Request.HTTPMethodAsString, Context.Request.PathInfo]);
           end
           else
           begin

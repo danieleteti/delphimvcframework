@@ -31,8 +31,9 @@ uses
   MainControllerU,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles,
-  MVCFramework.Middleware.Compression, SPARedirectController;
+  MVCFramework.Filters.StaticFiles,
+  MVCFramework.Filters.Compression,
+  SPARedirectController;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -63,18 +64,17 @@ begin
     .AddController(TMyController)
     .AddController(TSPARedirectController);
 
-  // Required to enable serving of static files
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FMVC.AddFilter(TMVCStaticFilesProtocolFilter.Create(
     '/static',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'))
     );
 
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FMVC.AddFilter(TMVCStaticFilesProtocolFilter.Create(
     '/static2',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'))
     );
 
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FMVC.AddFilter(TMVCStaticFilesProtocolFilter.Create(
     '/static3',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www3'),
       'index.html',True,'UTF-8',
@@ -98,7 +98,7 @@ begin
     );
 
   // To enable compression (deflate, gzip) just add this middleware as the last one
-  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  FMVC.AddFilter(TMVCCompressionProtocolFilter.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
