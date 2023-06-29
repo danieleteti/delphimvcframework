@@ -10,6 +10,7 @@ uses
   Winapi.Windows,
   {$ENDIF }
   Web.WebBroker,
+  MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Console,
   WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},

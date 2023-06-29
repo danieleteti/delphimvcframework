@@ -14,9 +14,12 @@ var
   lSize: TMVCConsoleSize;
 
 begin
+  CursorOff;
   var c: Char := GetCh;
   WriteLn('Hai premuto ', c);
-  readln;
+  CursorOn;
+  WriteLn('Hit return to start');
+  while GetCh <> #13 do;
   try
     for F := 0 to 15 do
     begin
