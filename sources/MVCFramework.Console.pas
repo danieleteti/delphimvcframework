@@ -84,7 +84,8 @@ function TextAttr: Word;
 procedure SetTextAttr(const TextAttr: Word);
 function BackgroundAttr: Word;
 procedure SetBackgroundAttr(const BackgroundAttr: Word);
-
+procedure CursorOn;
+procedure CursorOff;
 
 function ColorName(const color: TConsoleColor): String;
 
@@ -101,6 +102,8 @@ var
   GBackGround, GSavedBackGround: Int16;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
+  GSaveCursorSize: Longint;
+  GCursorInfo  : TConsoleCursorInfo;
 
 function ColorName(const color: TConsoleColor): String;
 begin
@@ -149,8 +152,40 @@ begin
   raise EMVCConsole.Create('Not Implemented');
 end;
 
+procedure CursorOn;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+
+procedure CursorOff;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+
 {$ENDIF}
 {$IFDEF MSWINDOWS}
+
+procedure CursorOn;
+var
+  CursorInfo: TConsoleCursorInfo;
+begin
+  GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), CursorInfo);
+  CursorInfo.dwSize := GSaveCursorSize;
+  CursorInfo.bVisible := true;
+  SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), CursorInfo);
+end;
+
+
+procedure CursorOff;
+var
+  CursorInfo: TConsoleCursorInfo;
+begin
+  GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), CursorInfo);
+  CursorInfo.bVisible := false;
+  SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), CursorInfo);
+end;
 
 procedure WinCheck(const Value: LongBool);
 begin
@@ -244,6 +279,11 @@ begin
   GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
   if GOutHandle = INVALID_HANDLE_VALUE then
     raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
+
+  {--------------------- Get the cursor size and such -----------------------}
+  FillChar(GCursorInfo, SizeOf(GCursorInfo), 00);
+  GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), GCursorInfo);
+  GSaveCursorSize := GCursorInfo.dwSize;
 end;
 
 procedure UpdateMode;
@@ -259,7 +299,7 @@ begin
   lCoord.Y := Y;
   if not SetConsoleCursorPosition(GOutHandle, lCoord) then
   begin
-    raise EMVCConsole.Create('Invalid Coordinates');
+    raise EMVCConsole.CreateFmt('Invalid Coordinates X:%d, Y:%d', [X,Y]);
   end;
 end;
 
