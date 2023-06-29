@@ -379,9 +379,10 @@ type
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
     function GetHeader(const AName: string): string;
-    function ClientIp: string;
-    function ClientPrefer(const AMediaType: string): Boolean;
-    function ClientPreferHTML: Boolean;
+    function ClientIP: string;
+    function ClientAccept(const AMediaType: string): Boolean;
+    function ClientAcceptHTML: Boolean;
+    function ClientAcceptJSON: Boolean;
     function GetOverwrittenHTTPMethod: TMVCHTTPMethodType;
 
     function SegmentParam(const AParamName: string; out AValue: string): Boolean;
@@ -1495,7 +1496,7 @@ begin
   end;
 end;
 
-function TMVCWebRequest.ClientIp: string;
+function TMVCWebRequest.ClientIP: string;
 var
   S: string;
 begin
@@ -1534,22 +1535,21 @@ begin
 
   if FWebRequest.RemoteAddr <> EmptyStr then
     Exit(FWebRequest.RemoteAddr);
-
-  if FWebRequest.RemoteIP <> EmptyStr then
-    Exit(FWebRequest.RemoteIP);
-
-  if FWebRequest.RemoteHost <> EmptyStr then
-    Exit(FWebRequest.RemoteHost);
 end;
 
-function TMVCWebRequest.ClientPrefer(const AMediaType: string): Boolean;
+function TMVCWebRequest.ClientAccept(const AMediaType: string): Boolean;
 begin
   Result := AnsiPos(AMediaType, LowerCase(RawWebRequest.Accept)) = 1;
 end;
 
-function TMVCWebRequest.ClientPreferHTML: Boolean;
+function TMVCWebRequest.ClientAcceptHTML: Boolean;
 begin
-  Result := ClientPrefer(TMVCMediaType.TEXT_HTML);
+  Result := ClientAccept(TMVCMediaType.TEXT_HTML);
+end;
+
+function TMVCWebRequest.ClientAcceptJSON: Boolean;
+begin
+  Result := ClientAccept(TMVCMediaType.APPLICATION_JSON);
 end;
 
 function TMVCWebRequest.ContentParam(const AName: string): string;
@@ -2702,7 +2702,7 @@ begin
     lError.StatusCode := HTTPStatusCode;
     lError.Message := AReasonString;
 
-    if AContext.Request.ClientPreferHTML then
+    if AContext.Request.ClientAcceptHTML then
     begin
       if not Serializers.TryGetValue(TMVCMediaType.TEXT_HTML, lSer) then
       begin
@@ -2712,7 +2712,7 @@ begin
       AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_HTML,
         AContext.Config[TMVCConfigKey.DefaultContentCharset]));
     end
-    else if AContext.Request.ClientPrefer(AContext.Config[TMVCConfigKey.DefaultContentType]) and
+    else if AContext.Request.ClientAccept(AContext.Config[TMVCConfigKey.DefaultContentType]) and
       Serializers.TryGetValue(AContext.Config[TMVCConfigKey.DefaultContentType], lSer) then
     begin
       AContext.Response.SetContent(lSer.SerializeObject(lError));
