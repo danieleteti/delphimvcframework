@@ -252,6 +252,7 @@ begin
     lFileName := TPath.GetFullPath(TPath.Combine(lFullPathInfo, fIndexDocument));
     if SendStaticFileIfPresent(Context, lFileName) then
     begin
+      Context.Response.StatusCode := HTTP_STATUS.OK;
       Exit;
     end;
   end;

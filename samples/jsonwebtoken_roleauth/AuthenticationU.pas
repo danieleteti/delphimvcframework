@@ -7,7 +7,7 @@ uses
   MVCFramework.Commons,
   System.Generics.Collections,
   MVCFramework,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
   TAuthenticationSample = class(TRoleBasedAuthHandler)

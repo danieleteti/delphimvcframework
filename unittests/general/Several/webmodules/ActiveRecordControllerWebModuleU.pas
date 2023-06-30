@@ -50,7 +50,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.StaticFiles,
   FDConnectionConfigU;
 
 procedure TActiveRecordControllerWebModule.WebModuleCreate(Sender: TObject);

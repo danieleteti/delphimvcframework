@@ -7,7 +7,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
 

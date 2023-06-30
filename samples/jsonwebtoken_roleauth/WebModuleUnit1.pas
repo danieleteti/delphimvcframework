@@ -33,8 +33,8 @@ uses
   AppControllerU,
   System.Generics.Collections,
   AuthenticationU,
-  MVCFramework.Middleware.JWT,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.JWT,
+  MVCFramework.Filters.StaticFiles,
   MVCFramework.JWT,
   System.DateUtils;
 
@@ -56,8 +56,16 @@ begin
   FEngine
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
-    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300));
+    .UseFilter(TMVCJWTProtocolFilter.Create(
+      TAuthenticationSample.Create,
+      lClaimsSetup,
+      'mys3cr37',
+      '/login',
+      [
+        TJWTCheckableClaim.ExpirationTime,
+        TJWTCheckableClaim.NotBefore,
+        TJWTCheckableClaim.IssuedAt
+      ], 300));
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

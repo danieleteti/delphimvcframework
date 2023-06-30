@@ -8,7 +8,7 @@ uses
   System.SysUtils,
   System.Variants,
   System.Classes,
-  MVCFramework.Middleware.JWT,
+  MVCFramework.Filters.JWT,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,

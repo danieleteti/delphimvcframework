@@ -51,7 +51,7 @@ implementation
 
 uses
   MVCFramework.Tests.RESTClient,
-  MVCFramework.Middleware.Authentication,
+  MVCFramework.Filters.Authentication,
   MVCFramework.Tests.AppController,
   MVCFramework.Server,
   MVCFramework.Server.Impl;
@@ -65,7 +65,7 @@ begin
   // Add Controller
   FMVCEngine.AddController(TAppController);
 
-  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+  FMVCEngine.UseFilter(TMVCBasicAuthenticationControllerFilter.Create(
     TMVCDefaultAuthenticationHandler.New
     .SetOnAuthentication(
     procedure(const AUserName, APassword: string;

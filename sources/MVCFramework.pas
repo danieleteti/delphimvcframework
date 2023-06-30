@@ -947,6 +947,7 @@ type
     procedure DoFilter(Context:  TWebContext);
     procedure SetNext(NextFilter: IProtocolFilter);
     procedure DoNext(Context: TWebContext);
+    procedure OnAfterRegistration(Engine: TMVCEngine);
   end;
 
   IProtocolFilterChain = interface
@@ -988,6 +989,7 @@ type
     procedure DoNext(Context: TWebContext);
     procedure DoFilter(Context: TWebContext); virtual; abstract;
     procedure SetNext(NextFilter: IProtocolFilter);
+    procedure OnAfterRegistration(Engine: TMVCEngine); virtual;
   end;
 
   TProtocolFilterChain = class(TInterfacedObject, IProtocolFilterChainBuilder, IProtocolFilterChain)
@@ -2334,6 +2336,7 @@ end;
 function TMVCEngine.UseFilter(const AProtocolFilter: IProtocolFilter): TMVCEngine;
 begin
   FProtocolFilters.Use(AProtocolFilter);
+  AProtocolFilter.OnAfterRegistration(Self);
   Result := Self;
 end;
 
@@ -3907,6 +3910,11 @@ begin
   begin
     fNext.DoFilter(Context);
   end;
+end;
+
+procedure TProtocolFilter.OnAfterRegistration(Engine: TMVCEngine);
+begin
+  //do nothing
 end;
 
 procedure TProtocolFilter.SetNext(NextFilter: IProtocolFilter);

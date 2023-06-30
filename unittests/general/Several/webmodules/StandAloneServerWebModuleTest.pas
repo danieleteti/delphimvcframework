@@ -27,7 +27,7 @@ var
 implementation
 
 uses
-  MVCFramework.Middleware.Authentication,
+  MVCFramework.Filters.Authentication,
   MVCFramework.Server,
   MVCFramework.Server.Impl,
   StandaloneServerTestU;
@@ -46,7 +46,7 @@ begin
     end
     );
 
-  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+  FMVCEngine.UseFilter(TMVCBasicAuthenticationControllerFilter.Create(
     TMVCDefaultAuthenticationHandler.New
     .SetOnAuthentication(
     procedure(const AUserName, APassword: string;

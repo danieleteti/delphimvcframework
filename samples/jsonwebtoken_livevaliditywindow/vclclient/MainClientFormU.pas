@@ -41,7 +41,7 @@ implementation
 uses
   MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient,
-  MVCFramework.Middleware.JWT,
+  MVCFramework.Filters.JWT,
   MVCFramework.Commons,
   MVCFramework.SystemJSONUtils,
   System.NetEncoding,

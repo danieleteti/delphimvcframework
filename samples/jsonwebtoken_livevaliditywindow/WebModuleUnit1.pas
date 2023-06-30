@@ -32,10 +32,10 @@ uses
   AppControllerU,
   System.Generics.Collections,
   AuthenticationU,
-  MVCFramework.Middleware.JWT,
+  MVCFramework.Filters.JWT,
   MVCFramework.JWT,
   MVCFramework.HMAC,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.StaticFiles,
   System.DateUtils;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
@@ -64,7 +64,7 @@ begin
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+    .UseFilter(TMVCJWTProtocolFilter.Create(
       TAuthenticationSample.Create,
       lClaimsSetup,
       'mys3cr37',

@@ -57,7 +57,7 @@ uses
   TestServerControllerU,
   TestServerControllerExceptionU,
   SpeedMiddlewareU,
-  MVCFramework.Middleware.Authentication,
+  MVCFramework.Filters.Authentication,
   MVCFramework.ActiveRecordController,
   System.Generics.Collections,
   MVCFramework.Commons,
@@ -67,10 +67,12 @@ uses
   {$IFNDEF LINUX}
   MVCFramework.View.Renderers.Mustache,
   {$ENDIF}
-  MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
-  MVCFramework.ActiveRecord, FDConnectionConfigU, SpeedProtocolFilterU,
-  MVCFramework.Filters.Compression, MVCFramework.Filters.StaticFiles;
+  MVCFramework.Filters.Compression,
+  MVCFramework.Filters.StaticFiles,
+  FireDAC.Comp.Client,
+  MVCFramework.ActiveRecord,
+  FDConnectionConfigU,
+  SpeedProtocolFilterU;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -129,16 +131,12 @@ begin
     begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
-    .AddFilter(TSpeedProtocolFilter.Create)
-    //.AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
-    .AddFilter(TMVCStaticFilesProtocolFilter.Create('/static', 'www', 'index.html', False))
-    .AddFilter(TMVCStaticFilesProtocolFilter.Create('/spa', 'www', 'index.html', True))
-    //.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
-    //.AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
-    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
-    //.AddMiddleware(TMVCCompressionMiddleware.Create);
-    .AddFilter(TMVCCompressionProtocolFilter.Create);
+    .UseFilter(TMVCBasicAuthenticationControllerFilter.Create(TBasicAuthHandler.Create))
+    .UseFilter(TSpeedProtocolFilter.Create)
+//    .UseFilter(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
+    .UseFilter(TMVCStaticFilesProtocolFilter.Create('/static', 'www', 'index.html', False))
+    .UseFilter(TMVCStaticFilesProtocolFilter.Create('/spa', 'www', 'index.html', True))
+    .UseFilter(TMVCCompressionProtocolFilter.Create);
 {$IFDEF MSWINDOWS}
   MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
   RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);

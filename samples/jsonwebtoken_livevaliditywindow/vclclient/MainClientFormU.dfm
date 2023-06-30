@@ -10,8 +10,6 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
-  PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
     Left = 0
@@ -37,6 +35,7 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 1
+    ExplicitWidth = 904
   end
   object Memo2: TMemo
     Left = 0
@@ -52,6 +51,8 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 2
+    ExplicitWidth = 904
+    ExplicitHeight = 196
   end
   object Panel1: TPanel
     Left = 0
@@ -60,6 +61,7 @@ object MainForm: TMainForm
     Height = 81
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 904
     object Label1: TLabel
       AlignWithMargins = True
       Left = 540

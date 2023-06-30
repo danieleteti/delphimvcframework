@@ -1,5 +1,4 @@
 object TestWebModule1: TTestWebModule1
-  OldCreateOrder = False
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <

@@ -32,8 +32,8 @@ uses
   AppControllerU,
   System.Generics.Collections,
   AuthenticationU,
-  MVCFramework.Middleware.JWT,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.JWT,
+  MVCFramework.Filters.StaticFiles,
   MVCFramework.JWT,
   System.DateUtils;
 
@@ -66,8 +66,8 @@ begin
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(
-      TMVCJWTAuthenticationMiddleware.Create(
+    .UseFilter(
+      TMVCJWTProtocolFilter.Create(
         TAuthenticationSample.Create,
         lClaimsSetup,
         'mys3cr37',
@@ -77,7 +77,7 @@ begin
           TJWTCheckableClaim.NotBefore,
           TJWTCheckableClaim.IssuedAt
         ], 300))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    .UseFilter(TMVCStaticFilesProtocolFilter.Create(
     '/static', { StaticFilesPath }
     '..\..\www' { DocumentRoot }
     ));
