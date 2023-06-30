@@ -33,7 +33,7 @@ uses
   MVCFramework.Logger;
 
 type
-  TMVCCompressionProtocolFilter = class(TProtocolFilter)
+  TMVCCompressionProtocolFilter = class(TCustomProtocolFilter)
   private
     fCompressionThreshold: Integer;
   protected

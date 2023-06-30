@@ -1,30 +1,29 @@
-program CustomAuthServer;
+program FiltersSamples;
 
 {$APPTYPE CONSOLE}
+
 
 uses
   System.SysUtils,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  PublicControllerU in 'PublicControllerU.pas',
-  MyWebModuleU in 'MyWebModuleU.pas' {MyWebModule: TWebModule} ,
-  PrivateControllerU in 'PrivateControllerU.pas',
-  AuthHandlerU in 'AuthHandlerU.pas';
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
+  AppControllerU in 'AppControllerU.pas',
+  MiddlewareSample1 in 'MiddlewareSample1.pas';
 
 {$R *.res}
+
 
 procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server **');
-  Writeln(Format('Starting HTTP Server on port %d', [APort]));
+  Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
     Writeln('Press RETURN to stop the server');
     ReadLn;
   finally
@@ -42,6 +41,6 @@ begin
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
-  end;
+  end
 
 end.

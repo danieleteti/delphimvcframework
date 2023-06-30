@@ -86,20 +86,6 @@ type
     destructor Destroy; override;
   end;
 
-//  TMVCRoleBasedAuthMiddleware = class(TMVCCustomAuthenticationMiddleware, IMVCMiddleware)
-//  private
-//    fAuthenticationHandler: IMVCRoleBasedAuthenticationHandler;
-//    procedure DoRoleBasedBeforeControllerAction(const AContext: TWebContext;
-//      const aHandler: IMVCRoleBasedAuthenticationHandler; const AControllerQualifiedClassName: string;
-//      const AActionName: string; var AHandled: Boolean);
-//  protected
-//    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
-//      const AActionName: string; var AHandled: Boolean); override;
-//  public
-//    constructor Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
-//      const ALoginUrl: string = '/system/users/logged'); override;
-//  end;
-
 implementation
 
 uses
@@ -305,81 +291,5 @@ begin
     vResultList.Free;
   end;
 end;
-
-{ TMVCRoleBasedAuthMiddleware }
-
-//constructor TMVCRoleBasedAuthMiddleware.Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
-//  const ALoginUrl: string);
-//begin
-//  inherited Create(AAuthenticationHandler, ALoginUrl);
-//  Supports(AAuthenticationHandler, IMVCRoleBasedAuthenticationHandler, fAuthenticationHandler);
-//end;
-
-//procedure TMVCRoleBasedAuthMiddleware.DoRoleBasedBeforeControllerAction(const AContext: TWebContext;
-//  const aHandler: IMVCRoleBasedAuthenticationHandler; const AControllerQualifiedClassName: string;
-//  const AActionName: string; var AHandled: Boolean);
-//var
-//  IsValid: Boolean;
-//  IsAuthorized: Boolean;
-//  AuthRequired: Boolean;
-//begin
-//  // This procedure is a basic copy of the inherited OnBeforeControllerAction procedure.
-//  // Extention is by enabling the Authorization based on the context the call is being performed.
-//  aHandler.OnRequest(nil, AControllerQualifiedClassName, AActionName, AuthRequired);
-//  if not AuthRequired then
-//  begin
-//    AHandled := False;
-//    Exit;
-//  end;
-//
-//  AContext.LoggedUser.LoadFromSession(AContext.Session);
-//  IsValid := AContext.LoggedUser.IsValid;
-//  if not IsValid then
-//  begin
-//    AContext.SessionStop(False);
-//    SendResponse(AContext, AHandled);
-//    Exit;
-//  end;
-//
-//  IsAuthorized := False;
-//
-//  // Modification here from:
-//  // FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
-//  // to:
-//  aHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
-//    IsAuthorized);
-//  // Modification end
-//
-//  if IsAuthorized then
-//  begin
-//    AHandled := False;
-//  end
-//  else
-//  begin
-//    if IsValid then
-//    begin
-//      SendResponse(AContext, AHandled, HTTP_STATUS.Forbidden)
-//    end
-//    else
-//    begin
-//      SendResponse(AContext, AHandled, HTTP_STATUS.Unauthorized);
-//    end;
-//  end;
-//end;
-
-//procedure TMVCRoleBasedAuthMiddleware.OnBeforeControllerAction(AContext: TWebContext;
-//  const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
-//begin
-//  if Assigned(fAuthenticationHandler) then
-//  begin
-//    DoRoleBasedBeforeControllerAction(AContext, fAuthenticationHandler, AControllerQualifiedClassName,
-//      AActionName, AHandled)
-//  end
-//  else
-//  begin
-//    inherited OnBeforeControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
-//  end;
-//end;
-
 
 end.

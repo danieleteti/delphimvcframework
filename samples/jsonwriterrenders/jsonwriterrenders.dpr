@@ -3,6 +3,8 @@ program jsonwriterrenders;
  {$APPTYPE CONSOLE}
 
 uses
+  MVCFramework,
+  MVCFramework.Signal,
   System.SysUtils,
   Winapi.Windows,
   Winapi.ShellAPI,
@@ -16,9 +18,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln('** DMVCFramework Server **');
@@ -28,16 +27,9 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    Writeln('CTRL+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

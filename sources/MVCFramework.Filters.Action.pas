@@ -6,7 +6,7 @@ uses
   MVCFramework, MVCFramework.Router, MVCFramework.Commons, System.RTTI;
 
 type
-  TMVCActionControllerFilter = class(TControllerFilter)
+  TMVCActionControllerFilter = class(TCustomControllerFilter)
   private const
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
       'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime, String and TGUID';

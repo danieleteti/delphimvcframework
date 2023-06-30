@@ -42,7 +42,7 @@ type
 
   end;
 
-  TMVCRouterFilter = class(TProtocolFilter)
+  TMVCRouterFilter = class(TCustomProtocolFilter)
   private
     fEngine: TMVCEngine;
     fConfig: TMVCConfig;

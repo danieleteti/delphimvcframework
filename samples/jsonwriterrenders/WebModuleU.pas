@@ -27,7 +27,7 @@ implementation
 uses
   MVCFramework.Commons,
   JSONSampleController,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Filters.StaticFiles;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -50,7 +50,7 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyController);
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FMVC.UseFilter(TMVCStaticFilesProtocolFilter.Create(
     '/', { StaticFilesPath }
     ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}

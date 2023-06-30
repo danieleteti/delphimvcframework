@@ -133,7 +133,6 @@ begin
     end)
     .UseFilter(TMVCBasicAuthenticationControllerFilter.Create(TBasicAuthHandler.Create))
     .UseFilter(TSpeedProtocolFilter.Create)
-//    .UseFilter(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .UseFilter(TMVCStaticFilesProtocolFilter.Create('/static', 'www', 'index.html', False))
     .UseFilter(TMVCStaticFilesProtocolFilter.Create('/spa', 'www', 'index.html', True))
     .UseFilter(TMVCCompressionProtocolFilter.Create);

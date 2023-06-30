@@ -58,7 +58,7 @@ type
 
   TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
   TMVCStaticFileMediaTypesCustomizer = reference to procedure(const MediaTypes: TMVCStringDictionary);
-  TMVCStaticFilesProtocolFilter = class(TProtocolFilter)
+  TMVCStaticFilesProtocolFilter = class(TCustomProtocolFilter)
   private
     fSanityCheckOK: Boolean;
     fMediaTypes: TMVCStringDictionary;

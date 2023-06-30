@@ -65,7 +65,7 @@ type
 
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
 
-  TMVCJWTProtocolFilter = class(TProtocolFilter)
+  TMVCJWTProtocolFilter = class(TCustomProtocolFilter)
   private
     FAuthenticationHandler: IMVCAuthenticationHandler;
     FClaimsToChecks: TJWTCheckableClaims;
@@ -88,7 +88,7 @@ type
     procedure OnAfterRegistration(Engine: TMVCEngine); override;
 
     type
-      TMVCJWTControllerFilter = class(TControllerFilter)
+      TMVCJWTControllerFilter = class(TCustomControllerFilter)
       protected
         FAuthorizationHeaderName: string;
         FAuthorizationAccessToken: string;
@@ -124,7 +124,7 @@ type
     var AAccepted: Boolean);
   TMVCOnNewJWTToBlackList = reference to procedure(AContext: TWebContext; AJWTToken: String);
 
-  TMVCJWTBlackListProtocolFilter = class(TProtocolFilter)
+  TMVCJWTBlackListProtocolFilter = class(TCustomProtocolFilter)
   private
     fOnAcceptToken: TMVCOnAcceptTokenProc;
     fOnNewJWTToBlackList: TMVCOnNewJWTToBlackList;

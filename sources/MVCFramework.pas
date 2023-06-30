@@ -982,7 +982,7 @@ type
     function Build(const Engine: TMVCEngine): IControllerFilterChain;
   end;
 
-  TProtocolFilter = class abstract(TInterfacedObject, IProtocolFilter)
+  TCustomProtocolFilter = class abstract(TInterfacedObject, IProtocolFilter)
   private
     fNext: IProtocolFilter;
   protected
@@ -1016,7 +1016,7 @@ type
     function Build(const Engine: TMVCEngine): IControllerFilterChain;
   end;
 
-  TControllerFilter = class abstract(TInterfacedObject, IControllerFilter)
+  TCustomControllerFilter = class abstract(TInterfacedObject, IControllerFilter)
   private
     fNext: IControllerFilter;
     fEngine: TMVCEngine;
@@ -3904,7 +3904,7 @@ end;
 
 { TFilter }
 
-procedure TProtocolFilter.DoNext(Context: TWebContext);
+procedure TCustomProtocolFilter.DoNext(Context: TWebContext);
 begin
   if Assigned(fNext) then
   begin
@@ -3912,12 +3912,12 @@ begin
   end;
 end;
 
-procedure TProtocolFilter.OnAfterRegistration(Engine: TMVCEngine);
+procedure TCustomProtocolFilter.OnAfterRegistration(Engine: TMVCEngine);
 begin
   //do nothing
 end;
 
-procedure TProtocolFilter.SetNext(NextFilter: IProtocolFilter);
+procedure TCustomProtocolFilter.SetNext(NextFilter: IProtocolFilter);
 begin
   fNext := NextFilter;
 end;
@@ -3996,9 +3996,9 @@ begin
   Result := Self;
 end;
 
-{ TControllerFilter }
+{ TCustomControllerFilter }
 
-procedure TControllerFilter.DoNext(
+procedure TCustomControllerFilter.DoNext(
       Context: TWebContext;
       const Router: IMVCRouter);
 begin
@@ -4008,17 +4008,17 @@ begin
   end;
 end;
 
-function TControllerFilter.GetEngine: TMVCEngine;
+function TCustomControllerFilter.GetEngine: TMVCEngine;
 begin
   Result := fEngine;
 end;
 
-procedure TControllerFilter.SetEngine(const Engine: TMVCEngine);
+procedure TCustomControllerFilter.SetEngine(const Engine: TMVCEngine);
 begin
   fEngine := Engine;
 end;
 
-procedure TControllerFilter.SetNext(NextFilter: IControllerFilter);
+procedure TCustomControllerFilter.SetNext(NextFilter: IControllerFilter);
 begin
   fNext := NextFilter;
 end;

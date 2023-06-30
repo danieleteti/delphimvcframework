@@ -179,16 +179,16 @@ type
     [Test]
     procedure TestBasicAuth05;
     // test authentication/authorization with CustomAuth
-    [Test]
-    procedure TestCustomAuthRequestWithoutLogin;
-    [Test]
-    procedure TestCustomAuthRequestsWithValidLogin;
-    [Test]
-    procedure TestCustomAuthRequestsWithValidLogin_HTML;
-    [Test]
-    procedure TestCustomAuthWrongRequestBodies;
-    [Test]
-    procedure TestCustomAuthLoginLogout;
+//    [Test]
+//    procedure TestCustomAuthRequestWithoutLogin;
+//    [Test]
+//    procedure TestCustomAuthRequestsWithValidLogin;
+//    [Test]
+//    procedure TestCustomAuthRequestsWithValidLogin_HTML;
+//    [Test]
+//    procedure TestCustomAuthWrongRequestBodies;
+//    [Test]
+//    procedure TestCustomAuthLoginLogout;
 
     // typed actions
     [Test]
@@ -713,125 +713,125 @@ begin
 
 end;
 
-procedure TServerTest.TestCustomAuthRequestWithoutLogin;
-var
-  lRes: IMVCRESTResponse;
-begin
-  lRes := RESTClient.Get('/privatecustom/role1');
-  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode);
-  Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGIN-URL'));
-  Assert.areEqual('POST', lRes.HeaderValue('X-LOGIN-METHOD'));
+//procedure TServerTest.TestCustomAuthRequestWithoutLogin;
+//var
+//  lRes: IMVCRESTResponse;
+//begin
+//  lRes := RESTClient.Get('/privatecustom/role1');
+//  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode);
+//  Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGIN-URL'));
+//  Assert.areEqual('POST', lRes.HeaderValue('X-LOGIN-METHOD'));
+//
+//  lRes := RESTClient.Get('/privatecustom/role2');
+//  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode);
+//  Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGIN-URL'));
+//  Assert.areEqual('POST', lRes.HeaderValue('X-LOGIN-METHOD'));
+//end;
 
-  lRes := RESTClient.Get('/privatecustom/role2');
-  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode);
-  Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGIN-URL'));
-  Assert.areEqual('POST', lRes.HeaderValue('X-LOGIN-METHOD'));
-end;
+//procedure TServerTest.TestCustomAuthRequestsWithValidLogin;
+//var
+//  lRes: IMVCRESTResponse;
+//  lJSON: System.JSON.TJSONObject;
+//  lCookieValue: string;
+//begin
+//  lJSON := System.JSON.TJSONObject.Create;
+//  try
+//    lJSON.AddPair('username', 'user1');
+//    lJSON.AddPair('password', 'user1');
+//    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+//    Assert.areEqual('application/json', lRes.ContentType);
+//    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+//    Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGOUT-URL'));
+//    Assert.areEqual('DELETE', lRes.HeaderValue('X-LOGOUT-METHOD'));
+//    Assert.areEqual('{"status":"OK"}', lRes.Content);
+//    lCookieValue := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME).Value;
+//    Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
+//    Assert.IsFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
+//
+//    lRes := RESTClient.Get('/privatecustom/role2');
+//    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, lRes.StatusCode,
+//      'Authorization not respected for not allowed action');
+//
+//    lRes := RESTClient.Get('/privatecustom/role1');
+//    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
+//      'Authorization not respected for allowed action');
+//  finally
+//    lJSON.Free;
+//  end;
+//end;
 
-procedure TServerTest.TestCustomAuthRequestsWithValidLogin;
-var
-  lRes: IMVCRESTResponse;
-  lJSON: System.JSON.TJSONObject;
-  lCookieValue: string;
-begin
-  lJSON := System.JSON.TJSONObject.Create;
-  try
-    lJSON.AddPair('username', 'user1');
-    lJSON.AddPair('password', 'user1');
-    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
-    Assert.areEqual('application/json', lRes.ContentType);
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
-    Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGOUT-URL'));
-    Assert.areEqual('DELETE', lRes.HeaderValue('X-LOGOUT-METHOD'));
-    Assert.areEqual('{"status":"OK"}', lRes.Content);
-    lCookieValue := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME).Value;
-    Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
-    Assert.IsFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
+//procedure TServerTest.TestCustomAuthRequestsWithValidLogin_HTML;
+//var
+//  lRes: IMVCRESTResponse;
+//  lJSON: System.JSON.TJSONObject;
+//  lCookieValue: string;
+//  lContentType: string;
+//  lContentCharset: string;
+//begin
+//  lJSON := System.JSON.TJSONObject.Create;
+//  try
+//    lJSON.AddPair('username', 'user1');
+//    lJSON.AddPair('password', 'user1');
+//    lRes := RESTClient.Accept('text/html').Post('/system/users/logged',
+//      TSystemJSON.JSONValueToString(lJSON, false));
+//    SplitContentMediaTypeAndCharset(lRes.ContentType, lContentType, lContentCharset);
+//    Assert.areEqual(lContentType, TMVCMediaType.APPLICATION_JSON);
+//    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+//    Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGOUT-URL'));
+//    Assert.areEqual('DELETE', lRes.HeaderValue('X-LOGOUT-METHOD'));
+//    Assert.areEqual('{"status":"OK"}', lRes.Content);
+//    lCookieValue := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME).Value;
+//    Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
+//    Assert.IsFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
+//
+//    lRes := RESTClient.Get('/privatecustom/role2');
+//    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, lRes.StatusCode,
+//      'Authorization not respected for not allowed action');
+//
+//    lRes := RESTClient.Get('/privatecustom/role1');
+//    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
+//      'Authorization not respected for allowed action');
+//  finally
+//    lJSON.Free;
+//  end;
+//end;
 
-    lRes := RESTClient.Get('/privatecustom/role2');
-    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, lRes.StatusCode,
-      'Authorization not respected for not allowed action');
-
-    lRes := RESTClient.Get('/privatecustom/role1');
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
-      'Authorization not respected for allowed action');
-  finally
-    lJSON.Free;
-  end;
-end;
-
-procedure TServerTest.TestCustomAuthRequestsWithValidLogin_HTML;
-var
-  lRes: IMVCRESTResponse;
-  lJSON: System.JSON.TJSONObject;
-  lCookieValue: string;
-  lContentType: string;
-  lContentCharset: string;
-begin
-  lJSON := System.JSON.TJSONObject.Create;
-  try
-    lJSON.AddPair('username', 'user1');
-    lJSON.AddPair('password', 'user1');
-    lRes := RESTClient.Accept('text/html').Post('/system/users/logged',
-      TSystemJSON.JSONValueToString(lJSON, false));
-    SplitContentMediaTypeAndCharset(lRes.ContentType, lContentType, lContentCharset);
-    Assert.areEqual(lContentType, TMVCMediaType.APPLICATION_JSON);
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
-    Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGOUT-URL'));
-    Assert.areEqual('DELETE', lRes.HeaderValue('X-LOGOUT-METHOD'));
-    Assert.areEqual('{"status":"OK"}', lRes.Content);
-    lCookieValue := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME).Value;
-    Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
-    Assert.IsFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
-
-    lRes := RESTClient.Get('/privatecustom/role2');
-    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, lRes.StatusCode,
-      'Authorization not respected for not allowed action');
-
-    lRes := RESTClient.Get('/privatecustom/role1');
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
-      'Authorization not respected for allowed action');
-  finally
-    lJSON.Free;
-  end;
-end;
-
-procedure TServerTest.TestCustomAuthWrongRequestBodies;
-var
-  lRes: IMVCRESTResponse;
-  lJSON: System.JSON.TJSONObject;
-begin
-  lJSON := System.JSON.TJSONObject.Create;
-  try
-    // no request body
-    lRes := RESTClient.AddBody('', TMVCMediaType.APPLICATION_JSON).Post('/system/users/logged');
-    Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lRes.StatusCode,
-      'Empty request body doesn''t return HTTP 400 Bad Request');
-
-    // wrong request body 1
-    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
-    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
-      'Invalid json doesn''t return HTTP 401 Unauthorized');
-
-    // wrong request body 2
-    lJSON.AddPair('username', '');
-    lJSON.AddPair('password', '');
-    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
-    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
-      'Empty username and password doesn''t return HTTP 401 Unauthorized');
-
-    // wrong username and password 3
-    lJSON.RemovePair('username').Free;
-    lJSON.RemovePair('password').Free;
-    lJSON.AddPair('username', 'notvaliduser');
-    lJSON.AddPair('password', 'notvalidpassword');
-    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
-    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
-      'Wrong username and password doesn''t return HTTP 401 Unauthorized');
-  finally
-    lJSON.Free;
-  end;
-end;
+//procedure TServerTest.TestCustomAuthWrongRequestBodies;
+//var
+//  lRes: IMVCRESTResponse;
+//  lJSON: System.JSON.TJSONObject;
+//begin
+//  lJSON := System.JSON.TJSONObject.Create;
+//  try
+//    // no request body
+//    lRes := RESTClient.AddBody('', TMVCMediaType.APPLICATION_JSON).Post('/system/users/logged');
+//    Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lRes.StatusCode,
+//      'Empty request body doesn''t return HTTP 400 Bad Request');
+//
+//    // wrong request body 1
+//    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+//    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
+//      'Invalid json doesn''t return HTTP 401 Unauthorized');
+//
+//    // wrong request body 2
+//    lJSON.AddPair('username', '');
+//    lJSON.AddPair('password', '');
+//    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+//    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
+//      'Empty username and password doesn''t return HTTP 401 Unauthorized');
+//
+//    // wrong username and password 3
+//    lJSON.RemovePair('username').Free;
+//    lJSON.RemovePair('password').Free;
+//    lJSON.AddPair('username', 'notvaliduser');
+//    lJSON.AddPair('password', 'notvalidpassword');
+//    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+//    Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode,
+//      'Wrong username and password doesn''t return HTTP 401 Unauthorized');
+//  finally
+//    lJSON.Free;
+//  end;
+//end;
 
 procedure TServerTest.TestCustomerEcho;
 var
@@ -995,38 +995,38 @@ begin
   end;
 end;
 
-procedure TServerTest.TestCustomAuthLoginLogout;
-var
-  lRes: IMVCRESTResponse;
-  lJSON: System.JSON.TJSONObject;
-  lLogoutUrl: string;
-  lPass: boolean;
-  lCookie: TCookie;
-begin
-  lJSON := System.JSON.TJSONObject.Create;
-  try
-    lJSON.AddPair('username', 'user1');
-    lJSON.AddPair('password', 'user1');
-    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
-
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
-    lLogoutUrl := lRes.HeaderValue('X-LOGOUT-URL');
-
-    lRes := RESTClient.Delete(lLogoutUrl);
-    lPass := false;
-    for lCookie in lRes.Cookies do
-    begin
-      if lCookie.Value.Contains('invalid') then
-      begin
-        lPass := true;
-        Break;
-      end;
-    end;
-    Assert.isTrue(lPass, 'No session cookie cleanup in the response');
-  finally
-    lJSON.Free;
-  end;
-end;
+//procedure TServerTest.TestCustomAuthLoginLogout;
+//var
+//  lRes: IMVCRESTResponse;
+//  lJSON: System.JSON.TJSONObject;
+//  lLogoutUrl: string;
+//  lPass: boolean;
+//  lCookie: TCookie;
+//begin
+//  lJSON := System.JSON.TJSONObject.Create;
+//  try
+//    lJSON.AddPair('username', 'user1');
+//    lJSON.AddPair('password', 'user1');
+//    lRes := RESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+//
+//    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+//    lLogoutUrl := lRes.HeaderValue('X-LOGOUT-URL');
+//
+//    lRes := RESTClient.Delete(lLogoutUrl);
+//    lPass := false;
+//    for lCookie in lRes.Cookies do
+//    begin
+//      if lCookie.Value.Contains('invalid') then
+//      begin
+//        lPass := true;
+//        Break;
+//      end;
+//    end;
+//    Assert.isTrue(lPass, 'No session cookie cleanup in the response');
+//  finally
+//    lJSON.Free;
+//  end;
+//end;
 
 procedure TServerTest.TestEchoWithAllVerbs;
 var

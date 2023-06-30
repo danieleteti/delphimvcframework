@@ -30,7 +30,7 @@ uses
   MVCFramework;
 
 type
-  TSpeedProtocolFilter = class(TProtocolFilter)
+  TSpeedProtocolFilter = class(TCustomProtocolFilter)
   protected
     procedure DoFilter(Context: TWebContext); override;
   end;
