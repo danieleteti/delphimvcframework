@@ -10,12 +10,10 @@ object Form7: TForm7
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   DesignSize = (
     556
     434)
-  PixelsPerInch = 96
   TextHeight = 13
   object Label3: TLabel
     Left = 8
@@ -136,46 +134,53 @@ object Form7: TForm7
     Height = 27
     Align = alBottom
     TabOrder = 10
+    ExplicitTop = 406
+    ExplicitWidth = 552
   end
   object Button1: TButton
     Left = 311
     Top = 31
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call Public Action (no login required)'
     TabOrder = 0
     OnClick = Button1Click
+    ExplicitWidth = 229
   end
   object Memo1: TMemo
     Left = 8
     Top = 262
-    Width = 540
+    Width = 536
     Height = 139
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'Memo1')
     TabOrder = 9
+    ExplicitWidth = 532
+    ExplicitHeight = 138
   end
   object Button2: TButton
     Left = 311
     Top = 97
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role1"'
     TabOrder = 4
     OnClick = Button2Click
+    ExplicitWidth = 229
   end
   object Button3: TButton
     Left = 311
     Top = 130
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role2"'
     TabOrder = 5
     OnClick = Button3Click
+    ExplicitWidth = 229
   end
   object ListBox1: TListBox
     Left = 8
@@ -195,42 +200,46 @@ object Form7: TForm7
   object Button4: TButton
     Left = 311
     Top = 163
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role1 and role2"'
     TabOrder = 6
     OnClick = Button4Click
+    ExplicitWidth = 229
   end
   object Button5: TButton
     Left = 311
     Top = 229
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call dynamic eval for admin'
     TabOrder = 8
     OnClick = Button5Click
+    ExplicitWidth = 229
   end
   object Button6: TButton
     Left = 311
     Top = 64
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call Authenticated only'
     TabOrder = 1
     OnClick = Button6Click
+    ExplicitWidth = 229
   end
   object Button7: TButton
     Left = 311
     Top = 196
-    Width = 237
+    Width = 233
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role1 or role2"'
     TabOrder = 7
     OnClick = Button7Click
+    ExplicitWidth = 229
   end
   object ApplicationEvents1: TApplicationEvents
     OnIdle = ApplicationEvents1Idle

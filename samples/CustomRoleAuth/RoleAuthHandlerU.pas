@@ -32,7 +32,7 @@ uses
   MVCFramework.Commons,
   MVCFramework,
   System.Generics.Collections,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
   TCustomRoleAuth = class(TRoleBasedAuthHandler)

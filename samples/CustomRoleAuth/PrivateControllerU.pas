@@ -31,7 +31,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
 

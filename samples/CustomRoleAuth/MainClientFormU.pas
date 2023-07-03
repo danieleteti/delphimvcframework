@@ -121,7 +121,7 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJObj, False));
+      lRes := FRESTClient.Post('/login', TSystemJSON.JSONValueToString(lJObj, False));
       if not lRes.Success then
       begin
         ShowMessage(lRes.Content);

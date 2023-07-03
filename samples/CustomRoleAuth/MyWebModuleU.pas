@@ -54,8 +54,8 @@ implementation
 uses
   MVCFramework.Commons,
   PrivateControllerU,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler,
+  MVCFramework.Filters.StaticFiles,
   RoleAuthHandlerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -79,7 +79,7 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TPrivateController);
-  FMVC.AddMiddleware(
+  FMVC.UseFilter(
     TMVCRoleBasedAuthMiddleware.Create(
     TCustomRoleAuth.Create,
     '/system/users/logged'
