@@ -38,7 +38,7 @@ uses
 
 type
 
-  TMVCActiveRecordProtocolFilter = class(TProtocolFilter)
+  TMVCActiveRecordProtocolFilter = class(TCustomProtocolFilter)
   private
     fDefaultConnectionDefName: string;
     fConnectionDefFileName: string;

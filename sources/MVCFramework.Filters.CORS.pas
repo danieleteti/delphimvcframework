@@ -60,7 +60,7 @@ type
     ALLOWS_METHODS = 'POST,GET,OPTIONS,PUT,DELETE';
   end;
 
-  TMVCCORSProtocolFilter = class(TProtocolFilter)
+  TMVCCORSProtocolFilter = class(TCustomProtocolFilter)
   private
     FAllowedOriginURL: string;
     FAllowsCredentials: string;

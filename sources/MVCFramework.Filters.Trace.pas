@@ -31,7 +31,7 @@ uses MVCFramework;
 {$I dmvcframework.inc}
 
 type
-  TMVCTraceProtocolFilter = class(TProtocolFilter)
+  TMVCTraceProtocolFilter = class(TCustomProtocolFilter)
   private
     fMaxBodySize: Int64;
   protected
@@ -40,7 +40,7 @@ type
     constructor Create(const MaxBodySizeInTrace: UInt64 = 1024);
   end;
 
-  TMVCTraceControllerFilter = class(TControllerFilter)
+  TMVCTraceControllerFilter = class(TCustomControllerFilter)
   protected
     procedure DoFilter(
       const Context: TWebContext;
