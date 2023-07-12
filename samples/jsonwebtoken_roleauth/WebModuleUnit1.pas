@@ -57,7 +57,7 @@ begin
     .AddController(TApp1MainController)
     .AddController(TAdminController)
     .UseFilter(TMVCJWTProtocolFilter.Create(
-      TAuthenticationSample.Create,
+      TRoleBasedAuthenticationSample.Create,
       lClaimsSetup,
       'mys3cr37',
       '/login',

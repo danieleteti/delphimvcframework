@@ -53,15 +53,7 @@ type
     property RoleEval: MVCRoleEval read FRoleEval;
   end;
 
-  IMVCRoleBasedAuthenticationHandler = interface(IMVCAuthenticationHandler)
-    ['{07ABEF93-DBCC-4C55-BD39-BD1F48490A73}']
-    // procedure OnAuthorization(const AContext: TWebContext;
-    // const AUserRoles: TList<string>;
-    // const AControllerQualifiedClassName: string; const AActionName: string;
-    // var AIsAuthorized: Boolean);
-  end;
-
-  TRoleBasedAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler, IMVCRoleBasedAuthenticationHandler)
+  TRoleBasedAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler)
   private
     FRttiContext: TRttiContext;
 
@@ -282,11 +274,15 @@ begin
   vResultList := TList<TTypeOfAttribute>.Create;
   try
     for vAttribute in aAttributes do
+    begin
       if (vAttribute.InheritsFrom(TTypeOfAttribute)) then
+      begin
         vResultList.Add(vAttribute as TTypeOfAttribute);
+      end;
+    end;
 
     aListOfAttributes := vResultList.ToArray;
-    Result := (Length(aListOfAttributes) > 0);
+    Result := Length(aListOfAttributes) > 0;
   finally
     vResultList.Free;
   end;

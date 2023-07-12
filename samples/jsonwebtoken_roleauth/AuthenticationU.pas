@@ -10,7 +10,7 @@ uses
   MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
-  TAuthenticationSample = class(TRoleBasedAuthHandler)
+  TRoleBasedAuthenticationSample = class(TRoleBasedAuthHandler)
   public
     procedure OnAuthentication(
       const AContext: TWebContext;
@@ -27,7 +27,7 @@ implementation
 
 { TAuthenticationSample }
 
-procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName, Password: string;
+procedure TRoleBasedAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName, Password: string;
   UserRoles: TList<string>; var IsValid: Boolean; const SessionData: TDictionary<string, string>);
 begin
   IsValid := (not UserName.IsEmpty) and UserName.Equals(Password); // hey!, this is just a demo!!!

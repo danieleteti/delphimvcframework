@@ -10,6 +10,8 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
+  MVCFramework,
+  MVCFramework.Signal,
   MVCFramework.Commons,
   IdContext,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
@@ -22,14 +24,16 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
+  Writeln('Role Based Authentication and Authorization');
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication :=  TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press RETURN to stop the server');
-    ReadLn;
+    Writeln('CTRL+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;
