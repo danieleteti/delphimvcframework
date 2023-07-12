@@ -3587,7 +3587,8 @@ begin
   try
     lQry.FetchOptions.Unidirectional := Unidirectional;
     lQry.UpdateOptions.ReadOnly := True;
-    lQry.ResourceOptions.DirectExecute := True; //2023-01-02
+    lQry.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
+
     if Unidirectional then
     begin
       lQry.FetchOptions.CursorKind := ckForwardOnly;
