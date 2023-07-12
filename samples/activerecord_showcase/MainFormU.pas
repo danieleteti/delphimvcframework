@@ -854,6 +854,7 @@ var
   lCust2: TCustomerWithRate2;
   lList: TObjectList<TCustomerWithRate1>;
 begin
+  Log('** Partitioning Test');
   TMVCActiveRecord.DeleteAll(TCustomerWithRate1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 0);
   TMVCActiveRecord.DeleteAll(TCustomerWithRate2);
@@ -884,8 +885,10 @@ begin
     lList.Free;
   end;
 
+  Log('Retriving only TCustomerWithRate1');
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1, 'eq(code,"xxx")') = 0);
+  Log('Retriving only TCustomerWithRate2');
   Assert(TMVCActiveRecord.Count(TCustomerWithRate2) = 1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate2, 'eq(code,"xxx")') = 0);
 end;
@@ -1513,6 +1516,7 @@ var
   lID: Integer;
 begin
   Log('** Validation test (some exceptions will be raised)');
+
   lCustomer := TCustomerWithLogic.Create;
   try
     lCustomer.Code := '1234';
@@ -1523,6 +1527,8 @@ begin
   finally
     lCustomer.Free;
   end;
+
+  ShowMessage('Try to update a customer with empty "CODE" (an exception will be raised)');
 
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLogic>(lID);
   try
@@ -1630,6 +1636,17 @@ begin
   Log('** OOP with ActiveRecord (person, employee, manager)');
   TMVCActiveRecord.DeleteAll(TPerson);
 
+  var lPerson := TPerson.Create;
+  try
+    lPerson.FirstName := 'Reed';
+    lPerson.LastName := 'Richards';
+    lPerson.Dob := EncodeDate(1985,11,4);
+    lPerson.IsMale := True;
+    lPerson.Store;
+  finally
+    lPerson.Free;
+  end;
+
   var lEmployee := TEmployee.Create;
   try
     lEmployee.FirstName := 'Peter';
@@ -1637,6 +1654,18 @@ begin
     lEmployee.Dob := EncodeDate(1985,11,4);
     lEmployee.IsMale := True;
     lEmployee.Salary := 2100;
+    lEmployee.Store;
+  finally
+    lEmployee.Free;
+  end;
+
+  lEmployee := TEmployee.Create;
+  try
+    lEmployee.FirstName := 'Sue';
+    lEmployee.LastName := 'Storm';
+    lEmployee.Dob := EncodeDate(1975,10,14);
+    lEmployee.IsMale := False;
+    lEmployee.Salary := 2200;
     lEmployee.Store;
   finally
     lEmployee.Free;
@@ -1657,9 +1686,16 @@ begin
 
   var lPeople := TMVCActiveRecord.All<TPerson>;
   try
-    Assert(lPeople.Count = 2);
+    Assert(lPeople.Count = 4);
   finally
     lPeople.Free;
+  end;
+
+  var lEmployees := TMVCActiveRecord.All<TEmployee>;
+  try
+    Assert(lEmployees.Count = 3);
+  finally
+    lEmployees.Free;
   end;
 end;
 

@@ -538,7 +538,14 @@ type
     property Photo: TStream read fPhoto write fPhoto;
   end;
 
-  [MVCTable('people')]
+
+  [MVCTable('people', 'in(person_type,["person", "employee", "manager"]))')]
+  [MVCPartition('person_type=(string)person')]
+  TPerson = class(TAbstractPerson)
+
+  end;
+
+  [MVCTable('people','in(person_type,["employee", "manager"])')]
   [MVCPartition('person_type=(string)employee')]
   TEmployee = class(TAbstractPerson)
   private
@@ -558,11 +565,7 @@ type
     property AnnualBonus: Currency read fAnnualBonus write fAnnualBonus;
   end;
 
-  [MVCTable('people', 'in(person_type,["manager","employee"])')]
-  [MVCEntityActions([eaRetrieve, eaDelete])]
-  TPerson = class(TAbstractPerson)
 
-  end;
 
 implementation
 

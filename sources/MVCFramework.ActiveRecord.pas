@@ -612,7 +612,7 @@ type
     function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = false)
       : String; // inline;
     function MergeDefaultRQLFilter(const RQL: String): String; // inline;
-    function MergeSQLFilter(const SQL1, SQL2: String): String;
+    function MergeSQLFilter(const PartitionSQL, FilteringSQL: String): String;
     function GetRQLParser: TRQL2SQL;
     function GetCompiler: TRQLCompiler;
     function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
@@ -3335,7 +3335,7 @@ function TMVCSQLGenerator.CreateUpdateSQL(const TableName: string; const Map: TF
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
   lPair: TPair<TRTTIField, TFieldInfo>;
-  I: Integer;
+//  I: Integer;
 begin
   Result := 'UPDATE ' + GetTableNameForSQL(TableName) + ' SET ';
   for lPair in Map do
@@ -3347,11 +3347,11 @@ begin
     end;
   end;
   { partition }
-  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
-  begin
-    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
-      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
-  end;
+//  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
+//  begin
+//    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
+//      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
+//  end;
   { end-partitioning }
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
@@ -3487,21 +3487,23 @@ begin
   end;
 end;
 
-function TMVCSQLGenerator.MergeSQLFilter(const SQL1, SQL2: String): String;
+function TMVCSQLGenerator.MergeSQLFilter(const PartitionSQL, FilteringSQL: String): String;
 begin
-  if SQL1 + SQL2 = '' then
+  Result := '';
+  if PartitionSQL + FilteringSQL = '' then
   begin
-    Exit('');
+    Exit;
   end;
-  if SQL1.IsEmpty and (not SQL2.IsEmpty) then
+  //if PartitionSQL.IsEmpty and (not FilteringSQL.IsEmpty) then
+  if not FilteringSQL.IsEmpty then
   begin
-    Exit(SQL2);
+    Exit(FilteringSQL); //ignore partitioning while reading if filtering is present
   end;
-  if SQL2.IsEmpty and (not SQL1.IsEmpty) then
+  if FilteringSQL.IsEmpty and (not PartitionSQL.IsEmpty) then
   begin
-    Exit(SQL1);
+    Exit(PartitionSQL);
   end;
-  Result := '((' + SQL1 + ') and (' + SQL2 + '))';
+//  Result := '((' + PartitionSQL + ') and (' + FilteringSQL + '))';
 end;
 
 class function TMVCSQLGenerator.RemoveInitialWhereKeyword(const SQLFilter: String): String;
@@ -3585,7 +3587,8 @@ begin
   try
     lQry.FetchOptions.Unidirectional := Unidirectional;
     lQry.UpdateOptions.ReadOnly := True;
-    lQry.ResourceOptions.DirectExecute := True; //2023-01-02
+    lQry.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
+
     if Unidirectional then
     begin
       lQry.FetchOptions.CursorKind := ckForwardOnly;

@@ -699,7 +699,10 @@ type
       const ARaiseExceptionIfNotExists: Boolean = True): IMVCSerializer; overload;
     procedure SendStream(const AStream: TStream; const AOwns: Boolean = True;
       const ARewind: Boolean = False); virtual;
+    procedure RenderStream(const AStream: TStream; const AOwns: Boolean = True;
+      const ARewind: Boolean = False); virtual;
     procedure SendFile(const AFileName: string); virtual;
+    procedure RenderFile(const AFileName: string); virtual;
     procedure RenderResponseStream; virtual;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
@@ -3451,6 +3454,12 @@ begin
   end;
 end;
 
+procedure TMVCRenderer.RenderStream(const AStream: TStream; const AOwns,
+  ARewind: Boolean);
+begin
+  SendStream(AStream, AOwns, ARewind);
+end;
+
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
 const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
 const ASerializationType: TMVCDatasetSerializationType;
@@ -3550,6 +3559,11 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty collection.');
+end;
+
+procedure TMVCRenderer.RenderFile(const AFileName: string);
+begin
+  SendFile(AFileName);
 end;
 
 procedure TMVCRenderer.Render<T>(const AStatusCode: Integer; var ARecord: T);
