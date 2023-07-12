@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = 'x.x.x-feature-filters';
+  DMVCFRAMEWORK_VERSION = '4.0.0-oxygen-beta';

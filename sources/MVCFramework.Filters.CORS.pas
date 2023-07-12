@@ -79,8 +79,6 @@ type
       ); virtual;
   end;
 
-  TCORSMiddleware = TMVCCORSProtocolFilter;
-
 implementation
 
 uses
