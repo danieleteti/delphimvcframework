@@ -88,5 +88,7 @@ e.g.
 | TMVCActiveRecordMiddleware | TMVCActiveRecordProtocolFilter |
 | TCORSMiddleware | TMVCCORSProtocolFilter |
 | TMVCCompressionMiddleware | TMVCCompressionProtocolFilter |
+| TMVCETagMiddleware | TMVCETagProtocolFilter |
+| TMVCAnalyticsMiddleware | TMVCAnalyticsProtocolFilter |
 
 TODO...
