@@ -114,7 +114,7 @@ type
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
     function GetCreateCRUDMethods: boolean;
-    function GetMiddlewares: TArray<String>;
+    function GetFilters: TArray<String>;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
   public
@@ -126,7 +126,7 @@ type
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property Middlewares: TArray<String> read GetMiddlewares;
+    property Filters: TArray<String> read GetFilters;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
@@ -210,15 +210,15 @@ begin
   end;
 end;
 
-function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
+function TfrmDMVCNewProject.GetFilters: TArray<String>;
 const
-  M_ANALYTICS = 'FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));';
-  M_STATICFILES = 'FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
-  M_TRACE = 'FMVC.AddMiddleware(TMVCTraceMiddleware.Create);';
-  M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
-  M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
-  M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
-  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(' + sLineBreak + 
+  M_ANALYTICS = 'FMVC.UseFilter(TMVCAnalyticsProtocolFilter.Create(GetAnalyticsDefaultLogger));';
+  M_STATICFILES = 'FMVC.UseFilter(TMVCStaticFilesProtocolFilter.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
+  M_TRACE = 'FMVC.UseFilter(TMVCTraceProtocolFilter.Create);';
+  M_COMPRESSION = 'FMVC.UseFilter(TMVCCompressionProtocolFilter.Create);';
+  M_ETAG = 'FMVC.UseFilter(TMVCETagProtocolFilter.Create);';
+  M_CORS = 'FMVC.UseFilter(TMVCCORSProtocolFilter.Create);';
+  M_ACTIVERECORD = 'FMVC.UseFilter(TMVCActiveRecordProtocolFilter.Create(' + sLineBreak +
   '    dotEnv.Env(''firedac.connection_definition_name'', ''%s''), ' + sLineBreak +
   '    dotEnv.Env(''firedac.connection_definitions_filename'', ''%s'')' + sLineBreak +
   '  ));';

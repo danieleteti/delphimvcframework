@@ -153,7 +153,7 @@ begin
             WizardForm.WebModuleClassName,
             WizardForm.ControllerClassName,
             GetUnitName(ControllerUnit.FileName),
-            WizardForm.Middlewares,
+            WizardForm.Filters,
             WizardForm.JSONRPCClassName,
             lJSONRPCUnitName,
             APersonality);

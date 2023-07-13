@@ -28,8 +28,8 @@ implementation
 uses
   App1MainControllerU,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles,
-  MVCFramework.Middleware.ETag;
+  MVCFramework.Filters.StaticFiles,
+  MVCFramework.Filters.ETag;
 
 {$R *.dfm}
 
@@ -37,7 +37,7 @@ uses
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FEngine := TMVCEngine.Create(Self);
-  FEngine.AddMiddleware(TMVCETagMiddleware.Create);
+  FEngine.UseFilter(TMVCETagProtocolFilter.Create);
   FEngine.AddController(TApp1MainController);
 end;
 

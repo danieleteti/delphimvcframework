@@ -1049,7 +1049,7 @@ type
     FConfigCache_DefaultContentCharset: String;
     FConfigCache_PathPrefix: String;
     FSerializers: TDictionary<string, IMVCSerializer>;
-    FMiddlewares: TList<IMVCMiddleware>;
+    //FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
@@ -1070,14 +1070,14 @@ type
     procedure LoadSystemControllers; virtual;
     procedure FixUpWebModule;
     procedure EnsureFilters;
-    procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
-    procedure ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AHandled: Boolean);
-    procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      const AHandled: Boolean);
-    procedure ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
+//    procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
+//    procedure ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
+//      const AControllerQualifiedClassName: string; const AActionName: string;
+//      var AHandled: Boolean);
+//    procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
+//      const AControllerQualifiedClassName: string; const AActionName: string;
+//      const AHandled: Boolean);
+//    procedure ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
     procedure DefineDefaultResponseHeaders(const AContext: TWebContext);
     procedure OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
       var AHandled: Boolean); virtual;
@@ -1103,6 +1103,7 @@ type
     destructor Destroy; override;
 
     function GetSessionBySessionId(const ASessionId: string): TWebSession;
+    function TryGetProtocolFilter<T: TCustomProtocolFilter>(var ProtocolFilter: T): Boolean;
 
     { webcontext events}
     procedure OnWebContextCreate(const WebContextCreateEvent: TWebContextCreateEvent);
@@ -1136,7 +1137,7 @@ type
     property WebModule: TWebModule read FWebModule;
     property Config: TMVCConfig read FConfig;
     property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
-    property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
+    //property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
   end;
@@ -1930,8 +1931,21 @@ begin
 end;
 
 procedure TMVCWebResponse.SetCustomHeader(const AName, AValue: string);
+var
+  lIdx: Integer;
 begin
-  FWebResponse.SetCustomHeader(AName, AValue);
+  if AValue.IsEmpty then
+  begin
+    lIdx := FWebResponse.CustomHeaders.IndexOfName(AName);
+    if lIdx > -1 then
+    begin
+      FWebResponse.CustomHeaders.Delete(lIdx);
+    end;
+  end
+  else
+  begin
+    FWebResponse.SetCustomHeader(AName, AValue);
+  end;
 end;
 
 procedure TMVCWebResponse.SetLocation(const AValue: string);
@@ -2425,7 +2439,7 @@ begin
   FProtocolFiltersChain := nil;
   FConfig := TMVCConfig.Create;
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
-  FMiddlewares := TList<IMVCMiddleware>.Create;
+  //FMiddlewares := TList<IMVCMiddleware>.Create;
   {filters}
   FProtocolFilters := TProtocolFilterChain.Create;
   FControllerFilters := TControllerFilterChain.Create;
@@ -2475,7 +2489,6 @@ destructor TMVCEngine.Destroy;
 begin
   FConfig.Free;
   FSerializers.Free;
-  FMiddlewares.Free;
   FControllers.Free;
   inherited Destroy;
 end;
@@ -2498,7 +2511,7 @@ end;
 
 procedure TMVCEngine.EnsureFilters;
 begin
-  { this cose runs in a single thread at once }
+  { this code runs in a single thread at once }
   if FProtocolFiltersChain = nil then
   begin
     {
@@ -2556,65 +2569,65 @@ begin
   end;
 end;
 
-procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
-  const AControllerQualifiedClassName: string; const AActionName: string;
-  const AHandled: Boolean);
-var
-  I: Integer;
-begin
-  for I := 0 to FMiddlewares.Count - 1 do
-  begin
-    FMiddlewares[I].OnAfterControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
-  end;
-end;
+//procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
+//  const AControllerQualifiedClassName: string; const AActionName: string;
+//  const AHandled: Boolean);
+//var
+//  I: Integer;
+//begin
+//  for I := 0 to FMiddlewares.Count - 1 do
+//  begin
+//    FMiddlewares[I].OnAfterControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
+//  end;
+//end;
 
-procedure TMVCEngine.ExecuteAfterRoutingMiddleware(const AContext: TWebContext;
-  const AHandled: Boolean);
-var
-  I: Integer;
-begin
-  for I := 0 to FMiddlewares.Count - 1 do
-  begin
-    FMiddlewares[I].OnAfterRouting(AContext, AHandled);
-  end;
-end;
+//procedure TMVCEngine.ExecuteAfterRoutingMiddleware(const AContext: TWebContext;
+//  const AHandled: Boolean);
+//var
+//  I: Integer;
+//begin
+//  for I := 0 to FMiddlewares.Count - 1 do
+//  begin
+//    FMiddlewares[I].OnAfterRouting(AContext, AHandled);
+//  end;
+//end;
 
-procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
-  const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
-var
-  Middleware: IMVCMiddleware;
-begin
-  if not AHandled then
-  begin
-    for Middleware in FMiddlewares do
-    begin
-      Middleware.OnBeforeControllerAction(AContext, AControllerQualifiedClassName, AActionName,
-        AHandled);
-      if AHandled then
-      begin
-        Break;
-      end;
-    end;
-  end;
-end;
+//procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
+//  const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
+//var
+//  Middleware: IMVCMiddleware;
+//begin
+//  if not AHandled then
+//  begin
+//    for Middleware in FMiddlewares do
+//    begin
+//      Middleware.OnBeforeControllerAction(AContext, AControllerQualifiedClassName, AActionName,
+//        AHandled);
+//      if AHandled then
+//      begin
+//        Break;
+//      end;
+//    end;
+//  end;
+//end;
 
-procedure TMVCEngine.ExecuteBeforeRoutingMiddleware(const AContext: TWebContext;
-  var AHandled: Boolean);
-var
-  Middleware: IMVCMiddleware;
-begin
-  if not AHandled then
-  begin
-    for Middleware in FMiddlewares do
-    begin
-      Middleware.OnBeforeRouting(AContext, AHandled);
-      if AHandled then
-      begin
-        Break;
-      end;
-    end;
-  end;
-end;
+//procedure TMVCEngine.ExecuteBeforeRoutingMiddleware(const AContext: TWebContext;
+//  var AHandled: Boolean);
+//var
+//  Middleware: IMVCMiddleware;
+//begin
+//  if not AHandled then
+//  begin
+//    for Middleware in FMiddlewares do
+//    begin
+//      Middleware.OnBeforeRouting(AContext, AHandled);
+//      if AHandled then
+//      begin
+//        Break;
+//      end;
+//    end;
+//  end;
+//end;
 
 class function TMVCEngine.ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string;
 begin
@@ -2903,6 +2916,11 @@ function TMVCEngine.SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): 
 begin
   FViewEngineClass := AViewEngineClass;
   Result := Self;
+end;
+
+function TMVCEngine.TryGetProtocolFilter<T>(var ProtocolFilter: T): Boolean;
+begin
+  raise Exception.Create('not implemented');
 end;
 
 { TMVCBase }

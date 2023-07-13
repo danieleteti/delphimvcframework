@@ -13,7 +13,6 @@ uses
   MVCFramework.Logger,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   App1MainControllerU in 'App1MainControllerU.pas',
-  MVCFramework.Middleware.ETag in '..\..\sources\MVCFramework.Middleware.ETag.pas',
   MVCFramework.Commons;
 
 {$R *.res}

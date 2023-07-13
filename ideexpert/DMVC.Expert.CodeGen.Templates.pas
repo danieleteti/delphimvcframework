@@ -250,7 +250,7 @@ resourcestring
   // 1 = webmodule classname
   // 2 = controller unit
   // 3 - controller class name
-  // 4 - middlewares
+  // 4 - filters
   // 5 - jsonrpc registration code
   sWebModuleUnit =
     'unit %0:s;' + sLineBreak +
@@ -285,13 +285,13 @@ resourcestring
 	  '  %6:s ' + sLineBreak +
 	  '  System.IOUtils, ' + sLineBreak +
     '  MVCFramework.Commons, ' + sLineBreak +
-  '  MVCFramework.Middleware.ActiveRecord, ' + sLineBreak +
-	'  MVCFramework.Middleware.StaticFiles, ' + sLineBreak +
-	'  MVCFramework.Middleware.Analytics, ' + sLineBreak +
-  '  MVCFramework.Middleware.Trace, ' + sLineBreak +
-  '  MVCFramework.Middleware.CORS, ' + sLineBreak +
-  '  MVCFramework.Middleware.ETag, ' + sLineBreak +
-	'  MVCFramework.Middleware.Compression;' + sLineBreak +
+  '  MVCFramework.Filters.ActiveRecord, ' + sLineBreak +
+	'  MVCFramework.Filters.StaticFiles, ' + sLineBreak +
+	'  MVCFramework.Filters.Analytics, ' + sLineBreak +
+  '  MVCFramework.Filters.Trace, ' + sLineBreak +
+  '  MVCFramework.Filters.CORS, ' + sLineBreak +
+  '  MVCFramework.Filters.ETag, ' + sLineBreak +
+	'  MVCFramework.Filters.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +

@@ -445,8 +445,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
-    ExplicitLeft = 532
-    ExplicitTop = 483
   end
   object btnCancel: TButton
     Left = 591
@@ -458,8 +456,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitLeft = 615
-    ExplicitTop = 483
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -586,7 +582,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Top = 135
     Width = 405
     Height = 214
-    Caption = 'Middlewares'
+    Caption = 'Filters'
     TabOrder = 6
     DesignSize = (
       405
@@ -703,7 +699,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Anchors = [akLeft, akTop, akRight]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
-    ExplicitWidth = 405
     DesignSize = (
       381
       105)
@@ -722,7 +717,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
       TextHint = 'TMyJSONRPCObject'
-      ExplicitWidth = 374
     end
     object chkJSONRPC: TCheckBox
       Left = 16
@@ -734,7 +728,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Checked = True
       State = cbChecked
       TabOrder = 1
-      ExplicitWidth = 367
     end
   end
   object ApplicationEvents: TApplicationEvents

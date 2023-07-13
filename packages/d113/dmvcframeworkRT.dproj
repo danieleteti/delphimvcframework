@@ -133,9 +133,6 @@
         <DCCReference Include="SwagDoc.dcp"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.ETag.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ApplicationSession.pas"/>
@@ -150,13 +147,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Analytics.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Compression.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.CORS.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.MultiMap.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Patches.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
