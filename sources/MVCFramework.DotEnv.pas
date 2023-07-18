@@ -26,7 +26,8 @@ unit MVCFramework.DotEnv;
 
 interface
 
-uses System.SysUtils, System.Generics.Collections, MVCFramework.DotEnv.Parser;
+uses
+  System.SysUtils, System.Generics.Collections, MVCFramework.DotEnv.Parser;
 
 type
 {$SCOPEDENUMS ON}
@@ -39,6 +40,9 @@ type
   IMVCDotEnv = interface
     ['{5FD2C3CB-0895-4CCD-985F-27394798E4A8}']
     function Env(const Name: string): string; overload;
+    function Env(const Name: string; const DefaultValue: String): string; overload;
+    function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
+    function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -46,6 +50,7 @@ type
   IMVCDotEnvBuilder = interface
     ['{1A5EDD44-7226-40BC-A8EE-789E27522392}']
     function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function UseLogger( const Logger: TProc<String>): IMVCDotEnvBuilder;
     function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
@@ -74,7 +79,9 @@ type
     fPriority: TMVCDotEnvPriority;
     fEnvPath: string;
     fEnvDict: TMVCDotEnvDictionary;
+    fLoggerProc: TProc<String>;
     fProfiles: TList<String>;
+    procedure DoLog(const Value: String);
     procedure ReadEnvFile;
     function GetDotEnvVar(const key: string): string;
     function ExplodePlaceholders(const Value: string): string;
@@ -84,9 +91,13 @@ type
   strict protected
     function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
     function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
     function Env(const Name: string): string; overload;
+    function Env(const Name: string; const DefaultValue: String): string; overload;
+    function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
+    function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   public
@@ -153,6 +164,17 @@ begin
   end;
 end;
 
+function TMVCDotEnv.UseLogger(
+  const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
+begin
+  if Assigned(fLoggerProc) then
+  begin
+    raise EMVCDotEnv.Create('Logger already set');
+  end;
+  fLoggerProc := LoggerProc;
+  Result := Self;
+end;
+
 function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
@@ -168,6 +190,8 @@ begin
 end;
 
 function TMVCDotEnv.Build(const DotEnvDirectory: string): IMVCDotEnv;
+var
+  lAllProfiles: TArray<String>;
 begin
   if fState <> TdotEnvEngineState.created then
   begin
@@ -180,7 +204,10 @@ begin
   begin
     fEnvPath := TPath.Combine(fEnvPath, DotEnvDirectory);
   end;
+  DoLog('Path = ' + DotEnvDirectory);
   fEnvDict.Clear;
+  lAllProfiles := ['default'] + fProfiles.ToArray();
+  DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');
   ReadEnvFile;
   ExplodeReferences;
   fState := TdotEnvEngineState.built;
@@ -216,6 +243,61 @@ begin
   FreeAndNil(fEnvDict);
   fProfiles.Free;
   inherited;
+end;
+
+procedure TMVCDotEnv.DoLog(const Value: String);
+begin
+  if Assigned(fLoggerProc) then
+  begin
+    fLoggerProc(Value);
+  end;
+end;
+
+function TMVCDotEnv.Env(const Name, DefaultValue: String): string;
+begin
+  Result := Env(Name);
+  if Result.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end;
+end;
+
+function TMVCDotEnv.Env(const Name: string;
+  const DefaultValue: Integer): Integer;
+var
+  lTmp: string;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    if not TryStrToInt(lTmp, Result) then
+    begin
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer', [Name]);
+    end;
+  end;
+end;
+
+function TMVCDotEnv.Env(const Name: string;
+  const DefaultValue: Boolean): Boolean;
+var
+  lTmp: string;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    if not TryStrToBool(lTmp, Result) then
+    begin
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean', [Name]);
+    end;
+  end;
 end;
 
 function TMVCDotEnv.ExplodePlaceholders(const Value: string): string;
@@ -293,6 +375,7 @@ var
 begin
   if not TFile.Exists(EnvFilePath) then
   begin
+    DoLog('Missed dotEnv file ' + EnvFilePath);
     Exit;
   end;
 
@@ -300,6 +383,7 @@ begin
   lParser := TMVCDotEnvParser.Create;
   try
     lParser.Parse(fEnvDict, lDotEnvCode);
+    DoLog('Applied dotEnv file ' + EnvFilePath);
   finally
     lParser.Free;
   end;

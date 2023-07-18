@@ -372,7 +372,7 @@ begin
       LPassword := TNetEncoding.URL.Decode(AContext.Request.Headers[FPasswordHeaderName]);
 
       // read from content
-      if LUsername.IsEmpty then
+      if LUsername.IsEmpty and not SameText(AContext.Request.ContentMediaType, TMVCMediaType.APPLICATION_JSON) then
       begin
         LUsername := AContext.Request.ContentParam(FUserNameHeaderName);
         LPassword := AContext.Request.ContentParam(FPasswordHeaderName);
@@ -381,11 +381,7 @@ begin
       // read from json content
       if LUsername.IsEmpty then
       begin
-        lJObj := nil;
-        try
-          lJObj := TJsonBaseObject.Parse(AContext.Request.Body) as TJsonObject;
-        except
-        end;
+        lJObj := StrToJSONObject(AContext.Request.Body, False);
         try
           if Assigned(lJObj) then
           begin

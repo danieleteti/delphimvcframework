@@ -703,7 +703,10 @@ type
       const ARaiseExceptionIfNotExists: Boolean = True): IMVCSerializer; overload;
     procedure SendStream(const AStream: TStream; const AOwns: Boolean = True;
       const ARewind: Boolean = False); virtual;
+    procedure RenderStream(const AStream: TStream; const AOwns: Boolean = True;
+      const ARewind: Boolean = False); virtual;
     procedure SendFile(const AFileName: string); virtual;
+    procedure RenderFile(const AFileName: string); virtual;
     procedure RenderResponseStream; virtual;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
@@ -1127,19 +1130,19 @@ uses
   MVCFramework.Utils;
 
 var
-  gIsShuttingDown: Int64 = 0;
+  gIsShuttingDown: Boolean = False;
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
 
 
 function IsShuttingDown: Boolean;
 begin
-  Result := TInterlocked.Read(gIsShuttingDown) = 1
+  Result := gIsShuttingDown;
 end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.CompareExchange(gIsShuttingDown, 1, 0);
+  gIsShuttingDown := True;
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
@@ -2503,6 +2506,10 @@ begin
                       begin
                         lInvokeResult := lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
                         case lInvokeResult.Kind of
+                          tkInterface:
+                          begin
+                            lSelectedController.Render(lInvokeResult.AsInterface);
+                          end;
                           tkClass:
                           begin
                             lResponseObject := lInvokeResult.AsObject;
@@ -2557,6 +2564,14 @@ begin
                           tkFloat:
                           begin
                             lSelectedController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
+                          end;
+                          tkInteger:
+                          begin
+                            lSelectedController.Render(IntToStr(lInvokeResult.AsInteger));
+                          end;
+                          tkInt64:
+                          begin
+                            lSelectedController.Render(IntToStr(lInvokeResult.AsInt64));
                           end
                           else
                           begin
@@ -3441,9 +3456,9 @@ begin
     if AContext.Request.HTTPMethod in [httpGET, httpHEAD] then
     begin
       lIfModifiedSince := AContext.Request.Headers['If-Modified-Since'];
+      FileDate := IndyFileAge(AFileName);
       if lIfModifiedSince <> '' then
       begin
-        FileDate := IndyFileAge(AFileName);
         IfModifiedSinceDate := GMTToLocalDateTime(lIfModifiedSince);
         if (IfModifiedSinceDate <> 0) and (abs(IfModifiedSinceDate - FileDate) < 2 * (1 / (24 * 60 * 60))) then
         begin
@@ -3894,6 +3909,12 @@ begin
   end;
 end;
 
+procedure TMVCRenderer.RenderStream(const AStream: TStream; const AOwns,
+  ARewind: Boolean);
+begin
+  SendStream(AStream, AOwns, ARewind);
+end;
+
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
 const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
 const ASerializationType: TMVCDatasetSerializationType;
@@ -3946,6 +3967,7 @@ procedure TMVCRenderer.Render(
   const AObject: IInterface;
   const ASerializationAction: TMVCSerializationAction);
 begin
+  {TODO -oDanieleT -cGeneral : Handle StatusCode}
   Render(TObject(AObject), False, ASerializationAction);
 end;
 
@@ -3993,6 +4015,11 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty collection.');
+end;
+
+procedure TMVCRenderer.RenderFile(const AFileName: string);
+begin
+  SendFile(AFileName);
 end;
 
 procedure TMVCRenderer.Render<T>(const AStatusCode: Integer; var ARecord: T);
@@ -4380,7 +4407,7 @@ initialization
 // https://quality.embarcadero.com/browse/RSP-38281
 TRttiContext.KeepContext;
 
-gIsShuttingDown := 0;
+gIsShuttingDown := False;
 
 gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 

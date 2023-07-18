@@ -455,6 +455,10 @@ type
     [MVCHTTPMethod([httpGET])]
     function GetPeople: TObjectList<TPerson>;
 
+    [MVCPath('/people/($id)')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPerson(id: Integer): IPerson;
+
     [MVCPath('/photo')]
     [MVCHTTPMethod([httpGET])]
     function GetPhoto: TStream;
@@ -1369,6 +1373,11 @@ begin
   Result := TPerson.GetList();
 end;
 
+function TTestActionResultController.GetPerson(id: Integer): IPerson;
+begin
+  Result :=  TInterfacedPerson.Create('Daniele Teti', 20, 2010);
+end;
+
 function TTestActionResultController.GetPhoto: TStream;
 begin
   Context.Response.ContentType := TMVCMediaType.IMAGE_X_PNG;
@@ -1400,6 +1409,7 @@ begin
   StatusCode := 201;
   Context.Response.SetCustomHeader('X-PIPPO','PLUTO');
   Result := TSum.Create;
+  raise Exception.Create('Error Message');
   Result.Value := a+b;
 end;
 

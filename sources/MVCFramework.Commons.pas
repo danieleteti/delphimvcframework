@@ -41,7 +41,8 @@ uses
   IdContext,
   System.Generics.Collections,
   MVCFramework.DuckTyping,
-  JsonDataObjects;
+  JsonDataObjects,
+  MVCFramework.DotEnv;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -466,21 +467,6 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
-  // IMVCStringDictionary = interface
-  // ['{164117AD-8DDD-47F7-877C-453979707D10}']
-  // function GetItems(const Key: string): string;
-  // procedure SetItems(const Key, Value: string);
-  // procedure Clear;
-  /// /    function Add(const Name, Value: string): IMVCStringDictionary;
-  // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-  // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-  // function Count: Integer;
-  // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-  // function ContainsKey(const Key: string): Boolean;
-  // function Keys: TArray<string>;
-  // property Items[const Key: string]: string read GetItems; default;
-  // end;
-
   TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
   strict private
     function GetItems(const Key: string): string;
@@ -564,10 +550,12 @@ type
   private
     FConfig: TMVCStringDictionary;
     FFreezed: Boolean;
+    FdotEnv: IMVCdotEnv;
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
     procedure SetValue(const AIndex: string; const aValue: string);
     procedure CheckNotFreezed; inline;
+    procedure SetDotEnv(const Value: IMVCdotEnv);
   protected
     { protected declarations }
   public
@@ -578,9 +566,9 @@ type
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
     procedure LoadFromFile(const AFileName: string);
-
     property Value[const AIndex: string]: string read GetValue write SetValue; default;
     property AsInt64[const AIndex: string]: Int64 read GetValueAsInt64;
+    property dotEnv: IMVCdotEnv read FdotEnv write SetDotEnv;
   end;
 
   TMVCStreamHelper = class helper for TStream
@@ -621,27 +609,6 @@ type
     ReasonString: String;
   end;
 
-  { TMVCActionResult hierarchy}
-  IMVCActionResult = interface
-    ['{9FEDD192-C050-4123-B361-E88C13121928}']
-    function GetStatusCode: UInt16;
-    function HasBody: Boolean;
-    function GetData: TObject;
-  end;
-  TMVCActionResult = class(TInterfacedObject, IMVCActionResult)
-  protected
-    fStatusCode: UInt16;
-    fData: TObject;
-    function GetStatusCode: UInt16;
-    function HasBody: Boolean;
-    function GetData: TObject;
-  public
-    constructor Create(const StatusCode: UInt16); overload;
-    constructor Create(const StatusCode: UInt16; const Data: TObject); overload;
-    destructor Destroy; override;
-    // properties
-  end;
-  { TMVCActionResult hierarchy -- end}
 
 { GENERIC TYPE ALIASES }
 TMVCListOfString = TList<string>;
@@ -793,11 +760,13 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
+function dotEnv: IMVCDotEnv; overload;
+procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
+
 
 implementation
 
 uses
-
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
@@ -808,6 +777,9 @@ uses
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+var
+  GdotEnv: IMVCDotEnv = nil;
+  GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
 
 
 function URLEncode(const Value: string): string; overload;
@@ -1122,6 +1094,12 @@ end;
 procedure TMVCConfig.SaveToFile(const AFileName: string);
 begin
   TFile.WriteAllText(AFileName, ToString, TEncoding.ASCII);
+end;
+
+procedure TMVCConfig.SetDotEnv(const Value: IMVCdotEnv);
+begin
+  CheckNotFreezed;
+  fdotEnv := Value;
 end;
 
 procedure TMVCConfig.SetValue(const AIndex, aValue: string);
@@ -1758,40 +1736,38 @@ begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
 end;
 
-{ TMVCActionResult }
-
-constructor TMVCActionResult.Create(const StatusCode: UInt16);
+procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin
-  Create(StatusCode, nil);
+  if GdotEnv <> nil then
+  begin
+    raise EMVCDotEnv.Create('dotEnv already initialized');
+  end;
+  GdotEnvDelegate := dotEnvDelegate;
 end;
 
-constructor TMVCActionResult.Create(const StatusCode: UInt16;
-  const Data: TObject);
+function dotEnv: IMVCDotEnv;
 begin
-  inherited Create;
-  fStatusCode := StatusCode;
-  fData := Data;
-end;
-
-destructor TMVCActionResult.Destroy;
-begin
-  fData.Free;
-  inherited;
-end;
-
-function TMVCActionResult.GetData: TObject;
-begin
-  Result := fData;
-end;
-
-function TMVCActionResult.HasBody: Boolean;
-begin
-  Result := fData <> nil;
-end;
-
-function TMVCActionResult.GetStatusCode: UInt16;
-begin
-  Result := fStatusCode;
+  if GdotEnv = nil then
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if GdotEnv = nil then
+      begin
+        if not Assigned(GdotEnvDelegate) then
+        begin
+          raise EMVCDotEnv.Create('"dotEnvConfigure" not called');
+        end;
+        GdotEnv := GdotEnvDelegate();
+        if GdotEnv = nil then
+        begin
+          raise EMVCDotEnv.Create('Delegated passed to "dotEnvConfigure" must return a valid IMVCDotEnv instance');
+        end;
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
+  end;
+  Result := GdotEnv;
 end;
 
 initialization

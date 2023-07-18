@@ -471,6 +471,7 @@ type
     class function SelectOneByRQL<T: constructor, TMVCActiveRecord>(const RQL: string;
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
+    class function DeleteRQL<T: TMVCActiveRecord>(const RQL: string = ''): int64; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): int64; overload;
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
       const Params: array of Variant)
@@ -611,7 +612,7 @@ type
     function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = false)
       : String; // inline;
     function MergeDefaultRQLFilter(const RQL: String): String; // inline;
-    function MergeSQLFilter(const SQL1, SQL2: String): String;
+    function MergeSQLFilter(const PartitionSQL, FilteringSQL: String): String;
     function GetRQLParser: TRQL2SQL;
     function GetCompiler: TRQLCompiler;
     function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
@@ -1246,6 +1247,7 @@ var
   lFieldInfo: TFieldInfo;
   lPrimaryFieldTypeAsStr: string;
   lTableMap: TMVCTableMap;
+  lPKCount: Integer;
 begin
   if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then
   begin
@@ -1266,6 +1268,7 @@ begin
     lTableMap.fPartitionClause := '';
     lTableMap.fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
     lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
+    lPKCount := 0;
     for lAttribute in lTableMap.fObjAttributes do
     begin
       if lAttribute is MVCTableAttribute then
@@ -1277,6 +1280,7 @@ begin
       if lAttribute is MVCEntityActionsAttribute then
       begin
         lTableMap.fEntityAllowedActions := MVCEntityActionsAttribute(lAttribute).EntityAllowedActions;
+        Continue;
       end;
       if lAttribute is MVCPartitionAttribute then
       begin
@@ -1334,6 +1338,7 @@ begin
             lTableMap.fPrimaryKeyFieldName := MVCTableFieldAttribute(lAttribute).FieldName;
             lTableMap.fPrimaryKeyOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
             lTableMap.fPrimaryKeySequenceName := MVCTableFieldAttribute(lAttribute).SequenceName;
+            Inc(lPKCount);
             Continue;
           end;
 
@@ -1346,8 +1351,9 @@ begin
       end;
     end;
     lTableMap.fMap.EndUpdates;
-    Assert(lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount > 0,
-      'No fields defined [HINT] Use MVCTableField in private fields');
+    if (lPKCount + lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount) = 0 then
+      raise EMVCActiveRecord.Create(
+        'No fields nor PKs defined. [HINT] Use MVCTableField in private fields');
     lTableMap.fPartitionInfoInternal := nil;
 
     ActiveRecordTableMapRegistry.AddTableMap(Self, lTableMap);
@@ -1724,7 +1730,7 @@ begin
   if (not Result) and aRaiseException then
     raise EMVCActiveRecord.CreateFmt
       ('Action [%s] not allowed on entity [%s]. [HINT] If this isn''t the expected behavior, add the entity action in MVCEntityActions attribute.',
-      [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]);
+      [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]) at ReturnAddress;
 end;
 
 class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
@@ -1749,6 +1755,11 @@ end;
 class function TMVCActiveRecordHelper.Count<T>(const RQL: string = ''): int64;
 begin
   Result := TMVCActiveRecord.Count(TMVCActiveRecordClass(T), RQL);
+end;
+
+class function TMVCActiveRecordHelper.DeleteRQL<T>(const RQL: string): int64;
+begin
+  Result := TMVCActiveRecord.DeleteRQL(TMVCActiveRecordClass(T), RQL);
 end;
 
 class function TMVCActiveRecord.CurrentConnection: TFDConnection;
@@ -3324,7 +3335,7 @@ function TMVCSQLGenerator.CreateUpdateSQL(const TableName: string; const Map: TF
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
   lPair: TPair<TRTTIField, TFieldInfo>;
-  I: Integer;
+//  I: Integer;
 begin
   Result := 'UPDATE ' + GetTableNameForSQL(TableName) + ' SET ';
   for lPair in Map do
@@ -3336,11 +3347,11 @@ begin
     end;
   end;
   { partition }
-  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
-  begin
-    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
-      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
-  end;
+//  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
+//  begin
+//    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
+//      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
+//  end;
   { end-partitioning }
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
@@ -3476,21 +3487,23 @@ begin
   end;
 end;
 
-function TMVCSQLGenerator.MergeSQLFilter(const SQL1, SQL2: String): String;
+function TMVCSQLGenerator.MergeSQLFilter(const PartitionSQL, FilteringSQL: String): String;
 begin
-  if SQL1 + SQL2 = '' then
+  Result := '';
+  if PartitionSQL + FilteringSQL = '' then
   begin
-    Exit('');
+    Exit;
   end;
-  if SQL1.IsEmpty and (not SQL2.IsEmpty) then
+  //if PartitionSQL.IsEmpty and (not FilteringSQL.IsEmpty) then
+  if not FilteringSQL.IsEmpty then
   begin
-    Exit(SQL2);
+    Exit(FilteringSQL); //ignore partitioning while reading if filtering is present
   end;
-  if SQL2.IsEmpty and (not SQL1.IsEmpty) then
+  if FilteringSQL.IsEmpty and (not PartitionSQL.IsEmpty) then
   begin
-    Exit(SQL1);
+    Exit(PartitionSQL);
   end;
-  Result := '((' + SQL1 + ') and (' + SQL2 + '))';
+//  Result := '((' + PartitionSQL + ') and (' + FilteringSQL + '))';
 end;
 
 class function TMVCSQLGenerator.RemoveInitialWhereKeyword(const SQLFilter: String): String;
@@ -3574,7 +3587,8 @@ begin
   try
     lQry.FetchOptions.Unidirectional := Unidirectional;
     lQry.UpdateOptions.ReadOnly := True;
-    lQry.ResourceOptions.DirectExecute := True; //2023-01-02
+    lQry.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
+
     if Unidirectional then
     begin
       lQry.FetchOptions.CursorKind := ckForwardOnly;

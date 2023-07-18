@@ -48,9 +48,9 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
+    '  MVCFramework.DotEnv,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.Signal,' + sLineBreak +
-//    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
     {$IF Defined(SeattleOrBetter)}
     '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
@@ -69,24 +69,15 @@ resourcestring
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
     '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
-//    '  LCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
-//    '  LCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.KeepAlive := True;' + sLineBreak + sLineBreak +
-    '    { more info about MaxConnections' + sLineBreak +
-    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
-    '    LServer.MaxConnections := 0;' + sLineBreak +
-    sLineBreak +
-    '    { more info about ListenQueue' + sLineBreak +
-    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
-    '    LServer.ListenQueue := 200;' + sLineBreak +
-    sLineBreak +
-//    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
+    '    LServer.KeepAlive := True;' + sLineBreak +
+    '    LServer.MaxConnections := dotEnv.Env(''dmvc.webbroker.max_connections'', 0);' + sLineBreak +
+    '    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);' + sLineBreak + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
     '    WriteLn(''Listening on port '', APort);' + sLineBreak +
     '    Write(''CTRL+C to shutdown the server'');' + sLineBreak +
@@ -99,17 +90,34 @@ resourcestring
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
-    '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
-    '  IsMultiThread := True;' + sLineBreak +
+    '  { Enable ReportMemoryLeaksOnShutdown during debug }' + sLineBreak +
+	'  // ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+    '  IsMultiThread := True;' + sLineBreak + sLineBreak +	
     '  // DMVCFramework Specific Configuration ' + sLineBreak +
     '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
     '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
-    '  MVCSerializeNulls := True;' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
-    '    WebRequestHandlerProc.MaxConnections := 1024;' + sLineBreak +
-    '    RunServer(%1:d);' + sLineBreak +
+    '' + sLineBreak +
+    '    dotEnvConfigure(' + sLineBreak +
+    '      function: IMVCDotEnv' + sLineBreak +
+    '      begin' + sLineBreak +
+    '        Result := NewDotEnv' + sLineBreak +
+    '                 .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
+    '                                       //if available, by default, loads default environment (.env)' + sLineBreak +
+    '                 .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
+    '                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +
+    '                 .UseLogger(procedure(LogItem: String)' + sLineBreak +
+    '                            begin' + sLineBreak +
+    '                              LogW(''dotEnv: '' + LogItem);' + sLineBreak +
+    '                            end)' + sLineBreak +
+    '                 .Build();             //uses the executable folder to look for .env* files' + sLineBreak +
+    '      end);' + sLineBreak +
+    '' + sLineBreak +
+    '    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);' + sLineBreak +	
+    '    RunServer(dotEnv.Env(''dmvc.server.port'', %1:d));' + sLineBreak +
     '  except' + sLineBreak +
     '    on E: Exception do' + sLineBreak +
     '      Writeln(E.ClassName, '': '', E.Message);' + sLineBreak +
@@ -290,30 +298,31 @@ resourcestring
     '  FMVC := TMVCEngine.Create(Self,' + sLineBreak +
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
+	'      Config.dotEnv := dotEnv; ' + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
-    '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
+    '      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');' + sLineBreak +
     '      //default content-type' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;' +
+    '      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', TMVCConstants.DEFAULT_CONTENT_TYPE);' +
     sLineBreak +
     '      //default content charset' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;' +
+    '      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env(''dmvc.default.content_charset'', TMVCConstants.DEFAULT_CONTENT_CHARSET);' +
     sLineBreak +
     '      //unhandled actions are permitted?' + sLineBreak +
-    '      Config[TMVCConfigKey.AllowUnhandledAction] := ''false'';' + sLineBreak +
+    '      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env(''dmvc.allow_unhandled_actions'', ''false'');' + sLineBreak +
     '      //enables or not system controllers loading (available only from localhost requests)' + sLineBreak +
-    '      Config[TMVCConfigKey.LoadSystemControllers] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env(''dmvc.load_system_controllers'', ''true'');' + sLineBreak +
     '      //default view file extension' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
+    '      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env(''dmvc.default.view_file_extension'', ''html'');' + sLineBreak +
     '      //view path' + sLineBreak +
-    '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ViewPath] := dotEnv.Env(''dmvc.view_path'', ''templates'');' + sLineBreak +
     '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
-    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
+    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env(''dmvc.max_entities_record_count'', IntToStr(TMVCConstants.MAX_RECORD_COUNT));' + sLineBreak +
 	  '      //Enable Server Signature in response' + sLineBreak +
-    '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env(''dmvc.expose_server_signature'', ''false'');' + sLineBreak +
   	'      //Enable X-Powered-By Header in response' + sLineBreak +
-    '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env(''dmvc.expose_x_powered_by'', ''true'');' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +
-    '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
+    '      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env(''dmvc.max_request_size'', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +    
     '  %4:s ' + sLineBreak +

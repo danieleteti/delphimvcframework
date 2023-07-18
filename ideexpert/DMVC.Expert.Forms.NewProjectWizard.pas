@@ -218,7 +218,10 @@ const
   M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
   M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
   M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
-  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''%s'',''%s''));';
+  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(' + sLineBreak + 
+  '    dotEnv.Env(''firedac.connection_definition_name'', ''%s''), ' + sLineBreak +
+  '    dotEnv.Env(''firedac.connection_definitions_filename'', ''%s'')' + sLineBreak +
+  '  ));';
 
   function GetText(const Edit: TCustomEdit): String;
   begin
@@ -233,7 +236,7 @@ const
   end;
 begin
   Result := [];
-  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do trafic analysis'];
+  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do traffic analysis'];
   Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
   Result := Result + ['', '// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
   Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
@@ -242,8 +245,11 @@ begin
   Result := Result + ['', '// CORS middleware handles... well, CORS'];
   Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
   Result := Result + ['', '// Simplifies TMVCActiveRecord connection definition'];
-  Result := Result + [ifthen(not chkActiveRecord.Checked, '//') + Format(M_ACTIVERECORD,
-    [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)])];
+  Result := Result + [
+    ifthen(not chkActiveRecord.Checked, '{') + sLineBreak +
+    '  ' + Format(M_ACTIVERECORD, [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)]) + sLineBreak +
+    ifthen(not chkActiveRecord.Checked, '  }') + sLineBreak
+    ];
   Result := Result + ['', '// Compression middleware must be the last in the chain, just before the ETag, if present.'];
   Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
   Result := Result + ['', '// ETag middleware must be the latest in the chain'];

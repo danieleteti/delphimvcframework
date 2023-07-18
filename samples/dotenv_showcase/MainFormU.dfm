@@ -43,7 +43,7 @@ object MainForm: TMainForm
     Font.Style = []
     ParentFont = False
     TabOrder = 1
-    ExplicitWidth = 433
+    ExplicitWidth = 629
     ExplicitHeight = 417
   end
   object btnTestEnv: TButton

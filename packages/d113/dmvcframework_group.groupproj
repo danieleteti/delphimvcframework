@@ -10,7 +10,7 @@
             <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkRT.dproj">
-            <Dependencies>..\..\lib\loggerpro\packages\d113\loggerproRT.dproj;..\..\lib\swagdoc\Source\SwagDoc.dproj</Dependencies>
+            <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkDT.dproj">
             <Dependencies>dmvcframeworkRT.dproj</Dependencies>
@@ -41,13 +41,13 @@
     <Target Name="loggerproRT:Make">
         <MSBuild Projects="..\..\lib\loggerpro\packages\d113\loggerproRT.dproj" Targets="Make"/>
     </Target>
-    <Target Name="dmvcframeworkRT" DependsOnTargets="loggerproRT;SwagDoc">
+    <Target Name="dmvcframeworkRT">
         <MSBuild Projects="dmvcframeworkRT.dproj"/>
     </Target>
-    <Target Name="dmvcframeworkRT:Clean" DependsOnTargets="loggerproRT:Clean;SwagDoc:Clean">
+    <Target Name="dmvcframeworkRT:Clean">
         <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="dmvcframeworkRT:Make" DependsOnTargets="loggerproRT:Make;SwagDoc:Make">
+    <Target Name="dmvcframeworkRT:Make">
         <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
     </Target>
     <Target Name="dmvcframeworkDT" DependsOnTargets="dmvcframeworkRT">

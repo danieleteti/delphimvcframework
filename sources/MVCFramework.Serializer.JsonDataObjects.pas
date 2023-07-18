@@ -3722,7 +3722,11 @@ begin
     on E: Exception do
     begin
       lJSON.Free;
-      raise EMVCDeserializationException.Create('Invalid JSON Object - ' + E.Message);
+      Result := nil;
+      if ARaiseExceptionOnError then
+      begin
+        raise EMVCDeserializationException.Create('Invalid JSON Object - ' + E.Message);
+      end;
     end;
   end;
 end;
@@ -3743,7 +3747,11 @@ begin
     on E: Exception do
     begin
       lJSON.Free;
-      raise EMVCDeserializationException.Create('Invalid JSON Array - ' + E.Message);
+      Result := nil;
+      if ARaiseExceptionOnError then
+      begin
+        raise EMVCDeserializationException.Create('Invalid JSON Array - ' + E.Message);
+      end;
     end;
   end;
 end;
