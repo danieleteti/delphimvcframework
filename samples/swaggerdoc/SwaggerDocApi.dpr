@@ -2,7 +2,6 @@ program SwaggerDocApi;
 {$APPTYPE GUI}
 
 uses
-//  FastMM4,
   Vcl.Forms,
   Web.WebReq,
   IdHTTPWebBrokerBridge,
@@ -10,9 +9,9 @@ uses
   WebModuleMainU in 'WebModuleMainU.pas' {WebModule1: TWebModule},
   MyController1U in 'MyController1U.pas',
   MyController2U in 'MyController2U.pas',
-  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
   MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
-  AuthHandler in 'AuthHandler.pas';
+  AuthHandler in 'AuthHandler.pas',
+  MVCFramework.Filters.Swagger in '..\..\sources\MVCFramework.Filters.Swagger.pas';
 
 {$R *.res}
 

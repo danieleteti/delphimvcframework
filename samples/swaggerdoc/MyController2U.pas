@@ -8,7 +8,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler,
   MVCFramework.Nullables;
 
 type

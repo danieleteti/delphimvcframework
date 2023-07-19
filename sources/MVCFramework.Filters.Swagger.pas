@@ -41,7 +41,7 @@ uses
   System.JSON, MVCFramework.Commons;
 
 type
-  TMVCSwaggerMiddleware = class(TCustomProtocolFilter)
+  TMVCSwaggerProtocolFilter = class(TCustomProtocolFilter)
   private
     fEngine: TMVCEngine;
     fSwaggerInfo: TMVCSwaggerInfo;
@@ -101,9 +101,9 @@ uses
   System.TypInfo,
   Json.Common.Helpers;
 
-{ TMVCSwaggerMiddleware }
+{ TMVCSwaggerProtocolFilter }
 
-constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
+constructor TMVCSwaggerProtocolFilter.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
   const AHost, ABasePath: string;
   const APathFilter: String;
@@ -121,12 +121,12 @@ begin
   fTransferProtocolSchemes := ATransferProtocolSchemes;
 end;
 
-destructor TMVCSwaggerMiddleware.Destroy;
+destructor TMVCSwaggerProtocolFilter.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApi(ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerProtocolFilter.DocumentApi(ASwagDoc: TSwagDoc);
 var
   lRttiContext: TRttiContext;
   lObjType: TRttiType;
@@ -304,7 +304,7 @@ begin
   end;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApiInfo(const ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerProtocolFilter.DocumentApiInfo(const ASwagDoc: TSwagDoc);
 begin
   ASwagDoc.Info.Title := fSwaggerInfo.Title;
   ASwagDoc.Info.Version := fSwaggerInfo.Version;
@@ -317,7 +317,7 @@ begin
   ASwagDoc.Info.License.Url := fSwaggerInfo.LicenseUrl;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerProtocolFilter.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
 var
   lMiddleware: IMVCMiddleware;
   lJWTProtocolFilter: TMVCJWTProtocolFilter;
@@ -329,14 +329,14 @@ var
   lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
   lJWTProtocolFilter := nil;
-  for lMiddleware in fEngine.Middlewares do
-  begin
-    if lMiddleware is TMVCJWTProtocolFilter then
-    begin
-      lJWTProtocolFilter := TMVCJWTProtocolFilter(lMiddleware); // as TMVCJWTAuthenticationMiddleware;
-      Break;
-    end;
-  end;
+//  for lMiddleware in fEngine.Middlewares do
+//  begin
+//    if lMiddleware is TMVCJWTProtocolFilter then
+//    begin
+//      lJWTProtocolFilter := TMVCJWTProtocolFilter(lMiddleware); // as TMVCJWTAuthenticationMiddleware;
+//      Break;
+//    end;
+//  end;
 
   if Assigned(lJWTProtocolFilter) or fEnableBasicAuthentication then
   begin
@@ -378,7 +378,7 @@ begin
   end;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerProtocolFilter.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
 var
   lSwagSchemes: TSwagTransferProtocolSchemes;
 begin
@@ -410,7 +410,7 @@ begin
   ASwagDoc.Schemes := lSwagSchemes;
 end;
 
-procedure TMVCSwaggerMiddleware.DoFilter(Context: TWebContext);
+procedure TMVCSwaggerProtocolFilter.DoFilter(Context: TWebContext);
 var
   LSwagDoc: TSwagDoc;
 begin
@@ -436,7 +436,7 @@ begin
   end;
 end;
 
-procedure TMVCSwaggerMiddleware.InternalRender(AContent: string; AContext: TWebContext);
+procedure TMVCSwaggerProtocolFilter.InternalRender(AContent: string; AContext: TWebContext);
 var
   LContentType: string;
   LEncoding: TEncoding;
@@ -453,25 +453,25 @@ begin
   end;
 end;
 
-procedure TMVCSwaggerMiddleware.OnAfterControllerAction(AContext: TWebContext;
+procedure TMVCSwaggerProtocolFilter.OnAfterControllerAction(AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean);
 begin
   // do nothing
 end;
 
-procedure TMVCSwaggerMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+procedure TMVCSwaggerProtocolFilter.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // do nothing
 end;
 
-procedure TMVCSwaggerMiddleware.OnBeforeControllerAction(AContext: TWebContext;
+procedure TMVCSwaggerProtocolFilter.OnBeforeControllerAction(AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 begin
   // do nothing
 end;
 
-procedure TMVCSwaggerMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+procedure TMVCSwaggerProtocolFilter.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 var
   LSwagDoc: TSwagDoc;
 begin
@@ -495,7 +495,7 @@ begin
   end;
 end;
 
-procedure TMVCSwaggerMiddleware.SortApiPaths(ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerProtocolFilter.SortApiPaths(ASwagDoc: TSwagDoc);
 var
   lPathComparer: IComparer<TSwagPath>;
   lOperationComparer: IComparer<TSwagPathOperation>;

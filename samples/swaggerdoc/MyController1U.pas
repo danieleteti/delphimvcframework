@@ -6,7 +6,7 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 const
   INDEX_JSON_SCHEMA =
