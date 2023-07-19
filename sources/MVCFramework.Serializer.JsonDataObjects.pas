@@ -3034,7 +3034,14 @@ begin
         begin
           if Obj <> nil then
           begin
-            ObjectToJsonObject(Obj, JSONArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes)
+            if Obj is TDataSet then
+            begin
+              DataSetToJsonArray(TDataSet(Obj), JSONArray.AddArray, TMVCNameCase.ncLowerCase, nil,nil,);
+            end
+            else
+            begin
+              ObjectToJsonObject(Obj, JSONArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes)
+            end;
           end
           else
           begin
@@ -3074,16 +3081,23 @@ begin
     begin
       lJObj := lJSONArr.AddObject;
       lCurrentArrayItem := ATValueContainingAnArray.GetArrayElement(I);
-      InternalRecordToJsonObject(
-        lCurrentArrayItem.GetReferenceToRawData,
-        lCurrentArrayItem.TypeInfo,
-        lJObj,
-        TMVCSerializationType.stFields,
-        nil,
-        nil,
-        nil,
-        nil
-        );
+      if lCurrentArrayItem.IsObjectInstance then
+      begin
+        raise EMVCSerializationException.CreateFmt('Found a "%s" while serializing array. Instance types not allowed in arrays - [HINT] Use list of objects instead of array', [lCurrentArrayItem.AsObject.ClassName]);
+      end
+      else
+      begin
+        InternalRecordToJsonObject(
+          lCurrentArrayItem.GetReferenceToRawData,
+          lCurrentArrayItem.TypeInfo,
+          lJObj,
+          TMVCSerializationType.stFields,
+          nil,
+          nil,
+          nil,
+          nil
+          );
+      end;
     end;
     Result := lJSONArr.ToJSON();
   finally

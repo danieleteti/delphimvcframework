@@ -2515,7 +2515,11 @@ begin
                             lResponseObject := lInvokeResult.AsObject;
                             try
                               // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
-                              if lResponseObject is TStream then
+                              if lResponseObject is TDataSet then
+                              begin
+                                lSelectedController.Render(TDataSet(lResponseObject), False);
+                              end
+                              else if lResponseObject is TStream then
                               begin
                                 lContext.Response.RawWebResponse.Content := EmptyStr;
                                 lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
@@ -2523,16 +2527,13 @@ begin
                                 lContext.Response.RawWebResponse.FreeContentStream := True;
                                 lResponseObject := nil; //do not free it!!
                               end
+                              else if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
+                              begin
+                                lSelectedController.Render(lObjList);
+                              end
                               else
                               begin
-                                if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
-                                begin
-                                  lSelectedController.Render(lObjList);
-                                end
-                                else
-                                begin
-                                  lSelectedController.Render(lResponseObject, False);
-                                end;
+                                lSelectedController.Render(lResponseObject, False);
                               end;
                             finally
                               lResponseObject.Free;

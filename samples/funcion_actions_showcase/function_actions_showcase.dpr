@@ -15,7 +15,8 @@ uses
   IdContext,
   IdHTTPWebBrokerBridge,
   ControllerU in 'ControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  MainDMU in 'MainDMU.pas' {dmMain: TDataModule};
 
 {$R *.res}
 

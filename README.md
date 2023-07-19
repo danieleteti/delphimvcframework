@@ -231,12 +231,89 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ## What's New in the next "repo version" a.k.a. 3.4.0-neon
 
-- Added support for dotEnv multiline keys - added dotEnv show case
-- Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
+- ⚡ Added support for dotEnv multiline keys - added dotEnv show case
+
+- ⚡ Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
+
 - 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
+
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
+
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
-- Wizard updated to be dotEnv aware
+
+- ⚡ Wizard updated to be dotEnv aware
+
+- ⚡ Better error message in case of serialization of `TArray<TObject>`
+
+- ⚡ Improved serialization of `TObjectList<TDataSet>` (however `ObjectDict` is still the preferred way to serialize multiple datasets).
+
+- ⚡ Added static method for easier cloning of FireDAC dataset into `TFDMemTable`. 
+
+  - `class function CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable`
+
+  - Check sample "function_actions_showcase.dproj" for more info.
+
+- ⚡ Functional Actions
+
+  - In addition to the classic `procedure` based actions, now it's possibile to use functions as actions. The `Result` variable is automatically rendered and, if it is an object, its memory is freed.
+
+    ```pascal
+    type
+      [MVCNameCase(ncCamelCase)]
+      TPersonRec = record
+        FirstName, LastName: String;
+        Age: Integer;
+        class function Create: TPersonRec; static;
+      end;
+    
+      [MVCNameCase(ncCamelCase)]
+      TPerson = class
+      private
+        fAge: Integer;
+        fFirstName, fLastName: String;
+      public
+        property FirstName: String read fFirstName write fFirstName;
+        property LastName: String read fLastName write fLastName;
+        property Age: Integer read fAge write fAge;
+      end;
+    
+      [MVCPath('/api')]
+      TMyController = class(TMVCController)
+      public
+        { actions returning a simple type }
+        [MVCPath('/sumsasinteger/($A)/($B)')]
+        function GetSum(const A, B: Integer): Integer;
+        [MVCPath('/sumsasfloat/($A)/($B)')]
+        function GetSumAsFloat(const A, B: Extended): Extended;
+    
+        { actions returning records }
+        [MVCPath('/records/single')]
+        function GetSingleRecord: TPersonRec;
+        [MVCPath('/records/multiple')]
+        function GetMultipleRecords: TArray<TPersonRec>;
+    
+        { actions returning objects }
+        [MVCPath('/objects/single')]
+        function GetSingleObject: TPerson;
+        [MVCPath('/objects/multiple')]
+        function GetMultipleObjects: TObjectList<TPerson>;
+    
+        { actions returning datasets }
+        [MVCPath('/datasets/single')]
+        function GetSingleDataSet: TDataSet;
+        [MVCPath('/datasets/multiple')]
+        function GetMultipleDataSet: TEnumerable<TDataSet>;
+        [MVCPath('/datasets/multiple2')]
+        function GetMultipleDataSet2: IMVCObjectDictionary;
+    
+        { customize response headers }
+        [MVCPath('/headers')]
+        function GetWithCustomHeaders: TObjectList<TPerson>;
+      end;
+    ```
+
+    Check sample "function_actions_showcase.dproj" for more info.
+
 
 
 

@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  System.Generics.Collections;
+  System.Generics.Collections, Data.DB;
 
 type
   [MVCNameCase(ncCamelCase)]
@@ -46,6 +46,14 @@ type
     [MVCPath('/objects/multiple')]
     function GetMultipleObjects: TObjectList<TPerson>;
 
+    { actions returning datasets }
+    [MVCPath('/datasets/single')]
+    function GetSingleDataSet: TDataSet;
+    [MVCPath('/datasets/multiple')]
+    function GetMultipleDataSet: TEnumerable<TDataSet>;
+    [MVCPath('/datasets/multiple2')]
+    function GetMultipleDataSet2: IMVCObjectDictionary;
+
     { customize response headers }
     [MVCPath('/headers')]
     function GetWithCustomHeaders: TObjectList<TPerson>;
@@ -54,9 +62,37 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils, System.DateUtils;
+  System.SysUtils, MVCFramework.Logger, System.StrUtils, System.DateUtils,
+  MainDMU, FireDAC.Comp.Client, MVCFramework.FireDAC.Utils;
 
 { TMyController }
+
+function TMyController.GetMultipleDataSet: TEnumerable<TDataSet>;
+begin
+  var lDM := TdmMain.Create(nil);
+  try
+    lDM.dsPeople.Open;
+    var lList := TObjectList<TDataSet>.Create;
+    lList.Add(TFDMemTable.CloneFrom(lDM.dsPeople));
+    lList.Add(TFDMemTable.CloneFrom(lDM.dsPeople));
+    Result := lList;
+  finally
+    lDM.Free;
+  end;
+end;
+
+function TMyController.GetMultipleDataSet2: IMVCObjectDictionary;
+begin
+  var lDM := TdmMain.Create(nil);
+  try
+    lDM.dsPeople.Open;
+    Result := ObjectDict()
+      .Add('people1', TFDMemTable.CloneFrom(lDM.dsPeople))
+      .Add('people2', TFDMemTable.CloneFrom(lDM.dsPeople));
+  finally
+    lDM.Free;
+  end;
+end;
 
 function TMyController.GetMultipleObjects: TObjectList<TPerson>;
 begin
@@ -88,6 +124,17 @@ begin
   Inc(Result[1].Age, 10);
 
   Inc(Result[2].Age, 20);
+end;
+
+function TMyController.GetSingleDataSet: TDataSet;
+begin
+  var lDM := TdmMain.Create(nil);
+  try
+    lDM.dsPeople.Open;
+    Result := TFDMemTable.CloneFrom(lDM.dsPeople);
+  finally
+    lDM.Free;
+  end;
 end;
 
 function TMyController.GetSingleObject: TPerson;
