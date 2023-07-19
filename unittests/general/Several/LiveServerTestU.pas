@@ -311,6 +311,8 @@ type
     [Test]
     procedure TestFuncActionGetDatasetMultiple;
 
+    [Test]
+    procedure TestFuncActionGetComplexObject;
 
     // test issues
     [Test]
@@ -1455,6 +1457,30 @@ begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1.html');
   Assert.areEqual(200, lRes.StatusCode, '/static/folder1.html');
   Assert.areEqual('This is a TEXT file', lRes.Content, '/static/folder1.html');
+end;
+
+procedure TServerTest.TestFuncActionGetComplexObject;
+var
+  c1: IMVCRESTClient;
+  lRes: IMVCRESTResponse;
+begin
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  lRes := c1.Get('/api/v1/actionresult/complex');
+  Assert.areEqual(200, lRes.StatusCode);
+  var lJSON := lRes.ToJSONObject;
+  try
+    Assert.AreEqual(3, lJSON.Count);
+    Assert.IsTrue(lJSON.Types['value'] = jdtInt);
+    Assert.IsTrue(lJSON.Types['person'] = jdtObject);
+    Assert.IsTrue(lJSON.Types['people'] = jdtArray);
+    Assert.AreEqual(6, lJSON.O['person'].Count);
+    Assert.AreEqual(3, lJSON.A['people'].Count);
+    Assert.AreEqual(6, lJSON.A['people'][0].ObjectValue.Count);
+    Assert.AreEqual(6, lJSON.A['people'][1].ObjectValue.Count);
+    Assert.AreEqual(6, lJSON.A['people'][2].ObjectValue.Count);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 procedure TServerTest.TestFuncActionGetDatasetMultiple;
