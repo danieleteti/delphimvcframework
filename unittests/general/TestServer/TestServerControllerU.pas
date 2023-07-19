@@ -438,14 +438,28 @@ type
     property Person: TPerson read FPerson write SetPerson;
     property People: TPeople read FPeople write SetPeople;
   end;
+
+  [MVCNameCase(ncCamelCase)]
+  TPersonRec = record
+    FirstName, LastName: String;
+    Age: Integer;
+    class function Create: TPersonRec; static;
+  end;
 // action result types - end
 
   [MVCPath('/api/v1/actionresult')]
   TTestActionResultController = class(TMVCController)
   public
+    { actions returning records }
     [MVCPath('/sums/($a)/($b)')]
     [MVCHTTPMethod([httpGET])]
     function GetObject(a,b: Integer): TSum;
+
+    [MVCPath('/records/single')]
+    function GetSingleRecord: TPersonRec;
+
+    [MVCPath('/records/multiple')]
+    function GetMultipleRecords: TArray<TPersonRec>;
 
     [MVCPath('/complex')]
     [MVCHTTPMethod([httpGET])]
@@ -499,9 +513,14 @@ type
     [MVCHTTPMethod([httpGET])]
     function GetArrayOfTComplexRecord: TComplexRecordArray;
 
-    [MVCPath('/dataset/list')]
+    [MVCPath('/dataset/single')]
     [MVCHTTPMethod([httpGET])]
-    function GetDataSetRecords: TDataSet;
+    function GetDataSetSingle: TDataSet;
+
+    [MVCPath('/dataset/multiple')]
+    [MVCHTTPMethod([httpGET])]
+    function GetDataSetMultiple: IMVCObjectDictionary;
+
   end;
 
 
@@ -515,7 +534,7 @@ uses
   Generics.Collections,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
-  System.IOUtils, MVCFramework.Tests.Serializer.Entities;
+  System.IOUtils, MVCFramework.Tests.Serializer.Entities, System.DateUtils;
 
 { TTestServerController }
 
@@ -1353,7 +1372,15 @@ begin
   Result.People := TPerson.GetList();
 end;
 
-function TTestActionResultController.GetDataSetRecords: TDataSet;
+function TTestActionResultController.GetDataSetMultiple: IMVCObjectDictionary;
+begin
+  Result :=
+    ObjectDict()
+      .Add('ds1', TTestServerController.GetDataSet)
+      .Add('ds2', TTestServerController.GetDataSet);
+end;
+
+function TTestActionResultController.GetDataSetSingle: TDataSet;
 begin
   Result := TTestServerController.GetDataSet;
 end;
@@ -1368,6 +1395,17 @@ begin
   Result := 3.1415;
 end;
 
+function TTestActionResultController.GetMultipleRecords: TArray<TPersonRec>;
+begin
+  SetLength(Result, 3);
+  Result[0] := TPersonRec.Create;
+  Result[1] := TPersonRec.Create;
+  Result[2] := TPersonRec.Create;
+  Result[0].Age := 20;
+  Result[1].Age := 30;
+  Result[2].Age := 40;
+end;
+
 function TTestActionResultController.GetPeople: TObjectList<TPerson>;
 begin
   Result := TPerson.GetList();
@@ -1375,13 +1413,18 @@ end;
 
 function TTestActionResultController.GetPerson(id: Integer): IPerson;
 begin
-  Result :=  TInterfacedPerson.Create('Daniele Teti', 20, 2010);
+  Result := TInterfacedPerson.Create('Daniele Teti', 20, 2010);
 end;
 
 function TTestActionResultController.GetPhoto: TStream;
 begin
   Context.Response.ContentType := TMVCMediaType.IMAGE_X_PNG;
   Result := TFileStream.Create('sample.png', fmOpenRead or fmShareDenyNone);
+end;
+
+function TTestActionResultController.GetSingleRecord: TPersonRec;
+begin
+  Result := TPersonRec.Create;
 end;
 
 function TTestActionResultController.GetStrDict: TMVCStringDictionary;
@@ -1407,10 +1450,9 @@ end;
 function TTestActionResultController.GetObject(a, b: Integer): TSum;
 begin
   StatusCode := 201;
-  Context.Response.SetCustomHeader('X-PIPPO','PLUTO');
+  Context.Response.SetCustomHeader('X-CUSTOM-HEADER','CARBONARA');
   Result := TSum.Create;
-  raise Exception.Create('Error Message');
-  Result.Value := a+b;
+  Result.Value := a + b;
 end;
 
 { TComplexObject }
@@ -1430,6 +1472,15 @@ end;
 procedure TComplexObject.SetPerson(const Value: TPerson);
 begin
   FPerson := Value;
+end;
+
+{ TPersonRec }
+
+class function TPersonRec.Create: TPersonRec;
+begin
+  Result.FirstName := 'Daniele';
+  Result.LastName := 'Teti';
+  Result.Age := 99;
 end;
 
 end.

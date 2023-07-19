@@ -3794,7 +3794,6 @@ begin
         raise;
       end;
     end;
-    // lSer.JsonArrayToList(AJsonArray, AList, AClazz, AType, AIgnoredAttributes);
   finally
     lSer.Free;
   end;
