@@ -5,7 +5,7 @@ interface
 uses
   MVCFramework,
   System.Generics.Collections,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Filters.Authentication.RoleBasedAuthHandler;
 
 type
   TAuthHandler = class(TRoleBasedAuthHandler)

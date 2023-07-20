@@ -1,4 +1,5 @@
 object WebModule1: TWebModule1
+  OldCreateOrder = True
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <>

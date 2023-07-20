@@ -27,14 +27,16 @@ implementation
 uses
   MVCFramework.Commons,
   MVCFramework.Controllers.Register,
-  MVCFramework.Middleware.Swagger,
+  MVCFramework.Filters.Swagger,
   MVCFramework.Swagger.Commons,
-  MVCFramework.Middleware.JWT,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.JWT,
+  MVCFramework.Filters.StaticFiles,
+  MVCFramework.Filters.Redirect,
   AuthHandler,
   MVCFramework.JWT,
   System.DateUtils,
-  ControllersU, BaseControllerU, MVCFramework.Middleware.Redirect;
+  ControllersU,
+  BaseControllerU;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
@@ -62,11 +64,11 @@ begin
   LSwagInfo.ContactUrl := 'https://github.com/danieleteti';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
-  FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json',
-    'Method for authentication using JSON Web Token (JWT)',
-    False
-//    ,'api.dmvcframework.com', '/'  { Define a custom host and BasePath when your API uses a dns for external access }
-    ));
+  LSwagInfo.Authentication.BasicAuthenticationEnabled := False;
+  LSwagInfo.Authentication.JWTAuthenticationEnabled := True;
+  LSwagInfo.Authentication.JWTUrlSegment := '/api/login';
+  LSwagInfo.Authentication.JWTDescription := 'Method for authentication using JSON Web Token (JWT)';
+  FEngine.UseFilter(TMVCSwaggerProtocolFilter.Create(LSwagInfo, '/api/swagger.json'));
 
   LClaimsSetup := procedure(const JWT: TJWT)
     begin
@@ -76,19 +78,19 @@ begin
       JWT.Claims.IssuedAt := Now;
     end;
 
-  FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+  FEngine.UseFilter(TMVCJWTProtocolFilter.Create(
     TAuthHandler.Create,
     LClaimsSetup,
     'D3lph1MVCFram3w0rk',
     '/api/login',
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));
-  FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FEngine.UseFilter(TMVCStaticFilesProtocolFilter.Create(
     '/swagger',  { StaticFilesPath }
     '.\www',     { DocumentRoot }
     'index.html' { IndexDocument }
     ));
-  FEngine.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/swagger'));
+  FEngine.UseFilter(TMVCRedirectProtocolFilter.Create(['/'], '/swagger'));
 
   FEngine.AddController(TPeopleController);
   FEngine.AddController(TTallPeopleController);

@@ -11,7 +11,6 @@ uses
   MVCFramework.Logger,
   MVCFramework.Commons,
   MVCFramework.Signal,
-  MVCFramework.Middleware.Redirect,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -23,7 +22,7 @@ uses
   BaseControllerU in 'BaseControllerU.pas',
   AuthHandler in 'AuthHandler.pas',
   MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
-  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas';
+  MVCFramework.Filters.Swagger in '..\..\sources\MVCFramework.Filters.Swagger.pas';
 
 {$R *.res}
 
