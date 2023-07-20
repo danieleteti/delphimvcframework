@@ -34,11 +34,12 @@ interface
 uses
   MVCFramework,
   MVCFramework.Logger,
-  Swag.Doc,
   MVCFramework.Swagger.Commons,
+  MVCFramework.Commons,
+  Swag.Doc,
   Swag.Doc.SecurityDefinition,
   Swag.Common.Types,
-  System.JSON, MVCFramework.Commons;
+  System.JSON;
 
 type
   TMVCSwaggerProtocolFilter = class(TCustomProtocolFilter)
@@ -46,8 +47,6 @@ type
     fEngine: TMVCEngine;
     fSwaggerInfo: TMVCSwaggerInfo;
     fSwagDocURL: string;
-    fJWTDescription: string;
-    fEnableBasicAuthentication: Boolean;
     fHost: string;
     fBasePath: string;
     fPathFilter: string;
@@ -59,14 +58,12 @@ type
     procedure SortApiPaths(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
    protected
-     procedure DoFilter(Context: TWebContext); override;
+     procedure DoFilter(AContext: TWebContext); override;
+     procedure OnAfterRegistration(AEngine: TMVCEngine); override;
    public
     constructor Create(
-      const AEngine: TMVCEngine;
       const ASwaggerInfo: TMVCSwaggerInfo;
       const ASwaggerDocumentationURL: string = '/swagger.json';
-      const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
-      const AEnableBasicAuthentication: Boolean = False;
       const AHost: string = '';
       const ABasePath: string = '';
       const APathFilter: String = '';
@@ -103,18 +100,17 @@ uses
 
 { TMVCSwaggerProtocolFilter }
 
-constructor TMVCSwaggerProtocolFilter.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
-  const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
-  const AHost, ABasePath: string;
-  const APathFilter: String;
+constructor TMVCSwaggerProtocolFilter.Create(
+  const ASwaggerInfo: TMVCSwaggerInfo;
+  const ASwaggerDocumentationURL: string;
+  const AHost: string;
+  const ABasePath: string;
+  const APathFilter: string;
   const ATransferProtocolSchemes: TMVCTransferProtocolSchemes);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
-  fEngine := AEngine;
   fSwaggerInfo := ASwaggerInfo;
-  fJWTDescription := AJWTDescription;
-  fEnableBasicAuthentication := AEnableBasicAuthentication;
   fHost := AHost;
   fBasePath := ABasePath;
   fPathFilter := APathFilter;
@@ -319,26 +315,11 @@ end;
 
 procedure TMVCSwaggerProtocolFilter.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
 var
-  lMiddleware: IMVCMiddleware;
-  lJWTProtocolFilter: TMVCJWTProtocolFilter;
-  lRttiContext: TRttiContext;
-  lObjType: TRttiType;
-  lJwtUrlField: TRttiField;
   lJwtUrlSegment: string;
   lSecurityDefsBearer: TSwagSecurityDefinitionApiKey;
   lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
-  lJWTProtocolFilter := nil;
-//  for lMiddleware in fEngine.Middlewares do
-//  begin
-//    if lMiddleware is TMVCJWTProtocolFilter then
-//    begin
-//      lJWTProtocolFilter := TMVCJWTProtocolFilter(lMiddleware); // as TMVCJWTAuthenticationMiddleware;
-//      Break;
-//    end;
-//  end;
-
-  if Assigned(lJWTProtocolFilter) or fEnableBasicAuthentication then
+  if fSwaggerInfo.Authentication.BasicAuthenticationEnabled or fSwaggerInfo.Authentication.JWTAuthenticationEnabled then
   begin
     lSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
     lSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
@@ -346,35 +327,33 @@ begin
     ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBasic);
   end;
 
-  if Assigned(lJWTProtocolFilter) then
+  if fSwaggerInfo.Authentication.JWTAuthenticationEnabled then
   begin
-    lRttiContext := TRttiContext.Create;
-    try
-      lObjType := lRttiContext.GetType(lJWTProtocolFilter.ClassInfo);
-      lJwtUrlField := lObjType.GetField('FLoginURLSegment');
-      if Assigned(lJwtUrlField) then
-      begin
-        lJwtUrlSegment := lJwtUrlField.GetValue(lJWTProtocolFilter).AsString;
-        if lJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
-          lJwtUrlSegment := lJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
-        if not lJwtUrlSegment.StartsWith('/') then
-          lJwtUrlSegment.Insert(0, '/');
+    lJwtUrlSegment := fSwaggerInfo.Authentication.JWTUrlSegment;
+    if lJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
+      lJwtUrlSegment := lJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
+    if not lJwtUrlSegment.StartsWith('/') then
+      lJwtUrlSegment.Insert(0, '/');
 
-        // Path operation Filter JWT
-        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(lJwtUrlSegment,
-          lJWTProtocolFilter.UserNameHeaderName, lJWTProtocolFilter.PasswordHeaderName));
+    // Path operation Filter JWT
+    ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(lJwtUrlSegment,
+      TMVCJWTDefaults.USERNAME_HEADER, TMVCJWTDefaults.PASSWORD_HEADER));
 
-        // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
-        lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
-        lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
-        lSecurityDefsBearer.InLocation := kilHeader;
-        lSecurityDefsBearer.Name := 'Authorization';
-        lSecurityDefsBearer.Description := fJWTDescription;
-        ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
-      end;
-    finally
-      lRttiContext.Free;
+    // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
+    lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+    lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
+    lSecurityDefsBearer.InLocation := kilHeader;
+    lSecurityDefsBearer.Name := TMVCJWTDefaults.AUTHORIZATION_HEADER;
+    if not fSwaggerInfo.Authentication.JWTDescription.IsEmpty then
+    begin
+      lSecurityDefsBearer.Description := fSwaggerInfo.Authentication.JWTDescription;
+    end
+    else
+    begin
+      lSecurityDefsBearer.Description := JWT_DEFAULT_DESCRIPTION;
     end;
+
+    ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
   end;
 end;
 
@@ -410,29 +389,29 @@ begin
   ASwagDoc.Schemes := lSwagSchemes;
 end;
 
-procedure TMVCSwaggerProtocolFilter.DoFilter(Context: TWebContext);
+procedure TMVCSwaggerProtocolFilter.DoFilter(AContext: TWebContext);
 var
   LSwagDoc: TSwagDoc;
 begin
-  if SameText(Context.Request.PathInfo, fSwagDocURL) and (Context.Request.HTTPMethod in [httpGET, httpPOST]) then
+  if SameText(AContext.Request.PathInfo, fSwagDocURL) and (AContext.Request.HTTPMethod in [httpGET, httpPOST]) then
   begin
     LSwagDoc := TSwagDoc.Create;
     try
       DocumentApiInfo(LSwagDoc);
-      DocumentApiSettings(Context, LSwagDoc);
+      DocumentApiSettings(AContext, LSwagDoc);
       DocumentApiAuthentication(LSwagDoc);
       DocumentApi(LSwagDoc);
       SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
-      InternalRender(LSwagDoc.SwaggerJson.Format, Context);
+      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
     finally
       LSwagDoc.Free;
     end;
   end
   else
   begin
-    DoNext(Context);
+    DoNext(AContext);
   end;
 end;
 
@@ -458,6 +437,13 @@ procedure TMVCSwaggerProtocolFilter.OnAfterControllerAction(AContext: TWebContex
       const AHandled: Boolean);
 begin
   // do nothing
+end;
+
+procedure TMVCSwaggerProtocolFilter.OnAfterRegistration(AEngine: TMVCEngine);
+begin
+  FEngine := AEngine;
+  inherited;
+
 end;
 
 procedure TMVCSwaggerProtocolFilter.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);

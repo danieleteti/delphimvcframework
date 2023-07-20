@@ -61,11 +61,10 @@ begin
   LSwagInfo.ContactUrl := 'https://github.com/joaoduarte19';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
-  FEngine.UseFilter(TMVCSwaggerProtocolFilter.Create(FEngine, LSwagInfo, '/api/swagger.json',
-    'Method for authentication using JSON Web Token (JWT)',
-    False
-//    ,'api.dmvcframework.com', '/'  { Define a custom host and BasePath when your API uses a dns for external access }
-    ));
+  LSwagInfo.Authentication.JWTAuthenticationEnabled := True;
+  LSwagInfo.Authentication.JWTUrlSegment := '/api/login';
+  LSwagInfo.Authentication.JWTDescription := 'Method for authentication using JSON Web Token (JWT)';
+  FEngine.UseFilter(TMVCSwaggerProtocolFilter.Create(LSwagInfo, '/api/swagger.json'));
 
   LClaimsSetup := procedure(const JWT: TJWT)
     begin

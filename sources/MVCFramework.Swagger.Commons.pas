@@ -52,6 +52,13 @@ type
     stObject, stArray, stString, stChar, stGuid);
   TMVCSwagAuthenticationType = (atBasic, atJsonWebToken);
 
+  TMVCSwaggerAuthenticationInfo = record
+    BasicAuthenticationEnabled: Boolean;
+    JWTAuthenticationEnabled: Boolean;
+    JWTUrlSegment: string;
+    JWTDescription: string;
+  end;
+
   /// <summary>
   /// Swagger info object
   /// </summary>
@@ -65,6 +72,7 @@ type
     ContactUrl: string;
     LicenseName: string;
     LicenseUrl: string;
+    Authentication: TMVCSwaggerAuthenticationInfo;
   end;
 
   /// <summary>
