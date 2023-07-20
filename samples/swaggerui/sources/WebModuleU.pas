@@ -28,8 +28,8 @@ uses
   MainControllerU,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Filters.Compression,
+  MVCFramework.Filters.StaticFiles;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -56,13 +56,13 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
 //  FMVC.AddController(TMyController);
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+  FMVC.UseFilter(TMVCStaticFilesProtocolFilter.Create(
     '/swagger', { StaticFilesPath }
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), '..\www'), { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}
     ));
   // To enable compression (deflate, gzip) just add this middleware as the last one
-  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  FMVC.UseFilter(TMVCCompressionProtocolFilter.Create);
   FMVC.AddController(TRedirectController);
 end;
 
