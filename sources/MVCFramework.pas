@@ -1046,15 +1046,17 @@ type
   [MVCNameCase(ncLowerCase)]
   TMVCResponse = class
   private
-    FStatusCode: Integer;
-    FReasonString: string;
-    FMessage: string;
+    fStatusCode: Integer;
+    fReasonString: string;
+    fMessage: string;
     fDataObject: TObject;
   protected
-    { protected declarations }
-  public
     constructor Create; overload; virtual;
+  public
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
+    constructor Create(AStatusCode: Integer; AMessage: string); overload;
+    constructor Create(AStatusCode: Integer; AReasonString: string; AData: TObject); overload;
+    constructor Create(AStatusCode: Integer; AData: TObject); overload;
     destructor Destroy; override;
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
@@ -4279,6 +4281,7 @@ constructor TMVCResponse.Create;
 begin
   inherited Create;
   fDataObject := nil;
+  fMessage := '';
 end;
 
 constructor TMVCErrorResponse.Create;
@@ -4290,9 +4293,28 @@ end;
 constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
 begin
   Create;
-  StatusCode := AStatusCode;
-  ReasonString := AReasonString;
-  message := AMessage;
+  fStatusCode := AStatusCode;
+  fReasonString := AReasonString;
+  fMessage := AMessage;
+end;
+
+constructor TMVCResponse.Create(AStatusCode: Integer; AMessage: string);
+begin
+  Create(AStatusCode, '', AMessage);
+end;
+
+constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString: string;
+  AData: TObject);
+begin
+  Create;
+  fStatusCode := AStatusCode;
+  fReasonString := AReasonString;
+  fDataObject := AData;
+end;
+
+constructor TMVCResponse.Create(AStatusCode: Integer; AData: TObject);
+begin
+  Create(AStatusCode, '', AData);
 end;
 
 destructor TMVCResponse.Destroy;

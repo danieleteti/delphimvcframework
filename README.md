@@ -314,10 +314,99 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
     Check sample "function_actions_showcase.dproj" for more info.
 
+- ⚡ Improved `TMVCResponse` type to better suits the new functional actions. 
+
+  `TMVCResponse` can be used with "message based" responses and also with "data based" responses (with single object or with a list of objects).
+
+  **Message based responses**
+
+  ```pascal
+  function TMyController.GetMVCResponse: TMVCResponse;
+  begin
+    Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', 'My Message');
+  end;
+  ```
+
+  Produces
+
+  ```json
+  {
+      "statuscode":200,
+      "reasonstring":"My Reason String",
+      "message":"My Message"
+  }
+  ```
+
+  
+  
+  **Data based reponses with single object**
+  
+  ```pascal
+  function TMyController.GetMVCResponse2: TMVCResponse;
+  begin
+    Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', TPerson.Create('Daniele','Teti', 99));
+  end;
+  ```
+  
+  Produces
+  
+  ```json
+  {
+    "statuscode": 200,
+    "reasonstring": "My Reason String",
+    "message": "",
+    "data": {
+      "firstName": "Daniele",
+      "lastName": "Teti",
+      "age": 99
+    }
+  }
+  ```
+  
+  **Data based reponses with list of objects**
+  
+  ```pascal
+  function TMyController.GetMVCResponse3: TMVCResponse;
+  begin
+    Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String',
+      TObjectList<TPerson>.Create([
+        TPerson.Create('Daniele','Teti', 99),
+        TPerson.Create('Peter','Parker', 25),
+        TPerson.Create('Bruce','Banner', 45)
+      ])
+    );
+  end;
+  ```
+  
+  Produces
+  
+  ```json
+  {
+    "statuscode": 200,
+    "reasonstring": "My Reason String",
+    "message": "",
+    "data": [
+      {
+        "firstName": "Daniele",
+        "lastName": "Teti",
+        "age": 99
+      },
+      {
+        "firstName": "Peter",
+        "lastName": "Parker",
+        "age": 25
+      },
+      {
+        "firstName": "Bruce",
+        "lastName": "Banner",
+        "age": 45
+      }
+    ]
+  }
+  ```
 
 
-
-## Hystorical Versions
+## Old Versions
 
 ### What's New in dmvcframework-3.2.3-radium
 

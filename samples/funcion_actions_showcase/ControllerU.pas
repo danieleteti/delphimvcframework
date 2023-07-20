@@ -23,6 +23,7 @@ type
     property FirstName: String read fFirstName write fFirstName;
     property LastName: String read fLastName write fLastName;
     property Age: Integer read fAge write fAge;
+    constructor Create(FirstName, LastName: String; Age: Integer);
   end;
 
   [MVCPath('/api')]
@@ -57,6 +58,14 @@ type
     { customize response headers }
     [MVCPath('/headers')]
     function GetWithCustomHeaders: TObjectList<TPerson>;
+
+    { using TMVCResponse }
+    [MVCPath('/mvcresponse/message')]
+    function GetMVCResponse: TMVCResponse;
+    [MVCPath('/mvcresponse/data')]
+    function GetMVCResponse2: TMVCResponse;
+    [MVCPath('/mvcresponse/list')]
+    function GetMVCResponse3: TMVCResponse;
   end;
 
 implementation
@@ -98,20 +107,11 @@ function TMyController.GetMultipleObjects: TObjectList<TPerson>;
 begin
   Result := TObjectList<TPerson>.Create;
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := YearsBetween(Date, EncodeDateDay(1979, 1));
+  Result.Add(TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1))));
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := Result[0].Age + 10;
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 10));
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := Result[0].Age + 20;
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 20));
 end;
 
 function TMyController.GetMultipleRecords: TArray<TPersonRec>;
@@ -124,6 +124,27 @@ begin
   Inc(Result[1].Age, 10);
 
   Inc(Result[2].Age, 20);
+end;
+
+function TMyController.GetMVCResponse: TMVCResponse;
+begin
+  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', 'My Message');
+end;
+
+function TMyController.GetMVCResponse2: TMVCResponse;
+begin
+  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', TPerson.Create('Daniele','Teti', 99));
+end;
+
+function TMyController.GetMVCResponse3: TMVCResponse;
+begin
+  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String',
+    TObjectList<TPerson>.Create([
+      TPerson.Create('Daniele','Teti', 99),
+      TPerson.Create('Peter','Parker', 25),
+      TPerson.Create('Bruce','Banner', 45)
+    ])
+  );
 end;
 
 function TMyController.GetSingleDataSet: TDataSet;
@@ -139,10 +160,7 @@ end;
 
 function TMyController.GetSingleObject: TPerson;
 begin
-  Result := TPerson.Create;
-  Result.FirstName := 'Daniele';
-  Result.LastName := 'Teti';
-  Result.Age := YearsBetween(Date, EncodeDateDay(1979, 1));
+  Result := TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1)));
 end;
 
 function TMyController.GetSingleRecord: TPersonRec;
@@ -164,20 +182,11 @@ function TMyController.GetWithCustomHeaders: TObjectList<TPerson>;
 begin
   Result := TObjectList<TPerson>.Create;
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := YearsBetween(Date, EncodeDateDay(1979, 1));
+  Result.Add(TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1))));
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := Result[0].Age + 10;
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 10));
 
-  Result.Add(TPerson.Create);
-  Result.Last.FirstName := 'Daniele';
-  Result.Last.LastName := 'Teti';
-  Result.Last.Age := Result[0].Age + 20;
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 20));
 
   { customize headers }
   Context.Response.StatusCode := HTTP_STATUS.PartialContent;
@@ -192,6 +201,16 @@ begin
   Result.FirstName := 'Daniele';
   Result.LastName := 'Teti';
   Result.Age := YearsBetween(Date, EncodeDateDay(1979, 1));
+end;
+
+{ TPerson }
+
+constructor TPerson.Create(FirstName, LastName: String; Age: Integer);
+begin
+  inherited Create;
+  fFirstName := FirstName;
+  fLastName := LastName;
+  fAge := Age;
 end;
 
 end.
