@@ -81,6 +81,8 @@ type
       const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
       const ARules: TMVCStaticFileRulesProc = nil;
       const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer = nil); virtual;
+
+    destructor Destroy; override;
   end;
 
 implementation
@@ -144,6 +146,12 @@ begin
   begin
     AMediaTypesCustomizer(fMediaTypes);
   end;
+end;
+
+destructor TMVCStaticFilesProtocolFilter.Destroy;
+begin
+  fMediaTypes.Free;
+  inherited Destroy;
 end;
 
 procedure TMVCStaticFilesProtocolFilter.DoFilter(Context: TWebContext);
