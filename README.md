@@ -241,6 +241,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
 
+- 🐞 FIX wrong default initialization for JWT (thanks to Flavio Basile)
+
 - ⚡ Wizard updated to be dotEnv aware
 
 - ⚡ Better error message in case of serialization of `TArray<TObject>`
