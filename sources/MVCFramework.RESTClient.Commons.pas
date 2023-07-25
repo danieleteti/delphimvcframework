@@ -179,6 +179,9 @@ var
 begin
   lDecompressed := TMemoryStream.Create;
   try
+{$IF defined(MACOS) or defined(IOS)}
+    lDecompressed.CopyFrom(aContentStream, 0); // MACOS automatically decompresses response body
+{$ELSE}
     if SameText(aContentEncoding, 'gzip') or SameText(aContentEncoding, 'deflate') then
     begin
       /// Certain types of deflate compression cannot be decompressed by the standard Zlib,
@@ -202,6 +205,7 @@ begin
     begin
       raise EMVCRESTClientException.CreateFmt('Content-Encoding not supported [%s]', [aContentEncoding]);
     end;
+{$ENDIF}
 
     SetLength(Result, lDecompressed.Size);
     lDecompressed.Position := 0;
