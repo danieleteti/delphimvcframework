@@ -30,7 +30,7 @@ implementation
 uses
   MyControllerU,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Filters.StaticFiles,
   System.Rtti, System.IOUtils;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
