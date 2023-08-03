@@ -2529,6 +2529,13 @@ begin
                                 lContext.Response.RawWebResponse.FreeContentStream := True;
                                 lResponseObject := nil; //do not free it!!
                               end
+                              else if lResponseObject is TMVCResponse then
+                              begin
+                                lSelectedController.ResponseStatus(
+                                  TMVCResponse(lResponseObject).StatusCode,
+                                  TMVCResponse(lResponseObject).ReasonString);
+                                lSelectedController.Render(TMVCResponse(lResponseObject), False);
+                              end
                               else if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
                               begin
                                 lSelectedController.Render(lObjList);
