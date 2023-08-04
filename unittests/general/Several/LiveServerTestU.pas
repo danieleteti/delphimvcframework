@@ -1084,12 +1084,11 @@ var
 begin
   res := RESTClient.Get('/exception/emvcexception1');
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.StatusCode);
+  Assert.areEqual('Internal Server Error', res.StatusText);
   lJSON := StrToJSONObject(res.Content);
   try
     Assert.areEqual<string>('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual<string>('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
-    Assert.areEqual<Integer>(500, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual<string>('Internal Server Error', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
   finally
@@ -1105,12 +1104,11 @@ var
 begin
   res := RESTClient.Get('/exception/emvcexception2');
   Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.StatusCode);
+  Assert.areEqual('Bad Request', res.StatusText);
   lJSON := StrToJSONObject(res.Content);
   try
     Assert.areEqual<string>('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual<string>('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
-    Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual<string>('Bad Request', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
   finally
@@ -1125,12 +1123,11 @@ var
 begin
   res := RESTClient.Get('/exception/emvcexception3');
   Assert.areEqual<Integer>(HTTP_STATUS.Created, res.StatusCode);
+  Assert.areEqual('Created', res.StatusText);
   lJSON := StrToJSONObject(res.Content);
   try
     Assert.areEqual('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
-    Assert.areEqual(HTTP_STATUS.Created, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual('Created', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(999, lJSON.I['apperrorcode'], lJSON.ToJSON());
     Assert.areEqual(0, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.isTrue(lJSON.IsNull('data'), lJSON.ToJSON());
@@ -1146,13 +1143,12 @@ var
 begin
   res := RESTClient.Get('/exception/emvcexception4');
   Assert.areEqual<Integer>(HTTP_STATUS.Created, res.StatusCode);
+  Assert.areEqual('Created', res.StatusText);
   lJSON := StrToJSONObject(res.Content);
   try
     Assert.areEqual('message', lJSON.S['message'], lJSON.ToJSON());
     Assert.areEqual('detailedmessage', lJSON.S['detailedmessage'], lJSON.ToJSON());
     Assert.areEqual('EMVCException', lJSON.S['classname'], lJSON.ToJSON());
-    Assert.areEqual(HTTP_STATUS.Created, lJSON.I['statuscode'], lJSON.ToJSON());
-    Assert.areEqual('Created', lJSON.S['reasonstring'], lJSON.ToJSON());
     Assert.areEqual(999, lJSON.I['apperrorcode'], lJSON.ToJSON());
     Assert.areEqual(2, lJSON.A['items'].Count, lJSON.ToJSON());
     Assert.areEqual('erritem1', lJSON.A['items'].O[0].S['message'], lJSON.ToJSON());
