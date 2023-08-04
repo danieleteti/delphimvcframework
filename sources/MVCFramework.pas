@@ -1043,45 +1043,77 @@ type
     property message: string read FMessage write FMessage;
   end;
 
+
+  // std responses
+
+  IMVCResponse = interface
+    ['{9DFEC741-EE38-4AC9-9C2C-9EA0D15D08D5}']
+    function GetData: TObject;
+    function GetMessage: string;
+    function GetReasonString: string;
+    function GetStatusCode: Integer;
+    function GetIgnoredList: TMVCIgnoredList;
+    property StatusCode: Integer read GetStatusCode;
+    property ReasonString: string read GetReasonString;
+    property Message: string read GetMessage;
+    property Data: TObject read GetData;
+  end;
+
   [MVCNameCase(ncLowerCase)]
-  TMVCResponse = class
+  TMVCResponse = class(TInterfacedObject, IMVCResponse)
   private
     fStatusCode: Integer;
     fReasonString: string;
     fMessage: string;
     fDataObject: TObject;
+    fIgnoredList: TMVCIgnoredList;
+    fObjectDictionary: IMVCObjectDictionary;
+    function GetData: TObject;
+    function GetMessage: string;
+    function GetReasonString: string;
+    function GetStatusCode: Integer;
+    procedure SetData(const Value: TObject);
+    procedure SetMessage(const Value: string);
+    procedure SetReasonString(const Value: string);
+    procedure SetStatusCode(const Value: Integer);
+    function GetObjectDictionary: IMVCObjectDictionary;
+    procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
   protected
     constructor Create; overload; virtual;
   public
-    constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
-    constructor Create(AStatusCode: Integer; AMessage: string); overload;
-    constructor Create(AStatusCode: Integer; AReasonString: string; AData: TObject); overload;
-    constructor Create(AStatusCode: Integer; AData: TObject); overload;
+    constructor Create(AStatusCode: Integer; AMessage: string; AReasonString: string = ''); overload;
+    constructor Create(AStatusCode: Integer; AData: TObject; AReasonString: string = ''); overload;
+    constructor Create(AStatusCode: Integer; AObjectDictionary: IMVCObjectDictionary; AReasonString: string = ''); overload;
     destructor Destroy; override;
-    property StatusCode: Integer read FStatusCode write FStatusCode;
-    property ReasonString: string read FReasonString write FReasonString;
-    property Message: string read FMessage write FMessage;
-    property Data: TObject read fDataObject write fDataObject;
+    function GetIgnoredList: TMVCIgnoredList;
+    [MVCDoNotSerialize]
+    property StatusCode: Integer read GetStatusCode write SetStatusCode;
+    [MVCDoNotSerialize]
+    property ReasonString: string read GetReasonString write SetReasonString;
+    property Message: string read GetMessage write SetMessage;
+    property Data: TObject read GetData write SetData;
+    property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
   end;
 
   [MVCNameCase(ncLowerCase)]
   TMVCErrorResponse = class(TMVCResponse)
   private
-    FClassname: string;
-    FItems: TObjectList<TMVCErrorResponseItem>;
-    FAppErrorCode: Integer;
-    FDetailedMessage: string;
+    fClassname: string;
+    fItems: TObjectList<TMVCErrorResponseItem>;
+    fAppErrorCode: Integer;
+    fDetailedMessage: string;
     procedure SetAppErrorCode(const Value: Integer);
   public
     constructor Create; override;
     destructor Destroy; override;
-    property Classname: string read FClassname write FClassname;
-    property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
-    property AppErrorCode: Integer read FAppErrorCode write SetAppErrorCode;
+    property Classname: string read fClassname write fClassname;
+    property DetailedMessage: string read fDetailedMessage write fDetailedMessage;
+    property AppErrorCode: Integer read fAppErrorCode write SetAppErrorCode;
     [MVCListOf(TMVCErrorResponseItem)]
-    property Items: TObjectList<TMVCErrorResponseItem> read FItems;
+    property Items: TObjectList<TMVCErrorResponseItem> read fItems;
   end;
 
+  // end - std responses
 
 
   TMVCBaseViewEngine = class(TMVCBase)
@@ -1116,7 +1148,13 @@ type
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
-  const Message: string = ''): TMVCResponse;
+  const Message: string = ''): TMVCResponse; deprecated 'Use MVCResponse()';
+
+// std responses
+function MVCResponse(AStatusCode: Integer; AMessage: string = ''; AReasonString: string = ''): IMVCResponse; overload;
+function MVCResponse(AStatusCode: Integer; AData: TObject; AReasonString: string = ''): IMVCResponse; overload;
+function MVCResponse(AStatusCode: Integer; AObjectDictionary: IMVCObjectDictionary; AReasonString: string = ''): IMVCResponse; overload;
+// end - std responses
 
 implementation
 
@@ -2510,7 +2548,18 @@ begin
                         case lInvokeResult.Kind of
                           tkInterface:
                           begin
-                            lSelectedController.Render(lInvokeResult.AsInterface);
+                            if Supports(lInvokeResult.AsInterface, IMVCResponse) then
+                            begin
+                              lResponseObject := TMVCResponse(lInvokeResult.AsInterface);
+                              lSelectedController.ResponseStatus(
+                                TMVCResponse(lResponseObject).StatusCode,
+                                TMVCResponse(lResponseObject).ReasonString);
+                              lSelectedController.Render(TMVCResponse(lResponseObject), False);
+                            end
+                            else
+                            begin
+                              lSelectedController.Render(lInvokeResult.AsInterface);
+                            end;
                           end;
                           tkClass:
                           begin
@@ -4237,8 +4286,8 @@ begin
   begin
     try
       GetContext.Response.StatusCode := AResponse.StatusCode;
-      GetContext.Response.ReasonString := HTTP_STATUS.ReasonStringFor(AResponse.StatusCode);
-      Render(AResponse, False, stProperties);
+      GetContext.Response.ReasonString := AResponse.ReasonString;
+      Render(AResponse, False, stProperties, nil, AResponse.GetIgnoredList);
     finally
       if AOwns then
         AResponse.Free;
@@ -4297,37 +4346,96 @@ begin
   FItems := TObjectList<TMVCErrorResponseItem>.Create(True);
 end;
 
-constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
+constructor TMVCResponse.Create(AStatusCode: Integer; AMessage: string; AReasonString: string);
 begin
   Create;
   fStatusCode := AStatusCode;
-  fReasonString := AReasonString;
   fMessage := AMessage;
+  fReasonString := AReasonString;
+  fIgnoredList := ['Data', 'ObjectDictionary'];
 end;
 
-constructor TMVCResponse.Create(AStatusCode: Integer; AMessage: string);
-begin
-  Create(AStatusCode, '', AMessage);
-end;
-
-constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString: string;
-  AData: TObject);
+constructor TMVCResponse.Create(AStatusCode: Integer; AData: TObject; AReasonString: string);
 begin
   Create;
   fStatusCode := AStatusCode;
-  fReasonString := AReasonString;
   fDataObject := AData;
+  fReasonString := AReasonString;
+  fIgnoredList := ['Message', 'ObjectDictionary'];
 end;
 
-constructor TMVCResponse.Create(AStatusCode: Integer; AData: TObject);
+constructor TMVCResponse.Create(AStatusCode: Integer;
+  AObjectDictionary: IMVCObjectDictionary; AReasonString: string);
 begin
-  Create(AStatusCode, '', AData);
+  Create;
+  fStatusCode := AStatusCode;
+  fObjectDictionary := AObjectDictionary;
+  fReasonString := AReasonString;
+  fIgnoredList := ['Message', 'Data'];
 end;
 
 destructor TMVCResponse.Destroy;
 begin
   fDataObject.Free;
   inherited;
+end;
+
+function TMVCResponse.GetData: TObject;
+begin
+  Result := fDataObject;
+end;
+
+function TMVCResponse.GetIgnoredList: TMVCIgnoredList;
+begin
+  Result := fIgnoredList;
+end;
+
+function TMVCResponse.GetMessage: string;
+begin
+  Result := fMessage;
+end;
+
+function TMVCResponse.GetObjectDictionary: IMVCObjectDictionary;
+begin
+  Result := fObjectDictionary;
+end;
+
+function TMVCResponse.GetReasonString: string;
+begin
+  if fReasonString.IsEmpty then
+    Result := HTTP_STATUS.ReasonStringFor(fStatusCode)
+  else
+    Result := fReasonString;
+end;
+
+function TMVCResponse.GetStatusCode: Integer;
+begin
+  Result := fStatusCode;
+end;
+
+procedure TMVCResponse.SetData(const Value: TObject);
+begin
+  fDataObject := Value;
+end;
+
+procedure TMVCResponse.SetMessage(const Value: string);
+begin
+  fMessage := Value;
+end;
+
+procedure TMVCResponse.SetObjectDictionary(const Value: IMVCObjectDictionary);
+begin
+  fObjectDictionary := Value;
+end;
+
+procedure TMVCResponse.SetReasonString(const Value: string);
+begin
+  fReasonString := Value;
+end;
+
+procedure TMVCResponse.SetStatusCode(const Value: Integer);
+begin
+  fStatusCode := Value;
 end;
 
 destructor TMVCErrorResponse.Destroy;
@@ -4431,6 +4539,25 @@ begin
   FPattern := APattern;
   FFormat := AFormat;
 end;
+
+// std responses
+function MVCResponse(AStatusCode: Integer; AMessage: string; AReasonString: string): IMVCResponse; overload;
+begin
+  Result := TMVCResponse.Create(AStatusCode, AMessage, AReasonString);
+end;
+
+function MVCResponse(AStatusCode: Integer; AData: TObject; AReasonString: string): IMVCResponse; overload;
+begin
+  Result := TMVCResponse.Create(AStatusCode, AData, AReasonString);
+end;
+
+function MVCResponse(AStatusCode: Integer; AObjectDictionary: IMVCObjectDictionary; AReasonString: string): IMVCResponse; overload;
+begin
+  Result := TMVCResponse.Create(AStatusCode, AObjectDictionary, AReasonString);
+end;
+
+// end - std responses
+
 
 initialization
 

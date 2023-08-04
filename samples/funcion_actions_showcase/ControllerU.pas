@@ -59,13 +59,17 @@ type
     [MVCPath('/headers')]
     function GetWithCustomHeaders: TObjectList<TPerson>;
 
-    { using TMVCResponse }
+    { using IMVCResponse }
     [MVCPath('/mvcresponse/message')]
-    function GetMVCResponse: TMVCResponse;
+    function GetMVCResponseSimple: IMVCResponse;
     [MVCPath('/mvcresponse/data')]
-    function GetMVCResponse2: TMVCResponse;
+    function GetMVCResponseWithData: IMVCResponse;
     [MVCPath('/mvcresponse/list')]
-    function GetMVCResponse3: TMVCResponse;
+    function GetMVCResponseWithObjectList: IMVCResponse;
+    [MVCPath('/mvcresponse/dictionary')]
+    function GetMVCResponseWithObjectDictionary: IMVCResponse;
+    [MVCPath('/mvcresponse/error')]
+    function GetMVCErrorResponse: IMVCResponse;
   end;
 
 implementation
@@ -126,19 +130,45 @@ begin
   Inc(Result[2].Age, 20);
 end;
 
-function TMyController.GetMVCResponse: TMVCResponse;
+function TMyController.GetMVCErrorResponse: IMVCResponse;
 begin
-  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', 'My Message');
+  Result := TMVCErrorResponse.Create(500, 'boom');
 end;
 
-function TMyController.GetMVCResponse2: TMVCResponse;
+function TMyController.GetMVCResponseSimple: IMVCResponse;
 begin
-  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String', TPerson.Create('Daniele','Teti', 99));
+  Result := MVCResponse(HTTP_STATUS.OK, 'My Message', 'My Reason String');
 end;
 
-function TMyController.GetMVCResponse3: TMVCResponse;
+function TMyController.GetMVCResponseWithData: IMVCResponse;
 begin
-  Result := TMVCResponse.Create(HTTP_STATUS.OK, 'My Reason String',
+  Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
+end;
+
+function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
+begin
+  Result := MVCResponse(
+    HTTP_STATUS.OK,
+    ObjectDict()
+      .Add('people1', TObjectList<TPerson>.Create([
+                      TPerson.Create('Daniele','Teti', 99),
+                      TPerson.Create('Peter','Parker', 25),
+                      TPerson.Create('Bruce','Banner', 45)
+                    ])
+      )
+      .Add('people2', TObjectList<TPerson>.Create([
+                      TPerson.Create('Daniele','Teti', 99),
+                      TPerson.Create('Peter','Parker', 25),
+                      TPerson.Create('Bruce','Banner', 45)
+                    ])
+      )
+  );
+end;
+
+function TMyController.GetMVCResponseWithObjectList: IMVCResponse;
+begin
+  Result := MVCResponse(
+    HTTP_STATUS.OK,
     TObjectList<TPerson>.Create([
       TPerson.Create('Daniele','Teti', 99),
       TPerson.Create('Peter','Parker', 25),
