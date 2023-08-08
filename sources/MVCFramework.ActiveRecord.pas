@@ -1330,7 +1330,7 @@ begin
     begin
       if [eaCreate, eaUpdate, eaDelete] * lTableMap.fEntityAllowedActions <> [] then
       begin
-        raise Exception.Create('Cannot find TableNameAttribute');
+        raise Exception.Create('Cannot find TableNameAttribute on class ' + ClassName + ' - [HINT] Is this class decorated with MVCTable and its fields with MVCTableField?');
       end;
     end;
 
@@ -1390,7 +1390,7 @@ begin
     lTableMap.fMap.EndUpdates;
     if (lPKCount + lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount) = 0 then
       raise EMVCActiveRecord.Create(
-        'No fields nor PKs defined. [HINT] Use MVCTableField in private fields');
+        'No fields nor PKs defined in class ' + ClassName + '. [HINT] Use MVCTableField in private fields');
     lTableMap.fPartitionInfoInternal := nil;
 
     ActiveRecordTableMapRegistry.AddTableMap(Self, lTableMap);

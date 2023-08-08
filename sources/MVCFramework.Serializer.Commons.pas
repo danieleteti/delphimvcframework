@@ -1141,7 +1141,7 @@ begin
       begin
         // sqlite doesn't support boolean, so are identified as integers
         // so we need to do some more checks...
-        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.Name.ToLower.Contains('bool')) then
+        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.FieldType.Handle = TypeInfo(Boolean)) then
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger = 1);
         end
