@@ -267,6 +267,15 @@ object MainForm: TMainForm
     TabOrder = 25
     OnClick = btnRefreshClick
   end
+  object btnNamedQuery: TButton
+    Left = 144
+    Top = 482
+    Width = 121
+    Height = 34
+    Caption = 'Named Query'
+    TabOrder = 26
+    OnClick = btnNamedQueryClick
+  end
   object FDConnection1: TFDConnection
     Left = 312
     Top = 40

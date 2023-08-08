@@ -103,6 +103,11 @@ type
     procedure EndUpdates;
   end;
 
+  TQueryWithName = record
+    Name: String;
+    QueryText: String;
+  end;
+
   TFieldsMap = class(TObjectDictionary<TRTTIField, TFieldInfo>)
   private
     fWritableFieldsCount: Integer;
@@ -131,6 +136,13 @@ type
   public
     PartitionClause: String;
     constructor Create(const PartitionClause: String);
+  end;
+
+  MVCNamedSQLQueryAttribute = class(MVCActiveRecordCustomAttribute)
+  public
+    Name: string;
+    SQLQuery: String;
+    constructor Create(aName: string; aSQLSelect: String);
   end;
 
   MVCTableFieldAttribute = class(MVCActiveRecordCustomAttribute)
@@ -202,6 +214,7 @@ type
     fPrimaryKeyOptions: TMVCActiveRecordFieldOptions;
     fPrimaryKeySequenceName: string;
     fPrimaryKeyFieldType: TFieldType;
+    fNamedSQLQueries: TArray<TQueryWithName>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -373,6 +386,8 @@ type
     procedure AddChildren(const ChildObject: TObject);
     procedure RemoveChildren(const ChildObject: TObject);
     function GetPrimaryKeyFieldType: TFieldType;
+
+    function FindSQLQueryByName(const QueryName: String; out NamedSQLQuery: TQueryWithName): Boolean;
 
     property Attributes[const AttrName: string]: TValue
       read GetAttributes
@@ -560,6 +575,12 @@ type
       const Unidirectional: Boolean = False;
       const DirectExecute: Boolean = False): TDataSet; overload;
 
+    { NamedQuery}
+    class function SelectByNamedQuery<T: TMVCActiveRecord, constructor>(
+      const QueryName: String;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>;
   end;
 
   IMVCEntitiesRegistry = interface
@@ -1299,6 +1320,22 @@ begin
   end;
 end;
 
+function TMVCActiveRecord.FindSQLQueryByName(const QueryName: String;
+  out NamedSQLQuery: TQueryWithName): Boolean;
+var
+  I: Integer;
+begin
+  for I := Low(fTableMap.fNamedSQLQueries) to High(fTableMap.fNamedSQLQueries) do
+  begin
+    if SameText(QueryName, fTableMap.fNamedSQLQueries[I].Name) then
+    begin
+      NamedSQLQuery := fTableMap.fNamedSQLQueries[I];
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
 class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant;
   const Unidirectional: Boolean; const DirectExecute: Boolean): TDataSet;
 begin
@@ -1313,6 +1350,7 @@ var
   lPrimaryFieldTypeAsStr: string;
   lTableMap: TMVCTableMap;
   lPKCount: Integer;
+  lNamedSQLQueryCount: Integer;
 begin
   if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then
   begin
@@ -1334,6 +1372,7 @@ begin
     lTableMap.fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
     lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
     lPKCount := 0;
+    lNamedSQLQueryCount := Length(lTableMap.fNamedSQLQueries);
     for lAttribute in lTableMap.fObjAttributes do
     begin
       if lAttribute is MVCTableAttribute then
@@ -1350,6 +1389,14 @@ begin
       if lAttribute is MVCPartitionAttribute then
       begin
         lTableMap.fPartitionClause := MVCPartitionAttribute(lAttribute).PartitionClause;
+        Continue;
+      end;
+      if lAttribute is MVCNamedSQLQueryAttribute then
+      begin
+        Inc(lNamedSQLQueryCount);
+        SetLength(lTableMap.fNamedSQLQueries, lNamedSQLQueryCount);
+        lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].Name := MVCNamedSQLQueryAttribute(lAttribute).Name;
+        lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].QueryText := MVCNamedSQLQueryAttribute(lAttribute).SQLQuery;
         Continue;
       end;
     end;
@@ -2640,6 +2687,26 @@ begin
     Result := OutList.Count;
   finally
     lDataSet.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.SelectByNamedQuery<T>(
+  const QueryName: String; const Params: array of Variant;
+  const ParamTypes: array of TFieldType;
+  const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
+var
+  lT: T;
+  lSQLQuery: TQueryWithName;
+begin
+  lT := T.Create;
+  try
+    if not lT.FindSQLQueryByName(QueryName, lSQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedSQLQuery not found: %s', [QueryName]);
+    end;
+    Result := Select<T>(lSQLQuery.QueryText, Params, ParamTypes, Options);
+  finally
+    lT.Free;
   end;
 end;
 
@@ -4211,6 +4278,15 @@ begin
   finally
     lDataSet.Free;
   end;
+end;
+
+{ MVCNamedSQLQueryAttribute }
+
+constructor MVCNamedSQLQueryAttribute.Create(aName, aSQLSelect: String);
+begin
+  inherited Create;
+  Name := aName;
+  SQLQuery := aSQLSelect;
 end;
 
 initialization

@@ -105,6 +105,8 @@ type
 
   [MVCNameCase(ncLowerCase)]
   [MVCTable('customers')]
+  [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
+  [MVCNamedSQLQuery('RatingEqualsToPar', 'select * from customers where rating = ? order by code, city desc')]
   TCustomer = class(TCustomEntity)
   private
 {$IFNDEF USE_SEQUENCES}

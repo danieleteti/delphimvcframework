@@ -58,6 +58,7 @@ type
     btnReadOnly: TButton;
     btnSpeed: TButton;
     btnRefresh: TButton;
+    btnNamedQuery: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -86,6 +87,7 @@ type
     procedure btnReadOnlyClick(Sender: TObject);
     procedure btnSpeedClick(Sender: TObject);
     procedure btnRefreshClick(Sender: TObject);
+    procedure btnNamedQueryClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -647,6 +649,35 @@ begin
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
     'in(City,["Rome","New York","London","Melbourne","Berlin"])').ToString + ' records');
+end;
+
+procedure TMainForm.btnNamedQueryClick(Sender: TObject);
+begin
+  Log('** Named SQL Query');
+  Log('Query: RatingLessThanPar');
+  var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('Query: RatingEqualsToPar');
+  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [1], [ftInteger]);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
 end;
 
 procedure TMainForm.btnNullablesClick(Sender: TObject);
