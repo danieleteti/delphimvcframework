@@ -333,7 +333,9 @@ type
 
     function InternalCount(const RQL: string): int64;
     function InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer)
-      : TMVCActiveRecordList;
+      : TMVCActiveRecordList; overload;
+    function InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer;
+      const OutList: TMVCActiveRecordList): UInt32; overload;
   public
     constructor Create(aLazyLoadConnection: Boolean); overload;
     { cannot be virtual! }
@@ -392,18 +394,33 @@ type
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
       const Params: array of Variant;
       const Connection: TFDConnection): TMVCActiveRecordList; overload;
+    class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
+      const Params: array of Variant;
+      const Connection: TFDConnection; const OutList: TMVCActiveRecordList): UInt32; overload;
     class function SelectRQL(const aClass: TMVCActiveRecordClass; const RQL: string;
       const MaxRecordCount: Integer)
       : TMVCActiveRecordList; overload;
+    class function SelectRQL(const aClass: TMVCActiveRecordClass; const RQL: string;
+      const MaxRecordCount: Integer; const OutList: TMVCActiveRecordList): UInt32; overload;
     class function DeleteRQL(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
     function SelectRQL(const RQL: string; const MaxRecordCount: Integer)
       : TMVCActiveRecordList; overload;
-    class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
+    class function Where(
+      const aClass: TMVCActiveRecordClass;
+      const SQLWhere: string;
       const Params: array of Variant)
       : TMVCActiveRecordList; overload;
-    class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
+    class function Where(
+      const aClass: TMVCActiveRecordClass;
+      const SQLWhere: string;
       const Params: array of Variant;
       const Connection: TFDConnection): TMVCActiveRecordList; overload;
+    class function Where(
+      const aClass: TMVCActiveRecordClass;
+      const SQLWhere: string;
+      const Params: array of Variant;
+      const Connection: TFDConnection;
+      const OutList: TMVCActiveRecordList): UInt32; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
       overload;
     class function DeleteAll(const aClass: TMVCActiveRecordClass): int64; overload;
@@ -451,13 +468,27 @@ type
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: TGuid;
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
+    /// <summary>
+    ///   Returns a TObjectList<TMVCActiveRecord> from a SQL using variant params
+    /// </summary>
     class function Select<T: TMVCActiveRecord, constructor>(const SQL: string;
       const Params: array of Variant;
       const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
+    /// <summary>
+    ///   Returns a TObjectList<TMVCActiveRecord> from a SQL using typed params
+    /// </summary>
     class function Select<T: TMVCActiveRecord, constructor>(const SQL: string;
       const Params: array of Variant;
       const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions = [])
       : TObjectList<T>; overload;
+    /// <summary>
+    ///   Fills a TObjectList<TMVCActiveRecord> from a SQL using typed params.
+    ///   Returns number of the records in the list (not only the selected records, but the current .Count of the list)
+    /// </summary>
+    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant;
+      const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions;
+      const OutList: TObjectList<T>): UInt32; overload;
+
     class function SelectOne<T: TMVCActiveRecord, constructor>(const SQL: string;
       const Params: array of Variant;
       const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions = [];
@@ -468,6 +499,8 @@ type
     class function SelectRQL<T: constructor, TMVCActiveRecord>(const RQL: string;
       const MaxRecordCount: Integer)
       : TObjectList<T>; overload;
+    class function SelectRQL<T: constructor, TMVCActiveRecord>(const RQL: string;
+      const MaxRecordCount: Integer; const OutList: TObjectList<T>): UInt32; overload;
     class function SelectOneByRQL<T: constructor, TMVCActiveRecord>(const RQL: string;
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
@@ -483,6 +516,10 @@ type
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
       const Params: array of Variant;
       const ParamTypes: array of TFieldType): TObjectList<T>; overload;
+    class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const OutList: TObjectList<T>): UInt32; overload;
     class function GetOneByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
       const Params: array of Variant; const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function GetOneByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
@@ -1419,6 +1456,16 @@ begin
   Result := GetScalar(lSQL, []);
 end;
 
+function TMVCActiveRecord.InternalSelectRQL(const RQL: string;
+  const MaxRecordCount: Integer; const OutList: TMVCActiveRecordList): UInt32;
+var
+  lSQL: string;
+begin
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, false, MaxRecordCount);
+  LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+  Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, [], nil, OutList);
+end;
+
 function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer): TMVCActiveRecordList;
 var
   lSQL: string;
@@ -1651,6 +1698,52 @@ begin
     begin
       if RaiseExceptionIfNotFound then
         raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected');
+    end;
+  finally
+    lAR.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.SelectRQL<T>(const RQL: string;
+  const MaxRecordCount: Integer; const OutList: TObjectList<T>): UInt32;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+begin
+  lAR := T.Create;
+  try
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
+    lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
+    Result := Where<T>(lSQL, [], [], OutList);
+  finally
+    lAR.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string;
+  const Params: array of Variant; const ParamTypes: array of TFieldType;
+  const OutList: TObjectList<T>): UInt32;
+var
+  lAR: TMVCActiveRecord;
+  lFilter: string;
+begin
+  lAR := T.Create;
+  try
+    lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True);
+    if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or SQLWhere.Trim.StartsWith('/*sort*/') then
+    begin
+      Result := Select<T>(lAR.GenerateSelectSQL + lFilter + SQLWhere, Params, ParamTypes, [], OutList);
+    end
+    else
+    begin
+      if lFilter.IsEmpty then
+      begin
+        Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params, ParamTypes, [], OutList);
+      end
+      else
+      begin
+        Result := Select<T>(lAR.GenerateSelectSQL + lFilter + ' AND ' + SQLWhere, Params, ParamTypes, [], OutList);
+      end;
     end;
   finally
     lAR.Free;
@@ -2454,29 +2547,14 @@ end;
 
 class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass; const SQL: string;
   const Params: array of Variant; const Connection: TFDConnection): TMVCActiveRecordList;
-var
-  lDataSet: TDataSet;
-  lAR: TMVCActiveRecord;
 begin
   Result := TMVCActiveRecordList.Create;
   try
-    lDataSet := ExecQuery(SQL, Params, Connection, True, False);
-    try
-      while not lDataSet.Eof do
-      begin
-        lAR := aClass.Create;
-        Result.Add(lAR);
-        lAR.LoadByDataset(lDataSet);
-        lDataSet.Next;
-      end;
-    finally
-      lDataSet.Free;
-    end;
+    Select(aClass, SQL, Params, Connection, Result);
   except
     Result.Free;
     raise;
   end;
-
 end;
 
 class function TMVCActiveRecord.SelectDataSet(const SQL: string; const Params: array of Variant;
@@ -2502,6 +2580,41 @@ begin
   Result := InternalSelectRQL(RQL, MaxRecordCount);
 end;
 
+class function TMVCActiveRecord.SelectRQL(const aClass: TMVCActiveRecordClass;
+  const RQL: string; const MaxRecordCount: Integer;
+  const OutList: TMVCActiveRecordList): UInt32;
+var
+  lAR: TMVCActiveRecord;
+begin
+  lAR := aClass.Create(True);
+  try
+    Result := lAR.InternalSelectRQL(RQL, MaxRecordCount, OutList);
+  finally
+    lAR.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
+  const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions; const OutList: TObjectList<T>): UInt32;
+var
+  lDataSet: TDataSet;
+  lAR: TMVCActiveRecord;
+begin
+  lDataSet := ExecQuery(SQL, Params, ParamTypes, True, False);
+  try
+    while not lDataSet.Eof do
+    begin
+      lAR := T.Create;
+      OutList.Add(lAR);
+      lAR.LoadByDataset(lDataSet, Options);
+      lDataSet.Next;
+    end;
+    Result := OutList.Count;
+  finally
+    lDataSet.Free;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
 var
@@ -2511,18 +2624,7 @@ var
 begin
   Result := TObjectList<T>.Create(True);
   try
-    lDataSet := ExecQuery(SQL, Params, ParamTypes, True, False);
-    try
-      while not lDataSet.Eof do
-      begin
-        lAR := T.Create;
-        Result.Add(lAR);
-        lAR.LoadByDataset(lDataSet, Options);
-        lDataSet.Next;
-      end;
-    finally
-      lDataSet.Free;
-    end;
+    Select<T>(SQL, Params, ParamTypes, Options, Result);
   except
     Result.Free;
     raise;
@@ -2581,28 +2683,13 @@ end;
 
 class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType): TObjectList<T>;
-var
-  lAR: TMVCActiveRecord;
-  lFilter: string;
 begin
-  lAR := T.Create;
+  Result := TObjectList<T>.Create(True);
   try
-    lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True);
-    if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or SQLWhere.Trim.StartsWith('/*sort*/') then
-    begin
-      Result := Select<T>(lAR.GenerateSelectSQL + lFilter + SQLWhere, Params, ParamTypes)
-    end
-    else
-    begin
-      if lFilter.IsEmpty then
-        Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params, ParamTypes)
-      else
-      begin
-        Result := Select<T>(lAR.GenerateSelectSQL + lFilter + ' AND ' + SQLWhere, Params, ParamTypes);
-      end;
-    end;
-  finally
-    lAR.Free;
+    Where<T>(SQLWhere, Params, ParamTypes, Result);
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -3000,6 +3087,20 @@ begin
   OnAfterInsertOrUpdate;
 end;
 
+class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
+  const SQLWhere: string; const Params: array of Variant;
+  const Connection: TFDConnection; const OutList: TMVCActiveRecordList): UInt32;
+var
+  lAR: TMVCActiveRecord;
+begin
+  lAR := aClass.Create;
+  try
+    Result := Select(aClass, lAR.GenerateSelectSQL + SQLWhere, Params, Connection, OutList);
+  finally
+    lAR.Free;
+  end;
+end;
+
 procedure TMVCActiveRecord.AddChildren(const ChildObject: TObject);
 begin
   if fChildren = nil then
@@ -3051,14 +3152,13 @@ end;
 
 class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
   const Params: array of Variant; const Connection: TFDConnection): TMVCActiveRecordList;
-var
-  lAR: TMVCActiveRecord;
 begin
-  lAR := aClass.Create;
+  Result := TMVCActiveRecordList.Create;
   try
-    Result := Select(aClass, lAR.GenerateSelectSQL + SQLWhere, Params, Connection);
-  finally
-    lAR.Free;
+    Where(aClass, SQLWhere, Params, Connection, Result);
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -4061,6 +4161,28 @@ destructor TMVCTableMap.Destroy;
 begin
   fMap.Free;
   inherited;
+end;
+
+class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass;
+  const SQL: string; const Params: array of Variant;
+  const Connection: TFDConnection; const OutList: TMVCActiveRecordList): UInt32;
+var
+  lDataSet: TDataSet;
+  lAR: TMVCActiveRecord;
+begin
+  lDataSet := ExecQuery(SQL, Params, Connection, True, False);
+  try
+    while not lDataSet.Eof do
+    begin
+      lAR := aClass.Create;
+      OutList.Add(lAR);
+      lAR.LoadByDataset(lDataSet);
+      lDataSet.Next;
+    end;
+    Result := OutList.Count;
+  finally
+    lDataSet.Free;
+  end;
 end;
 
 initialization

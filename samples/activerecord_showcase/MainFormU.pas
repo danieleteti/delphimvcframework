@@ -1040,6 +1040,7 @@ var
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
   lCustList: TObjectList<TCustomer>;
+  lRecCount: Integer;
 const
   cRQL1 = 'in(City,["Rome","London"]);sort(+code);limit(0,50)';
   cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
@@ -1132,6 +1133,114 @@ begin
   finally
     lList.Free;
   end;
+
+
+  //******************************************************
+  // Using "Load" methods ********************************
+  //******************************************************
+  Log('*************************************************');
+  Log('** RQL Queries Test (using "Load" style methods)');
+  Log('*************************************************');
+  Log('>> RQL Query (1) - ' + cRQL1);
+  lList := TMVCActiveRecordList.Create;
+  try
+    TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+
+  Log('>> RQL Query (2) - ' + cRQL2);
+  lCustList := TObjectList<TCustomer>.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20, lCustList);
+    Log(lRecCount.ToString + ' record/s found');
+    for lCustomer in lCustList do
+    begin
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lCustList.Free;
+  end;
+
+  Log('**RQL Query (3) - ' + cRQL2);
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, cRQL2, 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (4) - <empty> with limit 20');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    Assert(lRecCount = 20);
+    Assert(lList.Count = lRecCount);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (5) - <empty> sort by code with limit 20');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, 'sort(+code)', 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    Assert(lRecCount = lList.Count);
+    Assert(lList.Count = 20);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (6) - <empty> with limit 10');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 10, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lRecCount = lList.Count);
+    Assert(lList.Count = 10);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (7) - <empty> with limit 1');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 1, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 1);
+    Assert(lRecCount = lList.Count);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (8) - <empty> with limit 0');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 0, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 0);
+    Assert(lRecCount = lList.Count);
+  finally
+    lList.Free;
+  end;
+
+
 
 end;
 

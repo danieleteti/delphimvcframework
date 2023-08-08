@@ -245,6 +245,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - ⚡ Wizard updated to be dotEnv aware
 
+- ⚡ Added "Load Style" methods to `TMVCActiveRecord` as suggested by https://github.com/danieleteti/delphimvcframework/issues/675
+
 - ⚡ Better error message in case of serialization of `TArray<TObject>`
 
 - ⚡ Improved serialization of `TObjectList<TDataSet>` (however `ObjectDict` is still the preferred way to serialize multiple datasets).
