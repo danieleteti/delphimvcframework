@@ -276,6 +276,15 @@ object MainForm: TMainForm
     TabOrder = 26
     OnClick = btnNamedQueryClick
   end
+  object btnVirtualEntities: TButton
+    Left = 144
+    Top = 522
+    Width = 121
+    Height = 34
+    Caption = 'Virtual Entities'
+    TabOrder = 27
+    OnClick = btnVirtualEntitiesClick
+  end
   object FDConnection1: TFDConnection
     Left = 312
     Top = 40

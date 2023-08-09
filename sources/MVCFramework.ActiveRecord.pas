@@ -103,10 +103,17 @@ type
     procedure EndUpdates;
   end;
 
-  TQueryWithName = record
+  TSQLQueryWithName = record
     Name: String;
-    QueryText: String;
+    SQLText: String;
+    BackEnd: String; //TMVCActiveRecordBackEnd
   end;
+
+  TRQLQueryWithName = record
+    Name: String;
+    RQLText: String;
+  end;
+
 
   TFieldsMap = class(TObjectDictionary<TRTTIField, TFieldInfo>)
   private
@@ -142,7 +149,16 @@ type
   public
     Name: string;
     SQLQuery: String;
-    constructor Create(aName: string; aSQLSelect: String);
+    Backend: String; //TMVCActiveRecordBackEnd
+    constructor Create(aName: string; aSQLSelect: String); overload;
+    constructor Create(aName: string; aSQLSelect: String; aBackEnd: String); overload;
+  end;
+
+  MVCNamedRQLQueryAttribute = class(MVCActiveRecordCustomAttribute)
+  public
+    Name: string;
+    RQLQuery: String;
+    constructor Create(aName: string; aRQL: String);
   end;
 
   MVCTableFieldAttribute = class(MVCActiveRecordCustomAttribute)
@@ -214,7 +230,8 @@ type
     fPrimaryKeyOptions: TMVCActiveRecordFieldOptions;
     fPrimaryKeySequenceName: string;
     fPrimaryKeyFieldType: TFieldType;
-    fNamedSQLQueries: TArray<TQueryWithName>;
+    fNamedSQLQueries: TArray<TSQLQueryWithName>;
+    fNamedRQLQueries: TArray<TRQLQueryWithName>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -239,7 +256,6 @@ type
     fBackendDriver: string;
     fTableMap: TMVCTableMap;
     function GetPartitionInfo: TPartitionInfo;
-    function GetBackEnd: string;
     function GetConnection: TFDConnection;
     procedure InitTableInfo;
     class function ExecQuery(
@@ -356,6 +372,7 @@ type
     procedure EnsureConnection;
     procedure Assign(ActiveRecord: TMVCActiveRecord); virtual;
     procedure InvalidateConnection(const ReacquireAfterInvalidate: Boolean = false);
+    function GetBackEnd: string;
     /// <summary>
     /// Executes an Insert (pk is null) or an Update (pk is not null)
     /// </summary>
@@ -387,7 +404,8 @@ type
     procedure RemoveChildren(const ChildObject: TObject);
     function GetPrimaryKeyFieldType: TFieldType;
 
-    function FindSQLQueryByName(const QueryName: String; out NamedSQLQuery: TQueryWithName): Boolean;
+    function FindSQLQueryByName(const QueryName: String; out NamedSQLQuery: TSQLQueryWithName): Boolean;
+    function FindRQLQueryByName(const QueryName: String; out NamedRQLQuery: TRQLQueryWithName): Boolean;
 
     property Attributes[const AttrName: string]: TValue
       read GetAttributes
@@ -581,6 +599,16 @@ type
       const Params: array of Variant;
       const ParamTypes: array of TFieldType;
       const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>;
+    class function SelectRQLByNamedQuery<T: constructor, TMVCActiveRecord>(
+      const QueryName: String;
+      const Params: array of const;
+      const MaxRecordCount: Integer): TObjectList<T>;
+    class function DeleteRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
+      const QueryName: String;
+      const Params: array of const): Int64;
+    class function CountRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
+      const QueryName: string;
+      const Params: array of const): Int64;
   end;
 
   IMVCEntitiesRegistry = interface
@@ -1320,17 +1348,38 @@ begin
   end;
 end;
 
-function TMVCActiveRecord.FindSQLQueryByName(const QueryName: String;
-  out NamedSQLQuery: TQueryWithName): Boolean;
+function TMVCActiveRecord.FindRQLQueryByName(const QueryName: String;
+  out NamedRQLQuery: TRQLQueryWithName): Boolean;
 var
   I: Integer;
+begin
+  for I := Low(fTableMap.fNamedRQLQueries) to High(fTableMap.fNamedRQLQueries) do
+  begin
+    if SameText(QueryName, fTableMap.fNamedRQLQueries[I].Name) then
+    begin
+      NamedRQLQuery := fTableMap.fNamedRQLQueries[I];
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function TMVCActiveRecord.FindSQLQueryByName(const QueryName: String;
+  out NamedSQLQuery: TSQLQueryWithName): Boolean;
+var
+  I: Integer;
+  lBackEnd: String;
 begin
   for I := Low(fTableMap.fNamedSQLQueries) to High(fTableMap.fNamedSQLQueries) do
   begin
     if SameText(QueryName, fTableMap.fNamedSQLQueries[I].Name) then
     begin
-      NamedSQLQuery := fTableMap.fNamedSQLQueries[I];
-      Exit(True);
+      lBackEnd := fTableMap.fNamedSQLQueries[I].BackEnd;
+      if lBackEnd.IsEmpty or (lBackEnd = GetBackEnd) then
+      begin
+        NamedSQLQuery := fTableMap.fNamedSQLQueries[I];
+        Exit(True);
+      end;
     end;
   end;
   Result := False;
@@ -1351,6 +1400,7 @@ var
   lTableMap: TMVCTableMap;
   lPKCount: Integer;
   lNamedSQLQueryCount: Integer;
+  lNamedRQLQueryCount: Integer;
 begin
   if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then
   begin
@@ -1373,6 +1423,7 @@ begin
     lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
     lPKCount := 0;
     lNamedSQLQueryCount := Length(lTableMap.fNamedSQLQueries);
+    lNamedRQLQueryCount := Length(lTableMap.fNamedRQLQueries);
     for lAttribute in lTableMap.fObjAttributes do
     begin
       if lAttribute is MVCTableAttribute then
@@ -1396,7 +1447,16 @@ begin
         Inc(lNamedSQLQueryCount);
         SetLength(lTableMap.fNamedSQLQueries, lNamedSQLQueryCount);
         lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].Name := MVCNamedSQLQueryAttribute(lAttribute).Name;
-        lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].QueryText := MVCNamedSQLQueryAttribute(lAttribute).SQLQuery;
+        lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].SQLText := MVCNamedSQLQueryAttribute(lAttribute).SQLQuery;
+        lTableMap.fNamedSQLQueries[lNamedSQLQueryCount - 1].BackEnd := MVCNamedSQLQueryAttribute(lAttribute).Backend;
+        Continue;
+      end;
+      if lAttribute is MVCNamedRQLQueryAttribute then
+      begin
+        Inc(lNamedRQLQueryCount);
+        SetLength(lTableMap.fNamedRQLQueries, lNamedRQLQueryCount);
+        lTableMap.fNamedRQLQueries[lNamedRQLQueryCount - 1].Name := MVCNamedRQLQueryAttribute(lAttribute).Name;
+        lTableMap.fNamedRQLQueries[lNamedRQLQueryCount - 1].RQLText := MVCNamedRQLQueryAttribute(lAttribute).RQLQuery;
         Continue;
       end;
     end;
@@ -1795,6 +1855,26 @@ begin
   end;
 end;
 
+class function TMVCActiveRecordHelper.SelectRQLByNamedQuery<T>(
+  const QueryName: string;
+  const Params: array of const;
+  const MaxRecordCount: Integer): TObjectList<T>;
+var
+  lT: T;
+  lRQLQuery: TRQLQueryWithName;
+begin
+  lT := T.Create;
+  try
+    if not lT.FindRQLQueryByName(QueryName, lRQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedRQLQuery not found: %s', [QueryName]);
+    end;
+    Result := SelectRQL<T>(Format(lRQLQuery.RQLText, Params), MaxRecordCount);
+  finally
+    lT.Free;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string;
   const Params: array of Variant; const ParamTypes: array of TFieldType;
   const OutList: TObjectList<T>): UInt32;
@@ -1925,9 +2005,47 @@ begin
   Result := TMVCActiveRecord.Count(TMVCActiveRecordClass(T), RQL);
 end;
 
+class function TMVCActiveRecordHelper.CountRQLByNamedQuery<T>(
+      const QueryName: string;
+      const Params: array of const): Int64;
+var
+  lRQLQuery: TRQLQueryWithName;
+  lT: T;
+begin
+  lT := T.Create;
+  try
+    if not lT.FindRQLQueryByName(QueryName, lRQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedRQLQuery not found: %s', [QueryName]);
+    end;
+    Result := Count<T>(Format(lRQLQuery.RQLText, Params));
+  finally
+    lT.Free;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.DeleteRQL<T>(const RQL: string): int64;
 begin
   Result := TMVCActiveRecord.DeleteRQL(TMVCActiveRecordClass(T), RQL);
+end;
+
+class function TMVCActiveRecordHelper.DeleteRQLByNamedQuery<T>(
+      const QueryName: String;
+      const Params: array of const): Int64;
+var
+  lRQLQuery: TRQLQueryWithName;
+  lT: T;
+begin
+  lT := T.Create;
+  try
+    if not lT.FindRQLQueryByName(QueryName, lRQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedRQLQuery not found: %s', [QueryName]);
+    end;
+    Result := DeleteRQL<T>(Format(lRQLQuery.RQLText, Params));
+  finally
+    lT.Free;
+  end;
 end;
 
 class function TMVCActiveRecord.CurrentConnection: TFDConnection;
@@ -2696,7 +2814,7 @@ class function TMVCActiveRecordHelper.SelectByNamedQuery<T>(
   const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
 var
   lT: T;
-  lSQLQuery: TQueryWithName;
+  lSQLQuery: TSQLQueryWithName;
 begin
   lT := T.Create;
   try
@@ -2704,7 +2822,7 @@ begin
     begin
       raise EMVCActiveRecord.CreateFmt('NamedSQLQuery not found: %s', [QueryName]);
     end;
-    Result := Select<T>(lSQLQuery.QueryText, Params, ParamTypes, Options);
+    Result := Select<T>(lSQLQuery.SQLText, Params, ParamTypes, Options);
   finally
     lT.Free;
   end;
@@ -4284,9 +4402,25 @@ end;
 
 constructor MVCNamedSQLQueryAttribute.Create(aName, aSQLSelect: String);
 begin
+  Create(aName, aSQLSelect, '');
+end;
+
+constructor MVCNamedSQLQueryAttribute.Create(aName, aSQLSelect,
+  aBackEnd: String);
+begin
   inherited Create;
   Name := aName;
   SQLQuery := aSQLSelect;
+  BackEnd := aBackEnd;
+end;
+
+{ MVCNamedRQLQueryAttribute }
+
+constructor MVCNamedRQLQueryAttribute.Create(aName, aRQL: String);
+begin
+  inherited Create;
+  Name := aName;
+  RQLQuery := aRQL;
 end;
 
 initialization

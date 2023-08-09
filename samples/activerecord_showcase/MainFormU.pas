@@ -59,6 +59,7 @@ type
     btnSpeed: TButton;
     btnRefresh: TButton;
     btnNamedQuery: TButton;
+    btnVirtualEntities: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -88,6 +89,7 @@ type
     procedure btnSpeedClick(Sender: TObject);
     procedure btnRefreshClick(Sender: TObject);
     procedure btnNamedQueryClick(Sender: TObject);
+    procedure btnVirtualEntitiesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -654,7 +656,7 @@ end;
 procedure TMainForm.btnNamedQueryClick(Sender: TObject);
 begin
   Log('** Named SQL Query');
-  Log('Query: RatingLessThanPar');
+  Log('QuerySQL: RatingLessThanPar');
   var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
   try
     for var lCustomer in lCustomers do
@@ -666,8 +668,8 @@ begin
     lCustomers.Free;
   end;
 
-  Log('Query: RatingEqualsToPar');
-  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [1], [ftInteger]);
+  Log('QuerySQL: RatingEqualsToPar');
+  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
   try
     for var lCustomer in lCustomers do
     begin
@@ -677,6 +679,32 @@ begin
   finally
     lCustomers.Free;
   end;
+
+  Log('** Named RQL Query');
+  Log('QueryRQL: RatingLessThanPar');
+  lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('QueryRQL: RatingEqualsToPar');
+  lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
 
 end;
 
@@ -1678,6 +1706,24 @@ begin
     lCustomer.Update; // raise exception
   finally
     lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
+begin
+  var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
+  try
+    for var lCustomer in lCustStats do
+    begin
+      Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
+        lCustomer.ID.ValueOrDefault,
+        lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault,
+        lCustomer.CustomersInTheSameCity
+        ]));
+    end;
+  finally
+    lCustStats.Free;
   end;
 end;
 
