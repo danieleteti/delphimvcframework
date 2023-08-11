@@ -505,8 +505,8 @@ type
     function IsValid: Boolean;
     procedure Clear;
 
-    procedure SaveToSession(const AWebSession: TWebSession);
-    function LoadFromSession(const AWebSession: TWebSession): Boolean;
+    procedure SaveToSession(const AWebSession: TMVCWebSession);
+    function LoadFromSession(const AWebSession: TMVCWebSession): Boolean;
 
     property UserName: string read FUserName write FUserName;
     property Roles: TList<string> read FRoles;
@@ -524,10 +524,10 @@ type
     FIsSessionStarted: Boolean;
     FSessionMustBeClose: Boolean;
     FLoggedUser: TUser;
-    FWebSession: TWebSession;
+    FWebSession: TMVCWebSession;
     FData: TMVCStringDictionary;
     fIntfObject: IInterface;
-    function GetWebSession: TWebSession;
+    function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
     procedure SetParamsTable(const AValue: TMVCRequestParamsTable);
@@ -540,14 +540,14 @@ type
     procedure BindToSession(const ASessionId: string);
     function SendSessionCookie(const AContext: TWebContext): string;
     function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-      const ASessionTimeout: Integer): TWebSession;
+      const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
   public
     constructor Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
-    procedure SessionStart; virtual;
+    procedure SessionStart(const SessionType: String); virtual;
     procedure SessionStop(const ARaiseExceptionIfExpired: Boolean = True); virtual;
 
     function SessionStarted: Boolean;
@@ -559,7 +559,7 @@ type
     property LoggedUser: TUser read GetLoggedUser;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
-    property Session: TWebSession read GetWebSession;
+    property Session: TMVCWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
     property Data: TMVCStringDictionary read GetData;
     property CustomIntfObject: IInterface read GetIntfObject write SetIntfObject;
@@ -776,7 +776,7 @@ type
   private
     FViewModel: TMVCViewDataObject;
     FViewDataSets: TMVCViewDataSet;
-    function GetSession: TWebSession;
+    function GetSession: TMVCWebSession;
     function GetViewData(const aModelName: string): TObject;
     function GetViewDataset(const aDataSetName: string): TDataSet;
     procedure SetViewData(const aModelName: string; const Value: TObject);
@@ -812,7 +812,7 @@ type
     /// </summary>
     procedure LoadViewFragment(const AViewFragment: string);
 
-    function SessionAs<T: TWebSession>: T;
+    function SessionAs<T: TMVCWebSession>: T;
     procedure RaiseSessionExpired; virtual;
 
     // Avoiding mid-air collisions - support
@@ -823,7 +823,7 @@ type
 
     // Properties
     property Context: TWebContext read GetContext write FContext;
-    property Session: TWebSession read GetSession;
+    property Session: TMVCWebSession read GetSession;
     property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     procedure PushObjectToView(const aModelName: string; const AModel: TObject);
@@ -985,7 +985,7 @@ type
       const AResponse: TWebResponse): Boolean; virtual;
   public
     class function GetCurrentSession(const ASessionId: string;
-      const ARaiseExceptionIfExpired: Boolean = True): TWebSession; static;
+      const ARaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
     class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string; static;
     class function SendSessionCookie(const AContext: TWebContext): string; overload; static;
     class function SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
@@ -996,7 +996,7 @@ type
       const ACustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
 
-    function GetSessionBySessionId(const ASessionId: string): TWebSession;
+    function GetSessionBySessionId(const ASessionId: string): TMVCWebSession;
 
     { webcontext events}
     procedure OnWebContextCreate(const WebContextCreateEvent: TWebContextCreateEvent);
@@ -1916,7 +1916,7 @@ begin
   Result := (not UserName.IsEmpty) and (LoggedSince > 0);
 end;
 
-function TUser.LoadFromSession(const AWebSession: TWebSession): Boolean;
+function TUser.LoadFromSession(const AWebSession: TMVCWebSession): Boolean;
 var
   SerObj: string;
   Pieces: TArray<string>;
@@ -1940,7 +1940,7 @@ begin
   end;
 end;
 
-procedure TUser.SaveToSession(const AWebSession: TWebSession);
+procedure TUser.SaveToSession(const AWebSession: TMVCWebSession);
 var
   LRoles: string;
 begin
@@ -1968,9 +1968,9 @@ end;
 { TWebContext }
 
 function TWebContext.AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-  const ASessionTimeout: Integer): TWebSession;
+  const ASessionTimeout: Integer): TMVCWebSession;
 var
-  Session: TWebSession;
+  Session: TMVCWebSession;
 begin
   if (Trim(ASessionType) = EmptyStr) then
     raise EMVCException.Create('Empty Session Type');
@@ -2142,16 +2142,35 @@ begin
   Result := FRequest.ParamsTable;
 end;
 
-function TWebContext.GetWebSession: TWebSession;
+function TWebContext.GetWebSession: TMVCWebSession;
+var
+  lSessionIDFromRequest: string;
+  lSessionType: String;
 begin
   if not Assigned(FWebSession) then
   begin
-    FWebSession := TMVCEngine.GetCurrentSession(
-      TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest), False);
+    lSessionIDFromRequest := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
+    FWebSession := TMVCEngine.GetCurrentSession(lSessionIDFromRequest, False);
     if not Assigned(FWebSession) then
-      SessionStart
+    begin
+      lSessionType := Config[TMVCConfigKey.SessionType];
+      if not TMVCSessionFactory.GetInstance.TryFindSessionID(lSessionType, lSessionIDFromRequest) then
+      begin
+        SessionStart(lSessionType);
+      end
+      else
+      begin
+        FWebSession := AddSessionToTheSessionList(
+          lSessionType,
+          lSessionIDFromRequest,
+          StrToInt(Config[TMVCConfigKey.SessionTimeout]));
+        TMVCEngine.SendSessionCookie(Self, FWebSession.SessionId);
+      end;
+    end
     else
+    begin
       TMVCEngine.SendSessionCookie(Self, FWebSession.SessionId);
+    end;
   end;
   Result := FWebSession;
   Result.MarkAsUsed;
@@ -2179,14 +2198,14 @@ begin
   Result := FSessionMustBeClose;
 end;
 
-procedure TWebContext.SessionStart;
+procedure TWebContext.SessionStart(const SessionType: String);
 var
   ID: string;
 begin
   if not Assigned(FWebSession) then
   begin
     ID := TMVCEngine.SendSessionCookie(Self);
-    FWebSession := AddSessionToTheSessionList(Config[TMVCConfigKey.SessionType], ID,
+    FWebSession := AddSessionToTheSessionList(SessionType, ID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
@@ -2229,10 +2248,20 @@ begin
     begin
       raise EMVCSessionExpiredException.Create('Session not started');
     end;
+
     GlobalSessionList.Remove(SId);
+
     if SId <> '' then
     begin
       FWebSession := nil;
+      try
+        TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
+      except
+        on E: Exception do
+        begin
+          LogException(E, 'Cannot delete session file for sessionid: ' + SId);
+        end;
+      end;
     end;
   finally
     TMonitor.Exit(GlobalSessionList);
@@ -3093,8 +3122,8 @@ begin
   end;
 end;
 
-class function TMVCEngine.GetCurrentSession(const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TWebSession;
-var lSessionList: TObjectDictionary<string, TWebSession>;
+class function TMVCEngine.GetCurrentSession(const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TMVCWebSession;
+var lSessionList: TObjectDictionary<string, TMVCWebSession>;
 begin
   Result := nil;
   lSessionList := GlobalSessionList;
@@ -3128,7 +3157,7 @@ begin
   end;
 end;
 
-function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TWebSession;
+function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TMVCWebSession;
 begin
   Result := TMVCEngine.GetCurrentSession(ASessionId, False);
   if Assigned(Result) then
@@ -3340,10 +3369,14 @@ begin
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext): string;
-var SId: string;
+var
+  SId: string;
 begin
-  SId := StringReplace(StringReplace(StringReplace('DT' + GUIDToString(TGUID.NewGuid), '}', '', []),
-    '{', '', []), '-', '', [rfReplaceAll]);
+  SId := StringReplace(StringReplace(StringReplace(
+    'DT' + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid),
+    '}', '', [rfReplaceAll]),
+    '{', '', [rfReplaceAll]),
+    '-', '', [rfReplaceAll]);
   Result := SendSessionCookie(AContext, SId);
 end;
 
@@ -3621,7 +3654,7 @@ begin
   Result := Context.Request.GetHeader('If-Match');
 end;
 
-function TMVCController.GetSession: TWebSession;
+function TMVCController.GetSession: TMVCWebSession;
 begin
   Result := GetContext.Session;
 end;
