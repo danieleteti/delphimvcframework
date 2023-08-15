@@ -241,6 +241,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
 
+- 🐞 FIX [Issue 680](https://github.com/danieleteti/delphimvcframework/issues/680)
+
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
 
 - 🐞 FIX wrong default initialization for JWT (thanks to Flavio Basile)
@@ -250,6 +252,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ⚡ Added "Load Style" methods to `TMVCActiveRecord` as suggested by https://github.com/danieleteti/delphimvcframework/issues/675
 
 - ⚡ Better error message in case of serialization of `TArray<TObject>`
+
+- ⚡ Improved CORS handling - [Issue 679](https://github.com/danieleteti/delphimvcframework/issues/679) (Thanks to [David Moorhouse](https://github.com/fastbike))
 
 - ⚡ Improved serialization of `TObjectList<TDataSet>` (however `ObjectDict` is still the preferred way to serialize multiple datasets).
 
