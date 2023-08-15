@@ -214,6 +214,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
+> "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
+
 
 ## What's New in dmvcframework-3.3.0-fluorine (last stable version)
 

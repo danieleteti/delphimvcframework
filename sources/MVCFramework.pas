@@ -2539,155 +2539,155 @@ begin
                   lRouterControllerClazzQualifiedClassName,
                   lRouterMethodToCallName,
                   lHandled);
-                if lHandled then
-                  Exit(True);
-
-                lBodyParameter := nil;
-                lSelectedController.MVCControllerAfterCreate;
-                try
-                  lHandled := False;
-                  lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
-                    lResponseContentCharset);
-                  lActionFormalParams := lRouter.MethodToCall.GetParameters;
-                  if (Length(lActionFormalParams) = 0) then
-                    SetLength(lActualParams, 0)
-                  else if (Length(lActionFormalParams) = 1) and
-                    (SameText(lActionFormalParams[0].ParamType.QualifiedName,
-                    'MVCFramework.TWebContext')) then
-                  begin
-                    SetLength(lActualParams, 1);
-                    lActualParams[0] := lContext;
-                  end
-                  else
-                  begin
-                    FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
-                      lRouterMethodToCallName, lActualParams, lBodyParameter);
-                  end;
-                  lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
-                  if not lHandled then
-                  begin
-                    try
-                      if lRouter.MethodToCall.MethodKind = mkProcedure then
-                      begin
-                        lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                      end
-                      else
-                      begin
-                        lInvokeResult := lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                        case lInvokeResult.Kind of
-                          tkInterface:
-                          begin
-                            if Supports(lInvokeResult.AsInterface, IMVCResponse) then
+                if not lHandled then
+                begin
+                  lBodyParameter := nil;
+                  lSelectedController.MVCControllerAfterCreate;
+                  try
+                    lHandled := False;
+                    lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
+                      lResponseContentCharset);
+                    lActionFormalParams := lRouter.MethodToCall.GetParameters;
+                    if (Length(lActionFormalParams) = 0) then
+                      SetLength(lActualParams, 0)
+                    else if (Length(lActionFormalParams) = 1) and
+                      (SameText(lActionFormalParams[0].ParamType.QualifiedName,
+                      'MVCFramework.TWebContext')) then
+                    begin
+                      SetLength(lActualParams, 1);
+                      lActualParams[0] := lContext;
+                    end
+                    else
+                    begin
+                      FillActualParamsForAction(lSelectedController, lContext, lActionFormalParams,
+                        lRouterMethodToCallName, lActualParams, lBodyParameter);
+                    end;
+                    lSelectedController.OnBeforeAction(lContext, lRouterMethodToCallName, lHandled);
+                    if not lHandled then
+                    begin
+                      try
+                        if lRouter.MethodToCall.MethodKind = mkProcedure then
+                        begin
+                          lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                        end
+                        else
+                        begin
+                          lInvokeResult := lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                          case lInvokeResult.Kind of
+                            tkInterface:
                             begin
-                              lResponseObject := TMVCResponse(lInvokeResult.AsInterface);
-                              lSelectedController.ResponseStatus(
-                                TMVCResponse(lResponseObject).StatusCode,
-                                TMVCResponse(lResponseObject).ReasonString);
-                              lSelectedController.Render(TMVCResponse(lResponseObject), False);
-                            end
-                            else
-                            begin
-                              lSelectedController.Render(lInvokeResult.AsInterface);
-                            end;
-                          end;
-                          tkClass:
-                          begin
-                            lResponseObject := lInvokeResult.AsObject;
-                            try
-                              // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
-                              if lResponseObject is TDataSet then
+                              if Supports(lInvokeResult.AsInterface, IMVCResponse) then
                               begin
-                                lSelectedController.Render(TDataSet(lResponseObject), False);
-                              end
-                              else if lResponseObject is TStream then
-                              begin
-                                lContext.Response.RawWebResponse.Content := EmptyStr;
-                                lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
-                                lContext.Response.RawWebResponse.ContentStream := TStream(lResponseObject);
-                                lContext.Response.RawWebResponse.FreeContentStream := True;
-                                lResponseObject := nil; //do not free it!!
-                              end
-                              else if lResponseObject is TMVCResponse then
-                              begin
+                                lResponseObject := TMVCResponse(lInvokeResult.AsInterface);
                                 lSelectedController.ResponseStatus(
                                   TMVCResponse(lResponseObject).StatusCode,
                                   TMVCResponse(lResponseObject).ReasonString);
                                 lSelectedController.Render(TMVCResponse(lResponseObject), False);
                               end
-                              else if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
-                              begin
-                                lSelectedController.Render(lObjList);
-                              end
                               else
                               begin
-                                lSelectedController.Render(lResponseObject, False);
+                                lSelectedController.Render(lInvokeResult.AsInterface);
                               end;
-                            finally
-                              lResponseObject.Free;
-                            end
-                          end;
-                          tkRecord:
-                          begin
-                            lSelectedController.Render(
-                              lSelectedController.Serializer(lSelectedController.GetContentType)
-                                .SerializeRecord(lInvokeResult.GetReferenceToRawData,
-                                lInvokeResult.TypeInfo,
-                                TMVCSerializationType.stFields,nil,nil));
-                          end;
-                          tkArray, tkDynArray:
-                          begin
-                            lSelectedController.Render(
-                              lSelectedController.Serializer(lSelectedController.GetContentType)
-                                .SerializeArrayOfRecord(lInvokeResult,
+                            end;
+                            tkClass:
+                            begin
+                              lResponseObject := lInvokeResult.AsObject;
+                              try
+                                // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
+                                if lResponseObject is TDataSet then
+                                begin
+                                  lSelectedController.Render(TDataSet(lResponseObject), False);
+                                end
+                                else if lResponseObject is TStream then
+                                begin
+                                  lContext.Response.RawWebResponse.Content := EmptyStr;
+                                  lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
+                                  lContext.Response.RawWebResponse.ContentStream := TStream(lResponseObject);
+                                  lContext.Response.RawWebResponse.FreeContentStream := True;
+                                  lResponseObject := nil; //do not free it!!
+                                end
+                                else if lResponseObject is TMVCResponse then
+                                begin
+                                  lSelectedController.ResponseStatus(
+                                    TMVCResponse(lResponseObject).StatusCode,
+                                    TMVCResponse(lResponseObject).ReasonString);
+                                  lSelectedController.Render(TMVCResponse(lResponseObject), False);
+                                end
+                                else if TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
+                                begin
+                                  lSelectedController.Render(lObjList);
+                                end
+                                else
+                                begin
+                                  lSelectedController.Render(lResponseObject, False);
+                                end;
+                              finally
+                                lResponseObject.Free;
+                              end
+                            end;
+                            tkRecord:
+                            begin
+                              lSelectedController.Render(
+                                lSelectedController.Serializer(lSelectedController.GetContentType)
+                                  .SerializeRecord(lInvokeResult.GetReferenceToRawData,
+                                  lInvokeResult.TypeInfo,
                                   TMVCSerializationType.stFields,nil,nil));
-                          end;
-                          tkUString, tkString:
-                          begin
-                            lSelectedController.Render(lInvokeResult.AsString);
-                          end;
-                          tkEnumeration:
-                          begin
-                            lSelectedController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
-                          end;
-                          tkFloat:
-                          begin
-                            lSelectedController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
-                          end;
-                          tkInteger:
-                          begin
-                            lSelectedController.Render(IntToStr(lInvokeResult.AsInteger));
-                          end;
-                          tkInt64:
-                          begin
-                            lSelectedController.Render(IntToStr(lInvokeResult.AsInt64));
-                          end
-                          else
-                          begin
-                            RaiseSerializationError('Cannot serialize type ' + lInvokeResult.TypeInfo.Name);
+                            end;
+                            tkArray, tkDynArray:
+                            begin
+                              lSelectedController.Render(
+                                lSelectedController.Serializer(lSelectedController.GetContentType)
+                                  .SerializeArrayOfRecord(lInvokeResult,
+                                    TMVCSerializationType.stFields,nil,nil));
+                            end;
+                            tkUString, tkString:
+                            begin
+                              lSelectedController.Render(lInvokeResult.AsString);
+                            end;
+                            tkEnumeration:
+                            begin
+                              lSelectedController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
+                            end;
+                            tkFloat:
+                            begin
+                              lSelectedController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
+                            end;
+                            tkInteger:
+                            begin
+                              lSelectedController.Render(IntToStr(lInvokeResult.AsInteger));
+                            end;
+                            tkInt64:
+                            begin
+                              lSelectedController.Render(IntToStr(lInvokeResult.AsInt64));
+                            end
+                            else
+                            begin
+                              RaiseSerializationError('Cannot serialize type ' + lInvokeResult.TypeInfo.Name);
+                            end;
                           end;
                         end;
+                      finally
+                        lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
                       end;
-                    finally
-                      lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
                     end;
-                  end;
-                finally
-                  try
-                    lBodyParameter.Free;
-                  except
-                    on E: Exception do
-                    begin
-                      LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
-                        [E.Classname, E.Message]));
+                  finally
+                    try
+                      lBodyParameter.Free;
+                    except
+                      on E: Exception do
+                      begin
+                        LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
+                          [E.Classname, E.Message]));
+                      end;
                     end;
+                    lSelectedController.MVCControllerBeforeDestroy;
                   end;
-                  lSelectedController.MVCControllerBeforeDestroy;
-                end;
+                  lContext.Response.ContentType := lSelectedController.ContentType;
+                end; //if not handled by OnBeforeControllerActionMiddleware
                 ExecuteAfterControllerActionMiddleware(lContext,
                   lRouterControllerClazzQualifiedClassName,
                   lRouterMethodToCallName,
                   lHandled);
-                lContext.Response.ContentType := lSelectedController.ContentType;
                 fOnRouterLog(lRouter, rlsRouteFound, lContext);
               end
               else // execute-routing
