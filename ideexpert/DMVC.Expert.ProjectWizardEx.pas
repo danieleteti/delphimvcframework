@@ -94,7 +94,7 @@ begin
       JSONRPCUnitCreator: IOTACreator;
       WebModuleCreator: IOTAModuleCreator;
       lProjectSourceCreator: IOTACreator;
-    lJSONRPCUnitName: string;
+      lJSONRPCUnitName: string;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try

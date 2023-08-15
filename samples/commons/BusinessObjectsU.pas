@@ -203,7 +203,7 @@ type
   TInterfacedPerson = class(TInterfacedObject, IPerson)
   private
     fName: string;
-    FDOB: TDate;
+    fDOB: TDate;
     fAge: Integer;
   protected
     function GetName: string;
@@ -213,9 +213,10 @@ type
     function GetDOB: TDate;
     procedure SetDOB(const Value: TDate);
   public
-    property name: string read GetName write SetName;
+    property Name: string read GetName write SetName;
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
+    constructor Create(Name: String; Age: Integer; DOB: TDate); virtual;
   end;
 
   //TPeople = class(TObjectList<TPerson>);
@@ -650,6 +651,14 @@ begin
 end;
 
 { TInterfacedPerson }
+
+constructor TInterfacedPerson.Create(Name: String; Age: Integer; DOB: TDate);
+begin
+  inherited Create;
+  fName := Name;
+  fAge := Age;
+  fDOB := DOB;
+end;
 
 function TInterfacedPerson.GetAge: Integer;
 begin

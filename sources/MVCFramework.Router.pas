@@ -250,7 +250,7 @@ begin
           begin
             if LMethod.Visibility <> mvPublic then // 2020-08-08
               Continue;
-            if (LMethod.MethodKind <> mkProcedure) { or LMethod.IsClassMethod } then
+            if not (LMethod.MethodKind in [mkProcedure, mkFunction]) then
               Continue;
 
             LAttributes := LMethod.GetAttributes;

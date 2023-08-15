@@ -130,14 +130,18 @@ resourcestring
   // 3 - Sample Methods - Implementation
   // 4 - Action Filters - Interface
   // 5 - Action Filters - Implementation
+  // 8 - BO - Interface
+  // 9 - BO - Implementation
+
   sControllerUnit = 'unit %0:s;' + sLineBreak +
     sLineBreak +
     'interface' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons;' + sLineBreak +
+    '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
+    '%8:s' + sLineBreak +
     '  [MVCPath(''/api'')]' + sLineBreak +
     '  %1:s = class(TMVCController) ' + sLineBreak +
     '  public' + sLineBreak +
@@ -154,6 +158,7 @@ resourcestring
     '%5:s' + sLineBreak +
     '%7:s' + sLineBreak +
     sLineBreak +
+    '%9:s' + sLineBreak +
     'end.' + sLineBreak;
 
   sIndexMethodIntf =
@@ -162,6 +167,7 @@ resourcestring
     '    procedure Index;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]' + sLineBreak +
     '    procedure GetReversedString(const Value: String);' + sLineBreak;
 
   // 0 - Class Name
@@ -179,45 +185,66 @@ resourcestring
   sCRUDMethodsIntf =
     sLineBreak +
 		'  public' + sLineBreak + 
-    '    //Sample CRUD Actions for a "Customer" entity' + sLineBreak +
-    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    //Sample CRUD Actions for a "People" entity' + sLineBreak +
+    '    [MVCPath(''/people'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetCustomers;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function GetPeople: TObjectList<TPerson>;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetCustomer(id: Integer);' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    function GetPerson(ID: Integer): TPerson;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPOST])]' + sLineBreak +
-    '    procedure CreateCustomer;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPUT])]' + sLineBreak +
-    '    procedure UpdateCustomer(id: Integer);' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpDELETE])]' + sLineBreak +
-    '    procedure DeleteCustomer(id: Integer);' + sLineBreak + sLineBreak;
+    '    function DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak + sLineBreak;
 
   sCRUDMethodsImpl =
-    '//Sample CRUD Actions for a "Customer" entity' + sLineBreak +
-    'procedure %0:s.GetCustomers;' + sLineBreak +
+    '//Sample CRUD Actions for a "People" entity' + sLineBreak +
+    'function %0:s.GetPeople: TObjectList<TPerson>;' + sLineBreak +
+    'var' + sLineBreak +
+    '  lPeople: TObjectList<TPerson>;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: render a list of customers' + sLineBreak +
+    '  lPeople := TObjectList<TPerson>.Create(True);' + sLineBreak +
+    '  try' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Peter'',''Parker'', EncodeDate(1965, 10, 4)));' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Reed'',''Richards'', EncodeDate(1955, 3, 7)));' + sLineBreak +
+    '    Result := lPeople;' + sLineBreak +
+    '  except' + sLineBreak +
+    '    lPeople.Free;' + sLineBreak +
+    '    raise;' + sLineBreak +
+    '  end;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.GetCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.GetPerson(ID: Integer): TPerson;' + sLineBreak +
+    'var' + sLineBreak +
+    '  lPeople: TObjectList<TPerson>;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: render the customer by id' + sLineBreak +
+    '  lPeople := GetPeople;' + sLineBreak +
+    '  try' + sLineBreak +
+    '    Result := lPeople.ExtractAt(ID mod lPeople.Count);' + sLineBreak +
+    '  finally' + sLineBreak +
+    '    lPeople.Free;' + sLineBreak +
+    '  end;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.CreateCustomer;' + sLineBreak + 
+    'function %0:s.CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + 
     'begin' + sLineBreak +
-    '  //todo: create a new customer' + sLineBreak +
+	'  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.Created, ''Person created'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.UpdateCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: update customer by id' + sLineBreak +
+    '  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person updated'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.DeleteCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: delete customer by id' + sLineBreak +
-    'end;' + sLineBreak + sLineBreak;
+    '  LogI(''Deleted person with id '' + ID.ToString);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person deleted'');' + sLineBreak +
+    'end;' + sLineBreak;
 
   sActionFiltersIntf =
     '  protected' + sLineBreak +
@@ -241,6 +268,30 @@ resourcestring
     '    action will not be called }' + sLineBreak +
     '  inherited;' + sLineBreak +
     'end;' + sLineBreak;
+
+  sBOClassesIntf =    
+     '  [MVCNameCase(ncCamelCase)]' + sLineBreak +
+     '  TPerson = class' + sLineBreak +
+     '  private' + sLineBreak +
+     '    fFirstName: String;' + sLineBreak +
+     '    fLastName: String;' + sLineBreak +
+     '    fDOB: TDate;' + sLineBreak +
+     '  public' + sLineBreak +
+     '    property FirstName: String read fFirstName write fFirstName;' + sLineBreak +
+     '    property LastName: String read fLastName write fLastName;' + sLineBreak +
+     '    property DOB: TDate read fDOB write fDOB;  ' + sLineBreak +
+     '    constructor Create(FirstName, LastName: String; DOB: TDate);' + sLineBreak +
+     '  end;' + sLineBreak;
+
+  sBOClassesImpl =
+    sLineBreak +
+	'constructor %0:s.Create(FirstName, LastName: String; DOB: TDate);' + sLineBreak +
+	'begin' + sLineBreak +
+	'  inherited Create;' + sLineBreak +
+	'  fFirstName := FirstName;' + sLineBreak +
+	'  fLastName := LastName;' + sLineBreak +
+	'  fDOB := DOB;' + sLineBreak +
+	'end;' + sLineBreak;
 
   sDefaultControllerName = 'TMyController';
   sDefaultWebModuleName = 'TMyWebModule';

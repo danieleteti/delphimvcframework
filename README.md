@@ -18,7 +18,7 @@
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
   - [What's New in dmvcframework-3.3.0-fluorine (last stable version)](#whats-new-in-dmvcframework-330-fluorine-last-stable-version)
   - [What's New in the next "repo version" a.k.a. 3.4.0-neon](#whats-new-in-the-next-repo-version-aka-340-neon)
-  - [Hystorical Versions](#hystorical-versions)
+  - [Old Versions](#old-versions)
     - [What's New in dmvcframework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
     - [Bug Fix in 3.2.3-radium](#bug-fix-in-323-radium)
     - [What's new in DelphiMVCFramework-3.2.2-nitrogen](#whats-new-in-delphimvcframework-322-nitrogen)
@@ -214,6 +214,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
+> "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
+
 
 ## What's New in dmvcframework-3.3.0-fluorine (last stable version)
 
@@ -231,20 +233,400 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ## What's New in the next "repo version" a.k.a. 3.4.0-neon
 
-- Added support for dotEnv multiline keys - added dotEnv show case
-- Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
+- ⚡ Added support for dotEnv multiline keys - added dotEnv show case
+
+- ⚡ Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
+
 - 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
+
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
+
+- 🐞 FIX [Issue 680](https://github.com/danieleteti/delphimvcframework/issues/680)
+
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
-- Wizard updated to be dotEnv aware
-- Removed Controller Application Session (very seldom used but potentially breaking change)
-- Removed Middlewares in favor of a simpler alternative named "Filters"
-	- Added Protocol Filters
-	- Added Controller Filters
-- `TMVCRouterLogHandlerProc` changed prototype (breaking change)
+
+- 🐞 FIX wrong default initialization for JWT (thanks to Flavio Basile)
+
+- ⚡ Wizard updated to be dotEnv aware
+
+- ⚡ Added "Load Style" methods to `TMVCActiveRecord` as suggested by https://github.com/danieleteti/delphimvcframework/issues/675
+
+- ⚡ Better error message in case of serialization of `TArray<TObject>`
+
+- ⚡ Improved CORS handling - [Issue 679](https://github.com/danieleteti/delphimvcframework/issues/679) (Thanks to [David Moorhouse](https://github.com/fastbike))
+
+- ⚡ Improved serialization of `TObjectList<TDataSet>` (however `ObjectDict` is still the preferred way to serialize multiple datasets).
+
+- ⚡ Added static method for easier cloning of FireDAC dataset into `TFDMemTable`. 
+
+  - `class function CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable`
+
+  - Check sample "function_actions_showcase.dproj" for more info.
+
+- ⚡ Functional Actions
+
+  - In addition to the classic `procedure` based actions, now it's possibile to use functions as actions. The `Result` variable is automatically rendered and, if it is an object, its memory is freed.
+
+    ```pascal
+    type
+      [MVCNameCase(ncCamelCase)]
+      TPersonRec = record
+        FirstName, LastName: String;
+        Age: Integer;
+        class function Create: TPersonRec; static;
+      end;
+    
+      [MVCNameCase(ncCamelCase)]
+      TPerson = class
+      private
+        fAge: Integer;
+        fFirstName, fLastName: String;
+      public
+        property FirstName: String read fFirstName write fFirstName;
+        property LastName: String read fLastName write fLastName;
+        property Age: Integer read fAge write fAge;
+      end;
+    
+      [MVCPath('/api')]
+      TMyController = class(TMVCController)
+      public
+        { actions returning a simple type }
+        [MVCPath('/sumsasinteger/($A)/($B)')]
+        function GetSum(const A, B: Integer): Integer;
+        [MVCPath('/sumsasfloat/($A)/($B)')]
+        function GetSumAsFloat(const A, B: Extended): Extended;
+    
+        { actions returning records }
+        [MVCPath('/records/single')]
+        function GetSingleRecord: TPersonRec;
+        [MVCPath('/records/multiple')]
+        function GetMultipleRecords: TArray<TPersonRec>;
+    
+        { actions returning objects }
+        [MVCPath('/objects/single')]
+        function GetSingleObject: TPerson;
+        [MVCPath('/objects/multiple')]
+        function GetMultipleObjects: TObjectList<TPerson>;
+    
+        { actions returning datasets }
+        [MVCPath('/datasets/single')]
+        function GetSingleDataSet: TDataSet;
+        [MVCPath('/datasets/multiple')]
+        function GetMultipleDataSet: TEnumerable<TDataSet>;
+        [MVCPath('/datasets/multiple2')]
+        function GetMultipleDataSet2: IMVCObjectDictionary;
+    
+        { customize response headers }
+        [MVCPath('/headers')]
+        function GetWithCustomHeaders: TObjectList<TPerson>;
+      end;
+    ```
+
+    Check sample "function_actions_showcase.dproj" for more info.
+
+- ⚡ Improved `TMVCResponse` type to better suits the new functional actions. 
+
+  `TMVCResponse` can be used with "message based" responses and also with "data based" responses (with single object, with a list of objects or with a dictionary of objects).
+
+  **Message based responses**
+
+  ```pascal
+  function TMyController.GetMVCResponse: TMVCResponse;
+  begin
+    Result := MVCResponse(HTTP_STATUS.OK, 'My Message');
+  end;
+  ```
+
+  Produces
+
+  ```json
+  {
+      "message":"My Message"
+  }
+  ```
+  
+  
+
+  **Data based response with single object**
+  
+  ```pascal
+  function TMyController.GetMVCResponse2: TMVCResponse;
+  begin
+    Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
+  end;
+  ```
+  
+  Produces
+  
+  ```json
+  {
+    "data": {
+      "firstName": "Daniele",
+      "lastName": "Teti",
+      "age": 99
+    }
+  }
+  ```
+  
+  **Data based response with list of objects**
+  
+  ```pascal
+  function TMyController.GetMVCResponse3: TMVCResponse;
+  begin
+    Result := MVCResponse(HTTP_STATUS.OK,
+      TObjectList<TPerson>.Create([
+        TPerson.Create('Daniele','Teti', 99),
+        TPerson.Create('Peter','Parker', 25),
+        TPerson.Create('Bruce','Banner', 45)
+      ])
+    );
+  end;
+  ```
+  
+  Produces
+  
+  ```json
+  {
+    "data": [
+      {
+        "firstName": "Daniele",
+        "lastName": "Teti",
+        "age": 99
+      },
+      {
+        "firstName": "Peter",
+        "lastName": "Parker",
+        "age": 25
+      },
+      {
+        "firstName": "Bruce",
+        "lastName": "Banner",
+        "age": 45
+      }
+    ]
+  }
+  ```
+
+  **Data dictionary based response with `IMVCObjectDictionary` **
+  
+  ```pascal
+  function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
+  begin
+      Result := MVCResponse(
+        HTTP_STATUS.OK,
+        ObjectDict()
+          .Add('employees', TObjectList<TPerson>.Create([
+                          TPerson.Create('Daniele','Teti', 99),
+                          TPerson.Create('Peter','Parker', 25),
+                          TPerson.Create('Bruce','Banner', 45)
+                        ])
+          )
+          .Add('customers', TObjectList<TPerson>.Create([
+                          TPerson.Create('Daniele','Teti', 99),
+                          TPerson.Create('Peter','Parker', 25),
+                          TPerson.Create('Bruce','Banner', 45)
+                        ])
+          )
+      );
+  end;
+  ```
+  
+  Produces
+  
+  ```json
+  {
+      "employees": [
+        {
+          "firstName": "Daniele",
+          "lastName": "Teti",
+          "age": 99
+        },
+        {
+          "firstName": "Peter",
+          "lastName": "Parker",
+          "age": 25
+        },
+        {
+          "firstName": "Bruce",
+          "lastName": "Banner",
+          "age": 45
+        }
+      ],
+      "customers": [
+        {
+          "firstName": "Daniele",
+          "lastName": "Teti",
+          "age": 99
+        },
+        {
+          "firstName": "Peter",
+          "lastName": "Parker",
+          "age": 25
+        },
+        {
+          "firstName": "Bruce",
+          "lastName": "Banner",
+          "age": 45
+        }
+      ]
+  }
+  ```
+
+- Removed `statuscode` and `reasonstring` from exception's JSON rendering.
+
+- ⚡ New! NamedQueries support for TMVCActiveRecord.
+
+  - `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>`. MOreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need. Check the example below.
+
+    ```delphi
+    type
+      [MVCTable('customers')]
+      [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc',
+        TMVCActiveRecordBackEnd.FirebirdSQL)]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc',
+        TMVCActiveRecordBackEnd.PostgreSQL)]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
+      TCustomer = class(TCustomEntity)
+      private
+      // usual field declaration
+      end;
+      
+      //** then in the code
+      
+      Log('** Named SQL Query');
+      Log('QuerySQL: RatingLessThanPar');
+      var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
+      try
+        for var lCustomer in lCustomers do
+        begin
+          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault]));
+        end;
+      finally
+        lCustomers.Free;
+      end;
+    
+      Log('QuerySQL: RatingEqualsToPar');
+      lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
+      try
+        for var lCustomer in lCustomers do
+        begin
+          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault]));
+        end;
+      finally
+        lCustomers.Free;
+      end;
+    
+    ```
+
+    The same approach is available for RQL query, which can be used also for Count and Delete operations but doesnt allows to specify the backend (because RQL has an actual compiler to adapt the generated SQL to each RDBMS)
+
+    ```delphi
+    type
+      [MVCTable('customers')]
+      [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc', 
+        TMVCActiveRecordBackEnd.FirebirdSQL)]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc', 
+        TMVCActiveRecordBackEnd.PostgreSQL)]
+      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
+      [MVCNamedRQLQuery('RatingLessThanPar', 'lt(rating,%d);sort(+code,-city)')]
+      [MVCNamedRQLQuery('RatingEqualsToPar', 'eq(rating,%d);sort(+code,-city)')]
+      TCustomer = class(TCustomEntity)
+      private
+      // usual field declaration
+      end;
+      
+      //** then in the code
+      
+      Log('** Named RQL Query');
+      Log('QueryRQL: RatingLessThanPar');
+      lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
+      try
+        for var lCustomer in lCustomers do
+        begin
+          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault]));
+        end;
+      finally
+        lCustomers.Free;
+      end;
+    
+      Log('QueryRQL: RatingEqualsToPar');
+      lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
+      try
+        for var lCustomer in lCustomers do
+        begin
+          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault]));
+        end;
+      finally
+        lCustomers.Free;
+      end;
+    
+    ```
+
+    Now, having SQL and RQL named queries, it is possibile to have an entity which is not mapped on a specific table but loaded only by named queries.
+
+    ```delphi
+    type
+      [MVCEntityActions([eaRetrieve])]
+      [MVCNamedSQLQuery('CustomersInTheSameCity',
+        'SELECT c.id, c.DESCRIPTION, c.city, c.code, c.rating, (SELECT count(*) - 1 FROM customers c2 WHERE c2.CITY = c.CITY) customers_in_the_same_city ' +
+        'FROM CUSTOMERS c WHERE city IS NOT NULL AND city <> '''' ORDER BY customers_in_the_same_city')]
+      TCustomerStats = class(TCustomEntity) {not mapped on an actual table or view}
+      private
+        [MVCTableField('id', [foPrimaryKey, foAutoGenerated])]
+        fID: NullableInt64;
+        [MVCTableField('code')]
+        fCode: NullableString;
+        [MVCTableField('description')]
+        fCompanyName: NullableString;
+        [MVCTableField('city')]
+        fCity: string;
+        [MVCTableField('rating')]
+        fRating: NullableInt32;
+        [MVCTableField('customers_in_the_same_city')]
+        fCustomersInTheSameCity: Int32;
+      public
+        property ID: NullableInt64 read fID write fID;
+        property Code: NullableString read fCode write fCode;
+        property CompanyName: NullableString read fCompanyName write fCompanyName;
+        property City: string read fCity write fCity;
+        property Rating: NullableInt32 read fRating write fRating;
+        property CustomersInTheSameCity: Int32 read fCustomersInTheSameCity write fCustomersInTheSameCity;
+      end;
+    
+    
+    //** then in the code
+    
+    procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
+    begin
+      var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
+      try
+        for var lCustomer in lCustStats do
+        begin
+          Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
+            lCustomer.ID.ValueOrDefault,
+            lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault,
+            lCustomer.CustomersInTheSameCity
+            ]));
+        end;
+      finally
+        lCustStats.Free;
+      end;
+    end;
+      
+      
+    ```
+
+    
 
 
-## Hystorical Versions
+## Old Versions
 
 ### What's New in dmvcframework-3.2.3-radium
 

@@ -204,7 +204,7 @@ begin
   begin
     fEnvPath := TPath.Combine(fEnvPath, DotEnvDirectory);
   end;
-  DoLog('Path = ' + DotEnvDirectory);
+  DoLog('Path = ' + fEnvPath);
   fEnvDict.Clear;
   lAllProfiles := ['default'] + fProfiles.ToArray();
   DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');

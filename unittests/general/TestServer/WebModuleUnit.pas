@@ -93,6 +93,7 @@ begin
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
     .AddController(TTestMultiPathController)
+    .AddController(TTestActionResultController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .AddController(TMVCActiveRecordController,

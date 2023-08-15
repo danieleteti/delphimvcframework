@@ -39,43 +39,6 @@ uses
 type
 
   [TestFixture]
-  TTestMappers = class(TObject)
-  protected
-    [Test]
-    procedure SameFishesDataSet(ds, ds2: TDataSet);
-
-  public
-    // procedure TestObjectToJSONObject;
-    // procedure TestObjectListToJSONArray;
-    // procedure TestObjectToJSONObject_Generics;
-    // procedure TestWrappedListToJSONArray;
-    // procedure TestJSONObjectToObjectAndBack;
-    // procedure TestLoadJSONObjectToObjectAndBack;
-    // procedure TestSerializeUsingProperties;
-    // procedure TestSerializeUsingFields;
-    // procedure TestSerializeUsingFieldsComplexObject;
-    // procedure TestSerializeUsingFieldsComplexObject2;
-    // procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
-    // procedure TestComplexObjectToJSONObjectAndBack;
-    // procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
-    // procedure TestDataSetToJSONObject;
-    // procedure TestDataSetToJSONObjectWithNulls;
-    // procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
-    // procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
-    // procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
-    // procedure TestDataSetToJSONArray;
-    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
-    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
-    // procedure TestObjectToJSONObjectAndBackWithStream;
-    // procedure TestJSONArrayToObjectListNoGenerics;
-    // procedure TestJSONArrayToObjectListNoGenericsWrappedList;
-    // procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
-    // procedure TestJSONObjectToObjectWithNullInJSONString;
-    // procedure TestJSONObjectStringToObject;
-    // procedure TestJSONObjectStringToObjectWithWrongJSON;
-  end;
-
-  [TestFixture]
   TTestRouting = class(TObject)
   private
     FRouter: TMVCRouter;
@@ -379,18 +342,6 @@ begin
   finally
     idmd5.Free;
   end;
-end;
-
-procedure TTestMappers.SameFishesDataSet(ds, ds2: TDataSet);
-begin
-  Assert.areEqual(ds.FieldByName('Species No').AsInteger, ds2.FieldByName('Species No').AsInteger);
-  Assert.areEqual(ds.FieldByName('Category').AsString, ds2.FieldByName('Category').AsString);
-  Assert.areEqual(ds.FieldByName('Common_Name').AsString, ds2.FieldByName('Common_Name').AsString);
-  Assert.areEqual(ds.FieldByName('Species Name').AsString, ds2.FieldByName('Species Name').AsString);
-  Assert.areEqual(ds.FieldByName('Length (cm)').AsString, ds2.FieldByName('Length (cm)').AsString);
-  Assert.areEqual(ds.FieldByName('Length_In').AsInteger, ds2.FieldByName('Length_In').AsInteger);
-  Assert.areEqual(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes').AsString);
-  Assert.areEqual(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic').AsString);
 end;
 
 procedure TTestRouting.SetUp;

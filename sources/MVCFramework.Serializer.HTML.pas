@@ -77,7 +77,6 @@ type
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
-
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -151,6 +150,12 @@ type
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs
       );
+
+    function SerializeArrayOfRecord(
+      var ATValueContainingAnArray: TValue;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ASerializationAction: TMVCSerializationAction = nil): string;
   end;
 
 implementation
@@ -269,6 +274,14 @@ end;
 
 function TMVCHTMLSerializer.SerializeCollection(const AList: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction): string;
+begin
+  RaiseNotImplemented;
+end;
+
+function TMVCHTMLSerializer.SerializeArrayOfRecord(
+  var ATValueContainingAnArray: TValue; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
