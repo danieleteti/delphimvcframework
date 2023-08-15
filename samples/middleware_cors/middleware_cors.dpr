@@ -8,10 +8,10 @@ uses
   MVCFramework,
   MVCFramework.Logger,
   MVCFramework.Commons,
-{$IFDEF MSWINDOWS}
+  {$IFDEF MSWINDOWS}
   Winapi.Windows,
   Winapi.ShellAPI,
-{$ENDIF}
+  {$ENDIF }
   MVCFramework.Signal,
   Web.ReqMulti,
   Web.WebReq,
@@ -19,8 +19,7 @@ uses
   IdContext,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
-  SPARedirectController in 'SPARedirectController.pas';
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
 
 {$R *.res}
 
@@ -35,25 +34,18 @@ begin
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
-
-    { more info about MaxConnections
-      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }
     LServer.MaxConnections := 0;
-
-    { more info about ListenQueue
-      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
 
-    { Comment the next line to avoid the default browser startup }
-{$IFDEF MSWINDOWS}
-    //ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
-{$ENDIF}
     { required if you use JWT middleware }
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.Active := True;
-    Writeln('CTRL+C to shutdown the server');
+    WriteLn('Middleware CORS Sample');
+    WriteLn('Listening on port ', APort);
+    Write('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
+    LServer.Active := False;
   finally
     LServer.Free;
   end;

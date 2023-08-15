@@ -32,9 +32,9 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Middleware.Redirect,
   MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.CORS,
-  SPARedirectController;
+  MVCFramework.Middleware.CORS;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -62,20 +62,14 @@ begin
       Config[TMVCConfigKey.LoadSystemControllers] := 'false';
     end);
   FMVC
-    .AddController(TMyController)
-    .AddController(TSPARedirectController);
+    .AddController(TMyController);
 
-  // Required to enable serving of static files
-  FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
 
-  // Required to enable serving of static files
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/static',
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'))
-    );
+  { // Allows all origins -> * }
+  //FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
 
-  // To enable compression (deflate, gzip) just add this middleware as the last one
-  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  { // Allows all origins -> * }
+  FMVC.AddMiddleware(TMVCCORSMiddleware.Create('https://anotherserver.com,http://localhost:9090'));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

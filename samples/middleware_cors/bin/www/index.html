@@ -1,1 +1,29 @@
-INDEX FILE IN WWW
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>DMVCFramework CORS Sample</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+
+<body>
+    <button id="btn">Click Here!</button>
+    <div id="output"></div>
+    <script defer>
+        let output = document.getElementById('output');
+        document.getElementById('btn').onclick = () => {
+            fetch('http://localhost:8080/api/customers', {
+                "method": 'POST',
+                "body": JSON.stringify({ "hello": "world" })
+            })
+                .then((res) => res.json())
+                .then((json) => {
+                    output.innerHTML = json['data']["message"]
+                });
+        }
+    </script>
+</body>
+
+</html>

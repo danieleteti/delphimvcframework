@@ -61,13 +61,16 @@ type
   end;
 
   TMVCCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
-  private
+  strict protected
     FAllowedOriginURL: string;
+    FAllowedOriginURLs: TArray<String>;
     FAllowsCredentials: Boolean;
     FAllowsMethods: string;
     FExposeHeaders: string;
     FAllowsHeaders: string;
   protected
+    function GetAllowedOriginURL(AContext: TWebContext): String; virtual;
+
     procedure OnBeforeRouting(
       AContext: TWebContext;
       var AHandled: Boolean
@@ -92,7 +95,7 @@ type
 
   public
     constructor Create(
-      const AAllowedOriginURL: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
+      const AAllowedOriginURLs: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
       const AAllowsCredentials: Boolean = TMVCCORSDefaults.ALLOWS_CREDENTIALS;
       const AExposeHeaders: String = TMVCCORSDefaults.EXPOSE_HEADERS;
       const AAllowsHeaders: String = TMVCCORSDefaults.ALLOWS_HEADERS;
@@ -104,10 +107,13 @@ type
 
 implementation
 
+uses
+  System.SysUtils;
+
 { TMVCCORSMiddleware }
 
 constructor TMVCCORSMiddleware.Create(
-  const AAllowedOriginURL: string;
+  const AAllowedOriginURLs: string;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: String;
   const AAllowsHeaders: String;
@@ -115,11 +121,30 @@ constructor TMVCCORSMiddleware.Create(
   );
 begin
   inherited Create;
-  FAllowedOriginURL := AAllowedOriginURL;
   FAllowsCredentials := AAllowsCredentials;
   FExposeHeaders := AExposeHeaders;
   FAllowsHeaders := AAllowsHeaders;
   FAllowsMethods := AAllowsMethods;
+end;
+
+function TMVCCORSMiddleware.GetAllowedOriginURL(AContext: TWebContext): String;
+var
+  lRequestOrigin: string;
+  lAllowed: String;
+begin
+  Result := '';
+  lRequestOrigin := AContext.Request.Headers['Origin'];
+  if lRequestOrigin <> '' then
+  begin
+    for var I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
+    begin
+      lAllowed := FAllowedOriginURLs[I].Trim;
+      if SameText(lRequestOrigin, lAllowed) or (lAllowed = '*') then
+      begin
+        Exit(lAllowed);
+      end;
+    end;
+  end;
 end;
 
 procedure TMVCCORSMiddleware.OnAfterControllerAction(
@@ -144,7 +169,7 @@ end;
 
 procedure TMVCCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 begin
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := GetAllowedOriginURL(AContext);
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
 
