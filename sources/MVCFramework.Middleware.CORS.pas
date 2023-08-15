@@ -63,7 +63,7 @@ type
   TMVCCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     FAllowedOriginURL: string;
-    FAllowsCredentials: string;
+    FAllowsCredentials: Boolean;
     FAllowsMethods: string;
     FExposeHeaders: string;
     FAllowsHeaders: string;
@@ -71,24 +71,24 @@ type
     procedure OnBeforeRouting(
       AContext: TWebContext;
       var AHandled: Boolean
-      );
+      ); virtual;
 
     procedure OnBeforeControllerAction(
       AContext: TWebContext;
       const AControllerQualifiedClassName: string;
       const AActionName: string;
       var AHandled: Boolean
-      );
+      ); virtual;
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
-      const AHandled: Boolean);
+      const AHandled: Boolean); virtual;
 
     procedure OnAfterRouting(
       AContext: TWebContext;
       const AHandled: Boolean
-      );
+      ); virtual;
 
   public
     constructor Create(
@@ -116,7 +116,7 @@ constructor TMVCCORSMiddleware.Create(
 begin
   inherited Create;
   FAllowedOriginURL := AAllowedOriginURL;
-  FAllowsCredentials := IfThen(AAllowsCredentials, 'true', 'false');
+  FAllowsCredentials := AAllowsCredentials;
   FExposeHeaders := AExposeHeaders;
   FAllowsHeaders := AAllowsHeaders;
   FAllowsMethods := AAllowsMethods;
@@ -147,7 +147,13 @@ begin
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
+
+  if FAllowsCredentials then
+  begin
+    // Omit Access-Control-Allow-Credentials if <> true
+    // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
+    AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
+  end;
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders;
 
   // allows preflight requests
