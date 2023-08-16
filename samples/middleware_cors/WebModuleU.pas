@@ -59,17 +59,24 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
       // Max request size in bytes
       Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
-      Config[TMVCConfigKey.LoadSystemControllers] := 'false';
     end);
   FMVC
     .AddController(TMyController);
 
 
-  { // Allows all origins -> * }
-  //FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
+
+  { **************************************************************************** }
+  { Enable one of the following lines to configure CORS support in different way }
+  { **************************************************************************** }
 
   { // Allows all origins -> * }
-  FMVC.AddMiddleware(TMVCCORSMiddleware.Create('https://anotherserver.com,http://localhost:9090'));
+  FMVC.AddMiddleware(TMVCCORSMiddleware.Create);
+
+  { // Allows 2 origins }
+  // FMVC.AddMiddleware(TMVCCORSMiddleware.Create('https://anotherserver.com,http://localhost:9090'));
+
+  { // Disallow localhost:9090 }
+  // FMVC.AddMiddleware(TMVCCORSMiddleware.Create('https://anotherserver.com'));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
