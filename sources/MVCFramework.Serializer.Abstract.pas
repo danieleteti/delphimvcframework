@@ -316,7 +316,7 @@ var
 begin
   Result := False;
   for I := low(AAttributes) to high(AAttributes) do
-    if (AAttributes[I] = AName) then
+    if AnsiSameText(AAttributes[I], AName) then
       Exit(True);
 end;
 
