@@ -230,8 +230,6 @@ begin
 end;
 
 procedure TMVCCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
-var
-  lAllowOrigin: String;
 begin
   if AContext.Request.HTTPMethod <> httpOPTIONS then
   begin
