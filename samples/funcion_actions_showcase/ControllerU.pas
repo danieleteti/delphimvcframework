@@ -70,6 +70,13 @@ type
     function GetMVCResponseWithObjectDictionary: IMVCResponse;
     [MVCPath('/mvcresponse/error')]
     function GetMVCErrorResponse: IMVCResponse;
+
+    { using MVCResponseBuilder }
+    [MVCPath('/mvcresponse/message/builder')]
+    function GetMVCResponseSimpleBuilder: IMVCResponse;
+    [MVCPath('/mvcresponse/data/builder')]
+    function GetMVCResponseWithDataBuilder: IMVCResponse;
+
   end;
 
 implementation
@@ -140,9 +147,34 @@ begin
   Result := MVCResponse(HTTP_STATUS.OK, 'My Message', 'My Reason String');
 end;
 
+function TMyController.GetMVCResponseSimpleBuilder: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Message('My Message')
+    .Reason('My Reason String')
+    .Build;
+
+  //Equivalent to the following
+  //
+  //Result := MVCResponse(HTTP_STATUS.OK, 'My Message', 'My Reason String');
+end;
+
 function TMyController.GetMVCResponseWithData: IMVCResponse;
 begin
   Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
+end;
+
+function TMyController.GetMVCResponseWithDataBuilder: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Data(TPerson.Create('Daniele','Teti', 99))
+    .Build;
+
+  //Equivalent to the following
+  //
+  //Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
 end;
 
 function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;

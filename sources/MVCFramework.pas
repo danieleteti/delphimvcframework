@@ -1154,6 +1154,19 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
 function MVCResponse(AStatusCode: Integer; AMessage: string = ''; AReasonString: string = ''): IMVCResponse; overload;
 function MVCResponse(AStatusCode: Integer; AData: TObject; AReasonString: string = ''): IMVCResponse; overload;
 function MVCResponse(AStatusCode: Integer; AObjectDictionary: IMVCObjectDictionary; AReasonString: string = ''): IMVCResponse; overload;
+
+type
+  IMVCResponseBuilder = interface
+    ['{10210D72-AFAE-4919-936D-EB08AA16C01C}']
+    function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
+    function Message(const Message: String): IMVCResponseBuilder;
+    function Data(const Data: TObject): IMVCResponseBuilder;
+    function Reason(const Reason: String): IMVCResponseBuilder;
+    function ObjectDict(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder;
+    function Build: IMVCResponse;
+  end;
+
+function MVCResponseBuilder: IMVCResponseBuilder;
 // end - std responses
 
 implementation
@@ -1173,6 +1186,29 @@ var
   gIsShuttingDown: Boolean = False;
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
+
+
+type
+  TMVCResponseBuilder = class sealed(TInterfacedObject, IMVCResponseBuilder)
+  private
+    fBuilt: Boolean;
+  protected
+    fStatusCode: Integer;
+    fMessage: String;
+    fData: TObject;
+    fReason: String;
+    fObjectDict: IMVCObjectDictionary;
+
+    function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
+    function Message(const Message: String): IMVCResponseBuilder;
+    function Data(const Data: TObject): IMVCResponseBuilder;
+    function Reason(const Reason: String): IMVCResponseBuilder;
+    function ObjectDict(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder;
+    function Build: IMVCResponse;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+  end;
 
 
 function IsShuttingDown: Boolean;
@@ -4589,8 +4625,83 @@ begin
   Result := TMVCResponse.Create(AStatusCode, AObjectDictionary, AReasonString);
 end;
 
+function MVCResponseBuilder: IMVCResponseBuilder;
+begin
+  Result := TMVCResponseBuilder.Create;
+end;
+
 // end - std responses
 
+
+{ TMVCResponseBuilder }
+
+function TMVCResponseBuilder.Build: IMVCResponse;
+begin
+  if (fData = nil) and (fObjectDict = nil) then
+  begin
+    Result := MVCResponse(fStatusCode, fMessage, fReason);
+  end
+  else
+  begin
+    if fData = nil then
+    begin
+      Result := MVCResponse(fStatusCode, fObjectDict, fReason);
+    end
+    else
+    begin
+      Result := MVCResponse(fStatusCode, fData, fReason);
+    end;
+  end;
+  fBuilt := True;
+end;
+
+constructor TMVCResponseBuilder.Create;
+begin
+  inherited;
+  fBuilt := False;
+end;
+
+function TMVCResponseBuilder.Data(const Data: TObject): IMVCResponseBuilder;
+begin
+  fData := Data;
+  Result := Self;
+end;
+
+destructor TMVCResponseBuilder.Destroy;
+begin
+  if not fBuilt then
+  begin
+    FreeAndNil(fData);
+  end;
+  inherited;
+end;
+
+function TMVCResponseBuilder.Message(
+  const Message: String): IMVCResponseBuilder;
+begin
+  fMessage := Message;
+  Result := Self;
+end;
+
+function TMVCResponseBuilder.ObjectDict(
+  const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder;
+begin
+  fObjectDict := ObjDictionary;
+  Result := Self;
+end;
+
+function TMVCResponseBuilder.Reason(const Reason: String): IMVCResponseBuilder;
+begin
+  fReason := Reason;
+  Result := Self;
+end;
+
+function TMVCResponseBuilder.StatusCode(
+  const StatusCode: Integer): IMVCResponseBuilder;
+begin
+  fStatusCode := StatusCode;
+  Result := Self;
+end;
 
 initialization
 
