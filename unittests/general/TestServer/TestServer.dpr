@@ -24,7 +24,9 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
   Entities in '..\Several\Entities.pas',
-  EntitiesProcessors in '..\Several\EntitiesProcessors.pas';
+  EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
+  MVCFramework.JSONRPC.Client in '..\..\..\sources\MVCFramework.JSONRPC.Client.pas',
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
 
 {$R *.res}
 

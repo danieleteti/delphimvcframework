@@ -58,45 +58,58 @@ type
     /// Source: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods
     /// </summary>
     ALLOWS_METHODS = 'POST,GET,OPTIONS,PUT,DELETE';
+    /// <summary>
+    /// Indicates the number of seconds (60 by default) the information provided by
+    /// the `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` headers can be cached.
+    /// </summary>
+    ACCESS_CONTROL_MAX_AGE = 60;
   end;
 
   TMVCCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
-  private
+  strict protected
     FAllowedOriginURL: string;
-    FAllowsCredentials: string;
+    FAllowedOriginURLs: TArray<String>;
+    FAllowsCredentials: Boolean;
     FAllowsMethods: string;
     FExposeHeaders: string;
     FAllowsHeaders: string;
+    FAccessControlMaxAge: string;
   protected
+    function GetAllowedOriginURL(AContext: TWebContext): String; virtual;
+    procedure FillCommonHeaders(AContext: TWebContext; const AAllowOrigin: String); virtual;
+    procedure HandlePreflightRequest(AContext: TWebContext; var AHandled: Boolean); virtual;
+    procedure HandleRequest(AContext: TWebContext; var AHandled: Boolean); virtual;
+
     procedure OnBeforeRouting(
       AContext: TWebContext;
       var AHandled: Boolean
-      );
+      ); virtual;
 
     procedure OnBeforeControllerAction(
       AContext: TWebContext;
       const AControllerQualifiedClassName: string;
       const AActionName: string;
       var AHandled: Boolean
-      );
+      ); virtual;
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
-      const AHandled: Boolean);
+      const AHandled: Boolean); virtual;
 
     procedure OnAfterRouting(
       AContext: TWebContext;
       const AHandled: Boolean
-      );
+      ); virtual;
 
   public
     constructor Create(
-      const AAllowedOriginURL: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
+      const AAllowedOriginURLs: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
       const AAllowsCredentials: Boolean = TMVCCORSDefaults.ALLOWS_CREDENTIALS;
       const AExposeHeaders: String = TMVCCORSDefaults.EXPOSE_HEADERS;
       const AAllowsHeaders: String = TMVCCORSDefaults.ALLOWS_HEADERS;
-      const AAllowsMethods: string = TMVCCORSDefaults.ALLOWS_METHODS
+      const AAllowsMethods: string = TMVCCORSDefaults.ALLOWS_METHODS;
+      const AAccessControlMaxAge: Integer = TMVCCORSDefaults.ACCESS_CONTROL_MAX_AGE
       ); virtual;
   end;
 
@@ -104,22 +117,96 @@ type
 
 implementation
 
+uses
+  System.SysUtils, System.Classes;
+
 { TMVCCORSMiddleware }
 
 constructor TMVCCORSMiddleware.Create(
-  const AAllowedOriginURL: string;
+  const AAllowedOriginURLs: string;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: String;
   const AAllowsHeaders: String;
-  const AAllowsMethods: string
+  const AAllowsMethods: string;
+  const AAccessControlMaxAge: Integer
   );
 begin
   inherited Create;
-  FAllowedOriginURL := AAllowedOriginURL;
-  FAllowsCredentials := IfThen(AAllowsCredentials, 'true', 'false');
+  FAllowedOriginURLs := AAllowedOriginURLs.Split([',']);
+  FAllowsCredentials := AAllowsCredentials;
   FExposeHeaders := AExposeHeaders;
   FAllowsHeaders := AAllowsHeaders;
   FAllowsMethods := AAllowsMethods;
+  FAccessControlMaxAge := IntToStr(AAccessControlMaxAge);
+end;
+
+procedure TMVCCORSMiddleware.FillCommonHeaders(AContext: TWebContext; const AAllowOrigin: String);
+var
+  lCustomHeaders: TStrings;
+begin
+  lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
+  lCustomHeaders.Values['Access-Control-Allow-Origin'] := AAllowOrigin;
+  lCustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
+  lCustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
+  lCustomHeaders.Values['Access-Control-Max-Age'] := FAccessControlMaxAge;
+end;
+
+function TMVCCORSMiddleware.GetAllowedOriginURL(AContext: TWebContext): String;
+var
+  lRequestOrigin: string;
+  lAllowed: String;
+begin
+  Result := '';
+  lRequestOrigin := AContext.Request.Headers['Origin'];
+  if lRequestOrigin <> '' then
+  begin
+    for var I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
+    begin
+      lAllowed := FAllowedOriginURLs[I].Trim;
+      if SameText(lRequestOrigin, lAllowed) or (lAllowed = '*') then
+      begin
+        Exit(lAllowed);
+      end;
+    end;
+  end;
+end;
+
+procedure TMVCCORSMiddleware.HandlePreflightRequest(AContext: TWebContext;
+  var AHandled: Boolean);
+var
+  lAllowOrigin: String;
+begin
+  // https://fetch.spec.whatwg.org/#cors-preflight-request
+  lAllowOrigin := GetAllowedOriginURL(AContext);
+  AContext.Response.StatusCode := HTTP_STATUS.NoContent;
+  if not lAllowOrigin.IsEmpty then
+  begin
+    FillCommonHeaders(AContext, lAllowOrigin);
+  end;
+  AHandled := True;
+end;
+
+procedure TMVCCORSMiddleware.HandleRequest(AContext: TWebContext;
+  var AHandled: Boolean);
+var
+  lAllowOrigin: String;
+  lCustomHeaders: TStrings;
+begin
+  // https://fetch.spec.whatwg.org/#http-responses
+  lAllowOrigin := GetAllowedOriginURL(AContext);
+  if not lAllowOrigin.IsEmpty then
+  begin
+    FillCommonHeaders(AContext, lAllowOrigin);
+    lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
+    lCustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders; {only for not preflight requests}
+    if FAllowsCredentials then
+    begin
+      // Omit Access-Control-Allow-Credentials if <> true
+      // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
+      lCustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
+    end;
+  end;
+  AHandled := False;
 end;
 
 procedure TMVCCORSMiddleware.OnAfterControllerAction(
@@ -144,17 +231,15 @@ end;
 
 procedure TMVCCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 begin
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders;
-
-  // allows preflight requests
-  if (AContext.Request.HTTPMethod = httpOPTIONS) then
+  if AContext.Request.HTTPMethod <> httpOPTIONS then
   begin
-    AContext.Response.StatusCode := HTTP_STATUS.OK;
-    AHandled := True;
+    //normal request, no preflight request
+    HandleRequest(AContext, AHandled);
+  end
+  else
+  begin
+    //preflight
+    HandlePreflightRequest(AContext, AHandled);
   end;
 end;
 

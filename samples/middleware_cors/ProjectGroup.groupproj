@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{9F8DA910-24A1-4497-AAB9-7BDE0D4186C2}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="middleware_cors.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SimpleWebServer\SimpleWebServer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="middleware_cors">
+        <MSBuild Projects="middleware_cors.dproj"/>
+    </Target>
+    <Target Name="middleware_cors:Clean">
+        <MSBuild Projects="middleware_cors.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="middleware_cors:Make">
+        <MSBuild Projects="middleware_cors.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SimpleWebServer">
+        <MSBuild Projects="SimpleWebServer\SimpleWebServer.dproj"/>
+    </Target>
+    <Target Name="SimpleWebServer:Clean">
+        <MSBuild Projects="SimpleWebServer\SimpleWebServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SimpleWebServer:Make">
+        <MSBuild Projects="SimpleWebServer\SimpleWebServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="middleware_cors;SimpleWebServer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="middleware_cors:Clean;SimpleWebServer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="middleware_cors:Make;SimpleWebServer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

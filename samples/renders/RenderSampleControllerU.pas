@@ -32,7 +32,9 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Serializer.Intf,
-  System.Rtti, BusinessObjectsU;
+  System.Rtti,
+  System.Generics.Collections,
+  BusinessObjectsU, Data.DB;
 
 type
 
@@ -42,6 +44,18 @@ type
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
       var AHandled: Boolean); override;
   public
+    // Result BASED
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/people')]
+    [MVCProduces('application/json')]
+    function GetPeople_AsObjectList_AsFunction: TEnumerable<TPerson>;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers/simple')]
+    function GetCustomers_AsDataSet_AsFunction: TDataSet;
+
+
+    // Render BASED
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/simple')]
     procedure GetCustomers_AsDataSet;
@@ -266,10 +280,9 @@ uses
   InMemoryDataU,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
-  Data.DB,
   Web.HTTPApp,
   Graphics,
-  System.Types;
+  System.Types, FireDAC.Comp.Client;
 
 procedure DrawLogo(const Logo: TBitmap);
 var
@@ -510,6 +523,20 @@ begin
   try
     lDM.qryCustomers.Open;
     Render(lDM.qryCustomers, False);
+  finally
+    lDM.Free;
+  end;
+end;
+
+function TRenderSampleController.GetCustomers_AsDataSet_AsFunction: TDataSet;
+var
+  lDM: TMyDataModule;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    Result := TFDMemTable.Create(nil);
+    TFDMemTable(Result).CloneCursor(lDM.qryCustomers, True);
   finally
     lDM.Free;
   end;
@@ -907,6 +934,14 @@ begin
   //Render<TPerson>(HTTP_STATUS.OK, People, True);
   { new approach with ObjectDict }
   Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
+end;
+
+function TRenderSampleController.GetPeople_AsObjectList_AsFunction: TEnumerable<TPerson>;
+begin
+  Result := TObjectList<TPerson>.Create(True);
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('Daniele','Teti', EncodeDate(1979, 11, 4), True));
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('John','Doe', EncodeDate(1879, 10, 2), False));
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('Jane','Doe', EncodeDate(1883, 1, 5), True));
 end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;

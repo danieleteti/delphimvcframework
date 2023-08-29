@@ -70,11 +70,19 @@ type
     [Test]
     procedure TestSelectWithExceptions;
     [Test]
+    procedure TestNamedQuerySQL;
+    [Test]
+    procedure TestNamedQuerySQLByBackEnd;
+    [Test]
     procedure TestStore;
     [Test]
     procedure TestLifeCycle;
     [Test]
     procedure TestRQL;
+    [Test]
+    procedure TestNamedQueryRQL;
+    [Test]
+    procedure TestNamedQueryRQLWithExceptions;
     [Test]
     procedure TestRQLWithMVCNameAsAttribute;
     [Test]
@@ -1168,6 +1176,68 @@ procedure TTestActiveRecordBase.TestMultiThreading;
 begin
   LoadData;
   Assert.AreEqual(Trunc(20 * 30), TMVCActiveRecord.Count(TCustomerWithLF));
+end;
+
+procedure TTestActiveRecordBase.TestNamedQueryRQL;
+var
+  lCustomers: TObjectList<TCustomer>;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('CityRomeOrLondon', [], MAXINT);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+    for var lCustomer in lCustomers do
+    begin
+      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+    end;
+  finally
+    lCustomers.Free;
+  end;
+  TMVCActiveRecord.DeleteRQLByNamedQuery<TCustomer>('CityRomeOrLondon', []);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.CountRQLByNamedQuery<TCustomer>('CityRomeOrLondon', []));
+end;
+
+procedure TTestActiveRecordBase.TestNamedQueryRQLWithExceptions;
+begin
+  Assert.WillRaiseWithMessage(
+  procedure
+  begin
+    TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('WrongQueryName', [1,2,3], MAXINT);
+  end, nil, 'NamedRQLQuery not found: WrongQueryName');
+
+  Assert.WillRaiseWithMessage(
+  procedure
+  begin
+    TMVCActiveRecord.DeleteRQLByNamedQuery<TCustomer>('WrongQueryName', []);
+  end, nil, 'NamedRQLQuery not found: WrongQueryName');
+end;
+
+procedure TTestActiveRecordBase.TestNamedQuerySQL;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('ByTwoCities', ['Rome', 'London'], [ftString, ftString]);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+    for var lCustomer in lCustomers do
+    begin
+      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+    end;
+  finally
+    lCustomers.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestNamedQuerySQLByBackEnd;
+begin
+  var lList := TMVCActiveRecord.SelectByNamedQuery<TDummyEntity>('get_backend_name', [],[]);
+  try
+    Assert.AreEqual(1, lList.Count);
+    Assert.AreEqual(lList.First.GetBackEnd, lList.First.BackEndName);
+  finally
+    lList.Free;
+  end;
 end;
 
 procedure TTestActiveRecordBase.TestNullables;

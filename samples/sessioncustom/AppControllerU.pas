@@ -51,7 +51,7 @@ begin
     .AppendLine('Logged as ' + username)
     .AppendLine
     .AppendLine('in address of browser type: ')
-    .AppendLine('http://localhost:8080                  to check the current values in session ')
+    .AppendLine('http://localhost:8080/list             to check the current values in session ')
     .AppendLine('http://localhost:8080/fruit/apple      to register apple ')
     .AppendLine('http://localhost:8080/fruit/banana     to register banana ')
     .AppendLine('http://localhost:8080/logout           to end session ')

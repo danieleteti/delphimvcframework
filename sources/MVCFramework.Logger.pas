@@ -56,7 +56,8 @@ type
     constructor Start(const Message: string; const Params: array of TVarRec; const TAG: String); overload;
     class var ProfileLogger: ILogWriter;
     class var LoggerTag: String;
-    class var WarningThreshold: Int64;
+    class var WarningThreshold: UInt32;
+    class var LogsOnlyIfOverThreshold: Boolean;
   end;
 {$ENDIF}
 
@@ -193,14 +194,6 @@ begin
     LogE(E.ClassName + ': ' + AMessage);
 end;
 
-// procedure LogException(
-// const AException: Exception;
-// const AMessage: string);
-// begin
-// Log.Error(Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
-// AException.Message, AMessage]), LOGGERPRO_TAG);
-// end;
-
 procedure LogEnterMethod(const AMethodName: string);
 begin
     LogI('>> ' + AMethodName);
@@ -265,27 +258,27 @@ end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
-    if gDefaultLogger = nil then
-    begin
-      TMonitor.Enter(gLock); // double check here
-      try
-        if gDefaultLogger = nil then
+  if gDefaultLogger = nil then
+  begin
+    TMonitor.Enter(gLock); // double check here
+    try
+      if gDefaultLogger = nil then
+      begin
+        if aLogWriter <> nil then
         begin
-          if aLogWriter <> nil then
-          begin
-            gDefaultLogger := aLogWriter;
-            Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
-          end
-          else
-          begin
-            InitializeDefaultLogger;
-            Log.Info('Default Logger initialized', LOGGERPRO_TAG);
-          end;
+          gDefaultLogger := aLogWriter;
+          Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
+        end
+        else
+        begin
+          InitializeDefaultLogger;
+          Log.Info('Default Logger initialized', LOGGERPRO_TAG);
         end;
-      finally
-        TMonitor.Exit(gLock);
       end;
+    finally
+      TMonitor.Exit(gLock);
     end;
+  end;
 end;
 
 procedure InitializeDefaultLogger;
@@ -338,13 +331,16 @@ begin
     Exit;
   fMessage := Format(Message, Params);
   fStopWatch := TStopWatch.StartNew;
-  fIndent := StringOfChar(' ', gIndent);
-  Inc(gReqNr);
-  ProfileLogger.Info('[%s>>][%6d][%s]', [
-    fIndent,
-    gReqNr,
-    fMessage], TAG);
-  Inc(gIndent);
+  if not LogsOnlyIfOverThreshold then
+  begin
+    Inc(gReqNr);
+    fIndent := StringOfChar(' ', gIndent);
+    ProfileLogger.Info('[%s>>][%6d][%s]', [
+      fIndent,
+      gReqNr,
+      fMessage], TAG);
+    Inc(gIndent);
+  end;
 end;
 
 class operator Profiler.Finalize(var Dest: Profiler);
@@ -352,17 +348,34 @@ begin
   if Profiler.ProfileLogger = nil then
     Exit;
   Dest.fStopWatch.Stop;
-  ProfileLogger.Log(
-    PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
-    '[%s<<][%6d][%s][ELAPSED: %s]',
-    [
-      Dest.fIndent,
-      gReqNr,
-      Dest.fMessage,
-      Dest.fStopWatch.Elapsed.ToString
-    ], LoggerTag);
-  Dec(gIndent);
-  Dec(gReqNr);
+  if not LogsOnlyIfOverThreshold then
+  begin
+    ProfileLogger.Log(
+      PROFILER_LOG_TYPE[Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold],
+      '[%s<<][%6d][%s][ELAPSED: %s]',
+      [
+        Dest.fIndent,
+        gReqNr,
+        Dest.fMessage,
+        Dest.fStopWatch.Elapsed.ToString
+      ], LoggerTag);
+    Dec(gIndent);
+    Dec(gReqNr);
+  end
+  else
+  begin
+    if Dest.fStopWatch.ElapsedMilliseconds >= WarningThreshold then
+    begin
+      ProfileLogger.Log(
+        PROFILER_LOG_TYPE[True],
+        '[%s][ELAPSED: %s][THRESHOLD %d ms]',
+        [
+          Dest.fMessage,
+          Dest.fStopWatch.Elapsed.ToString,
+          WarningThreshold
+        ], LoggerTag);
+    end;
+  end;
 end;
 
 constructor Profiler.Start(const Message: string);

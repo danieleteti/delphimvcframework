@@ -1813,67 +1813,67 @@ begin
   SetLength(lParamsIsRecord, lParamsCount);
   SetLength(lRecordsPointer, lParamsCount);
   SetLength(lParamArrayLength, lParamsCount);
-  // scroll json params and rttimethod params and find the best match
-  if Assigned(lJSONParams) then
-  begin
-    // positional params
-    for I := 0 to lJSONParams.Count - 1 do
-    begin
-      JSONDataValueToTValueParamEx(
-        fSerializer,
-        lJSONParams[I],
-        lRTTIMethodParams[I],
-        lParamsArray[I],
-        lParamsIsRecord[I],
-        lRecordsPointer[I],
-        lParamArrayLength[i]
-        );
-    end;
-  end
-  else if Assigned(lJSONNamedParams) then
-  begin
-    // named params
-    for I := 0 to lJSONNamedParams.Count - 1 do
-    begin
-      JSONDataValueToTValueParamEx(
-        fSerializer,
-        GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
-        lRTTIMethodParams[I],
-        lParamsArray[I],
-        lParamsIsRecord[I],
-        lRecordsPointer[I],
-        lParamArrayLength[i]);
-    end;
-  end;
-
-  TryToCallMethod(RTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, JSON);
-  BeforeCallHookHasBeenInvoked := True;
   try
-    LogD('[JSON-RPC][CALL][' + CALL_TYPE[RTTIMethod.MethodKind] + '][' + fRPCInstance.ClassName + '.' +
-      RTTIMethod.Name + ']');
-    Result := RTTIMethod.Invoke(fRPCInstance, lParamsArray);
-  except
-    on E: EInvalidCast do
+    // scroll json params and rttimethod params and find the best match
+    if Assigned(lJSONParams) then
     begin
-      raise EMVCJSONRPCInvalidParams.Create('Check your input parameters types');
-    end;
-    on Ex: EMVCJSONRPCInvalidRequest do
-    begin
-      raise EMVCJSONRPCInvalidParams.Create(Ex.Message);
-    end;
-  end;
-
-
-  for I := 0 to lParamsCount - 1 do
-  begin
-    if lParamsArray[I].IsObject then
-    begin
-      lParamsArray[I].AsObject.Free;
+      // positional params
+      for I := 0 to lJSONParams.Count - 1 do
+      begin
+        JSONDataValueToTValueParamEx(
+          fSerializer,
+          lJSONParams[I],
+          lRTTIMethodParams[I],
+          lParamsArray[I],
+          lParamsIsRecord[I],
+          lRecordsPointer[I],
+          lParamArrayLength[i]
+          );
+      end;
     end
-    else if lParamsIsRecord[I] then
+    else if Assigned(lJSONNamedParams) then
     begin
-      //FinalizeRecord(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.Handle);
-      FreeMem(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.TypeSize);
+      // named params
+      for I := 0 to lJSONNamedParams.Count - 1 do
+      begin
+        JSONDataValueToTValueParamEx(
+          fSerializer,
+          GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
+          lRTTIMethodParams[I],
+          lParamsArray[I],
+          lParamsIsRecord[I],
+          lRecordsPointer[I],
+          lParamArrayLength[i]);
+      end;
+    end;
+
+    TryToCallMethod(RTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, JSON);
+    BeforeCallHookHasBeenInvoked := True;
+    try
+      LogD('[JSON-RPC][CALL][' + CALL_TYPE[RTTIMethod.MethodKind] + '][' + fRPCInstance.ClassName + '.' +
+        RTTIMethod.Name + ']');
+      Result := RTTIMethod.Invoke(fRPCInstance, lParamsArray);
+    except
+      on E: EInvalidCast do
+      begin
+        raise EMVCJSONRPCInvalidParams.Create('Check your input parameters types');
+      end;
+      on Ex: EMVCJSONRPCInvalidRequest do
+      begin
+        raise EMVCJSONRPCInvalidParams.Create(Ex.Message);
+      end;
+    end;
+  finally
+    for I := 0 to lParamsCount - 1 do
+    begin
+      if lParamsArray[I].IsObject then
+      begin
+        lParamsArray[I].AsObject.Free;
+      end
+      else if lParamsIsRecord[I] then
+      begin
+        FreeMem(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.TypeSize);
+      end;
     end;
   end;
 end;

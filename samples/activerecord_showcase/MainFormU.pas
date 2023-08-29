@@ -58,6 +58,8 @@ type
     btnReadOnly: TButton;
     btnSpeed: TButton;
     btnRefresh: TButton;
+    btnNamedQuery: TButton;
+    btnVirtualEntities: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -86,6 +88,8 @@ type
     procedure btnReadOnlyClick(Sender: TObject);
     procedure btnSpeedClick(Sender: TObject);
     procedure btnRefreshClick(Sender: TObject);
+    procedure btnNamedQueryClick(Sender: TObject);
+    procedure btnVirtualEntitiesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -649,6 +653,61 @@ begin
     'in(City,["Rome","New York","London","Melbourne","Berlin"])').ToString + ' records');
 end;
 
+procedure TMainForm.btnNamedQueryClick(Sender: TObject);
+begin
+  Log('** Named SQL Query');
+  Log('QuerySQL: RatingLessThanPar');
+  var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('QuerySQL: RatingEqualsToPar');
+  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('** Named RQL Query');
+  Log('QueryRQL: RatingLessThanPar');
+  lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('QueryRQL: RatingEqualsToPar');
+  lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+
+end;
+
 procedure TMainForm.btnNullablesClick(Sender: TObject);
 var
   lCustomer: TCustomer;
@@ -854,6 +913,7 @@ var
   lCust2: TCustomerWithRate2;
   lList: TObjectList<TCustomerWithRate1>;
 begin
+  Log('** Partitioning Test');
   TMVCActiveRecord.DeleteAll(TCustomerWithRate1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 0);
   TMVCActiveRecord.DeleteAll(TCustomerWithRate2);
@@ -884,8 +944,10 @@ begin
     lList.Free;
   end;
 
+  Log('Retriving only TCustomerWithRate1');
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate1, 'eq(code,"xxx")') = 0);
+  Log('Retriving only TCustomerWithRate2');
   Assert(TMVCActiveRecord.Count(TCustomerWithRate2) = 1);
   Assert(TMVCActiveRecord.Count(TCustomerWithRate2, 'eq(code,"xxx")') = 0);
 end;
@@ -1037,6 +1099,7 @@ var
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
   lCustList: TObjectList<TCustomer>;
+  lRecCount: Integer;
 const
   cRQL1 = 'in(City,["Rome","London"]);sort(+code);limit(0,50)';
   cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
@@ -1129,6 +1192,114 @@ begin
   finally
     lList.Free;
   end;
+
+
+  //******************************************************
+  // Using "Load" methods ********************************
+  //******************************************************
+  Log('*************************************************');
+  Log('** RQL Queries Test (using "Load" style methods)');
+  Log('*************************************************');
+  Log('>> RQL Query (1) - ' + cRQL1);
+  lList := TMVCActiveRecordList.Create;
+  try
+    TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+
+  Log('>> RQL Query (2) - ' + cRQL2);
+  lCustList := TObjectList<TCustomer>.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20, lCustList);
+    Log(lRecCount.ToString + ' record/s found');
+    for lCustomer in lCustList do
+    begin
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lCustList.Free;
+  end;
+
+  Log('**RQL Query (3) - ' + cRQL2);
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, cRQL2, 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (4) - <empty> with limit 20');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    Assert(lRecCount = 20);
+    Assert(lList.Count = lRecCount);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (5) - <empty> sort by code with limit 20');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, 'sort(+code)', 20, lList);
+    Log(lRecCount.ToString + ' record/s found');
+    Assert(lRecCount = lList.Count);
+    Assert(lList.Count = 20);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (6) - <empty> with limit 10');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 10, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lRecCount = lList.Count);
+    Assert(lList.Count = 10);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (7) - <empty> with limit 1');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 1, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 1);
+    Assert(lRecCount = lList.Count);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (8) - <empty> with limit 0');
+  lList := TMVCActiveRecordList.Create;
+  try
+    lRecCount := TMVCActiveRecord.SelectRQL(TCustomer, '', 0, lList);
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 0);
+    Assert(lRecCount = lList.Count);
+  finally
+    lList.Free;
+  end;
+
+
 
 end;
 
@@ -1513,6 +1684,7 @@ var
   lID: Integer;
 begin
   Log('** Validation test (some exceptions will be raised)');
+
   lCustomer := TCustomerWithLogic.Create;
   try
     lCustomer.Code := '1234';
@@ -1524,6 +1696,8 @@ begin
     lCustomer.Free;
   end;
 
+  ShowMessage('Try to update a customer with empty "CODE" (an exception will be raised)');
+
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLogic>(lID);
   try
     Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' +
@@ -1532,6 +1706,24 @@ begin
     lCustomer.Update; // raise exception
   finally
     lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
+begin
+  var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
+  try
+    for var lCustomer in lCustStats do
+    begin
+      Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
+        lCustomer.ID.ValueOrDefault,
+        lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault,
+        lCustomer.CustomersInTheSameCity
+        ]));
+    end;
+  finally
+    lCustStats.Free;
   end;
 end;
 
@@ -1630,6 +1822,17 @@ begin
   Log('** OOP with ActiveRecord (person, employee, manager)');
   TMVCActiveRecord.DeleteAll(TPerson);
 
+  var lPerson := TPerson.Create;
+  try
+    lPerson.FirstName := 'Reed';
+    lPerson.LastName := 'Richards';
+    lPerson.Dob := EncodeDate(1985,11,4);
+    lPerson.IsMale := True;
+    lPerson.Store;
+  finally
+    lPerson.Free;
+  end;
+
   var lEmployee := TEmployee.Create;
   try
     lEmployee.FirstName := 'Peter';
@@ -1637,6 +1840,18 @@ begin
     lEmployee.Dob := EncodeDate(1985,11,4);
     lEmployee.IsMale := True;
     lEmployee.Salary := 2100;
+    lEmployee.Store;
+  finally
+    lEmployee.Free;
+  end;
+
+  lEmployee := TEmployee.Create;
+  try
+    lEmployee.FirstName := 'Sue';
+    lEmployee.LastName := 'Storm';
+    lEmployee.Dob := EncodeDate(1975,10,14);
+    lEmployee.IsMale := False;
+    lEmployee.Salary := 2200;
     lEmployee.Store;
   finally
     lEmployee.Free;
@@ -1657,9 +1872,16 @@ begin
 
   var lPeople := TMVCActiveRecord.All<TPerson>;
   try
-    Assert(lPeople.Count = 2);
+    Assert(lPeople.Count = 4);
   finally
     lPeople.Free;
+  end;
+
+  var lEmployees := TMVCActiveRecord.All<TEmployee>;
+  try
+    Assert(lEmployees.Count = 3);
+  finally
+    lEmployees.Free;
   end;
 end;
 

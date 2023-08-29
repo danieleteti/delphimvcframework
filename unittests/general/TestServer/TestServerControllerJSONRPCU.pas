@@ -1,3 +1,27 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit TestServerControllerJSONRPCU;
 
 interface
@@ -43,6 +67,10 @@ type
     function MultiplyString(aString: string; Multiplier: Int64): string;
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
+
+    //exceptions
+    [MVCInheritable]
+    function DoError(MyObj: TPerson): TPerson;
 
     //objects support
     [MVCInheritable]
@@ -202,6 +230,11 @@ end;
 function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 begin
   Result := aDateTime + aTime;
+end;
+
+function TTestJSONRPCClass.DoError(MyObj: TPerson): TPerson;
+begin
+  raise Exception.Create('BOOOM!! (TTestJSONRPCClass.DoError)');
 end;
 
 function TTestJSONRPCClass.EchoArrayOfRecords(
