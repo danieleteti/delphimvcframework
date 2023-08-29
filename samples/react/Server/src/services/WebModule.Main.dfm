@@ -1,5 +1,4 @@
 object wmMain: TwmMain
-  OldCreateOrder = False
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <>

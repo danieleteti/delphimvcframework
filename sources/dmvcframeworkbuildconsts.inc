@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '3.3.0-fluorine';
+  DMVCFRAMEWORK_VERSION = '3.4.0-neon-beta';

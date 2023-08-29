@@ -29,7 +29,7 @@ uses
   MVCFramework.Commons,
   MyControllerU,
   MVCFramework.Logger,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Middleware.StaticFiles, CustomLoggerConfigU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -50,16 +50,15 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end);
+    end, GetLogger);
   FMVC.AddController(TMyController);
-
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
-    ));
 
   { This is a custom router log. It is not mandatory; you can use it to log
     more (or less or different) information than the default ones logs }
+
+  {** Uncomment this section and see how the OnRouterLog event works **}
+
+  {
   FMVC.OnRouterLog :=
       procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState; const Context: TWebContext)
     begin
@@ -82,7 +81,7 @@ begin
         raise EMVCException.Create('Invalid RouterLogState');
       end;
     end;
-
+  }
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

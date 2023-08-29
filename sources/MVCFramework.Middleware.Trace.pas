@@ -97,8 +97,7 @@ end;
 
 procedure TMVCTraceMiddleware.OnAfterRouting(Context: TWebContext; const AHandled: Boolean);
 begin
-  Log.Debug('[AFTER ROUTING][REQUESTED URL: %s][HANDLED: %s]',
-    [Context.Request.PathInfo, AHandled.ToString(TUseBoolStrs.True)], 'trace');
+  //do nothing
 end;
 
 procedure TMVCTraceMiddleware.OnBeforeControllerAction(Context: TWebContext;
@@ -112,29 +111,36 @@ procedure TMVCTraceMiddleware.OnBeforeRouting(Context: TWebContext; var Handled:
 var
   lContentStream: TStringStream;
   lContentType: string;
+  lReq: TMVCWebRequest;
 begin
   lContentStream := TStringStream.Create;
   try
     Context.Request.RawWebRequest.ReadTotalContent;
-    Log.Debug('[BEFORE ROUTING][REQUEST][IP] ' + Context.Request.ClientIp, 'trace');
-    Log.Debug('[BEFORE ROUTING][REQUEST][URL] ' + Context.Request.RawWebRequest.PathInfo, 'trace');
-    Log.Debug('[BEFORE ROUTING][REQUEST][QUERYSTRING] ' + Context.Request.RawWebRequest.QueryFields.
-      DelimitedText, 'trace');
-
-    lContentType := Context.Request.Headers['content-type'].ToLower;
-    if lContentType.StartsWith(TMVCMediaType.APPLICATION_JSON, true) or
-      lContentType.StartsWith(TMVCMediaType.APPLICATION_XML, true) or
-      lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
-      lContentType.StartsWith('text/') then
+    lReq := Context.Request;
+    Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d]', [
+      lReq.HTTPMethodAsString,
+      lReq.ClientIp,
+      lReq.RawWebRequest.PathInfo,
+      lReq.RawWebRequest.QueryFields.DelimitedText,
+      lReq.RawWebRequest.ContentLength
+      ],'trace');
+    if Context.Request.HTTPMethod in [httpPOST, httpPUT] then
     begin
-      lContentStream.WriteString(EncodingGetString(lContentType,
-        Context.Request.RawWebRequest.RawContent).Substring(0, fMaxBodySize));
-    end
-    else
-    begin
-      lContentStream.WriteString('<hidden non text content>');
+      lContentType := Context.Request.Headers['content-type'].ToLower;
+      if lContentType.StartsWith(TMVCMediaType.APPLICATION_JSON, true) or
+        lContentType.StartsWith(TMVCMediaType.APPLICATION_XML, true) or
+        lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
+        lContentType.StartsWith('text/') then
+      begin
+        lContentStream.WriteString(EncodingGetString(lContentType,
+          Context.Request.RawWebRequest.RawContent).Substring(0, fMaxBodySize));
+      end
+      else
+      begin
+        lContentStream.WriteString('<hidden non text content>');
+      end;
+      Log.Debug('[BEFORE ROUTING][REQUEST][BODY] ' + lContentStream.DataString, 'trace');
     end;
-    Log.Debug('[BEFORE ROUTING][REQUEST][BODY] ' + lContentStream.DataString, 'trace');
   finally
     lContentStream.Free;
   end;

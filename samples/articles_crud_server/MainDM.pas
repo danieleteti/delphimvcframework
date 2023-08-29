@@ -57,13 +57,12 @@ begin
     compiled at different level in the samples folders tree.
     In a real word system you should (!!) know where your database is :-)
   }
-  lPath := 'data\ORDERSMANAGER_FB30.FDB';
+  lPath := 'data\ORDERSMANAGER_FB40.FDB'; {Firebird 4.0}
   for I := 1 to 6 do
   begin
     if TFile.Exists(lPath) then
     begin
       Connection.Params.Values['Database'] := TPath.GetFullPath(lPath);
-      // 'C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FDB';
       Break;
     end
     else

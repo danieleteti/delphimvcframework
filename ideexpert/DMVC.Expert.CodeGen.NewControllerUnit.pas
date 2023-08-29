@@ -104,12 +104,19 @@ var
   lActionFiltersMethodsImpl: string;
   lCRUDMethodsIntf: string;
   lCRUDMethodsImpl: string;
+  lBOClassesIntf: string;
+  lBOClassesImpl: string;
 begin
   lControllerUnit := sControllerUnit;
+
   lIndexMethodIntf := sIndexMethodIntf;
   lIndexMethodImpl := Format(sIndexMethodImpl, [FControllerClassName]);
+
   lCRUDMethodsIntf := sCRUDMethodsIntf;
   lCRUDMethodsImpl := Format(sCRUDMethodsImpl, [FControllerClassName]);
+  lBOClassesIntf := sBOClassesIntf;
+  lBOClassesImpl := Format(sBOClassesImpl, ['TPerson']);
+
 
   if not FCreateIndexMethod then
   begin
@@ -121,6 +128,8 @@ begin
   begin
     lCRUDMethodsIntf := '';
     lCRUDMethodsImpl := '';
+    lBOClassesIntf := '';
+    lBOClassesImpl := '';
   end;
 
   lActionFiltersMethodsIntf := sActionFiltersIntf;
@@ -138,7 +147,18 @@ begin
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lFormName, lFileName);
   Result := TSourceFile.Create(sControllerUnit,
-    [lUnitIdent, FControllerClassName, lIndexMethodIntf, lIndexMethodImpl, lActionFiltersMethodsIntf, lActionFiltersMethodsImpl, lCRUDMethodsIntf, lCRUDMethodsImpl]);
+    [
+      lUnitIdent,
+      FControllerClassName,
+      lIndexMethodIntf,
+      lIndexMethodImpl,
+      lActionFiltersMethodsIntf,
+      lActionFiltersMethodsImpl,
+      lCRUDMethodsIntf,
+      lCRUDMethodsImpl,
+      lBOClassesIntf,
+      lBOClassesImpl
+      ]);
 end;
 
 { TNewJSONRPCUnitEx }
@@ -155,7 +175,6 @@ function TNewJSONRPCUnitEx.NewImplSource(const ModuleIdent, FormIdent,
   AncestorIdent: string): IOTAFile;
 var
   lUnitIdent: string;
-//  lFormName: string;
   lFileName: string;
   lDummy: String;
 begin

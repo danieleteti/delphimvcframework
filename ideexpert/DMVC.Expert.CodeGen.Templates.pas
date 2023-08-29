@@ -48,9 +48,9 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
+    '  MVCFramework.DotEnv,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.Signal,' + sLineBreak +
-//    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
     {$IF Defined(SeattleOrBetter)}
     '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
@@ -69,24 +69,15 @@ resourcestring
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
     '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
-//    '  LCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
-//    '  LCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.KeepAlive := True;' + sLineBreak + sLineBreak +
-    '    { more info about MaxConnections' + sLineBreak +
-    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
-    '    LServer.MaxConnections := 0;' + sLineBreak +
-    sLineBreak +
-    '    { more info about ListenQueue' + sLineBreak +
-    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
-    '    LServer.ListenQueue := 200;' + sLineBreak +
-    sLineBreak +
-//    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
+    '    LServer.KeepAlive := True;' + sLineBreak +
+    '    LServer.MaxConnections := dotEnv.Env(''dmvc.webbroker.max_connections'', 0);' + sLineBreak +
+    '    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);' + sLineBreak + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
     '    WriteLn(''Listening on port '', APort);' + sLineBreak +
     '    Write(''CTRL+C to shutdown the server'');' + sLineBreak +
@@ -99,17 +90,34 @@ resourcestring
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
-    '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
-    '  IsMultiThread := True;' + sLineBreak +
+    '  { Enable ReportMemoryLeaksOnShutdown during debug }' + sLineBreak +
+	'  // ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+    '  IsMultiThread := True;' + sLineBreak + sLineBreak +	
     '  // DMVCFramework Specific Configuration ' + sLineBreak +
     '  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.' + sLineBreak +
     '  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.' + sLineBreak +
-    '  MVCSerializeNulls := True;' + sLineBreak +
+    '  MVCSerializeNulls := True;' + sLineBreak + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
-    '    WebRequestHandlerProc.MaxConnections := 1024;' + sLineBreak +
-    '    RunServer(%1:d);' + sLineBreak +
+    '' + sLineBreak +
+    '    dotEnvConfigure(' + sLineBreak +
+    '      function: IMVCDotEnv' + sLineBreak +
+    '      begin' + sLineBreak +
+    '        Result := NewDotEnv' + sLineBreak +
+    '                 .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
+    '                                       //if available, by default, loads default environment (.env)' + sLineBreak +
+    '                 .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
+    '                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +
+    '                 .UseLogger(procedure(LogItem: String)' + sLineBreak +
+    '                            begin' + sLineBreak +
+    '                              LogW(''dotEnv: '' + LogItem);' + sLineBreak +
+    '                            end)' + sLineBreak +
+    '                 .Build();             //uses the executable folder to look for .env* files' + sLineBreak +
+    '      end);' + sLineBreak +
+    '' + sLineBreak +
+    '    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);' + sLineBreak +	
+    '    RunServer(dotEnv.Env(''dmvc.server.port'', %1:d));' + sLineBreak +
     '  except' + sLineBreak +
     '    on E: Exception do' + sLineBreak +
     '      Writeln(E.ClassName, '': '', E.Message);' + sLineBreak +
@@ -122,14 +130,18 @@ resourcestring
   // 3 - Sample Methods - Implementation
   // 4 - Action Filters - Interface
   // 5 - Action Filters - Implementation
+  // 8 - BO - Interface
+  // 9 - BO - Implementation
+
   sControllerUnit = 'unit %0:s;' + sLineBreak +
     sLineBreak +
     'interface' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons;' + sLineBreak +
+    '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
+    '%8:s' + sLineBreak +
     '  [MVCPath(''/api'')]' + sLineBreak +
     '  %1:s = class(TMVCController) ' + sLineBreak +
     '  public' + sLineBreak +
@@ -146,6 +158,7 @@ resourcestring
     '%5:s' + sLineBreak +
     '%7:s' + sLineBreak +
     sLineBreak +
+    '%9:s' + sLineBreak +
     'end.' + sLineBreak;
 
   sIndexMethodIntf =
@@ -154,6 +167,7 @@ resourcestring
     '    procedure Index;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]' + sLineBreak +
     '    procedure GetReversedString(const Value: String);' + sLineBreak;
 
   // 0 - Class Name
@@ -171,45 +185,66 @@ resourcestring
   sCRUDMethodsIntf =
     sLineBreak +
 		'  public' + sLineBreak + 
-    '    //Sample CRUD Actions for a "Customer" entity' + sLineBreak +
-    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    //Sample CRUD Actions for a "People" entity' + sLineBreak +
+    '    [MVCPath(''/people'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetCustomers;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function GetPeople: TObjectList<TPerson>;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetCustomer(id: Integer);' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    function GetPerson(ID: Integer): TPerson;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPOST])]' + sLineBreak +
-    '    procedure CreateCustomer;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPUT])]' + sLineBreak +
-    '    procedure UpdateCustomer(id: Integer);' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpDELETE])]' + sLineBreak +
-    '    procedure DeleteCustomer(id: Integer);' + sLineBreak + sLineBreak;
+    '    function DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak + sLineBreak;
 
   sCRUDMethodsImpl =
-    '//Sample CRUD Actions for a "Customer" entity' + sLineBreak +
-    'procedure %0:s.GetCustomers;' + sLineBreak +
+    '//Sample CRUD Actions for a "People" entity' + sLineBreak +
+    'function %0:s.GetPeople: TObjectList<TPerson>;' + sLineBreak +
+    'var' + sLineBreak +
+    '  lPeople: TObjectList<TPerson>;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: render a list of customers' + sLineBreak +
+    '  lPeople := TObjectList<TPerson>.Create(True);' + sLineBreak +
+    '  try' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Peter'',''Parker'', EncodeDate(1965, 10, 4)));' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));' + sLineBreak +
+    '    lPeople.Add(TPerson.Create(''Reed'',''Richards'', EncodeDate(1955, 3, 7)));' + sLineBreak +
+    '    Result := lPeople;' + sLineBreak +
+    '  except' + sLineBreak +
+    '    lPeople.Free;' + sLineBreak +
+    '    raise;' + sLineBreak +
+    '  end;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.GetCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.GetPerson(ID: Integer): TPerson;' + sLineBreak +
+    'var' + sLineBreak +
+    '  lPeople: TObjectList<TPerson>;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: render the customer by id' + sLineBreak +
+    '  lPeople := GetPeople;' + sLineBreak +
+    '  try' + sLineBreak +
+    '    Result := lPeople.ExtractAt(ID mod lPeople.Count);' + sLineBreak +
+    '  finally' + sLineBreak +
+    '    lPeople.Free;' + sLineBreak +
+    '  end;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.CreateCustomer;' + sLineBreak + 
+    'function %0:s.CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + 
     'begin' + sLineBreak +
-    '  //todo: create a new customer' + sLineBreak +
+	'  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.Created, ''Person created'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.UpdateCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: update customer by id' + sLineBreak +
+    '  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person updated'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.DeleteCustomer(id: Integer);' + sLineBreak +
+    'function %0:s.DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
-    '  //todo: delete customer by id' + sLineBreak +
-    'end;' + sLineBreak + sLineBreak;
+    '  LogI(''Deleted person with id '' + ID.ToString);' + sLineBreak +
+    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person deleted'');' + sLineBreak +
+    'end;' + sLineBreak;
 
   sActionFiltersIntf =
     '  protected' + sLineBreak +
@@ -233,6 +268,30 @@ resourcestring
     '    action will not be called }' + sLineBreak +
     '  inherited;' + sLineBreak +
     'end;' + sLineBreak;
+
+  sBOClassesIntf =    
+     '  [MVCNameCase(ncCamelCase)]' + sLineBreak +
+     '  TPerson = class' + sLineBreak +
+     '  private' + sLineBreak +
+     '    fFirstName: String;' + sLineBreak +
+     '    fLastName: String;' + sLineBreak +
+     '    fDOB: TDate;' + sLineBreak +
+     '  public' + sLineBreak +
+     '    property FirstName: String read fFirstName write fFirstName;' + sLineBreak +
+     '    property LastName: String read fLastName write fLastName;' + sLineBreak +
+     '    property DOB: TDate read fDOB write fDOB;  ' + sLineBreak +
+     '    constructor Create(FirstName, LastName: String; DOB: TDate);' + sLineBreak +
+     '  end;' + sLineBreak;
+
+  sBOClassesImpl =
+    sLineBreak +
+	'constructor %0:s.Create(FirstName, LastName: String; DOB: TDate);' + sLineBreak +
+	'begin' + sLineBreak +
+	'  inherited Create;' + sLineBreak +
+	'  fFirstName := FirstName;' + sLineBreak +
+	'  fLastName := LastName;' + sLineBreak +
+	'  fDOB := DOB;' + sLineBreak +
+	'end;' + sLineBreak;
 
   sDefaultControllerName = 'TMyController';
   sDefaultWebModuleName = 'TMyWebModule';
@@ -290,30 +349,31 @@ resourcestring
     '  FMVC := TMVCEngine.Create(Self,' + sLineBreak +
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
+	'      Config.dotEnv := dotEnv; ' + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
-    '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
+    '      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');' + sLineBreak +
     '      //default content-type' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;' +
+    '      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', TMVCConstants.DEFAULT_CONTENT_TYPE);' +
     sLineBreak +
     '      //default content charset' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;' +
+    '      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env(''dmvc.default.content_charset'', TMVCConstants.DEFAULT_CONTENT_CHARSET);' +
     sLineBreak +
     '      //unhandled actions are permitted?' + sLineBreak +
-    '      Config[TMVCConfigKey.AllowUnhandledAction] := ''false'';' + sLineBreak +
+    '      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env(''dmvc.allow_unhandled_actions'', ''false'');' + sLineBreak +
     '      //enables or not system controllers loading (available only from localhost requests)' + sLineBreak +
-    '      Config[TMVCConfigKey.LoadSystemControllers] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env(''dmvc.load_system_controllers'', ''true'');' + sLineBreak +
     '      //default view file extension' + sLineBreak +
-    '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
+    '      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env(''dmvc.default.view_file_extension'', ''html'');' + sLineBreak +
     '      //view path' + sLineBreak +
-    '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ViewPath] := dotEnv.Env(''dmvc.view_path'', ''templates'');' + sLineBreak +
     '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
-    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
+    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env(''dmvc.max_entities_record_count'', IntToStr(TMVCConstants.MAX_RECORD_COUNT));' + sLineBreak +
 	  '      //Enable Server Signature in response' + sLineBreak +
-    '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env(''dmvc.expose_server_signature'', ''false'');' + sLineBreak +
   	'      //Enable X-Powered-By Header in response' + sLineBreak +
-    '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env(''dmvc.expose_x_powered_by'', ''true'');' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +
-    '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
+    '      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env(''dmvc.max_request_size'', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +    
     '  %4:s ' + sLineBreak +

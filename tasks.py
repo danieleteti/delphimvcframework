@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "11.2"
+DEFAULT_DELPHI_VERSION = "11.3"
 
 g_releases_path = "releases"
 g_output = "bin"
@@ -53,6 +53,7 @@ def build_delphi_project(
         "11": {"path": "22.0", "desc": "Delphi 11 Alexandria"},
         "11.1": {"path": "22.0", "desc": "Delphi 11.1 Alexandria"},
         "11.2": {"path": "22.0", "desc": "Delphi 11.2 Alexandria"},
+        "11.3": {"path": "22.0", "desc": "Delphi 11.3 Alexandria"},
     }
 
     assert delphi_version in delphi_versions, (
@@ -148,7 +149,7 @@ def copy_sources():
         "dmvcframeworkDT.dpk",
     ]
 
-    folders = ["d100", "d101", "d102", "d103", "d104","d110","d111","d112"]
+    folders = ["d100", "d101", "d102", "d103", "d104","d110","d111","d112","d113"]
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")
@@ -157,15 +158,15 @@ def copy_sources():
             copy2(
                 rf"packages\{folder}\{file}", g_output_folder + rf"\packages\{folder}"
             )
-    copy2(
-        rf"packages\common_contains.inc", g_output_folder + rf"\packages"
-    )
-    copy2(
-        rf"packages\common_defines.inc", g_output_folder + rf"\packages"
-    )
-    copy2(
-        rf"packages\common_defines_design.inc", g_output_folder + rf"\packages"
-    )
+    # copy2(
+    #     rf"packages\common_contains.inc", g_output_folder + rf"\packages"
+    # )
+    # copy2(
+    #     rf"packages\common_defines.inc", g_output_folder + rf"\packages"
+    # )
+    # copy2(
+    #     rf"packages\common_defines_design.inc", g_output_folder + rf"\packages"
+    # )
 
 
 def copy_libs(ctx):
@@ -371,12 +372,14 @@ def tests64(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     pass
 
-@task(pre=[tests])
+@task()
 def release(
-    ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False
+    ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False, skip_tests=False
 ):
     """Builds all the projects, executes integration tests and prepare the release"""
     init_build(version)
+
+    if not skip_tests: tests(ctx, delphi_version)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build("", delphi_version)
         if not build_delphi_project_list(

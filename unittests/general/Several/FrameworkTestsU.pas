@@ -39,43 +39,6 @@ uses
 type
 
   [TestFixture]
-  TTestMappers = class(TObject)
-  protected
-    [Test]
-    procedure SameFishesDataSet(ds, ds2: TDataSet);
-
-  public
-    // procedure TestObjectToJSONObject;
-    // procedure TestObjectListToJSONArray;
-    // procedure TestObjectToJSONObject_Generics;
-    // procedure TestWrappedListToJSONArray;
-    // procedure TestJSONObjectToObjectAndBack;
-    // procedure TestLoadJSONObjectToObjectAndBack;
-    // procedure TestSerializeUsingProperties;
-    // procedure TestSerializeUsingFields;
-    // procedure TestSerializeUsingFieldsComplexObject;
-    // procedure TestSerializeUsingFieldsComplexObject2;
-    // procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
-    // procedure TestComplexObjectToJSONObjectAndBack;
-    // procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
-    // procedure TestDataSetToJSONObject;
-    // procedure TestDataSetToJSONObjectWithNulls;
-    // procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
-    // procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
-    // procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
-    // procedure TestDataSetToJSONArray;
-    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
-    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
-    // procedure TestObjectToJSONObjectAndBackWithStream;
-    // procedure TestJSONArrayToObjectListNoGenerics;
-    // procedure TestJSONArrayToObjectListNoGenericsWrappedList;
-    // procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
-    // procedure TestJSONObjectToObjectWithNullInJSONString;
-    // procedure TestJSONObjectStringToObject;
-    // procedure TestJSONObjectStringToObjectWithWrongJSON;
-  end;
-
-  [TestFixture]
   TTestRouting = class(TObject)
   private
     FRouter: TMVCRouter;
@@ -290,6 +253,34 @@ type
     procedure TestPutGet_Check_No_AV;
   end;
 
+
+  [TestFixture]
+  TTestDotEnv = class(TObject)
+  public
+    [Test]
+    procedure TestWithoutProfiles;
+    [Test]
+    procedure TestWithDevProfile;
+    [Test]
+    procedure TestWithDevAndTestProfile;
+  end;
+
+  [TestFixture]
+  TTestDotEnvParser = class(TObject)
+  public
+    [Test]
+    procedure TestKeyValue;
+    [Test]
+    procedure TestKeyValueWithQuotedValues;
+    [Test]
+    procedure TestValueWithMultiline;
+    [Test]
+    procedure TestVarPlaceHolders;
+    [Test]
+    procedure TestInLineComments;
+  end;
+
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -312,7 +303,8 @@ uses
 {$ENDIF}
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
-  IdGlobal, System.TypInfo, System.Types, Winapi.Windows;
+  IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
+  MVCFramework.DotEnv.Parser;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -350,18 +342,6 @@ begin
   finally
     idmd5.Free;
   end;
-end;
-
-procedure TTestMappers.SameFishesDataSet(ds, ds2: TDataSet);
-begin
-  Assert.areEqual(ds.FieldByName('Species No').AsInteger, ds2.FieldByName('Species No').AsInteger);
-  Assert.areEqual(ds.FieldByName('Category').AsString, ds2.FieldByName('Category').AsString);
-  Assert.areEqual(ds.FieldByName('Common_Name').AsString, ds2.FieldByName('Common_Name').AsString);
-  Assert.areEqual(ds.FieldByName('Species Name').AsString, ds2.FieldByName('Species Name').AsString);
-  Assert.areEqual(ds.FieldByName('Length (cm)').AsString, ds2.FieldByName('Length (cm)').AsString);
-  Assert.areEqual(ds.FieldByName('Length_In').AsInteger, ds2.FieldByName('Length_In').AsInteger);
-  Assert.areEqual(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes').AsString);
-  Assert.areEqual(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic').AsString);
 end;
 
 procedure TTestRouting.SetUp;
@@ -1613,12 +1593,14 @@ var
   lToken: string;
   lJWT: TJWT;
   lError: string;
+  lExp: TDateTime;
 begin
+  lExp := Now + OneHour * 2;
   FJWT.Claims.Issuer := 'bit Time Professionals';
   FJWT.Claims.Subject := 'DelphiMVCFramework';
   FJWT.Claims.Audience := 'DelphiDevelopers';
   FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
-  FJWT.Claims.ExpirationTime := Now + OneHour * 2;
+  FJWT.Claims.ExpirationTime := lExp;
   FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
   FJWT.Claims.JWT_ID := '123456';
   FJWT.CustomClaims['username'] := 'dteti';
@@ -1635,7 +1617,7 @@ begin
     Assert.areEqual('DelphiDevelopers', lJWT.Claims.Audience);
     Assert.areEqual('123456', lJWT.Claims.JWT_ID);
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.IssuedAt);
-    Assert.areEqual(Roundto(lJWT.Claims.IssuedAt + OneHour * 2, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
+    Assert.areEqual(Roundto(lExp, 4), Roundto(lJWT.Claims.ExpirationTime, 4));
     Assert.areEqual(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.NotBefore);
     Assert.areEqual('dteti', lJWT.CustomClaims['username']);
     Assert.areEqual('admin', lJWT.CustomClaims['userrole']);
@@ -2148,6 +2130,198 @@ begin
   end;
 end;
 
+{ TTestDotEnv }
+
+function Are2FilesEqual(const File1, File2: TFileName): Boolean;
+var
+  ms1, ms2: TMemoryStream;
+begin
+  Result := False;
+  ms1 := TMemoryStream.Create;
+  try
+    ms1.LoadFromFile(File1);
+    ms2 := TMemoryStream.Create;
+    try
+      ms2.LoadFromFile(File2);
+      if ms1.Size = ms2.Size then
+      begin
+        Result := CompareMem(ms1.Memory, ms2.memory, ms1.Size);
+      end;
+    finally
+      ms2.Free;
+    end;
+  finally
+    ms1.Free;
+  end
+end;
+
+procedure TTestDotEnv.TestWithDevAndTestProfile;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.UseProfile('dev').UseProfile('test').Build('..\dotEnv');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt')),
+    'Files are different');
+end;
+
+procedure TTestDotEnv.TestWithDevProfile;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.UseProfile('dev').Build('..\dotEnv');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt')),
+    'Files are different');
+end;
+
+procedure TTestDotEnv.TestWithoutProfiles;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.Build('..\dotEnv');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-noprofile.test.txt')),
+    'Files are different');
+end;
+
+{ TTestDotEnvParser }
+
+procedure TTestDotEnvParser.TestInLineComments;
+const
+  DOTENVCODE =
+    '#comment1' + sLineBreak +
+    '#comment2' + sLineBreak +
+    'key1= "value1" #inline comment' + sLineBreak +
+    ';comment3' + sLineBreak +
+    'key2 = ''value2'' #inline comment' + sLineBreak +
+    ';comment' + sLineBreak +
+    'key3 = value3 #inline comment' + sLineBreak +
+    'key4 = " value4 " #inline comment' + sLineBreak +
+    ';commentX';
+
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
+      Assert.AreEqual('value3', lDict['key3']);
+      Assert.AreEqual(' value4 ', lDict['key4']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestKeyValue;
+const
+  DOTENVCODE = 'key1=value1' + sLineBreak + 'key2 = value2 with another value' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('value2 with another value', lDict['key2']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestKeyValueWithQuotedValues;
+const
+  DOTENVCODE =
+    'key1= "value1"' + sLineBreak +
+    'key2 = ''value2''' + sLineBreak +
+    'key3 = "uno''due''"' + sLineBreak +
+    'key4 = ''uno"due"''' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
+      Assert.AreEqual('uno''due''', lDict['key3']);
+      Assert.AreEqual('uno"due"', lDict['key4']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestValueWithMultiline;
+const
+  DOTENVCODE =
+    'key1= "value1' + sLineBreak +
+    'value2' + sLineBreak +
+    'value3" # comment' + sLineBreak +
+    'key2 = value2' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1' + slinebreak + 'value2' + sLineBreak + 'value3', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestVarPlaceHolders;
+const
+  DOTENVCODE =
+    '#comment1' + sLineBreak +
+    '#comment2' + sLineBreak +
+    'key1= "value1"' + sLineBreak +
+    ';comment3' + sLineBreak +
+    'key2 = ''value2''' + sLineBreak +
+    ';comment' + sLineBreak +
+    'key3 = |${key1}|${key2}|' + sLineBreak +
+    'key4 = value4' + sLineBreak +
+    ';commentX';
+
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
+      Assert.AreEqual('|${key1}|${key2}|', lDict['key3']);
+      Assert.AreEqual('value4', lDict['key4']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2157,6 +2331,8 @@ TDUnitX.RegisterTestFixture(TTestMultiMap);
 TDUnitX.RegisterTestFixture(TTestNameCase);
 TDUnitX.RegisterTestFixture(TTestCryptUtils);
 TDUnitX.RegisterTestFixture(TTestLRUCache);
+TDUnitX.RegisterTestFixture(TTestDotEnv);
+TDUnitX.RegisterTestFixture(TTestDotEnvParser);
 
 finalization
 

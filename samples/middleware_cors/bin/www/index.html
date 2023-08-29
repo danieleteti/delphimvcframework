@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>DMVCFramework CORS Sample</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+
+<body>
+    <h1>DMVCFramework CORS Support Sample</h1>
+    <h3>This page must be served by "SimpleWebServer.exe" project, otherwise the demo doesn't work correctly.</h3>
+    <p>Change CORS configuration in "middleware_cors\WebModuleU.pas" (there are commented lines)</p>
+    <button id="btnCORS">POST request with CORS enabled!</button>
+    <button id="btnNoCORS">POST request with No-CORS!</button>
+    <div id="output"></div>
+
+    <script defer>
+        let output = document.getElementById('output');
+
+        document.getElementById('btnNoCORS').onclick = () => {
+            fetch('http://localhost:8080/api/customers', {
+                "mode":"no-cors",
+                "method": 'POST',
+                "body": JSON.stringify({ "hello": "world" })
+            })
+                .then((res) => {
+                    output.innerHTML = "Request done but response is opaque to javascript";
+                });
+        };
+
+        document.getElementById('btnCORS').onclick = () => {
+            fetch('http://localhost:8080/api/customers', {
+                "method": 'POST',
+                "body": JSON.stringify({ "hello": "world" })
+            })
+                .then((res) => res.json())
+                .then((json) => {
+                    output.innerHTML = JSON.stringify(json);
+                });
+        };
+    </script>
+</body>
+
+</html>
