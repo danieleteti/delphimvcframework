@@ -29,6 +29,7 @@ unit MVCFramework.ActiveRecord;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Defaults,
   System.Generics.Collections,
   System.RTTI,
@@ -39,7 +40,6 @@ uses
   FireDAC.Stan.Pool,
   FireDAC.Stan.Async,
   FireDAC.Stan.Param,
-  System.SysUtils,
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.RQL.Parser,
@@ -578,6 +578,8 @@ type
     { Misc }
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
       overload;
+    class function All(const aQualifiedClassName: String): TObjectList<TMVCActiveRecord>;
+      overload;
     class function DeleteAll(const aClass: TMVCActiveRecordClass): Int64; overload;
     class function DeleteRQL(const aClass: TMVCActiveRecordClass; const RQL: string): Int64; overload;
     function Count(const RQL: string = ''): Int64; overload;
@@ -609,6 +611,9 @@ type
     class function CountRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
       const QueryName: string;
       const Params: array of const): Int64;
+
+    { RTTI }
+    class function CreateMVCActiveRecord<T: TMVCActiveRecord>(AQualifiedClassName: string; const AParams: TArray<TValue> = nil): T;
   end;
 
   IMVCEntitiesRegistry = interface
@@ -851,8 +856,6 @@ function ActiveRecordConnectionsRegistry: IMVCActiveRecordConnections;
 function ActiveRecordTableMapRegistry: IMVCActiveRecordTableMap;
 function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
 function GetBackEndByConnection(aConnection: TFDConnection): string;
-
-
 
 implementation
 
@@ -2021,6 +2024,23 @@ begin
     Result := Count<T>(Format(lRQLQuery.RQLText, Params));
   finally
     lT.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.CreateMVCActiveRecord<T>(
+  AQualifiedClassName: string; const AParams: TArray<TValue>): T;
+var
+  lTmp: TObject;
+begin
+  lTmp := TRttiUtils.CreateObject(AQualifiedClassName, AParams);
+  try
+    Result := lTmp as T;
+  except
+    on E: EInvalidCast do
+    begin
+      lTmp.Free;
+      raise EMVCActiveRecord.Create(AQualifiedClassName + ' is not a TMVCActiveRecord descendant');
+    end;
   end;
 end;
 
@@ -3342,6 +3362,20 @@ end;
 procedure TMVCActiveRecord.Assign(ActiveRecord: TMVCActiveRecord);
 begin
   //do nothing
+end;
+
+class function TMVCActiveRecordHelper.All(const aQualifiedClassName: String): TObjectList<TMVCActiveRecord>;
+var
+  lTmp: TObject;
+  lAR: TMVCActiveRecord;
+begin
+  lAR := TMVCActiveRecord.CreateMVCActiveRecord<TMVCActiveRecord>(aQualifiedClassName, []);
+  try
+    Result := Select(TMVCActiveRecordClass(lAR.ClassType),
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
+  finally
+    lAr.Free;
+  end;
 end;
 
 class function TMVCActiveRecordHelper.All<T>: TObjectList<T>;

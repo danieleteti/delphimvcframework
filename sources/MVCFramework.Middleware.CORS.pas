@@ -149,6 +149,12 @@ begin
   lCustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   lCustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
   lCustomHeaders.Values['Access-Control-Max-Age'] := FAccessControlMaxAge;
+  if FAllowsCredentials then
+  begin
+    // Omit Access-Control-Allow-Credentials if <> true
+    // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
+    lCustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
+  end;
 end;
 
 function TMVCCORSMiddleware.GetAllowedOriginURL(AContext: TWebContext): String;
@@ -199,12 +205,6 @@ begin
     FillCommonHeaders(AContext, lAllowOrigin);
     lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
     lCustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders; {only for not preflight requests}
-    if FAllowsCredentials then
-    begin
-      // Omit Access-Control-Allow-Credentials if <> true
-      // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
-      lCustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
-    end;
   end;
   AHandled := False;
 end;
