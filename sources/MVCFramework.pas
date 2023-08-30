@@ -4659,6 +4659,7 @@ constructor TMVCResponseBuilder.Create;
 begin
   inherited;
   fBuilt := False;
+  fStatusCode := HTTP_STATUS.OK;
 end;
 
 function TMVCResponseBuilder.Data(const Data: TObject): IMVCResponseBuilder;
