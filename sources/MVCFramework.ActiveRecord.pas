@@ -1617,7 +1617,6 @@ constructor TMVCActiveRecord.Create(aLazyLoadConnection: Boolean);
 begin
   inherited Create;
   fConn := nil;
-  { TODO -oDanieleT -cGeneral : Consider lazyconnection }
   if not aLazyLoadConnection then
   begin
     GetConnection;
@@ -3366,7 +3365,6 @@ end;
 
 class function TMVCActiveRecordHelper.All(const aQualifiedClassName: String): TObjectList<TMVCActiveRecord>;
 var
-  lTmp: TObject;
   lAR: TMVCActiveRecord;
 begin
   lAR := TMVCActiveRecord.CreateMVCActiveRecord<TMVCActiveRecord>(aQualifiedClassName, []);

@@ -243,13 +243,52 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - 🐞 FIX [Issue 680](https://github.com/danieleteti/delphimvcframework/issues/680)
 
+- 🐞 FIX [Issue 682](https://github.com/danieleteti/delphimvcframework/issues/682) (Thanks to [wuhao13](https://github.com/wuhao13))
+
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
 
 - 🐞 FIX wrong default initialization for JWT (thanks to Flavio Basile)
 
 - ⚡ Wizard updated to be dotEnv aware
 
-- ⚡ Added "Load Style" methods to `TMVCActiveRecord` as suggested by https://github.com/danieleteti/delphimvcframework/issues/675
+- ⚡ Added "Load Style" methods to `TMVCActiveRecord` (more info https://github.com/danieleteti/delphimvcframework/issues/675)
+
+  - `TMVCActiveRecord` support "Factory Style" and "Load Style" methods when loads data from database.
+
+    Using "Factory Style" methods (available from the first version) the result list is returned by the loader method (as shown in this piece of code from the `activerecord_showcase` sample).
+
+    ```delphi
+      Log('>> RQL Query (2) - ' + cRQL2);
+      lCustList := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20);
+      try
+        Log(lCustList.Count.ToString + ' record/s found');
+        for lCustomer in lCustList do
+        begin
+          Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+        end;
+      finally
+        lCustList.Free;
+      end;
+    ```
+
+    For some scenarios would be useful to have also "Load Style" methods where the list is filled by the loader method (not instantiated internally).
+
+    ```delphi
+      Log('>> RQL Query (2) - ' + cRQL2);
+      lCustList := TObjectList<TCustomer>.Create;
+      try
+        lRecCount := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20, lCustList); //new in 3.4.0-neon
+        Log(lRecCount.ToString + ' record/s found');
+        for lCustomer in lCustList do
+        begin
+          Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+            lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+        end;
+      finally
+        lCustList.Free;
+      end;
+    ```
 
 - ⚡ Better error message in case of serialization of `TArray<TObject>`
 
@@ -344,20 +383,20 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
       "message":"My Message"
   }
   ```
-  
+
   
 
   **Data based response with single object**
-  
+
   ```pascal
   function TMyController.GetMVCResponse2: TMVCResponse;
   begin
     Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
   end;
   ```
-  
+
   Produces
-  
+
   ```json
   {
     "data": {
@@ -367,9 +406,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     }
   }
   ```
-  
+
   **Data based response with list of objects**
-  
+
   ```pascal
   function TMyController.GetMVCResponse3: TMVCResponse;
   begin
@@ -382,9 +421,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     );
   end;
   ```
-  
+
   Produces
-  
+
   ```json
   {
     "data": [
@@ -408,7 +447,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```
 
   **Data dictionary based response with `IMVCObjectDictionary` **
-  
+
   ```pascal
   function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
   begin
@@ -430,9 +469,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
       );
   end;
   ```
-  
+
   Produces
-  
+
   ```json
   {
       "employees": [
