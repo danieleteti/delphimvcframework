@@ -8,14 +8,6 @@ uses
   MVCFramework.Commons,
   Data.DB,
   Data.SqlExpr,
-
-{$IF CompilerVersion <= 27}
-  Data.DBXJSON,
-
-{$ELSE}
-  System.JSON,
-
-{$ENDIF}
   FireDAC.Stan.Intf,
   FireDAC.Stan.Option,
   FireDAC.Stan.Error,
@@ -88,7 +80,6 @@ begin
   end
   else
   begin
-    // if you are using firebird 2.5, uses the file WINES_FB25.FDB
     if not IsLibrary then
     begin
       // Is compiled as EXE

@@ -1,62 +1,65 @@
 // The root URL for the RESTful services
-var rootURL = "/dmvc/wines";
+var rootURL = "/dmvc/api/wines";
 
 var currentWine;
 
-$(document).ready(function () {
+$(document).ready(function(){
 	//pupulate years combo
-	for (i = new Date().getFullYear(); i > 1940; i--) {
-		$('#year').append($('<option />').val(i).html(i));
+	for (i = new Date().getFullYear(); i > 1940; i--)
+	{
+			$('#year').append($('<option />').val(i).html(i));
 	}
 
-	// Retrieve wine list when application starts
-	findAll();
-	// Nothing to delete in initial application state
-	$('#btnDelete').hide();
+  // Retrieve wine list when application starts
+  findAll();
+  // Nothing to delete in initial application state
+  $('#btnDelete').hide();
 
-	// Register listeners
-	$('#btnSearch').click(function () {
-		search($('#searchKey').val());
-		return false;
-	});
+  // Register listeners
+  $('#btnSearch').click(function() {
+      search($('#searchKey').val());
+      return false;
+  });
 
-	// Trigger search when pressing 'Return' on search key input field
-	$('#searchKey').keypress(function (e) {
-		if (e.which == 13) {
-			search($('#searchKey').val());
-			e.preventDefault();
-			return false;
-		}
-	});
+  // Trigger search when pressing 'Return' on search key input field
+  $('#searchKey').keypress(function(e){
+      if(e.which == 13) {
+          search($('#searchKey').val());
+          e.preventDefault();
+          return false;
+      }
+  });
 
-	$('#btnAdd').click(function () {
-		newWine();
-		return false;
-	});
+  $('#btnAdd').click(function() {
+      newWine();
+      return false;
+  });
 
-	$('#btnSave').click(function () {
-		if ($('#wineId').val() == '') {
-			addWine();
-		}
-		else
-			updateWine();
-		return false;
-	});
+  $('#btnSave').click(function() {
+      if ($('#wineId').val() == '')
+			{
+          addWine();
 
-	$('#btnDelete').click(function () {
-		deleteWine();
-		return false;
-	});
+			}
+      else
+          updateWine();
+      return false;
+  });
 
-	$('#wineList a').live('click', function () {
-		findById($(this).data('identity'));
-	});
+  $('#btnDelete').click(function() {
+      deleteWine();
+      return false;
+  });
 
-	// Replace broken images with generic wine bottle
-	$("img").error(function () {
-		$(this).attr("src", "pics/generic.jpg");
+  $('#wineList a').live('click', function() {
+      findById($(this).data('identity'));
+  });
 
-	});
+  // Replace broken images with generic wine bottle
+  $("img").error(function(){
+    $(this).attr("src", "pics/generic.jpg");
+
+  });
 
 });
 
@@ -100,18 +103,11 @@ function findById(id) {
 		type: 'GET',
 		url: rootURL + '/' + id,
 		dataType: "json",
-		success: function (data) {
+		success: function(data){
 			$('#btnDelete').show();
-			if (data instanceof Array) {
-				alert('ERROR! Expected "object" got "array"');
-				return;
-			}
 			console.log('findById success: ' + data.name);
 			currentWine = data;
 			renderDetails(currentWine);
-		},
-		error: function (jqXHR, textStatus, errorThrown) {
-			alert('findById error: ' + textStatus);
 		}
 	});
 }
@@ -124,13 +120,13 @@ function addWine() {
 		url: rootURL,
 		dataType: "json",
 		data: formToJSON(),
-		success: function (data, textStatus, jqXHR) {
+		success: function(data, textStatus, jqXHR){
 			alert('Wine created successfully');
 			$('#btnDelete').show();
 			$('#wineId').val(data.id);
 			findById(data.id);
 		},
-		error: function (jqXHR, textStatus, errorThrown) {
+		error: function(jqXHR, textStatus, errorThrown){
 			alert('addWine error: ' + textStatus);
 		}
 	});
@@ -144,13 +140,12 @@ function updateWine() {
 		url: rootURL + '/' + $('#wineId').val(),
 		dataType: "json",
 		data: formToJSON(),
-		processData: false,
-		success: function (data, textStatus, jqXHR) {
-			debugger;
+    processData: false,
+		success: function(data, textStatus, jqXHR){
 			alert('Wine updated successfully');
 		},
-		error: function (jqXHR, textStatus, errorThrown) {
-			alert('updateWine error: ' + textStatus);
+		error: function(jqXHR, textStatus, errorThrown){
+			alert('updateWine error: ' + jqXHR.statusText);
 		}
 	});
 }
@@ -160,12 +155,12 @@ function deleteWine() {
 	$.ajax({
 		type: 'DELETE',
 		url: rootURL + '/' + $('#wineId').val(),
-		success: function (data, textStatus, jqXHR) {
+		success: function(data, textStatus, jqXHR){
 			alert('Wine deleted successfully');
-			findAll();
+            findAll();
 		},
-		error: function (jqXHR, textStatus, errorThrown) {
-			alert('deleteWine error');
+		error: function(jqXHR, textStatus, errorThrown){
+			alert('deleteWine error: ' + jqXHR.statusText);
 		}
 	});
 }
@@ -173,16 +168,14 @@ function deleteWine() {
 function renderList(data) {
 	// JAX-RS serializes an empty list as null, and a 'collection of one' as an object (not an 'array of one')
 	//var list = data == null ? [] : (data.wine instanceof Array ? data.wine : [data.wine]);
-	//debugger;
-	var list = data;
+    var list = data;
 	$('#wineList li').remove();
-	$.each(list, function (index, wine) {
-		$('#wineList').append('<li><a href="#" data-identity="' + wine.id + '">' + wine.name + '</a></li>');
+	$.each(list, function(index, wine) {
+		$('#wineList').append('<li><a href="#" data-identity="' + wine.id + '">🍾 ' + wine.name+'</a></li>');
 	});
 }
 
 function renderDetails(wine) {
-	console.log("rendering details for wine: ", wine);
 	$('#wineId').val(wine.id);
 	$('#name').val(wine.name);
 	$('#grapes').val(wine.grapes);
@@ -196,7 +189,7 @@ function renderDetails(wine) {
 // Helper function to serialize all the form fields into a JSON string
 function formToJSON() {
 	return JSON.stringify({
-		"id": $('#wineId').val(),
+		"id": parseInt($('#wineId').val()),
 		"name": $('#name').val(),
 		"grapes": $('#grapes').val(),
 		"country": $('#country').val(),
@@ -204,5 +197,5 @@ function formToJSON() {
 		"year": $('#year').val(),
 		"picture": currentWine.picture,
 		"description": $('#description').val()
-	});
+		});
 }
