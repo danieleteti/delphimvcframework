@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5BA0B643-E6A3-4607-AE6B-C5E4048890AE}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="articles_crud_server.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\articles_crud_vcl_client_api_binder\articles_crud_vcl_client_api_binder.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\articles_crud_vcl_client_meta\articles_crud_vcl_client_meta.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="articles_crud_server">
+        <MSBuild Projects="articles_crud_server.dproj"/>
+    </Target>
+    <Target Name="articles_crud_server:Clean">
+        <MSBuild Projects="articles_crud_server.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_server:Make">
+        <MSBuild Projects="articles_crud_server.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client">
+        <MSBuild Projects="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Clean">
+        <MSBuild Projects="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Make">
+        <MSBuild Projects="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_api_binder">
+        <MSBuild Projects="..\articles_crud_vcl_client_api_binder\articles_crud_vcl_client_api_binder.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_api_binder:Clean">
+        <MSBuild Projects="..\articles_crud_vcl_client_api_binder\articles_crud_vcl_client_api_binder.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_api_binder:Make">
+        <MSBuild Projects="..\articles_crud_vcl_client_api_binder\articles_crud_vcl_client_api_binder.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_meta">
+        <MSBuild Projects="..\articles_crud_vcl_client_meta\articles_crud_vcl_client_meta.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_meta:Clean">
+        <MSBuild Projects="..\articles_crud_vcl_client_meta\articles_crud_vcl_client_meta.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_meta:Make">
+        <MSBuild Projects="..\articles_crud_vcl_client_meta\articles_crud_vcl_client_meta.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="articles_crud_server;articles_crud_vcl_client;articles_crud_vcl_client_api_binder;articles_crud_vcl_client_meta"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="articles_crud_server:Clean;articles_crud_vcl_client:Clean;articles_crud_vcl_client_api_binder:Clean;articles_crud_vcl_client_meta:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="articles_crud_server:Make;articles_crud_vcl_client:Make;articles_crud_vcl_client_api_binder:Make;articles_crud_vcl_client_meta:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

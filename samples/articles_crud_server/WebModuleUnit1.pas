@@ -20,8 +20,13 @@ implementation
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses Controllers.Articles, mvcframework.Middleware.CORS, mvcframework.Middleware.Compression,
-  Controllers.Base, MVCFramework.Commons;
+uses
+  Controllers.Articles,
+  MVCFramework.Middleware.CORS,
+  MVCFramework.Middleware.Compression,
+  MVCFramework.Middleware.Trace,
+  MVCFramework.Commons,
+  Controllers.Base;
 
 {$R *.dfm}
 
@@ -40,7 +45,7 @@ begin
 {$ENDIF}
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
-
+  FEngine.AddMiddleware(TMVCTraceMiddleware.Create);
 end;
 
 end.

@@ -27,7 +27,9 @@ unit MVCFramework.DotEnv;
 interface
 
 uses
-  System.SysUtils, System.Generics.Collections, MVCFramework.DotEnv.Parser;
+  System.Generics.Collections,
+  MVCFramework.DotEnv.Parser,
+  System.SysUtils;
 
 type
 {$SCOPEDENUMS ON}
@@ -51,7 +53,8 @@ type
     ['{1A5EDD44-7226-40BC-A8EE-789E27522392}']
     function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
     function UseLogger( const Logger: TProc<String>): IMVCDotEnvBuilder;
-    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
+    function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
   end;
@@ -63,7 +66,8 @@ implementation
 uses
   System.IOUtils,
   System.TypInfo,
-  System.Classes;
+  System.Classes,
+  MVCFramework.Commons;
 
 var
   gDotEnv: IMVCDotEnvBuilder = nil;
@@ -84,13 +88,15 @@ type
     procedure DoLog(const Value: String);
     procedure ReadEnvFile;
     function GetDotEnvVar(const key: string): string;
+    function GetBuiltInVariable(const VarName: String; out Value: String): Boolean;
     function ExplodePlaceholders(const Value: string): string;
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
     procedure CheckAlreadyBuilt;
     procedure ExplodeReferences;
   strict protected
     function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
-    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
+    function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
     function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
@@ -105,6 +111,34 @@ type
     destructor Destroy; override;
   end;
 
+
+function TMVCDotEnv.GetBuiltInVariable(const VarName: String;
+  out Value: String): Boolean;
+var
+  lVarName: string;
+begin
+  Result := False;
+  lVarName := VarName.ToLower.Remove(VarName.Length -2, 2).Remove(0,2);
+
+  if lVarName = 'os' then
+  begin
+    Value := TOSVersion.Name;
+    Exit(True);
+  end;
+
+  if lVarName = 'home' then
+  begin
+    Value := AppPath;
+    Exit(True);
+  end;
+
+  if lVarName = 'dmvc.version' then
+  begin
+    Value := DMVCFRAMEWORK_VERSION;
+    Exit(True);
+  end;
+  DoLog('Unknown built-in env var named ' + lVarName + '.');
+end;
 
 function TMVCDotEnv.GetDotEnvVar(const key: string): string;
 begin
@@ -172,6 +206,14 @@ begin
     raise EMVCDotEnv.Create('Logger already set');
   end;
   fLoggerProc := LoggerProc;
+  Result := Self;
+end;
+
+function TMVCDotEnv.UseProfile(
+  const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder;
+begin
+  CheckAlreadyBuilt;
+  fProfiles.Add(ProfileDelegate());
   Result := Self;
 end;
 
@@ -315,7 +357,18 @@ begin
       raise EMVCDotEnv.Create('Unclosed expansion (${...}) at: ' + Value);
     end;
     lKey := Result.Substring(lStartPos + 2, lEndPos - (lStartPos + 2));
-    lValue := Env(lKey);
+
+    if lKey.StartsWith('__') and lKey.EndsWith('__') then
+    begin
+      if not GetBuiltInVariable(lKey, lValue) then
+      begin
+        lValue := Env(lKey);
+      end
+    end
+    else
+    begin
+      lValue := Env(lKey);
+    end;
     Result := StringReplace(Result, '${' + lKey + '}', lValue, [rfReplaceAll]);
   end;
 end;

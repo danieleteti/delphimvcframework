@@ -10,9 +10,7 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
@@ -21,6 +19,7 @@ object MainForm: TMainForm
     Height = 112
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 872
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
       Left = 585
@@ -30,6 +29,7 @@ object MainForm: TMainForm
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 3
+      ExplicitLeft = 581
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -72,6 +72,7 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 4
+      ExplicitWidth = 870
       object Label1: TLabel
         Left = 3
         Top = 11

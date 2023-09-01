@@ -6,7 +6,8 @@ uses
   mvcframework,
   mvcframework.Commons,
   mvcframework.Serializer.Commons,
-  Controllers.Base;
+  System.Generics.Collections,
+  Controllers.Base, BusinessObjects;
 
 type
 
@@ -22,7 +23,7 @@ type
     [MVCDoc('Returns the list of articles')]
     [MVCPath('/searches')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticlesByDescription;
+    procedure GetArticlesByDescription(const [MVCFromQueryString('q', '')] Search: String);
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/meta')]
@@ -42,17 +43,17 @@ type
     [MVCDoc('Updates the article with the specified id and return "200: OK"')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateArticleByID(id: Integer);
+    procedure UpdateArticleByID(const [MVCFromBody] Article: TArticle; const id: Integer);
 
     [MVCDoc('Creates a new article and returns "201: Created"')]
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticle;
+    procedure CreateArticle(const [MVCFromBody] Article: TArticle);
 
     [MVCDoc('Creates new articles from a list and returns "201: Created"')]
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticles;
+    procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
   end;
 
 implementation
@@ -61,39 +62,32 @@ implementation
 
 uses
   Services,
-  BusinessObjects,
   Commons,
   mvcframework.Serializer.Intf,
-  System.Generics.Collections, System.SysUtils;
+  System.SysUtils;
 
-procedure TArticlesController.CreateArticle;
-var
-  Article: TArticle;
+procedure TArticlesController.CreateArticle(const Article: TArticle);
 begin
-  Article := Context.Request.BodyAs<TArticle>;
-  try
-    GetArticlesService.Add(Article);
-    Render201Created('/articles/' + Article.id.ToString, 'Article Created');
-  finally
-    Article.Free;
-  end;
+  GetArticlesService.Add(Article);
+  Render201Created('/articles/' + Article.id.ToString, 'Article Created');
 end;
 
-procedure TArticlesController.CreateArticles;
+procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
 var
-  lArticles: TObjectList<TArticle>;
   lArticle: TArticle;
 begin
-  lArticles := Context.Request.BodyAsListOf<TArticle>;
+  GetArticlesService.StartTransaction;
   try
-    for lArticle in lArticles do
+    for lArticle in ArticleList do
     begin
       GetArticlesService.Add(lArticle);
     end;
-    Render(201, 'Articles Created');
-  finally
-    lArticles.Free;
+    GetArticlesService.Commit;
+  except
+    GetArticlesService.Rollback;
+    raise;
   end;
+  Render(201, 'Articles Created');
 end;
 
 procedure TArticlesController.DeleteArticleByID(id: Integer);
@@ -117,25 +111,21 @@ end;
 
 procedure TArticlesController.GetArticles;
 begin
-  Render(
-    ObjectDict().Add('data', GetArticlesService.GetAll)
-    );
+  Render(ObjectDict().Add('data', GetArticlesService.GetAll));
 end;
 
-procedure TArticlesController.GetArticlesByDescription;
+procedure TArticlesController.GetArticlesByDescription(const Search: String);
 var
-  lSearch: string;
   lDict: IMVCObjectDictionary;
 begin
   try
-    lSearch := Context.Request.Params['q'];
-    if lSearch = '' then
+    if Search = '' then
     begin
       lDict := ObjectDict().Add('data', GetArticlesService.GetAll);
     end
     else
     begin
-      lDict := ObjectDict().Add('data', GetArticlesService.GetArticles(lSearch));
+      lDict := ObjectDict().Add('data', GetArticlesService.GetArticles(Search));
     end;
     Render(lDict);
   except
@@ -148,18 +138,11 @@ begin
   end;
 end;
 
-procedure TArticlesController.UpdateArticleByID(id: Integer);
-var
-  Article: TArticle;
+procedure TArticlesController.UpdateArticleByID(const Article: TArticle; const id: Integer);
 begin
-  Article := Context.Request.BodyAs<TArticle>;
-  try
-    Article.id := id;
-    GetArticlesService.Update(Article);
-    Render(200, 'Article Updated');
-  finally
-    Article.Free;
-  end;
+  Article.id := id;
+  GetArticlesService.Update(Article);
+  Render(200, 'Article Updated');
 end;
 
 procedure TArticlesController.GetArticleByID(id: Integer);
