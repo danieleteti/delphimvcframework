@@ -17,7 +17,8 @@ uses
   uBase.Controller in 'Controllers\uBase.Controller.pas',
   uMovie.Controller in 'Controllers\uMovie.Controller.pas',
   uData.Model in 'Classes\uData.Model.pas',
-  uServices in 'Classes\uServices.pas';
+  uServices in 'Classes\uServices.pas',
+  MVCFramework.HTMX in 'MVCFramework.HTMX.pas';
 
 {$R *.res}
 

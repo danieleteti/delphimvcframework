@@ -1,19 +1,17 @@
 unit uServices;
-
-// services module which provides binding between the data model and the persistence layer
-// for sample app this will persist data into a json file
-// in a proper application this would be making calls to a persistent layer like a database etc
+// Services module which provides binding between the data model and the persistence layer
+// for sample app this will persist data into a json file.
+// In a proper application this would be making calls to a persistent layer like a database etc
 
 interface
 
 uses
-  Spring, Spring.Collections, Spring.Collections.Lists,
-  System.Generics.Collections, uData.Model,
+  System.Generics.Collections,
+  uData.Model,
   System.SysUtils,
   JsonDataObjects;
 
 type
-
   TServiceBase = class abstract
   public
   end;
@@ -37,7 +35,7 @@ type
     function UpdateMovie(const Movie: TMovie; InsertMode: Boolean): Boolean;
     function DeleteMovie(const MovieID: Integer): Boolean;
     function GetNextID: Integer;
-    function ListAll2: IList<TMovie>;
+    function ListAll2: TObjectList<TMovie>;
   end;
 
 implementation
@@ -80,12 +78,11 @@ begin
   end;
 end;
 
-function TMovieService.ListAll2: IList<TMovie>;
-// using Spring 4 D
+function TMovieService.ListAll2: TObjectList<TMovie>;
 var
   Movie: TMovie;
 begin
-  Result := TCollections.CreateObjectList<TMovie>;
+  Result := TObjectList<TMovie>.Create;
   Movie := TMovie.Create;
   Movie.MovieID := 1;
   Movie.MovieName := 'gone';

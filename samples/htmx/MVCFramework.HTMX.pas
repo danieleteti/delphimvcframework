@@ -106,7 +106,7 @@ type
 
 
   ///<summary>Helper class to expose HTMX options as native functions on WebResponse objects</summary>
-   THTMXResponseHelper = class helper for TMVCWebResponse
+  THTMXResponseHelper = class helper for TMVCWebResponse
   public type
     TClientEventType = (etReceived, etSettled, etSwapped);
     TSwapOption = (soInnerHTML, soOuterHTML, soBeforeBegin, soAfterBegin, soBeforeEnd, soAfterEnd, soDelete, soNone);

@@ -7,7 +7,6 @@ uses
 
 type
   TBaseBO = class
-  private
   protected
     procedure Clone(Source: TBaseBO); virtual; abstract;
   public

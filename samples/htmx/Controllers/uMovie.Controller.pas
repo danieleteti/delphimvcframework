@@ -71,9 +71,13 @@ type
 
 implementation
 
-uses    Spring, Spring.Collections, Spring.Collections.Lists,
-  MVCFramework.Utils, System.SysUtils,
-  MVCFramework.Serializer.JsonDataObjects, uServices, System.Generics.Collections, uData.Model,
+uses
+  MVCFramework.Utils,
+  System.SysUtils,
+  MVCFramework.Serializer.JsonDataObjects,
+  uServices,
+  System.Generics.Collections,
+  uData.Model,
   MVCFramework.Serializer.Defaults,
   MVCFramework.HTMX;
 
@@ -107,7 +111,8 @@ begin
     else
     begin
       // just a normal form render
-      PageData.S['Explanation'] := 'Loaded via a full page reload, watch for the flicker in the title bar and see the calls in the browser Dev Tools console (network tab)';
+      PageData.S['Explanation'] :=
+        'Loaded via a full page reload, watch for the flicker in the title bar and see the calls in the browser Dev Tools console (network tab)';
       RenderForm(['Header', 'Movie', 'Footer']);
     end;
   finally
@@ -146,7 +151,7 @@ begin
   sleep(500);
   // now tell the web page to delay doing the content swap for another 1 second
   Context.Response.SetReswap(soInnerHTML, 1000);
-  Render(	Format('... Button was clicked at %s', [FormatDateTime('hh:mm:ss', Now)]));
+  Render(Format('... Button was clicked at %s', [FormatDateTime('hh:mm:ss', Now)]));
 end;
 
 procedure TMovieController.GetEditPanel(MovieID: Integer);
