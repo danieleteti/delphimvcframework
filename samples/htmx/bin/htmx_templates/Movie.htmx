@@ -1,0 +1,87 @@
+	{{#page.Explanation}}
+	<div>
+	  {{page.Explanation}}
+	  </div>
+	{{/page.Explanation}}
+
+{{! styles to show the indicator - would typically be in css file }}
+<style>
+	.htmx-indicator{
+        opacity:0;
+        transition: opacity 100ms ease-in;
+    }
+    .htmx-request .htmx-indicator{
+        opacity:1
+    }
+    .htmx-request.htmx-indicator{
+        opacity:1
+    }
+</style>
+	
+    <div style="margin: 10px 0;">
+		<div class="pull-right">
+			<button  
+				hx-get="/movie/insert" 
+				hx-target="#insertMovie" hx-swap="outerHTML show:#movieGridHeader:top"
+				hx-trigger="click"
+				class="btn btn-primary">
+				Insert a New Movie</button>	
+			
+			<button  
+				hx-get="/movie/error/400"  
+				hx-trigger="click"
+				class="btn btn-primary">
+				Trigger an Error</button>	
+			
+			<button 				
+				hx-patch="/movie/swap"  
+				hx-trigger="click"
+				class="btn btn-primary">
+				Get the server to swap some content, see the delay ...
+				<img  class="htmx-indicator" src="/img/bars.svg"/>
+				</button>	
+				
+		</div>
+		<div>
+			<span>Double click a row to Edit, or Delete</span>
+		</div>
+		
+		<h3> 
+		  Filter Movies 
+		  <span class="htmx-indicator"> 
+			<img src="/img/bars.svg"/> Searching... 
+		   </span> 
+		</h3>
+
+		<input class="form-control" type="search" size="25"
+		   name="search" placeholder="Begin typing to Search Movies..." 
+		   hx-post="/movie/search" 
+		   hx-trigger="keyup changed delay:250ms, search" 
+		   
+		   hx-target="#movieData-tbody"
+		   hx-indicator=".htmx-indicator">
+
+	   <div style="clear:both; height:auto;">
+            <div id="movieGrid" style="padding-bottom: 2px;">			
+				<table class="table table-striped table-bordered table-hover resource-table" style="width:100%">
+					<thead id="movieGridHeader" class="thead-dark">
+						<tr>
+							<th scope="col" width="10%">ID</th>
+							<th scope="col">Name</th>
+							<th scope="col" width="10%">Rating</th>
+							<th scope="col" width="15%">Genre</th>
+							<th scope="col" width="15%">Release Date</th>
+							<th scope="col" width="10%">Current</th>
+						</tr>
+					</thead>
+					<!--tbody hx-target="closest tr" hx-swap="outerHTML"-->
+					<tbody id="movieData-tbody">
+						{{> MovieDataRowBlank}}
+						{{> MovieDataRow}}
+					</tbody>
+				</table>
+			
+			</div>
+        </div>
+    </div>
+
