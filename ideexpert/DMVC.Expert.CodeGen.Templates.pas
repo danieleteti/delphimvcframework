@@ -194,13 +194,13 @@ resourcestring
     '    function GetPerson(ID: Integer): TPerson;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/people'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPOST])]' + sLineBreak +
-    '    function CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpPUT])]' + sLineBreak +
-    '    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + sLineBreak +
+    '    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/people/($ID)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpDELETE])]' + sLineBreak +
-    '    function DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak + sLineBreak;
+    '    function DeletePerson(ID: Integer): IMVCResponse;' + sLineBreak + sLineBreak;
 
   sCRUDMethodsImpl =
     '//Sample CRUD Actions for a "People" entity' + sLineBreak +
@@ -230,20 +230,29 @@ resourcestring
     '    lPeople.Free;' + sLineBreak +
     '  end;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'function %0:s.CreatePerson([MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak + 
+    'function %0:s.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;' + sLineBreak + 
     'begin' + sLineBreak +
-	'  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
-    '  Result := TMVCResponse.Create(HTTP_STATUS.Created, ''Person created'');' + sLineBreak +
+	'  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +    
+    '  Result := MVCResponseBuilder' + sLineBreak +
+    '      .StatusCode(HTTP_STATUS.Created)' + sLineBreak +
+    '      .Body(''Person created'')' + sLineBreak +
+    '      .Build;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'function %0:s.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): TMVCResponse;' + sLineBreak +
+    'function %0:s.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
     '  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
-    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person updated'');' + sLineBreak +
+    '  Result := MVCResponseBuilder' + sLineBreak +
+    '    .StatusCode(HTTP_STATUS.NoContent)' + sLineBreak +
+    '    .Reason(''Person updated'')' + sLineBreak +
+    '    .Build;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'function %0:s.DeletePerson(ID: Integer): TMVCResponse;' + sLineBreak +
+    'function %0:s.DeletePerson(ID: Integer): IMVCResponse;' + sLineBreak +
     'begin' + sLineBreak +
     '  LogI(''Deleted person with id '' + ID.ToString);' + sLineBreak +
-    '  Result := TMVCResponse.Create(HTTP_STATUS.OK, ''Person deleted'');' + sLineBreak +
+    '  Result := MVCResponseBuilder' + sLineBreak +
+    '    .StatusCode(HTTP_STATUS.NoContent)' + sLineBreak +
+    '    .Reason(''Person deleted'')' + sLineBreak +
+    '    .Build;' + sLineBreak +
     'end;' + sLineBreak;
 
   sActionFiltersIntf =

@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  System.Generics.Collections, Data.DB;
+  System.Generics.Collections, Data.DB, JsonDataObjects;
 
 type
   [MVCNameCase(ncCamelCase)]
@@ -46,6 +46,12 @@ type
     function GetSingleObject: TPerson;
     [MVCPath('/objects/multiple')]
     function GetMultipleObjects: TObjectList<TPerson>;
+    [MVCPath('/objects/jsonobject')]
+    function GetJSONObject: TJSONObject;
+    [MVCPath('/objects/jsonarray')]
+    function GetJSONArray: TJsonArray;
+
+
 
     { actions returning datasets }
     [MVCPath('/datasets/single')]
@@ -64,19 +70,16 @@ type
     function GetMVCResponseSimple: IMVCResponse;
     [MVCPath('/mvcresponse/data')]
     function GetMVCResponseWithData: IMVCResponse;
+    [MVCPath('/mvcresponse/json')]
+    function GetMVCResponseWithJSON: IMVCResponse;
     [MVCPath('/mvcresponse/list')]
     function GetMVCResponseWithObjectList: IMVCResponse;
     [MVCPath('/mvcresponse/dictionary')]
     function GetMVCResponseWithObjectDictionary: IMVCResponse;
     [MVCPath('/mvcresponse/error')]
     function GetMVCErrorResponse: IMVCResponse;
-
-    { using MVCResponseBuilder }
-    [MVCPath('/mvcresponse/message/builder')]
-    function GetMVCResponseSimpleBuilder: IMVCResponse;
-    [MVCPath('/mvcresponse/data/builder')]
-    function GetMVCResponseWithDataBuilder: IMVCResponse;
-
+    [MVCPath('/mvcresponse/message/builder/headers')]
+    function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
   end;
 
 implementation
@@ -86,6 +89,16 @@ uses
   MainDMU, FireDAC.Comp.Client, MVCFramework.FireDAC.Utils;
 
 { TMyController }
+
+function TMyController.GetJSONArray: TJsonArray;
+begin
+  Result := StrToJSONArray('[1,2,3, {"name":"Daniele","surname":"Teti"}]');
+end;
+
+function TMyController.GetJSONObject: TJSONObject;
+begin
+  Result := StrToJSONObject('{"name":"Daniele","surname":"Teti"}');
+end;
 
 function TMyController.GetMultipleDataSet: TEnumerable<TDataSet>;
 begin
@@ -144,44 +157,37 @@ end;
 
 function TMyController.GetMVCResponseSimple: IMVCResponse;
 begin
-  Result := MVCResponse(HTTP_STATUS.OK, 'My Message', 'My Reason String');
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('My Message')
+    .Reason('My Reason String')
+    .Build;
 end;
 
-function TMyController.GetMVCResponseSimpleBuilder: IMVCResponse;
+function TMyController.GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
 begin
   Result := MVCResponseBuilder
     .StatusCode(HTTP_STATUS.OK)
-    .Message('My Message')
+    .Header('header1', 'Hello World')
+    .Header('header2', 'foo bar')
+    .Body('My Message')
     .Reason('My Reason String')
     .Build;
-
-  //Equivalent to the following
-  //
-  //Result := MVCResponse(HTTP_STATUS.OK, 'My Message', 'My Reason String');
 end;
 
 function TMyController.GetMVCResponseWithData: IMVCResponse;
 begin
-  Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
-end;
-
-function TMyController.GetMVCResponseWithDataBuilder: IMVCResponse;
-begin
   Result := MVCResponseBuilder
     .StatusCode(HTTP_STATUS.OK)
-    .Data(TPerson.Create('Daniele','Teti', 99))
+    .Body(TPerson.Create('Daniele','Teti', 99))
     .Build;
-
-  //Equivalent to the following
-  //
-  //Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
 end;
 
 function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
 begin
-  Result := MVCResponse(
-    HTTP_STATUS.OK,
-    ObjectDict()
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(ObjectDict()
       .Add('people1', TObjectList<TPerson>.Create([
                       TPerson.Create('Daniele','Teti', 99),
                       TPerson.Create('Peter','Parker', 25),
@@ -194,19 +200,28 @@ begin
                       TPerson.Create('Bruce','Banner', 45)
                     ])
       )
-  );
+  )
+  .Build;
 end;
 
 function TMyController.GetMVCResponseWithObjectList: IMVCResponse;
 begin
-  Result := MVCResponse(
-    HTTP_STATUS.OK,
-    TObjectList<TPerson>.Create([
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(TObjectList<TPerson>.Create([
       TPerson.Create('Daniele','Teti', 99),
       TPerson.Create('Peter','Parker', 25),
       TPerson.Create('Bruce','Banner', 45)
     ])
-  );
+  ).Build;
+end;
+
+function TMyController.GetMVCResponseWithJSON: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'))
+    .Build;
 end;
 
 function TMyController.GetSingleDataSet: TDataSet;
