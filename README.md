@@ -251,6 +251,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - ⚡ Wizard updated to be dotEnv aware
 
+- ⚡ Added [HTMX](https://htmx.org/) server side support through unit `samples\htmx\MVCFramework.HTMX.pas` and the relative sample (Thanks to [David Moorhouse](https://github.com/fastbike)). This unit provides class helper for `TMVCWebRequest` and `TMVCWebResponse` classes to easily work with HTMX. If you want to use this unit just download the samples and add it to your project or put `$(DMVCHOME)\samples\htmx` in your library path.
+
 - ⚡ Added "Load Style" methods to `TMVCActiveRecord` (more info https://github.com/danieleteti/delphimvcframework/issues/675)
 
   - `TMVCActiveRecord` support "Factory Style" and "Load Style" methods when loads data from database.
