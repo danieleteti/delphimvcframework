@@ -233,7 +233,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ## What's New in the next "repo version" a.k.a. 3.4.0-neon
 
-- ⚡ Added support for dotEnv multiline keys - added dotEnv show case
+- ⚡ Added support for dotEnv multiline keys - added [dotEnv show case](https://github.com/danieleteti/delphimvcframework/tree/master/samples/dotenv_showcase)
 
 - ⚡ Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
 
@@ -550,155 +550,187 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   }
   ```
 
-- ⚡ New! NamedQueries support for TMVCActiveRecord.
-  - `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>`. MOreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need. Check the example below.
-
-    ```delphi
-    type
-      [MVCTable('customers')]
-      [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc',
-        TMVCActiveRecordBackEnd.FirebirdSQL)]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc',
-        TMVCActiveRecordBackEnd.PostgreSQL)]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
-      TCustomer = class(TCustomEntity)
-      private
-      // usual field declaration
-      end;
-      
-      //** then in the code
-      
-      Log('** Named SQL Query');
-      Log('QuerySQL: RatingLessThanPar');
-      var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
-      try
-        for var lCustomer in lCustomers do
-        begin
-          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-            lCustomer.CompanyName.ValueOrDefault]));
-        end;
-      finally
-        lCustomers.Free;
-      end;
-    
-      Log('QuerySQL: RatingEqualsToPar');
-      lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
-      try
-        for var lCustomer in lCustomers do
-        begin
-          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-            lCustomer.CompanyName.ValueOrDefault]));
-        end;
-      finally
-        lCustomers.Free;
-      end;
-    
-    ```
-
-    The same approach is available for RQL query, which can be used also for Count and Delete operations but doesnt allows to specify the backend (because RQL has an actual compiler to adapt the generated SQL to each RDBMS)
-
-    ```delphi
-    type
-      [MVCTable('customers')]
-      [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc', 
-        TMVCActiveRecordBackEnd.FirebirdSQL)]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc', 
-        TMVCActiveRecordBackEnd.PostgreSQL)]
-      [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
-      [MVCNamedRQLQuery('RatingLessThanPar', 'lt(rating,%d);sort(+code,-city)')]
-      [MVCNamedRQLQuery('RatingEqualsToPar', 'eq(rating,%d);sort(+code,-city)')]
-      TCustomer = class(TCustomEntity)
-      private
-      // usual field declaration
-      end;
-      
-      //** then in the code
-      
-      Log('** Named RQL Query');
-      Log('QueryRQL: RatingLessThanPar');
-      lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
-      try
-        for var lCustomer in lCustomers do
-        begin
-          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-            lCustomer.CompanyName.ValueOrDefault]));
-        end;
-      finally
-        lCustomers.Free;
-      end;
-    
-      Log('QueryRQL: RatingEqualsToPar');
-      lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
-      try
-        for var lCustomer in lCustomers do
-        begin
-          Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-            lCustomer.CompanyName.ValueOrDefault]));
-        end;
-      finally
-        lCustomers.Free;
-      end;
-    
-    ```
-
-    Now, having SQL and RQL named queries, it is possibile to have an entity which is not mapped on a specific table but loaded only by named queries.
-
-    ```delphi
-    type
-      [MVCEntityActions([eaRetrieve])]
-      [MVCNamedSQLQuery('CustomersInTheSameCity',
-        'SELECT c.id, c.DESCRIPTION, c.city, c.code, c.rating, (SELECT count(*) - 1 FROM customers c2 WHERE c2.CITY = c.CITY) customers_in_the_same_city ' +
-        'FROM CUSTOMERS c WHERE city IS NOT NULL AND city <> '''' ORDER BY customers_in_the_same_city')]
-      TCustomerStats = class(TCustomEntity) {not mapped on an actual table or view}
-      private
-        [MVCTableField('id', [foPrimaryKey, foAutoGenerated])]
-        fID: NullableInt64;
-        [MVCTableField('code')]
-        fCode: NullableString;
-        [MVCTableField('description')]
-        fCompanyName: NullableString;
-        [MVCTableField('city')]
-        fCity: string;
-        [MVCTableField('rating')]
-        fRating: NullableInt32;
-        [MVCTableField('customers_in_the_same_city')]
-        fCustomersInTheSameCity: Int32;
-      public
-        property ID: NullableInt64 read fID write fID;
-        property Code: NullableString read fCode write fCode;
-        property CompanyName: NullableString read fCompanyName write fCompanyName;
-        property City: string read fCity write fCity;
-        property Rating: NullableInt32 read fRating write fRating;
-        property CustomersInTheSameCity: Int32 read fCustomersInTheSameCity write fCustomersInTheSameCity;
-      end;
-    
+- ⚡ New! SQL and RQL Named Queries support for TMVCActiveRecord.
+  
+  Here's all the new methods available for Named Queries
+  
+  ```delphi
+      class function SelectByNamedQuery<T: TMVCActiveRecord, constructor>(
+        const QueryName: String;
+        const Params: array of Variant;
+        const ParamTypes: array of TFieldType;
+        const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
+      class function SelectByNamedQuery(
+        const MVCActiveRecordClass: TMVCActiveRecordClass;
+        const QueryName: String;
+        const Params: array of Variant;
+        const ParamTypes: array of TFieldType;
+        const Options: TMVCActiveRecordLoadOptions = []): TMVCActiveRecordList; overload;
+      class function SelectRQLByNamedQuery<T: constructor, TMVCActiveRecord>(
+        const QueryName: String;
+        const Params: array of const;
+        const MaxRecordCount: Integer): TObjectList<T>; overload;
+      class function SelectRQLByNamedQuery(
+        const MVCActiveRecordClass: TMVCActiveRecordClass;
+        const QueryName: String;
+        const Params: array of const;
+        const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
+      class function DeleteRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
+        const QueryName: String;
+        const Params: array of const): Int64;
+      class function CountRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
+        const QueryName: string;
+        const Params: array of const): Int64;
+  ```
+  
+  `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>` or `SelectByNamedQuery`. Moreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need. Check the example below.
+  
+  ```delphi
+  type
+    [MVCTable('customers')]
+    [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc',
+      TMVCActiveRecordBackEnd.FirebirdSQL)]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc',
+      TMVCActiveRecordBackEnd.PostgreSQL)]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
+    TCustomer = class(TCustomEntity)
+    private
+    // usual field declaration
+    end;
     
     //** then in the code
     
-    procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
-    begin
-      var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
-      try
-        for var lCustomer in lCustStats do
-        begin
-          Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
-            lCustomer.ID.ValueOrDefault,
-            lCustomer.Code.ValueOrDefault,
-            lCustomer.CompanyName.ValueOrDefault,
-            lCustomer.CustomersInTheSameCity
-            ]));
-        end;
-      finally
-        lCustStats.Free;
+    Log('** Named SQL Query');
+    Log('QuerySQL: RatingLessThanPar');
+    var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
+    try
+      for var lCustomer in lCustomers do
+      begin
+        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault]));
       end;
+    finally
+      lCustomers.Free;
     end;
-      
-      
-    ```
-
+  
+    Log('QuerySQL: RatingEqualsToPar');
+    lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
+    try
+      for var lCustomer in lCustomers do
+      begin
+        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault]));
+      end;
+    finally
+      lCustomers.Free;
+    end;
+  
+  ```
+  
+  The same approach is available for RQL query, which can be used also for Count and Delete operations but doesnt allows to specify the backend (because RQL has an actual compiler to adapt the generated SQL to each RDBMS)
+  
+  ```delphi
+  type
+    [MVCTable('customers')]
+    [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc', 
+      TMVCActiveRecordBackEnd.FirebirdSQL)]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc', 
+      TMVCActiveRecordBackEnd.PostgreSQL)]
+    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
+    [MVCNamedRQLQuery('RatingLessThanPar', 'lt(rating,%d);sort(+code,-city)')]
+    [MVCNamedRQLQuery('RatingEqualsToPar', 'eq(rating,%d);sort(+code,-city)')]
+    TCustomer = class(TCustomEntity)
+    private
+    // usual field declaration
+    end;
     
+    //** then in the code
+    
+    Log('** Named RQL Query');
+    Log('QueryRQL: RatingLessThanPar');
+    lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
+    try
+      for var lCustomer in lCustomers do
+      begin
+        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault]));
+      end;
+    finally
+      lCustomers.Free;
+    end;
+  
+    Log('QueryRQL: RatingEqualsToPar');
+    lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
+    try
+      for var lCustomer in lCustomers do
+      begin
+        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault]));
+      end;
+    finally
+      lCustomers.Free;
+    end;
+  
+  ```
+  
+  Now, having SQL and RQL named queries, it is possibile to have an entity which is not mapped on a specific table but loaded only by named queries. Such kind of entities **must** be declared using `[MVCEntityActions(eaRetrieve)]`.
+  
+  ```delphi
+  type
+    [MVCEntityActions([eaRetrieve])]  // <-- Required if "MVCTable" is not present.
+    [MVCNamedSQLQuery('CustomersInTheSameCity',
+      'SELECT c.id, c.DESCRIPTION, c.city, c.code, c.rating, (SELECT count(*) - 1 FROM customers c2 WHERE c2.CITY = c.CITY) customers_in_the_same_city ' +
+      'FROM CUSTOMERS c WHERE city IS NOT NULL AND city <> '''' ORDER BY customers_in_the_same_city')]
+    TCustomerStats = class(TCustomEntity) {not mapped on an actual table or view}
+    private
+      [MVCTableField('id', [foPrimaryKey, foAutoGenerated])]
+      fID: NullableInt64;
+      [MVCTableField('code')]
+      fCode: NullableString;
+      [MVCTableField('description')]
+      fCompanyName: NullableString;
+      [MVCTableField('city')]
+      fCity: string;
+      [MVCTableField('rating')]
+      fRating: NullableInt32;
+      [MVCTableField('customers_in_the_same_city')]
+      fCustomersInTheSameCity: Int32;
+    public
+      property ID: NullableInt64 read fID write fID;
+      property Code: NullableString read fCode write fCode;
+      property CompanyName: NullableString read fCompanyName write fCompanyName;
+      property City: string read fCity write fCity;
+      property Rating: NullableInt32 read fRating write fRating;
+      property CustomersInTheSameCity: Int32 read fCustomersInTheSameCity write fCustomersInTheSameCity;
+    end;
+  
+  
+  //** then in the code
+  
+  procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
+  begin
+    var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
+    try
+      for var lCustomer in lCustStats do
+      begin
+        Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
+          lCustomer.ID.ValueOrDefault,
+          lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault,
+          lCustomer.CustomersInTheSameCity
+          ]));
+      end;
+    finally
+      lCustStats.Free;
+    end;
+  end;
+    
+    
+  ```
+  
+  
 
 
 ## Old Versions

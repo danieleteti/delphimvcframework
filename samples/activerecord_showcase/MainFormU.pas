@@ -668,6 +668,19 @@ begin
     lCustomers.Free;
   end;
 
+  Log('QuerySQL: RatingLessThanPar (using classref)');
+  var lCustomersList := TMVCActiveRecord.SelectByNamedQuery(TCustomer, 'RatingLessThanPar', [4], [ftInteger], []);
+  try
+    for var lCustomer in TObjectList<TCustomer>(lCustomersList) do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomersList.Free;
+  end;
+
+
   Log('QuerySQL: RatingEqualsToPar');
   lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
   try
@@ -692,6 +705,19 @@ begin
   finally
     lCustomers.Free;
   end;
+
+  Log('QueryRQL: RatingLessThanPar (using classref)');
+  lCustomersList := TMVCActiveRecord.SelectRQLByNamedQuery(TCustomer, 'RatingLessThanPar', [4], 1000);
+  try
+    for var lCustomer in TObjectList<TCustomer>(lCustomersList) do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomersList.Free;
+  end;
+
 
   Log('QueryRQL: RatingEqualsToPar');
   lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);

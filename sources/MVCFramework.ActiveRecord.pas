@@ -474,17 +474,40 @@ type
     /// <summary>
     ///   Returns a TObjectList<TMVCActiveRecord> from a SQL using typed params
     /// </summary>
-    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string;
+    class function Select<T: TMVCActiveRecord, constructor>(
+      const SQL: string;
       const Params: array of Variant;
-      const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions = [])
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions = [])
       : TObjectList<T>; overload;
+    /// <summary>
+    ///   Returns a TMVCActiveRecordList from a SQL using typed params and class ref
+    /// </summary>
+    class function Select(
+      const MVCActiveRecordClass: TMVCActiveRecordClass;
+      const SQL: string;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions = [])
+      : TMVCActiveRecordList; overload;
     /// <summary>
     ///   Fills a TObjectList<TMVCActiveRecord> from a SQL using typed params.
     ///   Returns number of the records in the list (not only the selected records, but the current .Count of the list)
     /// </summary>
-    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant;
-      const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions;
+    class function Select<T: TMVCActiveRecord, constructor>(
+      const SQL: string;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions;
       const OutList: TObjectList<T>): UInt32; overload;
+
+    class function Select(
+      const MVCActiveRecordClass: TMVCActiveRecordClass;
+      const SQL: string;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions;
+      const OutList: TMVCActiveRecordList): UInt32; overload;
 
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
       const Params: array of Variant)
@@ -600,11 +623,22 @@ type
       const QueryName: String;
       const Params: array of Variant;
       const ParamTypes: array of TFieldType;
-      const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>;
+      const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
+    class function SelectByNamedQuery(
+      const MVCActiveRecordClass: TMVCActiveRecordClass;
+      const QueryName: String;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions = []): TMVCActiveRecordList; overload;
     class function SelectRQLByNamedQuery<T: constructor, TMVCActiveRecord>(
       const QueryName: String;
       const Params: array of const;
-      const MaxRecordCount: Integer): TObjectList<T>;
+      const MaxRecordCount: Integer): TObjectList<T>; overload;
+    class function SelectRQLByNamedQuery(
+      const MVCActiveRecordClass: TMVCActiveRecordClass;
+      const QueryName: String;
+      const Params: array of const;
+      const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
     class function DeleteRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
       const QueryName: String;
       const Params: array of const): Int64;
@@ -1857,6 +1891,26 @@ begin
   end;
 end;
 
+class function TMVCActiveRecordHelper.SelectRQLByNamedQuery(
+  const MVCActiveRecordClass: TMVCActiveRecordClass; const QueryName: String;
+  const Params: array of const;
+  const MaxRecordCount: Integer): TMVCActiveRecordList;
+var
+  lT: TMVCActiveRecord;
+  lRQLQuery: TRQLQueryWithName;
+begin
+  lT := MVCActiveRecordClass.Create;
+  try
+    if not lT.FindRQLQueryByName(QueryName, lRQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedRQLQuery not found: %s', [QueryName]);
+    end;
+    Result := SelectRQL(MVCActiveRecordClass, Format(lRQLQuery.RQLText, Params), MaxRecordCount);
+  finally
+    lT.Free;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.SelectRQLByNamedQuery<T>(
   const QueryName: string;
   const Params: array of const;
@@ -2806,6 +2860,44 @@ begin
   end;
 end;
 
+class function TMVCActiveRecordHelper.Select(
+  const MVCActiveRecordClass: TMVCActiveRecordClass; const SQL: string;
+  const Params: array of Variant; const ParamTypes: array of TFieldType;
+  const Options: TMVCActiveRecordLoadOptions;
+  const OutList: TMVCActiveRecordList): UInt32;
+var
+  lDataSet: TDataSet;
+  lAR: TMVCActiveRecord;
+begin
+  lDataSet := ExecQuery(SQL, Params, ParamTypes, True, False);
+  try
+    while not lDataSet.Eof do
+    begin
+      lAR := MVCActiveRecordClass.Create;
+      OutList.Add(lAR);
+      lAR.LoadByDataset(lDataSet, Options);
+      lDataSet.Next;
+    end;
+    Result := OutList.Count;
+  finally
+    lDataSet.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.Select(
+  const MVCActiveRecordClass: TMVCActiveRecordClass; const SQL: string;
+  const Params: array of Variant; const ParamTypes: array of TFieldType;
+  const Options: TMVCActiveRecordLoadOptions): TMVCActiveRecordList;
+begin
+  Result := TMVCActiveRecordList.Create;
+  try
+    Select(MVCActiveRecordClass, SQL, Params, ParamTypes, Options, Result);
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions; const OutList: TObjectList<T>): UInt32;
 var
@@ -2827,6 +2919,26 @@ begin
   end;
 end;
 
+class function TMVCActiveRecordHelper.SelectByNamedQuery(
+  const MVCActiveRecordClass: TMVCActiveRecordClass; const QueryName: String;
+  const Params: array of Variant; const ParamTypes: array of TFieldType;
+  const Options: TMVCActiveRecordLoadOptions): TMVCActiveRecordList;
+var
+  lT: TMVCActiveRecord;
+  lSQLQuery: TSQLQueryWithName;
+begin
+  lT := MVCActiveRecordClass.Create;
+  try
+    if not lT.FindSQLQueryByName(QueryName, lSQLQuery) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('NamedSQLQuery "%s" not found for entity "%s"', [QueryName, lT.ClassName]);
+    end;
+    Result := Select(MVCActiveRecordClass, lSQLQuery.SQLText, Params, ParamTypes, Options);
+  finally
+    lT.Free;
+  end;
+end;
+
 class function TMVCActiveRecordHelper.SelectByNamedQuery<T>(
   const QueryName: String; const Params: array of Variant;
   const ParamTypes: array of TFieldType;
@@ -2839,7 +2951,7 @@ begin
   try
     if not lT.FindSQLQueryByName(QueryName, lSQLQuery) then
     begin
-      raise EMVCActiveRecord.CreateFmt('NamedSQLQuery not found: %s', [QueryName]);
+      raise EMVCActiveRecord.CreateFmt('NamedSQLQuery "%s" not found for entity "%s"', [QueryName, lT.ClassName]);
     end;
     Result := Select<T>(lSQLQuery.SQLText, Params, ParamTypes, Options);
   finally
@@ -4408,7 +4520,8 @@ begin
   inherited;
 end;
 
-class function TMVCActiveRecordHelper.Select(const aClass: TMVCActiveRecordClass;
+class function TMVCActiveRecordHelper.Select(
+  const aClass: TMVCActiveRecordClass;
   const SQL: string; const Params: array of Variant;
   const Connection: TFDConnection; const OutList: TMVCActiveRecordList): UInt32;
 var
