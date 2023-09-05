@@ -1046,23 +1046,33 @@ type
     ['{9DFEC741-EE38-4AC9-9C2C-9EA0D15D08D5}']
     function GetData: TObject;
     function GetMessage: string;
-    function GetReasonString: string;
     function GetStatusCode: Integer;
+    procedure SetData(const Value: TObject);
+    procedure SetMessage(const Value: string);
+    procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
+    function GetObjectDictionary: IMVCObjectDictionary;
+    procedure SetStatusCode(const Value: Integer);
     function GetIgnoredList: TMVCIgnoredList;
     function HasHeaders: Boolean;
     function HasBody: Boolean;
-    property StatusCode: Integer read GetStatusCode;
-    property ReasonString: string read GetReasonString;
-    property Message: string read GetMessage;
-    property Data: TObject read GetData;
+    property StatusCode: Integer read GetStatusCode write SetStatusCode;
+    property Message: string read GetMessage write SetMessage;
+    property Data: TObject read GetData write SetData;
+    property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
   end;
 
   TMVCBaseResponse = class abstract (TInterfacedObject, IMVCResponse)
   protected
-    function GetData: TObject; virtual; abstract;
     function GetMessage: string;virtual; abstract;
-    function GetReasonString: string;virtual; abstract;
-    function GetStatusCode: Integer;virtual; abstract;
+    function GetData: TObject; virtual; abstract;
+    function GetObjectDictionary: IMVCObjectDictionary; virtual; abstract;
+    procedure SetMessage(const Value: string); virtual; abstract;
+    procedure SetData(const Value: TObject); virtual; abstract;
+    procedure SetObjectDictionary(const Value: IMVCObjectDictionary); virtual; abstract;
+    function GetStatusCode: Integer; virtual; abstract;
+    procedure SetStatusCode(const Value: Integer); virtual; abstract;
+    function GetReasonString: string; virtual; abstract;
+    procedure SetReasonString(const Value: string); virtual; abstract;
     function GetIgnoredList: TMVCIgnoredList; virtual; abstract;
     function HasHeaders: Boolean; virtual; abstract;
     function HasBody: Boolean; virtual; abstract;
@@ -1072,49 +1082,33 @@ type
   TMVCResponse = class(TMVCBaseResponse)
   private
     fStatusCode: Integer;
-    fReasonString: string;
     fMessage: string;
-    fDataObject: TObject;
-    fIgnoredList: TMVCIgnoredList;
+    fData: TObject;
     fObjectDictionary: IMVCObjectDictionary;
     fHeaders: TStringList;
-    function GetData: TObject;
-    function GetMessage: string;
-    function GetReasonString: string;
-    function GetStatusCode: Integer;
-    procedure SetData(const Value: TObject);
-    procedure SetMessage(const Value: string);
-    procedure SetReasonString(const Value: string);
-    procedure SetStatusCode(const Value: Integer);
-    function GetObjectDictionary: IMVCObjectDictionary;
-    procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
+    fReasonString: String;
+  protected
+    function GetData: TObject; override;
+    function GetMessage: string; override;
+    function GetStatusCode: Integer; override;
+    function GetObjectDictionary: IMVCObjectDictionary; override;
+    procedure SetData(const Value: TObject); override;
+    procedure SetMessage(const Value: string); override;
+    procedure SetStatusCode(const Value: Integer); override;
+    procedure SetObjectDictionary(const Value: IMVCObjectDictionary); override;
+    function GetReasonString: string; override;
+    procedure SetReasonString(const Value: string); override;
   protected
     function HasHeaders: Boolean; override;
     function HasBody: Boolean; override;
-    procedure SetIgnoredList(aIgnoredList: TMVCIgnoredList);
     constructor Create; overload; virtual;
   public
-    constructor Create(
-      AStatusCode: Integer;
-      AMessage: string;
-      AReasonString: string = '';
-      const AHeaders: TStringList = nil); overload;
-    constructor Create(
-      AStatusCode: Integer;
-      AData: TObject;
-      AReasonString: string = '';
-      const AHeaders: TStringList = nil); overload;
-    constructor Create(
-      AStatusCode: Integer;
-      AObjectDictionary: IMVCObjectDictionary;
-      AReasonString: string = '';
-      const AHeaders: TStringList = nil); overload;
     destructor Destroy; override;
-    function GetIgnoredList: TMVCIgnoredList;
+    function GetIgnoredList: TMVCIgnoredList; virtual;
     [MVCDoNotSerialize]
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     [MVCDoNotSerialize]
-    property ReasonString: string read GetReasonString write SetReasonString;
+    property ReasonString: String read GetReasonString write SetReasonString;
     property Message: string read GetMessage write SetMessage;
     property Data: TObject read GetData write SetData;
     property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
@@ -1129,7 +1123,8 @@ type
     fDetailedMessage: string;
     procedure SetAppErrorCode(const Value: Integer);
   public
-    constructor Create; override;
+    constructor Create; overload; override;
+    constructor Create(const AStatusCode: Integer; const AMessage: String); overload;
     destructor Destroy; override;
     property Classname: string read fClassname write fClassname;
     property DetailedMessage: string read fDetailedMessage write fDetailedMessage;
@@ -1177,8 +1172,7 @@ type
   IMVCResponseBuilder = interface
     ['{10210D72-AFAE-4919-936D-EB08AA16C01C}']
     function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
-    function Reason(const Reason: String): IMVCResponseBuilder;
-    function Header(const Name: String; Value: String): IMVCResponseBuilder;
+    function Header(const Name: String; const Value: String): IMVCResponseBuilder;
     function Body(const Data: TObject): IMVCResponseBuilder; overload;
     function Body(const Message: String): IMVCResponseBuilder; overload;
     function Body(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder; overload;
@@ -1207,6 +1201,10 @@ var
 
 
 type
+  EMVCResponseBuilderException = class(EMVCException)
+
+  end;
+
   TMVCResponseBuilder = class sealed(TInterfacedObject, IMVCResponseBuilder)
   private
     fBuilt: Boolean;
@@ -1215,7 +1213,6 @@ type
     fStatusCode: Integer;
     fMessage: String;
     fData: TObject;
-    fReason: String;
     fObjectDict: IMVCObjectDictionary;
     function HasHeaders: Boolean;
     function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
@@ -1223,8 +1220,7 @@ type
     function Body(const Data: TObject): IMVCResponseBuilder; overload;
     function Body(const MessageText: String): IMVCResponseBuilder; overload;
     function Body(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder; overload;
-    function Header(const Name: String; Value: String): IMVCResponseBuilder;
-    function Reason(const Reason: String): IMVCResponseBuilder;
+    function Header(const Name: String; const Value: String): IMVCResponseBuilder;
     function Build: IMVCResponse;
   public
     constructor Create; virtual;
@@ -3264,7 +3260,7 @@ begin
   end
   else
   begin
-    Controller.ResponseStatus(MVCResponse.StatusCode, MVCResponse.ReasonString);
+    Controller.ResponseStatus(MVCResponse.StatusCode);
   end;
 end;
 
@@ -4442,9 +4438,9 @@ end;
 constructor TMVCResponse.Create;
 begin
   inherited Create;
-  fDataObject := nil;
+  fData := nil;
   fMessage := '';
-  fIgnoredList := [];
+  fObjectDictionary := nil;
 end;
 
 constructor TMVCErrorResponse.Create;
@@ -4453,42 +4449,41 @@ begin
   FItems := TObjectList<TMVCErrorResponseItem>.Create(True);
 end;
 
-constructor TMVCResponse.Create(AStatusCode: Integer; AMessage: string; AReasonString: string; const AHeaders: TStringList);
-begin
-  Create;
-  fStatusCode := AStatusCode;
-  fMessage := AMessage;
-  fReasonString := AReasonString;
-  fHeaders := AHeaders;
-end;
-
-constructor TMVCResponse.Create(AStatusCode: Integer; AData: TObject; AReasonString: string; const AHeaders: TStringList);
-begin
-  Create(AStatusCode, '', AReasonString, AHeaders);
-  fDataObject := AData;
-end;
-
-constructor TMVCResponse.Create(AStatusCode: Integer;
-  AObjectDictionary: IMVCObjectDictionary; AReasonString: string; const AHeaders: TStringList);
-begin
-  Create(AStatusCode, '', AReasonString, AHeaders);
-  fObjectDictionary := AObjectDictionary;
-end;
-
 destructor TMVCResponse.Destroy;
 begin
-  fDataObject.Free;
+  fData.Free;
   inherited;
 end;
 
 function TMVCResponse.GetData: TObject;
 begin
-  Result := fDataObject;
+  Result := fData;
 end;
 
 function TMVCResponse.GetIgnoredList: TMVCIgnoredList;
+var
+  lCount: Integer;
 begin
-  Result := fIgnoredList;
+  SetLength(Result, 3);
+  lCount := 0;
+  if fData = nil then
+  begin
+    Result[lCount] := 'Data';
+    Inc(lCount);
+  end;
+
+  if fMessage.IsEmpty then
+  begin
+    Result[lCount] := 'Message';
+    Inc(lCount);
+  end;
+
+  if fObjectDictionary = nil then
+  begin
+    Result[lCount] := 'ObjectDictionary';
+    Inc(lCount);
+  end;
+  SetLength(Result, lCount);
 end;
 
 function TMVCResponse.GetMessage: string;
@@ -4516,7 +4511,7 @@ end;
 
 function TMVCResponse.HasBody: Boolean;
 begin
-  Result := not (fMessage.IsEmpty or (fDataObject <> nil) or (fObjectDictionary <> nil));
+  Result := (not fMessage.IsEmpty) or (fData <> nil) or (fObjectDictionary <> nil);
 end;
 
 function TMVCResponse.HasHeaders: Boolean;
@@ -4526,12 +4521,7 @@ end;
 
 procedure TMVCResponse.SetData(const Value: TObject);
 begin
-  fDataObject := Value;
-end;
-
-procedure TMVCResponse.SetIgnoredList(aIgnoredList: TMVCIgnoredList);
-begin
-  fIgnoredList := aIgnoredList;
+  fData := Value;
 end;
 
 procedure TMVCResponse.SetMessage(const Value: string);
@@ -4552,6 +4542,14 @@ end;
 procedure TMVCResponse.SetStatusCode(const Value: Integer);
 begin
   fStatusCode := Value;
+end;
+
+constructor TMVCErrorResponse.Create(const AStatusCode: Integer;
+  const AMessage: String);
+begin
+  Create;
+  fStatusCode := AStatusCode;
+  fMessage := AMessage;
 end;
 
 destructor TMVCErrorResponse.Destroy;
@@ -4661,31 +4659,10 @@ begin
   FFormat := AFormat;
 end;
 
-// std responses
-//function MVCResponse(AStatusCode: Integer; AMessage: string; AReasonString: string; const AHeaders: TStringList): IMVCResponse; overload;
-//begin
-//  Result := TMVCResponse.Create(AStatusCode, AMessage, AReasonString, AHeaders);
-//end;
-//
-//function MVCResponse(AStatusCode: Integer; AData: TObject; AReasonString: string; const AHeaders: TStringList): IMVCResponse; overload;
-//begin
-//  Result := TMVCResponse.Create(AStatusCode, AData, AReasonString, AHeaders);
-//end;
-//
-//function MVCResponse(AStatusCode: Integer; AObjectDictionary: IMVCObjectDictionary; AReasonString: string; const AHeaders: TStringList): IMVCResponse; overload;
-//begin
-//  Result := TMVCResponse.Create(AStatusCode, AObjectDictionary, AReasonString, AHeaders);
-//end;
-
 function MVCResponseBuilder: IMVCResponseBuilder;
 begin
   Result := TMVCResponseBuilder.Create;
 end;
-
-// end - std responses
-
-
-{ TMVCResponseBuilder }
 
 function TMVCResponseBuilder.Body(const MessageText: String): IMVCResponseBuilder;
 begin
@@ -4694,24 +4671,11 @@ end;
 
 function TMVCResponseBuilder.Build: IMVCResponse;
 begin
-  if (fData = nil) and (fObjectDict = nil) then
-  begin
-    Result := TMVCResponse.Create(fStatusCode, fMessage, fReason, fHeaders);
-    TMVCResponse(Result).SetIgnoredList(['Data','ObjectDictionary']);
-  end
-  else
-  begin
-    if fData = nil then
-    begin
-      Result := TMVCResponse.Create(fStatusCode, fObjectDict, fReason, fHeaders);
-      TMVCResponse(Result).SetIgnoredList(['Data']);
-    end
-    else
-    begin
-      Result := TMVCResponse.Create(fStatusCode, fData, fReason, fHeaders);
-      TMVCResponse(Result).SetIgnoredList(['ObjectDictionary']);
-    end;
-  end;
+  Result := TMVCResponse.Create;
+  Result.Data := fData;
+  Result.Message := fMessage;
+  Result.ObjectDictionary := fObjectDict;
+  Result.StatusCode := fStatusCode;
   fBuilt := True;
 end;
 
@@ -4725,7 +4689,10 @@ end;
 
 function TMVCResponseBuilder.Body(const Data: TObject): IMVCResponseBuilder;
 begin
-  FreeAndNil(fData);
+  if fData <> nil then
+  begin
+    raise EMVCResponseBuilderException.Create('Body already contains a "Data" node - To add two or more "Data" nodes use "ObjectDict"');
+  end;
   fData := Data;
   Result := Self;
 end;
@@ -4745,8 +4712,7 @@ begin
   Result := fHeaders <> nil;
 end;
 
-function TMVCResponseBuilder.Header(const Name: String;
-  Value: String): IMVCResponseBuilder;
+function TMVCResponseBuilder.Header(const Name: String; const Value: String): IMVCResponseBuilder;
 begin
   if not HasHeaders then
   begin
@@ -4759,6 +4725,10 @@ end;
 function TMVCResponseBuilder.Message(
   const Message: String): IMVCResponseBuilder;
 begin
+  if not fMessage.IsEmpty then
+  begin
+    raise EMVCResponseBuilderException.Create('Body already contains a "Message" node');
+  end;
   fMessage := Message;
   Result := Self;
 end;
@@ -4766,13 +4736,11 @@ end;
 function TMVCResponseBuilder.Body(
   const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder;
 begin
+  if fObjectDict <> nil then
+  begin
+    raise EMVCResponseBuilderException.Create('Body already contains an ObjectDict');
+  end;
   fObjectDict := ObjDictionary;
-  Result := Self;
-end;
-
-function TMVCResponseBuilder.Reason(const Reason: String): IMVCResponseBuilder;
-begin
-  fReason := Reason;
   Result := Self;
 end;
 

@@ -513,7 +513,34 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   }
   ```
 
-- Removed `statuscode` and `reasonstring` from exception's JSON rendering.
+- Removed `statuscode`, `reasonstring` and all the field with a default value from exception's JSON rendering.
+
+  Before
+
+  ```json
+  {
+      "apperrorcode": 0,
+      "statuscode": 404,
+      "reasonstring": "Not Found"
+      "classname": "EMVCException",
+      "data": null,
+      "detailedmessage": "",
+      "items": [],
+      "message": "[EMVCException] Not Found"
+  }
+  
+  ```
+
+  Now
+
+  ```json
+  {
+      "classname": "EMVCException",
+      "message": "Not Found"
+  }
+  ```
+
+  
 
 - ⚡ New! NamedQueries support for TMVCActiveRecord.
 

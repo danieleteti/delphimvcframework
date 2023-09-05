@@ -70,6 +70,8 @@ type
     function GetMVCResponseSimple: IMVCResponse;
     [MVCPath('/mvcresponse/data')]
     function GetMVCResponseWithData: IMVCResponse;
+    [MVCPath('/mvcresponse/data/message')]
+    function GetMVCResponseWithDataAndMessage: IMVCResponse;
     [MVCPath('/mvcresponse/json')]
     function GetMVCResponseWithJSON: IMVCResponse;
     [MVCPath('/mvcresponse/list')]
@@ -160,7 +162,6 @@ begin
   Result := MVCResponseBuilder
     .StatusCode(HTTP_STATUS.OK)
     .Body('My Message')
-    .Reason('My Reason String')
     .Build;
 end;
 
@@ -171,7 +172,6 @@ begin
     .Header('header1', 'Hello World')
     .Header('header2', 'foo bar')
     .Body('My Message')
-    .Reason('My Reason String')
     .Build;
 end;
 
@@ -180,6 +180,16 @@ begin
   Result := MVCResponseBuilder
     .StatusCode(HTTP_STATUS.OK)
     .Body(TPerson.Create('Daniele','Teti', 99))
+    .Build;
+end;
+
+function TMyController.GetMVCResponseWithDataAndMessage: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('This is a message')  //<< Message
+    .Body(TPerson.Create('Daniele','Teti', 99)) //<< Data
+    .Body(ObjectDict().Add('person', TPerson.Create('Daniele','Teti', 99)))
     .Build;
 end;
 
