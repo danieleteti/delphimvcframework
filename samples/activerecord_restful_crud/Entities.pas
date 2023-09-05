@@ -102,6 +102,25 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  [MVCEntityActions([eaRetrieve])]
+  [MVCNamedSQLQuery('AverageSalary',
+    'select person_type, coalesce(avg(salary::numeric), 0) average_salary from people ' +
+    'group by person_type order by 1', TMVCActiveRecordBackEnd.PostgreSQL)]
+  TSalaryAggregate = class(TMVCActiveRecord)
+  private
+    [MVCTableField('average_salary')]
+    FAverageSalary: Currency;
+    [MVCTableField('person_type')]
+    FPersonType: String;
+    procedure SetAverageSalary(const Value: Currency);
+    procedure SetPersonType(const Value: String);
+  public
+    property PersonType: String read FPersonType write SetPersonType;
+    property AverageSalary: Currency read FAverageSalary write SetAverageSalary;
+  end;
+
+
+  [MVCNameCase(ncLowerCase)]
   [MVCTable('articles')]
   [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
   TArticle = class(TMVCActiveRecord)
@@ -272,9 +291,22 @@ begin
     self.ID.ToString + ')', 100);
 end;
 
+{ TSalaryAggregate }
+
+procedure TSalaryAggregate.SetAverageSalary(const Value: Currency);
+begin
+  FAverageSalary := Value;
+end;
+
+procedure TSalaryAggregate.SetPersonType(const Value: String);
+begin
+  FPersonType := Value;
+end;
+
 initialization
 
 ActiveRecordMappingRegistry.AddEntity('people', TPerson);
+ActiveRecordMappingRegistry.AddEntity('salary', TSalaryAggregate);
 ActiveRecordMappingRegistry.AddEntity('contacts', TContact);
 ActiveRecordMappingRegistry.AddEntity('phones', TPhone);
 ActiveRecordMappingRegistry.AddEntity('articles', TArticle);
