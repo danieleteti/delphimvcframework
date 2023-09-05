@@ -365,23 +365,23 @@ type
 
   EMVCException = class(Exception)
   protected
-    FHttpErrorCode: UInt16;
+    FHTTPStatusCode: UInt16;
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
     FErrorItems: TArray<String>;
-    procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
+    procedure CheckHTTPStatusCode(const AHTTPStatusCode: UInt16);
   public
-    constructor Create(const AMsg: string); overload; virtual;
     constructor Create(const AMsg: string; const ADetailedMessage: string;
       const AAppErrorCode: UInt16 = 0;
-      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError;
+      const AHTTPStatusCode: UInt16 = HTTP_STATUS.InternalServerError;
       const AErrorItems: TArray<String> = nil); overload; virtual;
-    constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
-    constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
+    constructor Create(const AMsg: string); overload; virtual;
+    constructor Create(const AHTTPStatusCode: UInt16; const AMsg: string); overload; virtual;
+    constructor Create(const AHTTPStatusCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
     constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce; overload;
-    constructor CreateFmt(const AHTTPErrorCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
-    property HttpErrorCode: UInt16 read FHttpErrorCode;
+    constructor CreateFmt(const AHTTPStatusCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
+    property HTTPStatusCode: UInt16 read FHTTPStatusCode;
     property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
     property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
     property ErrorItems: TArray<String> read FErrorItems;
@@ -932,18 +932,18 @@ end;
 constructor EMVCException.Create(const AMsg: string);
 begin
   inherited Create(AMsg);
-  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FHTTPStatusCode := HTTP_STATUS.InternalServerError;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
   SetLength(FErrorItems, 0);
 end;
 
 constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
-  const AAppErrorCode, AHTTPErrorCode: UInt16; const AErrorItems: TArray<String>);
+  const AAppErrorCode, AHTTPStatusCode: UInt16; const AErrorItems: TArray<String>);
 begin
   Create(AMsg);
-  CheckHTTPErrorCode(AHTTPErrorCode);
-  FHttpErrorCode := AHTTPErrorCode;
+  CheckHTTPStatusCode(AHTTPStatusCode);
+  FHTTPStatusCode := AHTTPStatusCode;
   FAppErrorCode := AAppErrorCode;
   FDetailedMessage := ADetailedMessage;
   if AErrorItems <> nil then
@@ -952,35 +952,35 @@ begin
   end;
 end;
 
-constructor EMVCException.Create(const AHTTPErrorCode: UInt16; const AMsg: string);
+constructor EMVCException.Create(const AHTTPStatusCode: UInt16; const AMsg: string);
 begin
-  CheckHTTPErrorCode(AHTTPErrorCode);
+  CheckHTTPStatusCode(AHTTPStatusCode);
   Create(AMsg);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
 end;
 
-procedure EMVCException.CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
+procedure EMVCException.CheckHTTPStatusCode(const AHTTPStatusCode: UInt16);
 begin
-  if (AHTTPErrorCode div 100 = 0) or (AHTTPErrorCode div 100 > 5) then
+  if (AHTTPStatusCode div 100 = 0) or (AHTTPStatusCode div 100 > 5) then
   begin
-    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHTTPErrorCode]);
+    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHTTPStatusCode]);
   end;
 end;
 
-constructor EMVCException.Create(const AHTTPErrorCode: UInt16;
+constructor EMVCException.Create(const AHTTPStatusCode: UInt16;
   const AAppErrorCode: Integer; const AMsg: string);
 begin
-  CheckHTTPErrorCode(AHTTPErrorCode);
+  CheckHTTPStatusCode(AHTTPStatusCode);
   Create(AMsg);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
   FAppErrorCode := AAppErrorCode;
 end;
 
-constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16;
+constructor EMVCException.CreateFmt(const AHTTPStatusCode: UInt16;
   const AMsg: string; const AArgs: array of const);
 begin
   inherited CreateFmt(AMsg, AArgs);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
 end;

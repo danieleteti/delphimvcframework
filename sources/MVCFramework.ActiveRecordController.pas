@@ -139,7 +139,7 @@ begin
   end;
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
   begin
-    Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
+    Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname));
     Exit;
   end;
 
@@ -261,7 +261,7 @@ begin
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Retrieve) then
     begin
-      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
+      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname));
       Exit;
     end;
 
@@ -271,7 +271,7 @@ begin
     end
     else
     begin
-      Render(TMVCErrorResponse.Create(http_status.NotFound, 'Not found', entityname.ToLower + ' not found'));
+      Render(TMVCErrorResponse.Create(http_status.NotFound, entityname.ToLower + ' not found'));
     end;
   finally
     lAR.Free;
@@ -352,7 +352,7 @@ begin
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Create) then
     begin
-      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot create ' + entityname, ''));
+      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot create ' + entityname));
       Exit;
     end;
 
@@ -399,7 +399,7 @@ begin
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Update) then
     begin
-      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot update ' + entityname, ''));
+      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot update ' + entityname));
       Exit;
     end;
     lAR.CheckAction(TMVCEntityAction.eaUpdate);
@@ -446,10 +446,10 @@ begin
   end;
   lAR := lARClass.Create;
   try
-    if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType) { TMVCActiveRecordClass(lAR) } ,
+    if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType),
       TMVCActiveRecordAction.Delete) then
     begin
-      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot delete ' + entityname, ''));
+      Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot delete ' + entityname));
       Exit;
     end;
     {

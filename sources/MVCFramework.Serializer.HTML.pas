@@ -343,7 +343,7 @@ begin
     begin
       lMVCException := EMVCException(AObject);
       lBody :=
-        EmitTitle(lMVCException.HttpErrorCode, lMVCException.Message) + sLineBreak +
+        EmitTitle(lMVCException.HTTPStatusCode, lMVCException.Message) + sLineBreak +
         EmitExceptionClass(lMVCException.ClassName) + sLineBreak +
         '<p>' + HTMLEntitiesEncode(lMVCException.DetailedMessage) + '</p>' + sLineBreak +
         '<div class="info">' +

@@ -304,6 +304,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
   - Check sample "function_actions_showcase.dproj" for more info.
 
+- In the class `EMVCException` the property `HTTPErrorCode` has been renamed in `HTTPStatusCode`.
+
 - ⚡ Functional Actions
 
   - In addition to the classic `procedure` based actions, now it's possibile to use functions as actions. The `Result` variable is automatically rendered and, if it is an object, its memory is freed.
@@ -374,7 +376,10 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```pascal
   function TMyController.GetMVCResponse: TMVCResponse;
   begin
-    Result := MVCResponse(HTTP_STATUS.OK, 'My Message');
+    Result := MVCResponseBuilder
+      .StatusCode(HTTP_STATUS.OK)
+      .Body('My Message')
+      .Build;
   end;
   ```
 
@@ -391,9 +396,12 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   **Data based response with single object**
 
   ```pascal
-  function TMyController.GetMVCResponse2: TMVCResponse;
+  function TMyController.GetMVCResponseWithData: TMVCResponse;
   begin
-    Result := MVCResponse(HTTP_STATUS.OK, TPerson.Create('Daniele','Teti', 99));
+    Result := MVCResponseBuilder
+      .StatusCode(HTTP_STATUS.OK)
+      .Body(TPerson.Create('Daniele','Teti', 99))
+      .Build;
   end;
   ```
 
@@ -414,13 +422,14 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```pascal
   function TMyController.GetMVCResponse3: TMVCResponse;
   begin
-    Result := MVCResponse(HTTP_STATUS.OK,
-      TObjectList<TPerson>.Create([
+    Result := MVCResponseBuilder
+      .StatusCode(HTTP_STATUS.OK)
+      .Body(TObjectList<TPerson>.Create([
         TPerson.Create('Daniele','Teti', 99),
         TPerson.Create('Peter','Parker', 25),
         TPerson.Create('Bruce','Banner', 45)
       ])
-    );
+    ).Build;
   end;
   ```
 
@@ -453,22 +462,23 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```pascal
   function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
   begin
-      Result := MVCResponse(
-        HTTP_STATUS.OK,
-        ObjectDict()
-          .Add('employees', TObjectList<TPerson>.Create([
-                          TPerson.Create('Daniele','Teti', 99),
-                          TPerson.Create('Peter','Parker', 25),
-                          TPerson.Create('Bruce','Banner', 45)
-                        ])
-          )
-          .Add('customers', TObjectList<TPerson>.Create([
-                          TPerson.Create('Daniele','Teti', 99),
-                          TPerson.Create('Peter','Parker', 25),
-                          TPerson.Create('Bruce','Banner', 45)
-                        ])
-          )
-      );
+    Result := MVCResponseBuilder
+      .StatusCode(HTTP_STATUS.OK)
+      .Body(ObjectDict()
+        .Add('customers', TObjectList<TPerson>.Create([
+                        TPerson.Create('Daniele','Teti', 99),
+                        TPerson.Create('Peter','Parker', 25),
+                        TPerson.Create('Bruce','Banner', 45)
+                      ])
+        )
+        .Add('employees', TObjectList<TPerson>.Create([
+                        TPerson.Create('Daniele','Teti', 99),
+                        TPerson.Create('Peter','Parker', 25),
+                        TPerson.Create('Bruce','Banner', 45)
+                      ])
+        )
+    )
+    .Build;
   end;
   ```
 
@@ -513,7 +523,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   }
   ```
 
-- Removed `statuscode`, `reasonstring` and all the field with a default value from exception's JSON rendering.
+- Removed `statuscode`, `reasonstring` and all the field with a default value from exception's JSON rendering. All the high-level rendering methods will emit standard `ReasonString`.
 
   Before
 
@@ -540,10 +550,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   }
   ```
 
-  
-
 - ⚡ New! NamedQueries support for TMVCActiveRecord.
-
   - `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>`. MOreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need. Check the example below.
 
     ```delphi

@@ -67,7 +67,8 @@ type
     property FullName: string read GetFullName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-    constructor Create; virtual;
+    constructor Create; overload; virtual;
+    constructor Create(FirstName, LastName: String; Age: Integer); overload;
     destructor Destroy; override;
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
@@ -422,6 +423,15 @@ constructor TPerson.Create;
 begin
   inherited Create;
   fID := 1000 + Random(1000);
+end;
+
+constructor TPerson.Create(FirstName, LastName: String; Age: Integer);
+begin
+  Create;
+  FFirstName := FirstName;
+  FLastName := LastName;
+  FDOB := EncodeDate(CurrentYear - Age, 1, 1);
+  FMarried := False;
 end;
 
 destructor TPerson.Destroy;

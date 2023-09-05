@@ -1047,8 +1047,10 @@ type
     function GetData: TObject;
     function GetMessage: string;
     function GetStatusCode: Integer;
+    function GetHeaders: TStringList;
     procedure SetData(const Value: TObject);
     procedure SetMessage(const Value: string);
+    procedure SetHeaders(const Headers: TStringList);
     procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
     function GetObjectDictionary: IMVCObjectDictionary;
     procedure SetStatusCode(const Value: Integer);
@@ -1059,6 +1061,7 @@ type
     property Message: string read GetMessage write SetMessage;
     property Data: TObject read GetData write SetData;
     property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
+    property Headers: TStringList read GetHeaders write SetHeaders;
   end;
 
   TMVCBaseResponse = class abstract (TInterfacedObject, IMVCResponse)
@@ -1066,9 +1069,11 @@ type
     function GetMessage: string;virtual; abstract;
     function GetData: TObject; virtual; abstract;
     function GetObjectDictionary: IMVCObjectDictionary; virtual; abstract;
+    function GetHeaders: TStringList; virtual; abstract;
     procedure SetMessage(const Value: string); virtual; abstract;
     procedure SetData(const Value: TObject); virtual; abstract;
     procedure SetObjectDictionary(const Value: IMVCObjectDictionary); virtual; abstract;
+    procedure SetHeaders(const Headers: TStringList); virtual; abstract;
     function GetStatusCode: Integer; virtual; abstract;
     procedure SetStatusCode(const Value: Integer); virtual; abstract;
     function GetReasonString: string; virtual; abstract;
@@ -1076,6 +1081,8 @@ type
     function GetIgnoredList: TMVCIgnoredList; virtual; abstract;
     function HasHeaders: Boolean; virtual; abstract;
     function HasBody: Boolean; virtual; abstract;
+  public
+    constructor Create; virtual;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -1087,6 +1094,7 @@ type
     fObjectDictionary: IMVCObjectDictionary;
     fHeaders: TStringList;
     fReasonString: String;
+
   protected
     function GetData: TObject; override;
     function GetMessage: string; override;
@@ -1098,17 +1106,20 @@ type
     procedure SetObjectDictionary(const Value: IMVCObjectDictionary); override;
     function GetReasonString: string; override;
     procedure SetReasonString(const Value: string); override;
+    procedure SetHeaders(const Value: TStringList); override;
+    function GetHeaders: TStringList; override;
   protected
     function HasHeaders: Boolean; override;
     function HasBody: Boolean; override;
-    constructor Create; overload; virtual;
   public
+    constructor Create; overload; virtual;
+    constructor Create(const StatusCode: Integer; const Message: String); overload;
     destructor Destroy; override;
     function GetIgnoredList: TMVCIgnoredList; virtual;
     [MVCDoNotSerialize]
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     [MVCDoNotSerialize]
-    property ReasonString: String read GetReasonString write SetReasonString;
+    property Headers: TStringList read GetHeaders write SetHeaders;
     property Message: string read GetMessage write SetMessage;
     property Data: TObject read GetData write SetData;
     property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
@@ -1126,6 +1137,7 @@ type
     constructor Create; overload; override;
     constructor Create(const AStatusCode: Integer; const AMessage: String); overload;
     destructor Destroy; override;
+    function GetIgnoredList: TMVCIgnoredList; override;
     property Classname: string read fClassname write fClassname;
     property DetailedMessage: string read fDetailedMessage write fDetailedMessage;
     property AppErrorCode: Integer read fAppErrorCode write SetAppErrorCode;
@@ -2756,7 +2768,7 @@ begin
                   [ESess.Classname, ESess.Message, GetRequestShortDescription(ARequest),
                   ESess.DetailedMessage], LOGGERPRO_TAG);
                 lContext.SessionStop;
-                lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
+                lSelectedController.ResponseStatus(ESess.HTTPStatusCode);
                 lSelectedController.Render(ESess);
               end;
             end;
@@ -2768,12 +2780,12 @@ begin
                   [E.Classname, E.Message, GetRequestShortDescription(ARequest), E.DetailedMessage], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
-                  lSelectedController.ResponseStatus(E.HTTPErrorCode);
+                  lSelectedController.ResponseStatus(E.HTTPStatusCode);
                   lSelectedController.Render(E);
                 end
                 else
                 begin
-                  SendRawHTTPStatus(lContext, E.HTTPErrorCode, E.Message, E.Classname);
+                  SendRawHTTPStatus(lContext, E.HTTPStatusCode, E.Message, E.Classname);
                 end;
               end;
             end;
@@ -3364,7 +3376,7 @@ begin
         AResponse.StatusCode := http_status.InternalServerError; // default is Internal Server Error
         if E is EMVCException then
         begin
-          AResponse.StatusCode := (E as EMVCException).HTTPErrorCode;
+          AResponse.StatusCode := (E as EMVCException).HTTPStatusCode;
         end;
 
         AResponse.Content := E.Message;
@@ -4060,7 +4072,6 @@ begin
   R := TMVCErrorResponse.Create;
   try
     R.StatusCode := AStatusCode;
-    R.ReasonString := HTTP_STATUS.ReasonStringFor(AStatusCode);
     R.Message := AReasonMessage;
     R.Classname := AErrorClassName;
     R.Data := ADataObject;
@@ -4302,79 +4313,44 @@ var S: string; R: TMVCErrorResponse; I: TMVCErrorResponseItem;
 begin
   try
     if AException is EMVCException then
-      ResponseStatus(EMVCException(AException).HTTPErrorCode, AException.Message + ' [' +
-        AException.Classname + ']');
+      ResponseStatus(EMVCException(AException).HTTPStatusCode)
+    else
+      ResponseStatus(http_status.InternalServerError);
 
-    if (GetContext.Response.StatusCode = http_status.OK) then
-      ResponseStatus(http_status.InternalServerError, AException.Message + ' [' +
-        AException.Classname + ']');
-
-    // if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
-    // begin
-    // SetContentType(TMVCMediaType.TEXT_HTML);
-    // Render(AException, False);
-    // exit;
-    // ResponseStream.Clear;
-    // ResponseStream.Append
-    // ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
-    // .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
-    // .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
-    // [GetContext.Response.StatusCode]).AppendFormat('HTTP Reason Text: "%s"</pre>',
-    // [GetContext.Response.ReasonString])
-    // .Append('<h3><pre>').AppendFormat('Exception Class Name : %s' + sLineBreak, [AException.Classname])
-    // .AppendFormat('Exception Message    : %s' + sLineBreak, [AException.Message]).Append('</pre></h3>');
-    // if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
-    // begin
-    // ResponseStream.Append('<h2><pre>');
-    // for S in AExceptionItems do
-    // ResponseStream.AppendLine('- ' + S);
-    // ResponseStream.Append('</pre><h2>');
-    // end
-    // else
-    // begin
-    // ResponseStream.AppendLine('<pre>No other information available</pre>');
-    // end;
-    // ResponseStream.Append('</body></html>');
-    // RenderResponseStream;
-    // end
-    // else
-    begin
-      R := TMVCErrorResponse.Create;
-      try
-        R.StatusCode := GetContext.Response.StatusCode;
-        R.ReasonString := HTTP_STATUS.ReasonStringFor(R.StatusCode);
-        R.Message := AException.Message;
-        R.Classname := AException.Classname;
-        if AException is EMVCException then
+    R := TMVCErrorResponse.Create;
+    try
+      R.StatusCode := GetContext.Response.StatusCode;
+      R.Message := AException.Message;
+      R.Classname := AException.Classname;
+      if AException is EMVCException then
+      begin
+        R.AppErrorCode := EMVCException(AException).ApplicationErrorCode;
+        R.DetailedMessage := EMVCException(AException).DetailedMessage;
+        for S in EMVCException(AException).ErrorItems do
         begin
-          R.AppErrorCode := EMVCException(AException).ApplicationErrorCode;
-          R.DetailedMessage := EMVCException(AException).DetailedMessage;
-          for S in EMVCException(AException).ErrorItems do
-          begin
-            R.Items.Add(TMVCErrorResponseItem.Create(S));
-          end;
+          R.Items.Add(TMVCErrorResponseItem.Create(S));
         end;
-        if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
-        begin
-          for S in AExceptionItems do
-          begin
-            I := TMVCErrorResponseItem.Create;
-            I.Message := S;
-            R.Items.Add(I);
-          end;
-        end;
-
-        if Serializer(GetContentType, False) = nil then
-        begin
-          if Serializer(FContext.Request.BestAccept, False) <> nil then
-            GetContext.Response.ContentType := FContext.Request.BestAccept
-          else
-            GetContext.Response.ContentType := GetConfig[TMVCConfigKey.DefaultContentType];
-        end;
-        Render(R, False, nil, ['ObjectDictionary']);
-      finally
-        R.Free;
       end;
+      if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
+      begin
+        for S in AExceptionItems do
+        begin
+          I := TMVCErrorResponseItem.Create;
+          I.Message := S;
+          R.Items.Add(I);
+        end;
+      end;
+
+      if Serializer(GetContentType, False) = nil then
+      begin
+        if Serializer(FContext.Request.BestAccept, False) <> nil then
+          GetContext.Response.ContentType := FContext.Request.BestAccept
+        else
+          GetContext.Response.ContentType := GetConfig[TMVCConfigKey.DefaultContentType];
+      end;
+      Render(R, False, nil, R.GetIgnoredList);
+    finally
+      R.Free;
     end;
   finally
     if AOwns then
@@ -4388,7 +4364,6 @@ begin
   begin
     try
       GetContext.Response.StatusCode := AResponse.StatusCode;
-      GetContext.Response.ReasonString := AResponse.ReasonString;
       Render(AResponse, False, stProperties, nil, AResponse.GetIgnoredList);
     finally
       if AOwns then
@@ -4449,6 +4424,14 @@ begin
   FItems := TObjectList<TMVCErrorResponseItem>.Create(True);
 end;
 
+constructor TMVCResponse.Create(const StatusCode: Integer;
+  const Message: String);
+begin
+  Create;
+  fStatusCode := StatusCode;
+  fMessage := Message;
+end;
+
 destructor TMVCResponse.Destroy;
 begin
   fData.Free;
@@ -4458,6 +4441,11 @@ end;
 function TMVCResponse.GetData: TObject;
 begin
   Result := fData;
+end;
+
+function TMVCResponse.GetHeaders: TStringList;
+begin
+  Result := fHeaders;
 end;
 
 function TMVCResponse.GetIgnoredList: TMVCIgnoredList;
@@ -4524,6 +4512,12 @@ begin
   fData := Value;
 end;
 
+procedure TMVCResponse.SetHeaders(const Value: TStringList);
+begin
+  FreeAndNil(fHeaders);
+  fHeaders := Value;
+end;
+
 procedure TMVCResponse.SetMessage(const Value: string);
 begin
   fMessage := Value;
@@ -4556,6 +4550,33 @@ destructor TMVCErrorResponse.Destroy;
 begin
   FItems.Free;
   inherited Destroy;
+end;
+
+function TMVCErrorResponse.GetIgnoredList: TMVCIgnoredList;
+var
+  lCount: Integer;
+begin
+  SetLength(Result, 3);
+  lCount := 0;
+  if Items.Count = 0 then
+  begin
+    Result[lCount] := 'Items';
+    Inc(lCount);
+  end;
+
+  if AppErrorCode = 0 then
+  begin
+    Result[lCount] := 'AppErrorCode';
+    Inc(lCount);
+  end;
+
+  if DetailedMessage.IsEmpty then
+  begin
+    Result[lCount] := 'DetailedMessage';
+    Inc(lCount);
+  end;
+  SetLength(Result, lCount);
+  Result := (inherited GetIgnoredList) + Result;
 end;
 
 procedure TMVCErrorResponse.SetAppErrorCode(const Value: Integer);
@@ -4676,6 +4697,7 @@ begin
   Result.Message := fMessage;
   Result.ObjectDictionary := fObjectDict;
   Result.StatusCode := fStatusCode;
+  Result.Headers := fHeaders;
   fBuilt := True;
 end;
 
@@ -4749,6 +4771,13 @@ function TMVCResponseBuilder.StatusCode(
 begin
   fStatusCode := StatusCode;
   Result := Self;
+end;
+
+{ TMVCBaseResponse }
+
+constructor TMVCBaseResponse.Create;
+begin
+  inherited;
 end;
 
 initialization

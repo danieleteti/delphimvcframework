@@ -314,6 +314,23 @@ type
     [Test]
     procedure TestFuncActionGetComplexObject;
 
+
+    // test functional actions with IMVCResponse and the MVCResponseBuilder
+    [Test]
+    procedure TestGetMVCResponseSimple;
+
+    [Test]
+    procedure TestGetMVCResponseWithJSON;
+
+    [Test]
+    procedure TestGetMVCResponseWithObjectList;
+
+    [Test]
+    procedure TestGetMVCResponseWithDataAndMessage;
+
+    [Test]
+    procedure TestGetMVCResponseSimpleBuilderWithHeaders;
+
     // test issues
     [Test]
     [Category('renders')]
@@ -1640,6 +1657,87 @@ begin
   end;
 end;
 
+procedure TServerTest.TestGetMVCResponseSimple;
+var
+  r: IMVCRESTResponse;
+begin
+  r := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Get('/api/v1/actionresult/mvcresponse/message');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
+  Assert.areEqual('{"message":"My Message"}', r.Content, r.Content);
+end;
+
+procedure TServerTest.TestGetMVCResponseSimpleBuilderWithHeaders;
+var
+  r: IMVCRESTResponse;
+begin
+  r := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Get('/api/v1/actionresult/mvcresponse/message/builder/headers');
+  Assert.areEqual(HTTP_STATUS.Created, r.StatusCode);
+  Assert.AreEqual('Hello World', r.HeaderValue('header1'));
+  Assert.AreEqual('foo bar', r.HeaderValue('header2'));
+  var lJ := r.ToJSONObject;
+  try
+    Assert.IsTrue(lJ.Contains('message'));
+  finally
+    lJ.Free;
+  end;
+end;
+
+procedure TServerTest.TestGetMVCResponseWithDataAndMessage;
+var
+  r: IMVCRESTResponse;
+begin
+  r := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Get('/api/v1/actionresult/mvcresponse/data/message');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
+  var lJ := r.ToJSONObject;
+  try
+    Assert.IsTrue(lJ.Contains('data'));
+    Assert.IsTrue(lJ.Contains('message'));
+    Assert.IsTrue(lJ.Contains('person'));
+  finally
+    lJ.Free;
+  end;
+end;
+
+procedure TServerTest.TestGetMVCResponseWithJSON;
+var
+  r: IMVCRESTResponse;
+begin
+  r := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Get('/api/v1/actionresult/mvcresponse/json');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
+  Assert.areEqual('{"data":{"name":"Daniele","surname":"Teti"}}', r.Content, r.Content);
+end;
+
+procedure TServerTest.TestGetMVCResponseWithObjectList;
+var
+  r: IMVCRESTResponse;
+begin
+  r := TMVCRESTClient
+    .New
+    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .Get('/api/v1/actionresult/mvcresponse/list');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
+  var lJ := r.ToJSONObject;
+  try
+    Assert.IsTrue(lJ.Contains('data'));
+    Assert.IsTrue(lJ.Types['data'] = jdtArray);
+    Assert.AreEqual(3, lJ.A['data'].Count)
+  finally
+    lJ.Free;
+  end;
+end;
+
 procedure TServerTest.TestInvalidateSession;
 var
   c1: IMVCRESTClient;
@@ -2677,7 +2775,7 @@ begin
     lUrl := '..\' + lUrl;
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
     Assert.areEqual(404, lRes.StatusCode);
-    Assert.Contains(lRes.Content, '[EMVCException] Not Found', true);
+    Assert.Contains(lRes.Content, 'EMVCException', true);
     Assert.Contains(lRes.Content, '<p>404 Not Found</p>', true);
   end;
 end;

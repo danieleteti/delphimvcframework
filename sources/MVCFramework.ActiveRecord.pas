@@ -3915,7 +3915,7 @@ end;
 procedure EMVCActiveRecordNotFound.AfterConstruction;
 begin
   inherited;
-  fHttpErrorCode := http_status.NotFound;
+  FHTTPStatusCode := http_status.NotFound;
 end;
 
 class function TMVCActiveRecord.ExecQuery(
