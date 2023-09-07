@@ -929,7 +929,9 @@ end;
 
 function TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList_withmvcresponse_AsFunction: IMVCResponse;
 begin
-  Result := MVCResponseBuilder.Data(GetPeople_AsObjectList_AsFunction).Build;
+  Result := MVCResponseBuilder
+    .Body(GetPeople_AsObjectList_AsFunction)
+    .Build;
 end;
 
 procedure TRenderSampleController.GetSimpleArrays;
