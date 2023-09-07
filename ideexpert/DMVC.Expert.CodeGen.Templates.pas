@@ -243,7 +243,6 @@ resourcestring
     '  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);' + sLineBreak +
     '  Result := MVCResponseBuilder' + sLineBreak +
     '    .StatusCode(HTTP_STATUS.NoContent)' + sLineBreak +
-    '    .Reason(''Person updated'')' + sLineBreak +
     '    .Build;' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
     'function %0:s.DeletePerson(ID: Integer): IMVCResponse;' + sLineBreak +
@@ -251,7 +250,6 @@ resourcestring
     '  LogI(''Deleted person with id '' + ID.ToString);' + sLineBreak +
     '  Result := MVCResponseBuilder' + sLineBreak +
     '    .StatusCode(HTTP_STATUS.NoContent)' + sLineBreak +
-    '    .Reason(''Person deleted'')' + sLineBreak +
     '    .Build;' + sLineBreak +
     'end;' + sLineBreak;
 

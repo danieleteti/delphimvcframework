@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
-![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.3.0--fluorine-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.4.0--neon--beta-red)  
+![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.4.0--neon-blue)
+![](https://img.shields.io/badge/Beta%20Version-dmvcframework--4.0.0--oxygen--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -134,7 +134,7 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 
 > If you are not involved in development or testing, do not clone the repo! Use the Github release!
 
-The last stable version is **dmvcframework-3.2.3-radium** available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
+The last stable version available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. Samples are available as separate zip file downloadable from the same page where you download the release.
 
 ## Book: "DelphiMVCFramework - the official guide"
 
@@ -217,44 +217,22 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
-## What's New in dmvcframework-3.3.0-fluorine (last stable version)
+## What's New in DelphiMVCFramework-3.4.0-neon (current stable version)
 
-- ⚡ Support for Delphi 11.3 Alexandria
-- ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
-- ⚡ Improved Wizard - now it produces commented code to show how to use `ContextEvents`
-- ⚡ Improved compatibility with Delphi 10.2 Tokyo and older versions (Thanks Mark Lobanov)
-- ⚡ Added sample and middleware for Prometheus (using https://github.com/marcobreveglieri/prometheus-client-delphi)
-- ⚡ Added "Profiler.LogsOnlyIfOverThreshold" which logs only if over the defined threshold
-- 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
-- 🐞 FIX [Issue 652](https://github.com/danieleteti/delphimvcframework/issues/652) Thanks to [BssdTS](https://github.com/BssdTS)
-- 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
+>👉 Deeper analisys of what's new in DelphiMVCFramework-3.4.0-neone is available on [Daniele Teti Blog](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/) 👈
 
-
-
-## What's New in the next "repo version" a.k.a. 3.4.0-neon
-
-- ⚡ Added support for dotEnv multiline keys - added [dotEnv show case](https://github.com/danieleteti/delphimvcframework/tree/master/samples/dotenv_showcase)
-
+- ⚡ Added support for dotEnv
 - ⚡ Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
-
 - 🐞 FIX [Issue 664](https://github.com/danieleteti/delphimvcframework/issues/664) Thanks to [MPannier](https://github.com/MPannier)
-
 - 🐞 FIX [Issue 667](https://github.com/danieleteti/delphimvcframework/issues/667)
-
 - 🐞 FIX [Issue 680](https://github.com/danieleteti/delphimvcframework/issues/680)
-
 - 🐞 FIX [Issue 682](https://github.com/danieleteti/delphimvcframework/issues/682) (Thanks to [wuhao13](https://github.com/wuhao13))
-
 - 🐞 FIX Wrong comparison in checks for ro/RW/PK fields in `TMVCActiveRecord`
-
 - 🐞 FIX wrong default initialization for JWT (thanks to Flavio Basile)
-
 - ⚡ Wizard updated to be dotEnv aware
-
 - ⚡ Added [HTMX](https://htmx.org/) server side support through unit `samples\htmx\MVCFramework.HTMX.pas` and the relative sample (Thanks to [David Moorhouse](https://github.com/fastbike)). This unit provides class helper for `TMVCWebRequest` and `TMVCWebResponse` classes to easily work with HTMX. If you want to use this unit just download the samples and add it to your project or put `$(DMVCHOME)\samples\htmx` in your library path.
 
 - ⚡ Added "Load Style" methods to `TMVCActiveRecord` (more info https://github.com/danieleteti/delphimvcframework/issues/675)
-
   - `TMVCActiveRecord` support "Factory Style" and "Load Style" methods when loads data from database.
 
     Using "Factory Style" methods (available from the first version) the result list is returned by the loader method (as shown in this piece of code from the `activerecord_showcase` sample).
@@ -293,21 +271,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     ```
 
 - ⚡ Better error message in case of serialization of `TArray<TObject>`
-
 - ⚡ Improved CORS handling - [Issue 679](https://github.com/danieleteti/delphimvcframework/issues/679) (Thanks to [David Moorhouse](https://github.com/fastbike))
-
 - ⚡ Improved serialization of `TObjectList<TDataSet>` (however `ObjectDict` is still the preferred way to serialize multiple datasets).
-
 - ⚡ Added static method for easier cloning of FireDAC dataset into `TFDMemTable`. 
-
-  - `class function CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable`
-
-  - Check sample "function_actions_showcase.dproj" for more info.
-
 - In the class `EMVCException` the property `HTTPErrorCode` has been renamed in `HTTPStatusCode`.
-
 - ⚡ Functional Actions
-
   - In addition to the classic `procedure` based actions, now it's possibile to use functions as actions. The `Result` variable is automatically rendered and, if it is an object, its memory is freed.
 
     ```pascal
@@ -370,158 +338,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ⚡ Improved `TMVCResponse` type to better suits the new functional actions. 
 
   `TMVCResponse` can be used with "message based" responses and also with "data based" responses (with single object, with a list of objects or with a dictionary of objects).
-
-  **Message based responses**
-
-  ```pascal
-  function TMyController.GetMVCResponse: TMVCResponse;
-  begin
-    Result := MVCResponseBuilder
-      .StatusCode(HTTP_STATUS.OK)
-      .Body('My Message')
-      .Build;
-  end;
-  ```
-
-  Produces
-
-  ```json
-  {
-      "message":"My Message"
-  }
-  ```
-
-  
-
-  **Data based response with single object**
-
-  ```pascal
-  function TMyController.GetMVCResponseWithData: TMVCResponse;
-  begin
-    Result := MVCResponseBuilder
-      .StatusCode(HTTP_STATUS.OK)
-      .Body(TPerson.Create('Daniele','Teti', 99))
-      .Build;
-  end;
-  ```
-
-  Produces
-
-  ```json
-  {
-    "data": {
-      "firstName": "Daniele",
-      "lastName": "Teti",
-      "age": 99
-    }
-  }
-  ```
-
-  **Data based response with list of objects**
-
-  ```pascal
-  function TMyController.GetMVCResponse3: TMVCResponse;
-  begin
-    Result := MVCResponseBuilder
-      .StatusCode(HTTP_STATUS.OK)
-      .Body(TObjectList<TPerson>.Create([
-        TPerson.Create('Daniele','Teti', 99),
-        TPerson.Create('Peter','Parker', 25),
-        TPerson.Create('Bruce','Banner', 45)
-      ])
-    ).Build;
-  end;
-  ```
-
-  Produces
-
-  ```json
-  {
-    "data": [
-      {
-        "firstName": "Daniele",
-        "lastName": "Teti",
-        "age": 99
-      },
-      {
-        "firstName": "Peter",
-        "lastName": "Parker",
-        "age": 25
-      },
-      {
-        "firstName": "Bruce",
-        "lastName": "Banner",
-        "age": 45
-      }
-    ]
-  }
-  ```
-
-  **Data dictionary based response with `IMVCObjectDictionary` **
-
-  ```pascal
-  function TMyController.GetMVCResponseWithObjectDictionary: IMVCResponse;
-  begin
-    Result := MVCResponseBuilder
-      .StatusCode(HTTP_STATUS.OK)
-      .Body(ObjectDict()
-        .Add('customers', TObjectList<TPerson>.Create([
-                        TPerson.Create('Daniele','Teti', 99),
-                        TPerson.Create('Peter','Parker', 25),
-                        TPerson.Create('Bruce','Banner', 45)
-                      ])
-        )
-        .Add('employees', TObjectList<TPerson>.Create([
-                        TPerson.Create('Daniele','Teti', 99),
-                        TPerson.Create('Peter','Parker', 25),
-                        TPerson.Create('Bruce','Banner', 45)
-                      ])
-        )
-    )
-    .Build;
-  end;
-  ```
-
-  Produces
-
-  ```json
-  {
-      "employees": [
-        {
-          "firstName": "Daniele",
-          "lastName": "Teti",
-          "age": 99
-        },
-        {
-          "firstName": "Peter",
-          "lastName": "Parker",
-          "age": 25
-        },
-        {
-          "firstName": "Bruce",
-          "lastName": "Banner",
-          "age": 45
-        }
-      ],
-      "customers": [
-        {
-          "firstName": "Daniele",
-          "lastName": "Teti",
-          "age": 99
-        },
-        {
-          "firstName": "Peter",
-          "lastName": "Parker",
-          "age": 25
-        },
-        {
-          "firstName": "Bruce",
-          "lastName": "Banner",
-          "age": 45
-        }
-      ]
-  }
-  ```
+   
+   More info [here](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/)
 
 - Removed `statuscode`, `reasonstring` and all the field with a default value from exception's JSON rendering. All the high-level rendering methods will emit standard `ReasonString`.
 
@@ -583,157 +401,24 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
         const Params: array of const): Int64;
   ```
   
-  `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>` or `SelectByNamedQuery`. Moreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need. Check the example below.
+  `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>` or `SelectByNamedQuery`. Moreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need.
   
-  ```delphi
-  type
-    [MVCTable('customers')]
-    [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc',
-      TMVCActiveRecordBackEnd.FirebirdSQL)]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc',
-      TMVCActiveRecordBackEnd.PostgreSQL)]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
-    TCustomer = class(TCustomEntity)
-    private
-    // usual field declaration
-    end;
-    
-    //** then in the code
-    
-    Log('** Named SQL Query');
-    Log('QuerySQL: RatingLessThanPar');
-    var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
-    try
-      for var lCustomer in lCustomers do
-      begin
-        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-          lCustomer.CompanyName.ValueOrDefault]));
-      end;
-    finally
-      lCustomers.Free;
-    end;
+  More info [here](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/)  
   
-    Log('QuerySQL: RatingEqualsToPar');
-    lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingEqualsToPar', [3], [ftInteger]);
-    try
-      for var lCustomer in lCustomers do
-      begin
-        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-          lCustomer.CompanyName.ValueOrDefault]));
-      end;
-    finally
-      lCustomers.Free;
-    end;
-  
-  ```
-  
-  The same approach is available for RQL query, which can be used also for Count and Delete operations but doesnt allows to specify the backend (because RQL has an actual compiler to adapt the generated SQL to each RDBMS)
-  
-  ```delphi
-  type
-    [MVCTable('customers')]
-    [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc', 
-      TMVCActiveRecordBackEnd.FirebirdSQL)]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc', 
-      TMVCActiveRecordBackEnd.PostgreSQL)]
-    [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
-    [MVCNamedRQLQuery('RatingLessThanPar', 'lt(rating,%d);sort(+code,-city)')]
-    [MVCNamedRQLQuery('RatingEqualsToPar', 'eq(rating,%d);sort(+code,-city)')]
-    TCustomer = class(TCustomEntity)
-    private
-    // usual field declaration
-    end;
-    
-    //** then in the code
-    
-    Log('** Named RQL Query');
-    Log('QueryRQL: RatingLessThanPar');
-    lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
-    try
-      for var lCustomer in lCustomers do
-      begin
-        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-          lCustomer.CompanyName.ValueOrDefault]));
-      end;
-    finally
-      lCustomers.Free;
-    end;
-  
-    Log('QueryRQL: RatingEqualsToPar');
-    lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
-    try
-      for var lCustomer in lCustomers do
-      begin
-        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
-          lCustomer.CompanyName.ValueOrDefault]));
-      end;
-    finally
-      lCustomers.Free;
-    end;
-  
-  ```
-  
-  Now, having SQL and RQL named queries, it is possibile to have an entity which is not mapped on a specific table but loaded only by named queries. Such kind of entities **must** be declared using `[MVCEntityActions(eaRetrieve)]`.
-  
-  ```delphi
-  type
-    [MVCEntityActions([eaRetrieve])]  // <-- Required if "MVCTable" is not present.
-    [MVCNamedSQLQuery('CustomersInTheSameCity',
-      'SELECT c.id, c.DESCRIPTION, c.city, c.code, c.rating, (SELECT count(*) - 1 FROM customers c2 WHERE c2.CITY = c.CITY) customers_in_the_same_city ' +
-      'FROM CUSTOMERS c WHERE city IS NOT NULL AND city <> '''' ORDER BY customers_in_the_same_city')]
-    TCustomerStats = class(TCustomEntity) {not mapped on an actual table or view}
-    private
-      [MVCTableField('id', [foPrimaryKey, foAutoGenerated])]
-      fID: NullableInt64;
-      [MVCTableField('code')]
-      fCode: NullableString;
-      [MVCTableField('description')]
-      fCompanyName: NullableString;
-      [MVCTableField('city')]
-      fCity: string;
-      [MVCTableField('rating')]
-      fRating: NullableInt32;
-      [MVCTableField('customers_in_the_same_city')]
-      fCustomersInTheSameCity: Int32;
-    public
-      property ID: NullableInt64 read fID write fID;
-      property Code: NullableString read fCode write fCode;
-      property CompanyName: NullableString read fCompanyName write fCompanyName;
-      property City: string read fCity write fCity;
-      property Rating: NullableInt32 read fRating write fRating;
-      property CustomersInTheSameCity: Int32 read fCustomersInTheSameCity write fCustomersInTheSameCity;
-    end;
-  
-  
-  //** then in the code
-  
-  procedure TMainForm.btnVirtualEntitiesClick(Sender: TObject);
-  begin
-    var lCustStats := TMVCActiveRecord.SelectByNamedQuery<TCustomerStats>('CustomersInTheSameCity', [], []);
-    try
-      for var lCustomer in lCustStats do
-      begin
-        Log(Format('%4d - %8.5s - %s - (%d other customers in the same city)', [
-          lCustomer.ID.ValueOrDefault,
-          lCustomer.Code.ValueOrDefault,
-          lCustomer.CompanyName.ValueOrDefault,
-          lCustomer.CustomersInTheSameCity
-          ]));
-      end;
-    finally
-      lCustStats.Free;
-    end;
-  end;
-    
-    
-  ```
-  
-  
+## Older Versions
 
+### What's New in dmvcframework-3.3.0-fluorine
 
-## Old Versions
+- ⚡ Support for Delphi 11.3 Alexandria
+- ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
+- ⚡ Improved Wizard - now it produces commented code to show how to use `ContextEvents`
+- ⚡ Improved compatibility with Delphi 10.2 Tokyo and older versions (Thanks Mark Lobanov)
+- ⚡ Added sample and middleware for Prometheus (using https://github.com/marcobreveglieri/prometheus-client-delphi)
+- ⚡ Added "Profiler.LogsOnlyIfOverThreshold" which logs only if over the defined threshold
+- 🐞 FIX [Issue 648](https://github.com/danieleteti/delphimvcframework/issues/648) Thanks to [sf-spb](https://github.com/sf-spb)
+- 🐞 FIX [Issue 652](https://github.com/danieleteti/delphimvcframework/issues/652) Thanks to [BssdTS](https://github.com/BssdTS)
+- 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
+
 
 ### What's New in dmvcframework-3.2.3-radium
 
@@ -2017,14 +1702,6 @@ end;
 ## Roadmap
 
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
-
-## Next Release: 3.3.0-fluorine-beta ("repo" version)
-
-The current beta release is named 3.3.0-fluorine-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
-
-## What's new in: 3.3.0-fluorine-beta ("repo" version)
-
-Nothing, so far
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
