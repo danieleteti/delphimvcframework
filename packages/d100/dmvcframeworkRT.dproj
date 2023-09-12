@@ -182,6 +182,8 @@
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Utils.pas"/>
         <DCCReference Include="..\..\sources\JsonDataObjects.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.DotEnv.Parser.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.DotEnv.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -229,6 +231,12 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkRT100.bpl" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\dmvcframeworkRT100.bpl" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>dmvcframeworkRT.bpl</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

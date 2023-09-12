@@ -25,7 +25,7 @@ package dmvcframeworkRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team'}
+{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2021) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '110'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -111,7 +111,9 @@ contains
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
-  JsonDataObjects in '..\..\sources\JsonDataObjects.pas';
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
+  MVCFramework.DotEnv.Parser in '..\..\sources\MVCFramework.DotEnv.Parser.pas',
+  MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas';
 
 end.
 
