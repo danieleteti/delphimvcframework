@@ -29,6 +29,7 @@ unit MVCFramework.Middleware.CORS;
 interface
 
 uses
+  System.Classes,
   System.StrUtils,
   MVCFramework,
   MVCFramework.Commons;
@@ -118,7 +119,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Classes;
+  System.SysUtils;
 
 { TMVCCORSMiddleware }
 
@@ -161,12 +162,13 @@ function TMVCCORSMiddleware.GetAllowedOriginURL(AContext: TWebContext): String;
 var
   lRequestOrigin: string;
   lAllowed: String;
+  I: Integer;
 begin
   Result := '';
   lRequestOrigin := AContext.Request.Headers['Origin'];
   if lRequestOrigin <> '' then
   begin
-    for var I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
+    for I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
     begin
       lAllowed := FAllowedOriginURLs[I].Trim;
       if SameText(lRequestOrigin, lAllowed) or (lAllowed = '*') then
