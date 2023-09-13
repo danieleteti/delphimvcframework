@@ -45,10 +45,10 @@ requires
 
 contains
   Web.HTTPDImpl,
-  Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',
-  Web.ApacheHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas',
-  Web.Win.IsapiHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas',
-  Web.HTTPDMethods in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.HTTPDMethods.pas',
+  Web.ApacheConst,
+  Web.ApacheHTTP,
+  Web.Win.IsapiHTTP,
+  Web.HTTPDMethods,
   MVCFramework in '..\..\sources\MVCFramework.pas',
   MVCFramework.AsyncTask in '..\..\sources\MVCFramework.AsyncTask.pas',
   MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',

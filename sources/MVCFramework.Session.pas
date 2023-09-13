@@ -29,6 +29,7 @@ unit MVCFramework.Session;
 interface
 
 uses
+  System.Classes,
   System.SyncObjs,
   System.SysUtils,
   System.DateUtils,
@@ -124,7 +125,6 @@ implementation
 
 uses
   System.IOUtils,
-  System.Classes,
   MVCFramework.Serializer.Commons;
 
 var
