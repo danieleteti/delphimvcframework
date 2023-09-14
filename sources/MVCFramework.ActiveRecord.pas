@@ -4042,14 +4042,11 @@ var
 begin
   lQry := TFDQuery.Create(nil);
   try
+    lQry.FetchOptions.Mode := TFDFetchMode.fmAll;
     lQry.FetchOptions.Unidirectional := Unidirectional;
     lQry.UpdateOptions.ReadOnly := True;
     lQry.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
 
-    if Unidirectional then
-    begin
-      lQry.FetchOptions.CursorKind := ckForwardOnly;
-    end;
     if Connection = nil then
     begin
       lQry.Connection := ActiveRecordConnectionsRegistry.GetCurrent;
