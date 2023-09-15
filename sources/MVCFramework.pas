@@ -1499,49 +1499,26 @@ end;
 
 function TMVCWebRequest.ClientIp: string;
 var
-  S: string;
+  lValue: string;
+  function GetFirst(const Value: String): String; inline;
+  begin
+    Result := Value.Split([',',';'])[0].Trim();
+  end;
 begin
-  Result := EmptyStr;
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+  lValue := String(FWebRequest.GetFieldByName('X-Forwarded-For'));
+  if not lValue.IsEmpty then
+  begin
+    Exit(GetFirst(lValue));
+  end;
 
-  if FWebRequest.GetFieldByName('HTTP_CLIENT_IP') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('HTTP_CLIENT_IP'));
+  lValue := String(FWebRequest.GetFieldByName('X-Real-IP'));
+  if not lValue.IsEmpty then
+  begin
+    Exit(GetFirst(lValue));
+  end;
 
-  for S in string(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR')).Split([',']) do
-    if not S.Trim.IsEmpty then
-      Exit(S.Trim);
-
-  if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('HTTP_X_FORWARDED'));
-
-  if FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP'));
-
-  if FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR'));
-
-  if FWebRequest.GetFieldByName('HTTP_FORWARDED') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED'));
-
-  if FWebRequest.GetFieldByName('REMOTE_ADDR') <> EmptyStr then
-    Exit(FWebRequest.GetFieldByName('REMOTE_ADDR'));
-
-  if FWebRequest.RemoteIP <> EmptyStr then
-    Exit(FWebRequest.RemoteIP);
-
-  if FWebRequest.RemoteAddr <> EmptyStr then
-    Exit(FWebRequest.RemoteAddr);
-
-  if FWebRequest.RemoteHost <> EmptyStr then
-    Exit(FWebRequest.RemoteHost);
-
-  if FWebRequest.RemoteAddr <> EmptyStr then
-    Exit(FWebRequest.RemoteAddr);
-
-  if FWebRequest.RemoteIP <> EmptyStr then
-    Exit(FWebRequest.RemoteIP);
-
-  if FWebRequest.RemoteHost <> EmptyStr then
-    Exit(FWebRequest.RemoteHost);
+  Result := FWebRequest.RemoteAddr;
 end;
 
 function TMVCWebRequest.ClientPrefer(const AMediaType: string): Boolean;
