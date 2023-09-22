@@ -792,7 +792,8 @@ type
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
     function GetViewDataSets: TMVCViewDataSet;
-    function GetRenderedView(const AViewNames: TArray<string>): string; virtual;
+    function GetRenderedView(const AViewNames: TArray<string>): string; overload; virtual;
+    function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; virtual;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -1161,14 +1162,17 @@ type
     FContentType: string;
     FOutput: string;
   protected
+    FJSONModel: TJSONObject;
     function GetRealFileName(const AViewName: string): string; virtual;
-    function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean;
-      virtual; abstract;
+    function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
   public
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
       const AViewDataSets: TObjectDictionary<string, TDataSet>;
-      const AContentType: string); virtual;
+      const AContentType: string); overload; virtual;
+    constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+      const AJSONModel: TJSONObject;
+      const AContentType: string); overload; virtual;
     destructor Destroy; override;
 
     procedure Execute(const ViewName: string; const OutputStream: TStream); virtual; abstract;
@@ -3701,6 +3705,31 @@ begin
   Result := Context.Request.GetHeader('If-Match');
 end;
 
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>;
+  const JSONModel: TJSONObject): string;
+var
+  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
+begin
+  Assert(not Assigned(FViewModel), 'ViewModel must not be used when JSONModel is used');
+  Assert(not Assigned(FViewDataSets), 'ViewDatasets must not be used when JSONModel is used');
+  lStrStream := TStringStream.Create('', TEncoding.UTF8);
+  try
+    lView := FEngine.ViewEngineClass.Create(Engine, Context, JSONModel, ContentType);
+    try
+      for lViewName in AViewNames do
+      begin
+        lView.Execute(lViewName, lStrStream);
+      end;
+    finally
+      lView.Free;
+    end;
+    lStrStream.Position := 0;
+    Result := lStrStream.DataString;
+  finally
+    lStrStream.Free;
+  end;
+end;
+
 function TMVCController.GetSession: TMVCWebSession;
 begin
   Result := GetContext.Session;
@@ -4193,7 +4222,8 @@ begin
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
-var lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
+var
+  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
 begin
   lStrStream := TStringStream.Create('', TEncoding.UTF8);
   try
@@ -4590,6 +4620,14 @@ begin
   FViewDataSets := AViewDataSets;
   FContentType := AContentType;
   FOutput := EmptyStr;
+end;
+
+constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine;
+  const AWebContext: TWebContext; const AJSONModel: TJSONObject;
+  const AContentType: string);
+begin
+  Create(AEngine, AWebContext, nil, nil, AContentType);
+  fJSONModel := AJSONModel;
 end;
 
 destructor TMVCBaseViewEngine.Destroy;

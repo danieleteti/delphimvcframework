@@ -40,7 +40,7 @@ type
     procedure PrepareModels;
   private
     class var fPartials: TSynMustachePartials;
-    var FJSONModel: string;
+    var FJSONModelAsString: string;
     procedure LoadPartials;
   public
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
@@ -101,7 +101,7 @@ begin
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
   try
-    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel, fPartials, nil, nil)));
+    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModelAsString, fPartials, nil, nil)));
   finally
     lSW.Free;
   end;
@@ -153,10 +153,16 @@ var
   lJSON: string;
   lSer: IMVCSerializer;
 begin
-  {TODO -oDanieleT -cGeneral : Quite inefficient to generate JSON in this way. Why don't use a JSONObject directly?}
-  if (FJSONModel <> '{}') and (not FJSONModel.IsEmpty) then
+  if Assigned(FJSONModel) then
+  begin
+    FJSONModelAsString := FJSONModel.ToJSON(False);
     Exit;
-  FJSONModel := '{}';
+  end;
+
+  {TODO -oDanieleT -cGeneral : Quite inefficient to generate JSON in this way. Why don't use a JSONObject directly?}
+  if (FJSONModelAsString <> '{}') and (not FJSONModelAsString.IsEmpty) then
+    Exit;
+  FJSONModelAsString := '{}';
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
   RegisterOptionalCustomTypesSerializers(lSer);
@@ -192,7 +198,7 @@ begin
   end;
 
   lSJSON := lSJSON + '}';
-  FJSONModel := lSJSON;
+  FJSONModelAsString := lSJSON;
 end;
 
 end.
