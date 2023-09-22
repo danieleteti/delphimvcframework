@@ -316,9 +316,9 @@ begin
   end
   else
   begin
-    if not TryStrToInt(lTmp, Result) then
+    if not TryStrToInt(lTmp.Trim, Result) then
     begin
-      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer', [Name]);
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer [Current Value: "%s"]', [Name, lTmp]);
     end;
   end;
 end;
@@ -335,9 +335,9 @@ begin
   end
   else
   begin
-    if not TryStrToBool(lTmp, Result) then
+    if not TryStrToBool(lTmp.Trim, Result) then
     begin
-      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean', [Name]);
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean [Current Value: "%s"]', [Name, lTmp]);
     end;
   end;
 end;
