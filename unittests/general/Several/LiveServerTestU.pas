@@ -2941,14 +2941,11 @@ var
 begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/website/list');
   Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode, lRes.Content);
-  var
-  lLines := lRes.Content.Split([sLineBreak]);
-  var
-    lCount: Integer := 1001;
+  var lLines := lRes.Content.Split([sLineBreak]);
+  var lCount: Integer := 1001;
   for var lLine in lLines do
   begin
-    var
-    lLinePieces := lLine.Split(['|']);
+    var lLinePieces := lLine.Split(['|']);
     if Length(lLinePieces) = 1 then
     begin
       lCount := 1001;

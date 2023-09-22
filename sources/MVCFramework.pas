@@ -668,6 +668,7 @@ type
     function GetContext: TWebContext;
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    class procedure InternalRenderMVCResponse(const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
     /// <summary>
     /// HTTP Status 201 indicates that as a result of HTTP POST request, one or more new resources have been successfully created on server.
     /// The response may contain URI in Location header field in HTTP headers list, which can have reference to the newly created resource. Also, response payload also may include an entity containing a list of resource characteristics and location(s) from which the user or user agent can choose the one most appropriate.
@@ -724,7 +725,8 @@ type
     procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil; const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AObject: IInterface;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AStatusCode: Integer; const AObject: IInterface;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render<T: record>(const AStatusCode: Integer; var ARecord: T); overload;
@@ -743,7 +745,7 @@ type
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
     procedure RenderStatusMessage(const AStatusCode: Integer; const AReasonMessage: string = '';
-      const AErrorClassName: string = ''; const ADataObject: TObject = nil); overload;
+      const AErrorClassName: string = ''; const ADataObject: TObject = nil; const AOwns: Boolean = True); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
     procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
@@ -978,7 +980,6 @@ type
       const AResponse: TWebResponse); virtual;
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
-    procedure InternalRenderMVCResponse(const Controller: TMVCController; const MVCResponse: TMVCResponse);
   public
     class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
@@ -1094,7 +1095,8 @@ type
     fObjectDictionary: IMVCObjectDictionary;
     fHeaders: TStringList;
     fReasonString: String;
-
+    fOwnsData: Boolean;
+    procedure SetOwnsData(const Value: Boolean);
   protected
     function GetData: TObject; override;
     function GetMessage: string; override;
@@ -1108,6 +1110,8 @@ type
     procedure SetReasonString(const Value: string); override;
     procedure SetHeaders(const Value: TStringList); override;
     function GetHeaders: TStringList; override;
+    //do not expose this property through interface
+    property OwnsData: Boolean read fOwnsData write SetOwnsData;
   protected
     function HasHeaders: Boolean; override;
     function HasBody: Boolean; override;
@@ -1115,7 +1119,7 @@ type
     constructor Create; overload; virtual;
     constructor Create(const StatusCode: Integer; const Message: String); overload;
     destructor Destroy; override;
-    function GetIgnoredList: TMVCIgnoredList; virtual;
+    function GetIgnoredList: TMVCIgnoredList; override;
     [MVCDoNotSerialize]
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     [MVCDoNotSerialize]
@@ -1185,7 +1189,7 @@ type
     ['{10210D72-AFAE-4919-936D-EB08AA16C01C}']
     function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
     function Header(const Name: String; const Value: String): IMVCResponseBuilder;
-    function Body(const Data: TObject): IMVCResponseBuilder; overload;
+    function Body(const Data: TObject; const Owns: Boolean = True): IMVCResponseBuilder; overload;
     function Body(const Message: String): IMVCResponseBuilder; overload;
     function Body(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder; overload;
     function Build: IMVCResponse;
@@ -1221,6 +1225,7 @@ type
   private
     fBuilt: Boolean;
     fHeaders: TStringList;
+    fOwnsData: Boolean;
   protected
     fStatusCode: Integer;
     fMessage: String;
@@ -1229,7 +1234,7 @@ type
     function HasHeaders: Boolean;
     function StatusCode(const StatusCode: Integer): IMVCResponseBuilder;
     function Message(const Message: String): IMVCResponseBuilder;
-    function Body(const Data: TObject): IMVCResponseBuilder; overload;
+    function Body(const Data: TObject; const Owns: Boolean): IMVCResponseBuilder; overload;
     function Body(const MessageText: String): IMVCResponseBuilder; overload;
     function Body(const ObjDictionary: IMVCObjectDictionary): IMVCResponseBuilder; overload;
     function Header(const Name: String; const Value: String): IMVCResponseBuilder;
@@ -2614,7 +2619,7 @@ begin
                             begin
                               if Supports(lInvokeResult.AsInterface, IMVCResponse) then
                               begin
-                                InternalRenderMVCResponse(lSelectedController, TMVCResponse(lInvokeResult.AsInterface));
+                                TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lInvokeResult.AsInterface));
                               end
                               else
                               begin
@@ -2640,7 +2645,7 @@ begin
                                 end
                                 else if lResponseObject is TMVCResponse then
                                 begin
-                                  InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
+                                  TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
                                 end
                                 else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
                                 begin
@@ -3237,22 +3242,6 @@ begin
     ': ' + AReasonString);
 end;
 
-procedure TMVCEngine.InternalRenderMVCResponse(const Controller: TMVCController; const MVCResponse: TMVCResponse);
-begin
-  if MVCResponse.HasHeaders then
-  begin
-    Controller.Context.Response.CustomHeaders.AddStrings(MVCResponse.fHeaders);
-  end;
-  if MVCResponse.HasBody then
-  begin
-    Controller.Render(MVCResponse.StatusCode, MVCResponse, False, nil, MVCResponse.GetIgnoredList);
-  end
-  else
-  begin
-    Controller.ResponseStatus(MVCResponse.StatusCode);
-  end;
-end;
-
 procedure TMVCEngine.SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
   const AReasonString: string; const AClassName: string);
 var
@@ -3722,6 +3711,26 @@ begin
   Result := GetContext.Response.StatusCode;
 end;
 
+class procedure TMVCRenderer.InternalRenderMVCResponse(
+  const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
+begin
+begin
+  if MVCResponse.HasHeaders then
+  begin
+    Controller.FContext.Response.CustomHeaders.AddStrings(MVCResponse.fHeaders);
+  end;
+  if MVCResponse.HasBody then
+  begin
+    Controller.Render(MVCResponse.StatusCode, MVCResponse, False, nil, MVCResponse.GetIgnoredList);
+  end
+  else
+  begin
+    Controller.ResponseStatus(MVCResponse.StatusCode);
+  end;
+end;
+
+end;
+
 function TMVCController.GetViewData(const aModelName: string): TObject;
 begin
   if not FViewModel.TryGetValue(aModelName, Result) then
@@ -4041,21 +4050,17 @@ end;
 procedure TMVCRenderer.RenderStatusMessage(
   const AStatusCode: Integer;
   const AReasonMessage, AErrorClassName: string;
-  const ADataObject: TObject);
+  const ADataObject: TObject;
+  const AOwns: Boolean);
 var
-  R: TMVCErrorResponse;
+  lResponse: IMVCResponse;
 begin
-  ResponseStatus(AStatusCode, AReasonMessage);
-  R := TMVCErrorResponse.Create;
-  try
-    R.StatusCode := AStatusCode;
-    R.Message := AReasonMessage;
-    R.Classname := AErrorClassName;
-    R.Data := ADataObject;
-    Render(R, False, stProperties, nil);
-  finally
-    R.Free;
-  end;
+  lResponse := MVCResponseBuilder
+      .StatusCode(AStatusCode)
+      .Body(AReasonMessage)
+      .Body(ADataObject, AOwns)
+      .Build;
+  TMVCRenderer.InternalRenderMVCResponse(Self, TMVCResponse(lResponse));
 end;
 
 procedure TMVCRenderer.RenderStream(const AStream: TStream; const AOwns,
@@ -4114,10 +4119,11 @@ end;
 
 procedure TMVCRenderer.Render(
   const AObject: IInterface;
-  const ASerializationAction: TMVCSerializationAction);
+  const ASerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList);
 begin
   {TODO -oDanieleT -cGeneral : Handle StatusCode}
-  Render(TObject(AObject), False, ASerializationAction);
+  Render(TObject(AObject), False, ASerializationAction, AIgnoredFields);
 end;
 
 procedure TMVCRenderer.Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
@@ -4390,6 +4396,7 @@ end;
 constructor TMVCResponse.Create;
 begin
   inherited Create;
+  fOwnsData := True;
   fData := nil;
   fMessage := '';
   fObjectDictionary := nil;
@@ -4411,7 +4418,10 @@ end;
 
 destructor TMVCResponse.Destroy;
 begin
-  fData.Free;
+  if FOwnsData then
+  begin
+    fData.Free;
+  end;
   inherited;
 end;
 
@@ -4503,6 +4513,11 @@ end;
 procedure TMVCResponse.SetObjectDictionary(const Value: IMVCObjectDictionary);
 begin
   fObjectDictionary := Value;
+end;
+
+procedure TMVCResponse.SetOwnsData(const Value: Boolean);
+begin
+  fOwnsData := Value;
 end;
 
 procedure TMVCResponse.SetReasonString(const Value: string);
@@ -4671,6 +4686,7 @@ function TMVCResponseBuilder.Build: IMVCResponse;
 begin
   Result := TMVCResponse.Create;
   Result.Data := fData;
+  TMVCResponse(Result).OwnsData := fOwnsData;
   Result.Message := fMessage;
   Result.ObjectDictionary := fObjectDict;
   Result.StatusCode := fStatusCode;
@@ -4681,18 +4697,20 @@ end;
 constructor TMVCResponseBuilder.Create;
 begin
   inherited;
+  fOwnsData := True;
   fBuilt := False;
   fStatusCode := HTTP_STATUS.OK;
   fHeaders := nil;
 end;
 
-function TMVCResponseBuilder.Body(const Data: TObject): IMVCResponseBuilder;
+function TMVCResponseBuilder.Body(const Data: TObject; const Owns: Boolean): IMVCResponseBuilder;
 begin
   if fData <> nil then
   begin
     raise EMVCResponseBuilderException.Create('Body already contains a "Data" node - To add two or more "Data" nodes use "ObjectDict"');
   end;
   fData := Data;
+  fOwnsData := Owns;
   Result := Self;
 end;
 

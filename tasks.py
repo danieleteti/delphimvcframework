@@ -79,7 +79,6 @@ def build_delphi_project(
         + project_filename
         + '"'
     )
-    #print("\n" + "".join(cmdline))
     r = ctx.run(cmdline, hide=True, warn=True)
     if r.failed:
         print(r.stdout)
@@ -325,10 +324,13 @@ def tests32(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
-    r = subprocess.run([r"unittests\general\Several\bin32\DMVCFrameworkTests.exe"])
-    if r.returncode != 0:
-        return Exit("Compilation failed: \n" + str(r.stdout))
-    subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
+    r = None
+    try:
+        r = subprocess.run([r"unittests\general\Several\bin32\DMVCFrameworkTests.exe"])
+        if r.returncode != 0:
+            return Exit("Cannot run unit test client: \n" + str(r.stdout))
+    finally:
+        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
     if r.returncode > 0:
         print(r)
         print("Unit Tests Failed")
@@ -357,10 +359,13 @@ def tests64(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
-    r = subprocess.run([r"unittests\general\Several\bin64\DMVCFrameworkTests.exe"])
-    if r.returncode != 0:
-        return Exit("Compilation failed: \n" + str(r.stdout))
-    subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
+    r = None
+    try:
+        r = subprocess.run([r"unittests\general\Several\bin64\DMVCFrameworkTests.exe"])
+        if r.returncode != 0:
+            return Exit("Cannot run unit test client: \n" + str(r.stdout))
+    finally:
+        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
     if r.returncode > 0:
         print(r)
         print("Unit Tests Failed")

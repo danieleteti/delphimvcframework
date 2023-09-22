@@ -27,11 +27,11 @@ unit MVCFramework.View.Renderers.Mustache;
 {$IFDEF LINUX}
 This unit is not compatible with Linux
 {$ENDIF}
-  interface
+interface
 
-  uses
-  MVCFramework, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB;
+uses
+  MVCFramework, System.SysUtils, System.Generics.Collections,
+  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB, SynMustache;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -39,17 +39,21 @@ type
   strict private
     procedure PrepareModels;
   private
-    FJSONModel: string;
+    class var fPartials: TSynMustachePartials;
+    var FJSONModel: string;
+    procedure LoadPartials;
   public
-    procedure Execute(const ViewName: string; const OutputStream: TStream);
-      override;
+    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
+    constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+      const AViewModel: TMVCViewDataObject;
+      const AViewDataSets: TObjectDictionary<string, TDataSet>;
+      const AContentType: string); override;
+    class destructor Destroy;
   end;
 
 implementation
 
 uses
-  System.Generics.Collections,
-  SynMustache,
   SynCommons,
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
@@ -65,42 +69,74 @@ type
   TSynMustacheAccess = class(TSynMustache)
   end;
 
+var
+  gPartialsLoaded : Boolean = False;
+
+constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
+  const AWebContext: TWebContext; const AViewModel: TMVCViewDataObject;
+  const AViewDataSets: TObjectDictionary<string, TDataSet>;
+  const AContentType: string);
+begin
+  inherited;
+  LoadPartials;
+end;
+
+class destructor TMVCMustacheViewEngine.Destroy;
+begin
+  fPartials.Free;
+end;
+
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
-  I: Integer;
-  lPartialName: string;
   lViewFileName: string;
   lViewTemplate: RawUTF8;
   lViewEngine: TSynMustache;
   lSW: TStreamWriter;
-  lPartials: TSynMustachePartials;
 begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
   if not FileExists(lViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
-
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
-  lPartials := TSynMustachePartials.Create;
   try
-    for I := 0 to Length(TSynMustacheAccess(lViewEngine).fTags) - 1 do
-    begin
-      if TSynMustacheAccess(lViewEngine).fTags[I].Kind = mtPartial then
-      begin
-        lPartialName := TSynMustacheAccess(lViewEngine).fTags[I].Value;
-        lViewFileName := GetRealFileName(lPartialName);
-        if not FileExists(lViewFileName) then
-          raise EMVCFrameworkViewException.CreateFmt('Partial View [%s] not found', [lPartialName]);
-        lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
-        lPartials.Add(lPartialName, lViewTemplate);
-      end;
-    end;
-    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel, lPartials, nil, nil)));
+    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel, fPartials, nil, nil)));
   finally
     lSW.Free;
-    lPartials.Free;
+  end;
+end;
+
+procedure TMVCMustacheViewEngine.LoadPartials;
+var
+  lViewsExtension: string;
+  lViewPath: string;
+  lPartialFileNames: TArray<string>;
+  I: Integer;
+begin
+  if gPartialsLoaded then
+  begin
+    Exit
+  end
+  else
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if not gPartialsLoaded then
+      begin
+        lViewsExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
+        lViewPath := Config[TMVCConfigKey.ViewPath];
+        lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension);
+        fPartials := TSynMustachePartials.Create;
+        for I := 0 to High(lPartialFileNames) do
+        begin
+          fPartials.Add(TPath.GetFileNameWithoutExtension(lPartialFileNames[i]), TFile.ReadAllText(lPartialFileNames[i]));
+        end;
+        gPartialsLoaded := True;
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
   end;
 end;
 
