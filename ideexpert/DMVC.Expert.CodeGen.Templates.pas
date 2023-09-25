@@ -373,6 +373,8 @@ resourcestring
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env(''dmvc.default.view_file_extension'', ''html'');' + sLineBreak +
     '      //view path' + sLineBreak +
     '      Config[TMVCConfigKey.ViewPath] := dotEnv.Env(''dmvc.view_path'', ''templates'');' + sLineBreak +
+    '      //use cache for server side views (use "false" in debug and "true" in production for faster performances' + sLineBreak +
+    '      Config[TMVCConfigKey.ViewCache] := dotEnv.Env(''dmvc.view_cache'', ''false'');' + sLineBreak +
     '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
     '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env(''dmvc.max_entities_record_count'', IntToStr(TMVCConstants.MAX_RECORD_COUNT));' + sLineBreak +
 	  '      //Enable Server Signature in response' + sLineBreak +

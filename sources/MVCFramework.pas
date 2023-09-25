@@ -1170,7 +1170,11 @@ type
       const AViewModel: TMVCViewDataObject;
       const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string); overload; virtual;
-    constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+    constructor Create(
+      const AEngine: TMVCEngine;
+      const AWebContext: TWebContext;
+      const AViewModel: TMVCViewDataObject;
+      const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AJSONModel: TJSONObject;
       const AContentType: string); overload; virtual;
     destructor Destroy; override;
@@ -2721,6 +2725,7 @@ begin
                     lSelectedController.MVCControllerBeforeDestroy;
                   end;
                   lContext.Response.ContentType := lSelectedController.ContentType;
+                  Result := True; //handled
                 end; //if not handled by OnBeforeControllerActionMiddleware
                 ExecuteAfterControllerActionMiddleware(lContext,
                   lRouterControllerClazzQualifiedClassName,
@@ -3710,11 +3715,9 @@ function TMVCController.GetRenderedView(const AViewNames: TArray<string>;
 var
   lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
 begin
-  Assert(not Assigned(FViewModel), 'ViewModel must not be used when JSONModel is used');
-  Assert(not Assigned(FViewDataSets), 'ViewDatasets must not be used when JSONModel is used');
   lStrStream := TStringStream.Create('', TEncoding.UTF8);
   try
-    lView := FEngine.ViewEngineClass.Create(Engine, Context, JSONModel, ContentType);
+    lView := FEngine.ViewEngineClass.Create(Engine, Context, FViewModel, FViewDataSets, JSONModel, ContentType);
     try
       for lViewName in AViewNames do
       begin
@@ -3754,6 +3757,14 @@ begin
   end
   else
   begin
+    {
+      This useless call is required because otherwise
+      the IdCustomHTTPServer.pas at line 2211 (11 alexandria)
+      emits some useless HTML. Call Render('') cause
+      the internal contentstream to be created so the empty
+      stream is rendered and not the useless HTML.
+    }
+    Controller.Render(''); {required}
     Controller.ResponseStatus(MVCResponse.StatusCode);
   end;
 end;
@@ -4608,7 +4619,9 @@ end;
 
 { TMVCBaseView }
 
-constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+constructor TMVCBaseViewEngine.Create(
+      const AEngine: TMVCEngine;
+      const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
       const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string);
@@ -4622,11 +4635,15 @@ begin
   FOutput := EmptyStr;
 end;
 
-constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine;
-  const AWebContext: TWebContext; const AJSONModel: TJSONObject;
+constructor TMVCBaseViewEngine.Create(
+  const AEngine: TMVCEngine;
+  const AWebContext: TWebContext;
+  const AViewModel: TMVCViewDataObject;
+  const AViewDataSets: TObjectDictionary<string, TDataSet>;
+  const AJSONModel: TJSONObject;
   const AContentType: string);
 begin
-  Create(AEngine, AWebContext, nil, nil, AContentType);
+  Create(AEngine, AWebContext, AViewModel, AViewDataSets, AContentType);
   fJSONModel := AJSONModel;
 end;
 
@@ -4636,7 +4653,9 @@ begin
 end;
 
 function TMVCBaseViewEngine.GetRealFileName(const AViewName: string): string;
-var lFileName: string; lDefaultViewFileExtension: string;
+var
+  lFileName: string;
+  lDefaultViewFileExtension: string;
 begin
   lDefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
   lFileName := StringReplace(AViewName, '/', '\', [rfReplaceAll]);

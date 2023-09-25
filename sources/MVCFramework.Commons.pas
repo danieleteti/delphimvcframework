@@ -150,6 +150,7 @@ type
   public const
     SessionTimeout = 'sessiontimeout';
     ViewPath = 'view_path';
+    ViewCache = 'view_cache';
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
@@ -1054,7 +1055,8 @@ begin
   if FConfig.ContainsKey(AIndex) then
     Result := FConfig.Items[AIndex]
   else
-    raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
+    Result := ''; //v3.4.1-sodium (an invalid config key returns empty string, doesn't raise an exception)
+  //raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
 end;
 
 function TMVCConfig.GetValueAsInt64(const AIndex: string): Int64;

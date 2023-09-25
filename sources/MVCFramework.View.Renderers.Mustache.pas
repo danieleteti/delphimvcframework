@@ -60,7 +60,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 {$WARNINGS OFF}
 
@@ -111,6 +111,7 @@ procedure TMVCMustacheViewEngine.LoadPartials;
 var
   lViewsExtension: string;
   lViewPath: string;
+  lPartialName: String;
   lPartialFileNames: TArray<string>;
   I: Integer;
 begin
@@ -126,13 +127,18 @@ begin
       begin
         lViewsExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
         lViewPath := Config[TMVCConfigKey.ViewPath];
-        lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension);
+        lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension, TSearchOption.soAllDirectories);
+        FreeAndNil(fPartials);
         fPartials := TSynMustachePartials.Create;
         for I := 0 to High(lPartialFileNames) do
         begin
-          fPartials.Add(TPath.GetFileNameWithoutExtension(lPartialFileNames[i]), TFile.ReadAllText(lPartialFileNames[i]));
+          lPartialName := lPartialFileNames[i]
+            .Remove(lPartialFileNames[i].Length - lViewsExtension.Length - 1)
+            .Replace(TPath.DirectorySeparatorChar, '/');
+          lPartialName := lPartialName.Remove(0, lViewPath.Length + 1);
+          fPartials.Add(lPartialName, TFile.ReadAllText(lPartialFileNames[i]));
         end;
-        gPartialsLoaded := True;
+        gPartialsLoaded := SameText(Config[TMVCConfigKey.ViewCache], 'true');
       end;
     finally
       TMonitor.Exit(gLock);
@@ -145,60 +151,61 @@ end;
 
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
-  lFirst: Boolean;
   lList: IMVCList;
   DataObj: TPair<string, TObject>;
   lDSPair: TPair<string, TDataSet>;
-  lSJSON: string;
-  lJSON: string;
-  lSer: IMVCSerializer;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJSONModel: TJsonObject;
 begin
-  if Assigned(FJSONModel) then
+  if Assigned(FJSONModel) and (not Assigned(ViewModel)) and (not Assigned(ViewDataSets)) then
   begin
+    // if only jsonmodel is <> nil then we take the "fast path"
     FJSONModelAsString := FJSONModel.ToJSON(False);
     Exit;
   end;
 
-  {TODO -oDanieleT -cGeneral : Quite inefficient to generate JSON in this way. Why don't use a JSONObject directly?}
-  if (FJSONModelAsString <> '{}') and (not FJSONModelAsString.IsEmpty) then
-    Exit;
-  FJSONModelAsString := '{}';
-
   lSer := TMVCJsonDataObjectsSerializer.Create;
-  RegisterOptionalCustomTypesSerializers(lSer);
-  lSJSON := '{';
-  lFirst := True;
-
-  if Assigned(ViewModel) then
-  begin
-    for DataObj in ViewModel do
+  try
+    RegisterOptionalCustomTypesSerializers(lSer);
+    if Assigned(FJSONModel) then
     begin
-      lList := TDuckTypedList.Wrap(DataObj.Value);
-      if lList <> nil then
-        lJSON := lSer.SerializeCollection(DataObj.Value)
-      else
-        lJSON := lSer.SerializeObject(DataObj.Value);
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + DataObj.Key + '":' + lJSON;
-      lFirst := False;
-    end;
-  end;
-
-  if Assigned(ViewDataSets) then
-  begin
-    for lDSPair in ViewDataSets do
+      lJSONModel := FJSONModel.Clone as TJsonObject;
+    end
+    else
     begin
-      lJSON := lSer.SerializeDataSet(lDSPair.Value);
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + lDSPair.Key + '":' + lJSON;
-      lFirst := False;
+      lJSONModel := TJsonObject.Create;
     end;
-  end;
+    try
+      if Assigned(ViewModel) then
+      begin
+        for DataObj in ViewModel do
+        begin
+          lList := TDuckTypedList.Wrap(DataObj.Value);
+          if lList <> nil then
+          begin
+            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
+          end
+          else
+          begin
+            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
+          end;
+        end;
+      end;
 
-  lSJSON := lSJSON + '}';
-  FJSONModelAsString := lSJSON;
+      if Assigned(ViewDataSets) then
+      begin
+        for lDSPair in ViewDataSets do
+        begin
+          lSer.DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
+        end;
+      end;
+      FJSONModelAsString := lJSONModel.ToJSON(False);
+    finally
+      lJSONModel.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
 end;
 
 end.

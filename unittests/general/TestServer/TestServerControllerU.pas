@@ -1291,7 +1291,7 @@ begin
     var lFName: string := TPath.Combine(AppPath, 'customers.json');
     lDS.LoadFromFile(lFName);
     ViewDataset['customers'] := lDS;
-    ViewData['customers2'] := lDS;
+    ViewDataset['customers2'] := lDS;
     LoadView(['dataset_list']);
     RenderResponseStream;
   finally
