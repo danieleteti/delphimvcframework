@@ -1,1 +1,9 @@
-﻿<a hx-delete="/people/delete/{{guid}}" hx-confirm="Are you sure to delete {{first_name}} {{last_name}} ?" href="" hx-swap="delete" hx-target="closest tr">Delete</a>
+﻿<!--<a hx-delete="/people/delete/{{guid}}" hx-confirm="Are you sure to delete {{first_name}} {{last_name}} ?" href="" hx-swap="delete" hx-target="closest tr">Delete</a>-->
+
+<button 
+	hx-get="/people/modal/fordelete/{{guid}}" 
+	hx-target="#modals-here" 
+	hx-trigger="click"
+    data-bs-toggle="modal"
+    data-bs-target="#modals-here"
+	class="btn btn-primary">Delete</button>

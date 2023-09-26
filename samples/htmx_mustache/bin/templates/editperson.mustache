@@ -24,7 +24,7 @@
     <div class="col">
       <div class="form-group">
         <label for="first_name" class="control-label">First name</label>
-        <input type="text" value="{{person.first_name}}" class="form-control" id="first_name" placeholder="First name" name="first_name">
+        <input type="text" value="{{person.first_name}}" class="form-control" id="first_name" placeholder="First name" name="first_name" autocomplete="first_name" >
       </div>
     </div>
     <div class="col">        
@@ -46,7 +46,7 @@
     <div class="col">      			
       <div class="form-group">			
         <label for="items" class="col-sm-10 control-label">Devices</label>					
-          <select name="items" multiple class="form-control">
+          <select id="items" name="items" multiple class="form-control">
           {{#deviceslist}}
             <option value="{{devicename}}" {{#selected}}selected{{/selected}}>{{devicename}}</option>
           {{/deviceslist}}							

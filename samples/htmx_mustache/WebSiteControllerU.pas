@@ -38,6 +38,12 @@ type
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     procedure NewPerson;
 
+    [MVCPath('/modal/fordelete/($guid)')]
+    [MVCHTTPMethods([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function ShowModalForDelete(guid: string): String;
+
+
     [MVCPath('/edit/($guid)')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
@@ -47,6 +53,11 @@ type
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     procedure Index;
+
+    [MVCPath('/modal')]
+    [MVCHTTPMethods([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function ShowModal: String;
 
     [MVCPath('/mustacheshowcase')]
     [MVCHTTPMethods([httpGET])]
@@ -66,6 +77,7 @@ var
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   LDAL.DeleteByGUID(GUID);
+  Context.Response.SetPageRefresh(true);
   RenderStatusMessage(HTTP_STATUS.OK);
 end;
 
@@ -240,6 +252,29 @@ begin
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
   LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lDevices);
   Context.Response.SetRedirect('/people');
+end;
+
+function TWebSiteController.ShowModal: String;
+begin
+  var lJSON := StrToJSONObject('{"message":"Do you really want to delete row?", "title":"Bootstrap Modal Dialog"}');
+  try
+    Result := GetRenderedView(['modal'], lJSON);
+  finally
+    lJSON.Free;
+  end;
+end;
+
+function TWebSiteController.ShowModalForDelete(guid: string): String;
+begin
+  var lJSON := TJsonObject.Create;
+  try
+    lJSON.S['title'] := 'Bootstrap Modal Dialog';
+    lJSON.S['message'] := 'Do you really want to delete row?';
+    lJSON.S['guid'] := guid;
+    Result := GetRenderedView(['modal'], lJSON);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 end.
