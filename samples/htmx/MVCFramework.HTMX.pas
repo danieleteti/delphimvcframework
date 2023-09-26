@@ -31,7 +31,7 @@ unit MVCFramework.HTMX;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, System.Rtti, JsonDataObjects;
+  MVCFramework, MVCFramework.Commons, System.Rtti, JsonDataObjects, System.StrUtils;
 
 type
   THTMXRequestHeaderType = record
@@ -311,7 +311,7 @@ end;
 
 function THTMXResponseHelper.SetPageRefresh(Refresh: Boolean): TMVCWebResponse;
 begin
-  SetCustomHeader(THTMXResponseHeaderType.Refresh, BoolToStr(Refresh));
+  SetCustomHeader(THTMXResponseHeaderType.Refresh, ifthen(Refresh, 'true','false')); //must be lowercase
   Result := Self;
 end;
 
