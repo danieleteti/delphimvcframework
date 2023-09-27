@@ -28,6 +28,7 @@ interface
 
 uses
   System.SysUtils
+  ,System.SyncObjs
 {$IFDEF MSWINDOWS}
   ,WinApi.Windows
 {$ENDIF}
@@ -76,8 +77,7 @@ function GetCh: Char;
 procedure WaitForReturn;
 procedure SaveColors;
 procedure RestoreSavedColors;
-procedure Init;
-procedure SetDefaults;
+procedure SetDefaultColors;
 function ConsoleAttr: Integer;
 procedure SetConsoleAttr(const TextAttr: Integer);
 function TextAttr: Word;
@@ -101,6 +101,8 @@ var
   GBackGround, GSavedBackGround: Int16;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
+  GIsConsoleAllocated: Boolean = False;
+  GLock: TObject = nil;
 
 function ColorName(const color: TConsoleColor): String;
 begin
@@ -109,14 +111,14 @@ end;
 
 
 {$IFDEF LINUX}
-procedure WaitForReturn;
-begin
-  ReadLn;
-end;
-
 procedure Init; inline;
 begin
 
+end;
+
+procedure WaitForReturn;
+begin
+  ReadLn;
 end;
 
 procedure UpdateMode;
@@ -158,8 +160,36 @@ begin
     raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
 end;
 
+
+procedure Init;
+begin
+  if not GIsConsoleAllocated then
+  begin
+    TMonitor.Enter(GLock);
+    try
+      if not GIsConsoleAllocated then
+      begin
+        // Attempt to attach to the parent (if there is already a console allocated)
+        if not IsConsole then
+        begin
+          if not AttachConsole(ATTACH_PARENT_PROCESS) then
+            AllocConsole; // No console allocated, create a new one
+        end;
+        GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
+        if GOutHandle = INVALID_HANDLE_VALUE then
+          raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
+        GIsConsoleAllocated := True;
+      end;
+    finally
+      TMonitor.Exit(GLock);
+    end;
+    SetDefaultColors;
+  end;
+end;
+
 procedure WaitForReturn;
 begin
+  Init;
   while GetCh <> #13 do;
 end;
 
@@ -171,6 +201,7 @@ var
   lCharsWritten: UInt32;
   lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
 begin
+  Init;
   // https://docs.microsoft.com/en-us/windows/console/clearing-the-screen
   lSize := GetConsoleBufferSize;
   dwConSize := lSize.Columns * lSize.Rows;
@@ -216,6 +247,7 @@ var
   lMode, lCC: DWORD;
   C: Char;
 begin
+  Init;
   EnsureStdInput;
   C := #0;
   WinCheck(GetConsoleMode(GInputHandle, lMode));
@@ -239,15 +271,9 @@ begin
   Result.Rows := lConsoleScreenBufferInfo.dwSize.Y;
 end;
 
-procedure Init;
-begin
-  GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
-  if GOutHandle = INVALID_HANDLE_VALUE then
-    raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
-end;
-
 procedure UpdateMode;
 begin
+  Init;
   SetConsoleTextAttribute(GOutHandle, Ord(GForeGround) or Ord(GBackGround));
 end;
 
@@ -255,6 +281,7 @@ procedure GotoXY(const X, Y: Byte);
 var
   lCoord: _COORD;
 begin
+  Init;
   lCoord.X := X;
   lCoord.Y := Y;
   if not SetConsoleCursorPosition(GOutHandle, lCoord) then
@@ -267,10 +294,7 @@ end;
 
 procedure ResetConsole;
 begin
-  // write(ESC + '[0m');
-  GForeGround := Ord(TConsoleColor.DarkGray);
-  GBackGround := Ord(TConsoleColor.Black);
-  UpdateMode;
+  SetDefaultColors;
 end;
 
 procedure TextColor(const color: TConsoleColor);
@@ -287,9 +311,9 @@ begin
   // write(ESC + GetColorString);
 end;
 
-procedure SetDefaults;
+procedure SetDefaultColors;
 begin
-  GForeGround := Ord(TConsoleColor.White);
+  GForeGround := Ord(TConsoleColor.DarkGray);
   GBackGround := Ord(TConsoleColor.Black);
   UpdateMode;
 end;
@@ -346,16 +370,12 @@ begin
   UpdateMode;
 end;
 
-
-
 initialization
 
-if IsConsole then
-begin
-  Init;
-  SetDefaults;
-end;
+Glock := TObject.Create;
 
 finalization
+
+Glock.Free;
 
 end.
