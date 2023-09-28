@@ -901,7 +901,7 @@ uses
   MVCFramework.Nullables,
   MVCFramework.RTTI.Utils,
   FireDAC.Stan.Option,
-  Data.FmtBcd, System.Variants;
+  Data.FmtBcd, System.Variants, System.Math;
 
 var
   gCtx: TRttiContext;
@@ -2549,7 +2549,14 @@ begin
       begin
         if aValue.TypeInfo = TypeInfo(System.Boolean) then
         begin
-          aParam.AsBoolean := aValue.AsBoolean;
+          if aParam.DataTypeName.StartsWith('int', true) then
+          begin
+            aParam.AsInteger := IfThen(aValue.AsBoolean,1,0);
+          end
+          else
+          begin
+            aParam.AsBoolean := aValue.AsBoolean;
+          end;
         end
         else
         begin
