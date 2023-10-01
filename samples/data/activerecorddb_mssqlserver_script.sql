@@ -97,3 +97,8 @@ CREATE TABLE nullables_test (
     f_blob varchar(max)
 );
 
+create table integers_as_booleans (
+  id bigint not null identity primary key,
+  done_bool bit not null,
+  done_int smallint not null
+);

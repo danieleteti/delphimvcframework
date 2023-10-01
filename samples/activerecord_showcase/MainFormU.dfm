@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 569
+  ClientHeight = 593
   ClientWidth = 1104
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     1104
-    569)
+    593)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 8
     Width = 816
-    Height = 553
+    Height = 577
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -56,7 +56,7 @@ object MainForm: TMainForm
     WantReturns = False
     WordWrap = False
     ExplicitWidth = 812
-    ExplicitHeight = 552
+    ExplicitHeight = 576
   end
   object btnRelations: TButton
     Left = 8
@@ -284,6 +284,15 @@ object MainForm: TMainForm
     Caption = 'Virtual Entities'
     TabOrder = 27
     OnClick = btnVirtualEntitiesClick
+  end
+  object btnIntegersAsBool: TButton
+    Left = 8
+    Top = 522
+    Width = 121
+    Height = 34
+    Caption = 'Integers As Booleans'
+    TabOrder = 28
+    OnClick = btnIntegersAsBoolClick
   end
   object FDConnection1: TFDConnection
     Left = 312

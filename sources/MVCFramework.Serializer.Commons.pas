@@ -1139,16 +1139,17 @@ begin
       end;
     ftInteger, ftSmallint, ftShortint, ftByte:
       begin
-        // sqlite doesn't support boolean, so are identified as integers
-        // so we need to do some more checks...
+        // recognize "smallintegers" mapped to boolean attribute
         if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.FieldType.Handle = TypeInfo(Boolean)) then
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger = 1);
         end
-		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
+        // general enumerations
+    		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
         begin
           TValue(AField.AsInteger).ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
         end
+        // plain integers
         else
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger);

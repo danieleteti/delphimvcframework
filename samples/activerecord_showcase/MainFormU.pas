@@ -60,6 +60,7 @@ type
     btnRefresh: TButton;
     btnNamedQuery: TButton;
     btnVirtualEntities: TButton;
+    btnIntegersAsBool: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -90,6 +91,7 @@ type
     procedure btnRefreshClick(Sender: TObject);
     procedure btnNamedQueryClick(Sender: TObject);
     procedure btnVirtualEntitiesClick(Sender: TObject);
+    procedure btnIntegersAsBoolClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -388,9 +390,14 @@ begin
     lCustWithGUID.LoadByPK(lIDGUID);
     lCustWithGUID.Code.Value := '😉9012🙂';
     lCustWithGUID.Update;
+
+    lCustWithGUID.GUID := TGUID.NewGuid;
+    lCustWithGUID.Insert;
   finally
     lCustWithGUID.Free;
   end;
+
+
 
   lCustWithGUID := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lIDGUID);
   try
@@ -478,6 +485,55 @@ begin
     lCustomerEx.LoadByPK(1);
   finally
     lCustomerEx.Free;
+  end;
+end;
+
+procedure TMainForm.btnIntegersAsBoolClick(Sender: TObject);
+begin
+  Log('** Bool as Integer');
+  Log('  Only in the mapping layer it is possibile to map an integer field used ');
+  Log('  as boolean with values (0,1) as a boolean property');
+  Log('  --> (False is stored as 0, True is stored as 1) <--');
+  TMVCActiveRecord.DeleteAll(TIntegersAsBooleans);
+
+  for var I := 0 to 1 do
+  begin
+    for var b := False to True do
+    begin
+      var lTest1 := TIntegersAsBooleans.Create;
+      try
+        lTest1.DoneAsBoolean := b;
+        lTest1.DoneAsInteger := I;
+        lTest1.Store;
+      finally
+        lTest1.Free;
+      end;
+    end;
+  end;
+
+  { ** WARNING **
+     While mapping layer recognize a boolean stored as integer, queries must still
+     use the actual type (integer) instead of the mapped types}
+  Assert(2 = TMVCActiveRecord.Count<TIntegersAsBooleans>('eq(doneasboolean,true)'));
+  Assert(2 = TMVCActiveRecord.Count<TIntegersAsBooleans>('eq(doneasinteger,1)')); {the boolean attribute as integer}
+  Assert(1 = TMVCActiveRecord.Count<TIntegersAsBooleans>('and(eq(doneasboolean,true),eq(doneasinteger,1))'));
+  Assert(1 = TMVCActiveRecord.Count<TIntegersAsBooleans>('and(eq(doneasboolean,false),eq(doneasinteger,0))'));
+
+  var lList := TMVCActiveRecord.SelectRQL<TIntegersAsBooleans>('sort(+id)', 10);
+  try
+    Assert(lList.Count = 4);
+    var lIdx := 0;
+    for var I := 0 to 1 do
+    begin
+      for var b := False to True do
+      begin
+        Assert(b = lList[lIdx].DoneAsBoolean);
+        Assert(I = lList[lIdx].DoneAsInteger);
+        Inc(lIdx);
+      end;
+    end;
+  finally
+    lList.Free;
   end;
 end;
 

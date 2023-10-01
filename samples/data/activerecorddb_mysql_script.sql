@@ -55,7 +55,7 @@ CREATE TABLE customers_with_code (
 
 
 CREATE TABLE customers_with_guid (
-	idguid binary(16) NOT NULL,
+	idguid char(36) NOT NULL,
 	code varchar(20) NULL,
 	description varchar(200) NULL,
 	city varchar(200) NULL,
@@ -107,6 +107,12 @@ create table phones (
   number_type varchar(200) not null,  
   dob date,
   id_person integer not null references people(id)
+);
+
+create table integers_as_booleans (
+  id bigint not null auto_increment primary key,
+  done_bool boolean not null,
+  done_int smallint not null
 );
 
 ALTER TABLE orders ADD CONSTRAINT orders_customers_fk FOREIGN KEY (id_customer) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE;
