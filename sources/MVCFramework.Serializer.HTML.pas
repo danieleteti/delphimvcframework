@@ -176,9 +176,10 @@ const
   '<title>DMVCFramework</title>' +
   '<style>'+
   'body {' +
-  '  background: #fff;' +
+  '  background: #fff;'+
   '  padding: 2rem;' +
-  '  margin: 0;' +
+  '  margin: 0 auto;' +
+  '  max-width: 40rem;' +
   '  font-family: "Segoe UI Light", Tahoma, Arial, ui-sans-serif, sans-serif;' +
   '}' +
   '.color1 { color: #C5C5C5; } /* https://color.adobe.com/it/search?q=Primary%20colors&t=term */' +
@@ -187,6 +188,7 @@ const
   '.color4 { color: #003A69; }' +
   '.color5 { color: #000000; }' +
   '.container {' +
+  '  background: #f4f4f4;'+
   '  border: 2px solid #827C78;' +
   '  margin-top: 2rem;' +
   '  margin: auto;' +

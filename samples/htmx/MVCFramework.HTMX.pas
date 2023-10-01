@@ -86,7 +86,7 @@ type
     /// <summary>The value of the header is a JSON serialized</summary>
     /// <remarks>Requires the event-header extension to be installed and loaded on the page </remarks>
     /// <see>https://htmx.org/extensions/event-header/ </see>
-    function GetTriggeringEventAsJason: TJsonObject;
+    function GetTriggeringEventAsJSON: TJsonObject;
   end;
 
   THTMXResponseHeaderType = record
@@ -243,7 +243,7 @@ begin
     Result := GetHtmxHeader(THTMXRequestHeaderType.TriggeringEvent).Split([',']);
 end;
 
-function THTMXRequestHelper.GetTriggeringEventAsJason: TJsonObject;
+function THTMXRequestHelper.GetTriggeringEventAsJSON: TJsonObject;
 begin
   Result := nil;
   if HasHeader(THTMXRequestHeaderType.TriggeringEvent) then

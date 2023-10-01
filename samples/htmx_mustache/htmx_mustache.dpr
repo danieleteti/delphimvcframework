@@ -8,6 +8,7 @@ uses
   MVCFramework,
   MVCFramework.Signal,
   MVCFramework.Logger,
+  MVCFramework.Console,
   {$IFDEF MSWINDOWS}
   Winapi.ShellAPI,
   Winapi.Windows,
@@ -30,17 +31,23 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   ReportMemoryLeaksOnShutdown := True;
+  ResetConsole;
+  TextColor(TConsoleColor.Green);
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
+  ResetConsole;
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
     {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
+    //ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
     {$ENDIF}
-    Write('Ctrl+C  to stop the server');
+    WriteLn('HTMX DMVCFramework Sample');
+    TextColor(TConsoleColor.Red);
+    Write('Ctrl+C to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
+    ResetConsole;
     LServer.Active := False;
   finally
     LServer.Free;
