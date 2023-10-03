@@ -24,6 +24,9 @@
 
 unit MVCFramework.Console;
 
+
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -84,6 +87,9 @@ function TextAttr: Word;
 procedure SetTextAttr(const TextAttr: Word);
 function BackgroundAttr: Word;
 procedure SetBackgroundAttr(const BackgroundAttr: Word);
+procedure HideCursor;
+procedure ShowCursor;
+procedure CenterInScreen(const Text: String);
 
 
 function ColorName(const color: TConsoleColor): String;
@@ -104,6 +110,8 @@ var
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
 
+
+
 function ColorName(const color: TConsoleColor): String;
 begin
   Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
@@ -111,6 +119,16 @@ end;
 
 
 {$IFDEF LINUX}
+procedure HideCursor;
+begin
+
+end;
+
+procedure ShowCursor;
+begin
+
+end;
+
 procedure Init; inline;
 begin
 
@@ -154,12 +172,17 @@ end;
 {$ENDIF}
 {$IFDEF MSWINDOWS}
 
+{.$IF not Defined(RIOORBETTER)}
+const
+  ATTACH_PARENT_PROCESS = DWORD(-1);
+function AttachConsole(dwProcessId: DWORD): BOOL; stdcall; external kernel32 name 'AttachConsole';
+{.$ENDIF}
+
 procedure WinCheck(const Value: LongBool);
 begin
   if not Value then
     raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
 end;
-
 
 procedure Init;
 begin
@@ -185,6 +208,16 @@ begin
     end;
     SetDefaultColors;
   end;
+end;
+
+procedure InternalShowCursor(const ShowCursor: Boolean);
+var
+  info: CONSOLE_CURSOR_INFO;
+begin
+  Init;
+  GetConsoleCursorInfo(GOutHandle, info);
+  info.bVisible := ShowCursor;
+  SetConsoleCursorInfo(GOutHandle, info);
 end;
 
 procedure WaitForReturn;
@@ -290,7 +323,28 @@ begin
   end;
 end;
 
+procedure HideCursor;
+begin
+  InternalShowCursor(False);
+end;
+
+procedure ShowCursor;
+begin
+  InternalShowCursor(True);
+end;
+
 {$ENDIF}
+
+{ ******************************************* }
+{ * HIGH LEVEL FUNCTION - no IFDEF required * }
+{ ******************************************* }
+
+procedure CenterInScreen(const Text: String);
+begin
+  Init;
+  GotoXY(GetConsoleSize.Columns div 2 - Length(Text) div 2, GetConsoleSize.Rows div 2 - 1);
+  Write(Text)
+end;
 
 procedure ResetConsole;
 begin
@@ -346,7 +400,6 @@ begin
   GForeGround := lAttr shr 16;
   UpdateMode;
 end;
-
 
 function TextAttr: Word;
 begin
