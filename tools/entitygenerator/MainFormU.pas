@@ -54,7 +54,8 @@ uses
   Vcl.ExtActns, System.ImageList, Vcl.ImgList,
   LoggerPro.FileAppender,
   LoggerPro.VCLListBoxAppender,
-  LoggerPro;
+  LoggerPro, FireDAC.Moni.RemoteClient, FireDAC.Moni.Custom, FireDAC.Moni.Base,
+  FireDAC.Moni.FlatFile;
 
 type
   TSelectionType = (stAll, stNone, stInverse);
@@ -149,6 +150,9 @@ type
     Button6: TButton;
     gbOptions: TGroupBox;
     chkClassAsAbstract: TCheckBox;
+    FDMoniFlatFileClientLink1: TFDMoniFlatFileClientLink;
+    FDMoniCustomClientLink1: TFDMoniCustomClientLink;
+    FDMoniRemoteClientLink1: TFDMoniRemoteClientLink;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -1177,6 +1181,10 @@ begin
   if pcMain.ActivePage = tsTablesMapping then
   begin
     actRefreshTableList.Execute;
+    if EditOutputFileName.Text = '' then
+    begin
+      EditOutputFileName.Text := TPath.Combine(TPath.GetDocumentsPath, 'EntitiesU.pas');
+    end;
   end;
 end;
 

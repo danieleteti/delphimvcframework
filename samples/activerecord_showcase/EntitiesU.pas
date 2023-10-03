@@ -512,6 +512,64 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  [MVCTable('default_values_test')]
+  TDefaultValuesTest = class(TCustomEntity)
+  private
+    [MVCTableField('f_int2', [foPrimaryKey])]
+    ff_int2: NullableInt16;
+    [MVCTableField('f_int4')]
+    ff_int4: NullableInt32;
+    [MVCTableField('f_int8')]
+    ff_int8: NullableInt64;
+    [MVCTableField('f_date')]
+    ff_date: NullableTDate;
+    [MVCTableField('f_time')]
+    ff_time: NullableTTime;
+    [MVCTableField('f_bool')]
+    ff_bool: NullableBoolean;
+    [MVCTableField('f_datetime')]
+    ff_datetime: NullableTDateTime;
+    [MVCTableField('f_float4')]
+    ff_float4: NullableSingle;
+    [MVCTableField('f_float8')]
+    ff_float8: NullableDouble;
+    [MVCTableField('f_string')]
+    ff_string: NullableString;
+    [MVCTableField('f_currency')]
+    ff_currency: NullableCurrency;
+    [MVCTableField('f_blob')]
+    ff_blob: TStream;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    // f_int2 int2 NULL,
+    property f_int2: NullableInt16 read ff_int2 write ff_int2;
+    // f_int4 int4 NULL,
+    property f_int4: NullableInt32 read ff_int4 write ff_int4;
+    // f_int8 int8 NULL,
+    property f_int8: NullableInt64 read ff_int8 write ff_int8;
+    // f_string varchar NULL,
+    property f_string: NullableString read ff_string write ff_string;
+    // f_bool bool NULL,
+    property f_bool: NullableBoolean read ff_bool write ff_bool;
+    // f_date date NULL,
+    property f_date: NullableTDate read ff_date write ff_date;
+    // f_time time NULL,
+    property f_time: NullableTTime read ff_time write ff_time;
+    // f_datetime timestamp NULL,
+    property f_datetime: NullableTDateTime read ff_datetime write ff_datetime;
+    // f_float4 float4 NULL,
+    property f_float4: NullableSingle read ff_float4 write ff_float4;
+    // f_float8 float8 NULL,
+    property f_float8: NullableDouble read ff_float8 write ff_float8;
+    // f_currency numeric(18,4) NULL
+    property f_currency: NullableCurrency read ff_currency write ff_currency;
+    // f_blob bytea NULL
+    property f_blob: TStream read ff_blob write ff_blob;
+  end;
+
+
+  [MVCNameCase(ncLowerCase)]
   [MVCTable('complex_types')]
   TComplexTypes = class(TCustomEntity)
   private
@@ -819,6 +877,20 @@ end;
 procedure TIntegersAsBooleans.SetID(const Value: NullableInt64);
 begin
   FID := Value;
+end;
+
+{ TDefaultValuesTest }
+
+constructor TDefaultValuesTest.Create;
+begin
+  inherited Create;
+  ff_blob := TMemoryStream.Create;
+end;
+
+destructor TDefaultValuesTest.Destroy;
+begin
+  ff_blob.Free;
+  inherited;
 end;
 
 end.

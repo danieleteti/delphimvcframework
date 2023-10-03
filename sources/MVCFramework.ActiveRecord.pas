@@ -1301,7 +1301,6 @@ begin
             lValue := StrToInt(GetPartitionInfo.FieldValues[I])
           else
             lValue := GetPartitionInfo.FieldValues[I];
-          // lPar.DataTypeName := fPartitionInfo.FieldValues[I];
           MapTValueToParam(lValue, lPar);
         end
       end;
