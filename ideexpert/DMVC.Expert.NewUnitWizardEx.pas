@@ -47,7 +47,7 @@ type
 
 implementation
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 uses
   DMVC.Expert.Forms.NewUnitWizard,

@@ -50,7 +50,7 @@ type
 
 implementation
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 uses
   DccStrs,
