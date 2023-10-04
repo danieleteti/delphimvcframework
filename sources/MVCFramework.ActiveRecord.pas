@@ -3691,7 +3691,7 @@ function TMVCSQLGeneratorRegistry.GetSQLGenerator(const aBackend: string): TMVCS
 begin
   if not fSQLGenerators.TryGetValue(aBackend, Result) then
   begin
-    raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s"', [aBackend]);
+    raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s". [HINT] Include unit "MVCFramework.SQLGenerators.%s.pas" somewhere in the project code, if available.', [aBackend, aBackend]);
   end;
 end;
 
