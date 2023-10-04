@@ -117,6 +117,13 @@ resourcestring
     '      end);' + sLineBreak +
     '' + sLineBreak +
     '    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);' + sLineBreak +	
+	'' + sLineBreak +	
+    '    if dotEnv.Env(''dmvc.profiler.enabled'', false) then' + sLineBreak +	
+    '    begin' + sLineBreak +	
+    '      Profiler.ProfileLogger := Log;' + sLineBreak +	
+    '      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 2000);' + sLineBreak +	
+    '    end;' + sLineBreak +	
+	'' + sLineBreak +				
     '    RunServer(dotEnv.Env(''dmvc.server.port'', %1:d));' + sLineBreak +
     '  except' + sLineBreak +
     '    on E: Exception do' + sLineBreak +
