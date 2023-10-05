@@ -31,7 +31,7 @@ interface
 
 uses
   MVCFramework, System.SysUtils, System.Generics.Collections,
-  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB, SynMustache;
+  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB, SynMustache, SynCommons;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -40,8 +40,13 @@ type
     procedure PrepareModels;
   private
     class var fPartials: TSynMustachePartials;
+    class var fHelpers: TSynMustacheHelpers;
     var FJSONModelAsString: string;
     procedure LoadPartials;
+    procedure LoadHelpers;
+  protected
+    function RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
+      Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8; virtual;
   public
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
@@ -54,7 +59,6 @@ type
 implementation
 
 uses
-  SynCommons,
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
@@ -71,6 +75,7 @@ type
 
 var
   gPartialsLoaded : Boolean = False;
+  gHelpersLoaded : Boolean = False;
 
 constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
   const AWebContext: TWebContext; const AViewModel: TMVCViewDataObject;
@@ -79,11 +84,18 @@ constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
 begin
   inherited;
   LoadPartials;
+  LoadHelpers;
 end;
 
 class destructor TMVCMustacheViewEngine.Destroy;
 begin
   fPartials.Free;
+end;
+
+function TMVCMustacheViewEngine.RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
+  Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8;
+begin
+  Result := lViewEngine.RenderJSON(JSON, Partials, Helpers, OnTranslate, EscapeInvert);
 end;
 
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
@@ -101,9 +113,30 @@ begin
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
   try
-    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModelAsString, fPartials, nil, nil)));
+    lSW.Write(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
   finally
     lSW.Free;
+  end;
+end;
+
+procedure TMVCMustacheViewEngine.LoadHelpers;
+begin
+  if gHelpersLoaded then
+  begin
+    Exit
+  end
+  else
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if not gHelpersLoaded then
+      begin
+        fHelpers := TSynMustache.HelpersGetStandardList;
+        gPartialsLoaded := SameText(Config[TMVCConfigKey.ViewCache], 'true');
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
   end;
 end;
 
