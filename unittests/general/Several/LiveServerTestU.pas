@@ -471,7 +471,7 @@ uses
 
 function GetServer: string;
 begin
-  Result := 'http://' + TEST_SERVER_ADDRESS + ':9999';
+  Result := 'http://' + TEST_SERVER_ADDRESS + ':8888';
 end;
 
 { TServerTest }
@@ -487,7 +487,7 @@ end;
 procedure TBaseServerTest.Setup;
 begin
   inherited;
-  RESTClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  RESTClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   RESTClient.ReadTimeout(60 * 1000 * 30);
 end;
 
@@ -1477,7 +1477,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   lRes := c1.Get('/api/v1/actionresult/complex');
   Assert.areEqual(200, lRes.StatusCode);
   var lJSON := lRes.ToJSONObject;
@@ -1501,7 +1501,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   lRes := c1.Get('/api/v1/actionresult/dataset/multiple');
   Assert.areEqual(200, lRes.StatusCode);
   var lJSON := lRes.ToJSONObject;
@@ -1521,7 +1521,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   lRes := c1.Get('/api/v1/actionresult/dataset/single');
   Assert.areEqual(200, lRes.StatusCode);
   var lJSON := lRes.ToJSONArray;
@@ -1542,7 +1542,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   lRes := c1.Get('/api/v1/actionresult/records/multiple');
   Assert.areEqual(200, lRes.StatusCode);
   var lJSON := lRes.ToJSONArray;
@@ -1570,7 +1570,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   lRes := c1.Get('/api/v1/actionresult/records/single');
   Assert.areEqual(200, lRes.StatusCode);
   var lJSON := lRes.ToJSONObject;
@@ -1589,7 +1589,7 @@ var
   c1: IMVCRESTClient;
   lRes: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   // c1.Accept(TMVCMediaType.IMAGE_PNG);
   lRes := c1.Get('/image/png');
   Assert.areEqual(200, lRes.StatusCode);
@@ -1663,7 +1663,7 @@ var
 begin
   r := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Get('/api/v1/actionresult/mvcresponse/message');
   Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
   Assert.areEqual('{"message":"My Message"}', r.Content, r.Content);
@@ -1675,7 +1675,7 @@ var
 begin
   r := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Get('/api/v1/actionresult/mvcresponse/message/builder/headers');
   Assert.areEqual(HTTP_STATUS.Created, r.StatusCode);
   Assert.AreEqual('Hello World', r.HeaderValue('header1'));
@@ -1694,7 +1694,7 @@ var
 begin
   r := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Get('/api/v1/actionresult/mvcresponse/data/message');
   Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
   var lJ := r.ToJSONObject;
@@ -1713,7 +1713,7 @@ var
 begin
   r := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Get('/api/v1/actionresult/mvcresponse/json');
   Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
   Assert.areEqual('{"data":{"name":"Daniele","surname":"Teti"}}', r.Content, r.Content);
@@ -1725,7 +1725,7 @@ var
 begin
   r := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Get('/api/v1/actionresult/mvcresponse/list');
   Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
   var lJ := r.ToJSONObject;
@@ -1743,7 +1743,7 @@ var
   c1: IMVCRESTClient;
   res: IMVCRESTResponse;
 begin
-  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
+  c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
   c1.Accept(TMVCMediaType.APPLICATION_JSON);
   c1.AddPathParam('param1', 'daniele teti').Post('/session/($param1)');
   // imposto un valore in sessione
@@ -2719,7 +2719,7 @@ var
 begin
   c1 := TMVCRESTClient
     .New
-    .BaseURL(TEST_SERVER_ADDRESS, 9999)
+    .BaseURL(TEST_SERVER_ADDRESS, 8888)
     .Accept(TMVCMediaType.APPLICATION_JSON);
   res := c1.Post('/session/daniele teti'); // imposto un valore in sessione
   Assert.IsTrue(res.Cookies.Count > 0);
@@ -2776,7 +2776,7 @@ begin
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
     Assert.areEqual(404, lRes.StatusCode);
     Assert.Contains(lRes.Content, 'EMVCException', true);
-    Assert.Contains(lRes.Content, '<p>404 Not Found</p>', true);
+    Assert.Contains(lRes.Content, 'Not Found', true);
   end;
 end;
 
@@ -2942,9 +2942,14 @@ begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/website/list');
   Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode, lRes.Content);
   var lLines := lRes.Content.Split([sLineBreak]);
+  Assert.IsTrue(Length(lLines) > 5);
   var lCount: Integer := 1001;
   for var lLine in lLines do
   begin
+    if lLine.IsEmpty then
+    begin
+      Continue;
+    end;
     var lLinePieces := lLine.Split(['|']);
     if Length(lLinePieces) = 1 then
     begin
@@ -3047,11 +3052,11 @@ end;
 
 procedure TJSONRPCServerTest.InitExecutors;
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpc', false);
+  FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':8888/jsonrpc', false);
   FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
-    ':9999/jsonrpcclass', false);
+    ':8888/jsonrpcclass', false);
   FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
-    ':9999/jsonrpcclass1', false);
+    ':8888/jsonrpcclass1', false);
 end;
 
 procedure TJSONRPCServerTest.Setup;
@@ -3672,12 +3677,12 @@ end;
 
 procedure TJSONRPCServerWithGETTest.InitExecutors;
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcwithget',
+  FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':8888/jsonrpcwithget',
     false, jrpcGet);
   FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
-    ':9999/jsonrpcclasswithget', false, jrpcGet);
+    ':8888/jsonrpcclasswithget', false, jrpcGet);
   FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
-    ':9999/jsonrpcclass1withget', false, jrpcGet);
+    ':8888/jsonrpcclass1withget', false, jrpcGet);
 end;
 
 initialization

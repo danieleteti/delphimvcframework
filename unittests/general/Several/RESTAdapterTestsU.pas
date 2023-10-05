@@ -132,7 +132,7 @@ procedure TTestRESTAdapter.SetUp;
 begin
   inherited;
   RESTAdapter := TRESTAdapter<ITESTService>.Create;
-  TESTService := RESTAdapter.Build(TEST_SERVER_ADDRESS, 9999);
+  TESTService := RESTAdapter.Build(TEST_SERVER_ADDRESS, 8888);
 end;
 
 procedure TTestRESTAdapter.TestGetPersonByID;

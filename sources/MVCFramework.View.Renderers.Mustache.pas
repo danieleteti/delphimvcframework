@@ -48,6 +48,8 @@ type
     function RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
       Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8; virtual;
   public
+    class constructor Create;
+    class var CustomHelpers: TSynMustacheHelpers;
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
@@ -56,15 +58,31 @@ type
     class destructor Destroy;
   end;
 
+  TLoadCustomHelpersProc = reference to procedure(var MustacheHelpers: TSynMustacheHelpers);
+
+  TMVCMustacheHelpers = class sealed
+  private
+    class var fOnLoadCustomHelpers: TLoadCustomHelpersProc;
+  protected
+    class procedure RegisterHandlers(var MustacheHelpers: TSynMustacheHelpers);
+    class procedure ToLowerCase(const Value: variant; out Result: variant);
+    class procedure ToUpperCase(const Value: variant; out Result: variant);
+    class procedure Capitalize(const Value: variant; out Result: variant);
+    class procedure SnakeCase(const Value: variant; out Result: variant);
+  public
+    class property OnLoadCustomHelpers: TLoadCustomHelpersProc read fOnLoadCustomHelpers write fOnLoadCustomHelpers;
+  end;
+
 implementation
 
 uses
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects;
 
 {$WARNINGS OFF}
 
@@ -72,6 +90,9 @@ uses
 type
   TSynMustacheAccess = class(TSynMustache)
   end;
+
+
+
 
 var
   gPartialsLoaded : Boolean = False;
@@ -85,6 +106,11 @@ begin
   inherited;
   LoadPartials;
   LoadHelpers;
+end;
+
+class constructor TMVCMustacheViewEngine.Create;
+begin
+  SetLength(CustomHelpers, 0);
 end;
 
 class destructor TMVCMustacheViewEngine.Destroy;
@@ -132,7 +158,8 @@ begin
       if not gHelpersLoaded then
       begin
         fHelpers := TSynMustache.HelpersGetStandardList;
-        gPartialsLoaded := SameText(Config[TMVCConfigKey.ViewCache], 'true');
+        TMVCMustacheHelpers.RegisterHandlers(fHelpers); {dmvcframework specific helpers}
+        gHelpersLoaded := True;
       end;
     finally
       TMonitor.Exit(gLock);
@@ -240,5 +267,43 @@ begin
     lSer.Free;
   end;
 end;
+
+{ dmvcframework specific helpers}
+
+class procedure TMVCMustacheHelpers.Capitalize(const Value: variant;
+  out Result: variant);
+begin
+  Result := MVCFramework.Commons.CamelCase(Value, True);
+end;
+
+class procedure TMVCMustacheHelpers.RegisterHandlers(var MustacheHelpers: TSynMustacheHelpers);
+begin
+  TSynMustache.HelperAdd(MustacheHelpers, 'UpperCase', TMVCMustacheHelpers.ToUpperCase);
+  TSynMustache.HelperAdd(MustacheHelpers, 'LowerCase', TMVCMustacheHelpers.ToLowerCase);
+  TSynMustache.HelperAdd(MustacheHelpers, 'Capitalize', TMVCMustacheHelpers.Capitalize);
+  TSynMustache.HelperAdd(MustacheHelpers, 'SnakeCase', TMVCMustacheHelpers.SnakeCase);
+  if Assigned(fOnLoadCustomHelpers) then
+  begin
+    fOnLoadCustomHelpers(MustacheHelpers);
+  end;
+end;
+
+class procedure TMVCMustacheHelpers.SnakeCase(const Value: variant;
+  out Result: variant);
+begin
+  Result := MVCFramework.Commons.SnakeCase(Value);
+end;
+
+class procedure TMVCMustacheHelpers.ToLowerCase(const Value: variant;
+  out Result: variant);
+begin
+  Result := System.SysUtils.LowerCase(Value);
+end;
+
+class procedure TMVCMustacheHelpers.ToUpperCase(const Value: variant; out Result: variant);
+begin
+  Result := System.SysUtils.UpperCase(Value);
+end;
+
 
 end.

@@ -1,4 +1,4 @@
-program ServerSideViews;
+program ServerSideViewsMustache;
 
 {$APPTYPE CONSOLE}
 
@@ -17,7 +17,8 @@ uses
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas',
-  MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule};
+  MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
+  CustomMustacheHelpersU in 'CustomMustacheHelpersU.pas';
 
 {$R *.res}
 

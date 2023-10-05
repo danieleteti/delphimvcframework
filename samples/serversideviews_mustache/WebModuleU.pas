@@ -25,7 +25,7 @@ uses
   WebSiteControllerU,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Middleware.StaticFiles, SynMustache, CustomMustacheHelpersU;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -53,9 +53,17 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+      Config[TMVCConfigKey.ViewCache] := 'false';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCMustacheViewEngine)
+    .SetViewEngine(TMVCMustacheViewEngine);
+
+  // these helpers will be available to the mustache views as if they were the standard ones
+  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+  begin
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+  end
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

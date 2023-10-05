@@ -2962,7 +2962,7 @@ begin
           end
           else
           begin
-            ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
+            ASelectedController.Serializer(AContext.Request.ContentType, True).DeserializeObject(ASelectedController.Context.Request.Body,
               ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
           end;
           AActualParams[I] := ABodyParameter;
