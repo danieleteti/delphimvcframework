@@ -96,7 +96,7 @@ begin
     end;
 
     begin
-      if WebContext.Request.IsHTMX then
+      if WebContext.Request.HXIsHTMX then
       begin
         if SelectedController <> nil then
         begin

@@ -100,11 +100,11 @@ begin
   Movies := GetMovieService.ListAll;
   try
     ViewData['Movies'] := Movies;
-    if Context.Request.IsHTMX then
+    if Context.Request.HXIsHTMX then
     begin
       PageData.S['Explanation'] := 'Loaded via a seamless ajax call';
       // rendering with htmx, pudsh the URL into the browser bar so a page refresh will not go back to the index page
-      Context.Response.SetPushUrl('/movie/page');
+      Context.Response.HXSetPushUrl('/movie/page');
       // Context.Response.SetReswap(soInnerHTML,  ssScroll, sstBottom, '#theFooter');
       RenderForm(['Movie']);
     end
@@ -150,7 +150,7 @@ begin
   // make a server side delay so you can see the htmx indicator svg
   sleep(500);
   // now tell the web page to delay doing the content swap for another 1 second
-  Context.Response.SetReswap(soInnerHTML, 1000);
+  Context.Response.HXSetReswap(soInnerHTML, 1000);
   Render(Format('... Button was clicked at %s', [FormatDateTime('hh:mm:ss', Now)]));
 end;
 
@@ -165,7 +165,7 @@ begin
   try
     ViewData['Movies'] := Movie;
     ViewData['Genres'] := Genres;
-    Context.Response.TriggerClientEvent('setFocus', '.focus', etSwapped);
+    Context.Response.HXTriggerClientEvent('setFocus', '.focus', etSwapped);
     RenderForm(['MovieDataEdit']);
   finally
     Movie.Free;
@@ -187,7 +187,7 @@ begin
     ViewData['Genres'] := Genres;
     ViewData['Movies'] := Movie;
     // make sure the insert panel is visible - this shows how to triiger evenst in the browser from the server
-    Context.Response.TriggerClientEvent('setFocus', '.focus', etSwapped);
+    Context.Response.HXTriggerClientEvent('setFocus', '.focus', etSwapped);
     RenderForm(['MovieDataEdit']);
   finally
     Genres.Free;
@@ -225,7 +225,7 @@ begin
       raise Exception.Create('Could not create Movie');
     MovieID := Movie.MovieID;
     // send the object back to the script on the page
-    Context.Response.TriggerClientEvent('myEventObject', Movie);
+    Context.Response.HXTriggerClientEvent('myEventObject', Movie);
   finally
     Movie.Free;
   end;
@@ -245,7 +245,7 @@ begin
   finally
     Movie.Free;
   end;
-  Context.Response.TriggerClientEvent('savedEvent', 'Movie Saved OK');
+  Context.Response.HXTriggerClientEvent('savedEvent', 'Movie Saved OK');
 
   GetMovie(MovieID);
 end;
@@ -255,7 +255,7 @@ procedure TMovieController.DeleteMovie(MovieID: Integer);
 begin
   if not GetMovieService.DeleteMovie(MovieID) then
     raise Exception.Create('Could not delete Movie');
-  Context.Response.TriggerClientEvent('savedEvent', 'Movie Deleted OK');
+  Context.Response.HXTriggerClientEvent('savedEvent', 'Movie Deleted OK');
 
   RenderForm([]);
 end;

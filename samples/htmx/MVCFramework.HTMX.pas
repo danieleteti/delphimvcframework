@@ -55,38 +55,38 @@ type
     function HasHeader(Header: string): Boolean;
   public
     /// <summary>Indicates that the request is triggered by HTMX.</summary>
-    function IsHTMX: Boolean;
+    function HXIsHTMX: Boolean;
 
     /// <summary>Indicates that the request is via an element using hx-boost.</summary>
-    function IsBoosted: Boolean;
+    function HXIsBoosted: Boolean;
 
     /// <summary>True if the request is for history restoration after a miss in the local history cache</summary>
-    function IsHistoryRestoreRequest: Boolean;
+    function HXIsHistoryRestoreRequest: Boolean;
 
     /// <summary>The current URL of the browser.</summary>
-    function GetCurrentUrl: string;
+    function HXGetCurrentUrl: string;
 
     /// <summary>The user response to an hx-prompt.</summary>
-    function GetPrompt: string;
+    function HXGetPrompt: string;
 
     /// <summary>The id of the target element if it exists.</summary>
-    function GetTarget: string;
+    function HXGetTarget: string;
 
     /// <summary>The id of the triggered element if it exists.</summary>
-    function GetTrigger: string;
+    function HXGetTrigger: string;
 
     /// <summary>The name of the triggered element if it exists.</summary>
-    function GetTriggerName: string;
+    function HXGetTriggerName: string;
 
     /// <summary>The value of the header is a JSON serialized</summary>
     /// <remarks>Requires the event-header extension to be installed and loaded on the page </remarks>
     /// <see>https://htmx.org/extensions/event-header/ </see>
-    function GetTriggeringEvent: TArray<string>;
+    function HXGetTriggeringEvent: TArray<string>;
 
     /// <summary>The value of the header is a JSON serialized</summary>
     /// <remarks>Requires the event-header extension to be installed and loaded on the page </remarks>
     /// <see>https://htmx.org/extensions/event-header/ </see>
-    function GetTriggeringEventAsJSON: TJsonObject;
+    function HXGetTriggeringEventAsJSON: TJsonObject;
   end;
 
   THTMXResponseHeaderType = record
@@ -127,7 +127,7 @@ type
     /// <param name="URL">A URL to be pushed into the location bar.
     /// This may be relative or absolute, as per history.pushState().
     /// If omitted, the header will output "false", which prevents the browser’s history from being updated.</param>
-    function SetPushUrl(URL: string = ''): TMVCWebResponse;
+    function HXSetPushUrl(URL: string = ''): TMVCWebResponse;
 
     /// <summary>Replaces the current URL in the browser location history.</summary>
     /// <remarks>This does not create a new history entry; in effect, it removes the previous current URL from the browser’s history.
@@ -136,17 +136,17 @@ type
     /// <param name="URL">A URL to replace the current URL in the location bar.
     /// This may be relative or absolute, as per history.replaceState(), but must have the same origin as the current URL.
     /// If omitted, the header will output "false", which prevents the browser’s current URL from being updated.</param>
-    function SetReplaceUrl(URL: string = ''): TMVCWebResponse;
+    function HXSetReplaceUrl(URL: string = ''): TMVCWebResponse;
 
     /// <summary>Allows you to specify how the response will be swapped. See hx-swap for possible values</summary>
     /// Check if transition: true works ?
-    function SetReswap(Option: TSwapOption): TMVCWebResponse; overload;
+    function HXSetReswap(Option: TSwapOption): TMVCWebResponse; overload;
 
     /// <summary>Allows you to specify how the response will be swapped. See hx-swap for possible values</summary>
     /// <remarks>You can modify the timing of the browser update to synchronize htmx with the timing of CSS transition effects.</remarks>
     /// <param name="SwapDelay">The amount of time that htmx will wait after receiving a response to swap the content (in milliseconds) default is 0</param>
     /// <param name="SettleDelay">The amount of time between the swap and the settle logic(in milliseconds) default is 20mS</param>
-    function SetReswap(Option: TSwapOption; SwapDelay: Integer; SettleDelay: Integer = 20): TMVCWebResponse; overload;
+    function HXSetReswap(Option: TSwapOption; SwapDelay: Integer; SettleDelay: Integer = 20): TMVCWebResponse; overload;
 
     /// <summary>Allows you to specify how the response will be swapped. See hx-swap for possible values</summary>
     /// <remarks>You can modify nature of the browser update to show or scroll to the top or bottom of a target.</remarks>
@@ -154,49 +154,49 @@ type
     /// <param name="ShowScroll">Whether to set the display to the target, or to scroll to the target</param>
     /// <param name="To">Either top or bottom</param>
     /// <param name="Selector">Allows targetting of a different element for scrolling or showing</param>
-    function SetReswap(Option: TSwapOption; ShowScroll: TShowScrollType; &To: TSwapScrollTo; Selector: string = '')
+    function HXSetReswap(Option: TSwapOption; ShowScroll: TShowScrollType; &To: TSwapScrollTo; Selector: string = '')
       : TMVCWebResponse; overload;
 
     /// <summary>A CSS selector that updates the target of the content to a different element on the page</summary>
-    function SetRetarget(Selector: string): TMVCWebResponse;
+    function HXSetRetarget(Selector: string): TMVCWebResponse;
 
     /// <summary>Allows you to trigger a client side event.</summary>
     /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
     /// <param name="Name">The name of the javscript event to be triggered</param>
     /// <param name="After">The timing of the event</param>
-    function TriggerClientEvent(Name: string; After: TClientEventType = etReceived): TMVCWebResponse; overload;
+    function HXTriggerClientEvent(Name: string; After: TClientEventType = etReceived): TMVCWebResponse; overload;
 
     /// <summary>Allows you to trigger a collection of client side events.</summary>
     /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
     /// <param name="Names">A collection of the names of the javscript events to be triggered</param>
     /// <param name="After">The timing of the event</param>
-    function TriggerClientEvents(Names: TArray<string>; After: TClientEventType = etReceived): TMVCWebResponse;
+    function HXTriggerClientEvents(Names: TArray<string>; After: TClientEventType = etReceived): TMVCWebResponse;
 
     /// <summary>Allows you to trigger a client side event with parameters.</summary>
     /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
     /// <param name="Name">The name of the javscript event to be triggered</param>
     /// <param name="Params">An object containing the parameters to be sent to the event</param>
     /// <param name="After">The timing of the event</param>
-    function TriggerClientEvent(Name: string; Params: TValue; After: TClientEventType = etReceived): TMVCWebResponse; overload;
+    function HXTriggerClientEvent(Name: string; Params: TValue; After: TClientEventType = etReceived): TMVCWebResponse; overload;
 
     /// <summary>if set to “true” the client side will do a a full refresh of the page</summary>
-    function SetPageRefresh(Refresh: Boolean = true): TMVCWebResponse;
+    function HXSetPageRefresh(Refresh: Boolean = true): TMVCWebResponse;
 
     /// <summary>Allows you to do a client-side redirect that does not do a full page reload</summary>
     /// <remarks>Instead of changing the page’s location it will act like following a hx-boost link, creating a new history entry,
     /// issuing an ajax request to the value of the header and pushing the path into history. </remarks>
-    function SetLocation(Path: string): TMVCWebResponse; overload;
+    function HXSetLocation(Path: string): TMVCWebResponse; overload;
 
     /// <summary>Used to do a client-side redirect to a new location</summary>
-    function SetRedirect(Path: string): TMVCWebResponse;
+    function HXSetRedirect(Path: string): TMVCWebResponse;
 
     /// <summary>Sends an error response bcack to client.</summary>
-    function SetErrorResponse(ErrorCode: Integer; ErrorMessage: string): TMVCWebResponse;
+    function HXSetErrorResponse(ErrorCode: Integer; ErrorMessage: string): TMVCWebResponse;
 
     /// <summary>A CSS selector that allows you to choose which part of the response is used to be swapped in.</summary>
     /// <remarks> Overrides an existing hx-select on the triggering element</remarks>
     /// <param name="Selector">A CSS selector </param>
-    function SetReSelect(Selector: string): TMVCWebResponse;
+    function HXSetReSelect(Selector: string): TMVCWebResponse;
   end;
 
 implementation
@@ -206,7 +206,7 @@ uses
 
 { THTMXRequestHelper }
 
-function THTMXRequestHelper.GetCurrentUrl: string;
+function THTMXRequestHelper.HXGetCurrentUrl: string;
 begin
   Result := GetHtmxHeader(THTMXRequestHeaderType.CurrentUrl);
 end;
@@ -221,36 +221,36 @@ begin
   Result := SameText('true', Headers[Header]);
 end;
 
-function THTMXRequestHelper.GetPrompt: string;
+function THTMXRequestHelper.HXGetPrompt: string;
 begin
   Result := GetHtmxHeader(THTMXRequestHeaderType.Prompt);
 end;
 
-function THTMXRequestHelper.GetTarget: string;
+function THTMXRequestHelper.HXGetTarget: string;
 begin
   Result := GetHtmxHeader(THTMXRequestHeaderType.Target);
 end;
 
-function THTMXRequestHelper.GetTrigger: string;
+function THTMXRequestHelper.HXGetTrigger: string;
 begin
   Result := GetHtmxHeader(THTMXRequestHeaderType.Trigger);
 end;
 
-function THTMXRequestHelper.GetTriggeringEvent: TArray<string>;
+function THTMXRequestHelper.HXGetTriggeringEvent: TArray<string>;
 begin
   Result := nil;
   if HasHeader(THTMXRequestHeaderType.TriggeringEvent) then
     Result := GetHtmxHeader(THTMXRequestHeaderType.TriggeringEvent).Split([',']);
 end;
 
-function THTMXRequestHelper.GetTriggeringEventAsJSON: TJsonObject;
+function THTMXRequestHelper.HXGetTriggeringEventAsJSON: TJsonObject;
 begin
   Result := nil;
   if HasHeader(THTMXRequestHeaderType.TriggeringEvent) then
     Result := TJsonBaseObject.Parse(GetHtmxHeader(THTMXRequestHeaderType.TriggeringEvent)) as TJsonObject;
 end;
 
-function THTMXRequestHelper.GetTriggerName: string;
+function THTMXRequestHelper.HXGetTriggerName: string;
 begin
   Result := GetHtmxHeader(THTMXRequestHeaderType.TriggerName);
 end;
@@ -260,31 +260,31 @@ begin
   Result := not Headers[Header].IsEmpty;
 end;
 
-function THTMXRequestHelper.IsBoosted: Boolean;
+function THTMXRequestHelper.HXIsBoosted: Boolean;
 begin
   Result := GetHtmxHeaderToBool(THTMXRequestHeaderType.Boosted);
 end;
 
-function THTMXRequestHelper.IsHistoryRestoreRequest: Boolean;
+function THTMXRequestHelper.HXIsHistoryRestoreRequest: Boolean;
 begin
   Result := GetHtmxHeaderToBool(THTMXRequestHeaderType.HistoryRestoreRequest);
 end;
 
-function THTMXRequestHelper.IsHTMX: Boolean;
+function THTMXRequestHelper.HXIsHTMX: Boolean;
 begin
   Result := GetHtmxHeaderToBool(THTMXRequestHeaderType.Request);
 end;
 
 { THTMXResponseHelper }
 
-function THTMXResponseHelper.SetErrorResponse(ErrorCode: Integer; ErrorMessage: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetErrorResponse(ErrorCode: Integer; ErrorMessage: string): TMVCWebResponse;
 begin
   Self.StatusCode := ErrorCode;
   Self.Content := '{"error":"' + ErrorMessage + '"}';
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetLocation(Path: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetLocation(Path: string): TMVCWebResponse;
 begin
   SetCustomHeader(THTMXResponseHeaderType.Location, Path);
   Result := Self;
@@ -309,13 +309,13 @@ begin
   *)
 end;
 
-function THTMXResponseHelper.SetPageRefresh(Refresh: Boolean): TMVCWebResponse;
+function THTMXResponseHelper.HXSetPageRefresh(Refresh: Boolean): TMVCWebResponse;
 begin
   SetCustomHeader(THTMXResponseHeaderType.Refresh, ifthen(Refresh, 'true','false')); //must be lowercase
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetPushUrl(URL: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetPushUrl(URL: string): TMVCWebResponse;
 begin
   if URL.IsEmpty then
     URL := 'false';
@@ -323,13 +323,13 @@ begin
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetRedirect(Path: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetRedirect(Path: string): TMVCWebResponse;
 begin
   SetCustomHeader(THTMXResponseHeaderType.Redirect, Path);
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetReplaceUrl(URL: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetReplaceUrl(URL: string): TMVCWebResponse;
 begin
   if URL.IsEmpty then
     URL := 'false';
@@ -337,13 +337,13 @@ begin
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetReSelect(Selector: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetReSelect(Selector: string): TMVCWebResponse;
 begin
   SetCustomHeader(THTMXResponseHeaderType.Reselect, Selector);
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetReswap(Option: TSwapOption; ShowScroll: TShowScrollType; &To: TSwapScrollTo;
+function THTMXResponseHelper.HXSetReswap(Option: TSwapOption; ShowScroll: TShowScrollType; &To: TSwapScrollTo;
   Selector: string = ''): TMVCWebResponse;
 var
   Modifiers: string;
@@ -359,7 +359,7 @@ begin
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetReswap(Option: TSwapOption; SwapDelay, SettleDelay: Integer): TMVCWebResponse;
+function THTMXResponseHelper.HXSetReswap(Option: TSwapOption; SwapDelay, SettleDelay: Integer): TMVCWebResponse;
 var
   Modifiers: string;
 begin
@@ -373,24 +373,24 @@ begin
   Result := Self;
 end;
 
-function THTMXResponseHelper.SetReswap(Option: TSwapOption): TMVCWebResponse;
+function THTMXResponseHelper.HXSetReswap(Option: TSwapOption): TMVCWebResponse;
 begin
   // todo: support Focus scroll ?
-  Result := SetReswap(Option, 0, 0);
+  Result := HXSetReswap(Option, 0, 0);
 end;
 
-function THTMXResponseHelper.SetRetarget(Selector: string): TMVCWebResponse;
+function THTMXResponseHelper.HXSetRetarget(Selector: string): TMVCWebResponse;
 begin
   SetCustomHeader(THTMXResponseHeaderType.Retarget, Selector);
   Result := Self;
 end;
 
-function THTMXResponseHelper.TriggerClientEvent(Name: string; After: TClientEventType): TMVCWebResponse;
+function THTMXResponseHelper.HXTriggerClientEvent(Name: string; After: TClientEventType): TMVCWebResponse;
 begin
-  Result := TriggerClientEvent(Name, TValue.Empty, After);
+  Result := HXTriggerClientEvent(Name, TValue.Empty, After);
 end;
 
-function THTMXResponseHelper.TriggerClientEvent(Name: string; Params: TValue; After: TClientEventType): TMVCWebResponse;
+function THTMXResponseHelper.HXTriggerClientEvent(Name: string; Params: TValue; After: TClientEventType): TMVCWebResponse;
 var
   ser: TMVCJsonDataObjectsSerializer;
   Data: TJsonObject;
@@ -413,7 +413,7 @@ begin
   Result := Self;
 end;
 
-function THTMXResponseHelper.TriggerClientEvents(Names: TArray<string>; After: TClientEventType): TMVCWebResponse;
+function THTMXResponseHelper.HXTriggerClientEvents(Names: TArray<string>; After: TClientEventType): TMVCWebResponse;
 var
   Value: string;
 begin

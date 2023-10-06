@@ -77,7 +77,7 @@ var
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   LDAL.DeleteByGUID(GUID);
-  Context.Response.SetPageRefresh(true);
+  Context.Response.HXSetPageRefresh(true);
   RenderStatusMessage(HTTP_STATUS.OK);
 end;
 
@@ -207,13 +207,13 @@ begin
   lPeople := LDAL.GetPeople(SearchText);
   try
     ViewData['people'] := lPeople;
-    if Context.Request.IsHTMX then
+    if Context.Request.HXIsHTMX then
     begin
       Result := GetRenderedView(['people_list']);
       if SearchText.IsEmpty then
-        Context.Response.SetPushUrl('/people/search')
+        Context.Response.HXSetPushUrl('/people/search')
       else
-        Context.Response.SetPushUrl('/people/search?q=' + SearchText);
+        Context.Response.HXSetPushUrl('/people/search?q=' + SearchText);
     end
     else
     begin
@@ -251,7 +251,7 @@ begin
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
   LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lDevices);
-  Context.Response.SetRedirect('/people');
+  Context.Response.HXSetRedirect('/people');
 end;
 
 function TWebSiteController.ShowModal: String;
