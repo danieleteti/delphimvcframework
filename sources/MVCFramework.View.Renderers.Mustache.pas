@@ -48,8 +48,6 @@ type
     function RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
       Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8; virtual;
   public
-    class constructor Create;
-    class var CustomHelpers: TSynMustacheHelpers;
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
@@ -106,11 +104,6 @@ begin
   inherited;
   LoadPartials;
   LoadHelpers;
-end;
-
-class constructor TMVCMustacheViewEngine.Create;
-begin
-  SetLength(CustomHelpers, 0);
 end;
 
 class destructor TMVCMustacheViewEngine.Destroy;

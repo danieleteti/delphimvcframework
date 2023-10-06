@@ -913,6 +913,11 @@ var
 
 function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
+  if not aConnection.Connected then
+  begin
+    aConnection.Connected := True; {required to know the backend}
+  end;
+
   case Ord(aConnection.RDBMSKind) of
     0:
       Exit(TMVCActiveRecordBackEnd.Unknown);
