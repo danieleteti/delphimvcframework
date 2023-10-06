@@ -333,6 +333,10 @@ type
 
   end;
 
+  MVCFromContentFieldAttribute = class(MVCInjectableParamAttribute)
+
+  end;
+
   // test
   // TMVCHackHTTPAppRequest = class(TIdHTTPAppRequest)
   // private
@@ -2931,6 +2935,7 @@ var
   lStrValue: string;
   lFromBodyAttribute: MVCFromBodyAttribute;
   lFromQueryStringAttribute: MVCFromQueryStringAttribute;
+  lFromContentFieldAttribute: MVCFromContentFieldAttribute;
   lFromHeaderAttribute: MVCFromHeaderAttribute;
   lFromCookieAttribute: MVCFromCookieAttribute;
   lAttributeInjectedParamCount: Integer;
@@ -2980,6 +2985,14 @@ begin
         lInjectedParamValue := AContext.Request.QueryStringParam
           (lFromQueryStringAttribute.ParamName);
         HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromQueryStringAttribute);
+        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
+      end
+      else if TRttiUtils.HasAttribute<MVCFromContentFieldAttribute>(AActionFormalParams[I],
+        lFromContentFieldAttribute) then
+      begin
+        Inc(lAttributeInjectedParamCount, 1);
+        lInjectedParamValue := AContext.Request.ContentParam(lFromContentFieldAttribute.ParamName);
+        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromContentFieldAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
       else if TRttiUtils.HasAttribute<MVCFromHeaderAttribute>(AActionFormalParams[I],
