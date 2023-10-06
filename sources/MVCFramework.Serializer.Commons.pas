@@ -748,8 +748,11 @@ class procedure TMVCSerializerHelper.DecodeStream(AInput, AOutput: TStream);
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  TNetEncoding.Base64String.Decode(AInput, AOutput);
+{$ELSE}
   TNetEncoding.Base64.Decode(AInput, AOutput);
-
+{$ENDIF}
 {$ELSE}
   Soap.EncdDecd.DecodeStream(AInput, AOutput);
 
@@ -760,11 +763,13 @@ class function TMVCSerializerHelper.DecodeString(const AInput: string): string;
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  Result := TNetEncoding.Base64String.Decode(AInput);
+{$ELSE}
   Result := TNetEncoding.Base64.Decode(AInput);
-
+{$ENDIF}
 {$ELSE}
   Result := Soap.EncdDecd.DecodeString(AInput);
-
 {$ENDIF}
 end;
 
@@ -772,8 +777,11 @@ class procedure TMVCSerializerHelper.EncodeStream(AInput, AOutput: TStream);
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  TNetEncoding.Base64String.Encode(AInput, AOutput);
+{$ELSE}
   TNetEncoding.Base64.Encode(AInput, AOutput);
-
+{$ENDIF}
 {$ELSE}
   Soap.EncdDecd.EncodeStream(AInput, AOutput);
 
@@ -784,8 +792,11 @@ class function TMVCSerializerHelper.EncodeString(const AInput: string): string;
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  Result := TNetEncoding.Base64String.Encode(AInput);
+{$ELSE}
   Result := TNetEncoding.Base64.Encode(AInput);
-
+{$ENDIF}
 {$ELSE}
   Result := Soap.EncdDecd.EncodeString(AInput);
 
