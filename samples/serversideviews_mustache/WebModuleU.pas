@@ -25,7 +25,8 @@ uses
   WebSiteControllerU,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles, SynMustache, CustomMustacheHelpersU;
+  MVCFramework.Middleware.StaticFiles, SynMustache, CustomMustacheHelpersU,
+  MVCFramework.Serializer.URLEncoded;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -56,14 +57,8 @@ begin
       Config[TMVCConfigKey.ViewCache] := 'false';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCMustacheViewEngine);
-
-  // these helpers will be available to the mustache views as if they were the standard ones
-  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
-  begin
-    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
-    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
-  end
+    .SetViewEngine(TMVCMustacheViewEngine)
+    .AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedDataSerializer.Create);
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

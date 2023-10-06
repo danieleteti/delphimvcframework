@@ -97,6 +97,7 @@
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="CustomMustacheHelpersU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.URLEncoded.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

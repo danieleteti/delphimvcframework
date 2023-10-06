@@ -3,7 +3,8 @@ unit WebSiteControllerU;
 interface
 
 uses
-  MVCFramework, System.Diagnostics, System.JSON, MVCFramework.Commons;
+  MVCFramework, System.Diagnostics, JsonDataObjects, MVCFramework.Commons, DAL,
+  System.Generics.Collections;
 
 type
 
@@ -33,7 +34,7 @@ type
     [MVCPath('/people')]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
-    procedure SavePerson;
+    procedure SavePerson(const [MVCFromBody] Person: TPerson);
 
     [MVCPath('/deleteperson')]
     [MVCHTTPMethods([httpPOST])]
@@ -43,12 +44,12 @@ type
     [MVCPath('/new')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure NewPerson;
+    function NewPerson: String;
 
     [MVCPath('/edit/($guid)')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure EditPerson(guid: string);
+    function EditPerson(guid: string): String;
 
     [MVCPath('/')]
     [MVCHTTPMethods([httpGET])]
@@ -65,7 +66,7 @@ implementation
 
 { TWebSiteController }
 
-uses DAL, System.SysUtils, Web.HTTPApp;
+uses System.SysUtils, Web.HTTPApp;
 
 procedure TWebSiteController.DeletePerson;
 var
@@ -78,28 +79,33 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.EditPerson(guid: string);
+function TWebSiteController.EditPerson(guid: string): String;
 var
   LDAL: IPeopleDAL;
   lPerson: TPerson;
-  lDevices: TDeviceList;
-  lItem: TDevice;
+  lDevices: TArray<String>;
+  lJDevices: TJSONArray;
+  lItem: string;
+  lIdx: Integer;
+  lJObj: TJsonObject;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lPerson := LDAL.GetPersonByGUID(guid);
   try
     lDevices := LDAL.GetDevicesList;
+    ViewData['person'] := lPerson;
+    lJObj := TJsonObject.Create;
     try
-      ViewData['person'] := lPerson;
+      lJDevices := lJObj.A['devices'];
       for lItem in lDevices do
       begin
-        lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
+        var lJItm := lJDevices.AddObject;
+        lJItm.S['name'] := lItem;
+        lJItm.B['selected'] := TArray.BinarySearch<String>(lDevices, lItem, lIdx);
       end;
-      ViewData['deviceslist'] := lDevices;
-      LoadView(['header', 'editperson', 'footer']);
-      RenderResponseStream;
+      Result := GetRenderedView(['header', 'editperson', 'footer'], lJObj);
     finally
-      lDevices.Free;
+      lJObj.Free;
     end;
   finally
     lPerson.Free;
@@ -169,23 +175,28 @@ begin
   finally
     lPeople.Free;
   end;
-  // ViewData['myobj'] := TPerson.Create;
-  // TPerson(ViewData['myobj']).FirstName := 'Daniele <br> Teti';
 end;
 
-procedure TWebSiteController.NewPerson;
+function TWebSiteController.NewPerson: String;
 var
   LDAL: IPeopleDAL;
-  lDevices: TDeviceList;
+  lDevices: TArray<String>;
+  lJObj: TJsonObject;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lDevices := LDAL.GetDevicesList;
+  lJObj := TJsonObject.Create;
   try
-    ViewData['deviceslist'] := lDevices;
-    LoadView(['header', 'editperson', 'footer']);
-    RenderResponseStream;
+    var lJDevices := lJObj.A['devices'];
+    for var lItem in lDevices do
+    begin
+      var lJItm := lJDevices.AddObject;
+      lJItm.S['name'] := lItem;
+      lJItm.B['selected'] := False;
+    end;
+    Result := GetRenderedView(['header', 'editperson', 'footer'], lJObj);
   finally
-    lDevices.Free;
+    lJObj.Free;
   end;
 end;
 
@@ -214,20 +225,11 @@ begin
 
 end;
 
-procedure TWebSiteController.SavePerson;
+procedure TWebSiteController.SavePerson(const [MVCFromBody] Person: TPerson);
 var
-  LFirstName: string;
-  LLastName: string;
-  LAge: string;
   LPeopleDAL: IPeopleDAL;
-  lDevices: TArray<string>;
 begin
-  LFirstName := Context.Request.Params['first_name'].Trim;
-  LLastName := Context.Request.Params['last_name'].Trim;
-  LAge := Context.Request.Params['age'];
-  lDevices := Context.Request.ParamsMulti['items'];
-
-  if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
+  if Person.FirstName.IsEmpty or Person.LastName.IsEmpty or (Person.Age <= 0) then
   begin
     { TODO -oDaniele -cGeneral : Show how to properly render an exception }
     raise EMVCException.Create('Invalid data',
@@ -235,8 +237,8 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lDevices);
-
+  LPeopleDAL.AddPerson(Person.FirstName, Person.LastName,
+    Person.Age, Person.Devices);
   Redirect('/people');
 end;
 

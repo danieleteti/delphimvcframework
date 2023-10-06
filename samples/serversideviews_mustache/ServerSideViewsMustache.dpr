@@ -12,13 +12,16 @@ uses
   Winapi.Windows,
   {$ENDIF }
   IdHTTPWebBrokerBridge,
+  MVCFramework.View.Renderers.Mustache,
   Web.WebReq,
   Web.WebBroker,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
-  CustomMustacheHelpersU in 'CustomMustacheHelpersU.pas';
+  CustomMustacheHelpersU in 'CustomMustacheHelpersU.pas',
+  SynMustache,
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas';
 
 {$R *.res}
 
@@ -50,6 +53,14 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
+
+    // these helpers will be available to the mustache views as if they were the standard ones
+    TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+    begin
+      TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+      TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+    end;
+
     RunServer(8080);
   except
     on E: Exception do

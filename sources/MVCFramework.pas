@@ -804,7 +804,7 @@ type
     /// returns the rendered views and generates output using
     /// models pushed using Push* methods
     /// </summary>
-    function LoadView(const AViewNames: TArray<string>): string; virtual;
+    function LoadView(const AViewNames: TArray<string>; const JSONModel: TJSONObject = nil): string; virtual;
 
     /// <summary>
     /// Load a view fragment in the output render stream. The view fragment is appended to the
@@ -3723,8 +3723,7 @@ begin
   Result := Context.Request.GetHeader('If-Match');
 end;
 
-function TMVCController.GetRenderedView(const AViewNames: TArray<string>;
-  const JSONModel: TJSONObject): string;
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string;
 var
   lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
 begin
@@ -3810,10 +3809,10 @@ begin
   Result := FViewModel;
 end;
 
-function TMVCController.LoadView(const AViewNames: TArray<string>): string;
+function TMVCController.LoadView(const AViewNames: TArray<string>; const JSONModel: TJSONObject = nil): string;
 begin
   try
-    Result := GetRenderedView(AViewNames);
+    Result := GetRenderedView(AViewNames, JSONModel);
     ResponseStream.Append(Result);
   except
     on E: Exception do

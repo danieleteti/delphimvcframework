@@ -16,20 +16,20 @@ type
     FFirstName: string;
     FLastName: string;
     FAge: Integer;
-    FItems: string;
+    FDevices: TArray<string>;
     FGUID: string;
     procedure SetFirstName(const Value: string);
     procedure SetLastName(const Value: string);
     procedure SetAge(const Value: Integer);
     procedure SetGUID(const Value: string);
-    procedure SetItems(const Value: string);
+    procedure SetDevices(const Value: TArray<string>);
   public
     [MVCNameAs('first_name')]
     property FirstName: string read FFirstName write SetFirstName;
     [MVCNameAs('last_name')]
     property LastName: string read FLastName write SetLastName;
     property Age: Integer read FAge write SetAge;
-    property Items: string read FItems write SetItems;
+    property Devices: TArray<string> read FDevices write SetDevices;
     property GUID: string read FGUID write SetGUID;
   end;
 
@@ -69,7 +69,7 @@ type
       Items: TArray<string>);
     procedure DeleteByGUID(GUID: string);
     function GetPersonByGUID(GUID: string): TPerson;
-    function GetDevicesList: TDeviceList;
+    function GetDevicesList: TArray<String>;
   end;
 
   TPeopleDAL = class(TInterfacedObject, IPeopleDAL)
@@ -81,7 +81,7 @@ type
       Items: TArray<string>);
     procedure DeleteByGUID(GUID: string);
     function GetPersonByGUID(GUID: string): TPerson;
-    function GetDevicesList: TDeviceList;
+    function GetDevicesList: TArray<String>;
   end;
 
   TServicesFactory = class sealed
@@ -117,7 +117,7 @@ begin
       lPerson.FirstName := FirstName;
       lPerson.LastName := LastName;
       lPerson.Age := Age;
-      lPerson.Items := string.Join(',', Items);
+      lPerson.Devices := Items;
       lPerson.GUID := TGuid.NewGuid.ToString.Replace('{', '').Replace('}', '')
         .Replace('-', '');
       TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection
@@ -162,13 +162,9 @@ begin
   end;
 end;
 
-function TPeopleDAL.GetDevicesList: TDeviceList;
+function TPeopleDAL.GetDevicesList: TArray<String>;
 begin
-  Result := TDeviceList.Create(true);
-  Result.Add(TDevice.Create('smartphone', false));
-  Result.Add(TDevice.Create('dumbphone', false));
-  Result.Add(TDevice.Create('laptop', false));
-  Result.Add(TDevice.Create('desktop', false));
+  Result := ['smartphone', 'dumbphone', 'laptop', 'desktop'];
 end;
 
 function TPeopleDAL.GetPeople: TPeople;
@@ -217,6 +213,11 @@ begin
   FAge := Value;
 end;
 
+procedure TPerson.SetDevices(const Value: TArray<string>);
+begin
+  FDevices := Value;
+end;
+
 procedure TPerson.SetFirstName(const Value: string);
 begin
   FFirstName := Value;
@@ -225,11 +226,6 @@ end;
 procedure TPerson.SetGUID(const Value: string);
 begin
   FGUID := Value;
-end;
-
-procedure TPerson.SetItems(const Value: string);
-begin
-  FItems := Value;
 end;
 
 procedure TPerson.SetLastName(const Value: string);

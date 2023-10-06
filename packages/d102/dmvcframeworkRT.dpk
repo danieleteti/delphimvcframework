@@ -112,7 +112,8 @@ contains
   MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
   JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
   MVCFramework.DotEnv.Parser in '..\..\sources\MVCFramework.DotEnv.Parser.pas',
-  MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas';
+  MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas';
 
 end.
 
