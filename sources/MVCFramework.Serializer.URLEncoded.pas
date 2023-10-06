@@ -112,15 +112,15 @@ type
 
   public
     procedure URLEncodedStringToObject(
-  const Data: TStringList; const AObject: TObject;
-  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+      const Data: TStringList; const AObject: TObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
   end;
 
 implementation
 
 uses
-  System.NetEncoding, System.Math;
+  System.NetEncoding, System.Math, JsonDataObjects;
 
 { TMVCURLEncodedDataSerializer }
 
@@ -158,6 +158,9 @@ procedure TMVCURLEncodedDataSerializer.DeserializeObject(const ASerializedObject
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: String);
 var
   SL: TStringList;
+  lPieces: TArray<string>;
+  I: Integer;
+  lKeyValue: TArray<string>;
 begin
   if (ASerializedObject = EmptyStr) then
     raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Invalid body');
@@ -168,8 +171,12 @@ begin
   SL := TStringList.Create;
   try
     try
-      SL.Delimiter := '&';
-      SL.DelimitedText := ASerializedObject;
+      lPieces := ASerializedObject.Split(['&']);
+      for I := 0 to High(lPieces) do
+      begin
+        lKeyValue := lPieces[I].Split(['=']);
+        SL.AddPair(lKeyValue[0], URLDecode(lKeyValue[1]));
+      end;
       if GetTypeSerializers.ContainsKey(AObject.ClassInfo) then
       begin
         RaiseNotImplemented;
@@ -264,11 +271,36 @@ var
   I: Integer;
   lArrValues: TArray<String>;
   lCurrIdx: Integer;
+  lName: string;
+  lTmp: string;
 const
   INITIAL_ARRAY_SIZE = 5;
 begin
   if AObject = nil then
   begin
+    Exit;
+  end;
+
+  if TypeInfo(tjsonobject) = AObject.ClassInfo then
+  begin
+    for I := 0 to Data.Count-1 do
+    begin
+      lName := Data.Names[I];
+      if TJsonObject(AObject).IsNull(lName) then
+      begin
+        TJsonObject(AObject).S[lName] := Data.ValueFromIndex[I];
+      end
+      else
+      begin
+        if TJsonObject(AObject).Types[lName] = jdtString then
+        begin
+          lTmp := TJsonObject(AObject).S[lName];
+          TJsonObject(AObject).Remove(lName);
+          TJsonObject(AObject).A[lName].Add(lTmp);
+        end;
+        TJsonObject(AObject).A[lName].Add(Data.ValueFromIndex[I]);
+      end;
+    end;
     Exit;
   end;
 

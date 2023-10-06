@@ -4034,7 +4034,7 @@ begin
   begin
     if ARaiseExceptionIfNotExists then
     begin
-      raise EMVCException.CreateFmt('The serializer for %s could not be found.',
+      raise EMVCException.CreateFmt('The serializer for %s could not be found. [HINT] Register on TMVCEngine instance using "AddSerializer" method.',
         [lContentMediaType]);
     end
     else
