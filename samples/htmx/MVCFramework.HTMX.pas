@@ -55,7 +55,7 @@ type
     function HasHeader(Header: string): Boolean;
   public
     /// <summary>Indicates that the request is triggered by HTMX.</summary>
-    function HXIsHTMX: Boolean;
+    function IsHTMX: Boolean;
 
     /// <summary>Indicates that the request is via an element using hx-boost.</summary>
     function HXIsBoosted: Boolean;
@@ -270,7 +270,7 @@ begin
   Result := GetHtmxHeaderToBool(THTMXRequestHeaderType.HistoryRestoreRequest);
 end;
 
-function THTMXRequestHelper.HXIsHTMX: Boolean;
+function THTMXRequestHelper.IsHTMX: Boolean;
 begin
   Result := GetHtmxHeaderToBool(THTMXRequestHeaderType.Request);
 end;
