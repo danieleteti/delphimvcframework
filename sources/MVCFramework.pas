@@ -777,6 +777,8 @@ type
   private
     FViewModel: TMVCViewDataObject;
     FViewDataSets: TMVCViewDataSet;
+    fPageHeaders: TArray<String>;
+    fPageFooters: TArray<String>;
     function GetSession: TMVCWebSession;
     function GetViewData(const aModelName: string): TObject;
     function GetViewDataset(const aDataSetName: string): TDataSet;
@@ -800,19 +802,47 @@ type
     function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; virtual;
 
     /// <summary>
+    ///   Normally used in OnBeforeControllerAction to define view headers automatically used by the Page method.
+    /// </summary>
+    procedure SetPagesCommonHeaders(const AViewNames: TArray<string>);
+
+    /// <summary>
+    ///   Normally used in OnBeforeControllerAction to define view footers automatically used by the Page method.
+    /// </summary>
+    procedure SetPagesCommonFooters(const AViewNames: TArray<string>);
+
+    /// <summary>
+    ///   Page calls GetRenderedView with sensible defaults.
+    ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
+    ///   PageFragment ignore header and footer views
+    /// </summary>
+    function Page(const AViewNames: TArray<string>): string; overload; inline;
+
+    /// <summary>
+    ///   Page calls GetRenderedView with sensible defaults.
+    ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
+    ///   PageFragment ignore header and footer views
+    /// </summary>
+    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; inline;
+
+    /// <summary>
+    ///   PageFragment calls GetRenderedView.
+    ///   PageFragment ignore header and footer views.
+    /// </summary>
+    function PageFragment(const AViewNames: TArray<string>): string; overload; inline;
+
+    /// <summary>
+    ///   PageFragment calls GetRenderedView.
+    ///   PageFragment ignore header and footer views.
+    /// </summary>
+    function PageFragment(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; inline;
+
+    /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
     /// returns the rendered views and generates output using
     /// models pushed using Push* methods
     /// </summary>
     function LoadView(const AViewNames: TArray<string>; const JSONModel: TJSONObject = nil): string; virtual;
-
-    /// <summary>
-    /// Load a view fragment in the output render stream. The view fragment is appended to the
-    /// ResponseStream verbatim. No processing happens.
-    /// Useful when used with cache.
-    /// It is equivalent to <code>ResponseStream.Append(AViewFragment);</code>
-    /// </summary>
-    procedure LoadViewFragment(const AViewFragment: string);
 
     function SessionAs<T: TMVCWebSession>: T;
     procedure RaiseSessionExpired; virtual;
@@ -3672,6 +3702,8 @@ begin
   FResponseStream := nil;
   FViewModel := nil;
   FViewDataSets := nil;
+  fPageHeaders := nil;
+  fPageFooters := nil;
 end;
 
 destructor TMVCController.Destroy;
@@ -3823,11 +3855,6 @@ begin
   end;
 end;
 
-procedure TMVCController.LoadViewFragment(const AViewFragment: string);
-begin
-  ResponseStream.Append(AViewFragment);
-end;
-
 procedure TMVCController.MVCControllerAfterCreate;
 begin
   { Implement if need be. }
@@ -3850,6 +3877,28 @@ begin
   if ContentType.IsEmpty then
     ContentType := Config[TMVCConfigKey.DefaultContentType];
   { Implement if need be. }
+end;
+
+function TMVCController.Page(const AViewNames: TArray<string>;
+  const JSONModel: TJSONObject): string;
+begin
+  Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel);
+end;
+
+function TMVCController.PageFragment(const AViewNames: TArray<string>;
+  const JSONModel: TJSONObject): string;
+begin
+  Result := GetRenderedView(AViewNames, JSONModel);
+end;
+
+function TMVCController.PageFragment(const AViewNames: TArray<string>): string;
+begin
+  Result := GetRenderedView(AViewNames);
+end;
+
+function TMVCController.Page(const AViewNames: TArray<string>): string;
+begin
+  Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters);
 end;
 
 procedure TMVCController.PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
@@ -4067,6 +4116,16 @@ end;
 procedure TMVCController.SetETag(const Data: String);
 begin
   Context.Response.SetCustomHeader('ETag', GetSHA1HashFromString(Data));
+end;
+
+procedure TMVCController.SetPagesCommonFooters(const AViewNames: TArray<string>);
+begin
+  fPageFooters := AViewNames;
+end;
+
+procedure TMVCController.SetPagesCommonHeaders(const AViewNames: TArray<string>);
+begin
+  fPageHeaders := AViewNames;
 end;
 
 procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);
