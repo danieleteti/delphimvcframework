@@ -656,6 +656,7 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
+function ObjectToJSONObject(const aObject: TObject): TJSONObject;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
@@ -1667,6 +1668,19 @@ begin
     Result := lSB.ToString;
   finally
     lSB.Free;
+  end;
+end;
+
+
+function ObjectToJSONObject(const aObject: TObject): TJSONObject;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    Result := lSer.SerializeObjectToJSON(aObject, TMVCSerializationType.stProperties, [], nil);
+  finally
+    lSer.Free;
   end;
 end;
 
