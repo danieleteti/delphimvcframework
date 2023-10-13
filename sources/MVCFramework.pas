@@ -4368,7 +4368,7 @@ begin
   end;
 
   // actual message
-  ResponseStream.Append('data: ' + EventData + #13#13);
+  ResponseStream.Append('data: ' + EventData.Replace(sLineBreak, '', [rfReplaceAll]) + #13#13);
 
   // render all the stuff
   RenderResponseStream;
