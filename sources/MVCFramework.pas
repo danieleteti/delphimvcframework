@@ -780,9 +780,9 @@ type
     fPageHeaders: TArray<String>;
     fPageFooters: TArray<String>;
     function GetSession: TMVCWebSession;
-    function GetViewData(const aModelName: string): TObject;
+    function GetViewData(const aModelName: string): TValue;
     function GetViewDataset(const aDataSetName: string): TDataSet;
-    procedure SetViewData(const aModelName: string; const Value: TObject);
+    procedure SetViewData(const aModelName: string; const Value: TValue);
     procedure SetViewDataset(const aDataSetName: string; const Value: TDataSet);
   protected const
     CLIENTID_KEY = '__clientid';
@@ -863,7 +863,7 @@ type
     procedure PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
       deprecated 'Use "ViewDataSet"';
 
-    property ViewData[const aModelName: string]: TObject read GetViewData write SetViewData;
+    property ViewData[const aModelName: string]: TValue read GetViewData write SetViewData;
     property ViewDataset[const aDataSetName: string]: TDataSet read GetViewDataset
       write SetViewDataset;
 
@@ -3815,7 +3815,7 @@ end;
 
 end;
 
-function TMVCController.GetViewData(const aModelName: string): TObject;
+function TMVCController.GetViewData(const aModelName: string): TValue;
 begin
   if not FViewModel.TryGetValue(aModelName, Result) then
     Result := nil;
@@ -4128,7 +4128,7 @@ begin
   fPageHeaders := AViewNames;
 end;
 
-procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);
+procedure TMVCController.SetViewData(const aModelName: string; const Value: TValue);
 begin
   GetViewModel.Add(aModelName, Value);
 end;

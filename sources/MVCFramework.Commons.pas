@@ -35,6 +35,7 @@ uses
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
+  System.RTTI,
   Data.DB,
   IdGlobal,
   IdCoderMIME,
@@ -517,7 +518,7 @@ type
     procedure Add(const Name: string; Value: T);
   end;
 
-  TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
+  TMVCViewDataObject = class(TObjectDictionary<string, TValue>)
   private
     { private declarations }
   protected

@@ -31,7 +31,8 @@ interface
 
 uses
   MVCFramework, System.SysUtils, System.Generics.Collections,
-  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB, SynMustache, SynCommons;
+  MVCFramework.Commons, System.IOUtils, System.RTTI,
+  System.Classes, Data.DB, SynMustache, SynCommons;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -204,8 +205,7 @@ end;
 
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
-  lList: IMVCList;
-  DataObj: TPair<string, TObject>;
+  DataObj: TPair<string, TValue>;
   lDSPair: TPair<string, TDataSet>;
   lSer: TMVCJsonDataObjectsSerializer;
   lJSONModel: TJsonObject;
@@ -233,15 +233,16 @@ begin
       begin
         for DataObj in ViewModel do
         begin
-          lList := TDuckTypedList.Wrap(DataObj.Value);
-          if lList <> nil then
-          begin
-            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
-          end
-          else
-          begin
-            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
-          end;
+          lSer.TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
+//          lList := TDuckTypedList.Wrap(DataObj.Value);
+//          if lList <> nil then
+//          begin
+//            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
+//          end
+//          else
+//          begin
+//            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
+//          end;
         end;
       end;
 
