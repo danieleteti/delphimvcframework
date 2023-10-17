@@ -41,8 +41,7 @@ uses
   System.SysUtils;
 
 type
-
-  TMVCURLEncodedDataSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
+  TMVCURLEncodedSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
     procedure DataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember; const RawData: string;
       const AName: string; var AValue: TValue; const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
@@ -122,39 +121,39 @@ implementation
 uses
   System.NetEncoding, System.Math, JsonDataObjects;
 
-{ TMVCURLEncodedDataSerializer }
+{ TMVCURLEncodedSerializer }
 
-procedure TMVCURLEncodedDataSerializer.DeserializeCollection(const ASerializedList: string; const AList: IInterface;
+procedure TMVCURLEncodedSerializer.DeserializeCollection(const ASerializedList: string; const AList: IInterface;
   const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DeserializeCollection(const ASerializedList: string; const AList: TObject;
+procedure TMVCURLEncodedSerializer.DeserializeCollection(const ASerializedList: string; const AList: TObject;
   const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: String);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet;
+procedure TMVCURLEncodedSerializer.DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet;
+procedure TMVCURLEncodedSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DeserializeObject(const ASerializedObject: string; const AObject: IInterface;
+procedure TMVCURLEncodedSerializer.DeserializeObject(const ASerializedObject: string; const AObject: IInterface;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 begin
   // ??
 end;
 
-procedure TMVCURLEncodedDataSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;
+procedure TMVCURLEncodedSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: String);
 var
   SL: TStringList;
@@ -197,23 +196,23 @@ begin
   end;
 end;
 
-procedure TMVCURLEncodedDataSerializer.RaiseNotImplemented;
+procedure TMVCURLEncodedSerializer.RaiseNotImplemented;
 begin
   raise EMVCException.Create('Not Implemented');
 end;
 
-procedure TMVCURLEncodedDataSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+procedure TMVCURLEncodedSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeCollection(const AList: TObject; const AType: TMVCSerializationType;
+function TMVCURLEncodedSerializer.SerializeCollection(const AList: TObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeArrayOfRecord(
+function TMVCURLEncodedSerializer.SerializeArrayOfRecord(
   var ATValueContainingAnArray: TValue; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
@@ -221,44 +220,44 @@ begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeCollection(const AList: IInterface; const AType: TMVCSerializationType;
+function TMVCURLEncodedSerializer.SerializeCollection(const AList: IInterface; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+function TMVCURLEncodedSerializer.SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
   const ANameCase: TMVCNameCase; const ASerializationAction: TMVCDatasetSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+function TMVCURLEncodedSerializer.SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
   const ANameCase: TMVCNameCase; const ASerializationAction: TMVCDatasetSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeObject(const AObject: IInterface; const AType: TMVCSerializationType;
+function TMVCURLEncodedSerializer.SerializeObject(const AObject: IInterface; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeObject(const AObject: TObject; const AType: TMVCSerializationType;
+function TMVCURLEncodedSerializer.SerializeObject(const AObject: TObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCURLEncodedDataSerializer.SerializeRecord(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;
+function TMVCURLEncodedSerializer.SerializeRecord(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCURLEncodedDataSerializer.URLEncodedStringToObject(
+procedure TMVCURLEncodedSerializer.URLEncodedStringToObject(
   const Data: TStringList; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 var
@@ -418,7 +417,7 @@ begin
   end;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember;
+procedure TMVCURLEncodedSerializer.DataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember;
   const RawData: string; const AName: string; var AValue: TValue; const AType: TMVCSerializationType;
   const AIgnored: TMVCIgnoredList; const ACustomAttributes: TArray<TCustomAttribute>);
 var
@@ -447,11 +446,12 @@ begin
         if SameText(RttiType.ToString, 'boolean') then
           AValue := RawData.ToBoolean;
       end;
-    // any others ?
+    else
+      raise EMVCDeserializationException.Create('(DataValueToAttribute) Invalid TypeKind: ' + GetEnumName(TypeInfo(TTypeKind), Ord(RttiType.TypeKind)));
   end;
 end;
 
-procedure TMVCURLEncodedDataSerializer.DataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember;
+procedure TMVCURLEncodedSerializer.DataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember;
   const RawDataArray: TArray<string>; const AName: string; var AValue: TValue; const AType: TMVCSerializationType;
   const AIgnored: TMVCIgnoredList; const ACustomAttributes: TArray<TCustomAttribute>);
 var
