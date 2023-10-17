@@ -645,7 +645,11 @@ type
     class function CountRQLByNamedQuery<T: TMVCActiveRecord, constructor>(
       const QueryName: string;
       const Params: array of const): Int64;
-
+    class function TryGetSQLQuery<T: TMVCActiveRecord, constructor>(
+      const QueryName: String;
+      out   NamedSQLQuery: TSQLQueryWithName): Boolean; overload;
+    class function TryGetRQLQuery<T: TMVCActiveRecord, constructor>(
+      const QueryName: String; out NamedRQLQuery: TRQLQueryWithName): Boolean;
     { RTTI }
     class function CreateMVCActiveRecord<T: TMVCActiveRecord>(AQualifiedClassName: string; const AParams: TArray<TValue> = nil): T;
   end;
@@ -2120,6 +2124,32 @@ begin
       raise EMVCActiveRecord.CreateFmt('NamedRQLQuery not found: %s', [QueryName]);
     end;
     Result := DeleteRQL<T>(Format(lRQLQuery.RQLText, Params));
+  finally
+    lT.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.TryGetSQLQuery<T>(
+  const QueryName: String; out NamedSQLQuery: TSQLQueryWithName): Boolean;
+var
+  lT: T;
+begin
+  lT := T.Create;
+  try
+    Result := lT.FindSQLQueryByName(QueryName, NamedSQLQuery);
+  finally
+    lT.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.TryGetRQLQuery<T>(
+  const QueryName: String; out NamedRQLQuery: TRQLQueryWithName): Boolean;
+var
+  lT: T;
+begin
+  lT := T.Create;
+  try
+    Result := lT.FindRQLQueryByName(QueryName, NamedRQLQuery);
   finally
     lT.Free;
   end;

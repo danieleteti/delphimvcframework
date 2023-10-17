@@ -72,6 +72,8 @@ type
     [Test]
     procedure TestNamedQuerySQL;
     [Test]
+    procedure TestTryGetNamedQuery;
+    [Test]
     procedure TestNamedQuerySQLByBackEnd;
     [Test]
     procedure TestStore;
@@ -1890,6 +1892,23 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TTestActiveRecordBase.TestTryGetNamedQuery;
+var
+  lTmpSQLQueryWithName: TSQLQueryWithName;
+  lTmpRQLQueryWithName: TRQLQueryWithName;
+begin
+  Assert.IsTrue(TMVCActiveRecord.TryGetSQLQuery<TCustomer>('ByTwoCities', lTmpSQLQueryWithName));
+  Assert.AreEqual('ByTwoCities', lTmpSQLQueryWithName.Name);
+  Assert.IsNotEmpty(lTmpSQLQueryWithName.SQLText);
+  Assert.IsEmpty(lTmpSQLQueryWithName.BackEnd);
+  Assert.IsFalse(TMVCActiveRecord.TryGetSQLQuery<TCustomer>('DO_NOT_EXISTS', lTmpSQLQueryWithName));
+
+  Assert.IsTrue(TMVCActiveRecord.TryGetRQLQuery<TCustomer>('CityRomeOrLondon', lTmpRQLQueryWithName));
+  Assert.AreEqual('CityRomeOrLondon', lTmpRQLQueryWithName.Name);
+  Assert.IsNotEmpty(lTmpRQLQueryWithName.RQLText);
+  Assert.IsFalse(TMVCActiveRecord.TryGetRQLQuery<TCustomer>('DO_NOT_EXISTS', lTmpRQLQueryWithName));
 end;
 
 procedure TTestActiveRecordBase.TestUpdateIfNotFound;
