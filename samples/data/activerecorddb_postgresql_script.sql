@@ -598,3 +598,25 @@ ALTER TABLE ONLY public.phones
 -- PostgreSQL database dump complete
 --
 
+
+drop function if exists sp_get_customers;
+create or replace function sp_get_customers() returns table(
+    id bigint,
+	code varchar,
+	description varchar,
+	city varchar,
+	rating integer)
+language plpgsql	
+as 
+$$
+begin
+  return query
+  	select 
+  		c.id, c.code, c.description, c.city, c.rating
+ 	from 
+ 		customers c
+ 	order by c.description;
+end
+$$;
+
+select * from sp_get_customers();

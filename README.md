@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
-![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.4.0--neon-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--4.0.0--oxygen--beta-red)  
+![](https://img.shields.io/badge/stable-dmvcframework--3.4.0--neon-blue)
+![](https://img.shields.io/badge/beta-dmvcframework--3.4.1--sodium--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -215,7 +215,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
-## What's New in DelphiMVCFramework-3.4.0-neon (current stable version)
+## What's New in DelphiMVCFramework-3.4.0-neon (stable version)
 
 >👉 Deeper analisys of what's new in DelphiMVCFramework-3.4.0-neone is available on [Daniele Teti Blog](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/) 👈
 
@@ -336,7 +336,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ⚡ Improved `TMVCResponse` type to better suits the new functional actions. 
 
   `TMVCResponse` can be used with "message based" responses and also with "data based" responses (with single object, with a list of objects or with a dictionary of objects).
-   
+  
    More info [here](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/)
 
 - Removed `statuscode`, `reasonstring` and all the field with a default value from exception's JSON rendering. All the high-level rendering methods will emit standard `ReasonString`.

@@ -94,7 +94,7 @@ type
     procedure btnIntegersAsBoolClick(Sender: TObject);
   private
     procedure Log(const Value: string);
-    procedure LoadCustomers;
+    procedure LoadCustomers(const HowManyCustomers: Integer = 50);
   public
     { Public declarations }
   end;
@@ -712,8 +712,35 @@ end;
 procedure TMainForm.btnNamedQueryClick(Sender: TObject);
 begin
   Log('** Named SQL Query');
+
+  LoadCustomers(10);
+
+  Log('QuerySQL: BestCustomers');
+  var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('BestCustomers', [], []);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Log('QuerySQL: WithRatingGtOrEqTo');
+  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('WithRatingGtOrEqTo', [4], [ftInteger]);
+  try
+    for var lCustomer in lCustomers do
+    begin
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
   Log('QuerySQL: RatingLessThanPar');
-  var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
+  lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('RatingLessThanPar', [4], [ftInteger]);
   try
     for var lCustomer in lCustomers do
     begin
@@ -749,6 +776,23 @@ begin
     lCustomers.Free;
   end;
 
+
+  var lTmpSQLQueryWithName: TSQLQueryWithName;
+  if TMVCActiveRecord.TryGetSQLQuery<TCustomer>('GetAllCustomers', lTmpSQLQueryWithName) then
+  begin
+    Log('QuerySQL: Stored Procedure "GetAllCustomers"');
+    lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('GetAllCustomers', [], [], [loIgnoreNotExistentFields]);
+    try
+      for var lCustomer in lCustomers do
+      begin
+        Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+          lCustomer.CompanyName.ValueOrDefault]));
+      end;
+    finally
+      lCustomers.Free;
+    end;
+  end;
+
   Log('** Named RQL Query');
   Log('QueryRQL: RatingLessThanPar');
   lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingLessThanPar', [4], 1000);
@@ -774,7 +818,6 @@ begin
     lCustomersList.Free;
   end;
 
-
   Log('QueryRQL: RatingEqualsToPar');
   lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('RatingEqualsToPar', [3], 1000);
   try
@@ -787,7 +830,16 @@ begin
     lCustomers.Free;
   end;
 
-
+  //RatingLessThanPar
+  var lTmpRQLQueryWithName: TRQLQueryWithName;
+  if TMVCActiveRecord.TryGetRQLQuery<TCustomer>('RatingLessThanPar', lTmpRQLQueryWithName) then
+  begin
+    Log(Format('"%s" RQLQuery is available with text: %s', [lTmpRQLQueryWithName.Name, lTmpRQLQueryWithName.RQLText]));
+  end
+  else
+  begin
+    Log(Format('"%s" RQLQuery is not available', ['RatingLessThanPar']));
+  end;
 end;
 
 procedure TMainForm.btnNullablesClick(Sender: TObject);
@@ -2033,20 +2085,20 @@ begin
   btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
-procedure TMainForm.LoadCustomers;
+procedure TMainForm.LoadCustomers(const HowManyCustomers: Integer = 50);
 var
   lCustomer: TCustomer;
   I: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  for I := 1 to 50 do
+  for I := 1 to HowManyCustomers do
   begin
     lCustomer := TCustomer.Create;
     try
       lCustomer.CompanyName := Stuff[Random(4)] + ' ' + CompanySuffix[Random(5)];
       lCustomer.Code := Random(100).ToString.PadLeft(5, '0');
       lCustomer.City := Cities[Random(4)];
-      lCustomer.Rating := Random(5);
+      lCustomer.Rating := I mod 6;
       lCustomer.Note := Stuff[Random(4)];
       lCustomer.Insert;
     finally

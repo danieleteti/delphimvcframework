@@ -102,6 +102,17 @@ begin
   Result := StrToJSONObject('{"name":"Daniele","surname":"Teti"}');
 end;
 
+function TMyController.GetSingleDataSet: TDataSet;
+begin
+  var lDM := TdmMain.Create(nil);
+  try
+    lDM.dsPeople.Open;
+    Result := TFDMemTable.CloneFrom(lDM.dsPeople);
+  finally
+    lDM.Free;
+  end;
+end;
+
 function TMyController.GetMultipleDataSet: TEnumerable<TDataSet>;
 begin
   var lDM := TdmMain.Create(nil);
@@ -232,17 +243,6 @@ begin
     .StatusCode(HTTP_STATUS.OK)
     .Body(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'))
     .Build;
-end;
-
-function TMyController.GetSingleDataSet: TDataSet;
-begin
-  var lDM := TdmMain.Create(nil);
-  try
-    lDM.dsPeople.Open;
-    Result := TFDMemTable.CloneFrom(lDM.dsPeople);
-  finally
-    lDM.Free;
-  end;
 end;
 
 function TMyController.GetSingleObject: TPerson;

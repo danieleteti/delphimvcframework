@@ -105,12 +105,15 @@ type
 
   [MVCNameCase(ncLowerCase)]
   [MVCTable('customers')]
+  [MVCNamedSQLQuery('BestCustomers', 'select * from customers where rating >=4')]
+  [MVCNamedSQLQuery('WithRatingGtOrEqTo', 'select * from customers where rating >=?')]
   [MVCNamedSQLQuery('RatingLessThanPar', 'select * from customers where rating < ? order by code, city desc')]
   [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*firebird*/ * from customers where rating = ? order by code, city desc', TMVCActiveRecordBackEnd.FirebirdSQL)]
   [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*postgres*/ * from customers where rating = ? order by code, city desc', TMVCActiveRecordBackEnd.PostgreSQL)]
   [MVCNamedSQLQuery('RatingEqualsToPar', 'select /*all*/ * from customers where rating = ? order by code, city desc')]
   [MVCNamedRQLQuery('RatingLessThanPar', 'lt(rating,%d);sort(+code,-city)')]
   [MVCNamedRQLQuery('RatingEqualsToPar', 'eq(rating,%d);sort(+code,-city)')]
+  [MVCNamedSQLQuery('GetAllCustomers', 'select * from sp_get_customers()', TMVCActiveRecordBackEnd.PostgreSQL)]
   TCustomer = class(TCustomEntity)
   private
 {$IFNDEF USE_SEQUENCES}
