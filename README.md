@@ -16,7 +16,7 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [What's New in DelphiMVCFramework-3.4.0-neon (current stable version)](#whats-new-in-delphimvcframework-340-neon-current-stable-version)
+  - [What's New in DelphiMVCFramework-3.4.0-neon (stable version)](#whats-new-in-delphimvcframework-340-neon-stable-version)
   - [Older Versions](#older-versions)
     - [What's New in dmvcframework-3.3.0-fluorine](#whats-new-in-dmvcframework-330-fluorine)
     - [What's New in dmvcframework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
