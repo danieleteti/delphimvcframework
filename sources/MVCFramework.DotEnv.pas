@@ -45,6 +45,7 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -104,6 +105,7 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   public
@@ -452,6 +454,33 @@ begin
   begin
     lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];
     PopulateDictionary(fEnvDict, lProfileEnvPath);
+  end;
+end;
+
+procedure TMVCDotEnv.RequireKeys(const Keys: TArray<String>);
+var
+  lKey: String;
+  lNotFoundKeys: TArray<String>;
+  lMsg: string;
+begin
+  if Length(Keys) = 0 then
+  begin
+    Exit;
+  end;
+  DoLog('Checking required keys: ' + String.Join(', ', Keys));
+  lNotFoundKeys := [];
+  for lKey in Keys do
+  begin
+    if Env(lKey).IsEmpty then
+    begin
+      lNotFoundKeys := lNotFoundKeys + [lKey];
+    end;
+  end;
+  if Length(lNotFoundKeys) > 0 then
+  begin
+    lMsg := 'Required keys not found: ' + String.Join(', ', lNotFoundKeys);
+    DoLog(lMsg);
+    raise EMVCDotEnv.Create(lMsg);
   end;
 end;
 

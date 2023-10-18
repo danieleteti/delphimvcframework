@@ -74,4 +74,22 @@ object MainForm: TMainForm
     WordWrap = True
     OnClick = btnSingleEnvClick
   end
+  object btnRequireKeys: TButton
+    Left = 8
+    Top = 264
+    Width = 169
+    Height = 49
+    Caption = 'Require Keys (OK)'
+    TabOrder = 5
+    OnClick = btnRequireKeysClick
+  end
+  object btnRequireKeys2: TButton
+    Left = 8
+    Top = 319
+    Width = 169
+    Height = 49
+    Caption = 'Require Keys (FAIL)'
+    TabOrder = 6
+    OnClick = btnRequireKeys2Click
+  end
 end

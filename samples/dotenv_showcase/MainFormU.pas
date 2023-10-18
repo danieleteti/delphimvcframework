@@ -15,10 +15,14 @@ type
     btnProdEnv: TButton;
     Shape1: TShape;
     btnSingleEnv: TButton;
+    btnRequireKeys: TButton;
+    btnRequireKeys2: TButton;
     procedure btnSimpleClick(Sender: TObject);
     procedure btnTestEnvClick(Sender: TObject);
     procedure btnProdEnvClick(Sender: TObject);
     procedure btnSingleEnvClick(Sender: TObject);
+    procedure btnRequireKeysClick(Sender: TObject);
+    procedure btnRequireKeys2Click(Sender: TObject);
   private
     procedure UpdateUI(dotEnv: IMVCDotEnv);
   public
@@ -41,6 +45,19 @@ begin
   mmVars.Clear;
   mmVars.Lines.AddStrings(dotEnv.ToArray);
   UpdateUI(dotEnv);
+end;
+
+procedure TMainForm.btnRequireKeys2Click(Sender: TObject);
+begin
+  var dotEnv := NewDotEnv.WithStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
+  dotEnv.RequireKeys(['mode','dbuser','blablabla','dbhostname','unknown']);
+end;
+
+procedure TMainForm.btnRequireKeysClick(Sender: TObject);
+begin
+  var dotEnv := NewDotEnv.WithStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
+  dotEnv.RequireKeys(['mode','dbuser','dbpassword','dbhostname']);
+  ShowMessage('Required Keys FOUND!');
 end;
 
 procedure TMainForm.btnSimpleClick(Sender: TObject);
