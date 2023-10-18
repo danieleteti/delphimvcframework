@@ -87,7 +87,7 @@ procedure TMVCLuaViewEngine.Execute(const ViewName: string;
   const OutputStream: TStream);
 var
   Lua: TLuaEngine;
-  lDataSetName: string;
+  lDataSetName, lModelName: string;
   lLuaFilter: TLuaEmbeddedTextFilter;
   lViewFileName: String;
   lFileName, lCompiledFileName: string;
@@ -95,8 +95,8 @@ var
   lStreamReader: TStreamReader;
   DecodeJSONStrings: string;
   lSer: TMVCJsonDataObjectsSerializer;
-  lJSONStr: string;
   lScriptOutput: TStreamWriter;
+  lJSON: TJDOJsonObject;
 begin
   lScriptOutput := TStreamWriter.Create(OutputStream, TEncoding.UTF8);
   try
@@ -130,24 +130,35 @@ begin
         { continuare da questo problema }
         if Assigned(ViewModel) then
         begin
-          for lDataSetName in ViewModel.Keys do
-          begin
+          lJSON := TJDOJsonObject.Create;
+          try
             lSer := TMVCJsonDataObjectsSerializer.Create(nil);
             try
-              if TDuckTypedList.CanBeWrappedAsList(ViewModel[lDataSetName]) then
+              for lModelName in ViewModel.Keys do
               begin
-                lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
-              end
-              else
-              begin //PODO
-                lJSONStr := lSer.SerializeObject(ViewModel[lDataSetName]);
+                lJSON.Clear;
+                lSer.TValueToJSONObjectProperty(lJSON, lModelName, ViewModel[lModelName], TMVCSerializationType.stDefault, nil, nil);
+//                lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
+//                if TDuckTypedList.CanBeWrappedAsList(ViewModel[lDataSetName]) then
+//                begin
+//                  lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
+//                end
+//                else
+//                begin //PODO
+//                  lJSONStr := lSer.SerializeObject(ViewModel[lDataSetName]);
+//                end;
+                if lJSON.Values[lModelName].Typ = jdtArray then
+                  Lua.DeclareGlobalString(lDataSetName, lJSON.A[lModelName].ToJSON())
+                else
+                  Lua.DeclareGlobalString(lDataSetName, lJSON.O[lModelName].ToJSON());
+                DecodeJSONStrings := DecodeJSONStrings + sLineBreak + ' ' +
+                  AnsiString(lDataSetName) + ' = json.decode(' + AnsiString(lDataSetName) + ')';
               end;
             finally
               lSer.Free;
             end;
-            Lua.DeclareGlobalString(lDataSetName, lJSONStr);
-            DecodeJSONStrings := DecodeJSONStrings + sLineBreak + ' ' +
-              AnsiString(lDataSetName) + ' = json.decode(' + AnsiString(lDataSetName) + ')';
+          finally
+            lJSON.Free;
           end;
         end;
       end;
