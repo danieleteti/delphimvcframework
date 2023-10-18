@@ -115,6 +115,8 @@ begin
       lColor := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_INTENSITY;
     TLogType.Error:
       lColor := FOREGROUND_RED or FOREGROUND_INTENSITY;
+    TLogType.Fatal:
+      lColor := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
   end;
 
   lText := FormatLog(aLogItem);

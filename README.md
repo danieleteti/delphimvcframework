@@ -19,8 +19,10 @@ LoggerPro is compatibile with
 - Delphi XE3
 - Delphi XE2
 
+## What's new in 1.5.0 (repo version, beta)
+- FIX https://github.com/danieleteti/loggerpro/issues/72
 
-## What's new in 1.4.0
+## What's new in 1.4.0 (stable evrsion)
 
 - Improved VCL and FMX visual appenders
 - Appenders can be added and removed programmatically
