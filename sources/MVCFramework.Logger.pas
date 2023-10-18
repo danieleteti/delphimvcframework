@@ -191,7 +191,7 @@ end;
 
 procedure LogException(const E: Exception; const AMessage: String);
 begin
-    LogE(E.ClassName + ': ' + AMessage);
+    LogE(E.ClassName + ': ' + E.Message + ' - (Custom Message: ' + AMessage + ')');
 end;
 
 procedure LogEnterMethod(const AMethodName: string);
