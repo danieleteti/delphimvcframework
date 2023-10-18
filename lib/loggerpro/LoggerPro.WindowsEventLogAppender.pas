@@ -53,7 +53,7 @@ begin
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_INFORMATION_TYPE);
     TLogType.Warning:
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_WARNING_TYPE);
-    TLogType.Error:
+    TLogType.Error, TLogType.Fatal:
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_ERROR_TYPE);
   end;
 end;

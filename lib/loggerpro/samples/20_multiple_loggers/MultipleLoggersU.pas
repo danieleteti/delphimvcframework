@@ -34,14 +34,14 @@ uses
 
 procedure TMultipleLoggersForm.btnApplicationLevelLogClick(Sender: TObject);
 begin
-  Log.Log(TLogType(Random(Ord(TLogType.Error) + 1)),
+  Log.Log(TLogType(Random(Ord(TLogType.Fatal) + 1)),
     'Message sent to the application level LoggerPro instance (random type)',
     'APP');
 end;
 
 procedure TMultipleLoggersForm.btnFormLocalLogClick(Sender: TObject);
 begin
-  LocalLog.Log(TLogType(Random(Ord(TLogType.Error) + 1)),
+  LocalLog.Log(TLogType(Random(Ord(TLogType.Fatal) + 1)),
     'Message sent to the form local LoggerPro instance (random type)', 'tag');
 end;
 

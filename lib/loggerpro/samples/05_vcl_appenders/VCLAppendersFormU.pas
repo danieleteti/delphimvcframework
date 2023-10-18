@@ -30,12 +30,14 @@ type
     tsMemoAppender: TTabSheet;
     Memo1: TMemo;
     ListView1: TListView;
+    Button6: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
   private
     FLog: ILogWriter;
     { Private declarations }
@@ -95,12 +97,19 @@ begin
         Log.Info('log message ' + TimeToStr(now) + ' ThreadID: ' + lThreadID, 'MULTITHREADING');
         Log.Warn('log message ' + TimeToStr(now) + ' ThreadID: ' + lThreadID, 'MULTITHREADING');
         Log.Error('log message ' + TimeToStr(now) + ' ThreadID: ' + lThreadID, 'MULTITHREADING');
+        Log.Fatal('log message ' + TimeToStr(now) + ' ThreadID: ' + lThreadID, 'MULTITHREADING');
       end;
     end;
   TThread.CreateAnonymousThread(lThreadProc).Start;
   TThread.CreateAnonymousThread(lThreadProc).Start;
   TThread.CreateAnonymousThread(lThreadProc).Start;
   TThread.CreateAnonymousThread(lThreadProc).Start;
+end;
+
+procedure TMainForm.Button6Click(Sender: TObject);
+begin
+  Log.Fatal('This is a fatal message with TAG1', 'TAG1');
+  Log.Fatal('This is a fatal message with TAG2', 'TAG2');
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);

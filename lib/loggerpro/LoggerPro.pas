@@ -31,7 +31,7 @@ var
   DefaultLoggerProAppenderQueueSize: Cardinal = 50000;
 
 type
-  TLogType = (Debug = 0, Info, Warning, Error);
+  TLogType = (Debug = 0, Info, Warning, Error, Fatal);
   TLogErrorReason = (QueueFull);
   TLogErrorAction = (SkipNewest, DiscardOlder);
   TLogExtendedInfo = (EIUserName, EIComputerName, EIProcessName, EIProcessID, EIDeviceID { mobile });
@@ -61,6 +61,7 @@ type
       @item(INFO)
       @item(WARNING)
       @item(ERROR)
+      @item(FATAL)	  
       ) }
     property LogType: TLogType read FType;
     { @abstract(The text of the log message) }
@@ -151,6 +152,10 @@ type
     procedure Error(const aMessage: string; const aTag: string); overload;
     procedure Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
     procedure ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
+
+    procedure Fatal(const aMessage: string; const aTag: string); overload;
+    procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
+    procedure FatalFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
@@ -246,8 +251,6 @@ type
   end;
 
   TLogWriter = class(TCustomLogWriter, ILogWriter)
-  private
-  protected
   public
     procedure Debug(const aMessage: string; const aTag: string); overload;
     procedure Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
@@ -264,6 +267,11 @@ type
     procedure Error(const aMessage: string; const aTag: string); overload;
     procedure Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
     procedure ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+
+    procedure Fatal(const aMessage: string; const aTag: string); overload;
+    procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
+    procedure FatalFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+
 
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
     procedure LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
@@ -337,6 +345,7 @@ type
     @item(Log.Info('This is an information message', 'tag1'))
     @item(Log.Warn('This is a warning message', 'tag1'))
     @item(Log.Error('This is an error message', 'tag1'))
+	@item(Log.Fatal('This is a fatal message', 'tag1'))	
     )
   }
 
@@ -376,6 +385,8 @@ begin
     Exit(TLogType.Warning);
   if lLogType = 'error' then
     Exit(TLogType.Error);
+  if lLogType = 'fatal' then
+    Exit(TLogType.Fatal);
   raise ELoggerPro.CreateFmt('Invalid LogType: ', [aLogType]);
 end;
 
@@ -432,7 +443,7 @@ end;
 procedure TCustomLogWriter.AddAppender(const aAppender: ILogAppender);
 begin
   Self.FLogAppenders.Add(aAppender);
-  if Assigned( Self.FLoggerThread.FAppendersDecorators) then
+  if Assigned(Self.FLoggerThread.FAppendersDecorators) then
    Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
 end;
 
@@ -448,9 +459,10 @@ begin
   if i >= 0 then
     Self.FLogAppenders.Delete(i);
 
-  for i := 0 to Self.FLoggerThread.FAppendersDecorators.Count - 1 do
-    if Self.FLoggerThread.FAppendersDecorators[i].FLogAppender = aAppender then
-      Self.FLoggerThread.FAppendersDecorators.Delete(i);
+  if Assigned(Self.FLoggerThread.FAppendersDecorators) then
+    for i := Self.FLoggerThread.FAppendersDecorators.Count - 1 downto 0 do
+      if Self.FLoggerThread.FAppendersDecorators[i].FLogAppender = aAppender then
+        Self.FLoggerThread.FAppendersDecorators.Delete(i);
 end;
 
 function TCustomLogWriter.GetAppendersClassNames: TArray<string>;
@@ -527,6 +539,23 @@ end;
 procedure TLogWriter.ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 begin
   Error(aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.Fatal(const aMessage, aTag: string);
+begin
+  Log(TLogType.Fatal, aMessage, aTag);
+end;
+
+procedure TLogWriter.Fatal(const aMessage: string;
+  const aParams: array of TVarRec; const aTag: string);
+begin
+  Log(TLogType.Fatal, aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.FatalFmt(const aMessage: string;
+  const aParams: array of TVarRec; const aTag: string);
+begin
+  Fatal(aMessage, aParams, aTag);
 end;
 
 procedure TLogWriter.Info(const aMessage, aTag: string);
@@ -719,6 +748,8 @@ begin
       Exit('WARNING');
     TLogType.Error:
       Exit('ERROR');
+    TLogType.Fatal:
+      Exit('FATAL');
   else
     raise ELoggerPro.Create('Invalid LogType');
   end;
@@ -806,7 +837,7 @@ end;
 
 procedure TLoggerProAppenderBase.Setup;
 begin
-  FFormatSettings := LoggerPro.GetDefaultFormatSettings;
+  FFormatSettings := GetDefaultFormatSettings;
 end;
 
 procedure TLoggerProAppenderBase.TryToRestart(var Restarted: Boolean);

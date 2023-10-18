@@ -10,13 +10,11 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   Visible = True
   OnCreate = FormCreate
   DesignSize = (
     834
     535)
-  PixelsPerInch = 96
   TextHeight = 13
   object Button1: TButton
     Left = 8
@@ -71,6 +69,8 @@ object MainForm: TMainForm
     ActivePage = tsListViewAppender
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
+    ExplicitWidth = 814
+    ExplicitHeight = 392
     object tsListViewAppender: TTabSheet
       Caption = 'ListView Appender DEMO'
       object ListView1: TListView
@@ -98,15 +98,13 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 0
         ViewStyle = vsReport
+        ExplicitWidth = 806
+        ExplicitHeight = 364
       end
     end
     object tsMemoAppender: TTabSheet
       Caption = 'Memo Appender DEMO'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 281
-      ExplicitHeight = 165
       object Memo1: TMemo
         Left = 0
         Top = 0
@@ -123,11 +121,16 @@ object MainForm: TMainForm
         ScrollBars = ssVertical
         TabOrder = 0
         WordWrap = False
-        ExplicitLeft = -535
-        ExplicitTop = -228
-        ExplicitWidth = 816
-        ExplicitHeight = 393
       end
     end
+  end
+  object Button6: TButton
+    Left = 580
+    Top = 8
+    Width = 137
+    Height = 57
+    Caption = 'FATAL'
+    TabOrder = 6
+    OnClick = Button6Click
   end
 end
