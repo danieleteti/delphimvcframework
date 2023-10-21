@@ -317,6 +317,7 @@ resourcestring
   // 3 - controller class name
   // 4 - middlewares
   // 5 - jsonrpc registration code
+  // 6 - jsonrpc class unit
   sWebModuleUnit =
     'unit %0:s;' + sLineBreak +
     '' + sLineBreak +

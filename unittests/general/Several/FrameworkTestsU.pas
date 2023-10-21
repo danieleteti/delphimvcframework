@@ -271,6 +271,10 @@ type
     [Test]
     procedure TestKeyValue;
     [Test]
+    procedure TestWithBadNames;
+    [Test]
+    procedure TestWithEmptyValue;
+    [Test]
     procedure TestKeyValueWithQuotedValues;
     [Test]
     procedure TestValueWithMultiline;
@@ -2314,6 +2318,48 @@ begin
       Assert.AreEqual('value2', lDict['key2']);
       Assert.AreEqual('|${key1}|${key2}|', lDict['key3']);
       Assert.AreEqual('value4', lDict['key4']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestWithBadNames;
+const
+  DOTENVCODE = 'key1=value1' + sLineBreak + '3key2 = 12';
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      Assert.WillRaise(
+      procedure
+      begin
+        lParser.Parse(lDict, DOTENVCODE);
+      end,
+      EMVCDotEnvParser);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestWithEmptyValue;
+const
+  DOTENVCODE = 'key1=value1' + sLineBreak + 'key2 = ' + sLineBreak + 'key3 = xyz ' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('', lDict['key2']);
+      Assert.AreEqual('xyz', lDict['key3']);
     finally
       lDict.Free;
     end;
