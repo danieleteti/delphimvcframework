@@ -42,7 +42,9 @@ type
   TDMVCProjectFile = class(TNewProjectEx)
   private
     FDefaultPort: Integer;
+    FUseMSHeapOnWindows: Boolean;
     procedure SetDefaultPort(const Value: Integer);
+    procedure SetUseMSHeapOnWindows(const Value: Boolean);
   protected
     function NewProjectSource(const ProjectName: string): IOTAFile; override;
     function GetFrameworkType: string; override;
@@ -50,6 +52,7 @@ type
     constructor Create; overload;
     constructor Create(const APersonality: string); overload;
     property DefaultPort: Integer read FDefaultPort write SetDefaultPort;
+    property UseMSHeapOnWindows: Boolean read FUseMSHeapOnWindows write SetUseMSHeapOnWindows;
   end;
 
 implementation
@@ -63,8 +66,10 @@ constructor TDMVCProjectFile.Create;
 begin
   // TODO: Figure out how to make this be DMVCProjectX where X is the next available.
   // Return Blank and the project will be 'ProjectX.dpr' where X is the next available number
+  inherited;
   FFileName := '';
   FDefaultPort := 0;
+  FUseMSHeapOnWindows := False;
 end;
 
 constructor TDMVCProjectFile.Create(const APersonality: string);
@@ -79,13 +84,25 @@ begin
 end;
 
 function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;
+var
+  lCodeForUseMSHeapOnWindows: String;
 begin
-  Result := TSourceFile.Create(sDMVCDPR, [ProjectName, FDefaultPort]);
+  lCodeForUseMSHeapOnWindows := '';
+  if FUseMSHeapOnWindows then
+  begin
+    lCodeForUseMSHeapOnWindows := '{$IF Defined(MSWINDOWS)}' + sLineBreak + '  MSHeap,' + sLineBreak + '{$ENDIF}';
+  end;
+  Result := TSourceFile.Create(sDMVCDPR, [ProjectName, FDefaultPort, lCodeForUseMSHeapOnWindows]);
 end;
 
 procedure TDMVCProjectFile.SetDefaultPort(const Value: Integer);
 begin
   FDefaultPort := Value;
+end;
+
+procedure TDMVCProjectFile.SetUseMSHeapOnWindows(const Value: Boolean);
+begin
+  FUseMSHeapOnWindows := Value;
 end;
 
 end.

@@ -93,6 +93,7 @@ type
     EdtConnDefName: TEdit;
     ApplicationEvents: TApplicationEvents;
     lblCopyRight: TLabel;
+    chkMSHeap: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -117,6 +118,7 @@ type
     function GetMiddlewares: TArray<String>;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
+    function GetUseMSHeapOnWindows: Boolean;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
@@ -131,6 +133,7 @@ type
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
     property ServerPort: Integer read GetServerPort;
+    property UseMSHeapOnWindows: Boolean read GetUseMSHeapOnWindows;
   end;
 
 var
@@ -267,6 +270,11 @@ begin
     if (lServerPort > 0) and (lServerPort < 65535) then
       Result := lServerPort;
   end;
+end;
+
+function TfrmDMVCNewProject.GetUseMSHeapOnWindows: Boolean;
+begin
+  Result := chkMSHeap.Checked;
 end;
 
 function TfrmDMVCNewProject.GetWebModuleClassName: string;

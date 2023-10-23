@@ -109,6 +109,7 @@ begin
           // Create Project Source
           lProjectSourceCreator := TDMVCProjectFile.Create(APersonality);
           TDMVCProjectFile(lProjectSourceCreator).DefaultPort := WizardForm.ServerPort;
+          TDMVCProjectFile(lProjectSourceCreator).UseMSHeapOnWindows := WizardForm.UseMSHeapOnWindows;
           ModuleServices.CreateModule(lProjectSourceCreator);
           Project := GetActiveProject;
 

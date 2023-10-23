@@ -39,12 +39,14 @@ resourcestring
   { Delphi template code }
   // 0 - project name
   // 1 - http/s port
+  // 2 - UseMSHeapOnWindows
   sDMVCDPR =
     'program %0:s;' + sLineBreak +
     sLineBreak +
     '{$APPTYPE CONSOLE}' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
+    '  %2:s' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
