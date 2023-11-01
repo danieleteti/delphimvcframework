@@ -1510,7 +1510,7 @@ begin
     begin
       if [eaCreate, eaUpdate, eaDelete] * lTableMap.fEntityAllowedActions <> [] then
       begin
-        raise Exception.Create('Cannot find TableNameAttribute on class ' + ClassName + ' - [HINT] Is this class decorated with MVCTable and its fields with MVCTableField?');
+        raise Exception.Create('Cannot find MVCTable attribute on class "' + ClassName + '" - [HINT] Is this class decorated with MVCTable and its fields with MVCTableField?');
       end;
     end;
 
