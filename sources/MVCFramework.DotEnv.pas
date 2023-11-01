@@ -52,7 +52,8 @@ type
 
   IMVCDotEnvBuilder = interface
     ['{1A5EDD44-7226-40BC-A8EE-789E27522392}']
-    function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function UseStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function SkipDefaultEnv: IMVCDotEnvBuilder;
     function UseLogger( const Logger: TProc<String>): IMVCDotEnvBuilder;
     function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
     function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
@@ -86,6 +87,7 @@ type
     fEnvDict: TMVCDotEnvDictionary;
     fLoggerProc: TProc<String>;
     fProfiles: TList<String>;
+    fSkipDefaultEnv: Boolean;
     procedure DoLog(const Value: String);
     procedure ReadEnvFile;
     function GetDotEnvVar(const key: string): string;
@@ -95,7 +97,8 @@ type
     procedure CheckAlreadyBuilt;
     procedure ExplodeReferences;
   strict protected
-    function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
+    function UseStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
+    function SkipDefaultEnv: IMVCDotEnvBuilder;
     function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
     function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
     function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
@@ -226,7 +229,7 @@ begin
   Result := Self;
 end;
 
-function TMVCDotEnv.WithStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
+function TMVCDotEnv.UseStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
   Result := Self;
@@ -250,6 +253,7 @@ begin
   end;
   DoLog('Path = ' + fEnvPath);
   fEnvDict.Clear;
+
   lAllProfiles := ['default'] + fProfiles.ToArray();
   DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');
   ReadEnvFile;
@@ -280,6 +284,7 @@ begin
   fEnvDict := TMVCDotEnvDictionary.Create;
   fEnvPath := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
   fPriority := TMVCDotEnvPriority.EnvThenFile;
+  fSkipDefaultEnv := False;
 end;
 
 destructor TMVCDotEnv.Destroy;
@@ -406,6 +411,12 @@ begin
   Result := Self;
 end;
 
+function TMVCDotEnv.SkipDefaultEnv: IMVCDotEnvBuilder;
+begin
+  fSkipDefaultEnv := True;
+  Result := Self;
+end;
+
 function TMVCDotEnv.ToArray: TArray<String>;
 var
   lKeys: TArray<String>;
@@ -449,7 +460,10 @@ var
   lProfileEnvPath: string;
   I: Integer;
 begin
-  PopulateDictionary(fEnvDict, IncludeTrailingPathDelimiter(fEnvPath) + '.env');
+  if not fSkipDefaultEnv then
+  begin
+    PopulateDictionary(fEnvDict, IncludeTrailingPathDelimiter(fEnvPath) + '.env');
+  end;
   for I := 0 to fProfiles.Count - 1 do
   begin
     lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];

@@ -107,7 +107,7 @@ resourcestring
     '      function: IMVCDotEnv' + sLineBreak +
     '      begin' + sLineBreak +
     '        Result := NewDotEnv' + sLineBreak +
-    '                 .WithStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
+    '                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)' + sLineBreak +
     '                                       //if available, by default, loads default environment (.env)' + sLineBreak +
     '                 .UseProfile(''test'') //if available loads the test environment (.env.test)' + sLineBreak +
     '                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)' + sLineBreak +

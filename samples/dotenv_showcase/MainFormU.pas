@@ -26,6 +26,7 @@ type
     Panel2: TPanel;
     Label1: TLabel;
     Label2: TLabel;
+    btnSkipDefaultFile: TButton;
     procedure btnSimpleClick(Sender: TObject);
     procedure btnTestEnvClick(Sender: TObject);
     procedure btnProdEnvClick(Sender: TObject);
@@ -34,6 +35,7 @@ type
     procedure btnRequireKeys2Click(Sender: TObject);
     procedure memSrcChange(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure btnSkipDefaultFileClick(Sender: TObject);
   private
     procedure UpdatePlayGround;
     procedure UpdateUI(dotEnv: IMVCDotEnv);
@@ -48,10 +50,23 @@ implementation
 
 {$R *.dfm}
 
+procedure TMainForm.btnSkipDefaultFileClick(Sender: TObject);
+begin
+  { with this configuration, only .env.prod is loaded, because .env, which is the default, is skipped }
+  var dotEnv := NewDotEnv
+    .SkipDefaultEnv
+    .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+    .UseProfile('prod')
+    .Build();
+  mmVars.Clear;
+  mmVars.Lines.AddStrings(dotEnv.ToArray);
+  UpdateUI(dotEnv);
+end;
+
 procedure TMainForm.btnProdEnvClick(Sender: TObject);
 begin
   var dotEnv := NewDotEnv
-    .WithStrategy(TMVCDotEnvPriority.EnvThenFile)
+    .UseStrategy(TMVCDotEnvPriority.EnvThenFile)
     .UseProfile('prod')
     .Build();
   mmVars.Clear;
@@ -61,20 +76,20 @@ end;
 
 procedure TMainForm.btnRequireKeys2Click(Sender: TObject);
 begin
-  var dotEnv := NewDotEnv.WithStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
+  var dotEnv := NewDotEnv.UseStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
   dotEnv.RequireKeys(['mode','dbuser','blablabla','dbhostname','unknown']);
 end;
 
 procedure TMainForm.btnRequireKeysClick(Sender: TObject);
 begin
-  var dotEnv := NewDotEnv.WithStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
+  var dotEnv := NewDotEnv.UseStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
   dotEnv.RequireKeys(['mode','dbuser','dbpassword','dbhostname']);
   ShowMessage('Required Keys FOUND!');
 end;
 
 procedure TMainForm.btnSimpleClick(Sender: TObject);
 begin
-  var dotEnv := NewDotEnv.WithStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
+  var dotEnv := NewDotEnv.UseStrategy(TMVCDotEnvPriority.EnvThenFile).Build();
   mmVars.Clear;
   mmVars.Lines.AddStrings(dotEnv.ToArray);
   UpdateUI(dotEnv);
@@ -83,7 +98,7 @@ end;
 procedure TMainForm.btnSingleEnvClick(Sender: TObject);
 begin
   var dotEnv := NewDotEnv
-    .WithStrategy(TMVCDotEnvPriority.EnvThenFile)
+    .UseStrategy(TMVCDotEnvPriority.EnvThenFile)
     .UseProfile('prod')
     .Build('env1');
   mmVars.Clear;
@@ -94,7 +109,7 @@ end;
 procedure TMainForm.btnTestEnvClick(Sender: TObject);
 begin
   var dotEnv := NewDotEnv
-    .WithStrategy(TMVCDotEnvPriority.EnvThenFile)
+    .UseStrategy(TMVCDotEnvPriority.EnvThenFile)
     .UseProfile('test')
     .Build();
   mmVars.Clear;
@@ -107,7 +122,7 @@ begin
   if DebugHook<>0 then
   begin
     ShowMessage('Please, run this sample without debugging!' + sLineBreak +
-      'It will raise exceptions manhy times while using the playground');
+      'It can raise exceptions many times while using the playground');
   end;
 
   UpdatePlayGround;
@@ -124,7 +139,7 @@ begin
   memSrc.Lines.SaveToFile(lFileName);
   try
     var dotEnv := NewDotEnv
-      .WithStrategy(TMVCDotEnvPriority.OnlyFile)
+      .UseStrategy(TMVCDotEnvPriority.OnlyFile)
       .UseProfile('playground')
       .Build(TPath.GetHomePath);
     memDst.Clear;

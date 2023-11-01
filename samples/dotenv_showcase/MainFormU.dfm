@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'dotEnv :: ShowCase'
-  ClientHeight = 644
-  ClientWidth = 1028
+  ClientHeight = 634
+  ClientWidth = 1178
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,21 +16,21 @@ object MainForm: TMainForm
     AlignWithMargins = True
     Left = 3
     Top = 3
-    Width = 1022
-    Height = 638
-    ActivePage = TabSheet2
+    Width = 1172
+    Height = 628
+    ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 1018
-    ExplicitHeight = 637
+    ExplicitWidth = 1168
+    ExplicitHeight = 627
     object TabSheet1: TTabSheet
       Caption = 'dotEnv Samples'
       DesignSize = (
-        1014
-        608)
+        1164
+        598)
       object btnSingleEnv: TButton
         Left = 8
-        Top = 191
+        Top = 236
         Width = 169
         Height = 49
         Caption = 'Single ENV without inheritance (only prod)'
@@ -86,8 +86,8 @@ object MainForm: TMainForm
       object mmVars: TMemo
         Left = 183
         Top = 18
-        Width = 825
-        Height = 587
+        Width = 982
+        Height = 588
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -96,6 +96,18 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         TabOrder = 6
+        ExplicitWidth = 978
+        ExplicitHeight = 587
+      end
+      object btnSkipDefaultFile: TButton
+        Left = 8
+        Top = 181
+        Width = 169
+        Height = 49
+        Caption = 'Skip Default .env file (load only .env.prod profile)'
+        TabOrder = 7
+        WordWrap = True
+        OnClick = btnSkipDefaultFileClick
       end
     end
     object TabSheet2: TTabSheet
@@ -104,19 +116,18 @@ object MainForm: TMainForm
       object Splitter1: TSplitter
         Left = 625
         Top = 0
-        Height = 608
-        ExplicitLeft = 408
-        ExplicitTop = 168
-        ExplicitHeight = 100
+        Height = 598
+        ExplicitHeight = 605
       end
       object Panel1: TPanel
         Left = 0
         Top = 0
         Width = 625
-        Height = 608
+        Height = 598
         Align = alLeft
         Caption = 'Panel1'
         TabOrder = 0
+        ExplicitHeight = 597
         object Label1: TLabel
           AlignWithMargins = True
           Left = 4
@@ -138,13 +149,13 @@ object MainForm: TMainForm
           Left = 4
           Top = 35
           Width = 617
-          Height = 569
+          Height = 559
           Align = alClient
           Ctl3D = True
           EditMargins.Auto = True
           Font.Charset = ANSI_CHARSET
           Font.Color = clWindowText
-          Font.Height = -15
+          Font.Height = -19
           Font.Name = 'Consolas'
           Font.Style = []
           Lines.Strings = (
@@ -224,16 +235,18 @@ object MainForm: TMainForm
       object Panel2: TPanel
         Left = 628
         Top = 0
-        Width = 386
-        Height = 608
+        Width = 536
+        Height = 598
         Align = alClient
         Caption = 'Panel2'
         TabOrder = 1
+        ExplicitWidth = 532
+        ExplicitHeight = 597
         object Label2: TLabel
           AlignWithMargins = True
           Left = 4
           Top = 4
-          Width = 378
+          Width = 211
           Height = 25
           Align = alTop
           Caption = 'What'#39's application "sees"'
@@ -243,20 +256,19 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
-          ExplicitWidth = 211
         end
         object memDst: TMemo
           AlignWithMargins = True
           Left = 4
           Top = 35
-          Width = 378
-          Height = 569
+          Width = 528
+          Height = 559
           Align = alClient
           Ctl3D = True
           EditMargins.Auto = True
           Font.Charset = ANSI_CHARSET
           Font.Color = clWindowText
-          Font.Height = -15
+          Font.Height = -19
           Font.Name = 'Consolas'
           Font.Style = []
           ParentCtl3D = False
@@ -264,6 +276,8 @@ object MainForm: TMainForm
           ReadOnly = True
           TabOrder = 0
           WordWrap = False
+          ExplicitWidth = 524
+          ExplicitHeight = 558
         end
       end
     end
