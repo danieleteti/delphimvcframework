@@ -58,7 +58,7 @@ begin
     end)
     .AddController(TWebSiteController)
     .SetViewEngine(TMVCMustacheViewEngine)
-    .AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedDataSerializer.Create);
+    .AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create);
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

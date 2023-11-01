@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  System.Generics.Collections, Data.DB, JsonDataObjects;
+  System.Generics.Collections, Data.DB, JsonDataObjects, System.Rtti;
 
 type
   [MVCNameCase(ncCamelCase)]
@@ -51,8 +51,6 @@ type
     [MVCPath('/objects/jsonarray')]
     function GetJSONArray: TJsonArray;
 
-
-
     { actions returning datasets }
     [MVCPath('/datasets/single')]
     function GetSingleDataSet: TDataSet;
@@ -78,8 +76,6 @@ type
     function GetMVCResponseWithObjectList: IMVCResponse;
     [MVCPath('/mvcresponse/dictionary')]
     function GetMVCResponseWithObjectDictionary: IMVCResponse;
-    [MVCPath('/mvcresponse/error')]
-    function GetMVCErrorResponse: IMVCResponse;
     [MVCPath('/mvcresponse/message/builder/headers')]
     function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
   end;
@@ -161,11 +157,6 @@ begin
   Inc(Result[1].Age, 10);
 
   Inc(Result[2].Age, 20);
-end;
-
-function TMyController.GetMVCErrorResponse: IMVCResponse;
-begin
-  Result := TMVCErrorResponse.Create(500, 'boom');
 end;
 
 function TMyController.GetMVCResponseSimple: IMVCResponse;
