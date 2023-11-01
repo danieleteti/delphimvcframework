@@ -11,6 +11,7 @@ type
   TWebSiteController = class(TMVCController)
   protected
     function GeneratePeopleListAsCSV: String;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCPath]
     [MVCHTTPMethods([httpGET])]
@@ -181,6 +182,14 @@ begin
   end;
 end;
 
+procedure TWebSiteController.OnBeforeAction(AContext: TWebContext;
+  const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+  SetPagesCommonHeaders(['header']);
+  SetPagesCommonFooters(['footer']);
+end;
+
 function TWebSiteController.PeopleList: String;
 var
   LDAL: IPeopleDAL;
@@ -190,7 +199,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    Result := GetRenderedView(['header', 'people_list_search', 'people_list', 'people_list_bottom', 'footer']);
+    Result := Page(['people_list_search', 'people_list', 'people_list_bottom']);
   finally
     lPeople.Free;
   end;
@@ -207,9 +216,9 @@ begin
   lPeople := LDAL.GetPeople(SearchText);
   try
     ViewData['people'] := lPeople;
-    if Context.Request.HXIsHTMX then
+    if Context.Request.IsHTMX then
     begin
-      Result := GetRenderedView(['people_list']);
+      Result := PageFragment(['people_list']);
       if SearchText.IsEmpty then
         Context.Response.HXSetPushUrl('/people/search')
       else
@@ -220,7 +229,7 @@ begin
       var lJSON := TJSONObject.Create;
       try
         lJSON.S['q'] := SearchText;
-        Result := GetRenderedView(['header', 'people_list_search', 'people_list', 'people_list_bottom', 'footer'], lJSON);
+        Result := Page(['people_list_search', 'people_list', 'people_list_bottom'], lJSON);
       finally
         lJSON.Free;
       end;

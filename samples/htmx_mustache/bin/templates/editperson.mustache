@@ -1,14 +1,4 @@
-﻿<script>
-  function doDelete(id) {
-    if (confirm('Are you sure?')) {
-      let form = document.getElementById("myForm");
-      form.action = "/deleteperson";
-      form.submit();
-    }
-  }
-</script>
-
-<form class="form form-horizontal" id="myForm" name="myForm" hx-post="/people">
+﻿<form class="form form-horizontal" id="myForm" name="myForm" hx-post="/people">
   <input type="hidden" value="{{person.guid}}" name="guid">
   <div class="row">
     <div class="col">
@@ -55,12 +45,15 @@
       </div>		
     </div>		
   </div>
-        
-  <div class="row">
+
+  <div class="row" style="padding-top:2rem">
     <div class="col">
-      <button type="button" class="btn btn-default btn-block" onclick="history.back()">Return to the list</button>
+      <button type="button" class="btn btn-secondary btn-block w-100" onclick="history.back()">Return to the list</button>
     </div>      
-    <div class="offset-5">
+    <div class="col offset-4">
+    </div>
+    <div class="col">
+      <button type="submit" class="btn btn-primary btn-block w-100">Save</button> 
     </div>
     <div class="col">        
       {{#person}}
@@ -68,14 +61,12 @@
           type="button" 
           hx-confirm="Are you sure you wish to delete user?" 
           hx-delete="/people/delete/{{#person}}{{guid}}{{/person}}" 
-          class="btn btn-warning  btn-block">
+          class="btn btn-danger btn-block w-100">
             Delete
           </button> 
       {{/person}} 
     </div>
-    <div class="col">
-      <button type="submit" class="btn btn-primary btn-block">Save</button> 
-    </div>
+
   </div>
 
 </form>

@@ -100,7 +100,7 @@ begin
   Movies := GetMovieService.ListAll;
   try
     ViewData['Movies'] := Movies;
-    if Context.Request.HXIsHTMX then
+    if Context.Request.IsHTMX then
     begin
       PageData.S['Explanation'] := 'Loaded via a seamless ajax call';
       // rendering with htmx, pudsh the URL into the browser bar so a page refresh will not go back to the index page
