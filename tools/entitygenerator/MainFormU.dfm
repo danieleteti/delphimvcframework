@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = '[DMVCFramework] MVCActiveRecord Entity Generator'
   ClientHeight = 687
-  ClientWidth = 1192
+  ClientWidth = 1129
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,7 +17,7 @@ object MainForm: TMainForm
   object Splitter1: TSplitter
     Left = 0
     Top = 542
-    Width = 1192
+    Width = 1129
     Height = 3
     Cursor = crVSplit
     Align = alBottom
@@ -27,18 +27,20 @@ object MainForm: TMainForm
   object pcMain: TPageControl
     Left = 0
     Top = 0
-    Width = 1192
+    Width = 1129
     Height = 542
     ActivePage = tsTablesMapping
     Align = alClient
     TabOrder = 0
+    ExplicitWidth = 1188
+    ExplicitHeight = 541
     object tsConnectionDefinition: TTabSheet
       Caption = 'Connection Definition'
       ImageIndex = 1
       object Panel2: TPanel
         Left = 0
         Top = 89
-        Width = 1184
+        Width = 1121
         Height = 417
         Align = alClient
         Caption = 'Panel1'
@@ -49,11 +51,12 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         TabOrder = 0
+        ExplicitWidth = 1184
         object Label2: TLabel
           AlignWithMargins = True
           Left = 4
           Top = 4
-          Width = 1176
+          Width = 1113
           Height = 13
           Align = alTop
           Caption = 'FireDAC connection parameters'
@@ -63,7 +66,7 @@ object MainForm: TMainForm
           AlignWithMargins = True
           Left = 4
           Top = 23
-          Width = 778
+          Width = 715
           Height = 390
           Align = alClient
           Font.Charset = ANSI_CHARSET
@@ -76,9 +79,10 @@ object MainForm: TMainForm
           TabOrder = 0
           WordWrap = False
           OnChange = mmConnectionParamsChange
+          ExplicitWidth = 778
         end
         object Panel6: TPanel
-          Left = 785
+          Left = 722
           Top = 20
           Width = 398
           Height = 396
@@ -87,6 +91,7 @@ object MainForm: TMainForm
           Caption = 'Panel6'
           ShowCaption = False
           TabOrder = 1
+          ExplicitLeft = 785
           object GroupBox1: TGroupBox
             AlignWithMargins = True
             Left = 3
@@ -116,10 +121,11 @@ object MainForm: TMainForm
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 1184
+        Width = 1121
         Height = 89
         Align = alTop
         TabOrder = 1
+        ExplicitWidth = 1184
         object Label1: TLabel
           AlignWithMargins = True
           Left = 19
@@ -135,7 +141,7 @@ object MainForm: TMainForm
         end
         object Label3: TLabel
           AlignWithMargins = True
-          Left = 620
+          Left = 557
           Top = 11
           Width = 553
           Height = 67
@@ -151,8 +157,7 @@ object MainForm: TMainForm
             'generated from that set of tables.'
           Layout = tlCenter
           WordWrap = True
-          ExplicitLeft = 605
-          ExplicitTop = 10
+          ExplicitLeft = 620
           ExplicitHeight = 63
         end
         object cboConnectionDefs: TComboBox
@@ -173,40 +178,44 @@ object MainForm: TMainForm
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 1184
+        Width = 1121
         Height = 506
         Align = alClient
         Caption = 'Panel3'
         ShowCaption = False
         TabOrder = 0
+        ExplicitWidth = 1180
+        ExplicitHeight = 505
         object Panel4: TPanel
           Left = 1
           Top = 1
-          Width = 1182
+          Width = 1119
           Height = 151
           Align = alTop
           BevelOuter = bvNone
           Caption = 'Panel4'
           ShowCaption = False
           TabOrder = 0
+          ExplicitWidth = 1178
           DesignSize = (
-            1182
+            1119
             151)
           object btnGenEntities: TButton
             AlignWithMargins = True
-            Left = 1214
+            Left = 1147
             Top = 0
             Width = 161
             Height = 35
             Anchors = [akRight, akBottom]
             Caption = 'Generate Entities'
             TabOrder = 0
+            ExplicitLeft = 1206
           end
           object chkGenerateMapping: TCheckBox
             AlignWithMargins = True
             Left = 10
             Top = 116
-            Width = 1169
+            Width = 1106
             Height = 32
             Margins.Left = 10
             Align = alBottom
@@ -217,11 +226,12 @@ object MainForm: TMainForm
             State = cbChecked
             TabOrder = 1
             WordWrap = True
+            ExplicitWidth = 1165
           end
           object rgNameCase: TRadioGroup
             Left = 7
             Top = 9
-            Width = 393
+            Width = 354
             Height = 104
             Caption = 'Class MVCNameCase'
             Columns = 3
@@ -236,30 +246,45 @@ object MainForm: TMainForm
             TabOrder = 2
           end
           object rgFieldNameFormatting: TRadioGroup
-            Left = 406
-            Top = 9
-            Width = 389
+            Left = 367
+            Top = 10
+            Width = 355
             Height = 104
-            Caption = 'Field Names Formatting'
+            Caption = 'Property Names Formatting'
             ItemIndex = 1
             Items.Strings = (
-              'Leave field names as in database table'
-              'Format field names as Pascal Case (eg FirstName)')
+              'Leave names as is in database table'
+              'Convert names to Pascal Case (eg FirstName)')
             TabOrder = 3
           end
           object gbOptions: TGroupBox
-            Left = 802
-            Top = 9
-            Width = 334
+            Left = 728
+            Top = 10
+            Width = 384
             Height = 105
+            Anchors = [akLeft, akTop, akRight]
             Caption = 'Other Options'
             TabOrder = 4
+            DesignSize = (
+              384
+              105)
+            object Label5: TLabel
+              Left = 31
+              Top = 29
+              Width = 345
+              Height = 44
+              Anchors = [akLeft, akTop, akRight]
+              Caption = 
+                'Declare classes as abstract (MVCTable must be redeclared on desc' +
+                'endant classes)'
+              WordWrap = True
+              ExplicitWidth = 378
+            end
             object chkClassAsAbstract: TCheckBox
-              Left = 16
+              Left = 9
               Top = 32
-              Width = 232
+              Width = 20
               Height = 17
-              Caption = 'Declare classes as abstract'
               TabOrder = 0
             end
           end
@@ -268,17 +293,19 @@ object MainForm: TMainForm
           AlignWithMargins = True
           Left = 4
           Top = 206
-          Width = 1176
+          Width = 1113
           Height = 296
           ActivePage = TabSheet1
           Align = alClient
           TabOrder = 1
+          ExplicitWidth = 1172
+          ExplicitHeight = 295
           object TabSheet1: TTabSheet
             Caption = 'Tables'
             object DBGrid1: TDBGrid
               Left = 0
               Top = 0
-              Width = 1168
+              Width = 1105
               Height = 219
               Align = alClient
               DataSource = dsrcTablesMapping
@@ -319,11 +346,13 @@ object MainForm: TMainForm
             object Panel7: TPanel
               Left = 0
               Top = 219
-              Width = 1168
+              Width = 1105
               Height = 41
               Align = alBottom
               BevelOuter = bvNone
               TabOrder = 1
+              ExplicitTop = 218
+              ExplicitWidth = 1164
               object Label4: TLabel
                 Left = 3
                 Top = 9
@@ -345,12 +374,13 @@ object MainForm: TMainForm
         object Panel10: TPanel
           Left = 1
           Top = 152
-          Width = 1182
+          Width = 1119
           Height = 51
           Align = alTop
           Caption = 'Panel10'
           ShowCaption = False
           TabOrder = 2
+          ExplicitWidth = 1178
           object SpeedButton1: TSpeedButton
             AlignWithMargins = True
             Left = 180
@@ -411,31 +441,35 @@ object MainForm: TMainForm
   object Panel8: TPanel
     Left = 0
     Top = 632
-    Width = 1192
+    Width = 1129
     Height = 55
     Margins.Right = 6
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
+    ExplicitTop = 631
+    ExplicitWidth = 1188
     object btnPrev: TButton
       AlignWithMargins = True
-      Left = 975
+      Left = 912
       Top = 3
       Width = 104
       Height = 49
       Action = TabPreviousTab1
       Align = alRight
       TabOrder = 0
+      ExplicitLeft = 971
     end
     object btnNext: TButton
       AlignWithMargins = True
-      Left = 1085
+      Left = 1022
       Top = 3
       Width = 104
       Height = 49
       Action = TabNextTab1
       Align = alRight
       TabOrder = 1
+      ExplicitLeft = 1081
     end
     object Panel5: TPanel
       AlignWithMargins = True
@@ -485,16 +519,18 @@ object MainForm: TMainForm
   object Panel12: TPanel
     Left = 0
     Top = 545
-    Width = 1192
+    Width = 1129
     Height = 87
     Align = alBottom
     BevelOuter = bvNone
     Caption = 'Panel12'
     TabOrder = 2
+    ExplicitTop = 544
+    ExplicitWidth = 1188
     object lbLog: TListBox
       Left = 0
       Top = 0
-      Width = 1192
+      Width = 1129
       Height = 87
       Align = alClient
       BevelInner = bvNone
@@ -508,6 +544,7 @@ object MainForm: TMainForm
       ParentFont = False
       ScrollWidth = 5000
       TabOrder = 0
+      ExplicitWidth = 1188
     end
   end
   object FDConnection: TFDConnection
@@ -521,8 +558,8 @@ object MainForm: TMainForm
     UpdateOptions.EnableUpdate = False
     ConnectedStoredUsage = []
     LoginPrompt = False
-    Left = 480
-    Top = 176
+    Left = 408
+    Top = 320
   end
   object qry: TFDQuery
     Connection = FDConnection
@@ -535,8 +572,8 @@ object MainForm: TMainForm
     UpdateOptions.EnableDelete = False
     UpdateOptions.EnableInsert = False
     UpdateOptions.EnableUpdate = False
-    Left = 96
-    Top = 240
+    Left = 384
+    Top = 232
   end
   object FDPhysFBDriverLink1: TFDPhysFBDriverLink
     Left = 504
@@ -544,8 +581,8 @@ object MainForm: TMainForm
   end
   object FDGUIxWaitCursor1: TFDGUIxWaitCursor
     Provider = 'Forms'
-    Left = 424
-    Top = 104
+    Left = 496
+    Top = 280
   end
   object FDPhysMSSQLDriverLink1: TFDPhysMSSQLDriverLink
     Left = 784
@@ -571,11 +608,11 @@ object MainForm: TMainForm
     Top = 496
   end
   object FDPhysFBDriverLink2: TFDPhysFBDriverLink
-    Left = 616
+    Left = 632
     Top = 408
   end
   object FDPhysIBDriverLink1: TFDPhysIBDriverLink
-    Left = 616
+    Left = 632
     Top = 496
   end
   object FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink
@@ -651,7 +688,7 @@ object MainForm: TMainForm
   object MainMenu1: TMainMenu
     Images = ImageListMainMenu
     Left = 728
-    Top = 40
+    Top = 168
     object File1: TMenuItem
       Caption = '&File'
       object NewProject1: TMenuItem
@@ -1011,15 +1048,15 @@ object MainForm: TMainForm
     Top = 176
   end
   object FDMoniFlatFileClientLink1: TFDMoniFlatFileClientLink
-    Left = 1088
-    Top = 56
+    Left = 1080
+    Top = 200
   end
   object FDMoniCustomClientLink1: TFDMoniCustomClientLink
-    Left = 1096
-    Top = 64
+    Left = 1080
+    Top = 256
   end
   object FDMoniRemoteClientLink1: TFDMoniRemoteClientLink
-    Left = 1104
-    Top = 72
+    Left = 1080
+    Top = 312
   end
 end

@@ -153,6 +153,7 @@ type
     FDMoniFlatFileClientLink1: TFDMoniFlatFileClientLink;
     FDMoniCustomClientLink1: TFDMoniCustomClientLink;
     FDMoniRemoteClientLink1: TFDMoniRemoteClientLink;
+    Label5: TLabel;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
