@@ -206,7 +206,6 @@ begin
     finally
       TMonitor.Exit(GLock);
     end;
-    SetDefaultColors;
   end;
 end;
 
