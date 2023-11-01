@@ -263,6 +263,8 @@ type
     procedure TestWithDevProfile;
     [Test]
     procedure TestWithDevAndTestProfile;
+    [Test]
+    procedure TestSkipDefaultWithDevAndTestProfile;
   end;
 
   [TestFixture]
@@ -2157,6 +2159,22 @@ begin
   finally
     ms1.Free;
   end
+end;
+
+procedure TTestDotEnv.TestSkipDefaultWithDevAndTestProfile;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv
+    .SkipDefaultEnv
+    .UseProfile('dev')
+    .UseProfile('test')
+    .Build('..\dotEnv');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.test.txt')),
+    'Files are different');
 end;
 
 procedure TTestDotEnv.TestWithDevAndTestProfile;
