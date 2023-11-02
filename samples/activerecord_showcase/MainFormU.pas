@@ -61,6 +61,7 @@ type
     btnNamedQuery: TButton;
     btnVirtualEntities: TButton;
     btnIntegersAsBool: TButton;
+    btnObjectVersion: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -92,6 +93,7 @@ type
     procedure btnNamedQueryClick(Sender: TObject);
     procedure btnVirtualEntitiesClick(Sender: TObject);
     procedure btnIntegersAsBoolClick(Sender: TObject);
+    procedure btnObjectVersionClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -1948,6 +1950,33 @@ begin
     end;
   finally
     lList.Free;
+  end;
+end;
+
+procedure TMainForm.btnObjectVersionClick(Sender: TObject);
+begin
+  var lID: NullableInt64;
+  var lCust := TCustomerWithVersion.Create();
+  try
+    Log('Entity ' + TCustomerWithVersion.ClassName + ' is mapped to table ' + lCust.TableName);
+    lCust.CompanyName := 'Google Inc.';
+    lCust.City := 'Montain View, CA';
+    lCust.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCust.Insert;
+    lID := lCust.ID;
+    Log('Just inserted CustomerWithVersion ' + lID.ValueOrDefault.ToString);
+    lCust.Store;
+  finally
+    lCust.Free;
+  end;
+
+
+  lCust := TMVCActiveRecord.GetByPK<TCustomerWithVersion>(lID);
+  try
+    lCust.CompanyName := 'Alphabet Inc.';
+    lCust.Store;
+  finally
+    lCust.Free;
   end;
 end;
 

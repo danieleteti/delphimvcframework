@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 593
-  ClientWidth = 1104
+  ClientHeight = 626
+  ClientWidth = 1094
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,8 +13,8 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnShow = FormShow
   DesignSize = (
-    1104
-    593)
+    1094
+    626)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -37,8 +37,8 @@ object MainForm: TMainForm
   object Memo1: TMemo
     Left = 280
     Top = 8
-    Width = 816
-    Height = 577
+    Width = 806
+    Height = 610
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -55,8 +55,8 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
-    ExplicitWidth = 812
-    ExplicitHeight = 576
+    ExplicitWidth = 802
+    ExplicitHeight = 609
   end
   object btnRelations: TButton
     Left = 8
@@ -293,6 +293,15 @@ object MainForm: TMainForm
     Caption = 'Integers As Booleans'
     TabOrder = 28
     OnClick = btnIntegersAsBoolClick
+  end
+  object btnObjectVersion: TButton
+    Left = 8
+    Top = 562
+    Width = 121
+    Height = 34
+    Caption = 'Object Version'
+    TabOrder = 29
+    OnClick = btnObjectVersionClick
   end
   object FDConnection1: TFDConnection
     Left = 312

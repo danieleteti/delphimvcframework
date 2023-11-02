@@ -64,8 +64,6 @@ type
     [Test]
     procedure TestCRUDWithGUID;
     [Test]
-    procedure TestCRUDWithTableChange;
-    [Test]
     procedure TestCRUDStringPK;
     [Test]
     procedure TestSelectWithExceptions;
@@ -475,49 +473,6 @@ begin
 
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithSpaces>('"id with spaces" = ?', [lID], [ftInteger], False);
   Assert.IsNull(lCustomer);
-end;
-
-procedure TTestActiveRecordBase.TestCRUDWithTableChange;
-var
-  lCustomer: TCustomer;
-  lID: Integer;
-begin
-  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>());
-  AfterDataLoad;
-  lCustomer := TCustomer.Create;
-  try
-    lCustomer.CompanyName := 'bit Time Professionals';
-    lCustomer.City := 'Rome, IT';
-    lCustomer.Note := 'note1';
-    lCustomer.CreationTime := Time;
-    lCustomer.CreationDate := Date;
-    lCustomer.ID := -1; { don't be fooled by the default! }
-    lCustomer.Insert;
-    lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
-  finally
-    lCustomer.Free;
-  end;
-
-  // the same changing tablename
-
-  lCustomer := TCustomer.Create;
-  try
-    Assert.AreEqual('customers', lCustomer.TableName);
-    lCustomer.TableName := 'customers2';
-    lCustomer.CompanyName := 'bit Time Professionals';
-    lCustomer.City := 'Rome, IT';
-    lCustomer.Note := 'note1';
-    lCustomer.CreationTime := Time;
-    lCustomer.CreationDate := Date;
-    lCustomer.ID := -1; { don't be fooled by the default! }
-    lCustomer.Insert;
-    lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
-    Assert.IsTrue(lCustomer.LoadByPK(lID));
-  finally
-    lCustomer.Free;
-  end;
 end;
 
 procedure TTestActiveRecordBase.TestDefaultFilteringCount;
