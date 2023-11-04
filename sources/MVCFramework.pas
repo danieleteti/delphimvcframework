@@ -994,6 +994,7 @@ type
     procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
     procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
     function GetActualParam(const AFormalParam: TRttiParameter; const AStringValue: String): TValue;
+    function GetActualParamMulti(const AFormalParam: TRttiParameter; const AStringMultiValue: TArray<String>): TValue;
     function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
       const AContext: TWebContext): Boolean;
     procedure ConfigDefaultValues; virtual;
@@ -2970,6 +2971,7 @@ var
   lFromCookieAttribute: MVCFromCookieAttribute;
   lAttributeInjectedParamCount: Integer;
   lInjectedParamValue: string;
+  lInjectedMultiParamValue: TArray<String>;
   lList: IMVCList;
   lItemClass: TClass;
 begin
@@ -3021,9 +3023,17 @@ begin
         lFromContentFieldAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.ContentParam(lFromContentFieldAttribute.ParamName);
-        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromContentFieldAttribute);
-        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
+        if AActionFormalParams[I].ParamType.QualifiedName.StartsWith('System.TArray<System.') then
+        begin
+          lInjectedMultiParamValue := AContext.Request.ParamsMulti[lFromContentFieldAttribute.ParamName];
+          AActualParams[I] := GetActualParamMulti(AActionFormalParams[I], lInjectedMultiParamValue);
+        end
+        else
+        begin
+          lInjectedParamValue := AContext.Request.ContentParam(lFromContentFieldAttribute.ParamName);
+          HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromContentFieldAttribute);
+          AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
+        end;
       end
       else if TRttiUtils.HasAttribute<MVCFromHeaderAttribute>(AActionFormalParams[I],
         lFromHeaderAttribute) then
@@ -3204,6 +3214,45 @@ begin
         'Invalid type for parameter %s. Allowed types are ' + ALLOWED_TYPED_ACTION_PARAMETERS_TYPES,
         [AFormalParam.name]);
     end;
+  end;
+end;
+
+function TMVCEngine.GetActualParamMulti(const AFormalParam: TRttiParameter;
+  const AStringMultiValue: TArray<String>): TValue;
+var
+  lTValueArray: TArray<TValue>;
+  I: Integer;
+begin
+  case AFormalParam.ParamType.TypeKind of
+    tkDynArray:
+      begin
+        SetLength(lTValueArray, Length(AStringMultiValue));
+        if SameText(AFormalParam.ParamType.QualifiedName, 'System.TArray<System.string>') then
+        begin
+          for I := 0 to High(lTValueArray) do
+            lTValueArray[I] := AStringMultiValue[I];
+        end else if SameText(AFormalParam.ParamType.QualifiedName, 'System.TArray<System.Int64>') then
+        begin
+          for I := 0 to High(lTValueArray) do
+            lTValueArray[I] := StrToInt64(AStringMultiValue[I]);
+        end else if AFormalParam.ParamType.QualifiedName.StartsWith('System.TArray<System.Int', True) then
+        begin
+          for I := 0 to High(lTValueArray) do
+            lTValueArray[I] := StrToInt(AStringMultiValue[I]);
+        end
+        else
+        begin
+          raise EMVCException.CreateFmt('Invalid type for dynamic array parameter "%s". Allowed types are ' +
+            'TArray<String>, TArray<Integer>, TArray<Int64>', [AFormalParam.name]);
+        end;
+        Result := TValue.FromArray(AFormalParam.ParamType.Handle, lTValueArray);
+      end
+  else
+    begin
+      raise EMVCException.CreateFmt(http_status.BadRequest,
+        'Invalid type for parameter %s. Allowed types are ' + ALLOWED_TYPED_ACTION_PARAMETERS_TYPES,
+        [AFormalParam.name]);
+    end
   end;
 end;
 

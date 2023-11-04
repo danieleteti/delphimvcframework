@@ -28,7 +28,12 @@ type
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
-    procedure SavePerson;
+    procedure SavePerson(
+      const [MVCFromContentField('first_name')] FirstName: String;
+      const [MVCFromContentField('last_name')] LastName: String;
+      const [MVCFromContentField('age', 0)] Age: Integer;
+      const [MVCFromContentField('items')] Devices: TArray<Integer>
+    );
 
     [MVCPath('/delete/($guid)')]
     [MVCHTTPMethods([httpDELETE])]
@@ -37,7 +42,7 @@ type
     [MVCPath('/new')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure NewPerson;
+    function NewPerson: String;
 
     [MVCPath('/modal/fordelete/($guid)')]
     [MVCHTTPMethods([httpGET])]
@@ -63,7 +68,7 @@ type
     [MVCPath('/mustacheshowcase')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure MustacheTemplateShowCase;
+    function MustacheTemplateShowCase: String;
   end;
 
 implementation
@@ -100,7 +105,7 @@ begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
       ViewData['deviceslist'] := lDevices;
-      Result := GetRenderedView(['header', 'editperson', 'footer']);
+      Result := Page(['editperson']);
     finally
       lDevices.Free;
     end;
@@ -136,7 +141,7 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.MustacheTemplateShowCase;
+function TWebSiteController.MustacheTemplateShowCase: String;
 var
   LDAL: IPeopleDAL;
   lPeople, lPeople2: TPeople;
@@ -153,8 +158,7 @@ begin
         ViewData['people'] := lPeople;
         ViewData['people2'] := lPeople2;
         ViewData['myobj'] := lMyObj;
-        LoadView(['showcase']);
-        RenderResponseStream;
+        Result := PageFragment(['showcase']); //it is not a "fragment" but we don't need standard headers/footer
       finally
         lMyObj.Free;
       end;
@@ -166,7 +170,7 @@ begin
   end;
 end;
 
-procedure TWebSiteController.NewPerson;
+function TWebSiteController.NewPerson: String;
 var
   LDAL: IPeopleDAL;
   lDevices: TDeviceList;
@@ -175,8 +179,7 @@ begin
   lDevices := LDAL.GetDevicesList;
   try
     ViewData['deviceslist'] := lDevices;
-    LoadView(['header', 'editperson', 'footer']);
-    RenderResponseStream;
+    Result := Page(['editperson']);
   finally
     lDevices.Free;
   end;
@@ -239,27 +242,22 @@ begin
   end;
 end;
 
-procedure TWebSiteController.SavePerson;
+procedure TWebSiteController.SavePerson(
+      const FirstName: String;
+      const LastName: String;
+      const Age: Integer;
+      const Devices: TArray<Integer>);
 var
-  LFirstName: string;
-  LLastName: string;
-  LAge: string;
   LPeopleDAL: IPeopleDAL;
-  lDevices: TArray<string>;
 begin
-  LFirstName := Context.Request.Params['first_name'].Trim;
-  LLastName := Context.Request.Params['last_name'].Trim;
-  LAge := Context.Request.Params['age'];
-  lDevices := Context.Request.ParamsMulti['items'];
-
-  if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
+  if FirstName.IsEmpty or LastName.IsEmpty or (Age <= 0) then
   begin
     { TODO -oDaniele -cGeneral : Show how to properly render an exception }
     raise EMVCException.Create('Invalid data', 'First name, last name and age are not optional', 0);
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lDevices);
+//  LPeopleDAL.AddPerson(FirstName, LastName, Age, Devices);
   Context.Response.HXSetRedirect('/people');
 end;
 
@@ -267,7 +265,7 @@ function TWebSiteController.ShowModal: String;
 begin
   var lJSON := StrToJSONObject('{"message":"Do you really want to delete row?", "title":"Bootstrap Modal Dialog"}');
   try
-    Result := GetRenderedView(['modal'], lJSON);
+    Result := PageFragment(['modal'], lJSON);
   finally
     lJSON.Free;
   end;
@@ -280,7 +278,7 @@ begin
     lJSON.S['title'] := 'Bootstrap Modal Dialog';
     lJSON.S['message'] := 'Do you really want to delete row?';
     lJSON.S['guid'] := guid;
-    Result := GetRenderedView(['modal'], lJSON);
+    Result := PageFragment(['modal'], lJSON);
   finally
     lJSON.Free;
   end;
