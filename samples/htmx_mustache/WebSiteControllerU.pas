@@ -32,7 +32,7 @@ type
       const [MVCFromContentField('first_name')] FirstName: String;
       const [MVCFromContentField('last_name')] LastName: String;
       const [MVCFromContentField('age', 0)] Age: Integer;
-      const [MVCFromContentField('items')] Devices: TArray<Integer>
+      const [MVCFromContentField('items')] Devices: TArray<String>
     );
 
     [MVCPath('/delete/($guid)')]
@@ -246,7 +246,7 @@ procedure TWebSiteController.SavePerson(
       const FirstName: String;
       const LastName: String;
       const Age: Integer;
-      const Devices: TArray<Integer>);
+      const Devices: TArray<String>);
 var
   LPeopleDAL: IPeopleDAL;
 begin
@@ -257,7 +257,7 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-//  LPeopleDAL.AddPerson(FirstName, LastName, Age, Devices);
+  LPeopleDAL.AddPerson(FirstName, LastName, Age, Devices);
   Context.Response.HXSetRedirect('/people');
 end;
 
