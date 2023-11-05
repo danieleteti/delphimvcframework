@@ -525,6 +525,7 @@ type
     fContentLength: Integer;
     fContent: string;
     fContentRawBytes: TBytes;
+    fContentAvailableAsString: Boolean;
 
     procedure FillResponse(const aHTTPResponse: IHTTPResponse);
   public
@@ -1890,26 +1891,31 @@ end;
 
 function TMVCRESTResponse.ToJSONArray: TJDOJsonArray;
 begin
-  Result := StrTOJSONArray(fContent, True);
+  Result := StrTOJSONArray(Content, True);
 end;
 
 function TMVCRESTResponse.ToJSONObject: TJDOJsonObject;
 begin
-  Result := StrTOJSONObject(fContent, True);
+  Result := StrTOJSONObject(Content, True);
 end;
 
 procedure TMVCRESTResponse.BodyFor(const aObject: TObject; const aRootNode: string);
 begin
-  fRESTClient.Serializer.DeserializeObject(fContent, aObject, TMVCSerializationType.stDefault, [], aRootNode);
+  fRESTClient.Serializer.DeserializeObject(Content, aObject, TMVCSerializationType.stDefault, [], aRootNode);
 end;
 
 procedure TMVCRESTResponse.BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string);
 begin
-  fRESTClient.Serializer.DeserializeCollection(fContent, aObjectList, aObjectClass, TMVCSerializationType.stDefault, [], aRootNode);
+  fRESTClient.Serializer.DeserializeCollection(Content, aObjectList, aObjectClass, TMVCSerializationType.stDefault, [], aRootNode);
 end;
 
 function TMVCRESTResponse.Content: string;
 begin
+  if not fContentAvailableAsString then
+  begin
+    fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes, fContentType);
+    fContentAvailableAsString := True;
+  end;
   Result := fContent;
 end;
 
@@ -1956,7 +1962,7 @@ begin
   SetLength(fContentRawBytes, 0);
   fCookies := TCookies.Create;
   fRESTClient := aRESTClient;
-
+  fContentAvailableAsString := False;
   FillResponse(aHTTPResponse);
 end;
 
@@ -1984,11 +1990,11 @@ begin
   fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
   fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
     aHTTPResponse.ContentEncoding);
-  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes,
-    aHTTPResponse.HeaderValue[sContentType]);
+  fContent := '';
   fContentType := aHTTPResponse.HeaderValue[sContentType];
   fContentEncoding := aHTTPResponse.ContentEncoding;
   fContentLength := aHTTPResponse.ContentLength;
+  fContentAvailableAsString := False;
 end;
 
 function TMVCRESTResponse.Headers: TStrings;
@@ -2008,23 +2014,20 @@ end;
 
 procedure TMVCRESTResponse.SaveContentToFile(const aFileName: string);
 var
-  lStream: TMemoryStream;
+  lStream: TFileStream;
 begin
-  lStream := TMemoryStream.Create;
+  lStream := TFileStream.Create(aFileName, fmCreate or fmOpenWrite);
   try
-    lStream.Write(fContentRawBytes, Length(fContentRawBytes));
-    lStream.Position := 0;
-    lStream.SaveToFile(aFileName);
+    SaveContentToStream(lStream);
   finally
-    FreeAndNil(lStream);
+    lStream.Free;
   end;
 end;
 
 procedure TMVCRESTResponse.SaveContentToStream(aStream: TStream);
 begin
   if aStream = nil then
-    raise EMVCRESTClientException.Create('Stream not assigned!');
-
+    raise EMVCRESTClientException.Create('Stream not assigned');
   aStream.Write(fContentRawBytes, Length(fContentRawBytes));
 end;
 
