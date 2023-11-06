@@ -29,6 +29,8 @@ unit MVCFramework.JSONRPC;
   https://www.jsonrpc.org/historical/json-rpc-over-http.html
 }
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -2907,6 +2909,9 @@ begin
   else
   begin
     RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
+    {$IF Defined(DELPHI12ORBETTER)}
+    Result := Default(T);
+    {$ENDIF}
   end;
 end;
 

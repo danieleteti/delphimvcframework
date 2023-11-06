@@ -250,7 +250,7 @@ begin
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
+    Assert.AreEqual<Integer>(1, lID);
   finally
     lCustomer.Free;
   end;
@@ -274,11 +274,11 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
   try
     Assert.AreEqual('1234', lCustomer.Code.Value);
-    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual<Integer>(3, lCustomer.Rating.Value);
     Assert.AreEqual('note1noteupdated', lCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
-    Assert.AreEqual(1, lCustomer.ID.Value);
+    Assert.AreEqual<Integer>(1, lCustomer.ID.Value);
     Assert.IsFalse(lCustomer.CreationTime.HasValue);
     Assert.IsFalse(lCustomer.CreationDate.HasValue);
   finally
@@ -329,7 +329,7 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000');
   try
     Assert.AreEqual('1000', lCustomer.Code);
-    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual<Integer>(3, lCustomer.Rating.Value);
     Assert.AreEqual('note1noteupdated', lCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
@@ -387,7 +387,7 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lGUID);
   try
     Assert.AreEqual('1234', lCustomer.Code.Value);
-    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual<Integer>(3, lCustomer.Rating.Value);
     Assert.AreEqual('note1noteupdated', lCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
@@ -426,7 +426,7 @@ begin
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
+    Assert.AreEqual<Integer>(1, lID);
   finally
     lCustomer.Free;
   end;
@@ -450,11 +450,11 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert.AreEqual('1234', lCustomer.Code.Value);
-    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual<Integer>(3, lCustomer.Rating.Value);
     Assert.AreEqual('note1noteupdated', lCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
-    Assert.AreEqual(1, lCustomer.ID);
+    Assert.AreEqual<Integer>(1, lCustomer.ID);
     Assert.IsFalse(lCustomer.CreationTime.HasValue);
     Assert.IsFalse(lCustomer.CreationDate.HasValue);
   finally
@@ -595,7 +595,7 @@ begin
 
   var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
   try
-    Assert.AreEqual(2, lGoodCustomers.Count);
+    Assert.AreEqual<Integer>(2, lGoodCustomers.Count);
   finally
     lGoodCustomers.Free;
   end;
@@ -617,7 +617,7 @@ begin
 
   lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('lt(Rating,4);sort(+CompanyName)', 10);
   try
-    Assert.AreEqual(0, lGoodCustomers.Count);
+    Assert.AreEqual<Integer>(0, lGoodCustomers.Count);
   finally
     lGoodCustomers.Free;
   end;
@@ -712,28 +712,28 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 20);
   try
-    Assert.AreEqual(20, lCustomers.Count);
+    Assert.AreEqual<Integer>(20, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 1);
   try
-    Assert.AreEqual(1, lCustomers.Count);
+    Assert.AreEqual<Integer>(1, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, -1);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -836,20 +836,20 @@ begin
     lCustomers.Free;
   end;
 
-  Assert.AreEqual(0, lInserted);
-  Assert.AreEqual(30, lUpdated);
-  Assert.AreEqual(0, lDeleted);
+  Assert.AreEqual<Integer>(0, lInserted);
+  Assert.AreEqual<Integer>(30, lUpdated);
+  Assert.AreEqual<Integer>(0, lDeleted);
 
   lCustomers := TMVCActiveRecord.All<TCustomer>;
   try
-    Assert.AreEqual(30, lCustomers.Count);
+    Assert.AreEqual<Integer>(30, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,10)', 1000);
   try
-    Assert.AreEqual(30, lCustomers.Count);
+    Assert.AreEqual<Integer>(30, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -944,34 +944,34 @@ begin
     lCustomers.Free;
   end;
 
-  Assert.AreEqual(2, lInserted);
-  Assert.AreEqual(4, lUpdated);
-  Assert.AreEqual(26, lDeleted);
+  Assert.AreEqual<Integer>(2, lInserted);
+  Assert.AreEqual<Integer>(4, lUpdated);
+  Assert.AreEqual<Integer>(26, lDeleted);
 
   lCustomers := TMVCActiveRecord.All<TCustomer>;
   try
-    Assert.AreEqual(6, lCustomers.Count);
+    Assert.AreEqual<Integer>(6, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,3)', 1000);
   try
-    Assert.AreEqual(2, lCustomers.Count);
+    Assert.AreEqual<Integer>(2, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,2)', 1000);
   try
-    Assert.AreEqual(2, lCustomers.Count, 'Customers not updated correctly');
+    Assert.AreEqual<Integer>(2, lCustomers.Count, 'Customers not updated correctly');
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
-    Assert.AreEqual(2, lCustomers.Count);
+    Assert.AreEqual<Integer>(2, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -1023,13 +1023,13 @@ begin
     lCustomers.Free;
   end;
 
-  Assert.AreEqual(0, lInserted);
-  Assert.AreEqual(0, lUpdated);
-  Assert.AreEqual(30, lDeleted);
+  Assert.AreEqual<Integer>(0, lInserted);
+  Assert.AreEqual<Integer>(0, lUpdated);
+  Assert.AreEqual<Integer>(30, lDeleted);
 
   lCustomers := TMVCActiveRecord.All<TCustomer>;
   try
-    Assert.AreEqual(lTotCustomers, lCustomers.Count);
+    Assert.AreEqual<Integer>(lTotCustomers, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -1103,27 +1103,27 @@ begin
     lCustomers.Free;
   end;
 
-  Assert.AreEqual(2, lInserted);
-  Assert.AreEqual(30, lUpdated);
-  Assert.AreEqual(0, lDeleted);
+  Assert.AreEqual<Integer>(2, lInserted);
+  Assert.AreEqual<Integer>(30, lUpdated);
+  Assert.AreEqual<Integer>(0, lDeleted);
 
   lCustomers := TMVCActiveRecord.All<TCustomer>;
   try
-    Assert.AreEqual(lTotCustomers, lCustomers.Count);
+    Assert.AreEqual<Integer>(lTotCustomers, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
-    Assert.AreEqual(lTotCustomers - 2, lCustomers.Count, 'Some customer changed when should not change');
+    Assert.AreEqual<Integer>(lTotCustomers - 2, lCustomers.Count, 'Some customer changed when should not change');
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,3)', 1000);
   try
-    Assert.AreEqual(2, lCustomers.Count, 'Some customer changed when should not change');
+    Assert.AreEqual<Integer>(2, lCustomers.Count, 'Some customer changed when should not change');
   finally
     lCustomers.Free;
   end;
@@ -1143,7 +1143,7 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQLByNamedQuery<TCustomer>('CityRomeOrLondon', [], MAXINT);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
     for var lCustomer in lCustomers do
     begin
       Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1176,7 +1176,7 @@ begin
   LoadData;
   var lCustomers := TMVCActiveRecord.SelectByNamedQuery<TCustomer>('ByTwoCities', ['Rome', 'London'], [ftString, ftString]);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
     for var lCustomer in lCustomers do
     begin
       Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1190,7 +1190,7 @@ procedure TTestActiveRecordBase.TestNamedQuerySQLByBackEnd;
 begin
   var lList := TMVCActiveRecord.SelectByNamedQuery<TDummyEntity>('get_backend_name', [],[]);
   try
-    Assert.AreEqual(1, lList.Count);
+    Assert.AreEqual<Integer>(1, lList.Count);
     Assert.AreEqual(lList.First.GetBackEnd, lList.First.BackEndName);
   finally
     lList.Free;
@@ -1344,7 +1344,7 @@ begin
     Assert.AreEqual('1234', lRMCustomer.Code.Value);
     Assert.AreEqual('note1noteupdated', lRMCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lRMCustomer.CompanyName.Value);
-    Assert.AreEqual(1, lRMCustomer.ID.Value);
+    Assert.AreEqual<Integer>(1, lRMCustomer.ID.Value);
   finally
     lRMCustomer.Free;
   end;
@@ -1458,7 +1458,7 @@ begin
   var
   lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('', 10);
   try
-    Assert.AreEqual(2, lRomeCustomers.Count);
+    Assert.AreEqual<Integer>(2, lRomeCustomers.Count);
   finally
     lRomeCustomers.Free;
   end;
@@ -1473,7 +1473,7 @@ begin
 
   lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)', 10);
   try
-    Assert.AreEqual(1, lRomeCustomers.Count);
+    Assert.AreEqual<Integer>(1, lRomeCustomers.Count);
     Assert.AreEqual('Rome Company 1', lRomeCustomers[0].CompanyName.Value);
   finally
     lRomeCustomers.Free;
@@ -1481,7 +1481,7 @@ begin
 
   lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('lt(Rating,2);sort(+CompanyName)', 10);
   try
-    Assert.AreEqual(0, lRomeCustomers.Count);
+    Assert.AreEqual<Integer>(0, lRomeCustomers.Count);
   finally
     lRomeCustomers.Free;
   end;
@@ -1495,14 +1495,14 @@ begin
   var
   lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('city = ?', ['New York'], [ftString]);
   try
-    Assert.AreEqual(0, lRomeBasedCustomers.Count);
+    Assert.AreEqual<Integer>(0, lRomeBasedCustomers.Count);
   finally
     lRomeBasedCustomers.Free;
   end;
 
   lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('description = ?', ['Daniele'], [ftString]);
   try
-    Assert.AreEqual(1, lRomeBasedCustomers.Count);
+    Assert.AreEqual<Integer>(1, lRomeBasedCustomers.Count);
   finally
     lRomeBasedCustomers.Free;
   end;
@@ -1557,7 +1557,7 @@ begin
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
+    Assert.AreEqual<Integer>(1, lID);
     lCustomer.CompanyName.Clear;
     lCustomer.City := '';
     lCustomer.Note := '';
@@ -1593,7 +1593,7 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
     for var lCustomer in lCustomers do
     begin
       Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1640,7 +1640,7 @@ begin
   // LoadData;
   // lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   // try
-  // Assert.AreEqual(240, lCustomers.Count);
+  // Assert.AreEqual<Integer>(240, lCustomers.Count);
   // for var lCustomer in lCustomers do
   // begin
   // Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1662,7 +1662,7 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
     for var lCustomer in lCustomers do
     begin
       Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1673,14 +1673,14 @@ begin
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 10);
   try
-    Assert.AreEqual(10, lCustomers.Count);
+    Assert.AreEqual<Integer>(10, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 0);
   try
-    Assert.AreEqual(0, lCustomers.Count);
+    Assert.AreEqual<Integer>(0, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -1701,7 +1701,7 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   try
-    Assert.AreEqual(140, lCustomers.Count);
+    Assert.AreEqual<Integer>(140, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -1731,7 +1731,7 @@ begin
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomerWithGUID>(RQL1, MAXINT);
   try
-    Assert.AreEqual(1, lCustomers.Count);
+    Assert.AreEqual<Integer>(1, lCustomers.Count);
   finally
     lCustomers.Free;
   end;
@@ -1750,7 +1750,7 @@ begin
   LoadData;
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
   try
-    Assert.AreEqual(240, lCustomers.Count);
+    Assert.AreEqual<Integer>(240, lCustomers.Count);
     for var lCustomer in lCustomers do
     begin
       Assert.IsMatch('^(Rome|London)$', lCustomer.City);
@@ -1829,7 +1829,7 @@ begin
     lCustomer.Note := 'note1';
     lCustomer.Store; { pk is not set, so it should do an insert }
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID, 'ID should be 1 but it is ' + lID.ToString);
+    Assert.AreEqual<Integer>(1, lID, 'ID should be 1 but it is ' + lID.ToString);
   finally
     lCustomer.Free;
   end;
@@ -1923,7 +1923,7 @@ begin
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
+    Assert.AreEqual<Integer>(1, lID);
   finally
     lCustomer.Free;
   end;

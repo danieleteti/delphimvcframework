@@ -123,7 +123,6 @@ end;
 
 procedure TMVCLRUCache<T>.RemoveIf(const Action: TMVCLRUCacheAction);
 var
-  I: Integer;
   lIndex: Integer;
   lCacheSize: Integer;
 begin

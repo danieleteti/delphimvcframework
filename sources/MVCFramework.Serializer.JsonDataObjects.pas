@@ -3858,8 +3858,6 @@ end;
 
 function TMVCJsonDataObjectsSerializer.JSONObjectToRecord<T>(const JSONObject: TJsonObject): T;
 var
-  lTypeSize: Integer;
-  lTypeInfo: PTypeInfo;
   AIgnoredAttributes: TMVCIgnoredList;
   lKeyName: string;
   lAttributeValue: TValue;
@@ -3876,7 +3874,6 @@ begin
     raise EMVCDeserializationException.Create('Extected record, got ' + lRTTIType.QualifiedName);
   end;
 
-  lTypeInfo := lRTTIType.Handle;
   lBuffer := @Result;
   lField := nil;
   AIgnoredAttributes := [];

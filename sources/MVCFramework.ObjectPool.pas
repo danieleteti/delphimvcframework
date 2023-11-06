@@ -103,8 +103,6 @@ implementation
 { TObjectPool<T> }
 
 constructor TObjectPool<T>.Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T>);
-var
-  i: Integer;
 begin
   inherited Create;
   fOnResetState := nil;
@@ -222,12 +220,10 @@ end;
 
 procedure TCleanupThread<T>.Execute;
 var
-  lTargetSize: Integer;
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
   lSampleTick: Integer;
 begin
-  lArrIndex := 0;
   lSampleTick := 0;
   while not Terminated do
   begin

@@ -421,16 +421,16 @@ begin
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid/pictures/imageuuid', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual('GetImage', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
-    Assert.areEqual('projectid', Params['projectid']);
-    Assert.areEqual('imageuuid', Params['imageuuid']);
+    Assert.AreEqual('GetImage', FRouter.MethodToCall.Name);
+    Assert.AreEqual<Integer>(2, Params.Count);
+    Assert.AreEqual('projectid', Params['projectid']);
+    Assert.AreEqual('imageuuid', Params['imageuuid']);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetProject', FRouter.MethodToCall.Name);
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('projectid', Params['projectid']);
   finally
     Params.Free;
@@ -450,7 +450,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/issue492/delphi$mvc$framework', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetIssue492', FRouter.MethodToCall.Name);
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('delphi$mvc$framework', Params['stringvalue']);
   finally
     Params.Free;
@@ -470,7 +470,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513', FRouter.MethodToCall.Name);
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
   finally
     Params.Free;
   end;
@@ -489,7 +489,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/daniele/teti', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
+    Assert.areEqual<Integer>(2, Params.Count);
     Assert.areEqual('daniele', Params['par1']);
     Assert.areEqual('teti', Params['par2']);
   finally
@@ -510,7 +510,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/da$niele/te$ti', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
+    Assert.areEqual<Integer>(2, Params.Count);
     Assert.areEqual('da$niele', Params['par1']);
     Assert.areEqual('te$ti', Params['par2']);
   finally
@@ -1075,7 +1075,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType, ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Orders', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1112,7 +1112,7 @@ begin
       Assert.isTrue(lRouter.ExecuteRouting('/api/orders', httpGET, 'text/plain', 'text/plain', FControllers,
         'text/plain', TMVCConstants.DEFAULT_CONTENT_CHARSET, '/api', lParams, ResponseContentType,
         ResponseContentEncoding));
-      Assert.areEqual(0, lParams.Count);
+      Assert.areEqual<Integer>(0, lParams.Count);
       Assert.areEqual('TSimpleController', lRouter.ControllerClazz.ClassName);
       Assert.areEqual('Orders', lRouter.MethodToCall.Name);
       Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
@@ -1138,7 +1138,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('789', Params['ordernumber']);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
@@ -1150,7 +1150,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/àèéìòù .-_\', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('àèéìòù .-_\', Params['ordernumber']);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
@@ -1172,7 +1172,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '', 'application/json', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrdersProduceJSON', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1193,7 +1193,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '', 'application/json; charset=UTF-8', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrdersProduceJSON', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1465,7 +1465,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
   finally
@@ -1483,7 +1483,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
   finally
@@ -1752,14 +1752,14 @@ begin
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
   Assert.isTrue(lMultiMap.Contains('key1'));
-  Assert.areEqual(1, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key1').Count);
   lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.areEqual('value1', lMultiMap.GetItems('key1')[0].GetDescription);
   Assert.areEqual('value2', lMultiMap.GetItems('key1')[1].GetDescription);
   lMultiMap.Add('key2', TMyIntfObject.Create(1, 'value3'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
-  Assert.areEqual(1, lMultiMap.GetItems('key2').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key2').Count);
 end;
 
 procedure TTestMultiMap.TestInterfaceMultiMapRemove;
@@ -1770,7 +1770,7 @@ begin
   lMultiMap.Remove('not valid');
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.isTrue(lMultiMap.Contains('key1'));
   lMultiMap.Remove('key1');
   Assert.isFalse(lMultiMap.Contains('key1'));
@@ -1786,14 +1786,14 @@ begin
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
   Assert.isTrue(lMultiMap.Contains('key1'));
-  Assert.areEqual(1, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key1').Count);
   lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.areEqual('value1', lMultiMap.GetItems('key1')[0].Description);
   Assert.areEqual('value2', lMultiMap.GetItems('key1')[1].Description);
   lMultiMap.Add('key2', TMyClass.Create(1, 'value3'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
-  Assert.areEqual(1, lMultiMap.GetItems('key2').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key2').Count);
 end;
 
 procedure TTestMultiMap.TestObjectMultiMapRemove;
@@ -1804,7 +1804,7 @@ begin
   lMultiMap.Remove('not valid');
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
   lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.isTrue(lMultiMap.Contains('key1'));
   lMultiMap.Remove('key1');
   Assert.isFalse(lMultiMap.Contains('key1'));

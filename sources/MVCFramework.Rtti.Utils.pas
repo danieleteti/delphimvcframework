@@ -539,7 +539,6 @@ var
   V: TValue;
   Found: Boolean;
 begin
-  Found := False;
   for elem in AList do
   begin
     V := GetProperty(elem, APropertyName);

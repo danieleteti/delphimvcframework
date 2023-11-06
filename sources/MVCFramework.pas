@@ -1470,7 +1470,6 @@ var
   Obj: TObject;
   lSerializer: IMVCSerializer;
 begin
-  Result := nil;
   if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
@@ -1495,7 +1494,6 @@ var
   List: TObjectList<T>;
   lSerializer: IMVCSerializer;
 begin
-  Result := nil;
   if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     List := TObjectList<T>.Create(True);
@@ -3020,8 +3018,8 @@ begin
         lFromQueryStringAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.QueryStringParam
-          (lFromQueryStringAttribute.ParamName);
+        lInjectedParamValue := URLDecode(AContext.Request.QueryStringParam
+          (lFromQueryStringAttribute.ParamName));
         HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromQueryStringAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end

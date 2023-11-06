@@ -3025,10 +3025,6 @@ end;
 
 class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
-var
-  lDataSet: TDataSet;
-  lAR: TMVCActiveRecord;
-  lHandled: Boolean;
 begin
   Result := TObjectList<T>.Create(True);
   try
@@ -3049,12 +3045,8 @@ class function TMVCActiveRecordHelper.SelectOne<T>(const SQL: string; const Para
   const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions;
   const RaiseExceptionIfNotFound: Boolean): T;
 var
-  lDataSet: TDataSet;
-  lAR: TMVCActiveRecord;
-  lHandled: Boolean;
   lList: TObjectList<T>;
 begin
-  Result := nil;
   lList := Select<T>(SQL, Params, ParamTypes, Options);
   try
     if (lList.Count = 0) then
@@ -3606,8 +3598,6 @@ class function TMVCActiveRecordHelper.Merge<T>(CurrentList, NewList: TObjectList
 var
   I: Integer;
   lFoundAtIndex: Integer;
-  lCurrPKValue: Integer;
-  lPKValue: TValue;
   lUnitOfWork: IMVCUnitOfWork<T>;
   lPKType: TFieldType;
   lNeedsToBeUpdated: Boolean;

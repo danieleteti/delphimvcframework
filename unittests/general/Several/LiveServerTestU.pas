@@ -736,7 +736,7 @@ var
 begin
   res := RESTClient.Get('/lotofcookies');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
-  Assert.areEqual(4, res.Cookies.Count, 'Wrong number of cookies');
+  Assert.areEqual<Integer>(4, res.Cookies.Count, 'Wrong number of cookies');
   for I := 0 to 3 do
   begin
     Assert.areEqual('usersettings' + IntToStr(I + 1), res.Cookies[I].Name);

@@ -220,12 +220,10 @@ end;
 
 procedure TIntfCleanupThread<IInterface>.Execute;
 var
-  lTargetSize: Integer;
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
   lSampleTick: Integer;
 begin
-  lArrIndex := 0;
   lSampleTick := 0;
   while not Terminated do
   begin

@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "11.3"
+DEFAULT_DELPHI_VERSION = "12"
 
 g_releases_path = "releases"
 g_output = "bin"
@@ -54,6 +54,7 @@ def build_delphi_project(
         "11.1": {"path": "22.0", "desc": "Delphi 11.1 Alexandria"},
         "11.2": {"path": "22.0", "desc": "Delphi 11.2 Alexandria"},
         "11.3": {"path": "22.0", "desc": "Delphi 11.3 Alexandria"},
+        "12": {"path": "23.0", "desc": "Delphi 12"},
     }
 
     assert delphi_version in delphi_versions, (

@@ -671,7 +671,11 @@ function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: 
   const aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
+  {$IF Defined(DELPHI12ORBETTER)}
+  GetBodyFormData.AddStream(aName, aStreamValue, False, '', aContentType);
+  {$ELSE}
   GetBodyFormData.AddStream(aName, aStreamValue, '', aContentType);
+  {$ENDIF}
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
@@ -706,7 +710,11 @@ end;
 function TMVCRESTClient.AddFile(const aName: string; aFileStreamValue: TStream; const aFileName, aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
+  {$IF Defined(DELPHI12ORBETTER)}
+  GetBodyFormData.AddStream(aName, aFileStreamValue, False, aFileName, aContentType);
+  {$ELSE}
   GetBodyFormData.AddStream(aName, aFileStreamValue, aFileName, aContentType);
+  {$ENDIF}
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
