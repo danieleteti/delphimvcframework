@@ -69,7 +69,7 @@ begin
       function: IMVCDotEnv
       begin
         Result := NewDotEnv
-                 .WithStrategy(TMVCDotEnvPriority.FileThenEnv)
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
                                        //if available, by default, loads default environment (.env)
                  .UseProfile('test') //if available loads the test environment (.env.test)
                  .UseProfile('prod') //if available loads the prod environment (.env.prod)

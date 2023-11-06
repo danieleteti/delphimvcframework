@@ -127,6 +127,11 @@ begin
       else
       begin
         DecodeJSONStrings := '';
+        if Assigned(FJSONModel) then
+        begin
+          Lua.DeclareGlobalString('__data__', FJSONModel.ToJSON());
+          DecodeJSONStrings := AnsiString('data') + ' = json.decode(__data__)';
+        end;
         { continuare da questo problema }
         if Assigned(ViewModel) then
         begin
@@ -138,21 +143,12 @@ begin
               begin
                 lJSON.Clear;
                 lSer.TValueToJSONObjectProperty(lJSON, lModelName, ViewModel[lModelName], TMVCSerializationType.stDefault, nil, nil);
-//                lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
-//                if TDuckTypedList.CanBeWrappedAsList(ViewModel[lDataSetName]) then
-//                begin
-//                  lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
-//                end
-//                else
-//                begin //PODO
-//                  lJSONStr := lSer.SerializeObject(ViewModel[lDataSetName]);
-//                end;
                 if lJSON.Values[lModelName].Typ = jdtArray then
-                  Lua.DeclareGlobalString(lDataSetName, lJSON.A[lModelName].ToJSON())
+                  Lua.DeclareGlobalString(lModelName, lJSON.A[lModelName].ToJSON())
                 else
-                  Lua.DeclareGlobalString(lDataSetName, lJSON.O[lModelName].ToJSON());
+                  Lua.DeclareGlobalString(lModelName, lJSON.O[lModelName].ToJSON());
                 DecodeJSONStrings := DecodeJSONStrings + sLineBreak + ' ' +
-                  AnsiString(lDataSetName) + ' = json.decode(' + AnsiString(lDataSetName) + ')';
+                  AnsiString(lModelName) + ' = json.decode(' + AnsiString(lModelName) + ')';
               end;
             finally
               lSer.Free;

@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
         {
             "name": "Python TASK generate-nullable",
             "type": "python",
@@ -11,6 +12,16 @@
             "module": "invoke",
             "args": [
                 "generate-nullables"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "build-core",
+            "type": "python",
+            "request": "launch",
+            "module": "invoke",
+            "args": [
+                "build-core"
             ],
             "console": "integratedTerminal"
         },

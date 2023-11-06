@@ -61,7 +61,7 @@ begin
       function: IMVCDotEnv
       begin
         Result := NewDotEnv
-                   .WithStrategy(TMVCDotEnvPriority.FileThenEnv)
+                   .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
                    .UseLogger(procedure(LogItem: String)
                               begin
                                 LogW('dotEnv: ' + LogItem);
