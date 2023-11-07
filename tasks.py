@@ -20,16 +20,16 @@ g_version = "DEV"
 
 
 delphi_versions = [
-    {"version": "10", "path": "17.0", "desc": "Delphi 10 Seattle"},
+    {"version": "10.0", "path": "17.0", "desc": "Delphi 10 Seattle"},
     {"version": "10.1", "path": "18.0", "desc": "Delphi 10.1 Berlin"},
     {"version": "10.2", "path": "19.0", "desc": "Delphi 10.2 Tokyo"},
     {"version": "10.3", "path": "20.0", "desc": "Delphi 10.3 Rio"},
     {"version": "10.4", "path": "21.0", "desc": "Delphi 10.4 Sydney"},
-    {"version": "11", "path": "22.0", "desc": "Delphi 11 Alexandria"},
+    {"version": "11.0", "path": "22.0", "desc": "Delphi 11 Alexandria"},
     {"version": "11.1", "path": "22.0", "desc": "Delphi 11.1 Alexandria"},
     {"version": "11.2", "path": "22.0", "desc": "Delphi 11.2 Alexandria"},
     {"version": "11.3", "path": "22.0", "desc": "Delphi 11.3 Alexandria"},
-    {"version": "12", "path": "23.0", "desc": "Delphi 12"},
+    {"version": "12.0", "path": "23.0", "desc": "Delphi 12 Athens"},
 ]
 
 
@@ -77,7 +77,7 @@ def build_delphi_project(
     ctx: context.Context, project_filename, config="DEBUG", platform="Win32"
 ):
     delphi_version, rsvars_path = get_best_delphi_version_available()
-
+    print('\nBUILD WITH: ' + delphi_version["desc"])
     cmdline = (
         '"'
         + rsvars_path

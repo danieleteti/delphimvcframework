@@ -2909,7 +2909,7 @@ begin
   else
   begin
     RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
-    {$IF Defined(DELPHI12ORBETTER)}
+    {$IF Defined(ATHENSORBETTER)}
     Result := Default(T);
     {$ENDIF}
   end;
