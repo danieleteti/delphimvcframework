@@ -259,9 +259,10 @@ type
   protected
     fBackendDriver: string;
     fTableMap: TMVCTableMap;
+    function GetCustomTableName: String; virtual;
     function GetPartitionInfo: TPartitionInfo;
     function GetConnection: TFDConnection;
-    procedure InitTableInfo;
+    procedure InitTableInfo(const aTableName: String);
     class function ExecQuery(
       const SQL: string;
       const Values: array of Variant;
@@ -369,8 +370,7 @@ type
     function InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer;
       const OutList: TMVCActiveRecordList): UInt32; overload;
   public
-    constructor Create(aLazyLoadConnection: Boolean); overload;
-    { cannot be virtual! }
+    constructor Create(aLazyLoadConnection: Boolean); overload; // cannot be virtual!
     constructor Create; overload; virtual;
     destructor Destroy; override;
     procedure EnsureConnection;
@@ -689,9 +689,8 @@ type
 
   IMVCActiveRecordTableMap = interface
     ['{517A863F-8BAD-4F66-A520-205149228360}']
-    procedure AddTableMap(const AR: TMVCActiveRecord; const TableMap: TMVCTableMap);
-    function GetTableMap(const TypeInfo: TMVCActiveRecord): TMVCTableMap;
-    function TryGetValue(const AR: TMVCActiveRecord; out TableMap: TMVCTableMap): Boolean;
+    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
+    function TryGetValue(const AR: TMVCActiveRecord; const TableName: String; out TableMap: TMVCTableMap): Boolean;
     procedure ExecWithExclusiveLock(Proc: TProc<IMVCActiveRecordTableMap>);
     procedure FlushCache;
   end;
@@ -747,11 +746,10 @@ type
   private
     fMREW: TMultiReadExclusiveWriteSynchronizer;
     fTableMapDict: TObjectDictionary<String, TMVCTableMap>;
-    function GetCacheKey(const AR: TMVCActiveRecord): String; inline;
+    function GetCacheKey(const AR: TMVCActiveRecord; const TableName: String): String; inline;
   protected
-    procedure AddTableMap(const AR: TMVCActiveRecord; const TableMap: TMVCTableMap);
-    function GetTableMap(const TypeInfo: TMVCActiveRecord): TMVCTableMap;
-    function TryGetValue(const AR: TMVCActiveRecord; out TableMap: TMVCTableMap): Boolean;
+    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
+    function TryGetValue(const AR: TMVCActiveRecord; const TableName: String; out TableMap: TMVCTableMap): Boolean;
     procedure ExecWithExclusiveLock(Proc: TProc<IMVCActiveRecordTableMap>);
     procedure FlushCache;
   public
@@ -1440,7 +1438,7 @@ begin
   Result := ExecQuery(SQL, Values, nil, Unidirectional, DirectExecute);
 end;
 
-procedure TMVCActiveRecord.InitTableInfo;
+procedure TMVCActiveRecord.InitTableInfo(const aTableName: String);
 var
   lAttribute: TCustomAttribute;
   lRTTIField: TRTTIField;
@@ -1450,14 +1448,15 @@ var
   lPKCount: Integer;
   lNamedSQLQueryCount: Integer;
   lNamedRQLQueryCount: Integer;
+  lNeedsTableName: Boolean;
 begin
-  if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then
+  if ActiveRecordTableMapRegistry.TryGetValue(Self, aTableName, fTableMap) then
   begin
     Exit;
   end;
   TMonitor.Enter(gTableMapLock);
   try
-    if ActiveRecordTableMapRegistry.TryGetValue(Self, fTableMap) then //double check here
+    if ActiveRecordTableMapRegistry.TryGetValue(Self, aTableName, fTableMap) then //double check here
     begin
       Exit;
     end;
@@ -1466,16 +1465,17 @@ begin
     lTableMap.fPartitionInfoInternal := nil;
     lTableMap.fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate,
       TMVCEntityAction.eaDelete];
-    lTableMap.fTableName := '';
+    lTableMap.fTableName := aTableName;
     lTableMap.fPartitionClause := '';
     lTableMap.fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
     lTableMap.fObjAttributes := lTableMap.fRTTIType.GetAttributes;
     lPKCount := 0;
+    lNeedsTableName := lTableMap.fTableName.IsEmpty;
     lNamedSQLQueryCount := Length(lTableMap.fNamedSQLQueries);
     lNamedRQLQueryCount := Length(lTableMap.fNamedRQLQueries);
     for lAttribute in lTableMap.fObjAttributes do
     begin
-      if lAttribute is MVCTableAttribute then
+      if lNeedsTableName and (lAttribute is MVCTableAttribute) then
       begin
         lTableMap.fTableName := MVCTableAttribute(lAttribute).Name;
         lTableMap.fDefaultRQLFilter := MVCTableAttribute(lAttribute).RQLFilter;
@@ -1514,7 +1514,7 @@ begin
     begin
       if [eaCreate, eaUpdate, eaDelete] * lTableMap.fEntityAllowedActions <> [] then
       begin
-        raise Exception.Create('Cannot find MVCTable attribute on class "' + ClassName + '" - [HINT] Is this class decorated with MVCTable and its fields with MVCTableField?');
+        raise Exception.Create('Cannot find MVCTable attribute nor a valid "GetCustomTableName" method on class "' + ClassName + '" - [HINT] Is ' + ClassName + ' class decorated with MVCTable and its fields with MVCTableField?');
       end;
     end;
 
@@ -1588,7 +1588,7 @@ begin
         'No fields nor PKs defined in class ' + ClassName + '. [HINT] Use MVCTableField in private fields');
     lTableMap.fPartitionInfoInternal := nil;
 
-    ActiveRecordTableMapRegistry.AddTableMap(Self, lTableMap);
+    ActiveRecordTableMapRegistry.AddTableMap(Self, aTableName, lTableMap);
     fTableMap := lTableMap;
   finally
     TMonitor.Exit(gTableMapLock);
@@ -1682,7 +1682,7 @@ begin
   begin
     GetConnection;
   end;
-  InitTableInfo;
+  InitTableInfo(GetCustomTableName);
 end;
 
 function TMVCActiveRecord.GenerateSelectSQL: string;
@@ -2049,7 +2049,14 @@ end;
 
 function TMVCActiveRecord.GetTableName: string;
 begin
-  Result := fTableMap.fTableName
+  if Assigned(fTableMap) then
+  begin
+    Result := fTableMap.fTableName
+  end
+  else
+  begin
+    Result := '';
+  end;
 end;
 
 function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction; const aRaiseException: Boolean): Boolean;
@@ -2185,9 +2192,9 @@ begin
   Result := fConn;
 end;
 
-constructor TMVCActiveRecord.Create;
+function TMVCActiveRecord.GetCustomTableName: String;
 begin
-  Create(True);
+  Result := '';
 end;
 
 procedure TMVCActiveRecord.Delete(const RaiseExceptionIfNotFound: Boolean);
@@ -4504,11 +4511,11 @@ end;
 
 { TMVCTableMapRepository }
 
-procedure TMVCTableMapRepository.AddTableMap(const AR: TMVCActiveRecord; const TableMap: TMVCTableMap);
+procedure TMVCTableMapRepository.AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
 begin
   fMREW.BeginWrite;
   try
-    fTableMapDict.Add(GetCacheKey(AR), TableMap);
+    fTableMapDict.Add(GetCacheKey(AR, TableName), TableMap);
   finally
     fMREW.EndWrite;
   end;
@@ -4547,29 +4554,14 @@ begin
     end);
 end;
 
-function TMVCTableMapRepository.GetCacheKey(const AR: TMVCActiveRecord): String;
+function TMVCTableMapRepository.GetCacheKey(const AR: TMVCActiveRecord; const TableName: String): String;
 begin
-  Result := AR.QualifiedClassName;
+  Result := AR.QualifiedClassName + ':' + TableName;
 end;
 
-function TMVCTableMapRepository.GetTableMap(
-  const TypeInfo: TMVCActiveRecord): TMVCTableMap;
-begin
-{$IF not Defined(TokyoOrBetter)}
-  Result := nil;
-{$ENDIF}
-  fMREW.BeginRead;
-  try
-    if not fTableMapDict.TryGetValue(TypeInfo.QualifiedClassName, Result) then
-    begin
-      Result := nil;
-    end;
-  finally
-    fMREW.EndRead;
-  end;
-end;
-
-function TMVCTableMapRepository.TryGetValue(const AR: TMVCActiveRecord;
+function TMVCTableMapRepository.TryGetValue(
+  const AR: TMVCActiveRecord;
+  const TableName: String;
   out TableMap: TMVCTableMap): Boolean;
 begin
 {$IF not Defined(TokyoOrBetter)}
@@ -4577,7 +4569,7 @@ begin
 {$ENDIF}
   fMREW.BeginRead;
   try
-    Result := fTableMapDict.TryGetValue(GetCacheKey(AR), TableMap);
+    Result := fTableMapDict.TryGetValue(GetCacheKey(AR, TableName), TableMap);
   finally
     fMREW.EndRead;
   end;
@@ -4645,6 +4637,11 @@ begin
   inherited Create;
   Name := aName;
   RQLQuery := aRQL;
+end;
+
+constructor TMVCActiveRecord.Create;
+begin
+  Create(True);
 end;
 
 initialization
