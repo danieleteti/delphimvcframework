@@ -713,6 +713,7 @@ type
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
     property Note: string read fNote write fNote;
+    property ObjVersion: Integer read fObjVersion;
   end;
 
 
