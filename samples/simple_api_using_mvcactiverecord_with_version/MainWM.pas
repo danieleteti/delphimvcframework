@@ -1,4 +1,4 @@
-unit WebModuleU;
+unit MainWM;
 
 interface
 
@@ -6,31 +6,10 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework,
-  FireDAC.Stan.Intf,
-  FireDAC.Stan.Option,
-  FireDAC.Stan.Error,
-  FireDAC.UI.Intf,
-  FireDAC.Phys.Intf,
-  FireDAC.Stan.Def,
-  FireDAC.Stan.Pool,
-  FireDAC.Stan.Async,
-  FireDAC.Phys,
-  FireDAC.Phys.MySQL,
-  FireDAC.Phys.MySQLDef,
-  FireDAC.VCLUI.Wait,
-  Data.DB,
-  FireDAC.Comp.Client,
-  FireDAC.Stan.Param,
-  FireDAC.DatS,
-  FireDAC.DApt.Intf,
-  FireDAC.DApt,
-  FireDAC.Comp.DataSet;
+  MVCFramework;
 
 type
-  TMyWebModule = class(TWebModule)
-    FDQuery1: TFDQuery;
-    FDConnection1: TFDConnection;
+  TTMunicipalLibraryWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
   private
@@ -40,7 +19,7 @@ type
   end;
 
 var
-  WebModuleClass: TComponentClass = TMyWebModule;
+  WebModuleClass: TComponentClass = TTMunicipalLibraryWebModule;
 
 implementation
 
@@ -48,15 +27,13 @@ implementation
 
 
 uses
+  CustomersControllerU,
+  MVCFramework.Middleware.ActiveRecord,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.ActiveRecordController,
-  MVCFramework.ActiveRecord,
-  MVCFramework.Middleware.StaticFiles,
-  FDConnectionConfigU,
-  OtherControllerU;
+  MVCFramework.Middleware.Compression;
 
-procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+procedure TTMunicipalLibraryWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
@@ -73,19 +50,20 @@ begin
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
       // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
+      // Max Record Count for automatic Entities CRUD
+      Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+      // Max request size in bytes
+      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
     end);
-
-  FMVC.AddController(TOtherController, '/api/foo');
-  FMVC.AddController(TMVCActiveRecordController,
-    function: TMVCController
-    begin
-      Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
-    end, '/api/entities');
+  FMVC.AddController(TCustomersController);
+  // To enable compression (deflate, gzip) just add this middleware as the last one
+  FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('activerecorddb'));
+  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
 end;
 
-procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
+procedure TTMunicipalLibraryWebModule.WebModuleDestroy(Sender: TObject);
 begin
   FMVC.Free;
 end;

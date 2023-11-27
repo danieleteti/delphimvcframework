@@ -58,6 +58,10 @@ type
     procedure AfterConstruction; override;
   end;
 
+  EMVCActiveRecordVersionedItemNotFound = class(EMVCActiveRecordNotFound)
+  end;
+
+
   TMVCActiveRecordClass = class of TMVCActiveRecord;
   TMVCActiveRecord = class;
   TMVCActiveRecordFieldOption = (foPrimaryKey, { it's the primary key of the mapped table }
@@ -214,11 +218,13 @@ type
   end;
 
   TMVCTableMap = class
+  private
+    fVersionRTTIField: TRttiField;
+    fVersionFieldName: String;
   public
     fPartitionInfoInternal: TPartitionInfo;
     fEntityAllowedActions: TMVCEntityActions;
     fTableName: String;
-    fVersionFieldName: String;
     fIsVersioned: Boolean;
     fPartitionClause: String;
     fRTTIType: TRttiInstanceType;
@@ -226,7 +232,6 @@ type
     fDefaultRQLFilter: string;
     fMap: TFieldsMap;
     fPrimaryKey: TRTTIField;
-    fVersionRTTIField: TRttiField;
     fMapping: TMVCFieldsMapping;
     fPropsAttributes: TArray<TCustomAttribute>;
     fProps: TArray<TRTTIField>;
@@ -239,6 +244,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    function VersionValueAsInt64For(AR: TMVCActiveRecord): Int64; //inline;
   end;
 
   TMVCActiveRecord = class
@@ -2228,8 +2234,8 @@ begin
   begin
     if fTableMap.fIsVersioned then
     begin
-      raise EMVCActiveRecordNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s][Version: %d]',
-        [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.fVersionRTTIField.GetValue(Self).AsInt64]);
+      raise EMVCActiveRecordVersionedItemNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s][Version: %d] - record or version not found',
+        [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.VersionValueAsInt64For(Self)]);
     end
     else
     begin
@@ -3497,8 +3503,8 @@ begin
   begin
     if fTableMap.fIsVersioned then
     begin
-      raise EMVCActiveRecordNotFound.CreateFmt('No record updated for key [Entity: %s][PK: %s][Version: %d]',
-        [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.fVersionRTTIField.GetValue(Self).AsInt64]);
+      raise EMVCActiveRecordVersionedItemNotFound.CreateFmt('No record updated for key [Entity: %s][PK: %s][Version: %d] - record or version not found',
+        [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.VersionValueAsInt64For(Self)]);
     end
     else
     begin
@@ -3557,7 +3563,7 @@ procedure TMVCActiveRecord.AdvanceVersioning(const TableMap: TMVCTableMap; const
 var
   lCurrVersion: Int64;
 begin
-  lCurrVersion := TableMap.fVersionRTTIField.GetValue(ARInstance).AsInt64;
+  lCurrVersion := TableMap.VersionValueAsInt64For(ARInstance);
   Inc(lCurrVersion);
   TableMap.fVersionRTTIField.SetValue(ARInstance, lCurrVersion);
 end;
@@ -3845,7 +3851,7 @@ begin
     GetParamNameForSQL(TableMap.fPrimaryKeyFieldName);
   if TableMap.fIsVersioned then
   begin
-    Result := Result + ' and ' + GetFieldNameForSQL(TableMap.fVersionFieldName) + ' = ' + IntToStr(TableMap.fVersionRTTIField.GetValue(ARInstance).AsInt64);
+    Result := Result + ' and ' + GetFieldNameForSQL(TableMap.fVersionFieldName) + ' = ' + IntToStr(TableMap.VersionValueAsInt64For(ARInstance));
   end;
 end;
 
@@ -3891,7 +3897,7 @@ begin
   begin
     if lPair.Value.IsVersion then
     begin
-      Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = :' +
+      Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = ' +
         GetParamNameForSQL(lPair.Value.FieldName) + ' + 1,';
     end else if lPair.Value.Writeable then
     begin
@@ -3913,7 +3919,8 @@ begin
       GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + '= :' + GetParamNameForSQL(TableMap.fPrimaryKeyFieldName);
     if TableMap.fIsVersioned then
     begin
-      Result := Result + ' and ' + GetFieldNameForSQL(TableMap.fVersionFieldName) + ' = ' + TableMap.fVersionRTTIField.GetValue(ARInstance).AsInt64.ToString
+      Result := Result + ' and ' + GetFieldNameForSQL(TableMap.fVersionFieldName) +
+        ' = ' + TableMap.VersionValueAsInt64For(ARInstance).ToString
     end;
   end
   else
@@ -4615,6 +4622,11 @@ destructor TMVCTableMap.Destroy;
 begin
   fMap.Free;
   inherited;
+end;
+
+function TMVCTableMap.VersionValueAsInt64For(AR: TMVCActiveRecord): Int64;
+begin
+  Result := fVersionRTTIField.GetValue(AR).AsInt64;
 end;
 
 class function TMVCActiveRecordHelper.Select(

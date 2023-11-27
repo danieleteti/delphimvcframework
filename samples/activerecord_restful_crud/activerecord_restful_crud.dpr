@@ -36,7 +36,6 @@ var
   lServer: TIdHTTPWebBrokerBridge;
   lCmd: string;
 begin
-  ConnectionDefinitionName := CON_DEF_NAME;
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
