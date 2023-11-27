@@ -689,7 +689,7 @@ type
 
   IMVCActiveRecordTableMap = interface
     ['{517A863F-8BAD-4F66-A520-205149228360}']
-    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
+    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; var TableMap: TMVCTableMap);
     function TryGetValue(const AR: TMVCActiveRecord; const TableName: String; out TableMap: TMVCTableMap): Boolean;
     procedure ExecWithExclusiveLock(Proc: TProc<IMVCActiveRecordTableMap>);
     procedure FlushCache;
@@ -748,7 +748,7 @@ type
     fTableMapDict: TObjectDictionary<String, TMVCTableMap>;
     function GetCacheKey(const AR: TMVCActiveRecord; const TableName: String): String; inline;
   protected
-    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
+    procedure AddTableMap(const AR: TMVCActiveRecord; const TableName: String; var TableMap: TMVCTableMap);
     function TryGetValue(const AR: TMVCActiveRecord; const TableName: String; out TableMap: TMVCTableMap): Boolean;
     procedure ExecWithExclusiveLock(Proc: TProc<IMVCActiveRecordTableMap>);
     procedure FlushCache;
@@ -1583,11 +1583,26 @@ begin
       end;
     end;
     lTableMap.fMap.EndUpdates;
+
     if (lPKCount + lTableMap.fMap.WritableFieldsCount + lTableMap.fMap.ReadableFieldsCount) = 0 then
+    begin
       raise EMVCActiveRecord.Create(
         'No fields nor PKs defined in class ' + ClassName + '. [HINT] Use MVCTableField in private fields');
-    lTableMap.fPartitionInfoInternal := nil;
+    end;
 
+    if lTableMap.fIsVersioned then
+    begin
+      lFieldInfo := lTableMap.fMap.GetInfoByFieldName(lTableMap.fVersionFieldName);
+      if not (lFieldInfo.Writeable and lFieldInfo.Readable) then
+      begin
+        raise EMVCActiveRecord
+          .CreateFmt('Field [%s], is marked as foVersion so must be a Read/Write field - ' +
+            '[HINT] This constraint is valid only for the field itself, a property mapped over this field can be defined "read-only", "write-only" or "read-write"',
+            [lTableMap.fVersionFieldName]);
+      end;
+    end;
+
+    lTableMap.fPartitionInfoInternal := nil;
     ActiveRecordTableMapRegistry.AddTableMap(Self, aTableName, lTableMap);
     fTableMap := lTableMap;
   finally
@@ -4511,11 +4526,22 @@ end;
 
 { TMVCTableMapRepository }
 
-procedure TMVCTableMapRepository.AddTableMap(const AR: TMVCActiveRecord; const TableName: String; const TableMap: TMVCTableMap);
+procedure TMVCTableMapRepository.AddTableMap(const AR: TMVCActiveRecord; const TableName: String; var TableMap: TMVCTableMap);
+var
+  lKey: string;
 begin
   fMREW.BeginWrite;
   try
-    fTableMapDict.Add(GetCacheKey(AR, TableName), TableMap);
+    lKey := GetCacheKey(AR, TableName);
+    // if, due to multi-threading, the tablemap definition is already in the case, I free the passed TableMap
+    // and return the TableMap already present in the cache.
+    LogD(Format('ActiveRecord: Add "%s" to the metadata cache', [lKey]));
+    if not fTableMapDict.TryAdd(lKey, TableMap) then
+    begin
+      LogD(Format('ActiveRecord: Discarded new mapping - cache for "%s" already present', [lKey]));
+      TableMap.Free;
+      TableMap := fTableMapDict[lKey];
+    end;
   finally
     fMREW.EndWrite;
   end;
