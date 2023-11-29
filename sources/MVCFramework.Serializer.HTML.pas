@@ -192,7 +192,7 @@ const
   '  border: 2px solid #827C78;' +
   '  margin-top: 2rem;' +
   '  margin: auto;' +
-  '  width: 80%;' +
+  '  width: fit-content;' +
   '  padding: 1rem;' +
   '  padding-left: 2rem;' +
   '  padding-right: 2rem;' +
