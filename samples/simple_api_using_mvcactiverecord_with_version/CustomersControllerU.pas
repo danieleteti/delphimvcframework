@@ -84,6 +84,7 @@ begin
     Render201Created();
   except
     TMVCActiveRecord.CurrentConnection.Rollback;
+    raise;
   end;
 end;
 
