@@ -282,6 +282,7 @@ end;
 function TMVCJSONRPCExecutor.ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
 begin
   aConfigProc(fHTTP);
+  Result := Self;
 end;
 
 constructor TMVCJSONRPCExecutor.Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True;
