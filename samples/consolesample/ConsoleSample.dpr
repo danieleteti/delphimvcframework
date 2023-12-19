@@ -49,7 +49,6 @@ begin
         Write(' Press any key to continue ');
         GetCh;
       end;
-      GetCh;
       ResetConsole;
       ClrScr;
       lSize := GetConsoleSize;
@@ -65,9 +64,9 @@ begin
       Write('X');
       GotoXY(lSize.Columns - 1, 0);
       Write('X');
-      GotoXY(lSize.Columns - 1, lSize.Rows - 2);
+      GotoXY(lSize.Columns - 1, lSize.Rows - 1);
       Write('X');
-      GotoXY(0, lSize.Rows - 2);
+      GotoXY(0, lSize.Rows - 1);
       Write('X');
       CenterInScreen('CONSOLE LIMITS');
       GetCh;
