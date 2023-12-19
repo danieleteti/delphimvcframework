@@ -367,6 +367,7 @@ function GetDefaultFormatSettings: TFormatSettings;
 begin
   Result.DateSeparator := '-';
   Result.TimeSeparator := ':';
+  Result.DecimalSeparator := '.';
   Result.ShortDateFormat := 'YYYY-MM-DD HH:NN:SS:ZZZ';
   Result.ShortTimeFormat := 'HH:NN:SS';
 end;
@@ -802,7 +803,7 @@ begin
   Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
   Self.FLogFormat := ALogFormat;
-  Self.FOnLogRow := Nil;
+  Self.FOnLogRow := nil;
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;
