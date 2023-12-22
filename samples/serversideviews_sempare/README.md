@@ -6,8 +6,7 @@ This example illustrates how to use the Sempare Template Engine in the DelphiMVC
 
 The Sempare Template Engine is available on GitHub (https://github.com/sempare/sempare-delphi-template-engine), Embarcadero's GetIt, boss or Delphinus.
 
-This example is based on the ServerSideViewsMustache example. The functionality is almost exactly the same, but there are subtle differences
-where the Sempare Template Engine may make some things a little easier to use.
+This example is based on the ServerSideViewsMustache example. The functionality is almost exactly the same, but there are subtle differences where the Sempare Template Engine may make some things a little easier to use.
 
 Enjoy.
 
@@ -21,12 +20,9 @@ Note that the Sempare Template Engine is distributed under the GPL license and a
 
 We adopted open source with the mantra 'free as in speech' - not 'free as in beer'.
 
-By default, if your project uses the Sempare Template Engine, it would be bound by the GPL license, which means you are obliged to
-distribute the source code for your application as well under the GPL.
+By default, if your project uses the Sempare Template Engine, it would be bound by the GPL license, which means you are obliged to distribute the source code for your application as well under the GPL.
 
-The commercial license, which applies once you pay the nominal license fee, helps to keep the project live, and means that you can include the
-Sempare Template Engine in your applications. More information is available on the Sempare Template Engine repository. It isn't much, and we hope
-you will contribute to it's support.
+The commercial license, which applies once you pay the nominal license fee, helps to keep the project live, and means that you can include the Sempare Template Engine in your applications. More information is available on the Sempare Template Engine repository. It isn't much, and we hope you will contribute to it's support.
 
 Thank you.
 
