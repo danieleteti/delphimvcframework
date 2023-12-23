@@ -803,7 +803,7 @@ begin
   Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
   Self.FLogFormat := ALogFormat;
-  Self.FOnLogRow := Nil;
+  Self.FOnLogRow := nil;
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;

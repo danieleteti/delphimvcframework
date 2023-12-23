@@ -18,11 +18,11 @@ begin
   try
     ClrScr;
     GotoXY(0,0);
-    Write('Press ANY key (cusor is visible)');
+    Write('Press ANY key (cursor is visible)');
     GetCh;
     GotoXY(0,0);
     HideCursor;
-    Write('Press ANY key (cusor is now hidden)');
+    Write('Press ANY key (cursor is now hidden)');
     GetCh;
     try
       for F := 0 to 15 do
@@ -33,6 +33,7 @@ begin
         TextColor(TConsoleColor(F));
         lFGColorName := ColorName(TConsoleColor(F));
         WriteLn(''.PadLeft(GetConsoleSize.Columns));
+        WriteLn(''.PadLeft(GetConsoleSize.Columns));
         WriteLn(('** TEST FOREGROUND COLOR: ' + lFGColorName + ' **').PadRight(GetConsoleSize.Columns));
         WriteLn(StringOfChar('_', GetConsoleSize.Columns));
         WriteLn(''.PadLeft(GetConsoleSize.Columns));
@@ -42,9 +43,12 @@ begin
           TextBackground(TConsoleColor(B));
           WriteLn((lFGColorName + ' on ' + lBGColorName).PadLeft(GetConsoleSize.Columns));
         end;
+        GotoXY(0,0);
+        TextBackground(White);
+        TextColor(Red);
+        Write(' Press any key to continue ');
         GetCh;
       end;
-      ReadLn;
       ResetConsole;
       ClrScr;
       lSize := GetConsoleSize;
@@ -60,9 +64,9 @@ begin
       Write('X');
       GotoXY(lSize.Columns - 1, 0);
       Write('X');
-      GotoXY(lSize.Columns - 1, lSize.Rows - 2);
+      GotoXY(lSize.Columns - 1, lSize.Rows - 1);
       Write('X');
-      GotoXY(0, lSize.Rows - 2);
+      GotoXY(0, lSize.Rows - 1);
       Write('X');
       CenterInScreen('CONSOLE LIMITS');
       GetCh;
@@ -76,13 +80,11 @@ begin
   finally
     ShowCursor;
   end;
-  if DebugHook <> 0 then
-  begin
-    ResetConsole;
-    TextColor(TConsoleColor.Red);
-    Write('Press ANY key to exit...');
-    ResetConsole;
-    GetCh;
-    ClrScr;
-  end;
+
+  ResetConsole;
+  TextColor(TConsoleColor.Red);
+  Write('Press ANY key to exit...');
+  ResetConsole;
+  GetCh;
+  ClrScr;
 end.

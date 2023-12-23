@@ -62,6 +62,7 @@ type
     btnVirtualEntities: TButton;
     btnIntegersAsBool: TButton;
     btnObjectVersion: TButton;
+    btnCustomTable: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -94,6 +95,7 @@ type
     procedure btnVirtualEntitiesClick(Sender: TObject);
     procedure btnIntegersAsBoolClick(Sender: TObject);
     procedure btnObjectVersionClick(Sender: TObject);
+    procedure btnCustomTableClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -475,6 +477,97 @@ begin
   finally
     lCustomer.Free;
   end;
+end;
+
+procedure TMainForm.btnCustomTableClick(Sender: TObject);
+var
+  lCustomer: TCustomerOnCustomers2;
+  lID: Integer;
+  lTestNote: string;
+begin
+  Log('** Simple CRUD test using a custom tablename (defined in GetCustomTableName)');
+  Log('There are ' + TMVCActiveRecord.Count<TCustomerOnCustomers2>().ToString + ' row/s for entity ' +
+    TCustomerOnCustomers2.ClassName);
+  lCustomer := TCustomerOnCustomers2.Create;
+  try
+    Log('Entity ' + TCustomerOnCustomers2.ClassName + ' is mapped to table ' + lCustomer.TableName);
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.City := 'Montain View, CA';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Log('Just inserted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerOnCustomers2>(lID);
+  try
+    Assert(not lCustomer.Code.HasValue);
+    lCustomer.Code.Value := '5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lTestNote := lCustomer.Note;
+    lCustomer.Update;
+    Log('Just updated Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomerOnCustomers2.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    lCustomer.Code.Value := '😉9012🙂';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomerOnCustomers2.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    Assert(lCustomer.Code.Value = '😉9012🙂');
+    Assert(lCustomer.Note = lTestNote);
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerOnCustomers2>(lID);
+  try
+    lCustomer.Delete;
+    Log('Just deleted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  // Overwriting constructor (useful for TMVCActiveRecordController)
+  var lConC2 := TCustomerOnCustomers2.Create;
+  try
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lConC2.TableName);
+    lConC2.CompanyName := 'Google Inc.';
+    lConC2.City := 'Montain View, CA';
+    lConC2.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lConC2.Insert;
+    lID := lConC2.ID;
+    Log('Just inserted Customer ' + lID.ToString + ' on customers2');
+  finally
+    lConC2.Free;
+  end;
+
+  lConC2 := TMVCActiveRecord.GetByPK<TCustomerOnCustomers2>(lID);
+  try
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lConC2.TableName);
+    lConC2.CompanyName := 'Google Inc.';
+    lConC2.City := 'Montain View, CA';
+    lConC2.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lConC2.Insert;
+    lID := lConC2.ID;
+    Log('Just inserted Customer ' + lID.ToString + ' on customers2');
+  finally
+    lConC2.Free;
+  end;
+
+
 end;
 
 procedure TMainForm.btnInheritanceClick(Sender: TObject);

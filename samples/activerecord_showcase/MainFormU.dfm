@@ -55,8 +55,6 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
-    ExplicitWidth = 802
-    ExplicitHeight = 609
   end
   object btnRelations: TButton
     Left = 8
@@ -302,6 +300,15 @@ object MainForm: TMainForm
     Caption = 'Object Version'
     TabOrder = 29
     OnClick = btnObjectVersionClick
+  end
+  object btnCustomTable: TButton
+    Left = 144
+    Top = 562
+    Width = 121
+    Height = 34
+    Caption = 'Custom TableName'
+    TabOrder = 30
+    OnClick = btnCustomTableClick
   end
   object FDConnection1: TFDConnection
     Left = 312

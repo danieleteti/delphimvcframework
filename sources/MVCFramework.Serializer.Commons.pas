@@ -161,6 +161,7 @@ type
     property SerializationType: TMVCSerializationType read FSerializationType;
   end;
 
+  //Used by TDataSetUtils
   MVCColumnAttribute = class(TCustomAttribute)
   private
     FFieldName: string;

@@ -171,8 +171,9 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 |COMPANY NAME | LOGO|
 |-----------------------------------------------------------------------|------------------------------------------------------------------------|
-|[bit Time Professionals ](https://www.bittimeprofessionals.com)		|![](docs/sponsorlogos/bittimeprofessionals.png)  |
-|[bit Time Software](https://www.bittime.it)                            |![](docs/sponsorlogos/bittimesoftware.png)       |
+|[bit Time Professionals](https://www.bittimeprofessionals.com)	           |![](docs/sponsorlogos/bittimeprofessionals.png)        |
+|[bit Time Professionals - ITALY](https://www.bittimeprofessionals.it)	   |![](docs/sponsorlogos/bittimeprofessionals_italy.png)  |
+|[bit Time Software](https://www.bittime.it)                               |![](docs/sponsorlogos/bittimesoftware.png)             |
 
 
 

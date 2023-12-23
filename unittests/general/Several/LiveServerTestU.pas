@@ -467,7 +467,8 @@ uses
   Vcl.Graphics
 {$ENDIF}
     , TestConstsU, MVCFramework.Tests.Serializer.Entities,
-  MVCFramework.Logger, System.IOUtils, MVCFramework.Utils;
+  MVCFramework.Logger, System.IOUtils, MVCFramework.Utils,
+  System.Net.HttpClient, System.Net.URLClient;
 
 function GetServer: string;
 begin
@@ -488,7 +489,10 @@ procedure TBaseServerTest.Setup;
 begin
   inherited;
   RESTClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
-  RESTClient.ReadTimeout(60 * 1000 * 30);
+  RESTClient
+    .ReadTimeout(60 * 1000 * 30)
+    .ProxyServer('localhost')
+    .ProxyPort(8080);
 end;
 
 procedure TBaseServerTest.TearDown;
@@ -2291,9 +2295,25 @@ var
   res: IMVCRESTResponse;
   lContentType: string;
   lContentCharset: string;
+  lVal: String;
+  lISO8859_1Encoding: TEncoding;
 begin
-  res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Post('/testconsumes/textiso8859_1', 'אטילעש',
-    BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
+  lISO8859_1Encoding := TEncoding.GetEncoding('iso8859-1');
+  try
+    lVal :=
+      lISO8859_1Encoding
+        .GetString(
+          TEncoding.Convert(
+            TEncoding.Default,
+            lISO8859_1Encoding,
+            lISO8859_1Encoding.GetBytes('אטילעש')
+            )
+          );
+  finally
+    lISO8859_1Encoding.Free;
+  end;
+  res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN)
+    .Post('/testconsumes/textiso8859_1', lVal, BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
   // Assert.AreNotEqual('אטילעש', res.Content, 'non iso8859-1 text is rendered ok whan should not');
   SplitContentMediaTypeAndCharset(res.ContentType, lContentType, lContentCharset);

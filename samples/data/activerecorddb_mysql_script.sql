@@ -33,6 +33,17 @@ CREATE TABLE customers (
 );
 
 
+CREATE TABLE customers2 (
+	id integer NOT NULL AUTO_INCREMENT,
+	code varchar(20) NULL,
+	description varchar(200),
+	city varchar(200),
+	rating INTEGER NULL,	
+    note text character set "utf8mb4" collate "utf8mb4_unicode_ci" DEFAULT NULL,	
+	CONSTRAINT customers2_pk PRIMARY KEY (id)
+);
+
+
 CREATE TABLE customers_plain (
     id integer NOT NULL,
     code varchar(20),

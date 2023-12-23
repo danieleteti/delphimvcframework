@@ -1260,6 +1260,7 @@ var
   gIsShuttingDown: Boolean = False;
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
+  gEncodingUTF8: TEncoding;
 
 
 type
@@ -1440,16 +1441,21 @@ var
 {$IF not Defined(BERLINORBETTER)}
   lBuffer: TArray<Byte>;
 {$ENDIF}
+  lFreeEncoding: Boolean;
 begin
-  { DONE -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
   begin
-    if FCharset = EmptyStr then
-      lEncoding := TEncoding.GetEncoding('UTF-8')
+    if (FCharset = EmptyStr) or (SameText(FCharset, TMVCCharSet.UTF_8)) then
+    begin
+      lFreeEncoding := False;
+      lEncoding := gEncodingUTF8; //utf-8 is the most used encoding, we have a global instance
+    end
     else
+    begin
+      lFreeEncoding := True;
       lEncoding := TEncoding.GetEncoding(FCharset);
+    end;
     try
-
 {$IF Defined(BERLINORBETTER)}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
       FBody := lEncoding.GetString(FWebRequest.RawContent);
@@ -1459,7 +1465,10 @@ begin
       FBody := lEncoding.GetString(lBuffer);
 {$ENDIF}
     finally
-      lEncoding.Free;
+      if lFreeEncoding then
+      begin
+        lEncoding.Free;
+      end;
     end;
   end;
   Result := FBody;
@@ -3999,8 +4008,11 @@ begin
 end;
 
 procedure TMVCRenderer.Render(const AContent: string);
-var lContentType: string;
-  lOutEncoding: TEncoding; lCharset: string;
+var
+  lContentType: string;
+  lOutEncoding: TEncoding;
+  lCharset: string;
+  lFreeEncoding: Boolean;
 begin
   SplitContentMediaTypeAndCharset(GetContentType, lContentType, lCharset);
   if lCharset.IsEmpty then
@@ -4009,15 +4021,33 @@ begin
     lContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   lContentType := BuildContentType(lContentType, lCharset);
 
-  lOutEncoding := TEncoding.GetEncoding(lCharset);
+  lOutEncoding := nil;
+  if SameText('UTF-8', lCharset) then
+  begin
+    lFreeEncoding := False;
+  end
+  else
+  begin
+    lOutEncoding := TEncoding.GetEncoding(lCharset);
+  end;
   try
-    if SameText('UTF-8', UpperCase(lCharset)) then
-      GetContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8),
-        lContentType)
+    if not lFreeEncoding then
+    begin
+      //utf-8
+      GetContext
+        .Response
+        .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), lContentType)
+    end
     else
     begin
-      GetContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default,
-        lOutEncoding, TEncoding.Default.GetBytes(AContent))), lContentType);
+      GetContext
+        .Response
+        .SetContentStream(
+          TBytesStream.Create(
+            TEncoding.Convert(
+              TEncoding.Default,
+              lOutEncoding,
+              TEncoding.Default.GetBytes(AContent))), lContentType);
     end;
   finally
     lOutEncoding.Free;
@@ -4968,9 +4998,11 @@ TRttiContext.KeepContext;
 gIsShuttingDown := False;
 
 gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+gEncodingUTF8 := TEncoding.GetEncoding(TMVCCharSet.UTF_8);
 
 finalization
 
+FreeAndNil(gEncodingUTF8);
 FreeAndNil(gMVCGlobalActionParamsCache);
 
 

@@ -373,6 +373,7 @@ end;
 
 procedure SaveColors;
 begin
+  Init;
   GSavedForeGround := GForeGround;
   GSavedBackGround := GBackGround;
 end;

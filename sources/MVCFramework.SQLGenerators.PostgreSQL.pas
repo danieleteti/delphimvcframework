@@ -85,7 +85,6 @@ begin
 
     for lKeyValue in TableMap.fMap do
     begin
-      // if not(foTransient in lKeyValue.Value.FieldOptions) then
       if lKeyValue.Value.Writeable then
       begin
         lSB.Append(GetFieldNameForSQL(lKeyValue.Value.FieldName) + ',');

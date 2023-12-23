@@ -312,7 +312,7 @@ def clean(ctx, folder=None):
 
 
 @task()
-def tests32(ctx, delphi_version):
+def tests32(ctx):
     """Builds and execute the unit tests"""
     import os
 
@@ -323,11 +323,11 @@ def tests32(ctx, delphi_version):
 
     print("\nBuilding Unit Test client")
     build_delphi_project(
-        ctx, testclient, config="CI", delphi_version=delphi_version, platform="Win32"
+        ctx, testclient, config="CI", platform="Win32"
     )
     print("\nBuilding Test Server")
     build_delphi_project(
-        ctx, testserver, config="CI", delphi_version=delphi_version, platform="Win32"
+        ctx, testserver, config="CI", platform="Win32"
     )
 
     # import subprocess

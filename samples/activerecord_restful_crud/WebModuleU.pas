@@ -41,7 +41,6 @@ type
 
 var
   WebModuleClass: TComponentClass = TMyWebModule;
-  ConnectionDefinitionName: string = '';
 
 implementation
 
@@ -82,7 +81,7 @@ begin
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController
     begin
-      Result := TMVCActiveRecordController.Create(ConnectionDefinitionName);
+      Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
     end, '/api/entities');
 end;
 

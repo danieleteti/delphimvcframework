@@ -145,6 +145,12 @@ type
     property Note: string read fNote write fNote;
   end;
 
+
+  TCustomerOnCustomers2 = class(TCustomer)
+  protected
+    function GetCustomTableName: String; override;
+  end;
+
   [MVCNameCase(ncLowerCase)]
   [MVCTable('customers')]
   TPartitionedCustomer = class(TCustomEntity)
@@ -707,6 +713,7 @@ type
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
     property Note: string read fNote write fNote;
+    property ObjVersion: Integer read fObjVersion;
   end;
 
 
@@ -936,6 +943,13 @@ begin
     Result := fID.ValueOrDefault.ToString;
   Result := Format('[ID: %6s][CODE: %6s][CompanyName: %18s][City: %16s][Rating: %3d][Note: %s][Version: %d]',[
     Result, fCode.ValueOrDefault, fCompanyName.ValueOrDefault, fCity, fRating.ValueOrDefault, fNote, fObjVersion]);
+end;
+
+{ TCustomerOnCustomers2 }
+
+function TCustomerOnCustomers2.GetCustomTableName: String;
+begin
+  Result := 'customers2';
 end;
 
 end.
