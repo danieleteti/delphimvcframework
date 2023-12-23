@@ -146,3 +146,4 @@ samples/WineCellarSample/winecellarclient_mobile/Android/Debug/WineCellarMobileC
 samples/apachemodule/Apache24/logs/httpd.pid
 samples/session_file_based/Win32/DEBUG/sessions/
 unittests/general/UnitTestReports/
+lib/sempare-delphi-template-engine
