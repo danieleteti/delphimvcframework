@@ -11,6 +11,12 @@ where the Sempare Template Engine may make some things a little easier to use.
 
 Enjoy.
 
+## Helper bat file to install Sempare Template Engine
+
+In the contrib folder, run the get-sempare-template-engine.bat. NOTE: It does rely on git.exe being installed on your machine in the Windows PATH.
+
+It will create a folder lib/sempare-delphi-template-engine. This demo project already has lib/sempare-delphi-template-engine/src in the search path.
+
 ## Call To Action
 
 Please 'star' the Sempare Template Engine on GitHub.
