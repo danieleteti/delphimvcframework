@@ -140,8 +140,10 @@ type
   public
     Name: string;
     RQLFilter: string;
+    Schema: string;
     constructor Create(aName: string); overload;
     constructor Create(aName: string; aRQLFilter: String); overload;
+    constructor Create(aName: string; aRQLFilter: String; aSchema: String); overload;
   end;
 
   MVCPartitionAttribute = class(MVCActiveRecordCustomAttribute)
@@ -1483,7 +1485,10 @@ begin
     begin
       if lNeedsTableName and (lAttribute is MVCTableAttribute) then
       begin
-        lTableMap.fTableName := MVCTableAttribute(lAttribute).Name;
+         if MVCTableAttribute(lAttribute).Schema.Trim <> EmptyStr then
+          lTableMap.fTableName := MVCTableAttribute(lAttribute).Schema+'.'+MVCTableAttribute(lAttribute).Name
+        else
+          lTableMap.fTableName := MVCTableAttribute(lAttribute).Name;
         lTableMap.fDefaultRQLFilter := MVCTableAttribute(lAttribute).RQLFilter;
         Continue;
       end;
@@ -4680,6 +4685,14 @@ end;
 constructor TMVCActiveRecord.Create;
 begin
   Create(True);
+end;
+
+constructor MVCTableAttribute.Create(aName, aRQLFilter, aSchema: String);
+begin
+  inherited Create;
+  Name := aName;
+  RQLFilter := aRQLFilter;
+  Schema := aSchema;
 end;
 
 initialization
