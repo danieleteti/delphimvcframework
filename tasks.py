@@ -12,15 +12,27 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "11.1"
-
 g_output = "bin"
 g_output_folder = ""  # defined at runtime
 g_version = "DEV"
 
+delphi_versions = [
+    {"version": "10.0", "path": "17.0", "desc": "Delphi 10 Seattle"},
+    {"version": "10.1", "path": "18.0", "desc": "Delphi 10.1 Berlin"},
+    {"version": "10.2", "path": "19.0", "desc": "Delphi 10.2 Tokyo"},
+    {"version": "10.3", "path": "20.0", "desc": "Delphi 10.3 Rio"},
+    {"version": "10.4", "path": "21.0", "desc": "Delphi 10.4 Sydney"},
+    {"version": "11.0", "path": "22.0", "desc": "Delphi 11 Alexandria"},
+    {"version": "11.1", "path": "22.0", "desc": "Delphi 11.1 Alexandria"},
+    {"version": "11.2", "path": "22.0", "desc": "Delphi 11.2 Alexandria"},
+    {"version": "11.3", "path": "22.0", "desc": "Delphi 11.3 Alexandria"},
+    {"version": "12.0", "path": "23.0", "desc": "Delphi 12 Athens"},
+]
+
 projects = [
     ("samples\\01_global_logger\\global_logger.dproj", "Win32"),
     ("samples\\02_file_appender\\file_appender.dproj", "Win32"),
+    ("samples\\02a_simple_file_appender\\simple_file_appender.dproj", "Win32"),    
     ("samples\\03_console_appender\\console_appender.dproj", "Win32"),
     (
         "samples\\04_outputdebugstring_appender\\outputdebugstring_appender.dproj",
@@ -50,78 +62,75 @@ projects = [
         "samples\\120_elastic_search_appender\\ElasticSearchAppenderSample.dproj",
         "Win32",
     ),
+    ("samples\\130_simple_console_appender\SimpleConsole_appender.dproj", "Android"),    
     ("samples\\rest_logs_collector\RESTLogsCollector.dproj", "Win32"),
 ]
 
 
-def get_delphi_projects_to_build(delphi_version=DEFAULT_DELPHI_VERSION):
+def get_delphi_projects_to_build():
     global projects
     return projects
 
 
+def get_best_delphi_version_available() -> (dict, str):
+    global delphi_version
+    found = False
+    rsvars_path = None
+    i = len(delphi_versions)
+    while (not found) and (i >= 0):
+        i -= 1
+        delphi_version = delphi_versions[i]
+        version_path = delphi_version["path"]
+        rsvars_path = f"C:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat"
+        if os.path.isfile(rsvars_path):
+            found = True
+        else:
+            rsvars_path = f"D:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat"
+            if os.path.isfile(rsvars_path):
+                found = True
+    if found:
+        return delphi_version, rsvars_path
+    else:
+        raise Exception("Cannot find a Delphi compiler")
+
+
 def build_delphi_project(
-    ctx: context.Context,
-    project_filename,
-    config="DEBUG",
-    delphi_version=DEFAULT_DELPHI_VERSION,
+    ctx: context.Context, project_filename, config="DEBUG", platform="Win32"
 ):
-    delphi_versions = {
-        "10": {"path": "17.0", "desc": "Delphi 10 Seattle"},
-        "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
-        "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
-        "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
-        "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},
-        "11": {"path": "22.0", "desc": "Delphi 11 Alexandria"},
-        "11.1": {"path": "22.0", "desc": "Delphi 11.1 Alexandria"},
-    }
-
-    assert delphi_version in delphi_versions, (
-        "Invalid Delphi version: " + delphi_version
-    )
-    print("[" + delphi_versions[delphi_version]["desc"] + "] ", end="")
-    version_path = delphi_versions[delphi_version]["path"]
-
-    rsvars_path = (
-        f"C:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat"
-    )
-    if not os.path.isfile(rsvars_path):
-        rsvars_path = f"D:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat"
-        if not os.path.isfile(rsvars_path):
-            raise Exception("Cannot find rsvars.bat")
+    delphi_version, rsvars_path = get_best_delphi_version_available()
+    print("\nBUILD WITH: " + delphi_version["desc"])
     cmdline = (
         '"'
         + rsvars_path
         + '"'
         + " & msbuild /t:Build /p:Config="
         + config
-        + f' /p:Platform={project_filename[1]} "'
+        + f' /p:Platform={platform} "'
         + project_filename[0]
         + '"'
     )
-    print("\n" + "".join(cmdline))
     r = ctx.run(cmdline, hide=True, warn=True)
     if r.failed:
         print(r.stdout)
         print(r.stderr)
-        raise Exit("Build failed for " + delphi_versions[delphi_version]["desc"])
+        raise Exit("Build failed for " + delphi_version["desc"])
 
 
-def build_delphi_project_list(
-    ctx, projects, config="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION
-):
+def build_delphi_project_list(ctx, projects, config="DEBUG", filter=""):
     ret = True
     for delphi_project in projects:
+        if filter and (not filter in delphi_project):
+            print(f"Skipped {os.path.basename(delphi_project[0])}")
+            continue
         msg = f"Building: {os.path.basename(delphi_project[0])}  ({config})"
         print(Fore.RESET + msg.ljust(90, "."), end="")
         try:
-            build_delphi_project(ctx, delphi_project, "DEBUG", delphi_version)
+            build_delphi_project(ctx, delphi_project, "DEBUG")
             print(Fore.GREEN + "OK" + Fore.RESET)
         except Exception as e:
-            ret = False
             print(Fore.RED + "\n\nBUILD ERROR")
             print(Fore.RESET)
             print(e)
-            raise
 
         # if res.ok:
         #     print(Fore.GREEN + "OK" + Fore.RESET)
@@ -135,7 +144,7 @@ def build_delphi_project_list(
 
 
 @task()
-def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+def tests(ctx):
     """Builds and execute the unit tests"""
     import os
 
@@ -145,7 +154,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
     print("\nBuilding Unit Tests")
     build_delphi_project(
-        ctx, (testclient, "Win32"), config="CI", delphi_version=delphi_version
+        ctx, (testclient, "Win32"), config="CI"
     )
 
     import subprocess
@@ -161,10 +170,10 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
 
 @task(post=[tests])
-def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
+def build(ctx, version="DEBUG"):
     """Builds LoggerPro"""
-    delphi_projects = get_delphi_projects_to_build(delphi_version)
-    ret = build_delphi_project_list(ctx, delphi_projects, version, delphi_version)
+    delphi_projects = get_delphi_projects_to_build()
+    ret = build_delphi_project_list(ctx, delphi_projects, version)
     if not ret:
         raise Exit("Build failed")
 
@@ -195,12 +204,12 @@ def inc_version():
 
 
 @task(pre=[tests, build])
-def release(ctx, delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False, no_git=False):
+def release(ctx, skip_build=False, no_git=False):
     """Builds all the projects, executes unit/integration tests and create release"""
     global g_version
     print(Fore.RESET)
     if not no_git:
-        inc_version()        
+        inc_version()
         tag_name = g_version.replace(".", "_").replace(" ", "_")
         print("Creating Git tag " + tag_name)
         if not ctx.run("git add -u "):

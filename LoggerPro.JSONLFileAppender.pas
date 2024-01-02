@@ -1,7 +1,28 @@
-unit LoggerPro.JSONLFileAppender;
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2023 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
 
-{ <@abstract(The unit to include if you want to use @link(TLoggerProJSONLFileAppender))
-  @author(Daniele Teti) }
+unit LoggerPro.JSONLFileAppender;
 
 {$DEFINE USE_JDO}
 
@@ -26,7 +47,7 @@ type
   public
     function FormatLog(const ALogItem: TLogItem): string; override;
     constructor Create(aMaxBackupFileCount: Integer = TLoggerProFileAppender.DEFAULT_MAX_BACKUP_FILE_COUNT;
-      aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppender.DEFAULT_MAX_FILE_SIZE_KB; aLogsFolder: string = ''; aFileAppenderOptions: TFileAppenderOptions = [];
+      aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppender.DEFAULT_MAX_FILE_SIZE_KB; aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT; aEncoding: TEncoding = nil);
       reintroduce;
   end;
@@ -49,13 +70,16 @@ uses
 constructor TLoggerProJSONLFileAppender.Create(
   aMaxBackupFileCount, aMaxFileSizeInKiloByte: Integer;
   aLogsFolder: string;
-  aFileAppenderOptions: TFileAppenderOptions;
   aLogFileNameFormat: string;
   aEncoding: TEncoding);
 begin
-  inherited Create(aMaxBackupFileCount, aMaxFileSizeInKiloByte,
-    aLogsFolder, aFileAppenderOptions, aLogFileNameFormat,
-    DEFAULT_LOG_FORMAT, aEncoding);
+  inherited Create(
+    aMaxBackupFileCount,
+    aMaxFileSizeInKiloByte,
+    aLogsFolder,
+    aLogFileNameFormat,
+    TLogLayout.LOG_LAYOUT_0,
+    aEncoding);
 end;
 
 procedure TLoggerProJSONLFileAppender.EmitEndRotateLogItem(aWriter: TStreamWriter);

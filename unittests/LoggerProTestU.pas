@@ -3,7 +3,7 @@ unit LoggerProTestU;
 interface
 
 uses
-  DUnitX.TestFramework, LoggerPro, LoggerPro.Proxy;
+  DUnitX.TestFramework, LoggerPro, LoggerPro.Proxy, System.SysUtils;
 
 type
 
@@ -34,12 +34,20 @@ type
 
     [Test]
     procedure TestAddAndDeleteAppenders;
+
+    [Test]
+    [TestCase('Case1', '{timestamp}|{threadid}|{loglevel}|{message}|{tag},2020-03-15 12:30:20:123|    1234|LOGLEVEL|THIS IS THE MESSAGE|THE_TAG')]
+    [TestCase('Case2', '{timestamp}|{loglevel}|{message}|{tag},2020-03-15 12:30:20:123|LOGLEVEL|THIS IS THE MESSAGE|THE_TAG')]
+    [TestCase('Case3', '{timestamp} -- {message},2020-03-15 12:30:20:123 -- THIS IS THE MESSAGE')]
+    [TestCase('Case4', '{timestamp}[TID {threadid}][{loglevel}]{message}[{tag}],2020-03-15 12:30:20:123[TID     1234][LOGLEVEL]THIS IS THE MESSAGE[THE_TAG]')]
+    procedure TestLogLayoutToLogIndices(const LogLayout, ResultOutput: string);
+
   end;
 
 implementation
 
 uses
-  System.SysUtils, TestSupportAppendersU, System.SyncObjs, LoggerPro.OutputDebugStringAppender;
+  TestSupportAppendersU, System.SyncObjs, LoggerPro.OutputDebugStringAppender;
 
 function LogItemAreEquals(A, B: TLogItem): Boolean;
 begin
@@ -80,6 +88,21 @@ begin
   Assert.AreEqual(0, LLogWriter.AppendersCount);
 
   LLogWriter.Debug('Deleted Appenders', 'Appender');
+end;
+
+procedure TLoggerProTest.TestLogLayoutToLogIndices(const LogLayout, ResultOutput: string);
+begin
+  var lWithIndices := LogLayoutByPlaceHoldersToLogLayoutByIndexes(LogLayout);
+  var s := Format(
+    lWithIndices,
+    [
+      FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', encodedate(2020,3,15) + EncodeTime(12,30,20,123)),
+      '1234',
+      'LOGLEVEL',
+      'THIS IS THE MESSAGE',
+      'THE_TAG'
+    ]);
+  Assert.AreEqual(ResultOutput, s);
 end;
 
 procedure TLoggerProTest.TestLogLevel(UseProxy: boolean);

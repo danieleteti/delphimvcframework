@@ -32,8 +32,6 @@ object MultipleLoggersForm: TMultipleLoggersForm
     ScrollBars = ssVertical
     TabOrder = 0
     WordWrap = False
-    ExplicitWidth = 880
-    ExplicitHeight = 294
   end
   object btnFormLocalLog: TButton
     Left = 8

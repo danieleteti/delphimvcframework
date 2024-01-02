@@ -30,11 +30,8 @@ initialization
 
 // Creates logs in the ..\logs folder without PID in the filename
 _Log := BuildLogWriter([
-  TLoggerProJSONLFileAppender.Create(10, 5, '..\logs', [],
-    { default filename format}
-    //TLoggerProJSONLFileAppender.DEFAULT_FILENAME_FORMAT,
-    { filename format including pid }
-    '{module}.{pid}.{number}.log',
+  TLoggerProJSONLFileAppender.Create(10, 5, '..\logs',
+    TLoggerProJSONLFileAppender.DEFAULT_FILENAME_FORMAT,
     TEncoding.UTF8
     )
   ]);

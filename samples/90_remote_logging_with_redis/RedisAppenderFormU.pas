@@ -39,22 +39,22 @@ uses LoggerProConfig;
 
 procedure TMainForm.Button1Click(Sender: TObject);
 begin
-  Log.DebugFmt('This is a debug message with TAG1 (%s)', [fContext], 'TAG1');
+  Log.Debug('This is a debug message with TAG1 (%s)', [fContext], 'TAG1');
 end;
 
 procedure TMainForm.Button2Click(Sender: TObject);
 begin
-  Log.InfoFmt('This is a info message with TAG1 (%s)', [fContext], 'TAG1');
+  Log.Info('This is a info message with TAG1 (%s)', [fContext], 'TAG1');
 end;
 
 procedure TMainForm.Button3Click(Sender: TObject);
 begin
-  Log.WarnFmt('This is a warning message with TAG1 (%s)', [fContext], 'TAG1');
+  Log.Warn('This is a warning message with TAG1 (%s)', [fContext], 'TAG1');
 end;
 
 procedure TMainForm.Button4Click(Sender: TObject);
 begin
-  Log.ErrorFmt('This is a error message with TAG1 (%s)', [fContext], 'TAG1');
+  Log.Error('This is a error message with TAG1 (%s)', [fContext], 'TAG1');
 end;
 
 procedure TMainForm.Button5Click(Sender: TObject);
