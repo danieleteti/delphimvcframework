@@ -1,6 +1,28 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2023 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.FileAppender;
-{ <@abstract(The unit to include if you want to use @link(TLoggerProFileAppender))
-  @author(Daniele Teti) }
 
 {$IF Defined(Android) or Defined(iOS)}
 {$DEFINE MOBILE}
@@ -38,9 +60,6 @@ type
 
   }
 
-  TFileAppenderOption = (IncludePID);
-  TFileAppenderOptions = set of TFileAppenderOption;
-
   { @abstract(The base class for different file appenders)
     Do not use this class directly, but one of TLoggerProFileAppender or TLoggerProSimpleFileAppender.
     Check the sample @code(file_appender.dproj)
@@ -50,7 +69,6 @@ type
     fMaxBackupFileCount: Integer;
     fMaxFileSizeInKiloByte: Integer;
     fLogFileNameFormat: string;
-    fFileAppenderOptions: TFileAppenderOptions;
     fLogsFolder: string;
     fEncoding: TEncoding;
     function CreateWriter(const aFileName: string): TStreamWriter;
@@ -67,14 +85,13 @@ type
     { @abstract(Defines the default format string used by the @link(TLoggerProFileAppender).)
       The positional parameters are the following:
       @orderedList(
-      @item SetNumber 0
-      @item ModuleName
-      @item LogNum
-      @item LogTag
+      @item Number
+      @item Module
+      @item Tag
       )
     }
-    //DEFAULT_FILENAME_FORMAT = '%0:s.%1:2.2d.%2:s.log';
     DEFAULT_FILENAME_FORMAT = '{module}.{number}.{tag}.log';
+    DEFAULT_FILENAME_FORMAT_WITH_PID = '{module}.{number}.{pid}.{tag}.log';
     { @abstract(Defines number of log file set to maintain during logs rotation) }
     DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
     { @abstract(Defines the max size of each log file)
@@ -88,9 +105,8 @@ type
       aMaxBackupFileCount: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_BACKUP_FILE_COUNT;
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
       aLogsFolder: string = '';
-      aFileAppenderOptions: TFileAppenderOptions = [];
       aLogFileNameFormat: string = TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT;
-      aLogFormat: string = DEFAULT_LOG_FORMAT;
+      aLogLayout: string = TLogLayout.LOG_LAYOUT_0;
       aEncoding: TEncoding = nil);
       reintroduce; virtual;
     procedure Setup; override;
@@ -134,9 +150,8 @@ type
       aMaxBackupFileCount: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_BACKUP_FILE_COUNT;
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
       aLogsFolder: string = '';
-      aFileAppenderOptions: TFileAppenderOptions = [];
       aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT;
-      aLogFormat: string = DEFAULT_LOG_FORMAT;
+      aLogLayout: string = TLogLayout.LOG_LAYOUT_0;
       aEncoding: TEncoding = nil);
       override;
   end;
@@ -155,6 +170,7 @@ uses
     ,Androidapi.JNI.JavaTypes
 {$ENDIF}
     ;
+
 
 function OccurrencesOfChar(const S: string; const C: char): integer;
 var
@@ -200,14 +216,6 @@ begin
   raise Exception.Create('Platform not supported');
 {$ENDIF}
   lFormat := fLogFileNameFormat;
-
-  if TFileAppenderOption.IncludePID in fFileAppenderOptions then
-  begin
-    raise ELoggerPro.Create('TFileAppenderOption.IncludePID is deprecated. ' +
-      'Just include "{pid}" placeholder in the file name format and PID is automatically ' +
-      'added to the log filename');
-  end;
-    //lModuleName := lModuleName + '_pid_' + IntToStr(CurrentProcessId).PadLeft(6, '0');
 
   lPath := fLogsFolder;
   lFormat := lFormat
@@ -299,16 +307,20 @@ begin
   RetryMove(aNewFileName, lRenamedFile);
 end;
 
-constructor TLoggerProFileAppenderBase.Create(aMaxBackupFileCount: Integer; aMaxFileSizeInKiloByte: Integer; aLogsFolder: string;
-  aFileAppenderOptions: TFileAppenderOptions; aLogFileNameFormat: string; aLogFormat: string; aEncoding: TEncoding);
+constructor TLoggerProFileAppenderBase.Create(
+  aMaxBackupFileCount: Integer;
+  aMaxFileSizeInKiloByte: Integer;
+  aLogsFolder: string;
+  aLogFileNameFormat: string;
+  aLogLayout: string;
+  aEncoding: TEncoding);
 begin
-  inherited Create(ALogFormat);
+  inherited Create(aLogLayout);
   fLogsFolder := aLogsFolder;
   fMaxBackupFileCount:= Max(1, aMaxBackupFileCount);
   fMaxFileSizeInKiloByte := aMaxFileSizeInKiloByte;
   CheckLogFileNameFormat(aLogFileNameFormat);
   fLogFileNameFormat := aLogFileNameFormat;
-  fFileAppenderOptions := aFileAppenderOptions;
   if Assigned(aEncoding) then
     fEncoding := aEncoding
   else
@@ -439,16 +451,15 @@ begin
 end;
 
 constructor TLoggerProSimpleFileAppender.Create(aMaxBackupFileCount, aMaxFileSizeInKiloByte: Integer;
-  aLogsFolder: string; aFileAppenderOptions: TFileAppenderOptions; aLogFileNameFormat, aLogFormat: string;
+  aLogsFolder: string; aLogFileNameFormat, aLogLayout: string;
   aEncoding: TEncoding);
 begin
   inherited Create(
     aMaxBackupFileCount,
     aMaxFileSizeInKiloByte,
     aLogsFolder,
-    aFileAppenderOptions,
     aLogFileNameFormat,
-    aLogFormat,
+    aLogLayout,
     aEncoding);
 end;
 
