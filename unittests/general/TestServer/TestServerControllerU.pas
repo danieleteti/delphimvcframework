@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -927,9 +927,9 @@ begin
   ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   Obj := TJDOJSONObject.Create;
   try
-    Obj.s['name1'] := 'jørn';
-    Obj.s['name2'] := 'Što je Unicode?';
-    Obj.s['name3'] := 'àèéìòù';
+    Obj.s['name1'] := 'jï¿½rn';
+    Obj.s['name2'] := 'ï¿½to je Unicode?';
+    Obj.s['name3'] := 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
     Render(Obj, false);
   finally
     Obj.Free;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -189,8 +189,8 @@ begin
   lResp := FRESTClient
 // .SetBasicAuthorization('dmvc', '123')
     .AddBodyFieldURLEncoded('field1', 'value1')
-    .AddBodyFieldURLEncoded('field2', 'João Antônio')
-    .AddBodyFieldURLEncoded('field3', 'Special characters: öüáàçãõºs')
+    .AddBodyFieldURLEncoded('field2', 'Joï¿½o Antï¿½nio')
+    .AddBodyFieldURLEncoded('field3', 'Special characters: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½s')
     .Post('/body-url-encoded');
 
   Assert.AreEqual(lResp.StatusCode, 200);
@@ -198,8 +198,8 @@ begin
   lJsonResp := TJDOJsonBaseObject.Parse(lResp.Content) as TJDOJsonObject;
   try
     Assert.AreEqual('value1', lJsonResp.S['field1']);
-    Assert.AreEqual('João Antônio', lJsonResp.S['field2']);
-    Assert.AreEqual('Special characters: öüáàçãõºs', lJsonResp.S['field3']);
+    Assert.AreEqual('Joï¿½o Antï¿½nio', lJsonResp.S['field2']);
+    Assert.AreEqual('Special characters: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½s', lJsonResp.S['field3']);
   finally
     lJsonResp.Free;
   end;
@@ -364,7 +364,7 @@ begin
     begin
       LUser := TAppUser.Create;
       LUser.Cod := I;
-      LUser.Name := 'Ezequiel öüáàçãõºs ' + IntToStr(I);
+      LUser.Name := 'Ezequiel ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½s ' + IntToStr(I);
       LUser.Pass := IntToStr(I);
       LUsers.Add(LUser);
     end;
@@ -380,7 +380,7 @@ begin
   begin
     LUser := TAppUser.Create;
     LUser.Cod := I;
-    LUser.Name := 'Ezequiel öüáàçãõºs ' + IntToStr(I);
+    LUser.Name := 'Ezequiel ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½s ' + IntToStr(I);
     LUser.Pass := IntToStr(I);
     LUsers.Add(LUser);
   end;

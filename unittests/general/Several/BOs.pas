@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -763,7 +763,7 @@ end;
 function GetMyObject: TMyObject;
 begin
   Result := TMyObject.Create;
-  Result.PropString := 'Some text àèéìòù';
+  Result.PropString := 'Some text ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
   Result.PropAnsiString := 'This is an ANSI text';
   Result.PropInteger := -1234;
   Result.PropUInt32 := 1234;

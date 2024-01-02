@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -456,7 +456,7 @@ begin
   for I := 0 to lJSON.Count - 1 do
   begin
     lJObj := lJSON[I].ObjectValue;
-    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
+    ListBox1.Items.Add(Format('%6s: %-34s ï¿½ %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
   end;
   // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);

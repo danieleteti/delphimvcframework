@@ -2,11 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators with this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -253,20 +253,20 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDataSetHelpers;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
-    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' +
+    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' +
     '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
-  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
+  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
+  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_ASIS = '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_ASIS = '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}' + ']';
 
 var
   Dm: TEntitiesModule;
@@ -277,7 +277,7 @@ begin
     Dm.Entity.Insert;
     Dm.EntityId.AsLargeInt := 1;
     Dm.EntityCode.AsInteger := 2;
-    Dm.EntityName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityBirthday.AsDateTime := StrToDate('15/10/1987');
     Dm.EntityAccessDateTime.AsDateTime := StrToDateTime('17/02/2017 16:37:50');
     Dm.EntityAccessTime.AsDateTime := StrToTime('16:40:50');
@@ -289,7 +289,7 @@ begin
 
     Dm.Item.Insert;
     Dm.ItemId.AsLargeInt := 1;
-    Dm.ItemName.AsString := 'Ezequiel Juliano Müller';
+    Dm.ItemName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.Item.Post;
 
     Dm.Item.Insert;
@@ -360,20 +360,20 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17 16:37:50",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
     '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
-  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
+  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
+  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}' + ']';
 
   JSON_ITEMS = '{' + '"items":[' + '{' + '"Id_Id":1,' + '"Name_Name":"Pedro Henrique de Oliveira"' + '},' + '{' +
     '"Id_Id":2,' + '"Name_Name":"Rogers Abe"' + '}' + '],' + '"meta":{"count":"2"}}';
@@ -385,7 +385,7 @@ begin
     fSerializer.DeserializeDataSetRecord(JSON, Dm.Entity, ['Ignored']);
     Assert.isTrue(Dm.EntityId.AsLargeInt = 1);
     Assert.isTrue(Dm.EntityCode.AsInteger = 2);
-    Assert.isTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Mï¿½ller');
     Assert.isTrue(Dm.EntityBirthday.AsDateTime = StrToDate('15/10/1987'));
     Assert.isTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime('17/02/2017 16:37:50'));
     Assert.isTrue(Dm.EntityAccessTime.AsDateTime = StrToTime('16:40:50'));
@@ -408,29 +408,29 @@ begin
 
     fSerializer.DeserializeDataSetRecord(JSON_LOWERCASE, Dm.EntityLowerCase);
     Assert.isTrue(Dm.EntityLowerCaseId.AsLargeInt = 1);
-    Assert.isTrue(Dm.EntityLowerCaseName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityLowerCaseName.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     fSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase);
     Assert.isTrue(Dm.EntityUpperCaseId.AsLargeInt = 1);
-    Assert.isTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     fSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase2, [], ncUpperCase);
     Assert.isTrue(Dm.EntityUpperCase2Id.AsLargeInt = 1);
-    Assert.isTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     fSerializer.DeserializeDataSetRecord(JSON_ASIS, Dm.EntityAsIs);
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
-    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     Dm.EntityAsIs.EmptyDataSet;
     fSerializer.DeserializeDataSet(JSON_LIST, Dm.EntityAsIs);
     Dm.EntityAsIs.First;
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
-    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     Dm.EntityAsIs.Next;
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 2);
-    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Mï¿½ller');
 
     Dm.EntityAsIs.EmptyDataSet;
     Dm.EntityAsIs.LoadJSONArrayFromJSONObjectProperty('items', JSON_ITEMS, ncAsIs);
@@ -452,7 +452,7 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
   begin
     Assert.isTrue(AEntity.Id = 1);
     Assert.isTrue(AEntity.Code = 2);
-    Assert.isTrue(AEntity.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(AEntity.Name = 'Ezequiel Juliano Mï¿½ller');
     Assert.isTrue(AEntity.Salary = 100);
     Assert.isTrue(DateToStr(AEntity.Birthday) = '15/10/1987');
     Assert.isTrue(DateTimeToStr(AEntity.AccessDateTime) = '17/02/2017 16:37:50');
@@ -473,7 +473,7 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
   end;
 
 const
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Role":"roGuest",' + '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
     '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' +
@@ -481,7 +481,7 @@ const
     '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' +
     '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Mï¿½ller",' + '"FSalary":100,' +
     '"FBirthday":"1987-10-15",' + '"FAccessDateTime":"2017-02-17T16:37:50",' + '"FAccessTime":"16:40:50",' +
     '"FActive":true,' + '"FRole":"roGuest",' + '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
     '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"' + '},' + '{' +
@@ -510,8 +510,8 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomMemberSerializer;
 const
-  JSON = '{' + '"Entity":{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '},' +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Entity":{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TSale;
 begin
@@ -520,9 +520,9 @@ begin
     fSerializer.DeserializeObject(JSON, O);
     Assert.isTrue(O.Entity.Id = 1);
     Assert.isTrue(O.Entity.Code = 2);
-    Assert.isTrue(O.Entity.Name = 'Ezequiel Juliano Müller');
-    Assert.isTrue(O.Notes.DataString = 'Ezequiel Juliano Müller');
-    Assert.isTrue(O.NotesAsString.DataString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Entity.Name = 'Ezequiel Juliano Mï¿½ller');
+    Assert.isTrue(O.Notes.DataString = 'Ezequiel Juliano Mï¿½ller');
+    Assert.isTrue(O.NotesAsString.DataString = 'Ezequiel Juliano Mï¿½ller');
   finally
     O.Free;
   end;
@@ -530,7 +530,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerializer;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TEntityCustom;
 begin
@@ -539,7 +539,7 @@ begin
     fSerializer.DeserializeObject(JSON, O);
     Assert.isTrue(O.Id = 1);
     Assert.isTrue(O.Code = 2);
-    Assert.isTrue(O.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Name = 'Ezequiel Juliano Mï¿½ller');
   finally
     O.Free;
   end;
@@ -547,7 +547,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomValueTypeSerializer;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"NullableInteger":3' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"NullableInteger":3' + '}';
 var
   O: TEntityCustomWithNullables;
 begin
@@ -556,7 +556,7 @@ begin
     fSerializer.DeserializeObject(JSON, O);
     Assert.isTrue(O.Id = 1);
     Assert.isTrue(O.Code = 2);
-    Assert.isTrue(O.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Name = 'Ezequiel Juliano Mï¿½ller');
   finally
     O.Free;
   end;
@@ -564,9 +564,9 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
 const
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller"' + '}';
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -576,7 +576,7 @@ begin
     fSerializer.DeserializeObject(JSON_FIELDS, OFields);
     Assert.isTrue(OFields.Id = 1);
     Assert.isTrue(OFields.Code = 2);
-    Assert.isTrue(OFields.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(OFields.Name = 'Ezequiel Juliano Mï¿½ller');
   finally
     OFields.Free;
   end;
@@ -586,7 +586,7 @@ begin
     fSerializer.DeserializeObject(JSON_PROPERTIES, OProperties);
     Assert.isTrue(OProperties.Id = 1);
     Assert.isTrue(OProperties.Code = 2);
-    Assert.isTrue(OProperties.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(OProperties.Name = 'Ezequiel Juliano Mï¿½ller');
   finally
     OProperties.Free;
   end;
@@ -1013,20 +1013,20 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDataSet;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
     '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
-  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
+  JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
+  JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}' + ']';
 
 var
   Dm: TEntitiesModule;
@@ -1037,7 +1037,7 @@ begin
     Dm.Entity.Insert;
     Dm.EntityId.AsLargeInt := 1;
     Dm.EntityCode.AsInteger := 2;
-    Dm.EntityName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityBirthday.AsDateTime := StrToDate('15/10/1987');
     Dm.EntityAccessDateTime.AsDateTime := StrToDateTime('17/02/2017 16:37:50');
     Dm.EntityAccessTime.AsDateTime := StrToTime('16:40:50');
@@ -1067,35 +1067,35 @@ begin
 
     Dm.EntityLowerCase.Insert;
     Dm.EntityLowerCaseId.AsLargeInt := 1;
-    Dm.EntityLowerCaseName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityLowerCaseName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityLowerCase.Post;
     S := fSerializer.SerializeDataSetRecord(Dm.EntityLowerCase);
     Assert.areEqual(JSON_LOWERCASE, S, False, 'json lowercase');
 
     Dm.EntityUpperCase.Insert;
     Dm.EntityUpperCaseId.AsLargeInt := 1;
-    Dm.EntityUpperCaseName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityUpperCaseName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityUpperCase.Post;
     S := fSerializer.SerializeDataSetRecord(Dm.EntityUpperCase);
     Assert.areEqual(JSON_UPPERCASE, S, False, 'json uppercase (1)');
 
     Dm.EntityUpperCase2.Insert;
     Dm.EntityUpperCase2Id.AsLargeInt := 1;
-    Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityUpperCase2.Post;
     S := fSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [], ncUpperCase);
     Assert.areEqual(JSON_UPPERCASE, S, False, 'json uppercase (2)');
 
     Dm.EntityAsIs.Insert;
     Dm.EntityAsIsId.AsLargeInt := 1;
-    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityAsIs.Post;
     S := fSerializer.SerializeDataSetRecord(Dm.EntityAsIs);
     Assert.areEqual(JSON_ASIS, S, False, 'json as is');
 
     Dm.EntityAsIs.Append;
     Dm.EntityAsIsId.AsLargeInt := 2;
-    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
+    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Mï¿½ller';
     Dm.EntityAsIs.Post;
 
     // serialize dataset
@@ -1187,7 +1187,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntity;
 const
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Role":"roGuest",' + '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
     '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' +
@@ -1195,7 +1195,7 @@ const
     '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' +
     '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Mï¿½ller",' + '"FSalary":100,' +
     '"FBirthday":"1987-10-15",' + '"FAccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"FAccessTime":"16:40:50",' +
     '"FActive":true,' + '"FRole":"roGuest",' + '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
     '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"' + '},' + '{' +
@@ -1203,7 +1203,7 @@ const
     '"FDescription":"EntNote1"' + '},' + '{' + '"FDescription":"EntNote2"' + '}' + '],' + '"FNotesEmpty":[],' +
     '"FAppreciationAs":"Yes",' + '"FAppreciation":{' + '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
-  JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+  JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller",' + '"Salary":100,' +
     '"Birthday":null,' + '"AccessDateTime":null,' + '"AccessTime":null,' + '"Active":true,' + '"Role":"roGuest",' +
     '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' + '"Name":"Development",' + '"Notes":[' + '{' +
     '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' + '"DepartmentNull":null,' +
@@ -1218,7 +1218,7 @@ begin
   try
     O.Id := 1;
     O.Code := 2;
-    O.Name := 'Ezequiel Juliano Müller';
+    O.Name := 'Ezequiel Juliano Mï¿½ller';
     O.Salary := 100;
     O.Birthday := StrToDate('15/10/1987');
     O.AccessDateTime := StrToDateTime('17/02/2017 16:37:50');
@@ -1255,8 +1255,8 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomMemberSerializer;
 const
-  JSON = '{' + '"Entity":{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Müller"' + '},' +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Entity":{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Mï¿½ller"' + '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TSale;
   S: string;
@@ -1265,9 +1265,9 @@ begin
   try
     O.Entity.Id := 1;
     O.Entity.Code := 2;
-    O.Entity.Name := 'Ezequiel Juliano Müller';
-    O.Notes.WriteString('Ezequiel Juliano Müller');
-    O.NotesAsString.WriteString('Ezequiel Juliano Müller');
+    O.Entity.Name := 'Ezequiel Juliano Mï¿½ller';
+    O.Notes.WriteString('Ezequiel Juliano Mï¿½ller');
+    O.NotesAsString.WriteString('Ezequiel Juliano Mï¿½ller');
 
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -1278,7 +1278,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomSerializer;
 const
-  JSON = '{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TEntityCustom;
   S: string;
@@ -1287,7 +1287,7 @@ begin
   try
     O.Id := 1;
     O.Code := 2;
-    O.Name := 'Ezequiel Juliano Müller';
+    O.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -1298,7 +1298,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityLowerCaseNames;
 const
-  JSON = '{' + '"id":1,' + '"code":2,' + '"name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"id":1,' + '"code":2,' + '"name":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TEntityLowerCase;
   S: string;
@@ -1307,7 +1307,7 @@ begin
   try
     O.Id := 1;
     O.Code := 2;
-    O.Name := 'Ezequiel Juliano Müller';
+    O.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -1318,7 +1318,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityNameAs;
 const
-  JSON = '{' + '"Id_Id":1,' + '"Code_Code":2,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Id_Id":1,' + '"Code_Code":2,' + '"Name_Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TEntityNameAs;
   S: string;
@@ -1327,7 +1327,7 @@ begin
   try
     O.Id := 1;
     O.Code := 2;
-    O.Name := 'Ezequiel Juliano Müller';
+    O.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -1341,9 +1341,9 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntitySerializationType;
 const
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller"' + '}';
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Mï¿½ller"' + '}';
 
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -1353,7 +1353,7 @@ begin
   try
     OFields.Id := 1;
     OFields.Code := 2;
-    OFields.Name := 'Ezequiel Juliano Müller';
+    OFields.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(OFields);
     Assert.areEqual(JSON_FIELDS, S);
@@ -1365,7 +1365,7 @@ begin
   try
     OProperties.Id := 1;
     OProperties.Code := 2;
-    OProperties.Name := 'Ezequiel Juliano Müller';
+    OProperties.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(OProperties);
     Assert.areEqual(JSON_PROPERTIES, S);
@@ -1376,7 +1376,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityUpperCaseNames;
 const
-  JSON = '{' + '"ID":1,' + '"CODE":2,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"ID":1,' + '"CODE":2,' + '"NAME":"Ezequiel Juliano Mï¿½ller"' + '}';
 var
   O: TEntityUpperCase;
   S: string;
@@ -1385,7 +1385,7 @@ begin
   try
     O.Id := 1;
     O.Code := 2;
-    O.Name := 'Ezequiel Juliano Müller';
+    O.Name := 'Ezequiel Juliano Mï¿½ller';
 
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -1519,7 +1519,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeEntityWithInterface;
 const
-  JSON = '{' + '"Id":1,' + '"Name":"João Antônio Duarte",' + '"ChildEntity":{' + '"Code":10,' +
+  JSON = '{' + '"Id":1,' + '"Name":"Joï¿½o Antï¿½nio Duarte",' + '"ChildEntity":{' + '"Code":10,' +
     '"Description":"Child Entity"' + '}' + '}';
 var
   LEntity: IEntityWithInterface;
@@ -1527,7 +1527,7 @@ var
 begin
   LEntity := TEntityWithInterface.Create;
   LEntity.Id := 1;
-  LEntity.Name := 'João Antônio Duarte';
+  LEntity.Name := 'Joï¿½o Antï¿½nio Duarte';
   LEntity.ChildEntity.Code := 10;
   LEntity.ChildEntity.Description := 'Child Entity';
 
@@ -1537,7 +1537,7 @@ begin
   LEntity := TEntityWithInterface.Create;
   fSerializer.DeserializeObject(LJson, LEntity);
   Assert.areEqual(Integer(1), LEntity.Id);
-  Assert.areEqual('João Antônio Duarte', LEntity.Name);
+  Assert.areEqual('Joï¿½o Antï¿½nio Duarte', LEntity.Name);
   Assert.areEqual(Integer(10), LEntity.ChildEntity.Code);
   Assert.areEqual('Child Entity', LEntity.ChildEntity.Description);
 end;
@@ -1717,7 +1717,7 @@ const
     '"NullableGuid":"{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}",' +
     '"NullableGuid2":"fa51caa7-7d48-46ba-bfde-34c1f740e066",' +
     '"Id":1,' + '"Code":2,' +
-    '"Name":"João Antônio"' + '}';
+    '"Name":"Joï¿½o Antï¿½nio"' + '}';
 var
   LEntity: TEntityCustomWithGuid;
   LJson: string;
@@ -1726,7 +1726,7 @@ begin
   try
     LEntity.Id := 1;
     LEntity.Code := 2;
-    LEntity.Name := 'João Antônio';
+    LEntity.Name := 'Joï¿½o Antï¿½nio';
     LEntity.GuidValue := StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
     LEntity.GuidValue2 := StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}');
     LEntity.NullableGuid := StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}');
@@ -1743,7 +1743,7 @@ begin
     fSerializer.DeserializeObject(LJson, LEntity);
     Assert.AreEqual(int64(1), LEntity.Id);
     Assert.AreEqual(Integer(2), LEntity.Code);
-    Assert.AreEqual('João Antônio', LEntity.Name);
+    Assert.AreEqual('Joï¿½o Antï¿½nio', LEntity.Name);
     Assert.AreEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
     Assert.AreEqual(StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}'), LEntity.GuidValue2);
     Assert.AreEqual(StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}'), LEntity.NullableGuid.Value);

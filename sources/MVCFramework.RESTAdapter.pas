@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -217,7 +217,7 @@ end;
 
 destructor TRESTAdapter<T>.Destroy;
 begin
-  // Ezequiel J. Müller (If it is created outside, it must be destroyed out)
+  // Ezequiel J. Mï¿½ller (If it is created outside, it must be destroyed out)
   // d.spinetti added RESTClientOwner to manage desctruction of RESTClient and free its associated memory
 //  if RESTClientOwner and Assigned(fRESTClient) then
 //    fRESTClient.Free;

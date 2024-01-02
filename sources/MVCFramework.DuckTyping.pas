@@ -2,11 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //

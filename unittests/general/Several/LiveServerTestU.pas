@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -72,11 +72,11 @@ type
     [Test]
     procedure TestReqWithParams;
 
-    // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' аийщтм@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
+    // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' пїЅпїЅпїЅпїЅпїЅпїЅ@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
     [Test]
-    [TestCase('1', ' а,и')]
-    [TestCase('2', 'й,щ,т')]
-    [TestCase('3', 'м,@,[')]
+    [TestCase('1', ' пїЅ,пїЅ')]
+    [TestCase('2', 'пїЅ,пїЅ,пїЅ')]
+    [TestCase('3', 'пїЅ,@,[')]
     [TestCase('4', '],{,}')]
     [TestCase('5', '(,),\')]
     [TestCase('6', '=,;,&')]
@@ -1190,17 +1190,17 @@ begin
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name1').JsonValue.Value;
-  Assert.areEqual('jшrn', S);
+  Assert.areEqual('jпїЅrn', S);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name3').JsonValue.Value;
-  Assert.areEqual('аиймтщ', S);
+  Assert.areEqual('пїЅпїЅпїЅпїЅпїЅпїЅ', S);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name2').JsonValue.Value;
-  Assert.areEqual('Љto je Unicode?', S,
+  Assert.areEqual('пїЅto je Unicode?', S,
     'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   lJSONObj.Free;
   { WARNING!!! }
@@ -2152,7 +2152,7 @@ begin
   P := TPerson.Create;
   try
     P.FirstName := 'Daniele';
-    P.LastName := 'атщийм';
+    P.LastName := 'пїЅпїЅпїЅпїЅпїЅпїЅ';
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
@@ -2179,7 +2179,7 @@ begin
     GetDefaultSerializer.DeserializeObject(r.Content, P);
     // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
     Assert.areEqual('Daniele', P.FirstName);
-    Assert.areEqual('атщийм', P.LastName);
+    Assert.areEqual('пїЅпїЅпїЅпїЅпїЅпїЅ', P.LastName);
     Assert.areEqual(true, P.Married);
     Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
@@ -2195,7 +2195,7 @@ begin
   P := TPerson.Create;
   try
     P.FirstName := 'Daniele';
-    P.LastName := 'атщийм';
+    P.LastName := 'пїЅпїЅпїЅпїЅпїЅпїЅ';
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
@@ -2220,7 +2220,7 @@ begin
     GetDefaultSerializer.DeserializeObject(r.Content, P);
     // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
     Assert.areEqual('Daniele', P.FirstName);
-    Assert.areEqual('атщийм', P.LastName);
+    Assert.areEqual('пїЅпїЅпїЅпїЅпїЅпїЅ', P.LastName);
     Assert.areEqual(true, P.Married);
     Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
@@ -2306,7 +2306,7 @@ begin
           TEncoding.Convert(
             TEncoding.Default,
             lISO8859_1Encoding,
-            lISO8859_1Encoding.GetBytes('аиймтщ')
+            lISO8859_1Encoding.GetBytes('пїЅпїЅпїЅпїЅпїЅпїЅ')
             )
           );
   finally
@@ -2315,7 +2315,7 @@ begin
   res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN)
     .Post('/testconsumes/textiso8859_1', lVal, BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
-  // Assert.AreNotEqual('аиймтщ', res.Content, 'non iso8859-1 text is rendered ok whan should not');
+  // Assert.AreNotEqual('пїЅпїЅпїЅпїЅпїЅпїЅ', res.Content, 'non iso8859-1 text is rendered ok whan should not');
   SplitContentMediaTypeAndCharset(res.ContentType, lContentType, lContentCharset);
   Assert.areEqual(lContentType, TMVCMediaType.TEXT_PLAIN);
   Assert.areEqual(lContentCharset, TMVCCharSet.ISO88591);

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -121,21 +121,21 @@ type
     SwapScrollTo: array [TSwapScrollTo] of string = ('top', 'bottom');
   public
     /// <summary> Pushes a new url into the browser history history.</summary>
-    /// <remarks>This creates a new history entry, allowing navigation with the browser’s back and forward buttons.
+    /// <remarks>This creates a new history entry, allowing navigation with the browserï¿½s back and forward buttons.
     /// This is similar to the hx-push-url attribute.
     /// If present, this header overrides any behavior defined with attributes.</remarks>
     /// <param name="URL">A URL to be pushed into the location bar.
     /// This may be relative or absolute, as per history.pushState().
-    /// If omitted, the header will output "false", which prevents the browser’s history from being updated.</param>
+    /// If omitted, the header will output "false", which prevents the browserï¿½s history from being updated.</param>
     function HXSetPushUrl(URL: string = ''): TMVCWebResponse;
 
     /// <summary>Replaces the current URL in the browser location history.</summary>
-    /// <remarks>This does not create a new history entry; in effect, it removes the previous current URL from the browser’s history.
+    /// <remarks>This does not create a new history entry; in effect, it removes the previous current URL from the browserï¿½s history.
     /// This is similar to the hx-replace-url attribute.
     /// If present, this header overrides any behavior defined with attributes.</remarks>
     /// <param name="URL">A URL to replace the current URL in the location bar.
     /// This may be relative or absolute, as per history.replaceState(), but must have the same origin as the current URL.
-    /// If omitted, the header will output "false", which prevents the browser’s current URL from being updated.</param>
+    /// If omitted, the header will output "false", which prevents the browserï¿½s current URL from being updated.</param>
     function HXSetReplaceUrl(URL: string = ''): TMVCWebResponse;
 
     /// <summary>Allows you to specify how the response will be swapped. See hx-swap for possible values</summary>
@@ -179,11 +179,11 @@ type
     /// <param name="After">The timing of the event</param>
     function HXTriggerClientEvent(Name: string; Params: TValue; After: TClientEventType = etReceived): TMVCWebResponse; overload;
 
-    /// <summary>if set to “true” the client side will do a a full refresh of the page</summary>
+    /// <summary>if set to ï¿½trueï¿½ the client side will do a a full refresh of the page</summary>
     function HXSetPageRefresh(Refresh: Boolean = true): TMVCWebResponse;
 
     /// <summary>Allows you to do a client-side redirect that does not do a full page reload</summary>
-    /// <remarks>Instead of changing the page’s location it will act like following a hx-boost link, creating a new history entry,
+    /// <remarks>Instead of changing the pageï¿½s location it will act like following a hx-boost link, creating a new history entry,
     /// issuing an ajax request to the value of the header and pushing the path into history. </remarks>
     function HXSetLocation(Path: string): TMVCWebResponse; overload;
 
@@ -290,7 +290,7 @@ begin
   Result := Self;
 
   (* todo:
-    This response header can be used to trigger a client side redirection without reloading the whole page. Instead of changing the page’s location it will act like following a hx-boost link, creating a new history entry, issuing an ajax request to the value of the header and pushing the path into history.
+    This response header can be used to trigger a client side redirection without reloading the whole page. Instead of changing the pageï¿½s location it will act like following a hx-boost link, creating a new history entry, issuing an ajax request to the value of the header and pushing the path into history.
 
     A sample response would be:
     HX-Location: /test
@@ -300,7 +300,7 @@ begin
     HX-Location: {"path":"/test2", "target":"#testdiv"}
     Path is required and is url to load the response from. The rest of the data mirrors the ajax api context, which is:
     source - the source element of the request
-    event - an event that “triggered” the request
+    event - an event that ï¿½triggeredï¿½ the request
     handler - a callback that will handle the response HTML
     target - the target to swap the response into
     swap - how the response will be swapped in relative to the target
