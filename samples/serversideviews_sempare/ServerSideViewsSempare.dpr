@@ -10,6 +10,7 @@ uses
   Winapi.ShellAPI,
   Winapi.Windows,
 {$ENDIF }
+  Sempare.Template,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
@@ -27,6 +28,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
+  TTemplateRegistry.Instance.LoadStrategy := [tlsLoadFile];
   ReportMemoryLeaksOnShutdown := True;
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
