@@ -106,13 +106,19 @@ begin
   LViewEngine := AObj.AsType<TMVCBaseViewEngine>;
   LKey := AsString(ADeref, AContext);
   // check if the key exists in the ViewModel
-  AFound := LViewEngine.ViewModel.TryGetValue(LKey, result);
-  if AFound then
-    exit;
+  if assigned(LViewEngine.ViewModel) then
+  begin
+    AFound := LViewEngine.ViewModel.TryGetValue(LKey, result);
+    if AFound then
+      exit;
+  end;
   // check if we have a dataset
-  AFound := LViewEngine.ViewDataSets.TryGetValue(LKey, LDataSet);
-  if AFound then
-    exit(LDataSet);
+  if assigned(LViewEngine.ViewDataSets) then
+  begin
+    AFound := LViewEngine.ViewDataSets.TryGetValue(LKey, LDataSet);
+    if AFound then
+      exit(LDataSet);
+  end;
   // we don't know anything about the key, so behave accordingly
   if ARaiseIfMissing then
     RaiseError(APosition, SCannotDereferenceValueOnObject, [LKey, SDictionary]);
