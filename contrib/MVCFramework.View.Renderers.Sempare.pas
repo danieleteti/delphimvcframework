@@ -92,7 +92,7 @@ begin
   except
     on e: Exception do
     begin
-      Log.ErrorFmt('[%s] %s', [e.Classname, e.Message], LOGGERPRO_TAG);
+      Log.Error('[%s] %s', [e.Classname, e.Message], LOGGERPRO_TAG);
       raise e;
     end;
   end;
