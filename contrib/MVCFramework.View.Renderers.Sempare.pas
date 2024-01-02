@@ -44,6 +44,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
+  MVCFramework.Logger,
   System.Classes,
   Sempare.Template;
 
@@ -91,7 +92,7 @@ begin
   except
     on e: Exception do
     begin
-      writeln(e.Message); // not the most ideal way of doing things... we would want to use a logger
+      Log.ErrorFmt('[%s] %s', [e.Classname, e.Message], LOGGERPRO_TAG);
       raise e;
     end;
   end;
