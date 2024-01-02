@@ -1,4 +1,4 @@
-﻿{{ extends('page.tpl'); block 'body' }}
+﻿{{ extends('page'); block 'body' }}
 <script>
   function doDelete(id) {
     if (confirm('Are you sure?')) {

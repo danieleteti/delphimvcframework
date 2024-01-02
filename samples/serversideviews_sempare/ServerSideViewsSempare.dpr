@@ -18,7 +18,6 @@ uses
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
   CustomSempareHelpersU in 'CustomSempareHelpersU.pas',
-  SynMustache,
   MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
   MVCFramework.View.Renderers.Sempare in '..\..\contrib\MVCFramework.View.Renderers.Sempare.pas';
 

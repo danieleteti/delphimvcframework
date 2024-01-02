@@ -1,4 +1,4 @@
-﻿{{ extends('page.tpl'); block 'body' }}
+﻿{{ extends('page'); block 'body' }}
 <div class="row_fluid">
     <div class="col-sm-12">
         {{ for person of people }}
