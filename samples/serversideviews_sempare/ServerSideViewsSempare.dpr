@@ -1,4 +1,4 @@
-program ServerSideViewsMustache;
+program ServerSideViewsSempare;
 
 {$APPTYPE CONSOLE}
 
@@ -10,17 +10,17 @@ uses
   Winapi.ShellAPI,
   Winapi.Windows,
 {$ENDIF }
+  Sempare.Template,
   IdHTTPWebBrokerBridge,
-  MVCFramework.View.Renderers.Mustache,
   Web.WebReq,
   Web.WebBroker,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
-  CustomMustacheHelpersU in 'CustomMustacheHelpersU.pas',
-  SynMustache,
-  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas';
+  CustomSempareHelpersU in 'CustomSempareHelpersU.pas',
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
+  MVCFramework.View.Renderers.Sempare in '..\..\contrib\MVCFramework.View.Renderers.Sempare.pas';
 
 {$R *.res}
 
@@ -28,6 +28,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
+  TTemplateRegistry.Instance.LoadStrategy := [tlsLoadFile];
   ReportMemoryLeaksOnShutdown := True;
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
@@ -35,7 +36,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', pchar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
 {$ENDIF}
     Write('Ctrl+C  to stop the server');
     WaitForTerminationSignal;
@@ -51,13 +52,6 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-
-    // these helpers will be available to the mustache views as if they were the standard ones
-    TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
-      begin
-        TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
-        TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
-      end;
 
     RunServer(8080);
   except
