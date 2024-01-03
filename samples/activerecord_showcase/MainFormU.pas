@@ -2202,6 +2202,8 @@ begin
   btnWithSpaces.Enabled := (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
 
   btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';

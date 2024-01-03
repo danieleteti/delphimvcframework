@@ -66,10 +66,10 @@ begin
   lPKInInsert := lPKInInsert and (not(TMVCActiveRecordFieldOption.foReadOnly in TableMap.fPrimaryKeyOptions));
   lSB := TStringBuilder.Create;
   try
-    lSB.Append('INSERT INTO ' + TableMap.fTableName + '(');
+    lSB.Append('INSERT INTO ' + GetTableNameForSQL(TableMap.fTableName) + '(');
     if lPKInInsert then
     begin
-      lSB.Append(TableMap.fPrimaryKeyFieldName + ',');
+      lSB.Append(GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + ',');
     end;
 
     {partition}
@@ -83,7 +83,7 @@ begin
     begin
       if lKeyValue.Value.Writeable then
       begin
-        lSB.Append(lKeyValue.Value.FieldName + ',');
+        lSB.Append(GetFieldNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
     end;
 
@@ -91,7 +91,7 @@ begin
     lSB.Append(') values (');
     if lPKInInsert then
     begin
-      lSB.Append(':' + TableMap.fPrimaryKeyFieldName + ',');
+      lSB.Append(':' + GetParamNameForSQL(TableMap.fPrimaryKeyFieldName) + ',');
     end;
 
     {partition}

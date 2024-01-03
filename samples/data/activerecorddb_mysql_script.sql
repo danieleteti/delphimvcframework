@@ -21,6 +21,25 @@ CREATE TABLE nullables_test (
     f_blob TEXT  NULL
 );
 
+CREATE TABLE `customers with spaces` (
+    `id with spaces` bigint NOT NULL,
+    `code with spaces` varchar(20),
+    `description with spaces` varchar(200),
+    `city with spaces` varchar(200),
+    `note with spaces` text,
+    `rating with spaces` integer
+);
+
+CREATE TABLE customers2 (
+    id bigint NOT null auto_increment primary key,
+    code character varying(20),
+    description character varying(200),
+    city character varying(200),
+    note text,
+    rating integer
+);
+
+
 
 CREATE TABLE customers (
 	id integer NOT NULL AUTO_INCREMENT,
