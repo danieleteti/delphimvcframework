@@ -763,7 +763,7 @@ end;
 function GetMyObject: TMyObject;
 begin
   Result := TMyObject.Create;
-  Result.PropString := 'Some text пїЅпїЅпїЅпїЅпїЅпїЅ';
+  Result.PropString := 'Some text аиймтщ';
   Result.PropAnsiString := 'This is an ANSI text';
   Result.PropInteger := -1234;
   Result.PropUInt32 := 1234;

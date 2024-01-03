@@ -39,6 +39,7 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
   protected
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
+  public
     function GetTableNameForSQL(const TableName: string): string; override;
     function GetFieldNameForSQL(const FieldName: string): string; override;
   end;
