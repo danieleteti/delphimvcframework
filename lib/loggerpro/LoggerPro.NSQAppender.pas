@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2023 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -109,7 +109,7 @@ type
     /// creation event is defined </param>
     constructor Create(aTopic: string=''; aEphemeral: Boolean = False;
         aNSQUrl: string=DEFAULT_NSQ_URL;
-        aLogFormat: string=DEFAULT_LOG_FORMAT);
+        aLogFormat: string=TLogLayout.LOG_LAYOUT_0);
         reintroduce;
     property NSQUrl: string read GetNSQUrl write SetNSQUrl;
     property Ephemeral: Boolean read FEphemeral write SetEphemeral;
