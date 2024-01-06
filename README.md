@@ -16,7 +16,7 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [What's New in DelphiMVCFramework-3.4.0-neon (stable version)](#whats-new-in-delphimvcframework-340-neon-stable-version)
+  - [What's New in DelphiMVCFramework-3.4.1-sodium (stable version)](#whats-new-in-delphimvcframework-341-sodium-stable-version)
   - [Older Versions](#older-versions)
     - [What's New in DelphiMVCFramework-3.4.0-neon](#whats-new-in-delphimvcframework-340-neon)
     - [What's New in dmvcframework-3.3.0-fluorine](#whats-new-in-dmvcframework-330-fluorine)
@@ -217,14 +217,14 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
-## What's New in DelphiMVCFramework-3.4.1-sodium (stable version)
+## What's New in DMVCFramework-3.4.1-sodium (stable version)
 
 >👉 A deep analisys of what's new in DelphiMVCFramework-3.4.1-sodium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-1-sodium/) 👈
 
   
 ## Older Versions
 
-### What's New in DelphiMVCFramework-3.4.0-neon
+### What's New in DMVCFramework-3.4.0-neon
 
 >👉 Deeper analisys of what's new in DelphiMVCFramework-3.4.0-neon is available on [Daniele Teti Blog](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/) 👈
 
@@ -413,7 +413,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   More info [here](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/)  
 
 
-### What's New in dmvcframework-3.3.0-fluorine
+### What's New in DMVCFramework-3.3.0-fluorine
 
 - ⚡ Support for Delphi 11.3 Alexandria
 - ⚡ Ability to use records in swagger param and response attributes [Issue 649](https://github.com/danieleteti/delphimvcframework/issues/649)
@@ -426,7 +426,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - 🐞 [PR 651](https://github.com/danieleteti/delphimvcframework/pull/651) Thanks to [Francisco Zanini](https://github.com/zaniniflz)
 
 
-### What's New in dmvcframework-3.2.3-radium
+### What's New in DMVCFramework-3.2.3-radium
 
 - ⚡ Default error responses contains the official "reason string" associated to the HTTP status code (this can be a breaking change for some generic client which doesn't correctly interpret the http status code)
 - ⚡ Added static method `HTTP_STATUS.ReasonStringFor(HTTPStatusCode)` wich returns the standard `ReasonString` for a given HTTP status code.
@@ -516,7 +516,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 More details about dmvcframework-3.2.3-radium fixes [here](https://github.com/danieleteti/delphimvcframework/milestone/8?closed=1)
 
-### What's new in DelphiMVCFramework-3.2.2-nitrogen
+### What's new in DMVCFramework-3.2.2-nitrogen
 
 - ⚡New! Support for Delphi 11.x Alexandria
 
