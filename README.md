@@ -216,9 +216,16 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
-## What's New in DelphiMVCFramework-3.4.0-neon (stable version)
+## What's New in DelphiMVCFramework-3.4.1-sodium (stable version)
 
->👉 Deeper analisys of what's new in DelphiMVCFramework-3.4.0-neone is available on [Daniele Teti Blog](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/) 👈
+>👉 A deep analisys of what's new in DelphiMVCFramework-3.4.1-sodium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-1-sodium/) 👈
+
+  
+## Older Versions
+
+### What's New in DelphiMVCFramework-3.4.0-neon
+
+>👉 Deeper analisys of what's new in DelphiMVCFramework-3.4.0-neon is available on [Daniele Teti Blog](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/) 👈
 
 - ⚡ Added support for dotEnv
 - ⚡ Added MSHeap memory manager for Win32 and Win64 (https://github.com/RDP1974/DelphiMSHeap)
@@ -403,8 +410,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   `MVCNamedSQLQuery` allows to define a "named query" which is, well, a SQL query with a name. Then such query can be used by the method `SelectByNamedQuery<T>` or `SelectByNamedQuery`. Moreover in the attribute it is possible to define on which backend engine that query is usable. In this way you can define optimized query for each supported DMBS you need.
   
   More info [here](http://www.danieleteti.it/post/delphimvcframework-3-4-0-neon/)  
-  
-## Older Versions
+
 
 ### What's New in dmvcframework-3.3.0-fluorine
 
