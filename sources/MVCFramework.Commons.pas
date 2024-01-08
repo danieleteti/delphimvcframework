@@ -128,7 +128,7 @@ type
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
-    COPYRIGHT = 'Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team';
+    COPYRIGHT = 'Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
