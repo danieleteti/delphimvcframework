@@ -225,9 +225,6 @@ def init_build(version):
     f.write("BUILD DATETIME " + datetime.now().isoformat() + "\n")
     f.close()
     copy2("README.md", g_output_folder)
-    copy2("3_0_0_breaking_changes.md", g_output_folder)
-    copy2("3_1_0_breaking_changes.md", g_output_folder)
-    copy2("3_2_0_breaking_changes.md", g_output_folder)
     copy2("License.txt", g_output_folder)
 
 
