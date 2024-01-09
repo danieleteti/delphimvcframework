@@ -393,15 +393,36 @@ def tests64(ctx):
 def tests(ctx):
     pass
 
+def get_version_from_file():
+    with open(r".\sources\dmvcframeworkbuildconsts.inc") as f:
+        lines = f.readlines()   
+    res = [x for x in lines if "DMVCFRAMEWORK_VERSION" in x]
+    if len(res) != 1:
+        raise Exception("Cannot find DMVCFRAMEWORK_VERSION in dmvcframeworkbuildconsts.inc file")
+    version_line: str = res[0]
+    version_line = version_line.strip(" ;\t")
+    pieces = version_line.split("=")
+    if len(pieces) != 2:
+        raise Exception("Version line in wrong format in dmvcframeworkbuildconsts.inc file: " + version_line)
+    version = pieces[1].strip("' ")
+    if not 'framework' in version:
+        version = "dmvcframework-" + version
+    if "beta" in version.lower():
+        print(Fore.RESET + Fore.RED + "WARNING - BETA VERSION: " + version + Fore.RESET)
+    else:
+        print(Fore.RESET + Fore.GREEN + "BUILDING VERSION: " + version + Fore.RESET)
+    return version
 
 @task()
 def release(
     ctx,
-    version="DEBUG",
     skip_build=False,
     skip_tests=False,
 ):
     """Builds all the projects, executes integration tests and prepare the release"""
+
+    version = get_version_from_file()
+
     init_build(version)
 
     if not skip_tests:
