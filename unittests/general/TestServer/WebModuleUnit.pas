@@ -93,11 +93,7 @@ begin
     .AddController(TTestActionResultController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
-    .AddController(TMVCActiveRecordController,
-        function: TMVCController
-        begin
-          Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
-        end, '/api/entities')
+    .AddController(TMVCActiveRecordController, '/api/entities')
     .PublishObject(
     function: TObject
     begin
