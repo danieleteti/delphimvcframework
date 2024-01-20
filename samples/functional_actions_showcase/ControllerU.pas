@@ -46,6 +46,8 @@ type
     function GetSingleObject: TPerson;
     [MVCPath('/objects/multiple')]
     function GetMultipleObjects: TObjectList<TPerson>;
+
+    { actions returning json }
     [MVCPath('/objects/jsonobject')]
     function GetJSONObject: TJSONObject;
     [MVCPath('/objects/jsonarray')]
@@ -88,16 +90,6 @@ uses
 
 { TMyController }
 
-function TMyController.GetJSONArray: TJsonArray;
-begin
-  Result := StrToJSONArray('[1,2,3, {"name":"Daniele","surname":"Teti"}]');
-end;
-
-function TMyController.GetJSONObject: TJSONObject;
-begin
-  Result := StrToJSONObject('{"name":"Daniele","surname":"Teti"}');
-end;
-
 function TMyController.GetSingleDataSet: TDataSet;
 begin
   var lDM := TdmMain.Create(nil);
@@ -136,28 +128,7 @@ begin
   end;
 end;
 
-function TMyController.GetMultipleObjects: TObjectList<TPerson>;
-begin
-  Result := TObjectList<TPerson>.Create;
 
-  Result.Add(TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1))));
-
-  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 10));
-
-  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 20));
-end;
-
-function TMyController.GetMultipleRecords: TArray<TPersonRec>;
-begin
-  SetLength(Result, 3);
-  Result[0] := TPersonRec.Create;
-  Result[1] := TPersonRec.Create;
-  Result[2] := TPersonRec.Create;
-
-  Inc(Result[1].Age, 10);
-
-  Inc(Result[2].Age, 20);
-end;
 
 function TMyController.GetMVCResponseSimple: IMVCResponse;
 begin
@@ -241,10 +212,41 @@ begin
   Result := TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1)));
 end;
 
+function TMyController.GetMultipleObjects: TObjectList<TPerson>;
+begin
+  Result := TObjectList<TPerson>.Create;
+  Result.Add(TPerson.Create('Daniele', 'Teti', YearsBetween(Date, EncodeDateDay(1979, 1))));
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 10));
+  Result.Add(TPerson.Create('Daniele', 'Teti', Result[0].Age + 20));
+end;
+
+function TMyController.GetJSONArray: TJsonArray;
+begin
+  Result := StrToJSONArray('[1,2,3, {"name":"Daniele","surname":"Teti"}]');
+end;
+
+function TMyController.GetJSONObject: TJSONObject;
+begin
+  Result := StrToJSONObject('{"name":"Daniele","surname":"Teti"}');
+end;
+
 function TMyController.GetSingleRecord: TPersonRec;
 begin
   Result := TPersonRec.Create;
 end;
+
+function TMyController.GetMultipleRecords: TArray<TPersonRec>;
+begin
+  SetLength(Result, 3);
+  Result[0] := TPersonRec.Create;
+  Result[1] := TPersonRec.Create;
+  Result[2] := TPersonRec.Create;
+
+  Inc(Result[1].Age, 10);
+
+  Inc(Result[2].Age, 20);
+end;
+
 
 function TMyController.GetSum(const A, B: Integer): Integer;
 begin
