@@ -100,6 +100,9 @@ var
 implementation
 
 uses
+  {$IF Defined(CONSOLE)}
+  LoggerPro.SimpleConsoleAppender,
+  {$ENDIF}
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
@@ -281,6 +284,30 @@ begin
   end;
 end;
 
+
+{$IF Defined(CONSOLE)}
+procedure InitializeDefaultLogger;
+var
+  lLogsFolder: String;
+begin
+    { This procedure must be called in a synchronized context
+      (Normally only SetDefaultLogger should be the caller) }
+    if not Assigned(gDefaultLogger) then
+    begin
+{$IF NOT DEFINED(MOBILE)}
+      lLogsFolder := AppPath + 'logs';
+{$ELSE}
+      lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
+{$ENDIF}
+      gDefaultLogger := BuildLogWriter([
+        TLoggerProFileAppender.Create(5, 2000, lLogsFolder),
+        TLoggerProSimpleConsoleAppender.Create(TLogLayout.LOG_LAYOUT_1)
+        ]);
+    end;
+end;
+{$ENDIF}
+
+{$IF not Defined(CONSOLE)}
 procedure InitializeDefaultLogger;
 var
   lLogsFolder: String;
@@ -297,6 +324,7 @@ begin
       gDefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
     end;
 end;
+{$ENDIF}
 
 procedure ReleaseGlobalLogger;
 begin

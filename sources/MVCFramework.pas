@@ -819,14 +819,14 @@ type
     ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
     ///   PageFragment ignore header and footer views
     /// </summary>
-    function Page(const AViewNames: TArray<string>): string; overload; inline;
+    function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
 
     /// <summary>
     ///   Page calls GetRenderedView with sensible defaults.
     ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
     ///   PageFragment ignore header and footer views
     /// </summary>
-    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; inline;
+    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
 
     /// <summary>
     ///   PageFragment calls GetRenderedView.
@@ -843,7 +843,8 @@ type
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
     /// returns the rendered views and generates output using
-    /// models pushed using Push* methods
+    /// models pushed using Push* methods.
+    /// Do not use thie method directly. Use Page and PageFragment, instead.
     /// </summary>
     function LoadView(const AViewNames: TArray<string>; const JSONModel: TJSONObject = nil): string; virtual;
 
@@ -3946,25 +3947,31 @@ begin
 end;
 
 function TMVCController.Page(const AViewNames: TArray<string>;
-  const JSONModel: TJSONObject): string;
+  const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean): string;
 begin
-  Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel);
+  if UseCommonHeadersAndFooters then
+    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel)
+  else
+    Result := GetRenderedView(AViewNames, JSONModel)
 end;
 
 function TMVCController.PageFragment(const AViewNames: TArray<string>;
   const JSONModel: TJSONObject): string;
 begin
-  Result := GetRenderedView(AViewNames, JSONModel);
+  Result := Page(AViewNames, JSONModel, False);
 end;
 
 function TMVCController.PageFragment(const AViewNames: TArray<string>): string;
 begin
-  Result := GetRenderedView(AViewNames);
+  Result := Page(AViewNames, nil, False);
 end;
 
-function TMVCController.Page(const AViewNames: TArray<string>): string;
+function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean): string;
 begin
-  Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters);
+  if UseCommonHeadersAndFooters then
+    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters)
+  else
+    Result := GetRenderedView(AViewNames);
 end;
 
 procedure TMVCController.PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
