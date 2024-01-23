@@ -49,6 +49,8 @@ contains
   LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
   LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
   ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
-  LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas';
+  LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
+  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
+  LoggerPro.ConsoleAppender in '..\..\LoggerPro.ConsoleAppender.pas';
 
 end.

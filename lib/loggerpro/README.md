@@ -20,10 +20,12 @@ LoggerPro is compatibile with
 - Delphi XE3
 - Delphi XE2
 
-## What's new in 1.5.0 (repo version, beta)
+## What's new in 2.0.0 (repo version, beta)
 - Delphi 12 Athens Support
 - FIX https://github.com/danieleteti/loggerpro/issues/72
 - New LogLevel: FATAL (https://github.com/danieleteti/loggerpro/issues/80)
+- New Appender: JSONL
+- Added `ILogItemRenderers` (check samples)
 
 ## What's new in 1.4.0 (stable version)
 

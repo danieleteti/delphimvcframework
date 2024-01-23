@@ -14,9 +14,7 @@ uses
   IdHTTPWebBrokerBridge,
   LogsCollectorControllerU in 'LogsCollectorControllerU.pas',
   MainWMU in 'MainWMU.pas' {MyWebModule: TWebModule},
-  LoggerProConfig in 'LoggerProConfig.pas',
-  LoggerPro.FileAppender in '..\..\LoggerPro.FileAppender.pas',
-  LoggerPro in '..\..\LoggerPro.pas';
+  LoggerProConfig in 'LoggerProConfig.pas';
 
 {$R *.res}
 

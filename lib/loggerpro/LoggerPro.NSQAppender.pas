@@ -109,7 +109,7 @@ type
     /// creation event is defined </param>
     constructor Create(aTopic: string=''; aEphemeral: Boolean = False;
         aNSQUrl: string=DEFAULT_NSQ_URL;
-        aLogFormat: string=TLogLayout.LOG_LAYOUT_0);
+        aLogItemRenderer: ILogItemRenderer = nil);
         reintroduce;
     property NSQUrl: string read GetNSQUrl write SetNSQUrl;
     property Ephemeral: Boolean read FEphemeral write SetEphemeral;
@@ -127,9 +127,9 @@ implementation
 uses  System.NetEncoding;
 
 constructor TLoggerProNSQAppenderBase.Create(aTopic: string; aEphemeral: Boolean;
-  aNSQUrl: string; aLogFormat: string);
+  aNSQUrl: string; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   FEphemeral := aEphemeral;
   FNSQUrl := 'http://127.0.0.1:4151';
   FUserName := aNSQUrl;

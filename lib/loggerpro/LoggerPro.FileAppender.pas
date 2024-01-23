@@ -106,7 +106,7 @@ type
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
       aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT;
-      aLogLayout: string = TLogLayout.LOG_LAYOUT_0;
+      aLogItemRenderer: ILogItemRenderer = nil;
       aEncoding: TEncoding = nil);
       reintroduce; virtual;
     procedure Setup; override;
@@ -151,7 +151,7 @@ type
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
       aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT;
-      aLogLayout: string = TLogLayout.LOG_LAYOUT_0;
+      aLogItemRenderer: ILogItemRenderer = nil;
       aEncoding: TEncoding = nil);
       override;
   end;
@@ -312,10 +312,10 @@ constructor TLoggerProFileAppenderBase.Create(
   aMaxFileSizeInKiloByte: Integer;
   aLogsFolder: string;
   aLogFileNameFormat: string;
-  aLogLayout: string;
+  aLogItemRenderer: ILogItemRenderer;
   aEncoding: TEncoding);
 begin
-  inherited Create(aLogLayout);
+  inherited Create(aLogItemRenderer);
   fLogsFolder := aLogsFolder;
   fMaxBackupFileCount:= Max(1, aMaxBackupFileCount);
   fMaxFileSizeInKiloByte := aMaxFileSizeInKiloByte;
@@ -451,7 +451,8 @@ begin
 end;
 
 constructor TLoggerProSimpleFileAppender.Create(aMaxBackupFileCount, aMaxFileSizeInKiloByte: Integer;
-  aLogsFolder: string; aLogFileNameFormat, aLogLayout: string;
+  aLogsFolder: string; aLogFileNameFormat: String;
+  aLogItemRenderer: ILogItemRenderer;
   aEncoding: TEncoding);
 begin
   inherited Create(
@@ -459,7 +460,7 @@ begin
     aMaxFileSizeInKiloByte,
     aLogsFolder,
     aLogFileNameFormat,
-    aLogLayout,
+    aLogItemRenderer,
     aEncoding);
 end;
 

@@ -127,6 +127,7 @@
         <DCCReference Include="..\..\LoggerPro.JSONLFileAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.FileAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.pas"/>
+        <DCCReference Include="..\..\LoggerPro.Renderers.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -159,7 +160,7 @@
                 <Platform value="Win64">False</Platform>
             </Platforms>
             <Deployment Version="4">
-                <DeployFile LocalName="jsonl_appender.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="bin\jsonl_appender.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>jsonl_appender.exe</RemoteName>
                         <Overwrite>true</Overwrite>

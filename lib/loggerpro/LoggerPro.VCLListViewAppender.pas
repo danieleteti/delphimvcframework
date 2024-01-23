@@ -38,7 +38,7 @@ type
     FLV: TListView;
     FMaxLogLines: Word;
   public
-    constructor Create(aLV: TListView; aMaxLogLines: Word = 500; aLogLayout: string = TLogLayout.LOG_LAYOUT_0); reintroduce;
+    constructor Create(aLV: TListView; aMaxLogLines: Word = 500; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -53,9 +53,9 @@ uses
 
 { TVCLMemoLogAppender }
 
-constructor TVCLListViewAppender.Create(aLV: TListView; aMaxLogLines: Word; aLogLayout: string);
+constructor TVCLListViewAppender.Create(aLV: TListView; aMaxLogLines: Word; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogLayout);
+  inherited Create(aLogItemRenderer);
   FLV := aLV;
   FMaxLogLines := aMaxLogLines;
 end;
