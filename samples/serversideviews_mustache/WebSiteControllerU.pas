@@ -13,23 +13,23 @@ type
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
-    procedure GeneratePeopleListAsCSV;
+    function GeneratePeopleListAsCSV: String;
   public
     [MVCPath('/people')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure PeopleList;
+    function PeopleList: String;
 
     [MVCPath('/people')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_CSV)]
     // RESTful API, requires ACCEPT=text/csv
-    procedure ExportPeopleListAsCSV_API;
+    function ExportPeopleListAsCSV_API: String;
 
     [MVCPath('/people/formats/csv')]
     [MVCHTTPMethods([httpGET])]
     // Route usable by the browser, doesn't requires ACCEPT=text/csv
-    procedure ExportPeopleListAsCSV;
+    function ExportPeopleListAsCSV: String;
 
     [MVCPath('/people')]
     [MVCHTTPMethods([httpPOST])]
@@ -59,7 +59,7 @@ type
     [MVCPath('/showcase')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure MustacheTemplateShowCase;
+    function MustacheTemplateShowCase: String;
   end;
 
 implementation
@@ -103,7 +103,7 @@ begin
         lJItm.S['name'] := lItem;
         lJItm.B['selected'] := TArray.BinarySearch<String>(lDevices, lItem, lIdx);
       end;
-      Result := GetRenderedView(['header', 'editperson', 'footer'], lJObj);
+      Result := Page(['editperson'], lJObj);
     finally
       lJObj.Free;
     end;
@@ -112,21 +112,21 @@ begin
   end;
 end;
 
-procedure TWebSiteController.ExportPeopleListAsCSV;
+function TWebSiteController.ExportPeopleListAsCSV: String;
 begin
-  GeneratePeopleListAsCSV;
+  Result := GeneratePeopleListAsCSV;
   // define the correct behaviour to download the csv inside the browser
   ContentType := TMVCMediaType.TEXT_CSV;
   Context.Response.CustomHeaders.Values['Content-Disposition'] :=
     'attachment; filename=people.csv';
 end;
 
-procedure TWebSiteController.ExportPeopleListAsCSV_API;
+function TWebSiteController.ExportPeopleListAsCSV_API: String;
 begin
-  GeneratePeopleListAsCSV;
+  Result := GeneratePeopleListAsCSV;
 end;
 
-procedure TWebSiteController.GeneratePeopleListAsCSV;
+function TWebSiteController.GeneratePeopleListAsCSV: String;
 var
   LDAL: IPeopleDAL;
   lPeople: TPeople;
@@ -135,8 +135,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    LoadView(['people_header.csv', 'people_list.csv']);
-    RenderResponseStream; // rember to call RenderResponseStream!!!
+    Result := PageFragment(['people_header.csv', 'people_list.csv']);
   finally
     lPeople.Free;
   end;
@@ -147,7 +146,7 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.MustacheTemplateShowCase;
+function TWebSiteController.MustacheTemplateShowCase: String;
 var
   LDAL: IPeopleDAL;
   lPeople, lPeople2: TPeople;
@@ -164,8 +163,7 @@ begin
         ViewData['people'] := lPeople;
         ViewData['people2'] := lPeople2;
         ViewData['myobj'] := lMyObj;
-        LoadView(['showcase']);
-        RenderResponseStream;
+        Result := Page(['showcase'], False);
       finally
         lMyObj.Free;
       end;
@@ -194,7 +192,7 @@ begin
       lJItm.S['name'] := lItem;
       lJItm.B['selected'] := False;
     end;
-    Result := GetRenderedView(['header', 'editperson', 'footer'], lJObj);
+    Result := Page(['editperson'], lJObj);
   finally
     lJObj.Free;
   end;
@@ -204,11 +202,13 @@ procedure TWebSiteController.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
+  SetPagesCommonHeaders(['header']);
+  SetPagesCommonFooters(['footer']);
   ContentType := 'text/html';
   Handled := False;
 end;
 
-procedure TWebSiteController.PeopleList;
+function TWebSiteController.PeopleList: String;
 var
   LDAL: IPeopleDAL;
   lPeople: TPeople;
@@ -217,8 +217,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    LoadView(['header', 'people_list', 'footer']);
-    RenderResponseStream; // rember to call RenderResponseStream!!!
+    Result := Page(['people_list']);
   finally
     lPeople.Free;
   end;
