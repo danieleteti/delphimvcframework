@@ -39,7 +39,7 @@ type
     FMaxLogLines: Word;
     FClearOnStartup: Boolean;
   public
-    constructor Create(aMemo: TMemo; aMaxLogLines: Word = 100; aClearOnStartup: Boolean = False; aLogLayout: string = TLogLayout.LOG_LAYOUT_0); reintroduce;
+    constructor Create(aMemo: TMemo; aMaxLogLines: Word = 100; aClearOnStartup: Boolean = False; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -54,9 +54,9 @@ uses
 
 { TVCLMemoLogAppender }
 
-constructor TVCLMemoLogAppender.Create(aMemo: TMemo; aMaxLogLines: Word; aClearOnStartup: Boolean; aLogLayout: string);
+constructor TVCLMemoLogAppender.Create(aMemo: TMemo; aMaxLogLines: Word; aClearOnStartup: Boolean; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogLayout);
+  inherited Create(aLogItemRenderer);
   FMemo := aMemo;
   FMaxLogLines := aMaxLogLines;
   FClearOnStartup := aClearOnStartup;

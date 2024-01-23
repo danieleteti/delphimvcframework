@@ -132,8 +132,6 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="LoggerProConfig.pas"/>
-        <DCCReference Include="..\..\LoggerPro.FileAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

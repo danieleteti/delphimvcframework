@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2023 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -30,28 +30,8 @@ interface
 
 uses
   System.Generics.Collections,
-  System.SysUtils,
   System.Classes,
-  ThreadSafeQueueU;
-
-type
-  { @abstract(Defines the default format string used by the @link(TLoggerProAppenderBase).)
-    The positional parameters are the followings:
-    @orderedList(
-    @itemSetNumber 0
-    @item TimeStamp
-    @item ThreadID
-    @item LogType
-    @item LogMessage
-    @item LogTag
-    )
-  }
-  TLogLayout = record
-    const LOG_LAYOUT_0 = '{timestamp}[TID {threadid}][{loglevel}] {message} [{tag}]';
-    const LOG_LAYOUT_1 = '{timestamp}[TID {threadid}][{loglevel}] {message}';
-    const LOG_LAYOUT_2 = '{timestamp}[{loglevel}] {message} [{tag}]';
-    const LOG_LAYOUT_3 = '{timestamp}[{loglevel}] {message}';
-  end;
+  ThreadSafeQueueU, System.SysUtils;
 
 var
   DefaultLoggerProMainQueueSize: Cardinal = 50000;
@@ -88,7 +68,7 @@ type
       @item(INFO)
       @item(WARNING)
       @item(ERROR)
-      @item(FATAL)	  
+      @item(FATAL)
       ) }
     property LogType: TLogType read FType;
     { @abstract(The text of the log message) }
@@ -101,6 +81,13 @@ type
     property ThreadID: TThreadID read FThreadID;
     { @abstract(The type of the log converted in string) }
     property LogTypeAsString: string read GetLogTypeAsString;
+  end;
+
+  ILogItemRenderer = interface
+    ['{CBD22D22-C387-4A97-AD5D-4945B812FDB0}']
+    procedure Setup;
+    procedure TearDown;
+    function RenderLogItem(const aLogItem: TLogItem): String;
   end;
 
   TLoggerProAppenderErrorEvent = reference to procedure(const AppenderClassName: string; const aFailedLogItem: TLogItem;
@@ -312,17 +299,18 @@ type
     FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
     FOnLogRow: TOnAppenderLogRow;
-    FLogFormat: string;
+    //FLogFormat: string;
+    FLogItemRenderer: ILogItemRenderer;
     FFormatSettings: TFormatSettings;
   protected
-    property LogFormat: string read FLogFormat;
+//    property LogFormat: string read FLogFormat;
     property FormatSettings: TFormatSettings read FFormatSettings;
   public
-    constructor Create(ALogLayout: string = TLogLayout.LOG_LAYOUT_0); virtual;
+    constructor Create(ALogItemRenderer: ILogItemRenderer = nil); virtual;
     procedure Setup; virtual;
     function FormatLog(const ALogItem: TLogItem): string; virtual;
     procedure WriteLog(const aLogItem: TLogItem); virtual; abstract;
-    procedure TearDown; virtual; abstract;
+    procedure TearDown; virtual;
     procedure TryToRestart(var Restarted: Boolean); virtual;
     procedure SetLogLevel(const Value: TLogType);
     function GetLogLevel: TLogType; inline;
@@ -376,11 +364,21 @@ type
     )
   }
 
+
+  TLogItemRenderer = class abstract(TInterfacedObject, ILogItemRenderer)
+  protected
+    procedure Setup; virtual;
+    procedure TearDown; virtual;
+    function RenderLogItem(const aLogItem: TLogItem): String; virtual;abstract;
+  end;
+  TLogItemRendererClass = class of TLogItemRenderer;
+
+
 function GetDefaultFormatSettings: TFormatSettings;
 function StringToLogType(const aLogType: string): TLogType;
 function BuildLogWriter(aAppenders: array of ILogAppender; aEventsHandlers: TLoggerProEventsHandler = nil;
   aLogLevel: TLogType = TLogType.Debug): ILogWriter;
-function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolders: String): String;
+function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolders: String; const UseZeroBasedIncrementalIndexes: Boolean): String;
 
 implementation
 
@@ -389,7 +387,8 @@ uses
   LoggerPro.FileAppender,
   System.SyncObjs,
   System.DateUtils,
-  System.IOUtils;
+  System.IOUtils,
+  LoggerPro.Renderers;
 
 function GetDefaultFormatSettings: TFormatSettings;
 begin
@@ -400,7 +399,7 @@ begin
   Result.ShortTimeFormat := 'HH:NN:SS';
 end;
 
-function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolders: String): String;
+function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolders: String; const UseZeroBasedIncrementalIndexes: Boolean): String;
 var
   PlaceHolders, PlaceHolderWidthsAndPaddings: TArray<string>;
   I: Integer;
@@ -437,11 +436,30 @@ begin
   PlaceHolderWidthsAndPaddings[4] := '';
 
   Result := LogLayoutByPlaceHolders;
-  for I := 0 to High(PlaceHolders) do
+
+
+  if UseZeroBasedIncrementalIndexes then
   begin
-    Result := Result.Replace(
-      '{' + PlaceHolders[I] + '}',
-      '%' + IntToStr(I) + ':' + PlaceHolderWidthsAndPaddings[I] + 's');
+    var lIdx := 0;
+    for I := 0 to High(PlaceHolders) do
+    begin
+      if Result.Contains('{' + PlaceHolders[I] + '}') then
+      begin
+        Result := Result.Replace(
+          '{' + PlaceHolders[I] + '}',
+          '%' + IntToStr(lIdx) + ':' + PlaceHolderWidthsAndPaddings[I] + 's');
+        Inc(lIdx);
+      end;
+    end;
+  end
+  else
+  begin
+    for I := 0 to High(PlaceHolders) do
+    begin
+      Result := Result.Replace(
+        '{' + PlaceHolders[I] + '}',
+        '%' + IntToStr(I) + ':' + PlaceHolderWidthsAndPaddings[I] + 's');
+    end;
   end;
 end;
 
@@ -870,40 +888,32 @@ end;
 
 { TLoggerProAppenderBase }
 
-constructor TLoggerProAppenderBase.Create(ALogLayout: string);
+constructor TLoggerProAppenderBase.Create(aLogItemRenderer: ILogItemRenderer);
 begin
   inherited Create;
   Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
-  Self.FLogFormat := LogLayoutByPlaceHoldersToLogLayoutByIndexes(ALogLayout);
+  if Assigned(aLogItemRenderer) then
+  begin
+    Self.FLogItemRenderer := aLogItemRenderer;
+  end
+  else
+  begin
+    Self.FLogItemRenderer := GetDefaultLogItemRenderer;
+  end;
   Self.FOnLogRow := nil;
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;
 begin
   if Assigned(FOnLogRow) then
-    FOnLogRow(ALogItem, Result)
+  begin
+    FOnLogRow(ALogItem, Result);
+  end
   else
   begin
-    Result := Format(FLogFormat, [
-      DateTimeToStr(ALogItem.TimeStamp, FFormatSettings),
-      ALogItem.ThreadID.ToString,
-      ALogItem.LogTypeAsString,
-      ALogItem.LogMessage,
-      ALogItem.LogTag
-    ]);
-//    Result := Format(
-//      FLogFormat, [
-//      DateTimeToStr(ALogItem.TimeStamp, FFormatSettings),
-//      ALogItem.ThreadID,
-//      ALogItem.LogTypeAsString,
-//      ALogItem.LogMessage,
-//      ALogItem.LogTag
-//      ]);
+    Result := FLogItemRenderer.RenderLogItem(ALogItem);
   end;
-
-
-
 end;
 
 function TLoggerProAppenderBase.GetLastErrorTimeStamp: TDateTime;
@@ -929,6 +939,12 @@ end;
 procedure TLoggerProAppenderBase.Setup;
 begin
   FFormatSettings := GetDefaultFormatSettings;
+  FLogItemRenderer.Setup;
+end;
+
+procedure TLoggerProAppenderBase.TearDown;
+begin
+  FLogItemRenderer.TearDown;
 end;
 
 procedure TLoggerProAppenderBase.TryToRestart(var Restarted: Boolean);
@@ -1073,6 +1089,19 @@ end;
 function TLoggerProInterfacedObject._Release: Integer;
 begin
   Result := inherited;
+end;
+
+
+{ TLogItemRenderer }
+
+procedure TLogItemRenderer.Setup;
+begin
+  // do nothing
+end;
+
+procedure TLogItemRenderer.TearDown;
+begin
+  // do nothing
 end;
 
 end.

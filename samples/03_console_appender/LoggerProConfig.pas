@@ -3,7 +3,7 @@ unit LoggerProConfig;
 interface
 
 uses
-  LoggerPro;
+  LoggerPro, LoggerPro.Renderers;
 
 function Log: ILogWriter;
 
@@ -21,6 +21,10 @@ begin
 end;
 
 initialization
+
+
+
+LoggerPro.Renderers.gDefaultLogItemRenderer := TLogItemRendererNoTag; //optional
 
 _Log := BuildLogWriter([TLoggerProConsoleAppender.Create]);
 if not IsConsole then

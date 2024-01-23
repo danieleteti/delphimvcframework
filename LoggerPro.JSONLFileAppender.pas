@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2023 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -32,8 +32,7 @@ interface
 uses
   LoggerPro.FileAppender,
   System.Classes,
-  LoggerPro,
-  System.SysUtils;
+  LoggerPro, System.SysUtils;
 
 type
   { @abstract(JSONL file appender with multiple tags)
@@ -45,7 +44,6 @@ type
     procedure EmitStartRotateLogItem(aWriter: TStreamWriter); override;
     procedure EmitEndRotateLogItem(aWriter: TStreamWriter); override;
   public
-    function FormatLog(const ALogItem: TLogItem): string; override;
     constructor Create(aMaxBackupFileCount: Integer = TLoggerProFileAppender.DEFAULT_MAX_BACKUP_FILE_COUNT;
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppender.DEFAULT_MAX_FILE_SIZE_KB; aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT; aEncoding: TEncoding = nil);
@@ -65,6 +63,18 @@ uses
 ;
 
 
+type
+  TLogItemRendererJSONL = class(TLogItemRenderer)
+  private
+    fFormatSettings: TFormatSettings;
+  protected
+    // ILogLayoutRenderer
+    procedure Setup; override;
+    procedure TearDown; override;
+    function RenderLogItem(const aLogItem: TLogItem): String; override;
+  end;
+
+
 { TLoggerProJSONLFileAppender }
 
 constructor TLoggerProJSONLFileAppender.Create(
@@ -78,7 +88,7 @@ begin
     aMaxFileSizeInKiloByte,
     aLogsFolder,
     aLogFileNameFormat,
-    TLogLayout.LOG_LAYOUT_0,
+    TLogItemRendererJSONL.Create,
     aEncoding);
 end;
 
@@ -90,33 +100,6 @@ end;
 procedure TLoggerProJSONLFileAppender.EmitStartRotateLogItem(aWriter: TStreamWriter);
 begin
   // do nothing
-end;
-
-function TLoggerProJSONLFileAppender.FormatLog(const ALogItem: TLogItem): string;
-var
-  lJSON: TJsonObject;
-begin
-  lJSON := TJSONObject.Create;
-  try
-    {$IF Defined(USE_JDO)}
-    lJSON.S['type'] := ALogItem.LogTypeAsString;
-    lJSON.S['message'] := ALogItem.LogMessage;
-    lJSON.S['tag'] := ALogItem.LogTag;
-    lJSON.S['ts'] := DateTimeToStr(ALogItem.TimeStamp, Self.FormatSettings).TrimRight;
-    lJSON.I['tid'] := ALogItem.ThreadID;
-    {$ELSE}
-    lJSON.AddPair('type', ALogItem.LogTypeAsString);
-    lJSON.AddPair('message', ALogItem.LogMessage);
-    lJSON.AddPair('tag', ALogItem.LogTag);
-    lJSON.AddPair('ts', DateTimeToStr(ALogItem.TimeStamp, Self.FormatSettings).TrimRight);
-    lJSON.AddPair('tid', ALogItem.ThreadID);
-    {$ENDIF}
-    Result := lJSON.ToJSON;
-    if Assigned(OnLogRow) then
-      OnLogRow(ALogItem, Result)
-  finally
-    lJSON.Free;
-  end;
 end;
 
 function TLoggerProJSONLFileAppender.GetLogFileName(const aTag: string; const aFileNumber: Integer): string;
@@ -133,5 +116,43 @@ begin
 end;
 
 
+{ TLogItemRendererJSONL }
+
+function TLogItemRendererJSONL.RenderLogItem(const aLogItem: TLogItem): String;
+var
+  lJSON: TJsonObject;
+begin
+  lJSON := TJSONObject.Create;
+  try
+    {$IF Defined(USE_JDO)}
+    lJSON.S['type'] := ALogItem.LogTypeAsString;
+    lJSON.S['message'] := ALogItem.LogMessage;
+    lJSON.S['tag'] := ALogItem.LogTag;
+    lJSON.S['ts'] := DateTimeToStr(ALogItem.TimeStamp, fFormatSettings).TrimRight;
+    lJSON.I['tid'] := ALogItem.ThreadID;
+    {$ELSE}
+    lJSON.AddPair('type', ALogItem.LogTypeAsString);
+    lJSON.AddPair('message', ALogItem.LogMessage);
+    lJSON.AddPair('tag', ALogItem.LogTag);
+    lJSON.AddPair('ts', DateTimeToStr(ALogItem.TimeStamp, fFormatSettings).TrimRight);
+    lJSON.AddPair('tid', ALogItem.ThreadID);
+    {$ENDIF}
+    Result := lJSON.ToJSON;
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TLogItemRendererJSONL.Setup;
+begin
+  inherited;
+  fFormatSettings := GetDefaultFormatSettings;
+end;
+
+procedure TLogItemRendererJSONL.TearDown;
+begin
+  inherited;
+
+end;
 
 end.

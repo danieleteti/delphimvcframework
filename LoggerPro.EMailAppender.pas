@@ -48,7 +48,7 @@ type
     /// </summary>
     procedure PrepareMessage(const aLogItem: TLogItem; out aSubject, aBody: String); virtual;
   public
-    constructor Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogLayout: string = TLogLayout.LOG_LAYOUT_0); reintroduce;
+    constructor Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -60,9 +60,9 @@ implementation
 uses
   System.SysUtils, IdMessage;
 
-constructor TLoggerProEMailAppender.Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogLayout: string);
+constructor TLoggerProEMailAppender.Create(aSMTP: TIdSMTP; const aFromAddresses, aToAddresses: String; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogLayout);
+  inherited Create(aLogItemRenderer);
   FSMTP := aSMTP;
   FFromAddresses := aFromAddresses;
   FToAddresses := aToAddresses;

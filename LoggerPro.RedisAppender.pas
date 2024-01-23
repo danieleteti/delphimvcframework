@@ -43,7 +43,7 @@ type
     FLogKeyPrefix: string;
     FMaxSize: Int64;
   public
-    constructor Create(aRedis: IRedisClient; aMaxSize: Int64 = 5000; aKeyPrefix: string = 'loggerpro'; aLogLayout: string = TLogLayout.LOG_LAYOUT_0); reintroduce;
+    constructor Create(aRedis: IRedisClient; aMaxSize: Int64 = 5000; aKeyPrefix: string = 'loggerpro'; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -55,9 +55,9 @@ implementation
 uses
   System.SysUtils;
 
-constructor TLoggerProRedisAppender.Create(aRedis: IRedisClient; aMaxSize: Int64; aKeyPrefix: string; aLogLayout: string);
+constructor TLoggerProRedisAppender.Create(aRedis: IRedisClient; aMaxSize: Int64; aKeyPrefix: string; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogLayout);
+  inherited Create(aLogItemRenderer);
   FRedis := aRedis;
   FLogKeyPrefix := aKeyPrefix;
   FMaxSize := aMaxSize;

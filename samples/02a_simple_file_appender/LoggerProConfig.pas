@@ -26,10 +26,7 @@ initialization
 // Create up to 10 logs in the exe\logs folder, max 2MiB each, using DEFAULT_FILENAME_FORMAT = '{module}.{number}.log';
 
 _Log := BuildLogWriter([
-  TLoggerProSimpleFileAppender.Create(10, 2048, 'logs',
-    '{module}.{pid}.{number}.log',
-    TLogLayout.LOG_LAYOUT_0)
+    TLoggerProSimpleFileAppender.Create(10, 2048, 'logs')
   ]);
-
 
 end.

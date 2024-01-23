@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2023 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -39,7 +39,7 @@ type
     FModuleName: string;
     {$ENDIF}
   public
-    constructor Create(ALogLayout: string = TLogLayout.LOG_LAYOUT_0); override;
+    constructor Create(aLogItemRenderer: ILogItemRenderer = nil); override;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -58,7 +58,7 @@ uses
 
 { TLoggerProOutputDebugStringAppender }
 
-constructor TLoggerProOutputDebugStringAppender.Create(ALogLayout: string);
+constructor TLoggerProOutputDebugStringAppender.Create(aLogItemRenderer: ILogItemRenderer);
 begin
   inherited;
 end;
