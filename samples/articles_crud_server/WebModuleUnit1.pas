@@ -45,7 +45,7 @@ begin
 {$ENDIF}
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
-  FEngine.AddMiddleware(TMVCTraceMiddleware.Create);
+//  FEngine.AddMiddleware(TMVCTraceMiddleware.Create);
 end;
 
 end.

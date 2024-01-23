@@ -135,9 +135,9 @@ begin
     TLogType.Info:
       lColor := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED;
     TLogType.Warning:
-      lColor := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_INTENSITY;
+      lColor := FOREGROUND_RED or FOREGROUND_GREEN;
     TLogType.Error:
-      lColor := FOREGROUND_RED or FOREGROUND_INTENSITY;
+      lColor := FOREGROUND_RED;
     TLogType.Fatal:
       lColor := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
   end;

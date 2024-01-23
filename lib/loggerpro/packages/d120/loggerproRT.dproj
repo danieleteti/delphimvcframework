@@ -127,6 +127,7 @@
         <DCCReference Include="..\..\ThreadSafeQueueU.pas"/>
         <DCCReference Include="..\..\LoggerPro.OutputDebugStringAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.Renderers.pas"/>
+        <DCCReference Include="..\..\LoggerPro.ConsoleAppender.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

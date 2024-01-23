@@ -75,6 +75,9 @@ procedure LogW(AMessage: string); overload;
 procedure LogW(AObject: TObject); overload;
 
 procedure LogE(AMessage: string);
+
+procedure LogF(AMessage: string);
+
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
 
 procedure LogException(const E: Exception; const AMessage: String);
@@ -96,11 +99,14 @@ procedure InitThreadVars;
 
 var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
+  UseConsoleLogger: Boolean = True;
 
 implementation
 
 uses
-  {$IF Defined(CONSOLE)}
+  {$IF Defined(MSWINDOWS)}
+  LoggerPro.ConsoleAppender,
+  {$ELSE}
   LoggerPro.SimpleConsoleAppender,
   {$ENDIF}
   LoggerPro.Renderers,
@@ -193,6 +199,11 @@ begin
     Log.Error(AMessage, LOGGERPRO_TAG);
 end;
 
+procedure LogF(AMessage: string);
+begin
+    Log.Fatal(AMessage, LOGGERPRO_TAG);
+end;
+
 procedure LogException(const E: Exception; const AMessage: String);
 begin
     LogE(E.ClassName + ': ' + E.Message + ' - (Custom Message: ' + AMessage + ')');
@@ -276,7 +287,7 @@ begin
         else
         begin
           InitializeDefaultLogger;
-          Log.Info('Default Logger initialized', LOGGERPRO_TAG);
+          //Log.Info('Default Logger initialized', LOGGERPRO_TAG);
         end;
       end;
     finally
@@ -286,32 +297,12 @@ begin
 end;
 
 
-{$IF Defined(CONSOLE)}
-procedure InitializeDefaultLogger;
-var
-  lLogsFolder: String;
-begin
-    { This procedure must be called in a synchronized context
-      (Normally only SetDefaultLogger should be the caller) }
-    if not Assigned(gDefaultLogger) then
-    begin
-{$IF NOT DEFINED(MOBILE)}
-      lLogsFolder := AppPath + 'logs';
-{$ELSE}
-      lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
-{$ENDIF}
-      gDefaultLogger := BuildLogWriter([
-        TLoggerProFileAppender.Create(5, 2000, lLogsFolder),
-        TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create)
-        ]);
-    end;
-end;
-{$ENDIF}
 
-{$IF not Defined(CONSOLE)}
 procedure InitializeDefaultLogger;
 var
   lLogsFolder: String;
+  lFileAppender, lConsoleAppender: ILogAppender;
+  lAppenders: TArray<ILogAppender>;
 begin
     { This procedure must be called in a synchronized context
       (Normally only SetDefaultLogger should be the caller) }
@@ -322,10 +313,24 @@ begin
 {$ELSE}
       lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-      gDefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
+      lFileAppender := TLoggerProFileAppender.Create(5, 2000, lLogsFolder);
+      if IsConsole and UseConsoleLogger then
+      begin
+        {$IF Defined(MSWINDOWS)}
+        lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
+        {$ELSE}
+        lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
+        {$ENDIF}
+        lAppenders := [lFileAppender, lConsoleAppender];
+      end
+      else
+      begin
+        lAppenders := [lFileAppender];
+      end;
+      gDefaultLogger := BuildLogWriter(lAppenders);
     end;
 end;
-{$ENDIF}
+
 
 procedure ReleaseGlobalLogger;
 begin

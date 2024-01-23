@@ -30,8 +30,8 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  WriteLn('ARTICLES CRUD Sample. Use articles_crud_vcl_client.dproj to manage data');
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogW('ARTICLES CRUD Sample. Use articles_crud_vcl_client.dproj to manage data');
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
@@ -39,10 +39,9 @@ begin
     LServer.KeepAlive := True;
     LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
     LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
-
     LServer.Active := True;
-    WriteLn('Listening on port ', APort);
-    Write('CTRL+C to shutdown the server');
+    LogI('Listening on port ' + APort.ToString);
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     LServer.Active := False;
