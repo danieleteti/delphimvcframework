@@ -103,6 +103,7 @@ uses
   {$IF Defined(CONSOLE)}
   LoggerPro.SimpleConsoleAppender,
   {$ENDIF}
+  LoggerPro.Renderers,
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
@@ -301,7 +302,7 @@ begin
 {$ENDIF}
       gDefaultLogger := BuildLogWriter([
         TLoggerProFileAppender.Create(5, 2000, lLogsFolder),
-        TLoggerProSimpleConsoleAppender.Create(TLogLayout.LOG_LAYOUT_1)
+        TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create)
         ]);
     end;
 end;
