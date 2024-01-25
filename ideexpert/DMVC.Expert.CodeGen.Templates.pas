@@ -81,7 +81,7 @@ resourcestring
     '    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);' + sLineBreak + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
     '    LogI(''Listening on port '' + APort.ToString);' + sLineBreak +
-    '    LogI(''CTRL+C to shutdown the server'');' + sLineBreak +
+    '    LogI(''Application started. Press Ctrl+C to shut down.'');' + sLineBreak +
     '    WaitForTerminationSignal; ' + sLineBreak +
     '    EnterInShutdownState; ' + sLineBreak +
     '    LServer.Active := False; ' + sLineBreak +
@@ -174,22 +174,22 @@ resourcestring
   sIndexMethodIntf =
     '    [MVCPath]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure Index;' + sLineBreak + sLineBreak +
+    '    function Index: String;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
     '    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]' + sLineBreak +
-    '    procedure GetReversedString(const Value: String);' + sLineBreak;
+    '    function GetReversedString(const Value: String): String;' + sLineBreak;
 
   // 0 - Class Name
   sIndexMethodImpl =
-    'procedure %0:s.Index;' + sLineBreak +
+    'function %0:s.Index: String;' + sLineBreak +
     'begin' + sLineBreak +
     '  //use Context property to access to the HTTP request and response ' + sLineBreak +
-    '  Render(''Hello DelphiMVCFramework World'');' + sLineBreak +
+    '  Result := ''Hello DelphiMVCFramework World'';' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.GetReversedString(const Value: String);' + sLineBreak +
+    'function %0:s.GetReversedString(const Value: String): String;' + sLineBreak +
     'begin' + sLineBreak +
-    '  Render(System.StrUtils.ReverseString(Value.Trim));' + sLineBreak +
+    '  Result := System.StrUtils.ReverseString(Value.Trim);' + sLineBreak +
     'end;' + sLineBreak;
 
   sCRUDMethodsIntf =

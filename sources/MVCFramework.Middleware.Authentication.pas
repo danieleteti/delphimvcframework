@@ -298,7 +298,7 @@ var
 begin
   AContext.SessionStop(False);
   AContext.LoggedUser.Clear;
-  if not AContext.Request.ThereIsRequestBody then
+  if not AContext.Request.HasBody then
   begin
     AHandled := True;
     AContext.Response.StatusCode := HTTP_STATUS.BadRequest;

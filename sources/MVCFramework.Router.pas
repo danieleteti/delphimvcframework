@@ -364,7 +364,7 @@ begin
   begin
     lNames := GetParametersNames(AMVCPath);
     lPattern := ToPattern(AMVCPath, lNames);
-    lCacheItem := TMVCActionParamCacheItem.Create(lPattern, lNames);
+    lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
     FActionParamsCache.Add(AMVCPath, lCacheItem);
   end;
 
@@ -372,12 +372,12 @@ begin
     Exit(True)
   else
   begin
-    lRegEx := TRegEx.Create('^' + lCacheItem.Value + '$', [roIgnoreCase, roCompiled, roSingleLine]);
+    lRegEx := TRegEx.Create(lCacheItem.Value, [roIgnoreCase, roCompiled, roSingleLine]);
     lMatch := lRegEx.Match(APath);
     Result := lMatch.Success;
     if Result then
     begin
-      for I := 1 to pred(lMatch.Groups.Count) do
+      for I := 1 to Pred(lMatch.Groups.Count) do
       begin
         aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
       end;
