@@ -387,7 +387,7 @@ type
 
     function SegmentParam(const AParamName: string; out AValue: string): Boolean;
     function SegmentParamsCount: Integer;
-    function ThereIsRequestBody: Boolean;
+    function HasBody: Boolean;
 
     procedure EnsureQueryParamExists(const AName: string);
     function QueryString: string;
@@ -1750,7 +1750,7 @@ var
 begin
   Names := TList<string>.Create;
   try
-    if Assigned(FParamsTable) and (Length(FParamsTable.Keys.ToArray) > 0) then
+    if Assigned(FParamsTable) and (FParamsTable.Keys.Count > 0) then
     begin
       for N in FParamsTable.Keys.ToArray do
       begin
@@ -1880,7 +1880,7 @@ begin
     Result := FParamsTable.Count;
 end;
 
-function TMVCWebRequest.ThereIsRequestBody: Boolean;
+function TMVCWebRequest.HasBody: Boolean;
 begin
   Result := (FWebRequest.Content <> EmptyStr);
 end;
