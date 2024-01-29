@@ -4,6 +4,7 @@
 
 uses
   System.SysUtils,
+  MVCFramework.Logger,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   {$IFNDEF LINUX}
@@ -79,6 +80,7 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  UseConsoleLogger := False;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

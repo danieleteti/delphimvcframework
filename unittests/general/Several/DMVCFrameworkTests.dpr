@@ -9,6 +9,7 @@ program DMVCFrameworkTests;
 uses
   System.SysUtils,
   System.IOUtils,
+  MVCFramework.Logger,
   DUnitX.TestFramework,
   DUnitX.Loggers.XML.NUnit,
   {$IFDEF CONSOLE_TESTRUNNER}
@@ -144,6 +145,7 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  UseConsoleLogger := False;
 {$IF Defined(CONSOLE_TESTRUNNER)}
   MainConsole();
 {$ELSE}
