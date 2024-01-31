@@ -4486,42 +4486,51 @@ begin
   }
   if not PartitionInfoCache.TryGetValue(PartitionClause + '|' + RQLCompilerClass.ClassName, Result) then
   begin
-    lRQLCompiler := RQLCompilerClass.Create(nil);
+    TMonitor.Enter(PartitionInfoCache);
     try
-      Result := TPartitionInfo.Create;
-      try
-        lPieces := PartitionClause.Split([';']);
-        for lPiece in lPieces do
-        begin
-          lItems := lPiece.Split(['=', '(', ')'], TStringSplitOptions.ExcludeEmpty);
-          if Length(lItems) <> 3 then
-          begin
-            raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece +
-              '. [HINT] Partioning must be in the form: "[fieldname1=(integer|string)value1]"');
-          end;
-
-          Result.FieldNames.Add(lItems[0]);
-          if lItems[1] = 'integer' then
-            Result.FieldTypes.Add(ftInteger)
-          else if lItems[1] = 'string' then
-          begin
-            Result.FieldTypes.Add(ftString)
-          end
-          else
-          begin
-            raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] +
-              '. [HINT] data type can be "integer" or "string"');
-          end;
-          Result.FieldValues.Add(lItems[2]);
-        end;
-      except
-        Result.Free;
-        raise;
+      if PartitionInfoCache.TryGetValue(PartitionClause + '|' + RQLCompilerClass.ClassName, Result) then
+      begin
+        Exit;
       end;
-      Result.InitializeFilterStrings(lRQLCompiler);
-      PartitionInfoCache.Add(PartitionClause + '|' + RQLCompilerClass.ClassName, Result);
+      lRQLCompiler := RQLCompilerClass.Create(nil);
+      try
+        Result := TPartitionInfo.Create;
+        try
+          lPieces := PartitionClause.Split([';']);
+          for lPiece in lPieces do
+          begin
+            lItems := lPiece.Split(['=', '(', ')'], TStringSplitOptions.ExcludeEmpty);
+            if Length(lItems) <> 3 then
+            begin
+              raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece +
+                '. [HINT] Partioning must be in the form: "[fieldname1=(integer|string)value1]"');
+            end;
+
+            Result.FieldNames.Add(lItems[0]);
+            if lItems[1] = 'integer' then
+              Result.FieldTypes.Add(ftInteger)
+            else if lItems[1] = 'string' then
+            begin
+              Result.FieldTypes.Add(ftString)
+            end
+            else
+            begin
+              raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] +
+                '. [HINT] data type can be "integer" or "string"');
+            end;
+            Result.FieldValues.Add(lItems[2]);
+          end;
+        except
+          Result.Free;
+          raise;
+        end;
+        Result.InitializeFilterStrings(lRQLCompiler);
+        PartitionInfoCache.Add(PartitionClause + '|' + RQLCompilerClass.ClassName, Result);
+      finally
+        lRQLCompiler.Free;
+      end;
     finally
-      lRQLCompiler.Free;
+      TMonitor.Exit(PartitionInfoCache);
     end;
   end;
 end;

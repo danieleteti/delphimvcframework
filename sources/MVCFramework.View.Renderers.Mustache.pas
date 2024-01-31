@@ -32,7 +32,7 @@ interface
 uses
   MVCFramework, System.SysUtils, System.Generics.Collections,
   MVCFramework.Commons, System.IOUtils, System.RTTI,
-  System.Classes, Data.DB, SynMustache, SynCommons;
+  System.Classes, Data.DB, SynMustache, SynCommons, MVCFramework.IntfObjectPool;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -42,6 +42,7 @@ type
   private
     class var fPartials: TSynMustachePartials;
     class var fHelpers: TSynMustacheHelpers;
+    class var fSerializerPool: IIntfObjectPool;
     var FJSONModelAsString: string;
     procedure LoadPartials;
     procedure LoadHelpers;
@@ -55,6 +56,7 @@ type
       const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string); override;
     class destructor Destroy;
+    class constructor Create;
   end;
 
   TLoadCustomHelpersProc = reference to procedure(var MustacheHelpers: TSynMustacheHelpers);
@@ -105,6 +107,16 @@ begin
   inherited;
   LoadPartials;
   LoadHelpers;
+end;
+
+class constructor TMVCMustacheViewEngine.Create;
+begin
+  fSerializerPool := MVCFramework.IntfObjectPool.TIntfObjectPool.Create(10000, 10,1,
+    function: IInterface
+    begin
+      Result := TMVCJsonDataObjectsSerializer.Create(nil);
+      RegisterOptionalCustomTypesSerializers(Result as IMVCSerializer);
+    end);
 end;
 
 class destructor TMVCMustacheViewEngine.Destroy;
@@ -207,7 +219,7 @@ procedure TMVCMustacheViewEngine.PrepareModels;
 var
   DataObj: TPair<string, TValue>;
   lDSPair: TPair<string, TDataSet>;
-  lSer: TMVCJsonDataObjectsSerializer;
+  lSer: IMVCSerializer;
   lJSONModel: TJsonObject;
 begin
   if Assigned(FJSONModel) and (not Assigned(ViewModel)) and (not Assigned(ViewDataSets)) then
@@ -217,9 +229,10 @@ begin
     Exit;
   end;
 
-  lSer := TMVCJsonDataObjectsSerializer.Create;
+
+
+  lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
   try
-    RegisterOptionalCustomTypesSerializers(lSer);
     if Assigned(FJSONModel) then
     begin
       lJSONModel := FJSONModel.Clone as TJsonObject;
@@ -233,16 +246,16 @@ begin
       begin
         for DataObj in ViewModel do
         begin
-          lSer.TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
-//          lList := TDuckTypedList.Wrap(DataObj.Value);
-//          if lList <> nil then
-//          begin
-//            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
-//          end
-//          else
-//          begin
-//            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
-//          end;
+          TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
+  //          lList := TDuckTypedList.Wrap(DataObj.Value);
+  //          if lList <> nil then
+  //          begin
+  //            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
+  //          end
+  //          else
+  //          begin
+  //            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
+  //          end;
         end;
       end;
 
@@ -250,7 +263,7 @@ begin
       begin
         for lDSPair in ViewDataSets do
         begin
-          lSer.DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
+          TMVCJsonDataObjectsSerializer(lSer).DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
         end;
       end;
       FJSONModelAsString := lJSONModel.ToJSON(False);
@@ -258,7 +271,7 @@ begin
       lJSONModel.Free;
     end;
   finally
-    lSer.Free;
+    fSerializerPool.ReleaseToPool(lSer)
   end;
 end;
 
