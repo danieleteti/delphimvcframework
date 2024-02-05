@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -170,7 +170,12 @@ type
     /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
     /// <param name="Names">A collection of the names of the javscript events to be triggered</param>
     /// <param name="After">The timing of the event</param>
-    function HXTriggerClientEvents(Names: TArray<string>; After: TClientEventType = etReceived): TMVCWebResponse;
+    function HXTriggerClientEvents(Names: TArray<string>; After: TClientEventType = etReceived): TMVCWebResponse; overload;
+
+    /// <summary>Allows you to trigger a collection of client side events.</summary>
+    /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
+    /// <param name="EventsDescriptors">A JSON object with events descriptors (https://htmx.org/headers/hx-trigger/)</param>
+    function HXTriggerClientEvents(EventsDescriptors: TJSONObject; After: TClientEventType = etReceived): TMVCWebResponse; overload;
 
     /// <summary>Allows you to trigger a client side event with parameters.</summary>
     /// <remarks>Using events gives you a lot of flexibility to add functionality to normal htmx responses.</remarks>
@@ -392,24 +397,36 @@ end;
 
 function THTMXResponseHelper.HXTriggerClientEvent(Name: string; Params: TValue; After: TClientEventType): TMVCWebResponse;
 var
-  ser: TMVCJsonDataObjectsSerializer;
-  Data: TJsonObject;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lData: TJsonObject;
 begin
   if not Params.IsEmpty then
   begin
-    Data := TJsonObject.Create;
-    ser := TMVCJsonDataObjectsSerializer.Create;
+    lData := TJsonObject.Create;
+    lSer := TMVCJsonDataObjectsSerializer.Create;
     try
-      ser.TValueToJSONObjectProperty(Data, Name, Params, stdefault, [], []);
-      SetCustomHeader(ClientEventTypes[After], Data.ToJSON);
+      lSer.TValueToJSONObjectProperty(lData, Name, Params, stdefault, [], []);
+      SetCustomHeader(ClientEventTypes[After], lData.ToJSON);
     finally
-      ser.Free;
-      Data.Free;
+      lSer.Free;
+      lData.Free;
     end;
   end
   else
     SetCustomHeader(ClientEventTypes[After], Name);
 
+  Result := Self;
+end;
+
+function THTMXResponseHelper.HXTriggerClientEvents(EventsDescriptors: TJSONObject;
+  After: TClientEventType): TMVCWebResponse;
+begin
+  if EventsDescriptors = nil then
+  begin
+    Exit(Self);
+  end;
+
+  SetCustomHeader(ClientEventTypes[After], EventsDescriptors.ToJSON(true));
   Result := Self;
 end;
 

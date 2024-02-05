@@ -2456,15 +2456,15 @@ begin
       case RouterLogState of
         rlsRouteFound:
           begin
-            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
+            LogI(Context.Request.HTTPMethodAsString + ':' +
               Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
               Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
               Context.Response.ReasonString);
           end;
         rlsRouteNotFound:
           begin
-            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' +
-              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {NOT FOUND} - ' +
+            LogW(Context.Request.HTTPMethodAsString + ':' +
+              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {ROUTE NOT FOUND} - ' +
               IntToStr(Context.Response.StatusCode) + ' ' + Context.Response.ReasonString);
           end;
       else
@@ -2789,9 +2789,6 @@ begin
                   lContext.Response.StatusCode := http_status.NotFound;
                   lContext.Response.ReasonString := 'Not Found';
                   fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
-                  raise EMVCException.Create(lContext.Response.ReasonString,
-                    lContext.Request.HTTPMethodAsString + ' ' + lContext.Request.PathInfo, 0,
-                    http_status.NotFound);
                 end
                 else
                 begin

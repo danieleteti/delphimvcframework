@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -345,7 +345,7 @@ begin
     end;
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
-    Log(TLogLevel.levDebug, AContext.Request.HTTPMethodAsString + ':' +
+    LogI(AContext.Request.HTTPMethodAsString + ':' +
       AContext.Request.PathInfo + ' [' + AContext.Request.ClientIp + '] -> ' +
       ClassName + ' - ' + IntToStr(AContext.Response.StatusCode) + ' ' +
       AContext.Response.ReasonString);
