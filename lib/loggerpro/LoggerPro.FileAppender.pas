@@ -73,6 +73,7 @@ type
     fEncoding: TEncoding;
     function CreateWriter(const aFileName: string): TStreamWriter;
     procedure RetryMove(const aFileSrc, aFileDest: string);
+    procedure RetryDelete(const aFileSrc: string);
   protected
     procedure CheckLogFileNameFormat(const LogFileNameFormat: String); virtual;
     procedure EmitStartRotateLogItem(aWriter: TStreamWriter); virtual;
@@ -163,6 +164,7 @@ uses
   System.IOUtils,
   System.StrUtils,
   System.Math,
+  System.DateUtils,
   idGlobal
 {$IF Defined(Android), System.SysUtils}
     ,Androidapi.Helpers
@@ -254,6 +256,35 @@ begin
   WriteToStream(aStreamWriter, FormatLog(aLogItem));
 end;
 
+procedure TLoggerProFileAppenderBase.RetryDelete(const aFileSrc: string);
+var
+  lRetries: Integer;
+const
+  MAX_RETRIES = 5;
+begin
+  lRetries := 0;
+  repeat
+    try
+      Sleep(50);
+      // the incidence of "Locked file goes to nearly zero..."
+      TFile.Delete(aFileSrc);
+      if not TFile.Exists(aFileSrc) then
+      begin
+        Break;
+      end;
+    except
+      on E: Exception do
+      begin
+        Inc(lRetries);
+        Sleep(100);
+      end;
+    end;
+  until lRetries = MAX_RETRIES;
+
+  if lRetries = MAX_RETRIES then
+    raise ELoggerPro.CreateFmt('Cannot delete file %s', [aFileSrc]);
+end;
+
 procedure TLoggerProFileAppenderBase.RetryMove(const aFileSrc, aFileDest: string);
 var
   lRetries: Integer;
@@ -271,7 +302,7 @@ begin
       on E: EInOutError do
       begin
         Inc(lRetries);
-        Sleep(50);
+        Sleep(100);
       end;
       on E: Exception do
       begin
@@ -294,14 +325,22 @@ begin
   // remove the last file of backup set
   lRenamedFile := GetLogFileName(aLogTag, fMaxBackupFileCount - 1);
   if TFile.Exists(lRenamedFile) then
+  begin
     TFile.Delete(lRenamedFile);
+    if TFile.Exists(lRenamedFile) then // double check for slow file systems
+    begin
+      RetryDelete(lRenamedFile);
+    end;
+  end;
   // shift the files names
   for I := fMaxBackupFileCount - 1 downto 1 do
   begin
     lCurrentFileName := GetLogFileName(aLogTag, I);
     lRenamedFile := GetLogFileName(aLogTag, I + 1);
     if TFile.Exists(lCurrentFileName) then
+    begin
       RetryMove(lCurrentFileName, lRenamedFile);
+    end;
   end;
   lRenamedFile := GetLogFileName(aLogTag, 1);
   RetryMove(aNewFileName, lRenamedFile);
