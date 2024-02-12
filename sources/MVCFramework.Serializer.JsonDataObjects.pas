@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -2112,6 +2112,9 @@ begin
         TFieldType.ftFloat, TFieldType.ftFMTBcd, TFieldType.ftBCD:
           Field.AsFloat := AJSONObject.F[lName];
 
+        TFieldType.ftExtended:
+          Field.AsExtended := AJSONObject.F[lName];
+
         ftString, ftWideString, ftMemo, ftWideMemo:
           Field.AsWideString := AJSONObject.S[lName];
 
@@ -2230,6 +2233,9 @@ begin
 
         TFieldType.ftFloat, TFieldType.ftFMTBcd, TFieldType.ftBCD:
           Field.AsFloat := AJSONObject.F[lName];
+
+        TFieldType.ftExtended:
+          Field.AsExtended := AJSONObject.F[lName];
 
         ftString, ftWideString, ftMemo, ftWideMemo:
           Field.AsWideString := AJSONObject.S[lName];
