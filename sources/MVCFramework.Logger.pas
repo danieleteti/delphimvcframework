@@ -107,7 +107,9 @@ uses
   {$IF Defined(MSWINDOWS)}
   LoggerPro.ConsoleAppender,
   {$ELSE}
-  LoggerPro.SimpleConsoleAppender,
+  {$IF Not Defined(MOBILE)}
+  LoggerPro.SimpleConsoleAppender, //only for linux
+  {$ENDIF}
   {$ENDIF}
   LoggerPro.Renderers,
   System.IOUtils,
@@ -319,7 +321,9 @@ begin
         {$IF Defined(MSWINDOWS)}
         lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
         {$ELSE}
+        {$IF Not Defined(MOBILE)}
         lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
+        {$ENDIF}
         {$ENDIF}
         lAppenders := [lFileAppender, lConsoleAppender];
       end
