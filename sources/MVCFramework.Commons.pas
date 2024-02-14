@@ -787,12 +787,20 @@ var
 
 function URLEncode(const Value: string): string; overload;
 begin
+  {$IF defined(BERLINORBETTER)}
+  Result := TNetEncoding.URL.EncodeQuery(Value);
+  {$ELSE}
   Result := TNetEncoding.URL.Encode(Value);
+  {$ENDIF}
 end;
 
 function URLDecode(const Value: string): string;
 begin
+  {$IF defined(BERLINORBETTER)}
+  Result := TNetEncoding.URL.URLDecode(Value);
+  {$ELSE}
   Result := TNetEncoding.URL.Decode(Value);
+  {$ENDIF}
 end;
 
 function AppPath: string;
