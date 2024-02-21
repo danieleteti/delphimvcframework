@@ -25,7 +25,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
@@ -35,8 +35,8 @@ begin
     LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
 
     LServer.Active := True;
-    WriteLn('Listening on port ', APort);
-    Write('CTRL+C to shutdown the server');
+    LogI('Listening on port ' + APort.ToString);
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     LServer.Active := False;
@@ -47,7 +47,7 @@ end;
 
 begin
   { Enable ReportMemoryLeaksOnShutdown during debug }
-  // ReportMemoryLeaksOnShutdown := True;
+  ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
 
   // DMVCFramework Specific Configuration
@@ -78,6 +78,6 @@ begin
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end;
 end.

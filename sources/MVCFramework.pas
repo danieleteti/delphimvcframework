@@ -823,8 +823,8 @@ type
 
     /// <summary>
     ///   Page calls GetRenderedView with sensible defaults.
-    ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
-    ///   PageFragment ignore header and footer views
+    ///   Page method with UseCommonHeadersAndFooters = True (default) concatenates
+    //    commonheader_header_views + views + commonfooter_views
     /// </summary>
     function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
 
@@ -2788,6 +2788,7 @@ begin
                 begin
                   lContext.Response.StatusCode := http_status.NotFound;
                   lContext.Response.ReasonString := 'Not Found';
+                  lContext.Response.SetContentStream(TStringStream.Create(), FConfigCache_DefaultContentType);
                   fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
                 end
                 else

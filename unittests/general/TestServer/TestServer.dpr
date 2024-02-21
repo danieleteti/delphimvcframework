@@ -27,7 +27,8 @@ uses
   Entities in '..\Several\Entities.pas',
   EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
   MVCFramework.JSONRPC.Client in '..\..\..\sources\MVCFramework.JSONRPC.Client.pas',
-  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
+  MVCFramework.Serializer.Commons;
 
 {$R *.res}
 
@@ -80,6 +81,7 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  gLocalTimeStampAsUTC := False;
   UseConsoleLogger := False;
   try
     if WebRequestHandler <> nil then

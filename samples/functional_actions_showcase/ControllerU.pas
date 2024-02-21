@@ -34,6 +34,8 @@ type
     function GetSum(const A, B: Integer): Integer;
     [MVCPath('/sumsasfloat/($A)/($B)')]
     function GetSumAsFloat(const A, B: Extended): Extended;
+    [MVCPath('/string/($A)/($B)')]
+    function GetConcatAsString(const A, B: String): String;
 
     { actions returning records }
     [MVCPath('/records/single')]
@@ -256,6 +258,11 @@ end;
 function TMyController.GetSumAsFloat(const A, B: Extended): Extended;
 begin
   Result := A + B;
+end;
+
+function TMyController.GetConcatAsString(const A, B: String): String;
+begin
+  Result :=  A + B;
 end;
 
 function TMyController.GetWithCustomHeaders: TObjectList<TPerson>;
