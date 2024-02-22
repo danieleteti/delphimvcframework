@@ -1192,14 +1192,10 @@ begin
       begin
         aRTTIField.SetValue(AObject, Frac(AField.AsDateTime));
       end;
-    ftTimeStamp:
+    ftTimeStamp, ftTimeStampOffset:
       begin
+        // Conversion between timestampoffset and TDateTime is automatically done by "AsDateTime"
         aRTTIField.SetValue(AObject, AField.AsDateTime);
-      end;
-    ftTimeStampOffset:
-      begin
-        aRTTIField.SetValue(AObject,
-          TValue.From<TSQLTimeStampOffset>(AField.AsSQLTimeStampOffset));
       end;
     ftBoolean:
       begin
