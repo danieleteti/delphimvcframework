@@ -22,7 +22,7 @@
 //
 // ***************************************************************************
 
-unit MVCFramework.Serializer.HTML;
+unit MVCFramework.Serializer.Text;
 
 {$I dmvcframework.inc}
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -46,7 +46,7 @@ uses
   MVCFramework.Serializer.Commons;
 
 type
-  TMVCHTMLSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
+  TMVCTextSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   protected
     procedure RaiseNotImplemented;
   public
@@ -167,57 +167,14 @@ uses
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables, System.StrUtils;
 
-const
-  HTML_HEADER = '<!doctype html>' +
-  '<html>' +
-  '<head>' +
-  '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' +
-  '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">' +
-  '<title>DMVCFramework</title>' +
-  '<style>'+
-  'body {' +
-  '  background: #fff;'+
-  '  padding: 2rem;' +
-  '  margin: 0 auto;' +
-  '  max-width: 40rem;' +
-  '  font-family: "Segoe UI Light", Tahoma, Arial, ui-sans-serif, sans-serif;' +
-  '}' +
-  '.color1 { color: #C5C5C5; } /* https://color.adobe.com/it/search?q=Primary%20colors&t=term */' +
-  '.color2 { color: #827C78; }' +
-  '.color3 { color: #005195; }' +
-  '.color4 { color: #003A69; }' +
-  '.color5 { color: #000000; }' +
-  '.container {' +
-  '  background: #f4f4f4;'+
-  '  border: 2px solid #827C78;' +
-  '  margin-top: 2rem;' +
-  '  margin: auto;' +
-  '  width: fit-content;' +
-  '  padding: 1rem;' +
-  '  padding-left: 2rem;' +
-  '  padding-right: 2rem;' +
-  '}' +
-  '}' +
-  '</style>'+
-  '</head>' +
-  '<body>' +
-  '<div class="container">';
+{ TMVCTextSerializer }
 
-  HTML_FOOTER = '</div></body></html>';
-
-
-function HTMLEntitiesEncode(const Text: string): String;
-begin
-  Result := TNetEncoding.HTML.Encode(Text);
-end;
-  { TMVCHTMLSerializer }
-
-procedure TMVCHTMLSerializer.AfterConstruction;
+procedure TMVCTextSerializer.AfterConstruction;
 begin
   inherited AfterConstruction;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeCollection(
+procedure TMVCTextSerializer.DeserializeCollection(
   const ASerializedList: string; const AList: IInterface; const AClazz: TClass;
   const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList);
@@ -225,7 +182,7 @@ begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeCollection(
+procedure TMVCTextSerializer.DeserializeCollection(
   const ASerializedList: string; const AList: TObject; const AClazz: TClass;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ARootNode: string);
@@ -233,53 +190,53 @@ begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeDataSet(
+procedure TMVCTextSerializer.DeserializeDataSet(
   const ASerializedDataSet: string; const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeDataSetRecord(
+procedure TMVCTextSerializer.DeserializeDataSetRecord(
   const ASerializedDataSetRecord: string; const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeObject(const ASerializedObject: string;
+procedure TMVCTextSerializer.DeserializeObject(const ASerializedObject: string;
   const AObject: TObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: string);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.DeserializeObject(const ASerializedObject: string;
+procedure TMVCTextSerializer.DeserializeObject(const ASerializedObject: string;
   const AObject: IInterface; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList);
 begin
   RaiseNotImplemented;
 end;
 
-procedure TMVCHTMLSerializer.RaiseNotImplemented;
+procedure TMVCTextSerializer.RaiseNotImplemented;
 begin
   raise EMVCException.Create('Not Implemented');
 end;
 
-procedure TMVCHTMLSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo;
+procedure TMVCTextSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo;
   AInstance: IMVCTypeSerializer);
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeCollection(const AList: TObject;
+function TMVCTextSerializer.SerializeCollection(const AList: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeArrayOfRecord(
+function TMVCTextSerializer.SerializeArrayOfRecord(
   var ATValueContainingAnArray: TValue; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
@@ -287,45 +244,40 @@ begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeCollection(const AList: IInterface;
+function TMVCTextSerializer.SerializeCollection(const AList: IInterface;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeDataSet(const ADataSet: TDataSet;
+function TMVCTextSerializer.SerializeDataSet(const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
   const ASerializationAction: TMVCDatasetSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeDataSetRecord(const ADataSet: TDataSet;
+function TMVCTextSerializer.SerializeDataSetRecord(const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
   const ASerializationAction: TMVCDatasetSerializationAction): string;
 begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
+function TMVCTextSerializer.SerializeObject(const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
   function EmitExceptionClass(const ClazzName, Message: string): string;
   begin
-      Result := Result + '<h2>' +
-        IfThen(not ClazzName.IsEmpty, HTMLEntitiesEncode(ClazzName) + ': ') + Message + '</h2>';
+    Result := Result + IfThen(not ClazzName.IsEmpty, ClazzName + ': ') + Message;
   end;
   function EmitTitle(const HTTPStatusCode: Word): string;
   begin
-    Result := '<h1><span class="color1">' + HTTPStatusCode.ToString + '</span><span class="color2"> ' + HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</span></h1>';
-    if Assigned(FConfig) then
-    begin
-      Result := Result + '<h3 class="color4">' + FConfig[TMVCConfigKey.ServerName] + '</h3>';
-    end;
+    Result := HTTPStatusCode.ToString + ': ' + HTTP_STATUS.ReasonStringFor(HTTPStatusCode);
   end;
 
-  function GetHTMLBody(
+  function GetText(
     const HTTPStatusCode: Integer;
     const Message: String;
     const DetailedMessage: String;
@@ -336,38 +288,40 @@ function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
     lErr: String;
   begin
     Result :=
-        EmitTitle(HTTPStatusCode) + sLineBreak +
-        EmitExceptionClass(ClazzName, Message) + sLineBreak +
-        '<h3 class="color5">' + HTMLEntitiesEncode(DetailedMessage) + '</h3>' + sLineBreak;
-      Result := Result + '<div>';
-      if AppErrorCode <> 0 then
+        EmitTitle(HTTPStatusCode) +
+        IfThen(not ClazzName.IsEmpty, sLineBreak + EmitExceptionClass(ClazzName, Message)) +
+        IfThen(not DetailedMessage.IsEmpty, sLineBreak + DetailedMessage);
+    if Assigned(FConfig) then
+    begin
+      if FConfig[TMVCConfigKey.ExposeServerSignature] = 'true' then
       begin
-        Result := Result + '<p>Application Error Code: ' + AppErrorCode.ToString + '</p>';
+        Result := Result + sLineBreak + FConfig[TMVCConfigKey.ServerName];
       end;
-      if Assigned(ErrorItems) and (Length(ErrorItems) > 0) then
+    end;
+    if AppErrorCode <> 0 then
+    begin
+      Result := sLineBreak + Result + 'Application Error Code: ' + AppErrorCode.ToString + sLineBreak;
+    end;
+    if Assigned(ErrorItems) and (Length(ErrorItems) > 0) then
+    begin
+      Result := sLineBreak + Result + 'Error Items: ';
+      for lErr in ErrorItems do
       begin
-        Result := Result + '<p>Error Items: <ul>' + sLineBreak;
-        for lErr in ErrorItems do
-        begin
-          Result := Result + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
-        end;
-        Result := Result + '</ul></p>';
+        Result := sLineBreak + Result + '- ' + lErr;
       end;
-      Result := Result + '</div>';
+    end;
   end;
 var
-  lBody: string;
   lMVCException: EMVCException;
   lException: Exception;
   lErrResponse: TMVCErrorResponse;
 begin
-  lBody := '';
   if AObject is Exception then
   begin
     if AObject is EMVCException then
     begin
       lMVCException := EMVCException(AObject);
-      lBody := GetHTMLBody(
+      Result := GetText(
         lMVCException.HTTPStatusCode,
         lMVCException.Message,
         lMVCException.DetailedMessage,
@@ -378,15 +332,13 @@ begin
     else
     begin
       lException := Exception(AObject);
-      lBody := EmitTitle(500) + sLineBreak +
+      Result := EmitTitle(500) + sLineBreak +
         EmitExceptionClass(lException.ClassName, lException.Message) + sLineBreak;
     end;
-  end;
-
-  if AObject is TMVCErrorResponse then
+  end else if AObject is TMVCErrorResponse then
   begin
     lErrResponse := TMVCErrorResponse(AObject);
-    lBody := GetHTMLBody(
+    Result := GetText(
       lErrResponse.StatusCode,
       lErrResponse.Message,
       lErrResponse.DetailedMessage,
@@ -395,17 +347,13 @@ begin
       nil);
   end;
 
-  if lBody.IsEmpty then
+  if Result.IsEmpty then
   begin
     RaiseNotImplemented
-  end
-  else
-  begin
-    Result := HTML_HEADER + lBody + HTML_FOOTER;
   end;
 end;
 
-function TMVCHTMLSerializer.SerializeObject(const AObject: IInterface;
+function TMVCTextSerializer.SerializeObject(const AObject: IInterface;
   const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
@@ -413,7 +361,7 @@ begin
   RaiseNotImplemented;
 end;
 
-function TMVCHTMLSerializer.SerializeRecord(const ARecord: Pointer;
+function TMVCTextSerializer.SerializeRecord(const ARecord: Pointer;
   const ARecordTypeInfo: PTypeInfo; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;

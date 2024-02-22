@@ -133,6 +133,9 @@
         <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.Text.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

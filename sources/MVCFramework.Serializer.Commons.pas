@@ -458,6 +458,7 @@ implementation
 
 uses
   Data.FmtBcd,
+  Data.SqlTimSt,
   MVCFramework.Nullables,
   System.Generics.Defaults;
 
@@ -1194,6 +1195,11 @@ begin
     ftTimeStamp:
       begin
         aRTTIField.SetValue(AObject, AField.AsDateTime);
+      end;
+    ftTimeStampOffset:
+      begin
+        aRTTIField.SetValue(AObject,
+          TValue.From<TSQLTimeStampOffset>(AField.AsSQLTimeStampOffset));
       end;
     ftBoolean:
       begin

@@ -133,7 +133,7 @@ begin
     .AddMiddleware(TMVCCompressionMiddleware.Create);
 {$IFDEF MSWINDOWS}
   MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
-  RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);
+  RegisterOptionalCustomTypesSerializers(MVCEngine.Serializer(TMVCMediaType.APPLICATION_JSON));
 {$ENDIF}
 end;
 
