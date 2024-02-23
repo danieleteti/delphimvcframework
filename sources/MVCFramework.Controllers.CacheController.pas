@@ -265,14 +265,17 @@ end;
 
 procedure TMVCCacheController.DeleteCacheKey(const AKey: string = '');
 var
-  AKeys: TArray<string>;
+  AKeys: TRedisArray;
   ARedis: IRedisClient;
 begin
   ARedis := RedisClient;
   if AKey <> '' then
   begin
-    AKeys := ARedis.KEYS(AKey).ToArray;
-    ARedis.DEL(AKeys);
+    AKeys := ARedis.KEYS(AKey);
+    if AKeys.HasValue then
+    begin
+      ARedis.DEL(AKeys.ToArray);
+    end;
   end
   else
   begin
