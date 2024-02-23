@@ -28,7 +28,10 @@ uses
   EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
   MVCFramework.JSONRPC.Client in '..\..\..\sources\MVCFramework.JSONRPC.Client.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework in '..\..\..\sources\MVCFramework.pas',
+  MVCFramework.Serializer.Text in '..\..\..\sources\MVCFramework.Serializer.Text.pas',
+  MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
 

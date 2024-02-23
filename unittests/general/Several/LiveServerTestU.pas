@@ -32,7 +32,7 @@ uses
   MVCFramework.RESTClient,
   MVCFramework.JSONRPC.Client,
   System.DateUtils,
-  System.Hash, System.Rtti;
+  System.Hash, System.Rtti, MVCFramework.Commons;
 
 type
 
@@ -236,6 +236,23 @@ type
     [Test]
     [Category('renders,exceptions')]
     procedure TestEMVCException4;
+
+    [Test]
+    [Category('renders,exceptions')]
+    [TestCase('404'+'invalid_accept',               '404,/invalidurl,invalid_accept,' + TMVCMediaType.APPLICATION_JSON)]
+    [TestCase('404'+TMVCMediaType.TEXT_HTML,        '404,/invalidurl,' + TMVCMediaType.TEXT_HTML + ',' + TMVCMediaType.TEXT_HTML)]
+    [TestCase('404'+TMVCMediaType.TEXT_PLAIN,       '404,/invalidurl,' +  TMVCMediaType.TEXT_PLAIN + ',' + TMVCMediaType.TEXT_PLAIN)]
+    [TestCase('404'+TMVCMediaType.APPLICATION_JSON, '404,/invalidurl,' + TMVCMediaType.APPLICATION_JSON + ',' + TMVCMediaType.APPLICATION_JSON)]
+    [TestCase('500'+'invalid_accept',               '500,/exception/emvcexception1,invalid_accept,' + TMVCMediaType.APPLICATION_JSON)]
+    [TestCase('500'+TMVCMediaType.TEXT_HTML,        '500,/exception/emvcexception1,' + TMVCMediaType.TEXT_HTML + ',' + TMVCMediaType.TEXT_HTML)]
+    [TestCase('500'+TMVCMediaType.TEXT_PLAIN,       '500,/exception/emvcexception1,' +  TMVCMediaType.TEXT_PLAIN + ',' + TMVCMediaType.TEXT_PLAIN)]
+    [TestCase('500'+TMVCMediaType.APPLICATION_JSON, '500,/exception/emvcexception1,' + TMVCMediaType.APPLICATION_JSON + ',' + TMVCMediaType.APPLICATION_JSON)]
+
+    procedure TestResponseContentTypes(
+        const ExpectedStatus: Integer;
+        const URL: String;
+        const RequestAccept: String;
+        const ResponseContentType: String);
 
     // test nullables
     [Test]
@@ -449,7 +466,6 @@ uses
   MVCFramework.Serializer.Defaults,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Commons,
   System.SyncObjs,
   System.Generics.Collections,
   System.SysUtils,
@@ -1876,6 +1892,22 @@ var
 begin
   lRes := RESTClient.Get(URLSegment);
   Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode);
+end;
+
+procedure TServerTest.TestResponseContentTypes(
+  const ExpectedStatus: Integer;
+  const URL: String;
+  const RequestAccept: String;
+  const ResponseContentType: String);
+var
+  res: IMVCRESTResponse;
+begin
+  res := RESTClient
+    .ClearHeaders
+    .Accept(RequestAccept)
+    .Get(URL);
+  Assert.AreEqual<Integer>(ExpectedStatus, res.StatusCode);
+  Assert.StartsWith(ResponseContentType, res.ContentType);
 end;
 
 procedure TServerTest.TestObjectDict;

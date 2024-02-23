@@ -397,6 +397,9 @@ type
 
     function Accept: string;
     function BestAccept: string;
+    function AcceptHTML: boolean;
+    function CanAcceptMediaType(const MediaType: String): boolean;
+
     function ContentParam(const AName: string): string;
     function Cookie(const AName: string): string;
     function Body: string;
@@ -643,7 +646,7 @@ type
     procedure Redirect(const AUrl: string);
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = '');
     procedure Render201Created(const Location: string = '');
-    // Serializer access
+    // Serializers access
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExcpIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -1040,6 +1043,7 @@ type
     procedure OnWebContextDestroy(const WebContextDestroyEvent: TWebContextDestroyEvent);
     { end - webcontext events}
 
+    function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True): IMVCSerializer;
     function AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer)
       : TMVCEngine;
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
@@ -1053,15 +1057,13 @@ type
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
     function SetExceptionHandler(const AExceptionHandlerProc: TMVCExceptionHandlerProc): TMVCEngine;
 
-    procedure HTTP404(const AContext: TWebContext);
-    procedure HTTP500(const AContext: TWebContext; const AReasonString: string = '');
-    procedure SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
-      const AReasonString: string; const AClassName: string = '');
+    procedure SendHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
+      const AReasonString: string = ''; const AClassName: string = '');
 
     property ViewEngineClass: TMVCViewEngineClass read GetViewEngineClass;
     property WebModule: TWebModule read FWebModule;
     property Config: TMVCConfig read FConfig;
-    property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
+    //property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession
@@ -1254,8 +1256,9 @@ uses
   MVCFramework.JSONRPC,
   MVCFramework.Router,
   MVCFramework.Rtti.Utils,
-  MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract,
-  MVCFramework.Utils;
+  MVCFramework.Serializer.HTML,
+  MVCFramework.Serializer.Abstract,
+  MVCFramework.Utils, MVCFramework.Serializer.Text;
 
 var
   gIsShuttingDown: Boolean = False;
@@ -1424,6 +1427,11 @@ begin
   Result := FWebRequest.Accept;
 end;
 
+function TMVCWebRequest.AcceptHTML: boolean;
+begin
+  Result := CanAcceptMediaType(TMVCMediaType.TEXT_HTML);
+end;
+
 function TMVCWebRequest.BestAccept: string;
 begin
   if Accept.Contains(',') then
@@ -1554,6 +1562,11 @@ begin
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
     end;
   end;
+end;
+
+function TMVCWebRequest.CanAcceptMediaType(const MediaType: String): boolean;
+begin
+  Result := Accept.Contains(MediaType);
 end;
 
 function TMVCWebRequest.ClientIp: string;
@@ -2788,7 +2801,7 @@ begin
                 begin
                   lContext.Response.StatusCode := http_status.NotFound;
                   lContext.Response.ReasonString := 'Not Found';
-                  lContext.Response.SetContentStream(TStringStream.Create(), FConfigCache_DefaultContentType);
+                  SendHTTPStatus(lContext, HTTP_STATUS.NotFound);
                   fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
                 end
                 else
@@ -2823,7 +2836,7 @@ begin
                 end
                 else
                 begin
-                  SendRawHTTPStatus(lContext, E.HTTPStatusCode, E.Message, E.Classname);
+                  SendHTTPStatus(lContext, E.HTTPStatusCode, E.Message, E.Classname);
                 end;
               end;
             end;
@@ -2840,7 +2853,7 @@ begin
                 end
                 else
                 begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
+                  SendHTTPStatus(lContext, http_status.InternalServerError,
                     Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
                 end;
               end;
@@ -2858,7 +2871,7 @@ begin
                 end
                 else
                 begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
+                  SendHTTPStatus(lContext, http_status.InternalServerError,
                     Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
                 end;
               end;
@@ -2881,7 +2894,7 @@ begin
                 end
                 else
                 begin
-                  SendRawHTTPStatus(lContext, http_status.InternalServerError,
+                  SendHTTPStatus(lContext, http_status.InternalServerError,
                     Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
                 end;
               end;
@@ -3340,76 +3353,59 @@ begin
   end;
 end;
 
-procedure TMVCEngine.HTTP404(const AContext: TWebContext);
-begin
-  AContext.Response.SetStatusCode(http_status.NotFound);
-  AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
-    AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-  AContext.Response.SetReasonString('Not Found');
-  AContext.Response.SetContent('Not Found' + sLineBreak + FConfigCache_ServerSignature);
-end;
-
-procedure TMVCEngine.HTTP500(const AContext: TWebContext; const AReasonString: string);
-begin
-  AContext.Response.SetStatusCode(http_status.InternalServerError);
-  AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
-    AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-  AContext.Response.SetReasonString('Internal server error');
-  AContext.Response.SetContent('Internal server error' + sLineBreak + FConfigCache_ServerSignature +
-    ': ' + AReasonString);
-end;
-
-procedure TMVCEngine.SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
+procedure TMVCEngine.SendHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
   const AReasonString: string; const AClassName: string);
 var
   lSer: IMVCSerializer; lError: TMVCErrorResponse;
   lIgnored: TMVCIgnoredList;
+  lContentType, lItem: String;
+  lPreferredAcceptContentType: TArray<string>;
 begin
+  lPreferredAcceptContentType := [
+    AContext.Request.BestAccept,
+    FConfigCache_DefaultContentType,
+    TMVCMediaType.TEXT_HTML,
+    TMVCMediaType.TEXT_PLAIN];
+
   lError := TMVCErrorResponse.Create;
   try
     lError.Classname := AClassName;
     lError.StatusCode := HTTPStatusCode;
-    lError.Message := AReasonString;
+    lError.Message := IfThen(not AReasonString.IsEmpty, AReasonString, HTTP_STATUS.ReasonStringFor(HTTPStatusCode));
 
-    if AContext.Request.ClientPreferHTML then
+    lIgnored := ['ObjectDictionary'];
+    if lError.fAppErrorCode = 0 then
+      lIgnored := lIgnored + ['AppErrorCode'];
+    if lError.Data = nil then
+      lIgnored := lIgnored + ['Data'];
+    if lError.Classname.IsEmpty then
+      lIgnored := lIgnored + ['ClassName'];
+    if lError.DetailedMessage.IsEmpty then
+      lIgnored := lIgnored + ['DetailedMessage'];
+    if lError.Items.Count = 0 then
     begin
-      if not Serializers.TryGetValue(TMVCMediaType.TEXT_HTML, lSer) then
-      begin
-        raise EMVCConfigException.Create('Cannot find HTML serializer');
-      end;
-      AContext.Response.SetContent(lSer.SerializeObject(lError));
-      AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_HTML,
-        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-    end
-    else if AContext.Request.ClientPrefer(AContext.Config[TMVCConfigKey.DefaultContentType]) and
-      Serializers.TryGetValue(AContext.Config[TMVCConfigKey.DefaultContentType], lSer) then
-    begin
-      lIgnored := ['ObjectDictionary'];
-      if lError.fAppErrorCode = 0 then
-        lIgnored := lIgnored + ['AppErrorCode'];
-      if lError.Data = nil then
-        lIgnored := lIgnored + ['Data'];
-      if lError.DetailedMessage.IsEmpty then
-        lIgnored := lIgnored + ['DetailedMessage'];
-      if lError.Items.Count = 0 then
-      begin
-        lIgnored := lIgnored + ['Items'];
-      end;
-
-      AContext.Response.SetContent(lSer.SerializeObject(lError, stDefault, lIgnored));
-      AContext.Response.SetContentType
-        (BuildContentType(AContext.Config[TMVCConfigKey.DefaultContentType],
-        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-    end
-    else
-    begin
-      AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
-        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-      AContext.Response.SetContent(FConfigCache_ServerSignature + sLineBreak + 'HTTP ' +
-        HTTPStatusCode.ToString + ': ' + AReasonString);
+      lIgnored := lIgnored + ['Items'];
     end;
+
+    for lItem in lPreferredAcceptContentType do
+    begin
+      lSer := Serializer(lItem, False);
+      if lSer <> nil then
+      begin
+        lContentType := lItem;
+        Break;
+      end;
+    end;
+    if lSer = nil then
+    begin
+      raise EMVCConfigException.Create('Cannot find a proper serializer among ' + string.Join(',', lPreferredAcceptContentType));
+    end;
+
+    AContext.Response.SetContentType(
+      BuildContentType(lItem, AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+    AContext.Response.SetContent(lSer.SerializeObject(lError, stDefault, lIgnored));
     AContext.Response.SetStatusCode(HTTPStatusCode);
-    AContext.Response.SetReasonString(AReasonString);
+    AContext.Response.SetReasonString(lError.Message);
   finally
     lError.Free;
   end;
@@ -3515,6 +3511,13 @@ begin
   begin
     FSerializers.Add(lDefaultSerializerContentType, TMVCHTMLSerializer.Create(Config));
   end;
+
+  // this is used only for TMVCError (dt 2024-02-22)
+  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.TEXT_PLAIN, '');
+  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+  begin
+    FSerializers.Add(lDefaultSerializerContentType, TMVCTextSerializer.Create(Config));
+  end;
 end;
 
 procedure TMVCEngine.ResponseErrorPage(const AException: Exception; const ARequest: TWebRequest;
@@ -3574,6 +3577,30 @@ begin
 
   Cookie.Path := '/';
   Result := ASessionId;
+end;
+
+function TMVCEngine.Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean): IMVCSerializer;
+var
+  lContentMediaType: string;
+  lContentCharSet: string;
+begin
+  SplitContentMediaTypeAndCharset(AContentType.ToLower, lContentMediaType, lContentCharSet);
+  if FSerializers.ContainsKey(lContentMediaType) then
+  begin
+    Result := FSerializers.Items[lContentMediaType];
+  end
+  else
+  begin
+    if ARaiseExceptionIfNotExists then
+    begin
+      raise EMVCException.CreateFmt('The serializer for %s could not be found. [HINT] Register on TMVCEngine instance using "AddSerializer" method.',
+        [lContentMediaType]);
+    end
+    else
+    begin
+      Result := nil;
+    end;
+  end;
 end;
 
 function TMVCEngine.SetExceptionHandler(const AExceptionHandlerProc: TMVCExceptionHandlerProc)
@@ -4163,26 +4190,8 @@ end;
 function TMVCRenderer.Serializer(
   const AContentType: string;
   const ARaiseExceptionIfNotExists: Boolean): IMVCSerializer;
-var lContentMediaType: string;
-  lContentCharSet: string;
 begin
-  SplitContentMediaTypeAndCharset(AContentType.ToLower, lContentMediaType, lContentCharSet);
-  if Engine.Serializers.ContainsKey(lContentMediaType) then
-  begin
-    Result := Engine.Serializers.Items[lContentMediaType];
-  end
-  else
-  begin
-    if ARaiseExceptionIfNotExists then
-    begin
-      raise EMVCException.CreateFmt('The serializer for %s could not be found. [HINT] Register on TMVCEngine instance using "AddSerializer" method.',
-        [lContentMediaType]);
-    end
-    else
-    begin
-      Result := nil;
-    end;
-  end;
+  Result := Engine.Serializer(AContentType, ARaiseExceptionIfNotExists);
 end;
 
 function TMVCController.SessionAs<T>: T;
@@ -4528,13 +4537,11 @@ begin
         end;
       end;
 
-      if Serializer(GetContentType, False) = nil then
-      begin
-        if Serializer(FContext.Request.BestAccept, False) <> nil then
-          GetContext.Response.ContentType := FContext.Request.BestAccept
-        else
-          GetContext.Response.ContentType := GetConfig[TMVCConfigKey.DefaultContentType];
-      end;
+      if Serializer(FContext.Request.BestAccept, False) <> nil then
+        GetContext.Response.ContentType := FContext.Request.BestAccept
+      else
+        GetContext.Response.ContentType := Engine.FConfigCache_DefaultContentType;
+
       Render(R, False, nil, R.GetIgnoredList);
     finally
       R.Free;
