@@ -420,7 +420,7 @@ begin
         begin
           FAuthenticationHandler.OnAuthentication(AContext, LUsername, LPassword, LRolesList, LIsValid, LSessionData);
           if not LIsValid then
-            raise EMVCJWTException.Create(HTTP_STATUS.Forbidden, 'Forbidden');
+            raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Unauthorized');
         end;
 
         LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
