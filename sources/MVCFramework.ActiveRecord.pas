@@ -4545,19 +4545,38 @@ end;
 procedure TMVCTableMapRepository.AddTableMap(const AR: TMVCActiveRecord; const TableName: String; var TableMap: TMVCTableMap);
 var
   lKey: string;
+{$IF Not Defined(RIOORBETTER)}
+  lTmpTableMap: TMVCTableMap;
+{$ENDIF}
 begin
   fMREW.BeginWrite;
   try
     lKey := GetCacheKey(AR, TableName);
-    // if, due to multi-threading, the tablemap definition is already in the case, I free the passed TableMap
+    // if, due to multi-threading (and the micro-lock used in the caller),
+    // the tablemap definition is already in the case, I free the passed TableMap
     // and return the TableMap already present in the cache.
     LogD(Format('ActiveRecord: Add "%s" to the metadata cache', [lKey]));
+
+    {$IF Defined(RIOORBETTER)}
     if not fTableMapDict.TryAdd(lKey, TableMap) then
     begin
       LogD(Format('ActiveRecord: Discarded new mapping - cache for "%s" already present', [lKey]));
       TableMap.Free;
       TableMap := fTableMapDict[lKey];
     end;
+    {$ELSE}
+    // https://github.com/danieleteti/delphimvcframework/issues/728
+    if fTableMapDict.TryGetValue(lKey, lTmpTableMap) then
+    begin
+      LogD(Format('ActiveRecord: Discarded new mapping - cache for "%s" already present', [lKey]));
+      TableMap.Free;
+      TableMap := lTmpTableMap;
+    end
+    else
+    begin
+      fTableMapDict.Add(lKey, TableMap);
+    end;
+    {$ENDIF}
   finally
     fMREW.EndWrite;
   end;
