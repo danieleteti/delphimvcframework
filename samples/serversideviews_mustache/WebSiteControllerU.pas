@@ -60,13 +60,20 @@ type
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function MustacheTemplateShowCase: String;
+
+    [MVCPath('/loadviewtest')]
+    [MVCHTTPMethods([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    procedure LoadViewTest;
   end;
 
 implementation
 
 { TWebSiteController }
 
-uses System.SysUtils, Web.HTTPApp;
+uses System.SysUtils, Web.HTTPApp, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf, Data.DB,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
 procedure TWebSiteController.DeletePerson;
 var
@@ -146,6 +153,30 @@ begin
   Redirect('/people');
 end;
 
+procedure TWebSiteController.LoadViewTest;
+var
+  lDS: TFDMemTable;
+begin
+  lDS := TFDMemTable.Create(nil);
+  try
+    lDS.FieldDefs.Add('id', ftInteger);
+    lDS.FieldDefs.Add('first_name', ftString, 40);
+    lDS.FieldDefs.Add('last_name', ftString, 40);
+    lDS.FieldDefs.Add('age', ftInteger);
+    lDS.CreateDataSet;
+    lDS.AppendRecord([1,'Daniele','Teti',44]);
+    lDS.AppendRecord([2,'Bruce','Banner',54]);
+    lDS.AppendRecord([3,'Peter','Parker',34]);
+    lDS.First;
+
+    ViewData['people'] := lDS;
+    LoadView(['people_list_test','people_list_test']);
+    RenderResponseStream;
+  finally
+    lDS.Free;
+  end;
+end;
+
 function TWebSiteController.MustacheTemplateShowCase: String;
 var
   LDAL: IPeopleDAL;
@@ -204,7 +235,7 @@ begin
   inherited;
   SetPagesCommonHeaders(['header']);
   SetPagesCommonFooters(['footer']);
-  ContentType := 'text/html';
+  if not AActionNAme.ToLower.Contains('test') then ContentType := 'text/html';
   Handled := False;
 end;
 

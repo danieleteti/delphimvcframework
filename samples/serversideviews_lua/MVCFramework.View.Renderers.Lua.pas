@@ -87,7 +87,7 @@ procedure TMVCLuaViewEngine.Execute(const ViewName: string;
   const OutputStream: TStream);
 var
   Lua: TLuaEngine;
-  lDataSetName, lModelName: string;
+  lModelName: string;
   lLuaFilter: TLuaEmbeddedTextFilter;
   lViewFileName: String;
   lFileName, lCompiledFileName: string;
@@ -156,13 +156,6 @@ begin
           finally
             lJSON.Free;
           end;
-        end;
-      end;
-      if Assigned(ViewDataSets) then
-      begin
-        for lDataSetName in ViewDataSets.Keys do
-        begin
-          ExposeDataSet(Lua, ViewDataSets[lDataSetName], ViewDataSets[lDataSetName].Name);
         end;
       end;
 
