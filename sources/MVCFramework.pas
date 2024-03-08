@@ -782,14 +782,11 @@ type
   TMVCController = class(TMVCRenderer)
   private
     FViewModel: TMVCViewDataObject;
-    FViewDataSets: TMVCViewDataSet;
     fPageHeaders: TArray<String>;
     fPageFooters: TArray<String>;
     function GetSession: TMVCWebSession;
     function GetViewData(const aModelName: string): TValue;
-    function GetViewDataset(const aDataSetName: string): TDataSet;
     procedure SetViewData(const aModelName: string; const Value: TValue);
-    procedure SetViewDataset(const aDataSetName: string; const Value: TDataSet);
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -803,7 +800,6 @@ type
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
-    function GetViewDataSets: TMVCViewDataSet;
     function GetRenderedView(const AViewNames: TArray<string>): string; overload; virtual;
     function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; virtual;
 
@@ -867,13 +863,8 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     procedure PushObjectToView(const aModelName: string; const AModel: TObject);
       deprecated 'Use "ViewData"';
-    procedure PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
-      deprecated 'Use "ViewDataSet"';
 
     property ViewData[const aModelName: string]: TValue read GetViewData write SetViewData;
-    property ViewDataset[const aDataSetName: string]: TDataSet read GetViewDataset
-      write SetViewDataset;
-
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -1199,7 +1190,6 @@ type
     FViewName: string;
     FWebContext: TWebContext;
     FViewModel: TMVCViewDataObject;
-    FViewDataSets: TObjectDictionary<string, TDataSet>;
     FContentType: string;
     FOutput: string;
   protected
@@ -1209,13 +1199,11 @@ type
   public
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
-      const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string); overload; virtual;
     constructor Create(
       const AEngine: TMVCEngine;
       const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
-      const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AJSONModel: TJSONObject;
       const AContentType: string); overload; virtual;
     destructor Destroy; override;
@@ -1225,7 +1213,6 @@ type
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
     property ViewModel: TMVCViewDataObject read FViewModel;
-    property ViewDataSets: TObjectDictionary<string, TDataSet> read FViewDataSets;
     property ContentType: string read FContentType;
     property Output: string read FOutput;
   end;
@@ -3793,7 +3780,6 @@ begin
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   FResponseStream := nil;
   FViewModel := nil;
-  FViewDataSets := nil;
   fPageHeaders := nil;
   fPageFooters := nil;
 end;
@@ -3802,12 +3788,8 @@ destructor TMVCController.Destroy;
 begin
   if Assigned(FResponseStream) then
     FResponseStream.Free;
-
   if Assigned(FViewModel) then
     FViewModel.Free;
-
-  if Assigned(FViewDataSets) then
-    FViewDataSets.Free;
   inherited Destroy;
 end;
 
@@ -3853,7 +3835,7 @@ var
 begin
   lStrStream := TStringStream.Create('', TEncoding.UTF8);
   try
-    lView := FEngine.ViewEngineClass.Create(Engine, Context, FViewModel, FViewDataSets, JSONModel, ContentType);
+    lView := FEngine.ViewEngineClass.Create(Engine, Context, FViewModel, JSONModel, ContentType);
     try
       for lViewName in AViewNames do
       begin
@@ -3911,19 +3893,6 @@ function TMVCController.GetViewData(const aModelName: string): TValue;
 begin
   if not FViewModel.TryGetValue(aModelName, Result) then
     Result := nil;
-end;
-
-function TMVCController.GetViewDataset(const aDataSetName: string): TDataSet;
-begin
-  if not FViewDataSets.TryGetValue(aDataSetName, Result) then
-    Result := nil;
-end;
-
-function TMVCController.GetViewDataSets: TMVCViewDataSet;
-begin
-  if not Assigned(FViewDataSets) then
-    FViewDataSets := TMVCViewDataSet.Create;
-  Result := FViewDataSets;
 end;
 
 function TMVCController.GetViewModel: TMVCViewDataObject;
@@ -3997,11 +3966,6 @@ begin
     Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters)
   else
     Result := GetRenderedView(AViewNames);
-end;
-
-procedure TMVCController.PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
-begin
-  GetViewDataSets.Add(aModelName, ADataSet);
 end;
 
 procedure TMVCController.PushObjectToView(const aModelName: string; const AModel: TObject);
@@ -4234,11 +4198,6 @@ begin
   GetViewModel.Add(aModelName, Value);
 end;
 
-procedure TMVCController.SetViewDataset(const aDataSetName: string; const Value: TDataSet);
-begin
-  GetViewDataSets.Add(aDataSetName, Value);
-end;
-
 procedure TMVCRenderer.Render(
   const AObject: TObject;
   const AOwns: Boolean;
@@ -4412,7 +4371,7 @@ begin
   try
     lView := FEngine.ViewEngineClass.Create(
       Engine, Context,
-      FViewModel, FViewDataSets,
+      FViewModel,
       ContentType);
     try
       for lViewName in AViewNames do
@@ -4793,14 +4752,12 @@ constructor TMVCBaseViewEngine.Create(
       const AEngine: TMVCEngine;
       const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
-      const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string);
 begin
   inherited Create;
   Engine := AEngine;
   FWebContext := AWebContext;
   FViewModel := AViewModel;
-  FViewDataSets := AViewDataSets;
   FContentType := AContentType;
   FOutput := EmptyStr;
 end;
@@ -4809,11 +4766,10 @@ constructor TMVCBaseViewEngine.Create(
   const AEngine: TMVCEngine;
   const AWebContext: TWebContext;
   const AViewModel: TMVCViewDataObject;
-  const AViewDataSets: TObjectDictionary<string, TDataSet>;
   const AJSONModel: TJSONObject;
   const AContentType: string);
 begin
-  Create(AEngine, AWebContext, AViewModel, AViewDataSets, AContentType);
+  Create(AEngine, AWebContext, AViewModel, AContentType);
   fJSONModel := AJSONModel;
 end;
 

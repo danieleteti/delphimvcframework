@@ -2,10 +2,13 @@ unit WebModuleU;
 
 interface
 
-uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
+uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf, Data.DB,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
 type
   TWebModule1 = class(TWebModule)
+    FDMemTable1: TFDMemTable;
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
   private

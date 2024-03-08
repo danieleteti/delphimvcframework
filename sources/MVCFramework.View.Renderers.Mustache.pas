@@ -40,6 +40,7 @@ type
   strict private
     procedure PrepareModels;
   private
+    fModelPrepared: Boolean;
     class var fPartials: TSynMustachePartials;
     class var fHelpers: TSynMustacheHelpers;
     class var fSerializerPool: IIntfObjectPool;
@@ -53,7 +54,6 @@ type
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
-      const AViewDataSets: TObjectDictionary<string, TDataSet>;
       const AContentType: string); override;
     class destructor Destroy;
     class constructor Create;
@@ -101,10 +101,10 @@ var
 
 constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
   const AWebContext: TWebContext; const AViewModel: TMVCViewDataObject;
-  const AViewDataSets: TObjectDictionary<string, TDataSet>;
   const AContentType: string);
 begin
   inherited;
+  fModelPrepared := False;
   LoadPartials;
   LoadHelpers;
 end;
@@ -218,61 +218,56 @@ end;
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
   DataObj: TPair<string, TValue>;
-  lDSPair: TPair<string, TDataSet>;
   lSer: IMVCSerializer;
   lJSONModel: TJsonObject;
 begin
-  if Assigned(FJSONModel) and (not Assigned(ViewModel)) and (not Assigned(ViewDataSets)) then
+  if fModelPrepared then
   begin
-    // if only jsonmodel is <> nil then we take the "fast path"
-    FJSONModelAsString := FJSONModel.ToJSON(False);
     Exit;
   end;
 
-
-
-  lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
-  try
-    if Assigned(FJSONModel) then
-    begin
-      lJSONModel := FJSONModel.Clone as TJsonObject;
-    end
-    else
-    begin
-      lJSONModel := TJsonObject.Create;
-    end;
+  if Assigned(FJSONModel) and (not Assigned(ViewModel)) then
+  begin
+    // if only jsonmodel is <> nil then we take the "fast path"
+    FJSONModelAsString := FJSONModel.ToJSON(False);
+  end
+  else
+  begin
+    lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
     try
-      if Assigned(ViewModel) then
+      if Assigned(FJSONModel) then
       begin
-        for DataObj in ViewModel do
-        begin
-          TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
-  //          lList := TDuckTypedList.Wrap(DataObj.Value);
-  //          if lList <> nil then
-  //          begin
-  //            lSer.ListToJsonArray(lList, lJSONModel.A[DataObj.Key], TMVCSerializationType.stProperties, nil);
-  //          end
-  //          else
-  //          begin
-  //            lSer.ObjectToJsonObject(DataObj.Value, lJSONModel.O[DataObj.Key], TMVCSerializationType.stProperties, nil);
-  //          end;
-        end;
+        lJSONModel := FJSONModel.Clone as TJsonObject;
+      end
+      else
+      begin
+        lJSONModel := TJsonObject.Create;
       end;
+      try
+        if Assigned(ViewModel) then
+        begin
+          for DataObj in ViewModel do
+          begin
+            TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
+          end;
+        end;
 
-      if Assigned(ViewDataSets) then
-      begin
-        for lDSPair in ViewDataSets do
-        begin
-          TMVCJsonDataObjectsSerializer(lSer).DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
-        end;
+//        if Assigned(ViewDataSets) then
+//        begin
+//          for lDSPair in ViewDataSets do
+//          begin
+//            TMVCJsonDataObjectsSerializer(lSer).DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
+//          end;
+//        end;
+        FJSONModelAsString := lJSONModel.ToJSON(False);
+      finally
+        lJSONModel.Free;
       end;
-      FJSONModelAsString := lJSONModel.ToJSON(False);
     finally
-      lJSONModel.Free;
+      fSerializerPool.ReleaseToPool(lSer)
     end;
-  finally
-    fSerializerPool.ReleaseToPool(lSer)
   end;
+  fModelPrepared := True;
 end;
 
 { dmvcframework specific helpers}
