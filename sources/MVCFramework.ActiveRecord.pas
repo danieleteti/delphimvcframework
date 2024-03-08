@@ -1326,7 +1326,7 @@ begin
       for lPair in fTableMap.fMap do
       begin
         lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(lPair.Value.FieldName));
-        if lPar <> nil then
+        if (lPar <> nil) and lpair.Value.Writeable then
         begin
           lValue := lPair.Key.GetValue(Self);
           lPar.DataTypeName := fTableMap.fMap.GetInfoByFieldName(lPair.Value.FieldName).DataTypeName;
