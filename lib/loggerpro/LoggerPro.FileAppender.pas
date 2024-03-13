@@ -207,6 +207,7 @@ var
   lModuleName: string;
   lPath: string;
   lFormat: string;
+  lNow: TDateTime;
 begin
 {$IF Defined(Android)}
   lModuleName := TAndroidHelper.ApplicationTitle.Replace(' ', '_', [rfReplaceAll]);
@@ -220,6 +221,7 @@ begin
   lFormat := fLogFileNameFormat;
 
   lPath := fLogsFolder;
+  lNow := Now();
   lFormat := lFormat
     .Replace('{module}', lModuleName, [rfReplaceAll])
     .Replace('{number}', aFileNumber.ToString.PadLeft(2,'0') , [rfReplaceAll])
