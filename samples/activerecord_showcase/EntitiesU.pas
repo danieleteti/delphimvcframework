@@ -73,9 +73,9 @@ type
       'SEQ_ARTICLES_ID' { required for interbase } )]
 {$ENDIF}
     fID: NullableInt32;
-    [MVCTableField('description', [foWriteOnly])]
+    [MVCTableField('description', [foDoNotSelect])]
     fDescrizione: string;
-    [MVCTableField('price', [foWriteOnly])]
+    [MVCTableField('price', [foDoNotSelect])]
     fPrice: Integer;
   public
     property ID: NullableInt32 read fID write fID;
