@@ -63,6 +63,7 @@ type
     btnIntegersAsBool: TButton;
     btnObjectVersion: TButton;
     btnCustomTable: TButton;
+    btnCRUDWithOptions: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -96,6 +97,7 @@ type
     procedure btnIntegersAsBoolClick(Sender: TObject);
     procedure btnObjectVersionClick(Sender: TObject);
     procedure btnCustomTableClick(Sender: TObject);
+    procedure btnCRUDWithOptionsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -410,6 +412,78 @@ begin
   finally
     lCustWithGUID.Free;
   end;
+end;
+
+procedure TMainForm.btnCRUDWithOptionsClick(Sender: TObject);
+var
+  lCustomer: TCustomerWithOptions;
+  lID: Integer;
+begin
+  Log('** CRUD test with fields options');
+  lCustomer := TCustomerWithOptions.Create;
+  try
+    {
+      'Code' will not be persisted on table because defined as 'foReadOnly'
+    }
+    lCustomer.Code := '1234'; // "Code" will be skipped in insert and in update as well
+    lCustomer.CompanyName := 'Google Inc.'; // "CompanyName" will be skipped in insert
+    lCustomer.City := 'Montain View, CA'; // "City" will be skipped in update
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Log('Just inserted Customer ' + lID.ToString + ' with fields options');
+  finally
+    lCustomer.Free;
+  end;
+
+  //let's check that code is empty
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithOptions>(lID);
+  try
+    Assert(lCustomer.Code.IsNull); // it's null
+    Assert(lCustomer.CompanyName.IsEmpty); //empty string
+    Assert(lCustomer.City = 'Montain View, CA'); //inserted
+
+    lCustomer.Code := '1234'; // "Code" will be skipped in insert and in update as well
+    lCustomer.CompanyName := 'Google Inc.'; // "CompanyName" will be saved
+    lCustomer.City := 'Via Roma 10, ITALY'; // "City" will be skipped in update
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  //let's check
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithOptions>(lID);
+  try
+    Assert(lCustomer.Code.IsNull); // it's null
+    Assert(lCustomer.CompanyName = 'Google Inc.'); //correctly updated
+    Assert(lCustomer.City = 'Montain View, CA'); // not updated, mantains old value
+  finally
+    lCustomer.Free;
+  end;
+
+  {
+  //if underlying field is not null, it is loaded as usual
+  TMVCActiveRecord.CurrentConnection.ExecSQL('update customers set code = ''XYZ'' where id = ?', [lID]);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
+  try
+    Assert('XYZ' = lCustomer.Code);
+    lCustomer.CompanyName := lCustomer.CompanyName + ' changed!';
+    lCustomer.Code := 'this code will not be saved';
+    lCustomer.Update; //do not save field "code"
+    Log('Just updated Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  //but being foReadOnly is not updated
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithReadOnlyFields>(lID);
+  try
+    Assert('XYZ' = lCustomer.Code);
+    lCustomer.Delete;
+    Log('Just deleted Customer ' + lID.ToString + ' with a R/O field');
+  finally
+    lCustomer.Free;
+  end;
+  }
 end;
 
 procedure TMainForm.btnCRUDWithStringPKsClick(Sender: TObject);
