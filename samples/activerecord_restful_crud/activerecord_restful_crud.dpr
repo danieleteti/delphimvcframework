@@ -40,7 +40,7 @@ begin
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
   else
-    lCmd := '/firebird';
+    lCmd := '/postgresql';
 
   if (lCmd = '/firebird') then
   begin
@@ -50,14 +50,13 @@ begin
   begin
     CreateMySQLPrivateConnDef(True);
   end
-  else if (lCmd = '/postgresql') then
-  begin
-    CreatePostgreSQLPrivateConnDef(True);
-  end
   else
   begin
-    CreateFirebirdPrivateConnDef(True);
+    lCmd := '/postgresql';
+    CreatePostgreSQLPrivateConnDef(True);
   end;
+
+  WriteLn('Using ' + lCmd.Substring(1));
 
   lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try

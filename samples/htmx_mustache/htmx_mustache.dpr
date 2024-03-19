@@ -31,9 +31,8 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   ReportMemoryLeaksOnShutdown := True;
-  ResetConsole;
-  TextColor(TConsoleColor.Green);
-  Writeln(Format('Starting HTTP Server on port %d', [APort]));
+  LogI('HTMX DMVCFramework Sample');
+  LogI(Format('Starting HTTP Server on port %d', [APort]));
   ResetConsole;
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -42,9 +41,8 @@ begin
     {$IFDEF MSWINDOWS}
     //ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
     {$ENDIF}
-    WriteLn('HTMX DMVCFramework Sample');
-    TextColor(TConsoleColor.Red);
-    Write('Ctrl+C to stop the server');
+    LogI('HTMX DMVCFramework Sample');
+    LogI('Ctrl+C to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     ResetConsole;
@@ -58,7 +56,7 @@ begin
   { Enable ReportMemoryLeaksOnShutdown during debug }
   // ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
-
+  UseConsoleLogger := True;
   // DMVCFramework Specific Configuration
   // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
   // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
@@ -87,7 +85,7 @@ begin
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName +  ': ' + E.Message);
   end;
 
 end.

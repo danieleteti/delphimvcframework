@@ -109,12 +109,11 @@ begin
   // calling http://localhost:8080/customserializationtype
 
   DMVC
-    .Serializers
-    .Items[TMVCMediaType.APPLICATION_JSON]
+    .Serializer(TMVCMediaType.APPLICATION_JSON)
     .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
 
   // This line registers custom serializers for TBitmap, TPngImage (Only MSWindows) and TJPEGImage (Only MSWindows)
-  RegisterOptionalCustomTypesSerializersForJSON(DMVC.Serializers);
+  RegisterOptionalCustomTypesSerializers(DMVC.Serializer(TMVCMediaType.APPLICATION_JSON));
 end;
 
 end.

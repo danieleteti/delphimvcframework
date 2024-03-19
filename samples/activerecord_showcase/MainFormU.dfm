@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 626
+  ClientHeight = 660
   ClientWidth = 1094
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     1094
-    626)
+    660)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -27,7 +27,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 242
+    Top = 283
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 8
     Width = 806
-    Height = 610
+    Height = 644
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -58,7 +58,7 @@ object MainForm: TMainForm
   end
   object btnRelations: TButton
     Left = 8
-    Top = 281
+    Top = 322
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -67,7 +67,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 322
+    Top = 363
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -76,7 +76,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 362
+    Top = 403
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -94,7 +94,7 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 402
+    Top = 443
     Width = 121
     Height = 34
     Caption = 'RQL Query'
@@ -240,7 +240,7 @@ object MainForm: TMainForm
   end
   object btnReadOnly: TButton
     Left = 8
-    Top = 442
+    Top = 483
     Width = 121
     Height = 34
     Caption = 'Read/Only Entities'
@@ -249,7 +249,7 @@ object MainForm: TMainForm
   end
   object btnSpeed: TButton
     Left = 8
-    Top = 482
+    Top = 523
     Width = 121
     Height = 34
     Caption = 'Metadata Speed Test'
@@ -285,7 +285,7 @@ object MainForm: TMainForm
   end
   object btnIntegersAsBool: TButton
     Left = 8
-    Top = 522
+    Top = 563
     Width = 121
     Height = 34
     Caption = 'Integers As Booleans'
@@ -294,7 +294,7 @@ object MainForm: TMainForm
   end
   object btnObjectVersion: TButton
     Left = 8
-    Top = 562
+    Top = 603
     Width = 121
     Height = 34
     Caption = 'Object Version'
@@ -309,6 +309,15 @@ object MainForm: TMainForm
     Caption = 'Custom TableName'
     TabOrder = 30
     OnClick = btnCustomTableClick
+  end
+  object btnCRUDWithOptions: TButton
+    Left = 8
+    Top = 242
+    Width = 121
+    Height = 33
+    Caption = 'CRUD With Fields Opts'
+    TabOrder = 31
+    OnClick = btnCRUDWithOptionsClick
   end
   object FDConnection1: TFDConnection
     Left = 312

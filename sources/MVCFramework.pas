@@ -1901,7 +1901,10 @@ begin
     try
       Flush;
     except
-      // do nothing
+      on E: Exception do
+      begin
+        LogException(E, '');
+      end;
     end;
   end;
   inherited Destroy;
