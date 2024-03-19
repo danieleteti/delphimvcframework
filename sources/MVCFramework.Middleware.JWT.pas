@@ -22,7 +22,7 @@
 //
 // *************************************************************************** }
 
-unit MVCFramework.Middleware.JWTWithHttpOnly;
+unit MVCFramework.Middleware.JWT;
 
 {$I dmvcframework.inc}
 
