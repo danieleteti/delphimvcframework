@@ -238,6 +238,7 @@ begin
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
     lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCustomer.LastContact := Now();
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);
@@ -250,6 +251,7 @@ begin
     Assert(not lCustomer.Code.HasValue);
     lCustomer.Code.Value := '5678';
     lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lCustomer.LastContact.Clear;
     lTestNote := lCustomer.Note;
     lCustomer.Update;
     Log('Just updated Customer ' + lID.ToString);
@@ -261,6 +263,8 @@ begin
   try
     lCustomer.LoadByPK(lID);
     lCustomer.Code.Value := '😉9012🙂';
+    Assert(lCustomer.LastContact.IsNull);
+    lCustomer.LastContact := Now();
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -271,6 +275,8 @@ begin
     lCustomer.LoadByPK(lID);
     Assert(lCustomer.Code.Value = '😉9012🙂');
     Assert(lCustomer.Note = lTestNote);
+    Assert(lCustomer.LastContact.HasValue);
+    lCustomer.LastContact := Now();
     lCustomer.Update;
   finally
     lCustomer.Free;

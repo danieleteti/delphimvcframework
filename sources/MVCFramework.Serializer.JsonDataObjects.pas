@@ -1014,6 +1014,10 @@ begin
             AJSONObject.S[lFName] := DateTimeToISOTimeStamp
               (SQLTimeStampToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStamp));
 
+          ftTimeStampOffset:
+            AJSONObject.S[lFName] := DateTimeToISOTimeStamp
+              (SQLTimeStampOffsetToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStampOffset));
+
           ftCurrency:
             AJSONObject.F[lFName] := ADataSet.Fields[lField.I].AsCurrency;
 
@@ -1069,7 +1073,7 @@ begin
               end;
             end;
         else
-          raise EMVCSerializationException.CreateFmt('Cannot find type for field "%s"', [lField.FieldName]);
+          raise EMVCSerializationException.CreateFmt('Cannot find type for field "%s" - TFieldType = %s', [lField.FieldName, GetEnumName(TypeInfo(TFieldType), Ord(lField.DataType))]);
         end;
       end;
     end;
@@ -2245,6 +2249,9 @@ begin
 
         TFieldType.ftDateTime, TFieldType.ftTimeStamp:
           Field.AsDateTime := ISOTimeStampToDateTime(AJSONObject.S[lName]);
+
+        TFieldType.ftTimeStampOffset:
+          Field.AsSQLTimeStampOffset :=  StrToSQLTimeStampOffset(AJSONObject.S[lName]);
 
         TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJSONObject.S[lName]);

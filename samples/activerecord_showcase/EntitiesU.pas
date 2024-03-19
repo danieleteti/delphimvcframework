@@ -129,6 +129,8 @@ type
     fCompanyName: NullableString;
     [MVCTableField('city')]
     fCity: string;
+    [MVCTableField('last_contact_timestamp')]
+    fLastContact: NullableTDateTime;
     [MVCTableField('rating')]
     fRating: NullableInt32;
     [MVCTableField('note')]
@@ -141,6 +143,7 @@ type
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
+    property LastContact: NullableTDateTime read fLastContact write fLastContact;
     property Rating: NullableInt32 read fRating write fRating;
     property Note: string read fNote write fNote;
   end;
