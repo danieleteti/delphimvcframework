@@ -1898,11 +1898,11 @@ destructor TMVCWebResponse.Destroy;
 begin
   if FFlushOnDestroy then
   begin
-//    try
+    try
       Flush;
-//    except
-//       do nothing
-//    end;
+    except
+      // do nothing
+    end;
   end;
   inherited Destroy;
 end;
@@ -2144,35 +2144,23 @@ end;
 destructor TWebContext.Destroy;
 begin
   try
-    FreeAndNil(FResponse);
-  except on E:Exception do begin
-    LogException(e, 'TWebContext.Destroy:FResponse.Free;');
-    raise;
-  end;
+    FResponse.Free;
+  except
   end;
   try
-    FreeAndNil(FRequest);
-  except on E:Exception do begin
-    LogException(e, 'TWebContext.Destroy:FRequest.Free');
-    raise;
-  end;
+    FRequest.Free;
+  except
   end;
   try
-    FreeAndNil(FData);
-  except on E:Exception do begin
-    LogException(e, 'TWebContext.Destroy:FData.Free');
-    raise;
-  end;
+    FData.Free;
+  except
   end;
 
   fIntfObject := nil;
 
   try
-    FreeAndNil(FLoggedUser);
-  except on E:Exception do begin
-    LogException(e, 'TWebContext.Destroy:FLoggedUser.Free');
-    raise;
-  end;
+    FLoggedUser.Free;
+  except
   end;
   inherited Destroy;
 end;
