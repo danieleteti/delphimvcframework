@@ -1,6 +1,6 @@
 appdirs==1.4.3
 attrs==19.3.0
-black==19.10b0
+black==24.3.0
 click==7.1.1
 colorama==0.4.1
 invoke==1.4.1
