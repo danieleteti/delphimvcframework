@@ -76,7 +76,8 @@ uses
   IntfObjectPoolTestU in 'IntfObjectPoolTestU.pas',
   ObjectPoolTestU in 'ObjectPoolTestU.pas',
   MVCFramework.DotEnv.Parser in '..\..\..\sources\MVCFramework.DotEnv.Parser.pas',
-  MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas';
+  MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas',
+  MVCFramework.Injector in '..\..\..\sources\MVCFramework.Injector.pas';
 
 {$R *.RES}
 

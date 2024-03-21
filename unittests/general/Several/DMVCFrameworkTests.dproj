@@ -274,6 +274,7 @@
         <DCCReference Include="ObjectPoolTestU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.DotEnv.Parser.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.DotEnv.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Injector.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -366,6 +367,18 @@
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin32\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin32\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
                     <Platform Name="Win64">
                         <RemoteName>DMVCFrameworkTests.exe</RemoteName>
@@ -381,21 +394,9 @@
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="CONSOLE" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
-                <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="CONSOLE" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="GUI" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
-                <DeployFile LocalName="bin\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">
-                    <Platform Name="Win32">
-                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>
