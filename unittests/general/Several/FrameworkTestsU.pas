@@ -288,6 +288,15 @@ type
     procedure TestInLineComments;
   end;
 
+  [TestFixture]
+  TTestInjector = class(TObject)
+  public
+    [Test]
+    procedure TestTransient;
+    [Test]
+    procedure TestUnknownService;
+  end;
+
 
 implementation
 
@@ -312,7 +321,7 @@ uses
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
-  MVCFramework.DotEnv.Parser;
+  MVCFramework.DotEnv.Parser, MVCFramework.Injector;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -2396,6 +2405,51 @@ begin
   end;
 end;
 
+{ TTestInjector }
+
+procedure TTestInjector.TestTransient;
+begin
+  var lCont := TMVCServiceContainer.Create;
+  try
+    lCont.RegisterType<TMyService>(IMyInterface1);
+    lCont.RegisterType<TMyService>(IMyInterface2, '', rtSingleton);
+    var l0 := lCont.Resolve<IMyInterface1>;
+    var l1 := lCont.Resolve<IMyInterface1>;
+    Assert.AreNotEqual(l0, l1);
+    var l2 := lCont.Resolve<IMyInterface2>;
+    var l3 := lCont.Resolve<IMyInterface2>;
+    Assert.AreEqual(l2, l3);
+  finally
+    lCont.Free;
+  end;
+end;
+
+procedure TTestInjector.TestUnknownService;
+begin
+  var lCont := TMVCServiceContainer.Create;
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        lCont.RegisterType<TMyService2>(IMyInterface2);
+      end, TMVCServiceContainer.EMVCUnknownService);
+
+    Assert.WillRaise(
+      procedure
+      begin
+        lCont.RegisterType<TTestJWT>(IMyInterface2);
+      end, TMVCServiceContainer.EMVCUnknownService);
+
+    Assert.WillRaise(
+      procedure
+      begin
+        lCont.RegisterType<TMyService2>(IMVCSerializer);
+      end, TMVCServiceContainer.EMVCUnknownService);
+  finally
+    lCont.Free;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2407,6 +2461,7 @@ TDUnitX.RegisterTestFixture(TTestCryptUtils);
 TDUnitX.RegisterTestFixture(TTestLRUCache);
 TDUnitX.RegisterTestFixture(TTestDotEnv);
 TDUnitX.RegisterTestFixture(TTestDotEnvParser);
+TDUnitX.RegisterTestFixture(TTestInjector);
 
 finalization
 
