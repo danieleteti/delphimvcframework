@@ -207,6 +207,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.DotEnv.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.URLEncoded.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Signal.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Text.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

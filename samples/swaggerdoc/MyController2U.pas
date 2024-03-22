@@ -118,6 +118,16 @@ type
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure InsertPerson;
+
+    [MVCPath('/multiple')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCSwagSummary('People', 'Insert Person', 'createPerson')]
+    [MVCSwagParam(plBody, 'entity', 'Person object', TPerson, ptArray)]
+    [MVCSwagResponses(201, 'Created')]
+    [MVCSwagResponses(401, 'Requires Authentication')]
+    [MVCSwagResponses(500, 'Internal Server Error')]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    procedure InsertMultiplePeople;
   end;
 
 implementation
@@ -152,6 +162,15 @@ begin
   LPerson.Age := 26;
   LPerson.Country := 'Brasil';
   Render(LPerson);
+end;
+
+procedure TMyController2.InsertMultiplePeople;
+var
+  LPerson: TObjectList<TPerson>;
+begin
+  LPerson := Context.Request.BodyAsListOf<TPerson>;
+  Render(LPerson);
+  ResponseStatus(201, 'Created');
 end;
 
 procedure TMyController2.InsertPerson;

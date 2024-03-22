@@ -83,7 +83,7 @@ begin
     for lKeyValue in TableMap.fMap do
     begin
       // if not(foTransient in lKeyValue.Value.FieldOptions) then
-      if lKeyValue.Value.Writeable then
+      if lKeyValue.Value.Insertable then
       begin
         lSB.Append(GetFieldNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
@@ -108,7 +108,7 @@ begin
       if lKeyValue.Value.IsVersion then
       begin
         lSB.Append(OBJECT_VERSION_STARTING_VALUE + ',');
-      end else if lKeyValue.Value.Writeable then
+      end else if lKeyValue.Value.Insertable then
       begin
         lSB.Append(':' + GetParamNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
