@@ -11,6 +11,11 @@ type
     function GetAll: TObjectList<TPerson>;
   end;
 
+  IConnectionService = interface
+    ['{146C21A5-07E8-456D-8E6D-A72820BD17AA}']
+    function GetConnectionName: String;
+  end;
+
 implementation
 
 end.

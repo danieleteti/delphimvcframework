@@ -20,7 +20,8 @@ uses
   Services.InterfacesU in 'Services.InterfacesU.pas',
   Entities in '..\commons\Entities.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
-  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas';
+  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
+  Services.ConnectionU in 'Services.ConnectionU.pas';
 
 {$R *.res}
 
@@ -78,6 +79,10 @@ begin
                             end)
                  .Build();             //uses the executable folder to look for .env* files
       end);
+
+    DefaultServiceContainer.RegisterType(TPeopleService, IPeopleService);
+    DefaultServiceContainer.RegisterType(TConnectionService, IConnectionService);
+    DefaultServiceContainer.Build();
 
     WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
 

@@ -3,8 +3,9 @@ unit MainControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections, Services.InterfacesU,
-  Entities;
+  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
+  System.Generics.Collections, Services.InterfacesU,
+  Entities, MVCFramework.Container;
 
 type
   [MVCPath('/api')]

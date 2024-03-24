@@ -3,12 +3,16 @@ unit Services.PeopleU;
 interface
 
 uses
-  System.Generics.Collections, Entities, Services.InterfacesU, MVCFramework.Logger;
+  System.Generics.Collections, Entities, Services.InterfacesU, MVCFramework.Logger,
+  MVCFramework;
 
 type
   TPeopleService = class(TInterfacedObject, IPeopleService)
+  private
+    fConnService: IConnectionService;
   public
-    constructor Create; virtual;
+    [MVCInject]
+    constructor Create(ConnectionService: IConnectionService); virtual;
     destructor Destroy; override;
     function GetAll: TObjectList<TPerson>;
   end;
@@ -17,9 +21,10 @@ implementation
 
 { TPeopleService }
 
-constructor TPeopleService.Create;
+constructor TPeopleService.Create(ConnectionService: IConnectionService);
 begin
-  inherited;
+  inherited Create;
+  fConnService := ConnectionService;
   LogI('Service ' + ClassName + ' created');
 end;
 

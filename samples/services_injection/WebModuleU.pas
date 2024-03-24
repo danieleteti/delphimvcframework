@@ -70,9 +70,7 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end);
   FMVC.AddController(TMyController);
-  FMVC.ServiceContainer.RegisterType<TPeopleService>(IPeopleService);
 
-  
   
   // Analytics middleware generates a csv log, useful to do traffic analysis
   //FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));

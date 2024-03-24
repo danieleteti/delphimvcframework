@@ -90,6 +90,7 @@ type
     class function FindType(AQualifiedName: string): TRttiType;
     class function GetGUID<T>: TGUID;
     class function GetArrayContainedRTTIType(const RTTIType: TRttiType): TRttiType;
+    class function GetConstructorWithAttribute<T:TCustomAttribute>(const RTTIType: TRttiType): TRttiMethod;
   end;
 
 {$IF not defined(BERLINORBETTER)}
@@ -177,6 +178,23 @@ begin
   begin
     if Attr.ClassType.InheritsFrom(T) then
       Exit(T(Attr));
+  end;
+end;
+
+class function TRttiUtils.GetConstructorWithAttribute<T>(const RTTIType: TRttiType): TRttiMethod;
+var
+  lConstructors: TArray<TRttiMethod>;
+  lConstructor: TRttiMethod;
+begin
+  Result := nil;
+  lConstructors := RttiType.GetMethods('Create');
+  for lConstructor in lConstructors do
+  begin
+    if lConstructor.HasAttribute<T> then
+    begin
+      Result := lConstructor;
+      break; { the first wins }
+    end;
   end;
 end;
 

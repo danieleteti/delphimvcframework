@@ -114,7 +114,7 @@ implementation
 
 uses
   System.TypInfo,
-  System.NetEncoding;
+  System.NetEncoding, MVCFramework.Rtti.Utils, MVCFramework.Container;
 
 { TMVCRouter }
 
@@ -277,15 +277,7 @@ begin
                     // select the constructor with MVCInjectAttribute - Constructor must be called "Create"
                     if not Assigned(FControllerCreateAction) then
                     begin
-                      lConstructors := LRttiType.GetMethods('Create');
-                      for lConstructor in lConstructors do
-                      begin
-                        if lConstructor.HasAttribute<MVCInjectAttribute> then
-                        begin
-                          FControllerInjectableConstructor := lConstructor;
-                          break; { the first wins }
-                        end;
-                      end;
+                      FControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
                     end;
                     // end - select the constructor with MVCInjectAttribute
 

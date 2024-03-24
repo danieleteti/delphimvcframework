@@ -236,10 +236,6 @@ type
     property ResponseClass: TClass read FResponseClass;
   end;
 
-  MVCInjectAttribute = class(MVCBaseAttribute)
-
-  end;
-
   MVCResponseListAttribute = class(MVCBaseAttribute)
   private
     FStatusCode: Integer;
@@ -537,7 +533,7 @@ type
     fWebSession: TMVCWebSession;
     fData: TMVCStringDictionary;
     fIntfObject: IInterface;
-    FServiceContainerRef: TMVCServiceContainer;
+    FServiceContainerRef: IMVCServiceContainer;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -554,7 +550,7 @@ type
       const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
   public
-    constructor Create(const AServiceContainer: TMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
+    constructor Create(const AServiceContainer: IMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
@@ -985,7 +981,7 @@ type
     fSavedOnBeforeDispatch: THTTPMethodEvent;
     fOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
-    fServiceContainer: TMVCServiceContainer;
+    fServiceContainer: IMVCServiceContainer;
     fWebContextCreateEvent: TWebContextCreateEvent;
     fWebContextDestroyEvent: TWebContextDestroyEvent;
     procedure FillActualParamsForAction(const ASelectedController: TMVCController;
@@ -1070,7 +1066,7 @@ type
     property ApplicationSession: TWebApplicationSession read FApplicationSession
       write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
-    property ServiceContainer: TMVCServiceContainer read fServiceContainer;
+    property ServiceContainer: IMVCServiceContainer read fServiceContainer;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -2113,7 +2109,7 @@ begin
     raise EMVCException.Create('Session already bounded for this request');
 end;
 
-constructor TWebContext.Create(const AServiceContainer: TMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
+constructor TWebContext.Create(const AServiceContainer: IMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
 begin
   inherited Create;
@@ -2498,7 +2494,7 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  fServiceContainer := TMVCServiceContainer.Create;
+  fServiceContainer := DefaultServiceContainer;
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
   WebRequestHandler.CacheConnections := True;
@@ -2597,7 +2593,7 @@ begin
   fSerializers.Free;
   fMiddlewares.Free;
   fControllers.Free;
-  fServiceContainer.Free;
+  fServiceContainer := nil;
   inherited Destroy;
 end;
 
