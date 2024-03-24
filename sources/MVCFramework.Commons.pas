@@ -564,6 +564,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Freeze;
+    function Frozen: Boolean;
     function Keys: TArray<string>;
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
@@ -1058,6 +1059,11 @@ end;
 procedure TMVCConfig.Freeze;
 begin
   FFreezed := True;
+end;
+
+function TMVCConfig.Frozen: Boolean;
+begin
+  Result := FFreezed;
 end;
 
 function TMVCConfig.GetValue(const AIndex: string): string;

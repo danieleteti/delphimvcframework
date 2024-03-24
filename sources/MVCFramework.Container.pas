@@ -1,9 +1,9 @@
-unit MVCFramework.Injector;
+unit MVCFramework.Container;
 
 interface
 
 uses
-  System.Generics.Collections, System.Rtti, System.SysUtils;
+  System.Generics.Collections, System.Rtti, System.SysUtils, System.TypInfo;
 
 type
   TMVCServiceContainer = class
@@ -24,7 +24,8 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     procedure RegisterType<TImpl: class>(const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = rtTransient);
-    function Resolve<TIntf: IInterface>(const aName: string = ''; const aParams: TArray<TValue> = nil): TIntf;
+    function Resolve<TIntf: IInterface>(const aName: string = ''; const aParams: TArray<TValue> = nil): TIntf; overload;
+    function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''; const aParams: TArray<TValue> = nil): IInterface; overload;
     type
       EMVCContainerError = class(Exception) end;
       EMVCUnknownService = class(EMVCContainerError) end;
@@ -35,7 +36,7 @@ type
 implementation
 
 uses
-  MVCFramework.Rtti.Utils, System.TypInfo;
+  MVCFramework.Rtti.Utils;
 
 { TMVCServiceContainer }
 
@@ -75,14 +76,15 @@ begin
   end;
 end;
 
-function TMVCServiceContainer.Resolve<TIntf>(const aName: string; const aParams: TArray<TValue>): TIntf;
+function TMVCServiceContainer.Resolve(const aTypeInfo: PTypeInfo; const aName: string;
+  const aParams: TArray<TValue>): IInterface;
 var
   lReg: TRegistration;
   lTypeInfo: PTypeInfo;
   lType: TRttiType;
   lService: TObject;
 begin
-  lTypeInfo := TypeInfo(TIntf);
+  lTypeInfo := aTypeInfo;
   if not fRegistry.TryGetValue(GetKey(lTypeInfo.TypeData.GUID, aName), lReg) then
   begin
     raise EMVCUnknownService.CreateFmt('Unknown service for "%s"', [lTypeInfo.Name]);
@@ -116,6 +118,13 @@ begin
     else
       raise EMVCContainerError.Create('Unsupported RegistrationType');
   end;
+
+
+end;
+
+function TMVCServiceContainer.Resolve<TIntf>(const aName: string; const aParams: TArray<TValue>): TIntf;
+begin
+  Result := Resolve(TypeInfo(TIntf), aName, aParams);
 end;
 
 end.

@@ -54,6 +54,7 @@ uses
   MVCFramework.Session,
   MVCFramework.DuckTyping,
   MVCFramework.Logger,
+  MVCFramework.Container,
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
 
@@ -233,6 +234,10 @@ type
     property StatusCode: Integer read FStatusCode;
     property Description: string read FDescription;
     property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCInjectAttribute = class(MVCBaseAttribute)
+
   end;
 
   MVCResponseListAttribute = class(MVCBaseAttribute)
@@ -522,16 +527,17 @@ type
 
   TWebContext = class
   private
-    FRequest: TMVCWebRequest;
-    FResponse: TMVCWebResponse;
-    FConfig: TMVCConfig;
-    FSerializers: TDictionary<string, IMVCSerializer>;
-    FIsSessionStarted: Boolean;
-    FSessionMustBeClose: Boolean;
-    FLoggedUser: TUser;
-    FWebSession: TMVCWebSession;
-    FData: TMVCStringDictionary;
+    fRequest: TMVCWebRequest;
+    fResponse: TMVCWebResponse;
+    fConfig: TMVCConfig;
+    fSerializers: TDictionary<string, IMVCSerializer>;
+    fIsSessionStarted: Boolean;
+    fSessionMustBeClose: Boolean;
+    fLoggedUser: TUser;
+    fWebSession: TMVCWebSession;
+    fData: TMVCStringDictionary;
     fIntfObject: IInterface;
+    FServiceContainerRef: TMVCServiceContainer;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -548,7 +554,7 @@ type
       const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
   public
-    constructor Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
+    constructor Create(const AServiceContainer: TMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
@@ -962,23 +968,24 @@ type
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
       'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime, String and TGUID';
   private
-    FViewEngineClass: TMVCViewEngineClass;
-    FWebModule: TWebModule;
-    FConfig: TMVCConfig;
-    FConfigCache_MaxRequestSize: Int64;
-    FConfigCache_ExposeServerSignature: Boolean;
-    FConfigCache_ServerSignature: string;
-    FConfigCache_ExposeXPoweredBy: Boolean;
-    FConfigCache_DefaultContentType: String;
-    FConfigCache_DefaultContentCharset: String;
-    FConfigCache_PathPrefix: String;
-    FSerializers: TDictionary<string, IMVCSerializer>;
-    FMiddlewares: TList<IMVCMiddleware>;
-    FControllers: TObjectList<TMVCControllerDelegate>;
-    FApplicationSession: TWebApplicationSession;
-    FSavedOnBeforeDispatch: THTTPMethodEvent;
-    FOnException: TMVCExceptionHandlerProc;
+    fViewEngineClass: TMVCViewEngineClass;
+    fWebModule: TWebModule;
+    fConfig: TMVCConfig;
+    fConfigCache_MaxRequestSize: Int64;
+    fConfigCache_ExposeServerSignature: Boolean;
+    fConfigCache_ServerSignature: string;
+    fConfigCache_ExposeXPoweredBy: Boolean;
+    fConfigCache_DefaultContentType: String;
+    fConfigCache_DefaultContentCharset: String;
+    fConfigCache_PathPrefix: String;
+    fSerializers: TDictionary<string, IMVCSerializer>;
+    fMiddlewares: TList<IMVCMiddleware>;
+    fControllers: TObjectList<TMVCControllerDelegate>;
+    fApplicationSession: TWebApplicationSession;
+    fSavedOnBeforeDispatch: THTTPMethodEvent;
+    fOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
+    fServiceContainer: TMVCServiceContainer;
     fWebContextCreateEvent: TWebContextCreateEvent;
     fWebContextDestroyEvent: TWebContextDestroyEvent;
     procedure FillActualParamsForAction(const ASelectedController: TMVCController;
@@ -988,6 +995,9 @@ type
     function GetViewEngineClass: TMVCViewEngineClass;
     procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
       const InjectableParamAttribute: MVCInjectableParamAttribute);
+//    procedure FillActualParamsForConstructor(
+//      const AActionFormalParams: TArray<TRttiParameter>;
+//      var AActualParams: TArray<TValue>);
   protected
     procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
     procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
@@ -1014,6 +1024,7 @@ type
       const AResponse: TWebResponse); virtual;
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
+    function CreateControllerWithDependencies(const ControllerClass: TMVCControllerClazz; const ConstructorMethod: TRttiMethod): TMVCController;
   public
     class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
@@ -1054,12 +1065,12 @@ type
     property ViewEngineClass: TMVCViewEngineClass read GetViewEngineClass;
     property WebModule: TWebModule read FWebModule;
     property Config: TMVCConfig read FConfig;
-    //property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession
       write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
+    property ServiceContainer: TMVCServiceContainer read fServiceContainer;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -2102,10 +2113,11 @@ begin
     raise EMVCException.Create('Session already bounded for this request');
 end;
 
-constructor TWebContext.Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
+constructor TWebContext.Create(const AServiceContainer: TMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
 begin
   inherited Create;
+  FServiceContainerRef := AServiceContainer;
   FIsSessionStarted := False;
   FSessionMustBeClose := False;
   FWebSession := nil;
@@ -2486,6 +2498,7 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
+  fServiceContainer := TMVCServiceContainer.Create;
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
   WebRequestHandler.CacheConnections := True;
@@ -2504,6 +2517,58 @@ begin
   SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;
+end;
+
+
+//procedure TMVCEngine.FillActualParamsForConstructor(
+//  const AActionFormalParams: TArray<TRttiParameter>;
+//  var AActualParams: TArray<TValue>);
+//var
+//  lParamName: string;
+//  I: Integer;
+//  lIntf, lOutIntf: IInterface;
+//begin
+//  SetLength(AActualParams, Length(AActionFormalParams));
+//  for I := 0 to Length(AActionFormalParams) - 1 do
+//  begin
+//    lParamName := AActionFormalParams[I].name;
+//    lIntf := fServiceContainer.Resolve(AActionFormalParams[I].ParamType.Handle);
+//    if not Supports(lIntf, AActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf) then
+//    begin
+//      raise EMVCException.Create('Cannot inject ' + AActionFormalParams[I].Name + ' into constructor ' + );
+//    end;
+//    TValue.Make(@lOutIntf, AActionFormalParams[I].ParamType.Handle, AActualParams[I]);
+//  end;
+//end;
+//
+
+function TMVCEngine.CreateControllerWithDependencies(const ControllerClass: TMVCControllerClazz;
+  const ConstructorMethod: TRttiMethod): TMVCController;
+var
+  lActionFormalParams: TArray<TRttiParameter>;
+  lActualParams: TArray<TValue>;
+  I: Integer;
+  lIntf, lOutIntf: IInterface;
+begin
+  lActionFormalParams := ConstructorMethod.GetParameters;
+  SetLength(lActualParams, Length(lActionFormalParams));
+  if Length(lActionFormalParams) > 0 then
+  begin
+    for I := 0 to Length(lActionFormalParams) - 1 do
+    begin
+      lIntf := fServiceContainer.Resolve(lActionFormalParams[I].ParamType.Handle);
+      if not Supports(lIntf, lActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf) then
+      begin
+        raise EMVCException.CreateFmt('Cannot inject parameter %s: %s into constructor of %s', [
+          lActionFormalParams[I].name,
+          lActionFormalParams[I].ParamType.ToString,
+          ControllerClass.ClassName
+          ]);
+      end;
+      TValue.Make(@lOutIntf, lActionFormalParams[I].ParamType.Handle, lActualParams[I]);
+    end;
+  end;
+  Result := TMVCController(ConstructorMethod.Invoke(ControllerClass, lActualParams).AsObject);
 end;
 
 function TMVCEngine.CustomExceptionHandling(const Ex: Exception;
@@ -2528,10 +2593,11 @@ end;
 
 destructor TMVCEngine.Destroy;
 begin
-  FConfig.Free;
-  FSerializers.Free;
-  FMiddlewares.Free;
-  FControllers.Free;
+  fConfig.Free;
+  fSerializers.Free;
+  fMiddlewares.Free;
+  fControllers.Free;
+  fServiceContainer.Free;
   inherited Destroy;
 end;
 
@@ -2591,7 +2657,7 @@ begin
 {$ENDIF}
   lParamsTable := TMVCRequestParamsTable.Create;
   try
-    lContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
+    lContext := TWebContext.Create(fServiceContainer, ARequest, AResponse, FConfig, FSerializers);
     try
       DefineDefaultResponseHeaders(lContext);
       DoWebContextCreateEvent(lContext);
@@ -2612,10 +2678,18 @@ begin
                 lResponseContentCharset) then
               begin
                 try
-                  if Assigned(lRouter.ControllerCreateAction) then
-                    lSelectedController := lRouter.ControllerCreateAction()
+                  if lRouter.ControllerCreateAction <> nil then
+                  begin
+                    lSelectedController := lRouter.ControllerCreateAction();
+                  end
+                  else if lRouter.ControllerInjectableConstructor <> nil then
+                  begin
+                    lSelectedController := CreateControllerWithDependencies(lRouter.ControllerClazz, lRouter.ControllerInjectableConstructor);
+                  end
                   else
+                  begin
                     lSelectedController := lRouter.ControllerClazz.Create;
+                  end;
                 except
                   on Ex: Exception do
                   begin

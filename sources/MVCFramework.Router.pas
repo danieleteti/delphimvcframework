@@ -58,6 +58,7 @@ type
     FMethodToCall: TRttiMethod;
     FControllerClazz: TMVCControllerClazz;
     FControllerCreateAction: TMVCControllerCreateAction;
+    FControllerInjectableConstructor: TRttiMethod;
     FActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
@@ -106,6 +107,7 @@ type
     property MethodToCall: TRttiMethod read FMethodToCall;
     property ControllerClazz: TMVCControllerClazz read FControllerClazz;
     property ControllerCreateAction: TMVCControllerCreateAction read FControllerCreateAction;
+    property ControllerInjectableConstructor: TRttiMethod read FControllerInjectableConstructor;
   end;
 
 implementation
@@ -160,6 +162,8 @@ var
   LProduceAttribute: MVCProducesAttribute;
   lURLSegment: string;
   LItem: String;
+  lConstructors: TArray<TRttiMethod>;
+  lConstructor: TRttiMethod;
   // JUST FOR DEBUG
   // lMethodCompatible: Boolean;
   // lContentTypeCompatible: Boolean;
@@ -268,6 +272,23 @@ begin
                     FMethodToCall := LMethod;
                     FControllerClazz := LControllerDelegate.Clazz;
                     FControllerCreateAction := LControllerDelegate.CreateAction;
+                    FControllerInjectableConstructor := nil;
+
+                    // select the constructor with MVCInjectAttribute - Constructor must be called "Create"
+                    if not Assigned(FControllerCreateAction) then
+                    begin
+                      lConstructors := LRttiType.GetMethods('Create');
+                      for lConstructor in lConstructors do
+                      begin
+                        if lConstructor.HasAttribute<MVCInjectAttribute> then
+                        begin
+                          FControllerInjectableConstructor := lConstructor;
+                          break; { the first wins }
+                        end;
+                      end;
+                    end;
+                    // end - select the constructor with MVCInjectAttribute
+
                     LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                     if LProduceAttribute <> nil then
                     begin
