@@ -448,7 +448,7 @@ begin
   lDotEnvCode := TFile.ReadAllText(EnvFilePath);
   lParser := TMVCDotEnvParser.Create;
   try
-    lParser.Parse(fEnvDict, lDotEnvCode);
+    lParser.Parse(EnvDict, lDotEnvCode);
     DoLog('Applied dotEnv file ' + EnvFilePath);
   finally
     lParser.Free;
