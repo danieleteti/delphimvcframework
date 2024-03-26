@@ -274,12 +274,12 @@ begin
                     FControllerCreateAction := LControllerDelegate.CreateAction;
                     FControllerInjectableConstructor := nil;
 
-                    // select the constructor with MVCInjectAttribute - Constructor must be called "Create"
+                    // select the constructor with the most mumber of parameters
                     if not Assigned(FControllerCreateAction) then
                     begin
-                      FControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
+                      FControllerInjectableConstructor := TRttiUtils.GetFirstDeclaredConstructor(LRttiType);
                     end;
-                    // end - select the constructor with MVCInjectAttribute
+                    // end - select the constructor with the most mumber of parameters
 
                     LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                     if LProduceAttribute <> nil then

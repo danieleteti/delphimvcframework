@@ -777,14 +777,14 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions;
+  System.RegularExpressions, MVCFramework.Container;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
 var
   GdotEnv: IMVCDotEnv = nil;
   GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
-
 
 function URLEncode(const Value: string): string; overload;
 begin

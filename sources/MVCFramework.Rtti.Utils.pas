@@ -34,7 +34,7 @@ uses
   System.Rtti,
   System.Generics.Collections,
   System.SysUtils,
-  Data.DB;
+  Data.DB, MVCFramework.Logger;
 
 type
 
@@ -91,6 +91,7 @@ type
     class function GetGUID<T>: TGUID;
     class function GetArrayContainedRTTIType(const RTTIType: TRttiType): TRttiType;
     class function GetConstructorWithAttribute<T:TCustomAttribute>(const RTTIType: TRttiType): TRttiMethod;
+    class function GetFirstDeclaredConstructor(const RTTIType: TRttiType): TRttiMethod;
   end;
 
 {$IF not defined(BERLINORBETTER)}
@@ -106,7 +107,7 @@ implementation
 
 uses
   MVCFramework.DuckTyping,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Commons;
 
 class function TRttiUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   ARaiseExceptionIfNotFound: Boolean): TValue;
@@ -194,6 +195,23 @@ begin
     begin
       Result := lConstructor;
       break; { the first wins }
+    end;
+  end;
+end;
+
+class function TRttiUtils.GetFirstDeclaredConstructor(const RTTIType: TRttiType): TRttiMethod;
+var
+  lConstructors: TArray<TRttiMethod>;
+  lConstructor: TRttiMethod;
+begin
+  Result := nil;
+  lConstructors := RttiType.GetDeclaredMethods;
+  for lConstructor in lConstructors do
+  begin
+    if lConstructor.IsConstructor and (lConstructor.Visibility = TMembervisibility.mvPublic) then
+    begin
+      Result := lConstructor;
+      Break;
     end;
   end;
 end;

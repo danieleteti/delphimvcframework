@@ -15,11 +15,14 @@ type
   public
     [MVCInject]
     constructor Create(const PeopleService: IPeopleService); reintroduce;
-//    constructor Create; reintroduce;
-    //Sample CRUD Actions for a "People" entity
+
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET])]
     function GetPeople: TObjectList<TPerson>;
+
+    [MVCPath('/people2')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPeople2([MVCInject] OtherPeopleService: IPeopleService): TObjectList<TPerson>;
 
     [MVCPath('/people/($ID)')]
     [MVCHTTPMethod([httpGET])]
@@ -50,6 +53,11 @@ uses
 function TMyController.GetPeople: TObjectList<TPerson>;
 begin
   Result := fPeopleService.GetAll;
+end;
+
+function TMyController.GetPeople2(OtherPeopleService: IPeopleService): TObjectList<TPerson>;
+begin
+  Result := OtherPeopleService.GetAll;
 end;
 
 function TMyController.GetPerson(ID: Integer): TPerson;

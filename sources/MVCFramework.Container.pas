@@ -17,9 +17,17 @@ type
   end;
 
   MVCInjectAttribute = class(TCustomAttribute)
-
+  private
+    fServiceName: String;
+  public
+    constructor Create(ServiceName: String = '');
+    property ServiceName: String read fServiceName;
   end;
 
+  EMVCContainerError = class(Exception) end;
+  EMVCContainerErrorUnknownService = class(EMVCContainerError) end;
+  EMVCContainerErrorInterfaceNotSupported = class(EMVCContainerError) end;
+  EMVCContainerErrorUnknownConstructor = class(EMVCContainerError) end;
 
 
   function DefaultServiceContainer: IMVCServiceContainer;
@@ -56,11 +64,6 @@ type
     function Resolve<TIntf: IInterface>(const aName: string = ''; const aParams: TArray<TValue> = nil): TIntf; overload;
     function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''; const aParams: TArray<TValue> = nil): IInterface; overload;
     procedure Build();
-    type
-      EMVCContainerError = class(Exception) end;
-      EMVCUnknownService = class(EMVCContainerError) end;
-      EMVCInterfaceNotSupported = class(EMVCContainerError) end;
-      EMVCUnknownConstructor = class(EMVCContainerError) end;
   end;
 
 { TMVCServiceContainer }
@@ -150,7 +153,7 @@ begin
   end
   else
   begin
-    raise EMVCUnknownService.Create(lType.Name + ' doesn''t supports requested interface');
+    raise EMVCContainerErrorUnknownService.Create(lType.Name + ' doesn''t supports requested interface');
   end;
   Result := Self;
 end;
@@ -175,15 +178,14 @@ begin
   lTypeInfo := aTypeInfo;
   if not fRegistry.TryGetValue(GetKey(lTypeInfo.TypeData.GUID, aName), lReg) then
   begin
-    raise EMVCUnknownService.CreateFmt('Unknown service for "%s"', [lTypeInfo.Name]);
+    raise EMVCContainerErrorUnknownService.CreateFmt('Unknown service "%s" with name "%s"', [lTypeInfo.Name, aName])
   end;
   lType := TRttiUtils.GlContext.GetType(lReg.Clazz);
 
   case lReg.RegistrationType of
     rtTransient:
     begin
-      lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(lType));
-      //lService := TRttiUtils.CreateObject(lType, AParams);
+      lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
       Supports(lService, lTypeInfo.TypeData.GUID, Result);
     end;
 
@@ -227,6 +229,14 @@ end;
 function DefaultServiceContainer: IMVCServiceContainer;
 begin
   Result := TMVCServiceContainer.fInstance;
+end;
+
+{ MVCInjectAttribute }
+
+constructor MVCInjectAttribute.Create(ServiceName: String);
+begin
+  inherited Create;
+  fServiceName := ServiceName;
 end;
 
 end.

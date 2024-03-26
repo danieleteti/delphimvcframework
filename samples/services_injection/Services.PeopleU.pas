@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections, Entities, Services.InterfacesU, MVCFramework.Logger,
-  MVCFramework;
+  MVCFramework, MVCFramework.Container;
 
 type
   TPeopleService = class(TInterfacedObject, IPeopleService)

@@ -2545,6 +2545,8 @@ var
   lActualParams: TArray<TValue>;
   I: Integer;
   lIntf, lOutIntf: IInterface;
+  lInjectAttribute: MVCInjectAttribute;
+  lServiceName: string;
 begin
   lActionFormalParams := ConstructorMethod.GetParameters;
   SetLength(lActualParams, Length(lActionFormalParams));
@@ -2552,15 +2554,18 @@ begin
   begin
     for I := 0 to Length(lActionFormalParams) - 1 do
     begin
-      lIntf := fServiceContainer.Resolve(lActionFormalParams[I].ParamType.Handle);
-      if not Supports(lIntf, lActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf) then
+      lServiceName := '';
+      lInjectAttribute := lActionFormalParams[I].GetAttribute<MVCInjectAttribute>;
+      if lInjectAttribute <> nil then
       begin
-        raise EMVCException.CreateFmt('Cannot inject parameter %s: %s into constructor of %s', [
-          lActionFormalParams[I].name,
-          lActionFormalParams[I].ParamType.ToString,
-          ControllerClass.ClassName
-          ]);
+        lServiceName := lInjectAttribute.ServiceName;
       end;
+      if (lActionFormalParams[I].ParamType.TypeKind <> tkInterface) then
+      begin
+        raise EMVCException.CreateFmt('Parameter "%s" is not an interface type', [lActionFormalParams[i].ToString]);
+      end;
+      lIntf := fServiceContainer.Resolve(lActionFormalParams[I].ParamType.Handle, lServiceName);
+      Supports(lIntf, lActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf);
       TValue.Make(@lOutIntf, lActionFormalParams[I].ParamType.Handle, lActualParams[I]);
     end;
   end;
@@ -2692,7 +2697,7 @@ begin
                     Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
                       [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
                     raise EMVCException.Create(http_status.InternalServerError,
-                      'Cannot create controller');
+                      'Cannot create controller (see log for more info)');
                   end;
                 end;
                 lRouterMethodToCallName := lRouter.MethodToCall.Name;
@@ -3054,11 +3059,13 @@ var
   lFromContentFieldAttribute: MVCFromContentFieldAttribute;
   lFromHeaderAttribute: MVCFromHeaderAttribute;
   lFromCookieAttribute: MVCFromCookieAttribute;
+  lInjectAttribute: MVCInjectAttribute;
   lAttributeInjectedParamCount: Integer;
   lInjectedParamValue: string;
   lInjectedMultiParamValue: TArray<String>;
   lList: IMVCList;
   lItemClass: TClass;
+  lIntf, lOutIntf: IInterface;
 begin
   ABodyParameter := nil;
   lAttributeInjectedParamCount := 0;
@@ -3136,11 +3143,19 @@ begin
         HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromCookieAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
+      else if TRttiUtils.HasAttribute<MVCInjectAttribute>(AActionFormalParams[I],
+        lInjectAttribute) then
+      begin
+        Inc(lAttributeInjectedParamCount, 1);
+        lIntf := Self.ServiceContainer.Resolve(AActionFormalParams[I].ParamType.Handle, lInjectAttribute.ServiceName);
+        Supports(lIntf, AActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf);
+        TValue.Make(@lOutIntf, AActionFormalParams[I].ParamType.Handle, AActualParams[I]);
+      end
       else
       begin
         raise EMVCException.Create(http_status.InternalServerError,
           'Unknown custom attribute on action parameter: ' + AActionFormalParams[I].name +
-          '. [HINT: Allowed attributes are MVCFromBody, MVCFromQueryString, MVCFromHeader, MVCFromCookie]');
+          '. [HINT: Allowed attributes are MVCFromBody, MVCFromQueryString, MVCFromHeader, MVCFromCookie, MVCInject]');
       end;
       Continue;
     end;

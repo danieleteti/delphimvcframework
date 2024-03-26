@@ -30,6 +30,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
+
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
@@ -70,9 +71,6 @@ begin
       begin
         Result := NewDotEnv
                  .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                                       //if available, by default, loads default environment (.env)
-                 .UseProfile('test') //if available loads the test environment (.env.test)
-                 .UseProfile('prod') //if available loads the prod environment (.env.prod)
                  .UseLogger(procedure(LogItem: String)
                             begin
                               LogD('dotEnv: ' + LogItem);

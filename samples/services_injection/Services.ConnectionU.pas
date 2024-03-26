@@ -23,12 +23,12 @@ uses
 constructor TConnectionService.Create;
 begin
   inherited;
-  LogI('TConnectionService.Create');
+  LogI('Service ' + ClassName + ' created');
 end;
 
 destructor TConnectionService.Destroy;
 begin
-  LogI('TConnectionService.Destroy');
+  LogI('Service ' + ClassName + ' destroyed');
   inherited;
 end;
 
