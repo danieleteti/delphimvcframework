@@ -2494,7 +2494,7 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  fServiceContainer := DefaultServiceContainer;
+  fServiceContainer := DefaultMVCServiceContainer;
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
   WebRequestHandler.CacheConnections := True;

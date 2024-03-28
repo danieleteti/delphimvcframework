@@ -43,7 +43,7 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv;
+  MVCFramework.DotEnv, MVCFramework.Container;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -767,7 +767,6 @@ type
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 
-
 implementation
 
 uses
@@ -777,7 +776,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions, MVCFramework.Container;
+  System.RegularExpressions;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1766,6 +1765,7 @@ class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): Strin
 begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
 end;
+
 
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin

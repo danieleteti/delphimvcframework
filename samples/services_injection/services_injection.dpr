@@ -63,9 +63,6 @@ begin
 
   LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   try
-    if WebRequestHandler <> nil then
-      WebRequestHandler.WebModuleClass := WebModuleClass;
-
     dotEnvConfigure(
       function: IMVCDotEnv
       begin
@@ -75,20 +72,22 @@ begin
                             begin
                               LogD('dotEnv: ' + LogItem);
                             end)
-                 .Build();             //uses the executable folder to look for .env* files
+                 .Build();
       end);
 
-    DefaultServiceContainer.RegisterType(TPeopleService, IPeopleService);
-    DefaultServiceContainer.RegisterType(TConnectionService, IConnectionService);
-    DefaultServiceContainer.Build();
-
-    WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
+    DefaultMVCServiceContainer.RegisterType(TPeopleService, IPeopleService);
+    DefaultMVCServiceContainer.RegisterType(TConnectionService, IConnectionService);
+    DefaultMVCServiceContainer.Build();
 
     if dotEnv.Env('dmvc.profiler.enabled', false) then
     begin
       Profiler.ProfileLogger := Log;
       Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 2000);
     end;
+
+    if WebRequestHandler <> nil then
+      WebRequestHandler.WebModuleClass := WebModuleClass;
+    WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
 
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
