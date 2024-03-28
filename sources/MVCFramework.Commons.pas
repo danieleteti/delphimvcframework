@@ -66,6 +66,7 @@ type
     APPLICATION_XHTML_XML = 'application/xhtml+xml';
     APPLICATION_XML = 'application/xml';
     APPLICATION_OCTETSTREAM = 'application/octet-stream';
+    APPLICATION_MESSAGE_PACK = 'application/msgpack';
     MEDIA_TYPE_WILDCARD = '*';
     MULTIPART_FORM_DATA = 'multipart/form-data';
     APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
