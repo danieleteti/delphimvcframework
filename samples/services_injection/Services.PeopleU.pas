@@ -19,18 +19,21 @@ type
 
 implementation
 
+uses
+  System.SysUtils {IntToHex};
+
 { TPeopleService }
 
 constructor TPeopleService.Create(ConnectionService: IConnectionService);
 begin
   inherited Create;
   fConnService := ConnectionService;
-  LogI('Service ' + ClassName + ' created');
+  LogI('Service ' + ClassName + ' created [' + IntToHex(NativeUInt(Pointer(Self))) + ']');
 end;
 
 destructor TPeopleService.Destroy;
 begin
-  LogI('Service ' + ClassName + ' destroyed');
+  LogI('Service ' + ClassName + ' destroyed [' + IntToHex(NativeUInt(Pointer(Self))) + ']');
   inherited;
 end;
 

@@ -21,7 +21,8 @@ uses
   Entities in '..\commons\Entities.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
-  Services.ConnectionU in 'Services.ConnectionU.pas';
+  Services.ConnectionU in 'Services.ConnectionU.pas',
+  Services.RegistrationU in 'Services.RegistrationU.pas';
 
 {$R *.res}
 
@@ -75,9 +76,8 @@ begin
                  .Build();
       end);
 
-    DefaultMVCServiceContainer.RegisterType(TPeopleService, IPeopleService);
-    DefaultMVCServiceContainer.RegisterType(TConnectionService, IConnectionService);
-    DefaultMVCServiceContainer.Build();
+    RegisterServices(DefaultMVCServiceContainer);
+    DefaultMVCServiceContainer.Build;
 
     if dotEnv.Env('dmvc.profiler.enabled', false) then
     begin

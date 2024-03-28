@@ -7,20 +7,21 @@ uses
 
 
 type
+{$SCOPEDENUMS ON}
+  TRegistrationType = (Transient, Singleton, SingletonPerRequest);
+
   TClassOfInterfacedObject = class of TInterfacedObject;
-  TRegistrationType = (rtTransient, rtSingleton, rtSingletonPerRequest);
+
+  IMVCServiceContainerResolver = interface
+    ['{2C920EC2-001F-40BE-9911-43A65077CADD}']
+    function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
+  end;
+
   IMVCServiceContainer = interface
     ['{1BB3F4A8-DDA1-4526-981C-A0BF877CFFD5}']
-    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = rtTransient): IMVCServiceContainer; overload;
-    function Re vsolve(const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface;
+    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = TRegistrationType.Transient): IMVCServiceContainer; overload;
     procedure Build();
   end;
-
-  IMVCServiceContainerEx = interface
-    ['{2C920EC2-001F-40BE-9911-43A65077CADD}']
-    function ResolveEx(const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
-  end;
-
 
   MVCInjectAttribute = class(TCustomAttribute)
   private
@@ -37,6 +38,9 @@ type
 
 
   function DefaultMVCServiceContainer: IMVCServiceContainer;
+  function NewMVCServiceContainer: IMVCServiceContainer;
+  function NewServiceContainerResolver: IMVCServiceContainerResolver; overload;
+  function NewServiceContainerResolver(Container: IMVCServiceContainer): IMVCServiceContainerResolver; overload;
 
 implementation
 
@@ -44,6 +48,12 @@ uses
   MVCFramework.Rtti.Utils;
 
 type
+  IMVCServiceInternalResolver = interface
+    ['{81527509-BA94-48C1-A030-E26F1FC9BFF5}']
+    function Resolve(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface;
+    function ResolveEx(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
+  end;
+
   TRegistration = class
     Intf: TGUID;
     Clazz: TClassOfInterfacedObject;
@@ -51,37 +61,47 @@ type
     Instance: IInterface;
     RegistrationType: TRegistrationType;
   end;
-  TMVCServiceContainer = class(TInterfacedObject, IMVCServiceContainer)
+
+  TMVCServiceContainer = class(TInterfacedObject, IMVCServiceContainer, IMVCServiceInternalResolver)
   private
     fBuilt: Boolean;
     fRegistry: TObjectDictionary<string, TRegistration>;
-    function CreateServiceWithDependencies(const ServiceClass: TClassOfInterfacedObject;
+    function CreateServiceWithDependencies(
+      const ServiceContainerResolver: IMVCServiceContainerResolver;
+      const ServiceClass: TClassOfInterfacedObject;
       const ConstructorMethod: TRttiMethod): TInterfacedObject;
   protected
     class function GetKey(const aGUID: TGUID; const aName: String): String;
     constructor Create; virtual;
     destructor Destroy; override;
-    class var fInstance: IMVCServiceContainer;
   public
-    class function Instance: IMVCServiceContainer;
-    class constructor Create;
-    class destructor Destroy;
-    function RegisterType<TImpl: TInterfacedObject>(const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = rtTransient): IMVCServiceContainer; overload;
-    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = rtTransient): IMVCServiceContainer; overload;
-    function Resolve<TIntf: IInterface>(const aName: string = ''): TIntf; overload;
-    function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
-    function ResolveEx(const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
+    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = TRegistrationType.Transient): IMVCServiceContainer; overload;
+    function Resolve(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
+    function ResolveEx(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
     procedure Build();
   end;
 
-  TMVCServiceContainerAdapter = class(TInterfacedObject, IMVCServiceContainerEx)
+  TMVCServiceContainerAdapter = class(TInterfacedObject, IMVCServiceContainerResolver)
+  private
+    fCachedServices: TDictionary<String, IInterface>;
+    fContainer: IMVCServiceInternalResolver;
   protected
-    function ResolveEx(const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: string; out RegType: TRegistrationType): IInterface;
+    function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
+  public
+    constructor Create(Container: IMVCServiceContainer);
+    destructor Destroy; override;
   end;
+
+
+var
+  gDefaultMVCServiceContainer: IMVCServiceContainer = nil;
+  gLock: TObject = nil;
 
 { TMVCServiceContainer }
 
-function TMVCServiceContainer.CreateServiceWithDependencies(const ServiceClass: TClassOfInterfacedObject;
+function TMVCServiceContainer.CreateServiceWithDependencies(
+  const ServiceContainerResolver: IMVCServiceContainerResolver;
+  const ServiceClass: TClassOfInterfacedObject;
   const ConstructorMethod: TRttiMethod): TInterfacedObject;
 var
   lActionFormalParams: TArray<TRttiParameter>;
@@ -97,7 +117,10 @@ begin
     begin
       for I := 0 to Length(lActionFormalParams) - 1 do
       begin
-        lIntf := Resolve(lActionFormalParams[I].ParamType.Handle);
+        if ServiceContainerResolver = nil then
+          lIntf := Resolve(nil, lActionFormalParams[I].ParamType.Handle)
+        else
+          lIntf := ServiceContainerResolver.Resolve(lActionFormalParams[I].ParamType.Handle);
         if not Supports(lIntf, lActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf) then
         begin
           raise EMVCContainerError.CreateFmt('Cannot inject parameter %s: %s into constructor of %s', [
@@ -131,19 +154,9 @@ begin
   inherited;
 end;
 
-class destructor TMVCServiceContainer.Destroy;
-begin
-  fInstance := nil;
-end;
-
 class function TMVCServiceContainer.GetKey(const aGUID: TGUID; const aName: String): String;
 begin
   Result := aGUID.ToString + '_' + aName;
-end;
-
-class function TMVCServiceContainer.Instance: IMVCServiceContainer;
-begin
-  Result := fInstance;
 end;
 
 function TMVCServiceContainer.RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID;
@@ -174,12 +187,7 @@ begin
   Result := Self;
 end;
 
-function TMVCServiceContainer.RegisterType<TImpl>(const aInterface: TGUID; const aName: string; const aRegType: TRegistrationType): IMVCServiceContainer;
-begin
-  Result := RegisterType(TImpl, aInterface, aName, aRegType);
-end;
-
-function TMVCServiceContainer.Resolve(const aTypeInfo: PTypeInfo; const aName: string): IInterface;
+function TMVCServiceContainer.Resolve(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string): IInterface;
 var
   lReg: TRegistration;
   lTypeInfo: PTypeInfo;
@@ -198,13 +206,13 @@ begin
   lType := lReg.RttiType;
 
   case lReg.RegistrationType of
-    rtTransient:
+    TRegistrationType.Transient, TRegistrationType.SingletonPerRequest:
     begin
-      lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+      lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
       Supports(lService, lTypeInfo.TypeData.GUID, Result);
     end;
 
-    rtSingleton:
+    TRegistrationType.Singleton:
     begin
       if lReg.Instance = nil then
       begin
@@ -212,7 +220,7 @@ begin
         try
           if lReg.Instance = nil then
           begin
-            lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+            lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
             Supports(lService, lTypeInfo.TypeData.GUID, lReg.Instance)
           end;
         finally
@@ -226,12 +234,7 @@ begin
   end;
 end;
 
-function TMVCServiceContainer.Resolve<TIntf>(const aName: string): TIntf;
-begin
-  Result := Resolve(TypeInfo(TIntf), aName);
-end;
-
-function TMVCServiceContainer.ResolveEx(const aTypeInfo: PTypeInfo; const aName: string;
+function TMVCServiceContainer.ResolveEx(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string;
   out ServiceKey: String; out RegType: TRegistrationType): IInterface;
 var
   lReg: TRegistration;
@@ -255,14 +258,14 @@ begin
   RegType := lReg.RegistrationType;
   ServiceKey := lServiceKey;
   case lReg.RegistrationType of
-    rtTransient, rtSingletonPerRequest:
+    TRegistrationType.Transient, TRegistrationType.SingletonPerRequest:
     begin
-      lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+      lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
       Supports(lService, lTypeInfo.TypeData.GUID, Result);
       {rtSingletonPerRequest is destroyed by the adapter owned by Context}
     end;
 
-    rtSingleton:
+    TRegistrationType.Singleton:
     begin
       if lReg.Instance = nil then
       begin
@@ -270,7 +273,7 @@ begin
         try
           if lReg.Instance = nil then
           begin
-            lService := CreateServiceWithDependencies(lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+            lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
             Supports(lService, lTypeInfo.TypeData.GUID, lReg.Instance)
           end;
         finally
@@ -289,15 +292,28 @@ begin
   fBuilt := True;
 end;
 
-class constructor TMVCServiceContainer.Create;
-begin
-  fInstance := TMVCServiceContainer.Create;
-end;
-
 function DefaultMVCServiceContainer: IMVCServiceContainer;
 begin
-  Result := TMVCServiceContainer.fInstance;
+  if gDefaultMVCServiceContainer = nil then
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if gDefaultMVCServiceContainer = nil then
+      begin
+        gDefaultMVCServiceContainer := TMVCServiceContainer.Create;
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
+  end;
+  Result := gDefaultMVCServiceContainer;
 end;
+
+function NewMVCServiceContainer: IMVCServiceContainer;
+begin
+  Result := TMVCServiceContainer.Create;
+end;
+
 
 { MVCInjectAttribute }
 
@@ -306,5 +322,61 @@ begin
   inherited Create;
   fServiceName := ServiceName;
 end;
+
+{ TMVCServiceContainerAdapter }
+
+constructor TMVCServiceContainerAdapter.Create(Container: IMVCServiceContainer);
+begin
+  inherited Create;
+  fCachedServices := TDictionary<String, IInterface>.Create;
+  fContainer := Container as IMVCServiceInternalResolver;
+end;
+
+destructor TMVCServiceContainerAdapter.Destroy;
+begin
+  fCachedServices.Free;
+  inherited;
+end;
+
+function TMVCServiceContainerAdapter.Resolve(const aTypeInfo: PTypeInfo; const aName: string): IInterface;
+var
+  lKey: string;
+  lIntf: IInterface;
+  lRegType: TRegistrationType;
+begin
+  lKey := TMVCServiceContainer.GetKey(aTypeInfo.TypeData.GUID, aName);
+  if fCachedServices.TryGetValue(lKey, lIntf) then
+  begin
+    Supports(lIntf, aTypeInfo.TypeData.GUID, Result);
+  end
+  else
+  begin
+    Result := fContainer.ResolveEx(Self, aTypeInfo, aName, lKey, lRegType);
+    if lRegType = TRegistrationType.SingletonPerRequest then
+    begin
+      fCachedServices.Add(lKey, Result);
+    end;
+  end;
+end;
+
+
+function NewServiceContainerResolver: IMVCServiceContainerResolver;
+begin
+ Result := TMVCServiceContainerAdapter.Create(DefaultMVCServiceContainer);
+end;
+
+function NewServiceContainerResolver(Container: IMVCServiceContainer) : IMVCServiceContainerResolver;
+begin
+  Result := TMVCServiceContainerAdapter.Create(Container);
+end;
+
+
+initialization
+
+gLock := TObject.Create;
+
+finalization
+
+gLock.Free;
 
 end.

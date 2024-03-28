@@ -16,19 +16,19 @@ type
 implementation
 
 uses
-  MVCFramework.Logger;
+  MVCFramework.Logger, System.SysUtils;
 
 { TConnectionService }
 
 constructor TConnectionService.Create;
 begin
   inherited;
-  LogI('Service ' + ClassName + ' created');
+  LogI('Service ' + ClassName + ' created [' + IntToHex(NativeUInt(Pointer(Self))) + ']');
 end;
 
 destructor TConnectionService.Destroy;
 begin
-  LogI('Service ' + ClassName + ' destroyed');
+  LogI('Service ' + ClassName + ' destroyed [' + IntToHex(NativeUInt(Pointer(Self))) + ']');
   inherited;
 end;
 

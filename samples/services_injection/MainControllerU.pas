@@ -57,6 +57,7 @@ end;
 
 function TMyController.GetPeople2(OtherPeopleService: IPeopleService): TObjectList<TPerson>;
 begin
+  LogI('PeopleService in GetPeople2: ' + IntToHex(NativeUInt(Pointer(OtherPeopleService))));
   Result := OtherPeopleService.GetAll;
 end;
 
@@ -82,6 +83,7 @@ begin
   inherited Create;
   Assert(PeopleService <> nil, 'PeopleService not injected');
   fPeopleService := PeopleService;
+  LogI('PeopleService in constructor: ' + IntToHex(NativeUInt(Pointer(PeopleService))));
 end;
 
 

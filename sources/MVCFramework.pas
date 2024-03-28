@@ -533,7 +533,7 @@ type
     fWebSession: TMVCWebSession;
     fData: TMVCStringDictionary;
     fIntfObject: IInterface;
-    FServiceContainerRef: IMVCServiceContainer;
+    fServiceContainerResolver: IMVCServiceContainerResolver;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -550,7 +550,7 @@ type
       const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
   public
-    constructor Create(const AServiceContainer: IMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
+    constructor Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
@@ -572,6 +572,7 @@ type
     property CustomIntfObject: IInterface read GetIntfObject write SetIntfObject;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
     property ActionQualifiedName: String read fActionQualifiedName;
+    property ServiceContainerResolver: IMVCServiceContainerResolver read fServiceContainerResolver;
   end;
 
   TMVCJSONRPCExceptionErrorInfo = record
@@ -981,7 +982,6 @@ type
     fSavedOnBeforeDispatch: THTTPMethodEvent;
     fOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
-    fServiceContainer: IMVCServiceContainer;
     fWebContextCreateEvent: TWebContextCreateEvent;
     fWebContextDestroyEvent: TWebContextDestroyEvent;
     procedure FillActualParamsForAction(const ASelectedController: TMVCController;
@@ -1020,7 +1020,10 @@ type
       const AResponse: TWebResponse); virtual;
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
-    function CreateControllerWithDependencies(const ControllerClass: TMVCControllerClazz; const ConstructorMethod: TRttiMethod): TMVCController;
+    function CreateControllerWithDependencies(
+      const Context: TWebContext;
+      const ControllerClass: TMVCControllerClazz;
+      const ConstructorMethod: TRttiMethod): TMVCController;
   public
     class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
@@ -1066,7 +1069,6 @@ type
     property ApplicationSession: TWebApplicationSession read FApplicationSession
       write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
-    property ServiceContainer: IMVCServiceContainer read fServiceContainer;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -2109,11 +2111,11 @@ begin
     raise EMVCException.Create('Session already bounded for this request');
 end;
 
-constructor TWebContext.Create(const AServiceContainer: IMVCServiceContainer; const ARequest: TWebRequest; const AResponse: TWebResponse;
+constructor TWebContext.Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
 begin
   inherited Create;
-  FServiceContainerRef := AServiceContainer;
+  FServiceContainerResolver := AServiceContainerResolver;
   FIsSessionStarted := False;
   FSessionMustBeClose := False;
   FWebSession := nil;
@@ -2494,7 +2496,6 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  fServiceContainer := DefaultMVCServiceContainer;
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
   WebRequestHandler.CacheConnections := True;
@@ -2538,7 +2539,9 @@ end;
 //end;
 //
 
-function TMVCEngine.CreateControllerWithDependencies(const ControllerClass: TMVCControllerClazz;
+function TMVCEngine.CreateControllerWithDependencies(
+  const Context: TWebContext;
+  const ControllerClass: TMVCControllerClazz;
   const ConstructorMethod: TRttiMethod): TMVCController;
 var
   lActionFormalParams: TArray<TRttiParameter>;
@@ -2564,7 +2567,7 @@ begin
       begin
         raise EMVCException.CreateFmt('Parameter "%s" is not an interface type', [lActionFormalParams[i].ToString]);
       end;
-      lIntf := fServiceContainer.Resolve(lActionFormalParams[I].ParamType.Handle, lServiceName);
+      lIntf := Context.ServiceContainerResolver.Resolve(lActionFormalParams[I].ParamType.Handle, lServiceName);
       Supports(lIntf, lActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf);
       TValue.Make(@lOutIntf, lActionFormalParams[I].ParamType.Handle, lActualParams[I]);
     end;
@@ -2598,7 +2601,6 @@ begin
   fSerializers.Free;
   fMiddlewares.Free;
   fControllers.Free;
-  fServiceContainer := nil;
   inherited Destroy;
 end;
 
@@ -2658,7 +2660,7 @@ begin
 {$ENDIF}
   lParamsTable := TMVCRequestParamsTable.Create;
   try
-    lContext := TWebContext.Create(fServiceContainer, ARequest, AResponse, FConfig, FSerializers);
+    lContext := TWebContext.Create(NewServiceContainerResolver, ARequest, AResponse, FConfig, FSerializers);
     try
       DefineDefaultResponseHeaders(lContext);
       DoWebContextCreateEvent(lContext);
@@ -2685,7 +2687,10 @@ begin
                   end
                   else if lRouter.ControllerInjectableConstructor <> nil then
                   begin
-                    lSelectedController := CreateControllerWithDependencies(lRouter.ControllerClazz, lRouter.ControllerInjectableConstructor);
+                    lSelectedController := CreateControllerWithDependencies(
+                      lContext,
+                      lRouter.ControllerClazz,
+                      lRouter.ControllerInjectableConstructor);
                   end
                   else
                   begin
@@ -3147,7 +3152,7 @@ begin
         lInjectAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lIntf := Self.ServiceContainer.Resolve(AActionFormalParams[I].ParamType.Handle, lInjectAttribute.ServiceName);
+        lIntf := AContext.ServiceContainerResolver.Resolve(AActionFormalParams[I].ParamType.Handle, lInjectAttribute.ServiceName);
         Supports(lIntf, AActionFormalParams[I].ParamType.Handle.TypeData.GUID, lOutIntf);
         TValue.Make(@lOutIntf, AActionFormalParams[I].ParamType.Handle, AActualParams[I]);
       end

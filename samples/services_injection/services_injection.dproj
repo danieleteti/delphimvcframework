@@ -126,6 +126,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Container.pas"/>
         <DCCReference Include="Services.ConnectionU.pas"/>
+        <DCCReference Include="Services.RegistrationU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -277,7 +277,7 @@ begin
                     // select the constructor with the most mumber of parameters
                     if not Assigned(FControllerCreateAction) then
                     begin
-                      FControllerInjectableConstructor := TRttiUtils.GetFirstDeclaredConstructor(LRttiType);
+                      FControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
                     end;
                     // end - select the constructor with the most mumber of parameters
 
