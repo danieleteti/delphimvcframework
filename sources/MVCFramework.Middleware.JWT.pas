@@ -565,7 +565,7 @@ begin
   end
   else
   begin
-    if SameText(AContext.Request.PathInfo, FLogoffURLSegment) then
+    if SameText(AContext.Request.PathInfo, FLogoffURLSegment) and (FUseHttpOnly) then
     begin
       SendLogoffRender(AContext);
       AHandled := True;
