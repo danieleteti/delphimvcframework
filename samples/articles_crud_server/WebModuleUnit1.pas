@@ -2,7 +2,8 @@ unit WebModuleUnit1;
 
 interface
 
-uses System.SysUtils, System.Classes, Web.HTTPApp, mvcframework;
+uses System.SysUtils, System.Classes, Web.HTTPApp, mvcframework, FireDAC.Phys.FBDef, FireDAC.Stan.Intf, FireDAC.Phys,
+  FireDAC.Phys.IBBase, FireDAC.Phys.FB;
 
 type
   TWebModule1 = class(TWebModule)
@@ -23,10 +24,13 @@ implementation
 uses
   Controllers.Articles,
   MVCFramework.Middleware.CORS,
+  MVCFramework.Middleware.ActiveRecord,
   MVCFramework.Middleware.Compression,
   MVCFramework.Middleware.Trace,
+  MVCFramework.SQLGenerators.Firebird,
   MVCFramework.Commons,
-  Controllers.Base;
+  Controllers.Base,
+  Commons;
 
 {$R *.dfm}
 
@@ -45,6 +49,8 @@ begin
 {$ENDIF}
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
+  FEngine.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));
+
 //  FEngine.AddMiddleware(TMVCTraceMiddleware.Create);
 end;
 

@@ -338,6 +338,14 @@ type
 
   end;
 
+  MVCInjectAttribute = class(TCustomAttribute)
+  private
+    fServiceName: String;
+  public
+    constructor Create(ServiceName: String = '');
+    property ServiceName: String read fServiceName;
+  end;
+
   // test
   // TMVCHackHTTPAppRequest = class(TIdHTTPAppRequest)
   // private
@@ -5049,6 +5057,16 @@ end;
 constructor TMVCBaseResponse.Create;
 begin
   inherited;
+end;
+
+{ MVCInjectAttribute }
+
+{ MVCInjectAttribute }
+
+constructor MVCInjectAttribute.Create(ServiceName: String);
+begin
+  inherited Create;
+  fServiceName := ServiceName;
 end;
 
 initialization

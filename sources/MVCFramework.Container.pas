@@ -23,14 +23,6 @@ type
     procedure Build();
   end;
 
-  MVCInjectAttribute = class(TCustomAttribute)
-  private
-    fServiceName: String;
-  public
-    constructor Create(ServiceName: String = '');
-    property ServiceName: String read fServiceName;
-  end;
-
   EMVCContainerError = class(Exception) end;
   EMVCContainerErrorUnknownService = class(EMVCContainerError) end;
   EMVCContainerErrorInterfaceNotSupported = class(EMVCContainerError) end;
@@ -45,7 +37,7 @@ type
 implementation
 
 uses
-  MVCFramework.Rtti.Utils;
+  MVCFramework.Rtti.Utils, MVCFramework;
 
 type
   IMVCServiceInternalResolver = interface
@@ -312,15 +304,6 @@ end;
 function NewMVCServiceContainer: IMVCServiceContainer;
 begin
   Result := TMVCServiceContainer.Create;
-end;
-
-
-{ MVCInjectAttribute }
-
-constructor MVCInjectAttribute.Create(ServiceName: String);
-begin
-  inherited Create;
-  fServiceName := ServiceName;
 end;
 
 { TMVCServiceContainerAdapter }
