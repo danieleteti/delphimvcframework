@@ -47,6 +47,7 @@ type
   end;
 
   TRegistration = class
+  public
     Intf: TGUID;
     Clazz: TClassOfInterfacedObject;
     RttiType: TRttiType;

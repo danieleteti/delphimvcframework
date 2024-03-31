@@ -319,6 +319,15 @@ object MainForm: TMainForm
     TabOrder = 31
     OnClick = btnCRUDWithOptionsClick
   end
+  object btnTransaction: TButton
+    Left = 144
+    Top = 602
+    Width = 121
+    Height = 35
+    Caption = 'Automatic Transactions'
+    TabOrder = 32
+    OnClick = btnTransactionClick
+  end
   object FDConnection1: TFDConnection
     Left = 312
     Top = 40

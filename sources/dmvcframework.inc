@@ -100,3 +100,7 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$ENDIF}
 {$DEFINE USEFIREDAC}
 
+{$IF Defined(SYDNEYORBETTER)}
+{$DEFINE CUSTOM_MANAGED_RECORDS}
+{$ENDIF}
+

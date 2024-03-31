@@ -27,6 +27,8 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
+  MVCFramework.Logger,
+
   System.Generics.Collections, System.Diagnostics;
 
 type
@@ -64,6 +66,7 @@ type
     btnObjectVersion: TButton;
     btnCustomTable: TButton;
     btnCRUDWithOptions: TButton;
+    btnTransaction: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -98,6 +101,7 @@ type
     procedure btnObjectVersionClick(Sender: TObject);
     procedure btnCustomTableClick(Sender: TObject);
     procedure btnCRUDWithOptionsClick(Sender: TObject);
+    procedure btnTransactionClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -1893,6 +1897,33 @@ begin
     Assert(not lCustomer1.LoadByPK(lIDOfAGoodCustomer)); {this customer is not "good" anymore}
   finally
     lCustomer1.Free;
+  end;
+end;
+
+procedure TMainForm.btnTransactionClick(Sender: TObject);
+begin
+  Log('# TransactionContext');
+  try
+    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+      TMVCActiveRecord.GetByPK<TCustomer>(-1); // will raise EMVCActiveRecordNotFound
+    end;
+  except
+    on E: Exception do
+    begin
+      Log('#1 - TransactionContext caught the exception (doing an automatic rollback)');
+    end;
+  end;
+
+  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+    var lCustomer := TCustomer.Create;
+    try
+      lCustomer.CompanyName := 'Transaction Inc.';
+      lCustomer.LastContact := Now();
+      lCustomer.Insert;
+    finally
+      lCustomer.Free;
+    end;
+    Log('#2 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
   end;
 end;
 

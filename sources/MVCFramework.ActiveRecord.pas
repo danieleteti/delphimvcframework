@@ -26,6 +26,7 @@ unit MVCFramework.ActiveRecord;
 
 {$I dmvcframework.inc}
 
+
 interface
 
 uses
@@ -65,6 +66,16 @@ type
   TMVCActiveRecordClass = class of TMVCActiveRecord;
   TMVCActiveRecord = class;
 
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+  TMVCTransactionContext = record
+  private
+    fConnection: TFDConnection;
+  public
+    class operator Finalize(var Dest: TMVCTransactionContext);
+    class operator Assign (var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
+    constructor Create(Connection: TFDConnection); overload;
+  end;
+{$ENDIF}
 
   TMVCActiveRecordFieldOption = (
     /// <summary>
@@ -588,6 +599,9 @@ type
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function DeleteRQL<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+    class function UseTransactionContext: TMVCTransactionContext;
+{$ENDIF}
 
     { Where }
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
@@ -2215,6 +2229,13 @@ begin
     lT.Free;
   end;
 end;
+
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+class function TMVCActiveRecordHelper.UseTransactionContext: TMVCTransactionContext;
+begin
+  Result := TMVCTransactionContext.Create(TMVCActiveRecord.CurrentConnection);
+end;
+{$ENDIF}
 
 class function TMVCActiveRecordHelper.TryGetRQLQuery<T>(
   const QueryName: String; out NamedRQLQuery: TRQLQueryWithName): Boolean;
@@ -4758,6 +4779,38 @@ constructor TMVCActiveRecord.Create;
 begin
   Create(True);
 end;
+
+{ TMVCTransactionContext }
+
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+
+constructor TMVCTransactionContext.Create(Connection: TFDConnection);
+begin
+  fConnection := nil;
+end;
+
+class operator TMVCTransactionContext.Assign(var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
+begin
+  Dest.fConnection := TMVCActiveRecord.CurrentConnection;
+  Dest.fConnection.StartTransaction;
+end;
+
+class operator TMVCTransactionContext.Finalize(var Dest: TMVCTransactionContext);
+begin
+  if Dest.fConnection <> nil then
+  begin
+    if ExceptAddr <> nil then
+    begin
+      Dest.fConnection.Rollback;
+    end
+    else
+    begin
+      Dest.fConnection.Commit;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 initialization
 
