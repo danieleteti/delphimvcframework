@@ -23,22 +23,22 @@ type
     [MVCDoc('Returns the list of articles')]
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticles;
+    function GetArticles: IMVCResponse;
 
     [MVCDoc('Returns the list of articles')]
     [MVCPath('/searches')]
     [MVCHTTPMethod([httpGET])]
-    function GetArticlesByDescription(const [MVCFromQueryString('q', '')] Search: String): IMVCObjectDictionary;
+    function GetArticlesByDescription(const [MVCFromQueryString('q', '')] Search: String): IMVCResponse;
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/meta')]
     [MVCHTTPMethod([httpGET])]
-    function GetArticleMeta: IMVCObjectDictionary;
+    function GetArticleMeta: IMVCResponse;
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-    function GetArticleByID(id: Integer): IMVCObjectDictionary;
+    function GetArticleByID(id: Integer): IMVCResponse;
 
     [MVCDoc('Deletes the article with the specified id')]
     [MVCPath('/($id)')]
@@ -48,17 +48,17 @@ type
     [MVCDoc('Updates the article with the specified id and return "200: OK"')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateArticleByID(const [MVCFromBody] Article: TArticle; const id: Integer);
+    function UpdateArticleByID(const [MVCFromBody] Article: TArticle; const id: Integer): IMVCResponse;
 
     [MVCDoc('Creates a new article and returns "201: Created"')]
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticle(const [MVCFromBody] Article: TArticle);
+    function CreateArticle(const [MVCFromBody] Article: TArticle): IMVCResponse;
 
     [MVCDoc('Creates new articles from a list and returns "201: Created"')]
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
+    function CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>): IMVCResponse;
   end;
 
 implementation
@@ -76,28 +76,16 @@ begin
   fArticlesService := ArticlesService;
 end;
 
-procedure TArticlesController.CreateArticle(const Article: TArticle);
+function TArticlesController.CreateArticle(const Article: TArticle): IMVCResponse;
 begin
   fArticlesService.Add(Article);
   Render201Created('/articles/' + Article.id.ToString, 'Article Created');
 end;
 
-procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
-var
-  lArticle: TArticle;
+function TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>): IMVCResponse;
 begin
-//  fArticlesService.StartTransaction;
-//  try
-//    for lArticle in ArticleList do
-//    begin
-//      fArticlesService.Add(lArticle);
-//    end;
-//    fArticlesService.Commit;
-//  except
-//    fArticlesService.Rollback;
-//    raise;
-//  end;
-//  Render(201, 'Articles Created');
+  fArticlesService.CreateArticles(ArticleList);
+  Result := MVCResponseBuilder.StatusCode(HTTP_STATUS.Created).Build;
 end;
 
 procedure TArticlesController.DeleteArticleByID(id: Integer);
@@ -108,38 +96,43 @@ begin
   fArticlesService.Delete(lArticle);
 end;
 
-procedure TArticlesController.GetArticles;
+function TArticlesController.GetArticles: IMVCResponse;
 begin
-  Render(ObjectDict().Add('data', fArticlesService.GetAll));
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(fArticlesService.GetAll)
+    .Build;
 end;
 
-function TArticlesController.GetArticlesByDescription(const Search: String): IMVCObjectDictionary;
+function TArticlesController.GetArticlesByDescription(const Search: String): IMVCResponse;
 begin
-  if Search = '' then
-  begin
-    Result := ObjectDict().Add('data', fArticlesService.GetAll);
-  end
-  else
-  begin
-    Result := ObjectDict().Add('data', fArticlesService.GetArticles(Search));
-  end;
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(fArticlesService.GetArticles(Search))
+    .Build;
 end;
 
-procedure TArticlesController.UpdateArticleByID(const Article: TArticle; const id: Integer);
+function TArticlesController.UpdateArticleByID(const Article: TArticle; const id: Integer): IMVCResponse;
 begin
   Article.id := id;
   fArticlesService.Update(Article);
-  Render(200, 'Article Updated');
+  Result := MVCResponseBuilder.StatusCode(HTTP_STATUS.OK).Build;
 end;
 
-function TArticlesController.GetArticleByID(id: Integer): IMVCObjectDictionary;
+function TArticlesController.GetArticleByID(id: Integer): IMVCResponse;
 begin
-  Result := ObjectDict().Add('data', fArticlesService.GetByID(id));
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(fArticlesService.GetByID(id))
+    .Build;
 end;
 
-function TArticlesController.GetArticleMeta: IMVCObjectDictionary;
+function TArticlesController.GetArticleMeta: IMVCResponse;
 begin
-  Result := ObjectDict().Add('data', fArticlesService.GetMeta);
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(fArticlesService.GetMeta)
+    .Build;
 end;
 
 end.

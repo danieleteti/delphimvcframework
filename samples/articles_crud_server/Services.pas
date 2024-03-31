@@ -17,6 +17,7 @@ type
     procedure Delete(AArticolo: TArticle);
     procedure DeleteAllArticles;
     procedure Add(AArticolo: TArticle);
+    procedure CreateArticles(const ArticleList: TObjectList<TArticle>);
     procedure Update(AArticolo: TArticle);
     function GetMeta: TJSONObject;
   end;
@@ -29,6 +30,7 @@ type
     procedure Delete(AArticolo: TArticle);
     procedure DeleteAllArticles;
     procedure Add(AArticolo: TArticle);
+    procedure CreateArticles(const ArticleList: TObjectList<TArticle>);
     procedure Update(AArticolo: TArticle);
     function GetMeta: TJSONObject;
   end;
@@ -50,6 +52,15 @@ begin
   AArticolo.Insert;
 end;
 
+procedure TArticlesService.CreateArticles(const ArticleList: TObjectList<TArticle>);
+begin
+  var Ctx := TMVCActiveRecord.UseTransactionContext;
+  for var lArticle in ArticleList do
+  begin
+    Add(lArticle);
+  end;
+end;
+
 procedure TArticlesService.Delete(AArticolo: TArticle);
 begin
   AArticolo.Delete();
@@ -68,7 +79,10 @@ end;
 function TArticlesService.GetArticles(
   const aTextSearch: string): TObjectList<TArticle>;
 begin
-  Result := TMVCActiveRecord.SelectByNamedQuery<TArticle>('search_by_text',[aTextSearch],[ftString]);
+  if aTextSearch.Trim.IsEmpty then
+    Result := GetAll
+  else
+    Result := TMVCActiveRecord.SelectByNamedQuery<TArticle>('search_by_text',[aTextSearch],[ftString]);
 end;
 
 function TArticlesService.GetByID(const AID: Integer): TArticle;
