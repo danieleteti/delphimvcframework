@@ -82,6 +82,11 @@ type
     function GetMVCResponseWithObjectDictionary: IMVCResponse;
     [MVCPath('/mvcresponse/message/builder/headers')]
     function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
+    [MVCPath('/mvcresponse/message/builder/nobody')]
+    function GetMVCResponseNoBody: IMVCResponse;
+    // Standard Responses
+    [MVCPath('/mvcresponse/ok')]
+    function GetOKResponse: IMVCResponse;
   end;
 
 implementation
@@ -132,6 +137,15 @@ end;
 
 
 
+function TMyController.GetMVCResponseNoBody: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Header('header1', 'Hello World')
+    .Header('header2', 'foo bar')
+    .Build;
+end;
+
 function TMyController.GetMVCResponseSimple: IMVCResponse;
 begin
   Result := MVCResponseBuilder
@@ -152,10 +166,7 @@ end;
 
 function TMyController.GetMVCResponseWithData: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(TPerson.Create('Daniele','Teti', 99))
-    .Build;
+  Result := OKResponse(TPerson.Create('Daniele','Teti', 99));
 end;
 
 function TMyController.GetMVCResponseWithDataAndMessage: IMVCResponse;
@@ -191,22 +202,21 @@ end;
 
 function TMyController.GetMVCResponseWithObjectList: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(TObjectList<TPerson>.Create([
-      TPerson.Create('Daniele','Teti', 99),
-      TPerson.Create('Peter','Parker', 25),
-      TPerson.Create('Bruce','Banner', 45)
-    ])
-  ).Build;
+  Result := OKResponse(TObjectList<TPerson>.Create([
+              TPerson.Create('Daniele','Teti', 99),
+              TPerson.Create('Peter','Parker', 25),
+              TPerson.Create('Bruce','Banner', 45)
+            ]));
+end;
+
+function TMyController.GetOKResponse: IMVCResponse;
+begin
+  Result := OKResponse;
 end;
 
 function TMyController.GetMVCResponseWithJSON: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'))
-    .Build;
+  Result := OKResponse(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'));
 end;
 
 function TMyController.GetSingleObject: TPerson;

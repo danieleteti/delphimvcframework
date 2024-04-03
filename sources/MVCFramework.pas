@@ -675,12 +675,37 @@ type
       var AIsAuthorized: Boolean);
   end;
 
+  // std responses
+
+  IMVCResponse = interface
+    ['{9DFEC741-EE38-4AC9-9C2C-9EA0D15D08D5}']
+    function GetData: TObject;
+    function GetMessage: string;
+    function GetStatusCode: Integer;
+    function GetHeaders: TStringList;
+    procedure SetData(const Value: TObject);
+    procedure SetMessage(const Value: string);
+    procedure SetHeaders(const Headers: TStringList);
+    procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
+    function GetObjectDictionary: IMVCObjectDictionary;
+    procedure SetStatusCode(const Value: Integer);
+    function GetIgnoredList: TMVCIgnoredList;
+    function HasHeaders: Boolean;
+    function HasBody: Boolean;
+    property StatusCode: Integer read GetStatusCode write SetStatusCode;
+    property Message: string read GetMessage write SetMessage;
+    property Data: TObject read GetData write SetData;
+    property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
+    property Headers: TStringList read GetHeaders write SetHeaders;
+  end;
+
   TMVCRenderer = class(TMVCBase)
   protected
     FContext: TWebContext;
     FContentCharset: string;
     FResponseStream: TStringBuilder;
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
+    function StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject): IMVCResponse;
   public { this must be public because of entity processors }
     function GetContentType: string;
     function GetStatusCode: Integer;
@@ -690,6 +715,9 @@ type
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
     class procedure InternalRenderMVCResponse(const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
     /// <summary>
     /// HTTP Status 201 indicates that as a result of HTTP POST request, one or more new resources have been successfully created on server.
     /// The response may contain URI in Location header field in HTTP headers list, which can have reference to the newly created resource. Also, response payload also may include an entity containing a list of resource characteristics and location(s) from which the user or user agent can choose the one most appropriate.
@@ -699,7 +727,36 @@ type
     /// https://restfulapi.net/http-status-201-created/
     /// </remarks>
     procedure Render201Created(const Location: string = '';
-      const Reason: string = ''); virtual;
+      const Reason: string = ''); virtual; deprecated;
+
+
+    //Response Result
+    {
+      BadRequestResult
+      ConflictResult
+      NoContentResult
+      NotFoundResult
+      OkResult
+      UnauthorizedResult
+      UnprocessableEntityResult
+      UnsupportedMediaTypeResult
+      ConflictResult
+      InternalServerErrorResult
+    }
+
+    function OKResponse(const Body: TObject): IMVCResponse; overload;
+    function OKResponse: IMVCResponse; overload;
+    function NotFoundResponse(const Body: TObject): IMVCResponse; overload;
+    function NotFoundResponse: IMVCResponse; overload;
+    function NoContentResponse: IMVCResponse;
+    function UnauthorizedResponse: IMVCResponse;
+    function BadRequestResponse: IMVCResponse; overload;
+    function BadRequestResponse(const Error: TObject): IMVCResponse; overload;
+    function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
+    function AcceptedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
+    function ConflictResult: IMVCResponse;
+    function InternalServerErrorResponse: IMVCResponse;
+
     /// <summary>
     /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agents connection to the server persist until the process is completed.
     /// The entity returned with this response SHOULD describe the requests current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
@@ -708,13 +765,18 @@ type
     /// https://restfulapi.net/http-status-202-accepted/
     /// </remarks>
     procedure Render202Accepted(const HREF: string; const ID: string;
-      const Reason: string = 'Accepted'); virtual;
+      const Reason: string = 'Accepted'); virtual; deprecated;
     /// <summary>
     /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documents active view if any.
     /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
     /// </summary>
     procedure Render204NoContent(const Location: string = '';
-      const Reason: string = ''); virtual;
+      const Reason: string = ''); virtual; deprecated;
+
+
+
+
+    ////////////////////////////////////////////////////////////////////////////
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string;
       const ARaiseExceptionIfNotExists: Boolean = True): IMVCSerializer; overload;
@@ -1091,29 +1153,6 @@ type
   end;
 
 
-  // std responses
-
-  IMVCResponse = interface
-    ['{9DFEC741-EE38-4AC9-9C2C-9EA0D15D08D5}']
-    function GetData: TObject;
-    function GetMessage: string;
-    function GetStatusCode: Integer;
-    function GetHeaders: TStringList;
-    procedure SetData(const Value: TObject);
-    procedure SetMessage(const Value: string);
-    procedure SetHeaders(const Headers: TStringList);
-    procedure SetObjectDictionary(const Value: IMVCObjectDictionary);
-    function GetObjectDictionary: IMVCObjectDictionary;
-    procedure SetStatusCode(const Value: Integer);
-    function GetIgnoredList: TMVCIgnoredList;
-    function HasHeaders: Boolean;
-    function HasBody: Boolean;
-    property StatusCode: Integer read GetStatusCode write SetStatusCode;
-    property Message: string read GetMessage write SetMessage;
-    property Data: TObject read GetData write SetData;
-    property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
-    property Headers: TStringList read GetHeaders write SetHeaders;
-  end;
 
   TMVCBaseResponse = class abstract (TInterfacedObject, IMVCResponse)
   protected
@@ -3902,6 +3941,55 @@ begin
       'Hint: Messaging extensions require a valid clientid. Did you call /messages/clients/YOUR_CLIENT_ID ?');
 end;
 
+function TMVCRenderer.BadRequestResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.BadRequest, nil);
+end;
+
+function TMVCRenderer.AcceptedResponse(const Location: string;
+  const Body: TObject): IMVCResponse;
+var
+  lRespBuilder: IMVCResponseBuilder;
+begin
+  lRespBuilder := MVCResponseBuilder;
+  if not Location.IsEmpty then
+  begin
+    lRespBuilder.Header('location', Location)
+  end;
+  if Assigned(Body) then
+  begin
+    lRespBuilder.Body(Body, True);
+  end;
+  Result := lRespBuilder.StatusCode(HTTP_STATUS.Accepted).Build;
+end;
+
+function TMVCRenderer.BadRequestResponse(const Error: TObject): IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.BadRequest, Error);
+end;
+
+function TMVCRenderer.ConflictResult: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Conflict, nil);
+end;
+
+function TMVCRenderer.CreatedResponse(const Location: string;
+  const Body: TObject): IMVCResponse;
+var
+  lRespBuilder: IMVCResponseBuilder;
+begin
+  lRespBuilder := MVCResponseBuilder;
+  if not Location.IsEmpty then
+  begin
+    lRespBuilder.Header('location', Location)
+  end;
+  if Assigned(Body) then
+  begin
+    lRespBuilder.Body(Body, True);
+  end;
+  Result := lRespBuilder.StatusCode(HTTP_STATUS.Created).Build;
+end;
+
 function TMVCRenderer.GetContentType: string;
 begin
   Result := GetContext.Response.ContentType.Trim;
@@ -3988,6 +4076,36 @@ begin
   end;
 end;
 
+end;
+
+function TMVCRenderer.InternalServerErrorResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.InternalServerError, nil);
+end;
+
+function TMVCRenderer.NoContentResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NoContent, nil);
+end;
+
+function TMVCRenderer.NotFoundResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotFound, nil);
+end;
+
+function TMVCRenderer.NotFoundResponse(const Body: TObject): IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotFound, Body);
+end;
+
+function TMVCRenderer.OKResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, nil);
+end;
+
+function TMVCRenderer.OKResponse(const Body: TObject): IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, Body);
 end;
 
 function TMVCController.GetViewData(const aModelName: string): TValue;
@@ -4274,9 +4392,26 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
+function TMVCRenderer.StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject): IMVCResponse;
+begin
+  if Body = nil then
+  begin
+    Result := MVCResponseBuilder.StatusCode(StatusCode).Build;
+  end
+  else
+  begin
+    Result := MVCResponseBuilder.StatusCode(StatusCode).Body(Body, True).Build;
+  end;
+end;
+
 function TMVCRenderer.ToMVCList(const AObject: TObject; AOwnsObject: Boolean): IMVCList;
 begin
   Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+end;
+
+function TMVCRenderer.UnauthorizedResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Unauthorized, nil);
 end;
 
 procedure TMVCController.SetETag(const Data: String);
