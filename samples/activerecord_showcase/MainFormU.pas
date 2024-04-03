@@ -1907,43 +1907,43 @@ begin
 
 
   // Test 1
-  try
-    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
-      TMVCActiveRecord.GetByPK<TCustomer>(-1); // will raise EMVCActiveRecordNotFound
-    end;
-  except
-    on E: Exception do
-    begin
-      Log(Format('#1 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
-    end;
-  end;
+//  try
+//    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//      TMVCActiveRecord.GetByPK<TCustomer>(-1); // will raise EMVCActiveRecordNotFound
+//    end;
+//  except
+//    on E: Exception do
+//    begin
+//      Log(Format('#1 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
+//    end;
+//  end;
 
 
   // Test 2
-  try
-    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
-      var S := Ctx; // will raise EMVCActiveRecordTransactionContext
-    end;
-  except
-    on E: Exception do
-    begin
-      Log(Format('#2 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
-    end;
-  end;
+//  try
+//    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//      var S := Ctx; // will raise EMVCActiveRecordTransactionContext
+//    end;
+//  except
+//    on E: Exception do
+//    begin
+//      Log(Format('#2 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
+//    end;
+//  end;
 
 
   // Test 3
-  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
-    var lCustomer := TCustomer.Create;
-    try
-      lCustomer.CompanyName := 'Transaction Inc.';
-      lCustomer.LastContact := Now();
-      lCustomer.Insert;
-    finally
-      lCustomer.Free;
-    end;
-    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
-  end;
+//  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//    var lCustomer := TCustomer.Create;
+//    try
+//      lCustomer.CompanyName := 'Transaction Inc.';
+//      lCustomer.LastContact := Now();
+//      lCustomer.Insert;
+//    finally
+//      lCustomer.Free;
+//    end;
+//    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
+//  end;
 
   // Test 4
   ExecutedInTransaction;
@@ -2181,7 +2181,7 @@ end;
 
 procedure TMainForm.ExecutedInTransaction;
 begin
-  var Ctx := TMVCActiveRecord.UseTransactionContext;
+  var tx := TMVCActiveRecord.UseTransactionContext;
   var lCustomer := TCustomer.Create;
   try
     lCustomer.CompanyName := 'Transaction Inc.';

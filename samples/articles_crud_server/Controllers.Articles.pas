@@ -3,14 +3,14 @@ unit Controllers.Articles;
 interface
 
 uses
-  mvcframework,
-  mvcframework.Commons,
-  mvcframework.Serializer.Commons,
+  MVCFramework,
+  MVCFramework.Commons,
   System.Generics.Collections,
-  Controllers.Base, BusinessObjects, Services;
+  Controllers.Base,
+  BusinessObjects,
+  Services;
 
 type
-
   [MVCDoc('Resource that manages articles CRUD')]
   [MVCPath('/articles')]
   TArticlesController = class(TBaseController)
@@ -66,8 +66,6 @@ implementation
 { TArticlesController }
 
 uses
-  Commons,
-  mvcframework.Serializer.Intf,
   System.SysUtils;
 
 constructor TArticlesController.Create(ArticlesService: IArticlesService);
@@ -89,11 +87,8 @@ begin
 end;
 
 procedure TArticlesController.DeleteArticleByID(id: Integer);
-var
-  lArticle: TArticle;
 begin
-  lArticle := fArticlesService.GetByID(id);
-  fArticlesService.Delete(lArticle);
+  fArticlesService.Delete(fArticlesService.GetByID(id));
 end;
 
 function TArticlesController.GetArticles: IMVCResponse;
@@ -116,7 +111,9 @@ function TArticlesController.UpdateArticleByID(const Article: TArticle; const id
 begin
   Article.id := id;
   fArticlesService.Update(Article);
-  Result := MVCResponseBuilder.StatusCode(HTTP_STATUS.OK).Build;
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Build;
 end;
 
 function TArticlesController.GetArticleByID(id: Integer): IMVCResponse;

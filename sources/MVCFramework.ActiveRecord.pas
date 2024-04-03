@@ -62,7 +62,7 @@ type
   EMVCActiveRecordVersionedItemNotFound = class(EMVCActiveRecordNotFound)
   end;
 
-  EMVCActiveRecordTransactionContext = class(EMVCActiveRecordNotFound)
+  EMVCActiveRecordTransactionContext = class(EMVCActiveRecord)
   end;
 
 
@@ -1797,7 +1797,8 @@ begin
     if not lFound then
     begin
       if RaiseExceptionIfNotFound then
-        raise EMVCActiveRecordNotFound.Create('No data found')
+        raise EMVCActiveRecordNotFound.CreateFmt('No data found for key [Entity: %s][PK: %s]',
+          [aActiveRecord.ClassName, aActiveRecord.fTableMap.fPrimaryKeyFieldName])
       else
         FreeAndNil(Result);
     end;
