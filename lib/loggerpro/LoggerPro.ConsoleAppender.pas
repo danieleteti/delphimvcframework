@@ -55,7 +55,10 @@ type
     class constructor Create; // allocate global vars
     class destructor Destroy;
   protected
+    fColors: array [TLogType.Debug .. TLogType.Fatal] of Integer;
+    fSavedColors: Integer;
     procedure SetColor(const Color: Integer);
+    procedure SetupColorMappings; virtual;
   public
     procedure Setup; override;
     procedure TearDown; override;
@@ -95,6 +98,17 @@ begin
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), Color);
 end;
 
+function GetCurrentColors: Integer;
+var
+  info: CONSOLE_SCREEN_BUFFER_INFO;
+begin
+  Result := -1;
+  if GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), info) then
+  begin
+    Result := info.wAttributes;
+  end;
+end;
+
 procedure TLoggerProConsoleAppender.Setup;
 begin
   inherited;
@@ -104,12 +118,16 @@ begin
     try
       if TInterlocked.Increment(TLoggerProConsoleAppender.FConsoleAllocated) = 1 then
       begin
+        SetupColorMappings;
         // Attempt to attach to the parent (if there is already a console allocated)
         if not IsConsole then
         begin
           if not AttachConsole(ATTACH_PARENT_PROCESS) then
+          begin
             AllocConsole; // No console allocated, create a new one
+          end;
         end;
+        fSavedColors := GetCurrentColors;
         TInterlocked.Increment(TLoggerProConsoleAppender.FConsoleAllocated);
       end;
     finally
@@ -118,9 +136,21 @@ begin
   end;
 end;
 
+procedure TLoggerProConsoleAppender.SetupColorMappings;
+begin
+  fColors[TLogType.Debug] := FOREGROUND_GREEN;
+  fColors[TLogType.Info] := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED;
+  fColors[TLogType.Warning] := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_INTENSITY;
+  fColors[TLogType.Error] := FOREGROUND_RED or FOREGROUND_INTENSITY;
+  fColors[TLogType.Fatal] := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
+end;
+
 procedure TLoggerProConsoleAppender.TearDown;
 begin
-
+  if fSavedColors > -1 then
+    SetColor(fSavedColors)
+  else
+    SetColor(FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
 end;
 
 procedure TLoggerProConsoleAppender.WriteLog(const aLogItem: TLogItem);
@@ -128,22 +158,8 @@ var
   lText: string;
   lColor: Integer;
 begin
-  lColor := FOREGROUND_GREEN; // Avoid W1030
-  case aLogItem.LogType of
-    TLogType.Debug:
-      lColor := FOREGROUND_GREEN;
-    TLogType.Info:
-      lColor := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED;
-    TLogType.Warning:
-      lColor := FOREGROUND_RED or FOREGROUND_GREEN;
-    TLogType.Error:
-      lColor := FOREGROUND_RED;
-    TLogType.Fatal:
-      lColor := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
-  end;
-
+  lColor := fColors[aLogItem.LogType];
   lText := FormatLog(aLogItem);
-
   TLoggerProConsoleAppender.FLock.Enter;
   try
     SetColor(lColor);

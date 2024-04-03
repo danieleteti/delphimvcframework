@@ -299,11 +299,9 @@ type
     FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
     FOnLogRow: TOnAppenderLogRow;
-    //FLogFormat: string;
     FLogItemRenderer: ILogItemRenderer;
     FFormatSettings: TFormatSettings;
   protected
-//    property LogFormat: string read FLogFormat;
     property FormatSettings: TFormatSettings read FFormatSettings;
   public
     constructor Create(ALogItemRenderer: ILogItemRenderer = nil); virtual;
@@ -403,6 +401,7 @@ function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolde
 var
   PlaceHolders, PlaceHolderWidthsAndPaddings: TArray<string>;
   I: Integer;
+  lIdx: Integer;
 begin
   if LogLayoutByPlaceHolders.Contains('%s') or LogLayoutByPlaceHolders.Contains('%d') then
   begin
@@ -440,7 +439,7 @@ begin
 
   if UseZeroBasedIncrementalIndexes then
   begin
-    var lIdx := 0;
+    lIdx := 0;
     for I := 0 to High(PlaceHolders) do
     begin
       if Result.Contains('{' + PlaceHolders[I] + '}') then

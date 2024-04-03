@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2023 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -41,7 +41,7 @@ type
     FLB: TListBox;
     FMaxLogLines: Word;
   public
-    constructor Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+    constructor Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -54,9 +54,9 @@ uses
 
 { TVCLListBoxAppender }
 
-constructor TVCLListBoxAppender.Create(aLB: TListBox; aMaxLogLines: Word; aLogFormat: string);
+constructor TVCLListBoxAppender.Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogItemRenderer: ILogItemRenderer = nil);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   FLB := aLB;
   FMaxLogLines := aMaxLogLines;
 end;
@@ -81,7 +81,6 @@ var
   lText: string;
 begin
   lText := FormatLog(aLogItem);
-
   TThread.Queue(nil,
     procedure
     var
