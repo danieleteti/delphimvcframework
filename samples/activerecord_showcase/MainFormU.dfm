@@ -324,7 +324,7 @@ object MainForm: TMainForm
     Top = 602
     Width = 121
     Height = 35
-    Caption = 'Automatic Transactions'
+    Caption = 'TransactionContext'
     TabOrder = 32
     OnClick = btnTransactionClick
   end

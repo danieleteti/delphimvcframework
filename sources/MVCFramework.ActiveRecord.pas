@@ -62,6 +62,9 @@ type
   EMVCActiveRecordVersionedItemNotFound = class(EMVCActiveRecordNotFound)
   end;
 
+  EMVCActiveRecordTransactionContext = class(EMVCActiveRecordNotFound)
+  end;
+
 
   TMVCActiveRecordClass = class of TMVCActiveRecord;
   TMVCActiveRecord = class;
@@ -73,7 +76,7 @@ type
   public
     class operator Finalize(var Dest: TMVCTransactionContext);
     class operator Assign (var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
-    constructor Create(Connection: TFDConnection); overload;
+    constructor Create(Dummy: Integer); overload;
   end;
 {$ENDIF}
 
@@ -2233,7 +2236,7 @@ end;
 {$IF Defined(CUSTOM_MANAGED_RECORDS)}
 class function TMVCActiveRecordHelper.UseTransactionContext: TMVCTransactionContext;
 begin
-  Result := TMVCTransactionContext.Create(TMVCActiveRecord.CurrentConnection);
+  Result := TMVCTransactionContext.Create(0);
 end;
 {$ENDIF}
 
@@ -4784,13 +4787,18 @@ end;
 
 {$IF Defined(CUSTOM_MANAGED_RECORDS)}
 
-constructor TMVCTransactionContext.Create(Connection: TFDConnection);
+constructor TMVCTransactionContext.Create(Dummy: Integer);
 begin
   fConnection := nil;
 end;
 
 class operator TMVCTransactionContext.Assign(var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
 begin
+  if Assigned(Src.fConnection) then
+  begin
+    Dest.fConnection := nil;
+    raise EMVCActiveRecordTransactionContext.Create('Transaction Context cannot be copied nor passed by value');
+  end;
   Dest.fConnection := TMVCActiveRecord.CurrentConnection;
   Dest.fConnection.StartTransaction;
 end;

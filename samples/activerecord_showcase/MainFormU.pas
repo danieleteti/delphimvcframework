@@ -105,6 +105,7 @@ type
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
+    procedure ExecutedInTransaction;
   public
     { Public declarations }
   end;
@@ -1903,6 +1904,9 @@ end;
 procedure TMainForm.btnTransactionClick(Sender: TObject);
 begin
   Log('# TransactionContext');
+
+
+  // Test 1
   try
     begin var Ctx := TMVCActiveRecord.UseTransactionContext;
       TMVCActiveRecord.GetByPK<TCustomer>(-1); // will raise EMVCActiveRecordNotFound
@@ -1910,10 +1914,25 @@ begin
   except
     on E: Exception do
     begin
-      Log('#1 - TransactionContext caught the exception (doing an automatic rollback)');
+      Log(Format('#1 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
     end;
   end;
 
+
+  // Test 2
+  try
+    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+      var S := Ctx; // will raise EMVCActiveRecordTransactionContext
+    end;
+  except
+    on E: Exception do
+    begin
+      Log(Format('#2 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
+    end;
+  end;
+
+
+  // Test 3
   begin var Ctx := TMVCActiveRecord.UseTransactionContext;
     var lCustomer := TCustomer.Create;
     try
@@ -1923,8 +1942,11 @@ begin
     finally
       lCustomer.Free;
     end;
-    Log('#2 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
+    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
   end;
+
+  // Test 4
+  ExecutedInTransaction;
 end;
 
 procedure TMainForm.btnReadOnlyFieldsClick(Sender: TObject);
@@ -2155,6 +2177,20 @@ begin
   finally
     lList.Free;
   end;
+end;
+
+procedure TMainForm.ExecutedInTransaction;
+begin
+  var Ctx := TMVCActiveRecord.UseTransactionContext;
+  var lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'Transaction Inc.';
+    lCustomer.LastContact := Now();
+    lCustomer.Insert;
+  finally
+    lCustomer.Free;
+  end;
+  Log('#4 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
 end;
 
 procedure TMainForm.btnObjectVersionClick(Sender: TObject);
