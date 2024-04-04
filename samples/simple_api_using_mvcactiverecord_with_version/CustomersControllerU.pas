@@ -16,76 +16,64 @@ type
   public
     [MVCPath]
     [MVCHTTPMethods([httpGET])]
-    procedure GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
+    function GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String): IMVCResponse;
 
     [MVCPath('/($ID)')]
     [MVCHTTPMethods([httpGET])]
-    procedure GetCustomerByID(const ID: Integer);
+    function GetCustomerByID(const ID: Integer): IMVCResponse;
 
     [MVCPath('/($ID)')]
     [MVCHTTPMethods([httpPUT])]
-    procedure UpdateCustomerByID(const [MVCFromBody] Customer: TCustomer; const ID: Integer);
+    function UpdateCustomerByID(const [MVCFromBody] Customer: TCustomer; const ID: Integer): IMVCResponse;
 
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
-    procedure CreateCustomer([MVCFromBody] const Customer: TCustomer);
+    function CreateCustomer([MVCFromBody] const Customer: TCustomer): IMVCResponse;
 
     [MVCPath('/_bulk')]
     [MVCHTTPMethods([httpPOST])]
-    procedure BulkCreateCustomers([MVCFromBody] const Customers: TObjectList<TCustomer>);
+    function BulkCreateCustomers([MVCFromBody] const Customers: TObjectList<TCustomer>): IMVCResponse;
   end;
 
 implementation
 
 uses
-  System.SysUtils,
-  FireDAC.Comp.Client,
-  FireDAC.Stan.Param,
-  MVCFramework.Logger,
-  MVCFramework.Serializer.Commons,
-  JsonDataObjects;
+  System.SysUtils;
 
 { TCustomersController }
 
-procedure TCustomersController.CreateCustomer(const Customer: TCustomer);
+function TCustomersController.CreateCustomer(const Customer: TCustomer): IMVCResponse;
 begin
   Customer.Insert;
-  Render201Created('/api/customers/' + Customer.ID.Value.ToString);
+  Result := CreatedResponse('/api/customers/' + Customer.ID.Value.ToString);
 end;
 
-procedure TCustomersController.GetCustomerByID(const ID: Integer);
+function TCustomersController.GetCustomerByID(const ID: Integer): IMVCResponse;
 begin
-  Render(ObjectDict().Add('data', TMVCActiveRecord.GetByPK<TCustomer>(ID)));
+  Result := OKResponse(TMVCActiveRecord.GetByPK<TCustomer>(ID));
 end;
 
-procedure TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
+function TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String): IMVCResponse;
 begin
-  if RQLFilter.IsEmpty then
-    Render(ObjectDict().Add('data', TMVCActiveRecord.All<TCustomer>))
-  else
-    Render(ObjectDict().Add('data', TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000)));
+  Result := OKResponse(TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000));
 end;
 
-procedure TCustomersController.UpdateCustomerByID(const Customer: TCustomer; const ID: Integer);
+function TCustomersController.UpdateCustomerByID(const Customer: TCustomer; const ID: Integer): IMVCResponse;
 begin
   Customer.ID := ID;
   Customer.Update();
+  Result := OKResponse;
 end;
 
-procedure TCustomersController.BulkCreateCustomers(const Customers: TObjectList<TCustomer>);
+function TCustomersController.BulkCreateCustomers(const Customers: TObjectList<TCustomer>): IMVCResponse;
 begin
-  TMVCActiveRecord.CurrentConnection.StartTransaction;
-  try
+  begin var lCtx := TMVCActiveRecord.UseTransactionContext;
     for var lCustomer in Customers do
     begin
       lCustomer.Insert;
     end;
-    TMVCActiveRecord.CurrentConnection.Commit;
-    Render201Created();
-  except
-    TMVCActiveRecord.CurrentConnection.Rollback;
-    raise;
   end;
+  Result := CreatedResponse();
 end;
 
 end.
