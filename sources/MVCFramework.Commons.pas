@@ -43,7 +43,7 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv;
+  MVCFramework.DotEnv, MVCFramework.Container;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -564,6 +564,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Freeze;
+    function Frozen: Boolean;
     function Keys: TArray<string>;
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
@@ -766,7 +767,6 @@ type
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 
-
 implementation
 
 uses
@@ -780,10 +780,10 @@ uses
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
 var
   GdotEnv: IMVCDotEnv = nil;
   GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
-
 
 function URLEncode(const Value: string): string; overload;
 begin
@@ -1058,6 +1058,11 @@ end;
 procedure TMVCConfig.Freeze;
 begin
   FFreezed := True;
+end;
+
+function TMVCConfig.Frozen: Boolean;
+begin
+  Result := FFreezed;
 end;
 
 function TMVCConfig.GetValue(const AIndex: string): string;
@@ -1760,6 +1765,7 @@ class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): Strin
 begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
 end;
+
 
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin

@@ -8,7 +8,7 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
   Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf, MVCFramework.RESTClient,
-  Vcl.DBCtrls, MVCFramework.DataSet.Utils;
+  Vcl.DBCtrls, MVCFramework.DataSet.Utils, Vcl.Buttons;
 
 type
   TMainForm = class(TForm)
@@ -38,11 +38,8 @@ type
     procedure btnFilterClick(Sender: TObject);
   private
     fFilter: string;
-    fLoading: Boolean;
     fRESTClient: IMVCRESTClient;
     fAPIBinder: TMVCAPIBinder;
-    { Private declarations }
-    procedure ShowError(const AResponse: IMVCRESTResponse);
     procedure SetFilter(const Value: string);
   public
     property Filter: string read fFilter write SetFilter;
@@ -100,20 +97,6 @@ procedure TMainForm.SetFilter(const Value: string);
 begin
   fFilter := Value;
   EditFilter.Text := Value;
-end;
-
-procedure TMainForm.ShowError(const AResponse: IMVCRESTResponse);
-begin
-  if not AResponse.Success then
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      '[' + AResponse.Content + ']',
-      mtError, [mbOK], 0)
-  else
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      AResponse.Content,
-      mtError, [mbOK], 0);
 end;
 
 end.

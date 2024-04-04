@@ -676,6 +676,34 @@ type
     property BackEndName: String read FBackEndName write SetBackEndName;
   end;
 
+
+
+  // TEST INJECTOR
+  IMyInterface1 = interface
+    ['{AA4EFC41-F34F-4B50-AC3B-5627D4C48CE2}']
+    function MyMethod1: String;
+  end;
+
+  IMyInterface2 = interface
+    ['{3FE46150-81CA-4ACD-BA8D-B94D1492B1E6}']
+    function MyMethod2: String;
+  end;
+
+  IMyInterface3 = interface
+    ['{7A4ECD36-3B81-4C87-85CE-1C3AFBD7718F}']
+    function MyMethod3: String;
+  end;
+
+  TMyService = class(TInterfacedObject, IMyInterface1, IMyInterface2)
+    function MyMethod1: String;
+    function MyMethod2: String;
+  end;
+
+  TMyService2 = class(TInterfacedObject, IMyInterface3)
+    function MyMethod3: String;
+  end;
+
+
 function GetMyObject: TMyObject;
 function GetMyObjectWithTValue: TMyObjectWithTValue;
 function GetMyObjectWithStream: TMyStreamObject;
@@ -1452,6 +1480,25 @@ end;
 procedure TDummyEntity.SetBackEndName(const Value: String);
 begin
   FBackEndName := Value;
+end;
+
+{ TMyService }
+
+function TMyService.MyMethod1: String;
+begin
+  Result := 'TMyService.MyMethod1';
+end;
+
+function TMyService.MyMethod2: String;
+begin
+  Result := 'TMyService.MyMethod2';
+end;
+
+{ TMyService2 }
+
+function TMyService2.MyMethod3: String;
+begin
+  Result := 'TMyService2.MyMethod3';
 end;
 
 initialization

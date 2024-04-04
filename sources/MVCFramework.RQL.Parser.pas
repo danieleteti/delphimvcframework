@@ -315,7 +315,7 @@ begin
   end;
   if lMsg.Trim.IsEmpty then
     lMsg := '<EOF>';
-  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]);
+  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]) at AddressOfReturnAddress;
 end;
 
 procedure TRQL2SQL.Execute(

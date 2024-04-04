@@ -27,6 +27,8 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
+  MVCFramework.Logger,
+
   System.Generics.Collections, System.Diagnostics;
 
 type
@@ -64,6 +66,7 @@ type
     btnObjectVersion: TButton;
     btnCustomTable: TButton;
     btnCRUDWithOptions: TButton;
+    btnTransaction: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -98,9 +101,11 @@ type
     procedure btnObjectVersionClick(Sender: TObject);
     procedure btnCustomTableClick(Sender: TObject);
     procedure btnCRUDWithOptionsClick(Sender: TObject);
+    procedure btnTransactionClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
+    procedure ExecutedInTransaction;
   public
     { Public declarations }
   end;
@@ -1896,6 +1901,54 @@ begin
   end;
 end;
 
+procedure TMainForm.btnTransactionClick(Sender: TObject);
+begin
+  Log('# TransactionContext');
+
+
+  // Test 1
+//  try
+//    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//      TMVCActiveRecord.GetByPK<TCustomer>(-1); // will raise EMVCActiveRecordNotFound
+//    end;
+//  except
+//    on E: Exception do
+//    begin
+//      Log(Format('#1 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
+//    end;
+//  end;
+
+
+  // Test 2
+//  try
+//    begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//      var S := Ctx; // will raise EMVCActiveRecordTransactionContext
+//    end;
+//  except
+//    on E: Exception do
+//    begin
+//      Log(Format('#2 - TransactionContext caught %s (automatic rollback)', [E.ClassName]));
+//    end;
+//  end;
+
+
+  // Test 3
+//  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
+//    var lCustomer := TCustomer.Create;
+//    try
+//      lCustomer.CompanyName := 'Transaction Inc.';
+//      lCustomer.LastContact := Now();
+//      lCustomer.Insert;
+//    finally
+//      lCustomer.Free;
+//    end;
+//    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
+//  end;
+
+  // Test 4
+  ExecutedInTransaction;
+end;
+
 procedure TMainForm.btnReadOnlyFieldsClick(Sender: TObject);
 var
   lCustomer: TCustomerWithReadOnlyFields;
@@ -2124,6 +2177,20 @@ begin
   finally
     lList.Free;
   end;
+end;
+
+procedure TMainForm.ExecutedInTransaction;
+begin
+  var tx := TMVCActiveRecord.UseTransactionContext;
+  var lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'Transaction Inc.';
+    lCustomer.LastContact := Now();
+    lCustomer.Insert;
+  finally
+    lCustomer.Free;
+  end;
+  Log('#4 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
 end;
 
 procedure TMainForm.btnObjectVersionClick(Sender: TObject);

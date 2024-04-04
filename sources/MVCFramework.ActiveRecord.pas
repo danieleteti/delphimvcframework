@@ -26,6 +26,7 @@ unit MVCFramework.ActiveRecord;
 
 {$I dmvcframework.inc}
 
+
 interface
 
 uses
@@ -61,10 +62,23 @@ type
   EMVCActiveRecordVersionedItemNotFound = class(EMVCActiveRecordNotFound)
   end;
 
+  EMVCActiveRecordTransactionContext = class(EMVCActiveRecord)
+  end;
+
 
   TMVCActiveRecordClass = class of TMVCActiveRecord;
   TMVCActiveRecord = class;
 
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+  TMVCTransactionContext = record
+  private
+    fConnection: TFDConnection;
+  public
+    class operator Finalize(var Dest: TMVCTransactionContext);
+    class operator Assign (var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
+    constructor Create(Dummy: Integer); overload;
+  end;
+{$ENDIF}
 
   TMVCActiveRecordFieldOption = (
     /// <summary>
@@ -588,6 +602,9 @@ type
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function DeleteRQL<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+    class function UseTransactionContext: TMVCTransactionContext;
+{$ENDIF}
 
     { Where }
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
@@ -1780,7 +1797,8 @@ begin
     if not lFound then
     begin
       if RaiseExceptionIfNotFound then
-        raise EMVCActiveRecordNotFound.Create('No data found')
+        raise EMVCActiveRecordNotFound.CreateFmt('No data found for key [Entity: %s][PK: %s]',
+          [aActiveRecord.ClassName, aActiveRecord.fTableMap.fPrimaryKeyFieldName])
       else
         FreeAndNil(Result);
     end;
@@ -2215,6 +2233,13 @@ begin
     lT.Free;
   end;
 end;
+
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+class function TMVCActiveRecordHelper.UseTransactionContext: TMVCTransactionContext;
+begin
+  Result := TMVCTransactionContext.Create(0);
+end;
+{$ENDIF}
 
 class function TMVCActiveRecordHelper.TryGetRQLQuery<T>(
   const QueryName: String; out NamedRQLQuery: TRQLQueryWithName): Boolean;
@@ -4758,6 +4783,43 @@ constructor TMVCActiveRecord.Create;
 begin
   Create(True);
 end;
+
+{ TMVCTransactionContext }
+
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+
+constructor TMVCTransactionContext.Create(Dummy: Integer);
+begin
+  fConnection := nil;
+end;
+
+class operator TMVCTransactionContext.Assign(var Dest: TMVCTransactionContext; const [ref] Src: TMVCTransactionContext);
+begin
+  if Assigned(Src.fConnection) then
+  begin
+    Dest.fConnection := nil;
+    raise EMVCActiveRecordTransactionContext.Create('Transaction Context cannot be copied nor passed by value');
+  end;
+  Dest.fConnection := TMVCActiveRecord.CurrentConnection;
+  Dest.fConnection.StartTransaction;
+end;
+
+class operator TMVCTransactionContext.Finalize(var Dest: TMVCTransactionContext);
+begin
+  if Dest.fConnection <> nil then
+  begin
+    if ExceptAddr <> nil then
+    begin
+      Dest.fConnection.Rollback;
+    end
+    else
+    begin
+      Dest.fConnection.Commit;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 initialization
 

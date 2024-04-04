@@ -10,6 +10,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.Signal,
   MVCFramework.Logger,
+  MVCFramework.Container,
   MVCFramework.dotEnv,
   Web.WebReq,
   Web.WebBroker,
@@ -18,10 +19,10 @@ uses
   Controllers.Articles in 'Controllers.Articles.pas',
   Services in 'Services.pas',
   BusinessObjects in 'BusinessObjects.pas',
-  MainDM in 'MainDM.pas' {dmMain: TDataModule},
   Commons in 'Commons.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
+  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
+  FDConnectionConfigU in 'FDConnectionConfigU.pas';
 
 {$R *.res}
 
@@ -67,6 +68,12 @@ begin
                               end)
                    .Build();             //uses the executable folder to look for .env* files
       end);
+
+    CreateFirebirdPrivateConnDef(True);
+
+    DefaultMVCServiceContainer
+      .RegisterType(TArticlesService, IArticlesService, '', TRegistrationType.SingletonPerRequest)
+      .Build;
 
     WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
     RunServer(dotEnv.Env('dmvc.server.port', 8080));

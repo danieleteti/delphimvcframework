@@ -288,7 +288,6 @@ type
     procedure TestInLineComments;
   end;
 
-
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -2395,6 +2394,8 @@ begin
     lParser.Free;
   end;
 end;
+
+
 
 initialization
 
