@@ -289,7 +289,6 @@ begin
         else
         begin
           InitializeDefaultLogger;
-          //Log.Info('Default Logger initialized', LOGGERPRO_TAG);
         end;
       end;
     finally

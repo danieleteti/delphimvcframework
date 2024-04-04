@@ -86,8 +86,7 @@ begin
 
     lViewTemplate := lCacheItem.Value.AsString;
     try
-      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel),
-        TTPDatasetDictionary(ViewDataSets), OutputStream);
+      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel), nil, OutputStream);
     except
       on E: EParserException do
       begin

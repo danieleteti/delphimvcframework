@@ -727,7 +727,7 @@ type
     /// https://restfulapi.net/http-status-201-created/
     /// </remarks>
     procedure Render201Created(const Location: string = '';
-      const Reason: string = ''); virtual; deprecated;
+      const Reason: string = ''); virtual;
 
 
     //Response Result

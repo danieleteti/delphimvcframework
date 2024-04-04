@@ -908,7 +908,7 @@ constructor TTPObjectListAdapter.Create(const aObjectList: TObjectList<TObject>)
 begin
   inherited Create;
   fObjectList := aObjectList;
-  if fObjectList.Count > 0 then
+  if Assigned(fObjectList) and (fObjectList.Count > 0) then
     fIndex := 0
   else
     fIndex := -1;

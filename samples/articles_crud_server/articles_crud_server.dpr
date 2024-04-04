@@ -1,11 +1,14 @@
 program articles_crud_server;
 
 {$APPTYPE CONSOLE}
-
+{$DEFINE USE_DB_LOGGER}
 
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
+{$IF Defined(USE_DB_LOGGER)}
+  CustomLoggerConfigU,
+{$ENDIF}
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Signal,
@@ -57,6 +60,10 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
 
+    {$IF Defined(USE_DB_LOGGER)}
+      MVCFramework.Logger.SetDefaultLogger(CustomLoggerConfigU.GetLogger);
+    {$ENDIF}
+
     dotEnvConfigure(
       function: IMVCDotEnv
       begin
@@ -64,13 +71,12 @@ begin
                    .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
                    .UseLogger(procedure(LogItem: String)
                               begin
-                                LogW('dotEnv: ' + LogItem);
+                                LogD('dotEnv: ' + LogItem);
                               end)
                    .Build();             //uses the executable folder to look for .env* files
       end);
 
     CreateFirebirdPrivateConnDef(True);
-
     DefaultMVCServiceContainer
       .RegisterType(TArticlesService, IArticlesService, '', TRegistrationType.SingletonPerRequest)
       .Build;

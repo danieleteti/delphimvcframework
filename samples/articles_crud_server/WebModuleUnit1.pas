@@ -1,5 +1,6 @@
 unit WebModuleUnit1;
 
+
 interface
 
 uses System.SysUtils, System.Classes, Web.HTTPApp, mvcframework, FireDAC.Phys.FBDef, FireDAC.Stan.Intf, FireDAC.Phys,
@@ -30,7 +31,9 @@ uses
   MVCFramework.SQLGenerators.Firebird,
   MVCFramework.Commons,
   Controllers.Base,
-  Commons;
+  Commons
+
+  ;
 
 {$R *.dfm}
 
