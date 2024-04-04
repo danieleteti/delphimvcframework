@@ -26,7 +26,7 @@ uses
   FireDAC.VCLUI.Wait, Services;
 
 type
-  TdmMain = class(TDataModule, IArticlesDataModule)
+  TdmMain = class(TDataModule)
     Connection: TFDConnection;
     dsArticles: TFDQuery;
     updArticles: TFDUpdateSQL;
@@ -34,7 +34,7 @@ type
   private
     { Private declarations }
   public
-    constructor Create;
+    constructor Create; reintroduce;
     function SearchProducts(const SearchText: string): TDataSet;
 
   end;

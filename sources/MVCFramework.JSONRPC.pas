@@ -413,6 +413,7 @@ type
     function GetDeclaredMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
     function GetInheritedMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
   protected
+    function GetPayloadFromRequest(const HTTPMethod: TMVCHTTPMethodType; const Request: TMVCWebRequest): TJDOJsonObject;
     function CreateError(const RequestID: TValue; const ErrorCode: Integer;
       const Message: string): TJDOJsonObject; overload;
     function CreateError(const RequestID: TValue; const ErrorCode: Integer;
@@ -423,7 +424,7 @@ type
     function CanBeRemotelyInvoked(const RTTIMethod: TRTTIMethod): Boolean;
     procedure ForEachInvokableMethod(const aProc: TProc<TRTTIMethod>);
     procedure TryToCallMethod(const aRTTIType: TRttiType; const MethodName: string; const Parameter: TJDOJsonObject);
-    function GetJSONRPCPayload(const Request: TMVCWebRequest): TJsonObject;
+    function GetJSONRPCPayloadFromQueryString(const Request: TMVCWebRequest): TJsonObject;
 
     function InvokeMethod(
       const fRPCInstance: TObject;
@@ -1315,7 +1316,7 @@ begin
   end;
 end;
 
-function TMVCJSONRPCController.GetJSONRPCPayload(const Request: TMVCWebRequest): TJsonObject;
+function TMVCJSONRPCController.GetJSONRPCPayloadFromQueryString(const Request: TMVCWebRequest): TJsonObject;
 var
   lParams: string;
   lJ: TJsonBaseObject;
@@ -1386,6 +1387,24 @@ begin
     end;
   finally
     lGeneratedMethods.Free;
+  end;
+end;
+
+function TMVCJSONRPCController.GetPayloadFromRequest(
+  const HTTPMethod: TMVCHTTPMethodType;
+  const Request: TMVCWebRequest): TJDOJsonObject;
+begin
+  case HTTPMethod of
+    httpGET:
+      begin
+        Result := GetJSONRPCPayloadFromQueryString(Request);
+      end;
+    httpPOST:
+      begin
+        Result := StrToJSONObject(Request.Body);
+      end;
+  else
+    raise EMVCJSONRPCInvalidRequest.Create('Only POST and GET Allowed');
   end;
 end;
 
@@ -1516,15 +1535,13 @@ var
   lJSONResp: TJDOJsonObject;
   lBeforeCallHookHasBeenInvoked: Boolean;
   lAfterCallHookHasBeenInvoked: Boolean;
-  lTypeAttrs: TArray<TCustomAttribute>;
   lHTTPVerb: TMVCHTTPMethodType;
-  lAllMethodsCallableWithGET: Boolean;
+  lIsMethodCallableWithGET: Boolean;
   lExceptionHandled: Boolean;
   lJSONRespErrorInfo: TMVCJSONRPCExceptionErrorInfo;
 begin
   lBeforeCallHookHasBeenInvoked := False;
   lAfterCallHookHasBeenInvoked := False;
-  lAllMethodsCallableWithGET := False;
   lRTTIType := nil;
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
@@ -1533,19 +1550,7 @@ begin
   try
     try
       lHTTPVerb := Context.Request.HTTPMethod;
-      case lHTTPVerb of
-        httpGET:
-          begin
-            lJSON := GetJSONRPCPayload(Context.Request);
-          end;
-        httpPOST:
-          begin
-            lJSON := StrToJSONObject(Context.Request.Body);
-          end;
-      else
-        raise EMVCJSONRPCInvalidRequest.Create('Only POST and GET Allowed');
-      end;
-
+      lJSON := GetPayloadFromRequest(lHTTPVerb, Context.Request);
       try
         if not Assigned(lJSON) then
         begin
@@ -1555,9 +1560,11 @@ begin
 
         if lHTTPVerb = httpGET then
         begin
-          lTypeAttrs := lRTTIType.GetAttributes;
-          lAllMethodsCallableWithGET := (Length(lTypeAttrs) > 0) and
-            TMVCSerializerHelper.AttributeExists<MVCJSONRPCAllowGET>(lTypeAttrs);
+          lIsMethodCallableWithGET := TMVCSerializerHelper.AttributeExists<MVCJSONRPCAllowGET>(lRTTIType.GetAttributes);
+          if not lIsMethodCallableWithGET then
+          begin
+            raise EMVCJSONRPCError.Create(JSONRPC_ERR_INVALID_REQUEST, 'Method callable with POST only');
+          end;
         end;
 
         lJSONRPCReq := CreateRequest(lJSON);
@@ -1606,15 +1613,6 @@ begin
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
           end;
 
-          if (lHTTPVerb = httpGET) and (not lAllMethodsCallableWithGET) then
-          begin
-            lTypeAttrs := lRTTIMethod.GetAttributes;
-            if (Length(lTypeAttrs) = 0) or (not TMVCSerializerHelper.AttributeExists<MVCJSONRPCAllowGET>(lTypeAttrs))
-            then
-            begin
-              raise EMVCJSONRPCError.Create(JSONRPC_ERR_INVALID_REQUEST, 'Method callable with POST only');
-            end;
-          end;
           lRes := InvokeMethod(fRPCInstance, lRTTIType, lRTTIMethod, lJSON, lBeforeCallHookHasBeenInvoked);
           case lJSONRPCReq.RequestType of
             TJSONRPCRequestType.Notification:

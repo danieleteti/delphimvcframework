@@ -55,7 +55,7 @@ begin
   FMVC.PublishObject(
     function: TObject
     begin
-      Result := TdmMain.Create(nil);
+      Result := TdmMain.Create;
     end, '/rpcdatamodule');
 
   FMVC.PublishObject(
