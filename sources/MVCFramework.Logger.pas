@@ -314,7 +314,7 @@ begin
 {$ELSE}
       lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-      lFileAppender := TLoggerProFileAppender.Create(5, 2000, lLogsFolder);
+      lFileAppender := TLoggerProFileAppender.Create(5, 10000, lLogsFolder);
       if IsConsole and UseConsoleLogger then
       begin
         {$IF Defined(MSWINDOWS)}
