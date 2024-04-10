@@ -10,12 +10,11 @@ uses
   Winapi.ShellAPI,
   {$ENDIF }
   IdHTTPWebBrokerBridge,
+  MVCFramework.Logger,
   Web.WebReq,
   Web.WebBroker,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
-  FileUploadControllerU in 'FileUploadControllerU.pas',
-  MVCFramework.View.Renderers.TemplatePro in '..\serversideviewcustom\MVCFramework.View.Renderers.TemplatePro.pas',
-  TemplateProU in '..\serversideviewcustom\lib\TemplateProU.pas';
+  FileUploadControllerU in 'FileUploadControllerU.pas', System.IOUtils;
 
 {$R *.res}
 
@@ -24,12 +23,12 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press RETURN to stop the server');
+    LogI('Press RETURN to stop the server');
 
 {$IFDEF MSWINDOWS}
     ShellExecute(0, 'open', 'http://localhost:3000', nil, nil, SW_SHOW);
@@ -42,13 +41,14 @@ begin
 end;
 
 begin
+  TDirectory.CreateDirectory(TFileUploadController.UPLOAD_FOLDER);
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(3000);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end
 
 end.

@@ -742,6 +742,7 @@ type
       UnsupportedMediaTypeResult
       ConflictResult
       InternalServerErrorResult
+      RedirectResult
     }
 
     function OKResponse(const Body: TObject): IMVCResponse; overload;
@@ -754,7 +755,8 @@ type
     function BadRequestResponse(const Error: TObject): IMVCResponse; overload;
     function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
     function AcceptedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
-    function ConflictResult: IMVCResponse;
+    function ConflictResponse: IMVCResponse;
+    function RedirectResponse(Location: String; Permanent: Boolean = False; PreserveMethod: Boolean = False): IMVCResponse;
     function InternalServerErrorResponse: IMVCResponse;
 
     /// <summary>
@@ -3968,7 +3970,7 @@ begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.BadRequest, Error);
 end;
 
-function TMVCRenderer.ConflictResult: IMVCResponse;
+function TMVCRenderer.ConflictResponse: IMVCResponse;
 begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Conflict, nil);
 end;
@@ -4076,6 +4078,35 @@ begin
   end;
 end;
 
+end;
+
+function TMVCRenderer.RedirectResponse(Location: String; Permanent: Boolean = False; PreserveMethod: Boolean = False): IMVCResponse;
+var
+  lBuilder: IMVCResponseBuilder;
+begin
+  lBuilder := MVCResponseBuilder.Header('location', Location);
+  if Permanent then
+  begin
+    if PreserveMethod then
+    begin
+      Result := lBuilder.StatusCode(HTTP_STATUS.TemporaryRedirect).Build;
+    end
+    else
+    begin
+      Result := lBuilder.StatusCode(HTTP_STATUS.MovedPermanently).Build;
+    end;
+  end
+  else
+  begin
+    if PreserveMethod then
+    begin
+      Result := lBuilder.StatusCode(HTTP_STATUS.PermanentRedirect).Build;
+    end
+    else
+    begin
+      Result := lBuilder.StatusCode(HTTP_STATUS.Found).Build;
+    end;
+  end;
 end;
 
 function TMVCRenderer.InternalServerErrorResponse: IMVCResponse;

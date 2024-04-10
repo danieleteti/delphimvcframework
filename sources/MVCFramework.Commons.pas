@@ -247,7 +247,17 @@ type
     /// </summary>
     NotModified = 304;
     UseProxy = 305;
+    /// <summary>
+    ///   HTTP 307 Temporary Redirect redirect status response code indicates that the resource requested has been temporarily moved to the URL given by the Location headers.
+    ///  The method and the body of the original request are reused to perform the redirected request. In the cases where you want the method used to be changed to GET, use 303 See Other instead. This is useful when you want to give an answer to a PUT method that is not the uploaded resources, but a confirmation message (like "You successfully uploaded XYZ").
+    ///  The only difference between 307 and 302 is that 307 guarantees that the method and the body will not be changed when the redirected request is made. With 302, some old clients were incorrectly changing the method to GET: the behavior with non-GET methods and 302 is then unpredictable on the Web, whereas the behavior with 307 is predictable. For GET requests, their behavior is identical.
+    /// </summary>
     TemporaryRedirect = 307;
+    /// <summary>
+    ///   The HyperText Transfer Protocol (HTTP) 308 Permanent Redirect redirect status response code indicates that the resource requested has been definitively moved to the URL given by the Location headers. A browser redirects to this page and search engines update their links to the resource (in 'SEO-speak', it is said that the 'link-juice' is sent to the new URL).
+    ///   The request method and the body will not be altered, whereas 301 may incorrectly sometimes be changed to a GET method.
+    /// </summary>
+    PermanentRedirect = 308;
     // Client Error 4xx
     /// <summary>
     /// The request could not be understood by the server due to malformed syntax. The client SHOULD NOT repeat the request without modifications.
