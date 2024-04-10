@@ -116,7 +116,8 @@ contains
   MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
   MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
-  LoggerPro.ConsoleAppender in '..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas';
+  LoggerPro.ConsoleAppender in '..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas',
+  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas';
 
 end.
 
