@@ -191,7 +191,11 @@ begin
   lConstructors := RttiType.GetMethods('Create');
   for lConstructor in lConstructors do
   begin
+    {$IF Defined(ALEXANDRIAORBETTER)}
     if lConstructor.HasAttribute<T> then
+    {$ELSE}
+    if TRttiUtils.HasAttribute<T>(lConstructor) then
+    {$ENDIF}
     begin
       Result := lConstructor;
       break; { the first wins }
