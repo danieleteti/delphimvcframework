@@ -2210,13 +2210,33 @@ begin
     lCust.Free;
   end;
 
-
   lCust := TMVCActiveRecord.GetByPK<TCustomerWithVersion>(lID);
   try
     lCust.CompanyName := 'Alphabet Inc.';
     lCust.Store;
   finally
     lCust.Free;
+  end;
+
+  // Let's load 2 instances
+  var lCust1 := TMVCActiveRecord.GetByPK<TCustomerWithVersion>(lID);
+  try
+    var lCust2 := TMVCActiveRecord.GetByPK<TCustomerWithVersion>(lID);
+    try
+      //User1
+      lCust1.CompanyName := 'MyCompany';
+      lCust1.Store; //save the first version
+      //User1 - end
+
+      //User2
+      lCust2.Rating := 4;
+      lCust2.Store; //save another version starting from an older version - exception
+      //User2 - end
+    finally
+      lCust2.Free;
+    end;
+  finally
+    lCust1.Free;
   end;
 end;
 
