@@ -61,7 +61,7 @@ end;
 
 function TSourceFile.GetAge: TDateTime;
 begin
-  Result := Now;
+  Result := -1;
 end;
 
 function TSourceFile.GetSource: string;

@@ -27,15 +27,6 @@ type
       ); override;
   end;
 
-
-  TUnitHeaderCommand = class(TCustomCommand)
-  public
-    procedure ExecuteInterface(
-      Section: TStringBuilder;
-      Model: TJSONObject
-      ); override;
-  end;
-
   TUnitControllerCommand = class(TCustomCommand)
   public
     procedure ExecuteInterface(
@@ -180,17 +171,6 @@ type
 
 implementation
 
-{ TUnitHeaderCommand }
-
-procedure TUnitHeaderCommand.ExecuteInterface(
-      Section: TStringBuilder;
-      Model: TJSONObject);
-begin
-  inherited;
-  Section
-    .AppendLine('unit ' + Model['unit_name'] + ';')
-    .AppendLine()
-end;
 
 { TUnitUsesCommand }
 
@@ -260,13 +240,13 @@ begin
   inherited;
   CheckFor('program.name', Model);
   Section
-    .AppendLine('program ' + Model['program.name'] + ';')
+    .AppendLine('program ' + Model[TConfigKey.program_name] + ';')
     .AppendLine
     .AppendLine('{$APPTYPE CONSOLE}')
     .AppendLine
     .AppendLine('uses');
 
-  if Model['msheap'] then
+  if Model[TConfigKey.program_msheap] then
   begin
     Section.AppendLine('  MSHeap,');
   end;
@@ -307,7 +287,7 @@ procedure TUnitControllerCommand.ExecuteInterface(Section: TStringBuilder;
 begin
   inherited;
   Section
-    .AppendLine('unit ' + Model['controller.unit_name'] + ';')
+    .AppendLine('unit ' + Model[TConfigKey.controller_unit_name] + ';')
     .AppendLine
     .AppendLine('interface')
     .AppendLine
@@ -331,9 +311,9 @@ procedure TUnitControllerEntityDeclarationCommand.ExecuteImplementation(
   Section: TStringBuilder; Model: TJsonObject);
 begin
   inherited;
-  if not Model.B['entity.generate'] then Exit;
+  if not Model.B[TConfigKey.entity_generate] then Exit;
   Section
-    .AppendLine('constructor ' + Model['entity.classname'] + '.Create(FirstName, LastName: String; DOB: TDate);')
+    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(FirstName, LastName: String; DOB: TDate);')
     .AppendLine('begin')
     .AppendLine('  inherited Create;')
     .AppendLine('  fFirstName := FirstName;')
@@ -348,12 +328,12 @@ procedure TUnitControllerEntityDeclarationCommand.ExecuteInterface(Section: TStr
   Model: TJSONObject);
 begin
   inherited;
-  if not Model.B['entity.generate'] then Exit;
+  if not Model.B[TConfigKey.entity_generate] then Exit;
 
   CheckFor('entity.classname', Model);
   Section
     .AppendLine('  [MVCNameCase(ncCamelCase)]')
-    .AppendLine('  ' + Model['entity.classname'] + ' = class')
+    .AppendLine('  ' + Model[TConfigKey.entity_classname] + ' = class')
     .AppendLine('  private')
     .AppendLine('    fFirstName: String;')
     .AppendLine('    fLastName: String;')
@@ -389,19 +369,19 @@ procedure TUnitControllerControllerDeclarationCommand.ExecuteImplementation(
   Section: TStringBuilder; Model: TJsonObject);
 begin
   inherited;
-  CheckFor('controller.classname', Model);
+  CheckFor(TConfigKey.controller_classname, Model);
 
-  if Model.B['controller.action_filters.generate'] then
+  if Model.B[TConfigKey.controller_action_filters_generate] then
   begin
     Section
       .AppendLine
-      .AppendLine('procedure ' + Model['controller.classname'] + '.OnAfterAction(Context: TWebContext; const AActionName: string);')
+      .AppendLine('procedure ' + Model[TConfigKey.controller_classname] + '.OnAfterAction(Context: TWebContext; const AActionName: string);')
       .AppendLine('begin')
       .AppendLine('  { Executed after each action }')
       .AppendLine('  inherited;')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('procedure ' + Model['controller.classname'] + '.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);')
+      .AppendLine('procedure ' + Model[TConfigKey.controller_classname] + '.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);')
       .AppendLine('begin')
       .AppendLine('  { Executed before each action')
       .AppendLine('    if handled is true (or an exception is raised) the actual')
@@ -410,28 +390,28 @@ begin
       .AppendLine('end;')
   end;
 
-  if Model.B['controller.index_methods.generate'] then
+  if Model.B[TConfigKey.controller_index_methods_generate] then
   begin
     Section
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.Index: String;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.Index: String;')
       .AppendLine('begin')
       .AppendLine('  //use Context property to access to the HTTP request and response')
       .AppendLine('  Result := ''Hello DelphiMVCFramework World'';')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.GetReversedString(const Value: String): String;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetReversedString(const Value: String): String;')
       .AppendLine('begin')
       .AppendLine('  Result := System.StrUtils.ReverseString(Value.Trim);')
       .AppendLine('end;')
   end;
 
-  if Model.B['controller.crud_methods.generate'] then
+  if Model.B[TConfigKey.controller_crud_methods_generate] then
   begin
     Section
       .AppendLine
       .AppendLine('//Sample CRUD Actions for a "People" entity')
-      .AppendLine('function ' + Model['controller.classname'] + '.GetPeople: TObjectList<TPerson>;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: TObjectList<TPerson>;')
       .AppendLine('var')
       .AppendLine('  lPeople: TObjectList<TPerson>;')
       .AppendLine('begin')
@@ -447,7 +427,7 @@ begin
       .AppendLine('  end;')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.GetPerson(ID: Integer): TPerson;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPerson(ID: Integer): TPerson;')
       .AppendLine('var')
       .AppendLine('  lPeople: TObjectList<TPerson>;')
       .AppendLine('begin')
@@ -459,7 +439,7 @@ begin
       .AppendLine('  end;')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);')
       .AppendLine('  Result := MVCResponseBuilder')
@@ -468,7 +448,7 @@ begin
       .AppendLine('      .Build;')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);')
       .AppendLine('  Result := MVCResponseBuilder')
@@ -476,7 +456,7 @@ begin
       .AppendLine('    .Build;')
       .AppendLine('end;')
       .AppendLine
-      .AppendLine('function ' + Model['controller.classname'] + '.DeletePerson(ID: Integer): IMVCResponse;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.DeletePerson(ID: Integer): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Deleted person with id '' + ID.ToString);')
       .AppendLine('  Result := MVCResponseBuilder')
@@ -495,9 +475,9 @@ begin
 
   Section
     .AppendLine('  [MVCPath(''/api'')]')
-    .AppendLine('  ' + Model['controller.classname'] + ' = class(TMVCController)');
+    .AppendLine('  ' + Model[TConfigKey.controller_classname] + ' = class(TMVCController)');
 
-  if Model.B['controller.action_filters.generate'] then
+  if Model.B[TConfigKey.controller_action_filters_generate] then
   begin
     Section
       .AppendLine('  protected')
@@ -505,7 +485,7 @@ begin
       .AppendLine('    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;')
   end;
 
-  if Model.B['controller.index_methods.generate'] then
+  if Model.B[TConfigKey.controller_index_methods_generate] then
   begin
     Section
       .AppendLine('  public')
@@ -518,9 +498,9 @@ begin
       .AppendLine('    function GetReversedString(const Value: String): String;')
   end;
 
-  if Model.B['controller.crud_methods.generate'] then
+  if Model.B[TConfigKey.controller_crud_methods_generate] then
   begin
-    if not Model.B['controller.index_methods.generate'] then
+    if not Model.B[TConfigKey.controller_index_methods_generate] then
     begin
       Section
         .AppendLine('  public')
@@ -557,7 +537,7 @@ procedure TWebModuleDFMCommand.ExecuteImplementation(Section: TStringBuilder;
 begin
   inherited;
   Section
-    .AppendLine('object ' + Model.S['webmodule.classname'].Substring(1) + ': ' + Model['webmodule.classname'])
+    .AppendLine('object ' + Model.S[TConfigKey.webmodule_classname].Substring(1) + ': ' + Model[TConfigKey.webmodule_classname])
     .AppendLine('  OldCreateOrder = False')
     .AppendLine('  OnCreate = WebModuleCreate')
     .AppendLine('  OnDestroy = WebModuleDestroy')
@@ -589,11 +569,11 @@ begin
     .AppendLine('{$R *.dfm}')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  ' + Model['controller.unit_name'] + ',');
+    .AppendLine('  ' + Model[TConfigKey.controller_unit_name] + ',');
 
   if Model.B['jsonrpc.generate'] then
   begin
-    Section.AppendLine('  ' + Model['jsonrpc.unit_name'] + ',')
+    Section.AppendLine('  ' + Model[TConfigKey.jsonrpc_unit_name] + ',')
   end;
 
   Section
@@ -640,7 +620,7 @@ begin
     .AppendLine('    end);')
     .AppendLine
     .AppendLine('  // Controllers')
-    .AppendLine('  FMVC.AddController(' + Model['controller.classname'] + ');')
+    .AppendLine('  FMVC.AddController(' + Model[TConfigKey.controller_classname] + ');')
     .AppendLine('  // Controllers - END')
     .AppendLine
     .AppendLine('  // Middleware');
@@ -677,8 +657,8 @@ begin
 
     if Model.B['webmodule.middleware.activerecord'] then
     begin
-      activerecord_con_def_name := Model['webmodule.middleware.activerecord.con_def_name'];
-      activerecord_con_def_filename := Model['webmodule.middleware.activerecord.con_def_filename'];
+      activerecord_con_def_name := Model[TConfigKey.webmodule_middleware_activerecord_con_def_name];
+      activerecord_con_def_filename := Model[TConfigKey.webmodule_middleware_activerecord_con_def_filename];
       Section
         .AppendLine('  fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(')
         .AppendLine('    dotEnv.Env(''firedac.connection_definition_name'', ''' +  activerecord_con_def_name + '''),')
@@ -697,7 +677,7 @@ begin
         .AppendLine('  fMVC.PublishObject(')
         .AppendLine('    function : TObject')
         .AppendLine('    begin')
-        .AppendLine('      Result := ' + Model['jsonrpc.classname'] + '.Create;')
+        .AppendLine('      Result := ' + Model[TConfigKey.jsonrpc_classname] + '.Create;')
         .AppendLine('    end, ''/jsonrpc'');')
         .AppendLine('  // JSONRPC - END')
     end;
@@ -731,7 +711,7 @@ begin
     .AppendLine('  MVCFramework;')
     .AppendLine
     .AppendLine('type')
-    .AppendLine('  ' + Model.S['webmodule.classname'] + ' = class(TWebModule)')
+    .AppendLine('  ' + Model.S[TConfigKey.webmodule_classname] + ' = class(TWebModule)')
     .AppendLine('    procedure WebModuleCreate(Sender: TObject);')
     .AppendLine('    procedure WebModuleDestroy(Sender: TObject);')
     .AppendLine('  private')
@@ -767,12 +747,12 @@ procedure TUnitJSONRPCDeclarationCommand.ExecuteInterface(
 begin
   inherited;
   Section
-    .AppendLine('unit ' + Model['jsonrpc.unit_name'] + ';')
+    .AppendLine('unit ' + Model[TConfigKey.jsonrpc_unit_name] + ';')
     .AppendLine
     .AppendLine('interface')
     .AppendLine
     .AppendLine('type')
-    .AppendLine('  ' + Model['jsonrpc.classname'] + ' = class')
+    .AppendLine('  ' + Model[TConfigKey.jsonrpc_classname] + ' = class')
     .AppendLine('  public')
     .AppendLine('    function ReverseString(const Value: String): String;')
     .AppendLine('  end;')
@@ -843,7 +823,7 @@ begin
     .AppendLine('    end;')
     .AppendLine('{$ENDIF}')
     .AppendLine
-    .AppendLine('    RunServer(dotEnv.Env(''dmvc.server.port'', ' + Model['program.default_server_port'] + '));')
+    .AppendLine('    RunServer(dotEnv.Env(''dmvc.server.port'', ' + Model[TConfigKey.program_default_server_port] + '));')
     .AppendLine('  except')
     .AppendLine('    on E: Exception do')
     .AppendLine('      LogF(E.ClassName + '': '' + E.Message);')
@@ -904,7 +884,7 @@ begin
   if not Model.B['entity.generate'] then Exit;
   CheckFor('entity.class_name', Model);
   Section
-    .AppendLine('constructor ' + Model['entity.class_name'] + '.Create(FirstName, LastName: String; DOB: TDate);')
+    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(FirstName, LastName: String; DOB: TDate);')
     .AppendLine('begin')
     .AppendLine('  inherited Create;')
     .AppendLine('  fFirstName := FirstName;')
@@ -923,10 +903,10 @@ begin
 
   Section
     .AppendLine('[MVCPath(''/api'')]')
-    .AppendLine(Model['controller.name'] + ' = class(TMVCController)')
+    .AppendLine(Model[TConfigKey.controller_classname] + ' = class(TMVCController)')
     .AppendLine('  public');
 
-  if Model.B['controller.index_methods.generate'] then
+  if Model.B[TConfigKey.controller_index_methods_generate] then
   begin
     Section
       .AppendLine('    [MVCPath]')

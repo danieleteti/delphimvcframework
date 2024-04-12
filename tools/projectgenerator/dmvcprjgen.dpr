@@ -35,37 +35,36 @@ procedure Main;
 begin
   var lJSON := TJSONObject.Create;
   try
-    lJSON.S['program.name'] :=  'MyProgram';
-    lJSON.S['program.default_server_port'] :=  '8080';
-    lJSON.S['controller.unit_name'] := 'MyControllerU';
-    lJSON.S['controller.classname'] :=  'TMyController';
-    lJSON.B['controller.index_methods.generate'] :=  true;
-    lJSON.B['controller.action_filters.generate'] :=  true;
-    lJSON.B['controller.crud_methods.generate'] :=  true;
-    lJSON.B['entity.generate'] :=  true;
-    lJSON.S['entity.classname'] :=  'TPerson';
-    lJSON.B['jsonrpc.generate'] :=  true;
-    lJSON.S['jsonrpc.classname'] :=  'TMyJSONRPC';
-    lJSON.S['jsonrpc.unit_name'] := 'MyJSONRPCU';
+    lJSON.S[TConfigKey.program_name] :=  'MyProgram';
+    lJSON.S[TConfigKey.program_default_server_port] :=  '8080';
+    lJSON.B[TConfigKey.program_msheap] := true;
+    lJSON.S[TConfigKey.controller_unit_name] := 'MyControllerU';
+    lJSON.S[TConfigKey.controller_classname] :=  'TMyController';
+    lJSON.B[TConfigKey.controller_index_methods_generate] :=  true;
+    lJSON.B[TConfigKey.controller_action_filters_generate] :=  true;
+    lJSON.B[TConfigKey.controller_crud_methods_generate] :=  true;
+    lJSON.B[TConfigKey.entity_generate] :=  true;
+    lJSON.S[TConfigKey.entity_classname] :=  'TPerson';
+    lJSON.B[TConfigKey.jsonrpc_generate] :=  true;
+    lJSON.S[TConfigKey.jsonrpc_classname] :=  'TMyJSONRPC';
+    lJSON.S[TConfigKey.jsonrpc_unit_name] := 'MyJSONRPCU';
 
     //webmodule
 
-    lJSON.S['webmodule.classname'] :=  'TMyWebModule';
-    lJSON.B['webmodule.middleware.analytics'] :=  true;
-    lJSON.B['webmodule.middleware.staticfiles'] :=  true;
-    lJSON.B['webmodule.middleware.trace'] :=  true;
-    lJSON.B['webmodule.middleware.compression'] :=  true;
-    lJSON.B['webmodule.middleware.etag'] :=  true;
-    lJSON.B['webmodule.middleware.cors'] :=  true;
-    lJSON.B['webmodule.middleware.activerecord'] :=  true;
-    lJSON.S['webmodule.middleware.activerecord.con_def_name'] :=  'MyConnection';
-    lJSON.S['webmodule.middleware.activerecord.con_def_filename'] :=  '';
+    lJSON.S[TConfigKey.webmodule_classname] :=  'TMyWebModule';
+    lJSON.B[TConfigKey.webmodule_middleware_analytics] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_staticfiles] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_trace] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_compression] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_etag] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_cors] :=  true;
+    lJSON.B[TConfigKey.webmodule_middleware_activerecord] :=  true;
+    lJSON.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  'MyConnection';
+    lJSON.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  '';
 
     //webmodule - end
 
-
-    lJSON.B['msheap'] := true;
-    TFile.WriteAllText(lJSON.S['program.name'] + '.dpr', GenerateSource(lJSON,
+    TFile.WriteAllText(lJSON.S[TConfigKey.program_name] + '.dpr', GenerateSource(lJSON,
                                                   procedure (Gen: TMVCCodeGenerator)
                                                   begin
                                                     FillProgramTemplates(Gen)
@@ -85,7 +84,7 @@ begin
                                                   begin
                                                     FillWebModuleDFMTemplates(Gen)
                                                   end));
-    if lJSON.B['jsonrpc.generate'] then
+    if lJSON.B[TConfigKey.jsonrpc_generate] then
     begin
       TFile.WriteAllText('MyJSONRPCU.pas', GenerateSource(lJSON,
                                                     procedure (Gen: TMVCCodeGenerator)
