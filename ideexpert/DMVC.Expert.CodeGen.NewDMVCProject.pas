@@ -63,7 +63,6 @@ uses
   DMVC.Expert.CodeGen.Templates,
   System.SysUtils,
   DMVC.Expert.CodeGen.Executor,
-  MVCFramework.Logger,
   DMVC.Expert.Commands.Templates,
   DMVC.Expert.Commons;
 
@@ -93,7 +92,6 @@ function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;
 var
   lCodeForUseMSHeapOnWindows: String;
 begin
-  LogI('TDMVCProjectFile.NewProjectSource - 100');
   lCodeForUseMSHeapOnWindows := '';
   if FUseMSHeapOnWindows then
   begin
@@ -103,7 +101,6 @@ begin
 
   fConfigModelRef.S[TConfigKey.program_name] := ProjectName;
 
-  LogI('TDMVCProjectFile.NewProjectSource - 120');
   fConfigModelRef.SaveToFile('C:\todelete\configmodelref.json', False);
   Result := TSourceFile.Create(
     procedure (Gen: TMVCCodeGenerator)

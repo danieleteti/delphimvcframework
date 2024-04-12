@@ -53,7 +53,6 @@ implementation
 {$I ..\sources\dmvcframework.inc}
 
 uses
-  MVCFramework.Logger,
   DccStrs,
   System.IOUtils,
   VCL.Controls,
@@ -104,33 +103,26 @@ begin
       try
         if WizardForm.ShowModal = mrOk then
         begin
-          LogI('step10');
           if not WizardForm.AddToProjectGroup then
           begin
             (BorlandIDEServices as IOTAModuleServices).CloseAll;
           end;
           ModuleServices := (BorlandIDEServices as IOTAModuleServices);
-          LogI('step20');
           lJSON := WizardForm.GetConfigModel;
 
           // Create Project Source
           lProjectSourceCreator := TDMVCProjectFile.Create(APersonality, lJSON);
-          LogI('step30');
           TDMVCProjectFile(lProjectSourceCreator).DefaultPort := WizardForm.ServerPort;
           TDMVCProjectFile(lProjectSourceCreator).UseMSHeapOnWindows := WizardForm.UseMSHeapOnWindows;
           ModuleServices.CreateModule(lProjectSourceCreator);
-          LogI('step40');
           Project := GetActiveProject;
-          LogI('step50');
 
           Config := (Project.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
           Config.SetValue(sUnitSearchPath, '$(DMVC)');
           Config.SetValue(sFramework, 'VCL');
-          LogI('step60');
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
-            LogI('step70');
             ControllerCreator := TNewControllerUnitEx.Create(
               lJSON,
               WizardForm.CreateIndexMethod,
@@ -138,9 +130,7 @@ begin
               WizardForm.CreateActionFiltersMethods,
               WizardForm.ControllerClassName,
               APersonality);
-            LogI('step80');
             ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
-            LogI('step90');
             if Project <> nil then
             begin
               Project.AddFile(ControllerUnit.FileName, True);
@@ -151,24 +141,19 @@ begin
           // Create JSONRPC Unit
           if lJSON.B[TConfigKey.jsonrpc_generate] then
           begin
-            LogI('step100');
             JSONRPCUnitCreator := TNewJSONRPCUnitEx.Create(
               lJSON,
               //WizardForm.JSONRPCClassName,
               APersonality);
-            LogI('step110');
             JSONRPCUnit := ModuleServices.CreateModule(JSONRPCUnitCreator);
-            LogI('step120');
             lJSONRPCUnitName := GetUnitName(JSONRPCUnit.FileName);
             //lJSON.S[TConfigKey.jsonrpc_unit_name] := lJSONRPCUnitName;
             if Project <> nil then
             begin
               Project.AddFile(JSONRPCUnit.FileName, True);
-              LogI('step130');
             end;
           end;
 
-          LogI('step140');
           // Create Webmodule Unit
           WebModuleCreator := TNewWebModuleUnitEx.Create(
             lJSON,
@@ -180,7 +165,6 @@ begin
             lJSONRPCUnitName,
             APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
-          LogI('step150');
           if Project <> nil then
           begin
             Project.AddFile(WebModuleUnit.FileName, True);
