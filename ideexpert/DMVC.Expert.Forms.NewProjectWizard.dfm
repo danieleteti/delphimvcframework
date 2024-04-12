@@ -15,6 +15,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Font.Style = []
   Position = poMainFormCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     710
     527)
@@ -445,7 +446,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
-    ExplicitTop = 517
   end
   object btnCancel: TButton
     Left = 613
@@ -457,7 +457,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitTop = 517
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -496,7 +495,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ParentCtl3D = False
     ShowCaption = False
     TabOrder = 5
-    ExplicitTop = 313
     DesignSize = (
       273
       198)
@@ -536,7 +534,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         State = cbChecked
         TabOrder = 0
       end
-      object edtClassName: TEdit
+      object edtControllerClassName: TEdit
         Left = 16
         Top = 130
         Width = 225
@@ -703,7 +701,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
-    ExplicitTop = 397
     DesignSize = (
       403
       105)
@@ -743,7 +740,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use MSHeap on MS Windows'
     TabOrder = 8
-    ExplicitTop = 291
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

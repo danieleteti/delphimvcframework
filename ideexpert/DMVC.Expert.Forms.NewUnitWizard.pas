@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX }
-// project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti. }
 //
 // The DUnitX project is run by Vincent Parrett and can be found at: }
 //
@@ -44,7 +44,7 @@ uses
   VCL.Controls,
   VCL.Forms,
   VCL.Dialogs,
-  VCL.StdCtrls;
+  VCL.StdCtrls, JsonDataObjects;
 
 type
   TfrmDMVCNewUnit = class(TForm)
@@ -57,7 +57,9 @@ type
     chkCreateActionFiltersMethods: TCheckBox;
     chkCreateCRUDMethods: TCheckBox;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
+    fModel: TJSONObject;
     function GetCreateIndexMethod: boolean;
     function GetControllerClassName: string;
     function GetCreateActionFiltersMethods: boolean;
@@ -71,7 +73,7 @@ type
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
     property AddAnalyticsMiddleware: boolean read GetAddAnalyticsMiddleware;
-
+    function GetConfigModel: TJSONObject;
   end;
 
 var
@@ -87,6 +89,7 @@ uses
 procedure TfrmDMVCNewUnit.FormCreate(Sender: TObject);
 begin
   edtClassName.TextHint := sDefaultControllerName;
+  fModel := TJsonObject.Create;
 end;
 
 function TfrmDMVCNewUnit.GetCreateActionFiltersMethods: boolean;
@@ -104,9 +107,19 @@ begin
   Result := chkCreateIndexMethod.Checked;
 end;
 
+procedure TfrmDMVCNewUnit.FormDestroy(Sender: TObject);
+begin
+  fModel.Free;
+end;
+
 function TfrmDMVCNewUnit.GetAddAnalyticsMiddleware: boolean;
 begin
   Result := False;
+end;
+
+function TfrmDMVCNewUnit.GetConfigModel: TJSONObject;
+begin
+  Result := fModel;
 end;
 
 function TfrmDMVCNewUnit.GetControllerClassName: string;

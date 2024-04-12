@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX }
-// project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti. }
 //
 // The DUnitX project is run by Vincent Parrett and can be found at: }
 //
@@ -37,7 +37,7 @@ interface
 uses
   ToolsApi,
   System.IOUtils,
-  DMVC.Expert.CodeGen.NewUnit;
+  DMVC.Expert.CodeGen.NewUnit, JsonDataObjects;
 
 type
   TNewControllerUnitEx = class(TNewUnit)
@@ -50,9 +50,10 @@ type
       : IOTAFile; override;
   public
     constructor Create(
+      const ConfigModelRef: TJSONObject;
       const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods: Boolean;
       const AControllerClassName: string;
-      const APersonality: string = '');
+      const APersonality: string = ''); reintroduce;
   end;
 
   TNewJSONRPCUnitEx = class(TNewUnit)
@@ -61,8 +62,9 @@ type
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
-    constructor Create(const aJSONRPCClassName: String;
-      const APersonality: string = '');
+    constructor Create(
+      const ConfigModelRef: TJSONObject;
+      const APersonality: string = '');reintroduce;
   end;
 
 implementation
@@ -71,14 +73,19 @@ uses
   System.SysUtils,
   VCL.Dialogs,
   DMVC.Expert.CodeGen.Templates,
-  DMVC.Expert.CodeGen.SourceFile;
+  DMVC.Expert.CodeGen.SourceFile,
+  DMVC.Expert.CodeGen.Executor,
+  DMVC.Expert.Commands.Templates,
+  DMVC.Expert.Commons;
 
 constructor TNewControllerUnitEx.Create(
+  const ConfigModelRef: TJSONObject;
   const aCreateIndexMethod, aCreateCRUDMethods,
   aCreateActionFiltersMethods: Boolean;
   const AControllerClassName: string;
   const APersonality: string = '');
 begin
+  inherited Create(ConfigModelRef);
   Assert(Length(AControllerClassName) > 0);
   FAncestorName := '';
   FFormName := '';
@@ -97,16 +104,17 @@ var
   lUnitIdent: string;
   lFormName: string;
   lFileName: string;
-  lIndexMethodIntf: string;
-  lIndexMethodImpl: string;
-  lControllerUnit: string;
-  lActionFiltersMethodsIntf: string;
-  lActionFiltersMethodsImpl: string;
-  lCRUDMethodsIntf: string;
-  lCRUDMethodsImpl: string;
-  lBOClassesIntf: string;
-  lBOClassesImpl: string;
+//  lIndexMethodIntf: string;
+//  lIndexMethodImpl: string;
+//  lControllerUnit: string;
+//  lActionFiltersMethodsIntf: string;
+//  lActionFiltersMethodsImpl: string;
+//  lCRUDMethodsIntf: string;
+//  lCRUDMethodsImpl: string;
+//  lBOClassesIntf: string;
+//  lBOClassesImpl: string;
 begin
+  {
   lControllerUnit := sControllerUnit;
 
   lIndexMethodIntf := sIndexMethodIntf;
@@ -141,33 +149,43 @@ begin
     lActionFiltersMethodsIntf := '';
     lActionFiltersMethodsImpl := '';
   end;
-
+  }
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lFormName, lFileName);
-  Result := TSourceFile.Create(sControllerUnit,
-    [
-      lUnitIdent,
-      FControllerClassName,
-      lIndexMethodIntf,
-      lIndexMethodImpl,
-      lActionFiltersMethodsIntf,
-      lActionFiltersMethodsImpl,
-      lCRUDMethodsIntf,
-      lCRUDMethodsImpl,
-      lBOClassesIntf,
-      lBOClassesImpl
-      ]);
+
+
+  fConfigModelRef.S[TConfigKey.controller_unit_name] := lUnitIdent;
+
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillControllerTemplates(Gen);
+    end,
+    fConfigModelRef);
+//    Result := TSourceFile.Create(sControllerUnit,
+//      [
+//        lUnitIdent,
+//        FControllerClassName,
+//        lIndexMethodIntf,
+//        lIndexMethodImpl,
+//        lActionFiltersMethodsIntf,
+//        lActionFiltersMethodsImpl,
+//        lCRUDMethodsIntf,
+//        lCRUDMethodsImpl,
+//        lBOClassesIntf,
+//        lBOClassesImpl
+//        ]);
 end;
 
 { TNewJSONRPCUnitEx }
 
-constructor TNewJSONRPCUnitEx.Create(const aJSONRPCClassName,
-  APersonality: string);
+constructor TNewJSONRPCUnitEx.Create(
+  const ConfigModelRef: TJSONObject;
+  const APersonality: string);
 begin
-  inherited Create;
-  fJSONRPCClassName := aJSONRPCClassName;
+  inherited Create(ConfigModelRef);
   Personality := aPersonality;
 end;
 
@@ -180,14 +198,21 @@ var
 begin
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
-  lFileName := ''; //fJSONRPCClassName + 'U';
+  lFileName := '';
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lDummy, lFileName);
-  Result := TSourceFile.Create(sJSONRPCUnit,
-    [
-      lUnitIdent,
-      fJSONRPCClassName
-    ]);
+//  Result := TSourceFile.Create(sJSONRPCUnit,
+//    [
+//      lUnitIdent,
+//      fJSONRPCClassName
+//    ]);
+  fConfigModelRef.S[TConfigKey.jsonrpc_unit_name] := lUnitIdent;
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillJSONRPCTemplates(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 end.

@@ -1,4 +1,4 @@
-unit CommonsU;
+unit DMVC.Expert.Commons;
 
 interface
 
@@ -57,6 +57,7 @@ procedure TCustomCommand.CheckFor(const Key: String;
 begin
   if (not Model.Contains(Key)) or Model.S[Key].IsEmpty then
   begin
+    Model.SaveToFile('C:\todelete\configmodelref.json');
     raise Exception.CreateFmt('Required key "%s" not found or empty while processing %s', [Key, ClassName]);
   end;
 end;

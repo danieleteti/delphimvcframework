@@ -24,7 +24,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //

@@ -1,9 +1,9 @@
-unit Commands.TemplatesU;
+unit DMVC.Expert.Commands.Templates;
 
 interface
 
 uses
-  System.Generics.Collections, CommonsU, ProjectGeneratorU;
+  System.Generics.Collections, DMVC.Expert.CodeGen.Executor;
 
 procedure FillProgramTemplates(Gen: TMVCCodeGenerator);
 procedure FillControllerTemplates(Gen: TMVCCodeGenerator);
@@ -13,7 +13,9 @@ procedure FillJSONRPCTemplates(Gen: TMVCCodeGenerator);
 
 implementation
 
-uses CommandsU;
+uses
+  DMVC.Expert.Commons,
+  DMVC.Expert.CodeGen.Commands;
 
 procedure FillProgramTemplates(Gen: TMVCCodeGenerator);
 begin

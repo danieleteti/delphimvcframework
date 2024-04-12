@@ -1,10 +1,10 @@
-unit CommandsU;
+unit DMVC.Expert.CodeGen.Commands;
 
 interface
 
 uses
-  CommonsU, System.SysUtils, MVCFramework.Commons, System.DateUtils,
-  JsonDataObjects;
+  System.SysUtils, MVCFramework.Commons, System.DateUtils,
+  JsonDataObjects, DMVC.Expert.Commons;
 
 type
   TUnitInterfaceKeywordCommand = class(TCustomCommand)
@@ -215,7 +215,7 @@ begin
     .AppendLine('// limitations under the License.')
     .AppendLine('//')
     .AppendLine('// This IDE expert is based off of the one included with the DUnitX')
-    .AppendLine('// project.  Original source by Robert Love.  Adapted by Nick Hodges.')
+    .AppendLine('// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.')
     .AppendLine('//')
     .AppendLine('// The DUnitX project is run by Vincent Parrett and can be found at:')
     .AppendLine('//')

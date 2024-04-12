@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //
@@ -36,7 +36,7 @@ interface
 
 uses
   ToolsApi,
-  DMVC.Expert.CodeGen.NewUnit;
+  DMVC.Expert.CodeGen.NewUnit, JsonDataObjects;
 
 type
   TNewWebModuleUnitEx = class(TNewUnit)
@@ -54,13 +54,14 @@ type
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string): IOTAFile; override;
   public
     constructor Create(
+      const ConfigModelRef: TJSONObject;
       const aWebModuleClassName: string;
       const aControllerClassName: string;
       const aControllerUnit: string;
       const aMiddlewares: TArray<String>;
       const aJSONRPCClassName: String;
       const aJSONRPCClassUnit: String;
-      const aPersonality : String);
+      const aPersonality : String);reintroduce;
   end;
 
 implementation
@@ -70,9 +71,13 @@ uses
   System.SysUtils,
   VCL.Dialogs,
   DMVC.Expert.CodeGen.Templates,
-  DMVC.Expert.CodeGen.SourceFile;
+  DMVC.Expert.CodeGen.SourceFile,
+  DMVC.Expert.CodeGen.Executor,
+  DMVC.Expert.Commands.Templates,
+  DMVC.Expert.Commons;
 
 constructor TNewWebModuleUnitEx.Create(
+      const ConfigModelRef: TJSONObject;
       const aWebModuleClassName: string;
       const aControllerClassName: string;
       const aControllerUnit: string;
@@ -81,6 +86,7 @@ constructor TNewWebModuleUnitEx.Create(
       const aJSONRPCClassUnit: String;
       const aPersonality : String);
 begin
+  inherited Create(ConfigModelRef);
   Assert(Length(aWebModuleClassName) > 0);
   FAncestorName := '';
   FFormName := '';
@@ -104,7 +110,13 @@ end;
 
 function TNewWebModuleUnitEx.NewFormFile(const FormIdent, AncestorIdent: string): IOTAFile;
 begin
-  Result := TSourceFile.Create(sWebModuleDFM, [FormIdent, FWebModuleClassName]);
+  //Result := TSourceFile.Create(sWebModuleDFM, [FormIdent, FWebModuleClassName]);
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillWebModuleDFMTemplates(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 function TNewWebModuleUnitEx.NewImplSource(const ModuleIdent, FormIdent,  AncestorIdent: string): IOTAFile;
@@ -140,14 +152,21 @@ begin
     end;
   end;
 
-  Result := TSourceFile.Create(sWebModuleUnit, [
-    FUnitIdent,
-    FWebModuleClassName,
-    FControllerUnit,
-    FControllerClassName,
-    lMiddlewaresCode,
-    lJSONRPCCode,
-    FJSONRPCClassUnit]);
+  fConfigModelRef.S[TConfigKey.webmodule_unit_name] := FUnitIdent;
+//  Result := TSourceFile.Create(sWebModuleUnit, [
+//    FUnitIdent,
+//    FWebModuleClassName,
+//    FControllerUnit,
+//    FControllerClassName,
+//    lMiddlewaresCode,
+//    lJSONRPCCode,
+//    FJSONRPCClassUnit]);
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillWebModuleTemplates(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 
