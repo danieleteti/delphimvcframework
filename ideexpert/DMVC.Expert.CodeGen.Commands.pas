@@ -828,7 +828,7 @@ begin
     .AppendLine
     .AppendLine('    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);')
     .AppendLine
-    .AppendLine('{$IF Defined(SYDNEYORBETTER)}')
+    .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
     .AppendLine('    if dotEnv.Env(''dmvc.profiler.enabled'', false) then')
     .AppendLine('    begin')
     .AppendLine('      Profiler.ProfileLogger := Log;')
