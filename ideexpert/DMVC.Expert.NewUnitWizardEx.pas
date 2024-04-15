@@ -82,13 +82,7 @@ begin
           ModuleServices := (BorlandIDEServices as IOTAModuleServices);
           Project := GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
-            TNewControllerUnitEx.Create(
-              lJSON,
-              WizardForm.CreateIndexMethod,
-              WizardForm.CreateCRUDMethods,
-              WizardForm.CreateActionFiltersMethods,
-              WizardForm.ControllerClassName,
-              APersonality));
+            TNewControllerUnitEx.Create(lJSON, APersonality));
           if Project <> nil then
           begin
             Project.AddFile(ControllerUnit.FileName, true);

@@ -77,7 +77,6 @@ end;
 
 function TSourceFile.GetSource: string;
 begin
-  //Result := FSource;
   Result := TMVCCodeGenerator.GenerateSource(fJSON,
                         procedure (Gen: TMVCCodeGenerator)
                         begin

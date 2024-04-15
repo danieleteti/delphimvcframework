@@ -37,22 +37,17 @@ interface
 uses
   ToolsApi,
   System.IOUtils,
-  DMVC.Expert.CodeGen.NewUnit, JsonDataObjects;
+  DMVC.Expert.CodeGen.NewUnit,
+  JsonDataObjects;
 
 type
   TNewControllerUnitEx = class(TNewUnit)
   protected
-    FCreateIndexMethod: Boolean;
-    FCreateCRUDMethods: Boolean;
-    FCreateActionFiltersMethods: Boolean;
-    FControllerClassName: string;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
     constructor Create(
       const ConfigModelRef: TJSONObject;
-      const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods: Boolean;
-      const AControllerClassName: string;
       const APersonality: string = ''); reintroduce;
   end;
 
@@ -71,8 +66,6 @@ implementation
 
 uses
   System.SysUtils,
-  VCL.Dialogs,
-  DMVC.Expert.CodeGen.Templates,
   DMVC.Expert.CodeGen.SourceFile,
   DMVC.Expert.CodeGen.Executor,
   DMVC.Expert.Commands.Templates,
@@ -80,21 +73,9 @@ uses
 
 constructor TNewControllerUnitEx.Create(
   const ConfigModelRef: TJSONObject;
-  const aCreateIndexMethod, aCreateCRUDMethods,
-  aCreateActionFiltersMethods: Boolean;
-  const AControllerClassName: string;
   const APersonality: string = '');
 begin
   inherited Create(ConfigModelRef);
-  Assert(Length(AControllerClassName) > 0);
-  FAncestorName := '';
-  FFormName := '';
-  FImplFileName := '';
-  FIntfFileName := '';
-  FControllerClassName := AControllerClassName;
-  FCreateIndexMethod := aCreateIndexMethod;
-  FCreateCRUDMethods := aCreateCRUDMethods;
-  FCreateActionFiltersMethods := aCreateActionFiltersMethods;
   Personality := APersonality;
 end;
 
@@ -104,52 +85,7 @@ var
   lUnitIdent: string;
   lFormName: string;
   lFileName: string;
-//  lIndexMethodIntf: string;
-//  lIndexMethodImpl: string;
-//  lControllerUnit: string;
-//  lActionFiltersMethodsIntf: string;
-//  lActionFiltersMethodsImpl: string;
-//  lCRUDMethodsIntf: string;
-//  lCRUDMethodsImpl: string;
-//  lBOClassesIntf: string;
-//  lBOClassesImpl: string;
 begin
-  {
-  lControllerUnit := sControllerUnit;
-
-  lIndexMethodIntf := sIndexMethodIntf;
-  lIndexMethodImpl := Format(sIndexMethodImpl, [FControllerClassName]);
-
-  lCRUDMethodsIntf := sCRUDMethodsIntf;
-  lCRUDMethodsImpl := Format(sCRUDMethodsImpl, [FControllerClassName]);
-  lBOClassesIntf := sBOClassesIntf;
-  lBOClassesImpl := Format(sBOClassesImpl, ['TPerson']);
-
-
-  if not FCreateIndexMethod then
-  begin
-    lIndexMethodIntf := '';
-    lIndexMethodImpl := '';
-  end;
-
-  if not FCreateCRUDMethods then
-  begin
-    lCRUDMethodsIntf := '';
-    lCRUDMethodsImpl := '';
-    lBOClassesIntf := '';
-    lBOClassesImpl := '';
-  end;
-
-  lActionFiltersMethodsIntf := sActionFiltersIntf;
-  lActionFiltersMethodsImpl := Format(sActionFiltersImpl,
-    [FControllerClassName]);
-
-  if not FCreateActionFiltersMethods then
-  begin
-    lActionFiltersMethodsIntf := '';
-    lActionFiltersMethodsImpl := '';
-  end;
-  }
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
@@ -164,19 +100,6 @@ begin
       FillControllerTemplates(Gen);
     end,
     fConfigModelRef);
-//    Result := TSourceFile.Create(sControllerUnit,
-//      [
-//        lUnitIdent,
-//        FControllerClassName,
-//        lIndexMethodIntf,
-//        lIndexMethodImpl,
-//        lActionFiltersMethodsIntf,
-//        lActionFiltersMethodsImpl,
-//        lCRUDMethodsIntf,
-//        lCRUDMethodsImpl,
-//        lBOClassesIntf,
-//        lBOClassesImpl
-//        ]);
 end;
 
 { TNewJSONRPCUnitEx }
@@ -201,11 +124,6 @@ begin
   lFileName := '';
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lDummy, lFileName);
-//  Result := TSourceFile.Create(sJSONRPCUnit,
-//    [
-//      lUnitIdent,
-//      fJSONRPCClassName
-//    ]);
   fConfigModelRef.S[TConfigKey.jsonrpc_unit_name] := lUnitIdent;
   Result := TSourceFile.Create(
     procedure (Gen: TMVCCodeGenerator)

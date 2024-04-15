@@ -42,25 +42,13 @@ type
   TNewWebModuleUnitEx = class(TNewUnit)
   private
     FUnitIdent, FFormName, FFileName : String;
-    FMiddlewares: TArray<String>;
   protected
-    FWebModuleClassName : string;
-    FControllerClassName: string;
-    FControllerUnit: string;
-    FJSONRPCClassName: string;
-    FJSONRPCClassUnit: string;
     function GetCreatorType: string; override;
     function NewFormFile(const FormIdent, AncestorIdent: string): IOTAFile; override;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string): IOTAFile; override;
   public
     constructor Create(
       const ConfigModelRef: TJSONObject;
-      const aWebModuleClassName: string;
-      const aControllerClassName: string;
-      const aControllerUnit: string;
-      const aMiddlewares: TArray<String>;
-      const aJSONRPCClassName: String;
-      const aJSONRPCClassUnit: String;
       const aPersonality : String);reintroduce;
   end;
 
@@ -70,7 +58,6 @@ uses
   Winapi.Windows,
   System.SysUtils,
   VCL.Dialogs,
-  DMVC.Expert.CodeGen.Templates,
   DMVC.Expert.CodeGen.SourceFile,
   DMVC.Expert.CodeGen.Executor,
   DMVC.Expert.Commands.Templates,
@@ -78,26 +65,9 @@ uses
 
 constructor TNewWebModuleUnitEx.Create(
       const ConfigModelRef: TJSONObject;
-      const aWebModuleClassName: string;
-      const aControllerClassName: string;
-      const aControllerUnit: string;
-      const aMiddlewares: TArray<String>;
-      const aJSONRPCClassName: String;
-      const aJSONRPCClassUnit: String;
       const aPersonality : String);
 begin
   inherited Create(ConfigModelRef);
-  Assert(Length(aWebModuleClassName) > 0);
-  FAncestorName := '';
-  FFormName := '';
-  FImplFileName := '';
-  FIntfFileName := '';
-  FJSONRPCClassName := aJSONRPCClassName;
-  FJSONRPCClassUnit := aJSONRPCClassUnit;
-  FWebModuleClassName := aWebModuleClassName;
-  FControllerClassName := aControllerClassName;
-  FControllerUnit := aControllerUnit;
-  FMiddlewares := AMiddlewares;
   Personality := APersonality;
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName(
     '', FUnitIdent, FFormName, FFileName);
@@ -110,7 +80,6 @@ end;
 
 function TNewWebModuleUnitEx.NewFormFile(const FormIdent, AncestorIdent: string): IOTAFile;
 begin
-  //Result := TSourceFile.Create(sWebModuleDFM, [FormIdent, FWebModuleClassName]);
   Result := TSourceFile.Create(
     procedure (Gen: TMVCCodeGenerator)
     begin
@@ -120,47 +89,11 @@ begin
 end;
 
 function TNewWebModuleUnitEx.NewImplSource(const ModuleIdent, FormIdent,  AncestorIdent: string): IOTAFile;
-var
-  lJSONRPCCode: string;
-  lMiddlewaresCode: String;
-  I: Integer;
 begin
-  lMiddlewaresCode := sLineBreak;
-  for I := Low(FMiddlewares) to High(FMiddlewares) do
-  begin
-    lMiddlewaresCode := lMiddlewaresCode + '  ' + FMiddlewares[I] + sLineBreak;
-  end;
-
-  lJSONRPCCode := '';
-  if not FJSONRPCClassName.IsEmpty then
-  begin
-    lJSONRPCCode := 'FMVC.PublishObject( ' + sLineBreak +
-    '    function : TObject ' + sLineBreak +
-    '    begin ' + sLineBreak +
-    '      Result := ' + FJSONRPCClassName + '.Create; ' + sLineBreak +
-    '    end, ''/jsonrpc'');' + sLineBreak + sLineBreak;
-  end;
-
   //ModuleIdent is blank for some reason.
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
-  // So using method mentioned by Marco Cantu.
-  if not lJSONRPCCode.IsEmpty then
-  begin
-    if not FJSONRPCClassUnit.IsEmpty then
-    begin
-      FJSONRPCClassUnit := FJSONRPCClassUnit + ',';
-    end;
-  end;
 
   fConfigModelRef.S[TConfigKey.webmodule_unit_name] := FUnitIdent;
-//  Result := TSourceFile.Create(sWebModuleUnit, [
-//    FUnitIdent,
-//    FWebModuleClassName,
-//    FControllerUnit,
-//    FControllerClassName,
-//    lMiddlewaresCode,
-//    lJSONRPCCode,
-//    FJSONRPCClassUnit]);
   Result := TSourceFile.Create(
     procedure (Gen: TMVCCodeGenerator)
     begin

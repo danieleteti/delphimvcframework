@@ -47,7 +47,6 @@ contains
   DMVC.Expert.CodeGen.NewUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewUnit.pas',
   DMVC.Expert.CodeGen.NewWebModuleUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewWebModuleUnit.pas',
   DMVC.Expert.CodeGen.SourceFile in '..\..\ideexpert\DMVC.Expert.CodeGen.SourceFile.pas',
-  DMVC.Expert.CodeGen.Templates in '..\..\ideexpert\DMVC.Expert.CodeGen.Templates.pas',
   DMVC.Expert.Forms.NewProjectWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewProjectWizard.pas' {frmDMVCNewProject},
   DMVC.Expert.Forms.NewUnitWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewUnitWizard.pas' {frmDMVCNewUnit},
   DMVC.Expert.NewUnitWizardEx in '..\..\ideexpert\DMVC.Expert.NewUnitWizardEx.pas',

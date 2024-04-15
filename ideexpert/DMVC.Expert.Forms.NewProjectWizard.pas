@@ -145,7 +145,6 @@ var
 implementation
 
 uses
-  DMVC.Expert.CodeGen.Templates,
   MVCFramework.Commons,
   System.StrUtils,
   DMVC.Expert.Commons;
@@ -178,9 +177,9 @@ end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
 begin
-  edtControllerClassName.TextHint := sDefaultControllerName;
-  edtWebModuleName.TextHint := sDefaultWebModuleName;
-  edtServerPort.TextHint := sDefaultServerPort;
+  edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
+  edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
+  edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
@@ -273,7 +272,7 @@ function TfrmDMVCNewProject.GetServerPort: Integer;
 var
   lServerPort: Integer;
 begin
-  Result := StrToInt(sDefaultServerPort);
+  Result := StrToInt(TDefaultValues.sDefaultServerPort);
   if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
     lServerPort) then
   begin
@@ -291,7 +290,7 @@ function TfrmDMVCNewProject.GetWebModuleClassName: string;
 begin
   if Trim(edtWebModuleName.Text) = '' then
   begin
-    Result := sDefaultWebModuleName
+    Result := TDefaultValues.sDefaultWebModuleName
   end
   else
   begin
@@ -397,7 +396,7 @@ function TfrmDMVCNewProject.GetControllerClassName: string;
 begin
   if Trim(edtControllerClassName.Text) = '' then
   begin
-    Result := sDefaultControllerName
+    Result := TDefaultValues.sDefaultControllerName
   end
   else
   begin

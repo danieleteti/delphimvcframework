@@ -112,8 +112,6 @@ begin
 
           // Create Project Source
           lProjectSourceCreator := TDMVCProjectFile.Create(APersonality, lJSON);
-          TDMVCProjectFile(lProjectSourceCreator).DefaultPort := WizardForm.ServerPort;
-          TDMVCProjectFile(lProjectSourceCreator).UseMSHeapOnWindows := WizardForm.UseMSHeapOnWindows;
           ModuleServices.CreateModule(lProjectSourceCreator);
           Project := GetActiveProject;
 
@@ -123,13 +121,7 @@ begin
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
-            ControllerCreator := TNewControllerUnitEx.Create(
-              lJSON,
-              WizardForm.CreateIndexMethod,
-              WizardForm.CreateCRUDMethods,
-              WizardForm.CreateActionFiltersMethods,
-              WizardForm.ControllerClassName,
-              APersonality);
+            ControllerCreator := TNewControllerUnitEx.Create(lJSON, APersonality);
             ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
             if Project <> nil then
             begin
@@ -143,11 +135,9 @@ begin
           begin
             JSONRPCUnitCreator := TNewJSONRPCUnitEx.Create(
               lJSON,
-              //WizardForm.JSONRPCClassName,
               APersonality);
             JSONRPCUnit := ModuleServices.CreateModule(JSONRPCUnitCreator);
             lJSONRPCUnitName := GetUnitName(JSONRPCUnit.FileName);
-            //lJSON.S[TConfigKey.jsonrpc_unit_name] := lJSONRPCUnitName;
             if Project <> nil then
             begin
               Project.AddFile(JSONRPCUnit.FileName, True);
@@ -157,12 +147,14 @@ begin
           // Create Webmodule Unit
           WebModuleCreator := TNewWebModuleUnitEx.Create(
             lJSON,
+            {
             WizardForm.WebModuleClassName,
             WizardForm.ControllerClassName,
             GetUnitName(ControllerUnit.FileName),
             WizardForm.Middlewares,
             WizardForm.JSONRPCClassName,
             lJSONRPCUnitName,
+            }
             APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
           if Project <> nil then

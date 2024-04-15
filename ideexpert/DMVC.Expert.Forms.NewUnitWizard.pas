@@ -82,13 +82,13 @@ var
 implementation
 
 uses
-  DMVC.Expert.CodeGen.Templates, DMVC.Expert.Commons;
+  DMVC.Expert.Commons;
 
 {$R *.dfm}
 
 procedure TfrmDMVCNewUnit.FormCreate(Sender: TObject);
 begin
-  edtClassName.TextHint := sDefaultControllerName;
+  edtClassName.TextHint := TDefaultValues.sDefaultControllerName;
   fModel := TJsonObject.Create;
 end;
 
@@ -135,7 +135,7 @@ function TfrmDMVCNewUnit.GetControllerClassName: string;
 begin
   if Trim(edtClassName.Text) = '' then
   begin
-    Result := sDefaultControllerName
+    Result := TDefaultValues.sDefaultControllerName
   end
   else
   begin
