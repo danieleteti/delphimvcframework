@@ -162,8 +162,6 @@ var
   LProduceAttribute: MVCProducesAttribute;
   lURLSegment: string;
   LItem: String;
-  lConstructors: TArray<TRttiMethod>;
-  lConstructor: TRttiMethod;
   // JUST FOR DEBUG
   // lMethodCompatible: Boolean;
   // lContentTypeCompatible: Boolean;
@@ -187,12 +185,10 @@ begin
       LRequestPathInfo := '/' + LRequestPathInfo;
     end;
   end;
-  //LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
   LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
 
   TMonitor.Enter(gLock);
   try
-    //LControllerMappedPaths := TArray<string>.Create();
     LControllerMappedPaths := TStringList.Create;
     try
       for LControllerDelegate in AControllers do
@@ -207,7 +203,6 @@ begin
           LAttributes := LRttiType.GetAttributes;
           if (LAttributes = nil) then
             Continue;
-          //LControllerMappedPaths := GetControllerMappedPath(LRttiType.Name, LAttributes);
           FillControllerMappedPaths(LRttiType.Name, LAttributes, LControllerMappedPaths);
         end
         else
@@ -231,11 +226,6 @@ begin
           begin
             Continue;
           end;
-//        end;
-
-//          if (not LControllerMappedPathFound) then
-//            continue;
-
           LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
           for LMethod in LMethods do
           begin
