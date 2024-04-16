@@ -30,7 +30,7 @@ type
 
     [MVCPath('/people')]
     [MVCHTTPMethod([httpPOST])]
-    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+    function CreatePerson([MVCInject] OtherPeopleService: IPeopleService; [MVCFromBody] Person: TPerson): IMVCResponse;
 
     [MVCPath('/people/($ID)')]
     [MVCHTTPMethod([httpPUT])]
@@ -86,30 +86,22 @@ begin
   LogI('PeopleService in constructor: ' + IntToHex(NativeUInt(Pointer(PeopleService))));
 end;
 
-
-function TMyController.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+function TMyController.CreatePerson(OtherPeopleService: IPeopleService; Person: TPerson): IMVCResponse;
 begin
   LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
-  Result := MVCResponseBuilder
-      .StatusCode(HTTP_STATUS.Created)
-      .Body('Person created')
-      .Build;
+  Result := CreatedResponse('', 'Person created (' + Person.ToString + ')' );
 end;
 
 function TMyController.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
 begin
   LogI('Updated ' + Person.FirstName + ' ' + Person.LastName);
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.NoContent)
-    .Build;
+  Result := NoContentResponse;
 end;
 
 function TMyController.DeletePerson(ID: Integer): IMVCResponse;
 begin
   LogI('Deleted person with id ' + ID.ToString);
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.NoContent)
-    .Build;
+  Result := NoContentResponse;
 end;
 
 
