@@ -718,7 +718,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
-      TextHint = 'TMyJSONRPCObject'
+      TextHint = 'TMyRPC'
     end
     object chkJSONRPC: TCheckBox
       Left = 16

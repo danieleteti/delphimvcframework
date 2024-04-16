@@ -123,6 +123,8 @@ begin
           begin
             ControllerCreator := TNewControllerUnitEx.Create(lJSON, APersonality);
             ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
+            ChangeIOTAModuleFileNamePrefix(ControllerUnit, 'Controllers.' + lJSON.S[TConfigKey.controller_classname].SubString(1));
+            lJSON.S[TConfigKey.controller_unit_name] := TPath.GetFileNameWithoutExtension(ControllerUnit.FileName);
             if Project <> nil then
             begin
               Project.AddFile(ControllerUnit.FileName, True);
@@ -137,7 +139,9 @@ begin
               lJSON,
               APersonality);
             JSONRPCUnit := ModuleServices.CreateModule(JSONRPCUnitCreator);
+            ChangeIOTAModuleFileNamePrefix(JSONRPCUnit, 'JSONRPC.' + lJSON.S[TConfigKey.jsonrpc_classname].Substring(1));
             lJSONRPCUnitName := GetUnitName(JSONRPCUnit.FileName);
+            lJSON.S[TConfigKey.jsonrpc_unit_name] := lJSONRPCUnitName;
             if Project <> nil then
             begin
               Project.AddFile(JSONRPCUnit.FileName, True);
@@ -149,6 +153,8 @@ begin
             lJSON,
             APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
+          ChangeIOTAModuleFileNamePrefix(WebModuleUnit, lJSON.S[TConfigKey.webmodule_classname].SubString(1));
+          lJSON.S[TConfigKey.webmodule_unit_name] := TPath.GetFileNameWithoutExtension(WebModuleUnit.FileName);
           if Project <> nil then
           begin
             Project.AddFile(WebModuleUnit.FileName, True);

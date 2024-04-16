@@ -27,7 +27,7 @@ unit DMVC.Expert.Commons;
 interface
 
 uses
-  MVCFramework.Commons, System.SysUtils, JsonDataObjects;
+  MVCFramework.Commons, System.SysUtils, JsonDataObjects, ToolsAPI;
 
 type
   IGenCommand = interface
@@ -79,7 +79,12 @@ type
      webmodule_middleware_activerecord_con_def_filename= 'webmodule.middleware.activerecord.con_def_filename';
   end;
 
+  procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
+
 implementation
+
+uses
+  System.IOUtils;
 
 { TCustomCommand }
 
@@ -88,9 +93,21 @@ procedure TCustomCommand.CheckFor(const Key: String;
 begin
   if (not Model.Contains(Key)) or Model.S[Key].IsEmpty then
   begin
-    Model.SaveToFile('C:\todelete\configmodelref.json');
     raise Exception.CreateFmt('Required key "%s" not found or empty while processing %s', [Key, ClassName]);
   end;
+end;
+
+procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
+var
+  lDirName: string;
+  lFileName: string;
+  lFileExt: string;
+begin
+  lDirName := TPath.GetDirectoryName(IOTA.FileName);
+  lFileName := TPath.GetFileNameWithoutExtension(IOTA.FileName);
+  lFileExt :=  TPath.GetExtension(IOTA.FileName);
+  lFileName := FileNamePrefix;
+  IOTA.FileName := TPath.Combine(lDirName, lFileName + lFileExt);
 end;
 
 end.

@@ -53,7 +53,6 @@ type
 
   TNewJSONRPCUnitEx = class(TNewUnit)
   protected
-    fJSONRPCClassName: String;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public

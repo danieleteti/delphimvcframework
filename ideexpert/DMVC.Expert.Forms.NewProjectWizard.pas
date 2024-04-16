@@ -117,10 +117,8 @@ type
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
     function GetCreateCRUDMethods: boolean;
-    function GetMiddlewares: TArray<String>;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
-    function GetUseMSHeapOnWindows: Boolean;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
@@ -130,12 +128,9 @@ type
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property Middlewares: TArray<String> read GetMiddlewares;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
-    property ServerPort: Integer read GetServerPort;
-    property UseMSHeapOnWindows: Boolean read GetUseMSHeapOnWindows;
     function GetConfigModel: TJSONObject;
   end;
 
@@ -222,52 +217,6 @@ begin
   end;
 end;
 
-function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
-const
-  M_ANALYTICS = 'FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));';
-  M_STATICFILES = 'FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
-  M_TRACE = 'FMVC.AddMiddleware(TMVCTraceMiddleware.Create);';
-  M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
-  M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
-  M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
-  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(' + sLineBreak + 
-  '    dotEnv.Env(''firedac.connection_definition_name'', ''%s''), ' + sLineBreak +
-  '    dotEnv.Env(''firedac.connection_definitions_filename'', ''%s'')' + sLineBreak +
-  '  ));';
-
-  function GetText(const Edit: TCustomEdit): String;
-  begin
-    if Edit.Text = '' then
-    begin
-      Result := Edit.TextHint;
-    end
-    else
-    begin
-      Result := Edit.Text;
-    end;
-  end;
-begin
-  Result := [];
-  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do traffic analysis'];
-  Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
-  Result := Result + ['', '// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
-  Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
-  Result := Result + ['', '// Trace middlewares produces a much detailed log for debug purposes'];
-  Result := Result + [ifthen(not chkTrace.Checked, '//') + M_TRACE];
-  Result := Result + ['', '// CORS middleware handles... well, CORS'];
-  Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
-  Result := Result + ['', '// Simplifies TMVCActiveRecord connection definition'];
-  Result := Result + [
-    ifthen(not chkActiveRecord.Checked, '{') + sLineBreak +
-    '  ' + Format(M_ACTIVERECORD, [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)]) + sLineBreak +
-    ifthen(not chkActiveRecord.Checked, '  }') + sLineBreak
-    ];
-  Result := Result + ['', '// Compression middleware must be the last in the chain, just before the ETag, if present.'];
-  Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
-  Result := Result + ['', '// ETag middleware must be the latest in the chain'];
-  Result := Result + [ifthen(not chkETAG.Checked, '//') + M_ETAG];
-end;
-
 function TfrmDMVCNewProject.GetServerPort: Integer;
 var
   lServerPort: Integer;
@@ -279,11 +228,6 @@ begin
     if (lServerPort > 0) and (lServerPort < 65535) then
       Result := lServerPort;
   end;
-end;
-
-function TfrmDMVCNewProject.GetUseMSHeapOnWindows: Boolean;
-begin
-  Result := chkMSHeap.Checked;
 end;
 
 function TfrmDMVCNewProject.GetWebModuleClassName: string;
@@ -362,7 +306,7 @@ function TfrmDMVCNewProject.GetConfigModel: TJSONObject;
 begin
   fModel.Clear;
   fModel.S[TConfigKey.program_name] :=  'TBA';
-  fModel.S[TConfigKey.program_default_server_port] :=  GetServerPort.ToString;
+  fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
