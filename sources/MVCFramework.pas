@@ -753,7 +753,8 @@ type
     function UnauthorizedResponse: IMVCResponse;
     function BadRequestResponse: IMVCResponse; overload;
     function BadRequestResponse(const Error: TObject): IMVCResponse; overload;
-    function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
+    function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
+    function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
     function AcceptedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
     function ConflictResponse: IMVCResponse;
     function RedirectResponse(Location: String; Permanent: Boolean = False; PreserveMethod: Boolean = False): IMVCResponse;
@@ -3980,6 +3981,19 @@ begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Conflict, nil);
 end;
 
+function TMVCRenderer.CreatedResponse(const Location: string ; const Message: String): IMVCResponse;
+var
+  lRespBuilder: IMVCResponseBuilder;
+begin
+  lRespBuilder := MVCResponseBuilder;
+  if not Location.IsEmpty then
+  begin
+    lRespBuilder.Header('location', Location)
+  end;
+  lRespBuilder.Body(Message);
+  Result := lRespBuilder.StatusCode(HTTP_STATUS.Created).Build;
+end;
+
 function TMVCRenderer.CreatedResponse(const Location: string;
   const Body: TObject): IMVCResponse;
 var
@@ -4263,7 +4277,6 @@ var
   lContentType: string;
   lOutEncoding: TEncoding;
   lCharset: string;
-  lFreeEncoding: Boolean;
 begin
   SplitContentMediaTypeAndCharset(GetContentType, lContentType, lCharset);
   if lCharset.IsEmpty then
@@ -4272,25 +4285,16 @@ begin
     lContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   lContentType := BuildContentType(lContentType, lCharset);
 
-  lOutEncoding := nil;
   if SameText('UTF-8', lCharset) then
   begin
-    lFreeEncoding := False;
+    GetContext
+      .Response
+      .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), lContentType)
   end
   else
   begin
     lOutEncoding := TEncoding.GetEncoding(lCharset);
-  end;
-  try
-    if not lFreeEncoding then
-    begin
-      //utf-8
-      GetContext
-        .Response
-        .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), lContentType)
-    end
-    else
-    begin
+    try
       GetContext
         .Response
         .SetContentStream(
@@ -4299,9 +4303,9 @@ begin
               TEncoding.Default,
               lOutEncoding,
               TEncoding.Default.GetBytes(AContent))), lContentType);
+    finally
+      lOutEncoding.Free;
     end;
-  finally
-    lOutEncoding.Free;
   end;
 end;
 
