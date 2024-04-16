@@ -700,18 +700,25 @@ type
   end;
 
   TMVCRenderer = class(TMVCBase)
-  protected
+  strict private
     FContext: TWebContext;
     FContentCharset: string;
+    FContentMediaType: String;
     FResponseStream: TStringBuilder;
+  protected
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
     function StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject): IMVCResponse;
   public { this must be public because of entity processors }
+    constructor Create; virtual;
+    destructor Destroy; override;
     function GetContentType: string;
+    property ContentMediaType: String read FContentMediaType;
+    property ContentCharset: String read FContentCharset;
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
     procedure SetStatusCode(const AValue: Integer);
     function GetContext: TWebContext;
+    procedure SetContext(const Context: TWebContext);
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
     class procedure InternalRenderMVCResponse(const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
@@ -933,7 +940,7 @@ type
     // END - Avoiding mid-air collisions - support
 
     // Properties
-    property Context: TWebContext read GetContext write FContext;
+    property Context: TWebContext read GetContext write SetContext;
     property Session: TMVCWebSession read GetSession;
     property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
@@ -2513,8 +2520,10 @@ begin
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
   fOnRouterLog :=
-      procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState;
-      const Context: TWebContext)
+      procedure(
+        const Sender: TMVCCustomRouter;
+        const RouterLogState: TMVCRouterLogState;
+        const Context: TWebContext)
     begin
       case RouterLogState of
         rlsRouteFound:
@@ -2556,9 +2565,7 @@ begin
 
   if Assigned(AConfigAction) then
   begin
-    LogEnterMethod('Custom configuration method');
     AConfigAction(FConfig);
-    LogExitMethod('Custom configuration method');
   end;
   FConfig.Freeze;
   SaveCacheConfigValues;
@@ -3924,20 +3931,14 @@ end;
 constructor TMVCController.Create;
 begin
   inherited Create;
-  FContext := nil;
-  FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
-  FResponseStream := nil;
-  FViewModel := nil;
+  fViewModel := nil;
   fPageHeaders := nil;
   fPageFooters := nil;
 end;
 
 destructor TMVCController.Destroy;
 begin
-  if Assigned(FResponseStream) then
-    FResponseStream.Free;
-  if Assigned(FViewModel) then
-    FViewModel.Free;
+  fViewModel.Free;
   inherited Destroy;
 end;
 
@@ -3981,6 +3982,14 @@ begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Conflict, nil);
 end;
 
+constructor TMVCRenderer.Create;
+begin
+  inherited;
+  FContext := nil;
+  FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FResponseStream := nil;
+end;
+
 function TMVCRenderer.CreatedResponse(const Location: string ; const Message: String): IMVCResponse;
 var
   lRespBuilder: IMVCResponseBuilder;
@@ -3992,6 +4001,12 @@ begin
   end;
   lRespBuilder.Body(Message);
   Result := lRespBuilder.StatusCode(HTTP_STATUS.Created).Build;
+end;
+
+destructor TMVCRenderer.Destroy;
+begin
+  FResponseStream.Free;
+  inherited;
 end;
 
 function TMVCRenderer.CreatedResponse(const Location: string;
@@ -4013,12 +4028,30 @@ end;
 
 function TMVCRenderer.GetContentType: string;
 begin
-  Result := GetContext.Response.ContentType.Trim;
+  Result := GetContext.Response.ContentType;
   if Result.IsEmpty then
   begin
-    GetContext.Response.ContentType := FContext.FConfig
-      [MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
-    Result := GetContentType;
+    Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
+    GetContext.Response.ContentType := Result;
+    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset); //update FContentMediaType, FContentCharset
+
+//    lRebuildContentType := False;
+//    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset);
+//    if FContentCharset.IsEmpty then
+//    begin
+//      lRebuildContentType := True;
+//      FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+//    end;
+//    if FContentMediaType.IsEmpty then
+//    begin
+//      lRebuildContentType := True;
+//      FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+//    end;
+//    if lRebuildContentType then
+//    begin
+//      Result := BuildContentType(FContentMediaType, FContentCharset);
+//      GetContext.Response.ContentType := Result;
+//    end;
   end;
 end;
 
@@ -4274,26 +4307,26 @@ end;
 
 procedure TMVCRenderer.Render(const AContent: string);
 var
-  lContentType: string;
+//  lContentType: string;
   lOutEncoding: TEncoding;
-  lCharset: string;
+//  lCharset: string;
 begin
-  SplitContentMediaTypeAndCharset(GetContentType, lContentType, lCharset);
-  if lCharset.IsEmpty then
-    lCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
-  if lContentType.IsEmpty then
-    lContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
-  lContentType := BuildContentType(lContentType, lCharset);
+//  SplitContentMediaTypeAndCharset(GetContentType, lContentType, lCharset);
+//  if lCharset.IsEmpty then
+//    lCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+//  if lContentType.IsEmpty then
+//    lContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+//  lContentType := BuildContentType(lContentType, lCharset);
 
-  if SameText('UTF-8', lCharset) then
+  if SameText('UTF-8', FContentCharset) then
   begin
     GetContext
       .Response
-      .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), lContentType)
+      .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), GetContentType)
   end
   else
   begin
-    lOutEncoding := TEncoding.GetEncoding(lCharset);
+    lOutEncoding := TEncoding.GetEncoding(FContentCharset);
     try
       GetContext
         .Response
@@ -4302,7 +4335,7 @@ begin
             TEncoding.Convert(
               TEncoding.Default,
               lOutEncoding,
-              TEncoding.Default.GetBytes(AContent))), lContentType);
+              TEncoding.Default.GetBytes(AContent))), GetContentType);
     finally
       lOutEncoding.Free;
     end;
@@ -4424,7 +4457,12 @@ end;
 
 procedure TMVCRenderer.SetContentType(const AValue: string);
 begin
-  GetContext.Response.ContentType := AValue;
+  GetContext.Response.ContentType := AValue.Trim;
+end;
+
+procedure TMVCRenderer.SetContext(const Context: TWebContext);
+begin
+  FContext := Context;
 end;
 
 procedure TMVCRenderer.SetStatusCode(const AValue: Integer);

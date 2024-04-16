@@ -441,7 +441,7 @@ var
 begin
   if not TFile.Exists(EnvFilePath) then
   begin
-    DoLog('Missed dotEnv file ' + EnvFilePath);
+    DoLog('Missed file ' + EnvFilePath);
     Exit;
   end;
 
@@ -449,7 +449,7 @@ begin
   lParser := TMVCDotEnvParser.Create;
   try
     lParser.Parse(fEnvDict, lDotEnvCode);
-    DoLog('Applied dotEnv file ' + EnvFilePath);
+    DoLog('Applied file ' + EnvFilePath);
   finally
     lParser.Free;
   end;
