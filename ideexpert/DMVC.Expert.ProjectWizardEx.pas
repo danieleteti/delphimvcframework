@@ -147,14 +147,6 @@ begin
           // Create Webmodule Unit
           WebModuleCreator := TNewWebModuleUnitEx.Create(
             lJSON,
-            {
-            WizardForm.WebModuleClassName,
-            WizardForm.ControllerClassName,
-            GetUnitName(ControllerUnit.FileName),
-            WizardForm.Middlewares,
-            WizardForm.JSONRPCClassName,
-            lJSONRPCUnitName,
-            }
             APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
           if Project <> nil then

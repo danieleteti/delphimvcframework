@@ -2607,7 +2607,12 @@ begin
     for I := 0 to Length(lActionFormalParams) - 1 do
     begin
       lServiceName := '';
+      {$IF Defined(SYDNEYORBETTER)}
       lInjectAttribute := lActionFormalParams[I].GetAttribute<MVCInjectAttribute>;
+      {$ELSE}
+      lInjectAttribute := TRttiUtils.GetAttribute<MVCInjectAttribute>(lActionFormalParams[I]);
+      {$ENDIF}
+
       if lInjectAttribute <> nil then
       begin
         lServiceName := lInjectAttribute.ServiceName;

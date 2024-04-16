@@ -129,7 +129,6 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewUnit.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewWebModuleUnit.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.SourceFile.pas"/>
-        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Templates.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.NewProjectWizard.pas">
             <Form>frmDMVCNewProject</Form>
         </DCCReference>
@@ -140,6 +139,10 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectWizardEx.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Registration.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Splash.Registration.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Commands.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Executor.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Commands.Templates.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Commons.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>
@@ -199,6 +202,12 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkDT100.bpl" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkDT100.bpl" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>dmvcframeworkDT.bpl</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>
