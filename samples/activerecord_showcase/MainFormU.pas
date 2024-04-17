@@ -1389,7 +1389,7 @@ begin
     Log(lCustomer.CompanyName);
     for lOrder in lCustomer.Orders do
     begin
-      Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate), lOrder.Total]));
+      Log(Format('  %5.5d - %s - %m', [lOrder.ID.Value, datetostr(lOrder.OrderDate), lOrder.Total]));
       lOrderRows := TMVCActiveRecord.Where<TOrderDetail>('id_order = ?', [lOrder.ID]);
       try
         for lOrderRow in lOrderRows do
@@ -1905,6 +1905,8 @@ procedure TMainForm.btnTransactionClick(Sender: TObject);
 begin
   Log('# TransactionContext');
 
+  // Test 0
+  ExecutedInTransaction;
 
   // Test 1
 //  try
@@ -1933,20 +1935,45 @@ begin
 
 
   // Test 3
-//  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
-//    var lCustomer := TCustomer.Create;
-//    try
-//      lCustomer.CompanyName := 'Transaction Inc.';
-//      lCustomer.LastContact := Now();
-//      lCustomer.Insert;
-//    finally
-//      lCustomer.Free;
-//    end;
-//    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
-//  end;
+  begin var Ctx := TMVCActiveRecord.UseTransactionContext;
 
-  // Test 4
-  ExecutedInTransaction;
+    var lCustID: NullableInt64 := nil;
+
+    var lCustomer := TCustomer.Create;
+    try
+      lCustomer.CompanyName := 'Transaction Inc.';
+      lCustomer.LastContact := Now();
+      lCustomer.Store;
+      var lOrder := TOrder.Create;
+      try
+        lOrder.CustomerID := lCustomer.ID; // << link
+        lOrder.OrderDate := Date();
+        lOrder.Store;
+
+        var lOrderItem := TOrderDetail.Create;
+        try
+          lOrderItem.OrderID := lOrder.ID;  // << link
+          var lAllArticles := TMVCActiveRecord.All<TArticle>;
+          try
+            lOrderItem.ArticleID := lAllArticles.First.ID.Value;  // << link
+          finally
+            lAllArticles.Free;
+          end;
+          lOrderItem.Price := 10;
+          lOrderItem.Quantity := 2;
+          lOrderItem.Store;
+        finally
+          lOrderItem.Free;
+        end;
+      finally
+        lOrder.Free;
+      end;
+    finally
+      lCustomer.Free;
+    end;
+    Log('#3 - TransactionContext automatically committed changes (because no exceptions have been raised within the TransactionContext)');
+  end;
+
 end;
 
 procedure TMainForm.btnReadOnlyFieldsClick(Sender: TObject);
