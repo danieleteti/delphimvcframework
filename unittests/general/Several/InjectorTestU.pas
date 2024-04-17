@@ -102,7 +102,7 @@ procedure TTestContainer.TestCascadeConstructorInjection;
 begin
   var lCont := NewMVCServiceContainer;
   lCont.RegisterType(TServiceA, IServiceA);
-  lCont.RegisterType(TServiceB, IServiceB, '', TRegistrationType.SingletonPerRequest);
+  lCont.RegisterType(TServiceB, IServiceB, TRegistrationType.SingletonPerRequest);
   lCont.RegisterType(TServiceC, IServiceC);
   lCont.Build;
 
@@ -143,8 +143,8 @@ end;
 procedure TTestContainer.TestSingleton;
 begin
   var lCont := NewMVCServiceContainer;
-  lCont.RegisterType(TServiceA, IServiceA, '', TRegistrationType.Singleton);
-  lCont.RegisterType(TServiceA, IServiceA, 'Svc1', TRegistrationType.Singleton);
+  lCont.RegisterType(TServiceA, IServiceA, TRegistrationType.Singleton);
+  lCont.RegisterType(TServiceA, IServiceA, TRegistrationType.Singleton, 'Svc1');
   lCont.Build;
 
   // 1° Request
@@ -168,8 +168,8 @@ end;
 procedure TTestContainer.TestSingletonPerRequest;
 begin
   var lCont := NewMVCServiceContainer
-          .RegisterType(TServiceA, IServiceA, '', TRegistrationType.SingletonPerRequest)
-          .RegisterType(TServiceA, IServiceA, 'Svc1', TRegistrationType.SingletonPerRequest);
+          .RegisterType(TServiceA, IServiceA, TRegistrationType.SingletonPerRequest)
+          .RegisterType(TServiceA, IServiceA, TRegistrationType.SingletonPerRequest, 'Svc1');
   lCont.Build;
 
   // 1° "request"
@@ -195,7 +195,7 @@ procedure TTestContainer.TestTransient;
 begin
   var lCont := NewMVCServiceContainer;
   lCont.RegisterType(TServiceA, IServiceA);
-  lCont.RegisterType(TServiceA, IServiceA, 'Svc1');
+  lCont.RegisterType(TServiceA, IServiceA, TRegistrationType.Transient, 'Svc1');
   lCont.Build;
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));

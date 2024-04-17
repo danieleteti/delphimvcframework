@@ -15,7 +15,7 @@ uses
 procedure RegisterServices(Container: IMVCServiceContainer);
 begin
   Container.RegisterType(TPeopleService, IPeopleService);
-  Container.RegisterType(TConnectionService, IConnectionService, '', TRegistrationType.SingletonPerRequest)
+  Container.RegisterType(TConnectionService, IConnectionService, TRegistrationType.SingletonPerRequest)
 end;
 
 end.

@@ -1,5 +1,7 @@
 unit MVCFramework.Container;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -19,7 +21,7 @@ type
 
   IMVCServiceContainer = interface
     ['{1BB3F4A8-DDA1-4526-981C-A0BF877CFFD5}']
-    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = TRegistrationType.Transient): IMVCServiceContainer; overload;
+    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
     procedure Build();
   end;
 
@@ -68,7 +70,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
   public
-    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aName : string = ''; const aRegType: TRegistrationType = TRegistrationType.Transient): IMVCServiceContainer; overload;
+    function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
     function Resolve(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
     function ResolveEx(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
     procedure Build();
@@ -153,9 +155,10 @@ begin
 end;
 
 function TMVCServiceContainer.RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID;
-  const aName: string; const aRegType: TRegistrationType): IMVCServiceContainer;
+  const aRegType: TRegistrationType; const aName: string): IMVCServiceContainer;
 var
   lReg: TRegistration;
+  lKey: string;
 begin
   if fBuilt then
   begin
@@ -168,10 +171,23 @@ begin
     lReg.Clazz := aImplementation;
     lReg.RttiType := TRttiUtils.GlContext.GetType(lReg.Clazz);
     lReg.RegistrationType := aRegType;
-    if not fRegistry.TryAdd(GetKey(aInterface, aName), lReg) then
+    lKey := GetKey(aInterface, aName);
+    {$IF Defined(RIOORBETTER)}
+    if not fRegistry.TryAdd(lKey, lReg) then
     begin
-      raise EMVCContainerError.CreateFmt('Cannot register duplicated service "%s"',[GetKey(aInterface, aName)]);
+      raise EMVCContainerError.CreateFmt('Cannot register duplicated service "%s"',[lKey]);
     end;
+    {$ELSE}
+    if not fRegistry.ContainsKey(lKey) then
+    begin
+      fRegistry.Add(lKey, lReg)
+    end
+    else
+    begin
+      raise EMVCContainerError.CreateFmt('Cannot register duplicated service "%s"',[lKey]);
+    end;
+    {$ENDIF}
+
   end
   else
   begin

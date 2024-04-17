@@ -30,7 +30,7 @@ type
 
     [MVCPath('/people')]
     [MVCHTTPMethod([httpPOST])]
-    function CreatePerson([MVCInject] OtherPeopleService: IPeopleService; [MVCFromBody] Person: TPerson): IMVCResponse;
+    function CreatePerson([MVCInject] PeopleService: IPeopleService; [MVCFromBody] Person: TPerson): IMVCResponse;
 
     [MVCPath('/people/($ID)')]
     [MVCHTTPMethod([httpPUT])]
@@ -86,7 +86,7 @@ begin
   LogI('PeopleService in constructor: ' + IntToHex(NativeUInt(Pointer(PeopleService))));
 end;
 
-function TMyController.CreatePerson(OtherPeopleService: IPeopleService; Person: TPerson): IMVCResponse;
+function TMyController.CreatePerson(PeopleService: IPeopleService; Person: TPerson): IMVCResponse;
 begin
   LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
   Result := CreatedResponse('', 'Person created (' + Person.ToString + ')' );
