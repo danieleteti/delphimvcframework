@@ -3,12 +3,13 @@
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.1--sodium-blue)
 ![](https://img.shields.io/badge/beta-dmvcframework--3.4.2--magnesium--beta-red)  
 
+## 📍 [Help DMVCFramework, Click Here to become a Supporter!](https://www.patreon.com/bePatron?u=72182967) 
+
 ## 💻 Code Contributors
 
 <a href="https://github.com/danieleteti/delphimvcframework/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=danieleteti/delphimvcframework" />
 </a>
-
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
