@@ -618,7 +618,6 @@ begin
     .AppendLine('  FMVC := TMVCEngine.Create(Self,')
     .AppendLine('    procedure(Config: TMVCConfig)')
     .AppendLine('    begin')
-    .AppendLine('      Config.dotEnv := dotEnv; ')
     .AppendLine('      // session timeout (0 means session cookie)')
     .AppendLine('      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');')
     .AppendLine('      //default content-type')
@@ -836,22 +835,27 @@ begin
     .AppendLine('  try')
     .AppendLine('    if WebRequestHandler <> nil then')
     .AppendLine('      WebRequestHandler.WebModuleClass := WebModuleClass;')
-    .AppendLine
-    .AppendLine('    dotEnvConfigure(')
-    .AppendLine('      function: IMVCDotEnv')
-    .AppendLine('      begin')
-    .AppendLine('        Result := NewDotEnv')
-    .AppendLine('                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)')
-    .AppendLine('                                       //if available, by default, loads default environment (.env)')
-    .AppendLine('                 .UseProfile(''test'') //if available loads the test environment (.env.test)')
-    .AppendLine('                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)')
-    .AppendLine('                 .UseLogger(procedure(LogItem: String)')
-    .AppendLine('                            begin')
-    .AppendLine('                              LogD(''dotEnv: '' + LogItem);')
-    .AppendLine('                            end)')
-    .AppendLine('                 .Build();             //uses the executable folder to look for .env* files')
-    .AppendLine('      end);')
-    .AppendLine
+    .AppendLine;
+    if Model.B[TConfigKey.program_dotenv] then
+    begin
+      Section
+        .AppendLine('    dotEnvConfigure(')
+        .AppendLine('      function: IMVCDotEnv')
+        .AppendLine('      begin')
+        .AppendLine('        Result := NewDotEnv')
+        .AppendLine('                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)')
+        .AppendLine('                                       //if available, by default, loads default environment (.env)')
+        .AppendLine('                 .UseProfile(''test'') //if available loads the test environment (.env.test)')
+        .AppendLine('                 .UseProfile(''prod'') //if available loads the prod environment (.env.prod)')
+        .AppendLine('                 .UseLogger(procedure(LogItem: String)')
+        .AppendLine('                            begin')
+        .AppendLine('                              LogD(''dotEnv: '' + LogItem);')
+        .AppendLine('                            end)')
+        .AppendLine('                 .Build();             //uses the executable folder to look for .env* files')
+        .AppendLine('      end);')
+        .AppendLine;
+    end;
+  Section
     .AppendLine('    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);')
     .AppendLine
     .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')

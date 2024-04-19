@@ -786,7 +786,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions;
+  System.RegularExpressions, MVCFramework.Logger;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1125,8 +1125,11 @@ end;
 
 procedure TMVCConfig.SetDotEnv(const Value: IMVCdotEnv);
 begin
-  CheckNotFreezed;
-  fdotEnv := Value;
+  if FdotEnv <> Value then
+  begin
+    CheckNotFreezed;
+    fdotEnv := Value;
+  end;
 end;
 
 procedure TMVCConfig.SetValue(const AIndex, aValue: string);
@@ -1776,7 +1779,6 @@ begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
 end;
 
-
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 begin
   if GdotEnv <> nil then
@@ -1796,9 +1798,21 @@ begin
       begin
         if not Assigned(GdotEnvDelegate) then
         begin
-          raise EMVCDotEnv.Create('"dotEnvConfigure" not called');
+          LogI('dotEnvConfigure not called, a default dotEnv instance will be created');
+          GdotEnv := NewDotEnv
+                       .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                       .UseProfile('test')
+                       .UseProfile('prod')
+                       .UseLogger(procedure(LogItem: String)
+                                  begin
+                                    LogD('dotEnv: ' + LogItem);
+                                  end)
+                       .Build();
+        end
+        else
+        begin
+          GdotEnv := GdotEnvDelegate();
         end;
-        GdotEnv := GdotEnvDelegate();
         if GdotEnv = nil then
         begin
           raise EMVCDotEnv.Create('Delegated passed to "dotEnvConfigure" must return a valid IMVCDotEnv instance');

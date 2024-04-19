@@ -2565,6 +2565,7 @@ begin
 
   if Assigned(AConfigAction) then
   begin
+    fConfig.dotEnv := dotEnv;
     AConfigAction(FConfig);
   end;
   FConfig.Freeze;
