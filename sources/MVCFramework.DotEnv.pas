@@ -253,9 +253,9 @@ begin
   end;
   DoLog('Path = ' + fEnvPath);
   fEnvDict.Clear;
-
   lAllProfiles := ['default'] + fProfiles.ToArray();
-  DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');
+  DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) +
+    '] (Priority: ' + GetEnumName(TypeInfo(TMVCDotEnvPriority), Ord(fPriority)) + ')');
   ReadEnvFile;
   ExplodeReferences;
   fState := TdotEnvEngineState.built;

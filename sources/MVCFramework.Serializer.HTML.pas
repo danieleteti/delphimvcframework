@@ -179,7 +179,7 @@ const
   '  background: #fff;'+
   '  padding: 2rem;' +
   '  margin: 0 auto;' +
-  '  max-width: 40rem;' +
+  '  max-width: 50rem;' +
   '  font-family: "Segoe UI Light", Tahoma, Arial, ui-sans-serif, sans-serif;' +
   '}' +
   '.color1 { color: #C5C5C5; } /* https://color.adobe.com/it/search?q=Primary%20colors&t=term */' +
@@ -193,6 +193,7 @@ const
   '  margin-top: 2rem;' +
   '  margin: auto;' +
   '  width: fit-content;' +
+  '  min-width: 30rem;' +
   '  padding: 1rem;' +
   '  padding-left: 2rem;' +
   '  padding-right: 2rem;' +
