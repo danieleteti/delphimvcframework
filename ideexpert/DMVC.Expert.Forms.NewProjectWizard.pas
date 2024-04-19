@@ -95,6 +95,8 @@ type
     lblCopyRight: TLabel;
     chkMSHeap: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
+    chkProfileActions: TCheckBox;
+    lblPATREON: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -107,6 +109,9 @@ type
     procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
     procedure btnOKClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure lblPATREONClick(Sender: TObject);
+    procedure lblPATREONMouseEnter(Sender: TObject);
+    procedure lblPATREONMouseLeave(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
@@ -153,6 +158,11 @@ begin
   EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
   EdtConnDefName.Enabled := chkActiveRecord.Checked;
   EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
+  chkProfileActions.Enabled := chkCreateIndexMethod.Checked or chkCreateCRUDMethods.Checked;
+  if not chkProfileActions.Enabled then
+  begin
+    chkProfileActions.Checked := False;
+  end;
 end;
 
 procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
@@ -250,6 +260,25 @@ begin
     nil, nil, SW_SHOW);
 end;
 
+procedure TfrmDMVCNewProject.lblPATREONClick(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://www.patreon.com/delphimvcframework'),
+    nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblPATREONMouseEnter(Sender: TObject);
+begin
+  lblPATREON.Font.Color := clHighlight;
+  lblPATREON.Font.Style := lblPATREON.Font.Style + [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblPATREONMouseLeave(Sender: TObject);
+begin
+  lblPATREON.Font.Color := Font.Color;
+  lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
+end;
+
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
@@ -315,6 +344,7 @@ begin
   fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;
   fModel.B[TConfigKey.controller_action_filters_generate] :=  chkCreateActionFiltersMethods.Checked;
   fModel.B[TConfigKey.controller_crud_methods_generate] :=  chkCreateCRUDMethods.Checked;
+  fModel.B[TConfigKey.controller_actions_profiling_generate] :=  chkProfileActions.Checked;
   fModel.B[TConfigKey.entity_generate] :=  fModel.B[TConfigKey.controller_crud_methods_generate];
   fModel.S[TConfigKey.entity_classname] :=  'TPerson';
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;

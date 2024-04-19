@@ -76,7 +76,7 @@ end;
 
 function TDMVCProjectFile.GetFrameworkType: string;
 begin
-  Result := 'VCL';
+  Result := 'FMX';
 end;
 
 function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;

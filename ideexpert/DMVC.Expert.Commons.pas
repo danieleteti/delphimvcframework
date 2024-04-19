@@ -62,6 +62,7 @@ type
      controller_index_methods_generate= 'controller.index_methods.generate';
      controller_action_filters_generate= 'controller.action_filters.generate';
      controller_crud_methods_generate= 'controller.crud_methods.generate';
+     controller_actions_profiling_generate= 'controller.actions.profiling.generate';
      entity_generate= 'entity.generate';
      entity_classname= 'entity.classname';
      jsonrpc_generate= 'jsonrpc.generate';

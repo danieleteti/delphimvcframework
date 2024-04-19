@@ -117,7 +117,7 @@ begin
 
           Config := (Project.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
           Config.SetValue(sUnitSearchPath, '$(DMVC)');
-          Config.SetValue(sFramework, 'VCL');
+          Config.SetValue(sFramework, 'FMX');
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin

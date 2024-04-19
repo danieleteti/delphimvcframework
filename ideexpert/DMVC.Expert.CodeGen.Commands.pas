@@ -76,14 +76,6 @@ type
   end;
 
 
-  TUnitControllerDeclarationCommand = class(TCustomCommand)
-  public
-    procedure ExecuteInterface(
-      Section: TStringBuilder;
-      Model: TJSONObject
-      ); override;
-  end;
-
   TUnitControllerControllerDeclarationCommand = class(TCustomCommand)
   public
     procedure ExecuteInterface(
@@ -272,7 +264,7 @@ begin
 
   if Model[TConfigKey.program_msheap] then
   begin
-    Section.AppendLine('  MSHeap,');
+    Section.AppendLine('  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}');
   end;
 
   Section
@@ -326,16 +318,6 @@ begin
     .AppendLine('MVCFramework.Serializer.Commons, System.Generics.Collections;')
     .AppendLine
     .AppendLine('type')
-end;
-
-{ TUnitControllerDeclarationCommand }
-
-procedure TUnitControllerDeclarationCommand.ExecuteInterface(Section: TStringBuilder;
-  Model: TJSONObject);
-begin
-  inherited;
-
-
 end;
 
 procedure TUnitControllerEntityDeclarationCommand.ExecuteImplementation(
@@ -429,13 +411,31 @@ begin
     Section
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.Index: String;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  //use Context property to access to the HTTP request and response')
       .AppendLine('  Result := ''Hello DelphiMVCFramework World'';')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetReversedString(const Value: String): String;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  Result := System.StrUtils.ReverseString(Value.Trim);')
       .AppendLine('end;')
   end;
@@ -448,7 +448,16 @@ begin
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: IMVCResponse;')
       .AppendLine('var')
       .AppendLine('  lPeople: TObjectList<TPerson>;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  lPeople := TObjectList<TPerson>.Create(True);')
       .AppendLine('  try')
       .AppendLine('    lPeople.Add(TPerson.Create(1, ''Peter'',''Parker'', EncodeDate(1965, 10, 4)));')
@@ -462,24 +471,60 @@ begin
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPerson(ID: Integer): TPerson;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  Result := TPerson.Create(ID, ''Daniele'', ''Teti'', EncodeDate(1979, 11, 4));')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);')
       .AppendLine('  Result := CreatedResponse('''', ''Person created'');')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);')
       .AppendLine('  Result := NoContentResponse();')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.DeletePerson(ID: Integer): IMVCResponse;')
-      .AppendLine('begin')
+      .AppendLine('begin');
+    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    begin
+      Section
+        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+        .AppendLine('{$ENDIF}')
+        .AppendLine;
+    end;
+    Section
       .AppendLine('  LogI(''Deleted person with id '' + ID.ToString);')
       .AppendLine('  Result := NoContentResponse();')
       .AppendLine('end;')
