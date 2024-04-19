@@ -78,7 +78,7 @@ begin
 
     CreateFirebirdPrivateConnDef(True);
     DefaultMVCServiceContainer
-      .RegisterType(TArticlesService, IArticlesService, '', TRegistrationType.SingletonPerRequest)
+      .RegisterType(TArticlesService, IArticlesService, TRegistrationType.SingletonPerRequest)
       .Build;
 
     WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);

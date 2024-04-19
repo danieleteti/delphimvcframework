@@ -316,7 +316,14 @@ begin
     .AppendLine('interface')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections;')
+    .Append('  MVCFramework, MVCFramework.Commons, ');
+  if Model.B[TConfigKey.entity_generate] then
+  begin
+    Section.Append('MVCFramework.Nullables, ');
+  end;
+
+  Section
+    .AppendLine('MVCFramework.Serializer.Commons, System.Generics.Collections;')
     .AppendLine
     .AppendLine('type')
 end;
@@ -337,9 +344,10 @@ begin
   inherited;
   if not Model.B[TConfigKey.entity_generate] then Exit;
   Section
-    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(FirstName, LastName: String; DOB: TDate);')
+    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(ID: Integer; FirstName, LastName: String; DOB: TDate);')
     .AppendLine('begin')
     .AppendLine('  inherited Create;')
+    .AppendLine('  fID := ID;')
     .AppendLine('  fFirstName := FirstName;')
     .AppendLine('  fLastName := LastName;')
     .AppendLine('  fDOB := DOB;')
@@ -359,14 +367,16 @@ begin
     .AppendLine('  [MVCNameCase(ncCamelCase)]')
     .AppendLine('  ' + Model[TConfigKey.entity_classname] + ' = class')
     .AppendLine('  private')
+    .AppendLine('    fID: NullableInt32;')
     .AppendLine('    fFirstName: String;')
     .AppendLine('    fLastName: String;')
     .AppendLine('    fDOB: TDate;')
     .AppendLine('  public')
+    .AppendLine('    property ID: NullableInt32 read fID write fID;')
     .AppendLine('    property FirstName: String read fFirstName write fFirstName;')
     .AppendLine('    property LastName: String read fLastName write fLastName;')
     .AppendLine('    property DOB: TDate read fDOB write fDOB;  ')
-    .AppendLine('    constructor Create(FirstName, LastName: String; DOB: TDate);')
+    .AppendLine('    constructor Create(ID: Integer; FirstName, LastName: String; DOB: TDate);')
     .AppendLine('  end;')
     .AppendLine
 end;
@@ -435,16 +445,16 @@ begin
     Section
       .AppendLine
       .AppendLine('//Sample CRUD Actions for a "People" entity')
-      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: TObjectList<TPerson>;')
+      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: IMVCResponse;')
       .AppendLine('var')
       .AppendLine('  lPeople: TObjectList<TPerson>;')
       .AppendLine('begin')
       .AppendLine('  lPeople := TObjectList<TPerson>.Create(True);')
       .AppendLine('  try')
-      .AppendLine('    lPeople.Add(TPerson.Create(''Peter'',''Parker'', EncodeDate(1965, 10, 4)));')
-      .AppendLine('    lPeople.Add(TPerson.Create(''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));')
-      .AppendLine('    lPeople.Add(TPerson.Create(''Reed'',''Richards'', EncodeDate(1955, 3, 7)));')
-      .AppendLine('    Result := lPeople;')
+      .AppendLine('    lPeople.Add(TPerson.Create(1, ''Peter'',''Parker'', EncodeDate(1965, 10, 4)));')
+      .AppendLine('    lPeople.Add(TPerson.Create(2, ''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));')
+      .AppendLine('    lPeople.Add(TPerson.Create(3, ''Reed'',''Richards'', EncodeDate(1955, 3, 7)));')
+      .AppendLine('    Result := OkResponse(lPeople);')
       .AppendLine('  except')
       .AppendLine('    lPeople.Free;')
       .AppendLine('    raise;')
@@ -452,40 +462,26 @@ begin
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPerson(ID: Integer): TPerson;')
-      .AppendLine('var')
-      .AppendLine('  lPeople: TObjectList<TPerson>;')
       .AppendLine('begin')
-      .AppendLine('  lPeople := GetPeople;')
-      .AppendLine('  try')
-      .AppendLine('    Result := lPeople.ExtractAt(ID mod lPeople.Count);')
-      .AppendLine('  finally')
-      .AppendLine('    lPeople.Free;')
-      .AppendLine('  end;')
+      .AppendLine('  Result := TPerson.Create(ID, ''Daniele'', ''Teti'', EncodeDate(1979, 11, 4));')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Created '' + Person.FirstName + '' '' + Person.LastName);')
-      .AppendLine('  Result := MVCResponseBuilder')
-      .AppendLine('      .StatusCode(HTTP_STATUS.Created)')
-      .AppendLine('      .Body(''Person created'')')
-      .AppendLine('      .Build;')
+      .AppendLine('  Result := CreatedResponse('''', ''Person created'');')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Updated '' + Person.FirstName + '' '' + Person.LastName);')
-      .AppendLine('  Result := MVCResponseBuilder')
-      .AppendLine('    .StatusCode(HTTP_STATUS.NoContent)')
-      .AppendLine('    .Build;')
+      .AppendLine('  Result := NoContentResponse();')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.DeletePerson(ID: Integer): IMVCResponse;')
       .AppendLine('begin')
       .AppendLine('  LogI(''Deleted person with id '' + ID.ToString);')
-      .AppendLine('  Result := MVCResponseBuilder')
-      .AppendLine('    .StatusCode(HTTP_STATUS.NoContent)')
-      .AppendLine('    .Build;')
+      .AppendLine('  Result := NoContentResponse();')
       .AppendLine('end;')
 
   end;
@@ -516,10 +512,12 @@ begin
       .AppendLine('    [MVCPath]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
       .AppendLine('    function Index: String;')
+      .AppendLine
       .AppendLine('    [MVCPath(''/reversedstrings/($Value)'')]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
       .AppendLine('    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]')
       .AppendLine('    function GetReversedString(const Value: String): String;')
+      .AppendLine
   end;
 
   if Model.B[TConfigKey.controller_crud_methods_generate] then
@@ -533,16 +531,20 @@ begin
       .AppendLine('    //Sample CRUD Actions for a "People" entity')
       .AppendLine('    [MVCPath(''/people'')]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
-      .AppendLine('    function GetPeople: TObjectList<TPerson>;')
+      .AppendLine('    function GetPeople: IMVCResponse;')
+      .AppendLine
       .AppendLine('    [MVCPath(''/people/($ID)'')]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
       .AppendLine('    function GetPerson(ID: Integer): TPerson;')
+      .AppendLine
       .AppendLine('    [MVCPath(''/people'')]')
       .AppendLine('    [MVCHTTPMethod([httpPOST])]')
       .AppendLine('    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
+      .AppendLine
       .AppendLine('    [MVCPath(''/people/($ID)'')]')
       .AppendLine('    [MVCHTTPMethod([httpPUT])]')
       .AppendLine('    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
+      .AppendLine
       .AppendLine('    [MVCPath(''/people/($ID)'')]')
       .AppendLine('    [MVCHTTPMethod([httpDELETE])]')
       .AppendLine('    function DeletePerson(ID: Integer): IMVCResponse;')
@@ -921,9 +923,10 @@ begin
   if not Model.B[TConfigKey.entity_generate] then Exit;
   CheckFor(TConfigKey.entity_classname, Model);
   Section
-    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(FirstName, LastName: String; DOB: TDate);')
+    .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(ID: Integer; FirstName, LastName: String; DOB: TDate);')
     .AppendLine('begin')
     .AppendLine('  inherited Create;')
+    .AppendLine('  fID := ID;')
     .AppendLine('  fFirstName := FirstName;')
     .AppendLine('  fLastName := LastName;')
     .AppendLine('  fDOB := DOB;')

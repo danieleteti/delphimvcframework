@@ -44,11 +44,13 @@ type
   private
     FValue: string;
     FParams: TList<string>;
+    FRegEx: TRegEx;
   public
     constructor Create(aValue: string; aParams: TList<string>); virtual;
     destructor Destroy; override;
     function Value: string;
     function Params: TList<string>; // this should be read-only...
+    function Match(const Value: String): TMatch; inline;
   end;
 
   TMVCRouter = class(TMVCCustomRouter)
@@ -356,13 +358,18 @@ function TMVCRouter.IsCompatiblePath(
   end;
 
 var
-  lRegEx: TRegEx;
+//  lRegEx: TRegEx;
   lMatch: TMatch;
   lPattern: string;
   I: Integer;
   lNames: TList<string>;
   lCacheItem: TMVCActionParamCacheItem;
 begin
+  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
+  begin
+    Exit(True);
+  end;
+
   if not FActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
   begin
     lNames := GetParametersNames(AMVCPath);
@@ -371,19 +378,16 @@ begin
     FActionParamsCache.Add(AMVCPath, lCacheItem);
   end;
 
-  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
-    Exit(True)
-  else
+//  lRegEx := TRegEx.Create(lCacheItem.Value, [roIgnoreCase, roCompiled, roSingleLine]);
+//  lMatch := lRegEx.Match(APath);
+
+  lMatch := lCacheItem.Match(APath);
+  Result := lMatch.Success;
+  if Result then
   begin
-    lRegEx := TRegEx.Create(lCacheItem.Value, [roIgnoreCase, roCompiled, roSingleLine]);
-    lMatch := lRegEx.Match(APath);
-    Result := lMatch.Success;
-    if Result then
+    for I := 1 to Pred(lMatch.Groups.Count) do
     begin
-      for I := 1 to Pred(lMatch.Groups.Count) do
-      begin
-        aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
-      end;
+      aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
     end;
   end;
 end;
@@ -534,12 +538,18 @@ begin
   inherited Create;
   FValue := aValue;
   FParams := aParams;
+  FRegEx := TRegEx.Create(FValue, [roIgnoreCase, roCompiled, roSingleLine]);
 end;
 
 destructor TMVCActionParamCacheItem.Destroy;
 begin
   FParams.Free;
   inherited;
+end;
+
+function TMVCActionParamCacheItem.Match(const Value: String): TMatch;
+begin
+  Result := fRegEx.Match(Value);
 end;
 
 function TMVCActionParamCacheItem.Params: TList<string>;

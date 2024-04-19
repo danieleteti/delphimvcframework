@@ -316,8 +316,8 @@ begin
   fModel.B[TConfigKey.entity_generate] :=  fModel.B[TConfigKey.controller_crud_methods_generate];
   fModel.S[TConfigKey.entity_classname] :=  'TPerson';
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
-  fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
-  fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
+    fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
+    fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
 
   //webmodule
 

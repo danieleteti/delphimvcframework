@@ -775,13 +775,13 @@ type
     /// https://restfulapi.net/http-status-202-accepted/
     /// </remarks>
     procedure Render202Accepted(const HREF: string; const ID: string;
-      const Reason: string = 'Accepted'); virtual; deprecated;
+      const Reason: string = 'Accepted'); virtual;
     /// <summary>
     /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documents active view if any.
     /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
     /// </summary>
     procedure Render204NoContent(const Location: string = '';
-      const Reason: string = ''); virtual; deprecated;
+      const Reason: string = ''); virtual;
 
 
 
@@ -3229,17 +3229,21 @@ begin
 
     // From now on we'll check for url mapped parameters
     if not AContext.Request.SegmentParam(lParamName, lStrValue) then
+    begin
       raise EMVCException.CreateFmt(http_status.BadRequest,
         'Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
         [lParamName, AActionName]);
+    end;
     AActualParams[I] := GetActualParam(AActionFormalParams[I], lStrValue);
   end;
 
   if (AContext.Request.SegmentParamsCount + lAttributeInjectedParamCount) <>
     Length(AActionFormalParams) then
+  begin
     raise EMVCException.CreateFmt(http_status.BadRequest,
       'Parameters count mismatch (expected %d actual %d) for action "%s"',
       [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
+  end;
 end;
 
 procedure TMVCEngine.FixUpWebModule;

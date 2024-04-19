@@ -107,8 +107,8 @@ begin
   lFileName := TPath.GetFileNameWithoutExtension(IOTA.FileName);
   lFileExt :=  TPath.GetExtension(IOTA.FileName);
   lFileName := FileNamePrefix;
-  IOTA.FileName := TPath.Combine(lDirName, lFileName + lFileExt);
-  IOTA.Refresh(False);
+//  IOTA.FileName := TPath.Combine(lDirName, lFileName + lFileExt);
+//  IOTA.Refresh(False);
 end;
 
 end.

@@ -34,7 +34,7 @@ uses
   MVCFramework.Serializer.Intf,
   System.Rtti,
   System.Generics.Collections,
-  BusinessObjectsU, Data.DB;
+  BusinessObjectsU, Data.DB, System.Classes, System.SysUtils;
 
 type
 
@@ -64,10 +64,15 @@ type
     [MVCProduces('text/plain')]
     function GetPerson_AsText_AsFunction(const ID: Integer): String;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers.csv')]
+    function GetPeopleAsCSV_AsFunction: String;
+
+
     // this action is polymorphic
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/func/skilledpeople')]
-    [MVCProduces('application/json')]
+    //[MVCProduces('application/json')]
     function GetProgrammersAndPhilosophersAsObjectList_AsFunction: TObjectList<TPerson>;
 
     [MVCHTTPMethod([httpGET])]
@@ -294,8 +299,6 @@ uses
   MVCFramework.Logger,
   MyDataModuleU,
   System.IOUtils,
-  System.Classes,
-  System.SysUtils,
   WebModuleU,
   CustomTypesU,
   InMemoryDataU,
@@ -962,6 +965,23 @@ begin
   RenderResponseStream;
 end;
 
+function TRenderSampleController.GetPeopleAsCSV_AsFunction: String;
+var
+  lSS: TStringBuilder;
+begin
+  ContentType := TMVCMediaType.TEXT_CSV;
+  lSS := TStringBuilder.Create('');
+  try
+    lSS.AppendLine('first_name;last_name;age');
+    lSS.AppendLine('Daniele;Teti;38');
+    lSS.AppendLine('Peter;Parker;22');
+    lSS.AppendLine('Bruce;Banner;60');
+    Result := lSS.ToString;
+  finally
+    lSS.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetPeopleWithTiming;
 var
   p: TPerson;
@@ -1164,7 +1184,6 @@ end;
 
 procedure TRenderSampleController.GetPersonPhoto;
 begin
-  // ContentType := 'image/jpeg';
   SendFile('..\..\_\customer.png');
 end;
 
