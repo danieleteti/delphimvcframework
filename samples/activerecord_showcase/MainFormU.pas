@@ -847,46 +847,44 @@ begin
 
   lConnParams := FDConnection1.Params.Text;
   lProc := procedure
-    var
-      lConn: TFDConnection;
-      lCustomer: TCustomer;
-      I: Integer;
-    begin
-      lConn := TFDConnection.Create(nil);
-      try
-        lConn.ConnectionDefName := CON_DEF_NAME;
-        ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
-        lConn.Params.Text := lConnParams;
-        lConn.Open;
-        for I := 1 to 30 do
-        begin
-          lCustomer := TCustomer.Create;
-          try
-            lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
-            lCustomer.City := Cities[Random(high(Cities) + 1)];
-            lCustomer.CompanyName :=
-              Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
-              CompanySuffix[Random(high(CompanySuffix) + 1)]]);
-            lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
-            lCustomer.Insert;
-          finally
-            lCustomer.Free;
-          end;
-        end;
-      finally
-        ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
-      end;
-    end;
+           var
+             lCustomer: TCustomer;
+             I: Integer;
+           begin
+             ActiveRecordConnectionsRegistry.AddDefaultConnection(CON_DEF_NAME);
+             try
+               lCustomer := TCustomer.Create;
+               try
+                 for I := 1 to 50 do
+                 begin
+                   lCustomer.ID.Clear;
+                   lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
+                   lCustomer.City := Cities[Random(high(Cities) + 1)];
+                   lCustomer.CompanyName :=
+                     Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+                     CompanySuffix[Random(high(CompanySuffix) + 1)]]);
+                   lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
+                   lCustomer.Insert;
+                 end;
+               finally
+                 lCustomer.Free;
+               end;
+             finally
+               ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
+             end;
+           end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+  lTasks := [
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc)];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)
+  ];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
-    'in(City,["Rome","New York","London","Melbourne","Berlin"])').ToString + ' records');
+    'in(City,["Rome","New York","London","Melbourne","Berlin"])').ToString + ' records by ' + Length(lTasks).ToString + ' threads');
 end;
 
 procedure TMainForm.btnNamedQueryClick(Sender: TObject);

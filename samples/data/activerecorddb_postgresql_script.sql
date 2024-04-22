@@ -115,7 +115,8 @@ CREATE TABLE public.customers (
     description character varying(200),
     city character varying(200),
     note text,
-    rating integer
+    rating integer,
+	last_contact_timestamp timestamptz NULL
 );
 
 ALTER TABLE public.customers OWNER TO postgres;

@@ -11,6 +11,7 @@ CREATE TABLE customers (
 	description varchar(200),
 	city varchar(200),
 	rating INTEGER,	
+	last_contact_timestamp timestamp,
 	NOTE BLOB SUB_TYPE 1,	
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );
