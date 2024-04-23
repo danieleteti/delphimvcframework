@@ -6,9 +6,9 @@ program articles_crud_server;
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
-{$IF Defined(USE_DB_LOGGER)}
+  {$IF Defined(USE_DB_LOGGER)}
   CustomLoggerConfigU,
-{$ENDIF}
+  {$ENDIF }
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Signal,
@@ -23,8 +23,6 @@ uses
   Services in 'Services.pas',
   BusinessObjects in 'BusinessObjects.pas',
   Commons in 'Commons.pas',
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas';
 
 {$R *.res}
@@ -63,18 +61,6 @@ begin
     {$IF Defined(USE_DB_LOGGER)}
       MVCFramework.Logger.SetDefaultLogger(CustomLoggerConfigU.GetLogger);
     {$ENDIF}
-
-    dotEnvConfigure(
-      function: IMVCDotEnv
-      begin
-        Result := NewDotEnv
-                   .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                   .UseLogger(procedure(LogItem: String)
-                              begin
-                                LogD('dotEnv: ' + LogItem);
-                              end)
-                   .Build();             //uses the executable folder to look for .env* files
-      end);
 
     CreateFirebirdPrivateConnDef(True);
     DefaultMVCServiceContainer
