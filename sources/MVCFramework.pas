@@ -756,6 +756,7 @@ type
     function OKResponse: IMVCResponse; overload;
     function NotFoundResponse(const Body: TObject): IMVCResponse; overload;
     function NotFoundResponse: IMVCResponse; overload;
+    function NotModifiedResponse: IMVCResponse;
     function NoContentResponse: IMVCResponse;
     function UnauthorizedResponse: IMVCResponse;
     function BadRequestResponse: IMVCResponse; overload;
@@ -934,8 +935,10 @@ type
     procedure RaiseSessionExpired; virtual;
 
     // Avoiding mid-air collisions - support
-    procedure SetETag(const Data: String);
+    procedure SetETag(const Data: String; const NeedsToBeHashed: Boolean = True);
+    function ETagFromString(const Data: String): String;
     function GetIfMatch(): String;
+    function GetIfNoneMatch(): String;
     procedure CheckIfMatch(const Data: String);
     // END - Avoiding mid-air collisions - support
 
@@ -2948,9 +2951,15 @@ begin
             begin
               if not CustomExceptionHandling(ESess, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [ESess.Classname, ESess.Message, GetRequestShortDescription(ARequest),
-                  ESess.DetailedMessage], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    ESess.Classname,
+                    ESess.Message,
+                    GetRequestShortDescription(ARequest),
+                    ESess.HTTPStatusCode,
+                    HTTP_STATUS.ReasonStringFor(ESess.HTTPStatusCode),
+                    ESess.DetailedMessage
+                  ], LOGGERPRO_TAG);
                 lContext.SessionStop;
                 lSelectedController.ResponseStatus(ESess.HTTPStatusCode);
                 lSelectedController.Render(ESess);
@@ -2960,8 +2969,15 @@ begin
             begin
               if not CustomExceptionHandling(E, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [E.Classname, E.Message, GetRequestShortDescription(ARequest), E.DetailedMessage], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    E.Classname,
+                    E.Message,
+                    GetRequestShortDescription(ARequest),
+                    E.HTTPStatusCode,
+                    HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
+                    E.DetailedMessage
+                  ], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(E.HTTPStatusCode);
@@ -2977,16 +2993,22 @@ begin
             begin
               if not CustomExceptionHandling(EIO, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [EIO.Classname, EIO.Message, GetRequestShortDescription(ARequest), 'Invalid Op'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    EIO.Classname,
+                    EIO.Message,
+                    GetRequestShortDescription(ARequest),
+                    HTTP_STATUS.InternalServerError,
+                    HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError),
+                    'Invalid Op'], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
+                  lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
                   lSelectedController.Render(EIO);
                 end
                 else
                 begin
-                  SendHTTPStatus(lContext, http_status.InternalServerError,
+                  SendHTTPStatus(lContext, HTTP_STATUS.InternalServerError,
                     Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
                 end;
               end;
@@ -2995,8 +3017,15 @@ begin
             begin
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Global Action Exception Handler'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    Ex.Classname,
+                    Ex.Message,
+                    GetRequestShortDescription(ARequest),
+                    HTTP_STATUS.InternalServerError,
+                    HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError),
+                    'Global Action Exception Handler'
+                  ], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(http_status.InternalServerError);
@@ -3017,12 +3046,19 @@ begin
             begin
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'After Routing Exception Handler'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    Ex.Classname,
+                    Ex.Message,
+                    GetRequestShortDescription(ARequest),
+                    HTTP_STATUS.InternalServerError,
+                    HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError),
+                    'After Routing Exception Handler'
+                  ], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   { middlewares *must* not raise unhandled exceptions }
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
+                  lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
                   lSelectedController.Render(Ex);
                 end
                 else
@@ -4072,9 +4108,19 @@ begin
   Result := Engine.WebModule;
 end;
 
+function TMVCController.ETagFromString(const Data: String): String;
+begin
+  Result := GetSHA1HashFromString(Data);
+end;
+
 function TMVCController.GetIfMatch: String;
 begin
   Result := Context.Request.GetHeader('If-Match');
+end;
+
+function TMVCController.GetIfNoneMatch: String;
+begin
+  Result := Context.Request.GetHeader('If-None-Match');
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string;
@@ -4184,6 +4230,11 @@ end;
 function TMVCRenderer.NotFoundResponse(const Body: TObject): IMVCResponse;
 begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotFound, Body);
+end;
+
+function TMVCRenderer.NotModifiedResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotModified, nil);
 end;
 
 function TMVCRenderer.OKResponse: IMVCResponse;
@@ -4497,9 +4548,12 @@ begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Unauthorized, nil);
 end;
 
-procedure TMVCController.SetETag(const Data: String);
+procedure TMVCController.SetETag(const Data: String; const NeedsToBeHashed: Boolean);
 begin
-  Context.Response.SetCustomHeader('ETag', GetSHA1HashFromString(Data));
+  if NeedsToBeHashed then
+    Context.Response.SetCustomHeader('ETag', GetSHA1HashFromString(Data))
+  else
+    Context.Response.SetCustomHeader('ETag', Data);
 end;
 
 procedure TMVCController.SetPagesCommonFooters(const AViewNames: TArray<string>);

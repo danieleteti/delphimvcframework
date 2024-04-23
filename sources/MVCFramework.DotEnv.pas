@@ -254,6 +254,10 @@ begin
   DoLog('Path = ' + fEnvPath);
   fEnvDict.Clear;
   lAllProfiles := ['default'] + fProfiles.ToArray();
+  if fSkipDefaultEnv then
+  begin
+    Delete(lAllProfiles, 0, 1);
+  end;
   DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) +
     '] (Priority: ' + GetEnumName(TypeInfo(TMVCDotEnvPriority), Ord(fPriority)) + ')');
   ReadEnvFile;
