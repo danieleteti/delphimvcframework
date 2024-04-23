@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -53,6 +53,7 @@ type
   TBeforeRequestProc = reference to procedure (aRequest: IHTTPRequest);
   TRequestCompletedProc = reference to procedure (aResponse: IHTTPResponse; var aHandled: Boolean);
   TResponseCompletedProc = reference to procedure(aResponse: IMVCRESTResponse);
+  TSendDataProc = reference to procedure(AContentLength, AWriteCount: Int64; var AAbort: Boolean);
 
   IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
@@ -102,6 +103,11 @@ type
     /// Executes after the response is processed.
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes while sending data
+    /// </summary>
+    function SetSendDataProc(aSendDataProc: TSendDataProc): IMVCRESTClient;
 
     ///<summary>
     /// Set the client certificate for the request</summary>

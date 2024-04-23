@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -99,6 +99,7 @@ type
     fBeforeRequestProc: TBeforeRequestProc;
     fRequestCompletedProc: TRequestCompletedProc;
     fResponseCompletedProc: TResponseCompletedProc;
+    fSendDataProc: TSendDataProc;
     [Weak] fClientCertificate: TStream;
     fClientCertPassword: string;
     fClientCertPath: string;
@@ -109,6 +110,7 @@ type
     procedure DoBeforeRequest(aRequest: IHTTPRequest);
     procedure DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
     procedure DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
+    procedure DoOnSendDataEvent(const Sender: TObject; AContentLength, AWriteCount: Int64; var AAbort: Boolean);
     function GetBodyFormData: TMultipartFormData;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
@@ -184,6 +186,11 @@ type
     /// Executes after the response is processed.
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes while sending data
+    /// </summary>
+    function SetSendDataProc(aSendDataProc: TSendDataProc): IMVCRESTClient;
 
     ///<summary>
     /// Set the client certificate for the request</summary>
@@ -951,6 +958,7 @@ begin
   fHTTPClient.OnValidateServerCertificate := DoValidateServerCertificate;
   fHTTPClient.HandleRedirects := True;
   fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
+  fHTTPClient.OnSendData := DoOnSendDataEvent;
 {$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
 {$ENDIF}
@@ -959,6 +967,7 @@ begin
   fBeforeRequestProc := nil;
   fRequestCompletedProc := nil;
   fResponseCompletedProc := nil;
+  fSendDataProc := nil;
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TMemoryStream.Create;
   fBodyFormData := nil;
@@ -1511,6 +1520,15 @@ begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
 end;
 
+procedure TMVCRESTClient.DoOnSendDataEvent(const Sender: TObject; AContentLength,
+  AWriteCount: Int64; var AAbort: Boolean);
+begin
+  if Assigned(fSendDataProc) then
+  begin
+    fSendDataProc(AContentLength, AWriteCount, AAbort);
+  end;
+end;
+
 function TMVCRESTClient.Options: IMVCRESTResponse;
 begin
   Result := ExecuteRequest(TMVCHTTPMethodType.httpOPTIONS);
@@ -1876,6 +1894,12 @@ function TMVCRESTClient.SetResponseCompletedProc(aResponseCompletedProc: TRespon
 begin
   Result := Self;
   fResponseCompletedProc := aResponseCompletedProc;
+end;
+
+function TMVCRESTClient.SetSendDataProc(
+  aSendDataProc: TSendDataProc): IMVCRESTClient;
+begin
+  fSendDataProc := aSendDataProc;
 end;
 
 function TMVCRESTClient.SetValidateServerCertificateProc(
