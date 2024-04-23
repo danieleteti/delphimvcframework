@@ -47,24 +47,17 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.KeepAlive := True;
-
-    { more info about MaxConnections
-      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }
     LServer.MaxConnections := 0;
-
-    { more info about ListenQueue
-      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }
     LServer.ListenQueue := 200;
-
     LServer.Active := True;
-    WriteLn('Listening on port ', APort);
-    WriteLn('CTRL+C to shutdown the server');
+    LogI('Listening on port ' + APort.ToString);
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     LServer.Active := False;
@@ -125,10 +118,10 @@ begin
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
     LoadFakeData;
-    RunServer(8080);
+    RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogI(E.ClassName + ': ' + E.Message);
   end;
 end.
 
