@@ -33,7 +33,7 @@ uses
   DUnitX.TestFramework,
   BusinessObjectsU,
   Generics.Collections,
-  System.JSON,
+  JsonDataObjects,
   MVCFramework.RESTClient,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
@@ -73,7 +73,7 @@ type
     [Headers('Accept', 'application/json')]
     [Headers('ContentType', 'application/json')]
     [RESTResource(HttpGet, '/adapter/testconsumejson')]
-    function HeadersApplicationJSON: TJSONValue;
+    function HeadersApplicationJSON: TJsonBaseObject;
 
     [Headers('Accept', 'text/plain')]
     [Headers('ContentType', 'text/plain')]
@@ -214,7 +214,7 @@ var
 begin
   Res := TESTService.HeadersApplicationJSON as TJSONObject;
   try
-    Assert.AreEqual('Hello World', Res.GetValue('key').Value);
+    Assert.AreEqual('Hello World', Res.S['key']);
   finally
     Res.Free;
   end;
