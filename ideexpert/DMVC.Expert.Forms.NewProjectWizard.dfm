@@ -591,7 +591,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Width = 276
         Height = 26
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Profiling Code (must be enabled system-wide in dpr)'
+        Caption = 'Actions Profiling'
         TabOrder = 4
         WordWrap = True
       end

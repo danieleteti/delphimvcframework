@@ -904,7 +904,7 @@ begin
     .AppendLine('    WebRequestHandlerProc.MaxConnections := dotEnv.Env(''dmvc.handler.max_connections'', 1024);')
     .AppendLine
     .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
-    .AppendLine('    if dotEnv.Env(''dmvc.profiler.enabled'', false) then')
+    .AppendLine('    if dotEnv.Env(''dmvc.profiler.enabled'', ' + Model.S[TConfigKey.controller_actions_profiling_generate].ToLower + ') then')
     .AppendLine('    begin')
     .AppendLine('      Profiler.ProfileLogger := Log;')
     .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 2000);')
@@ -941,7 +941,7 @@ begin
     .AppendLine('  try')
     .AppendLine('    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;')
     .AppendLine('    LServer.DefaultPort := APort;')
-    .AppendLine('    LServer.KeepAlive := True;')
+    .AppendLine('    LServer.KeepAlive := dotEnv.Env(''dmvc.indy.keep_alive'', True);')
     .AppendLine('    LServer.MaxConnections := dotEnv.Env(''dmvc.webbroker.max_connections'', 0);')
     .AppendLine('    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);')
     .AppendLine('    LServer.Active := True;')

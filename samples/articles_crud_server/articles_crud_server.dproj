@@ -99,8 +99,6 @@
         <DCCReference Include="Services.pas"/>
         <DCCReference Include="BusinessObjects.pas"/>
         <DCCReference Include="Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <DCCReference Include="FDConnectionConfigU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

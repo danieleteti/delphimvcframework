@@ -112,8 +112,6 @@ var
   lRQL: string;
   lInstance: TMVCActiveRecord;
   lMapping: TMVCFieldsMapping;
-  lConnection: TFDConnection;
-  lRQLBackend: string;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
   lARResp: TMVCActiveRecordList;
@@ -142,12 +140,6 @@ begin
 
   lRQL := Context.Request.QueryStringParam('rql');
   try
-    // if lRQL.IsEmpty then
-    // begin
-    // lRQL := Format('limit(0,%d)', [GetMaxRecordCount]);
-    // end;
-    lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
-    lRQLBackend := GetBackEndByConnection(lConnection);
     LogD('[RQL PARSE]: ' + lRQL);
     lInstance := lARClassRef.Create(True);
     try
