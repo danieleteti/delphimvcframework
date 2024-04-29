@@ -98,6 +98,7 @@ type
     chkProfileActions: TCheckBox;
     lblPATREON: TLabel;
     chkMustache: TCheckBox;
+    chkServicesContainer: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -341,6 +342,8 @@ begin
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_ssv_mustache] := chkMustache.Checked;
+  fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
+  fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
   fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;
@@ -350,8 +353,8 @@ begin
   fModel.B[TConfigKey.entity_generate] :=  fModel.B[TConfigKey.controller_crud_methods_generate];
   fModel.S[TConfigKey.entity_classname] :=  'TPerson';
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
-    fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
-    fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
+  fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
+  fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
 
   //webmodule
 

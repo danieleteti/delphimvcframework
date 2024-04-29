@@ -58,6 +58,8 @@ type
      program_msheap='program.msheap';
      program_dotenv='program.dotenv';
      program_ssv_mustache='program.ssv.mustache';
+     program_service_container_generate = 'program.service.container.generate';
+     program_service_container_unit_name = 'program.service.container.unit_name';
      mustache_helpers_unit_name = 'mustache.helpers_unit_name';
      controller_unit_name='controller.unit_name';
      controller_classname= 'controller.classname';
@@ -67,6 +69,7 @@ type
      controller_actions_profiling_generate= 'controller.actions.profiling.generate';
      entity_generate= 'entity.generate';
      entity_classname= 'entity.classname';
+     entity_unit_name='entity.unit_name';
      jsonrpc_generate= 'jsonrpc.generate';
      jsonrpc_classname= 'jsonrpc.classname';
      jsonrpc_unit_name='jsonrpc.unit_name';

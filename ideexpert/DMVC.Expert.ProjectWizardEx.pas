@@ -92,16 +92,22 @@ begin
       Config: IOTABuildConfiguration;
       ControllerUnit: IOTAModule;
       JSONRPCUnit: IOTAModule;
+      ServicesUnit: IOTAModule;
       WebModuleUnit: IOTAModule;
       MustacheHelperUnit: IOTAModule;
       ControllerCreator: IOTACreator;
+      EntityCreator: IOTACreator;
       JSONRPCUnitCreator: IOTACreator;
+      ServicesUnitCreator: IOTACreator;
       MustacheHelpersUnitCreator: IOTACreator;
       WebModuleCreator: IOTAModuleCreator;
       lProjectSourceCreator: IOTACreator;
       lJSONRPCUnitName: string;
+      lServicesUnitName: string;
       lJSON: TJSONObject;
-    lMustacheHelpersUnitName: string;
+      lMustacheHelpersUnitName: string;
+      lEntityUnitName: string;
+      EntityUnit: IOTAModule;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try
@@ -122,6 +128,46 @@ begin
           Config := (Project.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
           Config.SetValue(sUnitSearchPath, '$(DMVC)');
           Config.SetValue(sFramework, 'FMX');
+
+
+          lEntityUnitName := '';
+          // Create ENTITY Unit
+          if lJSON.B[TConfigKey.controller_crud_methods_generate] then
+          begin
+            EntityCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillEntitiesTemplates,
+              TConfigKey.entity_unit_name,
+              APersonality);
+            EntityUnit := ModuleServices.CreateModule(EntityCreator);
+            ChangeIOTAModuleFileNamePrefix(EntityUnit, 'Entity.' + lJSON.S[TConfigKey.entity_classname].Substring(1));
+            lEntityUnitName := GetUnitName(EntityUnit.FileName);
+            lJSON.S[TConfigKey.entity_unit_name] := lEntityUnitName;
+            if Project <> nil then
+            begin
+              Project.AddFile(EntityUnit.FileName, True);
+            end;
+          end;
+
+          lServicesUnitName := '';
+          // Create Services Unit
+          if lJSON.B[TConfigKey.program_service_container_generate] then
+          begin
+            ServicesUnitCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillServicesTemplates,
+              TConfigKey.program_service_container_unit_name,
+              APersonality);
+            ServicesUnit := ModuleServices.CreateModule(ServicesUnitCreator);
+            ChangeIOTAModuleFileNamePrefix(ServicesUnit, 'Services');
+            lServicesUnitName := GetUnitName(ServicesUnit.FileName);
+            lJSON.S[TConfigKey.program_service_container_unit_name] := lServicesUnitName;
+            if Project <> nil then
+            begin
+              Project.AddFile(ServicesUnit.FileName, True);
+            end;
+          end;
+
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
@@ -134,6 +180,7 @@ begin
               Project.AddFile(ControllerUnit.FileName, True);
             end;
           end;
+
 
           lJSONRPCUnitName := '';
           // Create JSONRPC Unit
@@ -173,6 +220,7 @@ begin
               Project.AddFile(MustacheHelperUnit.FileName, True);
             end;
           end;
+
 
           // Create Webmodule Unit
           WebModuleCreator := TNewWebModuleUnitEx.Create(

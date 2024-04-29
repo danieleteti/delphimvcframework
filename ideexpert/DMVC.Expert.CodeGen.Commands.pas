@@ -140,6 +140,18 @@ type
       ); override;
   end;
 
+  TUnitServicesDeclarationCommand = class(TCustomCommand)
+  public
+    procedure ExecuteInterface(
+      Section: TStringBuilder;
+      Model: TJSONObject
+      ); override;
+    procedure ExecuteImplementation(
+      Section: TStringBuilder;
+      Model: TJsonObject
+      ); override;
+  end;
+
   TUnitMustacheHelpersDeclarationCommand = class(TCustomCommand)
   public
     procedure ExecuteInterface(
@@ -286,18 +298,23 @@ begin
     .AppendLine('  Web.WebReq,')
     .AppendLine('  Web.WebBroker,')
     .AppendLine('  IdContext,')
-    .AppendLine('  IdHTTPWebBrokerBridge,');
+    .AppendLine('  IdHTTPWebBrokerBridge,')
+    .AppendLine('  MVCFramework,')
+    .AppendLine('  MVCFramework.Logger,')
+    .AppendLine('  MVCFramework.DotEnv,')
+    .AppendLine('  MVCFramework.Commons,');
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
       .AppendLine('    MVCFramework.View.Renderers.Mustache,')
       .AppendLine('    SynMustache,');
   end;
+  if Model.B[TConfigKey.program_service_container_generate] then
+  begin
+    Section
+      .AppendLine('    MVCFramework.Container,')
+  end;
   Section
-    .AppendLine('  MVCFramework,')
-    .AppendLine('  MVCFramework.Logger,')
-    .AppendLine('  MVCFramework.DotEnv,')
-    .AppendLine('  MVCFramework.Commons,')
     .AppendLine('  MVCFramework.Signal;')
     .AppendLine()
     .AppendLine('{$R *.res}')
@@ -331,9 +348,15 @@ begin
     .Append('  MVCFramework, MVCFramework.Commons, ');
   if Model.B[TConfigKey.entity_generate] then
   begin
-    Section.Append('MVCFramework.Nullables, ');
+    Section
+      .Append('MVCFramework.Nullables, ')
+      .Append(Model[TConfigKey.entity_unit_name] + ', ');
   end;
-
+  if Model.B[TConfigKey.program_service_container_generate] then
+  begin
+    Section
+      .Append(Model[TConfigKey.program_service_container_unit_name] + ', ');
+  end;
   Section
     .AppendLine('MVCFramework.Serializer.Commons, System.Generics.Collections;')
     .AppendLine
@@ -346,6 +369,8 @@ begin
   inherited;
   if not Model.B[TConfigKey.entity_generate] then Exit;
   Section
+    .AppendLine('implementation')
+    .AppendLine
     .AppendLine('constructor ' + Model[TConfigKey.entity_classname] + '.Create(ID: Integer; FirstName, LastName: String; DOB: TDate);')
     .AppendLine('begin')
     .AppendLine('  inherited Create;')
@@ -354,6 +379,9 @@ begin
     .AppendLine('  fLastName := LastName;')
     .AppendLine('  fDOB := DOB;')
     .AppendLine('end;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('end.')
 end;
 
 { TUnitControllerEntitiesCommand }
@@ -366,6 +394,14 @@ begin
 
   CheckFor('entity.classname', Model);
   Section
+    .AppendLine('unit ' + Model[TConfigKey.entity_unit_name] + ';')
+    .AppendLine
+    .AppendLine('interface')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  MVCFramework.Nullables, MVCFramework.Serializer.Commons;')
+    .AppendLine
+    .AppendLine('type')
     .AppendLine('  [MVCNameCase(ncCamelCase)]')
     .AppendLine('  ' + Model[TConfigKey.entity_classname] + ' = class')
     .AppendLine('  private')
@@ -462,33 +498,57 @@ begin
 
   if Model.B[TConfigKey.controller_crud_methods_generate] then
   begin
-    Section
-      .AppendLine
-      .AppendLine('//Sample CRUD Actions for a "People" entity')
-      .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: IMVCResponse;')
-      .AppendLine('var')
-      .AppendLine('  lPeople: TObjectList<TPerson>;')
-      .AppendLine('begin');
-    if Model.B[TConfigKey.controller_actions_profiling_generate] then
+    if Model.B[TConfigKey.program_service_container_generate] then
     begin
       Section
-        .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
-        .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
-        .AppendLine('{$ENDIF}')
-        .AppendLine;
+        .AppendLine
+        .AppendLine('//Sample CRUD Actions for a "People" entity (with service injection)')
+        .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople(PeopleService: IPeopleService): IMVCResponse;')
+        .AppendLine('begin');
+      if Model.B[TConfigKey.controller_actions_profiling_generate] then
+      begin
+        Section
+          .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+          .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+          .AppendLine('{$ENDIF}')
+          .AppendLine;
+      end;
+      Section
+        .AppendLine('  Result := OkResponse(PeopleService.GetAll);')
+        .AppendLine('end;')
+    end
+    else
+    begin
+      Section
+        .AppendLine
+        .AppendLine('//Sample CRUD Actions for a "People" entity (no service injection)')
+        .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPeople: IMVCResponse;')
+        .AppendLine('var')
+        .AppendLine('  lPeople: TObjectList<TPerson>;')
+        .AppendLine('begin');
+      if Model.B[TConfigKey.controller_actions_profiling_generate] then
+      begin
+        Section
+          .AppendLine('{$IF CompilerVersion >= 34} //SYDNEY+')
+          .AppendLine('  var lProf := Profiler.Start(Context.ActionQualifiedName);')
+          .AppendLine('{$ENDIF}')
+          .AppendLine;
+      end;
+      Section
+        .AppendLine('  lPeople := TObjectList<TPerson>.Create(True);')
+        .AppendLine('  try')
+        .AppendLine('    lPeople.Add(TPerson.Create(1, ''Peter'',''Parker'', EncodeDate(1965, 10, 4)));')
+        .AppendLine('    lPeople.Add(TPerson.Create(2, ''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));')
+        .AppendLine('    lPeople.Add(TPerson.Create(3, ''Reed'',''Richards'', EncodeDate(1955, 3, 7)));')
+        .AppendLine('    Result := OkResponse(lPeople);')
+        .AppendLine('  except')
+        .AppendLine('    lPeople.Free;')
+        .AppendLine('    raise;')
+        .AppendLine('  end;')
+        .AppendLine('end;')
     end;
+
     Section
-      .AppendLine('  lPeople := TObjectList<TPerson>.Create(True);')
-      .AppendLine('  try')
-      .AppendLine('    lPeople.Add(TPerson.Create(1, ''Peter'',''Parker'', EncodeDate(1965, 10, 4)));')
-      .AppendLine('    lPeople.Add(TPerson.Create(2, ''Bruce'',''Banner'', EncodeDate(1945, 9, 6)));')
-      .AppendLine('    lPeople.Add(TPerson.Create(3, ''Reed'',''Richards'', EncodeDate(1955, 3, 7)));')
-      .AppendLine('    Result := OkResponse(lPeople);')
-      .AppendLine('  except')
-      .AppendLine('    lPeople.Free;')
-      .AppendLine('    raise;')
-      .AppendLine('  end;')
-      .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetPerson(ID: Integer): TPerson;')
       .AppendLine('begin');
@@ -595,8 +655,20 @@ begin
     Section
       .AppendLine('    //Sample CRUD Actions for a "People" entity')
       .AppendLine('    [MVCPath(''/people'')]')
-      .AppendLine('    [MVCHTTPMethod([httpGET])]')
-      .AppendLine('    function GetPeople: IMVCResponse;')
+      .AppendLine('    [MVCHTTPMethod([httpGET])]');
+
+    if Model.B[TConfigKey.program_service_container_generate] then
+    begin
+      Section
+        .AppendLine('    function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;');
+    end
+    else
+    begin
+      Section
+        .AppendLine('    function GetPeople: IMVCResponse;')
+    end;
+
+    Section
       .AppendLine
       .AppendLine('    [MVCPath(''/people/($ID)'')]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
@@ -946,6 +1018,7 @@ begin
     .AppendLine('    end;')
     .AppendLine('{$ENDIF}')
     .AppendLine;
+
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
@@ -957,6 +1030,15 @@ begin
       .AppendLine('  end;')
       .AppendLine;
   end;
+
+  if Model.B[TConfigKey.program_service_container_generate] then
+  begin
+    Section
+      .AppendLine('    RegisterServices(DefaultMVCServiceContainer);')
+      .AppendLine('    DefaultMVCServiceContainer.Build;')
+      .AppendLine;
+  end;
+
   Section
     .AppendLine('    RunServer(dotEnv.Env(''dmvc.server.port'', ' + Model[TConfigKey.program_default_server_port] + '));')
     .AppendLine('  except')
@@ -1140,6 +1222,66 @@ begin
     .AppendLine('    class procedure MyHelper2(const Value: variant; out Result: variant);')
     .AppendLine('  end;')
     .AppendLine;
+end;
+
+{ TUnitServicesDeclarationCommand }
+
+procedure TUnitServicesDeclarationCommand.ExecuteImplementation(
+  Section: TStringBuilder; Model: TJsonObject);
+begin
+  Section
+    .AppendLine('implementation')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  System.SysUtils;')
+    .AppendLine
+    .AppendLine('procedure RegisterServices(Container: IMVCServiceContainer);')
+    .AppendLine('begin')
+    .AppendLine('  Container.RegisterType(TPeopleService, IPeopleService, TRegistrationType.SingletonPerRequest);')
+    .AppendLine('  // Register other services here')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine('function TPeopleService.GetAll: TObjectList<TPerson>;')
+    .AppendLine('begin')
+    .AppendLine('  Result := TObjectList<TPerson>.Create;')
+    .AppendLine('  Result.AddRange([')
+    .AppendLine('    TPerson.Create(1, ''Henry'', ''Ford'', EncodeDate(1863, 7, 30)),')
+    .AppendLine('    TPerson.Create(2, ''Guglielmo'', ''Marconi'', EncodeDate(1874, 4, 25)),')
+    .AppendLine('    TPerson.Create(3, ''Antonio'', ''Meucci'', EncodeDate(1808, 4, 13)),')
+    .AppendLine('    TPerson.Create(4, ''Michael'', ''Faraday'', EncodeDate(1867, 9, 22))')
+    .AppendLine('  ]);')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('end.');
+end;
+
+procedure TUnitServicesDeclarationCommand.ExecuteInterface(
+  Section: TStringBuilder; Model: TJSONObject);
+begin
+  Section
+    .AppendLine('unit ' +  Model[TConfigKey.program_service_container_unit_name] + ';')
+    .AppendLine
+    .AppendLine('interface')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  ' + Model[TConfigKey.entity_unit_name] + ',')
+    .AppendLine('  MVCFramework.Container, System.Generics.Collections;')
+    .AppendLine
+    .AppendLine('type')
+    .AppendLine('  IPeopleService = interface')
+    .AppendLine('    [''' + TGUID.NewGuid.ToString + ''']')
+    .AppendLine('    function GetAll: TObjectList<TPerson>;')
+    .AppendLine('  end;')
+    .AppendLine
+    .AppendLine('  TPeopleService = class(TInterfacedObject, IPeopleService)')
+    .AppendLine('  protected')
+    .AppendLine('    function GetAll: TObjectList<TPerson>;')
+    .AppendLine('  end;')
+    .AppendLine
+    .AppendLine('procedure RegisterServices(Container: IMVCServiceContainer);')
+    .AppendLine;
+
 end;
 
 end.

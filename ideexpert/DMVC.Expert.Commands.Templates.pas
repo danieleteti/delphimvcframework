@@ -35,6 +35,8 @@ procedure FillWebModuleTemplates(Gen: TMVCCodeGenerator);
 procedure FillWebModuleDFMTemplates(Gen: TMVCCodeGenerator);
 procedure FillJSONRPCTemplates(Gen: TMVCCodeGenerator);
 procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
+procedure FillEntitiesTemplates(Gen: TMVCCodeGenerator);
+procedure FillServicesTemplates(Gen: TMVCCodeGenerator);
 
 implementation
 
@@ -55,7 +57,6 @@ procedure FillControllerTemplates(Gen: TMVCCodeGenerator);
 begin
   Gen.Commands.AddRange([
     TUnitControllerCommand.Create,
-    TUnitControllerEntityDeclarationCommand.Create,
     TUnitControllerControllerDeclarationCommand.Create,
     TUnitFooterCommand.Create
     ]);
@@ -82,13 +83,26 @@ begin
     ]);
 end;
 
-
-
 procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
 begin
   Gen.Commands.AddRange([
     TUnitMustacheHelpersDeclarationCommand.Create
     ]);
 end;
+
+procedure FillServicesTemplates(Gen: TMVCCodeGenerator);
+begin
+  Gen.Commands.AddRange([
+    TUnitServicesDeclarationCommand.Create
+    ]);
+end;
+
+procedure FillEntitiesTemplates(Gen: TMVCCodeGenerator);
+begin
+  Gen.Commands.AddRange([
+    TUnitControllerEntityDeclarationCommand.Create
+    ]);
+end;
+
 
 end.

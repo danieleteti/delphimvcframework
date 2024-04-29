@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DelphiMVCFramework :: New Project Wizard'
-  ClientHeight = 598
+  ClientHeight = 615
   ClientWidth = 729
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnDestroy = FormDestroy
   DesignSize = (
     729
-    598)
+    615)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
@@ -400,7 +400,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object lblBook: TLabel
     AlignWithMargins = True
     Left = 15
-    Top = 563
+    Top = 579
     Width = 259
     Height = 16
     Cursor = crHandPoint
@@ -458,7 +458,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnOK: TButton
     Left = 549
-    Top = 563
+    Top = 580
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -467,11 +467,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
-    ExplicitTop = 541
   end
   object btnCancel: TButton
     Left = 632
-    Top = 563
+    Top = 580
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -479,7 +478,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitTop = 541
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -508,7 +506,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Panel2: TPanel
     Left = 0
-    Top = 342
+    Top = 359
     Width = 308
     Height = 215
     Anchors = [akLeft, akBottom]
@@ -518,7 +516,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ParentCtl3D = False
     ShowCaption = False
     TabOrder = 5
-    ExplicitTop = 320
     DesignSize = (
       308
       215)
@@ -573,8 +570,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Height = 17
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Create Action Filters Methods'
-        Checked = True
-        State = cbChecked
         TabOrder = 1
       end
       object chkCreateCRUDMethods: TCheckBox
@@ -729,13 +724,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 314
-    Top = 371
+    Top = 388
     Width = 396
     Height = 105
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
-    ExplicitTop = 349
     DesignSize = (
       396
       105)
@@ -769,7 +763,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMSHeap: TCheckBox
     Left = 24
-    Top = 286
+    Top = 292
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -778,7 +772,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkCustomConfigDotEnv: TCheckBox
     Left = 24
-    Top = 267
+    Top = 273
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -787,12 +781,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMustache: TCheckBox
     Left = 24
-    Top = 306
+    Top = 312
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use Mustache as Server Side View engine'
     TabOrder = 10
+  end
+  object chkServicesContainer: TCheckBox
+    Left = 24
+    Top = 332
+    Width = 225
+    Height = 17
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Use Services Container'
+    Checked = True
+    State = cbChecked
+    TabOrder = 11
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
