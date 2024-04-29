@@ -160,7 +160,7 @@ type
       const SerializationMetaInfo: TSerializationMetaInfo); overload;
     procedure JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
-    function JsonArrayToArray(const AJsonArray: TJDOJsonArray): TValue;
+    function JsonArrayToArray(const AJsonArray: TJDOJsonArray; const ATypeInfo: PTypeInfo): TValue;
     { IMVCSerializer }
     function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
@@ -912,6 +912,7 @@ var
   LJObj: TJDOJsonObject;
   lDataSetFields: TMVCDataSetFields;
 begin
+  ADataSet.First;
   lDataSetFields := GetDataSetFields(ADataSet, AIgnoredFields, ANameCase);
   try
     while not ADataSet.Eof do
@@ -931,6 +932,7 @@ var
   LJArr: TJDOJsonArray;
   lDataSetFields: TMVCDataSetFields;
 begin
+  ADataSet.First;
   lDataSetFields := GetDataSetFields(ADataSet, AIgnoredFields, ncAsIs);
   try
     while not ADataSet.Eof do
@@ -1231,13 +1233,16 @@ begin
   DeserializeObject(ASerializedObject, TObject(AObject), AType, AIgnoredAttributes);
 end;
 
-function TMVCJsonDataObjectsSerializer.JsonArrayToArray(const AJsonArray: TJDOJsonArray): TValue;
+function TMVCJsonDataObjectsSerializer.JsonArrayToArray(
+  const AJsonArray: TJDOJsonArray;
+  const ATypeInfo: PTypeInfo): TValue;
 type
-  TSetOfTypeElement = (xString, xInt, xLong, xFloat, xBool);
+  TSetOfTypeElement = (xString, xByte, xInt, xLong, xFloat, xBool);
   TSetOfType = set of TSetOfTypeElement;
 var
   I: Integer;
   lStrArr: TArray<string>;
+  lByteArr: TArray<Byte>;
   lIntArr: TArray<Integer>;
   lLongArr: TArray<Int64>;
   lDoubleArr: TArray<Double>;
@@ -1255,15 +1260,24 @@ begin
           Include(lSetOfType, xString);
           lStrArr := lStrArr + [AJsonArray.Items[I].Value];
         end;
-      jdtInt:
+      jdtInt, jdtLong:
         begin
-          Include(lSetOfType, xInt);
-          lIntArr := lIntArr + [AJsonArray.Items[I].IntValue];
-        end;
-      jdtLong:
-        begin
-          Include(lSetOfType, xLong);
-          lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
+          if ATypeInfo = TypeInfo(TArray<Int64>) then
+          begin
+            Include(lSetOfType, xLong);
+            lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
+          end
+          else
+          if ATypeInfo = TypeInfo(TArray<Byte>) then
+          begin
+            Include(lSetOfType, xByte);
+            lByteArr := lByteArr + [AJsonArray.Items[I].IntValue];
+          end
+          else
+          begin
+            Include(lSetOfType, xInt);
+            lIntArr := lIntArr + [AJsonArray.Items[I].IntValue];
+          end;
         end;
       jdtFloat:
         begin
@@ -1290,6 +1304,8 @@ begin
 
   if Length(lStrArr) > 0 then
     Exit(TValue.From < TArray < string >> (lStrArr));
+  if Length(lByteArr) > 0 then
+    Exit(TValue.From < TArray < Byte >> (lByteArr));
   if Length(lIntArr) > 0 then
     Exit(TValue.From < TArray < Integer >> (lIntArr));
   if Length(lLongArr) > 0 then
@@ -1683,7 +1699,7 @@ begin
         end
         else if AValue.isArray then
         begin
-          AValue := JsonArrayToArray(AJSONObject.A[APropertyName]);
+          AValue := JsonArrayToArray(AJSONObject.A[APropertyName], AValue.TypeInfo);
         end;
       end;
   end;
