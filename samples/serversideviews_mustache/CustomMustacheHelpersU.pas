@@ -27,7 +27,7 @@ unit CustomMustacheHelpersU;
 interface
 
 uses
-  SynMustache;
+  mormot.core.mustache;
 
 type
   TMyMustacheHelpers = class sealed

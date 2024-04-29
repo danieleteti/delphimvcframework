@@ -19,8 +19,8 @@ uses
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
   CustomMustacheHelpersU in 'CustomMustacheHelpersU.pas',
-  SynMustache,
-  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas';
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
+  mormot.core.mustache;
 
 {$R *.res}
 

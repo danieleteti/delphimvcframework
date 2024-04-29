@@ -32,7 +32,8 @@ interface
 uses
   MVCFramework, System.SysUtils, System.Generics.Collections,
   MVCFramework.Commons, System.IOUtils, System.RTTI,
-  System.Classes, Data.DB, SynMustache, SynCommons, MVCFramework.IntfObjectPool;
+  System.Classes, Data.DB, MVCFramework.IntfObjectPool,
+  mormot.core.mustache, mormot.core.unicode;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -48,8 +49,8 @@ type
     procedure LoadPartials;
     procedure LoadHelpers;
   protected
-    function RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
-      Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8; virtual;
+    function RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
+      Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): UTF8String; virtual;
   public
     procedure Execute(const ViewName: string; const OutputStream: TStream); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
@@ -124,8 +125,8 @@ begin
   fPartials.Free;
 end;
 
-function TMVCMustacheViewEngine.RenderJSON(lViewEngine: TSynMustache; const JSON: RawUTF8; Partials: TSynMustachePartials;
-  Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): RawUTF8;
+function TMVCMustacheViewEngine.RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
+  Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): UTF8String;
 begin
   Result := lViewEngine.RenderJSON(JSON, Partials, Helpers, OnTranslate, EscapeInvert);
 end;
@@ -133,7 +134,7 @@ end;
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
   lViewFileName: string;
-  lViewTemplate: RawUTF8;
+  lViewTemplate: UTF8String;
   lViewEngine: TSynMustache;
   lSW: TStreamWriter;
 begin

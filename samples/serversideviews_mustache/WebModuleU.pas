@@ -28,7 +28,8 @@ uses
   WebSiteControllerU,
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Middleware.StaticFiles, SynMustache, CustomMustacheHelpersU,
+  MVCFramework.Middleware.StaticFiles,
+  CustomMustacheHelpersU,
   MVCFramework.Serializer.URLEncoded;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }

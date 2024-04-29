@@ -296,7 +296,7 @@ var
   AuthAccessToken: string;
   AuthToken: string;
   ErrorMsg: string;
-  cookieToken: string;
+  CookieToken: string;
 begin
   // check if the resource is protected
   if Assigned(FAuthenticationHandler) then
@@ -377,10 +377,10 @@ begin
       begin
         if FUseHttpOnly then
         begin
-          cookieToken := AContext.Request.Cookie('token');
-          if (not cookieToken.IsEmpty) then
+          CookieToken := AContext.Request.Cookie('token');
+          if (not CookieToken.IsEmpty) then
           begin
-            AuthToken := cookieToken.Trim;
+            AuthToken := CookieToken.Trim;
             AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
           end;
         end;
