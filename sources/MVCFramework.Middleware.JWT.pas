@@ -36,7 +36,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.JWT,
   JsonDataObjects,
-  MVCFramework.HMAC;
+  MVCFramework.HMAC,
+  Web.HTTPApp;
 
 type
   TMVCJWTDefaults = class sealed
@@ -78,6 +79,10 @@ type
     FUserNameHeaderName: string;
     FPasswordHeaderName: string;
     FHMACAlgorithm: String;
+    FUseHttpOnly: Boolean;
+    FTokenHttpOnlyExpires: TDateTime;
+    FLogoffURLSegment: string;
+    procedure SendLogoffRender(AContext: TWebContext);
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
@@ -93,6 +98,15 @@ type
   public
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
       AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300;
+      AHMACAlgorithm: String = HMAC_HS512); overload; virtual;
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      AUseHttpOnly: Boolean;
+      ALogoffURLSegment: string = '/logoff';
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
       AClaimsToCheck: TJWTCheckableClaims = [];
@@ -173,12 +187,26 @@ begin
   FUserNameHeaderName := TMVCJWTDefaults.USERNAME_HEADER;
   FPasswordHeaderName := TMVCJWTDefaults.PASSWORD_HEADER;
   FHMACAlgorithm := AHMACAlgorithm;
+  FUseHttpOnly := False;
+  FTokenHttpOnlyExpires := Now;
+end;
+
+constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup; AUseHttpOnly: Boolean; ALogoffURLSegment: string;
+  ASecret, ALoginURLSegment: string; AClaimsToCheck: TJWTCheckableClaims; ALeewaySeconds: Cardinal; AHMACAlgorithm: String);
+begin
+  Create(AAuthenticationHandler, AConfigClaims, ASecret, ALoginURLSegment, AClaimsToCheck, ALeewaySeconds, AHMACAlgorithm);
+  FUseHttpOnly := AUseHttpOnly;
+  FLogoffURLSegment := ALogoffURLSegment;
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.ExtendExpirationTime(const JWTValue: TJWT);
 begin
   JWTValue.Claims.ExpirationTime := Max(JWTValue.Claims.ExpirationTime, Now) +
     (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
+  if FUseHttpOnly then
+  begin
+    FTokenHttpOnlyExpires := JWTValue.Claims.ExpirationTime;
+  end;
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject;
@@ -186,8 +214,21 @@ procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject
 var
   Encoding: TEncoding;
   ContentType, JValue: string;
+  Cookie: TCookie;
 begin
   JValue := AJSONOb.ToJSON;
+
+  if FUseHttpOnly then
+  begin
+    Cookie := AContext.Response.Cookies.Add;
+    Cookie.Expires := FTokenHttpOnlyExpires;
+    Cookie.Path := '/';
+    Cookie.Name := 'token';
+    Cookie.Value := AJSONOb.S['token'];
+    Cookie.HttpOnly := True;
+    // Cookie.Secure := True;
+    // Cookie.SameSite := 'none';
+  end;
 
   AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
   ContentType := AContentType + '; charset=' + AContentEncoding;
@@ -202,6 +243,27 @@ begin
 
   if AInstanceOwner then
     FreeAndNil(AJSONOb)
+end;
+
+procedure TMVCJWTAuthenticationMiddleware.SendLogoffRender(AContext: TWebContext);
+const
+  returnMessage = '{ "message": "Successful logout" }';
+  ContentType = 'application/json; charset=UTF-8';
+  AContentEncoding = 'UTF-8';
+var
+  Encoding: TEncoding;
+  Cookie: TCookie;
+begin
+  Cookie := AContext.Response.Cookies.Add;
+  Cookie.Name := 'token';
+  Cookie.Path := '/';
+
+  Encoding := TEncoding.GetEncoding(AContentEncoding);
+  try
+    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding, TEncoding.Default.GetBytes(returnMessage))), ContentType);
+  finally
+    Encoding.Free;
+  end;
 end;
 
 function TMVCJWTAuthenticationMiddleware.NeedsToBeExtended(const JWTValue: TJWT): Boolean;
@@ -234,6 +296,7 @@ var
   AuthAccessToken: string;
   AuthToken: string;
   ErrorMsg: string;
+  cookieToken: string;
 begin
   // check if the resource is protected
   if Assigned(FAuthenticationHandler) then
@@ -309,6 +372,18 @@ begin
       begin
         AuthToken := AuthAccessToken.Trim;
         AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+      end
+      else
+      begin
+        if FUseHttpOnly then
+        begin
+          cookieToken := AContext.Request.Cookie('token');
+          if (not cookieToken.IsEmpty) then
+          begin
+            AuthToken := cookieToken.Trim;
+            AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+          end;
+        end;
       end;
     end;
 
@@ -431,6 +506,11 @@ begin
           LJWTValue.Data := AContext.Request;
           FSetupJWTClaims(LJWTValue);
 
+          if FUseHttpOnly then
+          begin
+            FTokenHttpOnlyExpires := LJWTValue.Claims.ExpirationTime;
+          end;
+
           // these claims are mandatory and managed by the middleware
           if not LJWTValue.CustomClaims['username'].IsEmpty then
             raise EMVCJWTException.Create
@@ -481,6 +561,14 @@ begin
       end;
     finally
       LRolesList.Free;
+    end;
+  end
+  else
+  begin
+    if SameText(AContext.Request.PathInfo, FLogoffURLSegment) and (FUseHttpOnly) then
+    begin
+      SendLogoffRender(AContext);
+      AHandled := True;
     end;
   end;
 end;
