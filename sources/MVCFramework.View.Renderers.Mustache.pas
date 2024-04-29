@@ -32,7 +32,8 @@ interface
 uses
   MVCFramework, System.SysUtils, System.Generics.Collections,
   MVCFramework.Commons, System.IOUtils, System.RTTI,
-  System.Classes, Data.DB, SynMustache, SynCommons, MVCFramework.IntfObjectPool;
+  System.Classes, Data.DB, MVCFramework.IntfObjectPool,
+  mormot.core.mustache, mormot.core.base, mormot.core.unicode;
 
 type
   { This class implements the mustache view engine for server side views }
