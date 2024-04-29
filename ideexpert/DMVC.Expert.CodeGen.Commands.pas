@@ -140,6 +140,19 @@ type
       ); override;
   end;
 
+  TUnitMustacheHelpersDeclarationCommand = class(TCustomCommand)
+  public
+    procedure ExecuteInterface(
+      Section: TStringBuilder;
+      Model: TJSONObject
+      ); override;
+    procedure ExecuteImplementation(
+      Section: TStringBuilder;
+      Model: TJsonObject
+      ); override;
+  end;
+
+
   TUnitFooterCommand = class(TCustomCommand)
   public
     procedure ExecuteImplementation(
@@ -273,7 +286,14 @@ begin
     .AppendLine('  Web.WebReq,')
     .AppendLine('  Web.WebBroker,')
     .AppendLine('  IdContext,')
-    .AppendLine('  IdHTTPWebBrokerBridge,')
+    .AppendLine('  IdHTTPWebBrokerBridge,');
+  if Model.B[TConfigKey.program_ssv_mustache] then
+  begin
+    Section
+      .AppendLine('    MVCFramework.View.Renderers.Mustache,')
+      .AppendLine('    SynMustache,');
+  end;
+  Section
     .AppendLine('  MVCFramework,')
     .AppendLine('  MVCFramework.Logger,')
     .AppendLine('  MVCFramework.DotEnv,')
@@ -649,7 +669,13 @@ begin
 
   Section
     .AppendLine('  System.IOUtils,')
-    .AppendLine('  MVCFramework.Commons,')
+    .AppendLine('  MVCFramework.Commons,');
+  if Model.B[TConfigKey.program_ssv_mustache] then
+  begin
+    Section
+      .AppendLine('  MVCFramework.View.Renderers.Mustache,')
+  end;
+  Section
     .AppendLine('  MVCFramework.Middleware.ActiveRecord,')
     .AppendLine('  MVCFramework.Middleware.StaticFiles,')
     .AppendLine('  MVCFramework.Middleware.Analytics,')
@@ -692,8 +718,17 @@ begin
     .AppendLine('  // Controllers')
     .AppendLine('  FMVC.AddController(' + Model[TConfigKey.controller_classname] + ');')
     .AppendLine('  // Controllers - END')
-    .AppendLine
-    .AppendLine('  // Middleware');
+    .AppendLine;
+    if Model.B[TConfigKey.program_ssv_mustache] then
+    begin
+      Section
+        .AppendLine('  // Server Side View')
+        .AppendLine('  FMVC.SetViewEngine(TMVCMustacheViewEngine);')
+        .AppendLine('  // Server Side View - END')
+        .AppendLine;
+    end;
+    Section
+      .AppendLine('  // Middleware');
 
     if Model.B[TConfigKey.webmodule_middleware_analytics] then
     begin
@@ -910,7 +945,19 @@ begin
     .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 2000);')
     .AppendLine('    end;')
     .AppendLine('{$ENDIF}')
-    .AppendLine
+    .AppendLine;
+  if Model.B[TConfigKey.program_ssv_mustache] then
+  begin
+    Section
+      .AppendLine('  // Project specific Mustache helpers')
+      .AppendLine('  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)')
+      .AppendLine('  begin')
+      .AppendLine('    TSynMustache.HelperAdd(MustacheHelpers, ''MyHelper1'', TMyMustacheHelpers.MyHelper1);')
+      .AppendLine('    TSynMustache.HelperAdd(MustacheHelpers, ''MyHelper2'', TMyMustacheHelpers.MyHelper2);')
+      .AppendLine('  end;')
+      .AppendLine;
+  end;
+  Section
     .AppendLine('    RunServer(dotEnv.Env(''dmvc.server.port'', ' + Model[TConfigKey.program_default_server_port] + '));')
     .AppendLine('  except')
     .AppendLine('    on E: Exception do')
@@ -1042,6 +1089,57 @@ begin
     .AppendLine('end;')
     .AppendLine
 
+end;
+
+{ TUnitMustacheHelpersDeclarationCommand }
+
+procedure TUnitMustacheHelpersDeclarationCommand.ExecuteImplementation(
+  Section: TStringBuilder; Model: TJsonObject);
+begin
+  inherited;
+  Section
+    .AppendLine('implementation')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  MVCFramework.View.Renderers.Mustache, System.SysUtils;')
+    .AppendLine
+    .AppendLine('{ TMyMustacheHelpers }')
+    .AppendLine
+    .AppendLine('class procedure TMyMustacheHelpers.MyHelper1(const Value: variant; out Result: variant);')
+    .AppendLine('begin')
+    .AppendLine('  Result := Value +  '' (I''''m The MyHelper1)'';')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine('class procedure TMyMustacheHelpers.MyHelper2(const Value: variant; out Result: variant);')
+    .AppendLine('begin')
+    .AppendLine('  Result := Value +  '' (I''''m The MyHelper2)'';')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('end.');
+end;
+
+procedure TUnitMustacheHelpersDeclarationCommand.ExecuteInterface(
+  Section: TStringBuilder; Model: TJSONObject);
+begin
+  inherited;
+  CheckFor(TConfigKey.program_ssv_mustache, Model);
+  CheckFor(TConfigKey.mustache_helpers_unit_name, Model);
+  Section
+    .AppendLine('unit ' + Model[TConfigKey.mustache_helpers_unit_name] + ';')
+    .AppendLine
+    .AppendLine('interface')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  SynMustache;')
+    .AppendLine
+    .AppendLine('type')
+    .AppendLine('  TMyMustacheHelpers = class sealed')
+    .AppendLine('  public')
+    .AppendLine('    class procedure MyHelper1(const Value: variant; out Result: variant);')
+    .AppendLine('    class procedure MyHelper2(const Value: variant; out Result: variant);')
+    .AppendLine('  end;')
+    .AppendLine;
 end;
 
 end.

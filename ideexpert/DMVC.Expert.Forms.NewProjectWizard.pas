@@ -97,6 +97,7 @@ type
     chkCustomConfigDotEnv: TCheckBox;
     chkProfileActions: TCheckBox;
     lblPATREON: TLabel;
+    chkMustache: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -339,6 +340,7 @@ begin
   fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
+  fModel.B[TConfigKey.program_ssv_mustache] := chkMustache.Checked;
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
   fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;

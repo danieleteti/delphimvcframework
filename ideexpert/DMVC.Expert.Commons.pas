@@ -57,6 +57,8 @@ type
      program_default_server_port= 'program.default_server_port';
      program_msheap='program.msheap';
      program_dotenv='program.dotenv';
+     program_ssv_mustache='program.ssv.mustache';
+     mustache_helpers_unit_name = 'mustache.helpers_unit_name';
      controller_unit_name='controller.unit_name';
      controller_classname= 'controller.classname';
      controller_index_methods_generate= 'controller.index_methods.generate';

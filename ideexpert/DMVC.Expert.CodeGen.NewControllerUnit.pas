@@ -38,7 +38,7 @@ uses
   ToolsApi,
   System.IOUtils,
   DMVC.Expert.CodeGen.NewUnit,
-  JsonDataObjects;
+  JsonDataObjects, DMVC.Expert.CodeGen.Executor;
 
 type
   TNewControllerUnitEx = class(TNewUnit)
@@ -51,13 +51,20 @@ type
       const APersonality: string = ''); reintroduce;
   end;
 
-  TNewJSONRPCUnitEx = class(TNewUnit)
+  TTemplateLoadProcedure = procedure(Gen: TMVCCodeGenerator);
+
+  TNewGenericUnitFromTemplate = class(TNewUnit)
+  private
+    fTemplateLoadProcedure: TTemplateLoadProcedure;
+    fUnitIdentKeyName: string;
   protected
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
     constructor Create(
       const ConfigModelRef: TJSONObject;
+      const TemplateLoadProcedure: TTemplateLoadProcedure;
+      const UnitIdentKeyName: String;
       const APersonality: string = '');reintroduce;
   end;
 
@@ -66,7 +73,6 @@ implementation
 uses
   System.SysUtils,
   DMVC.Expert.CodeGen.SourceFile,
-  DMVC.Expert.CodeGen.Executor,
   DMVC.Expert.Commands.Templates,
   DMVC.Expert.Commons;
 
@@ -103,15 +109,19 @@ end;
 
 { TNewJSONRPCUnitEx }
 
-constructor TNewJSONRPCUnitEx.Create(
+constructor TNewGenericUnitFromTemplate.Create(
   const ConfigModelRef: TJSONObject;
+  const TemplateLoadProcedure: TTemplateLoadProcedure;
+  const UnitIdentKeyName: String;
   const APersonality: string);
 begin
   inherited Create(ConfigModelRef);
+  fTemplateLoadProcedure := TemplateLoadProcedure;
+  fUnitIdentKeyName := UnitIdentKeyName;
   Personality := aPersonality;
 end;
 
-function TNewJSONRPCUnitEx.NewImplSource(const ModuleIdent, FormIdent,
+function TNewGenericUnitFromTemplate.NewImplSource(const ModuleIdent, FormIdent,
   AncestorIdent: string): IOTAFile;
 var
   lUnitIdent: string;
@@ -123,11 +133,12 @@ begin
   lFileName := '';
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lDummy, lFileName);
-  fConfigModelRef.S[TConfigKey.jsonrpc_unit_name] := lUnitIdent;
+  fConfigModelRef.S[fUnitIdentKeyName] := lUnitIdent;
   Result := TSourceFile.Create(
     procedure (Gen: TMVCCodeGenerator)
     begin
-      FillJSONRPCTemplates(Gen);
+      //FillJSONRPCTemplates(Gen);
+      fTemplateLoadProcedure(Gen);
     end,
     fConfigModelRef);
 end;

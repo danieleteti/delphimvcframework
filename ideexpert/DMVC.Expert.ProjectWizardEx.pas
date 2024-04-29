@@ -65,7 +65,8 @@ uses
   DMVC.Expert.CodeGen.NewWebModuleUnit,
   ExpertsRepository,
   JsonDataObjects,
-  DMVC.Expert.Commons;
+  DMVC.Expert.Commons, DMVC.Expert.CodeGen.SourceFile,
+  DMVC.Expert.Commands.Templates;
 
 resourcestring
   sNewDMVCProjectCaption = 'DelphiMVCFramework Project';
@@ -92,12 +93,15 @@ begin
       ControllerUnit: IOTAModule;
       JSONRPCUnit: IOTAModule;
       WebModuleUnit: IOTAModule;
+      MustacheHelperUnit: IOTAModule;
       ControllerCreator: IOTACreator;
       JSONRPCUnitCreator: IOTACreator;
+      MustacheHelpersUnitCreator: IOTACreator;
       WebModuleCreator: IOTAModuleCreator;
       lProjectSourceCreator: IOTACreator;
       lJSONRPCUnitName: string;
       lJSON: TJSONObject;
+    lMustacheHelpersUnitName: string;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try
@@ -135,8 +139,10 @@ begin
           // Create JSONRPC Unit
           if lJSON.B[TConfigKey.jsonrpc_generate] then
           begin
-            JSONRPCUnitCreator := TNewJSONRPCUnitEx.Create(
+            JSONRPCUnitCreator := TNewGenericUnitFromTemplate.Create(
               lJSON,
+              FillJSONRPCTemplates,
+              TConfigKey.jsonrpc_unit_name,
               APersonality);
             JSONRPCUnit := ModuleServices.CreateModule(JSONRPCUnitCreator);
             ChangeIOTAModuleFileNamePrefix(JSONRPCUnit, 'JSONRPC.' + lJSON.S[TConfigKey.jsonrpc_classname].Substring(1));
@@ -145,6 +151,26 @@ begin
             if Project <> nil then
             begin
               Project.AddFile(JSONRPCUnit.FileName, True);
+            end;
+          end;
+
+
+          lMustacheHelpersUnitName := '';
+          // Create Mustache Helpers Unit
+          if lJSON.B[TConfigKey.program_ssv_mustache] then
+          begin
+            MustacheHelpersUnitCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillMustacheTemplates,
+              TConfigKey.mustache_helpers_unit_name,
+              APersonality);
+            MustacheHelperUnit := ModuleServices.CreateModule(MustacheHelpersUnitCreator);
+            ChangeIOTAModuleFileNamePrefix(MustacheHelperUnit, 'MustacheHelpers');
+            lMustacheHelpersUnitName := GetUnitName(MustacheHelperUnit.FileName);
+            lJSON.S[TConfigKey.mustache_helpers_unit_name] := lMustacheHelpersUnitName;
+            if Project <> nil then
+            begin
+              Project.AddFile(MustacheHelperUnit.FileName, True);
             end;
           end;
 

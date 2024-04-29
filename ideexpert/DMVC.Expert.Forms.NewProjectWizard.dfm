@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DelphiMVCFramework :: New Project Wizard'
-  ClientHeight = 576
+  ClientHeight = 598
   ClientWidth = 729
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnDestroy = FormDestroy
   DesignSize = (
     729
-    576)
+    598)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
@@ -400,7 +400,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object lblBook: TLabel
     AlignWithMargins = True
     Left = 15
-    Top = 542
+    Top = 563
     Width = 259
     Height = 16
     Cursor = crHandPoint
@@ -458,7 +458,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnOK: TButton
     Left = 549
-    Top = 541
+    Top = 563
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -467,10 +467,11 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
+    ExplicitTop = 541
   end
   object btnCancel: TButton
     Left = 632
-    Top = 541
+    Top = 563
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -478,6 +479,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
+    ExplicitTop = 541
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -506,7 +508,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Panel2: TPanel
     Left = 0
-    Top = 320
+    Top = 342
     Width = 308
     Height = 215
     Anchors = [akLeft, akBottom]
@@ -516,6 +518,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ParentCtl3D = False
     ShowCaption = False
     TabOrder = 5
+    ExplicitTop = 320
     DesignSize = (
       308
       215)
@@ -726,12 +729,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 314
-    Top = 349
+    Top = 371
     Width = 396
     Height = 105
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
+    ExplicitTop = 349
     DesignSize = (
       396
       105)
@@ -765,7 +769,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMSHeap: TCheckBox
     Left = 24
-    Top = 288
+    Top = 286
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -774,12 +778,21 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkCustomConfigDotEnv: TCheckBox
     Left = 24
-    Top = 268
+    Top = 267
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Generate custom .env configuration'
     TabOrder = 9
+  end
+  object chkMustache: TCheckBox
+    Left = 24
+    Top = 306
+    Width = 225
+    Height = 17
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Use Mustache as Server Side View engine'
+    TabOrder = 10
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

@@ -34,6 +34,7 @@ procedure FillControllerTemplates(Gen: TMVCCodeGenerator);
 procedure FillWebModuleTemplates(Gen: TMVCCodeGenerator);
 procedure FillWebModuleDFMTemplates(Gen: TMVCCodeGenerator);
 procedure FillJSONRPCTemplates(Gen: TMVCCodeGenerator);
+procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
 
 implementation
 
@@ -81,5 +82,13 @@ begin
     ]);
 end;
 
+
+
+procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
+begin
+  Gen.Commands.AddRange([
+    TUnitMustacheHelpersDeclarationCommand.Create
+    ]);
+end;
 
 end.
