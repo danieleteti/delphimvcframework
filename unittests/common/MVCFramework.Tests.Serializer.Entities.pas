@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -316,11 +316,15 @@ type
     FId: Int64;
     FNames: TArray<String>;
     FValues: TArray<Integer>;
+    FValues8: TArray<Byte>;
+    FValues64: TArray<Int64>;
     FBooleans: TArray<Boolean>;
   public
     property Id: Int64 read FId write FId;
     property Names: TArray<String> read FNames write FNames;
     property Values: TArray<Integer> read FValues write FValues;
+    property Values8: TArray<Byte> read FValues8 write FValues8;
+    property Values64: TArray<Int64> read FValues64 write FValues64;
     property Booleans: TArray<Boolean> read FBooleans write FBooleans;
   end;
 

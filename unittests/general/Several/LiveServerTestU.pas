@@ -1236,6 +1236,8 @@ begin
   try
     lObj1.Names := ['one', 'two', 'three'];
     lObj1.Values := [1, 2, 3];
+    lObj1.Values8 := [4, 5, 6];
+    lObj1.Values64 := [7, 8, 9];
     lObj1.Booleans := [true, false];
     lBody := GetDefaultSerializer.SerializeObject(lObj1);
 

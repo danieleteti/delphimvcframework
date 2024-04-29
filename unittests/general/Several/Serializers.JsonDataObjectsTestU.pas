@@ -1397,7 +1397,7 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityWithArray;
 const
   JSON_WITH_ARRAY = '{' + '"Id":1,' + '"Names":["Pedro","Oliveira"],' +
-    '"Values":[1,2],"Booleans":[true,false,true]' + '}';
+    '"Values":[1,2],"Values8":[7,8],"Values64":[3,4],"Booleans":[true,false,true]' + '}';
 var
   O: TEntityWithArray;
   S: string;
@@ -1407,6 +1407,8 @@ begin
     O.Id := 1;
     O.Names := ['Pedro', 'Oliveira'];
     O.Values := [1, 2];
+    O.Values8 := [7, 8];
+    O.Values64 := [3, 4];
     O.Booleans := [True, False, True];
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON_WITH_ARRAY, S);

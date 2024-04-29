@@ -913,6 +913,8 @@ begin
   try
     lObj.Names := lObj.Names + ['added'];
     lObj.Values := lObj.Values + [99];
+    lObj.Values8 := lObj.Values8 + [99];
+    lObj.Values64 := lObj.Values64 + [99];
     lObj.Booleans := lObj.Booleans + [true];
     Render(lObj, False);
   finally
