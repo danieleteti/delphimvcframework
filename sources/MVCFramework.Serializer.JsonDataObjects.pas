@@ -1803,6 +1803,9 @@ var
 
 begin
   lChildObject := nil;
+  if AJSONObject = nil then
+    Exit;
+    
   case AJSONObject[APropertyName].Typ of
     jdtNone:
       Exit;
