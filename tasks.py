@@ -156,7 +156,7 @@ def copy_sources():
         "dmvcframeworkDT.dpk",
     ]
 
-    folders = ["d100", "d101", "d102", "d103", "d104", "d110", "d113"]
+    folders = ["d100", "d101", "d102", "d103", "d104", "d110", "d113", "d120"]
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")

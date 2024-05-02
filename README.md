@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.1--sodium-blue)
 ![](https://img.shields.io/badge/beta-dmvcframework--3.4.2--magnesium--beta-red)  
 
-## 📍 [Help DMVCFramework, Click Here to become a Supporter!](https://www.patreon.com/bePatron?u=72182967) 
+## 📍 [Help DMVCFramework and your business! Click Here to access premium contents!](https://www.patreon.com/bePatron?u=72182967) 
 
 ## 💻 Code Contributors
 
@@ -64,9 +64,9 @@
 
 ## What's DelphiMVCFramework
 
-DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
+DMVCFramework is the most popular Open Source Delphi framework on Github which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
-DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
+DMVCFramework works with Delphi 12 Athens, Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin and Delphi 10 Seattle.
 
 ## Support DMVCFramework
 
