@@ -104,10 +104,13 @@ type
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
 
+
+{$IF Defined(SYDNEYORBETTER)}
     /// <summary>
     /// Executes while sending data
     /// </summary>
     function SetSendDataProc(aSendDataProc: TSendDataProc): IMVCRESTClient;
+{$ENDIF}
 
     ///<summary>
     /// Set the client certificate for the request</summary>

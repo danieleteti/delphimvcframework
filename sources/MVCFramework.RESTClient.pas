@@ -110,7 +110,9 @@ type
     procedure DoBeforeRequest(aRequest: IHTTPRequest);
     procedure DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
     procedure DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
+{$IF defined(SYDNEYORBETTER)}
     procedure DoOnSendDataEvent(const Sender: TObject; AContentLength, AWriteCount: Int64; var AAbort: Boolean);
+{$ENDIF}
     function GetBodyFormData: TMultipartFormData;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
@@ -190,7 +192,9 @@ type
     /// <summary>
     /// Executes while sending data
     /// </summary>
+    {$IF defined(SYDNEYORBETTER)}
     function SetSendDataProc(aSendDataProc: TSendDataProc): IMVCRESTClient;
+    {$ENDIF}
 
     ///<summary>
     /// Set the client certificate for the request</summary>
@@ -958,7 +962,9 @@ begin
   fHTTPClient.OnValidateServerCertificate := DoValidateServerCertificate;
   fHTTPClient.HandleRedirects := True;
   fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
+{$IF defined(SYDNEYORBETTER)}
   fHTTPClient.OnSendData := DoOnSendDataEvent;
+{$ENDIF}
 {$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
 {$ENDIF}
@@ -1520,6 +1526,7 @@ begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
 end;
 
+{$IF defined(SYDNEYORBETTER)}
 procedure TMVCRESTClient.DoOnSendDataEvent(const Sender: TObject; AContentLength,
   AWriteCount: Int64; var AAbort: Boolean);
 begin
@@ -1528,6 +1535,7 @@ begin
     fSendDataProc(AContentLength, AWriteCount, AAbort);
   end;
 end;
+{$ENDIF}
 
 function TMVCRESTClient.Options: IMVCRESTResponse;
 begin
@@ -1896,11 +1904,13 @@ begin
   fResponseCompletedProc := aResponseCompletedProc;
 end;
 
+{$IF Defined(SYDNEYORBETTER)}
 function TMVCRESTClient.SetSendDataProc(
   aSendDataProc: TSendDataProc): IMVCRESTClient;
 begin
   fSendDataProc := aSendDataProc;
 end;
+{$ENDIF}
 
 function TMVCRESTClient.SetValidateServerCertificateProc(
   aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;

@@ -77,13 +77,13 @@ end;
 function TArticlesController.CreateArticle(const Article: TArticle): IMVCResponse;
 begin
   fArticlesService.Add(Article);
-  Render201Created('/articles/' + Article.id.ToString, 'Article Created');
+  Result := CreatedResponse('/articles/' + Article.id.ToString, 'Article Created');
 end;
 
 function TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>): IMVCResponse;
 begin
   fArticlesService.CreateArticles(ArticleList);
-  Result := MVCResponseBuilder.StatusCode(HTTP_STATUS.Created).Build;
+  Result := CreatedResponse('', 'Articles created');
 end;
 
 procedure TArticlesController.DeleteArticleByID(id: Integer);
@@ -93,43 +93,29 @@ end;
 
 function TArticlesController.GetArticles: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(fArticlesService.GetAll)
-    .Build;
+  Result := OKResponse(fArticlesService.GetAll);
 end;
 
 function TArticlesController.GetArticlesByDescription(const Search: String): IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(fArticlesService.GetArticles(Search))
-    .Build;
+  Result := OKResponse(fArticlesService.GetArticles(Search));
 end;
 
 function TArticlesController.UpdateArticleByID(const Article: TArticle; const id: Integer): IMVCResponse;
 begin
   Article.id := id;
   fArticlesService.Update(Article);
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Build;
+  Result := OKResponse;
 end;
 
 function TArticlesController.GetArticleByID(id: Integer): IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(fArticlesService.GetByID(id))
-    .Build;
+  Result := OKResponse(fArticlesService.GetByID(id));
 end;
 
 function TArticlesController.GetArticleMeta: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body(fArticlesService.GetMeta)
-    .Build;
+  Result := OKResponse(fArticlesService.GetMeta);
 end;
 
 end.
