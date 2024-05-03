@@ -307,7 +307,7 @@ begin
   begin
     Section
       .AppendLine('    MVCFramework.View.Renderers.Mustache,')
-      .AppendLine('    SynMustache,');
+      .AppendLine('    mormot.core.mustache,');
   end;
   if Model.B[TConfigKey.program_service_container_generate] then
   begin
@@ -1212,8 +1212,6 @@ begin
     .AppendLine
     .AppendLine('interface')
     .AppendLine
-    .AppendLine('uses')
-    .AppendLine('  SynMustache;')
     .AppendLine
     .AppendLine('type')
     .AppendLine('  TMyMustacheHelpers = class sealed')
