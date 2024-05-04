@@ -17,7 +17,7 @@ uses
   {$IFDEF MSWINDOWS}
   , LoggerPro.OutputdebugStringAppender// loggerpro outputdebugstring appender (logs to the debugger)
   {$ENDIF}
-  , Commons, System.SysUtils, Data.DB, FireDAC.Comp.Client, FireDAC.Stan.Param;
+  , Commons, System.SysUtils;
 
 const
   FailedDBWriteTag = 'FailedDBWrite';
