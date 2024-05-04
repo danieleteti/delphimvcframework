@@ -10,6 +10,9 @@ type
 
   end;
 
+const
+  CON_DEF_NAME = 'MyConnX';
+
 implementation
 
 end.

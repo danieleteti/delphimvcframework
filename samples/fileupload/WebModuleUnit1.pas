@@ -27,7 +27,7 @@ implementation
 uses
   FileUploadControllerU,
   MVCFramework.Commons,
-  MVCFramework.View.Renderers.TemplatePro,
+  MVCFramework.View.Renderers.Mustache,
   MVCFramework.Middleware.Trace,
   MVCFramework.Middleware.StaticFiles;
 
@@ -40,17 +40,16 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config[TMVCConfigKey.ViewPath] :=
-        ExtractFilePath(GetModuleName(HInstance)) + '..\..\templates';
+        ExtractFilePath(GetModuleName(HInstance)) + '..\templates';
       Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
     end);
   MVC.AddController(TFileUploadController);
-  MVC.AddMiddleware(TMVCTraceMiddleware.Create);
   MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '..\..\document_root', { DocumentRoot }
+    ExtractFilePath(GetModuleName(HInstance)) + '..\www', { DocumentRoot }
     'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
-  MVC.SetViewEngine(TMVCTemplateProViewEngine);
+  MVC.SetViewEngine(TMVCMustacheViewEngine);
 
 end;
 

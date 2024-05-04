@@ -44,7 +44,7 @@ uses
 procedure TApp1MainController.HelloWorld;
 begin
   Render('Hello World called with GET');
-  if Context.Request.ThereIsRequestBody then
+  if Context.Request.HasBody then
     Log('Body:' + Context.Request.Body);
 end;
 

@@ -10,6 +10,9 @@ uses
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Console,
+  MVCFramework.DotEnv,
+  MVCFramework.Logger,
+  MVCFramework.Commons,
   MVCFramework.Server,
   MVCFramework.Server.Impl,
   CustomWebModuleU in 'CustomWebModuleU.pas' {CustomWebModule: TWebModule},
@@ -25,6 +28,22 @@ procedure RunServer(APort: Integer);
 var
   lServerListeners: IMVCListenersContext;
 begin
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+               .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                                     //if available, by default, loads default environment (.env)
+               .UseProfile('test') //if available loads the test environment (.env.test)
+               .UseProfile('prod') //if available loads the prod environment (.env.prod)
+               .UseLogger(procedure(LogItem: String)
+                          begin
+                            LogW('dotEnv: ' + LogItem);
+                          end)
+               .Build();             //uses the executable folder to look for .env* files
+    end);
+
+
   Writeln(Format('Starting HTTP Server or port %d, %d, %d and %d',
     [APort, APort + 10, APort + 20, APort + 30]));
 

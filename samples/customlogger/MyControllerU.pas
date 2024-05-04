@@ -7,10 +7,10 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath]
   TMyController = class(TMVCController)
   public
-    [MVCPath('/')]
+    [MVCPath]
     [MVCHTTPMethod([httpGET])]
     procedure Index;
 

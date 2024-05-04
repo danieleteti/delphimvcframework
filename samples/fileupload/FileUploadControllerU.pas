@@ -4,6 +4,7 @@ interface
 
 uses
   ReqMulti, // this unit is required to enable file uploading
+  System.Generics.Collections,
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Logger;
@@ -12,21 +13,21 @@ type
 
   [MVCPath]
   TFileUploadController = class(TMVCController)
-  private const
+  public const
     UPLOAD_FOLDER = 'uploadedfiles';
+  private
+    function GetFiles: TList<String>;
+
+  protected
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index;
+    function Index: string;
 
     [MVCPath('/file/upload')]
     [MVCHTTPMethod([httpPOST])]
-    procedure SaveFile(CTX: TWebContext);
-
-    [MVCPath('/file/list')]
-    [MVCProduces('text/html')]
-    [MVCHTTPMethod([httpGET])]
-    procedure FileList(CTX: TWebContext);
+    function SaveFile: IMVCResponse;
   end;
 
 implementation
@@ -35,60 +36,94 @@ uses
   system.ioutils,
   system.Classes,
   system.SysUtils,
-  system.Types;
+  system.Types,
+  JsonDataObjects;
 
 { TFileUploadController }
 
-procedure TFileUploadController.FileList(CTX: TWebContext);
+//function TFileUploadController.FileList: String;
+//var
+//  lFileNames: TList<String>;
+//begin
+//  lFileNames := GetFiles;
+//  try
+//    ViewData['files'] := lFileNames;
+//    Result := PageFragment(['filelist']);
+//  finally
+//    lFileNames.free;
+//  end;
+//end;
+
+function TFileUploadController.GetFiles: TList<String>;
 var
-  lUploadedFiles: TStringDynArray;
+  lUploadedFiles: TArray<string>;
   lFName: string;
 begin
-  LoadView(['header']);
-  // ResponseStream.AppendLine('<!doctype html><html><body>');
-  ResponseStream.AppendLine('<h2>**Upload Folder Content**</h2>');
   lUploadedFiles := TDirectory.GetFiles(UPLOAD_FOLDER);
-  ResponseStream.AppendLine('<ul>');
-  for lFName in lUploadedFiles do
-  begin
-    ResponseStream.AppendLine('<li>' + ExtractFileName(lFName) + '</li>');
+  Result := TList<String>.Create;
+  try
+    for lFName in lUploadedFiles do
+    begin
+      Result.Add(ExtractFileName(lFName));
+    end;
+  except
+    Result.Free;
+    raise;
   end;
-  ResponseStream.AppendLine('</ul>')
-    .AppendLine('<p><a href="/">&lt;&lt; BACK TO HOME</a></p>');
-  LoadView(['footer']);
-  RenderResponseStream;
 end;
 
-procedure TFileUploadController.Index;
+function TFileUploadController.Index: String;
+var
+  lFileNames: TList<String>;
 begin
-  LoadView(['header', 'fileupload', 'footer']);
-  RenderResponseStream();
+  lFileNames := GetFiles;
+  try
+    ViewData['files'] := lFileNames;
+    ViewData['files_count'] := lFileNames.Count;
+    Result := Page(['fileupload','filelist']);
+  finally
+    lFileNames.free;
+  end;
 end;
 
-procedure TFileUploadController.SaveFile(CTX: TWebContext);
+procedure TFileUploadController.OnBeforeAction(AContext: TWebContext;
+  const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+  SetPagesCommonHeaders(['header']);
+  SetPagesCommonFooters(['footer']);
+end;
+
+function TFileUploadController.SaveFile: IMVCResponse;
 var
   lFName: string;
-  I: Integer;
   lFile: TFileStream;
 begin
-  TDirectory.CreateDirectory(UPLOAD_FOLDER);
-  for I := 0 to CTX.Request.RawWebRequest.Files.Count - 1 do
+  if Context.Request.RawWebRequest.Files.Count <> 1 then
   begin
-    lFName := String(CTX.Request.Files[I].FileName);
-    lFName := TPath.GetFileName(lFName.Trim(['"']));
-    if not TPath.HasValidFileNameChars(lFName, false) then
-      raise EMVCException.Create
-        (lFName + ' is not a valid filename for the hosting OS');
-    Log('Uploading ' + lFName);
-    lFile := TFile.Create(TPath.Combine(UPLOAD_FOLDER, lFName));
-    try
-      lFile.CopyFrom(CTX.Request.Files[I].Stream, 0);
-    finally
-      lFile.free;
-    end;
+    Exit(RedirectResponse('/'));
   end;
 
-  Redirect('/file/list');
+  lFName := String(Context.Request.Files[0].FileName);
+  lFName := TPath.GetFileName(lFName.Trim(['"']));
+  if not TPath.HasValidFileNameChars(lFName, false) then
+  begin
+    raise EMVCException.Create
+      (HTTP_STATUS.BadRequest, lFName + ' is not a valid filename for the hosting OS');
+  end;
+  if TFile.Exists(TPath.Combine(UPLOAD_FOLDER, lFName)) then
+  begin
+    raise EMVCException.Create
+      (HTTP_STATUS.BadRequest, lFName + ' already present, cannot override');
+  end;
+  Log('Uploading ' + lFName);
+  lFile := TFile.Create(TPath.Combine(UPLOAD_FOLDER, lFName));
+  try
+    lFile.CopyFrom(Context.Request.Files[0].Stream, 0);
+  finally
+    lFile.free;
+  end;
+  Result := RedirectResponse('/');
 end;
 
 end.

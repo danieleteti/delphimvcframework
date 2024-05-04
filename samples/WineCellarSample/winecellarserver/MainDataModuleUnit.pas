@@ -5,16 +5,9 @@ interface
 uses
   System.SysUtils,
   System.Classes,
+  MVCFramework.Commons,
   Data.DB,
   Data.SqlExpr,
-
-{$IF CompilerVersion <= 27}
-  Data.DBXJSON,
-
-{$ELSE}
-  System.JSON,
-
-{$ENDIF}
   FireDAC.Stan.Intf,
   FireDAC.Stan.Option,
   FireDAC.Stan.Error,
@@ -59,7 +52,6 @@ implementation
 
 uses
   System.StrUtils,
-  Data.DBXCommon,
   MVCFramework.FireDAC.Utils;
 
 { TCellarSM }
@@ -80,19 +72,27 @@ procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
 var
   lDBPath: string;
 begin
-  // if you are using firebird 2.5, uses the file WINES_FB25.FDB
-  if not IsLibrary then
+  // if database is defined in .env use that, otherwise try to
+  // understand where the database is
+  if not dotEnv.Env('database.path').IsEmpty then
   begin
-    // Is compiled as EXE
-    Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\WINES_FB30.FDB';
+    Connection.Params.Values['Database'] := dotEnv.Env('database.path');
   end
   else
   begin
-    // compiled as apache module or isapi
-    lDBPath := ExtractFilePath(GetModuleName(HInstance)) + '..\..\..\winecellarserver\WINES_FB30.FDB';
-    if lDBPath.StartsWith('\\?\') then
-      lDBPath := lDBPath.Remove(0, 4);
-    Connection.Params.Values['Database'] := lDBPath;
+    if not IsLibrary then
+    begin
+      // Is compiled as EXE
+      Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\WINES_FB30.FDB';
+    end
+    else
+    begin
+      // compiled as apache module or isapi
+      lDBPath := ExtractFilePath(GetModuleName(HInstance)) + '..\..\..\WineCellarSample\winecellarserver\WINES_FB30.FDB';
+      if lDBPath.StartsWith('\\?\') then
+        lDBPath := lDBPath.Remove(0, 4);
+      Connection.Params.Values['Database'] := lDBPath;
+    end;
   end;
 end;
 

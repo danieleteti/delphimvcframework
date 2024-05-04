@@ -41,11 +41,10 @@ end;
 
 procedure TMyCustomAppender.WriteLog(const aLogItem: TLogItem);
 begin
-  // uncomment this to see what happend if an appender raise an exception
-
+  // uncomment this to see what happens if an appender raise an exception
   // raise Exception.Create('Kill LoggerPro');
 
-  // uncomment this to see what happend if an appender is slow
+  // uncomment this to see what happens if an appender is slow
   Sleep(2000);
   WriteLn('[THE BAD APPENDER] ' + aLogItem.LogMessage);
 end;

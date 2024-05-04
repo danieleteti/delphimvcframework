@@ -2,11 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators with this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -316,7 +316,7 @@ var
 begin
   Result := False;
   for I := low(AAttributes) to high(AAttributes) do
-    if (AAttributes[I] = AName) then
+    if AnsiSameText(AAttributes[I], AName) then
       Exit(True);
 end;
 

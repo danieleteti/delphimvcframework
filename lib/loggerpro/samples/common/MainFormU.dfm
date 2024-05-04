@@ -3,15 +3,13 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'LoggerPro SAMPLE'
   ClientHeight = 132
-  ClientWidth = 584
+  ClientWidth = 723
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
-  PixelsPerInch = 96
   TextHeight = 13
   object Button1: TButton
     Left = 8
@@ -57,5 +55,14 @@ object MainForm: TMainForm
     Caption = 'Multithread logging'
     TabOrder = 4
     OnClick = Button5Click
+  end
+  object Button6: TButton
+    Left = 580
+    Top = 8
+    Width = 137
+    Height = 57
+    Caption = 'FATAL'
+    TabOrder = 5
+    OnClick = Button6Click
   end
 end

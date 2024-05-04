@@ -5,14 +5,15 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
-  MainDataModuleUnit, WinesBO;
+  MainDataModuleUnit,
+  WinesBO;
 
 type
 
   [MVCPath('/api')]
   TWineCellarApp = class(TMVCController)
   private
-    FDataModule: TWineCellarDataModule;
+    fDataModule: TWineCellarDataModule;
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionNAme: string); override;
@@ -39,7 +40,7 @@ type
 
     [MVCPath('/wines/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateWineById([MVCFromBody] Wine: TWine);
+    procedure UpdateWineById(const id: Integer; const [MVCFromBody] Wine: TWine);
   end;
 
 implementation
@@ -51,49 +52,51 @@ uses
 
 procedure TWineCellarApp.DeleteWineById(id: Integer);
 begin
-  FDataModule.DeleteWine(id);
+  fDataModule.DeleteWine(id);
   Log.Info('Wine %d deleted', [id], 'WINESERVER');
-  Render(200, 'Wine deleted');
+  Render(HTTP_STATUS.NoContent, 'Wine deleted');
 end;
 
 procedure TWineCellarApp.FindWines(value: String);
 begin
-  Render(FDataModule.FindWines(value));
+  Render(fDataModule.FindWines(value));
 end;
 
 procedure TWineCellarApp.GetWineById(id: Integer);
 begin
-  Render(FDataModule.GetWineById(id), False, dstSingleRecord);
+  Render(fDataModule.GetWineById(id), False, dstSingleRecord);
 end;
 
 procedure TWineCellarApp.OnAfterAction(Context: TWebContext; const AActionNAme: string);
 begin
   inherited;
-  FDataModule.Free;
+  fDataModule.Free;
 end;
 
 procedure TWineCellarApp.OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
-  FDataModule := TWineCellarDataModule.Create(nil);
+  fDataModule := TWineCellarDataModule.Create(nil);
 end;
 
 procedure TWineCellarApp.SaveWine([MVCFromBody] Wine: TWine);
 begin
-  FDataModule.AddWine(Wine);
+  fDataModule.AddWine(Wine);
   Log.Info('Wine correctly saved', 'WINESERVER');
+  StatusCode := HTTP_STATUS.NoContent;
 end;
 
-procedure TWineCellarApp.UpdateWineById([MVCFromBody] Wine: TWine);
+procedure TWineCellarApp.UpdateWineById(const id: Integer; const [MVCFromBody] Wine: TWine);
 begin
-  FDataModule.UpdateWine(Wine);
+  Wine.id := id;
+  fDataModule.UpdateWine(Wine);
   Log.Info('Wine correctly updated', 'WINESERVER');
-  Render(200, 'Wine updated');
+  Render(HTTP_STATUS.NoContent, 'Wine updated');
 end;
 
 procedure TWineCellarApp.WinesList;
 begin
-  Render(FDataModule.GetAllWines, False);
+  Render(fDataModule.GetAllWines, False);
   Log.Info('Getting Wines list', 'WINESERVER');
 end;
 

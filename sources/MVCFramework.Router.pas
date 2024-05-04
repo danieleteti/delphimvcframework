@@ -1,8 +1,8 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -44,11 +44,13 @@ type
   private
     FValue: string;
     FParams: TList<string>;
+    FRegEx: TRegEx;
   public
     constructor Create(aValue: string; aParams: TList<string>); virtual;
     destructor Destroy; override;
     function Value: string;
     function Params: TList<string>; // this should be read-only...
+    function Match(const Value: String): TMatch; inline;
   end;
 
   TMVCRouter = class(TMVCCustomRouter)
@@ -58,6 +60,7 @@ type
     FMethodToCall: TRttiMethod;
     FControllerClazz: TMVCControllerClazz;
     FControllerCreateAction: TMVCControllerCreateAction;
+    FControllerInjectableConstructor: TRttiMethod;
     FActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
@@ -106,13 +109,14 @@ type
     property MethodToCall: TRttiMethod read FMethodToCall;
     property ControllerClazz: TMVCControllerClazz read FControllerClazz;
     property ControllerCreateAction: TMVCControllerCreateAction read FControllerCreateAction;
+    property ControllerInjectableConstructor: TRttiMethod read FControllerInjectableConstructor;
   end;
 
 implementation
 
 uses
   System.TypInfo,
-  System.NetEncoding;
+  System.NetEncoding, MVCFramework.Rtti.Utils, MVCFramework.Container;
 
 { TMVCRouter }
 
@@ -183,12 +187,10 @@ begin
       LRequestPathInfo := '/' + LRequestPathInfo;
     end;
   end;
-  //LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
   LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
 
   TMonitor.Enter(gLock);
   try
-    //LControllerMappedPaths := TArray<string>.Create();
     LControllerMappedPaths := TStringList.Create;
     try
       for LControllerDelegate in AControllers do
@@ -203,7 +205,6 @@ begin
           LAttributes := LRttiType.GetAttributes;
           if (LAttributes = nil) then
             Continue;
-          //LControllerMappedPaths := GetControllerMappedPath(LRttiType.Name, LAttributes);
           FillControllerMappedPaths(LRttiType.Name, LAttributes, LControllerMappedPaths);
         end
         else
@@ -227,17 +228,12 @@ begin
           begin
             Continue;
           end;
-//        end;
-
-//          if (not LControllerMappedPathFound) then
-//            continue;
-
           LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
           for LMethod in LMethods do
           begin
             if LMethod.Visibility <> mvPublic then // 2020-08-08
               Continue;
-            if (LMethod.MethodKind <> mkProcedure) { or LMethod.IsClassMethod } then
+            if not (LMethod.MethodKind in [mkProcedure, mkFunction]) then
               Continue;
 
             LAttributes := LMethod.GetAttributes;
@@ -268,6 +264,15 @@ begin
                     FMethodToCall := LMethod;
                     FControllerClazz := LControllerDelegate.Clazz;
                     FControllerCreateAction := LControllerDelegate.CreateAction;
+                    FControllerInjectableConstructor := nil;
+
+                    // select the constructor with the most mumber of parameters
+                    if not Assigned(FControllerCreateAction) then
+                    begin
+                      FControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
+                    end;
+                    // end - select the constructor with the most mumber of parameters
+
                     LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                     if LProduceAttribute <> nil then
                     begin
@@ -353,34 +358,36 @@ function TMVCRouter.IsCompatiblePath(
   end;
 
 var
-  lRegEx: TRegEx;
+//  lRegEx: TRegEx;
   lMatch: TMatch;
   lPattern: string;
   I: Integer;
   lNames: TList<string>;
   lCacheItem: TMVCActionParamCacheItem;
 begin
+  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
+  begin
+    Exit(True);
+  end;
+
   if not FActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
   begin
     lNames := GetParametersNames(AMVCPath);
     lPattern := ToPattern(AMVCPath, lNames);
-    lCacheItem := TMVCActionParamCacheItem.Create(lPattern, lNames);
+    lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
     FActionParamsCache.Add(AMVCPath, lCacheItem);
   end;
 
-  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
-    Exit(True)
-  else
+//  lRegEx := TRegEx.Create(lCacheItem.Value, [roIgnoreCase, roCompiled, roSingleLine]);
+//  lMatch := lRegEx.Match(APath);
+
+  lMatch := lCacheItem.Match(APath);
+  Result := lMatch.Success;
+  if Result then
   begin
-    lRegEx := TRegEx.Create('^' + lCacheItem.Value + '$', [roIgnoreCase, roCompiled, roSingleLine]);
-    lMatch := lRegEx.Match(APath);
-    Result := lMatch.Success;
-    if Result then
+    for I := 1 to Pred(lMatch.Groups.Count) do
     begin
-      for I := 1 to pred(lMatch.Groups.Count) do
-      begin
-        aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
-      end;
+      aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
     end;
   end;
 end;
@@ -531,12 +538,18 @@ begin
   inherited Create;
   FValue := aValue;
   FParams := aParams;
+  FRegEx := TRegEx.Create(FValue, [roIgnoreCase, roCompiled, roSingleLine]);
 end;
 
 destructor TMVCActionParamCacheItem.Destroy;
 begin
   FParams.Free;
   inherited;
+end;
+
+function TMVCActionParamCacheItem.Match(const Value: String): TMatch;
+begin
+  Result := fRegEx.Match(Value);
 end;
 
 function TMVCActionParamCacheItem.Params: TList<string>;

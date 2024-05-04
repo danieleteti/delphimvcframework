@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -32,7 +32,9 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Serializer.Intf,
-  System.Rtti, BusinessObjectsU;
+  System.Rtti,
+  System.Generics.Collections,
+  BusinessObjectsU, Data.DB, System.Classes, System.SysUtils;
 
 type
 
@@ -42,6 +44,44 @@ type
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
       var AHandled: Boolean); override;
   public
+    // Result BASED
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/people/1')]
+    [MVCProduces('application/json')]
+    function GetPerson_AsFunction: TPerson;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/people')]
+    [MVCProduces('application/json')]
+    function GetPeople_AsObjectList_AsFunction: TEnumerable<TPerson>;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers/simple')]
+    function GetCustomers_AsDataSet_AsFunction: TDataSet;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers/($ID)')]
+    [MVCProduces('text/plain')]
+    function GetPerson_AsText_AsFunction(const ID: Integer): String;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers.csv')]
+    function GetPeopleAsCSV_AsFunction: String;
+
+
+    // this action is polymorphic
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/skilledpeople')]
+    //[MVCProduces('application/json')]
+    function GetProgrammersAndPhilosophersAsObjectList_AsFunction: TObjectList<TPerson>;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/skilledpeople/withmvcresponse')]
+    [MVCProduces('application/json')]
+    function GetProgrammersAndPhilosophersAsObjectList_withmvcresponse_AsFunction: IMVCResponse;
+
+
+    // Render BASED
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/simple')]
     procedure GetCustomers_AsDataSet;
@@ -259,17 +299,14 @@ uses
   MVCFramework.Logger,
   MyDataModuleU,
   System.IOUtils,
-  System.Classes,
-  System.SysUtils,
   WebModuleU,
   CustomTypesU,
   InMemoryDataU,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
-  Data.DB,
   Web.HTTPApp,
   Graphics,
-  System.Types;
+  System.Types, FireDAC.Comp.Client;
 
 procedure DrawLogo(const Logo: TBitmap);
 var
@@ -515,6 +552,20 @@ begin
   end;
 end;
 
+function TRenderSampleController.GetCustomers_AsDataSet_AsFunction: TDataSet;
+var
+  lDM: TMyDataModule;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    Result := TFDMemTable.Create(nil);
+    TFDMemTable(Result).CloneCursor(lDM.qryCustomers, True);
+  finally
+    lDM.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetCustomersAsDataSetWithRefLinks;
 var
   lDM: TMyDataModule;
@@ -753,6 +804,11 @@ begin
   Render(TNullablesTest.Create);
 end;
 
+function TRenderSampleController.GetPerson_AsFunction: TPerson;
+begin
+  Result := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True);
+end;
+
 procedure TRenderSampleController.GetPerson_AsHTML;
 begin
   ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
@@ -796,6 +852,23 @@ begin
   RenderResponseStream;
 end;
 
+function TRenderSampleController.GetPerson_AsText_AsFunction(
+  const ID: Integer): String;
+begin
+  var lSBldr := TStringBuilder.Create;
+  try
+    lSBldr
+      .AppendLine('ID        :  ' + ID.ToString)
+      .AppendLine('FirstName : Daniele')
+      .AppendLine('LastName  : Teti')
+      .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+      .AppendLine('Married   : yes');
+    Result := lSBldr.ToString;
+  finally
+    lSBldr.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList;
 var
   List: TObjectList<TPerson>;
@@ -824,6 +897,46 @@ begin
   Render<TPerson>(List);
 end;
 
+function TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList_AsFunction: TObjectList<TPerson>;
+var
+  List: TObjectList<TPerson>;
+  p: TProgrammer;
+  ph: TPhilosopher;
+begin
+  List := TObjectList<TPerson>.Create(True);
+  try
+    p := TProgrammer.Create;
+    p.Married := True;
+    p.FirstName := 'Peter';
+    p.LastName := 'Parker';
+    p.Skills := 'Delphi, JavaScript, Python, C++';
+    List.Add(p);
+    ph := TPhilosopher.Create;
+    p.Married := False;
+    ph.FirstName := 'Bruce';
+    ph.LastName := 'Banner';
+    ph.Mentors := 'Abbagnano, Algarotti, Cavalieri, Pareyson';
+    List.Add(ph);
+    p := TProgrammer.Create;
+    p.Married := False;
+    p.FirstName := 'Sue';
+    p.LastName := 'Storm';
+    p.Skills := 'Delphi, JavaScript';
+    List.Add(p);
+  except
+    List.Free;
+    raise;
+  end;
+  Result := List;
+end;
+
+function TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList_withmvcresponse_AsFunction: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .Body(GetPeople_AsObjectList_AsFunction)
+    .Build;
+end;
+
 procedure TRenderSampleController.GetSimpleArrays;
 begin
   Render(TArrayTest.Create);
@@ -850,6 +963,23 @@ begin
   ResponseStream.AppendLine('Bruce;Banner;60');
   ContentType := TMVCMediaType.TEXT_CSV;
   RenderResponseStream;
+end;
+
+function TRenderSampleController.GetPeopleAsCSV_AsFunction: String;
+var
+  lSS: TStringBuilder;
+begin
+  ContentType := TMVCMediaType.TEXT_CSV;
+  lSS := TStringBuilder.Create('');
+  try
+    lSS.AppendLine('first_name;last_name;age');
+    lSS.AppendLine('Daniele;Teti;38');
+    lSS.AppendLine('Peter;Parker;22');
+    lSS.AppendLine('Bruce;Banner;60');
+    Result := lSS.ToString;
+  finally
+    lSS.Free;
+  end;
 end;
 
 procedure TRenderSampleController.GetPeopleWithTiming;
@@ -907,6 +1037,14 @@ begin
   //Render<TPerson>(HTTP_STATUS.OK, People, True);
   { new approach with ObjectDict }
   Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
+end;
+
+function TRenderSampleController.GetPeople_AsObjectList_AsFunction: TEnumerable<TPerson>;
+begin
+  Result := TObjectList<TPerson>.Create(True);
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('Daniele','Teti', EncodeDate(1979, 11, 4), True));
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('John','Doe', EncodeDate(1879, 10, 2), False));
+  TObjectList<TPerson>(Result).Add(TPerson.GetNew('Jane','Doe', EncodeDate(1883, 1, 5), True));
 end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
@@ -1046,7 +1184,6 @@ end;
 
 procedure TRenderSampleController.GetPersonPhoto;
 begin
-  // ContentType := 'image/jpeg';
   SendFile('..\..\_\customer.png');
 end;
 

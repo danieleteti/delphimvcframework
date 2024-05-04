@@ -1,4 +1,28 @@
-﻿unit LoggerPro.RESTAppender;
+﻿// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
+unit LoggerPro.RESTAppender;
 
 interface
 
@@ -59,14 +83,13 @@ type
     procedure SetRESTUrl(const Value: string);
     procedure WriteLog(const aLogItem: TLogItem); override;
     constructor Create(aRESTUrl: string = DEFAULT_REST_URL; aContentType: string = 'text/plain';
-      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     property RESTUrl: string read GetRESTUrl write SetRESTUrl;
     property OnCreateData: TOnCreateData read FOnCreateData write SetOnCreateData;
     property OnNetSendError: TOnNetSendError read FOnNetSendError write SetOnNetSendError;
     procedure TearDown; override;
     procedure Setup; override;
     function CreateData(const SrcLogItem: TLogItem): TStream; virtual;
-    function FormatLog(const aLogItem: TLogItem): string; override;
   end;
 
 implementation
@@ -115,10 +138,10 @@ end;
 {$ENDIF}
 
 
-constructor TLoggerProRESTAppender.Create(aRESTUrl: string = DEFAULT_REST_URL; aContentType: string = 'text/plain';
-  aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogFormat: string = DEFAULT_LOG_FORMAT);
+constructor TLoggerProRESTAppender.Create(aRESTUrl: string; aContentType: string;
+  aLogExtendedInfo: TLoggerProExtendedInfo; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   fRESTUrl := aRESTUrl;
   fExtendedInfo := aLogExtendedInfo;
   fContentType := aContentType;
@@ -146,12 +169,8 @@ begin
   end;
 end;
 
-function TLoggerProRESTAppender.FormatLog(const aLogItem: TLogItem): string;
-begin
-  Result := Format(LogFormat, [datetimetostr(aLogItem.TimeStamp, FormatSettings), aLogItem.ThreadID, aLogItem.LogTypeAsString,
-    aLogItem.LogMessage, GetExtendedInfo, aLogItem.LogTag]);
-end;
 
+{TODO -oDanieleT -cGeneral : Currently ExtendedInfo are not logged}
 function TLoggerProRESTAppender.GetExtendedInfo: string;
 begin
   Result := '';

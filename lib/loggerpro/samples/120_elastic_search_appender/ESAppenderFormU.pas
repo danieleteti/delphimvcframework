@@ -81,6 +81,7 @@ begin
         Log.Info('log message %s ThreadID: %s', [TimeToStr(now), lThreadID], 'MULTITHREADING');
         Log.Warn('log message %s ThreadID: %s', [TimeToStr(now), lThreadID], 'MULTITHREADING');
         Log.Error('log message %s ThreadID: %s', [TimeToStr(now), lThreadID], 'MULTITHREADING');
+		Log.Fatal('log message %s ThreadID: %s', [TimeToStr(now), lThreadID], 'MULTITHREADING');		
       end;
     end;
   TThread.CreateAnonymousThread(lThreadProc).Start;

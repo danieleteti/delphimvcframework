@@ -2,12 +2,12 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// João Antônio Duarte (https://github.com/joaoduarte19)
+// Joï¿½o Antï¿½nio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -67,7 +67,7 @@ type
     /// <summary>
     /// Get the response string, if it is of any type of text.
     /// </summary>
-    class function GetResponseContentAsString(aContentRawBytes: TArray<Byte>; const aContentType: string): string;
+    class function GetResponseContentAsString(var aContentRawBytes: TArray<Byte>; const aContentType: string): string;
   end;
 
   EMVCRESTClientException = class(Exception);
@@ -75,7 +75,7 @@ type
   TMVCRESTClientConsts = record
   public const
     DEFAULT_ACCEPT_ENCODING = 'gzip,deflate';
-    DEFAULT_ACCEPT = TMVCMediaType.APPLICATION_JSON + ', ' + TMVCMediaType.TEXT_PLAIN + ', ' + TMVCMediaType.TEXT_HTML;
+    DEFAULT_ACCEPT = '*/*';
     DEFAULT_USER_AGENT = 'DelphiMVCFramework RESTClient/' + DMVCFRAMEWORK_VERSION;
     DEFAULT_FILE_NAME = 'file';
     AUTHORIZATION_HEADER = 'Authorization';
@@ -179,6 +179,9 @@ var
 begin
   lDecompressed := TMemoryStream.Create;
   try
+{$IF defined(MACOS) or defined(IOS)}
+    lDecompressed.CopyFrom(aContentStream, 0); // MACOS automatically decompresses response body
+{$ELSE}
     if SameText(aContentEncoding, 'gzip') or SameText(aContentEncoding, 'deflate') then
     begin
       /// Certain types of deflate compression cannot be decompressed by the standard Zlib,
@@ -202,6 +205,7 @@ begin
     begin
       raise EMVCRESTClientException.CreateFmt('Content-Encoding not supported [%s]', [aContentEncoding]);
     end;
+{$ENDIF}
 
     SetLength(Result, lDecompressed.Size);
     lDecompressed.Position := 0;
@@ -211,7 +215,7 @@ begin
   end;
 end;
 
-class function TMVCRESTClientHelper.GetResponseContentAsString(aContentRawBytes: TArray<Byte>;
+class function TMVCRESTClientHelper.GetResponseContentAsString(var aContentRawBytes: TArray<Byte>;
   const aContentType: string): string;
 var
   lContentIsString: Boolean;
@@ -225,28 +229,22 @@ var
   lReader: TStringStream;
 begin
   Result := '';
-  lContentIsString := False;
   SplitContentMediaTypeAndCharset(aContentType, lContentType, lCharset);
 
-  if not lCharset.IsEmpty then
-  begin
-    lContentIsString := True
-  end
-  else
-  begin
 {$IF defined(RIOORBETTER)}
-    TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
-    if lMimeKind = TMimeTypes.TKind.Text then
-      lContentIsString := True;
+  TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
+  lContentIsString := lMimeKind = TMimeTypes.TKind.Text;
 {$ELSE}
-    if not (lContentType.StartsWith('image', True) or
-      lContentType.StartsWith('video', True) or
-      lContentType.StartsWith('audio', True) or
-      lContentType.ToLower.Equals('application/octet-stream') or
-      lContentType.ToLower.Equals('application/pdf')) then
-      lContentIsString := True;
+  lContentIsString := (lContentType.StartsWith('text')) or (
+       not (
+            lContentType.StartsWith('image', True) or
+            lContentType.StartsWith('video', True) or
+            lContentType.StartsWith('audio', True) or
+            lContentType.ToLower.Contains('octet-stream') or
+            lContentType.ToLower.Contains('pdf') or
+            lContentType.ToLower.Contains('zip')
+           ));
 {$ENDIF}
-  end;
 
   if lContentIsString then
   begin

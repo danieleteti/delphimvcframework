@@ -19,7 +19,6 @@ object MainForm: TMainForm
     Height = 112
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 872
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
       Left = 585
@@ -29,7 +28,6 @@ object MainForm: TMainForm
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 3
-      ExplicitLeft = 581
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -72,7 +70,6 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 4
-      ExplicitWidth = 870
       object Label1: TLabel
         Left = 3
         Top = 11
@@ -153,6 +150,7 @@ object MainForm: TMainForm
   object dsArticles: TFDMemTable
     AfterOpen = dsArticlesAfterOpen
     BeforePost = dsArticlesBeforePost
+    AfterPost = dsArticlesAfterPost
     BeforeDelete = dsArticlesBeforeDelete
     BeforeRefresh = dsArticlesBeforeRefresh
     FieldDefs = <>

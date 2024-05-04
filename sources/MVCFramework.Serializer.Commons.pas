@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -161,6 +161,7 @@ type
     property SerializationType: TMVCSerializationType read FSerializationType;
   end;
 
+  //Used by TDataSetUtils
   MVCColumnAttribute = class(TCustomAttribute)
   private
     FFieldName: string;
@@ -457,6 +458,7 @@ implementation
 
 uses
   Data.FmtBcd,
+  Data.SqlTimSt,
   MVCFramework.Nullables,
   System.Generics.Defaults;
 
@@ -748,8 +750,11 @@ class procedure TMVCSerializerHelper.DecodeStream(AInput, AOutput: TStream);
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  TNetEncoding.Base64String.Decode(AInput, AOutput);
+{$ELSE}
   TNetEncoding.Base64.Decode(AInput, AOutput);
-
+{$ENDIF}
 {$ELSE}
   Soap.EncdDecd.DecodeStream(AInput, AOutput);
 
@@ -760,11 +765,13 @@ class function TMVCSerializerHelper.DecodeString(const AInput: string): string;
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  Result := TNetEncoding.Base64String.Decode(AInput);
+{$ELSE}
   Result := TNetEncoding.Base64.Decode(AInput);
-
+{$ENDIF}
 {$ELSE}
   Result := Soap.EncdDecd.DecodeString(AInput);
-
 {$ENDIF}
 end;
 
@@ -772,8 +779,11 @@ class procedure TMVCSerializerHelper.EncodeStream(AInput, AOutput: TStream);
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  TNetEncoding.Base64String.Encode(AInput, AOutput);
+{$ELSE}
   TNetEncoding.Base64.Encode(AInput, AOutput);
-
+{$ENDIF}
 {$ELSE}
   Soap.EncdDecd.EncodeStream(AInput, AOutput);
 
@@ -784,8 +794,11 @@ class function TMVCSerializerHelper.EncodeString(const AInput: string): string;
 begin
 
 {$IFDEF SYSTEMNETENCODING}
+{$IFDEF ALEXANDRIAORBETTER}
+  Result := TNetEncoding.Base64String.Encode(AInput);
+{$ELSE}
   Result := TNetEncoding.Base64.Encode(AInput);
-
+{$ENDIF}
 {$ELSE}
   Result := Soap.EncdDecd.EncodeString(AInput);
 
@@ -1139,16 +1152,17 @@ begin
       end;
     ftInteger, ftSmallint, ftShortint, ftByte:
       begin
-        // sqlite doesn't support boolean, so are identified as integers
-        // so we need to do some more checks...
-        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.Name.ToLower.Contains('bool')) then
+        // recognize "smallintegers" mapped to boolean attribute
+        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.FieldType.Handle = TypeInfo(Boolean)) then
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger = 1);
         end
-		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
+        // general enumerations
+    		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
         begin
           TValue(AField.AsInteger).ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
         end
+        // plain integers
         else
         begin
           aRTTIField.SetValue(AObject, AField.AsInteger);
@@ -1178,8 +1192,9 @@ begin
       begin
         aRTTIField.SetValue(AObject, Frac(AField.AsDateTime));
       end;
-    ftTimeStamp:
+    ftTimeStamp, ftTimeStampOffset:
       begin
+        // Conversion between timestampoffset and TDateTime is automatically done by "AsDateTime"
         aRTTIField.SetValue(AObject, AField.AsDateTime);
       end;
     ftBoolean:

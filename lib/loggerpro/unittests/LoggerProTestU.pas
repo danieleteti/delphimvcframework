@@ -3,7 +3,7 @@ unit LoggerProTestU;
 interface
 
 uses
-  DUnitX.TestFramework, LoggerPro, LoggerPro.Proxy;
+  DUnitX.TestFramework, LoggerPro, LoggerPro.Proxy, System.SysUtils;
 
 type
 
@@ -21,6 +21,7 @@ type
     [TestCase('Type INFO', '1,INFO')]
     [TestCase('Type WARN', '2,WARNING')]
     [TestCase('Type ERROR', '3,ERROR')]
+    [TestCase('Type FATAL', '4,FATAL')]
     procedure TestTLogItemTypeAsString(aLogType: Byte; aExpected: String);
 
 //    [Test]   {refactor this}
@@ -30,12 +31,23 @@ type
     [TestCase('No proxy', 'false')]
     [TestCase('With proxy', 'true')]
     procedure TestLogLevel(UseProxy: boolean);
+
+    [Test]
+    procedure TestAddAndDeleteAppenders;
+
+    [Test]
+    [TestCase('Case1', '{timestamp}|{threadid}|{loglevel}|{message}|{tag},2020-03-15 12:30:20:123|    1234|LOGLEVEL|THIS IS THE MESSAGE|THE_TAG')]
+    [TestCase('Case2', '{timestamp}|{loglevel}|{message}|{tag},2020-03-15 12:30:20:123|LOGLEVEL|THIS IS THE MESSAGE|THE_TAG')]
+    [TestCase('Case3', '{timestamp} -- {message},2020-03-15 12:30:20:123 -- THIS IS THE MESSAGE')]
+    [TestCase('Case4', '{timestamp}[TID {threadid}][{loglevel}]{message}[{tag}],2020-03-15 12:30:20:123[TID     1234][LOGLEVEL]THIS IS THE MESSAGE[THE_TAG]')]
+    procedure TestLogLayoutToLogIndices(const LogLayout, ResultOutput: string);
+
   end;
 
 implementation
 
 uses
-  System.SysUtils, TestSupportAppendersU, System.SyncObjs;
+  TestSupportAppendersU, System.SyncObjs, LoggerPro.OutputDebugStringAppender;
 
 function LogItemAreEquals(A, B: TLogItem): Boolean;
 begin
@@ -53,6 +65,44 @@ end;
 
 procedure TLoggerProTest.TearDown;
 begin
+end;
+
+procedure TLoggerProTest.TestAddAndDeleteAppenders;
+var
+  LAppender1, LAppender2: ILogAppender;
+  LLogWriter: ILogWriter;
+begin
+  LAppender1 := TLoggerProOutputDebugStringAppender.Create();
+  LAppender2 := TLoggerProOutputDebugStringAppender.Create();
+
+  LLogWriter := BuildLogWriter([LAppender1, LAppender2]);
+  LLogWriter.Debug('Added Appenders', 'Appender');
+  Assert.AreEqual(2, LLogWriter.AppendersCount);
+
+  LLogWriter.DelAppender(LAppender1);
+  LLogWriter.Debug('Deleted Appenders', 'Appender');
+  Assert.AreEqual(1, LLogWriter.AppendersCount);
+
+  LLogWriter.DelAppender(LAppender2);
+  LLogWriter.Debug('Deleted Appenders', 'Appender');
+  Assert.AreEqual(0, LLogWriter.AppendersCount);
+
+  LLogWriter.Debug('Deleted Appenders', 'Appender');
+end;
+
+procedure TLoggerProTest.TestLogLayoutToLogIndices(const LogLayout, ResultOutput: string);
+begin
+  var lWithIndices := LogLayoutByPlaceHoldersToLogLayoutByIndexes(LogLayout);
+  var s := Format(
+    lWithIndices,
+    [
+      FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', encodedate(2020,3,15) + EncodeTime(12,30,20,123)),
+      '1234',
+      'LOGLEVEL',
+      'THIS IS THE MESSAGE',
+      'THE_TAG'
+    ]);
+  Assert.AreEqual(ResultOutput, s);
 end;
 
 procedure TLoggerProTest.TestLogLevel(UseProxy: boolean);
@@ -164,14 +214,29 @@ begin
       Assert.AreEqual('ERROR', lLogItem.LogTypeAsString);
       Assert.AreEqual(Int64(0), Int64(TInterlocked.Read(InvalidItemLogged)));
 
+      // fatal message
+      lEvent.ResetEvent;
+      InvalidItemLogged := 0;
+      lLogWriter.Fatal('fatal message', 'fatal');
+      if UseProxy then
+        lLogWriter.Fatal('ignoredmessage', 'fatal');
+      Assert.AreEqual(TWaitResult.wrSignaled, lEvent.WaitFor(5000),
+        'Event not released after 5 seconds');
+      Assert.AreEqual('fatal message', lLogItem.LogMessage);
+      Assert.AreEqual('fatal', lLogItem.LogTag);
+      Assert.AreEqual('FATAL', lLogItem.LogTypeAsString);
+      Assert.AreEqual(Int64(0), Int64(TInterlocked.Read(InvalidItemLogged)));
+
+
       lLogWriter := nil;
-      Assert.AreEqual(6, Length(lHistory));
+      Assert.AreEqual(7, Length(lHistory));
       Assert.AreEqual('setup', lHistory[0]);
       Assert.AreEqual('writelogDEBUG', lHistory[1]);
       Assert.AreEqual('writelogINFO', lHistory[2]);
       Assert.AreEqual('writelogWARNING', lHistory[3]);
       Assert.AreEqual('writelogERROR', lHistory[4]);
-      Assert.AreEqual('teardown', lHistory[5]);
+      Assert.AreEqual('writelogFATAL', lHistory[5]);
+      Assert.AreEqual('teardown', lHistory[6]);
     finally
       lEvent.Free;
     end;

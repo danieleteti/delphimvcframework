@@ -1,0 +1,23 @@
+		</div> {{! end of "movieDemoContent-div" }}
+		<!-- content ends here -->
+	</div>
+	
+	<div id="dynamicSwap-div"><div>
+</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>
+
+
+  <footer class="bg-dark text-center text-lg-start text-white page-footer" style="overflow:auto">
+    <!-- Copyright and Version -->
+    <div class="text-center p-3" >
+      © &nbsp; {{page.Copyright}} &nbsp;
+      &nbsp; {{page.Version}}
+    </div>
+    <!-- Copyright and Version -->
+  </footer>
+
+        
+</body>
+</html>
+

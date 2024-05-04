@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -67,7 +67,8 @@ type
     property FullName: string read GetFullName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-    constructor Create; virtual;
+    constructor Create; overload; virtual;
+    constructor Create(FirstName, LastName: String; Age: Integer); overload;
     destructor Destroy; override;
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
@@ -203,7 +204,7 @@ type
   TInterfacedPerson = class(TInterfacedObject, IPerson)
   private
     fName: string;
-    FDOB: TDate;
+    fDOB: TDate;
     fAge: Integer;
   protected
     function GetName: string;
@@ -213,9 +214,10 @@ type
     function GetDOB: TDate;
     procedure SetDOB(const Value: TDate);
   public
-    property name: string read GetName write SetName;
+    property Name: string read GetName write SetName;
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
+    constructor Create(Name: String; Age: Integer; DOB: TDate); virtual;
   end;
 
   //TPeople = class(TObjectList<TPerson>);
@@ -421,6 +423,15 @@ constructor TPerson.Create;
 begin
   inherited Create;
   fID := 1000 + Random(1000);
+end;
+
+constructor TPerson.Create(FirstName, LastName: String; Age: Integer);
+begin
+  Create;
+  FFirstName := FirstName;
+  FLastName := LastName;
+  FDOB := EncodeDate(CurrentYear - Age, 1, 1);
+  FMarried := False;
 end;
 
 destructor TPerson.Destroy;
@@ -650,6 +661,14 @@ begin
 end;
 
 { TInterfacedPerson }
+
+constructor TInterfacedPerson.Create(Name: String; Age: Integer; DOB: TDate);
+begin
+  inherited Create;
+  fName := Name;
+  fAge := Age;
+  fDOB := DOB;
+end;
 
 function TInterfacedPerson.GetAge: Integer;
 begin

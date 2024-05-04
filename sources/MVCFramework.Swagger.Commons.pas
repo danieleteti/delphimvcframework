@@ -1,13 +1,13 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// João Antônio Duarte (https://github.com/joaoduarte19)
+// Joï¿½o Antï¿½nio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -147,6 +147,7 @@ type
     constructor Create(const aParamLocation: TMVCSwagParamLocation; const aParamName: string;
       const aParamDescription: string; const aParamType: TMVCSwagParamType; const aRequired: Boolean = True;
       const aDefaultValue: string = ''; const aEnumValues: string = ''; const aJsonSchema: string = ''); overload;
+
     constructor Create(const aParamLocation: TMVCSwagParamLocation; const aParamName: string;
       const aParamDescription: string; const aJsonSchemaClass: TClass;
       const aParamType: TMVCSwagParamType = ptNotDefined; const aRequired: Boolean = True;
@@ -371,6 +372,7 @@ var
   lSwagDef: TSwagDefinition;
   lSwagDefinition: TSwagDefinition;
   lIndex: Integer;
+  lJsonSchema: TJsonFieldArray;
 begin
   if Assigned(aRecordType) then
     lClassName := aRecordType.Name
@@ -400,7 +402,22 @@ begin
   finally
     lSwagDef.Free;
   end;
-  aSwagReqParam.Schema.Name := lClassName;
+  if aMVCSwagParamType = ptArray then
+  begin
+    lJsonSchema := TJsonFieldArray.Create;
+    try
+      lJsonSchema.Name := 'items';
+      lJsonSchema.ItemFieldType := TJsonFieldObject.Create;
+      TJsonFieldObject(lJsonSchema.ItemFieldType).Ref := lClassName;
+      aSwagReqParam.Schema.JsonSchema := lJsonSchema.ToJsonSchema;
+    finally
+      lJsonSchema.Free;
+    end;
+  end
+  else
+  begin
+    aSwagReqParam.Schema.Name := lClassName;
+  end
 end;
 
 class function TMVCSwagger.ApplyModelName(const Value, Singular,

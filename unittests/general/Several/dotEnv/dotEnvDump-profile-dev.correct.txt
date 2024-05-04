@@ -1,0 +1,12 @@
+key1=devvalue1
+key2=devvalue2
+key2.1=value2.1
+key2.2=value2.2
+key2.3=value2.3
+key2.4=value2.1|value2.2|value2.3|value2.1
+key3=devvalue3
+key4=value4
+key5=devvalue3
+key6=devvalue3
+key7=value2.1
+mode=dev

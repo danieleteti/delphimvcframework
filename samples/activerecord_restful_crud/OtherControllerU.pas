@@ -10,24 +10,24 @@ type
   public
     [MVCPath]
     [MVCHTTPMethods([httpGET])]
-    procedure GetSomethings;
+    function GetSomethings: String;
     [MVCPath('/else')]
     [MVCHTTPMethods([httpGET])]
-    procedure GetSomethingElse;
+    function GetSomethingElse: String;
   end;
 
 implementation
 
 { TCustomController }
 
-procedure TOtherController.GetSomethingElse;
+function TOtherController.GetSomethingElse: String;
 begin
-  Render('Hello There, it''s "GetSomethingElse" here');
+  Result := 'Hello There, it''s "GetSomethingElse" here';
 end;
 
-procedure TOtherController.GetSomethings;
+function TOtherController.GetSomethings: String;
 begin
-  Render('Hello There, it''s "GetSomethings" here');
+  Result := 'Hello There, it''s "GetSomethings" here';
 end;
 
 end.

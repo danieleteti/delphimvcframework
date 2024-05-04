@@ -7,7 +7,6 @@ uses
   MVCFramework.Logger,
   MVCFramework.Commons,
   MVCFramework.Console,
-  MVCFramework.REPLCommandsHandlerU,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -18,7 +17,10 @@ uses
   BusinessObjectsU in '..\..\commons\BusinessObjectsU.pas',
   RandomUtilsU in '..\..\commons\RandomUtilsU.pas',
   MainDM in '..\..\articles_crud_server\MainDM.pas' {dmMain: TDataModule},
-  CommonTypesU in '..\CommonTypesU.pas';
+  CommonTypesU in '..\CommonTypesU.pas',
+  Services in '..\..\articles_crud_server\Services.pas',
+  BusinessObjects in '..\..\articles_crud_server\BusinessObjects.pas',
+  Commons in '..\..\articles_crud_server\Commons.pas';
 
 {$R *.res}
 

@@ -8,7 +8,7 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
   Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf, MVCFramework.RESTClient,
-  Vcl.DBCtrls;
+  Vcl.DBCtrls, Vcl.Buttons;
 
 type
   TMainForm = class(TForm)
@@ -41,10 +41,12 @@ type
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
     procedure btnRefreshRecordClick(Sender: TObject);
     procedure btnFilterClick(Sender: TObject);
+    procedure dsArticlesAfterPost(DataSet: TDataSet);
   private
     fFilter: string;
     fLoading: Boolean;
     fRESTClient: IMVCRESTClient;
+    fBkmrk: TArray<Byte>;
     { Private declarations }
     procedure ShowError(const AResponse: IMVCRESTResponse);
     procedure SetFilter(const Value: string);
@@ -120,6 +122,14 @@ begin
   end;
 end;
 
+procedure TMainForm.dsArticlesAfterPost(DataSet: TDataSet);
+begin
+  if DataSet.BookmarkValid(fBkmrk) then
+  begin
+    DataSet.GotoBookmark(fBkmrk);
+  end;
+end;
+
 procedure TMainForm.dsArticlesBeforeDelete(DataSet: TDataSet);
 var
   Res: IMVCRESTResponse;
@@ -147,11 +157,8 @@ begin
     begin
       ShowError(Res);
       Abort;
-    end
-    else
-    begin
-      DataSet.Refresh;
     end;
+    fBkmrk := DataSet.GetBookmark;
   end;
 end;
 

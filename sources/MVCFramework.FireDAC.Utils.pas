@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,7 +29,8 @@ unit MVCFramework.FireDAC.Utils;
 interface
 
 uses
-  FireDAC.Comp.Client, FireDAC.Stan.Param, System.Rtti, JsonDataObjects;
+  FireDAC.Comp.Client, FireDAC.Stan.Param, System.Rtti, JsonDataObjects,
+  Data.DB, FireDAC.Comp.DataSet;
 
 type
   TFireDACUtils = class sealed
@@ -51,13 +52,13 @@ type
   TFDCustomMemTableHelper = class helper for TFDCustomMemTable
   public
     procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
+    class function CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable; static;
   end;
 
 implementation
 
 uses
   System.Generics.Collections,
-  Data.DB,
   System.Classes,
   MVCFramework.Serializer.Commons,
   System.SysUtils;
@@ -220,6 +221,12 @@ begin
     AQuery.ExecSQL;
     Result := AQuery.RowsAffected;
   end;
+end;
+
+class function TFDCustomMemTableHelper.CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable;
+begin
+  Result := TFDMemTable.Create(nil);
+  TFDMemTable(Result).CloneCursor(FDDataSet);
 end;
 
 procedure TFDCustomMemTableHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);

@@ -1,6 +1,31 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// Contributors for this file: 
+//    David Cornelius
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.VCLListBoxAppender;
-{ <@abstract(The unit to include if you want to use the @link(TVCLListBoxAppender))
-  @author(David Cornelius) }
 
 interface
 
@@ -16,7 +41,7 @@ type
     FLB: TListBox;
     FMaxLogLines: Word;
   public
-    constructor Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+    constructor Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -29,9 +54,9 @@ uses
 
 { TVCLListBoxAppender }
 
-constructor TVCLListBoxAppender.Create(aLB: TListBox; aMaxLogLines: Word; aLogFormat: string);
+constructor TVCLListBoxAppender.Create(aLB: TListBox; aMaxLogLines: Word = 500; aLogItemRenderer: ILogItemRenderer = nil);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   FLB := aLB;
   FMaxLogLines := aMaxLogLines;
 end;
@@ -56,7 +81,6 @@ var
   lText: string;
 begin
   lText := FormatLog(aLogItem);
-
   TThread.Queue(nil,
     procedure
     var

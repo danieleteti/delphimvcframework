@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //
@@ -37,26 +37,37 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-  ToolsAPI;
+  JsonDataObjects,
+  ToolsAPI,
+  DMVC.Expert.CodeGen.Executor;
 
 type
   TSourceFile = class(TInterfacedObject, IOTAFile)
   private
-    FSource: string;
+    fGeneratorCallback: TProc<TMVCCodeGenerator>;
+    fJSON: TJsonObject;
   public
     function GetSource: string;
     function GetAge: TDateTime;
-    constructor Create(const Source: string; const Args: array of const );
+    constructor Create(const GeneratorCallback: TProc<TMVCCodeGenerator>; const Args: TJsonObject);
+    destructor Destroy; override;
   end;
 
 implementation
 
 { TSourceFile }
 
-constructor TSourceFile.Create(const Source: string; const Args: array of const );
+constructor TSourceFile.Create(const GeneratorCallback: TProc<TMVCCodeGenerator>; const Args: TJsonObject);
 begin
   inherited Create;
-  FSource := Format(Source, Args);
+  fGeneratorCallback := GeneratorCallback;
+  fJSON := Args.Clone as TJsonObject;
+end;
+
+destructor TSourceFile.Destroy;
+begin
+  fJSON.Free;
+  inherited;
 end;
 
 function TSourceFile.GetAge: TDateTime;
@@ -66,7 +77,11 @@ end;
 
 function TSourceFile.GetSource: string;
 begin
-  Result := FSource;
+  Result := TMVCCodeGenerator.GenerateSource(fJSON,
+                        procedure (Gen: TMVCCodeGenerator)
+                        begin
+                          fGeneratorCallback(Gen)
+                        end);
 end;
 
 end.

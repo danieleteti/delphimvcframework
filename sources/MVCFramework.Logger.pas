@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -75,6 +75,9 @@ procedure LogW(AMessage: string); overload;
 procedure LogW(AObject: TObject); overload;
 
 procedure LogE(AMessage: string);
+
+procedure LogF(AMessage: string);
+
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
 
 procedure LogException(const E: Exception; const AMessage: String);
@@ -96,10 +99,19 @@ procedure InitThreadVars;
 
 var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
+  UseConsoleLogger: Boolean = True;
 
 implementation
 
 uses
+  {$IF Defined(MSWINDOWS)}
+  LoggerPro.ConsoleAppender,
+  {$ELSE}
+  {$IF Not Defined(MOBILE)}
+  LoggerPro.SimpleConsoleAppender, //only for linux
+  {$ENDIF}
+  {$ENDIF}
+  LoggerPro.Renderers,
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
@@ -189,18 +201,15 @@ begin
     Log.Error(AMessage, LOGGERPRO_TAG);
 end;
 
-procedure LogException(const E: Exception; const AMessage: String);
+procedure LogF(AMessage: string);
 begin
-    LogE(E.ClassName + ': ' + AMessage);
+    Log.Fatal(AMessage, LOGGERPRO_TAG);
 end;
 
-// procedure LogException(
-// const AException: Exception;
-// const AMessage: string);
-// begin
-// Log.Error(Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
-// AException.Message, AMessage]), LOGGERPRO_TAG);
-// end;
+procedure LogException(const E: Exception; const AMessage: String);
+begin
+    LogE(E.ClassName + ': ' + E.Message + ' - (Custom Message: ' + AMessage + ')');
+end;
 
 procedure LogEnterMethod(const AMethodName: string);
 begin
@@ -266,32 +275,35 @@ end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
-    if gDefaultLogger = nil then
-    begin
-      TMonitor.Enter(gLock); // double check here
-      try
-        if gDefaultLogger = nil then
+  if gDefaultLogger = nil then
+  begin
+    TMonitor.Enter(gLock); // double check here
+    try
+      if gDefaultLogger = nil then
+      begin
+        if aLogWriter <> nil then
         begin
-          if aLogWriter <> nil then
-          begin
-            gDefaultLogger := aLogWriter;
-            Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
-          end
-          else
-          begin
-            InitializeDefaultLogger;
-            Log.Info('Default Logger initialized', LOGGERPRO_TAG);
-          end;
+          gDefaultLogger := aLogWriter;
+          Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
+        end
+        else
+        begin
+          InitializeDefaultLogger;
         end;
-      finally
-        TMonitor.Exit(gLock);
       end;
+    finally
+      TMonitor.Exit(gLock);
     end;
+  end;
 end;
+
+
 
 procedure InitializeDefaultLogger;
 var
   lLogsFolder: String;
+  lFileAppender, lConsoleAppender: ILogAppender;
+  lAppenders: TArray<ILogAppender>;
 begin
     { This procedure must be called in a synchronized context
       (Normally only SetDefaultLogger should be the caller) }
@@ -302,9 +314,26 @@ begin
 {$ELSE}
       lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-      gDefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
+      lFileAppender := TLoggerProFileAppender.Create(5, 10000, lLogsFolder);
+      if IsConsole and UseConsoleLogger then
+      begin
+        {$IF Defined(MSWINDOWS)}
+        lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
+        {$ELSE}
+        {$IF Not Defined(MOBILE)}
+        lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
+        {$ENDIF}
+        {$ENDIF}
+        lAppenders := [lFileAppender, lConsoleAppender];
+      end
+      else
+      begin
+        lAppenders := [lFileAppender];
+      end;
+      gDefaultLogger := BuildLogWriter(lAppenders);
     end;
 end;
+
 
 procedure ReleaseGlobalLogger;
 begin

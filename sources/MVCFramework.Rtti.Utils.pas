@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,7 +34,7 @@ uses
   System.Rtti,
   System.Generics.Collections,
   System.SysUtils,
-  Data.DB;
+  Data.DB, MVCFramework.Logger;
 
 type
 
@@ -90,6 +90,8 @@ type
     class function FindType(AQualifiedName: string): TRttiType;
     class function GetGUID<T>: TGUID;
     class function GetArrayContainedRTTIType(const RTTIType: TRttiType): TRttiType;
+    class function GetConstructorWithAttribute<T:TCustomAttribute>(const RTTIType: TRttiType): TRttiMethod;
+    class function GetFirstDeclaredConstructor(const RTTIType: TRttiType): TRttiMethod;
   end;
 
 {$IF not defined(BERLINORBETTER)}
@@ -105,7 +107,7 @@ implementation
 
 uses
   MVCFramework.DuckTyping,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Commons;
 
 class function TRttiUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   ARaiseExceptionIfNotFound: Boolean): TValue;
@@ -177,6 +179,44 @@ begin
   begin
     if Attr.ClassType.InheritsFrom(T) then
       Exit(T(Attr));
+  end;
+end;
+
+class function TRttiUtils.GetConstructorWithAttribute<T>(const RTTIType: TRttiType): TRttiMethod;
+var
+  lConstructors: TArray<TRttiMethod>;
+  lConstructor: TRttiMethod;
+begin
+  Result := nil;
+  lConstructors := RttiType.GetMethods('Create');
+  for lConstructor in lConstructors do
+  begin
+    {$IF Defined(ALEXANDRIAORBETTER)}
+    if lConstructor.HasAttribute<T> then
+    {$ELSE}
+    if TRttiUtils.HasAttribute<T>(lConstructor) then
+    {$ENDIF}
+    begin
+      Result := lConstructor;
+      break; { the first wins }
+    end;
+  end;
+end;
+
+class function TRttiUtils.GetFirstDeclaredConstructor(const RTTIType: TRttiType): TRttiMethod;
+var
+  lConstructors: TArray<TRttiMethod>;
+  lConstructor: TRttiMethod;
+begin
+  Result := nil;
+  lConstructors := RttiType.GetDeclaredMethods;
+  for lConstructor in lConstructors do
+  begin
+    if lConstructor.IsConstructor and (lConstructor.Visibility = TMembervisibility.mvPublic) then
+    begin
+      Result := lConstructor;
+      Break;
+    end;
   end;
 end;
 
@@ -539,7 +579,6 @@ var
   V: TValue;
   Found: Boolean;
 begin
-  Found := False;
   for elem in AList do
   begin
     V := GetProperty(elem, APropertyName);
@@ -757,14 +796,14 @@ end;
 
 class function TRttiUtils.CreateObject(AQualifiedClassName: string; const AParams: TArray<TValue> = nil): TObject;
 var
-  rttitype: TRttiType;
+  lRTTIType: TRttiType;
 begin
-  rttitype := GlContext.FindType(AQualifiedClassName);
-  if Assigned(rttitype) then
-    Result := CreateObject(rttitype, AParams)
+  lRTTIType := GlContext.FindType(AQualifiedClassName);
+  if Assigned(lRTTIType) then
+    Result := CreateObject(lRTTIType, AParams)
   else
     raise Exception.Create('Cannot find RTTI for ' + AQualifiedClassName +
-      '. Hint: Is the specified classtype linked in the module?');
+      '. HINT: Is the specified "QualifiedClassName" linked in the module?');
 end;
 
 class function TRttiUtils.CreateObject(ARttiType: TRttiType; const AParams: TArray<TValue> = nil): TObject;

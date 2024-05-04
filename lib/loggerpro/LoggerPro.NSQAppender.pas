@@ -1,3 +1,30 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// Contributors for this file: 
+//    Fulgan - https://github.com/Fulgan
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.NSQAppender;
 
 interface
@@ -82,7 +109,7 @@ type
     /// creation event is defined </param>
     constructor Create(aTopic: string=''; aEphemeral: Boolean = False;
         aNSQUrl: string=DEFAULT_NSQ_URL;
-        aLogFormat: string=DEFAULT_LOG_FORMAT);
+        aLogItemRenderer: ILogItemRenderer = nil);
         reintroduce;
     property NSQUrl: string read GetNSQUrl write SetNSQUrl;
     property Ephemeral: Boolean read FEphemeral write SetEphemeral;
@@ -100,9 +127,9 @@ implementation
 uses  System.NetEncoding;
 
 constructor TLoggerProNSQAppenderBase.Create(aTopic: string; aEphemeral: Boolean;
-  aNSQUrl: string; aLogFormat: string);
+  aNSQUrl: string; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   FEphemeral := aEphemeral;
   FNSQUrl := 'http://127.0.0.1:4151';
   FUserName := aNSQUrl;

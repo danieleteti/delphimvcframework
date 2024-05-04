@@ -29,7 +29,7 @@ begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
-    ViewDataset['people'] := lDM.qryCustomers;
+    ViewData['people'] := lDM.qryCustomers;
     LoadView(['header', 'people_list', 'footer']);
   finally
     lDM.Free;

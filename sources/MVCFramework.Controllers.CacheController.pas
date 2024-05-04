@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -80,6 +80,10 @@ type
     /// </summary>
     procedure SetCacheKey(const AKey: string);
     /// <summary>
+    /// Deletes the specified key(s) from the redis cache. Pattern matching can be used to delete multiple keys
+    /// </summary>
+    procedure DeleteCacheKey(const AKey: string = '');
+    /// <summary>
     /// Returns true if the cache is available and automatically fills
     /// the response using the cache contents
     /// </summary>
@@ -93,6 +97,7 @@ type
     /// retrived from cache
     /// </summary>
     property ExposeCache: Boolean read FExposeCache write SetExposeCache;
+
   end;
 
 implementation
@@ -256,6 +261,27 @@ end;
 procedure TMVCCacheController.SetExposeCache(const AValue: Boolean);
 begin
   FExposeCache := AValue;
+end;
+
+procedure TMVCCacheController.DeleteCacheKey(const AKey: string = '');
+var
+  AKeys: TRedisArray;
+  ARedis: IRedisClient;
+begin
+  ARedis := RedisClient;
+  if AKey <> '' then
+  begin
+    AKeys := ARedis.KEYS(AKey);
+    if AKeys.HasValue then
+    begin
+      ARedis.DEL(AKeys.ToArray);
+    end;
+  end
+  else
+  begin
+    CheckCacheKey;
+    ARedis.DEL(FCurrentCacheKey);
+  end;
 end;
 
 end.

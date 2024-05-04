@@ -20,20 +20,11 @@ var
   GPeople, GPeopleSmall: TObjectList<TPerson>;
 
 function GetInterfacedPeopleList: TList<IPerson>;
-var
-  lPerson: IPerson;
 begin
-  Result := TList<IPerson>.Create;
-  lPerson := TInterfacedPerson.Create;
-  lPerson.Name := 'Daniele Teti';
-  lPerson.Age := 40;
-  lPerson.DOB := EncodeDate(1979, 11, 4);
-  Result.Add(lPerson);
-  lPerson := TInterfacedPerson.Create;
-  lPerson.Name := 'Peter Parker';
-  lPerson.Age := 35;
-  lPerson.DOB := EncodeDate(1984, 11, 4);
-  Result.Add(lPerson);
+  Result := TList<IPerson>.Create([
+    TInterfacedPerson.Create('Daniele Teti', 40, EncodeDate(1979, 11, 4)),
+    TInterfacedPerson.Create('Peter Parker', 35, EncodeDate(1984, 11, 4))
+    ]);
 end;
 
 procedure PopulateList;

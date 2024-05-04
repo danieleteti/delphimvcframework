@@ -11,3 +11,4 @@
 .\samples\**\*.js
 .\samples\**\*.css
 .\samples\**\myproj*
+.\samples\**\*.htmx

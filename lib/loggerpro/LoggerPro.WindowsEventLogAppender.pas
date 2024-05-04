@@ -1,6 +1,31 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// Contributors for this file: 
+//    David Cornelius
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.WindowsEventLogAppender;
-{ <@abstract(The unit to include if you want to use @link(TLoggerProWindowsEventLogAppender))
-  @author(David Cornelius) }
 
 {$IFNDEF MSWINDOWS}
 {$MESSAGE FATAL 'This unit only works with Windows'}
@@ -53,7 +78,7 @@ begin
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_INFORMATION_TYPE);
     TLogType.Warning:
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_WARNING_TYPE);
-    TLogType.Error:
+    TLogType.Error, TLogType.Fatal:
       FService.LogMessage(aLogItem.LogMessage, EVENTLOG_ERROR_TYPE);
   end;
 end;

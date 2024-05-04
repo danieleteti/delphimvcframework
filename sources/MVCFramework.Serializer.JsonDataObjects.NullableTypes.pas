@@ -2,11 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: João Antônio Duarte (joao.antonioduarte@hotmail.com)
+// Collaborators on this file: Joï¿½o Antï¿½nio Duarte (joao.antonioduarte@hotmail.com)
 //
 // TNullabletypes requires spring4d framework
 //

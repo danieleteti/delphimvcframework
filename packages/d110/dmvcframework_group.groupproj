@@ -13,7 +13,7 @@
             <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkDT.dproj">
-            <Dependencies/>
+            <Dependencies>dmvcframeworkRT.dproj</Dependencies>
         </Projects>
     </ItemGroup>
     <ProjectExtensions>
@@ -50,13 +50,13 @@
     <Target Name="dmvcframeworkRT:Make">
         <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
     </Target>
-    <Target Name="dmvcframeworkDT">
+    <Target Name="dmvcframeworkDT" DependsOnTargets="dmvcframeworkRT">
         <MSBuild Projects="dmvcframeworkDT.dproj"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Clean">
+    <Target Name="dmvcframeworkDT:Clean" DependsOnTargets="dmvcframeworkRT:Clean">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Make">
+    <Target Name="dmvcframeworkDT:Make" DependsOnTargets="dmvcframeworkRT:Make">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">

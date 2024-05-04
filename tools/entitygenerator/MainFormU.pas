@@ -54,7 +54,8 @@ uses
   Vcl.ExtActns, System.ImageList, Vcl.ImgList,
   LoggerPro.FileAppender,
   LoggerPro.VCLListBoxAppender,
-  LoggerPro;
+  LoggerPro, FireDAC.Moni.RemoteClient, FireDAC.Moni.Custom, FireDAC.Moni.Base,
+  FireDAC.Moni.FlatFile;
 
 type
   TSelectionType = (stAll, stNone, stInverse);
@@ -147,6 +148,12 @@ type
     btnSaveAs: TSpeedButton;
     EditOutputFileName: TEdit;
     Button6: TButton;
+    gbOptions: TGroupBox;
+    chkClassAsAbstract: TCheckBox;
+    FDMoniFlatFileClientLink1: TFDMoniFlatFileClientLink;
+    FDMoniCustomClientLink1: TFDMoniCustomClientLink;
+    FDMoniRemoteClientLink1: TFDMoniRemoteClientLink;
+    Label5: TLabel;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -201,7 +208,7 @@ type
     procedure EmitProperty(const FieldName: String; const ColumnAttribs: TFDDataAttributes; const FieldDataType: TFDDataType; const IsPK: Boolean);
     procedure EmitField(const DatabaseFieldName: String; const UniqueFieldName: String;
       const FieldDataType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const IsPK: Boolean);
-    procedure EmitClass(const aTableName, aClassName, aNameCase: string);
+    procedure EmitClass(const aTableName, aClassName, aNameCase: string; const IsAbstract: Boolean);
     procedure EmitClassEnd;
     function GetDelphiType(const FireDACType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const ForceNullable: Boolean = False): string;
     function GetFieldName(const Value: string): string;
@@ -259,6 +266,7 @@ var
   lOutputFileName: string;
   lUnitName: string;
   lGeneratedEntities: Integer;
+  lIsAbstract: Boolean;
 begin
 //https://docwiki.embarcadero.com/RADStudio/Sydney/en/Metadata_Structure_(FireDAC)
 //https://docwiki.embarcadero.com/Libraries/Sydney/en/FireDAC.Stan.Intf.TFDDataAttribute
@@ -290,7 +298,13 @@ begin
         dsTablesMappingTABLE_NAME.AsString
       ], LOG_TAG);
       lClassName := dsTablesMappingCLASS_NAME.AsString;
-      EmitClass(lTableName, lClassName, rgNameCase.Items[rgNameCase.ItemIndex]);
+      lIsAbstract := chkClassAsAbstract.Checked;
+      if lIsAbstract then
+      begin
+        lClassName := lClassName.Chars[0] + 'Custom' + lClassName.Substring(1);
+      end;
+
+      EmitClass(lTableName, lClassName, rgNameCase.Items[rgNameCase.ItemIndex], lIsAbstract);
       lKeyFields.Clear;
       FDConnection.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
 
@@ -437,7 +451,6 @@ begin
           fSchema := lstSchema.Items[lstSchema.ItemIndex];
         end;
         FDConnection.GetTableNames(fCatalog, fSchema, '', lTables);
-
         // FDConnection1.GetTableNames('', 'public', '', lTables);
         // FDConnection1.GetTableNames('', '', '', lTables);
         // if lTables.Count = 0 then
@@ -532,12 +545,12 @@ begin
   lstSchema.Items.Clear;
   FDConnection.Params.Clear;
   FDConnection.Params.Text := mmConnectionParams.Text;
+  FDConnection.Params.AddPair('ExtendedMetadata','True'); //force ExtendedMetadata
   FDConnection.Open;
   lstSchema.Items.Clear;
   FDConnection.GetSchemaNames(FDConnection.Params.Database, '', lstSchema.Items);
   lstSchema.Items.Insert(0, '<all>');
   lstSchema.ItemIndex := 0;
-
 end;
 
 procedure TMainForm.DBGrid1CellClick(Column: TColumn);
@@ -615,13 +628,18 @@ begin
   TabSheet1.Caption := 'Tables (' + dsTablesMapping.RecordCount.ToString + ')';
 end;
 
-procedure TMainForm.EmitClass(const aTableName, aClassName, aNameCase: string);
+procedure TMainForm.EmitClass(const aTableName, aClassName, aNameCase: string; const IsAbstract: Boolean);
+var
+  lAbstract: string;
 begin
   fIntfBuff.WriteString(INDENT + '[MVCNameCase(nc' + aNameCase + ')]' + sLineBreak);
   fIntfBuff.WriteString(INDENT + Format('[MVCTable(''%s'')]', [aTableName]) + sLineBreak);
   if trim(aClassName) = '' then
     raise Exception.Create('Invalid class name');
-  fIntfBuff.WriteString(INDENT + aClassName + ' = class(TMVCActiveRecord)' + sLineBreak);
+  lAbstract := '';
+  if IsAbstract then
+    lAbstract := ' abstract';
+  fIntfBuff.WriteString(INDENT + aClassName + ' = class' + lAbstract + '(TMVCActiveRecord)' + sLineBreak);
   if chkGenerateMapping.Checked then
     fInitializationBuff.WriteString(Format('ActiveRecordMappingRegistry.AddEntity(''%s'', %s);',
       [aTableName.ToLower, aClassName]) + sLineBreak);
@@ -768,13 +786,13 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  UILogFormat: String;
+//var
+//  UILogFormat: String;
 begin
-  UILogFormat := '%0:s [%2:-10s] %3:s';
+  //UILogFormat := '%0:s [%2:-10s] %3:s';
   Log := BuildLogWriter([
     TLoggerProFileAppender.Create,
-    TVCLListBoxAppender.Create(lbLog, 2000, UILogFormat)
+    TVCLListBoxAppender.Create(lbLog, 2000)
     ]);
   pcMain.ActivePageIndex := 0;
   fConfig := TJSONObject.Create;
@@ -873,7 +891,8 @@ begin
       Result := 'TDateTime {dtTimeIntervalFull}';
     dtDateTimeStamp:
       Result := 'TDateTime {dtDateTimeStamp}';
-
+    dtDateTimeStampOff:
+      Result := 'TDateTime {dtDateTimeStampOff}';
 //    dtAutoInc:
 //      Result := 'Integer {autoincrement}';
     dtBlob: //, { ftMemo, } dtGraphic, { ftFmtMemo, ftWideMemo, } dtStream:
@@ -1164,6 +1183,10 @@ begin
   if pcMain.ActivePage = tsTablesMapping then
   begin
     actRefreshTableList.Execute;
+    if EditOutputFileName.Text = '' then
+    begin
+      EditOutputFileName.Text := TPath.Combine(TPath.GetDocumentsPath, 'EntitiesU.pas');
+    end;
   end;
 end;
 

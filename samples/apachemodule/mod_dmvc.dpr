@@ -8,6 +8,9 @@ uses
   Web.ApacheApp,
   Web.HTTPD24Impl,
   MVCFramework.Logger,
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  Web.HTTPDMethods,
   Winapi.Windows,
   System.Classes,
   MainDataModuleUnit in '..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
@@ -47,6 +50,17 @@ exports
 
 begin
   CoInitFlags := COINIT_MULTITHREADED;
+  dotEnvConfigure(
+    function : IMVCDotEnv
+    begin
+      Result := NewDotEnv
+                  .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                  .UseLogger(procedure(LogItem: String)
+                             begin
+                               LogW('dotEnv: ' + LogItem);
+                             end)
+                  .Build();           //uses the executable folder to look for .env* files
+    end);
   Web.ApacheApp.InitApplication(@GModuleData);
   Application.Initialize;
   Application.WebModuleClass := WebModuleClass;
