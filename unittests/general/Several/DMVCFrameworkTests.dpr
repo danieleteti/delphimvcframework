@@ -148,6 +148,9 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   UseConsoleLogger := False;
+  TMVCSqids.SQIDS_ALPHABET := 'axDlw8dRnsPCrbZIAEMFG4TQ6gc3iWtOy9v5NBz0LfSmuKV71JHkUhYpej2Xqo';
+  TMVCSqids.SQIDS_MIN_LENGTH := 6;
+
 {$IF Defined(CONSOLE_TESTRUNNER)}
   MainConsole();
 {$ELSE}

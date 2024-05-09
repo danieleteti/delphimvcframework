@@ -177,6 +177,8 @@ type
   end;
 
   TUnitMainBeginEndCommand = class(TCustomCommand)
+  private
+    function GetScrambledAlphabet: String;
   public
     procedure ExecuteImplementation(
       Section: TStringBuilder;
@@ -211,7 +213,6 @@ type
   end;
 
 implementation
-
 
 { TUnitUsesCommand }
 
@@ -982,6 +983,8 @@ begin
     .AppendLine('  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.')
     .AppendLine('  MVCSerializeNulls := True;')
     .AppendLine('  UseConsoleLogger := True;')
+    .AppendLine('  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env(''dmvc.sqids.alphabet'', ''' + GetScrambledAlphabet + ''');')
+    .AppendLine('  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env(''dmvc.sqids.min_length'', 6);')
     .AppendLine
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);')
     .AppendLine('  try')
@@ -1053,6 +1056,29 @@ procedure TUnitMainBeginEndCommand.ExecuteInterface(Section: TStringBuilder;
 begin
   inherited;
 
+end;
+
+function TUnitMainBeginEndCommand.GetScrambledAlphabet: String;
+const
+  DEFAULT_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+var
+  I: Integer;
+  lIdx1: Integer;
+  lSize: Integer;
+  lIdx2: Integer;
+  lTmp: Char;
+begin
+  Randomize;
+  Result := DEFAULT_ALPHABET;
+  lSize := Length(Result);
+  for I := 1 to 100 do
+  begin
+    lIdx1 := Random(lSize) + 1;
+    lIdx2 := Random(lSize) + 1;
+    lTmp := Result[lIdx1];
+    Result[lIdx1] := Result[lIdx2];
+    Result[lIdx2] := lTmp;
+  end;
 end;
 
 { TUnitRunServerProcBody }

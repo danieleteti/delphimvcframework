@@ -221,6 +221,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Signal.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.Text.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Container.pas"/>
+        <DCCReference Include="..\..\sources\sqids.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

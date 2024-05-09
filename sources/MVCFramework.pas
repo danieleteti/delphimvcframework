@@ -330,6 +330,10 @@ type
 
   end;
 
+  MVCFromSqidAttribute = class(MVCInjectableParamAttribute)
+
+  end;
+
   MVCFromCookieAttribute = class(MVCInjectableParamAttribute)
 
   end;
@@ -4070,7 +4074,7 @@ end;
 function TMVCRenderer.GetContentType: string;
 begin
   Result := GetContext.Response.ContentType;
-  if Result.IsEmpty then
+  if Result.IsEmpty or FContentCharset.IsEmpty then
   begin
     Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
     GetContext.Response.ContentType := Result;
@@ -4776,14 +4780,14 @@ procedure TMVCRenderer.RenderSSE(const EventID, EventData: string; EventName: st
 const Retry: Integer);
 begin
   // setting up the correct SSE headers
-  SetContentType('text/event-stream');
+  SetContentType(BuildContentType(TMVCMediaType.TEXT_EVENTSTREAM, TMVCCharSet.UTF_8));
   GetContext.Response.SetCustomHeader('Cache-Control', 'no-cache');
-  GetContext.Response.StatusCode := http_status.OK;
+  GetContext.Response.StatusCode := HTTP_STATUS.OK;
 
   // render the response using SSE compliant data format
 
   // current event id (the client will resend this number at the next request)
-  ResponseStream.Append(Format('id: %s'#13, [EventID]));
+  ResponseStream.Append(Format('id:%s'#13, [EventID]));
 
   // The browser attempts to reconnect to the source roughly 3 seconds after
   // each connection is closed. You can change that timeout by including a line
@@ -4792,16 +4796,16 @@ begin
 
   if Retry > -1 then
   begin
-    ResponseStream.Append(Format('retry: %d'#13, [Retry]));
+    ResponseStream.Append(Format('retry:%d'#13, [Retry]));
   end;
 
   if not EventName.IsEmpty then
   begin
-    ResponseStream.Append(Format('event: %s'#13, [EventName]));
+    ResponseStream.Append(Format('event:%s'#13, [EventName]));
   end;
 
   // actual message
-  ResponseStream.Append('data: ' + EventData.Replace(sLineBreak, '', [rfReplaceAll]) + #13#13);
+  ResponseStream.Append('data:' + EventData.Replace(sLineBreak, '', [rfReplaceAll]) + #13#13);
 
   // render all the stuff
   RenderResponseStream;
