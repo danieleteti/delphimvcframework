@@ -266,6 +266,19 @@ type
     [Test]
     procedure TestSerializeAndDeserializeNullables_Passing_Integers_InsteadOf_Floats;
 
+    //test sqids
+    [Test]
+    [TestCase('1', '1,Im1JUf')]
+    [TestCase('2','1234567890,LhXiwKz')]
+    [TestCase('3','9007199254740991,PTP7uQmcmk')]
+    procedure TestSqidSingle(IntValue: UInt64; Sqid: String);
+
+    [Test]
+    procedure TestWrongSqid;
+
+    [Test]
+    procedure TestInvalidConverter;
+
     // test responses objects
     [Test]
     procedure TestResponseCreated;
@@ -1776,6 +1789,14 @@ begin
   Assert.areEqual('', res.Content);
 end;
 
+procedure TServerTest.TestInvalidConverter;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get('/wrongconverter/1');
+  Assert.areEqual(500, lRes.StatusCode);
+end;
+
 procedure TServerTest.TestIssue406;
 var
   r: IMVCRESTResponse;
@@ -2834,6 +2855,16 @@ begin
   end;
 end;
 
+procedure TServerTest.TestSqidSingle(IntValue: UInt64; Sqid: String);
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get('/sqids/itos/' + IntValue.ToString);
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.AreEqual(TMVCSqids.IntToSqid(IntValue), lRes.Content.Trim, '(local)');
+  Assert.AreEqual(Sqid, lRes.Content.Trim, '(remote)');
+end;
+
 procedure TServerTest.TestStringDictionary;
 var
   lRes: IMVCRESTResponse;
@@ -3022,6 +3053,14 @@ var
 begin
   lRes := RESTClient.Post('/stringdictionary', '{"prop1","value1"}');
   Assert.areEqual(HTTP_STATUS.BadRequest, lRes.StatusCode);
+end;
+
+procedure TServerTest.TestWrongSqid;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get('/sqids/itos/123456789123456789123456789123456789');
+  Assert.areEqual(400, lRes.StatusCode);
 end;
 
 procedure TServerTest.TestTypedDateTimeTypes;

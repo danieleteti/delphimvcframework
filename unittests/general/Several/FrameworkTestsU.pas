@@ -85,9 +85,6 @@ type
     procedure TestPathPrefix;
     [Test]
     procedure TestReservedIPs;
-    // procedure TestRoutingSpeed;
-
-    // objects mappers
   end;
 
   [TestFixture]
@@ -287,6 +284,14 @@ type
     [Test]
     procedure TestInLineComments;
   end;
+
+  [TestFixture]
+  TTestSqids = class(TObject)
+  public
+    [Test]
+    procedure TestSingle;
+  end;
+
 
 implementation
 
@@ -2397,6 +2402,14 @@ end;
 
 
 
+{ TTestSqids }
+
+procedure TTestSqids.TestSingle;
+begin
+  Assert.AreEqual('Im1JUf',TMVCSqids.IntToSqid(1)); {https://sqids.org/playground}
+  Assert.AreEqual<Integer>(1, TMVCSqids.SqidToInt(TMVCSqids.IntToSqid(1)));
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2408,6 +2421,7 @@ TDUnitX.RegisterTestFixture(TTestCryptUtils);
 TDUnitX.RegisterTestFixture(TTestLRUCache);
 TDUnitX.RegisterTestFixture(TTestDotEnv);
 TDUnitX.RegisterTestFixture(TTestDotEnvParser);
+TDUnitX.RegisterTestFixture(TTestSqids);
 
 finalization
 

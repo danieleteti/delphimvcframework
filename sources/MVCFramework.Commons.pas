@@ -43,7 +43,7 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv, MVCFramework.Container;
+  MVCFramework.DotEnv, MVCFramework.Container, sqids;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -115,7 +115,7 @@ type
   TMVCConstants = record
   public const
     SESSION_TOKEN_NAME = 'dtsessionid';
-    DEFAULT_CONTENT_CHARSET = 'UTF-8';
+    DEFAULT_CONTENT_CHARSET = TMVCCharSet.UTF_8;
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
@@ -774,8 +774,22 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
+  TMVCSqids = class sealed
+  private
+    class var fInstance: TSqids;
+  public
+    class var SQIDS_ALPHABET: String;
+    class var SQIDS_MIN_LENGTH: Integer;
+    class destructor Destroy;
+    class function GetInstance: TSqids;
+    { sqids }
+    class function SqidToInt(const Sqid: String): UInt64;
+    class function IntToSqid(const Value: UInt64): String;
+  end;
+
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
+
 
 implementation
 
@@ -786,7 +800,8 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions, MVCFramework.Logger;
+  System.RegularExpressions,
+  MVCFramework.Logger;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -794,6 +809,38 @@ var
 var
   GdotEnv: IMVCDotEnv = nil;
   GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
+
+class destructor TMVCSqids.Destroy;
+begin
+  FreeAndNil(fInstance);
+end;
+
+class function TMVCSqids.GetInstance: TSqids;
+begin
+  if fInstance = nil then
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if fInstance = nil then
+      begin
+        fInstance := TSqids.Create(SQIDS_ALPHABET, SQIDS_MIN_LENGTH);
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
+  end;
+  Result := fInstance;
+end;
+
+class function TMVCSqids.IntToSqid(const Value: UInt64): String;
+begin
+  Result := GetInstance.EncodeSingle(Value);
+end;
+
+class function TMVCSqids.SqidToInt(const Sqid: String): UInt64;
+begin
+  Result := GetInstance.DecodeSingle(Sqid);
+end;
 
 function URLEncode(const Value: string): string; overload;
 begin
@@ -1839,6 +1886,6 @@ GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HIns
 
 finalization
 
-FreeAndNil(gLock);
+FreeAndNil(GLock);
 
 end.
