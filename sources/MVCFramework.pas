@@ -330,10 +330,6 @@ type
 
   end;
 
-  MVCFromSqidAttribute = class(MVCInjectableParamAttribute)
-
-  end;
-
   MVCFromCookieAttribute = class(MVCInjectableParamAttribute)
 
   end;
@@ -1311,6 +1307,7 @@ implementation
 uses
   IdURI,
   System.StrUtils,
+  sqids,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.JSONRPC,
@@ -2707,6 +2704,7 @@ var
   lBodyParameter, lResponseObject: TObject;
   lInvokeResult: TValue;
   lObjList: IMVCList;
+  lRespStatus: Integer;
 begin
   Result := False;
 
@@ -3019,6 +3017,15 @@ begin
             end;
             on Ex: Exception do
             begin
+              if Ex is ESqidsException then
+              begin
+                lRespStatus := HTTP_STATUS.BadRequest;
+              end
+              else
+              begin
+                lRespStatus := HTTP_STATUS.InternalServerError;
+              end;
+
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
                 Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
@@ -3026,18 +3033,18 @@ begin
                     Ex.Classname,
                     Ex.Message,
                     GetRequestShortDescription(ARequest),
-                    HTTP_STATUS.InternalServerError,
-                    HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError),
+                    lRespStatus,
+                    HTTP_STATUS.ReasonStringFor(lRespStatus),
                     'Global Action Exception Handler'
                   ], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
-                  lSelectedController.ResponseStatus(http_status.InternalServerError);
+                  lSelectedController.ResponseStatus(lRespStatus);
                   lSelectedController.Render(Ex);
                 end
                 else
                 begin
-                  SendHTTPStatus(lContext, http_status.InternalServerError,
+                  SendHTTPStatus(lContext, lRespStatus,
                     Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
                 end;
               end;

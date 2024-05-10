@@ -94,12 +94,9 @@ type
   end;
 
   MVCSerializeAsStringAttribute = class(TCustomAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
+  end;
+
+  MVCSerializeAsSqidsAttribute = class(TCustomAttribute)
   end;
 
   MVCNameCaseAttribute = class(TCustomAttribute)
@@ -123,7 +120,7 @@ type
     { protected declarations }
   public
     constructor Create(const AName: string; const Fixed: Boolean = False);
-    property name: string read fName;
+    property Name: string read fName;
     property Fixed: Boolean read fFixed;
   end;
 

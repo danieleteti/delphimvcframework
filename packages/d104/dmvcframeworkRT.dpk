@@ -116,7 +116,8 @@ contains
   MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
   MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
-  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas';
+  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
+  sqids in '..\..\sources\sqids.pas';
 
 end.
 

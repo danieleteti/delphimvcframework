@@ -99,6 +99,7 @@ type
     lblPATREON: TLabel;
     chkMustache: TCheckBox;
     chkServicesContainer: TCheckBox;
+    chkSqids: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -340,6 +341,7 @@ begin
   fModel.S[TConfigKey.program_name] :=  'TBA';
   fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
+  fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_ssv_mustache] := chkMustache.Checked;
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;

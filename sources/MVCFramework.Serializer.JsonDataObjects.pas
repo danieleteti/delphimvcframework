@@ -378,10 +378,28 @@ begin
 
   case AValue.Kind of
     tkInteger:
-      AJSONObject.I[AName] := AValue.AsInteger;
+    begin
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsInteger);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsInteger;
+      end;
+    end;
 
     tkInt64:
-      AJSONObject.L[AName] := AValue.AsInt64;
+    begin
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsInt64);
+      end
+      else
+      begin
+        AJSONObject.L[AName] := AValue.AsInt64;
+      end;
+    end;
 
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       AJSONObject.S[AName] := AValue.AsString;
@@ -3352,7 +3370,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableInt32>().HasValue then
     begin
-      AJSONObject.I[AName] := AValue.AsType<NullableInt32>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableInt32>().Value);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsType<NullableInt32>().Value;
+      end;
       Result := True;
     end
   end else if (AValue.TypeInfo = System.TypeInfo(NullableInt64)) then
@@ -3360,7 +3385,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableInt64>().HasValue then
     begin
-      AJSONObject.L[AName] := AValue.AsType<NullableInt64>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableInt64>().Value);
+      end
+      else
+      begin
+        AJSONObject.L[AName] := AValue.AsType<NullableInt64>().Value;
+      end;
       Result := True;
     end
   end else if (AValue.TypeInfo = System.TypeInfo(NullableInt16)) then
@@ -3368,7 +3400,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableInt16>().HasValue then
     begin
-      AJSONObject.I[AName] := AValue.AsType<NullableInt16>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableInt16>().Value);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsType<NullableInt16>().Value;
+      end;
       Result := True;
     end;
   end else if (AValue.TypeInfo = System.TypeInfo(NullableTDate)) then
@@ -3440,7 +3479,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableUInt16>().HasValue then
     begin
-      AJSONObject.I[AName] := AValue.AsType<NullableUInt16>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableUInt16>().Value);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsType<NullableUInt16>().Value;
+      end;
       Result := True;
     end;
   end else if (AValue.TypeInfo = System.TypeInfo(NullableUInt32)) then
@@ -3448,7 +3494,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableUInt32>().HasValue then
     begin
-      AJSONObject.I[AName] := AValue.AsType<NullableUInt32>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableUInt32>().Value);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsType<NullableUInt32>().Value;
+      end;
       Result := True;
     end;
   end else if (AValue.TypeInfo = System.TypeInfo(NullableUInt64)) then
@@ -3456,7 +3509,14 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableUInt64>().HasValue then
     begin
-      AJSONObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
+      begin
+        AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsType<NullableUInt64>().Value);
+      end
+      else
+      begin
+        AJSONObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
+      end;
       Result := True;
     end;
   end else if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then

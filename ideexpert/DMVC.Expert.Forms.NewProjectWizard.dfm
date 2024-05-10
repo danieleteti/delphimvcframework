@@ -399,8 +399,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblBook: TLabel
     AlignWithMargins = True
-    Left = 15
-    Top = 579
+    Left = 10
+    Top = 590
     Width = 259
     Height = 16
     Cursor = crHandPoint
@@ -419,8 +419,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = lblBookClick
     OnMouseEnter = lblBookMouseEnter
     OnMouseLeave = lblBookMouseLeave
-    ExplicitLeft = 8
-    ExplicitTop = 487
   end
   object lblCopyRight: TLabel
     Left = 24
@@ -506,7 +504,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Panel2: TPanel
     Left = 0
-    Top = 359
+    Top = 374
     Width = 308
     Height = 215
     Anchors = [akLeft, akBottom]
@@ -781,7 +779,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMustache: TCheckBox
     Left = 24
-    Top = 312
+    Top = 311
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -790,7 +788,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkServicesContainer: TCheckBox
     Left = 24
-    Top = 332
+    Top = 330
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -799,9 +797,20 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     State = cbChecked
     TabOrder = 11
   end
+  object chkSqids: TCheckBox
+    Left = 24
+    Top = 350
+    Width = 225
+    Height = 17
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Use Sqids'
+    Checked = True
+    State = cbChecked
+    TabOrder = 12
+  end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
-    Left = 232
-    Top = 216
+    Left = 264
+    Top = 152
   end
 end

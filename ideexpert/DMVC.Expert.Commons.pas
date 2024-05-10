@@ -56,6 +56,7 @@ type
      program_name = 'program.name';
      program_default_server_port= 'program.default_server_port';
      program_msheap='program.msheap';
+     program_sqids='program.sqids';
      program_dotenv='program.dotenv';
      program_ssv_mustache='program.ssv.mustache';
      program_service_container_generate = 'program.service.container.generate';

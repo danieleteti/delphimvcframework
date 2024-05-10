@@ -410,7 +410,14 @@ begin
     .AppendLine('    fFirstName: String;')
     .AppendLine('    fLastName: String;')
     .AppendLine('    fDOB: TDate;')
-    .AppendLine('  public')
+    .AppendLine('  public');
+
+    if Model.B[TConfigKey.program_sqids] then
+    begin
+      Section.AppendLine('    [MVCSerializeAsSqids]')
+    end;
+
+  Section
     .AppendLine('    property ID: NullableInt32 read fID write fID;')
     .AppendLine('    property FirstName: String read fFirstName write fFirstName;')
     .AppendLine('    property LastName: String read fLastName write fLastName;')
@@ -615,6 +622,8 @@ end;
 
 procedure TUnitControllerControllerDeclarationCommand.ExecuteInterface(
   Section: TStringBuilder; Model: TJSONObject);
+var
+  lConverter: string;
 begin
   inherited;
   CheckFor('controller.classname', Model);
@@ -669,9 +678,15 @@ begin
         .AppendLine('    function GetPeople: IMVCResponse;')
     end;
 
+    lConverter := '';
+    if Model.B[TConfigKey.program_sqids] then
+    begin
+      lConverter := ':sqids';
+    end;
+
     Section
       .AppendLine
-      .AppendLine('    [MVCPath(''/people/($ID)'')]')
+      .AppendLine('    [MVCPath(''/people/($ID' + lConverter + ')'')]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
       .AppendLine('    function GetPerson(ID: Integer): TPerson;')
       .AppendLine
@@ -679,11 +694,11 @@ begin
       .AppendLine('    [MVCHTTPMethod([httpPOST])]')
       .AppendLine('    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine
-      .AppendLine('    [MVCPath(''/people/($ID)'')]')
+      .AppendLine('    [MVCPath(''/people/($ID' + lConverter + ')'')]')
       .AppendLine('    [MVCHTTPMethod([httpPUT])]')
       .AppendLine('    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;')
       .AppendLine
-      .AppendLine('    [MVCPath(''/people/($ID)'')]')
+      .AppendLine('    [MVCPath(''/people/($ID' + lConverter + ')'')]')
       .AppendLine('    [MVCHTTPMethod([httpDELETE])]')
       .AppendLine('    function DeletePerson(ID: Integer): IMVCResponse;')
   end;
@@ -982,9 +997,18 @@ begin
     .AppendLine('  // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.')
     .AppendLine('  // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.')
     .AppendLine('  MVCSerializeNulls := True;')
-    .AppendLine('  UseConsoleLogger := True;')
-    .AppendLine('  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env(''dmvc.sqids.alphabet'', ''' + GetScrambledAlphabet + ''');')
-    .AppendLine('  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env(''dmvc.sqids.min_length'', 6);')
+    .AppendLine('  UseConsoleLogger := True;');
+
+
+  if Model.B[TConfigKey.program_sqids] then
+  begin
+    Section
+      .AppendLine
+      .AppendLine('  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env(''dmvc.sqids.alphabet'', ''' + GetScrambledAlphabet + ''');')
+      .AppendLine('  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env(''dmvc.sqids.min_length'', 6);')
+  end;
+
+  Section
     .AppendLine
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);')
     .AppendLine('  try')

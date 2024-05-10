@@ -376,7 +376,7 @@ type
 
     {sqids}
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/sqids/stoi/($id:sqid)')]
+    [MVCPath('/sqids/stoi/($id:sqids)')]
     function TestReceiveSqidAsInteger(id: Int64): Int64;
 
     [MVCHTTPMethod([httpGET])]

@@ -2863,6 +2863,9 @@ begin
   Assert.areEqual(200, lRes.StatusCode);
   Assert.AreEqual(TMVCSqids.IntToSqid(IntValue), lRes.Content.Trim, '(local)');
   Assert.AreEqual(Sqid, lRes.Content.Trim, '(remote)');
+  lRes := RESTClient.Get('/sqids/stoi/' + Sqid);
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.AreEqual<Int64>(IntValue, lRes.Content.Trim.ToInt64);
 end;
 
 procedure TServerTest.TestStringDictionary;

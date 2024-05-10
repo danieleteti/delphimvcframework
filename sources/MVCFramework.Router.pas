@@ -409,14 +409,14 @@ begin
       else
       begin
         lConv := P.Value;
-        if SameText(lConv, ':sqid') then
+        if SameText(lConv, ':sqids') then
         begin
           {sqids converter (so far the only one)}
           aParams.Add(P.Key, TMVCSqids.SqidToInt(lParValue).ToString);
         end
         else
         begin
-          raise EMVCException.CreateFmt('Unknown converter: %s', [lConv]);
+          raise EMVCException.CreateFmt('Unknown converter [%s]', [lConv]);
         end;
       end;
     end;
