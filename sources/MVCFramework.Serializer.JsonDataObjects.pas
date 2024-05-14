@@ -2965,6 +2965,18 @@ begin
     begin
       AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
     end
+    else if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(AAttributes) then
+    begin
+      //the string must be converted to int using sqids
+      if lValueTypeInfo = TypeInfo(NullableInt16) then
+        AValue := TValue.From<NullableInt16>(TMVCSqids.SqidToInt(AStringValue))
+      else if lValueTypeInfo = TypeInfo(NullableInt32) then
+        AValue := TValue.From<NullableInt32>(TMVCSqids.SqidToInt(AStringValue))
+      else if lValueTypeInfo = TypeInfo(NullableInt64) then
+        AValue := TValue.From<NullableInt64>(TMVCSqids.SqidToInt(AStringValue))
+      else
+        raise EMVCSerializationException.CreateFmt('Cannot deserialize Sqids "%s" from string to integer', [ExceptionHintString]);
+    end
     else
     begin
       raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from string', [ExceptionHintString]);
