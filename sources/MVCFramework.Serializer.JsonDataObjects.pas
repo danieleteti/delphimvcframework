@@ -3013,12 +3013,20 @@ begin
         lValueTypeInfo, AValue)
     end;
   end
-  else if (lValueTypeInfo.Kind = tkInteger) and (TryStrToInt(AStringValue, lOutInteger)) then
+  else if lValueTypeInfo.Kind = tkInteger then
   begin
+    if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(AAttributes) then
+      lOutInteger := TMVCSqids.SqidToInt(AStringValue)
+    else
+      lOutInteger := StrToInt(AStringValue);
     AValue := lOutInteger;
   end
-  else if (lValueTypeInfo.Kind = tkInt64) and (TryStrToInt64(AStringValue, lOutInteger64)) then
+  else if lValueTypeInfo.Kind = tkInt64 then
   begin
+    if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(AAttributes) then
+      lOutInteger64 := TMVCSqids.SqidToInt(AStringValue)
+    else
+      lOutInteger64 := StrToInt64(AStringValue);
     AValue := lOutInteger64;
   end
   else if lValueTypeInfo.Kind = tkSet then
