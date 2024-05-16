@@ -328,8 +328,4 @@ object MainForm: TMainForm
     TabOrder = 32
     OnClick = btnTransactionClick
   end
-  object FDConnection1: TFDConnection
-    Left = 312
-    Top = 40
-  end
 end

@@ -42,7 +42,6 @@ type
     btnMultiThreading: TButton;
     btnRQL: TButton;
     btnReadOnlyFields: TButton;
-    FDConnection1: TFDConnection;
     btnNullTest: TButton;
     btnCRUDNoAutoInc: TButton;
     btnCRUDWithStringPKs: TButton;
@@ -839,13 +838,11 @@ procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
-  lConnParams: string;
 begin
   Log('** Multithreading test');
   TMVCActiveRecord.DeleteRQL(TCustomer,
     'in(City,["Rome","New York","London","Melbourne","Berlin"])');
 
-  lConnParams := FDConnection1.Params.Text;
   lProc := procedure
            var
              lCustomer: TCustomer;
@@ -2335,7 +2332,7 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  ActiveRecordConnectionsRegistry.RemoveDefaultConnection(False);
+  ActiveRecordConnectionsRegistry.RemoveDefaultConnection();
 end;
 
 procedure TMainForm.FormShow(Sender: TObject);
@@ -2380,11 +2377,7 @@ begin
     raise Exception.Create('Unknown RDBMS');
   end;
 
-  FDConnection1.Params.Clear;
-  FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
-  FDConnection1.Connected := True;
-
-  ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConnection1);
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConnectionConfigU.CON_DEF_NAME);
   Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
 {$IFDEF USE_SEQUENCES}
   Caption := Caption + ' USE_SEQUENCES';
