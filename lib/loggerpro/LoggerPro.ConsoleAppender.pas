@@ -139,8 +139,8 @@ end;
 procedure TLoggerProConsoleAppender.SetupColorMappings;
 begin
   fColors[TLogType.Debug] := FOREGROUND_GREEN;
-  fColors[TLogType.Info] := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED;
-  fColors[TLogType.Warning] := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_INTENSITY;
+  fColors[TLogType.Info] := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED or FOREGROUND_INTENSITY;
+  fColors[TLogType.Warning] := FOREGROUND_RED or FOREGROUND_GREEN;
   fColors[TLogType.Error] := FOREGROUND_RED or FOREGROUND_INTENSITY;
   fColors[TLogType.Fatal] := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
 end;

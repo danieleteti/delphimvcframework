@@ -422,6 +422,7 @@ type
     FPropTime: TTime;
     FPropCurrency: Currency;
     fPropJSONObject: TJSONObject;
+    FPropIntegerSqids: Integer;
     procedure SetPropAnsiString(const Value: AnsiString);
     procedure SetPropString(const Value: string);
     procedure SetPropInt64(const Value: Int64);
@@ -455,6 +456,10 @@ type
     property PropTimeStamp: TTimeStamp read FPropTimeStamp write SetPropTimeStamp;
     property PropCurrency: Currency read FPropCurrency write SetPropCurrency;
     property PropJSONObject: TJSONObject read fPropJSONObject;
+
+    {sqids}
+    [MVCSerializeAsSqids]
+    property PropIntegerSqids: Integer read FPropIntegerSqids write FPropIntegerSqids;
   end;
 
   TMyChildObject = class
@@ -812,6 +817,9 @@ begin
   Result.PropJSONObject.O['objprop'].S['innerprop1'] := 'value1';
   Result.PropJSONObject.O['objprop'].S['innerprop2'] := 'value2';
   Result.PropJSONObject.O['objprop'].S['innerprop3'] := 'value3';
+
+  {sqids}
+  Result.PropIntegerSqids := 1234;
 end;
 
 constructor TMyObject.Create;
@@ -850,6 +858,10 @@ begin
   lMyStr := Self.fPropJSONObject.ToJSON();
   lOtherStr := Obj.PropJSONObject.ToJSON();
   Result := Result and (Self.fPropJSONObject.ToJSON() = Obj.PropJSONObject.ToJSON());
+
+
+  {sqids}
+  Result := Result and (Self.PropIntegerSqids = Obj.PropIntegerSqids);
 end;
 
 procedure TMyObject.SetPropAnsiString(const Value: AnsiString);
