@@ -30,8 +30,8 @@ type
     [MVCPath('/($ID:sqids)')]
     [MVCHTTPMethods([httpPUT])]
     function UpdateCustomerByID(
-      [MVCFromBody] const Customer: TCustomer;
       const ID: Integer;
+      [MVCFromBody] const Customer: TCustomer;
       [MVCInject] CustomersService: ICustomersService): IMVCResponse;
 
     [MVCPath]
@@ -70,7 +70,7 @@ begin
   Result := OKResponse(CustomersService.GetByRQL(RQLFilter));
 end;
 
-function TCustomersController.UpdateCustomerByID(const Customer: TCustomer; const ID: Integer; CustomersService: ICustomersService): IMVCResponse;
+function TCustomersController.UpdateCustomerByID(const ID: Integer; const Customer: TCustomer; CustomersService: ICustomersService): IMVCResponse;
 begin
   CustomersService.UpdateByID(ID, Customer);
   Result := OKResponse;

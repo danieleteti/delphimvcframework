@@ -60,6 +60,8 @@ type
 
     { serialize declarations }
     [Test]
+    procedure TestSerializeAsSqids;
+    [Test]
     procedure TestSerializeAllTypes;
     [Test]
     procedure TestSerializeDateTimeProperty;
@@ -980,6 +982,42 @@ begin
     end;
   finally
     lList1.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeAsSqids;
+var
+  lObj1: TMyObject;
+  lSer: string;
+begin
+  lObj1 := GetMyObject;
+  try
+    lSer := fSerializer.SerializeObject(lObj1);
+  finally
+    lObj1.Free;
+  end;
+
+  var lJObj := StrToJSONObject(lSer, True);
+  try
+    Assert.IsTrue(lJObj.Types['PropInt16'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropInteger'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropInt16'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropUInt16'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropInt32'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropUInt32'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropInt64'] = jdtInt);
+    Assert.IsTrue(lJObj.Types['PropUInt64'] = jdtLong);
+
+    Assert.IsTrue(lJObj.Types['PropInt16Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropIntegerSqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropInt16Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropUInt16Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropInt32Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropUInt32Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropInt64Sqids'] = jdtString);
+    Assert.IsTrue(lJObj.Types['PropUInt64Sqids'] = jdtString);
+  finally
+    lJObj.Free;
   end;
 end;
 
