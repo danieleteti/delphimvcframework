@@ -707,7 +707,7 @@ type
     FResponseStream: TStringBuilder;
   protected
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-    function StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject): IMVCResponse;
+    function StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
   public { this must be public because of entity processors }
     constructor Create; virtual;
     destructor Destroy; override;
@@ -753,6 +753,7 @@ type
     }
 
     function OKResponse(const Body: TObject): IMVCResponse; overload;
+    function OKResponse(const Message: String): IMVCResponse; overload;
     function OKResponse: IMVCResponse; overload;
     function NotFoundResponse(const Body: TObject): IMVCResponse; overload;
     function NotFoundResponse: IMVCResponse; overload;
@@ -4253,6 +4254,11 @@ begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, nil);
 end;
 
+function TMVCRenderer.OKResponse(const Message: String): IMVCResponse;
+begin
+  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, nil, Message);
+end;
+
 function TMVCRenderer.OKResponse(const Body: TObject): IMVCResponse;
 begin
   Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, Body);
@@ -4537,15 +4543,25 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
-function TMVCRenderer.StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject): IMVCResponse;
+function TMVCRenderer.StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
 begin
   if Body = nil then
   begin
-    Result := MVCResponseBuilder.StatusCode(StatusCode).Build;
+    if Message.IsEmpty then
+      Result := MVCResponseBuilder.StatusCode(StatusCode).Build
+    else
+      Result := MVCResponseBuilder.StatusCode(StatusCode).Body(Message).Build;
   end
   else
   begin
-    Result := MVCResponseBuilder.StatusCode(StatusCode).Body(Body, True).Build;
+    if Message.IsEmpty then
+      Result := MVCResponseBuilder.StatusCode(StatusCode).Body(Body, True).Build
+    else
+      Result := MVCResponseBuilder
+        .StatusCode(StatusCode)
+        .Body(Body)
+        .Body(Message)
+        .Build;
   end;
 end;
 
