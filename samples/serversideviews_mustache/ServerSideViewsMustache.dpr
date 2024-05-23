@@ -6,6 +6,7 @@ uses
   System.SysUtils,
   MVCFramework,
   MVCFramework.Signal,
+  MVCFramework.Logger,
 {$IFDEF MSWINDOWS}
   Winapi.ShellAPI,
   Winapi.Windows,
@@ -29,7 +30,7 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   ReportMemoryLeaksOnShutdown := True;
-  Writeln(Format('Starting HTTP Server on port %d', [APort]));
+  LogI(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
@@ -37,7 +38,7 @@ begin
 {$IFDEF MSWINDOWS}
     ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
 {$ENDIF}
-    Write('Ctrl+C  to stop the server');
+    LogI('Ctrl+C  to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     LServer.Active := False;
@@ -62,7 +63,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end;
 
 end.

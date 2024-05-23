@@ -82,7 +82,7 @@ begin
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      LogI(E.ClassName + ': ' + E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end;
 
 end.

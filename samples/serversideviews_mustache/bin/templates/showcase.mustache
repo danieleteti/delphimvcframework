@@ -70,12 +70,33 @@ This page is a showcase for all the mustache features usable from DMVCFramework 
 	</div>	
 </div>
 
+{{<internal_partial}}
+  {{first_name}}, {{last_name}} (this is an internal partial (extension of dmustache))
+{{/internal_partial}}
+
 <div>	
 	<h2 class="section">Handling partials</h2>
 	<div>
+		<h2><pre>Using  >partial_person.mustache</pre></h2>
 		<ul>
 		{{#people}}
       <li>{{>partial_person}}</li>
+    {{/people}}
+    </ul>
+	</div>	
+	<div>
+		<h2><pre>Using  >partial_person2.mustache</pre></h2>	
+		<ul>
+		{{#people}}
+      <li>{{>partial_person2}}</li>
+    {{/people}}
+    </ul>
+	</div>	
+	<div>
+		<h2><pre>Using &lt;internal_partial</pre></h2>	
+		<ul>
+		{{#people}}
+      <li>{{>internal_partial}}</li>
     {{/people}}
     </ul>
 	</div>	

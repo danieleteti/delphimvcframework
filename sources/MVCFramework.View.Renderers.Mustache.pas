@@ -252,14 +252,6 @@ begin
             TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
           end;
         end;
-
-//        if Assigned(ViewDataSets) then
-//        begin
-//          for lDSPair in ViewDataSets do
-//          begin
-//            TMVCJsonDataObjectsSerializer(lSer).DataSetToJsonArray(lDSPair.Value, lJSONModel.A[lDSPair.Key], TMVCNameCase.ncAsIs, nil);
-//          end;
-//        end;
         FJSONModelAsString := lJSONModel.ToJSON(False);
       finally
         lJSONModel.Free;

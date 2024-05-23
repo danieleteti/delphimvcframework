@@ -1872,14 +1872,14 @@ begin
       begin
         if not Assigned(GdotEnvDelegate) then
         begin
-          LogI('dotEnvConfigure not called, a default dotEnv instance will be created');
+          LogI('Initializing default dotEnv instance');
           GdotEnv := NewDotEnv
                        .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
                        .UseProfile('test')
                        .UseProfile('prod')
                        .UseLogger(procedure(LogItem: String)
                                   begin
-                                    LogD('dotEnv: ' + LogItem);
+                                    LogI('dotEnv: ' + LogItem);
                                   end)
                        .Build();
         end
