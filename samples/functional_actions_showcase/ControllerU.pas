@@ -67,7 +67,7 @@ type
     [MVCPath('/headers')]
     function GetWithCustomHeaders: TObjectList<TPerson>;
 
-    { using IMVCResponse }
+    { using IMVCResponse and Response Methods}
     [MVCPath('/mvcresponse/message')]
     function GetMVCResponseSimple: IMVCResponse;
     [MVCPath('/mvcresponse/data')]
@@ -84,9 +84,14 @@ type
     function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
     [MVCPath('/mvcresponse/message/builder/nobody')]
     function GetMVCResponseNoBody: IMVCResponse;
-    // Standard Responses
     [MVCPath('/mvcresponse/ok')]
     function GetOKResponse: IMVCResponse;
+    [MVCPath('/mvcresponse/not_found')]
+    function GetNotFound: IMVCResponse;
+    [MVCPath('/mvcresponse/not_modified')]
+    function GetNotModified: IMVCResponse;
+    [MVCPath('/mvcresponse/accepted')]
+    function GetAccepted: IMVCResponse;
   end;
 
 implementation
@@ -148,10 +153,7 @@ end;
 
 function TMyController.GetMVCResponseSimple: IMVCResponse;
 begin
-  Result := MVCResponseBuilder
-    .StatusCode(HTTP_STATUS.OK)
-    .Body('My Message')
-    .Build;
+  Result := OKResponse('My Message');
 end;
 
 function TMyController.GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
@@ -207,6 +209,16 @@ begin
               TPerson.Create('Peter','Parker', 25),
               TPerson.Create('Bruce','Banner', 45)
             ]));
+end;
+
+function TMyController.GetNotFound: IMVCResponse;
+begin
+  Result := NotFoundResponse;
+end;
+
+function TMyController.GetNotModified: IMVCResponse;
+begin
+  Result := NotModifiedResponse;
 end;
 
 function TMyController.GetOKResponse: IMVCResponse;
@@ -268,6 +280,11 @@ end;
 function TMyController.GetSumAsFloat(const A, B: Extended): Extended;
 begin
   Result := A + B;
+end;
+
+function TMyController.GetAccepted: IMVCResponse;
+begin
+  Result := AcceptedResponse('https://www.danieleteti.it');
 end;
 
 function TMyController.GetConcatAsString(const A, B: String): String;
