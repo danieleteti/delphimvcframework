@@ -777,15 +777,42 @@ type
   TMVCSqids = class sealed
   private
     class var fInstance: TSqids;
+    class function GetInstance: TSqids;
   public
+    const DEFAULT_ALPHABET = sqids.DEFAULT_ALPHABET;
+    const DEFAULT_MIN_LENGTH  = sqids.DEFAULT_MIN_LENGTH;
+    const MIN_ALPHABET_LENGTH = sqids.MIN_ALPHABET_LENGTH;
+    const MAX_ALPHABET_LENGTH = sqids.MAX_ALPHABET_LENGTH;
     class var SQIDS_ALPHABET: String;
     class var SQIDS_MIN_LENGTH: Integer;
     class destructor Destroy;
-    class function GetInstance: TSqids;
     { sqids }
     class function SqidToInt(const Sqid: String): UInt64;
     class function IntToSqid(const Value: UInt64): String;
   end;
+
+  IMVCSqidsEncoder = interface
+    ['{DFD71A1A-36B0-4EC6-8E8E-35405BB93CA7}']
+    function Encode(aNumbers: TArray<UInt64>): string;
+    function EncodeSingle(aNumber: UInt64): string;
+    function Decode(aId: string): TArray<UInt64>;
+    function DecodeSingle(aId: string): UInt64;
+  end;
+
+  TMVCSqidsEncoder = class(TInterfacedObject, IMVCSqidsEncoder)
+  protected
+    fSqids: TSqids;
+  public
+    constructor Create(AAlphabet: string; AMinLength: Byte; ABlockList: TArray<string>); overload;
+    constructor Create(AAlphabet: string = DEFAULT_ALPHABET; AMinLength: Byte = DEFAULT_MIN_LENGTH); overload;
+    constructor Create(AMinLength: Byte); overload;
+    constructor Create(ABlockList: TArray<string>); overload;
+    function Encode(aNumbers: TArray<UInt64>): string;
+    function EncodeSingle(aNumber: UInt64): string;
+    function Decode(aId: string): TArray<UInt64>;
+    function DecodeSingle(aId: string): UInt64;
+  end;
+
 
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
@@ -1870,6 +1897,50 @@ begin
     end;
   end;
   Result := GdotEnv;
+end;
+
+{ TMVCSqidsEncoder }
+
+constructor TMVCSqidsEncoder.Create(AAlphabet: string; AMinLength: Byte;
+  ABlockList: TArray<string>);
+begin
+  inherited Create;
+  fSqids := TSqids.Create(AAlphabet,AMinLength, ABlockList);
+end;
+
+constructor TMVCSqidsEncoder.Create(AAlphabet: string; AMinLength: Byte);
+begin
+  Create(AAlphabet, AMinLength, DEFAULT_BLOCKLIST);
+end;
+
+constructor TMVCSqidsEncoder.Create(AMinLength: Byte);
+begin
+  Create(DEFAULT_ALPHABET, AMinLength, DEFAULT_BLOCKLIST);
+end;
+
+constructor TMVCSqidsEncoder.Create(ABlockList: TArray<string>);
+begin
+  Create(DEFAULT_ALPHABET, DEFAULT_MIN_LENGTH, ABlockList);
+end;
+
+function TMVCSqidsEncoder.Decode(AId: string): TArray<UInt64>;
+begin
+  Result := fSqids.Decode(AId);
+end;
+
+function TMVCSqidsEncoder.DecodeSingle(AId: string): UInt64;
+begin
+  Result := fSqids.DecodeSingle(AId);
+end;
+
+function TMVCSqidsEncoder.Encode(ANumbers: TArray<UInt64>): string;
+begin
+  Result := fSqids.Encode(ANumbers);
+end;
+
+function TMVCSqidsEncoder.EncodeSingle(ANumber: UInt64): string;
+begin
+  Result := fSqids.EncodeSingle(ANumber);
 end;
 
 initialization
