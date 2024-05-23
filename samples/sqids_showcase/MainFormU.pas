@@ -32,6 +32,7 @@ type
     procedure btnEncodeClick(Sender: TObject);
     procedure TrackBarMinLengthChange(Sender: TObject);
     procedure btnDecodeClick(Sender: TObject);
+    procedure btnShuffleClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -71,6 +72,33 @@ begin
   end;
 
   EditSqidsOutput.Text := lSqids.Encode(lIntegers);
+end;
+
+function GetScrambled(const Alphabet: String): String;
+var
+  I: Integer;
+  lIdx1: Integer;
+  lSize: Integer;
+  lIdx2: Integer;
+  lTmp: Char;
+begin
+  Randomize;
+  Result := Alphabet;
+  lSize := Length(Result);
+  for I := 1 to 100 do
+  begin
+    lIdx1 := Random(lSize) + 1;
+    lIdx2 := Random(lSize) + 1;
+    lTmp := Result[lIdx1];
+    Result[lIdx1] := Result[lIdx2];
+    Result[lIdx2] := lTmp;
+  end;
+end;
+
+
+procedure TMainForm.btnShuffleClick(Sender: TObject);
+begin
+  EditAlphabet.Text := GetScrambled(EditAlphabet.Text);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);

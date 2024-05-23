@@ -54,16 +54,18 @@ object MainForm: TMainForm
     Top = 104
     Width = 449
     Height = 45
+    Max = 20
     TabOrder = 1
     OnChange = TrackBarMinLengthChange
   end
   object btnShuffle: TButton
-    Left = 463
+    Left = 462
     Top = 40
     Width = 75
     Height = 29
     Caption = 'Shuffle'
     TabOrder = 2
+    OnClick = btnShuffleClick
   end
   object PageControl1: TPageControl
     Left = 8
