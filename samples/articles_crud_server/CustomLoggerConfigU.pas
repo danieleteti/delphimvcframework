@@ -12,7 +12,7 @@ implementation
 uses
   System.IOUtils
   , LoggerPro.FileAppender // loggerpro file appender (logs to file)
-  , LoggerPro.SimpleConsoleAppender // loggerpro simple console appender (logs to console with colors)
+  , LoggerPro.ConsoleAppender // loggerpro simple console appender (logs to console with colors)
   , LoggerPro.DBAppender.FireDAC // loggerpro DB Appender (logs to database)
   {$IFDEF MSWINDOWS}
   , LoggerPro.OutputdebugStringAppender// loggerpro outputdebugstring appender (logs to the debugger)
@@ -51,11 +51,11 @@ begin
         GetFallBackLogger.Error('DBAppender Is Failing (%d): %s %s', [RetryCount, DBError.ClassName, DBError.Message], FailedDBWriteTag);
         GetFallBackLogger.Error(lIntf.RenderLogItem(LogItem), FailedDBWriteTag);
       end),
-      TLoggerProSimpleConsoleAppender.Create
+      TLoggerProConsoleAppender.Create
      {$IFDEF MSWINDOWS}, TLoggerProOutputDebugStringAppender.Create{$ENDIF}
     ], nil, [
       TLogType.Debug,
-      TLogType.Warning, {writes on DB only for WARNING+}
+      TLogType.Info, {writes on DB only for INFO+}
       TLogType.Debug
       {$IFDEF MSWINDOWS}, TLogType.Debug{$ENDIF}
       ]);
