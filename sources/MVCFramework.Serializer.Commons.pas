@@ -1157,7 +1157,15 @@ begin
         // general enumerations
     		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
         begin
-          TValue(AField.AsInteger).ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
+          var Value: TValue;
+          case aRTTIField.FieldType.TypeSize of
+            SizeOf(Byte): Value := TValue.From<Byte>(AField.AsInteger);
+            SizeOf(Word): Value := TValue.From<Word>(AField.AsInteger);
+            SizeOf(Integer): Value := TValue.From<Integer>(AField.AsInteger);
+            else
+              raise EMVCException.CreateFmt('Unsupported enumeration type for field %s', [AField.FieldName]);
+          end;
+          Value.ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
         end
         // plain integers
         else
