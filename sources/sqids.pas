@@ -185,7 +185,7 @@ begin
   L := Length(AAlphabet);
 
   for C in AId do
-    Result := Result * L + TNumber(Pos(C, AAlphabet)) - 1;
+    Result := Result * L + (TNumber(Pos(C, AAlphabet)) - 1);
 end;
 
 function TSqids.IsBlocked(AId: string): Boolean;
