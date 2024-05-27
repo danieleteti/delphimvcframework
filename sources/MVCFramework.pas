@@ -707,7 +707,7 @@ type
     FResponseStream: TStringBuilder;
   protected
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-    function StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
+    function StatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
   public { this must be public because of entity processors }
     constructor Create; virtual;
     destructor Destroy; override;
@@ -755,19 +755,33 @@ type
     function OKResponse(const Body: TObject): IMVCResponse; overload;
     function OKResponse(const Message: String): IMVCResponse; overload;
     function OKResponse: IMVCResponse; overload;
+
     function NotFoundResponse(const Body: TObject): IMVCResponse; overload;
+    function NotFoundResponse(const Message: String): IMVCResponse; overload;
     function NotFoundResponse: IMVCResponse; overload;
+
     function NotModifiedResponse: IMVCResponse;
+
     function NoContentResponse: IMVCResponse;
+
     function UnauthorizedResponse: IMVCResponse;
-    function BadRequestResponse: IMVCResponse; overload;
+
     function BadRequestResponse(const Error: TObject): IMVCResponse; overload;
+    function BadRequestResponse: IMVCResponse; overload;
+    function BadRequestResponse(const Message: String): IMVCResponse; overload;
+
     function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
     function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
+
     function AcceptedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
+
     function ConflictResponse: IMVCResponse;
+
     function RedirectResponse(Location: String; Permanent: Boolean = False; PreserveMethod: Boolean = False): IMVCResponse;
-    function InternalServerErrorResponse: IMVCResponse;
+
+    function InternalServerErrorResponse: IMVCResponse; overload;
+    function InternalServerErrorResponse(const Error: TObject): IMVCResponse; overload;
+    function InternalServerErrorResponse(const Message: String): IMVCResponse; overload;
 
     /// <summary>
     /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agents connection to the server persist until the process is completed.
@@ -4005,7 +4019,7 @@ end;
 
 function TMVCRenderer.BadRequestResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.BadRequest, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil);
 end;
 
 function TMVCRenderer.AcceptedResponse(const Location: string;
@@ -4027,12 +4041,17 @@ end;
 
 function TMVCRenderer.BadRequestResponse(const Error: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.BadRequest, Error);
+  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, Error);
+end;
+
+function TMVCRenderer.BadRequestResponse(const Message: String): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil, Message);
 end;
 
 function TMVCRenderer.ConflictResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Conflict, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.Conflict, nil);
 end;
 
 constructor TMVCRenderer.Create;
@@ -4226,42 +4245,59 @@ end;
 
 function TMVCRenderer.InternalServerErrorResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.InternalServerError, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, nil);
 end;
+
+
+function TMVCRenderer.InternalServerErrorResponse(const Error: TObject): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, Error);
+end;
+
+function TMVCRenderer.InternalServerErrorResponse(const Message: String): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, nil, Message);
+end;
+
 
 function TMVCRenderer.NoContentResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NoContent, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.NoContent, nil);
 end;
 
 function TMVCRenderer.NotFoundResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotFound, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.NotFound, nil);
 end;
 
 function TMVCRenderer.NotFoundResponse(const Body: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotFound, Body);
+  Result := StatusCodeResponse(HTTP_STATUS.NotFound, Body);
+end;
+
+function TMVCRenderer.NotFoundResponse(const Message: String): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.NotFound, nil, Message);
 end;
 
 function TMVCRenderer.NotModifiedResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.NotModified, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.NotModified, nil);
 end;
 
 function TMVCRenderer.OKResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.OK, nil);
 end;
 
 function TMVCRenderer.OKResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, nil, Message);
+  Result := StatusCodeResponse(HTTP_STATUS.OK, nil, Message);
 end;
 
 function TMVCRenderer.OKResponse(const Body: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.OK, Body);
+  Result := StatusCodeResponse(HTTP_STATUS.OK, Body);
 end;
 
 function TMVCController.GetViewData(const aModelName: string): TValue;
@@ -4543,7 +4579,7 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
-function TMVCRenderer.StatusCodeResponseWithOptionalBody(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
+function TMVCRenderer.StatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
 begin
   if Body = nil then
   begin
@@ -4572,7 +4608,7 @@ end;
 
 function TMVCRenderer.UnauthorizedResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponseWithOptionalBody(HTTP_STATUS.Unauthorized, nil);
+  Result := StatusCodeResponse(HTTP_STATUS.Unauthorized, nil);
 end;
 
 procedure TMVCController.SetETag(const Data: String; const NeedsToBeHashed: Boolean);
@@ -4640,10 +4676,13 @@ begin
   SendStream(AStream, AOwns, ARewind);
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
-const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
-const ASerializationType: TMVCDatasetSerializationType;
-const ASerializationAction: TMVCDatasetSerializationAction);
+procedure TMVCRenderer.Render(
+  const ADataSet: TDataSet;
+  const AOwns: Boolean;
+  const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase;
+  const ASerializationType: TMVCDatasetSerializationType;
+  const ASerializationAction: TMVCDatasetSerializationAction);
 begin
   if Assigned(ADataSet) then
   begin
@@ -4665,11 +4704,6 @@ begin
           raise EMVCSerializationException.Create('Invalid dataset serialization type');
         end;
       end;
-      // if ASerializationType = dstSingleRecord then
-      // Render(Serializer(GetContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase,
-      // ASerializationAction))
-      // else
-      // Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase, ASerializationAction))
     finally
       if AOwns then
         ADataSet.Free;
