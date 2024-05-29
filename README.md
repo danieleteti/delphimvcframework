@@ -74,11 +74,10 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 
 ### DelphiMVCFramework Main Features
 
-  * DMVCFramwork is simple to use, has a [lot of examples](https://github.com/danieleteti/delphimvcframework/tree/master/samples), is documented and there are a [lot of tutorials](https://www.youtube.com/results?search_query=delphimvcframework) available.
+* DMVCFramwork is simple to use, has a [lot of examples](https://github.com/danieleteti/delphimvcframework/tree/master/samples), is documented and there are a [lot of tutorials](https://www.youtube.com/results?search_query=delphimvcframework) available.
 
-  * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](http://www.danieleteti.it/books/) is available to fastly get a solid knowledge (available as e-book and hardcopy).
+* DMVCFramework is very well documented and the book [DMVCFramework - the official guide](http://www.danieleteti.it/books/) is available to fastly get a solid knowledge (available as e-book and hardcopy).
 
-  * [Project Roadmap](roadmap.md) is always public
 * There are more than 40 samples to learn all the features and be proficient and productive
 * Commercially supported by [bit Time Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
 
@@ -90,15 +89,15 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 
 * Stable and solid, used by small/mid/big projects since 2010
 
-* Very fast! (2.x was pretty fast and now, 3.x is 60% faster than the 2.x!)
+* Very fast!
 
-* Support group at https://www.facebook.com/groups/delphimvcframework with more than 4900 active members
+* Support group at https://www.facebook.com/groups/delphimvcframework with more than 6000 active members
 
 * Can be used in load balanced environment
 
 * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
 
-* Optional session support
+* Optional server side session support
 
 * JSON Web Token Support (JWT) (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/jsonwebtoken))
 
