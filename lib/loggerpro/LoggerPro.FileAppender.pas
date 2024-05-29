@@ -66,15 +66,15 @@ type
   }
   TLoggerProFileAppenderBase = class(TLoggerProAppenderBase)
   private
+    procedure RetryMove(const aFileSrc, aFileDest: string);
+    procedure RetryDelete(const aFileSrc: string);
+  protected
+    fEncoding: TEncoding;
     fMaxBackupFileCount: Integer;
     fMaxFileSizeInKiloByte: Integer;
     fLogFileNameFormat: string;
     fLogsFolder: string;
-    fEncoding: TEncoding;
-    function CreateWriter(const aFileName: string): TStreamWriter;
-    procedure RetryMove(const aFileSrc, aFileDest: string);
-    procedure RetryDelete(const aFileSrc: string);
-  protected
+    function CreateWriter(const aFileName: string; const aBufferSize: Integer = 32): TStreamWriter;
     procedure CheckLogFileNameFormat(const LogFileNameFormat: String); virtual;
     procedure EmitStartRotateLogItem(aWriter: TStreamWriter); virtual;
     procedure EmitEndRotateLogItem(aWriter: TStreamWriter); virtual;
@@ -366,7 +366,7 @@ begin
     fEncoding := TEncoding.DEFAULT;
 end;
 
-function TLoggerProFileAppenderBase.CreateWriter(const aFileName: string): TStreamWriter;
+function TLoggerProFileAppenderBase.CreateWriter(const aFileName: string; const aBufferSize: Integer = 32): TStreamWriter;
 var
   lFileStream: TFileStream;
   lFileAccessMode: Word;
@@ -387,7 +387,7 @@ begin
       lFileStream := TFileStream.Create(aFileName, lFileAccessMode);
       try
         lFileStream.Seek(0, TSeekOrigin.soEnd);
-        Result := TStreamWriter.Create(lFileStream, fEncoding, 32);
+        Result := TStreamWriter.Create(lFileStream, fEncoding, aBufferSize);
         Result.AutoFlush := true;
         Result.OwnStream;
         Break;
