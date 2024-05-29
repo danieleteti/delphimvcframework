@@ -303,6 +303,7 @@ type
     FFormatSettings: TFormatSettings;
   protected
     property FormatSettings: TFormatSettings read FFormatSettings;
+    property LogItemRenderer: ILogItemRenderer read FLogItemRenderer;
   public
     constructor Create(ALogItemRenderer: ILogItemRenderer = nil); virtual;
     procedure Setup; virtual;
