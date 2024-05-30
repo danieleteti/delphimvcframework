@@ -234,7 +234,6 @@ end;
 
 function TLoggerProFileAppenderBase.GetLogFileName(const aTag: string; const aFileNumber: Integer): string;
 var
-//  lExt: string;
   lModuleName: string;
   lPath: string;
   lFormat: string;
@@ -253,7 +252,9 @@ begin
   lPath := fLogsFolder;
   lFormat := lFormat
     .Replace('{module}', lModuleName, [rfReplaceAll])
-    .Replace('{number}', aFileNumber.ToString.PadLeft(2,'0') , [rfReplaceAll])
+    .Replace('{number}', aFileNumber.ToString.PadLeft(
+      Max(2,fMaxBackupFileCount.ToString.Length), //min padding 2
+      '0') , [rfReplaceAll])
     .Replace('{tag}', aTag, [rfReplaceAll])
     .Replace('{pid}', CurrentProcessId.ToString.PadLeft(8,'0'), [rfReplaceAll]);
   Result := TPath.Combine(lPath, lFormat);
