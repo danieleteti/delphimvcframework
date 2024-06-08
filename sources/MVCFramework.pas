@@ -1169,7 +1169,6 @@ type
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
   end;
 
-  [MVCNameCase(ncLowerCase)]
   TMVCErrorResponseItem = class
   private
     FMessage: string;
@@ -1179,8 +1178,6 @@ type
     constructor Create(const AMessage: string = '');
     property message: string read FMessage write FMessage;
   end;
-
-
 
   TMVCBaseResponse = class abstract (TInterfacedObject, IMVCResponse)
   protected
@@ -1203,7 +1200,6 @@ type
     constructor Create; virtual;
   end;
 
-  [MVCNameCase(ncLowerCase)]
   TMVCResponse = class(TMVCBaseResponse)
   private
     fStatusCode: Integer;
@@ -1246,7 +1242,6 @@ type
     property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
   end;
 
-  [MVCNameCase(ncLowerCase)]
   TMVCErrorResponse = class(TMVCResponse)
   private
     fClassname: string;
@@ -4987,7 +4982,7 @@ procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
 const AIgnoredFields: TMVCIgnoredList; const ASerializationType: TMVCDatasetSerializationType;
 const ASerializationAction: TMVCDatasetSerializationAction);
 begin
-  Render(ADataSet, AOwns, AIgnoredFields, ncLowerCase, ASerializationType, ASerializationAction);
+  Render(ADataSet, AOwns, AIgnoredFields, TMVCNameCase.ncLowerCase, ASerializationType, ASerializationAction);
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;

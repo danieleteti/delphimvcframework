@@ -825,10 +825,9 @@ uses
   System.NetEncoding,
   System.Character,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
   System.RegularExpressions,
-  MVCFramework.Logger;
+  MVCFramework.Logger, MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;

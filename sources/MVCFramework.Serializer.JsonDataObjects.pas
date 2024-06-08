@@ -334,10 +334,10 @@ var
   lBuffer: Pointer;
   lCurrentArrayItem: TValue;
 begin
-  if SameText(AName, 'RefCount') then
-  begin
-    Exit;
-  end;
+//  if SameText(AName, 'RefCount') then
+//  begin
+//    Exit;
+//  end;
 
   if AValue.IsEmpty then
   begin
@@ -704,7 +704,7 @@ begin
     begin
       Result := TJsonArray.Create;
       AJsonDataType := jdtArray;
-      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncLowerCase, [],
+      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncUseDefault, [],
         ADataSetSerializationCallback);
     end
     else if AObject is TJsonObject then
@@ -1693,7 +1693,7 @@ begin
         if Assigned(ChildObject) then
         begin
           if ChildObject is TDataSet then
-            JsonArrayToDataSet(AJSONObject.A[APropertyName], ChildObject as TDataSet, AIgnored, ncLowerCase)
+            JsonArrayToDataSet(AJSONObject.A[APropertyName], ChildObject as TDataSet, AIgnored, TMVCNameCase.ncUseDefault)
           else if GetTypeSerializers.ContainsKey(ChildObject.ClassInfo) then
           begin
             GetTypeSerializers.Items[ChildObject.ClassInfo].DeserializeAttribute(AValue, APropertyName, AJSONObject,
@@ -2693,6 +2693,15 @@ begin
       begin
         for Prop in ObjType.GetProperties do
         begin
+          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+          begin
+            Continue;
+          end;
+
+//          if Prop.Name = 'RefCount' then
+//          begin
+//            Continue;
+//          end;
 
 {$IFDEF AUTOREFCOUNT}
           if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
@@ -3106,7 +3115,7 @@ begin
           begin
             if Obj is TDataSet then
             begin
-              DataSetToJsonArray(TDataSet(Obj), JSONArray.AddArray, TMVCNameCase.ncLowerCase, nil,nil,);
+              DataSetToJsonArray(TDataSet(Obj), JSONArray.AddArray, TMVCNameCase.ncUseDefault, nil,nil,);
             end
             else
             begin
@@ -3802,7 +3811,7 @@ begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
             JSON.A[KeyName] := TJDOJsonArray.Create;
-            lSer.DataSetToJsonArray(TDataSet(lValueAsObj), JSON.A[KeyName], TMVCNameCase.ncLowerCase, []);
+            lSer.DataSetToJsonArray(TDataSet(lValueAsObj), JSON.A[KeyName], TMVCNameCase.ncUseDefault, []);
           finally
             lSer.Free;
           end;

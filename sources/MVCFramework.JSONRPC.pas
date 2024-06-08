@@ -568,7 +568,7 @@ begin
           try
             lJArr := TJDOJsonArray.Create;
             JSONArr.Add(lJArr);
-            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), lJArr, TMVCNameCase.ncLowerCase, []);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), lJArr, TMVCNameCase.ncUseDefault, []);
           finally
             lSer.Free;
           end
@@ -680,7 +680,7 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name], TMVCNameCase.ncLowerCase, []);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name], TMVCNameCase.ncUseDefault, []);
           finally
             lSer.Free;
           end

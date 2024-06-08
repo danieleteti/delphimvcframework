@@ -417,7 +417,7 @@ begin
       try
         if lDataSetHolder.SerializationType = TMVCDatasetSerializationType.dstAllRecords then
         begin
-          lSer.DataSetToJsonArray(lDataSetHolder.Items, lOutObject.A['data'], TMVCNameCase.ncLowerCase, [])
+          lSer.DataSetToJsonArray(lDataSetHolder.Items, lOutObject.A['data'], TMVCNameCase.ncUseDefault, [])
         end
         else // single record
         begin
@@ -426,9 +426,9 @@ begin
             raise EMVCException.CreateFmt('DataSet contains %d records - exactly 1 expected',
               [lDataSetHolder.Items.RecordCount]);
           end;
-          lDSFields := lSer.GetDataSetFields(lDataSetHolder.Items, [], TMVCNameCase.ncLowerCase);
+          lDSFields := lSer.GetDataSetFields(lDataSetHolder.Items, [], TMVCNameCase.ncUseDefault);
           try
-            lSer.DataSetToJsonObject(lDataSetHolder.Items, lOutObject.O['data'], TMVCNameCase.ncLowerCase, [],
+            lSer.DataSetToJsonObject(lDataSetHolder.Items, lOutObject.O['data'], TMVCNameCase.ncUseDefault, [],
               lDSFields);
           finally
             lDSFields.Free;

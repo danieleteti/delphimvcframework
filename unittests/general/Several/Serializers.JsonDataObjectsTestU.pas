@@ -343,6 +343,9 @@ const
 var
   O: TObjectList<TNote>;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   O := TObjectList<TNote>.Create(True);
   try
     fSerializer.DeserializeCollection(JSON_PROPERTIES, O, TNote);
@@ -358,6 +361,8 @@ begin
   finally
     O.Free;
   end;
+
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
@@ -493,6 +498,9 @@ const
 var
   O: TEntity;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   O := TEntity.Create;
   try
     fSerializer.DeserializeObject(JSON_PROPERTIES, O);
@@ -508,6 +516,8 @@ begin
   finally
     O.Free;
   end;
+
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomMemberSerializer;
@@ -517,6 +527,9 @@ const
 var
   O: TSale;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   O := TSale.Create;
   try
     fSerializer.DeserializeObject(JSON, O);
@@ -528,6 +541,8 @@ begin
   finally
     O.Free;
   end;
+
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerializer;
@@ -553,6 +568,9 @@ const
 var
   O: TEntityCustomWithNullables;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   O := TEntityCustomWithNullables.Create;
   try
     fSerializer.DeserializeObject(JSON, O);
@@ -562,6 +580,8 @@ begin
   finally
     O.Free;
   end;
+
+  MVCNameCaseDefault := lSavedMVCNameCase
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
@@ -573,6 +593,9 @@ var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   OFields := TEntitySerializeFields.Create;
   try
     fSerializer.DeserializeObject(JSON_FIELDS, OFields);
@@ -592,6 +615,8 @@ begin
   finally
     OProperties.Free;
   end;
+
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithArray;
@@ -612,6 +637,9 @@ const
 var
   O: TEntityWithArray;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+
   O := TEntityWithArray.Create;
   try
     fSerializer.DeserializeObject(JSON_WITH_ARRAY, O);
@@ -619,6 +647,7 @@ begin
   finally
     O.Free;
   end;
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists;
@@ -990,6 +1019,8 @@ var
   lObj1: TMyObject;
   lSer: string;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
   lObj1 := GetMyObject;
   try
     lSer := fSerializer.SerializeObject(lObj1);
@@ -1019,6 +1050,7 @@ begin
   finally
     lJObj.Free;
   end;
+  MVCNameCaseDefault := lSavedMVCNameCase
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeCollection;
@@ -1505,6 +1537,8 @@ var
   lStr: string;
   lJObj: TJsonObject;
 begin
+  var lSavedMVCNameCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
   lPeople := TPeople.Create;
   try
     lPerson := TPerson.Create;
@@ -1525,6 +1559,7 @@ begin
   finally
     lPeople.Free;
   end;
+  MVCNameCaseDefault := lSavedMVCNameCase;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeListWithNulls2;

@@ -33,10 +33,11 @@ uses
   System.Classes,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Serializer.Commons;
 
 type
-
+  [MVCNameCase(ncAsIs)]
   TAppUser = class
   strict private
     FCod: Integer;
