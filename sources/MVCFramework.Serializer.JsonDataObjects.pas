@@ -1127,6 +1127,7 @@ begin
         JsonBase := TJDOJsonObject.Parse(ASerializedList);
         if not(JsonBase is TJDOJsonObject) then
         begin
+          JsonBase.Free;
           raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
             [TJDOJsonObject.ClassName, JsonBase.ClassName]);
         end;
@@ -3576,7 +3577,7 @@ procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObjec
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: string);
 var
   JSONObject: TJDOJsonObject;
-  JsonBase: TJsonBaseObject;
+  JSONBase: TJsonBaseObject;
 begin
   if (ASerializedObject = EmptyStr) then
     raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Invalid body');
@@ -3585,32 +3586,33 @@ begin
     Exit;
 
   try
-    JsonBase := TJDOJsonObject.Parse(ASerializedObject);
-    if not(JsonBase is TJDOJsonObject) then
-    begin
-      raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
-        [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+    JSONBase := TJDOJsonObject.Parse(ASerializedObject);
+    try
+      if not(JSONBase is TJDOJsonObject) then
+      begin
+        raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+          [TJDOJsonObject.ClassName, JSONBase.ClassName]);
+      end;
+      JSONObject := TJDOJsonObject(JSONBase);
+
+      if GetTypeSerializers.ContainsKey(AObject.ClassInfo) then
+      begin
+        GetTypeSerializers.Items[AObject.ClassInfo].DeserializeRoot(SelectRootNodeOrWholeObject(ARootNode, JSONObject),
+          AObject, [])
+      end
+      else
+      begin
+        JsonObjectToObject(SelectRootNodeOrWholeObject(ARootNode, JSONObject), AObject,
+          GetSerializationType(AObject, AType), AIgnoredAttributes);
+      end;
+    finally
+      JSONBase.Free;
     end;
-    JSONObject := TJDOJsonObject(JsonBase);
   except
     on E: EJsonParserException do
     begin
       raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
     end;
-  end;
-  try
-    if GetTypeSerializers.ContainsKey(AObject.ClassInfo) then
-    begin
-      GetTypeSerializers.Items[AObject.ClassInfo].DeserializeRoot(SelectRootNodeOrWholeObject(ARootNode, JSONObject),
-        AObject, [])
-    end
-    else
-    begin
-      JsonObjectToObject(SelectRootNodeOrWholeObject(ARootNode, JSONObject), AObject,
-        GetSerializationType(AObject, AType), AIgnoredAttributes);
-    end;
-  finally
-    JSONObject.Free;
   end;
 end;
 
