@@ -60,7 +60,7 @@ type
 
   TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
-  TMVCNameCase = (ncUseDefault, ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
+  TMVCNameCase = (ncUseDefault {ncUseDefault must be the first item}, ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
 
   TMVCDataType = (dtObject, dtArray);
 

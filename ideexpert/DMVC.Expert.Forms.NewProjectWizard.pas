@@ -50,7 +50,8 @@ uses
   VCL.ExtCtrls,
   System.Actions,
   Vcl.ActnList,
-  Vcl.AppEvnts, JsonDataObjects;
+  Vcl.AppEvnts,
+  JsonDataObjects;
 
 type
   TfrmDMVCNewProject = class(TForm)
@@ -100,6 +101,7 @@ type
     chkMustache: TCheckBox;
     chkServicesContainer: TCheckBox;
     chkSqids: TCheckBox;
+    rgNameCase: TRadioGroup;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -143,15 +145,13 @@ type
     function GetConfigModel: TJSONObject;
   end;
 
-var
-  frmDMVCNewProject: TfrmDMVCNewProject;
-
 implementation
 
 uses
   MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
   System.StrUtils,
-  DMVC.Expert.Commons;
+  DMVC.Expert.Commons, System.TypInfo;
 
 {$R *.dfm}
 
@@ -357,7 +357,7 @@ begin
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
-
+  fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
   //webmodule
 
   fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;

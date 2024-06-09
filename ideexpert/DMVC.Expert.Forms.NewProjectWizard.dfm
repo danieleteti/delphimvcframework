@@ -435,7 +435,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblPATREON: TLabel
     Left = 452
-    Top = 495
+    Top = 549
     Width = 257
     Height = 16
     Cursor = crHandPoint
@@ -455,7 +455,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnMouseLeave = lblPATREONMouseLeave
   end
   object btnOK: TButton
-    Left = 549
+    Left = 561
     Top = 580
     Width = 77
     Height = 27
@@ -467,7 +467,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 632
+    Left = 644
     Top = 580
     Width = 77
     Height = 27
@@ -609,13 +609,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object GroupBox1: TGroupBox
     Left = 314
     Top = 135
-    Width = 405
-    Height = 214
+    Width = 407
+    Height = 210
     Caption = 'Middlewares'
     TabOrder = 6
     DesignSize = (
-      405
-      214)
+      407
+      210)
     object Label4: TLabel
       Left = 161
       Top = 112
@@ -647,7 +647,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 0
     end
     object chkCompression: TCheckBox
-      Left = 27
+      Left = 28
       Top = 24
       Width = 153
       Height = 17
@@ -665,7 +665,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 2
     end
     object chkTrace: TCheckBox
-      Left = 192
+      Left = 193
       Top = 50
       Width = 150
       Height = 17
@@ -675,7 +675,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 3
     end
     object chkCORS: TCheckBox
-      Left = 192
+      Left = 193
       Top = 24
       Width = 135
       Height = 17
@@ -684,7 +684,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 4
     end
     object chkETAG: TCheckBox
-      Left = 192
+      Left = 193
       Top = 76
       Width = 202
       Height = 17
@@ -704,7 +704,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object EdtFDConnDefFileName: TEdit
       Left = 161
       Top = 129
-      Width = 228
+      Width = 230
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 7
@@ -713,7 +713,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object EdtConnDefName: TEdit
       Left = 161
       Top = 175
-      Width = 228
+      Width = 230
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 8
@@ -722,14 +722,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 314
-    Top = 388
-    Width = 396
+    Top = 438
+    Width = 407
     Height = 105
     Anchors = [akLeft, akRight, akBottom]
-    Caption = 'JSON-RPC 2.0'
+    Caption = 'JSON-RPC end-point Options'
     TabOrder = 7
     DesignSize = (
-      396
+      407
       105)
     object Label3: TLabel
       Left = 16
@@ -741,7 +741,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object EdtJSONRPCClassName: TEdit
       Left = 16
       Top = 72
-      Width = 365
+      Width = 376
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
@@ -750,10 +750,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object chkJSONRPC: TCheckBox
       Left = 16
       Top = 22
-      Width = 358
+      Width = 369
       Height = 17
       Anchors = [akLeft, akTop, akRight]
-      Caption = 'Create JSONRPC 2.0 end-point'
+      Caption = 'Create JSON-RPC 2.0 end-point'
       Checked = True
       State = cbChecked
       TabOrder = 1
@@ -807,6 +807,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Checked = True
     State = cbChecked
     TabOrder = 12
+  end
+  object rgNameCase: TRadioGroup
+    Left = 314
+    Top = 351
+    Width = 407
+    Height = 81
+    Caption = 'Default style for serialized property names (MVCNameCaseDefault)'
+    Columns = 3
+    ItemIndex = 2
+    Items.Strings = (
+      'AsIs (as declared)'
+      'UpperCase (FOOBAR)'
+      'LowerCase (foobar)'
+      'CamelCase (fooBar)'
+      'PascalCase (FooBar)'
+      'SnakeCase (foo_bar)')
+    TabOrder = 13
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

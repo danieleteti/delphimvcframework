@@ -74,6 +74,7 @@ type
      jsonrpc_generate= 'jsonrpc.generate';
      jsonrpc_classname= 'jsonrpc.classname';
      jsonrpc_unit_name='jsonrpc.unit_name';
+     serializer_name_case= 'serializer.name_case';
      webmodule_classname= 'webmodule.classname';
      webmodule_unit_name= 'webmodule.unit_name';
      webmodule_middleware_analytics= 'webmodule.middleware.analytics';

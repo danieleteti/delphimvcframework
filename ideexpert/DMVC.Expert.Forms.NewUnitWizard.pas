@@ -44,7 +44,8 @@ uses
   VCL.Controls,
   VCL.Forms,
   VCL.Dialogs,
-  VCL.StdCtrls, JsonDataObjects;
+  VCL.StdCtrls,
+  JsonDataObjects;
 
 type
   TfrmDMVCNewUnit = class(TForm)
@@ -75,9 +76,6 @@ type
     property AddAnalyticsMiddleware: boolean read GetAddAnalyticsMiddleware;
     function GetConfigModel: TJSONObject;
   end;
-
-var
-  frmDMVCNewUnit: TfrmDMVCNewUnit;
 
 implementation
 
