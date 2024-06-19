@@ -16,7 +16,7 @@ uses
   IdHTTPWebBrokerBridge,
   ControllerU in 'ControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  MainDMU in 'MainDMU.pas' {dmMain: TDataModule};
+  MainDMU in 'MainDMU.pas', MVCFramework.Serializer.Commons {dmMain: TDataModule};
 
 {$R *.res}
 
@@ -54,6 +54,7 @@ begin
   // When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
   // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
   MVCSerializeNulls := True;
+  MVCNameCaseDefault := TMVCNameCase.ncCamelCase;
 
   try
     if WebRequestHandler <> nil then

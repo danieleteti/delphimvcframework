@@ -7,14 +7,12 @@ uses
   System.Generics.Collections, Data.DB, JsonDataObjects, System.Rtti;
 
 type
-  [MVCNameCase(ncCamelCase)]
   TPersonRec = record
     FirstName, LastName: String;
     Age: Integer;
     class function Create: TPersonRec; static;
   end;
 
-  [MVCNameCase(ncCamelCase)]
   TPerson = class
   private
     fAge: Integer;
@@ -34,6 +32,8 @@ type
     function GetSum(const A, B: Integer): Integer;
     [MVCPath('/sumsasfloat/($A)/($B)')]
     function GetSumAsFloat(const A, B: Extended): Extended;
+    [MVCPath('/booleans/($A)/($B)')]
+    function GetOrTruthTable(const A, B: Boolean): Boolean;
     [MVCPath('/string/($A)/($B)')]
     function GetConcatAsString(const A, B: String): String;
 
@@ -66,6 +66,15 @@ type
     { customize response headers }
     [MVCPath('/headers')]
     function GetWithCustomHeaders: TObjectList<TPerson>;
+
+    { exceptions  }
+    [MVCPath('/exception1')]
+    function GetMVCException: Integer;
+
+    [MVCPath('/exception2')]
+    function GetGeneralException: Integer;
+
+
 
     { using IMVCResponse and Response Methods}
     [MVCPath('/mvcresponse/message')]
@@ -140,7 +149,10 @@ begin
   end;
 end;
 
-
+function TMyController.GetMVCException: Integer;
+begin
+  raise EMVCException.Create(HTTP_STATUS.NotFound, 'Resource not found');
+end;
 
 function TMyController.GetMVCResponseNoBody: IMVCResponse;
 begin
@@ -226,6 +238,11 @@ begin
   Result := OKResponse;
 end;
 
+function TMyController.GetOrTruthTable(const A, B: Boolean): Boolean;
+begin
+  Result := A or B;
+end;
+
 function TMyController.GetMVCResponseWithJSON: IMVCResponse;
 begin
   Result := OKResponse(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'));
@@ -290,6 +307,11 @@ end;
 function TMyController.GetConcatAsString(const A, B: String): String;
 begin
   Result :=  A + B;
+end;
+
+function TMyController.GetGeneralException: Integer;
+begin
+  raise Exception.Create('This is a general exception');
 end;
 
 function TMyController.GetWithCustomHeaders: TObjectList<TPerson>;
