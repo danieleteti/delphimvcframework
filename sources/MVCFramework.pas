@@ -2513,7 +2513,7 @@ end;
 
 procedure TMVCEngine.ConfigDefaultValues;
 begin
-  Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
+  LogI('Loading Config default values');
 
   Config[TMVCConfigKey.SessionTimeout] := '30' { 30 minutes };
   Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
@@ -2530,8 +2530,6 @@ begin
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
   Config[TMVCConfigKey.LoadSystemControllers] := 'true';
-
-  Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
   fOnRouterLog :=
       procedure(
@@ -3623,9 +3621,8 @@ procedure TMVCEngine.LoadSystemControllers;
 begin
   if FConfig[TMVCConfigKey.LoadSystemControllers] = 'true' then
   begin
-    Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
+    LogI('Loading System Controllers');
     AddController(TMVCSystemController);
-    Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
   end;
 end;
 
