@@ -3405,14 +3405,18 @@ begin
       begin
         if AFormalParam.ParamType.QualifiedName = 'System.Boolean' then
         begin
-          if SameText(AStringValue, 'true') or SameText(AStringValue, '1') then
-            Result := True
-          else if SameText(AStringValue, 'false') or SameText(AStringValue, '0') then
-            Result := False
+          if SameText(AStringValue, 'true') or SameText(AStringValue, '1') or SameText(AStringValue, 'yes') then
+          begin
+            Result := True;
+          end
+          else if SameText(AStringValue, 'false') or SameText(AStringValue, '0') or SameText(AStringValue, 'no') then
+          begin
+            Result := False;
+          end
           else
           begin
             raise EMVCException.CreateFmt(http_status.BadRequest,
-              'Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
+              'Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false", "yes"/"no" or "1"/"0".',
               [AFormalParam.name]);
           end;
         end
