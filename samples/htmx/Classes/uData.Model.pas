@@ -32,6 +32,7 @@ type
     property Selected: Boolean read FSelected write FSelected;
   end;
 
+  [MVCNameCase(ncAsIs)]
   TMovie = class(TBaseBO)
   private
     FMovieID: Integer;
