@@ -24,6 +24,7 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
+  - [What's New in DMVCFramework-3.4.2-magnesium-rc2 (release candidate 2 version)](#whats-new-in-dmvcframework-342-magnesium-rc2-release-candidate-2-version)
   - [What's New in DMVCFramework-3.4.1-sodium (stable version)](#whats-new-in-dmvcframework-341-sodium-stable-version)
   - [Older Versions](#older-versions)
     - [What's New in DMVCFramework-3.4.0-neon](#whats-new-in-dmvcframework-340-neon)
