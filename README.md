@@ -224,6 +224,10 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
+## What's New in DMVCFramework-3.4.2-magnesium-rc2 (release candidate 2 version)
+>👉 A deep analisys of what's new in DelphiMVCFramework-3.4.2-magnesium is available on [Daniele Teti Blog]
+https://www.danieleteti.it/post/delphimvcframework-3-4-2-magnesium/
+
 ## What's New in DMVCFramework-3.4.1-sodium (stable version)
 
 >👉 A deep analisys of what's new in DelphiMVCFramework-3.4.1-sodium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-1-sodium/) 👈
