@@ -1087,6 +1087,7 @@ var
   lInternalStream: TStream;
   lSStream: TStringStream;
   lValue: TValue;
+  lTmpValue: TValue;
   lStrValue: string;
 {$IF not Defined(TokyoOrBetter)}
   lFieldValue: string;
@@ -1166,15 +1167,14 @@ begin
         // general enumerations
     		else if (aRTTIField.FieldType.TypeKind = tkEnumeration) then
         begin
-          var Value: TValue;
           case aRTTIField.FieldType.TypeSize of
-            SizeOf(Byte): Value := TValue.From<Byte>(AField.AsInteger);
-            SizeOf(Word): Value := TValue.From<Word>(AField.AsInteger);
-            SizeOf(Integer): Value := TValue.From<Integer>(AField.AsInteger);
+            SizeOf(Byte): lTmpValue := TValue.From<Byte>(AField.AsInteger);
+            SizeOf(Word): lTmpValue := TValue.From<Word>(AField.AsInteger);
+            SizeOf(Integer): lTmpValue := TValue.From<Integer>(AField.AsInteger);
             else
               raise EMVCException.CreateFmt('Unsupported enumeration type for field %s', [AField.FieldName]);
           end;
-          Value.ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
+          lTmpValue.ExtractRawData(PByte(Pointer(AObject)) + aRTTIField.Offset);
         end
         // plain integers
         else
