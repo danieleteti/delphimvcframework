@@ -99,7 +99,7 @@ var
   lFName: string;
   lFile: TFileStream;
 begin
-  if Context.Request.RawWebRequest.Files.Count <> 1 then
+  if Context.Request.Files.Count <> 1 then
   begin
     Exit(RedirectResponse('/'));
   end;
