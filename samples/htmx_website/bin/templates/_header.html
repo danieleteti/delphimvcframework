@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.0.2/tailwind.min.css" />
+    <script src="https://unpkg.com/htmx.org@latest"></script>
+    <title>HTMX App</title>
+</head>
+
+<body class="bg-gray-200" hx-boost="true">
+<div class="flex h-screen">
+    <!-- Side Navigation -->
+    {{>partials/sidenav}}
+    <!-- Main Content Area -->
+<main class="w-full bg-white p-4" id="main">
+            
