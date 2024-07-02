@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AFDF54C5-5184-4A5F-A230-FB7F37B3B2F0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="jsonrpcserver\jsonrpcserverwithobjects.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="sync_client\jsonrpcclientwithobjects_sync.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="async_client\jsonrpcclientwithobjects_async.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="jsonrpcserverwithobjects">
+        <MSBuild Projects="jsonrpcserver\jsonrpcserverwithobjects.dproj"/>
+    </Target>
+    <Target Name="jsonrpcserverwithobjects:Clean">
+        <MSBuild Projects="jsonrpcserver\jsonrpcserverwithobjects.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsonrpcserverwithobjects:Make">
+        <MSBuild Projects="jsonrpcserver\jsonrpcserverwithobjects.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_sync">
+        <MSBuild Projects="sync_client\jsonrpcclientwithobjects_sync.dproj"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_sync:Clean">
+        <MSBuild Projects="sync_client\jsonrpcclientwithobjects_sync.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_sync:Make">
+        <MSBuild Projects="sync_client\jsonrpcclientwithobjects_sync.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_async">
+        <MSBuild Projects="async_client\jsonrpcclientwithobjects_async.dproj"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_async:Clean">
+        <MSBuild Projects="async_client\jsonrpcclientwithobjects_async.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects_async:Make">
+        <MSBuild Projects="async_client\jsonrpcclientwithobjects_async.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="jsonrpcserverwithobjects;jsonrpcclientwithobjects_sync;jsonrpcclientwithobjects_async"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="jsonrpcserverwithobjects:Clean;jsonrpcclientwithobjects_sync:Clean;jsonrpcclientwithobjects_async:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="jsonrpcserverwithobjects:Make;jsonrpcclientwithobjects_sync:Make;jsonrpcclientwithobjects_async:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
