@@ -43,7 +43,9 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv, MVCFramework.Container, sqids;
+  MVCFramework.DotEnv,
+  MVCFramework.Container,
+  sqids;
 
 {$I dmvcframeworkbuildconsts.inc}
 
