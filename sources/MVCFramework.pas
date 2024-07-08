@@ -1131,8 +1131,7 @@ type
       overload; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
   public
-    constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil;
-      const ACustomLogger: ILogWriter = nil); reintroduce;
+    constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil); reintroduce;
     destructor Destroy; override;
 
     function GetSessionBySessionId(const ASessionId: string): TMVCWebSession;
@@ -2557,8 +2556,7 @@ begin
     end;
 end;
 
-constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>;
-  const ACustomLogger: ILogWriter);
+constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>);
 begin
   inherited Create(AWebModule);
   FWebModule := AWebModule;
@@ -2572,7 +2570,6 @@ begin
   WebRequestHandler.CacheConnections := True;
   WebRequestHandler.MaxConnections := 4096;
 
-  MVCFramework.Logger.SetDefaultLogger(ACustomLogger);
   ConfigDefaultValues;
 
   if Assigned(AConfigAction) then

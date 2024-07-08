@@ -50,7 +50,7 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end, GetLogger);
+    end);
   FMVC.AddController(TMyController);
 
   { This is a custom router log. It is not mandatory; you can use it to log

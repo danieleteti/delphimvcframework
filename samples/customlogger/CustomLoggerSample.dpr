@@ -27,10 +27,10 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server **');
-  Writeln('WARNING! Run this program in debug and check the Delphi "Event" debug window to see the custom logs');
-  Writeln('WARNING! Also, the log file are generated in the custom path "MyFolder\MyLogs"');
-  Writeln(Format('Starting HTTP Server on port %d', [APort]));
+  LogI('** DMVCFramework Server **');
+  LogI('WARNING! Run this program in debug and check the Delphi "Event" debug window to see the custom logs');
+  LogI('WARNING! Also, the log file are generated in the custom path "MyFolder\MyLogs"');
+  LogI(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
@@ -43,7 +43,7 @@ begin
 
     {$ENDIF}
 
-    Writeln('Press RETURN to stop the server');
+    LogI('Press RETURN to stop the server');
     ReadLn;
   finally
     LServer.Free;
@@ -51,6 +51,7 @@ begin
 end;
 
 begin
+  SetDefaultLogger(GetLogger);
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
@@ -59,7 +60,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, 'Closing service');
   end;
 
 end.

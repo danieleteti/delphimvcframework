@@ -16,7 +16,7 @@ type
 
     [MVCPath('/hellos/($FirstName)')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetSpecializedHello(const FirstName: string);
+    function GetSpecializedHello(const FirstName: string): String;
     procedure OnBeforeAction(Context: TWebContext; const AActionName: string;
       var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
@@ -36,9 +36,9 @@ begin
   RenderResponseStream;
 end;
 
-procedure TMyController.GetSpecializedHello(const FirstName: string);
+function TMyController.GetSpecializedHello(const FirstName: string): String;
 begin
-  Render('Hello ' + FirstName);
+  Result := 'Hello ' + FirstName;
 end;
 
 procedure TMyController.OnAfterAction(Context: TWebContext; const AActionName: string);

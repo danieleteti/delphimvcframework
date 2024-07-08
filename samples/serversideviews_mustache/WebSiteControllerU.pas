@@ -39,7 +39,7 @@ type
     [MVCPath('/deleteperson')]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
-    procedure DeletePerson;
+    procedure DeletePerson([MVCFromContentField('guid')] const GUID: String);
 
     [MVCPath('/new')]
     [MVCHTTPMethods([httpGET])]
@@ -75,14 +75,12 @@ uses System.SysUtils, Web.HTTPApp, FireDAC.Stan.Intf, FireDAC.Stan.Option,
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf, Data.DB,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
-procedure TWebSiteController.DeletePerson;
+procedure TWebSiteController.DeletePerson(const GUID: String);
 var
-  lGUID: string;
   LDAL: IPeopleDAL;
 begin
-  lGUID := Context.Request.Params['guid'];
   LDAL := TServicesFactory.GetPeopleDAL;
-  LDAL.DeleteByGUID(lGUID);
+  LDAL.DeleteByGUID(GUID);
   Redirect('/people');
 end;
 
@@ -252,7 +250,6 @@ begin
   finally
     lPeople.Free;
   end;
-
 end;
 
 procedure TWebSiteController.SavePerson(const [MVCFromBody] Person: TPerson);
