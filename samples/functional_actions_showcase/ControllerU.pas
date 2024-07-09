@@ -34,7 +34,7 @@ type
     function GetSumAsFloat(const A, B: Extended): Extended;
     [MVCPath('/booleans/($A)/($B)')]
     function GetOrTruthTable(const A, B: Boolean): Boolean;
-    [MVCPath('/string/($A)/($B)')]
+    [MVCPath('/strings/($A)/($B)')]
     function GetConcatAsString(const A, B: String): String;
 
     { actions returning records }
