@@ -33,7 +33,7 @@ var
   LCmd: string;
   lURL: string;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   LCmd := 'start';
   if ParamCount >= 1 then
     LCmd := ParamStr(1);
@@ -52,9 +52,9 @@ begin
       http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }
     LServer.ListenQueue := 200;
     lURL := Format('http://localhost:%d', [APort]);
-    Writeln('SWAGGER UI available at ', lURL);
+    LogI('SWAGGER UI available at ' + lURL);
     LServer.Active := True;
-    Write('CTRL+C to Quit');
+    LogI('CTRL+C to Quit');
 {$IF Defined(MSWINDOWS)}
     ShellExecute(0, nil, PChar(lURL), nil, nil, SW_SHOWNOACTIVATE);
 {$ENDIF}
@@ -74,7 +74,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end;
 
 end.

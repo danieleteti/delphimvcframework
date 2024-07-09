@@ -26,7 +26,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -35,7 +35,7 @@ begin
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
     LServer.Active := True;
-    Write('CTRL+C to Quit');
+    LogI('CTRL+C to Quit');
     WaitForTerminationSignal;
   finally
     LServer.Free;
@@ -55,7 +55,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, 'Shutdown');
   end;
 
 end.
