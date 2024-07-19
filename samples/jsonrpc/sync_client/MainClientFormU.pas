@@ -739,7 +739,7 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcPOST);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
   FDMemTable1.First;
