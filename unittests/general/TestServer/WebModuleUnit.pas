@@ -81,7 +81,7 @@ begin
       Config[TMVCConfigKey.PathPrefix] := '';
       Config[TMVCConfigKey.ViewPath] := TPath.Combine(AppPath, '..\templates');
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
-    end, nil);
+    end);
   MVCEngine
     .AddController(TTestServerController)
     .AddController(TTestPrivateServerController)

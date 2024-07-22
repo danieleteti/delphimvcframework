@@ -80,7 +80,7 @@ type
     FAccessTime: TTime;
     FActive: Boolean;
     FRole: TRole;
-    FTeporization: TTimeStamp;
+    FTemporization: TTimeStamp;
     FDepartment: TDepartment;
     FDepartmentNull: TDepartment;
 
@@ -115,7 +115,7 @@ type
     property AccessTime: TTime read FAccessTime write FAccessTime;
     property Active: Boolean read FActive write FActive;
     property Role: TRole read FRole write FRole;
-    property Teporization: TTimeStamp read FTeporization write FTeporization;
+    property Temporization: TTimeStamp read FTemporization write FTemporization;
     property Department: TDepartment read FDepartment write FDepartment;
     property DepartmentNull: TDepartment read FDepartmentNull write FDepartmentNull;
 

@@ -428,7 +428,9 @@ begin
             AJSONObject.S[AName] := TimeToISOTime(AValue.AsExtended);
         end
         else
+        begin
           AJSONObject.F[AName] := AValue.AsExtended;
+        end;
       end;
 
     tkVariant:
@@ -517,7 +519,7 @@ begin
 
         if (AValue.TypeInfo = System.TypeInfo(TTimeStamp)) then
         begin
-          AJSONObject.F[AName] := TimeStampToMsecs(AValue.AsType<TTimeStamp>);
+          AJSONObject.L[AName] := Trunc(TimeStampToMsecs(AValue.AsType<TTimeStamp>));
         end
         else if (AValue.TypeInfo = System.TypeInfo(TValue)) then
         begin
@@ -1581,8 +1583,16 @@ begin
       else
       begin
         if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for "%s"',
-            [APropertyName]);
+        begin
+          if AValue.TypeInfo = TypeInfo(TTimeStamp) then
+          begin
+            AValue := TValue.From<TTimeStamp>(MSecsToTimeStamp(AJSONObject[APropertyName].LongValue))
+          end
+          else
+          begin
+            raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for "%s"', [APropertyName]);
+          end;
+        end;
       end;
 
     jdtDateTime:
