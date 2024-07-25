@@ -43,7 +43,10 @@ type
   TLogLevel = (levDebug = 0, levNormal = 1, levWarning = 2, levError = 3, levException = 4);
 
 {$IF Defined(SYDNEYORBETTER)}
+const
+  PROFILER_LOG_TYPE: array [false..true] of TLogType = (TLogType.Info, TLogType.Warning);
 
+type
   Profiler = record
   private
     fMessage: string;
@@ -58,6 +61,9 @@ type
     class var LoggerTag: String;
     class var WarningThreshold: UInt32;
     class var LogsOnlyIfOverThreshold: Boolean;
+    // Trace
+    class procedure Trace(const Message: String; Proc: TProc; const WarningThreshold: UInt32); overload; static;
+    class function Trace<T>(const Message: String; Func: TFunc<T>; const WarningThreshold: UInt32): T; overload; static;
   end;
 {$ENDIF}
 
@@ -121,8 +127,6 @@ threadvar
   gIndent: NativeUInt;
   gReqNr: NativeUInt;
 
-const
-  PROFILER_LOG_TYPE: array [false..true] of TLogType = (TLogType.Info, TLogType.Warning);
 {$ENDIF}
 
 var
@@ -419,6 +423,47 @@ constructor Profiler.Start(const Message: string);
 begin
   Start(Message, []);
 end;
+
+class function Profiler.Trace<T>(const Message: String; Func: TFunc<T>; const WarningThreshold: UInt32): T;
+var
+  lStopWatch: TStopWatch;
+begin
+  lStopWatch := TStopWatch.StartNew;
+  Result := Func(); //do not put try/except here. If exception raises the timing is a nonsense
+  lStopWatch.Stop;
+  if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
+  begin
+    ProfileLogger.Log(
+      PROFILER_LOG_TYPE[True],
+      '[%s][ELAPSED: %s][TRACE][THRESHOLD %d ms]',
+      [
+        Message,
+        lStopWatch.Elapsed.ToString,
+        WarningThreshold
+      ], LoggerTag);
+  end;
+end;
+
+class procedure Profiler.Trace(const Message: String; Proc: TProc; const WarningThreshold: UInt32);
+var
+  lStopWatch: TStopWatch;
+begin
+  lStopWatch := TStopWatch.StartNew;
+  Proc(); //do not put try/except here. If exception raises the timing is a nonsense
+  lStopWatch.Stop;
+  if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
+  begin
+    ProfileLogger.Log(
+      PROFILER_LOG_TYPE[True],
+      '[%s][ELAPSED: %s][TRACE][THRESHOLD %d ms]',
+      [
+        Message,
+        lStopWatch.Elapsed.ToString,
+        WarningThreshold
+      ], LoggerTag);
+  end;
+end;
+
 {$ENDIF}
 
 procedure InitThreadVars;
