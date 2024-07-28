@@ -75,6 +75,7 @@ begin
   // Server Side View - END
 
   // Middleware
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create);
   // Middleware - END
 
 end;

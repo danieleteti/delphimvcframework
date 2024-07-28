@@ -83,7 +83,7 @@ var
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   LDAL.DeleteByGUID(GUID);
-  Context.Response.HXSetPageRefresh(true);
+  Context.Response.HXSetLocation('/people');
   RenderStatusMessage(HTTP_STATUS.OK);
 end;
 

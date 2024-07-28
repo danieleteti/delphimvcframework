@@ -229,6 +229,10 @@ begin
         break;
       end;
     end;
+    if not Assigned(Result) then
+    begin
+      raise Exception.Create('Person not found');
+    end;
   finally
     lPeople.Free;
   end;
