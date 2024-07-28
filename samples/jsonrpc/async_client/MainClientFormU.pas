@@ -384,8 +384,7 @@ procedure TMainForm.btnNotificationClick(Sender: TObject);
 var
   lNotification: IJSONRPCNotification;
 begin
-  lNotification := TJSONRPCNotification.Create;
-  lNotification.Method := 'dosomething';
+  lNotification := FExecutor.CreateNotification('dosomething');
   FExecutor.ExecuteNotificationAsync('/jsonrpc', lNotification);
 end;
 
@@ -433,9 +432,7 @@ procedure TMainForm.btnReverseStringClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
 begin
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'reversestring';
-  lReq.RequestID := Random(1000);
+  lReq := FExecutor.CreateRequest('reversestring', Random(1000));
   lReq.Params.AddByName('aString', edtReverseString.Text);
   lReq.Params.AddByName('aUpperCase', CheckBox1.Checked);
   FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
@@ -517,9 +514,7 @@ var
   lReq: IJSONRPCRequest;
 begin
   fExecutorAsync := TMVCJSONRPCExecutor.Create('http://localhost:8080');
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'subtract';
-  lReq.RequestID := Random(1000);
+  lReq := fExecutorAsync.CreateRequest('subtract', Random(1000));
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
   fExecutorAsync
@@ -534,9 +529,7 @@ procedure TMainForm.btnSubtractWithNamedParamsClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
 begin
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'subtract';
-  lReq.RequestID := Random(1000);
+  lReq := fExecutor.CreateRequest('subtract', Random(1000));
   lReq.Params.AddByName('Value1', StrToInt(Edit1.Text));
   lReq.Params.AddByName('Value2', StrToInt(Edit2.Text));
   FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
@@ -551,9 +544,7 @@ var
   lPerson: TJsonObject;
   lReq: IJSONRPCRequest;
 begin
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'SaveObjectWithJSON';
-  lReq.RequestID := 1234;
+  lReq := FExecutor.CreateRequest('SaveObjectWithJSON', 1234);
   lPerson := TJsonObject.Create;
   lReq.Params.Add(lPerson, pdTJDOJsonObject);
   lPerson.S['StringProp'] := 'Hello World';

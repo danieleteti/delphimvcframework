@@ -411,21 +411,21 @@ end;
 procedure TMyObject.OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeCallHook >> ', 'jsonrpc');
-  Log.Info(JSONRequest.ToJSON(False), 'jsonrpc');
+  Log.Info(sLineBreak + JSONRequest.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeCallHook << ', 'jsonrpc');
 end;
 
 procedure TMyObject.OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeRoutingHook >> ', 'jsonrpc');
-  Log.Info(JSON.ToJSON(False), 'jsonrpc');
+  Log.Info(sLineBreak + JSON.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeRoutingHook << ', 'jsonrpc');
 end;
 
 procedure TMyObject.OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnAfterCallHook >> ', 'jsonrpc');
-  Log.Info(JSONResponse.ToJSON(False), 'jsonrpc');
+  Log.Info(sLineBreak + JSONResponse.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnAfterCallHook << ', 'jsonrpc');
 end;
 

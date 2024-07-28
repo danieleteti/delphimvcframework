@@ -74,7 +74,9 @@ type
     function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     //end events
-
+    function CreateRequest(const MethodName: String; const RequestID: UInt64): IJSONRPCRequest; overload;
+    function CreateRequest(const MethodName: String; const RequestID: String): IJSONRPCRequest; overload;
+    function CreateNotification(const MethodName: String): IJSONRPCNotification;
   end;
 
   IMVCJSONRPCExecutorAsync = interface
@@ -110,6 +112,9 @@ type
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
     //events
+    function CreateRequest(const MethodName: String; const RequestID: UInt64): IJSONRPCRequest; overload;
+    function CreateRequest(const MethodName: String; const RequestID: String): IJSONRPCRequest; overload;
+    function CreateNotification(const MethodName: String): IJSONRPCNotification;
     //async
     function SetOnReceiveResponseAsync(const aOnReceiveResponseAsyncProc: TProc<IJSONRPCObject, IJSONRPCObject>)
       : IMVCJSONRPCExecutor;
@@ -205,6 +210,9 @@ type
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
+    function CreateRequest(const MethodName: String; const RequestID: UInt64): IJSONRPCRequest; overload;
+    function CreateRequest(const MethodName: String; const RequestID: String): IJSONRPCRequest; overload;
+    function CreateNotification(const MethodName: String): IJSONRPCNotification;
     //events
     //sync
     function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
@@ -301,6 +309,24 @@ begin
     .SetOnReceiveData(nil)
     .SetOnNeedClientCertificate(nil)
     .SetOnValidateServerCertificate(nil);
+end;
+
+function TMVCJSONRPCExecutor.CreateNotification(
+  const MethodName: String): IJSONRPCNotification;
+begin
+  Result := TJSONRPCNotification.Create(MethodName);
+end;
+
+function TMVCJSONRPCExecutor.CreateRequest(const MethodName,
+  RequestID: String): IJSONRPCRequest;
+begin
+  Result := TJSONRPCRequest.Create(RequestID, MethodName);
+end;
+
+function TMVCJSONRPCExecutor.CreateRequest(const MethodName: String;
+  const RequestID: UInt64): IJSONRPCRequest;
+begin
+  Result := TJSONRPCRequest.Create(RequestID, MethodName);
 end;
 
 destructor TMVCJSONRPCExecutor.Destroy;

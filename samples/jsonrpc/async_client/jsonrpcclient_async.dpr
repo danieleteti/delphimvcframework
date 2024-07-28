@@ -1,4 +1,4 @@
-program jsonrpcclientwithobjects_async;
+program jsonrpcclient_async;
 
 uses
   Vcl.Forms,

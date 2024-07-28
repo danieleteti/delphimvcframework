@@ -1,4 +1,4 @@
-program jsonrpcserverwithobjects;
+program jsonrpcserver;
 
  {$APPTYPE CONSOLE}
 

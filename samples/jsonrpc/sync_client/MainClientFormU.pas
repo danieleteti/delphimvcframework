@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -357,8 +357,7 @@ procedure TMainForm.btnNotificationClick(Sender: TObject);
 var
   lNotification: IJSONRPCNotification;
 begin
-  lNotification := TJSONRPCNotification.Create;
-  lNotification.Method := 'dosomething';
+  lNotification := FExecutor.CreateNotification('dosomething');
   FExecutor.ExecuteNotification('/jsonrpc', lNotification);
 end;
 
@@ -500,9 +499,7 @@ var
   lExecutor: IMVCJSONRPCExecutor;
 begin
   lExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
-  lReq := TJSONRPCRequest.Create;
-  lReq.Method := 'subtract';
-  lReq.RequestID := Random(1000);
+  lReq := lExecutor.CreateRequest('subtract', Random(1000));
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
   lResp := lExecutor.ExecuteRequest('/jsonrpc', lReq);

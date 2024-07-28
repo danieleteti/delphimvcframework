@@ -20,8 +20,6 @@ object MainForm: TMainForm
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 838
-    ExplicitHeight = 603
     object TabSheet1: TTabSheet
       Caption = 'Invoking Plain PODO'
       object GroupBox1: TGroupBox
@@ -484,7 +482,7 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 808
+        Width = 828
         Height = 69
         Align = alTop
         Caption = 
@@ -499,6 +497,7 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         WordWrap = True
+        ExplicitWidth = 808
       end
       object btnGenericExcWithCustomHandling: TButton
         Left = 0
