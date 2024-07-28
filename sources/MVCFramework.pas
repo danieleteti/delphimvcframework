@@ -3984,7 +3984,7 @@ begin
 
   if lReqETag <> GetSHA1HashFromString(Data) then
   begin
-    raise EMVCException.Create(HTTP_STATUS.PreconditionFailed, 'mid-air collisions detected, cannot update or delete resource.');
+    raise EMVCException.Create(HTTP_STATUS.PreconditionFailed, 'mid-air collisions detected (invalid "if-match" value), cannot update or delete resource.');
   end;
 end;
 

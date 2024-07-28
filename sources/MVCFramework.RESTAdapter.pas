@@ -272,7 +272,7 @@ begin
       lResp := fRESTClient.Head(lURL);
     else
     begin
-      raise Exception.Create('Error Message');
+      raise Exception.Create('Invalid HTTP method');
     end;
   end;
 
