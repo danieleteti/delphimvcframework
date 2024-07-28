@@ -66,8 +66,8 @@ type
     procedure ListBoxItem2Click(Sender: TObject);
     procedure acSaveWineExecute(Sender: TObject);
   private
-    WineRESTService: IWineResource;
-    WinesAdapter: TListBindSourceAdapter<TWine>;
+    fWineRESTService: IWineResource;
+    fWinesAdapter: TListBindSourceAdapter<TWine>;
     { Private declarations }
   protected
     function GetWine: TWine;
@@ -100,9 +100,9 @@ begin
       ChangeTabActionWineList.ExecuteTarget(Sender);
     end, nil, true);
   if Wine.id > 0 then
-    WineRESTService.UpdateWineById(Wine.id, Wine, AsynchReq)
+    fWineRESTService.UpdateWineById(Wine.id, Wine, AsynchReq)
   else
-    WineRESTService.SaveWine(Wine, AsynchReq);
+    fWineRESTService.SaveWine(Wine, AsynchReq);
 end;
 
 procedure TTabbedForm.acWineListExecute(Sender: TObject);
@@ -112,10 +112,10 @@ begin
   AsynchReq := TAsynchRequest.Create(
     procedure(AValue: TValue)
     begin
-      WinesAdapter.SetList(AValue.AsType<TWines>);
-      WinesAdapter.Active := true;
+      fWinesAdapter.SetList(AValue.AsType<TWines>);
+      fWinesAdapter.Active := true;
     end, nil, true);
-  WineRESTService.GetWineList(AsynchReq);
+  fWineRESTService.GetWineList(AsynchReq);
 end;
 
 procedure TTabbedForm.FormCreate(Sender: TObject);
@@ -126,7 +126,7 @@ begin
   TabControl1.ActiveTab := WineListTabItem;
   // REST Service
   RESTAdapter := TRESTAdapter<IWineResource>.Create;
-  WineRESTService := RESTAdapter.Build('localhost', 3000);
+  fWineRESTService := RESTAdapter.Build('localhost', 3000);
   PrototypeBindSource1.Active := true;
 end;
 
@@ -142,7 +142,7 @@ begin
   Result.grapes := EdtGrapes.Text;
   Result.country := EdtCountry.Text;
   Result.region := EdtRegion.Text;
-  FWines := TObjectList<TWine>(WinesAdapter.List);
+  FWines := TObjectList<TWine>(fWinesAdapter.List);
   Result.description := FWines[PrototypeBindSource1.ItemIndex].description;
 end;
 
@@ -159,11 +159,12 @@ begin
   MultiView1.HideMaster;
 end;
 
-procedure TTabbedForm.PrototypeBindSource1CreateAdapter(Sender: TObject;
-var ABindSourceAdapter: TBindSourceAdapter);
+procedure TTabbedForm.PrototypeBindSource1CreateAdapter(
+  Sender: TObject;
+  var ABindSourceAdapter: TBindSourceAdapter);
 begin
-  WinesAdapter := TListBindSourceAdapter<TWine>.Create(PrototypeBindSource1);
-  ABindSourceAdapter := WinesAdapter;
+  fWinesAdapter := TListBindSourceAdapter<TWine>.Create(PrototypeBindSource1);
+  ABindSourceAdapter := fWinesAdapter;
 end;
 
 procedure TTabbedForm.WineListViewItemClick(const Sender: TObject;

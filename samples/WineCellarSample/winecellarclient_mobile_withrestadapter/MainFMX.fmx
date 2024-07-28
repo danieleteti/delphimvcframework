@@ -32,6 +32,7 @@ object TabbedForm: TTabbedForm
       StyleLookup = 'detailstoolbutton'
       TabOrder = 1
       Text = 'DrawerBtn'
+      TextSettings.Trimming = None
     end
   end
   object TabControl1: TTabControl
@@ -53,6 +54,7 @@ object TabbedForm: TTabbedForm
       CustomIcon = <
         item
         end>
+      TextSettings.Trimming = None
       IsSelected = True
       Size.Width = 8.000000000000000000
       Size.Height = 8.000000000000000000
@@ -65,13 +67,13 @@ object TabbedForm: TTabbedForm
       object BtnWineList: TButton
         Action = acWineList
         Align = Bottom
-        Enabled = True
         ImageIndex = -1
         Position.Y = 473.000000000000000000
         Size.Width = 384.000000000000000000
         Size.Height = 46.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
+        TextSettings.Trimming = None
       end
       object WineListView: TListView
         ItemAppearanceClassName = 'TListItemRightDetailAppearance'
@@ -90,6 +92,7 @@ object TabbedForm: TTabbedForm
       CustomIcon = <
         item
         end>
+      TextSettings.Trimming = None
       IsSelected = False
       Size.Width = 8.000000000000000000
       Size.Height = 8.000000000000000000
@@ -184,12 +187,12 @@ object TabbedForm: TTabbedForm
         object Button1: TButton
           Action = acSaveWine
           Align = Client
-          Enabled = True
           ImageIndex = -1
           Size.Width = 384.000000000000000000
           Size.Height = 40.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
+          TextSettings.Trimming = None
         end
       end
       object EdtID: TEdit
@@ -265,39 +268,32 @@ object TabbedForm: TTabbedForm
         Name = 'id'
         FieldType = ftUInteger
         Generator = 'AlphaColors'
-        ReadOnly = False
       end
       item
         Name = 'name'
         Generator = 'BitmapNames'
-        ReadOnly = False
       end
       item
         Name = 'year'
         FieldType = ftUInteger
         Generator = 'AlphaColors'
-        ReadOnly = False
       end
       item
         Name = 'grapes'
         Generator = 'ColorsNames'
-        ReadOnly = False
       end
       item
         Name = 'country'
         Generator = 'ColorsNames'
-        ReadOnly = False
       end
       item
         Name = 'region'
         Generator = 'ColorsNames'
-        ReadOnly = False
       end
       item
         Name = 'description'
         FieldType = ftTStrings
         Generator = 'LoremIpsum'
-        ReadOnly = False
       end>
     ScopeMappings = <>
     OnCreateAdapter = PrototypeBindSource1CreateAdapter
