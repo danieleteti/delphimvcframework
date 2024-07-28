@@ -12,6 +12,12 @@
         <Projects Include="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\serversideviewcustom\ServerSideViewsCustomEngine.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\serversideviews_lua\ServerSideViewsLua.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -47,14 +53,32 @@
     <Target Name="JWTRoleAuthServer:Make">
         <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj" Targets="Make"/>
     </Target>
+    <Target Name="ServerSideViewsCustomEngine">
+        <MSBuild Projects="..\serversideviewcustom\ServerSideViewsCustomEngine.dproj"/>
+    </Target>
+    <Target Name="ServerSideViewsCustomEngine:Clean">
+        <MSBuild Projects="..\serversideviewcustom\ServerSideViewsCustomEngine.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ServerSideViewsCustomEngine:Make">
+        <MSBuild Projects="..\serversideviewcustom\ServerSideViewsCustomEngine.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ServerSideViewsLua">
+        <MSBuild Projects="..\serversideviews_lua\ServerSideViewsLua.dproj"/>
+    </Target>
+    <Target Name="ServerSideViewsLua:Clean">
+        <MSBuild Projects="..\serversideviews_lua\ServerSideViewsLua.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ServerSideViewsLua:Make">
+        <MSBuild Projects="..\serversideviews_lua\ServerSideViewsLua.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient;JWTRoleAuthServer"/>
+        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient;JWTRoleAuthServer;ServerSideViewsCustomEngine;ServerSideViewsLua"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean;JWTRoleAuthServer:Clean"/>
+        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean;JWTRoleAuthServer:Clean;ServerSideViewsCustomEngine:Clean;ServerSideViewsLua:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make;JWTRoleAuthServer:Make"/>
+        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make;JWTRoleAuthServer:Make;ServerSideViewsCustomEngine:Make;ServerSideViewsLua:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

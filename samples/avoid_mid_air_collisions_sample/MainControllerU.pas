@@ -11,25 +11,23 @@ type
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetPeople;
-
+    function GetPeople: IMVCObjectDictionary;
 
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-    procedure Getperson(id: Integer);
+    function GetPersonByID(id: Integer): TPerson;
 
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure Createperson([MVCFromBody] const Person: TPerson);
+    function Createperson([MVCFromBody] const Person: TPerson): IMVCResponse;
 
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdatePerson(id: Integer; [MVCFromBody] const Person: TPerson);
+    function UpdatePerson(id: Integer; [MVCFromBody] const Person: TPerson): IMVCResponse;
 
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpDELETE])]
-    procedure DeletePerson(id: Integer);
-
+    function DeletePerson(id: Integer): IMVCResponse;
   end;
 
 
@@ -39,21 +37,18 @@ uses
   System.SysUtils, MVCFramework.Logger, System.StrUtils, MVCFramework.Cache,
   System.Rtti, MVCFramework.Rtti.Utils, MVCFramework.ActiveRecord;
 
-procedure TMyController.GetPeople;
+function TMyController.GetPeople: IMVCObjectDictionary;
 begin
-  Render(ObjectDict().Add('people', TMVCActiveRecord.All<TPerson>));
+  Result := ObjectDict().Add('people', TMVCActiveRecord.All<TPerson>);
 end;
 
-procedure TMyController.Getperson(id: Integer);
-var
-  lPerson: TPerson;
+function TMyController.GetPersonByID(id: Integer): TPerson;
 begin
-  lPerson := TMVCActiveRecord.GetByPK<TPerson>(ID);
-  SetETag(lPerson.GetUniqueString);
-  Render(lPerson, True);
+  Result := TMVCActiveRecord.GetByPK<TPerson>(ID);
+  SetETag(Result.GetUniqueString);
 end;
 
-procedure TMyController.Createperson([MVCFromBody] const Person: TPerson);
+function TMyController.Createperson([MVCFromBody] const Person: TPerson): IMVCResponse;
 var
   lValue: TValue;
 begin
@@ -70,10 +65,10 @@ begin
   finally
     TMVCCacheSingleton.Instance.EndWrite;
   end;
-  Render201Created();
+  Result := CreatedResponse();
 end;
 
-procedure TMyController.UpdatePerson(id: Integer; [MVCFromBody] const Person: TPerson);
+function TMyController.UpdatePerson(id: Integer; [MVCFromBody] const Person: TPerson): IMVCResponse;
 var
   lPerson: TPerson;
 begin
@@ -92,14 +87,13 @@ begin
     SetETag(lPerson.GetUniqueString);
 
     //reply with a 200 OK
-    RenderStatusMessage(HTTP_STATUS.OK);
+    Result := OKResponse();
   finally
     lPerson.Free;
   end;
 end;
 
-
-procedure TMyController.DeletePerson(id: Integer);
+function TMyController.DeletePerson(id: Integer): IMVCResponse;
 var
   lPerson: TPerson;
 begin
@@ -107,7 +101,7 @@ begin
   try
     CheckIfMatch(lPerson.GetUniqueString);
     lPerson.Delete();
-    Render204NoContent();
+    Result := NoContentResponse();
   except
     lPerson.Free;
     raise;
