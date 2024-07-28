@@ -7,16 +7,12 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath]
   TMyController = class(TMVCController)
   public
-    [MVCPath('/')]
+    [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
-    procedure OnBeforeAction(Context: TWebContext; const AActionName: string;
-      var Handled: Boolean); override;
-    procedure OnAfterAction(Context: TWebContext;
-      const AActionName: string); override;
+    function Index: String;
   end;
 
 implementation
@@ -24,51 +20,28 @@ implementation
 uses
   System.Classes, System.JSON.Writers, System.JSON.Types;
 
-procedure TMyController.Index(ctx: TWebContext);
-var
-  StringWriter: TStringWriter;
-  Writer: TJSONTextWriter;
-  oUser: String;
-  Arr: TArray<String>;
+function TMyController.Index: String;
 begin
-  StringWriter := TStringWriter.Create();
-  Writer := TJsonTextWriter.Create(StringWriter);
+  var lJSONWriter := TJsonTextWriter.Create(TStringWriter.Create(), True);
   try
-    Writer.Formatting := TJsonFormatting.Indented;
-    Writer.WriteStartObject;
-    Writer.WritePropertyName('Users');
-    Writer.WriteStartArray;
-    Arr := ['Daniele','Peter','Scott'];
-    for oUser in Arr do
+    lJSONWriter.Formatting := TJsonFormatting.Indented;
+    lJSONWriter.WriteStartObject;
+    lJSONWriter.WritePropertyName('Users');
+    lJSONWriter.WriteStartArray;
+    var Arr := ['Daniele','Peter','Scott'];
+    for var oUser in Arr do
     begin
-      Writer.WriteStartObject;
-      Writer.WritePropertyName('UserName');
-      Writer.WriteValue(oUser);
-      Writer.WriteEndObject;
+      lJSONWriter.WriteStartObject;
+      lJSONWriter.WritePropertyName('UserName');
+      lJSONWriter.WriteValue(oUser);
+      lJSONWriter.WriteEndObject;
     end;
-    Writer.WriteEndArray;
-    Writer.WriteEndObject;
-    Render(StringWriter, False);
+    lJSONWriter.WriteEndArray;
+    lJSONWriter.WriteEndObject;
+    Result := lJSONWriter.Writer.ToString;
   finally
-    Writer.Free;
-    StringWriter.Free;
+    lJSONWriter.Free;
   end;
-end;
-
-procedure TMyController.OnAfterAction(Context: TWebContext;
-  const AActionName: string);
-begin
-  { Executed after each action }
-  inherited;
-end;
-
-procedure TMyController.OnBeforeAction(Context: TWebContext;
-  const AActionName: string; var Handled: Boolean);
-begin
-  { Executed before each action
-    if handled is true (or an exception is raised) the actual
-    action will not be called }
-  inherited;
 end;
 
 end.

@@ -50,11 +50,6 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyController);
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
