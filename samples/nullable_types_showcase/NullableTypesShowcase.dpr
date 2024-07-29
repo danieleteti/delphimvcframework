@@ -39,6 +39,20 @@ begin
   {
     lNullableInt.Value raises exception if "lNullableInt.IsNull = True"
   }
+
+  lNullableInt := nil; // set to null
+  Assert(lNullableInt.IsNull);
+  Assert(not lNullableInt.HasValue);
+  lNullableInt := 123;
+  Assert(lNullableInt.HasValue);
+
+  lNullableInt.SetNull; // set to null
+  Assert(lNullableInt.IsNull);
+  Assert(not lNullableInt.HasValue);
+
+  lNullableInt.Clear; // set to null
+  Assert(lNullableInt.IsNull);
+  Assert(not lNullableInt.HasValue);
 end;
 
 begin
