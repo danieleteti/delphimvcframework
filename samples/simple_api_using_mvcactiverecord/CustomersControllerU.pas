@@ -14,13 +14,13 @@ type
   [MVCPath('/api/customers')]
   TCustomersController = class(TMVCController)
   public
-    [MVCPath]
-    [MVCHTTPMethods([httpGET])]
-    procedure GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
-
     [MVCPath('/($ID)')]
     [MVCHTTPMethods([httpGET])]
     procedure GetCustomerByID(const ID: Integer);
+
+    [MVCPath]
+    [MVCHTTPMethods([httpGET])]
+    procedure GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
 
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
@@ -74,6 +74,7 @@ begin
     Render201Created();
   except
     TMVCActiveRecord.CurrentConnection.Rollback;
+    raise;
   end;
 end;
 
