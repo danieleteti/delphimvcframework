@@ -336,6 +336,7 @@ var
   lEndVerbatim: UInt64;
   lTokens: TList<TToken>;
   lIndexOfLatestIfStatement: UInt64;
+  lIndexOfLatestLoopStatement: Integer;
   function GetFunctionParameters: TArray<string>;
   var
     lFuncPar: string;
@@ -427,6 +428,12 @@ begin
           end;
           lLastToken := ttEndLoop;
           lTokens.Add(TToken.Create(ttEndLoop, '', lSectionStack[lCurrentSectionIndex]));
+
+          // let the loop know where the endloop is
+          lIndexOfLatestLoopStatement := lSectionStack[lCurrentSectionIndex];
+          lTokens[lIndexOfLatestLoopStatement] :=
+            TToken.Create(ttLoop, lTokens[lIndexOfLatestLoopStatement].Value, lTokens.Count - 1);
+
           Dec(lCurrentSectionIndex);
           lStartVerbatim := fCharIndex;
           lEndVerbatim := lStartVerbatim;
@@ -468,12 +475,12 @@ begin
           lIfStatementStack[lCurrentIfIndex] := lTokens.Count - 1;
           lStartVerbatim := fCharIndex;
           lEndVerbatim := lStartVerbatim;
-        end else if MatchReset(lDataSet) then  {reset}
+        end else if MatchReset(lIdentifier) then  {reset}
         begin
           if not MatchEndTag then
             Error('Expected closing tag');
           lLastToken := ttReset;
-          lTokens.Add(TToken.Create(ttReset, lDataSet));
+          lTokens.Add(TToken.Create(ttReset, lIdentifier));
           lStartVerbatim := fCharIndex;
           lEndVerbatim := lStartVerbatim;
           lChar := Step;
@@ -1041,11 +1048,15 @@ begin
               lWrapped := TDuckTypedList.Wrap(lVariable.VarValue.AsObject);
               if lVariable.VarIterator < lWrapped.Count - 1 then
               begin
-                lIdx := fTokens[lIdx].Ref; //skip to endif
+                lIdx := fTokens[lIdx].Ref; //skip to loop
                 Continue;
               end;
+            end
+            else
+            begin
+              Error(Format('Cannot reset a not iterable object [%s]', [fTokens[lIdx].Value]));
             end;
-          end
+          end;
         end;
         ttIfThen: begin
           if not EvaluateIfExpression(fTokens[lIdx].Value) then
@@ -1060,7 +1071,19 @@ begin
         ttValue: begin
           lBuff.Append(HTMLEntitiesEncode(GetVarAsString(fTokens[lIdx].Value)));
         end;
-        ttReset: begin end;
+        ttReset: begin
+          if GetVariables.TryGetValue(fTokens[lIdx].Value, lVariable) then
+          begin
+            if viDataSet in lVariable.VarOption then
+            begin
+              TDataset(lVariable.VarValue.AsObject).First;
+            end else if viListOfObject in lVariable.VarOption then
+            begin
+              lWrapped := TDuckTypedList.Wrap(lVariable.VarValue.AsObject);
+              lVariable.VarIterator := -1;
+            end;
+          end
+        end;
         ttField: begin end;
         ttLineBreak: begin
           if not (lLastTag in [ttLoop, ttEndLoop, ttIfThen, ttReset]) then
