@@ -1,0 +1,2 @@
+﻿{{loop(people)}}{{people.guid}};"{{people.FirstName}}";"{{people.LastName}}";{{people.Age}}
+{{endloop}}

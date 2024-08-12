@@ -1,0 +1,13 @@
+{{if(!ishtmx)}}
+{{include("partials/header.html")}}
+{{include("people_list_search.html")}}
+{{endif}}
+<div class="row" id="people_list">
+    <div class="col">
+        {{include("people_table.html")}}
+    </div>
+</div>
+{{if(!ishtmx)}}
+{{include("people_list_bottom.html")}}
+{{include("partials/footer.html")}}
+{{endif}}

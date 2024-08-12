@@ -15,10 +15,10 @@ type
   public
     [MVCPath('/public')]
     [MVCHTTPMethod([httpGET])]
-    procedure PublicSection(ctx: TWebContext);
+    procedure PublicSection;
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    procedure Index;
   end;
 
   [MVCPath('/admin')]
@@ -30,7 +30,7 @@ type
     [MVCPath('/role1')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole1(ctx: TWebContext);
+    procedure OnlyRole1;
     [MVCPath('/role1')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
@@ -38,7 +38,7 @@ type
     [MVCPath('/role2')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole2(ctx: TWebContext);
+    procedure OnlyRole2;
   end;
 
 implementation
@@ -48,12 +48,12 @@ uses
 
 { TApp1MainController }
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+procedure TApp1MainController.Index;
 begin
   Redirect('/index.html');
 end;
 
-procedure TApp1MainController.PublicSection(ctx: TWebContext);
+procedure TApp1MainController.PublicSection;
 begin
   Render('This is a public section');
 end;
@@ -69,12 +69,12 @@ begin
   AHandled := False;
 end;
 
-procedure TAdminController.OnlyRole1(ctx: TWebContext);
+procedure TAdminController.OnlyRole1;
 var
   lPair: TPair<String, String>;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
+  ResponseStream.AppendLine('Hey! Hello ' + Context.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
@@ -119,10 +119,10 @@ begin
   Render(lJObj);
 end;
 
-procedure TAdminController.OnlyRole2(ctx: TWebContext);
+procedure TAdminController.OnlyRole2;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
+  ResponseStream.AppendLine('Hey! Hello ' + Context.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));

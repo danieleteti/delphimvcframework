@@ -14,9 +14,14 @@ type
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     procedure Index;
+
     [MVCPath('/profilersample1')]
     [MVCHTTPMethod([httpGET])]
     procedure ProfilerSample1;
+
+    [MVCPath('/profilersample2')]
+    [MVCHTTPMethod([httpGET])]
+    procedure ProfilerSample2;
   protected
     fCalls: Integer;
     procedure ProcA;
@@ -44,6 +49,13 @@ begin
   end; // profiler writes to the log
 
   NotProfiled(); //this line is not profiled
+end;
+
+procedure TMyController.ProfilerSample2;
+begin
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+  Sleep(100);
+  Render('Hello World');
 end;
 
 procedure TMyController.DoSomething;

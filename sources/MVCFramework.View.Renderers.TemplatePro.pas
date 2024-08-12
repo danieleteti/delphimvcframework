@@ -44,7 +44,7 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
-  TemplateProU,
+  TemplatePro,
   MVCFramework.Cache,
   Data.DB, System.Rtti;
 
@@ -53,12 +53,14 @@ uses
 procedure TMVCTemplateProViewEngine.Execute(const ViewName: string;
   const OutputStream: TStream);
 var
-  lTP: TTemplateProEngine;
+  lTP: TTProCompiler;
   lViewFileName: string;
   lViewTemplate: UTF8String;
   lCacheItem: TMVCCacheItem;
+  lCompiledTemplate: ITProCompiledTemplate;
+  lPair: TPair<String, TValue>;
 begin
-  lTP := TTemplateProEngine.Create;
+  lTP := TTProCompiler.Create;
   try
     lViewFileName := GetRealFileName(ViewName);
     if not FileExists(lViewFileName) then
@@ -79,16 +81,24 @@ begin
       if lCacheItem.TimeStamp < TFile.GetLastWriteTime(lViewFileName) then
       begin
         lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
-        TMVCCacheSingleton.Instance.SetValue(lViewFileName,
-          lViewTemplate);
+        TMVCCacheSingleton.Instance.SetValue(lViewFileName, lViewTemplate);
       end;
     end;
 
     lViewTemplate := lCacheItem.Value.AsString;
     try
-      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel), nil, OutputStream);
+      lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
+      if Assigned(ViewModel) then
+      begin
+        for lPair in ViewModel do
+        begin
+          lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
+        end;
+      end;
+      //lCompiledTemplate.DumpToFile(TPath.Combine(AppPath, 'TProDump.txt'));
+      TStringStream(OutputStream).WriteString(lCompiledTemplate.Render);
     except
-      on E: EParserException do
+      on E: ETProException do
       begin
         raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)',
           [ViewName, E.Message, E.ClassName]);
