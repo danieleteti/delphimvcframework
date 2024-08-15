@@ -161,7 +161,6 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="ControllerU.pas"/>
-        <DCCReference Include="HelpersU.pas"/>
         <DCCReference Include="WebModuleU.pas">
             <Form>MyWebModule</Form>
             <FormType>dfm</FormType>

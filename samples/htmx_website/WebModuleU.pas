@@ -26,7 +26,7 @@ implementation
 uses
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.View.Renderers.Mustache,
+  MVCFramework.View.Renderers.TemplatePro,
   MVCFramework.Middleware.ActiveRecord,
   MVCFramework.Middleware.StaticFiles,
   MVCFramework.Middleware.Analytics,
@@ -71,7 +71,7 @@ begin
   // Controllers - END
 
   // Server Side View
-  FMVC.SetViewEngine(TMVCMustacheViewEngine);
+  FMVC.SetViewEngine(TMVCTemplateProViewEngine);
   // Server Side View - END
 
   // Middleware

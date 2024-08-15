@@ -37,30 +37,29 @@ uses
 
 function TMyController.Customers: String;
 begin
-  Result := Page(['pages/customers'], not Context.Request.IsHTMX);
+  Result := Page(['pages/customers']);
 end;
 
 function TMyController.Home: String;
 begin
-  Result := Page(['pages/home'], not Context.Request.IsHTMX);
+  Result := Page(['pages/home']);
 end;
 
 procedure TMyController.OnBeforeAction(AContext: TWebContext;
   const AActionName: string; var AHandled: Boolean);
 begin
   inherited;
-  SetPagesCommonHeaders(['_header']);
-  SetPagesCommonFooters(['_footer']);
+  ViewData['ispage'] := not AContext.Request.IsHTMX;
 end;
 
 function TMyController.Posts: String;
 begin
-  Result := Page(['pages/posts'], not Context.Request.IsHTMX);
+  Result := Page(['pages/posts']);
 end;
 
 function TMyController.Users: String;
 begin
-  Result := Page(['pages/users'], not Context.Request.IsHTMX);
+  Result := Page(['pages/users']);
 end;
 
 end.

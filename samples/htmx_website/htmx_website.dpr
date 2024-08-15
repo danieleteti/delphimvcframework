@@ -17,7 +17,6 @@ uses
   mormot.core.mustache,
   MVCFramework.Signal,
   ControllerU in 'ControllerU.pas',
-  HelpersU in 'HelpersU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
 
 {$R *.res}
@@ -69,13 +68,6 @@ begin
       Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 2000);
     end;
 {$ENDIF}
-
-  // Project specific Mustache helpers
-  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
-  begin
-    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
-    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
-  end;
 
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except

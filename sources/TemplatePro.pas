@@ -38,7 +38,7 @@ type
 
   end;
 
-  ETProParserException = class(ETProException)
+  ETProCompilerException = class(ETProException)
 
   end;
 
@@ -55,11 +55,11 @@ type
   end;
 
   TTokenType = (
-    ttContent, ttInclude, ttLoop, ttEndLoop, ttIfThen, ttElse, ttEndIf, ttStartTag,
+    ttContent, ttInclude, ttLoop, ttEndLoop, ttIfThen, ttElse, ttEndIf, ttStartTag, ttComment,
     ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttReset, ttLineBreak, ttEOF);
   const
     TOKEN_TYPE_DESCR: array [Low(TTokenType)..High(TTokenType)] of string =
-      ('ttContent', 'ttInclude', 'ttLoop', 'ttEndLoop', 'ttIfThen', 'ttElse', 'ttEndIf', 'ttStartTag',
+      ('ttContent', 'ttInclude', 'ttLoop', 'ttEndLoop', 'ttIfThen', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
        'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttReset', 'ttLineBreak', 'ttEOF');
   type
     TToken = packed record
@@ -299,7 +299,10 @@ begin
   lCompiler := TTProCompiler.Create(fEncoding);
   try
     lCompiler.Compile(aTemplate, aTokens, aFileNameRefPath);
-    Assert(aTokens[aTokens.Count - 1].TokenType = ttEOF);
+    if aTokens[aTokens.Count - 1].TokenType <> ttEOF then
+    begin
+      Error('Included file ' + aFileNameRefPath + ' doesn''t terminate with EOF');
+    end;
     aTokens.Delete(aTokens.Count - 1); // remove the EOF
   finally
     lCompiler.Free;
@@ -411,6 +414,10 @@ var
 begin
   lTmp := '';
   Result := False;
+  if MatchString(aParamValue) then
+  begin
+    Result := True;
+  end;
   if CharInSet(fInputString.Chars[fCharIndex], IdenfierAllowedChars) then
   begin
     while CharInSet(fInputString.Chars[fCharIndex], ValueAllowedChars) do
@@ -494,7 +501,7 @@ var
 begin
   if aFileNameRefPath.IsEmpty then
   begin
-    lFileNameRefPath := TPath.Combine(TPath.GetDirectoryName(GetModuleName(HInstance)), '<main>');
+    lFileNameRefPath := TPath.Combine(TPath.GetDirectoryName(GetModuleName(HInstance)), 'main.template');
   end
   else
   begin
@@ -524,7 +531,6 @@ var
   lFuncName: string;
   lIdentifier: string;
   lIteratorName: string;
-  //lFuncParams: TArray<string>;
   lStartVerbatim: UInt64;
   lEndVerbatim: UInt64;
   lIndexOfLatestIfStatement: UInt64;
@@ -537,10 +543,11 @@ var
   lIncludeFileContent: string;
   lCurrentFileName: string;
   lStringValue: string;
-  lIdentifierFound: Boolean;
-  lStringFound: Boolean;
   lRef2: Integer;
+  lContentOnThisLine: Integer;
 begin
+  lLastToken := ttEOF;
+  lContentOnThisLine := 0;
   fCurrentFileName := aFileNameRefPath;
   fCharIndex := -1;
   fCurrentLine := 1;
@@ -558,7 +565,7 @@ begin
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
         lLastToken := ttContent;
-        aTokens.Add(TToken.Create(lLastToken, HTMLSpecialCharsEncode(fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim)), ''));
+        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
       end;
       aTokens.Add(TToken.Create(ttEOF, '', ''));
       Break;
@@ -569,12 +576,18 @@ begin
       lEndVerbatim := fCharIndex - Length(sLineBreak);
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
+        Inc(lContentOnThisLine);
         aTokens.Add(TToken.Create(ttContent, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
       end;
       lStartVerbatim := fCharIndex;
+      if lLastToken = ttLineBreak then Inc(lContentOnThisLine);
       lLastToken := ttLineBreak;
-      aTokens.Add(TToken.Create(lLastToken, '', ''));
+      if lContentOnThisLine > 0 then
+      begin
+        aTokens.Add(TToken.Create(lLastToken, '', ''));
+      end;
       Inc(fCurrentLine);
+      lContentOnThisLine := 0;
     end else if MatchStartTag then         {starttag}
     begin
       lEndVerbatim := fCharIndex - Length(START_TAG);
@@ -619,6 +632,7 @@ begin
           lStartVerbatim := fCharIndex;
           lLastToken := ttValue;
           aTokens.Add(TToken.Create(lLastToken, lVarName, '', lFuncParamsCount, lRef2));
+          Inc(lContentOnThisLine);
 
           //add function with params
           if not lFuncName.IsEmpty then
@@ -794,6 +808,7 @@ begin
               Error('Cannot read "' + lStringValue + '"');
             end;
           end;
+          Inc(lContentOnThisLine);
           InternalCompileIncludedTemplate(lIncludeFileContent, aTokens, lCurrentFileName);
           lStartVerbatim := fCharIndex;
         end
@@ -813,6 +828,8 @@ begin
         end
         else if MatchString(lStringValue) then {string}
         begin
+          lLastToken := ttLiteralString;
+          Inc(lContentOnThisLine);
           lRef2 := IfThen(MatchSymbol('$'),1,-1); // {{value$}} means no escaping
           InternalMatchFilter(lStringValue, lStartVerbatim, ttLiteralString, aTokens, lRef2);
         end
@@ -874,7 +891,7 @@ end;
 
 procedure TTProCompiler.Error(const aMessage: string);
 begin
-  raise ETProParserException.CreateFmt('%s - at line %d in file %s', [aMessage, fCurrentLine, fCurrentFileName]);
+  raise ETProCompilerException.CreateFmt('%s - at line %d in file %s', [aMessage, fCurrentLine, fCurrentFileName]);
 end;
 
 function TTProCompiler.GetFunctionParameters: TArray<String>;
@@ -995,14 +1012,14 @@ end;
 
 function HTMLEncode(s: string): string;
 begin
-  Result := TNetEncoding.HTML.Encode(s);
+  Result := HTMLSpecialCharsEncode(s);
 end;
 
 function HTMLSpecialCharsEncode(s: string): string;
   procedure repl(var s: string; r: string; posi: Integer);
   begin
-    delete(s, posi, 1);
-    insert(r, s, posi);
+    Delete(s, posi, 1);
+    Insert(r, s, posi);
   end;
 
 var
@@ -1014,6 +1031,10 @@ begin
   begin
     r := '';
     case ord(s[I]) of
+      Ord('>'):
+        r := 'gt';
+      Ord('<'):
+        r := 'lt';
       160:
         r := 'nbsp';
       161:
@@ -1251,6 +1272,8 @@ destructor TTProCompiledTemplate.Destroy;
 begin
   fLoopsStack.Free;
   fTemplateFunctions.Free;
+  fTokens.Free;
+  fVariables.Free;
   inherited;
 end;
 
@@ -1293,12 +1316,8 @@ function TTProCompiledTemplate.Render: String;
 var
   lIdx: UInt64;
   lBuff: TStringBuilder;
-  lSectionStack: array[0..49] of String;
   lLoopStmIndex: Integer;
   lDataSourceName: string;
-  lPieces: TArray<String>;
-  lFieldName: string;
-  lLastTag: TTokenType;
   lCurrTokenType: TTokenType;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
@@ -1312,23 +1331,17 @@ var
   lRef2: Integer;
   lJArr: TJDOJsonArray;
   lJObj: TJDOJsonObject;
-  lJObjArr: TJDOJsonArray;
-  lDotPos: Integer;
-  lHasMember: Boolean;
   lVarMember: string;
   lBaseVarName: string;
   lFullPath: string;
   lLoopItem: TLoopStackItem;
   lJValue: TJsonDataValueHelper;
 begin
-  lLastTag := ttEOF;
   lBuff := TStringBuilder.Create;
   try
     lIdx := 0;
     while fTokens[lIdx].TokenType <> ttEOF do
     begin
-      //Writeln(Format('%4d: %s', [lIdx, fTokens[lIdx].TokenTypeAsString]));
-      //Readln;
       case fTokens[lIdx].TokenType of
         ttContent: begin
           lBuff.Append(fTokens[lIdx].Value1);
@@ -1428,7 +1441,6 @@ begin
 
           lLoopItem := PeekLoop;
           lLoopStmIndex := fTokens[lIdx].Ref1;
-          //lDataSourceName := fTokens[lLoopStmIndex].Value1;
           lDataSourceName := lLoopItem.DataSourceName;
           if GetVariables.TryGetValue(lDataSourceName, lVariable) then
           begin
@@ -1567,18 +1579,13 @@ begin
           end;
         end;
         ttLineBreak: begin
-          if not (lLastTag in [ttLoop, ttEndLoop, ttIfThen, ttEndIf, ttReset, ttElse]) then
-          begin
-            lBuff.AppendLine;
-          end;
+          lBuff.AppendLine;
         end;
         else
         begin
           Error('Invalid token: ' + fTokens[lIdx].TokenTypeAsString);
         end;
       end;
-
-      lLastTag := fTokens[lIdx].TokenType;
       Inc(lIdx);
     end;
     Result := lBuff.ToString;
@@ -1670,8 +1677,6 @@ var
   lHasMember: Boolean;
   lJPath: string;
   lDataSource: string;
-  //lAliasedDataSource: String;
-  I: Integer;
   lIsAnIterator: Boolean;
   lJObj: TJDOJsonObject;
   lVarName: string;
@@ -1731,7 +1736,14 @@ begin
         else
         begin
           lJPath := lCurrentIterator.FullPath;
-          Result := lJObj.Path[lJPath].ArrayValue[lCurrentIterator.IteratorPosition].Path[lVarMembers].Value;
+          if lVarMembers.IsEmpty then
+          begin
+            Result := lJObj.Path[lJPath].ArrayValue[lCurrentIterator.IteratorPosition].Value;
+          end
+          else
+          begin
+            Result := lJObj.Path[lJPath].ArrayValue[lCurrentIterator.IteratorPosition].Path[lVarMembers].Value;
+          end;
         end;
       end
       else
