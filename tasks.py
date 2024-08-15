@@ -518,15 +518,15 @@ def generate_nullables(ctx):
         ],
         [
             "TDate",
-            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateToISODate(LeftValue.Value) = DateToISODate(RightValue.Value)))",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateAreEquals(LeftValue.Value, RightValue.Value)))",
         ],
         [
             "TTime",
-            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (TimeToISOTime(LeftValue.Value) = TimeToISOTime(RightValue.Value)))",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (TimeAreEquals(LeftValue.Value, RightValue.Value)))",
         ],
         [
             "TDateTime",
-            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateTimeToISOTimeStamp(LeftValue.Value) = DateTimeToISOTimeStamp(RightValue.Value)))",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (DateAreEquals(LeftValue.Value, RightValue.Value) and \n\t TimeAreEquals(LeftValue.Value, RightValue.Value)))",
         ],
         [
             "Single",
