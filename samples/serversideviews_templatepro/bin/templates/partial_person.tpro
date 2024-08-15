@@ -1,1 +1,1 @@
-{{people.FirstName}}, {{people.LastName}}
+{{:person.FirstName}}, {{:person.LastName}}

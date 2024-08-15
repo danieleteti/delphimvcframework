@@ -1,1 +1,1 @@
-﻿<a class="btn btn-default" href="/edit/{{people.guid}}"><span class="glyphicon glyphicon-pencil"></span> View</a>
+﻿<a class="btn btn-default" href="/edit/{{:person.guid}}"><span class="glyphicon glyphicon-pencil"></span> View</a>

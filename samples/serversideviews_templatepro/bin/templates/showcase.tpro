@@ -40,8 +40,8 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	{{if(people)}}
 	<div>No People Found</div>
 	{{else}}
-		{{loop(people)}}
-		<div>{{people.@@index}}. {{people.FirstName}} {{people.LastName}}</div>
+		{{loop(people) as person}}
+		<div>{{:person.@@index}}. {{:person.FirstName}} {{:person.LastName}}</div>
 		{{endloop}}
 	{{endif}}
 	</div>
@@ -53,8 +53,8 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
     {{if(!people2)}}
       <div>No People Found</div>
     {{else}} 
-		{{loop(people2)}}
-		<div>{{people2.@@index}}. {{people2.FirstName}} {{people2.LastName}}</div>
+		{{loop(people2) as person}}
+		<div>{{:person.@@index}}. {{:person.FirstName}} {{:person.LastName}}</div>
 		{{endloop}}
     {{endif}}
 	</div>
@@ -64,7 +64,7 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	<h2 class="section">Avoid HTML automatic escaping using {{{variablename$}} (put a $ after variable name)</h2>
 	
 	<div class="box">
-	{{myobj.rawhtml$}}
+	{{:myobj.rawhtml$}}
     <br>
 		<blockquote >Check source code to know how to escape curly braces</blockquote >    
 	</div>	
@@ -75,7 +75,7 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	<div>
 		<h2><pre>Using include("partial_person.tpro")</pre></h2>
 		<ul>
-		{{loop(people)}}
+		{{loop(people) as person}}
       <li>{{include("partial_person.tpro")}}</li>
         {{endloop}}
     </ul>
@@ -86,12 +86,12 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	<h2 class="section">Using Filters</h2>
 	<ul>
 	<li>Using syntax {{{"value as string"|uppercase}} = {{"value as string"|uppercase}} Filter "uppercase" is invoked passing "value as string" as constant value.</li>
-	<li>Using syntax {{{first_name!uppercase}} = {{first_name|uppercase}} Filter "uppercase" is invoked passing the value contained in the attribute first_name.</li>
+	<li>Using syntax {{{first_name!uppercase}} = {{:first_name|uppercase}} Filter "uppercase" is invoked passing the value contained in the attribute first_name.</li>
 	<li>Helpers cannot be nested (yet)</li>	
 	</ul>
 	<div>
-		{{loop(people)}}
-		<div>{{people.@@index}}. {{people.first_name|uppercase}} {{people.last_name|uppercase}}</div>
+		{{loop(people) as person}}
+		<div>{{:person.@@index}}. {{:person.first_name|uppercase}} {{:person.last_name|uppercase}}</div>
 		{{endloop}}
 	</div>
 	<hr>
