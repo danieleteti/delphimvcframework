@@ -1716,10 +1716,10 @@ begin
         lField := TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers);
         case lField.DataType of
           ftInteger: Result := lField.AsInteger;
-          ftLargeint: Result := lField.AsLargeInt;
-          ftString, ftWideString: Result := lField.AsWideString;
+          ftLargeint, ftAutoInc: Result := lField.AsLargeInt;
+          ftString, ftWideString, ftMemo, ftWideMemo: Result := lField.AsWideString;
           else
-            Error('Invalid data type for field ' + lVarMembers);
+            Error('Invalid data type for field "' + lVarMembers + '": ' + TRttiEnumerationType.GetName<TFieldType>(lField.DataType));
         end;
       end;
     end

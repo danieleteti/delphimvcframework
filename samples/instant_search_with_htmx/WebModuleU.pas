@@ -7,7 +7,7 @@ uses
   System.Classes,
   Web.HTTPApp,
   MVCFramework, FireDAC.Stan.ExprFuncs, FireDAC.Phys.SQLiteWrapper.Stat,
-  MVCFramework.View.Renderers.Mustache,
+  MVCFramework.View.Renderers.TemplatePro,
   FireDAC.Phys.SQLiteDef, FireDAC.Stan.Intf, FireDAC.Phys, FireDAC.Phys.SQLite;
 
 type
@@ -77,7 +77,7 @@ begin
   fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));
   // Middleware - END
 
-  fMVC.SetViewEngine(TMVCMustacheViewEngine);
+  fMVC.SetViewEngine(TMVCTemplateProViewEngine);
 
 end;
 

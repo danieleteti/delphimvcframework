@@ -731,9 +731,9 @@ begin
   Result := Result and (Self.ff_int4 = lOtherObj.ff_int4);
   Result := Result and (Self.ff_int8 = lOtherObj.ff_int8);
   Result := Result and (Self.ff_bool = lOtherObj.ff_bool);
-  Result := Result and (Self.ff_date = lOtherObj.ff_date);
-  Result := Result and (Self.ff_time = lOtherObj.ff_time);
-  Result := Result and (Self.ff_datetime = lOtherObj.ff_datetime);
+  Result := Result and Self.ff_date.Equals(lOtherObj.ff_date);
+  Result := Result and Self.ff_time.Equals(lOtherObj.ff_time);
+  Result := Result and Self.ff_datetime.Equals(lOtherObj.ff_datetime);
   Result := Result and (Self.ff_float4 = lOtherObj.ff_float4);
   Result := Result and (Self.ff_float8 = lOtherObj.ff_float8);
   Result := Result and (Self.ff_string = lOtherObj.ff_string);
