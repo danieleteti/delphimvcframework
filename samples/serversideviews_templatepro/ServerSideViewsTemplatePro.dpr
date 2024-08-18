@@ -12,6 +12,7 @@ uses
   Winapi.Windows,
   {$ENDIF }
   IdHTTPWebBrokerBridge,
+  TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
   Web.WebReq,
   Web.WebBroker,
@@ -19,8 +20,7 @@ uses
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
-  CustomTemplateProFiltersU in 'CustomTemplateProFiltersU.pas',
-  TemplatePro in '..\..\..\templatepro\TemplatePro.pas';
+  CustomTemplateProFiltersU in 'CustomTemplateProFiltersU.pas';
 
 {$R *.res}
 
@@ -35,7 +35,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
 {$IFDEF MSWINDOWS}
-    //ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
 {$ENDIF}
     LogI('Ctrl+C  to stop the server');
     WaitForTerminationSignal;

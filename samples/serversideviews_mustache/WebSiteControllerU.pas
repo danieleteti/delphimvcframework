@@ -106,7 +106,7 @@ begin
       begin
         var lJItm := lJDevices.AddObject;
         lJItm.S['name'] := lItem;
-        lJItm.B['selected'] := TArray.BinarySearch<String>(lDevices, lItem, lIdx);
+        lJItm.B['selected'] := TArray.BinarySearch<String>(lPerson.Devices, lItem, lIdx);
       end;
       Result := Page(['editperson'], lJObj);
     finally

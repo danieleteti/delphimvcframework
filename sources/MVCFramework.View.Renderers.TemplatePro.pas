@@ -34,7 +34,7 @@ type
   { This class implements the TemplatePro view engine for server side views }
   TMVCTemplateProViewEngine = class(TMVCBaseViewEngine)
   public
-    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
+    procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
   end;
 
 implementation
@@ -73,8 +73,7 @@ begin
   end;
 end;
 
-procedure TMVCTemplateProViewEngine.Execute(const ViewName: string;
-  const OutputStream: TStream);
+procedure TMVCTemplateProViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
 var
   lTP: TTProCompiler;
   lViewFileName: string;
@@ -120,7 +119,7 @@ begin
       end;
       lCompiledTemplate.AddFilter('json', DumpAsJSONString);
       //lCompiledTemplate.DumpToFile(TPath.Combine(AppPath, 'TProDump.txt'));
-      TStringStream(OutputStream).WriteString(lCompiledTemplate.Render);
+      Builder.Append(lCompiledTemplate.Render);
     except
       on E: ETProException do
       begin

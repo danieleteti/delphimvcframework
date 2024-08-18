@@ -29,18 +29,10 @@ interface
 uses
   System.Rtti;
 
-//uses
-//  mormot.core.mustache;
-
 function MyHelper1(const aValue: TValue; const aParameters: TArray<string>): string;
 function MyHelper2(const aValue: TValue; const aParameters: TArray<string>): string;
 
 implementation
-
-uses
-  MVCFramework.View.Renderers.Mustache, System.SysUtils;
-
-{ TMyMustacheHelpers }
 
 function MyHelper1(const aValue: TValue; const aParameters: TArray<string>): string;
 begin

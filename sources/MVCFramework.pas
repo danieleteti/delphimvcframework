@@ -1286,7 +1286,7 @@ type
       const AContentType: string); overload; virtual;
     destructor Destroy; override;
 
-    procedure Execute(const ViewName: string; const OutputStream: TStream); virtual; abstract;
+    procedure Execute(const ViewName: string; const Builder: TStringBuilder); virtual; abstract;
 
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
@@ -4149,9 +4149,9 @@ end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string;
 var
-  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
+  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringBuilder;
 begin
-  lStrStream := TStringStream.Create('', TEncoding.UTF8);
+  lStrStream := TStringBuilder.Create;
   try
     lView := FEngine.ViewEngineClass.Create(Engine, Context, FViewModel, JSONModel, ContentType);
     try
@@ -4162,8 +4162,7 @@ begin
     finally
       lView.Free;
     end;
-    lStrStream.Position := 0;
-    Result := lStrStream.DataString;
+    Result := lStrStream.ToString;
   finally
     lStrStream.Free;
   end;
@@ -4792,9 +4791,9 @@ end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
 var
-  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
+  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringBuilder;
 begin
-  lStrStream := TStringStream.Create('', TEncoding.UTF8);
+  lStrStream := TStringBuilder.Create;
   try
     lView := FEngine.ViewEngineClass.Create(
       Engine, Context,
@@ -4808,8 +4807,7 @@ begin
     finally
       lView.Free;
     end;
-    lStrStream.Position := 0;
-    Result := lStrStream.DataString;
+    Result := lStrStream.ToString;
   finally
     lStrStream.Free;
   end;

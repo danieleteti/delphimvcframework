@@ -52,7 +52,7 @@ type
     function RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
       Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): UTF8String; virtual;
   public
-    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
+    procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
       const AContentType: string); override;
@@ -131,12 +131,11 @@ begin
   Result := lViewEngine.RenderJSON(JSON, Partials, Helpers, OnTranslate, EscapeInvert);
 end;
 
-procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
+procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
 var
   lViewFileName: string;
   lViewTemplate: UTF8String;
   lViewEngine: TSynMustache;
-  lSW: TStreamWriter;
 begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
@@ -144,12 +143,7 @@ begin
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
   lViewEngine := TSynMustache.Parse(lViewTemplate);
-  lSW := TStreamWriter.Create(OutputStream);
-  try
-    lSW.Write(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
-  finally
-    lSW.Free;
-  end;
+  Builder.Append(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
 end;
 
 procedure TMVCMustacheViewEngine.LoadHelpers;
