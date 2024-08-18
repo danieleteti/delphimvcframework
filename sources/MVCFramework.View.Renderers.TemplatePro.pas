@@ -34,8 +34,7 @@ type
   { This class implements the TemplatePro view engine for server side views }
   TMVCTemplateProViewEngine = class(TMVCBaseViewEngine)
   public
-    procedure Execute(const ViewName: string;
-      const OutputStream: TStream); override;
+    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
   end;
 
 implementation
@@ -46,9 +45,33 @@ uses
   MVCFramework.DuckTyping,
   TemplatePro,
   MVCFramework.Cache,
-  Data.DB, System.Rtti;
+  Data.DB,
+  System.Rtti,
+  JsonDataObjects;
 
 {$WARNINGS OFF}
+
+function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): string;
+var
+  lWrappedList: IMVCList;
+begin
+  if not aValue.IsObject then
+  begin
+    Result := '(Error: Cannot serialize non-object as JSON)';
+  end;
+
+  if TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then
+  begin
+    Result := GetDefaultSerializer.SerializeCollection(lWrappedList)
+  end
+  else
+  begin
+    if aValue.AsObject is TDataSet then
+      Result := GetDefaultSerializer.SerializeDataSet(TDataSet(aValue.AsObject))
+    else
+      Result := GetDefaultSerializer.SerializeObject(aValue.AsObject);
+  end;
+end;
 
 procedure TMVCTemplateProViewEngine.Execute(const ViewName: string;
   const OutputStream: TStream);
@@ -95,6 +118,7 @@ begin
           lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
         end;
       end;
+      lCompiledTemplate.AddFilter('json', DumpAsJSONString);
       //lCompiledTemplate.DumpToFile(TPath.Combine(AppPath, 'TProDump.txt'));
       TStringStream(OutputStream).WriteString(lCompiledTemplate.Render);
     except

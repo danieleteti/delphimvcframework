@@ -26,15 +26,14 @@ unit CustomTemplateProFiltersU;
 
 interface
 
+uses
+  System.Rtti;
+
 //uses
 //  mormot.core.mustache;
 
-type
-  TMyMustacheHelpers = class sealed
-  public
-    class procedure MyHelper1(const Value: variant; out Result: variant);
-    class procedure MyHelper2(const Value: variant; out Result: variant);
-  end;
+function MyHelper1(const aValue: TValue; const aParameters: TArray<string>): string;
+function MyHelper2(const aValue: TValue; const aParameters: TArray<string>): string;
 
 implementation
 
@@ -43,15 +42,14 @@ uses
 
 { TMyMustacheHelpers }
 
-class procedure TMyMustacheHelpers.MyHelper1(const Value: variant;
-  out Result: variant);
+function MyHelper1(const aValue: TValue; const aParameters: TArray<string>): string;
 begin
-  Result := Value +  ' (I''m The MyHelper1)';
+  Result := aValue.ToString +  ' (I''m The MyHelper1)';
 end;
 
-class procedure TMyMustacheHelpers.MyHelper2(const Value: variant; out Result: variant);
+function MyHelper2(const aValue: TValue; const aParameters: TArray<string>): string;
 begin
-  Result := Value +  ' (I''m The MyHelper2)';
+  Result := aValue.ToString +  ' (I''m The MyHelper2)';
 end;
 
 

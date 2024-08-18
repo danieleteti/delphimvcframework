@@ -91,7 +91,7 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	</ul>
 	<div>
 		{{loop(people) as person}}
-		<div>{{:person.@@index}}. {{:person.first_name|uppercase}} {{:person.last_name|uppercase}}</div>
+		<div>{{:person.@@index}}. {{:person.FirstName|uppercase}} {{:person.FirstName|uppercase}}</div>
 		{{endloop}}
 	</div>
 	<hr>
@@ -106,17 +106,15 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
     <p>formatdatetime</p>
 	<hr>
 	<h3>DMVCFramework provides some extensions to the TemplatePro helpers</h3>
+	<p>json</p>
 	<p>
-		{{#=<% %>=}} {{#UpperCase "daniele teti"}} <%={{# }}=%> outputs: {{#UpperCase "daniele teti"}}
-	</p>
-	<p>
-		{{#=<% %>=}} {{#LowerCase "DANIELE TETI"}} <%={{# }}=%> outputs: {{#LowerCase "daniele teti"}}
-	</p>
-	<p>
-		{{#=<% %>=}} {{#Capitalize "daniele teti"}} <%={{# }}=%> outputs: {{#Capitalize "daniele teti"}}
-	</p>
-	<p>
-		{{#=<% %>=}} {{#SnakeCase "daniele teti"}} <%={{# }}=%> outputs: {{#SnakeCase "daniele teti"}}
+		<h3>Serialize an iterator to json</h3>
+		{{loop(people) as person1}}
+		<pre>{{:person1|json}}</pre>
+		{{endloop}}		
+
+		<h3>Serialize a list of objects to json</h3>
+		{{:people|json}}
 	</p>
 </div>
 
@@ -124,10 +122,10 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	<h2 class="section">Using Project Specific Helpers</h2>
 	<h3>Any project can define its own custom helpers</h3>
 	<p>
-	{{#MyHelper1 "this is a text"}}
+	{{"this is a text"|MyHelper1}}
 	</p>
 	<p>
-	{{#MyHelper2 "this is another text"}}
+	{{"this is another text"|MyHelper2}}
 	</p>
 </div>
 

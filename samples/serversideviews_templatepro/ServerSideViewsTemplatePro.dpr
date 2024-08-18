@@ -35,7 +35,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
+    //ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
 {$ENDIF}
     LogI('Ctrl+C  to stop the server');
     WaitForTerminationSignal;
@@ -52,12 +52,12 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
 
-    // these helpers will be available to the mustache views as if they were the standard ones
-//    TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
-//      begin
-//        TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
-//        TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
-//      end;
+    // These filters will be available to the TemplatePro views as if they were the standard ones
+    TTProConfiguration.OnCustomFiltersRegistration := procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate)
+    begin
+      TemplateProCompiledTemplate.AddFilter('MyHelper1', MyHelper1);
+      TemplateProCompiledTemplate.AddFilter('MyHelper2', MyHelper2);
+    end;
 
     RunServer(8080);
   except

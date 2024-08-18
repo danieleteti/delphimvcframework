@@ -59,7 +59,7 @@ type
     [MVCPath('/showcase')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    function MustacheTemplateShowCase: String;
+    function TemplateProShowCase: String;
 
     [MVCPath('/loadviewtest')]
     [MVCHTTPMethods([httpGET])]
@@ -173,7 +173,7 @@ begin
   end;
 end;
 
-function TWebSiteController.MustacheTemplateShowCase: String;
+function TWebSiteController.TemplateProShowCase: String;
 var
   LDAL: IPeopleDAL;
   lPeople, lPeople2: TPeople;
