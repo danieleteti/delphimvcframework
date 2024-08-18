@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{3A8C1730-9018-4F65-8B73-27F32E592FE3}</ProjectGuid>
+        <ProjectGuid>{9B7D7A4F-72CF-437F-A2F9-A036AC7BA3FF}</ProjectGuid>
         <ProjectVersion>20.1</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>middleware_analytics.dpr</MainSource>
@@ -9,6 +9,7 @@
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>
+        <ProjectName Condition="'$(ProjectName)'==''">middleware_analytics</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -757,6 +758,9 @@
                     <Platform Name="Win64">
                         <Operation>1</Operation>
                     </Platform>
+                    <Platform Name="Win64x">
+                        <Operation>1</Operation>
+                    </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectiOSDeviceDebug">
                     <Platform Name="iOSDevice32">
@@ -1018,6 +1022,7 @@
                 <ProjectRoot Platform="OSXARM64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="Win64x" Name="$(PROJECTNAME)"/>
             </Deployment>
             <Platforms>
                 <Platform value="Android">False</Platform>

@@ -118,7 +118,7 @@ type
     fTemplateFunctions: TDictionary<string, TTProTemplateFunction>;
     fLoopsStack: TObjectList<TLoopStackItem>;
     function PeekLoop: TLoopStackItem;
-    function PopLoop: TLoopStackItem;
+    procedure PopLoop;
     procedure PushLoop(const LoopStackItem: TLoopStackItem);
     function LoopStackIsEmpty: Boolean;
     function WalkThroughLoopStack(const VarName: String; out BaseVarName: String; out FullPath: String): Boolean;
@@ -1906,9 +1906,9 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.PopLoop: TLoopStackItem;
+procedure TTProCompiledTemplate.PopLoop;
 begin
-  Result := fLoopsStack.ExtractAt(fLoopsStack.Count - 1);
+  fLoopsStack.Delete(fLoopsStack.Count - 1);
 end;
 
 procedure TTProCompiledTemplate.PushLoop(const LoopStackItem: TLoopStackItem);

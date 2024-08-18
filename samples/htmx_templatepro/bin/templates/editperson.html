@@ -40,8 +40,8 @@
       <div class="form-group">			
         <label for="items" class="col-sm-10 control-label">Devices</label>					
           <select id="items" name="items" multiple class="form-control">
-          {{loop(deviceslist)}}
-            <option value="{{:deviceslist.devicename}}" {{if(deviceslist.selected)}}selected{{endif}}>{{:deviceslist.devicename}}</option>
+          {{loop(deviceslist) as device}}
+            <option value="{{:device.devicename}}" {{if(device.selected)}}selected{{endif}}>{{:device.devicename}}</option>
           {{endloop}}
           </select>			
           <span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						

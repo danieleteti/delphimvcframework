@@ -1,4 +1,4 @@
 ﻿guid;first_name;last_name;age
-{{loop(people)}}
-{{:people.guid}};"{{:people.firstname}}";"{{:people.lastname}}";{{:people.age}}
+{{loop(people) as person}}
+{{:person.guid}};"{{:person.firstname}}";"{{:person.lastname}}";{{:person.age}}
 {{endloop}}

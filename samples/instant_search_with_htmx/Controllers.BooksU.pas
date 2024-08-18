@@ -18,7 +18,7 @@ implementation
 
 uses
   System.StrUtils, System.SysUtils, MVCFramework.Logger,
-  MVCFramework.ActiveRecord,
+  MVCFramework.ActiveRecord, JsonDataObjects,
   MVCFramework.HTMX,
   MVCFramework.Middleware.ActiveRecord,
   Data.DB;

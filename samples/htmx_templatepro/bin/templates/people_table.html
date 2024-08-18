@@ -14,12 +14,12 @@
             <td class="text-center" colspan="5">&lt;&lt;No People Found&gt;&gt;</td>
         </tr>
         {{else}}
-        {{loop(people)}}
+        {{loop(people) as person}}
         <tr>
-            <td>{{:people.@@index}}</td>
-            <td>{{:people.FirstName}}</td>
-            <td>{{:people.LastName}}</td>
-            <td>{{:people.Age}}</td>
+            <td>{{:person.@@index}}</td>
+            <td>{{:person.FirstName}}</td>
+            <td>{{:person.LastName}}</td>
+            <td>{{:person.Age}}</td>
             <td class="text-right">{{include("delete_person_link.html")}} | {{include("view_person_link.html")}}</td>
         </tr>
         {{endloop}}

@@ -39,7 +39,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     {$IFDEF MSWINDOWS}
-    //ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
     {$ENDIF}
     LogI('HTMX DMVCFramework Sample');
     LogI('Ctrl+C to stop the server');
