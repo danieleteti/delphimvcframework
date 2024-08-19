@@ -51,6 +51,11 @@ uses
 
 {$WARNINGS OFF}
 
+function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<string>): string;
+begin
+  // todo
+end;
+
 function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): string;
 var
   lWrappedList: IMVCList;
@@ -78,57 +83,64 @@ var
   lTP: TTProCompiler;
   lViewFileName: string;
   lViewTemplate: UTF8String;
-  lCacheItem: TMVCCacheItem;
   lCompiledTemplate: ITProCompiledTemplate;
   lPair: TPair<String, TValue>;
+  lActualFileTimeStamp: TDateTime;
+  lCompiledViewFileName: string;
+  lActualCompiledFileTimeStamp: TDateTime;
+  lUseCompiledVersion: Boolean;
+  lCacheDir: string;
 begin
-  lTP := TTProCompiler.Create;
-  try
-    lViewFileName := GetRealFileName(ViewName);
-    if not FileExists(lViewFileName) then
-    begin
-      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
-        [ViewName]);
-    end;
+  lUseCompiledVersion := False;
+  lViewFileName := GetRealFileName(ViewName);
+  lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
+  TDirectory.CreateDirectory(lCacheDir);
+  lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.tpcu'));
 
-    if not TMVCCacheSingleton.Instance.ContainsItem(lViewFileName, lCacheItem)
-    then
-    begin
-      lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
-      lCacheItem := TMVCCacheSingleton.Instance.SetValue(lViewFileName,
-        lViewTemplate);
-    end
-    else
-    begin
-      if lCacheItem.TimeStamp < TFile.GetLastWriteTime(lViewFileName) then
-      begin
-        lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
-        TMVCCacheSingleton.Instance.SetValue(lViewFileName, lViewTemplate);
-      end;
-    end;
+  if not FileAge(lViewFileName, lActualFileTimeStamp) then
+  begin
+    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
+      [ViewName]);
+  end;
 
-    lViewTemplate := lCacheItem.Value.AsString;
+  if FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
+  begin
+    lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
+  end;
+
+  if lUseCompiledVersion then
+  begin
+    lCompiledTemplate := TTProCompiledTemplate.CreateFromFile(lCompiledViewFileName);
+  end
+  else
+  begin
+    lTP := TTProCompiler.Create;
     try
+      lViewTemplate := TFile.ReadAllText(lViewFileName);
       lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
-      if Assigned(ViewModel) then
+      lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+    finally
+      lTP.Free;
+    end;
+  end;
+
+  try
+    if Assigned(ViewModel) then
+    begin
+      for lPair in ViewModel do
       begin
-        for lPair in ViewModel do
-        begin
-          lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
-        end;
-      end;
-      lCompiledTemplate.AddFilter('json', DumpAsJSONString);
-      //lCompiledTemplate.DumpToFile(TPath.Combine(AppPath, 'TProDump.txt'));
-      Builder.Append(lCompiledTemplate.Render);
-    except
-      on E: ETProException do
-      begin
-        raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)',
-          [ViewName, E.Message, E.ClassName]);
+        lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
       end;
     end;
-  finally
-    lTP.Free;
+    lCompiledTemplate.AddFilter('json', DumpAsJSONString);
+    lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
+    Builder.Append(lCompiledTemplate.Render);
+  except
+    on E: ETProException do
+    begin
+      raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)',
+        [ViewName, E.Message, E.ClassName]);
+    end;
   end;
 end;
 
