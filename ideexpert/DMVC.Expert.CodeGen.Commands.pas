@@ -164,6 +164,19 @@ type
       ); override;
   end;
 
+  TUnitTemplateProHelpersDeclarationCommand = class(TCustomCommand)
+  public
+    procedure ExecuteInterface(
+      Section: TStringBuilder;
+      Model: TJSONObject
+      ); override;
+    procedure ExecuteImplementation(
+      Section: TStringBuilder;
+      Model: TJsonObject
+      ); override;
+  end;
+
+
 
   TUnitFooterCommand = class(TCustomCommand)
   public
@@ -305,6 +318,12 @@ begin
     .AppendLine('  MVCFramework.DotEnv,')
     .AppendLine('  MVCFramework.Commons,')
     .AppendLine('  MVCFramework.Serializer.Commons,');
+
+  if Model.B[TConfigKey.program_ssv_templatepro] then
+  begin
+    Section
+      .AppendLine('    MVCFramework.View.Renderers.TemplatePro,');
+  end;
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
@@ -758,11 +777,19 @@ begin
   Section
     .AppendLine('  System.IOUtils,')
     .AppendLine('  MVCFramework.Commons,');
+
+  if Model.B[TConfigKey.program_ssv_templatepro] then
+  begin
+    Section
+      .AppendLine('  MVCFramework.View.Renderers.TemplatePro,')
+  end;
+
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
       .AppendLine('  MVCFramework.View.Renderers.Mustache,')
   end;
+
   Section
     .AppendLine('  MVCFramework.Middleware.ActiveRecord,')
     .AppendLine('  MVCFramework.Middleware.StaticFiles,')
@@ -807,6 +834,16 @@ begin
     .AppendLine('  FMVC.AddController(' + Model[TConfigKey.controller_classname] + ');')
     .AppendLine('  // Controllers - END')
     .AppendLine;
+
+    if Model.B[TConfigKey.program_ssv_templatepro] then
+    begin
+      Section
+        .AppendLine('  // Server Side View')
+        .AppendLine('  FMVC.SetViewEngine(TMVCTemplateProViewEngine);')
+        .AppendLine('  // Server Side View - END')
+        .AppendLine;
+    end;
+
     if Model.B[TConfigKey.program_ssv_mustache] then
     begin
       Section
@@ -815,6 +852,8 @@ begin
         .AppendLine('  // Server Side View - END')
         .AppendLine;
     end;
+
+
     Section
       .AppendLine('  // Middleware');
 
@@ -1005,6 +1044,9 @@ begin
     .AppendLine()
     .AppendLine('  // UseConsoleLogger defines if logs must be emitted to also the console (if available).')
     .AppendLine('  UseConsoleLogger := True;')
+    .AppendLine()
+    .AppendLine('  // MVCUseTemplatesCache allows to cache compiled templates on disk for a faster future execution (if engine supports it).')
+    .AppendLine('  MVCUseTemplatesCache := True;')
     .AppendLine()
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);');
 
@@ -1339,6 +1381,83 @@ begin
     .AppendLine('procedure RegisterServices(Container: IMVCServiceContainer);')
     .AppendLine;
 
+end;
+
+{ TUnitTemplateProHelpersDeclarationCommand }
+
+procedure TUnitTemplateProHelpersDeclarationCommand.ExecuteImplementation(
+  Section: TStringBuilder; Model: TJsonObject);
+begin
+  inherited;
+  Section
+    .AppendLine('implementation')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  TemplatePro, System.SysUtils;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('begin')
+    .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper1)'';')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('begin')
+    .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper2)'';')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('procedure TemplateProContextConfigure;')
+    .AppendLine('begin')
+    .AppendLine('  TTProConfiguration.OnContextConfiguration := procedure(const CompiledTemplate: ITProCompiledTemplate)')
+    .AppendLine('  begin')
+    .AppendLine('    // These filters will be available to the TemplatePro views as if they were the standard ones')
+    .AppendLine('    CompiledTemplate.AddFilter(''MyHelper1'', MyHelper1);')
+    .AppendLine('    CompiledTemplate.AddFilter(''MyHelper2'', MyHelper2);')
+    .AppendLine
+    .AppendLine('    CompiledTemplate.OnGetValue :=')
+    .AppendLine('      procedure(const DataSource, Members: string; var Value: TValue; var Handled: Boolean)')
+    .AppendLine('      begin')
+    .AppendLine('        if SameText(DataSource, ''ext1'') then')
+    .AppendLine('        begin')
+    .AppendLine('          if Members.IsEmpty then')
+    .AppendLine('          begin')
+    .AppendLine('            Value := ''External Value Ext1''')
+    .AppendLine('          end')
+    .AppendLine('          else')
+    .AppendLine('          begin')
+    .AppendLine('            Value := ''Reading ext1.'' + Members;')
+    .AppendLine('          end;')
+    .AppendLine('          Handled := True;')
+    .AppendLine('        end;')
+    .AppendLine('      end')
+    .AppendLine('  end;')
+    .AppendLine('end;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('end.');
+end;
+
+procedure TUnitTemplateProHelpersDeclarationCommand.ExecuteInterface(
+  Section: TStringBuilder; Model: TJSONObject);
+begin
+  inherited;
+  CheckFor(TConfigKey.program_ssv_mustache, Model);
+  CheckFor(TConfigKey.templatepro_helpers_unit_name, Model);
+  Section
+    .AppendLine('unit ' + Model[TConfigKey.templatepro_helpers_unit_name] + ';')
+    .AppendLine
+    .AppendLine('interface')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  System.Rtti;')
+    .AppendLine
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('procedure TemplateProContextConfigure;')
+    .AppendLine;
 end;
 
 end.

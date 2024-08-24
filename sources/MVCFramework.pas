@@ -4623,7 +4623,7 @@ end;
 
 procedure TMVCController.SetViewData(const aModelName: string; const Value: TValue);
 begin
-  GetViewModel.Add(aModelName, Value);
+  GetViewModel.AddOrSetValue(aModelName, Value);
 end;
 
 procedure TMVCRenderer.Render(

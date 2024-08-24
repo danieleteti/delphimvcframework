@@ -129,5 +129,18 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	</p>
 </div>
 
+<div>	
+	<h2 class="section">Using OnGetValue event</h2>
+	<p>
+	  <p>{{:ext1}}</p>
+	  
+	  <p>{{:ext1.field1}}</p>
+	
+	  <p>{{:ext1.field1.value}}</p>
+	
+	</p>
+</div>
+
+
 </body>
 </html>        

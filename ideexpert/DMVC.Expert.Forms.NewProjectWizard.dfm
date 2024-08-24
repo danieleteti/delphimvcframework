@@ -504,9 +504,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Panel2: TPanel
     Left = 0
-    Top = 374
+    Top = 400
     Width = 308
-    Height = 215
+    Height = 189
     Anchors = [akLeft, akBottom]
     BevelOuter = bvNone
     Caption = 'Panel2'
@@ -516,18 +516,18 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 5
     DesignSize = (
       308
-      215)
+      189)
     object gbControllerUnitOptions: TGroupBox
-      Left = 8
-      Top = 29
+      Left = 12
+      Top = 0
       Width = 296
-      Height = 177
+      Height = 184
       Anchors = [akLeft, akTop, akRight, akBottom]
       Caption = 'Controller Unit Options'
       TabOrder = 0
       DesignSize = (
         296
-        177)
+        184)
       object lblClassName: TLabel
         Left = 16
         Top = 126
@@ -591,19 +591,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         TabOrder = 4
         WordWrap = True
       end
-    end
-    object chkCreateControllerUnit: TCheckBox
-      Left = 24
-      Top = 4
-      Width = 241
-      Height = 17
-      Anchors = [akLeft, akTop, akRight]
-      Caption = 'Create Controller Unit'
-      Checked = True
-      State = cbChecked
-      TabOrder = 1
-      Visible = False
-      OnClick = chkCreateControllerUnitClick
     end
   end
   object GroupBox1: TGroupBox
@@ -779,16 +766,17 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMustache: TCheckBox
     Left = 24
-    Top = 311
+    Top = 331
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use Mustache as Server Side View engine'
     TabOrder = 10
+    OnClick = chkMustacheClick
   end
   object chkServicesContainer: TCheckBox
     Left = 24
-    Top = 330
+    Top = 351
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -799,7 +787,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkSqids: TCheckBox
     Left = 24
-    Top = 350
+    Top = 371
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -824,6 +812,16 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       'PascalCase (FooBar)'
       'SnakeCase (foo_bar)')
     TabOrder = 13
+  end
+  object chkTemplatePro: TCheckBox
+    Left = 24
+    Top = 312
+    Width = 245
+    Height = 17
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Use TemplatePro as Server Side View engine'
+    TabOrder = 14
+    OnClick = chkTemplateProClick
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

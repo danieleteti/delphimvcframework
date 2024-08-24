@@ -95,17 +95,19 @@ begin
       ServicesUnit: IOTAModule;
       WebModuleUnit: IOTAModule;
       MustacheHelperUnit: IOTAModule;
+      TemplateProHelperUnit: IOTAModule;
       ControllerCreator: IOTACreator;
       EntityCreator: IOTACreator;
       JSONRPCUnitCreator: IOTACreator;
       ServicesUnitCreator: IOTACreator;
-      MustacheHelpersUnitCreator: IOTACreator;
+      HelpersUnitCreator: IOTACreator;
       WebModuleCreator: IOTAModuleCreator;
       lProjectSourceCreator: IOTACreator;
       lJSONRPCUnitName: string;
       lServicesUnitName: string;
       lJSON: TJSONObject;
       lMustacheHelpersUnitName: string;
+      lTemplateProHelpersUnitName: string;
       lEntityUnitName: string;
       EntityUnit: IOTAModule;
     begin
@@ -202,22 +204,42 @@ begin
           end;
 
 
+
           lMustacheHelpersUnitName := '';
           // Create Mustache Helpers Unit
           if lJSON.B[TConfigKey.program_ssv_mustache] then
           begin
-            MustacheHelpersUnitCreator := TNewGenericUnitFromTemplate.Create(
+            HelpersUnitCreator := TNewGenericUnitFromTemplate.Create(
               lJSON,
               FillMustacheTemplates,
               TConfigKey.mustache_helpers_unit_name,
               APersonality);
-            MustacheHelperUnit := ModuleServices.CreateModule(MustacheHelpersUnitCreator);
+            MustacheHelperUnit := ModuleServices.CreateModule(HelpersUnitCreator);
             ChangeIOTAModuleFileNamePrefix(MustacheHelperUnit, 'MustacheHelpers');
             lMustacheHelpersUnitName := GetUnitName(MustacheHelperUnit.FileName);
             lJSON.S[TConfigKey.mustache_helpers_unit_name] := lMustacheHelpersUnitName;
             if Project <> nil then
             begin
               Project.AddFile(MustacheHelperUnit.FileName, True);
+            end;
+          end;
+
+          lTemplateProHelpersUnitName := '';
+          // Create TemplatePro Helpers Unit
+          if lJSON.B[TConfigKey.program_ssv_templatepro] then
+          begin
+            HelpersUnitCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillTemplateProTemplates,
+              TConfigKey.templatepro_helpers_unit_name,
+              APersonality);
+            TemplateProHelperUnit := ModuleServices.CreateModule(HelpersUnitCreator);
+            ChangeIOTAModuleFileNamePrefix(TemplateProHelperUnit, 'TemplateProHelpers');
+            lTemplateProHelpersUnitName := GetUnitName(TemplateProHelperUnit.FileName);
+            lJSON.S[TConfigKey.templatepro_helpers_unit_name] := lTemplateProHelpersUnitName;
+            if Project <> nil then
+            begin
+              Project.AddFile(TemplateProHelperUnit.FileName, True);
             end;
           end;
 

@@ -72,7 +72,6 @@ type
     edtControllerClassName: TEdit;
     chkCreateActionFiltersMethods: TCheckBox;
     chkCreateCRUDMethods: TCheckBox;
-    chkCreateControllerUnit: TCheckBox;
     Shape1: TShape;
     GroupBox1: TGroupBox;
     chkAnalyticsMiddleware: TCheckBox;
@@ -102,7 +101,7 @@ type
     chkServicesContainer: TCheckBox;
     chkSqids: TCheckBox;
     rgNameCase: TRadioGroup;
-    procedure chkCreateControllerUnitClick(Sender: TObject);
+    chkTemplatePro: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -117,6 +116,8 @@ type
     procedure lblPATREONClick(Sender: TObject);
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
+    procedure chkMustacheClick(Sender: TObject);
+    procedure chkTemplateProClick(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
@@ -176,12 +177,16 @@ begin
   end;
 end;
 
-procedure TfrmDMVCNewProject.chkCreateControllerUnitClick(Sender: TObject);
+procedure TfrmDMVCNewProject.chkMustacheClick(Sender: TObject);
 begin
-  chkCreateIndexMethod.Enabled := chkCreateControllerUnit.Checked;
-  chkCreateActionFiltersMethods.Enabled := chkCreateControllerUnit.Checked;
-  chkCreateCRUDMethods.Enabled := chkCreateControllerUnit.Checked;
-  edtControllerClassName.Enabled := chkCreateControllerUnit.Checked;
+  if chkMustache.Checked then
+    chkTemplatePro.Checked := False;
+end;
+
+procedure TfrmDMVCNewProject.chkTemplateProClick(Sender: TObject);
+begin
+  if chkTemplatePro.Checked then
+    chkMustache.Checked := False;
 end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
@@ -327,7 +332,7 @@ end;
 
 function TfrmDMVCNewProject.GetCreateControllerUnit: boolean;
 begin
-  Result := chkCreateControllerUnit.Checked;
+  Result := True;
 end;
 
 function TfrmDMVCNewProject.GetCreateCRUDMethods: boolean;
@@ -344,6 +349,7 @@ begin
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_ssv_mustache] := chkMustache.Checked;
+  fModel.B[TConfigKey.program_ssv_templatepro] := chkTemplatePro.Checked;
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';

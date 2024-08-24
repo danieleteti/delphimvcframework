@@ -62,6 +62,8 @@ begin
   // When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
   MVCSerializeNulls := True;
 
+  MVCUseTemplatesCache := False;
+
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

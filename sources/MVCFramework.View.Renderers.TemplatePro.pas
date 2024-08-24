@@ -51,12 +51,12 @@ uses
 
 {$WARNINGS OFF}
 
-function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<string>): string;
+function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<string>): TValue;
 begin
   // todo
 end;
 
-function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): string;
+function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): TValue;
 var
   lWrappedList: IMVCList;
 begin
@@ -93,19 +93,23 @@ var
 begin
   lUseCompiledVersion := False;
   lViewFileName := GetRealFileName(ViewName);
-  lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
-  TDirectory.CreateDirectory(lCacheDir);
-  lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.tpcu'));
 
-  if not FileAge(lViewFileName, lActualFileTimeStamp) then
+  if MVCUseTemplatesCache then
   begin
-    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
-      [ViewName]);
-  end;
+    lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
+    TDirectory.CreateDirectory(lCacheDir);
+    lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
 
-  if FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
-  begin
-    lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
+    if not FileAge(lViewFileName, lActualFileTimeStamp) then
+    begin
+      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
+        [ViewName]);
+    end;
+
+    if FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
+    begin
+      lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
+    end;
   end;
 
   if lUseCompiledVersion then
@@ -118,7 +122,10 @@ begin
     try
       lViewTemplate := TFile.ReadAllText(lViewFileName);
       lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
-      lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+      if MVCUseTemplatesCache then
+      begin
+        lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+      end;
     finally
       lTP.Free;
     end;

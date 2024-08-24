@@ -118,7 +118,9 @@ contains
   MVCFramework.Signal in '..\..\sources\MVCFramework.Signal.pas',
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
-  sqids in '..\..\sources\sqids.pas';
+  sqids in '..\..\sources\sqids.pas',
+  MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
+  TemplatePro in '..\..\sources\TemplatePro.pas';
 
 end.
 

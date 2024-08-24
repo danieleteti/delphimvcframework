@@ -33,6 +33,9 @@ uses
   System.DateUtils,
   System.RTTI;
 
+const
+  TEMPLATEPRO_VERSION = '0.3';
+
 type
   ETProException = class(Exception)
 
@@ -55,12 +58,12 @@ type
   end;
 
   TTokenType = (
-    ttContent, ttInclude, ttLoop, ttEndLoop, ttIfThen, ttElse, ttEndIf, ttStartTag, ttComment,
-    ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttReset, ttLineBreak, ttEOF);
+    ttContent, ttInclude, ttLoop, ttEndLoop, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment,
+    ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttEOF);
   const
     TOKEN_TYPE_DESCR: array [Low(TTokenType)..High(TTokenType)] of string =
-      ('ttContent', 'ttInclude', 'ttLoop', 'ttEndLoop', 'ttIfThen', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
-       'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttReset', 'ttLineBreak', 'ttEOF');
+      ('ttContent', 'ttInclude', 'ttLoop', 'ttEndLoop', 'ttIfThen', 'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
+       'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttEOF');
   type
     TToken = packed record
       TokenType: TTokenType;
@@ -76,15 +79,14 @@ type
 
   TTokenWalkProc = reference to procedure(const Index: Integer; const Token: TToken);
 
-  TTProTemplateFunction = function(const aValue: TValue; const aParameters: TArray<string>): string;
-
+  TTProTemplateFunction = function(const aValue: TValue; const aParameters: TArray<string>): TValue;
   TTProVariablesInfo = (viSimpleType, viObject, viDataSet, viListOfObject, viJSONObject, viIterable);
   TTProVariablesInfos = set of TTProVariablesInfo;
 
   TVarDataSource = class
+  protected
     VarValue: TValue;
     VarOption: TTProVariablesInfos;
-//    VarIterator: Int64;
     constructor Create(const VarValue: TValue; const VarOption: TTProVariablesInfos);
   end;
 
@@ -92,6 +94,9 @@ type
   public
     constructor Create;
   end;
+
+
+  TTProCompiledTemplateGetValueEvent = reference to procedure(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
 
   ITProCompiledTemplate = interface
     ['{0BE04DE7-6930-456B-86EE-BFD407BA6C46}']
@@ -102,9 +107,15 @@ type
     procedure AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction);
     procedure DumpToFile(const FileName: String);
     procedure SaveToFile(const FileName: String);
+    function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
+    procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
+    property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
   end;
 
+  TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
+
   TLoopStackItem = class
+  protected
     DataSourceName: String;
     LoopExpression: String;
     FullPath: String;
@@ -120,6 +131,7 @@ type
     fVariables: TTProVariables;
     fTemplateFunctions: TDictionary<string, TTProTemplateFunction>;
     fLoopsStack: TObjectList<TLoopStackItem>;
+    fOnGetValue: TTProCompiledTemplateGetValueEvent;
     function PeekLoop: TLoopStackItem;
     procedure PopLoop;
     procedure PushLoop(const LoopStackItem: TLoopStackItem);
@@ -128,16 +140,22 @@ type
     constructor Create(Tokens: TList<TToken>);
     procedure Error(const aMessage: String);
     function IsTruthy(const Value: TValue): Boolean;
-    function GetVarAsString(const aName: string): string;
+    function GetVarAsString(const Name: string): string;
+    function GetTValueVarAsString(const Value: TValue; const VarName: string = ''): String;
     function GetVarAsTValue(const aName: string): TValue;
-    function EvaluateIfExpression(aIdentifier: string): Boolean;
+//    function EvaluateIfExpression(aIdentifier: string): Boolean;
+    function EvaluateIfExpressionAt(var Idx: UInt64): Boolean;
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
-    function ExecuteFilter(aFunctionName: string; aParameters: TArray<string>; aValue: TValue): string;
+    function ExecuteFilter(aFunctionName: string; aParameters: TArray<string>; aValue: TValue): TValue;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<string>); overload;
     procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<string>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
     function IsAnIterator(const VarName: String; out DataSourceName: String; out CurrentIterator: TLoopStackItem): Boolean;
+    function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
+    function EvaluateValue(var Idx: UInt64; out MustBeEncoded: Boolean): TValue;
+    procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
+    procedure DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
   public
     destructor Destroy; override;
     function Render: String;
@@ -148,6 +166,7 @@ type
     procedure SetData(const Name: String; Value: TValue); overload;
     procedure AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction);
     procedure DumpToFile(const FileName: String);
+    property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
   end;
 
   TTProCompiler = class
@@ -188,15 +207,13 @@ type
     function ItemIsObject(const AIndex: Integer; out AValue: TValue): Boolean;
   end;
 
-  TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
-
   TTProConfiguration = class sealed
   private
-    class var fOnCustomFiltersRegistration: TTProCompiledTemplateEvent;
+    class var fOnContextConfiguration: TTProCompiledTemplateEvent;
   protected
     class procedure RegisterHandlers(const TemplateProCompiledTemplate: ITProCompiledTemplate);
   public
-    class property OnCustomFiltersRegistration: TTProCompiledTemplateEvent read fOnCustomFiltersRegistration write fOnCustomFiltersRegistration;
+    class property OnContextConfiguration: TTProCompiledTemplateEvent read fOnContextConfiguration write fOnContextConfiguration;
   end;
 
 
@@ -267,6 +284,11 @@ begin
   fTemplateFunctions.Add(FunctionName.ToLower, FunctionImpl);
 end;
 
+function TTProCompiledTemplate.GetOnGetValue: TTProCompiledTemplateGetValueEvent;
+begin
+  Result := fOnGetValue;
+end;
+
 //function TTProCompiledTemplate.GetPseudoVariable(const Variable: TVarDataSource; const PseudoVarName: String): TValue;
 //begin
 //  Result := GetPseudoVariable(Variable.VarIterator, PseudoVarName);
@@ -292,6 +314,98 @@ begin
   end;
 end;
 
+
+function TTProCompiledTemplate.GetTValueVarAsString(const Value: TValue; const VarName: string): String;
+var
+  lIsObject: Boolean;
+  lAsObject: TObject;
+begin
+  if Value.IsEmpty then
+  begin
+    Exit('');
+  end;
+
+  lIsObject := False;
+  lAsObject := nil;
+  if Value.IsObject then
+  begin
+    lIsObject := True;
+    lAsObject := Value.AsObject;
+  end;
+
+  if lIsObject then
+  begin
+    if lAsObject is TField then
+      Result := TField(Value.AsObject).AsString
+    else if lAsObject is TJsonBaseObject then
+      Result := TJsonBaseObject(lAsObject).ToJSON()
+    else
+      Result := lAsObject.ToString;
+  end
+  else
+  begin
+    if Value.TypeInfo.Kind = tkRecord then
+    begin
+      if Value.TypeInfo = TypeInfo(NullableInt32) then
+      begin
+        Result := Value.AsType<NullableInt32>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt32) then
+      begin
+        Result := Value.AsType<NullableInt32>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableInt16) then
+      begin
+        Result := Value.AsType<NullableInt16>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt16) then
+      begin
+        Result := Value.AsType<NullableUInt16>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableInt64) then
+      begin
+        Result := Value.AsType<NullableInt64>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt64) then
+      begin
+        Result := Value.AsType<NullableUInt64>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableString) then
+      begin
+        Result := Value.AsType<NullableString>.Value;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableCurrency) then
+      begin
+        Result := Value.AsType<NullableCurrency>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableBoolean) then
+      begin
+        Result := Value.AsType<NullableBoolean>.Value.ToString;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTDate) then
+      begin
+        Result := DateToISO8601(Value.AsType<NullableTDate>.Value);
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTTime) then
+      begin
+        Result := DateToISO8601(Value.AsType<NullableTTime>.Value);
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTDateTime) then
+      begin
+        Result := DateToISO8601(Value.AsType<NullableTDateTime>.Value);
+      end
+      else
+      begin
+        raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
+      end;
+    end
+    else
+    begin
+      Result := Value.ToString;
+    end;
+  end;
+
+end;
 
 procedure TTProCompiledTemplate.CheckParNumber(const aMinParNumber, aMaxParNumber: Integer;
   const aParameters: TArray<string>);
@@ -388,6 +502,7 @@ function TTProCompiler.MatchVariable(var aIdentifier: string): Boolean;
 var
   lTmp: String;
 begin
+  aIdentifier := '';
   lTmp := '';
   Result := False;
   if CharInSet(fInputString.Chars[fCharIndex], IdenfierAllowedFirstChars) then
@@ -525,7 +640,6 @@ begin
     lTokens.Free;
     raise;
   end;
-  TTProConfiguration.RegisterHandlers(Result);
 end;
 
 procedure TTProCompiler.Compile(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String);
@@ -556,6 +670,7 @@ var
   lRef2: Integer;
   lContentOnThisLine: Integer;
 begin
+  aTokens.Add(TToken.Create(ttSystemVersion, TEMPLATEPRO_VERSION, ''));
   lLastToken := ttEOF;
   lContentOnThisLine := 0;
   fCurrentFileName := aFileNameRefPath;
@@ -757,6 +872,16 @@ begin
           MatchSpace;
           if not MatchVariable(lIdentifier) then
             Error('Expected identifier after "if("');
+          lFuncParamsCount := -1; {lFuncParamsCount = -1 means "no filter applied"}
+          lFuncName := '';
+          if MatchSymbol('|') then
+          begin
+            MatchSpace;
+            if not MatchVariable(lFuncName) then
+              Error('Invalid function name applied to variable ' + lVarName);
+            lFuncParams := GetFunctionParameters;
+            lFuncParamsCount := Length(lFuncParams);
+          end;
           MatchSpace;
           if not MatchSymbol(')') then
             Error('Expected ")" after "' + lIdentifier + '"');
@@ -768,11 +893,29 @@ begin
             lIdentifier := '!' + lIdentifier;
           end;
           lLastToken := ttIfThen;
-          aTokens.Add(TToken.Create(lLastToken, lIdentifier, ''));
+          aTokens.Add(TToken.Create(lLastToken, '' {lIdentifier}, ''));
           Inc(lCurrentIfIndex);
           lIfStatementStack[lCurrentIfIndex].IfIndex := aTokens.Count - 1;
           lIfStatementStack[lCurrentIfIndex].ElseIndex := -1;
           lStartVerbatim := fCharIndex;
+
+          lLastToken := ttBoolExpression;
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', lFuncParamsCount, -1 {no html escape}));
+
+          //add function with params
+          if not lFuncName.IsEmpty then
+          begin
+            aTokens.Add(TToken.Create(ttFilterName, lFuncName, '', lFuncParamsCount));
+            if lFuncParamsCount > 0 then
+            begin
+              for I := 0 to lFuncParamsCount -1 do
+              begin
+                aTokens.Add(TToken.Create(ttFilterParameter, lFuncParams[I], ''));
+              end;
+            end;
+          end;
+
+
         end else if MatchSymbol('else') then
         begin
           if not MatchEndTag then
@@ -938,100 +1081,116 @@ begin
 end;
 
 function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; aParameters: TArray<string>;
-  aValue: TValue): string;
+  aValue: TValue): TValue;
 var
-  lDateValue: TDate;
-  lDateTimeValue: TDateTime;
+  lDateValue: TDateTime;
   lStrValue: string;
-  lDateAsString: string;
   lFunc: TTProTemplateFunction;
+  lFormatSettings: TFormatSettings;
+  procedure FunctionError(const ErrMessage: string);
+  begin
+    Error(Format('%s in function %s', [ErrMessage, aFunctionName]));
+  end;
 begin
   aFunctionName := lowercase(aFunctionName);
-  if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
-  begin
-    Exit(lFunc(aValue, aParameters));
-  end;
   if aFunctionName = 'uppercase' then
   begin
-    Exit(UpperCase(aValue.AsString));
-  end;
-  if aFunctionName = 'lowercase' then
+    Result := UpperCase(aValue.AsString);
+  end else if aFunctionName = 'lowercase' then
   begin
-    Exit(lowercase(aValue.AsString));
-  end;
-  if aFunctionName = 'capitalize' then
+    Result := lowercase(aValue.AsString);
+  end else if aFunctionName = 'capitalize' then
   begin
-    Exit(CapitalizeString(aValue.AsString, True));
-  end;
-  if aFunctionName = 'rpad' then
+    Result := CapitalizeString(aValue.AsString, True);
+  end else if aFunctionName = 'rpad' then
   begin
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
-      Error(Format('Invalid parameter/s for function: %s', [aFunctionName]));
+      FunctionError('Invalid parameter/s');
 
     CheckParNumber(1, 2, aParameters);
     if Length(aParameters) = 1 then
     begin
-      Exit(lStrValue.PadRight(aParameters[0].ToInteger));
+      Result := lStrValue.PadRight(aParameters[0].ToInteger);
     end
     else
     begin
-      Exit(lStrValue.PadRight(aParameters[0].ToInteger, aParameters[1].Chars[0]));
+      Result := lStrValue.PadRight(aParameters[0].ToInteger, aParameters[1].Chars[0]);
     end;
-  end;
-  if aFunctionName = 'lpad' then
+  end else if aFunctionName = 'lpad' then
   begin
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
-      Error(Format('Invalid parameter/s for function: ', [aFunctionName]));
+      FunctionError('Invalid parameter/s');
 
     CheckParNumber(1, 2, aParameters);
     if Length(aParameters) = 1 then
     begin
-      Exit(lStrValue.PadLeft(aParameters[0].ToInteger));
+      Result := lStrValue.PadLeft(aParameters[0].ToInteger);
     end
     else
     begin
-      Exit(lStrValue.PadLeft(aParameters[0].ToInteger, aParameters[1].Chars[0]));
+      Result := lStrValue.PadLeft(aParameters[0].ToInteger, aParameters[1].Chars[0]);
     end;
-  end;
-
-  if aFunctionName = 'datetostr' then
+  end else if aFunctionName = 'datetostr' then
   begin
-    if not aValue.TryAsType<TDate>(lDateValue) then
-      Error('Invalid Date');
-    Exit(DateToStr(lDateValue));
-  end;
-  if aFunctionName = 'datetimetostr' then
-  begin
-    if not aValue.TryAsType<TDateTime>(lDateTimeValue) then
-      Error('Invalid DateTime');
-    Exit(DateTimeToStr(lDateTimeValue));
-  end;
-  if aFunctionName = 'formatdatetime' then
-  begin
-    CheckParNumber(1, aParameters);
-    if aValue.IsType<String> then
+    if aValue.IsEmpty then
     begin
-      lDateAsString := aValue.AsString;
-      //lDateTimeValue := ISO8601ToDate(aValue.AsString, False);
-      lDateTimeValue := StrToDate(aValue.AsString);
+      Result := '';
+    end else if aValue.TryAsType<TDateTime>(lDateValue) then
+    begin
+      if Length(aParameters) = 0 then
+      begin
+        Result := DateToStr(lDateValue)
+      end
+      else
+      begin
+        CheckParNumber(1, aParameters);
+        lFormatSettings.ShortDateFormat := aParameters[0];
+        Result := DateToStr(lDateValue, lFormatSettings)
+      end;
     end
     else
     begin
-      if not aValue.TryAsType<TDateTime>(lDateTimeValue) then
-        Error('Invalid DateTime');
+      FunctionError('Invalid date ' + aValue.AsString.QuotedString);
     end;
-    Exit(FormatDateTime(aParameters[0], lDateTimeValue));
+  end else if (aFunctionName = 'datetimetostr') or (aFunctionName = 'formatdatetime') then
+  begin
+    if aValue.IsEmpty then
+    begin
+      Result := '';
+    end else if aValue.TryAsType<TDateTime>(lDateValue) then
+    begin
+      if Length(aParameters) = 0 then
+        Result := DateTimeToStr(lDateValue)
+      else
+      begin
+        CheckParNumber(1, aParameters);
+        Result := FormatDateTime(aParameters[0], lDateValue);
+      end;
+    end
+    else
+    begin
+      FunctionError('Invalid datetime ' + aValue.AsString.QuotedString);
+    end;
+  end else if aFunctionName = 'empty' then
+  begin
+    CheckParNumber(0, aParameters);
+    Result := TValue.Empty;
+  end else if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
+  begin
+    Result := lFunc(aValue, aParameters);
+  end
+  else
+  begin
+    Error(Format('Unknown function [%s]', [aFunctionName]));
   end;
-
-  Error(Format('Unknown function [%s]', [aFunctionName]));
 end;
 
 function HTMLEncode(s: string): string;
@@ -1363,6 +1522,7 @@ begin
   fLoopsStack := TObjectList<TLoopStackItem>.Create(True);
   fTokens := Tokens;
   fTemplateFunctions := TDictionary<string, TTProTemplateFunction>.Create;
+  TTProConfiguration.RegisterHandlers(Self);
 end;
 
 class function TTProCompiledTemplate.CreateFromFile(
@@ -1375,12 +1535,20 @@ begin
   try
     lTokens := TList<TToken>.Create;
     try
+      try
       while True do
       begin
         lTokens.Add(TToken.CreateFromBytes(lBR));
         if lTokens.Last.TokenType = ttEOF then
         begin
           Break;
+        end;
+      end;
+      except
+        on E: Exception do
+        begin
+          raise ETProRenderException.CreateFmt('Cannot load compiled template from [FILE: %s][CLASS: %s][MSG: %s] - consider to delete templates cache.',
+            [FileName, E.ClassName, E.Message])
         end;
       end;
       Result := TTProCompiledTemplate.Create(lTokens);
@@ -1402,11 +1570,21 @@ begin
   inherited;
 end;
 
+procedure TTProCompiledTemplate.DoOnGetValue(const DataSource, Members: string;
+  var Value: TValue; var Handled: Boolean);
+begin
+  Handled := False;
+  if Assigned(fOnGetValue) then
+  begin
+    fOnGetValue(DataSource, Members, Value, Handled);
+  end;
+end;
+
 procedure TTProCompiledTemplate.DumpToFile(const FileName: String);
 var
   lToken: TToken;
   lSW: TStreamWriter;
-  lIdx: Integer;
+  lIdx: UInt64;
 begin
   lSW := TStreamWriter.Create(FileName);
   try
@@ -1441,19 +1619,12 @@ function TTProCompiledTemplate.Render: String;
 var
   lIdx: UInt64;
   lBuff: TStringBuilder;
-  lLoopStmIndex: Integer;
   lDataSourceName: string;
-  lCurrTokenType: TTokenType;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
   lJumpTo: Integer;
-  lFilterParCount: Integer;
-  lFilterParameters: TArray<String>;
-  I: Integer;
-  lFilterName: string;
   lVarName: string;
-  lVarValue: String;
-  lRef2: Integer;
+  lVarValue: TValue;
   lJArr: TJDOJsonArray;
   lJObj: TJDOJsonObject;
   lVarMember: string;
@@ -1461,12 +1632,15 @@ var
   lFullPath: string;
   lLoopItem: TLoopStackItem;
   lJValue: TJsonDataValueHelper;
+  lMustBeEncoded: Boolean;
+  lSavedIdx: UInt64;
 begin
   lBuff := TStringBuilder.Create;
   try
     lIdx := 0;
     while fTokens[lIdx].TokenType <> ttEOF do
     begin
+      //Writeln(fTokens[lIdx].ToString);
       case fTokens[lIdx].TokenType of
         ttContent: begin
           lBuff.Append(fTokens[lIdx].Value1);
@@ -1573,7 +1747,6 @@ begin
           end;
 
           lLoopItem := PeekLoop;
-          lLoopStmIndex := fTokens[lIdx].Ref1;
           lDataSourceName := lLoopItem.DataSourceName;
           if GetVariables.TryGetValue(lDataSourceName, lVariable) then
           begin
@@ -1621,13 +1794,15 @@ begin
           end;
         end;
         ttIfThen: begin
-          if EvaluateIfExpression(fTokens[lIdx].Value1) then
+          lSavedIdx := lIdx;
+          if EvaluateIfExpressionAt(lIdx) then
           begin
-           //do nothing
+            //do nothing
           end
           else
           begin
-            if fTokens[lIdx].Ref1 > -1 then
+            lIdx := lSavedIdx;
+            if fTokens[lIdx].Ref1 > -1 then {there is an else}
             begin
               lJumpTo := fTokens[lIdx].Ref1 + 1;
               //jump to the statement "after" ttElse (if it is ttLineBreak, jump it)
@@ -1651,73 +1826,72 @@ begin
         begin
           Error('Invalid token in RENDER phase: ttInclude');
         end;
-        ttValue, ttLiteralString: begin
-          // Ref1 contains the optional filter parameter number (-1 if there isn't any filter)
-          // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
-          lRef2 := fTokens[lIdx].Ref2;
-          lCurrTokenType := fTokens[lIdx].TokenType;
-          if fTokens[lIdx].Ref1 > -1 {has a filter with Ref1 parameters} then
-          begin
-            lVarName := fTokens[lIdx].Value1;
-            Inc(lIdx);
-            lFilterName := fTokens[lIdx].Value1;
-            lFilterParCount := fTokens[lIdx].Ref1;  // parameter count
-            SetLength(lFilterParameters, lFilterParCount);
-            for I := 0 to lFilterParCount - 1 do
-            begin
-              Inc(lIdx);
-              Assert(fTokens[lIdx].TokenType = ttFilterParameter);
-              lFilterParameters[I] := fTokens[lIdx].Value1;
-            end;
-            if lCurrTokenType = ttValue then
-            begin
-              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName));
-            end
-            else
-            begin
-              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, lVarName);
-            end;
-          end
-          else
-          begin
-            if lCurrTokenType = ttValue then
-            begin
-              lVarValue := GetVarAsString(fTokens[lIdx].Value1);
-            end
-            else
-            begin
-              lVarValue := fTokens[lIdx].Value1;
-            end;
-          end;
-          if lRef2 = -1 {encoded} then
-            lBuff.Append(HTMLEncode(lVarValue))
-          else
-            lBuff.Append(lVarValue);
+        ttBoolExpression:
+        begin
+          Error('Token ttBoolExpression cannot be at first RENDER level, should be handled by ttIfThen TOKEN');
         end;
-//        ttReset: begin
-//          if GetVariables.TryGetValue(fTokens[lIdx].Value1, lVariable) then
+        ttValue, ttLiteralString: begin
+          lVarValue := EvaluateValue(lIdx, lMustBeEncoded {must be encoded});
+
+//          // Ref1 contains the optional filter parameter number (-1 if there isn't any filter)
+//          // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
+//          lRef2 := fTokens[lIdx].Ref2;
+//          lCurrTokenType := fTokens[lIdx].TokenType;
+//          if fTokens[lIdx].Ref1 > -1 {has a filter with Ref1 parameters} then
 //          begin
-//            if viDataSet in lVariable.VarOption then
+//            lVarName := fTokens[lIdx].Value1;
+//            Inc(lIdx);
+//            lFilterName := fTokens[lIdx].Value1;
+//            lFilterParCount := fTokens[lIdx].Ref1;  // parameter count
+//            SetLength(lFilterParameters, lFilterParCount);
+//            for I := 0 to lFilterParCount - 1 do
 //            begin
-//              TDataset(lVariable.VarValue.AsObject).First;
-//            end
-//            else if viListOfObject in lVariable.VarOption then
-//            begin
-//              //do nothing
+//              Inc(lIdx);
+//              Assert(fTokens[lIdx].TokenType = ttFilterParameter);
+//              lFilterParameters[I] := fTokens[lIdx].Value1;
 //            end;
-//            lVariable.VarIterator := -1;
+//            if lCurrTokenType = ttValue then
+//            begin
+//              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName));
+//            end
+//            else
+//            begin
+//              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, lVarName);
+//            end;
 //          end
 //          else
 //          begin
-//            Error('Unknown variable in "reset(' + fTokens[lIdx].Value1 + ''')');
+//            if lCurrTokenType = ttValue then
+//            begin
+//              lVarValue := GetVarAsString(fTokens[lIdx].Value1);
+//            end
+//            else
+//            begin
+//              lVarValue := fTokens[lIdx].Value1;
+//            end;
 //          end;
-//        end;
+
+          if lMustBeEncoded {lRef2 = -1 // encoded} then
+            lBuff.Append(HTMLEncode(lVarValue.ToString))
+          else
+            lBuff.Append(lVarValue.ToString);
+          if lVarValue.IsObjectInstance then
+          begin
+            lVarValue.AsObject.Free;
+          end;
+        end;
         ttLineBreak: begin
           lBuff.AppendLine;
         end;
+        ttSystemVersion: begin
+          if fTokens[lIdx].Value1 <> TEMPLATEPRO_VERSION then
+          begin
+            Error('Compiled template has been compiled with a different version. Expected ' +  TEMPLATEPRO_VERSION + ' got ' + fTokens[lIdx].Value1);
+          end;
+        end
         else
         begin
-          Error('Invalid token: ' + fTokens[lIdx].TokenTypeAsString);
+          Error('Invalid token at index #' + lIdx.ToString + ': ' + fTokens[lIdx].TokenTypeAsString);
         end;
       end;
       Inc(lIdx);
@@ -1728,97 +1902,12 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.GetVarAsString(const aName: string): string;
+function TTProCompiledTemplate.GetVarAsString(const Name: string): string;
 var
   lValue: TValue;
-  lIsObject: Boolean;
-  lAsObject: TObject;
 begin
-  lValue := GetVarAsTValue(aName);
-  if lValue.IsEmpty then
-  begin
-    Exit('');
-  end;
-
-  lIsObject := False;
-  lAsObject := nil;
-  if lValue.IsObject then
-  begin
-    lIsObject := True;
-    lAsObject := lValue.AsObject;
-  end;
-
-  if lIsObject then
-  begin
-    if lAsObject is TField then
-      Result := TField(lValue.AsObject).AsString
-    else if lAsObject is TJsonBaseObject then
-      Result := TJsonBaseObject(lAsObject).ToJSON()
-    else
-      Result := lAsObject.ToString;
-  end
-  else
-  begin
-    if lValue.TypeInfo.Kind = tkRecord then
-    begin
-      if lValue.TypeInfo = TypeInfo(NullableInt32) then
-      begin
-        Result := lValue.AsType<NullableInt32>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableUInt32) then
-      begin
-        Result := lValue.AsType<NullableInt32>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableInt16) then
-      begin
-        Result := lValue.AsType<NullableInt16>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableUInt16) then
-      begin
-        Result := lValue.AsType<NullableUInt16>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableInt64) then
-      begin
-        Result := lValue.AsType<NullableInt64>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableUInt64) then
-      begin
-        Result := lValue.AsType<NullableUInt64>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableString) then
-      begin
-        Result := lValue.AsType<NullableString>.Value;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableCurrency) then
-      begin
-        Result := lValue.AsType<NullableCurrency>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableBoolean) then
-      begin
-        Result := lValue.AsType<NullableBoolean>.Value.ToString;
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableTDate) then
-      begin
-        Result := DateToISO8601(lValue.AsType<NullableTDate>.Value);
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableTTime) then
-      begin
-        Result := DateToISO8601(lValue.AsType<NullableTTime>.Value);
-      end
-      else if lValue.TypeInfo = TypeInfo(NullableTDateTime) then
-      begin
-        Result := DateToISO8601(lValue.AsType<NullableTDateTime>.Value);
-      end
-      else
-      begin
-        raise ETProException.Create('Unsupported type for variable "' + aName + '"');
-      end;
-    end
-    else
-    begin
-      Result := lValue.ToString;
-    end;
-  end;
+  lValue := GetVarAsTValue(Name);
+  Result := GetTValueVarAsString(lValue, Name);
 end;
 
 function TTProCompiledTemplate.GetVarAsTValue(const aName: string): TValue;
@@ -1834,6 +1923,7 @@ var
   lVarMembers: string;
   lCurrentIterator: TLoopStackItem;
   lPJSONDataValue: TJsonDataValueHelper;
+  lHandled: Boolean;
 begin
   lCurrentIterator := nil;
   SplitVariableName(aName, lVarName, lVarMembers);
@@ -1853,26 +1943,34 @@ begin
     end;
     if viDataSet in lVariable.VarOption then
     begin
-      if not lIsAnIterator then
+      if lIsAnIterator then
       begin
-        Error(lDataSource + ' is not an iterator');
-      end;
-
-      if lHasMember and lVarMembers.StartsWith('@@') then
-      begin
-        lCurrentIterator.IteratorPosition := TDataSet(lVariable.VarValue.AsObject).RecNo - 1;
-        //lVariable.VarIterator := TDataSet(lVariable.VarValue.AsObject).RecNo - 1;
-        Result := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
+        if lHasMember and lVarMembers.StartsWith('@@') then
+        begin
+          lCurrentIterator.IteratorPosition := TDataSet(lVariable.VarValue.AsObject).RecNo - 1;
+          //lVariable.VarIterator := TDataSet(lVariable.VarValue.AsObject).RecNo - 1;
+          Result := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
+        end
+        else
+        begin
+          lField := TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers);
+          case lField.DataType of
+            ftInteger: Result := lField.AsInteger;
+            ftLargeint, ftAutoInc: Result := lField.AsLargeInt;
+            ftString, ftWideString, ftMemo, ftWideMemo: Result := lField.AsWideString;
+            else
+              Error('Invalid data type for field "' + lVarMembers + '": ' + TRttiEnumerationType.GetName<TFieldType>(lField.DataType));
+          end;
+        end;
       end
       else
       begin
-        lField := TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers);
-        case lField.DataType of
-          ftInteger: Result := lField.AsInteger;
-          ftLargeint, ftAutoInc: Result := lField.AsLargeInt;
-          ftString, ftWideString, ftMemo, ftWideMemo: Result := lField.AsWideString;
-          else
-            Error('Invalid data type for field "' + lVarMembers + '": ' + TRttiEnumerationType.GetName<TFieldType>(lField.DataType));
+        { not an interator }
+        if lHasMember then
+          Error(lDataSource + ' members can be read only through an iterator')
+        else
+        begin
+          Result := lVariable.VarValue.AsObject;
         end;
       end;
     end
@@ -1959,14 +2057,22 @@ begin
     else if viSimpleType in lVariable.VarOption then
     begin
       if lVariable.VarValue.IsEmpty then
-        Result := TValue.Empty
+      begin
+        Result := TValue.Empty;
+      end
       else
+      begin
         Result := lVariable.VarValue;
+      end;
     end;
   end
   else
   begin
-    Result := TValue.Empty;
+    DoOnGetValue(lDataSource, lVarMembers, Result, lHandled);
+    if not lHandled then
+    begin
+      Result := TValue.Empty;
+    end;
   end;
 end;
 
@@ -2003,6 +2109,10 @@ function TTProCompiledTemplate.IsTruthy(const Value: TValue): Boolean;
 var
   lStrValue: String;
 begin
+  if Value.IsEmpty then
+  begin
+    Exit(False);
+  end;
   lStrValue := Value.ToString;
   Result := not (SameText(lStrValue,'false') or SameText(lStrValue,'0') or SameText(lStrValue,''));
 end;
@@ -2034,121 +2144,205 @@ begin
   fLoopsStack.Add(LoopStackItem);
 end;
 
-function TTProCompiledTemplate.EvaluateIfExpression(aIdentifier: string): Boolean;
+//function TTProCompiledTemplate.EvaluateIfExpression(aIdentifier: string): Boolean;
+//var
+//  lVarValue: TValue;
+//  lNegation: Boolean;
+//  lVariable: TVarDataSource;
+//  lTmp: Boolean;
+//  lDataSourceName: String;
+//  lHasMember: Boolean;
+//  lList: ITProWrappedList;
+//  lVarName, lVarMembers: String;
+//  lCurrentIterator: TLoopStackItem;
+//  lIsAnIterator: Boolean;
+//  lHandled: Boolean;
+//begin
+//  lNegation := aIdentifier.StartsWith('!');
+//  if lNegation then
+//    aIdentifier := aIdentifier.Remove(0,1);
+//
+//  SplitVariableName(aIdentifier, lVarName, lVarMembers);
+//
+//  lHasMember := Length(lVarMembers) > 0;
+//
+//  lIsAnIterator := IsAnIterator(lVarName, lDataSourceName, lCurrentIterator);
+//
+//  if not lIsAnIterator then
+//  begin
+//    lDataSourceName := lVarName;
+//  end;
+//
+//  if GetVariables.TryGetValue(lDataSourceName, lVariable) then
+//  begin
+//    if lVariable = nil then
+//    begin
+//      Exit(lNegation xor False);
+//    end;
+//    if viDataSet in lVariable.VarOption then
+//    begin
+//      if lHasMember then
+//      begin
+//        if lVarMembers.StartsWith('@@') then
+//        begin
+//          if not lIsAnIterator then
+//          begin
+//            Error('Pseudovariables (@@) can be used only on iterators');
+//          end;
+//          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
+//        end
+//        else
+//        begin
+//          lVarValue := TValue.From<Variant>(TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers).Value);
+//        end;
+//        lTmp := IsTruthy(lVarValue);
+//      end
+//      else
+//      begin
+//        lTmp := not TDataSet(lVariable.VarValue.AsObject).Eof;
+//      end;
+//      Exit(lNegation xor lTmp);
+//    end
+//    else if viListOfObject in lVariable.VarOption then
+//    begin
+//      lList := WrapAsList(lVariable.VarValue.AsObject);
+//      if lHasMember then
+//      begin
+//        if lVarMembers.StartsWith('@@') then
+//        begin
+//          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
+//        end
+//        else
+//        begin
+//          lVarValue := TTProRTTIUtils.GetProperty(lList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers);
+//        end;
+//        lTmp := IsTruthy(lVarValue);
+//      end
+//      else
+//      begin
+//        lTmp := lList.Count > 0;
+//      end;
+//
+//      if lNegation then
+//      begin
+//        Exit(not lTmp);
+//      end;
+//      Exit(lTmp);
+//    end
+//    else if [viObject, viJSONObject] * lVariable.VarOption <> [] then
+//    begin
+//      if lHasMember then
+//      begin
+//        if lVarMembers.StartsWith('@@') then
+//        begin
+//          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
+//        end
+//        else
+//        begin
+//          lVarValue := GetVarAsTValue(lDataSourceName);
+//        end;
+//        lTmp := IsTruthy(lVarValue);
+//      end
+//      else
+//      begin
+//        lTmp := not lVarValue.IsEmpty;
+//      end;
+//      if lNegation then
+//      begin
+//        Exit(not lTmp);
+//      end;
+//      Exit(lTmp);
+//    end
+//    else if viSimpleType in lVariable.VarOption then
+//    begin
+//      lTmp := IsTruthy(lVariable.VarValue);
+//      Exit(lNegation xor lTmp)
+//    end;
+//  end
+//  else
+//  begin
+//    lHandled := False;
+//    DoOnGetValue(lVarName, lVarMembers, lVarValue, lHandled);
+//    if lHandled then
+//    begin
+//      lTmp := IsTruthy(lVarValue);
+//      if lNegation then
+//      begin
+//        Exit(not lTmp);
+//      end;
+//      Exit(lTmp);
+//    end;
+//  end;
+//  Exit(lNegation xor False);
+//end;
+
+function TTProCompiledTemplate.EvaluateIfExpressionAt(var Idx: UInt64): Boolean;
 var
-  lVarValue: TValue;
-  lNegation: Boolean;
-  lVariable: TVarDataSource;
-  lTmp: Boolean;
-  lDataSourceName: String;
-  lHasMember: Boolean;
-  lList: ITProWrappedList;
-  lVarName, lVarMembers: String;
-  lCurrentIterator: TLoopStackItem;
-  lIsAnIterator: Boolean;
+  lMustBeEncoded: Boolean;
 begin
-  lNegation := aIdentifier.StartsWith('!');
-  if lNegation then
-    aIdentifier := aIdentifier.Remove(0,1);
-
-  SplitVariableName(aIdentifier, lVarName, lVarMembers);
-
-  lHasMember := Length(lVarMembers) > 0;
-
-  lIsAnIterator := IsAnIterator(lVarName, lDataSourceName, lCurrentIterator);
-
-  if not lIsAnIterator then
+  Inc(Idx);
+  if fTokens[Idx].TokenType <> ttBoolExpression then
   begin
-    lDataSourceName := lVarName;
+    Error('Expected ttBoolExpression after ttIfThen');
+  end;
+  Result := IsTruthy(EvaluateValue(Idx, lMustBeEncoded));
+end;
+
+function TTProCompiledTemplate.EvaluateValue(var Idx: UInt64; out MustBeEncoded: Boolean): TValue;
+var
+  lCurrTokenType: TTokenType;
+  lVarName: string;
+  lFilterName: string;
+  lFilterParCount: Int64;
+  lFilterParameters: TArray<String>;
+  I: Integer;
+  lNegated: Boolean;
+begin
+  // Ref1 contains the optional filter parameter number (-1 if there isn't any filter)
+  // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
+  MustBeEncoded := fTokens[Idx].Ref2 = -1;
+  lCurrTokenType := fTokens[Idx].TokenType;
+  lVarName := fTokens[Idx].Value1;
+  lNegated := lVarName.StartsWith('!');
+  if lNegated then
+  begin
+    lVarName := lVarName.Substring(1);
   end;
 
-  if GetVariables.TryGetValue(lDataSourceName, lVariable) then
+  if fTokens[Idx].Ref1 > -1 {has a filter with Ref1 parameters cout} then
   begin
-    if lVariable = nil then
+    Inc(Idx);
+    lFilterName := fTokens[Idx].Value1;
+    lFilterParCount := fTokens[Idx].Ref1;  // parameter count
+    SetLength(lFilterParameters, lFilterParCount);
+    for I := 0 to lFilterParCount - 1 do
     begin
-      Exit(lNegation xor False);
+      Inc(Idx);
+      Assert(fTokens[Idx].TokenType = ttFilterParameter);
+      lFilterParameters[I] := fTokens[Idx].Value1;
     end;
-    if viDataSet in lVariable.VarOption then
-    begin
-      if lHasMember then
-      begin
-        if lVarMembers.StartsWith('@@') then
-        begin
-          if not lIsAnIterator then
-          begin
-            Error('Pseudovariables (@@) can be used only on iterators');
-          end;
-          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-        end
-        else
-        begin
-          lVarValue := TValue.From<Variant>(TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers).Value);
-        end;
-        lTmp := IsTruthy(lVarValue);
-      end
+    case lCurrTokenType of
+      ttValue: Result := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName));
+      ttBoolExpression: Result := IsTruthy(ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName)));
+      ttLiteralString: Result := ExecuteFilter(lFilterName, lFilterParameters, lVarName);
       else
-      begin
-        lTmp := not TDataSet(lVariable.VarValue.AsObject).Eof;
-      end;
-      Exit(lNegation xor lTmp);
-    end
-    else if viListOfObject in lVariable.VarOption then
-    begin
-      lList := WrapAsList(lVariable.VarValue.AsObject);
-      if lHasMember then
-      begin
-        if lVarMembers.StartsWith('@@') then
-        begin
-          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-        end
-        else
-        begin
-          lVarValue := TTProRTTIUtils.GetProperty(lList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers);
-        end;
-        lTmp := IsTruthy(lVarValue);
-      end
+        Error('Invalid token in EvaluateValue');
+    end;
+  end
+  else
+  begin
+    case lCurrTokenType of
+      ttValue: Result := GetVarAsString(lVarName);
+      ttBoolExpression: Result := IsTruthy(GetVarAsTValue(lVarName));
+      ttLiteralString: Result := lVarName;
       else
-      begin
-        lTmp := lList.Count > 0;
-      end;
-
-      if lNegation then
-      begin
-        Exit(not lTmp);
-      end;
-      Exit(lTmp);
-    end
-    else if [viObject, viJSONObject] * lVariable.VarOption <> [] then
-    begin
-      if lHasMember then
-      begin
-        if lVarMembers.StartsWith('@@') then
-        begin
-          lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-        end
-        else
-        begin
-          lVarValue := GetVarAsTValue(lDataSourceName);
-        end;
-        lTmp := IsTruthy(lVarValue);
-      end
-      else
-      begin
-        lTmp := not lVarValue.IsEmpty;
-      end;
-      if lNegation then
-      begin
-        Exit(not lTmp);
-      end;
-      Exit(lTmp);
-    end
-    else if viSimpleType in lVariable.VarOption then
-    begin
-      lTmp := IsTruthy(lVariable.VarValue);
-      Exit(lNegation xor lTmp)
+        Error('Invalid token in EvaluateValue');
     end;
   end;
-  Exit(lNegation xor False);
+  if lNegated then
+  begin
+    Result := not Result.AsBoolean;
+  end;
 end;
 
 procedure TTProCompiledTemplate.SaveToFile(const FileName: String);
@@ -2214,6 +2408,12 @@ begin
 end;
 
 
+procedure TTProCompiledTemplate.SetOnGetValue(
+  const Value: TTProCompiledTemplateGetValueEvent);
+begin
+  fOnGetValue := Value;
+end;
+
 procedure TTProCompiledTemplate.SplitVariableName(
   const VariableWithMember: String; out VarName, VarMembers: String);
 var
@@ -2239,7 +2439,6 @@ begin
   begin
     if VarName = fLoopsStack[I].IteratorName then
     begin
-//      deve ritornare sempre un array
       BaseVarName := fLoopsStack[I].DataSourceName;
       FullPath := fLoopsStack[I].FullPath + '[' + fLoopsStack[I].IteratorPosition.ToString + ']';
       Result := True;
@@ -2467,9 +2666,9 @@ end;
 
 class procedure TTProConfiguration.RegisterHandlers(const TemplateProCompiledTemplate: ITProCompiledTemplate);
 begin
-  if Assigned(fOnCustomFiltersRegistration) then
+  if Assigned(fOnContextConfiguration) then
   begin
-    fOnCustomFiltersRegistration(TemplateProCompiledTemplate);
+    fOnContextConfiguration(TemplateProCompiledTemplate);
   end;
 end;
 

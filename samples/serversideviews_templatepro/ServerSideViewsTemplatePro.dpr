@@ -13,6 +13,7 @@ uses
   {$ENDIF }
   IdHTTPWebBrokerBridge,
   TemplatePro,
+  MVCFramework.Commons,
   MVCFramework.View.Renderers.TemplatePro,
   Web.WebReq,
   Web.WebBroker,
@@ -48,17 +49,11 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  MVCUseTemplatesCache := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-
-    // These filters will be available to the TemplatePro views as if they were the standard ones
-    TTProConfiguration.OnCustomFiltersRegistration := procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate)
-    begin
-      TemplateProCompiledTemplate.AddFilter('MyHelper1', MyHelper1);
-      TemplateProCompiledTemplate.AddFilter('MyHelper2', MyHelper2);
-    end;
-
+    TemplateProContextConfigure;
     RunServer(8080);
   except
     on E: Exception do

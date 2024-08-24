@@ -639,7 +639,13 @@ var
   /// When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
   /// </summary>
   MVCSerializeNulls: Boolean = True;
+
+  /// <summary>
+  ///   If "true" server side views templates are cached on disk for better performance.
+  /// </summary>
+  MVCUseTemplatesCache: Boolean = True;
 { GLOBAL CONFIG VARS // END}
+
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;

@@ -11,6 +11,7 @@ type
   TWebSiteController = class(TMVCController)
   protected
     function GeneratePeopleListAsCSV: String;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCPath]
     [MVCHTTPMethods([httpGET])]
@@ -24,6 +25,7 @@ type
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
     procedure SavePerson(
+      const [MVCFromContentField('guid','')] GUID: String;
       const [MVCFromContentField('first_name')] FirstName: String;
       const [MVCFromContentField('last_name')] LastName: String;
       const [MVCFromContentField('age', 0)] Age: Integer;
@@ -32,7 +34,7 @@ type
 
     [MVCPath('/delete/($guid)')]
     [MVCHTTPMethods([httpDELETE])]
-    procedure DeletePerson(const guid: string);
+    function DeletePerson(const guid: string): String;
 
     [MVCPath('/new')]
     [MVCHTTPMethods([httpGET])]
@@ -67,14 +69,14 @@ implementation
 
 uses DAL, System.SysUtils, Web.HTTPApp;
 
-procedure TWebSiteController.DeletePerson(const guid: string);
+function TWebSiteController.DeletePerson(const guid: string): String;
 var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   LDAL.DeleteByGUID(GUID);
-  Context.Response.HXSetLocation('/people');
-  RenderStatusMessage(HTTP_STATUS.OK);
+  Context.Response.HXSetReplaceUrl('/people');
+  Result := PeopleSearch('');
 end;
 
 function TWebSiteController.EditPerson(guid: string): String;
@@ -140,11 +142,17 @@ begin
   lDevices := LDAL.GetDevicesList;
   try
     ViewData['deviceslist'] := lDevices;
-    ViewData['ishtmx'] := Context.Request.IsHTMX;
     Result := Page(['editperson']);
   finally
     lDevices.Free;
   end;
+end;
+
+procedure TWebSiteController.OnBeforeAction(AContext: TWebContext;
+  const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+  ViewData['ishtmx'] := AContext.Request.IsHTMX;
 end;
 
 function TWebSiteController.PeopleSearch(const SearchText: String): String;
@@ -157,7 +165,6 @@ begin
   lPeople := LDAL.GetPeople(SearchText);
   try
     ViewData['people'] := lPeople;
-    ViewData['ishtmx'] := Context.Request.IsHTMX;
     if Context.Request.IsHTMX then
     begin
       if SearchText.IsEmpty then
@@ -166,13 +173,14 @@ begin
         Context.Response.HXSetPushUrl('/people?q=' + SearchText);
     end;
     ViewData['q'] := SearchText;
-    Result := PageFragment(['people_list']);
+    Result := Page(['people_list']);
   finally
     lPeople.Free;
   end;
 end;
 
 procedure TWebSiteController.SavePerson(
+      const GUID: String;
       const FirstName: String;
       const LastName: String;
       const Age: Integer;
@@ -187,6 +195,8 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
+  if not GUID.IsEmpty then
+    LPeopleDAL.DeleteByGUID(GUID);
   LPeopleDAL.AddPerson(FirstName, LastName, Age, Devices);
   Context.Response.HXSetRedirect('/people');
 end;

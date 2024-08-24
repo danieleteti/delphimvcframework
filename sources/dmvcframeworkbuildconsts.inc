@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '3.4.2-magnesium-rc2';
+  DMVCFRAMEWORK_VERSION = '3.4.2-magnesium-rc3';

@@ -7,7 +7,7 @@
       <p>{{:message}}</p>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-primary" data-bs-dismiss="modal" hx-delete="/people/delete/{{:guid}}">Yes, delete it!</button>
+      <button type="button" class="btn btn-danger" data-bs-dismiss="modal" hx-target="#main" hx-delete="/people/delete/{{:guid}}">Yes, delete it!</button>
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
     </div>
   </div>
