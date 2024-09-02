@@ -27,7 +27,7 @@ package dmvcframeworkDT;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DelphiMVCFramework 3.x - Design Time Support'}
-{$LIBSUFFIX '113'}
+{$LIBSUFFIX AUTO}
 {$IMPLICITBUILD ON}
 
 requires
