@@ -1218,12 +1218,6 @@ begin
 end;
 
 function HTMLSpecialCharsEncode(s: string): string;
-  procedure repl(var s: string; r: string; posi: Integer);
-  begin
-    Delete(s, posi, 1);
-    Insert(r, s, posi);
-  end;
-
 var
   I: Integer;
   r: string;
@@ -1432,7 +1426,8 @@ begin
     end;
     if r <> '' then
     begin
-      repl(s, '&' + r + ';', I);
+      s := s.Replace(s[I], '&' + r + ';');
+      Inc(I, Length(r) + 1);
     end;
     Inc(I)
   end;
@@ -2127,12 +2122,44 @@ end;
 function TTProCompiledTemplate.IsTruthy(const Value: TValue): Boolean;
 var
   lStrValue: String;
+  lWrappedList: ITProWrappedList;
 begin
   if Value.IsEmpty then
   begin
     Exit(False);
   end;
   lStrValue := Value.ToString;
+  if Value.IsObjectInstance then
+  begin
+    if Value.AsObject = nil then
+    begin
+      lStrValue := '';
+    end
+    else if Value.AsObject is TDataSet then
+    begin
+      lStrValue := TDataSet(Value.AsObject).RecordCount.ToString;
+    end
+    else if Value.AsObject is TJsonArray then
+    begin
+      lStrValue := TJsonArray(Value.AsObject).Count.ToString;
+    end
+    else if Value.AsObject is TJsonObject then
+    begin
+      lStrValue := TJsonObject(Value.AsObject).Count.ToString;
+    end
+    else
+    begin
+      lWrappedList := TTProDuckTypedList.Wrap(Value.AsObject);
+      if lWrappedList = nil then
+      begin
+        lStrValue := '';
+      end
+      else
+      begin
+        lStrValue := lWrappedList.Count.ToString;
+      end;
+    end;
+  end;
   Result := not (SameText(lStrValue,'false') or SameText(lStrValue,'0') or SameText(lStrValue,''));
 end;
 

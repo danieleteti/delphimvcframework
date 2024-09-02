@@ -52,8 +52,37 @@ uses
 {$WARNINGS OFF}
 
 function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<string>): TValue;
+var
+  lWrappedList: IMVCList;
 begin
-  // todo
+  if not aValue.IsObject then
+  begin
+    Result := False;
+  end;
+
+  if aValue.AsObject is TDataSet then
+  begin
+    Result := TDataSet(aValue.AsObject).RecordCount;
+  end
+  else if aValue.AsObject is TJsonArray then
+  begin
+    Result := TJsonArray(aValue.AsObject).Count;
+  end
+  else if aValue.AsObject is TJsonObject then
+  begin
+    Result := TJsonObject(aValue.AsObject).Count;
+  end
+  else
+  begin
+    if TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then
+    begin
+      Result := lWrappedList.Count;
+    end
+    else
+    begin
+      Result := False;
+    end;
+  end;
 end;
 
 function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): TValue;
@@ -82,7 +111,7 @@ procedure TMVCTemplateProViewEngine.Execute(const ViewName: string; const Builde
 var
   lTP: TTProCompiler;
   lViewFileName: string;
-  lViewTemplate: UTF8String;
+  lViewTemplate: String;
   lCompiledTemplate: ITProCompiledTemplate;
   lPair: TPair<String, TValue>;
   lActualFileTimeStamp: TDateTime;

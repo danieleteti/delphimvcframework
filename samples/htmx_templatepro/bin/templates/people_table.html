@@ -9,20 +9,20 @@
         </tr>
     </thead>
     <tbody>
-        {{if(!people)}}
+        {{if !people}}
         <tr>
             <td class="text-center" colspan="5">&lt;&lt;No People Found&gt;&gt;</td>
         </tr>
         {{else}}
-        {{loop(people) as person}}
+        {{for person in people}}
         <tr>
             <td>{{:person.@@index}}</td>
             <td>{{:person.FirstName|capitalize}}</td>
             <td>{{:person.LastName|capitalize}}</td>
             <td>{{:person.Age}}</td>
-            <td class="text-end">{{include("delete_person_link.html")}} | {{include("view_person_link.html")}}</td>
+            <td class="text-end">{{include "delete_person_link.html"}} | {{include "view_person_link.html"}}</td>
         </tr>
-        {{endloop}}
+        {{endfor}}
         {{endif}}
     </tbody>
 </table>

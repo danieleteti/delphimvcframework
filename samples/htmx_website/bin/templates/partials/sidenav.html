@@ -2,7 +2,6 @@
     const highlightMenuItem = (evt) => {
         let menuItems = document.querySelectorAll('#' + evt.srcElement.parentElement.id + ' > a');       
         menuItems.forEach((item) => {
-            console.log(item);
             item.classList.remove("selected");
         });
         evt.srcElement.classList.add("selected");

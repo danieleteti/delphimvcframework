@@ -1,4 +1,4 @@
-<p>{{:books_count}} book/s found</p>
+<p>{{:books|count}} book/s found</p>
 <table class="table is-fullwidth is-striped is-hoverable">
   <thead>
 	<tr>
@@ -9,20 +9,20 @@
 	</tr>
   </thead>
   <tbody>
-	{{if(!books)}}
+	{{if !books}}
 	<tr>
 	  <td colspan="4">
 		<span>No books found</span>	
 	  </td>	  
 	</tr>	
 	{{endif}}	
-	{{loop(books) as book}}
+	{{for book in books}}
 	<tr>
-	  <td>{{:book.id|lpad:8:"0"}}</td>
+	  <td>{{:book.id|lpad,8,"0"}}</td>
 	  <td>{{:book.book_name}}</td>
 	  <td>{{:book.author_name}}</td>
 	  <td>{{:book.genre|uppercase}}</td>
 	</tr>
-	{{endloop}}
+	{{endfor}}
   </tbody>
 </table>

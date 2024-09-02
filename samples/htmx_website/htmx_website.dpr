@@ -13,7 +13,6 @@ uses
   MVCFramework.Logger,
   MVCFramework.DotEnv,
   MVCFramework.Commons,
-  MVCFramework.View.Renderers.Mustache,
   mormot.core.mustache,
   MVCFramework.Signal,
   ControllerU in 'ControllerU.pas',

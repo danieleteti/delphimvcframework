@@ -155,7 +155,6 @@
         <DCCReference Include="Controllers.BooksU.pas"/>
         <DCCReference Include="WebModuleU.pas">
             <Form>MyWebModule</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="FDConnectionConfigU.pas"/>
