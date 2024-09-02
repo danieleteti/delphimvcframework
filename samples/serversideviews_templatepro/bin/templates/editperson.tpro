@@ -1,4 +1,4 @@
-﻿{{include("partials/header.tpro")}}
+﻿{{include "partials/header.tpro"}}
 <script>
   function doDelete(id) {
     if (confirm('Are you sure?')) {
@@ -14,7 +14,7 @@
       <input type="hidden" value="{{:person.guid}}" name="guid">
       <div class="row">
         <div class="col-sm-offset-2 col-sm-8">
-          {{if(!person)}}
+          {{if !person}}
           <h3>New Person</h3>
           {{else}}
           <h3>Edit Person</h3>
@@ -55,9 +55,9 @@
 					<label for="devices" class="col-sm-2 control-label">Devices</label>					
 					<div class="col-sm-4">
 						<select name="devices" multiple class="form-control">
-						{{loop(devices) as device}}
-							<option value="{{:device.DeviceName}}" {{if(device.Selected)}}selected{{endif}}>{{:device.DeviceName}}</option>
-						{{endloop}}							
+						{{for device in devices}}
+							<option value="{{:device.DeviceName}}" {{if device.Selected}}selected{{endif}}>{{:device.DeviceName}}</option>
+						{{endfor}}							
 						</select>			
 						<span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						
 					</div>		
@@ -70,7 +70,7 @@
         </div>
         <div class="col-sm-2">
           
-          {{if(person)}}
+          {{if person}}
           <button type="button" onclick="doDelete()" class="btn btn-primary btn-block">Delete</button> 
           {{else}}
           <button type="submit" class="btn btn-primary btn-block">Save</button> 
@@ -80,4 +80,4 @@
     </form>
   </div>
 </div>
-{{include("partials/footer.tpro")}}
+{{include "partials/footer.tpro"}}

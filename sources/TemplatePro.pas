@@ -34,7 +34,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '0.3';
+  TEMPLATEPRO_VERSION = '0.5';
 
 type
   ETProException = class(Exception)
@@ -58,11 +58,11 @@ type
   end;
 
   TTokenType = (
-    ttContent, ttInclude, ttLoop, ttEndLoop, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment,
+    ttContent, ttInclude, ttFor, ttEndFor, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment,
     ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttEOF);
   const
     TOKEN_TYPE_DESCR: array [Low(TTokenType)..High(TTokenType)] of string =
-      ('ttContent', 'ttInclude', 'ttLoop', 'ttEndLoop', 'ttIfThen', 'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
+      ('ttContent', 'ttInclude', 'ttFor', 'ttEndFor', 'ttIfThen', 'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
        'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttEOF');
   type
     TToken = packed record
@@ -558,7 +558,7 @@ begin
       Inc(fCharIndex);
     end;
     Result := True;
-    aParamValue := lTmp;
+    aParamValue := lTmp.Trim;
   end;
 end;
 
@@ -742,12 +742,16 @@ begin
           lFuncName := '';
           lFuncParamsCount := -1; {-1 means "no filter applied to value"}
           lRef2 := IfThen(MatchSymbol('$'),1,-1); // {{value$}} means no escaping
+          MatchSpace;
           if MatchSymbol('|') then
           begin
+            MatchSpace;
             if not MatchVariable(lFuncName) then
               Error('Invalid function name applied to variable ' + lVarName);
+            MatchSpace;
             lFuncParams := GetFunctionParameters;
             lFuncParamsCount := Length(lFuncParams);
+            MatchSpace;
           end;
 
           if not MatchEndTag then
@@ -775,49 +779,68 @@ begin
       end
       else
       begin
-        if MatchSymbol('loop') then {loop}
+//        if MatchSymbol('loop') then {loop}
+//        begin
+//          if not MatchSymbol('(') then
+//            Error('Expected "("');
+//          if not MatchVariable(lIdentifier) then
+//            Error('Expected identifier after "loop("');
+//          if not MatchSymbol(')') then
+//            Error('Expected ")" after "' + lIdentifier + '"');
+//          if not MatchSpace then
+//            Error('Expected "space" after "loop(' + lIdentifier + ')');
+//          if not MatchSymbol('as') then
+//            Error('Expected "as" after "loop(' + lIdentifier + ')');
+//          if not MatchSpace then
+//            Error('Expected <space> after "loop(' + lIdentifier + ') - EXAMPLE: loop(' + lIdentifier + ') as myalias');
+//          if not MatchVariable(lIteratorName) then
+//            Error('Expected iterator name after "loop" - EXAMPLE: loop(' + lIdentifier + ') as myalias');
+//          if not MatchEndTag then
+//            Error('Expected closing tag for "loop(' + lIdentifier + ')"');
+
+        if MatchSymbol('for') then {loop}
         begin
-          if not MatchSymbol('(') then
-            Error('Expected "("');
-          if not MatchVariable(lIdentifier) then
-            Error('Expected identifier after "loop("');
-          if not MatchSymbol(')') then
-            Error('Expected ")" after "' + lIdentifier + '"');
           if not MatchSpace then
-            Error('Expected "space" after "loop(' + lIdentifier + ')');
-          if not MatchSymbol('as') then
-            Error('Expected "as" after "loop(' + lIdentifier + ')');
-          if not MatchSpace then
-            Error('Expected <space> after "loop(' + lIdentifier + ') - EXAMPLE: loop(' + lIdentifier + ') as myalias');
+            Error('Expected "space"');
           if not MatchVariable(lIteratorName) then
-            Error('Expected iterator name after "loop" - EXAMPLE: loop(' + lIdentifier + ') as myalias');
+            Error('Expected iterator name after "for" - EXAMPLE: for iterator in iterable');
+          if not MatchSpace then
+            Error('Expected "space"');
+          if not MatchSymbol('in') then
+            Error('Expected "in" after "for" iterator');
+          if not MatchSpace then
+            Error('Expected "space"');
+          if not MatchVariable(lIdentifier) then
+            Error('Expected iterable "for"');
+          MatchSpace;
           if not MatchEndTag then
-            Error('Expected closing tag for "loop(' + lIdentifier + ')"');
+            Error('Expected closing tag for "for"');
+
           // create another element in the sections stack
           Inc(lCurrentSectionIndex);
           lSectionStack[lCurrentSectionIndex] := aTokens.Count;
-          lLastToken := ttLoop;
+          lLastToken := ttFor;
           if lIdentifier = lIteratorName then
           begin
             Error('loop data source and its iterator cannot have the same name: ' + lIdentifier)
           end;
           aTokens.Add(TToken.Create(lLastToken, lIdentifier, lIteratorName));
           lStartVerbatim := fCharIndex;
-        end else if MatchSymbol('endloop') then {endloop}
+        end else if MatchSymbol('endfor') then {endfor}
         begin
           if not MatchEndTag then
             Error('Expected closing tag');
           if lCurrentSectionIndex = -1 then
           begin
-            Error('endloop without loop');
+            Error('endfor without loop');
           end;
-          lLastToken := ttEndLoop;
+          lLastToken := ttEndFor;
           aTokens.Add(TToken.Create(lLastToken, '', '', lSectionStack[lCurrentSectionIndex]));
 
-          // let the loop know where the endloop is
+          // let the loop know where the endfor is
           lIndexOfLatestLoopStatement := lSectionStack[lCurrentSectionIndex];
           aTokens[lIndexOfLatestLoopStatement] :=
-            TToken.Create(ttLoop,
+            TToken.Create(ttFor,
               aTokens[lIndexOfLatestLoopStatement].Value1,
               aTokens[lIndexOfLatestLoopStatement].Value2,
               aTokens.Count - 1);
@@ -865,13 +888,13 @@ begin
         end else if MatchSymbol('if') then
         begin
           MatchSpace;
-          if not MatchSymbol('(') then
-            Error('Expected "("');
-          MatchSpace;
+//          if not MatchSymbol('(') then
+//            Error('Expected "("');
+//          MatchSpace;
           lNegation := MatchSymbol('!');
           MatchSpace;
           if not MatchVariable(lIdentifier) then
-            Error('Expected identifier after "if("');
+            Error('Expected identifier after "if"');
           lFuncParamsCount := -1; {lFuncParamsCount = -1 means "no filter applied"}
           lFuncName := '';
           if MatchSymbol('|') then
@@ -883,11 +906,11 @@ begin
             lFuncParamsCount := Length(lFuncParams);
           end;
           MatchSpace;
-          if not MatchSymbol(')') then
-            Error('Expected ")" after "' + lIdentifier + '"');
-          MatchSpace;
+//          if not MatchSymbol(')') then
+//            Error('Expected ")" after "' + lIdentifier + '"');
+//          MatchSpace;
           if not MatchEndTag then
-            Error('Expected closing tag for "if(' + lIdentifier + ')"');
+            Error('Expected closing tag for "if"');
           if lNegation then
           begin
             lIdentifier := '!' + lIdentifier;
@@ -936,19 +959,20 @@ begin
         end
         else if MatchSymbol('include') then {include}
         begin
-          if not MatchSymbol('(') then
-            Error('Expected "("');
+          if not MatchSpace then
+            Error('Expected "space" after "include"');
 
           {In a future version we could implement a function call}
           if not MatchString(lStringValue) then
           begin
-            Error('Expected string after "include("');
+            Error('Expected string after "include"');
           end;
 
-          if not MatchSymbol(')') then
-            Error('Expected ")" after "' + lStringValue + '"');
+          MatchSpace;
+
           if not MatchEndTag then
-            Error('Expected closing tag for "include(' + lStringValue + ')"');
+            Error('Expected closing tag for "include"');
+
           // create another element in the sections stack
           try
             if TDirectory.Exists(aFileNameRefPath) then
@@ -970,14 +994,6 @@ begin
           InternalCompileIncludedTemplate(lIncludeFileContent, aTokens, lCurrentFileName);
           lStartVerbatim := fCharIndex;
         end
-//        else if MatchReset(lIdentifier) then  {reset}
-//        begin
-//          if not MatchEndTag then
-//            Error('Expected closing tag');
-//          lLastToken := ttReset;
-//          aTokens.Add(TToken.Create(lLastToken, lIdentifier, ''));
-//          lStartVerbatim := fCharIndex;
-//        end
         else if MatchSymbol('exit') then {exit}
         begin
           lLastToken := ttEOF;
@@ -989,6 +1005,7 @@ begin
           lLastToken := ttLiteralString;
           Inc(lContentOnThisLine);
           lRef2 := IfThen(MatchSymbol('$'),1,-1); // {{value$}} means no escaping
+          MatchSpace;
           InternalMatchFilter(lStringValue, lStartVerbatim, ttLiteralString, aTokens, lRef2);
         end
         else if MatchSymbol('#') then
@@ -1050,12 +1067,14 @@ var
   lFuncPar: string;
 begin
   Result := [];
-  while MatchSymbol(':') do
+  while MatchSymbol(',') do
   begin
     lFuncPar := '';
+    MatchSpace;
     if not MatchFilterParamValue(lFuncPar) then
       Error('Expected function parameter');
     Result := Result + [lFuncPar];
+    MatchSpace;
   end;
 end;
 
@@ -1630,7 +1649,7 @@ var
   lVarMember: string;
   lBaseVarName: string;
   lFullPath: string;
-  lLoopItem: TLoopStackItem;
+  lForLoopItem: TLoopStackItem;
   lJValue: TJsonDataValueHelper;
   lMustBeEncoded: Boolean;
   lSavedIdx: UInt64;
@@ -1645,9 +1664,9 @@ begin
         ttContent: begin
           lBuff.Append(fTokens[lIdx].Value1);
         end;
-        ttLoop: begin
-          lLoopItem := PeekLoop;
-          if LoopStackIsEmpty or (lLoopItem.LoopExpression <> fTokens[lIdx].Value1) then
+        ttFor: begin
+          lForLoopItem := PeekLoop;
+          if LoopStackIsEmpty or (lForLoopItem.LoopExpression <> fTokens[lIdx].Value1) then
           begin //push a new loop stack item
             SplitVariableName(fTokens[lIdx].Value1, lVarName, lVarMember);
             {lVarName maybe an iterator, so I've to walk the stack to know
@@ -1662,12 +1681,12 @@ begin
               PushLoop(TLoopStackItem.Create(lVarName, fTokens[lIdx].Value1, lVarMember, fTokens[lIdx].Value2));
             end;
           end;
-          lLoopItem := PeekLoop;
+          lForLoopItem := PeekLoop;
 
           // Now, work with the stack head
           if GetVariables.TryGetValue(PeekLoop.DataSourceName, lVariable) then
           begin
-            if lLoopItem.FullPath.IsEmpty then
+            if lForLoopItem.FullPath.IsEmpty then
             begin
               if not (viIterable in lVariable.VarOption) then
               begin
@@ -1677,21 +1696,21 @@ begin
 
             if viDataSet in lVariable.VarOption then
             begin
-              if lLoopItem.IteratorPosition = -1 then
+              if lForLoopItem.IteratorPosition = -1 then
               begin
                 TDataset(lVariable.VarValue.AsObject).First;
               end;
 
               if TDataset(lVariable.VarValue.AsObject).Eof then
               begin
-                lIdx := fTokens[lIdx].Ref1; //skip to endloop
+                lIdx := fTokens[lIdx].Ref1; //skip to endfor
                 Continue;
               end
             end else if viListOfObject in lVariable.VarOption then
             begin
               lWrapped := WrapAsList(lVariable.VarValue.AsObject);
               //if lVariable.VarIterator = lWrapped.Count - 1 then
-              if lLoopItem.IteratorPosition = lWrapped.Count - 1 then
+              if lForLoopItem.IteratorPosition = lWrapped.Count - 1 then
               begin
                 lIdx := fTokens[lIdx].Ref1; //skip to endif
                 Continue;
@@ -1703,24 +1722,24 @@ begin
             end else if viJSONObject in lVariable.VarOption then
             begin
               lJObj := TJDOJsonObject(lVariable.VarValue.AsObject);
-              lLoopItem := PeekLoop;
-              lJValue := lJObj.Path[lLoopItem.FullPath];
+              lForLoopItem := PeekLoop;
+              lJValue := lJObj.Path[lForLoopItem.FullPath];
 
               case lJValue.Typ of
                 jdtNone: begin
-                  lIdx := fTokens[lIdx].Ref1; //skip to endloop
+                  lIdx := fTokens[lIdx].Ref1; //skip to endfor
                   Continue;
                 end;
 
                 jdtArray: begin
-                  if  lLoopItem.IteratorPosition = lJObj.Path[lLoopItem.FullPath].ArrayValue.Count - 1 then
+                  if  lForLoopItem.IteratorPosition = lJObj.Path[lForLoopItem.FullPath].ArrayValue.Count - 1 then
                   begin
-                    lIdx := fTokens[lIdx].Ref1; //skip to endloop
+                    lIdx := fTokens[lIdx].Ref1; //skip to endfor
                     Continue;
                   end
                   else
                   begin
-                    lLoopItem.IncrementIteratorPosition;
+                    lForLoopItem.IncrementIteratorPosition;
                   end;
                 end;
 
@@ -1737,23 +1756,23 @@ begin
           end
           else
           begin
-            Error(Format('Unknown variable in loop statement [%s]', [fTokens[lIdx].Value1]));
+            Error(Format('Unknown variable in for..in statement [%s]', [fTokens[lIdx].Value1]));
           end;
         end;
-        ttEndLoop: begin
+        ttEndFor: begin
           if LoopStackIsEmpty then
           begin
-            raise ETProRenderException.Create('Inconsistent "endloop"');
+            raise ETProRenderException.Create('Inconsistent "endfor"');
           end;
 
-          lLoopItem := PeekLoop;
-          lDataSourceName := lLoopItem.DataSourceName;
+          lForLoopItem := PeekLoop;
+          lDataSourceName := lForLoopItem.DataSourceName;
           if GetVariables.TryGetValue(lDataSourceName, lVariable) then
           begin
             if viDataSet in lVariable.VarOption then
             begin
               TDataset(lVariable.VarValue.AsObject).Next;
-              lLoopItem.IteratorPosition := TDataset(lVariable.VarValue.AsObject).RecNo;
+              lForLoopItem.IteratorPosition := TDataset(lVariable.VarValue.AsObject).RecNo;
               if not TDataset(lVariable.VarValue.AsObject).Eof then
               begin
                 lIdx := fTokens[lIdx].Ref1; //goto loop
@@ -1767,8 +1786,8 @@ begin
             else if viJSONObject in lVariable.VarOption then
             begin
               lJObj := TJDOJsonObject(lVariable.VarValue.AsObject);
-              lJArr := lJObj.Path[lLoopItem.FullPath];
-              if lLoopItem.IteratorPosition < lJArr.Count - 1 then
+              lJArr := lJObj.Path[lForLoopItem.FullPath];
+              if lForLoopItem.IteratorPosition < lJArr.Count - 1 then
               begin
                 lIdx := fTokens[lIdx].Ref1; //skip to loop
                 Continue;
@@ -1781,7 +1800,7 @@ begin
             else if viListOfObject in lVariable.VarOption then
             begin
               lWrapped := TTProDuckTypedList.Wrap(lVariable.VarValue.AsObject);
-              if lLoopItem.IteratorPosition < lWrapped.Count - 1 then
+              if lForLoopItem.IteratorPosition < lWrapped.Count - 1 then
               begin
                 lIdx := fTokens[lIdx].Ref1; //skip to loop
                 Continue;
