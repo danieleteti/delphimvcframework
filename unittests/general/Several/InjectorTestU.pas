@@ -45,9 +45,15 @@ type
     [Test]
     procedure TestTransient;
     [Test]
+    procedure TestTransientWithDelegate;
+    [Test]
     procedure TestSingleton;
     [Test]
+    procedure TestSingletonWithDelegate;
+    [Test]
     procedure TestSingletonPerRequest;
+    [Test]
+    procedure TestSingletonPerRequestWithDelegate;
     [Test]
     procedure TestCascadeConstructorInjection;
   end;
@@ -191,11 +197,94 @@ begin
 end;
 
 
+procedure TTestContainer.TestSingletonPerRequestWithDelegate;
+begin
+  var lCont := NewMVCServiceContainer
+          .RegisterType(function : TInterfacedObject
+                        begin
+                          Result := TServiceA.Create
+                        end, IServiceA, TRegistrationType.SingletonPerRequest)
+          .RegisterType(function : TInterfacedObject
+                        begin
+                          Result := TServiceA.Create
+                        end, IServiceA, TRegistrationType.SingletonPerRequest, 'Svc1');
+  lCont.Build;
+
+  // 1° "request"
+  var lResolver := NewServiceContainerResolver(lCont);
+  var l0 := lResolver.Resolve(TypeInfo(IServiceA));
+  var l1 := lResolver.Resolve(TypeInfo(IServiceA));
+  Assert.AreEqual(l0, l1);
+  var l2 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  Assert.AreEqual(l2, l3);
+
+  // 2° "request"
+  lResolver := NewServiceContainerResolver(lCont);
+  var l00 := lResolver.Resolve(TypeInfo(IServiceA));
+  var l10 := lResolver.Resolve(TypeInfo(IServiceA));
+  Assert.AreEqual(l00, l10);
+  Assert.AreNotEqual(l0, l00);
+  Assert.AreNotEqual(l1, l10);
+end;
+
+procedure TTestContainer.TestSingletonWithDelegate;
+begin
+  var lCont := NewMVCServiceContainer;
+  lCont.RegisterType(function : TInterfacedObject
+                     begin
+                       Result := TServiceA.Create
+                     end, IServiceA, TRegistrationType.Singleton);
+  lCont.RegisterType(function : TInterfacedObject
+                     begin
+                       Result := TServiceA.Create
+                     end, IServiceA, TRegistrationType.Singleton, 'Svc1');
+  lCont.Build;
+
+  // 1° Request
+  var lResolver := NewServiceContainerResolver(lCont);
+  var l0 := lResolver.Resolve(TypeInfo(IServiceA));
+  var l1 := lResolver.Resolve(TypeInfo(IServiceA));
+  Assert.AreEqual(l0, l1);
+  var l2 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  Assert.AreEqual(l2, l3);
+
+  // 2° Request
+  lResolver := NewServiceContainerResolver(lCont);
+  var l10 := lResolver.Resolve(TypeInfo(IServiceA));
+  var l11 := lResolver.Resolve(TypeInfo(IServiceA));
+  Assert.AreEqual(l10, l11);
+  Assert.AreEqual(l0, l10);
+  Assert.AreEqual(l1, l11);
+end;
+
 procedure TTestContainer.TestTransient;
 begin
   var lCont := NewMVCServiceContainer;
   lCont.RegisterType(TServiceA, IServiceA);
   lCont.RegisterType(TServiceA, IServiceA, TRegistrationType.Transient, 'Svc1');
+  lCont.Build;
+  var lResolver := NewServiceContainerResolver(lCont);
+  var l0 := lResolver.Resolve(TypeInfo(IServiceA));
+  var l1 := lResolver.Resolve(TypeInfo(IServiceA));
+  Assert.AreNotEqual(l0, l1);
+  var l2 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
+  Assert.AreNotEqual(l2, l3);
+end;
+
+procedure TTestContainer.TestTransientWithDelegate;
+begin
+  var lCont := NewMVCServiceContainer;
+  lCont.RegisterType(function : TInterfacedObject
+                     begin
+                       Result := TServiceA.Create
+                     end, IServiceA);
+  lCont.RegisterType(function : TInterfacedObject
+                     begin
+                       Result := TServiceA.Create
+                     end, IServiceA, TRegistrationType.Transient, 'Svc1');
   lCont.Build;
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));

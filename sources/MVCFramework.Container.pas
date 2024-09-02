@@ -14,6 +14,8 @@ type
 
   TClassOfInterfacedObject = class of TInterfacedObject;
 
+  TInterfacedObjectFactory = reference to function: TInterfacedObject;
+
   IMVCServiceContainerResolver = interface
     ['{2C920EC2-001F-40BE-9911-43A65077CADD}']
     function Resolve(const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
@@ -22,6 +24,7 @@ type
   IMVCServiceContainer = interface
     ['{1BB3F4A8-DDA1-4526-981C-A0BF877CFFD5}']
     function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
+    function RegisterType(const aDelegate: TInterfacedObjectFactory; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
     procedure Build();
   end;
 
@@ -54,6 +57,7 @@ type
     Clazz: TClassOfInterfacedObject;
     RttiType: TRttiType;
     Instance: IInterface;
+    Delegate: TInterfacedObjectFactory;
     RegistrationType: TRegistrationType;
   end;
 
@@ -69,8 +73,10 @@ type
     class function GetKey(const aGUID: TGUID; const aName: String): String;
     constructor Create; virtual;
     destructor Destroy; override;
+    procedure CheckBuilt;
   public
     function RegisterType(const aImplementation: TClassOfInterfacedObject; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
+    function RegisterType(const aDelegate: TInterfacedObjectFactory; const aInterface: TGUID; const aRegType: TRegistrationType = TRegistrationType.Transient; const aName : string = ''): IMVCServiceContainer; overload;
     function Resolve(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string = ''): IInterface; overload;
     function ResolveEx(const ServiceContainerResolver: IMVCServiceContainerResolver; const aTypeInfo: PTypeInfo; const aName: string; out ServiceKey: String; out RegType: TRegistrationType): IInterface; overload;
     procedure Build();
@@ -136,6 +142,14 @@ begin
 end;
 
 
+procedure TMVCServiceContainer.CheckBuilt;
+begin
+  if fBuilt then
+  begin
+    raise EMVCContainerError.Create('Cannot register new service if the container has been already built');
+  end;
+end;
+
 constructor TMVCServiceContainer.Create;
 begin
   inherited;
@@ -160,15 +174,12 @@ var
   lReg: TRegistration;
   lKey: string;
 begin
-  if fBuilt then
-  begin
-    raise EMVCContainerError.Create('Cannot register new service if the container has been already built');
-  end;
-
+  CheckBuilt;
   if Supports(aImplementation, aInterface) then
   begin
     lReg := TRegistration.Create;
     lReg.Clazz := aImplementation;
+    lReg.Delegate := nil;
     lReg.RttiType := TRttiUtils.GlContext.GetType(lReg.Clazz);
     lReg.RegistrationType := aRegType;
     lKey := GetKey(aInterface, aName);
@@ -193,6 +204,38 @@ begin
   begin
     raise EMVCContainerErrorUnknownService.CreateFmt('"%s" doesn''t supports requested interface', [aImplementation.QualifiedClassName]);
   end;
+  Result := Self;
+end;
+
+function TMVCServiceContainer.RegisterType(
+  const aDelegate: TInterfacedObjectFactory; const aInterface: TGUID;
+  const aRegType: TRegistrationType; const aName: string): IMVCServiceContainer;
+var
+  lReg: TRegistration;
+  lKey: string;
+begin
+  CheckBuilt;
+  lReg := TRegistration.Create;
+  lReg.Clazz := nil;
+  lReg.Delegate := aDelegate;
+  lReg.RttiType := nil; //TRttiUtils.GlContext.GetType(lReg.Clazz);
+  lReg.RegistrationType := aRegType;
+  lKey := GetKey(aInterface, aName);
+  {$IF Defined(RIOORBETTER)}
+  if not fRegistry.TryAdd(lKey, lReg) then
+  begin
+    raise EMVCContainerError.CreateFmt('Cannot register duplicated service "%s"',[lKey]);
+  end;
+  {$ELSE}
+  if not fRegistry.ContainsKey(lKey) then
+  begin
+    fRegistry.Add(lKey, lReg)
+  end
+  else
+  begin
+    raise EMVCContainerError.CreateFmt('Cannot register duplicated service "%s"',[lKey]);
+  end;
+  {$ENDIF}
   Result := Self;
 end;
 
@@ -262,15 +305,26 @@ begin
   begin
     raise EMVCContainerErrorUnknownService.CreateFmt('Unknown service "%s" with name "%s"', [lTypeInfo.Name, aName])
   end;
-  lType := lReg.RttiType;
 
+  lType := lReg.RttiType;
   RegType := lReg.RegistrationType;
   ServiceKey := lServiceKey;
   case lReg.RegistrationType of
     TRegistrationType.Transient, TRegistrationType.SingletonPerRequest:
     begin
-      lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
-      Supports(lService, lTypeInfo.TypeData.GUID, Result);
+      if lReg.Delegate = nil then
+      begin
+        lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+      end
+      else
+      begin
+        lService := lReg.Delegate();
+      end;
+      if not Supports(lService, lTypeInfo.TypeData.GUID, Result) then
+      begin
+        raise EMVCContainerErrorUnknownService.
+          CreateFmt('"%s" doesn''t supports requested interface', [TInterfacedObject(lReg.Instance).QualifiedClassName]);
+      end;
       {rtSingletonPerRequest is destroyed by the adapter owned by Context}
     end;
 
@@ -282,8 +336,19 @@ begin
         try
           if lReg.Instance = nil then
           begin
-            lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
-            Supports(lService, lTypeInfo.TypeData.GUID, lReg.Instance)
+            if lReg.Delegate = nil then
+            begin
+              lService := CreateServiceWithDependencies(ServiceContainerResolver, lReg.Clazz, TRttiUtils.GetFirstDeclaredConstructor(lType));
+            end
+            else
+            begin
+              lService := lReg.Delegate();
+            end;
+            if not Supports(lService, lTypeInfo.TypeData.GUID, lReg.Instance) then
+            begin
+              raise EMVCContainerErrorUnknownService.
+                CreateFmt('"%s" doesn''t supports requested interface', [TInterfacedObject(lReg.Instance).QualifiedClassName]);
+            end;
           end;
         finally
           TMonitor.Exit(Self)
@@ -299,6 +364,11 @@ end;
 procedure TMVCServiceContainer.Build;
 begin
   fBuilt := True;
+end;
+
+function DefaultMVCServiceResolver: IMVCServiceContainerResolver;
+begin
+  Result := DefaultMVCServiceContainer as IMVCServiceContainerResolver;
 end;
 
 function DefaultMVCServiceContainer: IMVCServiceContainer;
@@ -362,7 +432,7 @@ end;
 
 function NewServiceContainerResolver: IMVCServiceContainerResolver;
 begin
- Result := TMVCServiceContainerAdapter.Create(DefaultMVCServiceContainer);
+  Result := TMVCServiceContainerAdapter.Create(DefaultMVCServiceContainer);
 end;
 
 function NewServiceContainerResolver(Container: IMVCServiceContainer) : IMVCServiceContainerResolver;
