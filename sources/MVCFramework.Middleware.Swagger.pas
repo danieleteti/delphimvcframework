@@ -107,7 +107,7 @@ constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwagg
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
   const AHost, ABasePath: string;
   const APathFilter: String;
-  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes);
+  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes; const AEnableBearerAuthentication: Boolean);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
