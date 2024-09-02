@@ -48,6 +48,7 @@ type
     fSwagDocURL: string;
     fJWTDescription: string;
     fEnableBasicAuthentication: Boolean;
+    fEnableBearerAuthentication: Boolean;
     fHost: string;
     fBasePath: string;
     fPathFilter: string;
@@ -68,7 +69,8 @@ type
       const AHost: string = '';
       const ABasePath: string = '';
       const APathFilter: String = '';
-      const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS]);
+      const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS];
+      const AEnableBearerAuthentication: Boolean = False);
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
@@ -113,6 +115,7 @@ begin
   fSwaggerInfo := ASwaggerInfo;
   fJWTDescription := AJWTDescription;
   fEnableBasicAuthentication := AEnableBasicAuthentication;
+  fEnableBearerAuthentication := AEnableBearerAuthentication;
   fHost := AHost;
   fBasePath := ABasePath;
   fPathFilter := APathFilter;
@@ -361,18 +364,22 @@ begin
         // Path operation Middleware JWT
         ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(lJwtUrlSegment,
           lJWTMiddleware.UserNameHeaderName, lJWTMiddleware.PasswordHeaderName));
-
-        // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
-        lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
-        lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
-        lSecurityDefsBearer.InLocation := kilHeader;
-        lSecurityDefsBearer.Name := 'Authorization';
-        lSecurityDefsBearer.Description := fJWTDescription;
-        ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
       end;
     finally
       lRttiContext.Free;
     end;
+  end;
+
+  // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
+  if fEnableBearerAuthentication or
+   (Assigned(lJWTMiddleware) and Assigned(lJwtUrlField)) then
+  begin
+    lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+    lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
+    lSecurityDefsBearer.InLocation := kilHeader;
+    lSecurityDefsBearer.Name := 'Authorization';
+    lSecurityDefsBearer.Description := fJWTDescription;
+    ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
   end;
 end;
 
