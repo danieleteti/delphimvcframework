@@ -148,3 +148,5 @@ samples/session_file_based/Win32/DEBUG/sessions/
 unittests/general/UnitTestReports/
 lib/sempare-delphi-template-engine
 *.tpcu
+samples/wine_cellar_sample/winecellarclient_mobile/Android/Debug/
+samples/wine_cellar_sample/winecellarclient_mobile/Android64/Debug/
