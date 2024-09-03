@@ -25,8 +25,8 @@ package loggerproRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggerPro - CopyRight 2023 Daniele Teti'}
-{$LIBSUFFIX '113'}
+{$DESCRIPTION 'LoggerPro - CopyRight 2024 Daniele Teti'}
+{$LIBSUFFIX AUTO}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
 
