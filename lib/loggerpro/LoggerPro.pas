@@ -153,27 +153,21 @@ type
     ['{A717A040-4493-458F-91B2-6F6E2AFB496F}']
     procedure Debug(const aMessage: string; const aTag: string); overload;
     procedure Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Info(const aMessage: string; const aTag: string); overload;
     procedure Info(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure InfoFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Warn(const aMessage: string; const aTag: string); overload;
     procedure Warn(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure WarnFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Error(const aMessage: string; const aTag: string); overload;
     procedure Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Fatal(const aMessage: string; const aTag: string); overload;
     procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure FatalFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string); deprecated;
 
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
-    procedure LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); deprecated;
   end;
 
   TLogAppenderList = TList<ILogAppender>;
@@ -268,27 +262,20 @@ type
   public
     procedure Debug(const aMessage: string; const aTag: string); overload;
     procedure Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 
     procedure Info(const aMessage: string; const aTag: string); overload;
     procedure Info(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure InfoFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 
     procedure Warn(const aMessage: string; const aTag: string); overload;
     procedure Warn(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure WarnFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 
     procedure Error(const aMessage: string; const aTag: string); overload;
     procedure Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 
     procedure Fatal(const aMessage: string; const aTag: string); overload;
     procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
-    procedure FatalFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-
 
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
-    procedure LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
   end;
 
   TOnAppenderLogRow = reference to procedure(const LogItem: TLogItem; out LogRow: string);
@@ -640,11 +627,6 @@ begin
   Log(TLogType.Debug, aMessage, aParams, aTag);
 end;
 
-procedure TLogWriter.DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Debug(aMessage, aParams, aTag);
-end;
-
 procedure TLogWriter.Error(const aMessage, aTag: string);
 begin
   Log(TLogType.Error, aMessage, aTag);
@@ -653,11 +635,6 @@ end;
 procedure TLogWriter.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 begin
   Log(TLogType.Error, aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Error(aMessage, aParams, aTag);
 end;
 
 procedure TLogWriter.Fatal(const aMessage, aTag: string);
@@ -671,12 +648,6 @@ begin
   Log(TLogType.Fatal, aMessage, aParams, aTag);
 end;
 
-procedure TLogWriter.FatalFmt(const aMessage: string;
-  const aParams: array of TVarRec; const aTag: string);
-begin
-  Fatal(aMessage, aParams, aTag);
-end;
-
 procedure TLogWriter.Info(const aMessage, aTag: string);
 begin
   Log(TLogType.Info, aMessage, aTag);
@@ -687,21 +658,10 @@ begin
   Log(TLogType.Info, aMessage, aParams, aTag);
 end;
 
-procedure TLogWriter.InfoFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Info(aMessage, aParams, aTag);
-end;
-
 procedure TLogWriter.Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
 begin
   Log(aType, Format(aMessage, aParams), aTag);
 end;
-
-procedure TLogWriter.LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
-begin
-  Log(aType, aMessage, aParams, aTag);
-end;
-
 
 procedure TLogWriter.Warn(const aMessage, aTag: string);
 begin
@@ -711,11 +671,6 @@ end;
 procedure TLogWriter.Warn(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 begin
   Log(TLogType.Warning, aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.WarnFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Warn(aMessage, aParams, aTag);
 end;
 
 { TLogger.TLogItem }

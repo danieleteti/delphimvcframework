@@ -95,7 +95,9 @@ procedure LogExitMethod(const AMethodName: string);
 function Log: ILogWriter; overload;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
-procedure InitializeDefaultLogger;
+//procedure InitializeDefaultLogger;
+function CreateLoggerWithDefaultConfiguration: ILogWriter;
+
 { @abstract(Use only inside DLL because dll unloading is not a safe place to shutdown threads, so call this before unload DLL)
   Use this also in ISAPI dll. Check the @code(loggerproisapisample.dll) sample
 }
@@ -277,6 +279,16 @@ begin
     LogW(ObjectToJSON(AObject));
 end;
 
+procedure InitializeDefaultLogger;
+begin
+  { This procedure must be called in a synchronized context
+    (Normally only SetDefaultLogger should be the caller) }
+  if not Assigned(gDefaultLogger) then
+  begin
+    gDefaultLogger := CreateLoggerWithDefaultconfiguration;
+  end;
+end;
+
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
   if gDefaultLogger = nil then
@@ -302,42 +314,35 @@ begin
 end;
 
 
-
-procedure InitializeDefaultLogger;
+function CreateLoggerWithDefaultConfiguration: ILogWriter;
 var
   lLogsFolder: String;
   lFileAppender, lConsoleAppender: ILogAppender;
   lAppenders: TArray<ILogAppender>;
 begin
-    { This procedure must be called in a synchronized context
-      (Normally only SetDefaultLogger should be the caller) }
-    if not Assigned(gDefaultLogger) then
-    begin
 {$IF NOT DEFINED(MOBILE)}
-      lLogsFolder := AppPath + 'logs';
+  lLogsFolder := AppPath + 'logs';
 {$ELSE}
-      lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
+  lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-      lFileAppender := TLoggerProFileAppender.Create(5, 10000, lLogsFolder);
-      if IsConsole and UseConsoleLogger then
-      begin
-        {$IF Defined(MSWINDOWS)}
-        lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
-        {$ELSE}
-        {$IF Not Defined(MOBILE)}
-        lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
-        {$ENDIF}
-        {$ENDIF}
-        lAppenders := [lFileAppender, lConsoleAppender];
-      end
-      else
-      begin
-        lAppenders := [lFileAppender];
-      end;
-      gDefaultLogger := BuildLogWriter(lAppenders);
-    end;
+  lFileAppender := TLoggerProFileAppender.Create(5, 10000, lLogsFolder);
+  if IsConsole and UseConsoleLogger then
+  begin
+    {$IF Defined(MSWINDOWS)}
+    lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
+    {$ELSE}
+    {$IF Not Defined(MOBILE)}
+    lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
+    {$ENDIF}
+    {$ENDIF}
+    lAppenders := [lFileAppender, lConsoleAppender];
+  end
+  else
+  begin
+    lAppenders := [lFileAppender];
+  end;
+  Result := BuildLogWriter(lAppenders);
 end;
-
 
 procedure ReleaseGlobalLogger;
 begin

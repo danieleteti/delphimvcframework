@@ -2772,7 +2772,7 @@ begin
                 except
                   on Ex: Exception do
                   begin
-                    Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                    Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
                       [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
                     raise EMVCException.Create(http_status.InternalServerError,
                       'Cannot create controller (see log for more info)');
@@ -2958,7 +2958,7 @@ begin
             begin
               if not CustomExceptionHandling(ESess, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
                   [
                     ESess.Classname,
                     ESess.Message,
@@ -2976,7 +2976,7 @@ begin
             begin
               if not CustomExceptionHandling(E, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
                   [
                     E.Classname,
                     E.Message,
@@ -3000,7 +3000,7 @@ begin
             begin
               if not CustomExceptionHandling(EIO, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
                   [
                     EIO.Classname,
                     EIO.Message,
@@ -3033,7 +3033,7 @@ begin
 
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
                   [
                     Ex.Classname,
                     Ex.Message,
@@ -3062,7 +3062,7 @@ begin
             begin
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
                   [
                     Ex.Classname,
                     Ex.Message,
@@ -3652,7 +3652,7 @@ begin
     except
       on E: Exception do
       begin
-        Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
+        Log.Error('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
 
         AResponse.StatusCode := http_status.InternalServerError; // default is Internal Server Error
         if E is EMVCException then
@@ -4313,7 +4313,7 @@ begin
   except
     on E: Exception do
     begin
-      Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
+      Log.Error('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
       raise;
     end;
   end;

@@ -6,6 +6,7 @@ program CustomLoggerSample;
 uses
   System.SysUtils,
   MVCFramework.Logger,
+  LoggerPro.Proxy,
 
   {$IFDEF MSWINDOWS}
 
@@ -19,7 +20,7 @@ uses
   IdHTTPWebBrokerBridge,
   MyControllerU in 'MyControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
-  CustomLoggerConfigU in 'CustomLoggerConfigU.pas';
+  CustomLoggerConfigU in 'CustomLoggerConfigU.pas', LoggerPro;
 
 {$R *.res}
 
@@ -51,7 +52,24 @@ begin
 end;
 
 begin
-  SetDefaultLogger(GetLogger);
+  //Option 1
+  //You can customize the logger providing a complete new one
+  //SetDefaultLogger(GetLogger);
+
+
+
+  //Option 2
+  //If you want to sligthly change the behaviour of the default logger
+  //you can retrive the "default configuration" and then apply a decorator
+  //with a filter function which "decides" if the logitem must be go through
+  //the appenders chain or not (so, discarded)
+  SetDefaultLogger(TLogWriterDecorator.Build(CreateLoggerWithDefaultConfiguration,
+    function (const aType: TLogType; const aMessage, aTag: string): Boolean
+    begin
+      Result := True;
+    end));
+
+
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
