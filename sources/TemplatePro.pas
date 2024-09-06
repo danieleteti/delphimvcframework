@@ -490,7 +490,7 @@ end;
 
 function TTProCompiler.CurrentChar: Char;
 begin
-  Result := fInputString.Chars[fCharIndex];
+  Result := fInputString.Chars[fCharIndex]
 end;
 
 function TTProCompiler.MatchEndTag: Boolean;
@@ -680,7 +680,15 @@ begin
   lCurrentSectionIndex := -1;
   fInputString := aTemplate;
   lStartVerbatim := 0;
-  Step;
+  if fInputString.Length > 0 then
+  begin
+    Step;
+  end
+  else
+  begin
+    aTokens.Add(TToken.Create(ttEOF, '', ''));
+    fCharIndex := 1; {doesnt' execute while}
+  end;
   while fCharIndex <= fInputString.Length do
   begin
     lChar := CurrentChar;
@@ -2032,7 +2040,22 @@ begin
         if lJPath.IsEmpty then
           Result := lJObj
         else
-          Result := lJObj.Path[lJPath].Value;
+        begin
+          lPJSONDataValue := lJObj.Path[lJPath];
+          if lPJSONDataValue.Typ = jdtString then
+          begin
+            Result := lJObj.Path[lJPath].Value
+          end
+          else if lPJSONDataValue.Typ = jdtArray then
+          begin
+            Result := lPJSONDataValue.ArrayValue;
+          end else if lPJSONDataValue.Typ = jdtObject then
+          begin
+            Result := lPJSONDataValue.ObjectValue;
+          end
+          else
+            raise ETProRenderException.Create('Unknown type for path ' + lJPath);
+        end;
       end;
     end
     else if viListOfObject in lVariable.VarOption then
