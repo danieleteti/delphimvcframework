@@ -88,7 +88,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Description>DMVCFramework - CopyRight (2010-2021) Daniele Teti and the DMVCFramework Team</DCC_Description>
+        <DCC_Description>DMVCFramework - CopyRight (2010-2024) Daniele Teti and the DMVCFramework Team</DCC_Description>
         <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;dmvcframeworkDT;$(DCC_UsePackage)</DCC_UsePackage>
         <DllSuffix>110</DllSuffix>
     </PropertyGroup>

@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.1--sodium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.4.2--magnesium--beta-red)  
+![](https://img.shields.io/badge/beta-dmvcframework--3.4.2--magnesium--rc3-red)  
 
 ## 📍 [Help DMVCFramework and your business! Click Here to access premium contents!](https://www.patreon.com/bePatron?u=72182967) 
 
