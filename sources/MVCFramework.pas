@@ -1661,7 +1661,7 @@ end;
 
 function TMVCWebRequest.ClientPrefer(const AMediaType: string): Boolean;
 begin
-  Result := AnsiPos(AMediaType, LowerCase(RawWebRequest.Accept)) = 1;
+  Result := (RawWebRequest.Accept = '*/*') or (AnsiPos(AMediaType, LowerCase(RawWebRequest.Accept)) = 1);
 end;
 
 function TMVCWebRequest.ClientPreferHTML: Boolean;
