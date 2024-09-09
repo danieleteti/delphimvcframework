@@ -2453,9 +2453,9 @@ begin
         GetVariables.Add(Name, TVarDataSource.Create(TJDOJsonObject(Value.AsObject), [viJSONObject]));
       end
       else
-      if Value.AsObject is TJDOJsonObject then
+      if Value.AsObject is TJDOJsonArray then
       begin
-        GetVariables.Add(Name, TVarDataSource.Create(TJDOJsonObject(Value.AsObject), [viJSONObject]));
+        raise ETProRenderException.Create('JSONArray cannot be used directly [HINT] Define a JSONObject variable with a JSONArray property');
       end
       else
       begin
