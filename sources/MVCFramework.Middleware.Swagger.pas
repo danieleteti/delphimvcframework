@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -330,6 +330,7 @@ var
   lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
   lJWTMiddleware := nil;
+  lJwtUrlField := nil;
   for lMiddleware in fEngine.Middlewares do
   begin
     if lMiddleware is TMVCJWTAuthenticationMiddleware then
