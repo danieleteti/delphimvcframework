@@ -1073,6 +1073,7 @@ type
     fConfigCache_DefaultContentType: String;
     fConfigCache_DefaultContentCharset: String;
     fConfigCache_PathPrefix: String;
+    fConfigCache_UseViewCache: Boolean;
     fSerializers: TDictionary<string, IMVCSerializer>;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
@@ -1271,6 +1272,7 @@ type
     FContentType: string;
     FOutput: string;
   protected
+    FUseViewCache: Boolean;
     FJSONModel: TJSONObject;
     function GetRealFileName(const AViewName: string): string; virtual;
     function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
@@ -3759,6 +3761,7 @@ begin
   FConfigCache_DefaultContentType := Config[TMVCConfigKey.DefaultContentType];
   FConfigCache_DefaultContentCharset := Config[TMVCConfigKey.DefaultContentCharset];
   FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
+  FConfigCache_UseViewCache := Config[TMVCConfigKey.ViewCache] = 'true';
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext;
@@ -4791,7 +4794,9 @@ end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
 var
-  lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringBuilder;
+  lView: TMVCBaseViewEngine;
+  lViewName: string;
+  lStrStream: TStringBuilder;
 begin
   lStrStream := TStringBuilder.Create;
   try
@@ -5185,6 +5190,7 @@ begin
   FViewModel := AViewModel;
   FContentType := AContentType;
   FOutput := EmptyStr;
+  FUseViewCache := Engine.fConfigCache_UseViewCache;
 end;
 
 constructor TMVCBaseViewEngine.Create(
