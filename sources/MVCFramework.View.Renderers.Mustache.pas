@@ -93,9 +93,6 @@ type
   TSynMustacheAccess = class(TSynMustache)
   end;
 
-
-
-
 var
   gPartialsLoaded : Boolean = False;
   gHelpersLoaded : Boolean = False;
@@ -139,7 +136,7 @@ var
 begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
-  if not FileExists(lViewFileName) then
+  if lViewFileName.IsEmpty then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
   lViewEngine := TSynMustache.Parse(lViewTemplate);

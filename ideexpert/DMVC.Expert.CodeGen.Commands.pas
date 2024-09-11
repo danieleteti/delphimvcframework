@@ -505,7 +505,8 @@ begin
     end;
     Section
       .AppendLine('  //use Context property to access to the HTTP request and response')
-      .AppendLine('  Result := ''Hello DelphiMVCFramework World'';')
+      .AppendLine('  Result := ''<p>Hello <strong>DelphiMVCFramework</strong> World</p>'' + ')
+	  .AppendLine('            ''<p><small>dmvcframework-'' + DMVCFRAMEWORK_VERSION + ''</small></p>'';')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('function ' + Model[TConfigKey.controller_classname] + '.GetReversedString(const Value: String): String;')
@@ -665,6 +666,7 @@ begin
       .AppendLine('  public')
       .AppendLine('    [MVCPath]')
       .AppendLine('    [MVCHTTPMethod([httpGET])]')
+	  .AppendLine('    [MVCProduces(TMVCMediaType.TEXT_HTML)]')
       .AppendLine('    function Index: String;')
       .AppendLine
       .AppendLine('    [MVCPath(''/reversedstrings/($Value)'')]')
@@ -1045,8 +1047,6 @@ begin
     .AppendLine('  // UseConsoleLogger defines if logs must be emitted to also the console (if available).')
     .AppendLine('  UseConsoleLogger := True;')
     .AppendLine()
-    .AppendLine('  // MVCUseTemplatesCache allows to cache compiled templates on disk for a faster future execution (if engine supports it).')
-    .AppendLine('  MVCUseTemplatesCache := True;')
     .AppendLine()
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);');
 
@@ -1396,12 +1396,12 @@ begin
     .AppendLine('  TemplatePro, System.SysUtils;')
     .AppendLine
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper1)'';')
     .AppendLine('end;')
     .AppendLine
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper2)'';')
     .AppendLine('end;')
@@ -1452,8 +1452,8 @@ begin
     .AppendLine('uses')
     .AppendLine('  System.Rtti;')
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): string;')
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): string;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
     .AppendLine
     .AppendLine
     .AppendLine('procedure TemplateProContextConfigure;')

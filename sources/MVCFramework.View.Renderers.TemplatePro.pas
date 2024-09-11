@@ -122,8 +122,9 @@ var
 begin
   lUseCompiledVersion := False;
   lViewFileName := GetRealFileName(ViewName);
-
-  if MVCUseTemplatesCache then
+  if lViewFileName.IsEmpty then
+    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
+  if FUseViewCache then
   begin
     lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
     TDirectory.CreateDirectory(lCacheDir);
@@ -151,7 +152,7 @@ begin
     try
       lViewTemplate := TFile.ReadAllText(lViewFileName);
       lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
-      if MVCUseTemplatesCache then
+      if FUseViewCache then
       begin
         lCompiledTemplate.SaveToFile(lCompiledViewFileName);
       end;
