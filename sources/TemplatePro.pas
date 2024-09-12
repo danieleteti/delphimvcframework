@@ -34,7 +34,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '0.5';
+  TEMPLATEPRO_VERSION = '0.6';
 
 type
   ETProException = class(Exception)
@@ -231,8 +231,11 @@ uses
   JsonDataObjects, MVCFramework.Nullables;
 
 const
+  Sign = ['-','+'];
+  Numbers = ['0'..'9'];
+  SignAndNumbers = Sign + Numbers;
   IdenfierAllowedFirstChars = ['a' .. 'z', 'A' .. 'Z', '_', '@'];
-  IdenfierAllowedChars = ['a' .. 'z', 'A' .. 'Z', '_', '0' .. '9'];
+  IdenfierAllowedChars = ['a' .. 'z', 'A' .. 'Z', '_'] + Numbers;
   ValueAllowedChars = IdenfierAllowedChars + [' ', '-', '+', '*', '.', '@', '/', '\']; // maybe a lot others
   START_TAG = '{{';
   END_TAG = '}}';
@@ -551,10 +554,11 @@ begin
   if MatchString(aParamValue) then
   begin
     Result := True;
-  end;
-  if CharInSet(fInputString.Chars[fCharIndex], IdenfierAllowedChars) then
+  end else if CharInSet(fInputString.Chars[fCharIndex], SignAndNumbers) then
   begin
-    while CharInSet(fInputString.Chars[fCharIndex], ValueAllowedChars) do
+    lTmp := fInputString.Chars[fCharIndex];
+    Inc(fCharIndex);
+    while CharInSet(fInputString.Chars[fCharIndex], Numbers) do
     begin
       lTmp := lTmp + fInputString.Chars[fCharIndex];
       Inc(fCharIndex);
@@ -562,6 +566,17 @@ begin
     Result := True;
     aParamValue := lTmp.Trim;
   end;
+
+//  if CharInSet(fInputString.Chars[fCharIndex], IdenfierAllowedChars) then
+//  begin
+//    while CharInSet(fInputString.Chars[fCharIndex], ValueAllowedChars) do
+//    begin
+//      lTmp := lTmp + fInputString.Chars[fCharIndex];
+//      Inc(fCharIndex);
+//    end;
+//    Result := True;
+//    aParamValue := lTmp.Trim;
+//  end;
 end;
 
 function TTProCompiler.MatchSpace: Boolean;
@@ -1124,7 +1139,50 @@ var
   end;
 begin
   aFunctionName := lowercase(aFunctionName);
-  if aFunctionName = 'uppercase' then
+  if aFunctionName = 'gt' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsInt64 > StrToInt64(aParameters[0]);
+  end
+  else if aFunctionName = 'ge' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsInt64 >= StrToInt64(aParameters[0]);
+  end
+  else if aFunctionName = 'lt' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsInt64 < StrToInt64(aParameters[0]);
+  end
+  else if aFunctionName = 'le' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsInt64 <= StrToInt64(aParameters[0]);
+  end
+  else if (aFunctionName = 'eq') or (aFunctionName = 'ne') then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    if aValue.IsType<String> then
+      Result := aValue.AsString = aParameters[0]
+    else if aValue.IsType<Int64> then
+      Result := aValue.AsInt64 = StrToInt(aParameters[0])
+    else if aValue.IsType<Integer> then
+      Result := aValue.AsInteger = StrToInt64(aParameters[0])
+    else if aValue.IsType<TDate> then
+      Result := TDate(aValue.AsExtended) = TDate(StrToFloat(aParameters[0]))
+    else
+      FunctionError('Unsupported param type for "' + String(aValue.TypeInfo.Name) + '"');
+    if aFunctionName = 'ne' then
+    begin
+      Result := not Result.AsBoolean;
+    end;
+  end
+  else if aFunctionName = 'uppercase' then
   begin
     Result := UpperCase(aValue.AsString);
   end else if aFunctionName = 'lowercase' then
