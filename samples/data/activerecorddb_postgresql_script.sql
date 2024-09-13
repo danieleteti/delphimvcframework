@@ -607,3 +607,63 @@ ALTER TABLE ONLY public.orders
 ALTER TABLE ONLY public.phones
     ADD CONSTRAINT phones_id_person_fkey FOREIGN KEY (id_person) REFERENCES public.people(id);
 
+
+
+-- DROP FUNCTION public.sp_get_customers();
+
+CREATE OR REPLACE FUNCTION public.sp_get_customers()
+ RETURNS TABLE(id bigint, code character varying, description character varying, city character varying, rating integer)
+ LANGUAGE plpgsql
+AS $function$
+begin
+  return query
+  	select 
+  		c.id, c.code, c.description, c.city, c.rating
+ 	from 
+ 		customers c
+ 	order by c.description;
+end
+$function$
+;
+
+-- DROP FUNCTION public.sp_get_customers2(varchar, varchar);
+
+CREATE OR REPLACE FUNCTION public.sp_get_customers2(code_filter character varying, city_filter character varying)
+ RETURNS TABLE(id bigint, code character varying, description character varying, city character varying, rating integer)
+ LANGUAGE plpgsql
+AS $function$
+begin
+  return query
+  	select 
+  		c.id, c.code, c.description, c.city, c.rating
+ 	from 
+ 		customers c
+ 	order by c.description;
+end
+$function$
+;
+
+-- DROP FUNCTION public.sp_get_int(varchar, varchar);
+
+CREATE OR REPLACE FUNCTION public.sp_get_int(code_filter character varying, city_filter character varying)
+ RETURNS bigint
+ LANGUAGE plpgsql
+AS $function$
+begin
+  return 1;
+end
+$function$
+;
+
+-- DROP PROCEDURE public.sp_loggerpro_writer(int4, varchar, varchar, timestamp, int4);
+
+CREATE OR REPLACE PROCEDURE public.sp_loggerpro_writer(IN p_log_type integer, IN p_log_tag character varying, IN p_log_message character varying, IN p_log_timestamp timestamp without time zone, IN p_log_thread_id integer)
+ LANGUAGE plpgsql
+AS $procedure$
+begin
+  INSERT INTO 
+  	public.loggerpro_logs(log_type, log_tag, log_message, log_timestamp, log_thread_id)
+	values (p_log_type, p_log_tag, p_log_message, p_log_timestamp, p_log_thread_id);
+end;
+$procedure$
+;

@@ -120,7 +120,8 @@ contains
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
   sqids in '..\..\sources\sqids.pas',
   MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
-  TemplatePro in '..\..\sources\TemplatePro.pas';
+  TemplatePro in '..\..\sources\TemplatePro.pas',
+  MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas';
 
 end.
 
