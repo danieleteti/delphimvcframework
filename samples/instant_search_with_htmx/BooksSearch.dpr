@@ -60,8 +60,6 @@ begin
   // UseConsoleLogger defines if logs must be emitted to also the console (if available).
   UseConsoleLogger := True;
 
-  MVCUseTemplatesCache := False;
-
   LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
 
   CreateSqlitePrivateConnDef(True);

@@ -1,5 +1,5 @@
 <p>{{:books|count}} book/s found</p>
-<table class="table is-fullwidth is-striped is-hoverable">
+<table class="table is-fullwidth is-hoverable">
   <thead>
 	<tr>
 	  <th>ID</th>
@@ -17,11 +17,24 @@
 	</tr>	
 	{{endif}}	
 	{{for book in books}}
-	<tr>
+	<tr	class=
+		{{if book.genre|eq,"Horror"}}
+		"has-background-danger-light"
+		{{else}} {{if book.genre|eq,"Thriller"}}
+  		"has-background-success-light"
+		{{else}} {{if book.genre|eq,"Classic"}}
+  		"has-background-primary-light"
+  		{{endif}}
+		{{endif}}
+		{{endif}}>
 	  <td>{{:book.id|lpad,8,"0"}}</td>
 	  <td>{{:book.book_name}}</td>
 	  <td>{{:book.author_name}}</td>
-	  <td>{{:book.genre|uppercase}}</td>
+	  <td
+
+	 	 >
+		{{:book.genre|uppercase}}
+	  </td>
 	</tr>
 	{{endfor}}
   </tbody>
