@@ -1,4 +1,4 @@
-program FunctionalProgramming;
+program HigherOrderFunctions;
 
 uses
   Vcl.Forms,

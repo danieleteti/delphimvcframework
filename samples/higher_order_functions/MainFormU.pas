@@ -28,7 +28,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, MVCFramework.Functional;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, MVCFramework.Utils;
 
 type
   TMainForm = class(TForm)
@@ -107,18 +107,17 @@ begin
   Result[9] := 'mary';
 end;
 
-
 procedure TMainForm.btnFilterBetwenClick(Sender: TObject);
 var
   InputData, OutputData: TArray<Integer>;
-  FilterFunc: TPredicate<Integer>;
+  FilterFunc: TPredicateClosure<Integer>;
 begin
   InputData := GetIntArrayOfData;
   FilterFunc := function(const Item: Integer): boolean
     begin
       Result := (Item > 2) and (Item < 8)
     end;
-  OutputData := Functional.Filter<Integer>(InputData, FilterFunc);
+  OutputData := HigherOrder.Filter<Integer>(InputData, FilterFunc);
   FillList(OutputData, lbFilter.Items);
 end;
 
@@ -127,7 +126,7 @@ var
   InputData, OutputData: TArray<Integer>;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Filter<Integer>(InputData,
+  OutputData := HigherOrder.Filter<Integer>(InputData,
     function(const Item: Integer): boolean
     begin
       Result := Item mod 2 = 0;
@@ -140,7 +139,7 @@ var
   InputData, OutputData: TArray<Integer>;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Filter<Integer>(InputData,
+  OutputData := HigherOrder.Filter<Integer>(InputData,
     function(const Item: Integer): boolean
     begin
       Result := Item mod 2 > 0;
@@ -151,7 +150,7 @@ end;
 procedure TMainForm.btnForEachWithExceptionClick(Sender: TObject);
 begin
   lbForEach.Clear;
-  Functional.ForEach<Integer>(GetIntArrayOfData,
+  HigherOrder.ForEach<Integer>(GetIntArrayOfData,
     procedure(const Item: Integer)
     begin
       if Item = 5 then
@@ -164,7 +163,7 @@ end;
 procedure TMainForm.btnJustLoopClick(Sender: TObject);
 begin
   lbForEach.Clear;
-  Functional.ForEach<String>(GetStringArrayOfData,
+  HigherOrder.ForEach<String>(GetStringArrayOfData,
     procedure(const Item: String)
     begin
       lbForEach.Items.Add(Item);
@@ -176,7 +175,7 @@ var
   InputData, OutputData: TArray<string>;
 begin
   InputData := GetStringArrayOfData;
-  OutputData := Functional.Map<String>(InputData,
+  OutputData := HigherOrder.Map<String>(InputData,
     function(const Item: String): String
     begin
       Result := '*' + Item + '*';
@@ -189,7 +188,7 @@ var
   InputData, OutputData: TArray<string>;
 begin
   InputData := GetStringArrayOfData;
-  OutputData := Functional.Map<string>(InputData,
+  OutputData := HigherOrder.Map<string>(InputData,
     function(const Item: String): String
     begin
       Result := String(Item.Chars[0]).ToUpper + Item.Substring(1);
@@ -203,7 +202,7 @@ var
   OutputData: Integer;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Reduce<Integer>(InputData,
+  OutputData := HigherOrder.Reduce<Integer>(InputData,
     function(const Item1, Item2: Integer): Integer
     begin
       if Item1 > Item2 then
@@ -220,7 +219,7 @@ var
   OutputData: Integer;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Reduce<Integer>(InputData,
+  OutputData := HigherOrder.Reduce<Integer>(InputData,
     function(const Item1, Item2: Integer): Integer
     begin
       if Item1 < Item2 then
@@ -237,7 +236,7 @@ var
   OutputData: Integer;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Reduce<Integer>(InputData,
+  OutputData := HigherOrder.Reduce<Integer>(InputData,
     function(const Item1, Item2: Integer): Integer
     begin
       Result := Item1 * Item2;
@@ -251,7 +250,7 @@ var
   OutputData: Integer;
 begin
   InputData := GetIntArrayOfData;
-  OutputData := Functional.Reduce<Integer>(InputData,
+  OutputData := HigherOrder.Reduce<Integer>(InputData,
     function(const Item1, Item2: Integer): Integer
     begin
       Result := Item1 + Item2;
@@ -261,21 +260,21 @@ end;
 
 procedure TMainForm.FillList(Data: TArray<Integer>; AStrings: TStrings);
 var
-  I: Integer;
+  lItem: Integer;
 begin
   AStrings.Clear;
-  for I in Data do
-    AStrings.Add(I.ToString);
+  for lItem in Data do
+    AStrings.Add(lItem.ToString);
 end;
 
 
 procedure TMainForm.FillList(Data: TArray<String>; AStrings: TStrings);
 var
-  s: string;
+  lItem: string;
 begin
   AStrings.Clear;
-  for s in Data do
-    AStrings.Add(s);
+  for lItem in Data do
+    AStrings.Add(lItem);
 end;
 
 end.
