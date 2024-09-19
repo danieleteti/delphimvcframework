@@ -32,7 +32,7 @@ var
   lBaseSelect, lOrdering: String;
 begin
   SearchQueryText := SearchQueryText.ToLower;
-  lBaseSelect := 'select id, book_name, author_name, genre from books';
+  lBaseSelect := 'select id, book_name, author_name, genre, rating from books';
   lOrdering := 'order by book_name COLLATE NOCASE';
   if SearchQueryText.IsEmpty then
   begin

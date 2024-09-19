@@ -7,17 +7,18 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/htmx.org/dist/htmx.min.js"></script>
 </head>
-<body>
-  <section class="section">
+<body hx-indicator="#spinner">
+  <section class="section" >
     <div class="columns">
       <div class="column is-one-third is-offset-one-third">
-        <input type="text" class="input" placeholder="Search" name="query" hx-get="/search"
+        <input type="text" class="input" placeholder="Search" name="query" hx-get="/search"          
           hx-trigger="keyup changed delay:500ms" hx-target="#results" hx-push-url="true" />
       </div>
       <div class="column is-one-third">
         <p class="subtitle is-6">⭐ DMVCFramework + HTMX :: Instant Search Demo ⭐</p>
       </div>
     </div>
+    <progress id="spinner" class="htmx-indicator progress is-large is-info" max="100">ciao</progress>    
     <div id="results">{{include "search_results.html"}}</div>
   </section>
 </body>

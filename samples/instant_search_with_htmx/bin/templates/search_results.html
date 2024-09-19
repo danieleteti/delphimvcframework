@@ -5,6 +5,7 @@
 	  <th>ID</th>
 	  <th>Book Title</th>
 	  <th>Book Author</th>
+	  <th>Rating</th>
 	  <th>Genre</th>
 	</tr>
   </thead>
@@ -30,9 +31,14 @@
 	  <td>{{:book.id|lpad,8,"0"}}</td>
 	  <td>{{:book.book_name}}</td>
 	  <td>{{:book.author_name}}</td>
-	  <td
-
-	 	 >
+	  <td>
+		{{if book.rating|ge,1}}⭐{{endif}}
+		{{if book.rating|ge,2}}⭐{{endif}}
+		{{if book.rating|ge,3}}⭐{{endif}}
+		{{if book.rating|ge,4}}⭐{{endif}}
+		{{if book.rating|ge,5}}⭐{{endif}}
+	  </td>	  
+	  <td>
 		{{:book.genre|uppercase}}
 	  </td>
 	</tr>

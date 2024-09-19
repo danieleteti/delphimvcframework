@@ -34,7 +34,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '0.6';
+  TEMPLATEPRO_VERSION = '0.6.1';
 
 type
   ETProException = class(Exception)
@@ -59,11 +59,11 @@ type
 
   TTokenType = (
     ttContent, ttInclude, ttFor, ttEndFor, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment,
-    ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttEOF);
+    ttContinue, ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttExit, ttEOF);
   const
     TOKEN_TYPE_DESCR: array [Low(TTokenType)..High(TTokenType)] of string =
       ('ttContent', 'ttInclude', 'ttFor', 'ttEndFor', 'ttIfThen', 'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment',
-       'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttEOF');
+       'ttContinue', 'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttExit', 'ttEOF');
   type
     TToken = packed record
       TokenType: TTokenType;
@@ -144,7 +144,7 @@ type
     function GetVarAsString(const Name: string): string;
     function GetTValueVarAsString(const Value: TValue; const VarName: string = ''): String;
     function GetVarAsTValue(const aName: string): TValue;
-//    function EvaluateIfExpression(aIdentifier: string): Boolean;
+    function GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
     function EvaluateIfExpressionAt(var Idx: UInt64): Boolean;
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
@@ -289,15 +289,24 @@ begin
   fTemplateFunctions.Add(FunctionName.ToLower, FunctionImpl);
 end;
 
+function TTProCompiledTemplate.GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
+var
+  lField: TField;
+begin
+  lField := aDataSet.FieldByName(FieldName);
+  case lField.DataType of
+    ftInteger: Result := lField.AsInteger;
+    ftLargeint, ftAutoInc: Result := lField.AsLargeInt;
+    ftString, ftWideString, ftMemo, ftWideMemo: Result := lField.AsWideString;
+    else
+      Error('Invalid data type for field "%s": %s', [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
+  end;
+end;
+
 function TTProCompiledTemplate.GetOnGetValue: TTProCompiledTemplateGetValueEvent;
 begin
   Result := fOnGetValue;
 end;
-
-//function TTProCompiledTemplate.GetPseudoVariable(const Variable: TVarDataSource; const PseudoVarName: String): TValue;
-//begin
-//  Result := GetPseudoVariable(Variable.VarIterator, PseudoVarName);
-//end;
 
 function TTProCompiledTemplate.GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue;
 begin
@@ -838,6 +847,10 @@ begin
           aTokens.Add(TToken.Create(lLastToken, '', ''));
           Dec(lForStatementCount);
           lStartVerbatim := fCharIndex;
+        end else if MatchSymbol('continue') then {continue}
+        begin
+          lLastToken := ttContinue;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
         end else if MatchSymbol('endif') then {endif}
         begin
           if lIfStatementCount = -1 then
@@ -951,6 +964,8 @@ begin
         end
         else if MatchSymbol('exit') then {exit}
         begin
+          lLastToken := ttExit;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
           lLastToken := ttEOF;
           aTokens.Add(TToken.Create(lLastToken, '', ''));
           Break;
@@ -1020,69 +1035,108 @@ end;
 procedure TTProCompiler.FixJumps(const aTokens: TList<TToken>);
 var
   lForInStack: TStack<UInt64>;
+  lContinueStack: TStack<UInt64>;
   lIfStatementStack: TStack<TIfThenElseIndex>;
   I: UInt64;
   lToken: TToken;
   lForAddress: UInt64;
   lIfStackItem: TIfThenElseIndex;
+  lCheckForUnbalancedPair: Boolean;
+  lTmpContinueAddress: UInt64;
 begin
+  lCheckForUnbalancedPair := True;
   lForInStack := TStack<UInt64>.Create;
   try
-    lIfStatementStack := TStack<TIfThenElseIndex>.Create;
+    lContinueStack := TStack<UInt64>.Create;
     try
-      for I := 0 to aTokens.Count - 1 do
-      begin
-        case aTokens[I].TokenType of
-          ttFor: begin
-            lForInStack.Push(I);
-          end;
-          ttEndFor: begin
-            {ttFor.Ref1 --> endfor}
-            lForAddress := lForInStack.Pop;
-            lToken := aTokens[lForAddress];
-            lToken.Ref1 := I;
-            aTokens[lForAddress] := lToken;
+      lIfStatementStack := TStack<TIfThenElseIndex>.Create;
+      try
+        for I := 0 to aTokens.Count - 1 do
+        begin
+          case aTokens[I].TokenType of
+            ttFor: begin
+              if lContinueStack.Count > 0 then
+              begin
+                Error('Continue stack corrupted');
+              end;
+              lForInStack.Push(I);
+            end;
 
-            {ttEndFor.Ref1 --> for}
-            lToken := aTokens[I];
-            lToken.Ref1 := lForAddress;
-            aTokens[I] := lToken;
-          end;
+            ttEndFor: begin
+              {ttFor.Ref1 --> endfor}
+              lForAddress := lForInStack.Pop;
+              lToken := aTokens[lForAddress];
+              lToken.Ref1 := I;
+              aTokens[lForAddress] := lToken;
 
-          {ttIfThen.Ref1 points always to relative else (if present otherwise -1)}
-          {ttIfThen.Ref2 points always to relative endif}
+              {ttEndFor.Ref1 --> for}
+              lToken := aTokens[I];
+              lToken.Ref1 := lForAddress;
+              aTokens[I] := lToken;
 
-          ttIfThen: begin
-            lIfStackItem.IfIndex := I;
-            lIfStackItem.ElseIndex := -1; {-1 means: "there isn't ttElse"}
-            lIfStatementStack.Push(lIfStackItem);
-          end;
-          ttElse: begin
-            lIfStackItem := lIfStatementStack.Pop;
-            lIfStackItem.ElseIndex := I;
-            lIfStatementStack.Push(lIfStackItem);
-          end;
-          ttEndIf: begin
-            lIfStackItem := lIfStatementStack.Pop;
+              {if there's a ttContinue (or more than one), it must jump to endfor}
+              while lContinueStack.Count > 0 do
+              begin
+                lTmpContinueAddress := lContinueStack.Pop;
+                lToken := aTokens[lTmpContinueAddress];
+                lToken.Ref1 := I;
+                aTokens[lTmpContinueAddress] := lToken;
+              end;
+            end;
 
-            {fixup ifthen}
-            lToken := aTokens[lIfStackItem.IfIndex];
-            lToken.Ref2 := I; {ttIfThen.Ref2 points always to relative endif}
-            lToken.Ref1 := lIfStackItem.ElseIndex; {ttIfThen.Ref1 points always to relative else (if present, otherwise -1)}
-            aTokens[lIfStackItem.IfIndex] := lToken;
+            ttContinue: begin
+              lContinueStack.Push(I);
+            end;
 
-            {fixup else}
-            if lIfStackItem.ElseIndex > -1 then
-            begin
-              lToken := aTokens[lIfStackItem.ElseIndex];
-              lToken.Ref2 := I; {ttElse.Ref2 points always to relative endif}
-              aTokens[lIfStackItem.ElseIndex] := lToken;
+            {ttIfThen.Ref1 points always to relative else (if present otherwise -1)}
+            {ttIfThen.Ref2 points always to relative endif}
+
+            ttIfThen: begin
+              lIfStackItem.IfIndex := I;
+              lIfStackItem.ElseIndex := -1; {-1 means: "there isn't ttElse"}
+              lIfStatementStack.Push(lIfStackItem);
+            end;
+            ttElse: begin
+              lIfStackItem := lIfStatementStack.Pop;
+              lIfStackItem.ElseIndex := I;
+              lIfStatementStack.Push(lIfStackItem);
+            end;
+            ttEndIf: begin
+              lIfStackItem := lIfStatementStack.Pop;
+
+              {fixup ifthen}
+              lToken := aTokens[lIfStackItem.IfIndex];
+              lToken.Ref2 := I; {ttIfThen.Ref2 points always to relative endif}
+              lToken.Ref1 := lIfStackItem.ElseIndex; {ttIfThen.Ref1 points always to relative else (if present, otherwise -1)}
+              aTokens[lIfStackItem.IfIndex] := lToken;
+
+              {fixup else}
+              if lIfStackItem.ElseIndex > -1 then
+              begin
+                lToken := aTokens[lIfStackItem.ElseIndex];
+                lToken.Ref2 := I; {ttElse.Ref2 points always to relative endif}
+                aTokens[lIfStackItem.ElseIndex] := lToken;
+              end;
+            end;
+            ttExit: begin
+              lCheckForUnbalancedPair := False;
             end;
           end;
+        end; // for
+
+        if lCheckForUnbalancedPair and (lIfStatementStack.Count > 0) then
+        begin
+          Error('Unbalanced "if" - expected "endif"');
         end;
-      end; // for
+        if lCheckForUnbalancedPair and (lForInStack.Count > 0) then
+        begin
+          Error('Unbalanced "for" - expected "endfor"');
+        end;
+      finally
+        lIfStatementStack.Free;
+      end;
     finally
-      lIfStatementStack.Free;
+      lContinueStack.Free;
     end;
   finally
     lForInStack.Free;
@@ -1162,6 +1216,18 @@ begin
     if Length(aParameters) <> 1 then
       FunctionError('expected 1 parameter');
     Result := aValue.AsInt64 <= StrToInt64(aParameters[0]);
+  end
+  else if aFunctionName = 'contains' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsString.Contains(aParameters[0]);
+  end
+  else if aFunctionName = 'contains_ignore_case' then
+  begin
+    if Length(aParameters) <> 1 then
+      FunctionError('expected 1 parameter');
+    Result := aValue.AsString.ToLowerInvariant.Contains(aParameters[0].ToLowerInvariant);
   end
   else if (aFunctionName = 'eq') or (aFunctionName = 'ne') then
   begin
@@ -1685,7 +1751,7 @@ end;
 
 procedure TTProCompiledTemplate.Error(const aMessage: String);
 begin
-  raise ETProRenderException.Create(aMessage);
+  raise ETProRenderException.Create(aMessage) at ReturnAddress;
 end;
 
 procedure TTProCompiledTemplate.ForEachToken(
@@ -1916,45 +1982,6 @@ begin
         end;
         ttValue, ttLiteralString: begin
           lVarValue := EvaluateValue(lIdx, lMustBeEncoded {must be encoded});
-
-//          // Ref1 contains the optional filter parameter number (-1 if there isn't any filter)
-//          // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
-//          lRef2 := fTokens[lIdx].Ref2;
-//          lCurrTokenType := fTokens[lIdx].TokenType;
-//          if fTokens[lIdx].Ref1 > -1 {has a filter with Ref1 parameters} then
-//          begin
-//            lVarName := fTokens[lIdx].Value1;
-//            Inc(lIdx);
-//            lFilterName := fTokens[lIdx].Value1;
-//            lFilterParCount := fTokens[lIdx].Ref1;  // parameter count
-//            SetLength(lFilterParameters, lFilterParCount);
-//            for I := 0 to lFilterParCount - 1 do
-//            begin
-//              Inc(lIdx);
-//              Assert(fTokens[lIdx].TokenType = ttFilterParameter);
-//              lFilterParameters[I] := fTokens[lIdx].Value1;
-//            end;
-//            if lCurrTokenType = ttValue then
-//            begin
-//              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName));
-//            end
-//            else
-//            begin
-//              lVarValue := ExecuteFilter(lFilterName, lFilterParameters, lVarName);
-//            end;
-//          end
-//          else
-//          begin
-//            if lCurrTokenType = ttValue then
-//            begin
-//              lVarValue := GetVarAsString(fTokens[lIdx].Value1);
-//            end
-//            else
-//            begin
-//              lVarValue := fTokens[lIdx].Value1;
-//            end;
-//          end;
-
           if lMustBeEncoded {lRef2 = -1 // encoded} then
             lBuff.Append(HTMLEncode(lVarValue.ToString))
           else
@@ -1972,6 +1999,13 @@ begin
           begin
             Error('Compiled template has been compiled with a different version. Expected ' +  TEMPLATEPRO_VERSION + ' got ' + fTokens[lIdx].Value1);
           end;
+        end;
+        ttContinue: begin
+          lIdx := fTokens[lIdx].Ref1;
+          Continue;
+        end;
+        ttExit: begin
+          //do nothing
         end
         else
         begin
@@ -1997,7 +2031,6 @@ end;
 function TTProCompiledTemplate.GetVarAsTValue(const aName: string): TValue;
 var
   lVariable: TVarDataSource;
-  lField: TField;
   lHasMember: Boolean;
   lJPath: string;
   lDataSource: string;
@@ -2040,21 +2073,16 @@ begin
           begin
             Error('Empty field name while reading from iterator "%s"', [lVarName]);
           end;
-          lField := TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers);
-          case lField.DataType of
-            ftInteger: Result := lField.AsInteger;
-            ftLargeint, ftAutoInc: Result := lField.AsLargeInt;
-            ftString, ftWideString, ftMemo, ftWideMemo: Result := lField.AsWideString;
-            else
-              Error('Invalid data type for field "%s": %s', [lVarMembers, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
-          end;
+          Result := GetDataSetFieldAsTValue(TDataSet(lVariable.VarValue.AsObject), lVarMembers);
         end;
       end
       else
       begin
         { not an interator }
         if lHasMember then
-          Error(lDataSource + ' members can be read only through an iterator')
+        begin
+          Result := GetDataSetFieldAsTValue(TDataSet(lVariable.VarValue.AsObject), lVarMembers);
+        end
         else
         begin
           Result := lVariable.VarValue.AsObject;
