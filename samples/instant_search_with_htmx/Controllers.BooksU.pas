@@ -10,8 +10,12 @@ type
   TBooksController = class(TMVCController)
   public
     [MVCPath]
+    [MVCPath]
+    function Index([MVCFromQueryString('query','')] SearchQueryText: String): String;
+
+    [MVCPath]
     [MVCPath('/search')]
-    function Search([MVCFromQueryString('query','')] SearchQueryText: String): String;
+    function Search([MVCFromQueryString('q','')] SearchQueryText: String): String;
   end;
 
 implementation
@@ -25,6 +29,11 @@ uses
 
 
 { TBooksController }
+
+function TBooksController.Index(SearchQueryText: String): String;
+begin
+  Result := Page(['index']);
+end;
 
 function TBooksController.Search(SearchQueryText: String): String;
 var
@@ -58,6 +67,10 @@ begin
   finally
     lDS.Free;
   end;
+  if not SearchQueryText.IsEmpty then
+    Context.Response.HXSetPushUrl('?q=' + SearchQueryText)
+  else
+    Context.Response.HXSetPushUrl('/');
 end;
 
 end.

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Books Search</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org/dist/htmx.min.js"></script>
+  {{block "headers"}}{{endblock}}
+</head>
+<body hx-indicator="#spinner">
+  <section class="section" >
+    {{block "body"}}{{endblock}}    
+  </section>
+
+    <div class="content has-text-centered">
+      <p>
+      <strong><a href="https://github.com/danieleteti/templatepro">TemplatePRO</a> {{""|version}}</strong> by <a href="https://www.danieleteti.it">Daniele Teti</a>.
+      
+      The source code is licensed <a href="https://github.com/danieleteti/templatepro?tab=Apache-2.0-1-ov-file#readme">Apache 2.0</a>.             
+      </p>      
+    </div>
+</body>
+</html>

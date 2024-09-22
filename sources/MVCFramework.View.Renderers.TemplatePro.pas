@@ -60,6 +60,11 @@ begin
     Result := False;
   end;
 
+  if Length(aParameters) <> 0 then
+  begin
+    Result := '(Error: Expected 0 params, got ' + Length(aParameters).ToString + ')';
+  end;
+
   if aValue.AsObject is TDataSet then
   begin
     Result := TDataSet(aValue.AsObject).RecordCount;
@@ -171,6 +176,18 @@ begin
     end;
     lCompiledTemplate.AddFilter('json', DumpAsJSONString);
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
+    lCompiledTemplate.AddFilter('query',
+      function (const aValue: TValue; const aParameters: TArray<string>): TValue
+      begin
+        if Length(aParameters) = 1 then
+        begin
+          Result := Self.WebContext.Request.QueryStringParam(aParameters[0]);
+        end
+        else
+        begin
+          Result := '(Error: Expected 1 param, got ' + Length(aParameters).ToString + ')';
+        end;
+      end);
     Builder.Append(lCompiledTemplate.Render);
   except
     on E: ETProException do
