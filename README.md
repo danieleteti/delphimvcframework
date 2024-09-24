@@ -80,7 +80,7 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](http://www.danieleteti.it/books/) is available to fastly get a solid knowledge (available as e-book and hardcopy).
 
 * There are more than 40 samples to learn all the features and be proficient and productive
-* Commercially supported by [bit Time Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
+* Commercially supported by [bit Time Professionals](https://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
 
 * RESTful (RMM Level 3) compliant
 
@@ -1601,6 +1601,9 @@ end;
 
 | Delphi Version      | Project Group                                 |
 | ------------------- | --------------------------------------------- |
+| Delphi 12 Athens | `packages\d120\dmvcframework_group.groupproj` |
+| Delphi 11.3 Alexandria | `packages\d113\dmvcframework_group.groupproj` |
+| Delphi 11 Alexandria | `packages\d110\dmvcframework_group.groupproj` |
 | Delphi 10.4 Sydney  | `packages\d104\dmvcframework_group.groupproj` |
 | Delphi 10.3 Rio     | `packages\d103\dmvcframework_group.groupproj` |
 | Delphi 10.2 Tokyo   | `packages\d102\dmvcframework_group.groupproj` |
@@ -1723,7 +1726,7 @@ DelphiMVCFramework roadmap is always updated as-soon-as the features planned are
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
-If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, the lead developer works there.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](https://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, the lead developer works there.
 
 ## Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
