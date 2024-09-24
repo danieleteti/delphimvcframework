@@ -74,10 +74,6 @@ begin
   FMVC.SetViewEngine(TMVCTemplateProViewEngine);
   // Server Side View - END
 
-  // Middleware
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create);
-  // Middleware - END
-
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

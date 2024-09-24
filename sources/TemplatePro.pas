@@ -26,6 +26,7 @@ interface
 
 uses
   System.Generics.Collections,
+  System.Generics.Defaults,
   System.Classes,
   System.SysUtils,
   System.TypInfo,
@@ -103,6 +104,12 @@ type
     VarValue: TValue;
     VarOption: TTProVariablesInfos;
     constructor Create(const VarValue: TValue; const VarOption: TTProVariablesInfos);
+  end;
+
+  TTProVariablesEqualityComparer = class(TEqualityComparer<string>)
+  public
+    function Equals(const Left, Right: String): Boolean; override;
+    function GetHashCode(const Value: String): Integer; override;
   end;
 
   TTProVariables = class(TObjectDictionary<string, TVarDataSource>)
@@ -262,7 +269,7 @@ function HandleTemplateSectionStateMachine(
 implementation
 
 uses
-  System.StrUtils, System.IOUtils, System.NetEncoding, System.Math,
+  System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character,
   JsonDataObjects, MVCFramework.Nullables;
 
 const
@@ -677,7 +684,7 @@ begin
   lSavedCharIndex := fCharIndex;
   lSymbolIndex := 0;
   lSymbolLength := Length(aSymbol);
-  while (fInputString.Chars[fCharIndex] = aSymbol.Chars[lSymbolIndex]) and (lSymbolIndex < lSymbolLength) do
+  while (fInputString.Chars[fCharIndex].ToLower = aSymbol.Chars[lSymbolIndex].ToLower) and (lSymbolIndex < lSymbolLength) do
   begin
     Inc(fCharIndex);
     Inc(lSymbolIndex);
@@ -1390,7 +1397,7 @@ begin
   finally
     lBlockDict.Free;
   end;
-  TTProCompiledTemplate.InternalDumpToFile('debug.compiled.txt', aTokens);
+  //TTProCompiledTemplate.InternalDumpToFile('debug.compiled.txt', aTokens);
 end;
 
 function TTProCompiler.GetFunctionParameters: TArray<String>;
@@ -2477,6 +2484,18 @@ begin
           begin
             Result := lJObj.Path[lJPath].Value
           end
+          else if lPJSONDataValue.Typ = jdtInt then
+          begin
+            Result := lPJSONDataValue.IntValue;
+          end
+          else if lPJSONDataValue.Typ = jdtLong then
+          begin
+            Result := lPJSONDataValue.LongValue;
+          end
+          else if lPJSONDataValue.Typ = jdtULong then
+          begin
+            Result := lPJSONDataValue.ULongValue;
+          end
           else if lPJSONDataValue.Typ = jdtArray then
           begin
             Result := lPJSONDataValue.ArrayValue;
@@ -2593,7 +2612,7 @@ begin
   begin
     for I := fLoopsStack.Count - 1 downto 0 do
     begin
-      if fLoopsStack[I].IteratorName = VarName then
+      if SameText(fLoopsStack[I].IteratorName, VarName) then
       begin
         Result := True;
         DataSourceName := fLoopsStack[I].DataSourceName;
@@ -2644,6 +2663,10 @@ begin
         lStrValue := lWrappedList.Count.ToString;
       end;
     end;
+  end
+  else if Value.IsType<Boolean> then
+  begin
+    lStrValue := Value.AsType<Boolean>.ToString.ToLower;
   end;
   Result := not(SameText(lStrValue, 'false') or SameText(lStrValue, '0') or SameText(lStrValue, ''));
 end;
@@ -2942,11 +2965,10 @@ begin
           end;
         end;
       end;
-    tkInteger, tkString, tkUString, tkFloat, tkEnumeration:
-      GetVariables.Add(Name, TVarDataSource.Create(Value, [viSimpleType]));
-  else
-    raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>
-      (Value.Kind));
+    tkInterface: GetVariables.Add(Name, TVarDataSource.Create(Value.AsInterface as TObject, [viObject]));
+    tkInteger, tkString, tkUString, tkFloat, tkEnumeration : GetVariables.Add(Name, TVarDataSource.Create(Value, [viSimpleType]));
+    else
+      raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>(Value.Kind));
   end;
 
 end;
@@ -3003,7 +3025,7 @@ end;
 
 constructor TTProVariables.Create;
 begin
-  inherited Create([doOwnsValues]);
+  inherited Create([doOwnsValues], TTProVariablesEqualityComparer.Create);
 end;
 
 /// ///////////////////
@@ -3247,6 +3269,19 @@ begin
     aErrorMessage := 'Unknown ttInfo value: ' + aTokenValue1;
     Result := False;
   end;
+end;
+
+{ TTProVariablesEqualityComparer }
+
+function TTProVariablesEqualityComparer.Equals(const Left, Right: String): Boolean;
+begin
+  Result := CompareText(Left, Right) = 0;
+end;
+
+function TTProVariablesEqualityComparer.GetHashCode(const Value: String): Integer;
+begin
+//  Result := BobJenkinsHash(Value[1], Length(Value) * SizeOf(Value[1]), 0);
+  Result := Length(Value);
 end;
 
 initialization
