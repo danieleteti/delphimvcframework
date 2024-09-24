@@ -106,7 +106,7 @@ type
     constructor Create(const VarValue: TValue; const VarOption: TTProVariablesInfos);
   end;
 
-  TTProVariablesEqualityComparer = class(TEqualityComparer<string>)
+  TTProEqualityComparer = class(TEqualityComparer<string>)
   public
     function Equals(const Left, Right: String): Boolean; override;
     function GetHashCode(const Value: String): Integer; override;
@@ -1197,7 +1197,7 @@ begin
   lWithinBlock := False;
   lTemplateSectionType := stUnknown;
   lCheckForUnbalancedPair := True;
-  lBlockDict := TDictionary<string, TBlockAddress>.Create;
+  lBlockDict := TDictionary<string, TBlockAddress>.Create(TTProEqualityComparer.Create);
   try
     lForInStack := TStack<Int64>.Create;
     try
@@ -3025,7 +3025,7 @@ end;
 
 constructor TTProVariables.Create;
 begin
-  inherited Create([doOwnsValues], TTProVariablesEqualityComparer.Create);
+  inherited Create([doOwnsValues], TTProEqualityComparer.Create);
 end;
 
 /// ///////////////////
@@ -3273,12 +3273,12 @@ end;
 
 { TTProVariablesEqualityComparer }
 
-function TTProVariablesEqualityComparer.Equals(const Left, Right: String): Boolean;
+function TTProEqualityComparer.Equals(const Left, Right: String): Boolean;
 begin
   Result := CompareText(Left, Right) = 0;
 end;
 
-function TTProVariablesEqualityComparer.GetHashCode(const Value: String): Integer;
+function TTProEqualityComparer.GetHashCode(const Value: String): Integer;
 begin
 //  Result := BobJenkinsHash(Value[1], Length(Value) * SizeOf(Value[1]), 0);
   Result := Length(Value);
