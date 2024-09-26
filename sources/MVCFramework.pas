@@ -392,6 +392,7 @@ type
     function ClientIp: string;
     function ClientPrefer(const AMediaType: string): Boolean;
     function ClientPreferHTML: Boolean;
+    function ClientPreferredLanguage(): String;
     function GetOverwrittenHTTPMethod: TMVCHTTPMethodType;
 
     function SegmentParam(const AParamName: string; out AValue: string): Boolean;
@@ -1669,6 +1670,15 @@ end;
 function TMVCWebRequest.ClientPreferHTML: Boolean;
 begin
   Result := ClientPrefer(TMVCMediaType.TEXT_HTML);
+end;
+
+function TMVCWebRequest.ClientPreferredLanguage: String;
+begin
+  Result := FWebRequest.GetFieldByName('Accept-Language');
+  if Result.Contains(',') then
+  begin
+    Result := Result.Split([','])[0];
+  end;
 end;
 
 function TMVCWebRequest.ContentParam(const AName: string): string;

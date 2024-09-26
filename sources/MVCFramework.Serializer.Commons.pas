@@ -629,7 +629,15 @@ begin
   begin
     if Attr is MVCNameAsAttribute then
     begin
-      Exit(MVCNameAsAttribute(Attr).Name);
+      Result := MVCNameAsAttribute(Attr).Name;
+      if MVCNameAsAttribute(Attr).Fixed then { if FIXED the attribute NameAs remains untouched }
+      begin
+        Exit
+      end
+      else
+      begin
+        Break;
+      end;
     end;
   end;
 
@@ -641,6 +649,7 @@ begin
       Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AField.Name));
     end;
   end;
+  Result := TMVCSerializerHelper.ApplyNameCase(MVCNameCaseDefault, Result);
 end;
 
 class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>;
