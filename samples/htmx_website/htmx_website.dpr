@@ -13,10 +13,10 @@ uses
   MVCFramework.Logger,
   MVCFramework.DotEnv,
   MVCFramework.Commons,
-  mormot.core.mustache,
   MVCFramework.Signal,
   ControllerU in 'ControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  RandomUtilsU in '..\commons\RandomUtilsU.pas';
 
 {$R *.res}
 

@@ -126,6 +126,7 @@
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
+        <DCCReference Include="..\commons\RandomUtilsU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -170,6 +171,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\htmx_website.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\htmx_website.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>htmx_website.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

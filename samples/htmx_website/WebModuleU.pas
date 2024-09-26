@@ -33,7 +33,8 @@ uses
   MVCFramework.Middleware.Trace,
   MVCFramework.Middleware.CORS,
   MVCFramework.Middleware.ETag,
-  MVCFramework.Middleware.Compression, ControllerU;
+  MVCFramework.Middleware.Compression,
+  ControllerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin

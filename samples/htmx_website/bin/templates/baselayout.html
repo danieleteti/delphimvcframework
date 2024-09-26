@@ -1,3 +1,4 @@
+{{if ispage}}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -55,13 +56,34 @@
             padding: 1rem;
         }
 
+        .right {
+            text-align: end;
+        }
+
+        .center {
+            text-align: center;
+        }        
+
+        table, tr, td, th{
+            padding: 0.2rem;
+        }
+
     </style>
 </head>
 
-<body hx-boost="true">
+<body>
     <main class="container-fluid">
         <div class="parent">
             <!-- Side Navigation -->
             {{include "partials/sidenav.html"}}
             <!-- Main Content Area -->
             <div class="main" id="main">
+{{endif}}            
+{{block "body"}}Please, override block "body"{{endblock}}
+{{if ispage}}
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+{{endif}}

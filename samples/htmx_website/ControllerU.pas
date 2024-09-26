@@ -33,11 +33,17 @@ type
 implementation
 
 uses
-  System.StrUtils, System.SysUtils, MVCFramework.Logger, MVCFramework.HTMX;
+  System.StrUtils, System.SysUtils, MVCFramework.Logger, MVCFramework.HTMX, RandomUtilsU;
 
 function TMyController.Customers: String;
 begin
-  Result := Page(['pages/customers']);
+  var lCustomers := GetPeople();
+  try
+    ViewData['customers'] := lCustomers;
+    Result := Page(['pages/customers']);
+  finally
+    lCustomers.Free;
+  end;
 end;
 
 function TMyController.Home: String;
@@ -54,12 +60,24 @@ end;
 
 function TMyController.Posts: String;
 begin
-  Result := Page(['pages/posts']);
+  var lPosts := GetPosts(20);
+  try
+    ViewData['posts'] := lPosts;
+    Result := Page(['pages/posts']);
+  finally
+    lPosts.Free;
+  end;
 end;
 
 function TMyController.Users: String;
 begin
-  Result := Page(['pages/users']);
+  var lUsers := GetUsers();
+  try
+    ViewData['users'] := lUsers;
+    Result := Page(['pages/users']);
+  finally
+    lUsers.Free;
+  end;
 end;
 
 end.
