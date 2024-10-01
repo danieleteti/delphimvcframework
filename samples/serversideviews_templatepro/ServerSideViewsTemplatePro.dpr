@@ -38,7 +38,7 @@ begin
 {$IFDEF MSWINDOWS}
     ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOW);
 {$ENDIF}
-    LogI('Ctrl+C  to stop the server');
+    LogI('Ctrl+C to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     LServer.Active := False;
@@ -49,7 +49,6 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
-  MVCUseTemplatesCache := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

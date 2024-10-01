@@ -56,10 +56,7 @@ end;
 
 procedure TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
 begin
-  if RQLFilter.IsEmpty then
-    Render(ObjectDict().Add('data', TMVCActiveRecord.All<TCustomer>))
-  else
-    Render(ObjectDict().Add('data', TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000)));
+  Render(ObjectDict().Add('data', TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000)));
 end;
 
 procedure TCustomersController.BulkCreateCustomers(const Customers: TObjectList<TCustomer>);

@@ -16,7 +16,8 @@ uses
   MVCFramework.Signal,
   ControllerU in 'ControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  RandomUtilsU in '..\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\commons\RandomUtilsU.pas',
+  TemplatePro in '..\..\sources\TemplatePro.pas';
 
 {$R *.res}
 
@@ -32,7 +33,7 @@ begin
     LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
     LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
     LServer.Active := True;
-    LogI('Listening on port ' + APort.ToString);
+    LogI('Listening on http://localhost:' + APort.ToString);
     LogI('Application started. Press Ctrl+C to shut down.');
     WaitForTerminationSignal;
     EnterInShutdownState;

@@ -23,7 +23,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -41,7 +41,7 @@ begin
 
     LServer.Active := True;
 
-    WriteLn('CTRL+C to shutdown the server');
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
   finally
     LServer.Free;
@@ -51,6 +51,7 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
+  UseConsoleLogger := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
@@ -58,6 +59,6 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end;
 end.

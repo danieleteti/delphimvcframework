@@ -24,7 +24,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -39,8 +39,8 @@ begin
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
     LServer.Active := True;
-    Writeln('Listening on port ', APort);
-    Writeln('CTRL+C to shutdown the server');
+    LogI('Listening on port ' + APort.ToString);
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
   finally
@@ -58,6 +58,6 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end;
 end.

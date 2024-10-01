@@ -60,7 +60,7 @@ var
 implementation
 
 uses
-  System.UITypes, MVCFramework.DataSet.Utils;
+  System.UITypes, MVCFramework.DataSet.Utils, MVCFramework.Commons, JsonDataObjects;
 
 {$R *.dfm}
 
@@ -197,17 +197,26 @@ begin
 end;
 
 procedure TMainForm.ShowError(const AResponse: IMVCRESTResponse);
+var
+  lJSON: TJsonObject;
+  lMsg: string;
 begin
-  if not AResponse.Success then
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      '[' + AResponse.Content + ']',
-      mtError, [mbOK], 0)
+  if (not AResponse.Success) and
+    AResponse.ContentType.ToLower.Contains(TMVCMediaType.APPLICATION_JSON) then
+  begin
+    lJSON := StrToJSONObject(AResponse.Content);
+    try
+      lMsg := lJSON.S['message'];
+    finally
+      lJSON.Free
+    end;
+  end
   else
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      AResponse.Content,
-      mtError, [mbOK], 0);
+  begin
+    lMsg := AResponse.StatusCode.ToString + ': ' +
+            AResponse.StatusText + sLineBreak + '[' + AResponse.Content + ']';
+  end;
+  MessageDlg(lMsg, mtError, [mbOK], 0);
 end;
 
 end.

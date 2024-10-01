@@ -13,10 +13,10 @@ uses
   Web.HTTPDMethods,
   Winapi.Windows,
   System.Classes,
-  MainDataModuleUnit in '..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
-  MainWebModuleUnit in '..\WineCellarSample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
-  WineCellarAppControllerU in '..\WineCellarSample\winecellarserver\WineCellarAppControllerU.pas',
-  WinesBO in '..\WineCellarSample\winecellarserver\WinesBO.pas';
+  MainDataModuleUnit in '..\wine_cellar_sample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  MainWebModuleUnit in '..\wine_cellar_sample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  WineCellarAppControllerU in '..\wine_cellar_sample\winecellarserver\WineCellarAppControllerU.pas',
+  WinesBO in '..\wine_cellar_sample\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 // httpd.conf entries:

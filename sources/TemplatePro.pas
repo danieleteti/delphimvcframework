@@ -155,6 +155,7 @@ type
 
   TTProCompiledTemplate = class(TInterfacedObject, ITProCompiledTemplate)
   private
+    fLocaleFormatSettings: TFormatSettings;
     fTokens: TList<TToken>;
     fVariables: TTProVariables;
     fTemplateFunctions: TDictionary<string, TTProTemplateFunction>;
@@ -260,7 +261,6 @@ type
   end;
 
 function HTMLEncode(s: string): string;
-function HTMLSpecialCharsEncode(s: string): string;
 function HandleTemplateSectionStateMachine(
   const aTokenValue1: String;
   var aTemplateSectionType: TTProTemplateSectionType;
@@ -315,6 +315,7 @@ type
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
     class function Wrap(const AObjectAsDuck: TObject): ITProWrappedList; static;
   end;
+  TComparandType = (ctEQ, ctNE, ctGT, ctGE, ctLT, ctLE);
 
 var
   GlContext: TRttiContext;
@@ -323,6 +324,112 @@ function WrapAsList(const AObject: TObject): ITProWrappedList;
 begin
   Result := TTProDuckTypedList.Wrap(AObject);
 end;
+
+procedure FunctionError(const aFunctionName, aErrMessage: string);
+begin
+  raise ETProRenderException.Create(Format('%s in function %s', [aErrMessage, aFunctionName])) at ReturnAddress;
+end;
+
+function _Comparand(const aComparandType: TComparandType; const aValue: TValue; const aParameters: TArray<String>; const aLocaleFormatSettings: TFormatSettings): TValue;
+var
+  lInt64Value: Int64;
+  lStrValue: string;
+  lExtendedValue: Extended;
+  function GetComparandResultStr(const aComparandType: TComparandType; const aLeftValue, aRightValue: String): TValue;
+  begin
+    case aComparandType of
+      ctEQ: Result := aLeftValue = aRightValue;
+      ctNE: Result := aLeftValue <> aRightValue;
+      ctGT: Result := aLeftValue > aRightValue;
+      ctGE: Result := aLeftValue >= aRightValue;
+      ctLT: Result := aLeftValue < aRightValue;
+      ctLE: Result := aLeftValue <= aRightValue;
+      else
+        raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
+    end;
+  end;
+begin
+    if Length(aParameters) <> 1 then
+      FunctionError(TRttiEnumerationType.GetName<TComparandType>(aComparandType), 'expected 1 parameter');
+    case aValue.TypeInfo.Kind of
+      tkInteger,tkEnumeration,tkInt64: begin
+        if TryStrToInt64(aParameters[0], lInt64Value) then
+        begin
+          case aComparandType of
+            ctEQ: Result := aValue.AsInt64 = lInt64Value;
+            ctNE: Result := aValue.AsInt64 <> lInt64Value;
+            ctGT: Result := aValue.AsInt64 > lInt64Value;
+            ctGE: Result := aValue.AsInt64 >= lInt64Value;
+            ctLT: Result := aValue.AsInt64 < lInt64Value;
+            ctLE: Result := aValue.AsInt64 <= lInt64Value;
+            else
+              raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
+          end;
+        end
+        else
+          raise ETProRenderException.CreateFmt('Cannot convert comparand value for "%s" function to Integer',
+            [TRttiEnumerationType.GetName<TComparandType>(aComparandType)]);
+      end;
+      tkFloat: begin
+        if aValue.TypeInfo.Name = 'TDateTime' then
+        begin
+          lStrValue := DateTimeToStr(aValue.AsExtended, aLocaleFormatSettings);
+          Result := GetComparandResultStr(aComparandType, lStrValue, aParameters[0]);
+        end
+        else if aValue.TypeInfo.Name = 'TDate' then
+        begin
+          lStrValue := DateToStr(aValue.AsExtended, aLocaleFormatSettings);
+          Result := GetComparandResultStr(aComparandType, lStrValue, aParameters[0]);
+        end
+        else
+        begin
+          if TryStrToFloat(aParameters[0], lExtendedValue) then
+          begin
+            case aComparandType of
+              ctEQ: Result := aValue.AsExtended = lExtendedValue;
+              ctNE: Result := aValue.AsExtended <> lExtendedValue;
+              ctGT: Result := aValue.AsExtended > lExtendedValue;
+              ctGE: Result := aValue.AsExtended >= lExtendedValue;
+              ctLT: Result := aValue.AsExtended < lExtendedValue;
+              ctLE: Result := aValue.AsExtended <= lExtendedValue;
+              else
+                raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
+            end
+          end
+          else
+          begin
+            raise ETProRenderException.Create('Cannot convert comparand value for ''ge'' function');
+          end;
+        end;
+      end;
+      else
+      begin
+        Result := GetComparandResultStr(aComparandType, aValue.AsString, aParameters[0]);
+      end;
+    end;
+end;
+
+function _eq(const aValue: TValue; const aParameters: TArray<String>; const aLocaleFormatSettings: TFormatSettings): TValue;
+var
+  lStrValue: string;
+begin
+  if Length(aParameters) <> 1 then
+    FunctionError('eq/ne', 'expected 1 parameter');
+  if aValue.IsType<String> then
+    Result := aValue.AsString = aParameters[0]
+  else if aValue.IsType<Int64> then
+    Result := aValue.AsInt64 = StrToInt(aParameters[0])
+  else if aValue.IsType<Integer> then
+    Result := aValue.AsInteger = StrToInt64(aParameters[0])
+  else if aValue.IsType<TDateTime> then
+  begin
+    lStrValue := DateTimeToStr(TDate(aValue.AsExtended), aLocaleFormatSettings);
+    Result := lStrValue = aParameters[0];
+  end
+  else
+    FunctionError('eq/ne', 'Unsupported param type for "' + String(aValue.TypeInfo.Name) + '"');
+end;
+
 
 { TParser }
 
@@ -1453,86 +1560,64 @@ function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; aParameters:
   aValue: TValue): TValue;
 var
   lDateValue: TDateTime;
+  lDateFilterFormatSetting: TFormatSettings;
   lStrValue: string;
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
-  lFormatSettings: TFormatSettings;
   lIntegerPar1: Integer;
-  procedure FunctionError(const ErrMessage: string);
-  begin
-    Error(Format('%s in function %s', [ErrMessage, aFunctionName]));
-  end;
-
+  lInt64Value: Int64;
+  lExtendedValue: Double;
 begin
   aFunctionName := lowercase(aFunctionName);
-  if aFunctionName = 'gt' then
+  if SameText(aFunctionName, 'gt') then
   begin
-    if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
-    Result := aValue.AsInt64 > StrToInt64(aParameters[0]);
+    Result := _Comparand(ctGT, aValue, aParameters, fLocaleFormatSettings);
   end
-  else if aFunctionName = 'ge' then
+  else if SameText(aFunctionName, 'ge') then
   begin
-    if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
-    Result := aValue.AsInt64 >= StrToInt64(aParameters[0]);
+    Result := _Comparand(ctGE, aValue, aParameters, fLocaleFormatSettings);
   end
-  else if aFunctionName = 'lt' then
+  else if SameText(aFunctionName, 'lt') then
   begin
-    if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
-    Result := aValue.AsInt64 < StrToInt64(aParameters[0]);
+    Result := _Comparand(ctLT, aValue, aParameters, fLocaleFormatSettings);
   end
-  else if aFunctionName = 'le' then
+  else if SameText(aFunctionName, 'le') then
   begin
-    if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
-    Result := aValue.AsInt64 <= StrToInt64(aParameters[0]);
+    Result := _Comparand(ctLE, aValue, aParameters, fLocaleFormatSettings);
   end
-  else if aFunctionName = 'contains' then
+  else if SameText(aFunctionName, 'eq') then
+  begin
+    Result := _Comparand(ctEQ, aValue, aParameters, fLocaleFormatSettings);
+  end
+  else if SameText(aFunctionName, 'ne') then
+  begin
+    Result := _Comparand(ctNE, aValue, aParameters, fLocaleFormatSettings);
+  end
+  else if SameText(aFunctionName, 'contains') then
   begin
     if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
+      FunctionError(aFunctionName, 'expected 1 parameter');
     Result := aValue.AsString.Contains(aParameters[0]);
   end
-  else if aFunctionName = 'contains_ignore_case' then
+  else if SameText(aFunctionName, 'contains_ignore_case') then
   begin
     if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
+      FunctionError(aFunctionName, 'expected 1 parameter');
     Result := aValue.AsString.ToLowerInvariant.Contains(aParameters[0].ToLowerInvariant);
   end
-  else if (aFunctionName = 'eq') or (aFunctionName = 'ne') then
-  begin
-    if Length(aParameters) <> 1 then
-      FunctionError('expected 1 parameter');
-    if aValue.IsType<String> then
-      Result := aValue.AsString = aParameters[0]
-    else if aValue.IsType<Int64> then
-      Result := aValue.AsInt64 = StrToInt(aParameters[0])
-    else if aValue.IsType<Integer> then
-      Result := aValue.AsInteger = StrToInt64(aParameters[0])
-    else if aValue.IsType<TDate> then
-      Result := TDate(aValue.AsExtended) = TDate(StrToFloat(aParameters[0]))
-    else
-      FunctionError('Unsupported param type for "' + String(aValue.TypeInfo.Name) + '"');
-    if aFunctionName = 'ne' then
-    begin
-      Result := not Result.AsBoolean;
-    end;
-  end
-  else if aFunctionName = 'uppercase' then
+  else if SameText(aFunctionName, 'uppercase') then
   begin
     Result := UpperCase(aValue.AsString);
   end
-  else if aFunctionName = 'lowercase' then
+  else if SameText(aFunctionName, 'lowercase') then
   begin
     Result := lowercase(aValue.AsString);
   end
-  else if aFunctionName = 'capitalize' then
+  else if SameText(aFunctionName, 'capitalize') then
   begin
     Result := CapitalizeString(aValue.AsString, True);
   end
-  else if aFunctionName = 'trunc' then
+  else if SameText(aFunctionName, 'trunc') then
   begin
     CheckParNumber(1, 1, aParameters);
     lStrValue := aValue.AsString.TrimRight;
@@ -1546,14 +1631,14 @@ begin
       Result := lStrValue;
     end;
   end
-  else if aFunctionName = 'rpad' then
+  else if SameText(aFunctionName, 'rpad') then
   begin
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
-      FunctionError('Invalid parameter/s');
+      FunctionError(aFunctionName, 'Invalid parameter/s');
 
     CheckParNumber(1, 2, aParameters);
     if Length(aParameters) = 1 then
@@ -1565,14 +1650,14 @@ begin
       Result := lStrValue.PadRight(aParameters[0].ToInteger, aParameters[1].Chars[0]);
     end;
   end
-  else if aFunctionName = 'lpad' then
+  else if SameText(aFunctionName, 'lpad') then
   begin
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
-      FunctionError('Invalid parameter/s');
+      FunctionError(aFunctionName, 'Invalid parameter/s');
 
     CheckParNumber(1, 2, aParameters);
     if Length(aParameters) = 1 then
@@ -1584,7 +1669,7 @@ begin
       Result := lStrValue.PadLeft(aParameters[0].ToInteger, aParameters[1].Chars[0]);
     end;
   end
-  else if aFunctionName = 'datetostr' then
+  else if SameText(aFunctionName, 'datetostr') then
   begin
     if aValue.IsEmpty then
     begin
@@ -1599,16 +1684,16 @@ begin
       else
       begin
         CheckParNumber(1, aParameters);
-        lFormatSettings.ShortDateFormat := aParameters[0];
-        Result := DateToStr(lDateValue, lFormatSettings)
+        lDateFilterFormatSetting.ShortDateFormat := aParameters[0];
+        Result := DateToStr(lDateValue, lDateFilterFormatSetting)
       end;
     end
     else
     begin
-      FunctionError('Invalid date ' + aValue.AsString.QuotedString);
+      FunctionError(aFunctionName, 'Invalid date ' + aValue.AsString.QuotedString);
     end;
   end
-  else if (aFunctionName = 'datetimetostr') or (aFunctionName = 'formatdatetime') then
+  else if SameText(aFunctionName, 'datetimetostr') or SameText(aFunctionName, 'formatdatetime') then
   begin
     if aValue.IsEmpty then
     begin
@@ -1626,15 +1711,20 @@ begin
     end
     else
     begin
-      FunctionError('Invalid datetime ' + aValue.AsString.QuotedString);
+      FunctionError(aFunctionName, 'Invalid datetime ' + aValue.AsString.QuotedString);
     end;
   end
-  else if aFunctionName = 'empty' then
+  else if SameText(aFunctionName, 'totrue') then
   begin
     CheckParNumber(0, aParameters);
-    Result := TValue.Empty;
+    Result := true;
   end
-  else if aFunctionName = 'version' then
+  else if SameText(aFunctionName, 'tofalse') then
+  begin
+    CheckParNumber(0, aParameters);
+    Result := false;
+  end
+  else if SameText(aFunctionName, 'version') then
   begin
     CheckParNumber(0, aParameters);
     Result := TEMPLATEPRO_VERSION;
@@ -1654,24 +1744,27 @@ begin
 end;
 
 function HTMLEncode(s: string): string;
-begin
-  Result := HTMLSpecialCharsEncode(s);
-end;
-
-function HTMLSpecialCharsEncode(s: string): string;
 var
   I: Integer;
   r: string;
+  b: byte;
 begin
   I := 1;
   while I <= Length(s) do
   begin
     r := '';
-    case ord(s[I]) of
+    b := ord(s[I]);
+    case b of
       ord('>'):
         r := 'gt';
       ord('<'):
         r := 'lt';
+      34:
+        r := '#' + IntToStr(b);
+      39:
+        r := '#' + IntToStr(b);
+      43:
+        r := 'quot';
       160:
         r := 'nbsp';
       161:
@@ -1867,7 +1960,7 @@ begin
     end;
     if r <> '' then
     begin
-      s := s.Replace(s[I], '&' + r + ';');
+      s := s.Replace(s[I], '&' + r + ';', []);
       Inc(I, Length(r) + 1);
     end;
     Inc(I)
@@ -1977,9 +2070,12 @@ begin
   inherited Create;
   fLoopsStack := TObjectList<TLoopStackItem>.Create(True);
   fTokens := Tokens;
-  fTemplateFunctions := TDictionary<string, TTProTemplateFunction>.Create;
+  fTemplateFunctions := TDictionary<string, TTProTemplateFunction>.Create(TTProEqualityComparer.Create);
   fTemplateAnonFunctions := nil;
   TTProConfiguration.RegisterHandlers(self);
+  fLocaleFormatSettings.DateSeparator := '-';
+  fLocaleFormatSettings.TimeSeparator := ':';
+  fLocaleFormatSettings.ShortDateFormat := 'yyyy-mm-dd';
 end;
 
 class function TTProCompiledTemplate.CreateFromFile(const FileName: String): ITProCompiledTemplate;
@@ -2045,7 +2141,6 @@ end;
 
 procedure TTProCompiledTemplate.Error(const aMessage: String);
 begin
-  Writeln(aMessage);
   raise ETProRenderException.Create(aMessage) at ReturnAddress;
 end;
 

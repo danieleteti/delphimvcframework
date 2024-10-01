@@ -8,7 +8,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
 
 type
-  TForm5 = class(TForm)
+  TMainForm = class(TForm)
     btnGet: TButton;
     procedure btnGetClick(Sender: TObject);
   private
@@ -18,7 +18,7 @@ type
   end;
 
 var
-  Form5: TForm5;
+  MainForm: TMainForm;
 
 implementation
 
@@ -28,7 +28,7 @@ uses
   MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient;
 
-procedure TForm5.btnGetClick(Sender: TObject);
+procedure TMainForm.btnGetClick(Sender: TObject);
 var
   lClient: IMVCRESTClient;
   lRest: IMVCRESTResponse;

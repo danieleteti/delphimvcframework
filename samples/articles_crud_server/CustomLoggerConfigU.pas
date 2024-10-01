@@ -55,7 +55,8 @@ begin
      {$IFDEF MSWINDOWS}, TLoggerProOutputDebugStringAppender.Create{$ENDIF}
     ], nil, [
       TLogType.Debug,
-      TLogType.Info, {writes on DB only for INFO+}
+      //TLogType.Info, {writes on DB only for INFO+}
+      TLogType.Debug, {writes on DB only for DEBUG+}
       TLogType.Debug
       {$IFDEF MSWINDOWS}, TLogType.Debug{$ENDIF}
       ]);

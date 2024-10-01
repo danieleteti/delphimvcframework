@@ -127,6 +127,7 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="..\commons\RandomUtilsU.pas"/>
+        <DCCReference Include="..\..\sources\TemplatePro.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

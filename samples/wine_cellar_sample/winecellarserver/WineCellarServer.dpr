@@ -19,6 +19,7 @@ uses
   WineCellarAppControllerU in 'WineCellarAppControllerU.pas',
   MainDataModuleUnit in 'MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule} ,
   WinesBO in 'WinesBO.pas',
+  MVCFramework.Logger,
   IdHTTPWebBrokerBridge;
 
 {$R *.res}
@@ -28,12 +29,12 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press RETURN to stop the server');
+    LogI('Press RETURN to stop the server');
 
     {$IFDEF MSWINDOWS}
 
@@ -52,11 +53,11 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    WebRequestHandlerProc.MaxConnections := 1024; // daniele teti
+    WebRequestHandlerProc.MaxConnections := 1024;
     RunServer(3000);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end
 
 end.
