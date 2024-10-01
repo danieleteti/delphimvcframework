@@ -351,6 +351,10 @@ var
 begin
     if Length(aParameters) <> 1 then
       FunctionError(TRttiEnumerationType.GetName<TComparandType>(aComparandType), 'expected 1 parameter');
+    if aValue.IsEmpty then
+    begin
+      FunctionError(TRttiEnumerationType.GetName<TComparandType>(aComparandType), 'Null variable for comparand');
+    end;
     case aValue.TypeInfo.Kind of
       tkInteger,tkEnumeration,tkInt64: begin
         if TryStrToInt64(aParameters[0], lInt64Value) then
