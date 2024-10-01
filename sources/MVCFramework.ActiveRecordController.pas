@@ -37,7 +37,7 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.RQL.Parser,
   System.Generics.Collections,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Swagger.Commons;
 
 type
 {$SCOPEDENUMS ON}
@@ -57,28 +57,64 @@ type
       const aURLSegment: String = ''); reintroduce; overload;
     destructor Destroy; override;
 
+    function GetURLSegment: String;
+
     [MVCPath('/($entityname)')]
     [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Retrieve a list of {singularmodel}', 'Get{pluralmodel}')]
+    [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
     procedure GetEntities(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/searches')]
-    [MVCHTTPMethod([httpGET, httpPOST])]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Searches through {pluralmodel} and returns a list of {singularmodel}', 'Get{pluralmodel}BySearch')]
+    [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
     procedure GetEntitiesByRQL(const entityname: string); virtual;
+
+    [MVCPath('/($entityname)/searches')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Searches through {pluralmodel} and returns a list of {singularmodel}', 'Get{pluralmodel}BySearchAsPOST')]
+    [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
+    procedure GetEntitiesByRQLwithPOST(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/($id)')]
     [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Gets a {singularmodel} entity or 404 not found', 'Get{singularmodel}ByID')]
+    [MVCSwagResponses(HTTP_STATUS.OK, 'One {singularmodel}', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
     procedure GetEntity(const entityname: string; const id: Integer); virtual;
 
     [MVCPath('/($entityname)')]
     [MVCHTTPMethod([httpPOST])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Creates a {singularmodel} and returns a new id', 'Create{singularmodel}')]
+    [MVCSwagResponses(HTTP_STATUS.Created, 'One {singularmodel}', '')]
+    [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
+    [MVCSwagParam(TMVCSwagParamLocation.plBody, '{singularmodel}', 'A single entity of type {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, True)]
     procedure CreateEntity(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/($id)')]
     [MVCHTTPMethod([httpPUT])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Updates a {singularmodel} by id', 'Update{singularmodel}ByID')]
+    [MVCSwagResponses(HTTP_STATUS.OK, 'One {singularmodel}', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
+    [MVCSwagParam(TMVCSwagParamLocation.plBody, '{singularmodel}', 'A single entity of type {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, True)]
     procedure UpdateEntity(const entityname: string; const id: Integer); virtual;
 
     [MVCPath('/($entityname)/($id)')]
     [MVCHTTPMethod([httpDELETE])]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Deletes a {singularmodel} by id', 'Delete{singularmodel}ByID')]
+    [MVCSwagResponses(HTTP_STATUS.NoContent, '')]
+    [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
+    [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
     procedure DeleteEntity(const entityname: string; const id: Integer); virtual;
 
   end;
@@ -184,29 +220,32 @@ begin
 end;
 
 procedure TMVCActiveRecordController.GetEntitiesByRQL(const entityname: string);
+begin
+  GetEntities(entityname);
+end;
+
+procedure TMVCActiveRecordController.GetEntitiesByRQLwithPOST(const entityname: string);
 var
   lRQL: string;
   lJSON: TJsonObject;
 begin
-  if Context.Request.HTTPMethod = httpPOST then
-  begin
-    lJSON := TJsonObject.Parse(Context.Request.Body) as TJsonObject;
-    try
-      if Assigned(lJSON) then
-      begin
-        lRQL := lJSON.s['rql'];
-      end
-      else
-      begin
-        lRQL := '';
-      end;
-    finally
-      lJSON.Free;
+  lJSON := TJsonObject.Parse(Context.Request.Body) as TJsonObject;
+  try
+    if Assigned(lJSON) then
+    begin
+      lRQL := lJSON.s['rql'];
+    end
+    else
+    begin
+      lRQL := '';
     end;
-    Context.Request.QueryStringParams.Values['rql'] := lRQL;
+  finally
+    lJSON.Free;
   end;
+  Context.Request.QueryStringParams.Values['rql'] := lRQL;
   GetEntities(entityname);
 end;
+
 
 procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);
 var
@@ -262,6 +301,11 @@ end;
 function TMVCActiveRecordController.GetMaxRecordCount: Integer;
 begin
   Result := StrToIntDef(Config[TMVCConfigKey.MaxEntitiesRecordCount], 20);
+end;
+
+function TMVCActiveRecordController.GetURLSegment: String;
+begin
+  Result := fURLSegment;
 end;
 
 function TMVCActiveRecordController.CheckAuthorization(aClass: TMVCActiveRecordClass;

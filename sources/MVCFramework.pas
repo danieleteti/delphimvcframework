@@ -771,6 +771,10 @@ type
     function BadRequestResponse: IMVCResponse; overload;
     function BadRequestResponse(const Message: String): IMVCResponse; overload;
 
+    function UnprocessableContentResponse(const Error: TObject): IMVCResponse; overload;
+    function UnprocessableContentResponse: IMVCResponse; overload;
+    function UnprocessableContentResponse(const Message: String): IMVCResponse; overload;
+
     function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
     function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
 
@@ -4023,11 +4027,6 @@ begin
       'Hint: Messaging extensions require a valid clientid. Did you call /messages/clients/YOUR_CLIENT_ID ?');
 end;
 
-function TMVCRenderer.BadRequestResponse: IMVCResponse;
-begin
-  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil);
-end;
-
 function TMVCRenderer.AcceptedResponse(const Location: string;
   const Body: TObject): IMVCResponse;
 var
@@ -4045,6 +4044,11 @@ begin
   Result := lRespBuilder.StatusCode(HTTP_STATUS.Accepted).Build;
 end;
 
+function TMVCRenderer.BadRequestResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil);
+end;
+
 function TMVCRenderer.BadRequestResponse(const Error: TObject): IMVCResponse;
 begin
   Result := StatusCodeResponse(HTTP_STATUS.BadRequest, Error);
@@ -4054,6 +4058,22 @@ function TMVCRenderer.BadRequestResponse(const Message: String): IMVCResponse;
 begin
   Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil, Message);
 end;
+
+function TMVCRenderer.UnprocessableContentResponse: IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil);
+end;
+
+function TMVCRenderer.UnprocessableContentResponse(const Error: TObject): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, Error);
+end;
+
+function TMVCRenderer.UnprocessableContentResponse(const Message: String): IMVCResponse;
+begin
+  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil, Message);
+end;
+
 
 function TMVCRenderer.ConflictResponse: IMVCResponse;
 begin

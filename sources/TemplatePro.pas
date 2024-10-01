@@ -1565,8 +1565,6 @@ var
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
   lIntegerPar1: Integer;
-  lInt64Value: Int64;
-  lExtendedValue: Double;
 begin
   aFunctionName := lowercase(aFunctionName);
   if SameText(aFunctionName, 'gt') then

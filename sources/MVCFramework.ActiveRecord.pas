@@ -710,6 +710,8 @@ type
     class function CreateMVCActiveRecord<T: TMVCActiveRecord>(AQualifiedClassName: string; const AParams: TArray<TValue> = nil): T;
   end;
 
+  TMVCEntityMapping = TPair<String, TMVCActiveRecordClass>;
+
   IMVCEntitiesRegistry = interface
     ['{BB227BEB-A74A-4637-8897-B13BA938C07B}']
     procedure AddEntity(const aURLSegment: string; const aActiveRecordClass: TMVCActiveRecordClass);
@@ -721,6 +723,7 @@ type
       out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
     function GetEntities: TArray<String>;
+    function GetURLSegmentWithEntities: TArray<TMVCEntityMapping>;
   end;
 
   TMVCEntitiesRegistry = class(TInterfacedObject, IMVCEntitiesRegistry)
@@ -738,6 +741,7 @@ type
     function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
     function GetEntities: TArray<String>;
+    function GetURLSegmentWithEntities: TArray<TMVCEntityMapping>;
   end;
 
   IMVCActiveRecordTableMap = interface
@@ -3783,6 +3787,20 @@ end;
 function TMVCEntitiesRegistry.GetEntities: TArray<String>;
 begin
   Result := fEntitiesDict.Keys.ToArray;
+end;
+
+function TMVCEntitiesRegistry.GetURLSegmentWithEntities: TArray<TMVCEntityMapping>;
+var
+  lPair: TMVCEntityMapping;
+  i: Integer;
+begin
+  SetLength(Result, fEntitiesDict.Count);
+  i := 0;
+  for lPair in fEntitiesDict do
+  begin
+    Result[I] := lPair;
+    Inc(i);
+  end;
 end;
 
 { EMVCActiveRecord }

@@ -921,7 +921,11 @@ begin
 
       lSwagResponse := TSwagResponse.Create;
       lSwagResponse.StatusCode := lSwagResponsesAttr.StatusCode.ToString;
-      lSwagResponse.Description := lSwagResponsesAttr.Description;
+      //lSwagResponse.Description := lSwagResponsesAttr.Description;
+      lSwagResponse.Description := ApplyModelName(
+                                      lSwagResponsesAttr.Description,
+                                      aControllerDefaultModelSingularName,
+                                      aControllerDefaultModelPluralName);
       if not lSwagResponsesAttr.JsonSchema.IsEmpty then
       begin
         lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(lSwagResponsesAttr.JsonSchema) as TJSONObject
