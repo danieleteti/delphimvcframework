@@ -2859,30 +2859,37 @@ begin
                             begin
                               lResponseObject := lInvokeResult.AsObject;
                               try
-                                // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
-                                if lResponseObject is TDataSet then
+                                if lResponseObject <> nil then
                                 begin
-                                  lSelectedController.Render(TDataSet(lResponseObject), False);
-                                end
-                                else if lResponseObject is TStream then
-                                begin
-                                  lContext.Response.RawWebResponse.Content := EmptyStr;
-                                  lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
-                                  lContext.Response.RawWebResponse.ContentStream := TStream(lResponseObject);
-                                  lContext.Response.RawWebResponse.FreeContentStream := True;
-                                  lResponseObject := nil; //do not free it!!
-                                end
-                                else if lResponseObject is TMVCResponse then
-                                begin
-                                  TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
-                                end
-                                else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
-                                begin
-                                  lSelectedController.Render(lObjList);
+                                  // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
+                                  if lResponseObject is TDataSet then
+                                  begin
+                                    lSelectedController.Render(TDataSet(lResponseObject), False);
+                                  end
+                                  else if lResponseObject is TStream then
+                                  begin
+                                    lContext.Response.RawWebResponse.Content := EmptyStr;
+                                    lContext.Response.RawWebResponse.ContentType := lContext.Response.ContentType;
+                                    lContext.Response.RawWebResponse.ContentStream := TStream(lResponseObject);
+                                    lContext.Response.RawWebResponse.FreeContentStream := True;
+                                    lResponseObject := nil; //do not free it!!
+                                  end
+                                  else if lResponseObject is TMVCResponse then
+                                  begin
+                                    TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
+                                  end
+                                  else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
+                                  begin
+                                    lSelectedController.Render(lObjList);
+                                  end
+                                  else
+                                  begin
+                                    lSelectedController.Render(lResponseObject, False);
+                                  end;
                                 end
                                 else
                                 begin
-                                  lSelectedController.Render(lResponseObject, False);
+                                  lSelectedController.Render(TObject(nil));
                                 end;
                               finally
                                 lResponseObject.Free;

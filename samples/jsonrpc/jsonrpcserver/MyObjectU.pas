@@ -44,8 +44,8 @@ type
     // function GetPeopleDataset: TFDMemTable;
     procedure FillPeopleDataset(const DataSet: TDataSet);
   public
-    procedure OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
     procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJDOJsonObject);
+    procedure OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
     procedure OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]

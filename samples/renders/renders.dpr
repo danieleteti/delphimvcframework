@@ -36,6 +36,7 @@ uses
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Console,
+  MVCFramework.Logger,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
@@ -55,17 +56,17 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
     TextColor(Red);
-    Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
+    LogI('DMVCFRAMEWORK VERSION: ' + DMVCFRAMEWORK_VERSION);
     ResetConsole;
-    Writeln('Press RETURN to stop the server');
+    LogI('Press RETURN to stop the server');
     WaitForReturn;
-    Writeln('Stopping...');
+    LogI('Stopping...');
   finally
     LServer.Free;
   end;
@@ -74,13 +75,14 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   MVCSerializeNulls := True;
+  UseConsoleLogger := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end
 
 end.

@@ -345,11 +345,12 @@ begin
       lErrResponse.ClassName,
       lErrResponse.AppErrorCode,
       nil);
-  end;
-
-  if Result.IsEmpty then
+  end else if aObject = nil then
   begin
-    RaiseNotImplemented
+    Result := '';
+  end else
+  begin
+    RaiseNotImplemented;
   end;
 end;
 

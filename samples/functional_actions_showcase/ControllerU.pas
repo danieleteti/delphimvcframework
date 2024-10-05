@@ -4,7 +4,8 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  System.Generics.Collections, Data.DB, JsonDataObjects, System.Rtti;
+  System.Generics.Collections, Data.DB, JsonDataObjects, System.Rtti,
+  System.Classes;
 
 type
   TPersonRec = record
@@ -43,11 +44,15 @@ type
     [MVCPath('/records/multiple')]
     function GetMultipleRecords: TArray<TPersonRec>;
 
-    { actions returning objects }
+    { actions returning objects and binary data}
     [MVCPath('/objects/single')]
     function GetSingleObject: TPerson;
     [MVCPath('/objects/multiple')]
     function GetMultipleObjects: TObjectList<TPerson>;
+    [MVCPath('/files/customers/($ID)')]
+    function GetCustomerPhoto(const ID: Integer): TStream;
+    [MVCPath('/files/sea/($ID)')]
+    function GetSeaPhoto(const ID: Integer): TStream;
 
     { actions returning json }
     [MVCPath('/objects/jsonobject')]
@@ -107,9 +112,26 @@ implementation
 
 uses
   System.SysUtils, MVCFramework.Logger, System.StrUtils, System.DateUtils,
-  MainDMU, FireDAC.Comp.Client, MVCFramework.FireDAC.Utils;
+  MainDMU, FireDAC.Comp.Client, MVCFramework.FireDAC.Utils, System.IOUtils;
 
 { TMyController }
+
+function TMyController.GetSeaPhoto(const ID: Integer): TStream;
+var
+  lBasePath: String;
+begin
+  lBasePath := TPath.Combine(TPath.Combine(AppPath, '..', '..','..'), '_', 'Image%.5d.jpg');
+  lBasePath := Format(lBasePath, [ID]);
+  if not TFile.Exists(lBasePath) then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.NotFound, 'File not found');
+  end
+  else
+  begin
+    ContentType := TMVCMediaType.IMAGE_PNG;
+    Result := TFileStream.Create(lBasePath, fmOpenRead or fmShareDenyWrite);
+  end;
+end;
 
 function TMyController.GetSingleDataSet: TDataSet;
 begin
@@ -307,6 +329,12 @@ end;
 function TMyController.GetConcatAsString(const A, B: String): String;
 begin
   Result :=  A + B;
+end;
+
+function TMyController.GetCustomerPhoto(const ID: Integer): TStream;
+begin
+  ContentType := TMVCMediaType.IMAGE_PNG;  // you can also use MVCProduces attribute
+  Result := TFileStream.Create('..\..\..\_\customer.png', fmOpenRead or fmShareDenyWrite);
 end;
 
 function TMyController.GetGeneralException: Integer;

@@ -243,8 +243,13 @@ type
     procedure RaiseExceptionHTML;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customserializationtype')]
-    procedure GetCustomSerializationType;
+    [MVCPath('/customserializationtype/root')]
+    procedure GetCustomSerializationTypeROOT;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customserializationtype/attribute')]
+    procedure GetCustomSerializationTypeATTRIBUTE;
+
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/simplearray')]
@@ -716,9 +721,15 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomSerializationType;
+procedure TRenderSampleController.GetCustomSerializationTypeATTRIBUTE;
 begin
-  // TSysUser contains a type with a custom serializer
+  // TSysUser2 contains a type with a custom serializer
+  Render(TSysUser2.Create('daniele', ['poweruser', 'role1', 'role2']), True);
+end;
+
+procedure TRenderSampleController.GetCustomSerializationTypeROOT;
+begin
+  // TSysUser is a type with a custom serializer
   Render(TSysUser.Create('daniele', ['poweruser', 'role1', 'role2']), True);
 end;
 
