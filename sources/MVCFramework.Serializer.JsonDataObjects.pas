@@ -864,6 +864,9 @@ begin
           ftTimeStamp:
             AJsonArray.Add(DateTimeToISOTimeStamp(SQLTimeStampToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStamp)));
 
+          ftTimeStampOffset:
+            AJsonArray.Add(DateTimeToISOTimeStamp(SQLTimeStampOffsetToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStampOffset)));
+
           ftCurrency:
             AJsonArray.Add(ADataSet.Fields[lField.I].AsCurrency);
 
@@ -2176,6 +2179,9 @@ begin
         TFieldType.ftDateTime, TFieldType.ftTimeStamp:
           Field.AsDateTime := ISOTimeStampToDateTime(AJSONObject.S[lName]);
 
+        TFieldType.ftTimeStampOffset:
+          Field.AsSQLTimeStampOffset := DateTimeToSQLTimeStampOffset(ISOTimeStampToDateTime(AJSONObject.S[lName]));
+
         TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJSONObject.S[lName]);
 
@@ -2299,7 +2305,7 @@ begin
           Field.AsDateTime := ISOTimeStampToDateTime(AJSONObject.S[lName]);
 
         TFieldType.ftTimeStampOffset:
-          Field.AsSQLTimeStampOffset :=  StrToSQLTimeStampOffset(AJSONObject.S[lName]);
+          Field.AsSQLTimeStampOffset := DateTimeToSQLTimeStampOffset(ISOTimeStampToDateTime(AJSONObject.S[lName]));
 
         TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJSONObject.S[lName]);
