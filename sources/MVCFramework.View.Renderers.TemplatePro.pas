@@ -79,7 +79,7 @@ begin
   end
   else
   begin
-    if TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then
+    if (aValue.AsObject <> nil) and TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then
     begin
       Result := lWrappedList.Count;
     end
@@ -176,7 +176,7 @@ begin
     end;
     lCompiledTemplate.AddFilter('json', DumpAsJSONString);
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
-    lCompiledTemplate.AddFilter('query',
+    lCompiledTemplate.AddFilter('fromquery',
       function (const aValue: TValue; const aParameters: TArray<string>): TValue
       begin
         if Length(aParameters) = 1 then

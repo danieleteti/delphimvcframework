@@ -923,6 +923,7 @@ type
     ///   PageFragment ignore header and footer views
     /// </summary>
     function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
+    function Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
 
     /// <summary>
     ///   Page calls GetRenderedView with sensible defaults.
@@ -4390,6 +4391,11 @@ begin
     Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel)
   else
     Result := GetRenderedView(AViewNames, JSONModel)
+end;
+
+function TMVCController.Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean): string;
+begin
+  Result := Page([AViewName], UseCommonHeadersAndFooters);
 end;
 
 function TMVCController.PageFragment(const AViewNames: TArray<string>;
