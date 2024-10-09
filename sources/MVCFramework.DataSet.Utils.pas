@@ -39,13 +39,14 @@ uses
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
   MVCFramework.RESTClient.Intf,
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient, MVCFramework.JSONRPC;
 
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
 
   TDataSetHelper = class helper for TDataSet
   public
+    procedure LoadFromJSONRPCResponse(const Value: IJSONRPCResponse; const aNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault);
     procedure LoadFromTValue(const Value: TValue;
       const aNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault);
     function AsJSONArray(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault): string;
@@ -190,8 +191,14 @@ begin
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try
-    lSer.JsonArrayToDataSet(TJSONArray(Value.AsObject), Self, [],
-      TMVCNameCase.ncUseDefault);
+    DisableControls;
+    try
+      lSer.JsonArrayToDataSet(TJSONArray(Value.AsObject), Self, [],
+        TMVCNameCase.ncUseDefault);
+      First;
+    finally
+      EnableControls;
+    end;
   finally
     lSer.Free;
   end;
@@ -462,6 +469,11 @@ begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
   lSerializer.DeserializeDataSetRecord(JSONObjectString, Self,
     TMVCIgnoredList(IgnoredFields), FieldNameCase);
+end;
+
+procedure TDataSetHelper.LoadFromJSONRPCResponse(const Value: IJSONRPCResponse; const aNameCase: TMVCNameCase);
+begin
+  LoadFromTValue(Value.Result, aNameCase);
 end;
 
 procedure TDataSetHelper.LoadFromJSONObject(const JSONObject: TJSONObject;

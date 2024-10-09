@@ -33,7 +33,8 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC, CommonTypesU;
+  MVCFramework.Commons, MVCFramework,
+  MVCFramework.JSONRPC, CommonTypesU;
 
 type
 
@@ -49,6 +50,7 @@ type
     procedure OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
+    [MVCJSONRPCAllowGET]
     function Subtract(Value1, Value2: Integer): Integer;
     [MVCDoc('Returns the revers of the string passed as input')]
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;

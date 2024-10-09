@@ -328,16 +328,24 @@ begin
   lReq.Params.Add(edtUserName.Text);
   FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
   procedure(Resp: IJSONRPCResponse)
-  var
-    lJSON: TJsonObject;
   begin
     // Remember that TObject descendants (but TDataset, TJDOJSONObject and TJDOJSONArray)
-    // are serialized as JSON objects
-    lJSON := Resp.Result.AsObject as TJsonObject;
-    lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
-    lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
-    lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
-    lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+    // are serialized as JSON objects, so you can always read the JSON object
+    //    lJSON := Resp.Result.AsObject as TJsonObject;
+    //    lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
+    //    lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
+    //    lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
+    //    lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+    var lPerson := TPerson.Create;
+    try
+      Resp.ResultAs(lPerson);
+      lbPerson.Items.Add('First Name:'.PadRight(15) + lPerson.FirstName);
+      lbPerson.Items.Add('Last Name:'.PadRight(15) + lPerson.LastName);
+      lbPerson.Items.Add('Married:'.PadRight(15) + lPerson.Married.ToString(TUseBoolStrs.True));
+      lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lPerson.DOB));
+    finally
+      lPerson.Free;
+    end;
   end);
 end;
 
@@ -790,8 +798,7 @@ begin
     procedure(Resp: IJSONRPCResponse)
     begin
       FDMemTable1.Active := True;
-      FDMemTable1.LoadFromTValue(Resp.Result);
-      FDMemTable1.First;
+      FDMemTable1.LoadFromJSONRPCResponse(Resp);
     end,
     procedure(Exc: Exception)
     begin
@@ -814,31 +821,26 @@ begin
         Sleep(1000 + Random(3000));
       end;
       Log.Debug('REQUEST : ' + JSONRPCObject.ToString(True), 'jsonrpc');
-    end);
-
-  FExecutor.SetOnReceiveResponseAsync(
+    end)
+    .SetOnReceiveResponseAsync(
     procedure(Req, Resp: IJSONRPCObject)
     begin
       Log.Debug('>> OnReceiveResponse // start', 'jsonrpc');
       Log.Debug('     REQUEST : ' + Req.ToString(True), 'jsonrpc');
       Log.Debug('     RESPONSE: ' + Resp.ToString(True), 'jsonrpc');
       Log.Debug('<< OnReceiveResponse // end', 'jsonrpc');
-    end);
-
-  FExecutor.SetOnReceiveHTTPResponseAsync(
+    end)
+    .SetOnReceiveHTTPResponseAsync(
     procedure(HTTPResp: IHTTPResponse)
     begin
       Log.Debug('RESPONSE: ' + HTTPResp.ContentAsString(), 'jsonrpc');
+    end)
+    .SetConfigureHTTPClientAsync(
+    procedure (HTTPClient: THTTPClient)
+    begin
+      HTTPClient.ResponseTimeout := 20000;
+      HTTPClient.CustomHeaders['X-DMVCFRAMEWORK'] := 'DMVCFRAMEWORK_VERSION ' + DMVCFRAMEWORK_VERSION;
     end);
-
-
-  FExecutor.SetConfigureHTTPClientAsync(
-      procedure (HTTPClient: THTTPClient)
-      begin
-        HTTPClient.ResponseTimeout := 20000;
-        HTTPClient.CustomHeaders['X-DMVCFRAMEWORK'] := 'DMVCFRAMEWORK_VERSION ' + DMVCFRAMEWORK_VERSION;
-      end);
-
 
   dtNextMonday.Date := Date;
   // these are the methods to handle http headers in JSONRPC

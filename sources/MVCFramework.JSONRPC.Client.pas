@@ -74,6 +74,7 @@ type
     function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnReceiveHTTPResponse(const aOnReceiveHTTPResponse: TProc<IHTTPResponse>): IMVCJSONRPCExecutor;
     //end events
+    //"constructors"
     function CreateRequest(const MethodName: String; const RequestID: UInt64): IJSONRPCRequest; overload;
     function CreateRequest(const MethodName: String; const RequestID: String): IJSONRPCRequest; overload;
     function CreateNotification(const MethodName: String): IJSONRPCNotification;

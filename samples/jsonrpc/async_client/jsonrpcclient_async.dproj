@@ -108,12 +108,12 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="..\..\commons\RandomUtilsU.pas"/>
-        <DCCReference Include="..\..\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="..\CommonTypesU.pas"/>
         <DCCReference Include="WaitingFormU.pas">
             <Form>WaitingForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="..\..\commons\BusinessObjectsU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

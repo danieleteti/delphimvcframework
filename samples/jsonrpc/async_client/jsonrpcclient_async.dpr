@@ -4,9 +4,9 @@ uses
   Vcl.Forms,
   MainClientFormU in 'MainClientFormU.pas' {MainForm},
   RandomUtilsU in '..\..\commons\RandomUtilsU.pas',
-  BusinessObjectsU in '..\..\commons\BusinessObjectsU.pas',
   CommonTypesU in '..\CommonTypesU.pas',
-  WaitingFormU in 'WaitingFormU.pas' {WaitingForm};
+  WaitingFormU in 'WaitingFormU.pas' {WaitingForm},
+  BusinessObjectsU in '..\..\commons\BusinessObjectsU.pas';
 
 {$R *.res}
 
