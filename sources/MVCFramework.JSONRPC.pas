@@ -41,8 +41,8 @@ uses
   MVCFramework.Commons,
   System.Rtti,
   System.Generics.Collections,
-  MVCFramework.Serializer.JsonDataObjects,
-  System.SysUtils, MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons,
+  System.SysUtils;
 
 const
   JSONRPC_VERSION = '2.0';
@@ -1775,12 +1775,16 @@ var
   lRTTIMethodParam: TRttiParameter;
   lJSONParams: TJDOJsonArray;
   lJSONNamedParams: TJDOJsonObject;
-  I, lParamsCount: Integer;
+  I, lParamsCount, lParamsCountMinusInjectedOnes: Integer;
   lUseNamedParams: Boolean;
   lParamsArray: TArray<TValue>;
   lParamsIsRecord: TArray<Boolean>;
   lRecordsPointer: TArray<PByte>;
   lParamArrayLength: TArray<Integer>;
+  lInjectAttribute: MVCInjectAttribute;
+  lIntf: IInterface;
+  lOutIntf: IInterface;
+  lInjectedParamsFoundSoFar: Integer;
   function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string): TJsonDataValueHelper;
   var
     I: Integer;
@@ -1820,24 +1824,33 @@ begin
   lRTTIMethodParams := RTTIMethod.GetParameters;
   lParamsCount := Length(lRTTIMethodParams);
 
+  lParamsCountMinusInjectedOnes := lParamsCount;
+  for lRTTIMethodParam in lRTTIMethodParams do
+  begin
+    if TRttiUtils.HasAttribute<MVCInjectAttribute>(lRTTIMethodParam) then
+    begin
+      Dec(lParamsCountMinusInjectedOnes);
+    end;
+  end;
+
   if lUseNamedParams then
   begin
-    if (lParamsCount > 0) and (not Assigned(lJSONNamedParams)) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].', [lParamsCount, 0]);
+    if (lParamsCountMinusInjectedOnes > 0) and (not Assigned(lJSONNamedParams)) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].', [lParamsCountMinusInjectedOnes, 0]);
 
-    if Assigned(lJSONNamedParams) and (lParamsCount <> lJSONNamedParams.Count) then
+    if Assigned(lJSONNamedParams) and (lParamsCountMinusInjectedOnes <> lJSONNamedParams.Count) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [lParamsCount, lJSONNamedParams.Count]);
   end
   else
   begin
-    if (lParamsCount > 0) and (not Assigned(lJSONParams)) then
+    if (lParamsCountMinusInjectedOnes > 0) and (not Assigned(lJSONParams)) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
-        [lParamsCount, 0]);
+        [lParamsCountMinusInjectedOnes, 0]);
 
-    if Assigned(lJSONParams) and (lParamsCount <> lJSONParams.Count) then
+    if Assigned(lJSONParams) and (lParamsCountMinusInjectedOnes <> lJSONParams.Count) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
-        [lParamsCount, lJSONParams.Count]);
+        [lParamsCountMinusInjectedOnes, lJSONParams.Count]);
   end;
 
   for lRTTIMethodParam in lRTTIMethodParams do
@@ -1856,38 +1869,64 @@ begin
   SetLength(lRecordsPointer, lParamsCount);
   SetLength(lParamArrayLength, lParamsCount);
   try
+    lInjectedParamsFoundSoFar := 0;
     // scroll json params and rttimethod params and find the best match
-    if Assigned(lJSONParams) then
+
+    for I := 0 to lParamsCount - 1 do
     begin
-      // positional params
-      for I := 0 to lJSONParams.Count - 1 do
+      if TRttiUtils.HasAttribute<MVCInjectAttribute>(lRTTIMethodParams[I], lInjectAttribute) then
       begin
-        JSONDataValueToTValueParamEx(
-          fSerializer,
-          lJSONParams[I],
-          lRTTIMethodParams[I],
-          lParamsArray[I],
-          lParamsIsRecord[I],
-          lRecordsPointer[I],
-          lParamArrayLength[i]
-          );
-      end;
-    end
-    else if Assigned(lJSONNamedParams) then
-    begin
-      // named params
-      for I := 0 to lJSONNamedParams.Count - 1 do
+        lIntf := Context.ServiceContainerResolver.Resolve(lRTTIMethodParams[I].ParamType.Handle, lInjectAttribute.ServiceName);
+        Supports(lIntf, lRTTIMethodParams[I].ParamType.Handle.TypeData.GUID, lOutIntf);
+        TValue.Make(@lOutIntf, lRTTIMethodParams[I].ParamType.Handle, lParamsArray[I]);
+        Inc(lInjectedParamsFoundSoFar);
+      end
+      else
       begin
-        JSONDataValueToTValueParamEx(
-          fSerializer,
-          GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
-          lRTTIMethodParams[I],
-          lParamsArray[I],
-          lParamsIsRecord[I],
-          lRecordsPointer[I],
-          lParamArrayLength[i]);
+        if lUseNamedParams then
+        begin
+          JSONDataValueToTValueParamEx(
+            fSerializer,
+            GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
+            lRTTIMethodParams[I],
+            lParamsArray[I],
+            lParamsIsRecord[I],
+            lRecordsPointer[I],
+            lParamArrayLength[i]);
+        end
+        else
+        begin
+          JSONDataValueToTValueParamEx(
+            fSerializer,
+            lJSONParams[I - lInjectedParamsFoundSoFar],
+            lRTTIMethodParams[I],
+            lParamsArray[I],
+            lParamsIsRecord[I],
+            lRecordsPointer[I],
+            lParamArrayLength[i]
+            );
+        end;
       end;
     end;
+
+    //do we consumes all parameters (considering the injected ones?)
+    if not lUseNamedParams then
+    begin
+      if Assigned(lJSONParams) and (lJSONParams.Count + lInjectedParamsFoundSoFar <> lParamsCount) then
+        raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
+          [lParamsCount - lInjectedParamsFoundSoFar, lJSONParams.Count + lInjectedParamsFoundSoFar]);
+      if (not Assigned(lJSONParams)) and (lInjectedParamsFoundSoFar <> lParamsCount) then
+        raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
+          [lParamsCount - lInjectedParamsFoundSoFar, 0]);
+    end;
+
+    if lUseNamedParams then
+    begin
+      if lJSONNamedParams.Count + lInjectedParamsFoundSoFar <> lParamsCount then
+        raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
+          [lParamsCount - lInjectedParamsFoundSoFar, lJSONNamedParams.Count + lInjectedParamsFoundSoFar]);
+    end;
+
 
     TryToCallMethod(RTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, JSON);
     BeforeCallHookHasBeenInvoked := True;
@@ -2214,7 +2253,6 @@ begin
     for I := 0 to lJSONNamedParams.Count - 1 do
     begin
       JSONDataValueToTValueParam(GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
-      { lJSONNamedParams.Values[lRTTIMethodParams[I].Name.ToLower], }
       lRTTIMethodParams[I], Params);
     end;
   end;

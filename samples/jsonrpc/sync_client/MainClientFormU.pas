@@ -300,7 +300,6 @@ procedure TMainForm.btnGetUserClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
-  lJSON: TJsonObject;
 begin
   lbPerson.Clear;
   lReq := TJSONRPCRequest.Create;

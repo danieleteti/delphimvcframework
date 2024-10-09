@@ -65,12 +65,13 @@ type
     [MVCJSONRPCAllowGET]
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
-    function SavePerson(const Person: TJsonObject): Integer;
+    function SavePerson(const Person: TPerson): Integer;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     procedure RaiseCustomException;
     function RaiseGenericException(const ExceptionType: Integer): Integer;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+
     //enums and sets support
     function PassingEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
     function GetSetBySet(Value: TSetTest): TSetTest;
@@ -383,7 +384,7 @@ begin
   end;
 end;
 
-function TMyObject.SavePerson(const Person: TJsonObject): Integer;
+function TMyObject.SavePerson(const Person: TPerson): Integer;
 // var
 // lPerson: TPerson;
 begin
@@ -427,7 +428,10 @@ end;
 procedure TMyObject.OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnAfterCallHook >> ', 'jsonrpc');
-  Log.Info(sLineBreak + JSONResponse.ToJSON(False), 'jsonrpc');
+  if Assigned(JSONResponse) then
+  begin
+    Log.Info(sLineBreak + JSONResponse.ToJSON(False), 'jsonrpc');
+  end;
   Log.Info('TMyObjectWithHooks.OnAfterCallHook << ', 'jsonrpc');
 end;
 

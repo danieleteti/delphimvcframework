@@ -159,7 +159,7 @@ type
   private
     fExecutor: IMVCJSONRPCExecutorAsync;
     fExecutorAsync: IMVCJSONRPCExecutorAsync;
-    fGeneralErrorHandler : TJSONRPCErrorHandlerProc;
+    fGeneralErrorHandler: TJSONRPCErrorHandlerProc;
     fWaiting: TWaitingForm;
   public
     { Public declarations }
@@ -196,7 +196,7 @@ begin
   lReq.Method := 'getnextmonday';
   lReq.RequestID := Random(1000);
   lReq.Params.Add(dtNextMonday.Date);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       dtNextMonday.Date := ISODateToDate(Resp.Result.AsString);
@@ -219,14 +219,14 @@ begin
   lComplex.ArrayProp2[0] := TTestRec.Create(10);
   lComplex.ArrayProp2[1] := TTestRec.Create(10);
   lReq.Params.Add(TValue.From<TNestedArraysRec>(lComplex), pdtRecordOrArrayOfRecord);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       lComplex := TJSONUtils.JSONObjectToRecord<TNestedArraysRec>(Resp);
       lbLogRec.Lines.Clear;
       lbLogRec.Lines.Add(lComplex.ToString);
     end,
-    procedure (Exc: Exception)
+    procedure(Exc: Exception)
     begin
       ShowMessage(Exc.ClassName + ': ' + Exc.Message);
     end);
@@ -241,7 +241,7 @@ begin
   lReq.Params.Add(Time(), pdtTime);
   lReq.Params.Add(Date(), pdtDate);
   lReq.Params.Add(Now(), pdtDateTime);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       ShowMessage(Resp.Result.AsString);
@@ -261,20 +261,20 @@ begin
   lPeople[0] := TTestRec.Create(1);
   lPeople[1] := TTestRec.Create(2);
   lReq.Params.Add(TValue.From<TTestRecDynArray>(lPeople), pdtRecordOrArrayOfRecord);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-  procedure(Resp: IJSONRPCResponse)
-  begin
-    lPeople := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(Resp);
-    lbLogRec.Lines.Clear;
-    lbLogRec.Lines.Add('--- array of record elements ---');
-    I := 1;
-    for var lPRec in lPeople do
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(Resp: IJSONRPCResponse)
     begin
-      lbLogRec.Lines.Add('ITEM: ' + I.ToString);
-      lbLogRec.Lines.Add(lPRec.ToString);
-      Inc(I);
-    end;
-  end);
+      lPeople := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(Resp);
+      lbLogRec.Lines.Clear;
+      lbLogRec.Lines.Add('--- array of record elements ---');
+      I := 1;
+      for var lPRec in lPeople do
+      begin
+        lbLogRec.Lines.Add('ITEM: ' + I.ToString);
+        lbLogRec.Lines.Add(lPRec.ToString);
+        Inc(I);
+      end;
+    end);
 end;
 
 procedure TMainForm.btnExceptionClick(Sender: TObject);
@@ -283,7 +283,7 @@ var
 begin
   ShowMessage('Now will be raised a custom exception on the server. This exception will be catched by the client');
   lReq := TJSONRPCNotification.Create('RaiseCustomException');
-  FExecutor.ExecuteNotificationAsync('/jsonrpc', lReq, fGeneralErrorHandler);
+  fExecutor.ExecuteNotificationAsync('/jsonrpc', lReq, fGeneralErrorHandler);
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
@@ -294,7 +294,7 @@ begin
   lReq := TJSONRPCRequest.Create(1234, 'floatstest');
   lReq.Params.Add(1234.5678, pdtFloat);
   lReq.Params.Add(2345.6789, pdtFloat);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       lRes := Resp.Result.AsType<Extended>;
@@ -304,15 +304,15 @@ begin
       lReq := TJSONRPCRequest.Create(1234, 'floatstest');
       lReq.Params.Add(123);
       lReq.Params.Add(234);
-      FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-      procedure(Resp: IJSONRPCResponse)
-      var
-        lRes: Extended;
-      begin
-        lRes := Resp.Result.AsType<Extended>;
-        lRes := RoundTo(lRes, -4);
-        Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
-      end);
+      fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+        procedure(Resp: IJSONRPCResponse)
+        var
+          lRes: Extended;
+        begin
+          lRes := Resp.Result.AsType<Extended>;
+          lRes := RoundTo(lRes, -4);
+          Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
+        end);
     end);
 
 end;
@@ -326,27 +326,28 @@ begin
   lReq.Method := 'getuser';
   lReq.RequestID := Random(1000);
   lReq.Params.Add(edtUserName.Text);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-  procedure(Resp: IJSONRPCResponse)
-  begin
-    // Remember that TObject descendants (but TDataset, TJDOJSONObject and TJDOJSONArray)
-    // are serialized as JSON objects, so you can always read the JSON object
-    //    lJSON := Resp.Result.AsObject as TJsonObject;
-    //    lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
-    //    lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
-    //    lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
-    //    lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
-    var lPerson := TPerson.Create;
-    try
-      Resp.ResultAs(lPerson);
-      lbPerson.Items.Add('First Name:'.PadRight(15) + lPerson.FirstName);
-      lbPerson.Items.Add('Last Name:'.PadRight(15) + lPerson.LastName);
-      lbPerson.Items.Add('Married:'.PadRight(15) + lPerson.Married.ToString(TUseBoolStrs.True));
-      lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lPerson.DOB));
-    finally
-      lPerson.Free;
-    end;
-  end);
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(Resp: IJSONRPCResponse)
+    begin
+      // Remember that TObject descendants (but TDataset, TJDOJSONObject and TJDOJSONArray)
+      // are serialized as JSON objects, so you can always read the JSON object
+      // lJSON := Resp.Result.AsObject as TJsonObject;
+      // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
+      // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
+      // lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
+      // lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+      var
+      lPerson := TPerson.Create;
+      try
+        Resp.ResultAs(lPerson);
+        lbPerson.Items.Add('First Name:'.PadRight(15) + lPerson.FirstName);
+        lbPerson.Items.Add('Last Name:'.PadRight(15) + lPerson.LastName);
+        lbPerson.Items.Add('Married:'.PadRight(15) + lPerson.Married.ToString(TUseBoolStrs.True));
+        lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lPerson.DOB));
+      finally
+        lPerson.Free;
+      end;
+    end);
 end;
 
 procedure TMainForm.btnInvalid1Click(Sender: TObject);
@@ -356,11 +357,11 @@ begin
   lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod1';
   lReq.Params.Add(1);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-  procedure(Resp: IJSONRPCResponse)
-  begin
-    ShowMessage(Resp.Error.ErrMessage);
-  end);
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(Resp: IJSONRPCResponse)
+    begin
+      ShowMessage(Resp.Error.ErrMessage);
+    end);
 end;
 
 procedure TMainForm.btnInvalid2Click(Sender: TObject);
@@ -370,10 +371,8 @@ begin
   lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  FExecutor.ExecuteNotificationAsync(
-    '/jsonrpc',
-    lReq,
-    procedure (Exc: Exception)
+  fExecutor.ExecuteNotificationAsync('/jsonrpc', lReq,
+    procedure(Exc: Exception)
     begin
       ShowMessage(Exc.Message);
     end);
@@ -385,15 +384,15 @@ var
 begin
   lNotification := TJSONRPCNotification.Create;
   lNotification.Method := 'notexists';
-  FExecutor.ExecuteNotificationAsync('/jsonrpc', lNotification);
+  fExecutor.ExecuteNotificationAsync('/jsonrpc', lNotification);
 end;
 
 procedure TMainForm.btnNotificationClick(Sender: TObject);
 var
   lNotification: IJSONRPCNotification;
 begin
-  lNotification := FExecutor.CreateNotification('dosomething');
-  FExecutor.ExecuteNotificationAsync('/jsonrpc', lNotification);
+  lNotification := fExecutor.CreateNotification('dosomething');
+  fExecutor.ExecuteNotificationAsync('/jsonrpc', lNotification);
 end;
 
 procedure TMainForm.btnObjDictClick(Sender: TObject);
@@ -404,7 +403,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getobjdict');
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(JSONRPCResponse: IJSONRPCResponse)
     begin
       lMultiDS := TMultiDataset.Create;
@@ -440,14 +439,14 @@ procedure TMainForm.btnReverseStringClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
 begin
-  lReq := FExecutor.CreateRequest('reversestring', Random(1000));
+  lReq := fExecutor.CreateRequest('reversestring', Random(1000));
   lReq.Params.AddByName('aString', edtReverseString.Text);
   lReq.Params.AddByName('aUpperCase', CheckBox1.Checked);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-  procedure (Resp: IJSONRPCResponse)
-  begin
-    edtReversedString.Text := Resp.Result.AsString;
-  end);
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(Resp: IJSONRPCResponse)
+    begin
+      edtReversedString.Text := Resp.Result.AsString;
+    end);
 end;
 
 procedure TMainForm.btnSaveClick(Sender: TObject);
@@ -464,7 +463,7 @@ begin
   lPerson.LastName := edtLastName.Text;
   lPerson.Married := chkMarried.Checked;
   lPerson.DOB := dtDOB.Date;
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       ShowMessage('Person saved with ID = ' + Resp.Result.AsInteger.ToString);
@@ -482,7 +481,7 @@ begin
   lReq.Method := 'searchproducts';
   lReq.RequestID := 1234;
   lReq.Params.Add(edtSearchText.Text);
-  FExecutor.ExecuteRequestAsync('/rpcdatamodule', lReq,
+  fExecutor.ExecuteRequestAsync('/rpcdatamodule', lReq,
     procedure(Resp: IJSONRPCResponse)
     var
       I: Integer;
@@ -493,7 +492,8 @@ begin
       for I := 0 to lJSON.Count - 1 do
       begin
         lJObj := lJSON[I].ObjectValue;
-        ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
+        ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'],
+          lJObj.F['prezzo']]));
       end;
     end);
 end;
@@ -505,7 +505,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'GetPersonRec';
   lReq.RequestID := Random(1000);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     var
       lPersonRec: TTestRec;
@@ -525,8 +525,7 @@ begin
   lReq := fExecutorAsync.CreateRequest('subtract', Random(1000));
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
-  fExecutorAsync
-    .ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutorAsync.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(JSONRPCResp: IJSONRPCResponse)
     begin
       edtResult.Text := JSONRPCResp.Result.AsInteger.ToString;
@@ -540,7 +539,7 @@ begin
   lReq := fExecutor.CreateRequest('subtract', Random(1000));
   lReq.Params.AddByName('Value1', StrToInt(Edit1.Text));
   lReq.Params.AddByName('Value2', StrToInt(Edit2.Text));
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       Edit3.Text := Resp.Result.AsInteger.ToString;
@@ -552,12 +551,12 @@ var
   lPerson: TJsonObject;
   lReq: IJSONRPCRequest;
 begin
-  lReq := FExecutor.CreateRequest('SaveObjectWithJSON', 1234);
+  lReq := fExecutor.CreateRequest('SaveObjectWithJSON', 1234);
   lPerson := TJsonObject.Create;
   lReq.Params.Add(lPerson, pdTJDOJsonObject);
   lPerson.S['StringProp'] := 'Hello World';
   lPerson.O['JSONObject'] := TJsonObject.Parse('{"name":"Daniele"}') as TJsonObject;
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       lPerson := Resp.Result.AsObject as TJsonObject;
@@ -579,43 +578,38 @@ begin
   lThreadCount := 4;
 
   TThread.CreateAnonymousThread(
-  procedure
-  begin
-    while TInterlocked.Read(lThreadCount) > 0 do
-    begin
-      Sleep(100);
-    end;
-    TThread.Queue(nil,
     procedure
     begin
-      ShowMessage(
-        Val1 + sLineBreak +
-        Val2 + sLineBreak +
-        Val3 + sLineBreak +
-        Val4 + sLineBreak
-      );
-    end);
-  end).Start;
+      while TInterlocked.Read(lThreadCount) > 0 do
+      begin
+        Sleep(100);
+      end;
+      TThread.Queue(nil,
+        procedure
+        begin
+          ShowMessage(Val1 + sLineBreak + Val2 + sLineBreak + Val3 + sLineBreak + Val4 + sLineBreak);
+        end);
+    end).Start;
 
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       Val1 := Resp.Result.AsInteger.ToString;
       TInterlocked.Decrement(lThreadCount);
     end);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       Val2 := Resp.Result.AsInteger.ToString;
       TInterlocked.Decrement(lThreadCount);
     end);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       Val3 := Resp.Result.AsInteger.ToString;
       TInterlocked.Decrement(lThreadCount);
     end);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       Val4 := Resp.Result.AsInteger.ToString;
@@ -633,8 +627,8 @@ begin
   lReq.RequestID := Random(1000);
   lPersonRec := TTestRec.Create(2);
   lReq.Params.Add(TValue.From<TTestRec>(lPersonRec), pdtRecordOrArrayOfRecord);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
-    procedure (Resp: IJSONRPCResponse)
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+    procedure(Resp: IJSONRPCResponse)
     var
       lResPersonRec: TTestRec;
     begin
@@ -649,7 +643,7 @@ var
 begin
   ShowMessage('Now will be raised a EDivByZero exception on the server. This exception will be catched by the client');
   lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
-  FExecutor.ExecuteNotificationAsync('/jsonrpc', lReq);
+  fExecutor.ExecuteNotificationAsync('/jsonrpc', lReq);
 end;
 
 procedure TMainForm.btnGenericExcWithCustomHAndling2Click(Sender: TObject);
@@ -660,7 +654,7 @@ begin
     ('Now will be raised a EInvalidPointerOperation exception on the server. However this exception will be handled by a custom exception handler wich will add a data property with extra data');
   lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
   lReq.Params.Add(2);
-  FExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil);
+  fExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil);
 end;
 
 procedure TMainForm.btnGenericExcWithCustomHandlingClick(Sender: TObject);
@@ -671,7 +665,7 @@ begin
     ('Now will be raised a EDivByZero exception on the server. However this exception will be handled by a custom exception handler wich will add a data property with extra data');
   lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
   lReq.Params.Add(1);
-  FExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil);
+  fExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil);
 end;
 
 procedure TMainForm.btnGenericExcWithoutCustomHandlingClick(Sender: TObject);
@@ -681,7 +675,7 @@ begin
   ShowMessage('Now will be raised a Exception exception on the server.');
   lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
   lReq.Params.Add(99);
-  FExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil, fGeneralErrorHandler);
+  fExecutor.ExecuteRequestAsync('/jsonrpcex', lReq, nil, fGeneralErrorHandler);
 end;
 
 procedure TMainForm.btnGetArrayOfRecordsClick(Sender: TObject);
@@ -693,7 +687,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'GetPeopleRecStaticArray';
   lReq.RequestID := Random(1000);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       lPeopleRec := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(Resp);
@@ -716,10 +710,10 @@ begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'GetPeopleRecDynArray';
   lReq.RequestID := Random(1000);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     var
-      lPeopleRec : TArray<TTestRec>;
+      lPeopleRec: TArray<TTestRec>;
     begin
       lPeopleRec := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(Resp);
       lbLogRec.Lines.Text := Resp.ResultAsJSONArray.ToJSON(False);
@@ -732,7 +726,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'GetDataSetList');
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     var
       lMultiDS: TObjectList<TDataSet>;
@@ -752,7 +746,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     var
       lMultiDS: TMultiDataset;
@@ -782,9 +776,7 @@ begin
       finally
         lMultiDS.Free;
       end;
-    end,
-  nil,
-  jrpcPOST);
+    end, nil, jrpcPOST);
 end;
 
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);
@@ -794,7 +786,7 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  FExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
+  fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
       FDMemTable1.Active := True;
@@ -803,17 +795,16 @@ begin
     procedure(Exc: Exception)
     begin
       ShowMessage(Exc.ClassName + ': ' + Exc.Message);
-    end,
-    jrpcPOST);
+    end, jrpcPOST);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 const
   SIMULATE_SLOW_NETWORK = False;
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
+  fExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
 
-  FExecutor.SetOnSendCommandAsync(
+  fExecutor.SetOnSendCommandAsync(
     procedure(JSONRPCObject: IJSONRPCObject)
     begin
       if SIMULATE_SLOW_NETWORK then
@@ -821,8 +812,11 @@ begin
         Sleep(1000 + Random(3000));
       end;
       Log.Debug('REQUEST : ' + JSONRPCObject.ToString(True), 'jsonrpc');
-    end)
-    .SetOnReceiveResponseAsync(
+    end);
+
+  fExecutorAsync := TMVCJSONRPCExecutor.Create('http://localhost:8080');
+
+  fExecutorAsync.SetOnReceiveResponseAsync(
     procedure(Req, Resp: IJSONRPCObject)
     begin
       Log.Debug('>> OnReceiveResponse // start', 'jsonrpc');
@@ -830,27 +824,27 @@ begin
       Log.Debug('     RESPONSE: ' + Resp.ToString(True), 'jsonrpc');
       Log.Debug('<< OnReceiveResponse // end', 'jsonrpc');
     end)
-    .SetOnReceiveHTTPResponseAsync(
+  .SetOnReceiveHTTPResponseAsync(
     procedure(HTTPResp: IHTTPResponse)
     begin
       Log.Debug('RESPONSE: ' + HTTPResp.ContentAsString(), 'jsonrpc');
     end)
-    .SetConfigureHTTPClientAsync(
-    procedure (HTTPClient: THTTPClient)
+  .SetConfigureHTTPClientAsync(
+    procedure(HttpClient: THTTPClient)
     begin
-      HTTPClient.ResponseTimeout := 20000;
-      HTTPClient.CustomHeaders['X-DMVCFRAMEWORK'] := 'DMVCFRAMEWORK_VERSION ' + DMVCFRAMEWORK_VERSION;
+      HttpClient.ResponseTimeout := 20000;
+      HttpClient.CustomHeaders['X-DMVCFRAMEWORK'] := 'DMVCFRAMEWORK_VERSION ' + DMVCFRAMEWORK_VERSION;
     end);
 
   dtNextMonday.Date := Date;
   // these are the methods to handle http headers in JSONRPC
   // the following line and the check on the server is just for demo
-  Assert(FExecutor.HTTPHeadersCount = 0);
-  FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
-  Assert(FExecutor.HTTPHeadersCount = 1);
-  FExecutor.ClearHTTPHeaders;
-  Assert(FExecutor.HTTPHeadersCount = 0);
-  FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+  Assert(fExecutor.HTTPHeadersCount = 0);
+  fExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+  Assert(fExecutor.HTTPHeadersCount = 1);
+  fExecutor.ClearHTTPHeaders;
+  Assert(fExecutor.HTTPHeadersCount = 0);
+  fExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
 
   PageControl1.ActivePageIndex := 0;
 
@@ -859,16 +853,15 @@ begin
       ShowMessage(Exc.ClassName + ': ' + Exc.Message);
     end;
 
-
   fWaiting := TWaitingForm.Create(Self);
   fWaiting.PopupParent := Self;
-  FExecutor.SetOnBeginAsyncRequest(
+  fExecutor.SetOnBeginAsyncRequest(
     procedure
     begin
       fWaiting.IncreaseWaitingCount;
     end);
 
-  FExecutor.SetOnEndAsyncRequest(
+  fExecutor.SetOnEndAsyncRequest(
     procedure
     begin
       fWaiting.DecreaseWaitingCount;
