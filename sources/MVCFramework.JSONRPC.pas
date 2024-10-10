@@ -1840,7 +1840,7 @@ begin
 
     if Assigned(lJSONNamedParams) and (lParamsCountMinusInjectedOnes <> lJSONNamedParams.Count) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
-        [lParamsCount, lJSONNamedParams.Count]);
+        [lParamsCountMinusInjectedOnes, lJSONNamedParams.Count]);
   end
   else
   begin
