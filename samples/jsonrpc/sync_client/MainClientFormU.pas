@@ -312,11 +312,12 @@ begin
 
   // Remember that TObject descendants (but TDataset, TJDOJSONObject and TJDOJSONArray)
   // are serialized as JSON objects, so you can always read the JSON object
-  //    lJSON := Resp.Result.AsObject as TJsonObject;
-  //    lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
-  //    lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
-  //    lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
-  //    lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+//  var lJSON := lResp.Result.AsObject as TJsonObject;
+//  lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
+//  lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
+//  lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
+//  lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+
   var lPerson := TPerson.Create;
   try
     lResp.ResultAs(lPerson);
@@ -747,9 +748,9 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcPOST);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   FDMemTable1.Active := True;
-  FDMemTable1.LoadFromTValue(lResp.Result);
+  FDMemTable1.LoadFromJSONRPCResponse(lResp);
   FDMemTable1.First;
 end;
 

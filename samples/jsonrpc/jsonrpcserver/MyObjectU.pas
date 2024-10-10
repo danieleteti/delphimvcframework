@@ -396,6 +396,7 @@ begin
   // end;
 
   // this maybe the id of the newly created person
+  LogI(Person);
   Result := Random(1000);
 end;
 
