@@ -9,9 +9,6 @@ uses
 type
   [MVCPath]
   TMyController = class(TMVCController)
-  protected
-    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
-      var AHandled: Boolean); override;
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
@@ -40,7 +37,7 @@ begin
   var lCustomers := GetPeople();
   try
     ViewData['customers'] := lCustomers;
-    Result := Page(['pages/customers']);
+    Result := Page('customers' + IfThen(Context.Request.IsHTMX, '_body'))
   finally
     lCustomers.Free;
   end;
@@ -48,14 +45,7 @@ end;
 
 function TMyController.Home: String;
 begin
-  Result := Page(['pages/home']);
-end;
-
-procedure TMyController.OnBeforeAction(AContext: TWebContext;
-  const AActionName: string; var AHandled: Boolean);
-begin
-  inherited;
-  ViewData['ispage'] := not AContext.Request.IsHTMX;
+  Result := Page('home' + IfThen(Context.Request.IsHTMX, '_body'))
 end;
 
 function TMyController.Posts: String;
@@ -63,7 +53,7 @@ begin
   var lPosts := GetPosts(20);
   try
     ViewData['posts'] := lPosts;
-    Result := Page(['pages/posts']);
+    Result := Page('posts' + IfThen(Context.Request.IsHTMX, '_body'))
   finally
     lPosts.Free;
   end;
@@ -74,7 +64,7 @@ begin
   var lUsers := GetUsers();
   try
     ViewData['users'] := lUsers;
-    Result := Page(['pages/users']);
+    Result := Page('users' + IfThen(Context.Request.IsHTMX, '_body'));
   finally
     lUsers.Free;
   end;

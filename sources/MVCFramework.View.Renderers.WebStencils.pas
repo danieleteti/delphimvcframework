@@ -179,8 +179,9 @@ begin
   try
     RegisterWSFunctions(lWebStencilsProcessor);
     try
-      lWebStencilsProcessor.OnFile := Self.OnFile;
+      //lWebStencilsProcessor.OnFile := Self.OnFile;
       lWebStencilsProcessor.InputFileName := lViewFileName;
+      lWebStencilsProcessor.PathTemplate := TPath.GetDirectoryName(lViewFileName);
       if Assigned(ViewModel) then
       begin
         for lPair in ViewModel do
