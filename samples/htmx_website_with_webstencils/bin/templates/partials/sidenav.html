@@ -1,0 +1,15 @@
+<script>
+    const highlightMenuItem = (evt) => {
+        let menuItems = document.querySelectorAll('#' + evt.srcElement.parentElement.id + ' > a');       
+        menuItems.forEach((item) => {
+            item.classList.remove("selected");
+        });
+        evt.srcElement.classList.add("selected");
+    };
+</script>
+<div id="sidenav" hx-target="#main" hx-on::after-request="highlightMenuItem(event)">
+    <a hx-get="/" hx-push-url="true">Home</a>
+    <a hx-get="/users" hx-push-url="true">Users</a>
+    <a hx-get="/posts" hx-push-url="true">Posts</a>
+    <a hx-get="/customers" hx-push-url="true">Customers</a>
+</div>
