@@ -33,7 +33,8 @@ type
 implementation
 
 uses
-  System.StrUtils, System.SysUtils, MVCFramework.Logger, MVCFramework.HTMX, RandomUtilsU;
+  System.StrUtils, System.SysUtils, MVCFramework.Logger, MVCFramework.HTMX, RandomUtilsU,
+  TemplatePro;
 
 function TMyController.Customers: String;
 begin
@@ -63,7 +64,7 @@ begin
   var lPosts := GetPosts(20);
   try
     ViewData['posts'] := lPosts;
-    Result := Page(['pages/posts']);
+    Result := Page('pages/posts');
   finally
     lPosts.Free;
   end;
@@ -74,7 +75,11 @@ begin
   var lUsers := GetUsers();
   try
     ViewData['users'] := lUsers;
-    Result := Page(['pages/users']);
+    Result := Page('pages/users', False,
+    procedure (const Tmpl: TObject)
+    begin
+      (Tmpl as TTProCompiledTemplate).SetData('var1', 1234);
+    end);
   finally
     lUsers.Free;
   end;

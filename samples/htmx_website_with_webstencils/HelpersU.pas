@@ -2,30 +2,57 @@ unit HelpersU;
 
 interface
 
+uses
+  System.Rtti, System.Bindings.EvalProtocol;
 
-type
-  TMyMustacheHelpers = class sealed
-  public
-    class procedure MyHelper1(const Value: variant; out Result: variant);
-    class procedure MyHelper2(const Value: variant; out Result: variant);
-  end;
+function MyHelper1(const Parameters: TArray<IValue>): TValue;
+function MyHelper2(const Parameters: TArray<IValue>): TValue;
+
+
+procedure WebStencilsProcessorConfigure;
 
 implementation
 
 uses
-  MVCFramework.View.Renderers.Mustache, System.SysUtils;
+  System.SysUtils, MVCFramework.View.Renderers.WebStencils, System.Bindings.Methods, Web.Stencils;
 
-{ TMyMustacheHelpers }
 
-class procedure TMyMustacheHelpers.MyHelper1(const Value: variant; out Result: variant);
+function MyHelper1(const Parameters: TArray<IValue>): TValue;
 begin
-  Result := Value +  ' (I''m The MyHelper1)';
+  Result := Parameters[0].GetValue.ToString +  ' (I''m The MyHelper1)';
 end;
 
-class procedure TMyMustacheHelpers.MyHelper2(const Value: variant; out Result: variant);
+function MyHelper2(const Parameters: TArray<IValue>): TValue;
 begin
-  Result := Value +  ' (I''m The MyHelper2)';
+  Result := Parameters[0].GetValue.ToString +  ' (I''m The MyHelper2)';
 end;
 
+procedure WebStencilsProcessorConfigure;
+begin
+  TBindingMethodsFactory.RegisterMethod(
+   TMethodDescription.Create(
+    MakeInvokable(function(Args: TArray<IValue>): IValue
+    begin
+      Result := TValueWrapper.Create(MyHelper1(Args));
+    end),
+    'MyHelper1', 'MyHelper1', '', True, 'MyHelper1 is just a sample', nil));
+
+
+  TBindingMethodsFactory.RegisterMethod(
+   TMethodDescription.Create(
+    MakeInvokable(function(Args: TArray<IValue>): IValue
+    begin
+      Result := TValueWrapper.Create(MyHelper2(Args));
+    end),
+    'MyHelper2', 'MyHelper2', '', True, 'MyHelper2 is just a sample', nil));
+
+  TMVCWebStencilsConfiguration.OnProcessorConfiguration :=
+    procedure(const WebStencilsProcessor: TWebStencilsProcessor)
+    begin
+      //custom configuration for TWebStencilsProcessor (executed for each view)
+    end;
+
+end;
 
 end.
+

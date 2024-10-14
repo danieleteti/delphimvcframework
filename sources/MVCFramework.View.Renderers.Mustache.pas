@@ -54,6 +54,7 @@ type
   public
     procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
     constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+      const AController: TMVCController;
       const AViewModel: TMVCViewDataObject;
       const AContentType: string); override;
     class destructor Destroy;
@@ -98,8 +99,8 @@ var
   gHelpersLoaded : Boolean = False;
 
 constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
-  const AWebContext: TWebContext; const AViewModel: TMVCViewDataObject;
-  const AContentType: string);
+  const AWebContext: TWebContext; const AController: TMVCController;
+  const AViewModel: TMVCViewDataObject; const AContentType: string);
 begin
   inherited;
   fModelPrepared := False;
@@ -137,7 +138,7 @@ begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
   if lViewFileName.IsEmpty then
-    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   Builder.Append(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));

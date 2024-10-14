@@ -1,4 +1,4 @@
-program htmx_website;
+program htmx_website_with_templatepro;
 
 {$APPTYPE CONSOLE}
 
@@ -17,7 +17,8 @@ uses
   ControllerU in 'ControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   RandomUtilsU in '..\commons\RandomUtilsU.pas',
-  TemplatePro in '..\..\sources\TemplatePro.pas';
+  TemplatePro in '..\..\sources\TemplatePro.pas',
+  HelpersU in 'HelpersU.pas';
 
 {$R *.res}
 
@@ -68,7 +69,7 @@ begin
       Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 2000);
     end;
 {$ENDIF}
-
+    TemplateProContextConfigure;
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do

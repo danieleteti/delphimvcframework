@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  System.Generics.Collections;
+  System.Generics.Collections, Web.Stencils;
 
 type
   [MVCPath]
@@ -53,7 +53,7 @@ begin
   var lPosts := GetPosts(20);
   try
     ViewData['posts'] := lPosts;
-    Result := Page('posts' + IfThen(Context.Request.IsHTMX, '_body'))
+    Result := Page('posts' + IfThen(Context.Request.IsHTMX, '_body'));
   finally
     lPosts.Free;
   end;

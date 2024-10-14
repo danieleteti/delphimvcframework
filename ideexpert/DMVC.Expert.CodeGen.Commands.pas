@@ -176,6 +176,19 @@ type
       ); override;
   end;
 
+  TUnitWebStencilsHelpersDeclarationCommand = class(TCustomCommand)
+  public
+    procedure ExecuteInterface(
+      Section: TStringBuilder;
+      Model: TJSONObject
+      ); override;
+    procedure ExecuteImplementation(
+      Section: TStringBuilder;
+      Model: TJsonObject
+      ); override;
+  end;
+
+
 
 
   TUnitFooterCommand = class(TCustomCommand)
@@ -319,21 +332,18 @@ begin
     .AppendLine('  MVCFramework.Commons,')
     .AppendLine('  MVCFramework.Serializer.Commons,');
 
-  if Model.B[TConfigKey.program_ssv_templatepro] then
-  begin
-    Section
-      .AppendLine('    MVCFramework.View.Renderers.TemplatePro,');
-  end;
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
+    {The Mustache units are required in the "program" because the mustache helpers are declared there.
+     Should we create an external unit as we do in templatepro and webstencils }
     Section
-      .AppendLine('    MVCFramework.View.Renderers.Mustache,')
-      .AppendLine('    mormot.core.mustache,');
+      .AppendLine('  MVCFramework.View.Renderers.Mustache,')
+      .AppendLine('  mormot.core.mustache,');
   end;
   if Model.B[TConfigKey.program_service_container_generate] then
   begin
     Section
-      .AppendLine('    MVCFramework.Container,')
+      .AppendLine('  MVCFramework.Container,')
   end;
   Section
     .AppendLine('  MVCFramework.Signal;')
@@ -786,6 +796,13 @@ begin
       .AppendLine('  MVCFramework.View.Renderers.TemplatePro,')
   end;
 
+  if Model.B[TConfigKey.program_ssv_webstencils] then
+  begin
+    Section
+      .AppendLine('  MVCFramework.View.Renderers.WebStencils,')
+  end;
+
+
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
@@ -842,6 +859,15 @@ begin
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCTemplateProViewEngine);')
+        .AppendLine('  // Server Side View - END')
+        .AppendLine;
+    end;
+
+    if Model.B[TConfigKey.program_ssv_webstencils] then
+    begin
+      Section
+        .AppendLine('  // Server Side View')
+        .AppendLine('  FMVC.SetViewEngine(TMVCWebStencilsViewEngine);')
         .AppendLine('  // Server Side View - END')
         .AppendLine;
     end;
@@ -1097,6 +1123,18 @@ begin
     .AppendLine('{$ENDIF}')
     .AppendLine;
 
+  if Model.B[TConfigKey.program_ssv_templatepro] then
+  begin
+    Section
+      .AppendLine('    TemplateProContextConfigure;');
+  end;
+
+  if Model.B[TConfigKey.program_ssv_webstencils] then
+  begin
+    Section
+      .AppendLine('    WebStencilsProcessorConfigure;');
+  end;
+
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
@@ -1175,7 +1213,7 @@ begin
     .AppendLine('    LServer.MaxConnections := dotEnv.Env(''dmvc.webbroker.max_connections'', 0);')
     .AppendLine('    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);')
     .AppendLine('    LServer.Active := True;')
-    .AppendLine('    LogI(''Listening on port '' + APort.ToString);')
+    .AppendLine('    LogI(''Listening on http://localhost:'' + APort.ToString);')
     .AppendLine('    LogI(''Application started. Press Ctrl+C to shut down.'');')
     .AppendLine('    WaitForTerminationSignal;')
     .AppendLine('    EnterInShutdownState;')
@@ -1442,7 +1480,7 @@ procedure TUnitTemplateProHelpersDeclarationCommand.ExecuteInterface(
   Section: TStringBuilder; Model: TJSONObject);
 begin
   inherited;
-  CheckFor(TConfigKey.program_ssv_mustache, Model);
+  CheckFor(TConfigKey.program_ssv_templatepro, Model);
   CheckFor(TConfigKey.templatepro_helpers_unit_name, Model);
   Section
     .AppendLine('unit ' + Model[TConfigKey.templatepro_helpers_unit_name] + ';')
@@ -1457,6 +1495,79 @@ begin
     .AppendLine
     .AppendLine
     .AppendLine('procedure TemplateProContextConfigure;')
+    .AppendLine;
+end;
+
+{ TUnitWebStencilsHelpersDeclarationCommand }
+
+procedure TUnitWebStencilsHelpersDeclarationCommand.ExecuteImplementation(Section: TStringBuilder; Model: TJsonObject);
+begin
+  inherited;
+  Section
+    .AppendLine('implementation')
+    .AppendLine('')
+    .AppendLine('uses')
+    .AppendLine('  System.SysUtils, MVCFramework.View.Renderers.WebStencils, System.Bindings.Methods, Web.Stencils;')
+    .AppendLine('')
+    .AppendLine('')
+    .AppendLine('function MyHelper1(const Parameters: TArray<IValue>): TValue;')
+    .AppendLine('begin')
+    .AppendLine('  Result := Parameters[0].GetValue.ToString +  '' (I''''m The MyHelper1)'';')
+    .AppendLine('end;')
+    .AppendLine('')
+    .AppendLine('function MyHelper2(const Parameters: TArray<IValue>): TValue;')
+    .AppendLine('begin')
+    .AppendLine('  Result := Parameters[0].GetValue.ToString +  '' (I''''m The MyHelper2)'';')
+    .AppendLine('end;')
+    .AppendLine('')
+    .AppendLine('procedure WebStencilsProcessorConfigure;')
+    .AppendLine('begin')
+    .AppendLine('  TBindingMethodsFactory.RegisterMethod(')
+    .AppendLine('   TMethodDescription.Create(')
+    .AppendLine('    MakeInvokable(function(Args: TArray<IValue>): IValue')
+    .AppendLine('    begin')
+    .AppendLine('      Result := TValueWrapper.Create(MyHelper1(Args));')
+    .AppendLine('    end),')
+    .AppendLine('    ''MyHelper1'', ''MyHelper1'', '''', True, ''MyHelper1 is just a sample'', nil));')
+    .AppendLine('')
+    .AppendLine('')
+    .AppendLine('  TBindingMethodsFactory.RegisterMethod(')
+    .AppendLine('   TMethodDescription.Create(')
+    .AppendLine('    MakeInvokable(function(Args: TArray<IValue>): IValue')
+    .AppendLine('    begin')
+    .AppendLine('      Result := TValueWrapper.Create(MyHelper2(Args));')
+    .AppendLine('    end),')
+    .AppendLine('    ''MyHelper2'', ''MyHelper2'', '''', True, ''MyHelper2 is just a sample'', nil));')
+    .AppendLine('')
+    .AppendLine('  TMVCWebStencilsConfiguration.OnProcessorConfiguration :=')
+    .AppendLine('    procedure(const WebStencilsProcessor: TWebStencilsProcessor)')
+    .AppendLine('    begin')
+    .AppendLine('      //custom configuration for TWebStencilsProcessor (executed for each view)')
+    .AppendLine('    end;')
+    .AppendLine('')
+    .AppendLine('end;')
+    .AppendLine('')
+    .AppendLine('end.')
+end;
+
+procedure TUnitWebStencilsHelpersDeclarationCommand.ExecuteInterface(Section: TStringBuilder; Model: TJSONObject);
+begin
+  inherited;
+  CheckFor(TConfigKey.program_ssv_webstencils, Model);
+  CheckFor(TConfigKey.webstencils_helpers_unit_name, Model);
+  Section
+    .AppendLine('unit ' + Model[TConfigKey.webstencils_helpers_unit_name] + ';')
+    .AppendLine
+    .AppendLine('interface')
+    .AppendLine
+    .AppendLine('uses')
+    .AppendLine('  System.Rtti, System.Bindings.EvalProtocol;')
+    .AppendLine
+    .AppendLine('function MyHelper1(const Parameters: TArray<IValue>): TValue;')
+    .AppendLine('function MyHelper2(const Parameters: TArray<IValue>): TValue;')
+    .AppendLine
+    .AppendLine
+    .AppendLine('procedure WebStencilsProcessorConfigure;')
     .AppendLine;
 end;
 

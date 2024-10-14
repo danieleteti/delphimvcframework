@@ -419,7 +419,7 @@ type
     { public declarations }
   end;
 
-  EMVCFrameworkViewException = class(EMVCException)
+  EMVCSSVException = class(EMVCException)
   private
     { private declarations }
   protected

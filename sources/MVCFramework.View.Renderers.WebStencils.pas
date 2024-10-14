@@ -24,30 +24,48 @@
 
 unit MVCFramework.View.Renderers.WebStencils;
 
+{$I dmvcframework.inc}
+
 interface
+
+{$if Defined(WEBSTENCILS)}
+
+//This unit is usable from Delphi 12.2+
 
 uses
   MVCFramework, System.Generics.Collections, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils, System.Classes;
+  MVCFramework.Commons, System.IOUtils, System.Classes, Web.Stencils;
 
 type
+  TMVCWebStencilsEvent = reference to procedure(const WebStencilsProcessor: TWebStencilsProcessor);
+
   { This class implements the WebStencils view engine for server side views }
   TMVCWebStencilsViewEngine = class(TMVCBaseViewEngine)
-  protected
-    procedure OnFile(Sender: TObject; const AFilename: string; var AText: string; var AHandled: Boolean);
   public
     procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
   end;
 
+  TMVCWebStencilsConfiguration = class sealed
+  private
+    class var fOnProcessorConfiguration: TMVCWebStencilsEvent;
+  public
+    class property OnProcessorConfiguration: TMVCWebStencilsEvent
+      read fOnProcessorConfiguration
+      write fOnProcessorConfiguration;
+  end;
+
+{$endif}
+
 implementation
 
+
+{$if Defined(WEBSTENCILS)}
 uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
   System.Bindings.EvalProtocol,
   System.Bindings.Methods,
-  Web.Stencils,
   MVCFramework.Cache,
   Data.DB,
   System.Rtti,
@@ -121,6 +139,14 @@ begin
 end;
 
 
+function MakeMethodJSON: IInvokable;
+begin
+  Result := MakeInvokable(function(Args: TArray<IValue>): IValue
+      begin
+        Result := TValueWrapper.Create(DumpAsJSONString(Args[0].GetValue.AsObject, []));
+      end)
+end;
+
 procedure RegisterWSFunctions(WSProcessor: TWebStencilsProcessor);
 begin
   if gFunctionInitialized then Exit;
@@ -128,13 +154,20 @@ begin
   try
     if gFunctionInitialized then Exit;
     gFunctionInitialized := True;
+
+
     TBindingMethodsFactory.RegisterMethod(
      TMethodDescription.Create(
       MakeInvokable(function(Args: TArray<IValue>): IValue
       begin
+        if Length(Args) <> 1 then
+        begin
+          raise EMVCSSVException.Create(500, 'Expected 1 parameter in "JSON" function, got ' + Length(Args).ToString);
+        end;
         Result := TValueWrapper.Create(DumpAsJSONString(Args[0].GetValue.AsObject, []));
-      end),
+      end) as IInvokable,
       'json', 'json', '', True, 'Serialize an object to JSON', nil));
+
   finally
     TMonitor.Exit(gWSLock);
   end;
@@ -143,45 +176,24 @@ end;
 procedure TMVCWebStencilsViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
 var
   lViewFileName: string;
-  lViewTemplate: String;
   lWebStencilsProcessor: TWebStencilsProcessor;
   lPair: TPair<String, TValue>;
-  lActualFileTimeStamp: TDateTime;
-  lCompiledViewFileName: string;
-  lActualCompiledFileTimeStamp: TDateTime;
-  lUseCompiledVersion: Boolean;
-  lCacheDir: string;
 begin
-  lUseCompiledVersion := False;
   lViewFileName := GetRealFileName(ViewName);
   if lViewFileName.IsEmpty then
-    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
-
-//  if FUseViewCache then
-//  begin
-//    lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
-//    TDirectory.CreateDirectory(lCacheDir);
-//    lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + WebStencils_VERSION + '.tpcu'));
-//
-//    if not FileAge(lViewFileName, lActualFileTimeStamp) then
-//    begin
-//      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
-//        [ViewName]);
-//    end;
-//
-//    if FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
-//    begin
-//      lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
-//    end;
-//  end;
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
 
   lWebStencilsProcessor := TWebStencilsProcessor.Create(nil);
   try
     RegisterWSFunctions(lWebStencilsProcessor);
     try
-      //lWebStencilsProcessor.OnFile := Self.OnFile;
+      if Assigned(TMVCWebStencilsConfiguration.fOnProcessorConfiguration) then
+      begin
+        TMVCWebStencilsConfiguration.OnProcessorConfiguration(lWebStencilsProcessor);
+      end;
+      //lWebStencilsProcessor.OnFile := Self.OnFile; {12.2, any filename starting with ..\ is not read correctly by the parser. Is it a feature? }
       lWebStencilsProcessor.InputFileName := lViewFileName;
-      lWebStencilsProcessor.PathTemplate := TPath.GetDirectoryName(lViewFileName);
+      lWebStencilsProcessor.PathTemplate := Config[TMVCConfigKey.ViewPath];
       if Assigned(ViewModel) then
       begin
         for lPair in ViewModel do
@@ -189,6 +201,10 @@ begin
           if ViewModel[lPair.Key].IsObject then
             lWebStencilsProcessor.AddVar(lPair.Key, ViewModel[lPair.Key].AsObject, False);
         end;
+      end;
+      if Assigned(FBeforeRenderCallback) then
+      begin
+        FBeforeRenderCallback(lWebStencilsProcessor);
       end;
       Builder.Append(lWebStencilsProcessor.Content);
     except
@@ -203,28 +219,6 @@ begin
   end;
 end;
 
-procedure TMVCWebStencilsViewEngine.OnFile(Sender: TObject; const AFilename: string; var AText: string;
-  var AHandled: Boolean);
-var
-  lFName: String;
-begin
-  lFName := AFilename;
-  if TPath.GetExtension(lFName).IsEmpty then
-  begin
-    lFName := lFName + '.' + Config[TMVCConfigKey.DefaultViewFileExtension];
-  end;
-  if not TFile.Exists(lFName) then
-  begin
-    lFName := TPath.Combine(Config[TMVCConfigKey.ViewPath], lFName);
-    if not TFile.Exists(lFName) then
-    begin
-      lFName := TPath.Combine(AppPath, lFName);
-    end;
-  end;
-  AText := TFile.ReadAllText(lFName);
-  AHandled := True;
-end;
-
 initialization
 
 gWSLock := TObject.Create;
@@ -233,5 +227,6 @@ finalization
 
 FreeAndNil(gWSLock);
 
+{$endif}
 
 end.

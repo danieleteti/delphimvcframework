@@ -56,7 +56,7 @@ begin
       //view path
       Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', 'templates');
       //use cache for server side views (use "false" in debug and "true" in production for faster performances
-      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'true');
       //Max Record Count for automatic Entities CRUD
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
       //Enable Server Signature in response

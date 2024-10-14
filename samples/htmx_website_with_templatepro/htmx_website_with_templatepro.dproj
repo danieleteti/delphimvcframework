@@ -6,10 +6,10 @@
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
-        <ProjectName Condition="'$(ProjectName)'==''">htmx_website</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">htmx_website_with_templatepro</ProjectName>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>
-        <MainSource>htmx_website.dpr</MainSource>
+        <MainSource>htmx_website_with_templatepro.dpr</MainSource>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -69,7 +69,7 @@
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <DCC_UnitSearchPath>$(DMVC);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Framework>FMX;$(DCC_Framework)</DCC_Framework>
-        <SanitizedProjectName>htmx_website</SanitizedProjectName>
+        <SanitizedProjectName>htmx_website_with_templatepro</SanitizedProjectName>
         <VerInfo_Locale>1040</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
@@ -128,6 +128,7 @@
         </DCCReference>
         <DCCReference Include="..\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.pas"/>
+        <DCCReference Include="HelpersU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -146,7 +147,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">htmx_website.dpr</Source>
+                    <Source Name="MainSource">htmx_website_with_templatepro.dpr</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
@@ -172,9 +173,9 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\htmx_website.exe" Configuration="Debug" Class="ProjectOutput"/>
-                <DeployFile LocalName="bin\htmx_website.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="bin\htmx_website_with_templatepro.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>htmx_website.exe</RemoteName>
+                        <RemoteName>htmx_website_with_templatepro.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

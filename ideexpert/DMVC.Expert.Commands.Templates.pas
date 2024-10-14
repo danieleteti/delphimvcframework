@@ -35,6 +35,7 @@ procedure FillWebModuleTemplates(Gen: TMVCCodeGenerator);
 procedure FillWebModuleDFMTemplates(Gen: TMVCCodeGenerator);
 procedure FillJSONRPCTemplates(Gen: TMVCCodeGenerator);
 procedure FillTemplateProTemplates(Gen: TMVCCodeGenerator);
+procedure FillWebStencilsTemplates(Gen: TMVCCodeGenerator);
 procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
 procedure FillEntitiesTemplates(Gen: TMVCCodeGenerator);
 procedure FillServicesTemplates(Gen: TMVCCodeGenerator);
@@ -97,6 +98,14 @@ begin
     TUnitTemplateProHelpersDeclarationCommand.Create
     ]);
 end;
+
+procedure FillWebStencilsTemplates(Gen: TMVCCodeGenerator);
+begin
+  Gen.Commands.AddRange([
+    TUnitWebStencilsHelpersDeclarationCommand.Create
+    ]);
+end;
+
 
 procedure FillServicesTemplates(Gen: TMVCCodeGenerator);
 begin

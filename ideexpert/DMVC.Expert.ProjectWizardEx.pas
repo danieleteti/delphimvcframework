@@ -110,6 +110,8 @@ begin
       lTemplateProHelpersUnitName: string;
       lEntityUnitName: string;
       EntityUnit: IOTAModule;
+    lWebStencilsHelpersUnitName: string;
+    WebStencilsHelperUnit: IOTAModule;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try
@@ -203,7 +205,7 @@ begin
             end;
           end;
 
-
+          {********** SERVER SIDE VIEWS TEMPLATE ENGINE CONFIGURATION **************}
 
           lMustacheHelpersUnitName := '';
           // Create Mustache Helpers Unit
@@ -243,6 +245,26 @@ begin
             end;
           end;
 
+          lWebStencilsHelpersUnitName := '';
+          // Create WebStencils Helpers Unit
+          if lJSON.B[TConfigKey.program_ssv_webstencils] then
+          begin
+            HelpersUnitCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillWebStencilsTemplates,
+              TConfigKey.webstencils_helpers_unit_name,
+              APersonality);
+            WebStencilsHelperUnit := ModuleServices.CreateModule(HelpersUnitCreator);
+            ChangeIOTAModuleFileNamePrefix(WebStencilsHelperUnit, 'WebStencilsHelpers');
+            lWebStencilsHelpersUnitName := GetUnitName(WebStencilsHelperUnit.FileName);
+            lJSON.S[TConfigKey.webstencils_helpers_unit_name] := lWebStencilsHelpersUnitName;
+            if Project <> nil then
+            begin
+              Project.AddFile(WebStencilsHelperUnit.FileName, True);
+            end;
+          end;
+
+          {******** END - SERVER SIDE VIEWS TEMPLATE ENGINE CONFIGURATION ************}
 
           // Create Webmodule Unit
           WebModuleCreator := TNewWebModuleUnitEx.Create(

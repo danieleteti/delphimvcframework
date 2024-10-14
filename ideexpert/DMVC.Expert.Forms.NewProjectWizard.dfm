@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DelphiMVCFramework :: New Project Wizard'
-  ClientHeight = 615
+  ClientHeight = 631
   ClientWidth = 729
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnDestroy = FormDestroy
   DesignSize = (
     729
-    615)
+    631)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
@@ -400,7 +400,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object lblBook: TLabel
     AlignWithMargins = True
     Left = 10
-    Top = 590
+    Top = 606
     Width = 259
     Height = 16
     Cursor = crHandPoint
@@ -419,6 +419,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = lblBookClick
     OnMouseEnter = lblBookMouseEnter
     OnMouseLeave = lblBookMouseLeave
+    ExplicitTop = 590
   end
   object lblCopyRight: TLabel
     Left = 24
@@ -434,12 +435,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ParentFont = False
   end
   object lblPATREON: TLabel
-    Left = 452
-    Top = 549
+    Left = 461
+    Top = 572
     Width = 257
     Height = 16
     Cursor = crHandPoint
     Alignment = taRightJustify
+    Anchors = [akRight, akBottom]
     AutoSize = False
     Caption = 'Support DMVCFramework on PATREON'
     Color = clBtnFace
@@ -453,10 +455,11 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = lblPATREONClick
     OnMouseEnter = lblPATREONMouseEnter
     OnMouseLeave = lblPATREONMouseLeave
+    ExplicitTop = 549
   end
   object btnOK: TButton
     Left = 561
-    Top = 580
+    Top = 596
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -468,7 +471,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnCancel: TButton
     Left = 644
-    Top = 580
+    Top = 596
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -504,9 +507,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Panel2: TPanel
     Left = 0
-    Top = 400
+    Top = 423
     Width = 308
-    Height = 189
+    Height = 182
     Anchors = [akLeft, akBottom]
     BevelOuter = bvNone
     Caption = 'Panel2'
@@ -516,21 +519,21 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 5
     DesignSize = (
       308
-      189)
+      182)
     object gbControllerUnitOptions: TGroupBox
       Left = 12
-      Top = 0
+      Top = 13
       Width = 296
-      Height = 184
+      Height = 165
       Anchors = [akLeft, akTop, akRight, akBottom]
       Caption = 'Controller Unit Options'
       TabOrder = 0
       DesignSize = (
         296
-        184)
+        165)
       object lblClassName: TLabel
         Left = 16
-        Top = 126
+        Top = 115
         Width = 105
         Height = 13
         Caption = 'Controller Class Name'
@@ -555,7 +558,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object edtControllerClassName: TEdit
         Left = 16
-        Top = 146
+        Top = 135
         Width = 264
         Height = 19
         Anchors = [akLeft, akTop, akRight]
@@ -597,29 +600,29 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Left = 314
     Top = 135
     Width = 407
-    Height = 210
+    Height = 221
     Caption = 'Middlewares'
     TabOrder = 6
     DesignSize = (
       407
-      210)
+      221)
     object Label4: TLabel
       Left = 161
-      Top = 112
+      Top = 125
       Width = 144
       Height = 13
       Caption = 'FireDAC Connections filename'
     end
     object Bevel1: TBevel
       Left = 11
-      Top = 102
+      Top = 115
       Width = 383
       Height = 3
       Shape = bsTopLine
     end
     object Label5: TLabel
       Left = 161
-      Top = 156
+      Top = 169
       Width = 101
       Height = 13
       Caption = 'ConnectionDef Name'
@@ -681,7 +684,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
     object chkActiveRecord: TCheckBox
       Left = 27
-      Top = 111
+      Top = 124
       Width = 135
       Height = 17
       Anchors = [akTop]
@@ -690,7 +693,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
     object EdtFDConnDefFileName: TEdit
       Left = 161
-      Top = 129
+      Top = 142
       Width = 230
       Height = 21
       Anchors = [akLeft, akTop, akRight]
@@ -699,7 +702,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
     object EdtConnDefName: TEdit
       Left = 161
-      Top = 175
+      Top = 188
       Width = 230
       Height = 21
       Anchors = [akLeft, akTop, akRight]
@@ -709,7 +712,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 314
-    Top = 438
+    Top = 436
     Width = 407
     Height = 105
     Anchors = [akLeft, akRight, akBottom]
@@ -748,7 +751,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMSHeap: TCheckBox
     Left = 24
-    Top = 292
+    Top = 283
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -757,50 +760,40 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkCustomConfigDotEnv: TCheckBox
     Left = 24
-    Top = 273
+    Top = 264
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Generate custom .env configuration'
     TabOrder = 9
   end
-  object chkMustache: TCheckBox
-    Left = 24
-    Top = 331
-    Width = 225
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Use Mustache as Server Side View engine'
-    TabOrder = 10
-    OnClick = chkMustacheClick
-  end
   object chkServicesContainer: TCheckBox
     Left = 24
-    Top = 351
+    Top = 303
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use Services Container'
     Checked = True
     State = cbChecked
-    TabOrder = 11
+    TabOrder = 10
   end
   object chkSqids: TCheckBox
     Left = 24
-    Top = 371
+    Top = 323
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use Sqids'
     Checked = True
     State = cbChecked
-    TabOrder = 12
+    TabOrder = 11
   end
   object rgNameCase: TRadioGroup
     Left = 314
-    Top = 351
+    Top = 362
     Width = 407
-    Height = 81
+    Height = 63
     Caption = 'Default style for serialized property names (MVCNameCaseDefault)'
     Columns = 3
     ItemIndex = 2
@@ -811,17 +804,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       'CamelCase (fooBar)'
       'PascalCase (FooBar)'
       'SnakeCase (foo_bar)')
-    TabOrder = 13
+    TabOrder = 12
   end
-  object chkTemplatePro: TCheckBox
-    Left = 24
-    Top = 312
-    Width = 245
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Use TemplatePro as Server Side View engine'
-    TabOrder = 14
-    OnClick = chkTemplateProClick
+  object rgSSV: TRadioGroup
+    Left = 12
+    Top = 362
+    Width = 296
+    Height = 63
+    Caption = 'Server Side Views Template Engine'
+    Columns = 2
+    ItemIndex = 0
+    Items.Strings = (
+      'None'
+      'TemplatePro'
+      'WebStencils'
+      'Mustache')
+    TabOrder = 13
+    OnClick = rgSSVClick
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

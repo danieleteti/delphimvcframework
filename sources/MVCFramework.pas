@@ -883,6 +883,8 @@ type
       const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
   end;
 
+  TMVCSSVBeforeRenderCallback = reference to procedure(const TemplateRenderInstance: TObject);
+
   TMVCController = class(TMVCRenderer)
   private
     FViewModel: TMVCViewDataObject;
@@ -904,8 +906,8 @@ type
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
-    function GetRenderedView(const AViewNames: TArray<string>): string; overload; virtual;
-    function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; virtual;
+    function GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
+    function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
 
     /// <summary>
     ///   Normally used in OnBeforeControllerAction to define view headers automatically used by the Page method.
@@ -922,27 +924,28 @@ type
     ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
     ///   PageFragment ignore header and footer views
     /// </summary>
-    function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
-    function Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
+    function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
+    function Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
 
     /// <summary>
     ///   Page calls GetRenderedView with sensible defaults.
     ///   Page method with UseCommonHeadersAndFooters = True (default) concatenates
     //    commonheader_header_views + views + commonfooter_views
     /// </summary>
-    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean = True): string; overload; inline;
+    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject;
+      const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
 
     /// <summary>
     ///   PageFragment calls GetRenderedView.
     ///   PageFragment ignore header and footer views.
     /// </summary>
-    function PageFragment(const AViewNames: TArray<string>): string; overload; inline;
+    function PageFragment(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
 
     /// <summary>
     ///   PageFragment calls GetRenderedView.
     ///   PageFragment ignore header and footer views.
     /// </summary>
-    function PageFragment(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string; overload; inline;
+    function PageFragment(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -1277,18 +1280,24 @@ type
     FViewModel: TMVCViewDataObject;
     FContentType: string;
     FOutput: string;
+    FController: TMVCController;
   protected
     FUseViewCache: Boolean;
     FJSONModel: TJSONObject;
+    FBeforeRenderCallback: TMVCSSVBeforeRenderCallback;
     function GetRealFileName(const AViewName: string): string; virtual;
     function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
   public
-    constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+    constructor Create(
+      const AEngine: TMVCEngine;
+      const AWebContext: TWebContext;
+      const AController: TMVCController;
       const AViewModel: TMVCViewDataObject;
       const AContentType: string); overload; virtual;
     constructor Create(
       const AEngine: TMVCEngine;
       const AWebContext: TWebContext;
+      const AController: TMVCController;
       const AViewModel: TMVCViewDataObject;
       const AJSONModel: TJSONObject;
       const AContentType: string); overload; virtual;
@@ -4188,14 +4197,15 @@ begin
   Result := Context.Request.GetHeader('If-None-Match');
 end;
 
-function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject): string;
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 var
   lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringBuilder;
 begin
   lStrStream := TStringBuilder.Create;
   try
-    lView := FEngine.ViewEngineClass.Create(Engine, Context, FViewModel, JSONModel, ContentType);
+    lView := FEngine.ViewEngineClass.Create(Engine, Context, Self, FViewModel, JSONModel, ContentType);
     try
+      lView.FBeforeRenderCallback := OnBeforeRenderCallback;
       for lViewName in AViewNames do
       begin
         lView.Execute(lViewName, lStrStream);
@@ -4385,36 +4395,36 @@ begin
 end;
 
 function TMVCController.Page(const AViewNames: TArray<string>;
-  const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean): string;
+  const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
   if UseCommonHeadersAndFooters then
-    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel)
+    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel, OnBeforeRenderCallback)
   else
-    Result := GetRenderedView(AViewNames, JSONModel)
+    Result := GetRenderedView(AViewNames, JSONModel, OnBeforeRenderCallback)
 end;
 
-function TMVCController.Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean): string;
+function TMVCController.Page(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  Result := Page([AViewName], UseCommonHeadersAndFooters);
+  Result := Page([AViewName], UseCommonHeadersAndFooters, OnBeforeRenderCallback);
 end;
 
 function TMVCController.PageFragment(const AViewNames: TArray<string>;
-  const JSONModel: TJSONObject): string;
+  const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  Result := Page(AViewNames, JSONModel, False);
+  Result := Page(AViewNames, JSONModel, False, OnBeforeRenderCallback);
 end;
 
-function TMVCController.PageFragment(const AViewNames: TArray<string>): string;
+function TMVCController.PageFragment(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
   Result := Page(AViewNames, nil, False);
 end;
 
-function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean): string;
+function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
   if UseCommonHeadersAndFooters then
-    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters)
+    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, OnBeforeRenderCallback)
   else
-    Result := GetRenderedView(AViewNames);
+    Result := GetRenderedView(AViewNames, OnBeforeRenderCallback);
 end;
 
 procedure TMVCController.PushObjectToView(const aModelName: string; const AModel: TObject);
@@ -4835,7 +4845,7 @@ begin
   Render<T>(ACollection, AOwns, ASerializationAction);
 end;
 
-function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 var
   lView: TMVCBaseViewEngine;
   lViewName: string;
@@ -4844,10 +4854,13 @@ begin
   lStrStream := TStringBuilder.Create;
   try
     lView := FEngine.ViewEngineClass.Create(
-      Engine, Context,
+      Engine,
+      Context,
+      Self,
       FViewModel,
       ContentType);
     try
+      lView.FBeforeRenderCallback := OnBeforeRenderCallback;
       for lViewName in AViewNames do
       begin
         lView.Execute(lViewName, lStrStream);
@@ -5224,12 +5237,14 @@ end;
 constructor TMVCBaseViewEngine.Create(
       const AEngine: TMVCEngine;
       const AWebContext: TWebContext;
+      const AController: TMVCController;
       const AViewModel: TMVCViewDataObject;
       const AContentType: string);
 begin
   inherited Create;
   Engine := AEngine;
   FWebContext := AWebContext;
+  FController := AController;
   FViewModel := AViewModel;
   FContentType := AContentType;
   FOutput := EmptyStr;
@@ -5239,11 +5254,12 @@ end;
 constructor TMVCBaseViewEngine.Create(
   const AEngine: TMVCEngine;
   const AWebContext: TWebContext;
+  const AController: TMVCController;
   const AViewModel: TMVCViewDataObject;
   const AJSONModel: TJSONObject;
   const AContentType: string);
 begin
-  Create(AEngine, AWebContext, AViewModel, AContentType);
+  Create(AEngine, AWebContext, AController, AViewModel, AContentType);
   fJSONModel := AJSONModel;
 end;
 

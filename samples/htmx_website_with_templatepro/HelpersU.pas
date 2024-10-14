@@ -2,30 +2,59 @@ unit HelpersU;
 
 interface
 
+uses
+  System.Rtti;
 
-type
-  TMyMustacheHelpers = class sealed
-  public
-    class procedure MyHelper1(const Value: variant; out Result: variant);
-    class procedure MyHelper2(const Value: variant; out Result: variant);
-  end;
+function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;
+function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;
+
+
+procedure TemplateProContextConfigure;
 
 implementation
 
 uses
-  MVCFramework.View.Renderers.Mustache, System.SysUtils;
+  TemplatePro, System.SysUtils;
 
-{ TMyMustacheHelpers }
 
-class procedure TMyMustacheHelpers.MyHelper1(const Value: variant; out Result: variant);
+function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;
 begin
-  Result := Value +  ' (I''m The MyHelper1)';
+  Result := Value.ToString +  ' (I''m The MyHelper1)';
 end;
 
-class procedure TMyMustacheHelpers.MyHelper2(const Value: variant; out Result: variant);
+function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;
 begin
-  Result := Value +  ' (I''m The MyHelper2)';
+  Result := Value.ToString +  ' (I''m The MyHelper2)';
+end;
+
+
+procedure TemplateProContextConfigure;
+begin
+  TTProConfiguration.OnContextConfiguration := procedure(const CompiledTemplate: ITProCompiledTemplate)
+  begin
+    // These filters will be available to the TemplatePro views as if they were the standard ones
+    CompiledTemplate.AddFilter('MyHelper1', MyHelper1);
+    CompiledTemplate.AddFilter('MyHelper2', MyHelper2);
+
+    CompiledTemplate.OnGetValue :=
+      procedure(const DataSource, Members: string; var Value: TValue; var Handled: Boolean)
+      begin
+        if SameText(DataSource, 'ext1') then
+        begin
+          if Members.IsEmpty then
+          begin
+            Value := 'External Value Ext1'
+          end
+          else
+          begin
+            Value := 'Reading ext1.' + Members;
+          end;
+          Handled := True;
+        end;
+      end
+  end;
 end;
 
 
 end.
+

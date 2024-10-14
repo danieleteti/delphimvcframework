@@ -128,7 +128,7 @@ begin
   lUseCompiledVersion := False;
   lViewFileName := GetRealFileName(ViewName);
   if lViewFileName.IsEmpty then
-    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
   if FUseViewCache then
   begin
     lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
@@ -137,7 +137,7 @@ begin
 
     if not FileAge(lViewFileName, lActualFileTimeStamp) then
     begin
-      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
+      raise EMVCSSVException.CreateFmt('View [%s] not found',
         [ViewName]);
     end;
 
@@ -188,6 +188,10 @@ begin
           Result := '(Error: Expected 1 param, got ' + Length(aParameters).ToString + ')';
         end;
       end);
+    if Assigned(FBeforeRenderCallback) then
+    begin
+      FBeforeRenderCallback(TObject(lCompiledTemplate));
+    end;	  
     Builder.Append(lCompiledTemplate.Render);
   except
     on E: ETProException do

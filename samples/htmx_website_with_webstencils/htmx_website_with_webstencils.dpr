@@ -17,7 +17,8 @@ uses
   MVCFramework.View.Renderers.WebStencils,
   ControllerU in 'ControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  RandomUtilsU in '..\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\commons\RandomUtilsU.pas',
+  HelpersU in 'HelpersU.pas';
 
 {$R *.res}
 
@@ -68,7 +69,7 @@ begin
       Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 2000);
     end;
 {$ENDIF}
-
+    WebStencilsProcessorConfigure;
     RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do

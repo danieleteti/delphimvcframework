@@ -104,3 +104,9 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE CUSTOM_MANAGED_RECORDS}
 {$ENDIF}
 
+{$UNDEF WEBSTENCILS}
+{$IF Defined(ATHENSORBETTER)}
+{$IF declared(RTLVersion122) or (RTLVersion >= 37)}
+{$DEFINE WEBSTENCILS}
+{$ENDIF}
+{$ENDIF}

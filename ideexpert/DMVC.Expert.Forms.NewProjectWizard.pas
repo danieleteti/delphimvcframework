@@ -32,6 +32,8 @@
 
 unit DMVC.Expert.Forms.NewProjectWizard;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -97,11 +99,10 @@ type
     chkCustomConfigDotEnv: TCheckBox;
     chkProfileActions: TCheckBox;
     lblPATREON: TLabel;
-    chkMustache: TCheckBox;
     chkServicesContainer: TCheckBox;
     chkSqids: TCheckBox;
     rgNameCase: TRadioGroup;
-    chkTemplatePro: TCheckBox;
+    rgSSV: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -116,8 +117,7 @@ type
     procedure lblPATREONClick(Sender: TObject);
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
-    procedure chkMustacheClick(Sender: TObject);
-    procedure chkTemplateProClick(Sender: TObject);
+    procedure rgSSVClick(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
@@ -175,18 +175,6 @@ begin
   begin
     ShowMessage('Remember to include required FireDAC units in your project');
   end;
-end;
-
-procedure TfrmDMVCNewProject.chkMustacheClick(Sender: TObject);
-begin
-  if chkMustache.Checked then
-    chkTemplatePro.Checked := False;
-end;
-
-procedure TfrmDMVCNewProject.chkTemplateProClick(Sender: TObject);
-begin
-  if chkTemplatePro.Checked then
-    chkMustache.Checked := False;
 end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
@@ -287,6 +275,18 @@ begin
   lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
 end;
 
+procedure TfrmDMVCNewProject.rgSSVClick(Sender: TObject);
+begin
+{$if not Defined(WEBSTENCILS)}
+  if SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils') then
+  begin
+    ShowMessage('This Delphi version doesn''t support WebStencils, so DMVCFramework cannot use it.' +
+      sLineBreak + 'Consider to use TemplatePro.');
+    rgSSV.ItemIndex := 1;
+  end;
+{$endif}
+end;
+
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
@@ -348,8 +348,9 @@ begin
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
-  fModel.B[TConfigKey.program_ssv_mustache] := chkMustache.Checked;
-  fModel.B[TConfigKey.program_ssv_templatepro] := chkTemplatePro.Checked;
+  fModel.B[TConfigKey.program_ssv_templatepro] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'templatepro');
+  fModel.B[TConfigKey.program_ssv_webstencils] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils');
+  fModel.B[TConfigKey.program_ssv_mustache] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'mustache');
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
