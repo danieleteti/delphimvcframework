@@ -28,6 +28,7 @@ implementation
 uses
   WineCellarAppControllerU,
   MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Middleware.CORS,
   System.IOUtils;
 
 {$R *.dfm}
@@ -40,6 +41,7 @@ begin
 //      Conf.Value[tmvcconfigkey.PathPrefix] := '/dmvc';
     end);
   MVCEngine.AddController(TWineCellarApp);
+  MVCEngine.AddMiddleware(TMVCCORSMiddleware.Create);
   if not IsLibrary then
   begin
     MVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/app', { StaticFilesPath }
