@@ -964,7 +964,16 @@ uses
   MVCFramework.Nullables,
   MVCFramework.RTTI.Utils,
   FireDAC.Stan.Option,
-  Data.FmtBcd, System.Variants, System.Math;
+  Data.FmtBcd,
+  System.Variants,
+  System.Math,
+  {link all sql generators}
+  MVCFramework.SQLGenerators.PostgreSQL,
+  MVCFramework.SQLGenerators.Firebird,
+  MVCFramework.SQLGenerators.Sqlite,
+  MVCFramework.SQLGenerators.MySQL,
+  MVCFramework.SQLGenerators.MSSQL,
+  MVCFramework.SQLGenerators.Interbase;
 
 var
   gCtx: TRttiContext;
