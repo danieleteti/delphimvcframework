@@ -133,6 +133,9 @@ type
     function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
+    function GetFormatSettings: PFormatSettings;
+    procedure SetFormatSettings(const Value: PFormatSettings);
+    property FormatSettings: PFormatSettings read GetFormatSettings write SetFormatSettings;
   end;
 
   TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
@@ -189,6 +192,8 @@ type
     function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     procedure DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
+    function GetFormatSettings: PFormatSettings;
+    procedure SetFormatSettings(const Value: PFormatSettings);
     class procedure InternalDumpToFile(const FileName: String; const aTokens: TList<TToken>);
   public
     destructor Destroy; override;
@@ -201,6 +206,7 @@ type
     procedure AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction); overload;
     procedure AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction); overload;
     procedure DumpToFile(const FileName: String);
+    property FormatSettings: PFormatSettings read GetFormatSettings write SetFormatSettings;
     property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
   end;
 
@@ -472,6 +478,11 @@ begin
   end;
 end;
 
+function TTProCompiledTemplate.GetFormatSettings: PFormatSettings;
+begin
+  Result := @fLocaleFormatSettings;
+end;
+
 function TTProCompiledTemplate.GetOnGetValue: TTProCompiledTemplateGetValueEvent;
 begin
   Result := fOnGetValue;
@@ -583,7 +594,17 @@ begin
     end
     else
     begin
-      Result := Value.ToString;
+      case Value.Kind of
+        tkInteger: Result := Value.AsInteger.ToString;
+        tkInt64: Result := Value.AsInt64.ToString;
+        tkString, tkUString, tkWString, tkLString: Result := Value.AsString;
+        tkWChar, tkChar: Result := Value.AsType<Char>;
+        tkFloat: Result := FloatToStr(Value.AsExtended, fLocaleFormatSettings);
+        tkEnumeration: Result := Value.ToString;
+        else
+          raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
+      end;
+      //Result := Value.ToString;
     end;
   end;
 
@@ -1569,6 +1590,7 @@ var
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
   lIntegerPar1: Integer;
+  lDecimalMask: string;
 begin
   aFunctionName := lowercase(aFunctionName);
   if SameText(aFunctionName, 'gt') then
@@ -1671,6 +1693,16 @@ begin
       Result := lStrValue.PadLeft(aParameters[0].ToInteger, aParameters[1].Chars[0]);
     end;
   end
+  else if SameText(aFunctionName, 'round') then
+  begin
+    CheckParNumber(1, aParameters);
+    lDecimalMask := '';
+    if aParameters[0].ToInteger < 0 then
+    begin
+      lDecimalMask := '.' + StringOfChar('0', Abs(aParameters[0].ToInteger));
+    end;
+    Result := FormatFloat('0' + lDecimalMask, RoundTo(aValue.AsExtended, aParameters[0].ToInteger));
+  end
   else if SameText(aFunctionName, 'datetostr') then
   begin
     if aValue.IsEmpty then
@@ -1681,7 +1713,7 @@ begin
     begin
       if Length(aParameters) = 0 then
       begin
-        Result := DateToStr(lDateValue)
+        Result := DateToStr(lDateValue, fLocaleFormatSettings)
       end
       else
       begin
@@ -1704,7 +1736,7 @@ begin
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
       if Length(aParameters) = 0 then
-        Result := DateTimeToStr(lDateValue)
+        Result := DateTimeToStr(lDateValue, fLocaleFormatSettings)
       else
       begin
         CheckParNumber(1, aParameters);
@@ -2075,8 +2107,7 @@ begin
   fTemplateFunctions := TDictionary<string, TTProTemplateFunction>.Create(TTProEqualityComparer.Create);
   fTemplateAnonFunctions := nil;
   TTProConfiguration.RegisterHandlers(self);
-  fLocaleFormatSettings.DateSeparator := '-';
-  fLocaleFormatSettings.TimeSeparator := ':';
+  fLocaleFormatSettings := TFormatSettings.Invariant;
   fLocaleFormatSettings.ShortDateFormat := 'yyyy-mm-dd';
 end;
 
@@ -2583,6 +2614,26 @@ begin
               jdtObject:
                 begin
                   Result := lPJSONDataValue.ObjectValue.ToJSON();
+                end;
+              jdtFloat:
+                begin
+                  Result := lPJSONDataValue.FloatValue;
+                end;
+              jdtInt:
+                begin
+                  Result := lPJSONDataValue.IntValue;
+                end;
+              jdtLong:
+                begin
+                  Result := lPJSONDataValue.LongValue;
+                end;
+              jdtULong:
+                begin
+                  Result := lPJSONDataValue.ULongValue;
+                end;
+              jdtBool:
+                begin
+                  Result := lPJSONDataValue.BoolValue;
                 end;
             else
               Result := lPJSONDataValue.Value;
@@ -3100,6 +3151,11 @@ begin
       raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>(Value.Kind));
   end;
 
+end;
+
+procedure TTProCompiledTemplate.SetFormatSettings(const Value: PFormatSettings);
+begin
+  fLocaleFormatSettings := Value^;
 end;
 
 procedure TTProCompiledTemplate.SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
