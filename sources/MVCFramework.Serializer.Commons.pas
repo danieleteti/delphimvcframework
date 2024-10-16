@@ -450,7 +450,7 @@ function StrDict: TMVCStringDictionary; overload;
 function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
-function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
+function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
   const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
 procedure RaiseDeSerializationError(const Msg: string);
@@ -478,25 +478,31 @@ begin
   Result := TMVCStringDictionary.Create;
 end;
 
-function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
+function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
   const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 var
   lMetaKeys: array of string;
   lMetaValues: array of string;
 begin
-  Insert('curr_page', lMetaKeys, 0);
+  Insert('page_num', lMetaKeys, 0);
   Insert(CurrPageNumber.ToString(), lMetaValues, 0);
+
+  Insert('page_size', lMetaKeys, 0);
+  Insert(CurrPageSize.ToString(), lMetaValues, 0);
+
+  Insert('default_page_size', lMetaKeys, 0);
+  Insert(DefaultPageSize.ToString(), lMetaValues, 0);
 
   if CurrPageNumber > 1 then
   begin
     Insert('prev_page_uri', lMetaKeys, 0);
-    Insert(Format(URITemplate, [(CurrPageNumber - 1)]), lMetaValues, 0);
+    Insert(URITemplate.Replace('($page)', (CurrPageNumber - 1).ToString), lMetaValues, 0);
   end;
 
   if CurrPageSize = DefaultPageSize then
   begin
     Insert('next_page_uri', lMetaKeys, 0);
-    Insert(Format(URITemplate, [(CurrPageNumber + 1)]), lMetaValues, 0);
+    Insert(URITemplate.Replace('($page)',(CurrPageNumber + 1).ToString), lMetaValues, 0);
   end;
   Result := StrDict(lMetaKeys, lMetaValues);
 end;
