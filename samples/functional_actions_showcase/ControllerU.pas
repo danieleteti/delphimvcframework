@@ -106,6 +106,8 @@ type
     function GetNotModified: IMVCResponse;
     [MVCPath('/mvcresponse/accepted')]
     function GetAccepted: IMVCResponse;
+    [MVCPath('/mvcresponse/generic')]
+    function GetStatusResponse: IMVCResponse;
   end;
 
 implementation
@@ -296,6 +298,11 @@ end;
 function TMyController.GetSingleRecord: TPersonRec;
 begin
   Result := TPersonRec.Create;
+end;
+
+function TMyController.GetStatusResponse: IMVCResponse;
+begin
+  Result := StatusResponse(HTTP_STATUS.InternalServerError, 'Hello There')
 end;
 
 function TMyController.GetMultipleRecords: TArray<TPersonRec>;

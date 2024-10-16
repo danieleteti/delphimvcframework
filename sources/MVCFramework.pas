@@ -708,7 +708,7 @@ type
     FResponseStream: TStringBuilder;
   protected
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-    function StatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
+    function InternalStatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
   public { this must be public because of entity processors }
     constructor Create; virtual;
     destructor Destroy; override;
@@ -751,9 +751,15 @@ type
       ConflictResult
       InternalServerErrorResult
       RedirectResult
+      StatusResponse --> Generic Status
     }
 
+    function StatusResponse(const StatusCode: Word; const Body: TObject): IMVCResponse; overload;
+    function StatusResponse(const StatusCode: Word; const Message: String): IMVCResponse; overload;
+    function StatusResponse(const StatusCode: Word): IMVCResponse; overload;
+
     function OKResponse(const Body: TObject): IMVCResponse; overload;
+    function OKResponse(const Body: IMVCObjectDictionary): IMVCResponse; overload;
     function OKResponse(const Message: String): IMVCResponse; overload;
     function OKResponse: IMVCResponse; overload;
 
@@ -4063,38 +4069,38 @@ end;
 
 function TMVCRenderer.BadRequestResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.BadRequest, nil);
 end;
 
 function TMVCRenderer.BadRequestResponse(const Error: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, Error);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.BadRequest, Error);
 end;
 
 function TMVCRenderer.BadRequestResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.BadRequest, nil, Message);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.BadRequest, nil, Message);
 end;
 
 function TMVCRenderer.UnprocessableContentResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil);
 end;
 
 function TMVCRenderer.UnprocessableContentResponse(const Error: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, Error);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.UnprocessableEntity, Error);
 end;
 
 function TMVCRenderer.UnprocessableContentResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil, Message);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil, Message);
 end;
 
 
 function TMVCRenderer.ConflictResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.Conflict, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.Conflict, nil);
 end;
 
 constructor TMVCRenderer.Create;
@@ -4288,59 +4294,82 @@ end;
 
 function TMVCRenderer.InternalServerErrorResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.InternalServerError, nil);
 end;
 
 
 function TMVCRenderer.InternalServerErrorResponse(const Error: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, Error);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.InternalServerError, Error);
 end;
 
 function TMVCRenderer.InternalServerErrorResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.InternalServerError, nil, Message);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.InternalServerError, nil, Message);
 end;
 
 
 function TMVCRenderer.NoContentResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.NoContent, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.NoContent, nil);
 end;
 
 function TMVCRenderer.NotFoundResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.NotFound, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.NotFound, nil);
 end;
 
 function TMVCRenderer.NotFoundResponse(const Body: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.NotFound, Body);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.NotFound, Body);
 end;
 
 function TMVCRenderer.NotFoundResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.NotFound, nil, Message);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.NotFound, nil, Message);
 end;
 
 function TMVCRenderer.NotModifiedResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.NotModified, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.NotModified, nil);
 end;
 
 function TMVCRenderer.OKResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.OK, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.OK, nil);
 end;
 
 function TMVCRenderer.OKResponse(const Message: String): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.OK, nil, Message);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.OK, nil, Message);
 end;
 
 function TMVCRenderer.OKResponse(const Body: TObject): IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.OK, Body);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.OK, Body);
+end;
+
+function TMVCRenderer.OKResponse(const Body: IMVCObjectDictionary): IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(Body)
+    .Build;
+end;
+
+function TMVCRenderer.StatusResponse(const StatusCode: Word): IMVCResponse;
+begin
+  Result := InternalStatusCodeResponse(StatusCode, nil);
+end;
+
+function TMVCRenderer.StatusResponse(const StatusCode: Word; const Message: String): IMVCResponse;
+begin
+  Result := InternalStatusCodeResponse(StatusCode, nil, Message);
+end;
+
+function TMVCRenderer.StatusResponse(const StatusCode: Word; const Body: TObject): IMVCResponse;
+begin
+  Result := InternalStatusCodeResponse(StatusCode, Body);
 end;
 
 function TMVCController.GetViewData(const aModelName: string): TValue;
@@ -4627,7 +4656,7 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
-function TMVCRenderer.StatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
+function TMVCRenderer.InternalStatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
 begin
   if Body = nil then
   begin
@@ -4656,7 +4685,7 @@ end;
 
 function TMVCRenderer.UnauthorizedResponse: IMVCResponse;
 begin
-  Result := StatusCodeResponse(HTTP_STATUS.Unauthorized, nil);
+  Result := InternalStatusCodeResponse(HTTP_STATUS.Unauthorized, nil);
 end;
 
 procedure TMVCController.SetETag(const Data: String; const NeedsToBeHashed: Boolean);
