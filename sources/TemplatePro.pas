@@ -35,7 +35,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '0.7.0';
+  TEMPLATEPRO_VERSION = '0.7.1';
 
 type
   ETProException = class(Exception)
@@ -241,6 +241,7 @@ type
     procedure ProcessJumps(const aTokens: TList<TToken>);
     procedure Compile(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String); overload;
     constructor Create(const aEncoding: TEncoding; const aOptions: TTProCompilerOptions = []); overload;
+    procedure MatchFilter(lVarName: string; var lFuncName: string; var lFuncParamsCount: Integer; var lFuncParams: TArray<String>);
   public
     function Compile(const aTemplate: string; const aFileNameRefPath: String = ''): ITProCompiledTemplate; overload;
     constructor Create(aEncoding: TEncoding = nil); overload;
@@ -333,7 +334,7 @@ end;
 
 procedure FunctionError(const aFunctionName, aErrMessage: string);
 begin
-  raise ETProRenderException.Create(Format('%s in function %s', [aErrMessage, aFunctionName])) at ReturnAddress;
+  raise ETProRenderException.Create(Format('[%1:s] %0:s (error in filter call for function [%1:s])', [aErrMessage, aFunctionName])) at ReturnAddress;
 end;
 
 function _Comparand(const aComparandType: TComparandType; const aValue: TValue; const aParameters: TArray<String>; const aLocaleFormatSettings: TFormatSettings): TValue;
@@ -701,6 +702,17 @@ begin
     Create(aEncoding, []);
 end;
 
+procedure TTProCompiler.MatchFilter(lVarName: string; var lFuncName: string; var lFuncParamsCount: Integer; var lFuncParams: TArray<String>);
+begin
+  MatchSpace;
+  if not MatchVariable(lFuncName) then
+    Error('Invalid function name applied to variable ' + lVarName);
+  MatchSpace;
+  lFuncParams := GetFunctionParameters;
+  lFuncParamsCount := Length(lFuncParams);
+  MatchSpace;
+end;
+
 function TTProCompiler.CurrentChar: Char;
 begin
   Result := fInputString.Chars[fCharIndex]
@@ -899,6 +911,8 @@ var
   lContentOnThisLine: Integer;
   lStrVerbatim: string;
   lLayoutFound: Boolean;
+  lFoundVar: Boolean;
+  lFoundFilter: Boolean;
 begin
   aTokens.Add(TToken.Create(ttSystemVersion, TEMPLATEPRO_VERSION, ''));
   lLastToken := ttEOF;
@@ -978,9 +992,12 @@ begin
 
       if CurrentChar = ':' then // variable
       begin
+        lFoundVar := False;
+        lFoundFilter := False;
         Step;
         if MatchVariable(lVarName) then { variable }
         begin
+          lFoundVar := True;
           if lVarName.IsEmpty then
             Error('Invalid variable name');
           lFuncName := '';
@@ -990,15 +1007,17 @@ begin
           MatchSpace;
           if MatchSymbol('|') then
           begin
-            MatchSpace;
-            if not MatchVariable(lFuncName) then
-              Error('Invalid function name applied to variable ' + lVarName);
-            MatchSpace;
-            lFuncParams := GetFunctionParameters;
-            lFuncParamsCount := Length(lFuncParams);
-            MatchSpace;
+            MatchFilter(lVarName, lFuncName, lFuncParamsCount, lFuncParams);
           end;
+        end
+        else if MatchSymbol('|') then
+        begin
+          lFoundFilter := True;
+          MatchFilter(lVarName, lFuncName, lFuncParamsCount, lFuncParams);
+        end;
 
+        if lFoundVar or lFoundFilter then
+        begin
           if not MatchEndTag then
           begin
             Error('Expected end tag "' + END_TAG + '" near ' + GetSubsequentText);
@@ -1020,7 +1039,11 @@ begin
               end;
             end;
           end;
-        end; // matchvariable
+        end
+        else
+        begin
+          Error('Expected variable or filter near ' + GetSubsequentText);
+        end;
       end
       else
       begin
@@ -1631,15 +1654,42 @@ begin
   end
   else if SameText(aFunctionName, 'uppercase') then
   begin
-    Result := UpperCase(aValue.AsString);
+    if not aValue.IsEmpty then
+    begin
+      CheckParNumber(0, aParameters);
+      Result := UpperCase(aValue.AsString);
+    end
+    else
+    begin
+      CheckParNumber(1, aParameters);
+      Result := UpperCase(aParameters[0]);
+    end;
   end
   else if SameText(aFunctionName, 'lowercase') then
   begin
-    Result := lowercase(aValue.AsString);
+    if not aValue.IsEmpty then
+    begin
+      CheckParNumber(0, aParameters);
+      Result := lowercase(aValue.AsString);
+    end
+    else
+    begin
+      CheckParNumber(1, aParameters);
+      Result := lowercase(aParameters[0]);
+    end;
   end
   else if SameText(aFunctionName, 'capitalize') then
   begin
-    Result := CapitalizeString(aValue.AsString, True);
+    if not aValue.IsEmpty then
+    begin
+      CheckParNumber(0, aParameters);
+      Result := CapitalizeString(aValue.AsString, True);
+    end
+    else
+    begin
+      CheckParNumber(1, aParameters);
+      Result := CapitalizeString(aParameters[0], True);
+    end;
   end
   else if SameText(aFunctionName, 'trunc') then
   begin
@@ -1760,6 +1810,10 @@ begin
   end
   else if SameText(aFunctionName, 'version') then
   begin
+    if not aValue.IsEmpty then
+    begin
+      FunctionError(aFunctionName, 'cannot be applied to a value - [HINT] Use {{:|' + aFunctionName + '}}');
+    end;
     CheckParNumber(0, aParameters);
     Result := TEMPLATEPRO_VERSION;
   end

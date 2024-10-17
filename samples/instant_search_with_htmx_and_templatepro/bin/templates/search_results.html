@@ -1,47 +1,37 @@
 <p>{{:books|count}} book/s found</p>
-<table class="table is-fullwidth is-hoverable">
-  <thead>
-	<tr>
-	  <th>ID</th>
-	  <th>Book Title</th>
-	  <th>Book Author</th>
-	  <th>Rating</th>
-	  <th>Genre</th>
-	</tr>
-  </thead>
-  <tbody>
-	{{if !books}}
-	<tr>
-	  <td colspan="4">
-		<span>No books found</span>	
-	  </td>	  
-	</tr>	
-	{{endif}}	
-	{{for book in books}}
-	<tr	class=
-		{{if book.genre|eq,"Horror"}}
-		"has-background-danger-light"
-		{{else}} {{if book.genre|eq,"Thriller"}}
-  		"has-background-success-light"
-		{{else}} {{if book.genre|eq,"Classic"}}
-  		"has-background-primary-light"
-  		{{endif}}
-		{{endif}}
-		{{endif}}>
-	  <td>{{:book.id|lpad,8,"0"}}</td>
-	  <td>{{:book.book_name}}</td>
-	  <td>{{:book.author_name}}</td>
-	  <td>
-		{{if book.rating|ge,1}}⭐{{endif}}
-		{{if book.rating|ge,2}}⭐{{endif}}
-		{{if book.rating|ge,3}}⭐{{endif}}
-		{{if book.rating|ge,4}}⭐{{endif}}
-		{{if book.rating|ge,5}}⭐{{endif}}
-	  </td>	  
-	  <td>
-		{{:book.genre|uppercase}}
-	  </td>
-	</tr>
-	{{endfor}}
-  </tbody>
-</table>
+
+<div class="divTable blueTable">
+	<div class="divTableHeading">
+		<div class="divTableRow">
+			<div class="divTableHead">ID</div>
+			<div class="divTableHead">Book Title</div>
+			<div class="divTableHead">Book Author</div>
+			<div class="divTableHead">Rating</div>
+			<div class="divTableHead">Genre</div>
+		</div>
+	</div>
+	<div class="divTableBody">
+		{{if !books}}
+		<div class="divTableRow">
+			<span>No books found</span>
+		</div>
+		{{endif}}		
+		{{for book in books}}
+		<div class="divTableRow {{if book.genre|eq,"Horror"}}has-background-danger-light{{endif}}">
+			<div class="divTableCell">{{:book.id|lpad,8,"0"}}</div>
+			<div class="divTableCell">{{:book.book_name}}</div>
+			<div class="divTableCell">{{:book.author_name}}</div>
+			<div class="divTableCell">
+				{{if book.rating|ge,1}}⭐{{endif}}
+				{{if book.rating|ge,2}}⭐{{endif}}
+				{{if book.rating|ge,3}}⭐{{endif}}
+				{{if book.rating|ge,4}}⭐{{endif}}
+				{{if book.rating|ge,5}}⭐{{endif}}
+			</div>
+			<div class="divTableCell">
+				{{:book.genre|uppercase}}
+			</div>
+		</div>
+		{{endfor}}
+	</div>
+</div>

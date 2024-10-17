@@ -179,13 +179,17 @@ begin
     lCompiledTemplate.AddFilter('fromquery',
       function (const aValue: TValue; const aParameters: TArray<string>): TValue
       begin
+        if not aValue.IsEmpty then
+        begin
+          raise ETProRenderException.Create('Filter "fromquery" cannot be applied to a value [HINT] Use {{:|fromquery,"parname"}}');
+        end;
         if Length(aParameters) = 1 then
         begin
           Result := Self.WebContext.Request.QueryStringParam(aParameters[0]);
         end
         else
         begin
-          Result := '(Error: Expected 1 param, got ' + Length(aParameters).ToString + ')';
+          raise ETProRenderException.Create('Expected 1 param for filter "fromquery", got ' + Length(aParameters).ToString);
         end;
       end);
     if Assigned(FBeforeRenderCallback) then
