@@ -1558,8 +1558,8 @@ end;
 
 class procedure TMVCSwagger.CheckSchemaObjectDefinitionNameSuffix;
 begin
-  if fSchemaObjectDefinitionNameSuffixForNewRequest.IsEmpty and
-     fSchemaObjectDefinitionNameSuffixForCustomRequest.IsEmpty and
+  if fSchemaObjectDefinitionNameSuffixForNewRequest.IsEmpty or
+     fSchemaObjectDefinitionNameSuffixForCustomRequest.IsEmpty or
      fSchemaObjectDefinitionNameSuffixForResponse.IsEmpty then
      Exit;
 
