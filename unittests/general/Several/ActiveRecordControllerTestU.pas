@@ -4,7 +4,7 @@ unit ActiveRecordControllerTestU;
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -212,7 +212,7 @@ begin
     Assert.IsTrue(lJSON.Contains('data') and (lJSON.Types['data'] = TJsonDataType.jdtArray), 'incorrect "data" property in JSON');
     var lCustomers := TJSONUtils.JSONArrayToListOf<TCustomer>(lJSON.A['data']);
     try
-      Assert.AreEqual(20, lCustomers.Count);
+      Assert.AreEqual<Integer>(20, lCustomers.Count);
     finally
       lCustomers.Free;
     end;

@@ -7,14 +7,11 @@ uses
   System.SysUtils,
   MVCFramework,
   MVCFramework.Signal,
-
+  MVCFramework.Logger,
   {$IFDEF MSWINDOWS}
-
   Winapi.Windows,
   Winapi.ShellAPI,
-
   {$ENDIF}
-
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
@@ -28,7 +25,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
@@ -36,7 +33,7 @@ begin
     {$IFDEF MSWINDOWS}
     ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
     {$ENDIF}
-    Writeln('CTRL+C to stop the server');
+    LogI('CTRL+C to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
   finally
@@ -53,7 +50,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogI(E.ClassName + ': ' + E.Message);
   end
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,6 +29,7 @@ unit MVCFramework.Middleware.CORS;
 interface
 
 uses
+  System.Classes,
   System.StrUtils,
   MVCFramework,
   MVCFramework.Commons;
@@ -118,7 +119,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Classes;
+  System.SysUtils;
 
 { TMVCCORSMiddleware }
 
@@ -149,18 +150,25 @@ begin
   lCustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   lCustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
   lCustomHeaders.Values['Access-Control-Max-Age'] := FAccessControlMaxAge;
+  if FAllowsCredentials then
+  begin
+    // Omit Access-Control-Allow-Credentials if <> true
+    // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
+    lCustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
+  end;
 end;
 
 function TMVCCORSMiddleware.GetAllowedOriginURL(AContext: TWebContext): String;
 var
   lRequestOrigin: string;
   lAllowed: String;
+  I: Integer;
 begin
   Result := '';
   lRequestOrigin := AContext.Request.Headers['Origin'];
   if lRequestOrigin <> '' then
   begin
-    for var I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
+    for I := Low(FAllowedOriginURLs) to High(FAllowedOriginURLs) do
     begin
       lAllowed := FAllowedOriginURLs[I].Trim;
       if SameText(lRequestOrigin, lAllowed) or (lAllowed = '*') then
@@ -199,12 +207,6 @@ begin
     FillCommonHeaders(AContext, lAllowOrigin);
     lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
     lCustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders; {only for not preflight requests}
-    if FAllowsCredentials then
-    begin
-      // Omit Access-Control-Allow-Credentials if <> true
-      // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853
-      lCustomHeaders.Values['Access-Control-Allow-Credentials'] := 'true';
-    end;
   end;
   AHandled := False;
 end;

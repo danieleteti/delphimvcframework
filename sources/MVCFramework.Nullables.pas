@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -960,7 +960,17 @@ function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
 implementation
 
 uses
-  System.Math, MVCFramework.Serializer.Commons;
+  System.Math, System.DateUtils, System.Types;
+
+function DateAreEquals(const DateA, DateB: TDate): Boolean;
+begin
+  Result := CompareDate(DateA, DateB) = 0;
+end;
+
+function TimeAreEquals(const TimeA, TimeB: TTime): Boolean;
+begin
+  Result := CompareValue(TimeA,TimeB, 0.000001) = 0;
+end;
 
 
 { NullableString }
@@ -1370,7 +1380,7 @@ end;
 class operator NullableTDate.Equal(LeftValue: NullableTDate; RightValue: NullableTDate) : Boolean;
 begin
   Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
-	 (DateToISODate(LeftValue.Value) = DateToISODate(RightValue.Value)));
+	 (DateAreEquals(LeftValue.Value, RightValue.Value)));
 end;
 
 procedure NullableTDate.SetNull;
@@ -1479,7 +1489,7 @@ end;
 class operator NullableTTime.Equal(LeftValue: NullableTTime; RightValue: NullableTTime) : Boolean;
 begin
   Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
-	 (TimeToISOTime(LeftValue.Value) = TimeToISOTime(RightValue.Value)));
+	 (TimeAreEquals(LeftValue.Value, RightValue.Value)));
 end;
 
 procedure NullableTTime.SetNull;
@@ -1588,7 +1598,8 @@ end;
 class operator NullableTDateTime.Equal(LeftValue: NullableTDateTime; RightValue: NullableTDateTime) : Boolean;
 begin
   Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and 
-	 (DateTimeToISOTimeStamp(LeftValue.Value) = DateTimeToISOTimeStamp(RightValue.Value)));
+	 (DateAreEquals(LeftValue.Value, RightValue.Value) and 
+	 TimeAreEquals(LeftValue.Value, RightValue.Value)));
 end;
 
 procedure NullableTDateTime.SetNull;

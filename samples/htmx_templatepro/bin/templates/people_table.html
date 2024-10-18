@@ -1,0 +1,28 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">First name</th>
+            <th scope="col">Last name</th>
+            <th scope="col">Age</th>
+            <th scope="col">&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{if !people}}
+        <tr>
+            <td class="text-center" colspan="5">&lt;&lt;No People Found&gt;&gt;</td>
+        </tr>
+        {{else}}
+        {{for person in people}}
+        <tr>
+            <td>{{:person.@@index}}</td>
+            <td>{{:person.FirstName|capitalize}}</td>
+            <td>{{:person.LastName|capitalize}}</td>
+            <td>{{:person.Age}}</td>
+            <td class="text-end">{{include "delete_person_link.html"}} | {{include "view_person_link.html"}}</td>
+        </tr>
+        {{endfor}}
+        {{endif}}
+    </tbody>
+</table>

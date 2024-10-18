@@ -1,0 +1,13 @@
+<div class="row_fluid">
+    <div class="offset-sm-6 col-sm-6 text-right">
+      <form hx-get="/people/search" hx-target="#people_list">  
+        <div class="input-group mb-3">
+        <input name="q" type="text" class="form-control" placeholder="Contains..." value="{{q}}">
+        <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+        </div>    
+
+      </form>
+    </div>
+</div>

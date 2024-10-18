@@ -1,13 +1,13 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// João Antônio Duarte (https://github.com/joaoduarte19)
+// Joï¿½o Antï¿½nio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -53,6 +53,7 @@ type
   TBeforeRequestProc = reference to procedure (aRequest: IHTTPRequest);
   TRequestCompletedProc = reference to procedure (aResponse: IHTTPResponse; var aHandled: Boolean);
   TResponseCompletedProc = reference to procedure(aResponse: IMVCRESTResponse);
+  TSendDataProc = reference to procedure(AContentLength, AWriteCount: Int64; var AAbort: Boolean);
 
   IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
@@ -102,6 +103,14 @@ type
     /// Executes after the response is processed.
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+
+
+{$IF Defined(SYDNEYORBETTER)}
+    /// <summary>
+    /// Executes while sending data
+    /// </summary>
+    function SetSendDataProc(aSendDataProc: TSendDataProc): IMVCRESTClient;
+{$ENDIF}
 
     ///<summary>
     /// Set the client certificate for the request</summary>
@@ -333,7 +342,7 @@ type
     /// Execute a Get request. The GET method requests a representation of the specified resource.
     /// Requests using GET should only retrieve data.
     /// Sending body/payload in a GET request may cause some existing implementations to
-    /// reject the request — while not prohibited by the specification, the semantics
+    /// reject the request ï¿½ while not prohibited by the specification, the semantics
     /// are undefined. It is better to just avoid sending payloads in GET requests.
     /// </summary>
     function Get(const aResource: string): IMVCRESTResponse; overload;
@@ -341,7 +350,7 @@ type
     /// Execute a Get request. The GET method requests a representation of the specified resource.
     /// Requests using GET should only retrieve data.
     /// Sending body/payload in a GET request may cause some existing implementations to
-    /// reject the request — while not prohibited by the specification, the semantics
+    /// reject the request ï¿½ while not prohibited by the specification, the semantics
     /// are undefined. It is better to just avoid sending payloads in GET requests.
     /// </summary>
     function Get: IMVCRESTResponse; overload;

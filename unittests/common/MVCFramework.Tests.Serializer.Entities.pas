@@ -1,12 +1,12 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators with this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -80,7 +80,7 @@ type
     FAccessTime: TTime;
     FActive: Boolean;
     FRole: TRole;
-    FTeporization: TTimeStamp;
+    FTemporization: TTimeStamp;
     FDepartment: TDepartment;
     FDepartmentNull: TDepartment;
 
@@ -115,7 +115,7 @@ type
     property AccessTime: TTime read FAccessTime write FAccessTime;
     property Active: Boolean read FActive write FActive;
     property Role: TRole read FRole write FRole;
-    property Teporization: TTimeStamp read FTeporization write FTeporization;
+    property Temporization: TTimeStamp read FTemporization write FTemporization;
     property Department: TDepartment read FDepartment write FDepartment;
     property DepartmentNull: TDepartment read FDepartmentNull write FDepartmentNull;
 
@@ -316,11 +316,15 @@ type
     FId: Int64;
     FNames: TArray<String>;
     FValues: TArray<Integer>;
+    FValues8: TArray<Byte>;
+    FValues64: TArray<Int64>;
     FBooleans: TArray<Boolean>;
   public
     property Id: Int64 read FId write FId;
     property Names: TArray<String> read FNames write FNames;
     property Values: TArray<Integer> read FValues write FValues;
+    property Values8: TArray<Byte> read FValues8 write FValues8;
+    property Values64: TArray<Int64> read FValues64 write FValues64;
     property Booleans: TArray<Boolean> read FBooleans write FBooleans;
   end;
 

@@ -53,7 +53,7 @@ begin
   end
   else
   begin
-    RenderStatusMessage(http_status.BadRequest, 'Session not created. Do login first');
+    Render(http_status.BadRequest, 'Session not created. Do login first');
   end;
 end;
 

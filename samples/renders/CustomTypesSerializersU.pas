@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -51,6 +51,21 @@ type
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>);
   end;
+
+  // Custom serializer for TSysUserSerializer type
+  TSysUserSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+  end;
+
 
   // Custom serializer for TNullableAliasSerializer type
   TNullableAliasSerializer = class(TInterfacedObject, IMVCTypeSerializer)
@@ -168,6 +183,36 @@ procedure TUserRolesSerializer.SerializeRoot(const AObject: TObject; out ASerial
   const ASerializationAction: TMVCSerializationAction = nil);
 begin
   raise EMVCSerializationException.CreateFmt('%s cannot be used as root object', [ClassName]);
+end;
+
+{ TSysUserSerializer }
+
+procedure TSysUserSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TSysUserSerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TSysUserSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+  (ASerializerObject as TJDOJsonObject).S['prop'] := 'hello there attribute';
+end;
+
+procedure TSysUserSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>; const ASerializationAction: TMVCSerializationAction);
+var
+  lJObj: TJDOJsonObject;
+begin
+  lJObj := (ASerializerObject as TJDOJsonObject);
+  lJObj.S['username'] := TSysUser(AObject).UserName;
+  lJObj.S['roles'] := String.Join(',', TSysUser(AObject).Roles);
 end;
 
 end.

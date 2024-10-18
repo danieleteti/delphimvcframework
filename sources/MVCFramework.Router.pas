@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,12 +43,14 @@ type
   TMVCActionParamCacheItem = class
   private
     FValue: string;
-    FParams: TList<string>;
+    FParams: TList<TPair<String, String>>;
+    FRegEx: TRegEx;
   public
-    constructor Create(aValue: string; aParams: TList<string>); virtual;
+    constructor Create(aValue: string; aParams: TList<TPair<String, String>>); virtual;
     destructor Destroy; override;
     function Value: string;
-    function Params: TList<string>; // this should be read-only...
+    function Params: TList<TPair<String, String>>; // this should be read-only...
+    function Match(const Value: String): TMatch; inline;
   end;
 
   TMVCRouter = class(TMVCCustomRouter)
@@ -58,6 +60,7 @@ type
     FMethodToCall: TRttiMethod;
     FControllerClazz: TMVCControllerClazz;
     FControllerCreateAction: TMVCControllerCreateAction;
+    FControllerInjectableConstructor: TRttiMethod;
     FActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
@@ -80,7 +83,7 @@ type
       const AMVCPath: string;
       const APath: string;
       var aParams: TMVCRequestParamsTable): Boolean;
-    function GetParametersNames(const V: string): TList<string>;
+    function GetParametersNames(const V: string): TList<TPair<string, string>>;
   protected
     procedure FillControllerMappedPaths(
       const aControllerName: string;
@@ -106,13 +109,14 @@ type
     property MethodToCall: TRttiMethod read FMethodToCall;
     property ControllerClazz: TMVCControllerClazz read FControllerClazz;
     property ControllerCreateAction: TMVCControllerCreateAction read FControllerCreateAction;
+    property ControllerInjectableConstructor: TRttiMethod read FControllerInjectableConstructor;
   end;
 
 implementation
 
 uses
   System.TypInfo,
-  System.NetEncoding;
+  System.NetEncoding, MVCFramework.Rtti.Utils, MVCFramework.Container;
 
 { TMVCRouter }
 
@@ -183,12 +187,10 @@ begin
       LRequestPathInfo := '/' + LRequestPathInfo;
     end;
   end;
-  //LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
   LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
 
   TMonitor.Enter(gLock);
   try
-    //LControllerMappedPaths := TArray<string>.Create();
     LControllerMappedPaths := TStringList.Create;
     try
       for LControllerDelegate in AControllers do
@@ -203,7 +205,6 @@ begin
           LAttributes := LRttiType.GetAttributes;
           if (LAttributes = nil) then
             Continue;
-          //LControllerMappedPaths := GetControllerMappedPath(LRttiType.Name, LAttributes);
           FillControllerMappedPaths(LRttiType.Name, LAttributes, LControllerMappedPaths);
         end
         else
@@ -227,11 +228,6 @@ begin
           begin
             Continue;
           end;
-//        end;
-
-//          if (not LControllerMappedPathFound) then
-//            continue;
-
           LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
           for LMethod in LMethods do
           begin
@@ -268,6 +264,15 @@ begin
                     FMethodToCall := LMethod;
                     FControllerClazz := LControllerDelegate.Clazz;
                     FControllerCreateAction := LControllerDelegate.CreateAction;
+                    FControllerInjectableConstructor := nil;
+
+                    // select the constructor with the most mumber of parameters
+                    if not Assigned(FControllerCreateAction) then
+                    begin
+                      FControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
+                    end;
+                    // end - select the constructor with the most mumber of parameters
+
                     LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                     if LProduceAttribute <> nil then
                     begin
@@ -342,71 +347,121 @@ function TMVCRouter.IsCompatiblePath(
   const APath: string;
   var aParams: TMVCRequestParamsTable): Boolean;
 
-  function ToPattern(const V: string; const Names: TList<string>): string;
+  function ToPattern(const V: string; const Names: TList<TPair<String, String>>): string;
   var
-    S: string;
+    S: TPair<String, String>;
   begin
     Result := V;
-    for S in Names do
-      Result := StringReplace(Result, '($' + S + ')', '([' + TMVCConstants.URL_MAPPED_PARAMS_ALLOWED_CHARS + ']*)',
-        [rfReplaceAll]);
+    if Names.Count > 0 then
+    begin
+      for S in Names do
+      begin
+        Result := StringReplace(
+          Result,
+          '($' + S.Key + S.Value + ')', '([' + TMVCConstants.URL_MAPPED_PARAMS_ALLOWED_CHARS + ']*)',
+          [rfReplaceAll]);
+      end;
+    end;
   end;
 
 var
-  lRegEx: TRegEx;
   lMatch: TMatch;
   lPattern: string;
   I: Integer;
-  lNames: TList<string>;
+  lNames: TList<TPair<String, String>>;
   lCacheItem: TMVCActionParamCacheItem;
+  P: TPair<string, string>;
+  lConv: string;
+  lParValue: String;
 begin
+  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
+  begin
+    Exit(True);
+  end;
+
   if not FActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
   begin
     lNames := GetParametersNames(AMVCPath);
     lPattern := ToPattern(AMVCPath, lNames);
-    lCacheItem := TMVCActionParamCacheItem.Create(lPattern, lNames);
-    FActionParamsCache.Add(AMVCPath, lCacheItem);
+    lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
+    FActionParamsCache.Add(AMVCPath, lCacheItem); {do not commit this!}
   end;
 
-  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
-    Exit(True)
-  else
+  lMatch := lCacheItem.Match(APath);
+  Result := lMatch.Success;
+  if Result then
   begin
-    lRegEx := TRegEx.Create('^' + lCacheItem.Value + '$', [roIgnoreCase, roCompiled, roSingleLine]);
-    lMatch := lRegEx.Match(APath);
-    Result := lMatch.Success;
-    if Result then
+    for I := 1 to Pred(lMatch.Groups.Count) do
     begin
-      for I := 1 to pred(lMatch.Groups.Count) do
+      P := lCacheItem.Params[I - 1];
+
+      {
+        P.Key = Parameter name
+        P.Value = Converter applied to the value before to be injected (eg. :sqid)
+      }
+
+      lParValue := TIdURI.URLDecode(lMatch.Groups[I].Value);
+      if P.Value.IsEmpty then
       begin
-        aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
+        {no converter}
+        aParams.Add(P.Key, lParValue);
+      end
+      else
+      begin
+        lConv := P.Value;
+        if SameText(lConv, ':sqids') then
+        begin
+          {sqids converter (so far the only one)}
+          aParams.Add(P.Key, TMVCSqids.SqidToInt(lParValue).ToString);
+        end
+        else
+        begin
+          raise EMVCException.CreateFmt('Unknown converter [%s]', [lConv]);
+        end;
       end;
     end;
   end;
 end;
 
-function TMVCRouter.GetParametersNames(const V: string): TList<string>;
+function TMVCRouter.GetParametersNames(const V: string): TList<TPair<string, string>>;
 var
   S: string;
   Matches: TMatchCollection;
   M: TMatch;
   I: Integer;
-  lList: TList<string>;
+  lList: TList<TPair<string, string>>;
+  lNameFound: Boolean;
+  lConverter: string;
+  lName: string;
 begin
-  lList := TList<string>.Create;
+  lList := TList<TPair<string, string>>.Create;
   try
-    S := '\(\$([A-Za-z0-9\_]+)\)';
+    S := '\(\$([A-Za-z0-9\_]+)(\:[a-z]+)?\)';
     Matches := TRegEx.Matches(V, S, [roIgnoreCase, roCompiled, roSingleLine]);
     for M in Matches do
     begin
+      lNameFound := False;
+      lConverter := '';
       for I := 0 to M.Groups.Count - 1 do
       begin
         S := M.Groups[I].Value;
-        if (Length(S) > 0) and (S.Chars[0] <> '(') then
+        if Length(S) > 0 then
         begin
-          lList.Add(S);
-          Break;
+          if (not lNameFound) and (S.Chars[0] <> '(') and (S.Chars[0] <> ':') then
+          begin
+            lName := S;
+            lNameFound := True;
+            Continue;
+          end;
+          if lNameFound and (S.Chars[0] = ':') then
+          begin
+            lConverter := S;
+          end;
         end;
+      end;
+      if lNameFound then
+      begin
+        lList.Add(TPair<string,string>.Create(lName,lConverter));
       end;
     end;
     Result := lList;
@@ -526,11 +581,12 @@ end;
 { TMVCActionParamCacheItem }
 
 constructor TMVCActionParamCacheItem.Create(aValue: string;
-  aParams: TList<string>);
+  aParams: TList<TPair<String, String>>);
 begin
   inherited Create;
-  FValue := aValue;
-  FParams := aParams;
+  fValue := aValue;
+  fParams := aParams;
+  fRegEx := TRegEx.Create(FValue, [roIgnoreCase, roCompiled, roSingleLine]);
 end;
 
 destructor TMVCActionParamCacheItem.Destroy;
@@ -539,7 +595,12 @@ begin
   inherited;
 end;
 
-function TMVCActionParamCacheItem.Params: TList<string>;
+function TMVCActionParamCacheItem.Match(const Value: String): TMatch;
+begin
+  Result := fRegEx.Match(Value);
+end;
+
+function TMVCActionParamCacheItem.Params: TList<TPair<String, String>>;
 begin
   Result := FParams;
 end;

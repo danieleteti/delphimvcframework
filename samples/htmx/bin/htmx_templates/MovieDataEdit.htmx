@@ -1,0 +1,74 @@
+{{! editing control for a Facility 
+this gets inserted into a row in the current table
+}}
+
+{{#Movies}}
+{{!#}}
+<tr class="editing" hx-trigger="cancel" hx-get="/movie/{{MovieID}}" hx-target="this">
+  <td colspan="6">
+  <!-- todo: replace table layout with css/div layout -->
+	<table class="table table-borderless" >
+		<tbody>
+		<tr>
+			<td colspan="6">This would be better being styled with div tags and CSS
+			</td>
+		</tr>
+		<tr>
+		  <input type="hidden" name="insertMode" value="{{page.InsertMode}}"> 
+		  
+		  
+		  <!--td width="15%">ID&nbsp;<input class="focus" name="MovieID" value="{{MovieID}}" {{^page.InsertMode}} readonly>{{/page.InsertMode}}</td-->
+		  <td width="10%">ID&nbsp;<input class="focus" name="MovieID" value="{{MovieID}}" size="5" readonly></td>
+		  <td>Name&nbsp;<input required type="text" name="MovieName" value="{{MovieName}}" size="70"></td>
+		  <td width="10%">Rating&nbsp;<input  type="text"  name="Rating" value="{{Rating}}" size="5"></td>
+		  
+		  <td width="15%">Genre&nbsp;
+			<select name="GenreID">
+			{{#genres}} 
+			<option value="{{GenreID}}" {{#Selected}}selected="true"{{/Selected}}>{{Genre}}</option>
+			  {{/genres}} 
+			</select>  
+		  </td>
+		  <td width="15%">Release Date&nbsp;<input type="date" name="ReleaseDate" value="{{ReleaseDate}}"></td> 
+		  <td width="10%">Current ?&nbsp;<input type="checkbox" name="Current" value="true" {{#Current}}checked="true"{{/Current}}"></td>
+		</tr>
+		<tr>  
+		  <td colspan="6"><div style="float: right">
+			<button class="btn btn-light" hx-get="/movie/{{MovieID}}" hx-swap="outerHTML" 
+			{{#page.InsertMode}}
+			hx-vals='{"cancelled": true}'
+			{{/page.InsertMode}}
+			>
+			Cancel
+			</button>
+						
+
+			<button class="btn btn-success" hx-include="closest table" hx-swap="outerHTML"
+			  {{^page.InsertMode}}
+			    hx-put="/movie/{{MovieID}}" 
+			  {{/page.InsertMode}}
+			  {{#page.InsertMode}}
+			    hx-post="/movie" 
+			  {{/page.InsertMode}}
+			  >
+			  Save
+			</button>
+			
+		  {{^page.InsertMode}}
+			<button class="btn btn-danger" hx-include="closest table" hx-swap="outerHTML"
+			 hx-confirm="Are you sure you wish to delete this movie?"
+			    hx-delete="/movie/{{MovieID}}" 
+			  >
+			  Delete
+			</button>
+		  {{/page.InsertMode}}
+			
+		  </div></td>
+		</tr>
+		</tbody>
+	</table>
+  </td>
+</tr>
+{{!/}}
+{{/Movies}}
+

@@ -1,9 +1,28 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.GlobalLogger;
-{<@abstract(Contains the global logger as a thread safe singleton)
-  Use the global logger for fast&dirty logging, but consider to use your own
-  instance of @link(ILogWriter) (created using @link(BuildLogWriter)) for all your serious logging needs.
-  @author(Daniele Teti - d.teti@bittime.it)
-}
 
 interface
 

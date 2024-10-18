@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -35,6 +35,7 @@ uses
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
+  System.RTTI,
   Data.DB,
   IdGlobal,
   IdCoderMIME,
@@ -42,7 +43,9 @@ uses
   System.Generics.Collections,
   MVCFramework.DuckTyping,
   JsonDataObjects,
-  MVCFramework.DotEnv;
+  MVCFramework.DotEnv,
+  MVCFramework.Container,
+  sqids;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -114,7 +117,7 @@ type
   TMVCConstants = record
   public const
     SESSION_TOKEN_NAME = 'dtsessionid';
-    DEFAULT_CONTENT_CHARSET = 'UTF-8';
+    DEFAULT_CONTENT_CHARSET = TMVCCharSet.UTF_8;
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
@@ -127,7 +130,7 @@ type
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
-    COPYRIGHT = 'Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team';
+    COPYRIGHT = 'Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
@@ -150,6 +153,7 @@ type
   public const
     SessionTimeout = 'sessiontimeout';
     ViewPath = 'view_path';
+    ViewCache = 'view_cache';
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
@@ -245,7 +249,17 @@ type
     /// </summary>
     NotModified = 304;
     UseProxy = 305;
+    /// <summary>
+    ///   HTTP 307 Temporary Redirect redirect status response code indicates that the resource requested has been temporarily moved to the URL given by the Location headers.
+    ///  The method and the body of the original request are reused to perform the redirected request. In the cases where you want the method used to be changed to GET, use 303 See Other instead. This is useful when you want to give an answer to a PUT method that is not the uploaded resources, but a confirmation message (like "You successfully uploaded XYZ").
+    ///  The only difference between 307 and 302 is that 307 guarantees that the method and the body will not be changed when the redirected request is made. With 302, some old clients were incorrectly changing the method to GET: the behavior with non-GET methods and 302 is then unpredictable on the Web, whereas the behavior with 307 is predictable. For GET requests, their behavior is identical.
+    /// </summary>
     TemporaryRedirect = 307;
+    /// <summary>
+    ///   The HyperText Transfer Protocol (HTTP) 308 Permanent Redirect redirect status response code indicates that the resource requested has been definitively moved to the URL given by the Location headers. A browser redirects to this page and search engines update their links to the resource (in 'SEO-speak', it is said that the 'link-juice' is sent to the new URL).
+    ///   The request method and the body will not be altered, whereas 301 may incorrectly sometimes be changed to a GET method.
+    /// </summary>
+    PermanentRedirect = 308;
     // Client Error 4xx
     /// <summary>
     /// The request could not be understood by the server due to malformed syntax. The client SHOULD NOT repeat the request without modifications.
@@ -365,23 +379,23 @@ type
 
   EMVCException = class(Exception)
   protected
-    FHttpErrorCode: UInt16;
+    FHTTPStatusCode: UInt16;
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
     FErrorItems: TArray<String>;
-    procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
+    procedure CheckHTTPStatusCode(const AHTTPStatusCode: UInt16);
   public
-    constructor Create(const AMsg: string); overload; virtual;
     constructor Create(const AMsg: string; const ADetailedMessage: string;
       const AAppErrorCode: UInt16 = 0;
-      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError;
+      const AHTTPStatusCode: UInt16 = HTTP_STATUS.InternalServerError;
       const AErrorItems: TArray<String> = nil); overload; virtual;
-    constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
-    constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
+    constructor Create(const AMsg: string); overload; virtual;
+    constructor Create(const AHTTPStatusCode: UInt16; const AMsg: string); overload; virtual;
+    constructor Create(const AHTTPStatusCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
     constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce; overload;
-    constructor CreateFmt(const AHTTPErrorCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
-    property HttpErrorCode: UInt16 read FHttpErrorCode;
+    constructor CreateFmt(const AHTTPStatusCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
+    property HTTPStatusCode: UInt16 read FHTTPStatusCode;
     property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
     property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
     property ErrorItems: TArray<String> read FErrorItems;
@@ -405,7 +419,7 @@ type
     { public declarations }
   end;
 
-  EMVCFrameworkViewException = class(EMVCException)
+  EMVCSSVException = class(EMVCException)
   private
     { private declarations }
   protected
@@ -516,7 +530,7 @@ type
     procedure Add(const Name: string; Value: T);
   end;
 
-  TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
+  TMVCViewDataObject = class(TObjectDictionary<string, TValue>)
   private
     { private declarations }
   protected
@@ -562,6 +576,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Freeze;
+    function Frozen: Boolean;
     function Keys: TArray<string>;
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
@@ -624,7 +639,9 @@ var
   /// When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
   /// </summary>
   MVCSerializeNulls: Boolean = True;
+
 { GLOBAL CONFIG VARS // END}
+
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
@@ -655,6 +672,8 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
+function ObjectToJSONObject(const aObject: TObject): TJSONObject;
+function ObjectToJSONObjectStr(const aObject: TObject): String;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
@@ -760,6 +779,46 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
+  TMVCSqids = class sealed
+  private
+    class var fInstance: TSqids;
+    class function GetInstance: TSqids;
+  public
+    const DEFAULT_ALPHABET = sqids.DEFAULT_ALPHABET;
+    const DEFAULT_MIN_LENGTH  = sqids.DEFAULT_MIN_LENGTH;
+    const MIN_ALPHABET_LENGTH = sqids.MIN_ALPHABET_LENGTH;
+    const MAX_ALPHABET_LENGTH = sqids.MAX_ALPHABET_LENGTH;
+    class var SQIDS_ALPHABET: String;
+    class var SQIDS_MIN_LENGTH: Integer;
+    class destructor Destroy;
+    { sqids }
+    class function SqidToInt(const Sqid: String): UInt64;
+    class function IntToSqid(const Value: UInt64): String;
+  end;
+
+  IMVCSqidsEncoder = interface
+    ['{DFD71A1A-36B0-4EC6-8E8E-35405BB93CA7}']
+    function Encode(aNumbers: TArray<UInt64>): string;
+    function EncodeSingle(aNumber: UInt64): string;
+    function Decode(aId: string): TArray<UInt64>;
+    function DecodeSingle(aId: string): UInt64;
+  end;
+
+  TMVCSqidsEncoder = class(TInterfacedObject, IMVCSqidsEncoder)
+  protected
+    fSqids: TSqids;
+  public
+    constructor Create(AAlphabet: string; AMinLength: Byte; ABlockList: TArray<string>); overload;
+    constructor Create(AAlphabet: string = DEFAULT_ALPHABET; AMinLength: Byte = DEFAULT_MIN_LENGTH); overload;
+    constructor Create(AMinLength: Byte); overload;
+    constructor Create(ABlockList: TArray<string>); overload;
+    function Encode(aNumbers: TArray<UInt64>): string;
+    function EncodeSingle(aNumber: UInt64): string;
+    function Decode(aId: string): TArray<UInt64>;
+    function DecodeSingle(aId: string): UInt64;
+  end;
+
+
 function dotEnv: IMVCDotEnv; overload;
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 
@@ -771,25 +830,65 @@ uses
   System.NetEncoding,
   System.Character,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Commons,
   MVCFramework.Utils,
-  System.RegularExpressions;
+  System.RegularExpressions,
+  MVCFramework.Logger, MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
 var
   GdotEnv: IMVCDotEnv = nil;
   GdotEnvDelegate: TFunc<IMVCDotEnv> = nil;
 
+class destructor TMVCSqids.Destroy;
+begin
+  FreeAndNil(fInstance);
+end;
+
+class function TMVCSqids.GetInstance: TSqids;
+begin
+  if fInstance = nil then
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if fInstance = nil then
+      begin
+        fInstance := TSqids.Create(SQIDS_ALPHABET, SQIDS_MIN_LENGTH);
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
+  end;
+  Result := fInstance;
+end;
+
+class function TMVCSqids.IntToSqid(const Value: UInt64): String;
+begin
+  Result := GetInstance.EncodeSingle(Value);
+end;
+
+class function TMVCSqids.SqidToInt(const Sqid: String): UInt64;
+begin
+  Result := GetInstance.DecodeSingle(Sqid);
+end;
 
 function URLEncode(const Value: string): string; overload;
 begin
+  {$IF defined(BERLINORBETTER)}
+  Result := TNetEncoding.URL.EncodeQuery(Value);
+  {$ELSE}
   Result := TNetEncoding.URL.Encode(Value);
+  {$ENDIF}
 end;
 
 function URLDecode(const Value: string): string;
 begin
+  {$IF defined(BERLINORBETTER)}
+  Result := TNetEncoding.URL.URLDecode(Value);
+  {$ELSE}
   Result := TNetEncoding.URL.Decode(Value);
+  {$ENDIF}
 end;
 
 function AppPath: string;
@@ -932,18 +1031,18 @@ end;
 constructor EMVCException.Create(const AMsg: string);
 begin
   inherited Create(AMsg);
-  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FHTTPStatusCode := HTTP_STATUS.InternalServerError;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
   SetLength(FErrorItems, 0);
 end;
 
 constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
-  const AAppErrorCode, AHTTPErrorCode: UInt16; const AErrorItems: TArray<String>);
+  const AAppErrorCode, AHTTPStatusCode: UInt16; const AErrorItems: TArray<String>);
 begin
   Create(AMsg);
-  CheckHTTPErrorCode(AHTTPErrorCode);
-  FHttpErrorCode := AHTTPErrorCode;
+  CheckHTTPStatusCode(AHTTPStatusCode);
+  FHTTPStatusCode := AHTTPStatusCode;
   FAppErrorCode := AAppErrorCode;
   FDetailedMessage := ADetailedMessage;
   if AErrorItems <> nil then
@@ -952,35 +1051,35 @@ begin
   end;
 end;
 
-constructor EMVCException.Create(const AHTTPErrorCode: UInt16; const AMsg: string);
+constructor EMVCException.Create(const AHTTPStatusCode: UInt16; const AMsg: string);
 begin
-  CheckHTTPErrorCode(AHTTPErrorCode);
+  CheckHTTPStatusCode(AHTTPStatusCode);
   Create(AMsg);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
 end;
 
-procedure EMVCException.CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
+procedure EMVCException.CheckHTTPStatusCode(const AHTTPStatusCode: UInt16);
 begin
-  if (AHTTPErrorCode div 100 = 0) or (AHTTPErrorCode div 100 > 5) then
+  if (AHTTPStatusCode div 100 = 0) or (AHTTPStatusCode div 100 > 5) then
   begin
-    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHTTPErrorCode]);
+    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHTTPStatusCode]);
   end;
 end;
 
-constructor EMVCException.Create(const AHTTPErrorCode: UInt16;
+constructor EMVCException.Create(const AHTTPStatusCode: UInt16;
   const AAppErrorCode: Integer; const AMsg: string);
 begin
-  CheckHTTPErrorCode(AHTTPErrorCode);
+  CheckHTTPStatusCode(AHTTPStatusCode);
   Create(AMsg);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
   FAppErrorCode := AAppErrorCode;
 end;
 
-constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16;
+constructor EMVCException.CreateFmt(const AHTTPStatusCode: UInt16;
   const AMsg: string; const AArgs: array of const);
 begin
   inherited CreateFmt(AMsg, AArgs);
-  FHttpErrorCode := AHTTPErrorCode;
+  FHTTPStatusCode := AHTTPStatusCode;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
 end;
@@ -1049,12 +1148,18 @@ begin
   FFreezed := True;
 end;
 
+function TMVCConfig.Frozen: Boolean;
+begin
+  Result := FFreezed;
+end;
+
 function TMVCConfig.GetValue(const AIndex: string): string;
 begin
   if FConfig.ContainsKey(AIndex) then
     Result := FConfig.Items[AIndex]
   else
-    raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
+    Result := ''; //v3.4.1-sodium (an invalid config key returns empty string, doesn't raise an exception)
+  //raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
 end;
 
 function TMVCConfig.GetValueAsInt64(const AIndex: string): Int64;
@@ -1098,8 +1203,11 @@ end;
 
 procedure TMVCConfig.SetDotEnv(const Value: IMVCdotEnv);
 begin
-  CheckNotFreezed;
-  fdotEnv := Value;
+  if FdotEnv <> Value then
+  begin
+    CheckNotFreezed;
+    fdotEnv := Value;
+  end;
 end;
 
 procedure TMVCConfig.SetValue(const AIndex, aValue: string);
@@ -1668,6 +1776,31 @@ begin
   end;
 end;
 
+
+function ObjectToJSONObject(const aObject: TObject): TJSONObject;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    Result := lSer.SerializeObjectToJSON(aObject, TMVCSerializationType.stProperties, [], nil);
+  finally
+    lSer.Free;
+  end;
+end;
+
+function ObjectToJSONObjectStr(const aObject: TObject): String;
+var
+  lJSON: TJsonObject;
+begin
+  lJSON := ObjectToJSONObject(aObject);;
+  try
+    Result := lJSON.ToJSON(True);
+  finally
+    lJSON.Free;
+  end;
+end;
+
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 begin
   Result := MVCFramework.Utils.StrToJSONObject(aString, ARaiseExceptionOnError);
@@ -1755,9 +1888,21 @@ begin
       begin
         if not Assigned(GdotEnvDelegate) then
         begin
-          raise EMVCDotEnv.Create('"dotEnvConfigure" not called');
+          LogI('Initializing default dotEnv instance');
+          GdotEnv := NewDotEnv
+                       .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                       .UseProfile('test')
+                       .UseProfile('prod')
+                       .UseLogger(procedure(LogItem: String)
+                                  begin
+                                    LogI('dotEnv: ' + LogItem);
+                                  end)
+                       .Build();
+        end
+        else
+        begin
+          GdotEnv := GdotEnvDelegate();
         end;
-        GdotEnv := GdotEnvDelegate();
         if GdotEnv = nil then
         begin
           raise EMVCDotEnv.Create('Delegated passed to "dotEnvConfigure" must return a valid IMVCDotEnv instance');
@@ -1768,6 +1913,50 @@ begin
     end;
   end;
   Result := GdotEnv;
+end;
+
+{ TMVCSqidsEncoder }
+
+constructor TMVCSqidsEncoder.Create(AAlphabet: string; AMinLength: Byte;
+  ABlockList: TArray<string>);
+begin
+  inherited Create;
+  fSqids := TSqids.Create(AAlphabet,AMinLength, ABlockList);
+end;
+
+constructor TMVCSqidsEncoder.Create(AAlphabet: string; AMinLength: Byte);
+begin
+  Create(AAlphabet, AMinLength, DEFAULT_BLOCKLIST);
+end;
+
+constructor TMVCSqidsEncoder.Create(AMinLength: Byte);
+begin
+  Create(DEFAULT_ALPHABET, AMinLength, DEFAULT_BLOCKLIST);
+end;
+
+constructor TMVCSqidsEncoder.Create(ABlockList: TArray<string>);
+begin
+  Create(DEFAULT_ALPHABET, DEFAULT_MIN_LENGTH, ABlockList);
+end;
+
+function TMVCSqidsEncoder.Decode(AId: string): TArray<UInt64>;
+begin
+  Result := fSqids.Decode(AId);
+end;
+
+function TMVCSqidsEncoder.DecodeSingle(AId: string): UInt64;
+begin
+  Result := fSqids.DecodeSingle(AId);
+end;
+
+function TMVCSqidsEncoder.Encode(ANumbers: TArray<UInt64>): string;
+begin
+  Result := fSqids.Encode(ANumbers);
+end;
+
+function TMVCSqidsEncoder.EncodeSingle(ANumber: UInt64): string;
+begin
+  Result := fSqids.EncodeSingle(ANumber);
 end;
 
 initialization
@@ -1784,6 +1973,6 @@ GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HIns
 
 finalization
 
-FreeAndNil(gLock);
+FreeAndNil(GLock);
 
 end.

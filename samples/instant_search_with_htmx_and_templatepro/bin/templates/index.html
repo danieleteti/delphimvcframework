@@ -1,0 +1,19 @@
+﻿{{extends "baselayout.html"}}
+{{block "body"}}
+<div class="columns">
+  <div class="column is-offset-one-third is-one-third">
+    <h1 style="text-align: center; font-weight: 500; font-size: 170%">Instant Search Demo</h1>
+    <h2 style="text-align: center; font-size: 130%; color: #a0a0a0">DMVCFramework + TemplatePro + HTMX</h2>
+  </div>
+</div>
+<div class="columns">
+  <div class="column is-one-third is-offset-one-third">
+    <input type="text" class="input" placeholder="Search" name="q" hx-get="/search"
+      value="{{:|fromquery,"q"}}"
+      hx-trigger="load, keyup changed delay:500ms" 
+      hx-target="#results"
+      hx-swap="transition:true"/>
+  </div>
+</div>
+<div id="results"></div>
+{{endblock}}

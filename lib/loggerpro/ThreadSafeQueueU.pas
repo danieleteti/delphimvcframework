@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2018 Daniele Teti
+// Copyright (c) 2010-2024 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -36,8 +36,7 @@ type
   private
     fPopTimeout: UInt64;
     fQueue: TObjectQueue<T>;
-    fCriticalSection: TCriticalSection;
-    // fSpinLock: TSpinLock;
+    fCriticalSection: TCriticalSection;    
     fEvent: TEvent;
     fMaxSize: UInt64;
     fShutDown: Boolean;
@@ -77,7 +76,6 @@ begin
   fMaxSize := MaxSize;
   fQueue := TObjectQueue<T>.Create(False);
   fCriticalSection := TCriticalSection.Create;
-  // fSpinLock := TMonitor.Create(False);
   fEvent := TEvent.Create(nil, True, False, '');
   fPopTimeout := PopTimeout;
 end;
@@ -228,7 +226,5 @@ procedure TMREWObjectList<T>.EndWrite;
 begin
   fMREWSync.EndWrite;
 end;
-
-
 
 end.

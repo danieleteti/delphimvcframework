@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // Contributor of this file: Janidan - https://github.com/janidan
 //
@@ -72,7 +72,7 @@ type
 
     function ResolveRole(const AContext: TWebContext; const aRole: string): string;
     function CreateParameterNameList(const aTemplate: string): TList<string>;
-  public
+  protected
     procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
 
@@ -82,6 +82,7 @@ type
 
     procedure OnAuthorization(const AContext: TWebContext; UserRoles: TList<string>;
       const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean); overload; virtual;
+  public
     constructor Create;
     destructor Destroy; override;
   end;

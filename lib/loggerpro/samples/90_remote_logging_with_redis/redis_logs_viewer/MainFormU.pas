@@ -140,6 +140,8 @@ var
   lRect: TRect;
   lBGColor, lFGColor: TColor;
 begin
+  lBGColor := clNone;
+  lFGColor := clNone;
   lCanvas := (Control as TListBox).Canvas;
   lText := lstLogs.Items[index];
   if lText.Contains('ERROR') then

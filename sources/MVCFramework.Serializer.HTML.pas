@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -165,44 +165,45 @@ uses
   MVCFramework,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables;
+  MVCFramework.Nullables, System.StrUtils;
 
 const
-  HTML_HEADER = '<!DOCTYPE html><html><head><title>DMVCFramework Exception</title>' +
-    '<style>' +
-  // 'body {font-size: 120%; max-width: 800px; margin: auto; font-family: Calibri,Candara,Segoe,Segoe UI,Optima,Arial,sans-serif; }' +
-    'body{' +
-    '		font-family: Arial, Helvetica, sans-serif;' +
-    '		font-size: 200%;' +
-    '	}' +
-    '	.info, .success, .warning, .error, .validation {' +
-    '		border: 1px solid;' +
-    '		margin: 10px 0px;' +
-    '		padding: 15px 10px 15px 25px;' +
-    '		background-repeat: no-repeat;' +
-    '		background-position: 10px center;' +
-    '	}' +
-    '	.info {' +
-    '		color: #00529B;' +
-    '		background-color: #BDE5F8;' +
-    '		font-size: 50%;' +
-    '	}' +
-    '	.success {' +
-    '		color: #4F8A10;' +
-    '		background-color: #DFF2BF;' +
-    '	}' +
-    '	.warning {' +
-    '		color: #9F6000;' +
-    '		background-color: #FEEFB3;' +
-    '		font-size: 70%;' +
-    '	}' +
-    '	.error{' +
-    '		color: #D8000C;' +
-    '		background-color: #FFBABA;' +
-    '	}' +
-    '.container {max-width: 1000px; margin: auto; margin-top: 3rem;}' +
-    '</style>' +
-    '</head><body><div class="container">';
+  HTML_HEADER = '<!doctype html>' +
+  '<html>' +
+  '<head>' +
+  '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' +
+  '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">' +
+  '<title>DMVCFramework</title>' +
+  '<style>'+
+  'body {' +
+  '  background: #fff;'+
+  '  padding: 2rem;' +
+  '  margin: 0 auto;' +
+  '  max-width: 50rem;' +
+  '  font-family: "Segoe UI Light", Tahoma, Arial, ui-sans-serif, sans-serif;' +
+  '}' +
+  '.color1 { color: #C5C5C5; } /* https://color.adobe.com/it/search?q=Primary%20colors&t=term */' +
+  '.color2 { color: #827C78; }' +
+  '.color3 { color: #005195; }' +
+  '.color4 { color: #003A69; }' +
+  '.color5 { color: #000000; }' +
+  '.container {' +
+  '  background: #f4f4f4;'+
+  '  border: 2px solid #827C78;' +
+  '  margin-top: 2rem;' +
+  '  margin: auto;' +
+  '  width: fit-content;' +
+  '  min-width: 30rem;' +
+  '  padding: 1rem;' +
+  '  padding-left: 2rem;' +
+  '  padding-right: 2rem;' +
+  '}' +
+  '}' +
+  '</style>'+
+  '</head>' +
+  '<body>' +
+  '<div class="container">';
+
   HTML_FOOTER = '</div></body></html>';
 
 
@@ -311,30 +312,55 @@ end;
 function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
+  function EmitExceptionClass(const ClazzName, Message: string): string;
+  begin
+      Result := Result + '<h2>' +
+        IfThen(not ClazzName.IsEmpty, HTMLEntitiesEncode(ClazzName) + ': ') + Message + '</h2>';
+  end;
+  function EmitTitle(const HTTPStatusCode: Word): string;
+  begin
+    Result := '<h1><span class="color1">' + HTTPStatusCode.ToString + '</span><span class="color2"> ' + HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</span></h1>';
+    if Assigned(FConfig) then
+    begin
+      Result := Result + '<h3 class="color4">' + FConfig[TMVCConfigKey.ServerName] + '</h3>';
+    end;
+  end;
+
+  function GetHTMLBody(
+    const HTTPStatusCode: Integer;
+    const Message: String;
+    const DetailedMessage: String;
+    const ClazzName: String;
+    const AppErrorCode: Integer;
+    const ErrorItems: TArray<String>): String;
+  var
+    lErr: String;
+  begin
+    Result :=
+        EmitTitle(HTTPStatusCode) + sLineBreak +
+        EmitExceptionClass(ClazzName, Message) + sLineBreak +
+        '<h3 class="color5">' + HTMLEntitiesEncode(DetailedMessage) + '</h3>' + sLineBreak;
+      Result := Result + '<div>';
+      if AppErrorCode <> 0 then
+      begin
+        Result := Result + '<p>Application Error Code: ' + AppErrorCode.ToString + '</p>';
+      end;
+      if Assigned(ErrorItems) and (Length(ErrorItems) > 0) then
+      begin
+        Result := Result + '<p>Error Items: <ul>' + sLineBreak;
+        for lErr in ErrorItems do
+        begin
+          Result := Result + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
+        end;
+        Result := Result + '</ul></p>';
+      end;
+      Result := Result + '</div>';
+  end;
 var
   lBody: string;
   lMVCException: EMVCException;
   lException: Exception;
   lErrResponse: TMVCErrorResponse;
-  lErrResponseItem: TMVCErrorResponseItem;
-  lErr: string;
-  function EmitExceptionClass(const Value: string): string;
-  begin
-    Result := Result + '<div class="warning">Exception Class Name: ' + HTMLEntitiesEncode(Value) + '</div>';
-  end;
-  function EmitTitle(const HTTPStatusCode: Word; const Value: string): string;
-  begin
-    Result := '';
-    if Assigned(FConfig) then
-    begin
-      Result := '<h1>' + FConfig[TMVCConfigKey.ServerName] + '</h1>';
-    end;
-    Result := Result + '<div class="error"><p>' +
-      HTTPStatusCode.ToString + ' ' +
-      HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</p>';
-    Result := Result + '<p>' + HTMLEntitiesEncode(Value) + '</p></div>';
-  end;
-
 begin
   lBody := '';
   if AObject is Exception then
@@ -342,50 +368,32 @@ begin
     if AObject is EMVCException then
     begin
       lMVCException := EMVCException(AObject);
-      lBody :=
-        EmitTitle(lMVCException.HttpErrorCode, lMVCException.Message) + sLineBreak +
-        EmitExceptionClass(lMVCException.ClassName) + sLineBreak +
-        '<p>' + HTMLEntitiesEncode(lMVCException.DetailedMessage) + '</p>' + sLineBreak +
-        '<div class="info">' +
-        '<p> Application Error Code: ' + lMVCException.ApplicationErrorCode.ToString + '</p>' + sLineBreak;
-      if Length(lMVCException.ErrorItems) > 0 then
-      begin
-        lBody := lBody + '<p> Error Items: <ul>' + sLineBreak;
-        for lErr in lMVCException.ErrorItems do
-        begin
-          lBody := lBody + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
-        end;
-        lBody := lBody + '<ul></p>';
-      end;
-      lBody := lBody + '<ul></p></div>';
+      lBody := GetHTMLBody(
+        lMVCException.HTTPStatusCode,
+        lMVCException.Message,
+        lMVCException.DetailedMessage,
+        lMVCException.ClassName,
+        lMVCException.ApplicationErrorCode,
+        lMVCException.ErrorItems);
     end
     else
     begin
       lException := Exception(AObject);
-      lBody := EmitTitle(500, lException.Message) + sLineBreak +
-        EmitExceptionClass(lException.ClassName) + sLineBreak;
+      lBody := EmitTitle(500) + sLineBreak +
+        EmitExceptionClass(lException.ClassName, lException.Message) + sLineBreak;
     end;
   end;
 
   if AObject is TMVCErrorResponse then
   begin
     lErrResponse := TMVCErrorResponse(AObject);
-    lBody :=
-      EmitTitle(lErrResponse.StatusCode, lErrResponse.Message) + sLineBreak +
-      EmitExceptionClass(lErrResponse.ClassName) + sLineBreak +
-      '<div class="info">' +
-      '<p>' + HTMLEntitiesEncode(lErrResponse.DetailedMessage) + '</p>' + sLineBreak +
-      '<p>Application Error Code: ' + lErrResponse.AppErrorCode.ToString + '</p>' + sLineBreak;
-    if lErrResponse.Items.Count > 0 then
-    begin
-      lBody := lBody + '<p>Error Items: <ul>' + sLineBreak;
-      for lErrResponseItem in lErrResponse.Items do
-      begin
-        lBody := lBody + '<li>' + HTMLEntitiesEncode(lErrResponseItem.Message) + '</li>';
-      end;
-      lBody := lBody + '<ul></p>';
-    end;
-    lBody := lBody + '</div>';
+    lBody := GetHTMLBody(
+      lErrResponse.StatusCode,
+      lErrResponse.Message,
+      lErrResponse.DetailedMessage,
+      lErrResponse.ClassName,
+      lErrResponse.AppErrorCode,
+      nil);
   end;
 
   if lBody.IsEmpty then

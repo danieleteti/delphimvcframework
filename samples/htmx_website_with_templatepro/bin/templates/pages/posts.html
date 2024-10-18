@@ -1,0 +1,22 @@
+{{extends "../baselayout.html"}}
+{{block "body"}}
+<h1 class="text-2xl font-bold mb-4">Posts</h1>
+{{for p in posts}}
+<p>
+<article style="padding: 0.6rem">
+    <header style="font-size: 140%">
+        {{if p.@@index|lt,4}}⭐{{endif}}
+        {{:p.@@index}}) {{:p.title|uppercase}}
+    </header>
+    {{:p.abstract|trunc,200}}
+    <footer>
+        <div class="grid">
+            <div><small>words {{:p.word_count}}</small></div>
+            <div><small>comments {{:p.comments}}</small></div>
+            <div class="right"><small>date {{:p.post_date}}</small></div>
+        </div>
+    </footer>
+</article>
+</p>
+{{endfor}}
+{{endblock}}

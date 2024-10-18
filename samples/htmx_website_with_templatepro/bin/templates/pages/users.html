@@ -1,0 +1,24 @@
+{{extends "../baselayout.html"}}
+{{block "body"}}
+<h1 class="text-2xl font-bold mb-4">Users</h1>
+<table class="striped">
+    <thead>
+        <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>EMail</th>
+        </tr>
+    </thead>
+    <tbody>
+        
+        {{for user in users}}
+        <tr>
+            <td>{{:user.first_name}}</td>
+            <td>{{:user.last_name}}</td>
+            <td>{{:user.email|lowercase}}</td>
+        </tr>
+        {{endfor}}
+        
+    </tbody>
+</table>
+{{endblock}}

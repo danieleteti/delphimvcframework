@@ -3,46 +3,51 @@ unit BusinessObjects;
 interface
 
 uses
-  MVCFramework.Serializer.Commons, MVCFramework.Nullables;
+  MVCFramework.Serializer.Commons, MVCFramework.Nullables,
+  MVCFramework.ActiveRecord;
 
 type
-  TBaseBO = class
+  TBaseBO = class(TMVCActiveRecord)
   private
+    [MVCTableField('ID', [foPrimaryKey])]
     FID: Integer;
     procedure SetID(const Value: Integer);
   public
-    procedure CheckInsert; virtual;
-    procedure CheckUpdate; virtual;
-    procedure CheckDelete; virtual;
     property ID: Integer read FID write SetID;
   end;
 
   [MVCNameCase(ncLowerCase)]
+  [MVCTable('ARTICOLI')]
+  [MVCNamedSQLQuery(
+    'search_by_text',
+    'SELECT * FROM ARTICOLI WHERE DESCRIZIONE CONTAINING ? ORDER BY ID')
+    ]
   TArticle = class(TBaseBO)
   private
-    FPrice: Currency;
+    [MVCTableField('CODICE')]
     FCode: string;
+    [MVCTableField('DESCRIZIONE')]
     FDescription: String;
+    [MVCTableField('PREZZO')]
+    FPrice: Currency;
+    [MVCTableField('UPDATED_AT')]
     FUpdatedAt: TDateTime;
+    [MVCTableField('CREATED_AT')]
     FCreatedAt: TDateTime;
     procedure SetCode(const Value: string);
     procedure SetDescription(const Value: String);
     procedure SetPrice(const Value: Currency);
     procedure SetCreatedAt(const Value: TDateTime);
     procedure SetUpdatedAt(const Value: TDateTime);
+  protected
+    procedure OnBeforeInsertOrUpdate; override;
+    procedure OnBeforeUpdate; override;
+    procedure OnBeforeDelete; override;
   public
-    procedure CheckInsert; override;
-    procedure CheckUpdate; override;
-    procedure CheckDelete; override;
-    [MVCColumn('CODICE')]
     property Code: string read FCode write SetCode;
-    [MVCColumn('DESCRIZIONE')]
     property Description: String read FDescription write SetDescription;
-    [MVCColumn('PREZZO')]
     property Price: Currency read FPrice write SetPrice;
-    [MVCColumn('CREATED_AT')]
     property CreatedAt: TDateTime read FCreatedAt write SetCreatedAt;
-    [MVCColumn('UPDATED_AT')]
     property UpdatedAt: TDateTime read FUpdatedAt write SetUpdatedAt;
   end;
 
@@ -53,46 +58,28 @@ uses
 
 { TBaseBO }
 
-procedure TBaseBO.CheckDelete;
-begin
-
-end;
-
-procedure TBaseBO.CheckInsert;
-begin
-
-end;
-
-procedure TBaseBO.CheckUpdate;
-begin
-
-end;
-
 procedure TBaseBO.SetID(const Value: Integer);
 begin
   FID := Value;
 end;
 
-{ TArticolo }
-
-procedure TArticle.CheckDelete;
+procedure TArticle.OnBeforeDelete;
 begin
   inherited;
   if Price <= 5 then
     raise Exception.Create('Cannot delete an article with a price below 5 euros (yes, it is a silly check)');
 end;
 
-procedure TArticle.CheckInsert;
+procedure TArticle.OnBeforeInsertOrUpdate;
 begin
   inherited;
   if not TRegEx.IsMatch(Code, '^C[0-9]{2,4}') then
     raise Exception.Create('Article code must be in the format "CXX or CXXX or CXXXX"');
 end;
 
-procedure TArticle.CheckUpdate;
+procedure TArticle.OnBeforeUpdate;
 begin
   inherited;
-  CheckInsert;
   if Price <= 2 then
     raise Exception.Create('We cannot sell so low cost pizzas!');
 end;

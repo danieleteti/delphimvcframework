@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,7 +34,7 @@ uses
   MVCFramework.Serializer.Intf,
   System.Rtti,
   System.Generics.Collections,
-  BusinessObjectsU, Data.DB;
+  BusinessObjectsU, Data.DB, System.Classes, System.SysUtils;
 
 type
 
@@ -46,6 +46,11 @@ type
   public
     // Result BASED
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/people/1')]
+    [MVCProduces('application/json')]
+    function GetPerson_AsFunction: TPerson;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/func/people')]
     [MVCProduces('application/json')]
     function GetPeople_AsObjectList_AsFunction: TEnumerable<TPerson>;
@@ -53,6 +58,27 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/func/customers/simple')]
     function GetCustomers_AsDataSet_AsFunction: TDataSet;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers/($ID)')]
+    [MVCProduces('text/plain')]
+    function GetPerson_AsText_AsFunction(const ID: Integer): String;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/customers.csv')]
+    function GetPeopleAsCSV_AsFunction: String;
+
+
+    // this action is polymorphic
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/skilledpeople')]
+    //[MVCProduces('application/json')]
+    function GetProgrammersAndPhilosophersAsObjectList_AsFunction: TObjectList<TPerson>;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/func/skilledpeople/withmvcresponse')]
+    [MVCProduces('application/json')]
+    function GetProgrammersAndPhilosophersAsObjectList_withmvcresponse_AsFunction: IMVCResponse;
 
 
     // Render BASED
@@ -217,8 +243,13 @@ type
     procedure RaiseExceptionHTML;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customserializationtype')]
-    procedure GetCustomSerializationType;
+    [MVCPath('/customserializationtype/root')]
+    procedure GetCustomSerializationTypeROOT;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customserializationtype/attribute')]
+    procedure GetCustomSerializationTypeATTRIBUTE;
+
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/simplearray')]
@@ -273,8 +304,6 @@ uses
   MVCFramework.Logger,
   MyDataModuleU,
   System.IOUtils,
-  System.Classes,
-  System.SysUtils,
   WebModuleU,
   CustomTypesU,
   InMemoryDataU,
@@ -692,9 +721,15 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomSerializationType;
+procedure TRenderSampleController.GetCustomSerializationTypeATTRIBUTE;
 begin
-  // TSysUser contains a type with a custom serializer
+  // TSysUser2 contains a type with a custom serializer
+  Render(TSysUser2.Create('daniele', ['poweruser', 'role1', 'role2']), True);
+end;
+
+procedure TRenderSampleController.GetCustomSerializationTypeROOT;
+begin
+  // TSysUser is a type with a custom serializer
   Render(TSysUser.Create('daniele', ['poweruser', 'role1', 'role2']), True);
 end;
 
@@ -780,6 +815,11 @@ begin
   Render(TNullablesTest.Create);
 end;
 
+function TRenderSampleController.GetPerson_AsFunction: TPerson;
+begin
+  Result := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True);
+end;
+
 procedure TRenderSampleController.GetPerson_AsHTML;
 begin
   ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
@@ -823,6 +863,23 @@ begin
   RenderResponseStream;
 end;
 
+function TRenderSampleController.GetPerson_AsText_AsFunction(
+  const ID: Integer): String;
+begin
+  var lSBldr := TStringBuilder.Create;
+  try
+    lSBldr
+      .AppendLine('ID        :  ' + ID.ToString)
+      .AppendLine('FirstName : Daniele')
+      .AppendLine('LastName  : Teti')
+      .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+      .AppendLine('Married   : yes');
+    Result := lSBldr.ToString;
+  finally
+    lSBldr.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList;
 var
   List: TObjectList<TPerson>;
@@ -851,6 +908,46 @@ begin
   Render<TPerson>(List);
 end;
 
+function TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList_AsFunction: TObjectList<TPerson>;
+var
+  List: TObjectList<TPerson>;
+  p: TProgrammer;
+  ph: TPhilosopher;
+begin
+  List := TObjectList<TPerson>.Create(True);
+  try
+    p := TProgrammer.Create;
+    p.Married := True;
+    p.FirstName := 'Peter';
+    p.LastName := 'Parker';
+    p.Skills := 'Delphi, JavaScript, Python, C++';
+    List.Add(p);
+    ph := TPhilosopher.Create;
+    p.Married := False;
+    ph.FirstName := 'Bruce';
+    ph.LastName := 'Banner';
+    ph.Mentors := 'Abbagnano, Algarotti, Cavalieri, Pareyson';
+    List.Add(ph);
+    p := TProgrammer.Create;
+    p.Married := False;
+    p.FirstName := 'Sue';
+    p.LastName := 'Storm';
+    p.Skills := 'Delphi, JavaScript';
+    List.Add(p);
+  except
+    List.Free;
+    raise;
+  end;
+  Result := List;
+end;
+
+function TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList_withmvcresponse_AsFunction: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .Body(GetPeople_AsObjectList_AsFunction)
+    .Build;
+end;
+
 procedure TRenderSampleController.GetSimpleArrays;
 begin
   Render(TArrayTest.Create);
@@ -877,6 +974,23 @@ begin
   ResponseStream.AppendLine('Bruce;Banner;60');
   ContentType := TMVCMediaType.TEXT_CSV;
   RenderResponseStream;
+end;
+
+function TRenderSampleController.GetPeopleAsCSV_AsFunction: String;
+var
+  lSS: TStringBuilder;
+begin
+  ContentType := TMVCMediaType.TEXT_CSV;
+  lSS := TStringBuilder.Create('');
+  try
+    lSS.AppendLine('first_name;last_name;age');
+    lSS.AppendLine('Daniele;Teti;38');
+    lSS.AppendLine('Peter;Parker;22');
+    lSS.AppendLine('Bruce;Banner;60');
+    Result := lSS.ToString;
+  finally
+    lSS.Free;
+  end;
 end;
 
 procedure TRenderSampleController.GetPeopleWithTiming;
@@ -1081,7 +1195,6 @@ end;
 
 procedure TRenderSampleController.GetPersonPhoto;
 begin
-  // ContentType := 'image/jpeg';
   SendFile('..\..\_\customer.png');
 end;
 

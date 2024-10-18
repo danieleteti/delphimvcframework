@@ -1,0 +1,8 @@
+<!-- start navigation -->
+
+ <div class="nav btn-group">
+  <a href="/movie/page" class="btn btn-primary">Classical Movies</a>
+  <button class="btn btn-primary" hx-get="/movie/page" hx-target="#movieDemoContent-div">HTMX Movies</button>
+</div> 
+
+<!-- end navigation -->

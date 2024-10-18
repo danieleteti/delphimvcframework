@@ -51,6 +51,7 @@ uses
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
   MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Middleware.ActiveRecord,
   FDConnectionConfigU;
 
 procedure TActiveRecordControllerWebModule.WebModuleCreate(Sender: TObject);
@@ -73,12 +74,8 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
-
-  FMVC.AddController(TMVCActiveRecordController,
-    function: TMVCController
-    begin
-      Result := TMVCActiveRecordController.Create(AR_CONTROLLER_CON_DEF_NAME);
-    end, '/api/entities');
+  FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(AR_CONTROLLER_CON_DEF_NAME));
+  FMVC.AddController(TMVCActiveRecordController, '/api/entities');
 end;
 
 procedure TActiveRecordControllerWebModule.WebModuleDestroy(Sender: TObject);

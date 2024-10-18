@@ -2,12 +2,12 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// João Antônio Duarte (https://github.com/joaoduarte19)
+// Joï¿½o Antï¿½nio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -229,28 +229,22 @@ var
   lReader: TStringStream;
 begin
   Result := '';
-  lContentIsString := False;
   SplitContentMediaTypeAndCharset(aContentType, lContentType, lCharset);
 
-  if not lCharset.IsEmpty then
-  begin
-    lContentIsString := True
-  end
-  else
-  begin
 {$IF defined(RIOORBETTER)}
-    TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
-    if lMimeKind = TMimeTypes.TKind.Text then
-      lContentIsString := True;
+  TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
+  lContentIsString := lMimeKind = TMimeTypes.TKind.Text;
 {$ELSE}
-    if not (lContentType.StartsWith('image', True) or
-      lContentType.StartsWith('video', True) or
-      lContentType.StartsWith('audio', True) or
-      lContentType.ToLower.Equals('application/octet-stream') or
-      lContentType.ToLower.Equals('application/pdf')) then
-      lContentIsString := True;
+  lContentIsString := (lContentType.StartsWith('text')) or (
+       not (
+            lContentType.StartsWith('image', True) or
+            lContentType.StartsWith('video', True) or
+            lContentType.StartsWith('audio', True) or
+            lContentType.ToLower.Contains('octet-stream') or
+            lContentType.ToLower.Contains('pdf') or
+            lContentType.ToLower.Contains('zip')
+           ));
 {$ENDIF}
-  end;
 
   if lContentIsString then
   begin

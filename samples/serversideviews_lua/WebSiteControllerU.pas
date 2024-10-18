@@ -12,7 +12,7 @@ type
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
-    procedure GeneratePeopleListAsCSV;
+    function GeneratePeopleListAsCSV: String;
   public
     [MVCPath('/people')]
     [MVCHTTPMethods([httpGET])]
@@ -28,7 +28,7 @@ type
     [MVCPath('/people/formats/csv')]
     [MVCHTTPMethods([httpGET])]
     // Route usable by the browser, doesn't requires ACCEPT=text/csv
-    procedure ExportPeopleListAsCSV;
+    function ExportPeopleListAsCSV: String;
 
     [MVCPath('/people')]
     [MVCHTTPMethods([httpPOST])]
@@ -43,12 +43,12 @@ type
     [MVCPath('/new')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure NewPerson;
+    function NewPerson: String;
 
     [MVCPath('/edit/($guid)')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure EditPerson(guid: string);
+    function EditPerson(guid: string): String;
 
     [MVCPath('/')]
     [MVCHTTPMethods([httpGET])]
@@ -74,7 +74,7 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.EditPerson(guid: string);
+function TWebSiteController.EditPerson(guid: string): String;
 var
   LDAL: IPeopleDAL;
   lPerson: TPerson;
@@ -92,8 +92,7 @@ begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
       ViewData['deviceslist'] := lDevices;
-      LoadView(['header', 'editperson', 'footer']);
-      RenderResponseStream;
+      Result := Page(['editperson']);
     finally
       lDevices.Free;
     end;
@@ -102,9 +101,9 @@ begin
   end;
 end;
 
-procedure TWebSiteController.ExportPeopleListAsCSV;
+function TWebSiteController.ExportPeopleListAsCSV: String;
 begin
-  GeneratePeopleListAsCSV;
+  Result := GeneratePeopleListAsCSV;
   // define the correct behaviour to download the csv inside the browser
   ContentType := TMVCMediaType.TEXT_CSV;
   Context.Response.CustomHeaders.Values['Content-Disposition'] :=
@@ -116,7 +115,7 @@ begin
   GeneratePeopleListAsCSV;
 end;
 
-procedure TWebSiteController.GeneratePeopleListAsCSV;
+function TWebSiteController.GeneratePeopleListAsCSV: String;
 var
   LDAL: IPeopleDAL;
   lPeople: TPeople;
@@ -125,8 +124,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    LoadView(['people_header.csv', 'people_list.csv']);
-    RenderResponseStream; // rember to call RenderResponseStream!!!
+    Result := PageFragment(['people_header.csv', 'people_list.csv']);
   finally
     lPeople.Free;
   end;
@@ -137,7 +135,7 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.NewPerson;
+function TWebSiteController.NewPerson: String;
 var
   lDAL: IPeopleDAL;
   lDevices: TDeviceList;
@@ -154,8 +152,7 @@ begin
       lJSONPerson.S['last_name'] := '';
       lJSONPerson.S['age'] := '';
       ViewData['person'] := lJSONPerson;
-      LoadView(['header', 'editperson', 'footer']);
-      RenderResponseStream;
+      Result := PageFragment(['editperson']);
     finally
       lJSONPerson.Free;
     end;
@@ -170,6 +167,8 @@ begin
   inherited;
   ContentType := 'text/html';
   Handled := False;
+  SetPagesCommonHeaders(['header']);
+  SetPagesCommonFooters(['footer']);
 end;
 
 procedure TWebSiteController.PeopleList;
@@ -200,7 +199,7 @@ begin
   LFirstName := Context.Request.Params['first_name'].Trim;
   LLastName := Context.Request.Params['last_name'].Trim;
   LAge := Context.Request.Params['age'];
-  lDevices := Context.Request.ParamsMulti['items'];
+  lDevices := Context.Request.ContentParamsMulti['items'];
 
   if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
   begin

@@ -54,7 +54,8 @@ var
 begin
   ContentType := TMVCMediaType.APPLICATION_JSON;
   lJObj := TJSONObject.Create;
-  lJObj.S['message'] := 'This is protected content accessible only by user1';
+  lJObj.S['message'] := 'This is protected content accessible only by user1: you are ' +
+    Context.LoggedUser.UserName + ' logged since ' + DateTimeToStr(Context.LoggedUser.LoggedSince);
   lJArr := lJObj.A['querystringparameters'];
 
   lQueryParams := Context.Request.QueryStringParams;

@@ -1,13 +1,13 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// João Antônio Duarte (https://github.com/joaoduarte19)
+// Joï¿½o Antï¿½nio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -345,7 +345,7 @@ begin
     end;
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
-    Log(TLogLevel.levDebug, AContext.Request.HTTPMethodAsString + ':' +
+    LogI(AContext.Request.HTTPMethodAsString + ':' +
       AContext.Request.PathInfo + ' [' + AContext.Request.ClientIp + '] -> ' +
       ClassName + ' - ' + IntToStr(AContext.Response.StatusCode) + ' ' +
       AContext.Response.ReasonString);

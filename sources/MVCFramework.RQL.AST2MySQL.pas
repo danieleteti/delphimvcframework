@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,6 +39,9 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
   protected
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
+  public
+    function GetTableNameForSQL(const TableName: string): string; override;
+    function GetFieldNameForSQL(const FieldName: string): string; override;
   end;
 
 implementation
@@ -47,6 +50,11 @@ uses
   System.SysUtils;
 
 { TRQLMySQLCompiler }
+
+function TRQLMySQLCompiler.GetTableNameForSQL(const TableName: string): string;
+begin
+  Result := TableName.QuotedString('`');
+end;
 
 function TRQLMySQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
@@ -233,6 +241,18 @@ end;
 function TRQLMySQLCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
   Result := ' where ';
+end;
+
+function TRQLMySQLCompiler.GetFieldNameForSQL(const FieldName: string): string;
+begin
+  if FieldName.Contains(' ') and (FieldName.Chars[0] <> '`') then
+  begin
+    Result := FieldName.QuotedString('`');
+  end
+  else
+  begin
+    Result := FieldName;
+  end;
 end;
 
 initialization

@@ -47,12 +47,15 @@ contains
   DMVC.Expert.CodeGen.NewUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewUnit.pas',
   DMVC.Expert.CodeGen.NewWebModuleUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewWebModuleUnit.pas',
   DMVC.Expert.CodeGen.SourceFile in '..\..\ideexpert\DMVC.Expert.CodeGen.SourceFile.pas',
-  DMVC.Expert.CodeGen.Templates in '..\..\ideexpert\DMVC.Expert.CodeGen.Templates.pas',
   DMVC.Expert.Forms.NewProjectWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewProjectWizard.pas' {frmDMVCNewProject},
   DMVC.Expert.Forms.NewUnitWizard in '..\..\ideexpert\DMVC.Expert.Forms.NewUnitWizard.pas' {frmDMVCNewUnit},
   DMVC.Expert.NewUnitWizardEx in '..\..\ideexpert\DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in '..\..\ideexpert\DMVC.Expert.ProjectWizardEx.pas',
   DMVC.Expert.Registration in '..\..\ideexpert\DMVC.Expert.Registration.pas',
-  DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas';
+  DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas',
+  DMVC.Expert.CodeGen.Commands in '..\..\ideexpert\DMVC.Expert.CodeGen.Commands.pas',
+  DMVC.Expert.CodeGen.Executor in '..\..\ideexpert\DMVC.Expert.CodeGen.Executor.pas',
+  DMVC.Expert.Commands.Templates in '..\..\ideexpert\DMVC.Expert.Commands.Templates.pas',
+  DMVC.Expert.Commons in '..\..\ideexpert\DMVC.Expert.Commons.pas';
 
 end.

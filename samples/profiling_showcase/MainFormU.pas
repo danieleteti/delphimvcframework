@@ -12,11 +12,13 @@ type
     btnNestedCalls: TButton;
     btnNestedCallsInLoop: TButton;
     chkLogsThreshold: TCheckBox;
+    btnTrace: TButton;
     procedure btnSimpleClick(Sender: TObject);
     procedure btnNestedCallsClick(Sender: TObject);
     procedure btnNestedCallsInLoopClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure chkLogsThresholdClick(Sender: TObject);
+    procedure btnTraceClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -68,6 +70,28 @@ end;
 procedure TMainForm.btnSimpleClick(Sender: TObject);
 begin
   DoSomething;
+end;
+
+procedure TMainForm.btnTraceClick(Sender: TObject);
+begin
+  Profiler.Trace('Test PROC',
+    procedure
+    begin
+      Sleep(Random(20));
+    end, 10);
+
+
+  var lRes := Profiler.Trace<String>('Test FUNC',
+    function: String
+    var
+      I: Integer;
+    begin
+      for I := 1 to 10 do
+      begin
+        Result := Result + 'x';
+        Sleep(Random(5));
+      end;
+    end, 10);
 end;
 
 procedure TMainForm.chkLogsThresholdClick(Sender: TObject);

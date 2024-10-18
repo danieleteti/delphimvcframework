@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,11 +27,13 @@ unit MVCFramework.View.Renderers.Mustache;
 {$IFDEF LINUX}
 This unit is not compatible with Linux
 {$ENDIF}
-  interface
+interface
 
-  uses
-  MVCFramework, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB;
+uses
+  MVCFramework, System.SysUtils, System.Generics.Collections,
+  MVCFramework.Commons, System.IOUtils, System.RTTI,
+  System.Classes, Data.DB, MVCFramework.IntfObjectPool,
+  mormot.core.mustache, mormot.core.unicode;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -39,21 +41,48 @@ type
   strict private
     procedure PrepareModels;
   private
-    FJSONModel: string;
+    fModelPrepared: Boolean;
+    class var fPartials: TSynMustachePartials;
+    class var fHelpers: TSynMustacheHelpers;
+    class var fSerializerPool: IIntfObjectPool;
+    var FJSONModelAsString: string;
+    procedure LoadPartials;
+    procedure LoadHelpers;
+  protected
+    function RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
+      Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): UTF8String; virtual;
   public
-    procedure Execute(const ViewName: string; const OutputStream: TStream);
-      override;
+    procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
+    constructor Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
+      const AController: TMVCController;
+      const AViewModel: TMVCViewDataObject;
+      const AContentType: string); override;
+    class destructor Destroy;
+    class constructor Create;
+  end;
+
+  TLoadCustomHelpersProc = reference to procedure(var MustacheHelpers: TSynMustacheHelpers);
+
+  TMVCMustacheHelpers = class sealed
+  private
+    class var fOnLoadCustomHelpers: TLoadCustomHelpersProc;
+  protected
+    class procedure RegisterHandlers(var MustacheHelpers: TSynMustacheHelpers);
+    class procedure ToLowerCase(const Value: variant; out Result: variant);
+    class procedure ToUpperCase(const Value: variant; out Result: variant);
+    class procedure Capitalize(const Value: variant; out Result: variant);
+    class procedure SnakeCase(const Value: variant; out Result: variant);
+  public
+    class property OnLoadCustomHelpers: TLoadCustomHelpersProc read fOnLoadCustomHelpers write fOnLoadCustomHelpers;
   end;
 
 implementation
 
 uses
-  System.Generics.Collections,
-  SynMustache,
-  SynCommons,
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
   MVCFramework.Serializer.JsonDataObjects;
@@ -65,42 +94,114 @@ type
   TSynMustacheAccess = class(TSynMustache)
   end;
 
-procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
-  I: Integer;
-  lPartialName: string;
+  gPartialsLoaded : Boolean = False;
+  gHelpersLoaded : Boolean = False;
+
+constructor TMVCMustacheViewEngine.Create(const AEngine: TMVCEngine;
+  const AWebContext: TWebContext; const AController: TMVCController;
+  const AViewModel: TMVCViewDataObject; const AContentType: string);
+begin
+  inherited;
+  fModelPrepared := False;
+  LoadPartials;
+  LoadHelpers;
+end;
+
+class constructor TMVCMustacheViewEngine.Create;
+begin
+  fSerializerPool := MVCFramework.IntfObjectPool.TIntfObjectPool.Create(10000, 10,1,
+    function: IInterface
+    begin
+      Result := TMVCJsonDataObjectsSerializer.Create(nil);
+      RegisterOptionalCustomTypesSerializers(Result as IMVCSerializer);
+    end);
+end;
+
+class destructor TMVCMustacheViewEngine.Destroy;
+begin
+  fPartials.Free;
+end;
+
+function TMVCMustacheViewEngine.RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
+  Helpers: TSynMustacheHelpers; OnTranslate: TOnStringTranslate; EscapeInvert: boolean): UTF8String;
+begin
+  Result := lViewEngine.RenderJSON(JSON, Partials, Helpers, OnTranslate, EscapeInvert);
+end;
+
+procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
+var
   lViewFileName: string;
-  lViewTemplate: RawUTF8;
+  lViewTemplate: UTF8String;
   lViewEngine: TSynMustache;
-  lSW: TStreamWriter;
-  lPartials: TSynMustachePartials;
 begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
-  if not FileExists(lViewFileName) then
-    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
+  if lViewFileName.IsEmpty then
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
-
   lViewEngine := TSynMustache.Parse(lViewTemplate);
-  lSW := TStreamWriter.Create(OutputStream);
-  lPartials := TSynMustachePartials.Create;
-  try
-    for I := 0 to Length(TSynMustacheAccess(lViewEngine).fTags) - 1 do
-    begin
-      if TSynMustacheAccess(lViewEngine).fTags[I].Kind = mtPartial then
+  Builder.Append(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
+end;
+
+procedure TMVCMustacheViewEngine.LoadHelpers;
+begin
+  if gHelpersLoaded then
+  begin
+    Exit
+  end
+  else
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if not gHelpersLoaded then
       begin
-        lPartialName := TSynMustacheAccess(lViewEngine).fTags[I].Value;
-        lViewFileName := GetRealFileName(lPartialName);
-        if not FileExists(lViewFileName) then
-          raise EMVCFrameworkViewException.CreateFmt('Partial View [%s] not found', [lPartialName]);
-        lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
-        lPartials.Add(lPartialName, lViewTemplate);
+        fHelpers := TSynMustache.HelpersGetStandardList;
+        TMVCMustacheHelpers.RegisterHandlers(fHelpers); {dmvcframework specific helpers}
+        gHelpersLoaded := True;
       end;
+    finally
+      TMonitor.Exit(gLock);
     end;
-    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel, lPartials, nil, nil)));
-  finally
-    lSW.Free;
-    lPartials.Free;
+  end;
+end;
+
+procedure TMVCMustacheViewEngine.LoadPartials;
+var
+  lViewsExtension: string;
+  lViewPath: string;
+  lPartialName: String;
+  lPartialFileNames: TArray<string>;
+  I: Integer;
+begin
+  if gPartialsLoaded then
+  begin
+    Exit
+  end
+  else
+  begin
+    TMonitor.Enter(gLock);
+    try
+      if not gPartialsLoaded then
+      begin
+        lViewsExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
+        lViewPath := Config[TMVCConfigKey.ViewPath];
+        lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension, TSearchOption.soAllDirectories);
+        FreeAndNil(fPartials);
+        fPartials := TSynMustachePartials.Create;
+        for I := 0 to High(lPartialFileNames) do
+        begin
+          lPartialName := lPartialFileNames[i]
+            .Remove(lPartialFileNames[i].Length - lViewsExtension.Length - 1)
+            .Replace(TPath.DirectorySeparatorChar, '/');
+          lPartialName := lPartialName.Remove(0, lViewPath.Length + 1);
+          fPartials.Add(lPartialName, TFile.ReadAllText(lPartialFileNames[i]));
+        end;
+        gPartialsLoaded := SameText(Config[TMVCConfigKey.ViewCache], 'true');
+      end;
+    finally
+      TMonitor.Exit(gLock);
+    end;
   end;
 end;
 
@@ -109,54 +210,87 @@ end;
 
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
-  lFirst: Boolean;
-  lList: IMVCList;
-  DataObj: TPair<string, TObject>;
-  lDSPair: TPair<string, TDataSet>;
-  lSJSON: string;
-  lJSON: string;
+  DataObj: TPair<string, TValue>;
   lSer: IMVCSerializer;
+  lJSONModel: TJsonObject;
 begin
-  {TODO -oDanieleT -cGeneral : Quite inefficient to generate JSON in this way. Why don't use a JSONObject directly?}
-  if (FJSONModel <> '{}') and (not FJSONModel.IsEmpty) then
+  if fModelPrepared then
+  begin
     Exit;
-  FJSONModel := '{}';
+  end;
 
-  lSer := TMVCJsonDataObjectsSerializer.Create;
-  RegisterOptionalCustomTypesSerializers(lSer);
-  lSJSON := '{';
-  lFirst := True;
-
-  if Assigned(ViewModel) then
+  if Assigned(FJSONModel) and (not Assigned(ViewModel)) then
   begin
-    for DataObj in ViewModel do
-    begin
-      lList := TDuckTypedList.Wrap(DataObj.Value);
-      if lList <> nil then
-        lJSON := lSer.SerializeCollection(DataObj.Value)
+    // if only jsonmodel is <> nil then we take the "fast path"
+    FJSONModelAsString := FJSONModel.ToJSON(False);
+  end
+  else
+  begin
+    lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
+    try
+      if Assigned(FJSONModel) then
+      begin
+        lJSONModel := FJSONModel.Clone as TJsonObject;
+      end
       else
-        lJSON := lSer.SerializeObject(DataObj.Value);
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + DataObj.Key + '":' + lJSON;
-      lFirst := False;
+      begin
+        lJSONModel := TJsonObject.Create;
+      end;
+      try
+        if Assigned(ViewModel) then
+        begin
+          for DataObj in ViewModel do
+          begin
+            TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
+          end;
+        end;
+        FJSONModelAsString := lJSONModel.ToJSON(False);
+      finally
+        lJSONModel.Free;
+      end;
+    finally
+      fSerializerPool.ReleaseToPool(lSer)
     end;
   end;
-
-  if Assigned(ViewDataSets) then
-  begin
-    for lDSPair in ViewDataSets do
-    begin
-      lJSON := lSer.SerializeDataSet(lDSPair.Value);
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + lDSPair.Key + '":' + lJSON;
-      lFirst := False;
-    end;
-  end;
-
-  lSJSON := lSJSON + '}';
-  FJSONModel := lSJSON;
+  fModelPrepared := True;
 end;
+
+{ dmvcframework specific helpers}
+
+class procedure TMVCMustacheHelpers.Capitalize(const Value: variant;
+  out Result: variant);
+begin
+  Result := MVCFramework.Commons.CamelCase(Value, True);
+end;
+
+class procedure TMVCMustacheHelpers.RegisterHandlers(var MustacheHelpers: TSynMustacheHelpers);
+begin
+  TSynMustache.HelperAdd(MustacheHelpers, 'UpperCase', TMVCMustacheHelpers.ToUpperCase);
+  TSynMustache.HelperAdd(MustacheHelpers, 'LowerCase', TMVCMustacheHelpers.ToLowerCase);
+  TSynMustache.HelperAdd(MustacheHelpers, 'Capitalize', TMVCMustacheHelpers.Capitalize);
+  TSynMustache.HelperAdd(MustacheHelpers, 'SnakeCase', TMVCMustacheHelpers.SnakeCase);
+  if Assigned(fOnLoadCustomHelpers) then
+  begin
+    fOnLoadCustomHelpers(MustacheHelpers);
+  end;
+end;
+
+class procedure TMVCMustacheHelpers.SnakeCase(const Value: variant;
+  out Result: variant);
+begin
+  Result := MVCFramework.Commons.SnakeCase(Value);
+end;
+
+class procedure TMVCMustacheHelpers.ToLowerCase(const Value: variant;
+  out Result: variant);
+begin
+  Result := System.SysUtils.LowerCase(Value);
+end;
+
+class procedure TMVCMustacheHelpers.ToUpperCase(const Value: variant; out Result: variant);
+begin
+  Result := System.SysUtils.UpperCase(Value);
+end;
+
 
 end.

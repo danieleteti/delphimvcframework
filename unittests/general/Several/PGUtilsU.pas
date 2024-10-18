@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -167,7 +167,8 @@ var
   lOutput: string;
 begin
   lParams := ' -D ' + fPGDataDir +
-    ' -E UTF8 --lc-collate=en_US.UTF8 --lc-ctype=en_US.UTF8 --locale=en_US';
+        ' --encoding=UTF8 --lc-collate=en-US --lc-ctype=en-US --locale=en-US';
+//      ' --encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --locale=en_US';
   if SysExecute(fInitDBExecutable + lParams, lOutput) <> 0 then
   begin
     raise Exception.Create(lOutput);

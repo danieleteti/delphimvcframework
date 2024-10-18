@@ -25,7 +25,7 @@ package dmvcframeworkRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2023) Daniele Teti and the DMVCFramework Team'}
+{$DESCRIPTION 'DMVCFramework 3.x'}
 {$LIBSUFFIX '101'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -111,7 +111,14 @@ contains
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
-  JsonDataObjects in '..\..\sources\JsonDataObjects.pas';
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
+  MVCFramework.DotEnv.Parser in '..\..\sources\MVCFramework.DotEnv.Parser.pas',
+  MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
+  MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
+  LoggerPro.ConsoleAppender in '..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas',
+  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
+  sqids in '..\..\sources\sqids.pas';
 
 end.
 

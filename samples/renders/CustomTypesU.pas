@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -48,8 +48,8 @@ type
   // custom serialized type as property Roles
   TSysUser = class
   private
-    FUserName: string;
-    FRoles: TUserRoles;
+    fUserName: string;
+    fRoles: TUserRoles;
     fRecordAlias: TNullableRecordAlias;
     procedure SetUserName(const Value: string);
     function GetUserRoles: TUserRoles;
@@ -60,6 +60,19 @@ type
     property Roles: TUserRoles read GetUserRoles;
     property RecordAlias: TNullableRecordAlias read fRecordAlias write fRecordAlias;
   end;
+
+  TSysUser2 = class
+  private
+    FUserName: string;
+    fRoles: TUserRoles;
+    fRecordAlias: TNullableRecordAlias;
+  public
+    constructor Create(aUserName: string; aRoles: TUserRoles);
+    property UserName: string read FUserName write FUserName;
+    // Here we are using the custom-serialized type TUserRoles
+    property Roles: TUserRoles read fRoles write fRoles;
+  end;
+
 
   TArrayTest = class
   private
@@ -159,6 +172,15 @@ begin
   fStrings.Free;
   fDoubles.Free;
   inherited;
+end;
+
+{ TSysUser2 }
+
+constructor TSysUser2.Create(aUserName: string; aRoles: TUserRoles);
+begin
+  inherited Create;
+  FUserName := aUserName;
+  fRoles := aRoles;
 end;
 
 end.

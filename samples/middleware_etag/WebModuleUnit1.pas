@@ -43,7 +43,7 @@ end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);
 begin
-  FEngine.free;
+  FEngine.Free;
 end;
 
 end.

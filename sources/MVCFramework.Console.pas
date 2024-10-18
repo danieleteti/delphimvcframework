@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,10 +24,14 @@
 
 unit MVCFramework.Console;
 
+
+{$I dmvcframework.inc}
+
 interface
 
 uses
   System.SysUtils
+  ,System.SyncObjs
 {$IFDEF MSWINDOWS}
   ,WinApi.Windows
 {$ENDIF}
@@ -76,14 +80,16 @@ function GetCh: Char;
 procedure WaitForReturn;
 procedure SaveColors;
 procedure RestoreSavedColors;
-procedure Init;
-procedure SetDefaults;
+procedure SetDefaultColors;
 function ConsoleAttr: Integer;
 procedure SetConsoleAttr(const TextAttr: Integer);
 function TextAttr: Word;
 procedure SetTextAttr(const TextAttr: Word);
 function BackgroundAttr: Word;
 procedure SetBackgroundAttr(const BackgroundAttr: Word);
+procedure HideCursor;
+procedure ShowCursor;
+procedure CenterInScreen(const Text: String);
 
 
 function ColorName(const color: TConsoleColor): String;
@@ -101,6 +107,10 @@ var
   GBackGround, GSavedBackGround: Int16;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
+  GIsConsoleAllocated: Boolean = False;
+  GLock: TObject = nil;
+
+
 
 function ColorName(const color: TConsoleColor): String;
 begin
@@ -109,14 +119,24 @@ end;
 
 
 {$IFDEF LINUX}
-procedure WaitForReturn;
+procedure HideCursor;
 begin
-  ReadLn;
+
+end;
+
+procedure ShowCursor;
+begin
+
 end;
 
 procedure Init; inline;
 begin
 
+end;
+
+procedure WaitForReturn;
+begin
+  ReadLn;
 end;
 
 procedure UpdateMode;
@@ -152,14 +172,56 @@ end;
 {$ENDIF}
 {$IFDEF MSWINDOWS}
 
+{.$IF not Defined(RIOORBETTER)}
+const
+  ATTACH_PARENT_PROCESS = DWORD(-1);
+function AttachConsole(dwProcessId: DWORD): BOOL; stdcall; external kernel32 name 'AttachConsole';
+{.$ENDIF}
+
 procedure WinCheck(const Value: LongBool);
 begin
   if not Value then
     raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
 end;
 
+procedure Init;
+begin
+  if not GIsConsoleAllocated then
+  begin
+    TMonitor.Enter(GLock);
+    try
+      if not GIsConsoleAllocated then
+      begin
+        // Attempt to attach to the parent (if there is already a console allocated)
+        if not IsConsole then
+        begin
+          if not AttachConsole(ATTACH_PARENT_PROCESS) then
+            AllocConsole; // No console allocated, create a new one
+        end;
+        GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
+        if GOutHandle = INVALID_HANDLE_VALUE then
+          raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
+        GIsConsoleAllocated := True;
+      end;
+    finally
+      TMonitor.Exit(GLock);
+    end;
+  end;
+end;
+
+procedure InternalShowCursor(const ShowCursor: Boolean);
+var
+  info: CONSOLE_CURSOR_INFO;
+begin
+  Init;
+  GetConsoleCursorInfo(GOutHandle, info);
+  info.bVisible := ShowCursor;
+  SetConsoleCursorInfo(GOutHandle, info);
+end;
+
 procedure WaitForReturn;
 begin
+  Init;
   while GetCh <> #13 do;
 end;
 
@@ -171,6 +233,7 @@ var
   lCharsWritten: UInt32;
   lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
 begin
+  Init;
   // https://docs.microsoft.com/en-us/windows/console/clearing-the-screen
   lSize := GetConsoleBufferSize;
   dwConSize := lSize.Columns * lSize.Rows;
@@ -216,6 +279,7 @@ var
   lMode, lCC: DWORD;
   C: Char;
 begin
+  Init;
   EnsureStdInput;
   C := #0;
   WinCheck(GetConsoleMode(GInputHandle, lMode));
@@ -239,15 +303,9 @@ begin
   Result.Rows := lConsoleScreenBufferInfo.dwSize.Y;
 end;
 
-procedure Init;
-begin
-  GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
-  if GOutHandle = INVALID_HANDLE_VALUE then
-    raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
-end;
-
 procedure UpdateMode;
 begin
+  Init;
   SetConsoleTextAttribute(GOutHandle, Ord(GForeGround) or Ord(GBackGround));
 end;
 
@@ -255,6 +313,7 @@ procedure GotoXY(const X, Y: Byte);
 var
   lCoord: _COORD;
 begin
+  Init;
   lCoord.X := X;
   lCoord.Y := Y;
   if not SetConsoleCursorPosition(GOutHandle, lCoord) then
@@ -263,14 +322,32 @@ begin
   end;
 end;
 
+procedure HideCursor;
+begin
+  InternalShowCursor(False);
+end;
+
+procedure ShowCursor;
+begin
+  InternalShowCursor(True);
+end;
+
 {$ENDIF}
+
+{ ******************************************* }
+{ * HIGH LEVEL FUNCTION - no IFDEF required * }
+{ ******************************************* }
+
+procedure CenterInScreen(const Text: String);
+begin
+  Init;
+  GotoXY(GetConsoleSize.Columns div 2 - Length(Text) div 2, GetConsoleSize.Rows div 2 - 1);
+  Write(Text)
+end;
 
 procedure ResetConsole;
 begin
-  // write(ESC + '[0m');
-  GForeGround := Ord(TConsoleColor.DarkGray);
-  GBackGround := Ord(TConsoleColor.Black);
-  UpdateMode;
+  SetDefaultColors;
 end;
 
 procedure TextColor(const color: TConsoleColor);
@@ -287,15 +364,16 @@ begin
   // write(ESC + GetColorString);
 end;
 
-procedure SetDefaults;
+procedure SetDefaultColors;
 begin
-  GForeGround := Ord(TConsoleColor.White);
+  GForeGround := Ord(TConsoleColor.DarkGray);
   GBackGround := Ord(TConsoleColor.Black);
   UpdateMode;
 end;
 
 procedure SaveColors;
 begin
+  Init;
   GSavedForeGround := GForeGround;
   GSavedBackGround := GBackGround;
 end;
@@ -323,7 +401,6 @@ begin
   UpdateMode;
 end;
 
-
 function TextAttr: Word;
 begin
   Result := GForeGround;
@@ -346,16 +423,12 @@ begin
   UpdateMode;
 end;
 
-
-
 initialization
 
-if IsConsole then
-begin
-  Init;
-  SetDefaults;
-end;
+Glock := TObject.Create;
 
 finalization
+
+Glock.Free;
 
 end.

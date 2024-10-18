@@ -10,13 +10,12 @@ object FUDPServerClientForm: TFUDPServerClientForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
-  PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 0
-    Top = 0
-    Width = 1138
+    AlignWithMargins = True
+    Left = 3
+    Top = 3
+    Width = 1132
     Height = 19
     Align = alTop
     Caption = 'Switch on the UDP server to listen to broadcasts on 127.0.0.1.'
@@ -26,12 +25,15 @@ object FUDPServerClientForm: TFUDPServerClientForm
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    ExplicitLeft = 0
+    ExplicitTop = 0
     ExplicitWidth = 442
   end
   object Label2: TLabel
-    Left = 0
-    Top = 19
-    Width = 1138
+    AlignWithMargins = True
+    Left = 3
+    Top = 28
+    Width = 1132
     Height = 19
     Align = alTop
     Caption = 
@@ -43,12 +45,15 @@ object FUDPServerClientForm: TFUDPServerClientForm
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    ExplicitLeft = 0
+    ExplicitTop = 19
     ExplicitWidth = 490
   end
   object Label3: TLabel
-    Left = 0
-    Top = 38
-    Width = 1138
+    AlignWithMargins = True
+    Left = 3
+    Top = 53
+    Width = 1132
     Height = 19
     Align = alTop
     Caption = 'Watch server log below to see received syslog messages.'
@@ -58,13 +63,15 @@ object FUDPServerClientForm: TFUDPServerClientForm
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    ExplicitLeft = 0
+    ExplicitTop = 38
     ExplicitWidth = 402
   end
   object UDPServerReceived: TMemo
     Left = 0
-    Top = 170
+    Top = 188
     Width = 1138
-    Height = 454
+    Height = 436
     Align = alClient
     Color = clBackground
     Font.Charset = DEFAULT_CHARSET
@@ -76,15 +83,20 @@ object FUDPServerClientForm: TFUDPServerClientForm
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
+    ExplicitTop = 170
+    ExplicitWidth = 1134
+    ExplicitHeight = 453
   end
   object Panel1: TPanel
     Left = 0
-    Top = 57
+    Top = 75
     Width = 1138
     Height = 113
     Align = alTop
     BevelInner = bvLowered
     TabOrder = 1
+    ExplicitTop = 57
+    ExplicitWidth = 1134
     object Label4: TLabel
       Left = 8
       Top = 6

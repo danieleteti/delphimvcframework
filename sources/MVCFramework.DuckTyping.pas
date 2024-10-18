@@ -1,12 +1,12 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -90,13 +90,10 @@ type
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
   protected
-    procedure GetItemAsTValue(const AIndex: Integer; out AValue: TValue);
-    function GetItem(const AIndex: Integer): TObject;
     function GetEnumerator: TDuckListEnumerator;
     function GetOwnsObjects: Boolean;
     procedure SetOwnsObjects(const AValue: Boolean);
     procedure Add(const AObject: TObject);
-    function Count: Integer;
     procedure Clear;
 
     function WrappedObject: TObject;
@@ -112,6 +109,9 @@ type
     destructor Destroy; override;
 
     function IsWrappedList: Boolean; overload;
+    function Count: Integer;
+    procedure GetItemAsTValue(const AIndex: Integer; out AValue: TValue);
+    function GetItem(const AIndex: Integer): TObject;
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: IMVCList): Boolean; overload; static;
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
@@ -292,7 +292,6 @@ begin
     raise EMVCDuckTypingException.Create
       ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
   GetItemAsTValue(AIndex, lValue);
-//  lValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
 
   if lValue.Kind = tkInterface then
   begin
@@ -431,7 +430,7 @@ var
   List: IMVCList;
 begin
   if AObjectAsDuck is TDuckTypedList then
-    Exit(AObjectAsDuck as TDuckTypedList);
+    Exit(TDuckTypedList(AObjectAsDuck));
   Result := nil;
   List := TDuckTypedList.Create(AObjectAsDuck, AOwnsObject);
   if List.IsWrappedList then

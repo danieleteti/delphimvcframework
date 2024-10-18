@@ -5,6 +5,7 @@ An modern and pluggable logging framework for Delphi
 ## Compatibility
 
 LoggerPro is compatibile with
+- Delphi 12 Athens
 - Delphi 11 Alexandria
 - Delphi 10.4 Sydney
 - Delphi 10.3 Rio
@@ -19,8 +20,14 @@ LoggerPro is compatibile with
 - Delphi XE3
 - Delphi XE2
 
+## What's new in 2.0.0 (repo version, beta)
+- Delphi 12 Athens Support
+- FIX https://github.com/danieleteti/loggerpro/issues/72
+- New LogLevel: FATAL (https://github.com/danieleteti/loggerpro/issues/80)
+- New Appender: JSONL
+- Added `ILogItemRenderers` (check samples)
 
-## What's new in 1.4.0
+## What's new in 1.4.0 (stable version)
 
 - Improved VCL and FMX visual appenders
 - Appenders can be added and removed programmatically

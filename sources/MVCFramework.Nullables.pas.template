@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -97,7 +97,17 @@ type
 implementation
 
 uses
-  System.Math, MVCFramework.Serializer.Commons;
+  System.Math, System.DateUtils, System.Types;
+
+function DateAreEquals(const DateA, DateB: TDate): Boolean;
+begin
+  Result := CompareDate(DateA, DateB) = 0;
+end;
+
+function TimeAreEquals(const TimeA, TimeB: TTime): Boolean;
+begin
+  Result := CompareValue(TimeA,TimeB, 0.000001) = 0;
+end;
 
 ///IMPLEMENTATION.BEGIN
 

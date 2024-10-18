@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>&lt;/&gt; htmx ~ Demo App</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+	<script src="https://unpkg.com/htmx.org@2.0.0"></script>
+
+	<script src="https://unpkg.com/htmx-ext-json-enc@2.0.0/json-enc.js"></script>
+
+	<script src="https://unpkg.com/htmx-ext-class-tools@2.0.0/class-tools.js"></script>
+
+	<script src="https://unpkg.com/htmx-ext-preload@2.0.0/preload.js"></script>		
+
+	<link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+</head>
+
+<body hx-ext="class-tools, preload, json-enc, event-header" style="overflow-x:hidden; width:100%; height:auto">
+
+
+	{{! styles should be in separate css file }}
+	<style>
+		footer.page-footer {
+			position: absolute;
+			bottom: 0;
+			width: 100%;
+		}
+
+			{
+				{
+				! styles for html 5 validation
+			}
+		}
+
+		input:invalid {
+			border: 2px dashed red;
+		}
+
+		input:invalid:required {
+			background-image: linear-gradient(to right, pink, lightgreen);
+		}
+
+		input:valid {
+			border: 2px solid black;
+		}
+
+		input:read-only {
+			background-color: grey;
+
+		}
+	</style>
+
+	<script>
+		// example scripts - would normally be in a js file
+
+		// example of an error handling script 
+		document.body.addEventListener("htmx:responseError", function (e) {
+			error = e.detail.xhr.response;
+			alert(error);
+		});
+
+		// simple event handler, no params
+		document.body.addEventListener("myEvent", function (evt) {
+			alert("myEvent was triggered!");
+		})
+
+		// another simple event handler, no params
+		document.body.addEventListener("savedEvent", function (evt) {
+			alert(evt.detail.value);
+		})
+
+		// event handler with simple params
+		document.body.addEventListener("myEventObject", function (evt) {
+			// we're sending back a Movie object, so show some property here
+			alert(evt.detail.MovieID);
+		})
+
+		document.body.addEventListener("setFocus", function (evt) {
+			// we're looking for a CSS selector to get an element to focus
+			let element = document.querySelector(evt.detail.value);
+			if (element !== null) {
+				element.focus();
+			}
+		})
+	</script>
+
+	<div class="jumbotron text-center">
+		<h1><a href="/">&lt;/&gt; HTMX/DMVC Demo App</a></h1>
+		<p>Welcome to the demo app. Click a tab to continue.</p>
+	</div>
+
+	<div class="row">
+		<div class="column left" style="background-color:#aaa;">
+			<div>
+				{{> Navigation}}
+			</div>
+		</div>
+		<div class="column right" style="background-color:#bbb;">
+			<!-- content starts here -->
+			<div id="movieDemoContent-div">

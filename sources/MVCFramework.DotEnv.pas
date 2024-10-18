@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,7 +27,9 @@ unit MVCFramework.DotEnv;
 interface
 
 uses
-  System.SysUtils, System.Generics.Collections, MVCFramework.DotEnv.Parser;
+  System.Generics.Collections,
+  MVCFramework.DotEnv.Parser,
+  System.SysUtils;
 
 type
 {$SCOPEDENUMS ON}
@@ -43,15 +45,18 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
 
   IMVCDotEnvBuilder = interface
     ['{1A5EDD44-7226-40BC-A8EE-789E27522392}']
-    function WithStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function UseStrategy(const Strategy: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder;
+    function SkipDefaultEnv: IMVCDotEnvBuilder;
     function UseLogger( const Logger: TProc<String>): IMVCDotEnvBuilder;
-    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
+    function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvPath: string = ''): IMVCDotEnv; overload;
   end;
@@ -63,7 +68,8 @@ implementation
 uses
   System.IOUtils,
   System.TypInfo,
-  System.Classes;
+  System.Classes,
+  MVCFramework.Commons;
 
 var
   gDotEnv: IMVCDotEnvBuilder = nil;
@@ -81,16 +87,20 @@ type
     fEnvDict: TMVCDotEnvDictionary;
     fLoggerProc: TProc<String>;
     fProfiles: TList<String>;
+    fSkipDefaultEnv: Boolean;
     procedure DoLog(const Value: String);
     procedure ReadEnvFile;
     function GetDotEnvVar(const key: string): string;
+    function GetBuiltInVariable(const VarName: String; out Value: String): Boolean;
     function ExplodePlaceholders(const Value: string): string;
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
     procedure CheckAlreadyBuilt;
     procedure ExplodeReferences;
   strict protected
-    function WithStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
-    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
+    function UseStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
+    function SkipDefaultEnv: IMVCDotEnvBuilder;
+    function UseProfile(const ProfileName: String): IMVCDotEnvBuilder; overload;
+    function UseProfile(const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder; overload;
     function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
@@ -98,6 +108,7 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   public
@@ -105,6 +116,34 @@ type
     destructor Destroy; override;
   end;
 
+
+function TMVCDotEnv.GetBuiltInVariable(const VarName: String;
+  out Value: String): Boolean;
+var
+  lVarName: string;
+begin
+  Result := False;
+  lVarName := VarName.ToLower.Remove(VarName.Length -2, 2).Remove(0,2);
+
+  if lVarName = 'os' then
+  begin
+    Value := TOSVersion.Name;
+    Exit(True);
+  end;
+
+  if lVarName = 'home' then
+  begin
+    Value := AppPath;
+    Exit(True);
+  end;
+
+  if lVarName = 'dmvc.version' then
+  begin
+    Value := DMVCFRAMEWORK_VERSION;
+    Exit(True);
+  end;
+  DoLog('Unknown built-in env var named ' + lVarName + '.');
+end;
 
 function TMVCDotEnv.GetDotEnvVar(const key: string): string;
 begin
@@ -175,6 +214,14 @@ begin
   Result := Self;
 end;
 
+function TMVCDotEnv.UseProfile(
+  const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder;
+begin
+  CheckAlreadyBuilt;
+  fProfiles.Add(ProfileDelegate());
+  Result := Self;
+end;
+
 function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
@@ -182,7 +229,7 @@ begin
   Result := Self;
 end;
 
-function TMVCDotEnv.WithStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
+function TMVCDotEnv.UseStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
 begin
   CheckAlreadyBuilt;
   Result := Self;
@@ -207,7 +254,12 @@ begin
   DoLog('Path = ' + fEnvPath);
   fEnvDict.Clear;
   lAllProfiles := ['default'] + fProfiles.ToArray();
-  DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) + ']');
+  if fSkipDefaultEnv then
+  begin
+    Delete(lAllProfiles, 0, 1);
+  end;
+  DoLog('Active profile/s priority = [' + String.Join(',', lAllProfiles) +
+    '] (Priority: ' + GetEnumName(TypeInfo(TMVCDotEnvPriority), Ord(fPriority)) + ')');
   ReadEnvFile;
   ExplodeReferences;
   fState := TdotEnvEngineState.built;
@@ -236,6 +288,7 @@ begin
   fEnvDict := TMVCDotEnvDictionary.Create;
   fEnvPath := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
   fPriority := TMVCDotEnvPriority.EnvThenFile;
+  fSkipDefaultEnv := False;
 end;
 
 destructor TMVCDotEnv.Destroy;
@@ -274,9 +327,9 @@ begin
   end
   else
   begin
-    if not TryStrToInt(lTmp, Result) then
+    if not TryStrToInt(lTmp.Trim, Result) then
     begin
-      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer', [Name]);
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid integer [Current Value: "%s"]', [Name, lTmp]);
     end;
   end;
 end;
@@ -293,9 +346,18 @@ begin
   end
   else
   begin
+    lTmp := lTmp.Trim.ToLower;
+    if (lTmp = 'yes') or (lTmp='1') or (lTmp='true') then
+    begin
+      Exit(True);
+    end;
+    if (lTmp = 'no') or (lTmp='0') or (lTmp='false') then
+    begin
+      Exit(False);
+    end;
     if not TryStrToBool(lTmp, Result) then
     begin
-      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean', [Name]);
+      raise EMVCDotEnv.CreateFmt('Env "%s" is not a valid boolean [Current Value: "%s"]', [Name, lTmp]);
     end;
   end;
 end;
@@ -315,7 +377,18 @@ begin
       raise EMVCDotEnv.Create('Unclosed expansion (${...}) at: ' + Value);
     end;
     lKey := Result.Substring(lStartPos + 2, lEndPos - (lStartPos + 2));
-    lValue := Env(lKey);
+
+    if lKey.StartsWith('__') and lKey.EndsWith('__') then
+    begin
+      if not GetBuiltInVariable(lKey, lValue) then
+      begin
+        lValue := Env(lKey);
+      end
+    end
+    else
+    begin
+      lValue := Env(lKey);
+    end;
     Result := StringReplace(Result, '${' + lKey + '}', lValue, [rfReplaceAll]);
   end;
 end;
@@ -351,6 +424,12 @@ begin
   Result := Self;
 end;
 
+function TMVCDotEnv.SkipDefaultEnv: IMVCDotEnvBuilder;
+begin
+  fSkipDefaultEnv := True;
+  Result := Self;
+end;
+
 function TMVCDotEnv.ToArray: TArray<String>;
 var
   lKeys: TArray<String>;
@@ -375,7 +454,7 @@ var
 begin
   if not TFile.Exists(EnvFilePath) then
   begin
-    DoLog('Missed dotEnv file ' + EnvFilePath);
+    DoLog('Missed file ' + EnvFilePath);
     Exit;
   end;
 
@@ -383,7 +462,7 @@ begin
   lParser := TMVCDotEnvParser.Create;
   try
     lParser.Parse(fEnvDict, lDotEnvCode);
-    DoLog('Applied dotEnv file ' + EnvFilePath);
+    DoLog('Applied file ' + EnvFilePath);
   finally
     lParser.Free;
   end;
@@ -394,11 +473,41 @@ var
   lProfileEnvPath: string;
   I: Integer;
 begin
-  PopulateDictionary(fEnvDict, IncludeTrailingPathDelimiter(fEnvPath) + '.env');
+  if not fSkipDefaultEnv then
+  begin
+    PopulateDictionary(fEnvDict, IncludeTrailingPathDelimiter(fEnvPath) + '.env');
+  end;
   for I := 0 to fProfiles.Count - 1 do
   begin
     lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];
     PopulateDictionary(fEnvDict, lProfileEnvPath);
+  end;
+end;
+
+procedure TMVCDotEnv.RequireKeys(const Keys: TArray<String>);
+var
+  lKey: String;
+  lNotFoundKeys: TArray<String>;
+  lMsg: string;
+begin
+  if Length(Keys) = 0 then
+  begin
+    Exit;
+  end;
+  DoLog('Checking required keys: ' + String.Join(', ', Keys));
+  lNotFoundKeys := [];
+  for lKey in Keys do
+  begin
+    if Env(lKey).IsEmpty then
+    begin
+      lNotFoundKeys := lNotFoundKeys + [lKey];
+    end;
+  end;
+  if Length(lNotFoundKeys) > 0 then
+  begin
+    lMsg := 'Required keys not found: ' + String.Join(', ', lNotFoundKeys);
+    DoLog(lMsg);
+    raise EMVCDotEnv.Create(lMsg);
   end;
 end;
 

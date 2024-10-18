@@ -7,6 +7,7 @@ uses
   System.SysUtils,
   Web.WebReq,
   Web.WebBroker,
+  MVCFramework.Logger,
   IdHTTPWebBrokerBridge,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
@@ -19,12 +20,12 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press RETURN to stop the server');
+    LogI('Press RETURN to stop the server');
     ReadLn;
   finally
     LServer.Free;
@@ -40,7 +41,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, 'Shutting Down');
   end
 
 end.

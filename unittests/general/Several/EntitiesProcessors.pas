@@ -171,7 +171,7 @@ begin
   end;
   Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo +
     '/' + lID.ToString;
-  Renderer.Render(TMVCResponse.Create(201, 'Contact created with phones', ''));
+  Renderer.Render(TMVCResponse.Create(201, 'Contact created with phones'));
 end;
 
 procedure TContactProcessor.DeleteEntity(const Context: TWebContext;

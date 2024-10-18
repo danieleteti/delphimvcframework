@@ -9,6 +9,7 @@ program DMVCFrameworkTests;
 uses
   System.SysUtils,
   System.IOUtils,
+  MVCFramework.Logger,
   DUnitX.TestFramework,
   DUnitX.Loggers.XML.NUnit,
   {$IFDEF CONSOLE_TESTRUNNER}
@@ -75,7 +76,9 @@ uses
   IntfObjectPoolTestU in 'IntfObjectPoolTestU.pas',
   ObjectPoolTestU in 'ObjectPoolTestU.pas',
   MVCFramework.DotEnv.Parser in '..\..\..\sources\MVCFramework.DotEnv.Parser.pas',
-  MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas';
+  MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas',
+  InjectorTestU in 'InjectorTestU.pas',
+  MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas';
 
 {$R *.RES}
 
@@ -144,6 +147,10 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  UseConsoleLogger := False;
+  TMVCSqids.SQIDS_ALPHABET := 'axDlw8dRnsPCrbZIAEMFG4TQ6gc3iWtOy9v5NBz0LfSmuKV71JHkUhYpej2Xqo';
+  TMVCSqids.SQIDS_MIN_LENGTH := 6;
+
 {$IF Defined(CONSOLE_TESTRUNNER)}
   MainConsole();
 {$ELSE}

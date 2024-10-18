@@ -5,7 +5,7 @@ interface
 uses classes, MVCFramework.Session;
 
 type
-  TWebSessionMemoryController = class(TWebSessionMemory)
+  TWebSessionMemoryController = class(TMVCWebSessionMemory)
   private
     FList: TStringList;
   public

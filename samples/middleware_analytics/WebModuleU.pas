@@ -51,7 +51,7 @@ begin
     try
       if GLogWriter = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
       begin
-        lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', [], '%s.%2.2d.%s.csv');
+        lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', TPath.ChangeExtension(TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT, 'csv'));
         TLoggerProFileAppender(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
           begin
             LogRow := Format('%s;%s;%s;%s', [

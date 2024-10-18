@@ -1,0 +1,37 @@
+<p>{{:books|count}} book/s found</p>
+
+<div class="divTable blueTable">
+	<div class="divTableHeading">
+		<div class="divTableRow">
+			<div class="divTableHead">ID</div>
+			<div class="divTableHead">Book Title</div>
+			<div class="divTableHead">Book Author</div>
+			<div class="divTableHead">Rating</div>
+			<div class="divTableHead">Genre</div>
+		</div>
+	</div>
+	<div class="divTableBody">
+		{{if !books}}
+		<div class="divTableRow">
+			<span>No books found</span>
+		</div>
+		{{endif}}		
+		{{for book in books}}
+		<div class="divTableRow {{if book.genre|eq,"Horror"}}has-background-danger-light{{endif}}">
+			<div class="divTableCell">{{:book.id|lpad,8,"0"}}</div>
+			<div class="divTableCell">{{:book.book_name}}</div>
+			<div class="divTableCell">{{:book.author_name}}</div>
+			<div class="divTableCell">
+				{{if book.rating|ge,1}}⭐{{endif}}
+				{{if book.rating|ge,2}}⭐{{endif}}
+				{{if book.rating|ge,3}}⭐{{endif}}
+				{{if book.rating|ge,4}}⭐{{endif}}
+				{{if book.rating|ge,5}}⭐{{endif}}
+			</div>
+			<div class="divTableCell">
+				{{:book.genre|uppercase}}
+			</div>
+		</div>
+		{{endfor}}
+	</div>
+</div>

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -373,6 +373,21 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/issues/542')]
     procedure TestIssue542;
+
+    {sqids}
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/sqids/stoi/($id:sqids)')]
+    function TestReceiveSqidAsInteger(id: Int64): Int64;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/sqids/itos/($id)')]
+    function TestReceiveIntegerAndReturnSqid(id: Int64): String;
+
+    {invalid converter}
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/wrongconverter/($id:blablabla)')]
+    function TestInvalidConverter(id: Int64): Int64;
+
   end;
 
   [MVCPath('/private')]
@@ -520,6 +535,24 @@ type
     [MVCPath('/dataset/multiple')]
     [MVCHTTPMethod([httpGET])]
     function GetDataSetMultiple: IMVCObjectDictionary;
+
+    { using IMVCResponse }
+    [MVCPath('/mvcresponse/message')]
+    function GetMVCResponseSimple: IMVCResponse;
+    [MVCPath('/mvcresponse/data')]
+    function GetMVCResponseWithData: IMVCResponse;
+    [MVCPath('/mvcresponse/data/message')]
+    function GetMVCResponseWithDataAndMessage: IMVCResponse;
+    [MVCPath('/mvcresponse/json')]
+    function GetMVCResponseWithJSON: IMVCResponse;
+    [MVCPath('/mvcresponse/list')]
+    function GetMVCResponseWithObjectList: IMVCResponse;
+    [MVCPath('/mvcresponse/dictionary')]
+    function GetMVCResponseWithObjectDictionary: IMVCResponse;
+    [MVCPath('/mvcresponse/error')]
+    function GetMVCErrorResponse: IMVCResponse;
+    [MVCPath('/mvcresponse/message/builder/headers')]
+    function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
 
   end;
 
@@ -895,6 +928,8 @@ begin
   try
     lObj.Names := lObj.Names + ['added'];
     lObj.Values := lObj.Values + [99];
+    lObj.Values8 := lObj.Values8 + [99];
+    lObj.Values64 := lObj.Values64 + [99];
     lObj.Booleans := lObj.Booleans + [true];
     Render(lObj, False);
   finally
@@ -1025,6 +1060,11 @@ begin
   Render('hello world');
 end;
 
+function TTestServerController.TestInvalidConverter(id: Int64): Int64;
+begin
+  Result := id; //never called
+end;
+
 procedure TTestServerController.TestIssue406;
 begin
   Render(HTTP_STATUS.UnprocessableEntity, TMVCErrorResponseItem.Create('The Message'));
@@ -1107,6 +1147,18 @@ var
 begin
   Person := Context.Request.BodyAs<TPerson>();
   Render(Person);
+end;
+
+function TTestServerController.TestReceiveIntegerAndReturnSqid(
+  id: Int64): String;
+begin
+  Result := TMVCSqids.IntToSqid(id);
+end;
+
+function TTestServerController.TestReceiveSqidAsInteger(
+  id: Int64): Int64;
+begin
+  Result := id;
 end;
 
 procedure TTestServerController.TestRenderStreamAndFreeWithOwnerFalse;
@@ -1272,7 +1324,7 @@ begin
   try
     var lFName: string := TPath.Combine(AppPath, 'customers.json');
     lDS.LoadFromFile(lFName);
-    ViewDataset['customers'] := lDS;
+    ViewData['customers'] := lDS;
     ViewData['customers2'] := lDS;
     LoadView(['dataset_list']);
     RenderResponseStream;
@@ -1454,6 +1506,89 @@ begin
   Result := TSum.Create;
   Result.Value := a + b;
 end;
+
+function TTestActionResultController.GetMVCErrorResponse: IMVCResponse;
+begin
+  raise EMVCException.Create(HTTP_STATUS.BadGateway, 1001, 'Error Message');
+end;
+
+function TTestActionResultController.GetMVCResponseSimple: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('My Message')
+    .Build;
+end;
+
+function TTestActionResultController.GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.Created)
+    .Header('header1', 'Hello World')
+    .Header('header2', 'foo bar')
+    .Body('My Message')
+    .Build;
+end;
+
+function TTestActionResultController.GetMVCResponseWithData: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True))
+    .Build;
+end;
+
+function TTestActionResultController.GetMVCResponseWithDataAndMessage: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('This is a message')  //<< Message
+    .Body(TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True)) //<< Data
+    .Body(ObjectDict().Add('person', TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True)))
+    .Build;
+end;
+
+function TTestActionResultController.GetMVCResponseWithObjectDictionary: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(ObjectDict()
+      .Add('people1', TObjectList<TPerson>.Create([
+                      TPerson.Create('Daniele','Teti', 99),
+                      TPerson.Create('Peter','Parker', 25),
+                      TPerson.Create('Bruce','Banner', 45)
+                    ])
+      )
+      .Add('people2', TObjectList<TPerson>.Create([
+                      TPerson.Create('Daniele','Teti', 99),
+                      TPerson.Create('Peter','Parker', 25),
+                      TPerson.Create('Bruce','Banner', 45)
+                    ])
+      )
+  )
+  .Build;
+end;
+
+function TTestActionResultController.GetMVCResponseWithObjectList: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(TObjectList<TPerson>.Create([
+      TPerson.Create('Daniele','Teti', 99),
+      TPerson.Create('Peter','Parker', 25),
+      TPerson.Create('Bruce','Banner', 45)
+    ])
+  ).Build;
+end;
+
+function TTestActionResultController.GetMVCResponseWithJSON: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(StrToJSONObject('{"name":"Daniele","surname":"Teti"}'))
+    .Build;
+end;
+
 
 { TComplexObject }
 

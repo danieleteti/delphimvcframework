@@ -4,6 +4,7 @@
 
 uses
   System.SysUtils,
+  MVCFramework.Logger,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   {$IFNDEF LINUX}
@@ -26,7 +27,11 @@ uses
   Entities in '..\Several\Entities.pas',
   EntitiesProcessors in '..\Several\EntitiesProcessors.pas',
   MVCFramework.JSONRPC.Client in '..\..\..\sources\MVCFramework.JSONRPC.Client.pas',
-  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
+  MVCFramework.Serializer.Commons,
+  MVCFramework in '..\..\..\sources\MVCFramework.pas',
+  MVCFramework.Serializer.Text in '..\..\..\sources\MVCFramework.Serializer.Text.pas',
+  MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
 
@@ -79,10 +84,14 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  gLocalTimeStampAsUTC := False;
+  UseConsoleLogger := False;
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', 'axDlw8dRnsPCrbZIAEMFG4TQ6gc3iWtOy9v5NBz0LfSmuKV71JHkUhYpej2Xqo');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(9999);
+    RunServer(8888);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

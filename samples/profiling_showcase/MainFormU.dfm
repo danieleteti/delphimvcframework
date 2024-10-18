@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Profiler :: Sample'
-  ClientHeight = 232
+  ClientHeight = 302
   ClientWidth = 560
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,7 +13,7 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   DesignSize = (
     560
-    232)
+    302)
   TextHeight = 15
   object btnSimple: TButton
     Left = 16
@@ -51,5 +51,14 @@ object MainForm: TMainForm
     Caption = 'Logs Only If Over Threshold'
     TabOrder = 3
     OnClick = chkLogsThresholdClick
+  end
+  object btnTrace: TButton
+    Left = 16
+    Top = 240
+    Width = 129
+    Height = 41
+    Caption = 'Trace'
+    TabOrder = 4
+    OnClick = btnTraceClick
   end
 end

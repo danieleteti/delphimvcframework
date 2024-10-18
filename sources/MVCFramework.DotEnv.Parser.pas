@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -101,8 +101,8 @@ procedure TMVCDotEnvParser.Check(Value: Boolean; Error: String);
 begin
   if not Value then
   begin
-    raise EMVCDotEnvParser.CreateFmt('Error: %s - got "%s" at line: %d - index: %d',
-      [Error, fCurrChar, fCurLine, fIndex - fSavedIndex]);
+    raise EMVCDotEnvParser.CreateFmt('Error: %s - got "%s" at line: %d',
+      [Error, fCurrChar, fCurLine + 1]);
   end;
 end;
 
@@ -189,7 +189,7 @@ begin
       EatSpaces;
       Check(MatchSymbol('='), 'Expected "="');
       EatSpaces;
-      Check(MatchValue(lValue), 'Expected "Value"');
+      MatchValue(lValue);
       EnvDictionay.AddOrSetValue(lKey, lValue);
       EatSpaces;
       MatchInLineComment;
@@ -202,10 +202,11 @@ begin
     begin
       EatUpToLineBreak;
       EatLineBreaks;
+      Inc(fCurLine);
     end
     else
     begin
-      raise EMVCDotEnvParser.CreateFmt('Unexpected char "%s" at %d', [fCurrChar, fIndex - fSavedIndex]);
+      raise EMVCDotEnvParser.CreateFmt('Unexpected char "%s" at line %d', [fCurrChar, fCurLine + 1]);
     end;
   end;
 end;
@@ -237,9 +238,22 @@ begin
 end;
 
 function TMVCDotEnvParser.MatchIdentifier(out Value: String): Boolean;
+const
+  FirstCharSet = ['a' .. 'z', 'A' .. 'Z', '_', '.'];
+  CharSet = ['0' .. '9'] + FirstCharSet;
 begin
   Value := '';
-  while CharInSet(fCode.Chars[fIndex], ['0' .. '9', 'a' .. 'z', 'A' .. 'Z', '_', '.', ':', '$', '%']) do
+  if CharInSet(fCode.Chars[fIndex], FirstCharSet) then
+  begin
+    Value := fCode.Chars[fIndex];
+    NextChar;
+  end
+  else
+  begin
+    Exit(False);
+  end;
+
+  while CharInSet(fCode.Chars[fIndex], CharSet) do
   begin
     Value := Value + fCode.Chars[fIndex];
     NextChar;

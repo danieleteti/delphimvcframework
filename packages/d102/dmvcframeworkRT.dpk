@@ -110,7 +110,14 @@ contains
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas',
-  JsonDataObjects in '..\..\sources\JsonDataObjects.pas';
+  JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
+  MVCFramework.DotEnv.Parser in '..\..\sources\MVCFramework.DotEnv.Parser.pas',
+  MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
+  MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
+  MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
+  MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
+  LoggerPro.ConsoleAppender in '..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas',
+  sqids in '..\..\sources\sqids.pas';
 
 end.
 

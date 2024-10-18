@@ -15,19 +15,17 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MVCFramework.Signal,
+  MVCFramework.Logger,
   MVCFramework.SQLGenerators.PostgreSQL,
   MVCFramework.SQLGenerators.Firebird,
   MVCFramework.SQLGenerators.Interbase,
   MVCFramework.SQLGenerators.MSSQL,
   MVCFramework.SQLGenerators.MySQL,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   Entities in 'Entities.pas',
-  MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
   FDConnectionConfigU in '..\activerecord_showcase\FDConnectionConfigU.pas',
-  OtherControllerU in 'OtherControllerU.pas',
-  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas';
+  OtherControllerU in 'OtherControllerU.pas';
 
 {$R *.res}
 
@@ -36,12 +34,11 @@ var
   lServer: TIdHTTPWebBrokerBridge;
   lCmd: string;
 begin
-  ConnectionDefinitionName := CON_DEF_NAME;
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
   else
-    lCmd := '/firebird';
+    lCmd := '/postgresql';
 
   if (lCmd = '/firebird') then
   begin
@@ -51,14 +48,13 @@ begin
   begin
     CreateMySQLPrivateConnDef(True);
   end
-  else if (lCmd = '/postgresql') then
-  begin
-    CreatePostgreSQLPrivateConnDef(True);
-  end
   else
   begin
-    CreateFirebirdPrivateConnDef(True);
+    lCmd := '/postgresql';
+    CreatePostgreSQLPrivateConnDef(True);
   end;
+
+  LogI('Using ' + lCmd.Substring(1));
 
   lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
@@ -67,8 +63,8 @@ begin
     lServer.MaxConnections := 0;
     lServer.ListenQueue := 200;
     lServer.Active := True;
-    WriteLn('Running on port ', APort);
-    Write('CTRL+C to Quit');
+    LogI('Running on port ' + APort.ToString);
+    LogI('CTRL+C to Quit');
     WaitForTerminationSignal;
     EnterInShutdownState;
   finally
@@ -83,10 +79,10 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
-    RunServer(8080);
+    RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end;
 
 end.
