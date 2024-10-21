@@ -600,7 +600,20 @@ begin
         tkInt64: Result := Value.AsInt64.ToString;
         tkString, tkUString, tkWString, tkLString: Result := Value.AsString;
         tkWChar, tkChar: Result := Value.AsType<Char>;
-        tkFloat: Result := FloatToStr(Value.AsExtended, fLocaleFormatSettings);
+        tkFloat: begin
+          if Value.TypeInfo.Name = 'TDate' then
+          begin
+            Result := DateToStr(Value.AsExtended, fLocaleFormatSettings);
+          end
+          else if Value.TypeInfo.Name = 'TDateTime' then
+          begin
+            Result := DateTimeToStr(Value.AsExtended, fLocaleFormatSettings);
+          end
+          else
+          begin
+            Result := FloatToStr(Value.AsExtended, fLocaleFormatSettings);
+          end;
+        end;
         tkEnumeration: Result := Value.ToString;
         else
           raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
@@ -995,6 +1008,7 @@ begin
         lFoundVar := False;
         lFoundFilter := False;
         Step;
+        lRef2 := -1;
         if MatchVariable(lVarName) then { variable }
         begin
           lFoundVar := True;
@@ -1002,15 +1016,11 @@ begin
             Error('Invalid variable name');
           lFuncName := '';
           lFuncParamsCount := -1; { -1 means "no filter applied to value" }
-          lRef2 := IfThen(MatchSymbol('$'), 1, -1);
-          // {{value$}} means no escaping
+          lRef2 := IfThen(MatchSymbol('$'), 1, -1); // {{value$}} means no escaping
           MatchSpace;
-          if MatchSymbol('|') then
-          begin
-            MatchFilter(lVarName, lFuncName, lFuncParamsCount, lFuncParams);
-          end;
-        end
-        else if MatchSymbol('|') then
+        end;
+
+        if MatchSymbol('|') then
         begin
           lFoundFilter := True;
           MatchFilter(lVarName, lFuncName, lFuncParamsCount, lFuncParams);

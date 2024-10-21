@@ -5301,28 +5301,29 @@ function TMVCBaseViewEngine.GetRealFileName(const AViewName: string): string;
 var
   lFileName: string;
   lDefaultViewFileExtension: string;
+  lTemplateFolder: string;
 begin
   lDefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
-  lFileName := StringReplace(AViewName, '/', '\', [rfReplaceAll]);
+  lFileName := StringReplace(AViewName, '/', PathDelim, [rfReplaceAll]);
 
-  if (lFileName = '\') then
+  if (lFileName = PathDelim) then
   begin
-    lFileName := '\index.' + lDefaultViewFileExtension
+    lFileName := PathDelim + 'index.' + lDefaultViewFileExtension
   end
   else
   begin
     lFileName := lFileName + '.' + lDefaultViewFileExtension;
   end;
 
-  if DirectoryExists(Config[TMVCConfigKey.ViewPath]) then
+  lTemplateFolder := Config[TMVCConfigKey.ViewPath];
+  if DirectoryExists(lTemplateFolder) then
   begin
-    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) +
-      lFileName)
+    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(lTemplateFolder) + lFileName)
   end
   else
   begin
-    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
-      Config.Value[TMVCConfigKey.ViewPath]) + lFileName);
+    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(
+      GetApplicationFileNamePath + lTemplateFolder) + lFileName);
   end;
 
   if FileExists(lFileName) then
