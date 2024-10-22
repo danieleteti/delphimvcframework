@@ -310,6 +310,11 @@ type
 {$IF defined(RIOORBETTER)}
     function AddFile(const aName: string; aFileStreamValue: TStream; const aFileName: string = '';
       const aContentType: string = ''): IMVCRESTClient; overload;
+{$IF defined(ATHENSORBETTER)} deprecated 'Use AddFile with AOwnsStream parameter'; {$ENDIF}
+{$ENDIF}
+{$IF defined(ATHENSORBETTER)}
+    function AddFile(const aName: string; aFileStreamValue: TStream; AOwnsStream: Boolean; const aFileName: string = '';
+      const aContentType: string = ''): IMVCRESTClient; overload;
 {$ENDIF}
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
 {$IF defined(RIOORBETTER)}
