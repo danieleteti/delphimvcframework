@@ -78,8 +78,10 @@ begin
   LParams := TStringList.Create;
   try
     LParams.Add('Database=activerecorddb');
-    LParams.Add('OSAuthent=Yes');
-    LParams.Add('Server=DANIELETETI\SQLEXPRESS');
+    LParams.Add('OSAuthent=No');
+    LParams.Add('Server=localhost');
+    LParams.Add('User_Name=sa');
+    LParams.Add('Password=Daniele123!');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
