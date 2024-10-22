@@ -6,7 +6,7 @@
         <MainSource>ServerSideViewsTemplatePro.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
         <ProjectName Condition="'$(ProjectName)'==''">ServerSideViewsTemplatePro</ProjectName>
@@ -148,7 +148,6 @@
             </Delphi.Personality>
             <Deployment Version="5">
                 <DeployFile LocalName="bin\ServerSideViews.exe" Configuration="Debug" Class="ProjectOutput"/>
-                <DeployFile LocalName="bin\ServerSideViewsTemplatePro.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\ServerSideViewsTemplatePro.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\ServerSideViewsTemplatePro.rsm" Configuration="Debug" Class="DebugSymbols"/>
                 <DeployClass Name="AdditionalDebugSymbols">

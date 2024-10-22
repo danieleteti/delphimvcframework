@@ -19,7 +19,7 @@
             <td>{{:cust.first_name}}</td>
             <td>{{:cust.last_name}}</td>
             <td>{{:cust.country|capitalize}}</td>
-            <td>{{:cust.dob}}{{if cust.dob|ge,"2000/01/01"}}📅{{endif}}</td>
+            <td>{{:cust.dob|datetostr}}{{if cust.dob|ge,"2000/01/01"}}📅{{endif}}</td>
         </tr>
         {{endfor}}
         {{endif}}

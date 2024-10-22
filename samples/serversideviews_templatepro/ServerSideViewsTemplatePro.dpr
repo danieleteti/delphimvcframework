@@ -30,7 +30,7 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   ReportMemoryLeaksOnShutdown := True;
-  LogI(Format('Starting HTTP Server on port %d', [APort]));
+  LogI(Format('Starting HTTP Server on http://localhost:%d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;

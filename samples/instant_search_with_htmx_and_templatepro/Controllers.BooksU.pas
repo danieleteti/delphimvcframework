@@ -10,7 +10,6 @@ type
   TBooksController = class(TMVCController)
   public
     [MVCPath]
-    [MVCPath]
     function Index([MVCFromQueryString('query','')] SearchQueryText: String): String;
 
     [MVCPath]

@@ -182,7 +182,7 @@ type
     function EvaluateIfExpressionAt(var Idx: Int64): Boolean;
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
-    function ExecuteFilter(aFunctionName: string; aParameters: TArray<string>; aValue: TValue): TValue;
+    function ExecuteFilter(aFunctionName: string; aParameters: TArray<string>; aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<string>); overload;
     procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<string>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
@@ -1615,7 +1615,7 @@ begin
 end;
 
 function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; aParameters: TArray<string>;
-  aValue: TValue): TValue;
+  aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
 var
   lDateValue: TDateTime;
   lDateFilterFormatSetting: TFormatSettings;
@@ -1624,7 +1624,9 @@ var
   lAnonFunc: TTProTemplateAnonFunction;
   lIntegerPar1: Integer;
   lDecimalMask: string;
+  lExecuteAsFilterOnAValue: Boolean;
 begin
+  lExecuteAsFilterOnAValue := not aVarNameWhereShoudBeApplied.IsEmpty;
   aFunctionName := lowercase(aFunctionName);
   if SameText(aFunctionName, 'gt') then
   begin
@@ -1664,7 +1666,7 @@ begin
   end
   else if SameText(aFunctionName, 'uppercase') then
   begin
-    if not aValue.IsEmpty then
+    if lExecuteAsFilterOnAValue then
     begin
       CheckParNumber(0, aParameters);
       Result := UpperCase(aValue.AsString);
@@ -1677,7 +1679,7 @@ begin
   end
   else if SameText(aFunctionName, 'lowercase') then
   begin
-    if not aValue.IsEmpty then
+    if lExecuteAsFilterOnAValue then
     begin
       CheckParNumber(0, aParameters);
       Result := lowercase(aValue.AsString);
@@ -1690,7 +1692,7 @@ begin
   end
   else if SameText(aFunctionName, 'capitalize') then
   begin
-    if not aValue.IsEmpty then
+    if lExecuteAsFilterOnAValue then
     begin
       CheckParNumber(0, aParameters);
       Result := CapitalizeString(aValue.AsString, True);
@@ -1820,7 +1822,7 @@ begin
   end
   else if SameText(aFunctionName, 'version') then
   begin
-    if not aValue.IsEmpty then
+    if lExecuteAsFilterOnAValue then
     begin
       FunctionError(aFunctionName, 'cannot be applied to a value - [HINT] Use {{:|' + aFunctionName + '}}');
     end;
@@ -3126,11 +3128,11 @@ begin
     end;
     case lCurrTokenType of
       ttValue:
-        Result := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName));
+        Result := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName), lVarName);
       ttBoolExpression:
-        Result := IsTruthy(ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName)));
+        Result := IsTruthy(ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName), lVarName));
       ttLiteralString:
-        Result := ExecuteFilter(lFilterName, lFilterParameters, lVarName);
+        Result := ExecuteFilter(lFilterName, lFilterParameters, lVarName, lVarName);
     else
       Error('Invalid token in EvaluateValue');
     end;

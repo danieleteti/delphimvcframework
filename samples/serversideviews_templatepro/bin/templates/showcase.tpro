@@ -86,7 +86,7 @@ This page is a showcase for all the TemplatePro features usable from DMVCFramewo
 	<h2 class="section">Using Filters</h2>
 	<ul>
 	<li>Using syntax {{{"value as string"|uppercase}} = {{"value as string"|uppercase}} Filter "uppercase" is invoked passing "value as string" as constant value.</li>
-	<li>Using syntax {{{first_name!uppercase}} = {{:first_name|uppercase}} Filter "uppercase" is invoked passing the value contained in the attribute first_name.</li>
+	<li>Using syntax {{{first_name|uppercase}} = {{:first_name|uppercase}} Filter "uppercase" is invoked passing the value contained in the attribute first_name.</li>
 	<li>Helpers cannot be nested (yet)</li>	
 	</ul>
 	<div>
