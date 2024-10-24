@@ -120,6 +120,12 @@ type
   TTProCompiledTemplateGetValueEvent = reference to procedure(const DataSource, Members: string; var Value: TValue;
     var Handled: Boolean);
 
+{$IF CompilerVersion < 36}
+  { Before Delphi 12 Athens, PFormatSettings wasn't defined}
+  PFormatSettings = ^TFormatSettings;
+{$ENDIF}
+
+
   ITProCompiledTemplate = interface
     ['{0BE04DE7-6930-456B-86EE-BFD407BA6C46}']
     function Render: String;
