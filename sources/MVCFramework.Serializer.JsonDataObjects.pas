@@ -292,20 +292,20 @@ end;
 procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
 var
   lStreamSerializer: IMVCTypeSerializer;
-  lDataSetHolderSerializer: TMVCDataSetHolderSerializer;
   fObjectDictionarySerializer: TMVCObjectDictionarySerializer;
 begin
   inherited AfterConstruction;
-  lDataSetHolderSerializer := TMVCDataSetHolderSerializer.Create;
-  GetTypeSerializers.Add(TypeInfo(TDataSetHolder), lDataSetHolderSerializer);
   lStreamSerializer := TMVCStreamSerializerJsonDataObject.Create;
   GetTypeSerializers.Add(TypeInfo(TStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TStringStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TFileStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TMemoryStream), lStreamSerializer);
+  GetTypeSerializers.Add(TypeInfo(TBytesStream), lStreamSerializer);
+
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), fStringDictionarySerializer);
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
+
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
   GetTypeSerializers.Add(TypeInfo(TMVCListOfString { TList<string> } ), TMVCListOfStringSerializer.Create);

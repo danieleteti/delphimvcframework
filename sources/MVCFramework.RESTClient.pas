@@ -725,7 +725,9 @@ end;
 function TMVCRESTClient.AddFile(const aName: string; aFileStreamValue: TStream; const aFileName, aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
+{$WARNINGS OFF}
   GetBodyFormData.AddStream(aName, aFileStreamValue, aFileName, aContentType);
+{$WARNINGS ON}
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
