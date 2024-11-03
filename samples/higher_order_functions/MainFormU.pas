@@ -51,6 +51,8 @@ type
     btnJustLoop: TButton;
     lbForEach: TListBox;
     btnForEachWithException: TButton;
+    btnMap2: TButton;
+    btnMap2Array: TButton;
     procedure btnMapAddStarsClick(Sender: TObject);
     procedure btnReduceSumClick(Sender: TObject);
     procedure btnFilterBetwenClick(Sender: TObject);
@@ -62,6 +64,8 @@ type
     procedure btnMapCapitalizeClick(Sender: TObject);
     procedure btnJustLoopClick(Sender: TObject);
     procedure btnForEachWithExceptionClick(Sender: TObject);
+    procedure btnMap2Click(Sender: TObject);
+    procedure btnMap2ArrayClick(Sender: TObject);
   private
     procedure FillList(Data: TArray<String>; AStrings: TStrings); overload;
     procedure FillList(Data: TArray<Integer>; AStrings: TStrings); overload;
@@ -73,6 +77,9 @@ var
   MainForm: TMainForm;
 
 implementation
+
+uses
+  System.Generics.Collections;
 
 {$R *.dfm}
 
@@ -168,6 +175,57 @@ begin
     begin
       lbForEach.Items.Add(Item);
     end);
+end;
+
+procedure TMainForm.btnMap2ArrayClick(Sender: TObject);
+begin
+  lbMap.Clear;
+  var lInput: TArray<Integer>;
+
+  SetLength(lInput, 10);
+  for var I := 1 to Length(lInput) do
+  begin
+    lInput[I-1] := I * 10;
+  end;
+
+  var lListOfStr := HigherOrder.Map<Integer, String>(
+    lInput, function(const Item: Integer): String
+            begin
+              Result := '**' + Item.ToString;
+            end);
+  try
+    lbMap.Items.AddStrings(lListOfStr.ToArray);
+  finally
+    lListOfStr.Free;
+  end;
+end;
+
+procedure TMainForm.btnMap2Click(Sender: TObject);
+begin
+  lbMap.Clear;
+  var lList := TList<TButton>.Create;
+  try
+    for var lControl in Self.GetControls([ceftEnabled]) do
+    begin
+      if lControl is TButton then
+      begin
+        lList.Add(TButton(lControl));
+      end;
+    end;
+
+    var lListOfStr := HigherOrder.Map<TButton, String>(
+      lList, function(const Item: TButton): String
+             begin
+               Result := String(Item.Caption).ToUpper;
+             end);
+    try
+      lbMap.Items.AddStrings(lListOfStr.ToArray);
+    finally
+      lListOfStr.Free;
+    end;
+  finally
+    lList.Free;
+  end;
 end;
 
 procedure TMainForm.btnMapAddStarsClick(Sender: TObject);

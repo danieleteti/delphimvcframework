@@ -30,7 +30,8 @@ interface
 
 uses
   MVCFramework.Serializer.Commons, JsonDataObjects,
-  MVCFramework.DuckTyping, System.Classes, System.SysUtils;
+  MVCFramework.DuckTyping, System.Classes, System.SysUtils,
+  System.Generics.Collections;
 
 type
   EHOError = class(Exception)
@@ -54,19 +55,27 @@ type
   end;
 
   TMapClosure<T> = reference to function(const Item: T): T;
+  TMapClosure2<T1,T2> = reference to function(const Item: T1): T2;
   TForEachClosure<T> = reference to procedure(const Item: T);
   TMapReduceClosure<T> = reference to function(const Left: T; const Right: T): T;
   TPredicateClosure<T> = reference to function(const Item: T): Boolean;
 
   HigherOrder = class sealed
+  public
     class function Map<T>(const InputArray: TArray<T>;
-      const MapClosure: TMapClosure<T>): TArray<T>;
+      const MapClosure: TMapClosure<T>): TArray<T>; overload;
+    class function Map<T1,T2>(const List: TEnumerable<T1>;
+      const MapClosure: TMapClosure2<T1, T2>): TList<T2>; overload;
+    class function Map<T1,T2>(const InputArray: TArray<T1>;
+      const MapClosure: TMapClosure2<T1, T2>): TList<T2>; overload;
     class function Reduce<T>(const InputArray: TArray<T>;
       const ReduceFunction: TMapReduceClosure<T>; InitValue: T): T;
     class function Filter<T>(const InputArray: TArray<T>;
       const FilterFunction: TPredicateClosure<T>): TArray<T>;
     class procedure ForEach<T>(const InputArray: TArray<T>;
-      const ForEachClosure: TForEachClosure<T>);
+      const ForEachClosure: TForEachClosure<T>); overload;
+    class procedure ForEach<T>(const Enumerable: TEnumerable<T>;
+      const ForEachClosure: TForEachClosure<T>); overload;
   end;
 
 function NewJSONSerializer: IMVCJSONSerializer;
@@ -87,7 +96,6 @@ uses
   IdHashMessageDigest,
   IdHashSHA,
 {$ENDIF}
-  System.Generics.Collections,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Commons,
   System.TypInfo;
@@ -236,6 +244,78 @@ begin
     begin
       raise EHOForEachError.CreateFmt
         ('ForEach error at index %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
+class procedure HigherOrder.ForEach<T>(const Enumerable: TEnumerable<T>; const ForEachClosure: TForEachClosure<T>);
+var
+  lIdx: Integer;
+  lItem: T;
+begin
+  lIdx := 0;
+  try
+    for lItem in Enumerable do
+    begin
+      ForEachClosure(lItem);
+      Inc(lIdx);
+    end;
+  except
+    on E: Exception do
+    begin
+      raise EHOForEachError.CreateFmt
+        ('ForEach error at element %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
+class function HigherOrder.Map<T1, T2>(const List: TEnumerable<T1>; const MapClosure: TMapClosure2<T1, T2>): TList<T2>;
+var
+  lIdx: Integer;
+  lItem: T1;
+begin
+  Result := nil;
+  lIdx := 0;
+  try
+    Result := TList<T2>.Create;
+    for lItem in List do
+    begin
+      Result.Add(MapClosure(lItem));
+      Inc(lIdx);
+    end;
+  except
+    on E: Exception do
+    begin
+      Result.Free;
+      raise EHOMapError.CreateFmt
+        ('Map error at index %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
+class function HigherOrder.Map<T1, T2>(const InputArray: TArray<T1>; const MapClosure: TMapClosure2<T1, T2>): TList<T2>;
+var
+  lIdx: Integer;
+  lItem: T1;
+begin
+  Result := nil;
+  lIdx := 0;
+  try
+    Result := TList<T2>.Create;
+    for lItem in InputArray do
+    begin
+      Result.Add(MapClosure(lItem));
+      Inc(lIdx);
+    end;
+  except
+    on E: Exception do
+    begin
+      Result.Free;
+      raise EHOMapError.CreateFmt
+        ('Map error at index %d - [Class: %s][Message: %s]',
         [lIdx, E.ClassName, E.Message]);
     end;
   end;

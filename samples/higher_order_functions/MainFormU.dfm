@@ -47,7 +47,7 @@ object MainForm: TMainForm
   object btnMapAddStars: TButton
     Left = 8
     Top = 27
-    Width = 95
+    Width = 74
     Height = 30
     Caption = 'Add Stars'
     TabOrder = 0
@@ -61,7 +61,6 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 1
-    ExplicitHeight = 219
   end
   object btnFilterBetween: TButton
     Left = 380
@@ -81,7 +80,6 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 3
-    ExplicitHeight = 219
   end
   object btnReduceSum: TButton
     Left = 194
@@ -100,7 +98,6 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 5
-    ExplicitHeight = 219
   end
   object btnReduceMin: TButton
     Left = 194
@@ -152,7 +149,7 @@ object MainForm: TMainForm
   object btnMapCapitalize: TButton
     Left = 8
     Top = 63
-    Width = 95
+    Width = 74
     Height = 30
     Caption = 'Capitalize'
     TabOrder = 11
@@ -175,7 +172,6 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 13
-    ExplicitHeight = 219
   end
   object btnForEachWithException: TButton
     Left = 566
@@ -185,5 +181,23 @@ object MainForm: TMainForm
     Caption = 'Loop with exception'
     TabOrder = 14
     OnClick = btnForEachWithExceptionClick
+  end
+  object btnMap2: TButton
+    Left = 88
+    Top = 27
+    Width = 100
+    Height = 30
+    Caption = 'Map Enumerable'
+    TabOrder = 15
+    OnClick = btnMap2Click
+  end
+  object btnMap2Array: TButton
+    Left = 88
+    Top = 63
+    Width = 100
+    Height = 30
+    Caption = 'Map Array'
+    TabOrder = 16
+    OnClick = btnMap2ArrayClick
   end
 end
