@@ -96,7 +96,11 @@ var
 begin
   if not aValue.IsObject then
   begin
-    Result := '(Error: Cannot serialize non-object as JSON)';
+    if aValue.IsType<Int64> then
+    begin
+      Exit(aValue.AsInt64);
+    end;
+    Exit('(Error: Cannot serialize non-object as JSON)');
   end;
 
   if TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then

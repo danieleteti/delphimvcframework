@@ -459,7 +459,11 @@ function TTProCompiledTemplate.GetDataSetFieldAsTValue(const aDataSet: TDataSet;
 var
   lField: TField;
 begin
-  lField := aDataSet.FieldByName(FieldName);
+  lField := aDataSet.FindField(FieldName);
+  if not Assigned(lField) then
+  begin
+    Exit(TValue.Empty);
+  end;
   case lField.DataType of
     ftInteger, ftSmallInt, ftWord:
       Result := lField.AsInteger;
