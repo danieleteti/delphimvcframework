@@ -893,9 +893,10 @@ type
 
   TMVCController = class(TMVCRenderer)
   private
-    FViewModel: TMVCViewDataObject;
+    fViewModel: TMVCViewDataObject;
     fPageHeaders: TArray<String>;
     fPageFooters: TArray<String>;
+    fFreeList: TObjectList<TObject>;
     function GetSession: TMVCWebSession;
     function GetViewData(const aModelName: string): TValue;
     procedure SetViewData(const aModelName: string; const Value: TValue);
@@ -904,6 +905,11 @@ type
   protected
     procedure MVCControllerAfterCreate; virtual;
     procedure MVCControllerBeforeDestroy; virtual;
+
+    /// <summary>
+    ///   After action execution frees all the objects added. Works only with functional actions.
+    /// </summary>
+    function ToFree<T: class>(aObject: T): T; overload;
 
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
       var AHandled: Boolean); virtual;
@@ -2953,6 +2959,7 @@ begin
                           end;
                         end;
                       finally
+                        lSelectedController.fFreeList.Free;
                         lSelectedController.OnAfterAction(lContext, lRouterMethodToCallName);
                       end;
                     end;
@@ -4191,6 +4198,16 @@ end;
 function TMVCController.ETagFromString(const Data: String): String;
 begin
   Result := GetSHA1HashFromString(Data);
+end;
+
+function TMVCController.ToFree<T>(aObject: T): T;
+begin
+  if not Assigned(fFreeList) then
+  begin
+    fFreeList := TObjectList<TObject>.Create(True);
+  end;
+  fFreeList.Add(aObject);
+  Result := aObject;
 end;
 
 function TMVCController.GetIfMatch: String;
