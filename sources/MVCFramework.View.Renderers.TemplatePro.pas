@@ -57,12 +57,12 @@ var
 begin
   if not aValue.IsObject then
   begin
-    Result := False;
+    Exit(False);
   end;
 
   if Length(aParameters) <> 0 then
   begin
-    Result := '(Error: Expected 0 params, got ' + Length(aParameters).ToString + ')';
+    raise EMVCSSVException.Create('Expected 0 params, got ' + Length(aParameters).ToString);
   end;
 
   if aValue.AsObject is TDataSet then

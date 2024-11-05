@@ -523,6 +523,17 @@ function TTProCompiledTemplate.GetTValueVarAsString(const Value: TValue; const V
 var
   lIsObject: Boolean;
   lAsObject: TObject;
+  lNullableInt32: NullableInt32;
+  lNullableUInt32: NullableUInt32;
+  lNullableInt16: NullableInt16;
+  lNullableUInt16: NullableUInt16;
+  lNullableInt64: NullableInt64;
+  lNullableUInt64: NullableUInt64;
+  lNullableCurrency: NullableCurrency;
+  lNullableBoolean: NullableBoolean;
+  lNullableTDate: NullableTDate;
+  lNullableTTime: NullableTTime;
+  lNullableTDateTime: NullableTDateTime;
 begin
   if Value.IsEmpty then
   begin
@@ -550,53 +561,76 @@ begin
   begin
     if Value.TypeInfo.Kind = tkRecord then
     begin
+      Result := '';
       if Value.TypeInfo = TypeInfo(NullableInt32) then
       begin
-        Result := Value.AsType<NullableInt32>.Value.ToString;
+        lNullableInt32 := Value.AsType<NullableInt32>;
+        if lNullableInt32.HasValue then
+          Result := lNullableInt32.Value.ToString
       end
       else if Value.TypeInfo = TypeInfo(NullableUInt32) then
       begin
-        Result := Value.AsType<NullableInt32>.Value.ToString;
+        lNullableUInt32 := Value.AsType<NullableUInt32>;
+        if lNullableUInt32.HasValue then
+          Result := lNullableUInt32.Value.ToString
       end
       else if Value.TypeInfo = TypeInfo(NullableInt16) then
       begin
-        Result := Value.AsType<NullableInt16>.Value.ToString;
+        lNullableInt16 := Value.AsType<NullableInt16>;
+        if lNullableInt16.HasValue then
+          Result := lNullableInt16.Value.ToString
       end
       else if Value.TypeInfo = TypeInfo(NullableUInt16) then
       begin
-        Result := Value.AsType<NullableUInt16>.Value.ToString;
+        lNullableUInt16 := Value.AsType<NullableUInt16>;
+        if lNullableUInt16.HasValue then
+          Result := lNullableUInt16.Value.ToString
       end
       else if Value.TypeInfo = TypeInfo(NullableInt64) then
       begin
-        Result := Value.AsType<NullableInt64>.Value.ToString;
+        lNullableInt64 := Value.AsType<NullableInt64>;
+        if lNullableInt64.HasValue then
+          Result := lNullableInt64.Value.ToString
       end
-      else if Value.TypeInfo = TypeInfo(NullableInt64) then
+      else if Value.TypeInfo = TypeInfo(NullableUInt64) then
       begin
-        Result := Value.AsType<NullableInt64>.Value.ToString;
+        lNullableUInt64 := Value.AsType<NullableUInt64>;
+        if lNullableUInt64.HasValue then
+          Result := lNullableUInt64.Value.ToString
       end
       else if Value.TypeInfo = TypeInfo(NullableString) then
       begin
-        Result := Value.AsType<NullableString>.Value;
+        Result := Value.AsType<NullableString>.ValueOrDefault;
       end
       else if Value.TypeInfo = TypeInfo(NullableCurrency) then
       begin
-        Result := Value.AsType<NullableCurrency>.Value.ToString;
+        lNullableCurrency := Value.AsType<NullableCurrency>;
+        if lNullableCurrency.HasValue then
+          Result := FloatToStr(lNullableCurrency.Value, fLocaleFormatSettings);
       end
       else if Value.TypeInfo = TypeInfo(NullableBoolean) then
       begin
-        Result := Value.AsType<NullableBoolean>.Value.ToString;
+        lNullableBoolean := Value.AsType<NullableBoolean>;
+        if lNullableBoolean.HasValue then
+          Result := BoolToStr(lNullableBoolean.Value, True);
       end
       else if Value.TypeInfo = TypeInfo(NullableTDate) then
       begin
-        Result := DateToISO8601(Value.AsType<NullableTDate>.Value);
+        lNullableTDate := Value.AsType<NullableTDate>;
+        if lNullableTDate.HasValue then
+          Result := DateToISO8601(lNullableTDate.Value);
       end
       else if Value.TypeInfo = TypeInfo(NullableTTime) then
       begin
-        Result := DateToISO8601(Value.AsType<NullableTTime>.Value);
+        lNullableTTime := Value.AsType<NullableTTime>;
+        if lNullableTTime.HasValue then
+          Result := DateToISO8601(lNullableTTime.Value);
       end
       else if Value.TypeInfo = TypeInfo(NullableTDateTime) then
       begin
-        Result := DateToISO8601(Value.AsType<NullableTDateTime>.Value);
+        lNullableTDateTime := Value.AsType<NullableTDateTime>;
+        if lNullableTDateTime.HasValue then
+          Result := DateToISO8601(lNullableTDateTime.Value);
       end
       else
       begin
@@ -3299,10 +3333,10 @@ var
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
   if not Assigned(ARttiType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARttiType.ToString]);
+    raise Exception.CreateFmt('Unknown type [%s]', [ARttiType.ToString]);
   Prop := ARttiType.GetProperty(APropertyName);
   if not Assigned(Prop) then
-    raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]', [ARttiType.ToString, APropertyName]);
+    raise Exception.CreateFmt('Unknown property [%s.%s]', [ARttiType.ToString, APropertyName]);
   if Prop.IsReadable then
     Result := Prop.GetValue(AObject)
   else
