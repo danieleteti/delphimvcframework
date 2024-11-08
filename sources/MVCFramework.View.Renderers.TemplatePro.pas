@@ -43,8 +43,8 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
-  TemplatePro,
   MVCFramework.Cache,
+  TemplatePro,
   Data.DB,
   System.Rtti,
   JsonDataObjects;
@@ -136,7 +136,10 @@ begin
   if FUseViewCache then
   begin
     lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
-    TDirectory.CreateDirectory(lCacheDir);
+    if not TDirectory.Exists(lCacheDir) then
+    begin
+      TDirectory.CreateDirectory(lCacheDir);
+    end;
     lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
 
     if not FileAge(lViewFileName, lActualFileTimeStamp) then
