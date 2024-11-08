@@ -61,6 +61,15 @@ type
     procedure AfterConstruction; override;
   end;
 
+  EMVCActiveRecordValidationError = class(EMVCActiveRecord)
+  private
+    fPropertyName: String;
+  public
+    procedure AfterConstruction; override;
+    constructor Create(const PropertyName: String; const ValidationError: string);
+    property PropertyName: String read fPropertyName;
+  end;
+
   EMVCActiveRecordVersionedItemNotFound = class(EMVCActiveRecordNotFound)
   end;
 
@@ -4831,6 +4840,20 @@ begin
 end;
 
 {$ENDIF}
+
+{ EMVCActiveRecordValidation }
+
+procedure EMVCActiveRecordValidationError.AfterConstruction;
+begin
+  inherited;
+  FHTTPStatusCode := HTTP_STATUS.BadRequest;
+end;
+
+constructor EMVCActiveRecordValidationError.Create(const PropertyName, ValidationError: string);
+begin
+  inherited Create(ValidationError);
+  fPropertyName := PropertyName;
+end;
 
 initialization
 
