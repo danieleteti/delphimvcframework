@@ -1073,6 +1073,9 @@ begin
     .AppendLine('  // UseConsoleLogger defines if logs must be emitted to also the console (if available).')
     .AppendLine('  UseConsoleLogger := True;')
     .AppendLine()
+    .AppendLine('  // UseLoggerVerbosityLevel defines the lowest level of logs that will be produced.')
+    .AppendLine('  UseLoggerVerbosityLevel := TLogLevel.levNormal;')
+    .AppendLine()
     .AppendLine()
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);');
 
