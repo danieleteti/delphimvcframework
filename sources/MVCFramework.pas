@@ -910,6 +910,7 @@ type
     ///   After action execution frees all the objects added. Works only with functional actions.
     /// </summary>
     function ToFree<T: class>(aObject: T): T; overload;
+    procedure ToFree(aObject: TObject); overload;
 
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
       var AHandled: Boolean); virtual;
@@ -2573,20 +2574,27 @@ begin
         const Sender: TMVCCustomRouter;
         const RouterLogState: TMVCRouterLogState;
         const Context: TWebContext)
+    var
+      lStatusCode: Word;
     begin
+      lStatusCode := Context.Response.StatusCode;
       case RouterLogState of
         rlsRouteFound:
           begin
-            LogI(Context.Request.HTTPMethodAsString + ':' +
-              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
-              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
-              Context.Response.ReasonString);
+            if lStatusCode < HTTP_STATUS.InternalServerError then
+              LogI(Context.Request.HTTPMethodAsString + ':' +
+                Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
+                Sender.GetQualifiedActionName + ' - ' + IntToStr(lStatusCode))
+            else
+              LogE(Context.Request.HTTPMethodAsString + ':' +
+                Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
+                Sender.GetQualifiedActionName + ' - ' + IntToStr(lStatusCode))
           end;
         rlsRouteNotFound:
           begin
             LogW(Context.Request.HTTPMethodAsString + ':' +
               Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {ROUTE NOT FOUND} - ' +
-              IntToStr(Context.Response.StatusCode) + ' ' + Context.Response.ReasonString);
+              IntToStr(Context.Response.StatusCode));
           end;
       else
         raise EMVCException.Create('Invalid RouterLogState');
@@ -4200,13 +4208,18 @@ begin
   Result := GetSHA1HashFromString(Data);
 end;
 
-function TMVCController.ToFree<T>(aObject: T): T;
+procedure TMVCController.ToFree(aObject: TObject);
 begin
   if not Assigned(fFreeList) then
   begin
     fFreeList := TObjectList<TObject>.Create(True);
   end;
   fFreeList.Add(aObject);
+end;
+
+function TMVCController.ToFree<T>(aObject: T): T;
+begin
+  ToFree(aObject);
   Result := aObject;
 end;
 
@@ -4892,32 +4905,8 @@ begin
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
-var
-  lView: TMVCBaseViewEngine;
-  lViewName: string;
-  lStrStream: TStringBuilder;
 begin
-  lStrStream := TStringBuilder.Create;
-  try
-    lView := FEngine.ViewEngineClass.Create(
-      Engine,
-      Context,
-      Self,
-      FViewModel,
-      ContentType);
-    try
-      lView.FBeforeRenderCallback := OnBeforeRenderCallback;
-      for lViewName in AViewNames do
-      begin
-        lView.Execute(lViewName, lStrStream);
-      end;
-    finally
-      lView.Free;
-    end;
-    Result := lStrStream.ToString;
-  finally
-    lStrStream.Free;
-  end;
+  Result := GetRenderedView(AViewNames, nil, OnBeforeRenderCallback);
 end;
 
 procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>;
