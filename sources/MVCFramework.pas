@@ -900,6 +900,7 @@ type
     function GetSession: TMVCWebSession;
     function GetViewData(const aModelName: string): TValue;
     procedure SetViewData(const aModelName: string; const Value: TValue);
+    procedure InternalToFree(aObject: TObject);
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -4208,7 +4209,7 @@ begin
   Result := GetSHA1HashFromString(Data);
 end;
 
-procedure TMVCController.ToFree(aObject: TObject);
+procedure TMVCController.InternalToFree(aObject: TObject);
 begin
   if not Assigned(fFreeList) then
   begin
@@ -4217,9 +4218,14 @@ begin
   fFreeList.Add(aObject);
 end;
 
+procedure TMVCController.ToFree(aObject: TObject);
+begin
+  InternalToFree(aObject);
+end;
+
 function TMVCController.ToFree<T>(aObject: T): T;
 begin
-  ToFree(aObject);
+  InternalToFree(aObject);
   Result := aObject;
 end;
 

@@ -35,7 +35,7 @@ interface
 uses
   MVCFramework, System.Generics.Collections, System.SysUtils,
   MVCFramework.Commons, System.IOUtils, System.Classes, Web.Stencils,
-  System.Rtti, MVCFramework.Nullables, System.DateUtils;
+  System.Rtti, MVCFramework.Nullables, System.DateUtils, System.TypInfo;
 
 type
   TMVCWebStencilsEvent = reference to procedure(const WebStencilsProcessor: TWebStencilsProcessor);
