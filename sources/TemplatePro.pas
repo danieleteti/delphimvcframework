@@ -120,11 +120,7 @@ type
   TTProCompiledTemplateGetValueEvent = reference to procedure(const DataSource, Members: string; var Value: TValue;
     var Handled: Boolean);
 
-{$IF CompilerVersion < 36}
-  { Before Delphi 12 Athens, PFormatSettings wasn't defined}
-  PFormatSettings = ^TFormatSettings;
-{$ENDIF}
-
+  PTProFormatSettings = ^TFormatSettings;
 
   ITProCompiledTemplate = interface
     ['{0BE04DE7-6930-456B-86EE-BFD407BA6C46}']
@@ -139,9 +135,9 @@ type
     function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
-    function GetFormatSettings: PFormatSettings;
-    procedure SetFormatSettings(const Value: PFormatSettings);
-    property FormatSettings: PFormatSettings read GetFormatSettings write SetFormatSettings;
+    function GetFormatSettings: PTProFormatSettings;
+    procedure SetFormatSettings(const Value: PTProFormatSettings);
+    property FormatSettings: PTProFormatSettings read GetFormatSettings write SetFormatSettings;
   end;
 
   TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
@@ -198,8 +194,8 @@ type
     function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     procedure DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
-    function GetFormatSettings: PFormatSettings;
-    procedure SetFormatSettings(const Value: PFormatSettings);
+    function GetFormatSettings: PTProFormatSettings;
+    procedure SetFormatSettings(const Value: PTProFormatSettings);
     class procedure InternalDumpToFile(const FileName: String; const aTokens: TList<TToken>);
   public
     destructor Destroy; override;
@@ -212,7 +208,7 @@ type
     procedure AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction); overload;
     procedure AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction); overload;
     procedure DumpToFile(const FileName: String);
-    property FormatSettings: PFormatSettings read GetFormatSettings write SetFormatSettings;
+    property FormatSettings: PTProFormatSettings read GetFormatSettings write SetFormatSettings;
     property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
   end;
 
@@ -489,7 +485,7 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.GetFormatSettings: PFormatSettings;
+function TTProCompiledTemplate.GetFormatSettings: PTProFormatSettings;
 begin
   Result := @fLocaleFormatSettings;
 end;
@@ -3263,7 +3259,7 @@ begin
 
 end;
 
-procedure TTProCompiledTemplate.SetFormatSettings(const Value: PFormatSettings);
+procedure TTProCompiledTemplate.SetFormatSettings(const Value: PTProFormatSettings);
 begin
   fLocaleFormatSettings := Value^;
 end;
