@@ -513,11 +513,11 @@ type
     FCustomData: TMVCCustomData;
     procedure SetLoggedSince(const AValue: TDateTime);
     procedure SetCustomData(const Value: TMVCCustomData);
+    function GetIsValid: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
-    function IsValid: Boolean;
     procedure Clear;
 
     procedure SaveToSession(const AWebSession: TMVCWebSession);
@@ -528,6 +528,7 @@ type
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;
     property Realm: string read FRealm write FRealm;
     property CustomData: TMVCCustomData read FCustomData write SetCustomData;
+    property IsValid: Boolean read GetIsValid;
   end;
 
   TWebContext = class
@@ -2131,7 +2132,7 @@ begin
   inherited Destroy;
 end;
 
-function TUser.IsValid: Boolean;
+function TUser.GetIsValid: Boolean;
 begin
   Result := (not UserName.IsEmpty) and (LoggedSince > 0);
 end;

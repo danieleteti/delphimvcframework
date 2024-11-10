@@ -180,6 +180,7 @@ begin
       begin
         lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
       end;
+      lCompiledTemplate.SetData('LoggedUserName', WebContext.LoggedUser.UserName);
     end;
     lCompiledTemplate.AddFilter('json', DumpAsJSONString);
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
