@@ -52,8 +52,7 @@ uses
 
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS,
-    httpTRACE);
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
@@ -167,6 +166,7 @@ type
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
     LoadSystemControllers = 'load_system_controllers';
+    ErrorPageURL = 'error_page_url';
   end;
 
   TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
@@ -557,15 +557,6 @@ type
     function AddPair(const Key, Value: String): TMVCStringPairList;
   end;
 
-//  TMVCViewDataSet = class(TObjectDictionary<string, TDataset>)
-//  private
-//    { private declarations }
-//  protected
-//    { protected declarations }
-//  public
-//    constructor Create;
-//  end;
-
   TMVCCriticalSectionHelper = class helper for TCriticalSection
   public
     procedure DoWithLock(const AAction: TProc);
@@ -844,13 +835,15 @@ procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 implementation
 
 uses
+  MVCFramework,
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Utils,
   System.RegularExpressions,
-  MVCFramework.Logger, MVCFramework.Serializer.Commons;
+  MVCFramework.Logger,
+  MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -943,11 +936,6 @@ begin
     if (IntIP >= IP2Long(RESERVED_IPv4[I][1])) and (IntIP <= IP2Long(RESERVED_IPv4[I][2])) then
       Exit(True);
 end;
-
-// function IP2Long(const AIP: string): UInt32;
-// begin
-// Result := IdGlobal.IPv4ToUInt32(AIP);
-// end;
 
 function B64Encode(const aValue: string): string; overload;
 begin

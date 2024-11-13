@@ -43,11 +43,10 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
-  MVCFramework.Cache,
-  TemplatePro,
   Data.DB,
   System.Rtti,
-  JsonDataObjects;
+  JsonDataObjects,
+  TemplatePro;
 
 {$WARNINGS OFF}
 
@@ -94,11 +93,21 @@ function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string
 var
   lWrappedList: IMVCList;
 begin
-  if not aValue.IsObject then
+  if aValue.IsEmpty then
+  begin
+    Exit('');
+  end
+  else if not aValue.IsObject then
   begin
     if aValue.IsType<Int64> then
     begin
       Exit(aValue.AsInt64);
+    end else if aValue.IsType<Integer> then
+    begin
+      Exit(aValue.AsInteger);
+    end else if aValue.IsType<string> then
+    begin
+      Exit(aValue.AsString);
     end;
     Exit('(Error: Cannot serialize non-object as JSON)');
   end;
@@ -178,7 +187,7 @@ begin
     begin
       for lPair in ViewModel do
       begin
-        lCompiledTemplate.SetData(lPair.Key, ViewModel[lPair.Key]);
+        lCompiledTemplate.SetData(lPair.Key, lPair.Value);
       end;
       lCompiledTemplate.SetData('LoggedUserName', WebContext.LoggedUser.UserName);
     end;

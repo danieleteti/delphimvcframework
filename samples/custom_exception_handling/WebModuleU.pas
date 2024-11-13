@@ -46,6 +46,7 @@ begin
     var
       lColor: string;
     begin
+      WebContext.Response.StatusCode := HTTP_STATUS.InternalServerError;
       if E is EMyException then
       begin
         case EMyException(E).Severity of

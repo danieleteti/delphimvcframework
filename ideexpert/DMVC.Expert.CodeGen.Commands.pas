@@ -770,8 +770,12 @@ procedure TUnitWebModuleDeclarationCommand.ExecuteImplementation(
 var
   activerecord_con_def_name: string;
   activerecord_con_def_filename: string;
+  default_media_type: string;
 begin
   inherited;
+
+  default_media_type := 'TMVCConstants.DEFAULT_CONTENT_TYPE';
+
   Section
     .AppendLine
     .AppendLine('implementation')
@@ -790,23 +794,28 @@ begin
     .AppendLine('  System.IOUtils,')
     .AppendLine('  MVCFramework.Commons,');
 
+
+
   if Model.B[TConfigKey.program_ssv_templatepro] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.TemplatePro,')
+      .AppendLine('  MVCFramework.View.Renderers.TemplatePro,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
   if Model.B[TConfigKey.program_ssv_webstencils] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.WebStencils,')
+      .AppendLine('  MVCFramework.View.Renderers.WebStencils,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
 
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.Mustache,')
+      .AppendLine('  MVCFramework.View.Renderers.Mustache,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
   Section
@@ -826,7 +835,7 @@ begin
     .AppendLine('      // session timeout (0 means session cookie)')
     .AppendLine('      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');')
     .AppendLine('      //default content-type')
-    .AppendLine('      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', TMVCConstants.DEFAULT_CONTENT_TYPE);')
+    .AppendLine('      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', ' + default_media_type  + ');')
     .AppendLine('      //default content charset')
     .AppendLine('      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env(''dmvc.default.content_charset'', TMVCConstants.DEFAULT_CONTENT_CHARSET);')
     .AppendLine('      //unhandled actions are permitted?')

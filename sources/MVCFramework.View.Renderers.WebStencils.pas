@@ -45,6 +45,7 @@ type
   protected
     procedure RegisterWSFunctions(WSProcessor: TWebStencilsProcessor);
     procedure OnGetValue(Sender: TObject; const AObjectName, APropName: string; var AReplaceText: string; var AHandled: Boolean);
+    procedure OnGetFile(Sender: TObject; const AFilename: string; var AText: string; var AHandled: Boolean);
   public
     class function GetTValueVarAsString(const Value: TValue; const VarName: string; const Processor: TWebStencilsProcessor): String;
     procedure Execute(const ViewName: string; const Builder: TStringBuilder); override;
@@ -152,6 +153,20 @@ begin
     end);
 end;
 
+procedure TMVCWebStencilsViewEngine.OnGetFile(Sender: TObject; const AFilename: string; var AText: string; var AHandled: Boolean);
+var
+  lFName: String;
+begin
+  AHandled := False;
+  if TPath.IsRelativePath(AFilename) then
+  begin
+    lFName := TPath.Combine(FViewPath, AFilename);
+    lFName := TPath.ChangeExtension(lfname, FDefaultViewFileExtension);
+    lFName := TPath.Combine(AppPath, lfname);
+    AText := TFile.ReadAllText(lfname);
+    AHandled := True;
+  end;
+end;
 
 procedure TMVCWebStencilsViewEngine.OnGetValue(Sender: TObject; const AObjectName, APropName: string; var AReplaceText: string; var AHandled: Boolean);
 var
@@ -229,6 +244,8 @@ begin
       lWebStencilsProcessor.InputFileName := lViewFileName;
       lWebStencilsProcessor.PathTemplate := Config[TMVCConfigKey.ViewPath];
       lWebStencilsProcessor.WebRequest := WebContext.Request.RawWebRequest;
+      lWebStencilsProcessor.OnFile := OnGetFile;
+
       if Assigned(ViewModel) then
       begin
         for lPair in ViewModel do
@@ -239,6 +256,7 @@ begin
       end;
       if Assigned(WebContext.LoggedUser) then
       begin
+        lWebStencilsProcessor.UserLoggedIn := True;
         lWebStencilsProcessor.UserRoles := WebContext.LoggedUser.Roles.ToString;
       end;
       if Assigned(FBeforeRenderCallback) then
