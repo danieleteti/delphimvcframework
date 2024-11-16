@@ -189,8 +189,8 @@ begin
   end;
   LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
 
-  TMonitor.Enter(gLock);
-  try
+//  TMonitor.Enter(gLock);
+//  try
     LControllerMappedPaths := TStringList.Create;
     try
       for LControllerDelegate in AControllers do
@@ -295,9 +295,9 @@ begin
     finally
       LControllerMappedPaths.Free;
     end;
-  finally
-    TMonitor.Exit(gLock);
-  end;
+//  finally
+//    TMonitor.Exit(gLock);
+//  end;
 end;
 
 function TMVCRouter.GetAttribute<T>(const AAttributes: TArray<TCustomAttribute>): T;
