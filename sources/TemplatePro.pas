@@ -178,13 +178,13 @@ type
     procedure Error(const aMessage: String; const Params: array of const); overload;
     function IsTruthy(const Value: TValue): Boolean;
     function GetVarAsString(const Name: string): string;
-    function GetTValueVarAsString(const Value: TValue; const VarName: string = ''): String;
+    function GetTValueVarAsString(const Value: PValue; const VarName: string = ''): String;
     function GetVarAsTValue(const aName: string): TValue;
     function GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
     function EvaluateIfExpressionAt(var Idx: Int64): Boolean;
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
-    function ExecuteFilter(aFunctionName: string; aParameters: TArray<string>; aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
+    function ExecuteFilter(aFunctionName: string; var aParameters: TArray<string>; aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<string>); overload;
     procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<string>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
@@ -515,7 +515,7 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.GetTValueVarAsString(const Value: TValue; const VarName: string): String;
+function TTProCompiledTemplate.GetTValueVarAsString(const Value: PValue; const VarName: string): String;
 var
   lIsObject: Boolean;
   lAsObject: TObject;
@@ -1654,7 +1654,7 @@ begin
   CheckParNumber(aHowManyPars, aHowManyPars, aParameters);
 end;
 
-function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; aParameters: TArray<string>;
+function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParameters: TArray<string>;
   aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
 var
   lDateValue: TDateTime;
@@ -1698,7 +1698,7 @@ begin
       FunctionError(aFunctionName, 'expected 1 parameter');
     Result := aValue.AsString.Contains(aParameters[0]);
   end
-  else if SameText(aFunctionName, 'contains_ignore_case') then
+  else if SameText(aFunctionName, 'icontains') then
   begin
     if Length(aParameters) <> 1 then
       FunctionError(aFunctionName, 'expected 1 parameter');
@@ -2222,7 +2222,7 @@ var
   lBR: TBinaryReader;
   lTokens: TList<TToken>;
 begin
-  lBR := TBinaryReader.Create(TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone), nil, True);
+  lBR := TBinaryReader.Create(TBytesStream.Create(TFile.ReadAllBytes(FileName)), nil, True);
   try
     lTokens := TList<TToken>.Create;
     try
@@ -2628,9 +2628,11 @@ end;
 function TTProCompiledTemplate.GetVarAsString(const Name: string): string;
 var
   lValue: TValue;
+  lPValue: PValue;
 begin
   lValue := GetVarAsTValue(Name);
-  Result := GetTValueVarAsString(lValue, Name);
+  lPValue := @lValue;
+  Result := GetTValueVarAsString(lPValue, Name);
 end;
 
 function TTProCompiledTemplate.GetVarAsTValue(const aName: string): TValue;
@@ -3215,6 +3217,7 @@ end;
 procedure TTProCompiledTemplate.SetData(const Name: String; Value: TValue);
 var
   lWrappedList: ITProWrappedList;
+  lObj: TObject;
 begin
   if Value.IsEmpty then
   begin
@@ -3225,29 +3228,30 @@ begin
   case Value.Kind of
     tkClass:
       begin
-        if Value.AsObject is TDataSet then
+        lObj := Value.AsObject;
+        if lObj is TDataSet then
         begin
-          GetVariables.Add(Name, TVarDataSource.Create(Value.AsObject, [viDataSet, viIterable]));
+          GetVariables.Add(Name, TVarDataSource.Create(lObj, [viDataSet, viIterable]));
         end
-        else if Value.AsObject is TJDOJsonObject then
+        else if lObj is TJDOJsonObject then
         begin
-          GetVariables.Add(Name, TVarDataSource.Create(TJDOJsonObject(Value.AsObject), [viJSONObject]));
+          GetVariables.Add(Name, TVarDataSource.Create(TJDOJsonObject(lObj), [viJSONObject]));
         end
-        else if Value.AsObject is TJDOJsonArray then
+        else if lObj is TJDOJsonArray then
         begin
           raise ETProRenderException.Create
             ('JSONArray cannot be used directly [HINT] Define a JSONObject variable with a JSONArray property');
         end
         else
         begin
-          if TTProDuckTypedList.CanBeWrappedAsList(Value.AsObject, lWrappedList) then
+          if TTProDuckTypedList.CanBeWrappedAsList(lObj, lWrappedList) then
           begin
-            GetVariables.Add(Name, TVarDataSource.Create(TTProDuckTypedList(Value.AsObject),
+            GetVariables.Add(Name, TVarDataSource.Create(TTProDuckTypedList(lObj),
               [viListOfObject, viIterable]));
           end
           else
           begin
-            GetVariables.Add(Name, TVarDataSource.Create(Value.AsObject, [viObject]));
+            GetVariables.Add(Name, TVarDataSource.Create(lObj, [viObject]));
           end;
         end;
       end;
