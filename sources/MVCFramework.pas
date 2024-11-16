@@ -940,7 +940,7 @@ type
     ///   PageFragment ignore header and footer views
     /// </summary>
     function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
-    function Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
+    function Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
 
     /// <summary>
     ///   Page calls GetRenderedView with sensible defaults.
@@ -4448,7 +4448,7 @@ end;
 
 function TMVCController.Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  Result := Page([AViewName], False, OnBeforeRenderCallback);
+  Result := GetRenderedView([AViewName], nil, OnBeforeRenderCallback);
 end;
 
 function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
