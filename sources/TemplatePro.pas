@@ -214,6 +214,12 @@ type
 
   TTProCompiler = class
   strict private
+    fOptions: TTProCompilerOptions;
+    fInputString: string;
+    fCharIndex: Int64;
+    fCurrentLine: Integer;
+    fEncoding: TEncoding;
+    fCurrentFileName: String;
     function MatchStartTag: Boolean;
     function MatchEndTag: Boolean;
     function MatchVariable(var aIdentifier: string): Boolean;
@@ -224,13 +230,6 @@ type
     procedure InternalMatchFilter(lIdentifier: String; var lStartVerbatim: Int64; const CurrToken: TTokenType;
       aTokens: TList<TToken>; const lRef2: Integer);
     function GetFunctionParameters: TArray<String>;
-  private
-    fOptions: TTProCompilerOptions;
-    fInputString: string;
-    fCharIndex: Int64;
-    fCurrentLine: Integer;
-    fEncoding: TEncoding;
-    fCurrentFileName: String;
     procedure Error(const aMessage: string);
     function Step: Char;
     function CurrentChar: Char;
@@ -306,6 +305,8 @@ type
     FCountProperty: TRttiProperty;
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
+    FIsWrappedList: Boolean;
+    function HookListMethods(const aObjType: TRttiType): Boolean;
   protected
     procedure Add(const AObject: TObject);
     procedure Clear;
@@ -411,7 +412,8 @@ begin
           end
           else
           begin
-            raise ETProRenderException.Create('Cannot convert comparand value for ''ge'' function');
+            raise ETProRenderException.CreateFmt('Cannot convert comparand value for "%s" function to Float',
+              [TRttiEnumerationType.GetName<TComparandType>(aComparandType)]);
           end;
         end;
       end;
@@ -3233,26 +3235,23 @@ begin
         begin
           GetVariables.Add(Name, TVarDataSource.Create(lObj, [viDataSet, viIterable]));
         end
-        else if lObj is TJDOJsonObject then
+        else if Value.TypeInfo = TypeInfo(TJDOJsonObject) then
         begin
           GetVariables.Add(Name, TVarDataSource.Create(TJDOJsonObject(lObj), [viJSONObject]));
         end
-        else if lObj is TJDOJsonArray then
+        else if Value.TypeInfo = TypeInfo(TJDOJsonArray) then
         begin
           raise ETProRenderException.Create
             ('JSONArray cannot be used directly [HINT] Define a JSONObject variable with a JSONArray property');
         end
+        else if TTProDuckTypedList.CanBeWrappedAsList(lObj, lWrappedList) then
+        begin
+          GetVariables.Add(Name, TVarDataSource.Create(TTProDuckTypedList(lObj),
+            [viListOfObject, viIterable]));
+        end
         else
         begin
-          if TTProDuckTypedList.CanBeWrappedAsList(lObj, lWrappedList) then
-          begin
-            GetVariables.Add(Name, TVarDataSource.Create(TTProDuckTypedList(lObj),
-              [viListOfObject, viIterable]));
-          end
-          else
-          begin
-            GetVariables.Add(Name, TVarDataSource.Create(lObj, [viObject]));
-          end;
+          GetVariables.Add(Name, TVarDataSource.Create(lObj, [viObject]));
         end;
       end;
     tkInterface: GetVariables.Add(Name, TVarDataSource.Create(Value.AsInterface as TObject, [viObject]));
@@ -3416,27 +3415,7 @@ begin
   FGetCountMethod := nil;
   FCountProperty := nil;
 
-  if IsWrappedList then
-  begin
-    FAddMethod := FObjType.GetMethod('Add');
-    FClearMethod := FObjType.GetMethod('Clear');
-
-{$IF CompilerVersion >= 23}
-    if Assigned(FObjType.GetIndexedProperty('Items')) then
-      FGetItemMethod := FObjType.GetIndexedProperty('Items').ReadMethod;
-
-{$IFEND}
-    if not Assigned(FGetItemMethod) then
-      FGetItemMethod := FObjType.GetMethod('GetItem');
-
-    if not Assigned(FGetItemMethod) then
-      FGetItemMethod := FObjType.GetMethod('GetElement');
-
-    FGetCountMethod := nil;
-    FCountProperty := FObjType.GetProperty('Count');
-    if not Assigned(FCountProperty) then
-      FGetCountMethod := FObjType.GetMethod('Count');
-  end;
+  fIsWrappedList := HookListMethods(FObjType);
 end;
 
 function TTProDuckTypedList.GetItem(const AIndex: Integer): TObject;
@@ -3464,20 +3443,47 @@ begin
   aValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
 end;
 
-function TTProDuckTypedList.IsWrappedList: Boolean;
-var
-  ObjectType: TRttiType;
+function TTProDuckTypedList.HookListMethods(const aObjType: TRttiType): Boolean;
 begin
-  ObjectType := GlContext.GetType(FObjectAsDuck.ClassInfo);
+  Result := True;
 
-  Result := (ObjectType.GetMethod('Add') <> nil) and (ObjectType.GetMethod('Clear') <> nil)
+  FAddMethod := aObjType.GetMethod('Add');
+  if FAddMethod = nil then Exit(False);
 
-{$IF CompilerVersion >= 23}
-    and (ObjectType.GetIndexedProperty('Items') <> nil) and (ObjectType.GetIndexedProperty('Items').ReadMethod <> nil)
+  FClearMethod := aObjType.GetMethod('Clear');
+  if FClearMethod = nil then Exit(False);
 
-{$IFEND}
-    and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and
-    (ObjectType.GetProperty('Count') <> nil);
+  if aObjType.GetIndexedProperty('Items') <> nil then
+  begin
+    FGetItemMethod := aObjType.GetIndexedProperty('Items').ReadMethod;
+    if FGetItemMethod = nil then
+    begin
+      FGetItemMethod := FObjType.GetMethod('GetElement');
+      if FGetItemMethod = nil then
+      begin
+        Exit(False);
+      end;
+    end;
+  end
+  else
+  begin
+    Exit(False);
+  end;
+
+  FCountProperty := FObjType.GetProperty('Count');
+  if FCountProperty = nil then
+  begin
+    FGetCountMethod := FObjType.GetMethod('Count');
+    if FGetCountMethod = nil then
+    begin
+      Exit(False);
+    end;
+  end;
+end;
+
+function TTProDuckTypedList.IsWrappedList: Boolean;
+begin
+  Result := fIsWrappedList;
 end;
 
 function TTProDuckTypedList.ItemIsObject(const AIndex: Integer; out aValue: TValue): Boolean;
