@@ -1326,7 +1326,7 @@ begin
     lDS.LoadFromFile(lFName);
     ViewData['customers'] := lDS;
     ViewData['customers2'] := lDS;
-    LoadView(['dataset_list']);
+    ResponseStream.Append(Page('dataset_list'));
     RenderResponseStream;
   finally
     lDS.Free;
