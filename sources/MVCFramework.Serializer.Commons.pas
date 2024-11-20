@@ -451,7 +451,7 @@ function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
-  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
+  const DefaultPageSize: UInt32; const URITemplate: string; const IncludePrevURI: Boolean = True): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
 procedure RaiseDeSerializationError(const Msg: string);
 
@@ -479,7 +479,7 @@ begin
 end;
 
 function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
-  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
+  const DefaultPageSize: UInt32; const URITemplate: string; const IncludePrevURI: Boolean): TMVCStringDictionary;
 var
   lMetaKeys: array of string;
   lMetaValues: array of string;
@@ -493,7 +493,7 @@ begin
   Insert('default_page_size', lMetaKeys, 0);
   Insert(DefaultPageSize.ToString(), lMetaValues, 0);
 
-  if CurrPageNumber > 1 then
+  if (CurrPageNumber > 1) and IncludePrevURI then
   begin
     Insert('prev_page_uri', lMetaKeys, 0);
     Insert(URITemplate.Replace('($page)', (CurrPageNumber - 1).ToString), lMetaValues, 0);
