@@ -53,6 +53,7 @@ type
     btnForEachWithException: TButton;
     btnMap2: TButton;
     btnMap2Array: TButton;
+    btnFilterEnumerable: TButton;
     procedure btnMapAddStarsClick(Sender: TObject);
     procedure btnReduceSumClick(Sender: TObject);
     procedure btnFilterBetwenClick(Sender: TObject);
@@ -66,6 +67,7 @@ type
     procedure btnForEachWithExceptionClick(Sender: TObject);
     procedure btnMap2Click(Sender: TObject);
     procedure btnMap2ArrayClick(Sender: TObject);
+    procedure btnFilterEnumerableClick(Sender: TObject);
   private
     procedure FillList(Data: TArray<String>; AStrings: TStrings); overload;
     procedure FillList(Data: TArray<Integer>; AStrings: TStrings); overload;
@@ -114,6 +116,18 @@ begin
   Result[9] := 'mary';
 end;
 
+function GetComponentArrayOfData(const Form: TForm): TArray<TComponent>;
+begin
+  SetLength(Result, Form.ComponentCount);
+  var lIdx := 0;
+  for var lComp in Form do
+  begin
+    Result[lIdx] := lComp;
+    Inc(lIdx);
+  end;
+end;
+
+
 procedure TMainForm.btnFilterBetwenClick(Sender: TObject);
 var
   InputData, OutputData: TArray<Integer>;
@@ -126,6 +140,25 @@ begin
     end;
   OutputData := HigherOrder.Filter<Integer>(InputData, FilterFunc);
   FillList(OutputData, lbFilter.Items);
+end;
+
+procedure TMainForm.btnFilterEnumerableClick(Sender: TObject);
+var
+  InputData, OutputData: TArray<TComponent>;
+  Names: TArray<String>;
+begin
+  InputData := GetComponentArrayOfData(Self);
+  OutputData := HigherOrder.Filter<TComponent>(InputData,
+    function(const Item: TComponent): Boolean
+    begin
+      Result := Item is TButton;
+    end);
+  Names := HigherOrder.Map<TComponent, String>(OutputData,
+    function(const Item: TComponent): String
+    begin
+      Result := Item.Name;
+    end);
+  FillList(Names, lbFilter.Items);
 end;
 
 procedure TMainForm.btnFilterEvenClick(Sender: TObject);
@@ -193,11 +226,7 @@ begin
             begin
               Result := '**' + Item.ToString;
             end);
-  try
-    lbMap.Items.AddStrings(lListOfStr.ToArray);
-  finally
-    lListOfStr.Free;
-  end;
+  lbMap.Items.AddStrings(lListOfStr);
 end;
 
 procedure TMainForm.btnMap2Click(Sender: TObject);
@@ -218,11 +247,7 @@ begin
              begin
                Result := String(Item.Caption).ToUpper;
              end);
-    try
-      lbMap.Items.AddStrings(lListOfStr.ToArray);
-    finally
-      lListOfStr.Free;
-    end;
+    lbMap.Items.AddStrings(lListOfStr);
   finally
     lList.Free;
   end;

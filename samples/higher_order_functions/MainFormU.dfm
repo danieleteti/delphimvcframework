@@ -200,4 +200,13 @@ object MainForm: TMainForm
     TabOrder = 16
     OnClick = btnMap2ArrayClick
   end
+  object btnFilterEnumerable: TButton
+    Left = 461
+    Top = 63
+    Width = 82
+    Height = 30
+    Caption = 'Form'#39's Buttons'
+    TabOrder = 17
+    OnClick = btnFilterEnumerableClick
+  end
 end

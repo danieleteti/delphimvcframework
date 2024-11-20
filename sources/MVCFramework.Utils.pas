@@ -61,17 +61,25 @@ type
   TPredicateClosure<T> = reference to function(const Item: T): Boolean;
 
   HigherOrder = class sealed
+  protected
+    const INITIAL_RESULT_SIZE = 16;
+    const GROW_FACTOR = 1.4;
   public
     class function Map<T>(const InputArray: TArray<T>;
       const MapClosure: TMapClosure<T>): TArray<T>; overload;
     class function Map<T1,T2>(const List: TEnumerable<T1>;
-      const MapClosure: TMapClosure2<T1, T2>): TList<T2>; overload;
+      const MapClosure: TMapClosure2<T1, T2>): TArray<T2>; overload;
     class function Map<T1,T2>(const InputArray: TArray<T1>;
-      const MapClosure: TMapClosure2<T1, T2>): TList<T2>; overload;
+      const MapClosure: TMapClosure2<T1, T2>): TArray<T2>; overload;
+
     class function Reduce<T>(const InputArray: TArray<T>;
       const ReduceFunction: TMapReduceClosure<T>; InitValue: T): T;
+
     class function Filter<T>(const InputArray: TArray<T>;
-      const FilterFunction: TPredicateClosure<T>): TArray<T>;
+      const FilterFunction: TPredicateClosure<T>): TArray<T>; overload;
+    class function Filter<T>(const Enumerable: TEnumerable<T>;
+      const FilterFunction: TPredicateClosure<T>): TArray<T>; overload;
+
     class procedure ForEach<T>(const InputArray: TArray<T>;
       const ForEachClosure: TForEachClosure<T>); overload;
     class procedure ForEach<T>(const Enumerable: TEnumerable<T>;
@@ -199,24 +207,23 @@ class function HigherOrder.Filter<T>(const InputArray: TArray<T>;
   const FilterFunction: TPredicateClosure<T>): TArray<T>;
 var
   lIdx, I: Integer;
-  lList: TList<T>;
 begin
-  lIdx := -1;
+  lIdx := 0;
   try
-    lList := TList<T>.Create;
-    try
-      for I := 0 to Length(InputArray) - 1 do
+    SetLength(Result, INITIAL_RESULT_SIZE);
+    for I := 0 to Length(InputArray) - 1 do
+    begin
+      if FilterFunction(InputArray[I]) then
       begin
-        lIdx := I;
-        if FilterFunction(InputArray[I]) then
+        Result[lIdx] := InputArray[I];
+        Inc(lIdx);
+        if lIdx = Length(Result) then
         begin
-          lList.add(InputArray[I]);
+          SetLength(Result, Trunc(lIdx * GROW_FACTOR));
         end;
       end;
-      Result := lList.ToArray;
-    finally
-      lList.Free;
     end;
+    SetLength(Result, lIdx);
   except
     on E: Exception do
     begin
@@ -249,6 +256,38 @@ begin
   end;
 end;
 
+class function HigherOrder.Filter<T>(const Enumerable: TEnumerable<T>;
+  const FilterFunction: TPredicateClosure<T>): TArray<T>;
+var
+  lIdx: Integer;
+  lItem: T;
+begin
+  lIdx := 0;
+  try
+    SetLength(Result, INITIAL_RESULT_SIZE);
+    for lItem in Enumerable do
+    begin
+      if FilterFunction(lItem) then
+      begin
+        Result[lIdx] := lItem;
+        Inc(lIdx);
+        if Length(Result) = lIdx then
+        begin
+          SetLength(Result, Trunc(lIdx * GROW_FACTOR));
+        end;
+      end;
+    end;
+    SetLength(Result, lIdx);
+  except
+    on E: Exception do
+    begin
+      raise EHOFilterError.CreateFmt
+        ('Filter error at index %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
 class procedure HigherOrder.ForEach<T>(const Enumerable: TEnumerable<T>; const ForEachClosure: TForEachClosure<T>);
 var
   lIdx: Integer;
@@ -271,7 +310,7 @@ begin
   end;
 end;
 
-class function HigherOrder.Map<T1, T2>(const List: TEnumerable<T1>; const MapClosure: TMapClosure2<T1, T2>): TList<T2>;
+class function HigherOrder.Map<T1, T2>(const List: TEnumerable<T1>; const MapClosure: TMapClosure2<T1, T2>): TArray<T2>;
 var
   lIdx: Integer;
   lItem: T1;
@@ -279,16 +318,20 @@ begin
   Result := nil;
   lIdx := 0;
   try
-    Result := TList<T2>.Create;
+    SetLength(Result, INITIAL_RESULT_SIZE);
     for lItem in List do
     begin
-      Result.Add(MapClosure(lItem));
+      Result[lIdx] := MapClosure(lItem);
       Inc(lIdx);
+      if lIdx = Length(Result) then
+      begin
+        SetLength(Result, Trunc(lIdx * GROW_FACTOR));
+      end;
     end;
+    SetLength(Result, lIdx);
   except
     on E: Exception do
     begin
-      Result.Free;
       raise EHOMapError.CreateFmt
         ('Map error at index %d - [Class: %s][Message: %s]',
         [lIdx, E.ClassName, E.Message]);
@@ -296,7 +339,7 @@ begin
   end;
 end;
 
-class function HigherOrder.Map<T1, T2>(const InputArray: TArray<T1>; const MapClosure: TMapClosure2<T1, T2>): TList<T2>;
+class function HigherOrder.Map<T1, T2>(const InputArray: TArray<T1>; const MapClosure: TMapClosure2<T1, T2>): TArray<T2>;
 var
   lIdx: Integer;
   lItem: T1;
@@ -304,16 +347,15 @@ begin
   Result := nil;
   lIdx := 0;
   try
-    Result := TList<T2>.Create;
+    SetLength(Result, Length(InputArray));
     for lItem in InputArray do
     begin
-      Result.Add(MapClosure(lItem));
+      Result[lIdx] := MapClosure(lItem);
       Inc(lIdx);
     end;
   except
     on E: Exception do
     begin
-      Result.Free;
       raise EHOMapError.CreateFmt
         ('Map error at index %d - [Class: %s][Message: %s]',
         [lIdx, E.ClassName, E.Message]);
