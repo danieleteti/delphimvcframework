@@ -35,7 +35,11 @@ type
     function GetSumAsFloat(const A, B: Extended): Extended;
     [MVCPath('/booleans/($A)/($B)')]
     function GetOrTruthTable(const A, B: Boolean): Boolean;
+    [MVCPath('/strings/greetings')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetGreetings: String;
     [MVCPath('/strings/($A)/($B)')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function GetConcatAsString(const A, B: String): String;
 
     { actions returning records }
@@ -347,6 +351,11 @@ end;
 function TMyController.GetGeneralException: Integer;
 begin
   raise Exception.Create('This is a general exception');
+end;
+
+function TMyController.GetGreetings: String;
+begin
+  Result := 'Hi, DMVCFramework functional action here!';
 end;
 
 function TMyController.GetWithCustomHeaders: TObjectList<TPerson>;
