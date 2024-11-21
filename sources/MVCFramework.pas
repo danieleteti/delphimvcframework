@@ -55,7 +55,6 @@ uses
   MVCFramework.DuckTyping,
   MVCFramework.Logger,
   MVCFramework.Container,
-  MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
 
 {$IF Defined(WEBAPACHEHTTP)}
@@ -596,11 +595,8 @@ type
   TMVCBase = class
   private
     FEngine: TMVCEngine;
-    FApplicationSession: TWebApplicationSession;
     function GetEngine: TMVCEngine;
     function GetConfig: TMVCConfig;
-    function GetApplicationSession: TWebApplicationSession;
-    procedure SetApplicationSession(const AValue: TWebApplicationSession);
     procedure SetEngine(const AValue: TMVCEngine);
   protected
     class function GetApplicationFileName: string; static;
@@ -608,8 +604,6 @@ type
   public
     property Engine: TMVCEngine read GetEngine write SetEngine;
     property Config: TMVCConfig read GetConfig;
-    property ApplicationSession: TWebApplicationSession read GetApplicationSession
-      write SetApplicationSession;
   end;
 
   TMVCResponse = class;
@@ -1089,7 +1083,6 @@ type
     fSerializers: TDictionary<string, IMVCSerializer>;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
-    fApplicationSession: TWebApplicationSession;
     fSavedOnBeforeDispatch: THTTPMethodEvent;
     fOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
@@ -1176,8 +1169,6 @@ type
     property Config: TMVCConfig read FConfig;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
-    property ApplicationSession: TWebApplicationSession read FApplicationSession
-      write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
   end;
 
@@ -2628,7 +2619,6 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
   WebRequestHandler.CacheConnections := True;
   WebRequestHandler.MaxConnections := 4096;
@@ -2849,7 +2839,6 @@ begin
                 lContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
                 lSelectedController.Engine := Self;
                 lSelectedController.Context := lContext;
-                lSelectedController.ApplicationSession := FApplicationSession;
                 lContext.ParamsTable := lParamsTable;
                 ExecuteBeforeControllerActionMiddleware(
                   lContext,
@@ -2862,8 +2851,18 @@ begin
                   lSelectedController.MVCControllerAfterCreate;
                   try
                     lHandled := False;
-                    lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
-                      lResponseContentCharset);
+//                    if not ARequest.Accept.IsEmpty and (ARequest.Accept <> '*/*') then
+//                    begin
+//                      {if router allowed to reach this point, we try to adhere to
+//                       the client preferred media type, so the response content type
+//                       is by default the request accept header}
+//                      lSelectedController.ContentType := BuildContentType(ARequest.Accept, '')
+//                    end
+//                    else
+//                    begin
+//                      {if client didn't specify an accept media type, we use the default content type}
+                    lSelectedController.ContentType := BuildContentType(lResponseContentMediaType, lResponseContentCharset);
+//                    end;
                     lActionFormalParams := lRouter.MethodToCall.GetParameters;
                     if (Length(lActionFormalParams) = 0) then
                       SetLength(lActualParams, 0)
@@ -3877,14 +3876,6 @@ begin
   Result := IncludeTrailingPathDelimiter(ExtractFilePath(GetApplicationFileName));
 end;
 
-function TMVCBase.GetApplicationSession: TWebApplicationSession;
-begin
-  if not Assigned(FApplicationSession) then
-    raise EMVCException.CreateFmt('ApplicationSession not assigned to this %s instance.',
-      [Classname]);
-  Result := FApplicationSession;
-end;
-
 function TMVCBase.GetConfig: TMVCConfig;
 begin
   Result := Engine.Config;
@@ -3895,11 +3886,6 @@ begin
   if not Assigned(FEngine) then
     raise EMVCException.CreateFmt('MVCEngine not assigned to this %s instance.', [Classname]);
   Result := FEngine;
-end;
-
-procedure TMVCBase.SetApplicationSession(const AValue: TWebApplicationSession);
-begin
-  FApplicationSession := AValue;
 end;
 
 procedure TMVCBase.SetEngine(const AValue: TMVCEngine);
