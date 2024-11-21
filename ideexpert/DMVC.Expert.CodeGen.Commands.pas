@@ -771,6 +771,7 @@ var
   activerecord_con_def_name: string;
   activerecord_con_def_filename: string;
   default_media_type: string;
+  lAddURLEncodedSerializer: Boolean;
 begin
   inherited;
 
@@ -799,6 +800,7 @@ begin
   if Model.B[TConfigKey.program_ssv_templatepro] then
   begin
     Section
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
       .AppendLine('  MVCFramework.View.Renderers.TemplatePro,');
     default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
@@ -806,6 +808,7 @@ begin
   if Model.B[TConfigKey.program_ssv_webstencils] then
   begin
     Section
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
       .AppendLine('  MVCFramework.View.Renderers.WebStencils,');
     default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
@@ -814,6 +817,7 @@ begin
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
       .AppendLine('  MVCFramework.View.Renderers.Mustache,');
     default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
@@ -863,8 +867,10 @@ begin
     .AppendLine('  // Controllers - END')
     .AppendLine;
 
+    lAddURLEncodedSerializer := False;
     if Model.B[TConfigKey.program_ssv_templatepro] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCTemplateProViewEngine);')
@@ -874,6 +880,7 @@ begin
 
     if Model.B[TConfigKey.program_ssv_webstencils] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCWebStencilsViewEngine);')
@@ -883,6 +890,7 @@ begin
 
     if Model.B[TConfigKey.program_ssv_mustache] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCMustacheViewEngine);')
@@ -890,6 +898,14 @@ begin
         .AppendLine;
     end;
 
+    if lAddURLEncodedSerializer then
+    begin
+      Section
+        .AppendLine('  // Serializers')
+        .AppendLine('  FMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));')
+        .AppendLine('  // Serializers - END')
+        .AppendLine;
+    end;
 
     Section
       .AppendLine('  // Middleware');
