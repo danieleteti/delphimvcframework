@@ -64,7 +64,7 @@ type
     [MVCPath('/loadviewtest')]
     [MVCHTTPMethods([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
-    procedure LoadViewTest;
+    function LoadViewTest: String;
   end;
 
 implementation
@@ -138,7 +138,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    Result := PageFragment(['people_header.csv', 'people_list.csv']);
+    Result := Page(['people_header.csv', 'people_list.csv']);
   finally
     lPeople.Free;
   end;
@@ -149,7 +149,7 @@ begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.LoadViewTest;
+function TWebSiteController.LoadViewTest: String;
 var
   lDS: TFDMemTable;
 begin
@@ -166,8 +166,7 @@ begin
     lDS.First;
 
     ViewData['people'] := lDS;
-    LoadView(['people_list_test','people_list_test']);
-    RenderResponseStream;
+    Result := Page(['people_list_test','people_list_test']);
   finally
     lDS.Free;
   end;

@@ -57,11 +57,11 @@ begin
     ViewData['books_count'] := lDS.RecordCount;
     if Context.Request.IsHTMX then
     begin
-      Result := PageFragment(['search_results']);
+      Result := Page('search_results');
     end
     else
     begin
-      Result := Page(['index']);
+      Result := Page('index');
     end;
   finally
     lDS.Free;

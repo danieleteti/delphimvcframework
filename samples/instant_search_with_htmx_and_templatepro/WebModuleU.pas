@@ -35,7 +35,9 @@ uses
   MVCFramework.Middleware.Trace,
   MVCFramework.Middleware.CORS,
   MVCFramework.Middleware.ETag,
-  MVCFramework.Middleware.Compression, Controllers.BooksU, FDConnectionConfigU;
+  MVCFramework.Middleware.Compression,
+  Controllers.BooksU,
+  FDConnectionConfigU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -73,7 +75,7 @@ begin
   // Controllers - END
 
   // Middleware
-  fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')));
+  //fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')));
   fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));
   // Middleware - END
 
