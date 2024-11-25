@@ -1459,15 +1459,15 @@ begin
     .AppendLine('implementation')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  TemplatePro, System.SysUtils;')
+    .AppendLine('  System.SysUtils;')
     .AppendLine
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper1)'';')
     .AppendLine('end;')
     .AppendLine
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper2)'';')
     .AppendLine('end;')
@@ -1516,10 +1516,10 @@ begin
     .AppendLine('interface')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  System.Rtti;')
+    .AppendLine('  System.Rtti, TemplatePro;')
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine
     .AppendLine
     .AppendLine('procedure TemplateProContextConfigure;')

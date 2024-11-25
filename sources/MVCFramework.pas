@@ -937,14 +937,6 @@ type
     function Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
 
     /// <summary>
-    ///   Page calls GetRenderedView with sensible defaults.
-    ///   Page method with UseCommonHeadersAndFooters = True (default) concatenates
-    //    commonheader_header_views + views + commonfooter_views
-    /// </summary>
-    function Page(const AViewNames: TArray<string>; const JSONModel: TJSONObject;
-      const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
-
-    /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
     /// returns the rendered views and generates output using
     /// models pushed using Push* methods.
@@ -4421,15 +4413,6 @@ begin
   if ContentType.IsEmpty then
     ContentType := Config[TMVCConfigKey.DefaultContentType];
   { Implement if need be. }
-end;
-
-function TMVCController.Page(const AViewNames: TArray<string>;
-  const JSONModel: TJSONObject; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
-begin
-  if UseCommonHeadersAndFooters then
-    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, JSONModel, OnBeforeRenderCallback)
-  else
-    Result := GetRenderedView(AViewNames, JSONModel, OnBeforeRenderCallback)
 end;
 
 function TMVCController.Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;

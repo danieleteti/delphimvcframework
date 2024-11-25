@@ -50,7 +50,7 @@ uses
 
 {$WARNINGS OFF}
 
-function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<string>): TValue;
+function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 var
   lWrappedList: IMVCList;
 begin
@@ -89,7 +89,21 @@ begin
   end;
 end;
 
-function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<string>): TValue;
+function GetNow(const aValue: TValue; const aParameters: TArray<string>): TValue;
+begin
+  if not aValue.IsEmpty then
+  begin
+    Exit('(Error: Now cannot be applied to a value)');
+  end;
+  if Length(aParameters) <> 0 then
+  begin
+    raise EMVCSSVException.Create('Expected 0 params, got ' + Length(aParameters).ToString);
+  end;
+  Result := Now();
+end;
+
+
+function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 var
   lWrappedList: IMVCList;
 begin
@@ -193,8 +207,9 @@ begin
     end;
     lCompiledTemplate.AddFilter('json', DumpAsJSONString);
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
+//    lCompiledTemplate.AddFilter('now', GetNow);
     lCompiledTemplate.AddFilter('fromquery',
-      function (const aValue: TValue; const aParameters: TArray<string>): TValue
+      function (const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue
       begin
         if not aValue.IsEmpty then
         begin
@@ -202,7 +217,7 @@ begin
         end;
         if Length(aParameters) = 1 then
         begin
-          Result := Self.WebContext.Request.QueryStringParam(aParameters[0]);
+          Result := Self.WebContext.Request.QueryStringParam(aParameters[0].ParStrText);
         end
         else
         begin
