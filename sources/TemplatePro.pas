@@ -494,28 +494,6 @@ begin
     end;
 end;
 
-function _eq(const aValue: TValue; const aParameters: TArray<String>; const aLocaleFormatSettings: TFormatSettings): TValue;
-var
-  lStrValue: string;
-begin
-  if Length(aParameters) <> 1 then
-    FunctionError('eq/ne', 'expected 1 parameter');
-  if aValue.IsType<String> then
-    Result := aValue.AsString = aParameters[0]
-  else if aValue.IsType<Int64> then
-    Result := aValue.AsInt64 = StrToInt(aParameters[0])
-  else if aValue.IsType<Integer> then
-    Result := aValue.AsInteger = StrToInt64(aParameters[0])
-  else if aValue.IsType<TDateTime> then
-  begin
-    lStrValue := DateTimeToStr(TDate(aValue.AsExtended), aLocaleFormatSettings);
-    Result := lStrValue = aParameters[0];
-  end
-  else
-    FunctionError('eq/ne', 'Unsupported param type for "' + String(aValue.TypeInfo.Name) + '"');
-end;
-
-
 { TParser }
 
 procedure TTProCompiledTemplate.AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction);
@@ -919,8 +897,7 @@ begin
     begin
       for I := 0 to lFilterParamsCount - 1 do
       begin
-        raise Exception.Create('Error Message');
-        //aTokens.Add(TToken.Create(ttFilterParameter, lFilterParams[I], ''));
+        aTokens.Add(CreateFilterParameterToken(@lFilterParams[I]));
       end;
     end;
   end;
