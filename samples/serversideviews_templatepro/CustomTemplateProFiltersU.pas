@@ -27,21 +27,21 @@ unit CustomTemplateProFiltersU;
 interface
 
 uses
-  System.Rtti;
+  TemplatePro, System.Rtti;
 
 procedure TemplateProContextConfigure;
 
 implementation
 
 uses
-  TemplatePro, System.SysUtils;
+  System.SysUtils;
 
-function MyHelper1(const aValue: TValue; const aParameters: TArray<string>): TValue;
+function MyHelper1(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 begin
   Result := aValue.ToString +  ' (I''m The MyHelper1)';
 end;
 
-function MyHelper2(const aValue: TValue; const aParameters: TArray<string>): TValue;
+function MyHelper2(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 begin
   Result := aValue.ToString +  ' (I''m The MyHelper2)';
 end;

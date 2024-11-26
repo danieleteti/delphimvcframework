@@ -916,7 +916,6 @@ type
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
     function GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
-    function GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
 
     /// <summary>
     ///   Normally used in OnBeforeControllerAction to define view headers automatically used by the Page method.
@@ -1271,7 +1270,6 @@ type
     FViewPath: string;
     FDefaultViewFileExtension: string;
     FUseViewCache: Boolean;
-    FJSONModel: TJSONObject;
     FBeforeRenderCallback: TMVCSSVBeforeRenderCallback;
     function GetRealFileName(const AViewName: string): string; virtual;
     function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
@@ -1281,13 +1279,6 @@ type
       const AWebContext: TWebContext;
       const AController: TMVCController;
       const AViewModel: TMVCViewDataObject;
-      const AContentType: string); overload; virtual;
-    constructor Create(
-      const AEngine: TMVCEngine;
-      const AWebContext: TWebContext;
-      const AController: TMVCController;
-      const AViewModel: TMVCViewDataObject;
-      const AJSONModel: TJSONObject;
       const AContentType: string); overload; virtual;
     destructor Destroy; override;
 
@@ -2353,7 +2344,13 @@ end;
 function TWebContext.GetLoggedUser: TUser;
 begin
   if not Assigned(FLoggedUser) then
+  begin
     FLoggedUser := TUser.Create;
+    if SessionStarted then
+    begin
+      fLoggedUser.LoadFromSession(GetWebSession);
+    end;
+  end;
   Result := FLoggedUser;
 end;
 
@@ -2457,8 +2454,8 @@ begin
   Cookie := FResponse.Cookies.Add;
   Cookie.name := TMVCConstants.SESSION_TOKEN_NAME;
 
-  Cookie.Value := GUIDToString(TGUID.NewGuid) + 'invalid' + GUIDToString(TGUID.NewGuid);
-  Cookie.Expires := EncodeDate(1970, 1, 1);
+  Cookie.Value := '';
+  Cookie.Expires := EncodeDate(1979, 11, 4);
   Cookie.Path := '/';
 
   TMonitor.Enter(GlobalSessionList);
@@ -4195,13 +4192,13 @@ begin
   Result := Context.Request.GetHeader('If-None-Match');
 end;
 
-function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const JSONModel: TJSONObject; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 var
   lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringBuilder;
 begin
   lStrStream := TStringBuilder.Create;
   try
-    lView := FEngine.ViewEngineClass.Create(Engine, Context, Self, FViewModel, JSONModel, ContentType);
+    lView := FEngine.ViewEngineClass.Create(Engine, Context, Self, FViewModel, ContentType);
     try
       lView.FBeforeRenderCallback := OnBeforeRenderCallback;
       for lViewName in AViewNames do
@@ -4377,20 +4374,6 @@ begin
   Result := FViewModel;
 end;
 
-//function TMVCController.LoadView(const AViewNames: TArray<string>; const JSONModel: TJSONObject = nil): string;
-//begin
-//  try
-//    Result := GetRenderedView(AViewNames, JSONModel);
-//    ResponseStream.Append(Result);
-//  except
-//    on E: Exception do
-//    begin
-//      Log.Error('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
-//      raise;
-//    end;
-//  end;
-//end;
-
 procedure TMVCController.MVCControllerAfterCreate;
 begin
   { Implement if need be. }
@@ -4417,7 +4400,7 @@ end;
 
 function TMVCController.Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  Result := GetRenderedView([AViewName], nil, OnBeforeRenderCallback);
+  Result := GetRenderedView([AViewName], OnBeforeRenderCallback);
 end;
 
 function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
@@ -4846,11 +4829,6 @@ begin
   Render<T>(ACollection, AOwns, ASerializationAction);
 end;
 
-function TMVCController.GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
-begin
-  Result := GetRenderedView(AViewNames, nil, OnBeforeRenderCallback);
-end;
-
 procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>;
 const ASerializationAction: TMVCSerializationAction<T>);
 begin
@@ -5228,18 +5206,6 @@ begin
   FUseViewCache := Engine.fConfigCache_UseViewCache;
   FViewPath :=  Engine.Config[TMVCConfigKey.ViewPath];
   FDefaultViewFileExtension := WebContext.Config[TMVCConfigKey.DefaultViewFileExtension];
-end;
-
-constructor TMVCBaseViewEngine.Create(
-  const AEngine: TMVCEngine;
-  const AWebContext: TWebContext;
-  const AController: TMVCController;
-  const AViewModel: TMVCViewDataObject;
-  const AJSONModel: TJSONObject;
-  const AContentType: string);
-begin
-  Create(AEngine, AWebContext, AController, AViewModel, AContentType);
-  fJSONModel := AJSONModel;
 end;
 
 destructor TMVCBaseViewEngine.Destroy;

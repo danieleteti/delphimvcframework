@@ -219,38 +219,23 @@ begin
     Exit;
   end;
 
-  if Assigned(FJSONModel) and (not Assigned(ViewModel)) then
-  begin
-    // if only jsonmodel is <> nil then we take the "fast path"
-    FJSONModelAsString := FJSONModel.ToJSON(False);
-  end
-  else
-  begin
-    lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
+  lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
+  try
+    lJSONModel := TJsonObject.Create;
     try
-      if Assigned(FJSONModel) then
+      if Assigned(ViewModel) then
       begin
-        lJSONModel := FJSONModel.Clone as TJsonObject;
-      end
-      else
-      begin
-        lJSONModel := TJsonObject.Create;
-      end;
-      try
-        if Assigned(ViewModel) then
+        for DataObj in ViewModel do
         begin
-          for DataObj in ViewModel do
-          begin
-            TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
-          end;
+          TMVCJsonDataObjectsSerializer(lSer).TValueToJSONObjectProperty(lJSONModel, DataObj.Key, DataObj.Value, TMVCSerializationType.stDefault, nil, nil);
         end;
-        FJSONModelAsString := lJSONModel.ToJSON(False);
-      finally
-        lJSONModel.Free;
       end;
+      FJSONModelAsString := lJSONModel.ToJSON(False);
     finally
-      fSerializerPool.ReleaseToPool(lSer)
+      lJSONModel.Free;
     end;
+  finally
+    fSerializerPool.ReleaseToPool(lSer)
   end;
   fModelPrepared := True;
 end;
