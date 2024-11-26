@@ -1,4 +1,6 @@
-﻿{{include "partials/header.tpro" }}
+﻿{{extends "_layout.tpro"}}
+{{block "body"}}
+
 <div class="row_fluid">
     <div class="col-sm-12">
         <table class="table table-striped">
@@ -42,4 +44,4 @@
         <a class="btn btn-primary btn-block" href="/new">Add New Person</a>
     </div>
 </div>
-{{include "partials/footer.tpro"}}
+{{endblock}}

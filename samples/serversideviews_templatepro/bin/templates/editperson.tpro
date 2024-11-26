@@ -1,4 +1,5 @@
-﻿{{include "partials/header.tpro"}}
+﻿{{extends "_layout.tpro"}}
+{{block "body"}}
 <script>
   function doDelete(id) {
     if (confirm('Are you sure?')) {
@@ -80,4 +81,4 @@
     </form>
   </div>
 </div>
-{{include "partials/footer.tpro"}}
+{{endblock}}
