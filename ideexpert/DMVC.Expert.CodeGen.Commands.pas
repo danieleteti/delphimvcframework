@@ -824,6 +824,7 @@ begin
 
   Section
     .AppendLine('  MVCFramework.Middleware.ActiveRecord,')
+    .AppendLine('  MVCFramework.Middleware.Redirect,')
     .AppendLine('  MVCFramework.Middleware.StaticFiles,')
     .AppendLine('  MVCFramework.Middleware.Analytics,')
     .AppendLine('  MVCFramework.Middleware.Trace,')
