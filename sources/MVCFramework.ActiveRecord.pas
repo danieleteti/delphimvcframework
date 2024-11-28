@@ -325,6 +325,8 @@ type
     function GetPartitionInfo: TPartitionInfo;
     function GetConnection: TFDConnection;
     procedure InitTableInfo(const aTableName: String);
+    class function
+      CreateQuery(const Unidirectional, DirectExecute: Boolean): TFDQuery;
     class function ExecQuery(
       const SQL: string;
       const Values: array of Variant;
@@ -1360,7 +1362,7 @@ var
   I: Integer;
 begin
   { TODO -oDanieleT -cGeneral : Why not a TFDCommand? }
-  lQry := TFDQuery.Create(nil);
+  lQry := CreateQuery(True, True);
   try
     lQry.Connection := GetConnection;
     lSQL := SQL;
@@ -1368,7 +1370,7 @@ begin
     lQry.SQL.Text := lSQL;
 
     lHandled := false;
-    // lQry.Prepare;
+
     MapObjectToParams(lQry.Params, lHandled);
     if not lHandled then
     begin
@@ -4234,13 +4236,8 @@ class function TMVCActiveRecord.ExecQuery(
 var
   lQry: TFDQuery;
 begin
-  lQry := TFDQuery.Create(nil);
+  lQry := CreateQuery(Unidirectional, DirectExecute);
   try
-    lQry.FetchOptions.Mode := TFDFetchMode.fmAll;
-    lQry.FetchOptions.Unidirectional := Unidirectional;
-    lQry.UpdateOptions.ReadOnly := True;
-    lQry.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
-
     if Connection = nil then
     begin
       lQry.Connection := ActiveRecordConnectionsRegistry.GetCurrent;
@@ -4802,6 +4799,16 @@ end;
 constructor TMVCActiveRecord.Create;
 begin
   Create(True);
+end;
+
+class function TMVCActiveRecord.CreateQuery(const Unidirectional, DirectExecute: Boolean): TFDQuery;
+begin
+  Result := TFDQuery.Create(nil);
+  Result.FetchOptions.Mode := TFDFetchMode.fmAll;
+  Result.FetchOptions.Unidirectional := Unidirectional;
+  Result.UpdateOptions.ReadOnly := True;
+  Result.UpdateOptions.RequestLive := False;
+  Result.ResourceOptions.DirectExecute := DirectExecute;  //2023-07-12
 end;
 
 { TMVCTransactionContext }
