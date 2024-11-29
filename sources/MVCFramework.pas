@@ -766,7 +766,11 @@ type
 
     function NoContentResponse: IMVCResponse;
 
-    function UnauthorizedResponse: IMVCResponse;
+    function UnauthorizedResponse: IMVCResponse; overload;
+    function UnauthorizedResponse(const Message: String): IMVCResponse; overload;
+
+    function ForbiddenResponse: IMVCResponse; overload;
+    function ForbiddenResponse(const Message: String): IMVCResponse; overload;
 
     function BadRequestResponse(const Error: TObject): IMVCResponse; overload;
     function BadRequestResponse: IMVCResponse; overload;
@@ -4061,11 +4065,15 @@ begin
   Result := InternalStatusCodeResponse(HTTP_STATUS.UnprocessableEntity, Error);
 end;
 
+function TMVCRenderer.UnauthorizedResponse(const Message: String): IMVCResponse;
+begin
+  Result := InternalStatusCodeResponse(HTTP_STATUS.Unauthorized, nil, Message);
+end;
+
 function TMVCRenderer.UnprocessableContentResponse(const Message: String): IMVCResponse;
 begin
   Result := InternalStatusCodeResponse(HTTP_STATUS.UnprocessableEntity, nil, Message);
 end;
-
 
 function TMVCRenderer.ConflictResponse: IMVCResponse;
 begin
@@ -4097,6 +4105,11 @@ destructor TMVCRenderer.Destroy;
 begin
   FResponseStream.Free;
   inherited;
+end;
+
+function TMVCRenderer.ForbiddenResponse(const Message: String): IMVCResponse;
+begin
+  Result := InternalStatusCodeResponse(HTTP_STATUS.Forbidden, nil, Message);
 end;
 
 function TMVCRenderer.CreatedResponse(const Location: string;
@@ -4640,7 +4653,12 @@ end;
 
 function TMVCRenderer.UnauthorizedResponse: IMVCResponse;
 begin
-  Result := InternalStatusCodeResponse(HTTP_STATUS.Unauthorized, nil);
+  Result := UnauthorizedResponse('');
+end;
+
+function TMVCRenderer.ForbiddenResponse: IMVCResponse;
+begin
+  Result := ForbiddenResponse('');
 end;
 
 procedure TMVCController.SetETag(const Data: String; const NeedsToBeHashed: Boolean);
