@@ -58,15 +58,14 @@ type
     IfIndex, ElseIndex: Int64;
   end;
 
-  TTokenType = (ttContent, ttInclude, ttFor, ttEndFor, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag,
-    ttComment, ttJump, ttBlock, ttEndBlock, ttContinue, ttLiteralString, ttEndTag, ttValue, ttFilterName,
-    ttFilterParameter, ttLineBreak, ttSystemVersion, ttExit, ttEOF, ttInfo);
+  TTokenType = (ttContent, ttInclude, ttFor, ttEndFor, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment, ttJump, ttBlock,
+    ttEndBlock, ttContinue, ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttExit,
+    ttEOF, ttInfo);
 
 const
-  TOKEN_TYPE_DESCR: array [Low(TTokenType) .. High(TTokenType)] of string = ('ttContent', 'ttInclude', 'ttFor',
-    'ttEndFor', 'ttIfThen', 'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment', 'ttJump', 'ttBlock',
-    'ttEndBlock', 'ttContinue', 'ttLiteralString', 'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter',
-    'ttLineBreak', 'ttSystemVersion', 'ttExit', 'ttEOF', 'ttInfo');
+  TOKEN_TYPE_DESCR: array [Low(TTokenType) .. High(TTokenType)] of string = ('ttContent', 'ttInclude', 'ttFor', 'ttEndFor', 'ttIfThen',
+    'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment', 'ttJump', 'ttBlock', 'ttEndBlock', 'ttContinue', 'ttLiteralString',
+    'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttExit', 'ttEOF', 'ttInfo');
 
 const
   { ttInfo value1 can be: }
@@ -97,8 +96,7 @@ type
     Value2: String;
     Ref1: Int64;
     Ref2: Int64; { in case of tokentype = filter, contains the integer value, if any }
-    class function Create(TokType: TTokenType; Value1: String; Value2: String; Ref1: Int64 = -1; Ref2: Int64 = -1)
-      : TToken; static;
+    class function Create(TokType: TTokenType; Value1: String; Value2: String; Ref1: Int64 = -1; Ref2: Int64 = -1): TToken; static;
     function TokenTypeAsString: String;
     function ToString: String;
     procedure SaveToBytes(const aBytes: TBinaryWriter);
@@ -115,8 +113,7 @@ type
   TComparandType = (ctEQ, ctNE, ctGT, ctGE, ctLT, ctLE);
 
   TTProTemplateFunction = function(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
-  TTProTemplateAnonFunction = reference to function(const aValue: TValue;
-    const aParameters: TArray<TFilterParameter>): TValue;
+  TTProTemplateAnonFunction = reference to function(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
   TTProVariablesInfo = (viSimpleType, viObject, viDataSet, viListOfObject, viJSONObject, viIterable);
   TTProVariablesInfos = set of TTProVariablesInfo;
 
@@ -138,8 +135,7 @@ type
     constructor Create;
   end;
 
-  TTProCompiledTemplateGetValueEvent = reference to procedure(const DataSource, Members: string; var Value: TValue;
-    var Handled: Boolean);
+  TTProCompiledTemplateGetValueEvent = reference to procedure(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
 
   PTProFormatSettings = ^TFormatSettings;
 
@@ -208,11 +204,9 @@ type
     function ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
       const aVarNameWhereShoudBeApplied: String): TValue;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<TFilterParameter>); overload;
-    procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer;
-      const aParameters: TArray<TFilterParameter>); overload;
+    procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<TFilterParameter>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
-    function IsAnIterator(const VarName: String; out DataSourceName: String;
-      out CurrentIterator: TLoopStackItem): Boolean;
+    function IsAnIterator(const VarName: String; out DataSourceName: String; out CurrentIterator: TLoopStackItem): Boolean;
     function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
     function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
@@ -220,8 +214,8 @@ type
     function GetFormatSettings: PTProFormatSettings;
     procedure SetFormatSettings(const Value: PTProFormatSettings);
     class procedure InternalDumpToFile(const FileName: String; const aTokens: TList<TToken>);
-    function ComparandOperator(const aComparandType: TComparandType; const aValue: TValue;
-      const aParameters: TArray<TFilterParameter>; const aLocaleFormatSettings: TFormatSettings): TValue;
+    function ComparandOperator(const aComparandType: TComparandType; const aValue: TValue; const aParameters: TArray<TFilterParameter>;
+      const aLocaleFormatSettings: TFormatSettings): TValue;
   public
     destructor Destroy; override;
     function Render: String;
@@ -252,16 +246,16 @@ type
     function MatchSymbol(const aSymbol: string): Boolean;
     function MatchSpace: Boolean;
     function MatchString(out aStringValue: string): Boolean;
-    procedure InternalMatchFilter(lIdentifier: String; var lStartVerbatim: Int64; const CurrToken: TTokenType;
-      aTokens: TList<TToken>; const lRef2: Integer);
+    procedure InternalMatchFilter(lIdentifier: String; var lStartVerbatim: Int64; const CurrToken: TTokenType; aTokens: TList<TToken>;
+      const lRef2: Integer);
     function GetFunctionParameters: TArray<TFilterParameter>;
     function CreateFilterParameterToken(const FilterParameter: PFilterParameter): TToken;
     procedure Error(const aMessage: string);
     function Step: Char;
     function CurrentChar: Char;
     function GetSubsequentText: String;
-    procedure InternalCompileIncludedTemplate(const aTemplate: string; const aTokens: TList<TToken>;
-      const aFileNameRefPath: String; const aCompilerOptions: TTProCompilerOptions);
+    procedure InternalCompileIncludedTemplate(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String;
+      const aCompilerOptions: TTProCompilerOptions);
     procedure ProcessJumps(const aTokens: TList<TToken>);
     procedure Compile(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String); overload;
     constructor Create(const aEncoding: TEncoding; const aOptions: TTProCompilerOptions = []); overload;
@@ -270,8 +264,7 @@ type
   public
     function Compile(const aTemplate: string; const aFileNameRefPath: String = ''): ITProCompiledTemplate; overload;
     constructor Create(aEncoding: TEncoding = nil); overload;
-    class function CompileAndRender(const aTemplate: string; const VarNames: TArray<String>;
-      const VarValues: TArray<TValue>): String;
+    class function CompileAndRender(const aTemplate: string; const VarNames: TArray<String>; const VarValues: TArray<TValue>): String;
   end;
 
   ITProWrappedList = interface
@@ -290,13 +283,12 @@ type
   protected
     class procedure RegisterHandlers(const TemplateProCompiledTemplate: ITProCompiledTemplate);
   public
-    class property OnContextConfiguration: TTProCompiledTemplateEvent read fOnContextConfiguration
-      write fOnContextConfiguration;
+    class property OnContextConfiguration: TTProCompiledTemplateEvent read fOnContextConfiguration write fOnContextConfiguration;
   end;
 
 function HTMLEncode(s: string): string;
-function HandleTemplateSectionStateMachine(const aTokenValue1: String;
-  var aTemplateSectionType: TTProTemplateSectionType; out aErrorMessage: String): Boolean;
+function HandleTemplateSectionStateMachine(const aTokenValue1: String; var aTemplateSectionType: TTProTemplateSectionType;
+  out aErrorMessage: String): Boolean;
 
 implementation
 
@@ -344,8 +336,7 @@ type
     procedure GetItemAsTValue(const AIndex: Integer; out aValue: TValue);
     function GetItem(const AIndex: Integer): TObject;
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
-    class function CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: ITProWrappedList): Boolean;
-      overload; static;
+    class function CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: ITProWrappedList): Boolean; overload; static;
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
     class function Wrap(const AObjectAsDuck: TObject): ITProWrappedList; static;
   end;
@@ -360,8 +351,8 @@ end;
 
 procedure FunctionError(const aFunctionName, aErrMessage: string);
 begin
-  raise ETProRenderException.Create(Format('[%1:s] %0:s (error in filter call for function [%1:s])',
-    [aErrMessage, aFunctionName]))at ReturnAddress;
+  raise ETProRenderException.Create(Format('[%1:s] %0:s (error in filter call for function [%1:s])', [aErrMessage, aFunctionName]))
+    at ReturnAddress;
 end;
 
 function TTProCompiledTemplate.ComparandOperator(const aComparandType: TComparandType; const aValue: TValue;
@@ -387,8 +378,7 @@ var
       ctLE:
         Result := aLeftValue <= aRightValue;
     else
-      raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>
-        (aComparandType));
+      raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
     end;
   end;
 
@@ -427,8 +417,7 @@ begin
           ctLE:
             Result := aValue.AsInt64 <= lInt64Value;
         else
-          raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>
-            (aComparandType));
+          raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
         end;
       end;
     tkFloat:
@@ -497,8 +486,7 @@ begin
             ctLE:
               Result := aValue.AsExtended <= lExtendedValue;
           else
-            raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>
-              (aComparandType));
+            raise ETProRenderException.Create('Invalid Comparand Type: ' + TRttiEnumerationType.GetName<TComparandType>(aComparandType));
           end
         end;
       end;
@@ -561,8 +549,7 @@ begin
     ftBoolean:
       Result := lField.AsBoolean;
   else
-    Error('Invalid data type for field "%s": %s',
-      [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
+    Error('Invalid data type for field "%s": %s', [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
   end;
 end;
 
@@ -858,15 +845,13 @@ begin
 
 end;
 
-procedure TTProCompiledTemplate.AddFilter(const FunctionName: string;
-  const AnonFunctionImpl: TTProTemplateAnonFunction);
+procedure TTProCompiledTemplate.AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction);
 begin
   InitTemplateAnonFunctions;
   fTemplateAnonFunctions.Add(FunctionName.ToLower, AnonFunctionImpl);
 end;
 
-procedure TTProCompiledTemplate.CheckParNumber(const aMinParNumber, aMaxParNumber: Integer;
-  const aParameters: TArray<TFilterParameter>);
+procedure TTProCompiledTemplate.CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<TFilterParameter>);
 var
   lParNumber: Integer;
 begin
@@ -918,7 +903,7 @@ begin
 
   if not MatchEndTag then
   begin
-    Error('Expected end tag "' + END_TAG + '" near ' + GetSubsequentText);
+    Error('Expected end tag "' + END_TAG + '"');
   end;
   lStartVerbatim := fCharIndex;
   aTokens.Add(TToken.Create(CurrToken, lIdentifier, '', lFilterParamsCount, lRef2));
@@ -1033,7 +1018,7 @@ begin
       lTmp := '';
       if not MatchVariable(lTmp) then
       begin
-        Error('Expected identifier after "' + aIdentifier + '" - got ' + GetSubsequentText);
+        Error('Expected identifier after "' + aIdentifier + '"');
       end;
       aIdentifier := aIdentifier + '.' + lTmp;
     end;
@@ -1144,8 +1129,7 @@ begin
   lSavedCharIndex := fCharIndex;
   lSymbolIndex := 0;
   lSymbolLength := Length(aSymbol);
-  while (fInputString.Chars[fCharIndex].ToLower = aSymbol.Chars[lSymbolIndex].ToLower) and
-    (lSymbolIndex < lSymbolLength) do
+  while (fInputString.Chars[fCharIndex].ToLower = aSymbol.Chars[lSymbolIndex].ToLower) and (lSymbolIndex < lSymbolLength) do
   begin
     Inc(fCharIndex);
     Inc(lSymbolIndex);
@@ -1268,8 +1252,7 @@ begin
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
         lLastToken := ttContent;
-        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim,
-          lEndVerbatim - lStartVerbatim), ''));
+        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
       end;
       aTokens.Add(TToken.Create(ttEOF, '', ''));
       Break;
@@ -1302,8 +1285,7 @@ begin
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
         lLastToken := ttContent;
-        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim,
-          lEndVerbatim - lStartVerbatim), ''));
+        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
       end;
 
       if CurrentChar = START_TAG[1] then
@@ -1343,7 +1325,7 @@ begin
         begin
           if not MatchEndTag then
           begin
-            Error('Expected end tag "' + END_TAG + '" near ' + GetSubsequentText);
+            Error('Expected end tag "' + END_TAG + '"');
           end;
           lStartVerbatim := fCharIndex;
           lLastToken := ttValue;
@@ -1365,7 +1347,7 @@ begin
         end
         else
         begin
-          Error('Expected variable or filter near ' + GetSubsequentText);
+          Error('Expected variable or filter');
         end;
       end
       else
@@ -1454,13 +1436,13 @@ begin
           begin
             MatchSpace;
             if not MatchVariable(lFuncName) then
-              Error('Invalid function name applied to variable ' + lVarName);
+              Error('Invalid function applied to variable ' + lIdentifier);
             lFuncParams := GetFunctionParameters;
             lFuncParamsCount := Length(lFuncParams);
           end;
           MatchSpace;
           if not MatchEndTag then
-            Error('Expected closing tag for "if"');
+            Error('Expected closing tag for "if" after "' + lIdentifier + '"');
           if lNegation then
           begin
             lIdentifier := '!' + lIdentifier;
@@ -1519,8 +1501,7 @@ begin
             end
             else
             begin
-              lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath),
-                lStringValue));
+              lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lStringValue));
             end;
             lTemplateSource := TFile.ReadAllText(lCurrentFileName, fEncoding);
           except
@@ -1530,8 +1511,7 @@ begin
             end;
           end;
           Inc(lContentOnThisLine);
-          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName,
-            [coIgnoreSysVersion, coParentTemplate]);
+          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName, [coIgnoreSysVersion, coParentTemplate]);
           lStartVerbatim := fCharIndex;
         end
         else if MatchSymbol('extends') then { extends }
@@ -1559,8 +1539,7 @@ begin
             end
             else
             begin
-              lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath),
-                lStringValue));
+              lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lStringValue));
             end;
             lTemplateSource := TFile.ReadAllText(lCurrentFileName, fEncoding);
           except
@@ -1571,8 +1550,7 @@ begin
           end;
           Inc(lContentOnThisLine);
           aTokens.Add(TToken.Create(ttInfo, STR_BEGIN_OF_LAYOUT, ''));
-          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName,
-            [coParentTemplate, coIgnoreSysVersion]);
+          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName, [coParentTemplate, coIgnoreSysVersion]);
           aTokens.Add(TToken.Create(ttInfo, STR_END_OF_LAYOUT, ''));
           lStartVerbatim := fCharIndex;
         end
@@ -1667,7 +1645,8 @@ end;
 
 procedure TTProCompiler.Error(const aMessage: string);
 begin
-  raise ETProCompilerException.CreateFmt('%s - at line %d in file %s', [aMessage, fCurrentLine, fCurrentFileName]);
+  raise ETProCompilerException.CreateFmt('%s - (got: "%s") at line %d in file %s',
+    [aMessage, GetSubsequentText, fCurrentLine, fCurrentFileName]);
 end;
 
 procedure TTProCompiler.ProcessJumps(const aTokens: TList<TToken>);
@@ -1915,6 +1894,12 @@ var
   I: Integer;
 begin
   Result := CurrentChar;
+  if Result = #0 then
+  begin
+    Result := '<eof>';
+  end
+  else
+  begin
   Step;
   I := 0;
   while (CurrentChar <> #0) and (CurrentChar <> END_TAG[1]) and (I < 20) do
@@ -1923,17 +1908,16 @@ begin
     Step;
     Inc(I);
   end;
-  Result := Result.QuotedString('"');
+  end;
 end;
 
-procedure TTProCompiledTemplate.CheckParNumber(const aHowManyPars: Integer;
-  const aParameters: TArray<TFilterParameter>);
+procedure TTProCompiledTemplate.CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<TFilterParameter>);
 begin
   CheckParNumber(aHowManyPars, aHowManyPars, aParameters);
 end;
 
-function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>;
-  aValue: TValue; const aVarNameWhereShoudBeApplied: String): TValue;
+function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
+  const aVarNameWhereShoudBeApplied: String): TValue;
 var
   lDateValue: TDateTime;
   lDateFilterFormatSetting: TFormatSettings;
@@ -1946,8 +1930,7 @@ var
   lNullableDate: NullableTDate;
   lValue, lVarValue: TValue;
   lExtendedValue: Extended;
-  procedure CheckParamType(const FunctionName: String; const FilterParameter: PFilterParameter;
-    const Types: TFilterParameterTypes);
+  procedure CheckParamType(const FunctionName: String; const FilterParameter: PFilterParameter; const Types: TFilterParameterTypes);
   begin
     if not(FilterParameter.ParType in Types) then
     begin
@@ -2570,8 +2553,7 @@ end;
 
 function TToken.ToString: String;
 begin
-  Result := Format('%15s | Ref1: %8d | Ref2: %8d | Val1: %-25s| Val2: %-25s',
-    [TokenTypeAsString, Ref1, Ref2, Value1, Value2]);
+  Result := Format('%15s | Ref1: %8d | Ref2: %8d | Val1: %-25s| Val2: %-25s', [TokenTypeAsString, Ref1, Ref2, Value1, Value2]);
 end;
 
 { TTProCompiledTemplate }
@@ -2634,8 +2616,7 @@ begin
   inherited;
 end;
 
-procedure TTProCompiledTemplate.DoOnGetValue(const DataSource, Members: string; var Value: TValue;
-  var Handled: Boolean);
+procedure TTProCompiledTemplate.DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
 begin
   Handled := False;
   if Assigned(fOnGetValue) then
@@ -2918,8 +2899,8 @@ begin
           begin
             if fTokens[lIdx].Value1 <> TEMPLATEPRO_VERSION then
             begin
-              Error('Compiled template has been compiled with a different version. Expected ' + TEMPLATEPRO_VERSION +
-                ' got ' + fTokens[lIdx].Value1);
+              Error('Compiled template has been compiled with a different version. Expected ' + TEMPLATEPRO_VERSION + ' got ' +
+                fTokens[lIdx].Value1);
             end;
           end;
         ttContinue:
@@ -3181,8 +3162,8 @@ begin
         if lIsAnIterator then
         begin
           if lHasMember then
-            Result := TTProRTTIUtils.GetProperty(WrapAsList(lVariable.VarValue.AsObject)
-              .GetItem(lCurrentIterator.IteratorPosition), lVarMembers)
+            Result := TTProRTTIUtils.GetProperty(WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition),
+              lVarMembers)
           else
             Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
         end
@@ -3263,8 +3244,8 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.IsAnIterator(const VarName: String; out DataSourceName: String;
-  out CurrentIterator: TLoopStackItem): Boolean;
+function TTProCompiledTemplate.IsAnIterator(const VarName: String; out DataSourceName: String; out CurrentIterator: TLoopStackItem)
+  : Boolean;
 var
   I: Integer;
 begin
@@ -3636,8 +3617,7 @@ begin
     tkInteger, tkString, tkUString, tkFloat, tkEnumeration:
       GetVariables.Add(Name, TVarDataSource.Create(Value, [viSimpleType]));
   else
-    raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>
-      (Value.Kind));
+    raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>(Value.Kind));
   end;
 
 end;
@@ -3743,8 +3723,7 @@ begin
   Result := CanBeWrappedAsList(AObjectAsDuck, lList);
 end;
 
-class function TTProDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject;
-  out AMVCList: ITProWrappedList): Boolean;
+class function TTProDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: ITProWrappedList): Boolean;
 var
   List: ITProWrappedList;
 begin
@@ -3919,8 +3898,8 @@ begin
   Result.EndBlockAddress := EndBlockAddress;
 end;
 
-function HandleTemplateSectionStateMachine(const aTokenValue1: String;
-  var aTemplateSectionType: TTProTemplateSectionType; out aErrorMessage: String): Boolean;
+function HandleTemplateSectionStateMachine(const aTokenValue1: String; var aTemplateSectionType: TTProTemplateSectionType;
+  out aErrorMessage: String): Boolean;
 begin
   Result := True;
   if aTokenValue1 = STR_BEGIN_OF_LAYOUT then
