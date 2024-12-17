@@ -30,9 +30,9 @@ uses
   System.Classes,
   System.SysUtils,
   System.TypInfo,
-  Data.DB,
   System.DateUtils,
-  System.RTTI;
+  System.RTTI,
+  Data.DB;
 
 const
   TEMPLATEPRO_VERSION = '0.7.2';
@@ -294,7 +294,7 @@ implementation
 
 uses
   System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character,
-  JsonDataObjects, MVCFramework.Nullables;
+  JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD;
 
 const
   Sign = ['-', '+'];
@@ -536,18 +536,22 @@ begin
       Result := lField.AsLargeInt;
     ftFloat:
       Result := lField.AsFloat;
+    ftSingle:
+      Result := lField.AsSingle;
     ftCurrency:
       Result := lField.AsCurrency;
     ftString, ftWideString, ftMemo, ftWideMemo:
       Result := lField.AsWideString;
     ftDate:
       Result := TDate(Trunc(lField.AsDateTime));
-    ftDateTime:
+    ftDateTime, ftTimeStamp:
       Result := lField.AsDateTime;
     ftTime:
       Result := lField.AsDateTime;
     ftBoolean:
       Result := lField.AsBoolean;
+    ftFMTBcd:
+      Result := TValue.From<TBCD>(lField.AsBCD);
   else
     Error('Invalid data type for field "%s": %s', [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
   end;
@@ -730,7 +734,7 @@ begin
   end
   else
   begin
-    if Value.TypeInfo.Kind = tkRecord then
+    if (Value.TypeInfo.Kind = tkRecord) and (Value.TypeInfo <> TypeInfo(TBcd)) then
     begin
       Result := '';
       if Value.TypeInfo = TypeInfo(NullableInt32) then
@@ -836,6 +840,17 @@ begin
           end;
         tkEnumeration:
           Result := Value.ToString;
+        tkRecord:
+          begin
+            if Value.TypeInfo = TypeInfo(TBcd) then
+            begin
+              Result := BcdToStr(PBCD(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else
+            begin
+              raise ETProException.Create('Unsupported type for record variable "' + VarName + '"');
+            end;
+          end
       else
         raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
       end;
