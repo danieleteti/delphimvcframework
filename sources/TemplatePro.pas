@@ -294,7 +294,7 @@ implementation
 
 uses
   System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character,
-  JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD;
+  JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD, Data.SqlTimSt;
 
 const
   Sign = ['-', '+'];
@@ -546,6 +546,8 @@ begin
       Result := TDate(Trunc(lField.AsDateTime));
     ftDateTime, ftTimeStamp:
       Result := lField.AsDateTime;
+    ftTimeStampOffset:
+      Result := TValue.From<TSQLTimeStampOffset>(lField.AsSQLTimeStampOffset);
     ftTime:
       Result := lField.AsDateTime;
     ftBoolean:
@@ -734,7 +736,7 @@ begin
   end
   else
   begin
-    if (Value.TypeInfo.Kind = tkRecord) and (Value.TypeInfo <> TypeInfo(TBcd)) then
+    if (Value.TypeInfo.Kind = tkRecord) and String(Value.TypeInfo.Name).StartsWith('nullable', True) then
     begin
       Result := '';
       if Value.TypeInfo = TypeInfo(NullableInt32) then
@@ -845,6 +847,16 @@ begin
             if Value.TypeInfo = TypeInfo(TBcd) then
             begin
               Result := BcdToStr(PBCD(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else if Value.TypeInfo = TypeInfo(TSQLTimeStampOffset) then
+            begin
+              Result := SQLTimeStampOffsetToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
+                PSQLTimeStampOffset(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else if Value.TypeInfo = TypeInfo(TSQLTimeStamp) then
+            begin
+              Result := SQLTimeStampToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
+                PSQLTimeStamp(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
             end
             else
             begin
