@@ -3389,15 +3389,35 @@ begin
         raise EMVCActiveRecord.Create('Invalid type for primary key');
       end;
     end
-    else if lPKValue.IsType<NullableInt64> and aValue.IsType<NullableInt64>() then
+    else if lPKValue.IsType<NullableInt64> then
     begin
-      if aValue.AsType<NullableInt64>().HasValue then
+      if aValue.IsType<NullableInt64>() then
       begin
-        lPKValue := aValue;
+        if aValue.AsType<NullableInt64>().HasValue then
+        begin
+          lPKValue := aValue;
+        end
+        else
+        begin
+          lPKValue.AsType<NullableInt64>().Clear;
+        end;
+      end
+      else if aValue.TypeInfo = TypeInfo(Integer) then
+      begin
+        lPKValue := TValue.From<NullableInt64>(aValue.AsInteger);
+      end
+      else if aValue.TypeInfo = TypeInfo(Int64) then
+      begin
+        lPKValue := TValue.From<NullableInt64>(aValue.AsInt64);
+      end
+      else if aValue.TypeInfo = TypeInfo(UInt64) then
+      begin
+        lPKValue := TValue.From<NullableInt64>(aValue.AsUInt64);
       end
       else
       begin
-        lPKValue.AsType<NullableInt64>().Clear;
+        raise EMVCActiveRecord.CreateFmt(
+          'Invalid type for %s primary key [HINT] Double check if TypeInfo(PK) is equal to TypeInfo(Value)', [lPKValue.TypeInfo.Name]);
       end;
     end
     else if lPKValue.IsType<NullableString> and aValue.IsType<NullableString>() then
@@ -3422,15 +3442,35 @@ begin
         lPKValue.AsType<NullableUInt32>().Clear;
       end;
     end
-    else if lPKValue.IsType<NullableUInt64> and aValue.IsType<NullableUInt64>() then
+    else if lPKValue.IsType<NullableUInt64> then
     begin
-      if aValue.AsType<NullableUInt64>().HasValue then
+      if aValue.IsType<NullableUInt64>() then
       begin
-        lPKValue := aValue;
+        if aValue.AsType<NullableUInt64>().HasValue then
+        begin
+          lPKValue := aValue;
+        end
+        else
+        begin
+          lPKValue.AsType<NullableUInt64>().Clear;
+        end
+      end
+      else if aValue.TypeInfo = TypeInfo(Integer) then
+      begin
+        lPKValue := TValue.From<NullableUInt64>(aValue.AsInteger);
+      end
+      else if aValue.TypeInfo = TypeInfo(Int64) then
+      begin
+        lPKValue := TValue.From<NullableUInt64>(aValue.AsInt64);
+      end
+      else if aValue.TypeInfo = TypeInfo(UInt64) then
+      begin
+        lPKValue := TValue.From<NullableUInt64>(aValue.AsUInt64);
       end
       else
       begin
-        lPKValue.AsType<NullableUInt64>().Clear;
+        raise EMVCActiveRecord.CreateFmt(
+          'Invalid type for %s primary key [HINT] Double check if TypeInfo(PK) is equal to TypeInfo(Value)', [lPKValue.TypeInfo.Name]);
       end;
     end
     else
