@@ -912,14 +912,16 @@ type
     function ToFree<T: class>(aObject: T): T; overload;
     procedure ToFree(aObject: TObject); overload;
 
-    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
+    procedure OnBeforeAction(aContext: TWebContext; const aActionName: string;
       var AHandled: Boolean); virtual;
-    procedure OnAfterAction(AContext: TWebContext; const AActionName: string); virtual;
+    procedure OnAfterAction(aContext: TWebContext; const aActionName: string); virtual;
+
+    procedure OnException(const aContext: TWebContext; const aException: Exception; var aHandled: Boolean); virtual;
 
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
-    function GetRenderedView(const AViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
+    function GetRenderedView(const aViewNames: TArray<string>; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; virtual;
 
     /// <summary>
     ///   Normally used in OnBeforeControllerAction to define view headers automatically used by the Page method.
@@ -2699,10 +2701,14 @@ begin
 end;
 
 function TMVCEngine.CustomExceptionHandling(const Ex: Exception;
-  const ASelectedController: TMVCController; const AContext: TWebContext): Boolean;
+  const aSelectedController: TMVCController; const AContext: TWebContext): Boolean;
 begin
   Result := False;
-  if Assigned(FOnException) then
+  if Assigned(aSelectedController) then
+  begin
+    aSelectedController.OnException(AContext, Ex, Result);
+  end;
+  if (not Result) and Assigned(FOnException) then
   begin
     FOnException(Ex, ASelectedController, AContext, Result);
   end;
@@ -4414,6 +4420,11 @@ begin
   if ContentType.IsEmpty then
     ContentType := Config[TMVCConfigKey.DefaultContentType];
   { Implement if need be. }
+end;
+
+procedure TMVCController.OnException(const aContext: TWebContext; const aException: Exception; var aHandled: Boolean);
+begin
+  //do nothing
 end;
 
 function TMVCController.Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
