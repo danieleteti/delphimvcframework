@@ -85,7 +85,7 @@ uses
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Swagger.Commons;
 
 type
 
@@ -1235,7 +1235,9 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     [MVCDoNotSerialize]
     property Headers: TStringList read GetHeaders write SetHeaders;
+    [MVCSwagJsonSchemaField(stString, 'message', 'Message', False)]
     property Message: string read GetMessage write SetMessage;
+    [MVCSwagJsonSchemaField(stObject, 'data', 'Data Object', False)]
     property Data: TObject read GetData write SetData;
     property ObjectDictionary: IMVCObjectDictionary read GetObjectDictionary write SetObjectDictionary;
   end;
@@ -1253,9 +1255,12 @@ type
     destructor Destroy; override;
     function GetIgnoredList: TMVCIgnoredList; override;
     property Classname: string read fClassname write fClassname;
+    [MVCSwagJsonSchemaField(stString, 'detailmessage', 'Detailed error message', False)]
     property DetailedMessage: string read fDetailedMessage write fDetailedMessage;
+    [MVCSwagJsonSchemaField(stInt64, 'apperrorcode', 'Application specific error code', False)]
     property AppErrorCode: Integer read fAppErrorCode write SetAppErrorCode;
     [MVCListOf(TMVCErrorResponseItem)]
+    [MVCSwagJsonSchemaField(stArray, 'items', 'Detailed items error', False, True)]
     property Items: TObjectList<TMVCErrorResponseItem> read fItems;
   end;
 
