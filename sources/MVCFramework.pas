@@ -933,13 +933,18 @@ type
     /// </summary>
     procedure SetPagesCommonFooters(const AViewNames: TArray<string>);
 
+    function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; deprecated 'Use RenderViews';
+    function Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; deprecated 'Use RenderView';
+
     /// <summary>
-    ///   Page calls GetRenderedView with sensible defaults.
-    ///   Page method just concatenate -> commonheader_header_views + views + commonfooter_views
-    ///   PageFragment ignore header and footer views
+    ///   RenderTemplate renders all views concatenating them (optionally with commone headers and footers) with sensible defaults.
     /// </summary>
-    function Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
-    function Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
+
+    function RenderViews(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean = True; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload; inline;
+    /// <summary>
+    ///   RenderTemplate renders a single view with sensible defaults.
+    /// </summary>
+    function RenderView(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -4429,15 +4434,12 @@ end;
 
 function TMVCController.Page(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  Result := GetRenderedView([AViewName], OnBeforeRenderCallback);
+  Result := RenderView(AViewName, OnBeforeRenderCallback);
 end;
 
 function TMVCController.Page(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
-  if UseCommonHeadersAndFooters then
-    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, OnBeforeRenderCallback)
-  else
-    Result := GetRenderedView(AViewNames, OnBeforeRenderCallback);
+  Result := RenderViews(AViewNames, UseCommonHeadersAndFooters, OnBeforeRenderCallback);
 end;
 
 procedure TMVCController.PushObjectToView(const aModelName: string; const AModel: TObject);
@@ -4448,6 +4450,21 @@ end;
 procedure TMVCController.RaiseSessionExpired;
 begin
   raise EMVCSessionExpiredException.Create('Session expired.');
+end;
+
+function TMVCController.RenderView(const AViewName: string;
+  const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
+begin
+  Result := GetRenderedView([AViewName], OnBeforeRenderCallback);
+end;
+
+function TMVCController.RenderViews(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean;
+  const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
+begin
+  if UseCommonHeadersAndFooters then
+    Result := GetRenderedView(fPageHeaders + AViewNames + fPageFooters, OnBeforeRenderCallback)
+  else
+    Result := GetRenderedView(AViewNames, OnBeforeRenderCallback);
 end;
 
 procedure TMVCRenderer.Redirect(const AUrl: string);
