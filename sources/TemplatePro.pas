@@ -2268,13 +2268,34 @@ function HTMLEncode(s: string): string;
 var
   I: Integer;
   r: string;
-  b: byte;
+  b: UInt32;
+  C4: UCS4Char;
 begin
   I := 1;
   while I <= Length(s) do
   begin
     r := '';
+    if (Char.IsHighSurrogate(S, I-1)) and (Char.IsLowSurrogate(S, I)) then
+    begin
+      C4 := Char.ConvertToUtf32(S, I-1);
+      r := IntToStr(C4);
+      s := s.Substring(0, I-1) + '&#' + r + ';' + s.Substring(I+1);
+      Inc(I,r.Length + 3);
+      Continue;
+    end
+    else
+    begin
     b := Ord(s[I]);
+      if b > 255 then
+      begin
+        if b = 8364 then
+          r := 'euro'
+        else
+          r := '#' + IntToStr(b);
+      end
+      else
+      begin
+{$REGION 'entities'}
     case b of
       Ord('>'):
         r := 'gt';
@@ -2293,7 +2314,7 @@ begin
       162:
         r := 'cent';
       163:
-        r := 'ound';
+          r := 'pound';
       164:
         r := 'curren';
       165:
@@ -2479,6 +2500,10 @@ begin
       255:
         r := 'yuml';
     end;
+{$ENDREGION}
+      end;
+    end;
+
     if r <> '' then
     begin
       s := s.Replace(s[I], '&' + r + ';', []);
