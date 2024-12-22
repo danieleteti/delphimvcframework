@@ -1510,6 +1510,11 @@ var
   LClazz: TClass;
   lValueTypeInfo: PTypeInfo;
 begin
+  if AJSONObject = nil then
+  begin
+    Exit;
+  end;
+
   case AJSONObject[APropertyName].Typ of
     jdtNone:
       Exit;
