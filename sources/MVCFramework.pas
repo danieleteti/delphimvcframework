@@ -563,7 +563,7 @@ type
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
-    procedure SessionStart(const SessionType: String); virtual;
+    procedure SessionStart(SessionType: String = ''); virtual;
     procedure SessionStop(const ARaiseExceptionIfExpired: Boolean = True); virtual;
 
     function SessionStarted: Boolean;
@@ -2431,13 +2431,17 @@ begin
   Result := FSessionMustBeClose;
 end;
 
-procedure TWebContext.SessionStart(const SessionType: String);
+procedure TWebContext.SessionStart(SessionType: String);
 var
   ID: string;
 begin
   if not Assigned(FWebSession) then
   begin
     ID := TMVCEngine.SendSessionCookie(Self);
+    if SessionType.IsEmpty then
+    begin
+      SessionType := Config[TMVCConfigKey.SessionType];
+    end;
     FWebSession := AddSessionToTheSessionList(SessionType, ID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := True;
