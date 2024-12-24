@@ -2231,6 +2231,12 @@ begin
       FunctionError(aFunctionName, 'Invalid datetime ' + aValue.AsString.QuotedString);
     end;
   end
+  else if SameText(aFunctionName, 'formatfloat') then
+  begin
+    CheckParNumber(1, aParameters);
+    CheckParamType('formatfloat', @aParameters[0], [TFilterParameterType.fptString]);
+    Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+  end
   else if SameText(aFunctionName, 'totrue') then
   begin
     CheckParNumber(0, aParameters);
