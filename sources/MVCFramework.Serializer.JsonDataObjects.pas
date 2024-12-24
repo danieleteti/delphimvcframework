@@ -3601,7 +3601,7 @@ var
   JSONBase: TJsonBaseObject;
 begin
   if (ASerializedObject = EmptyStr) then
-    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Invalid body');
+    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Body is not a valid JSON (the body is empty)');
 
   if not Assigned(AObject) then
     Exit;
@@ -3611,7 +3611,7 @@ begin
     try
       if not(JSONBase is TJDOJsonObject) then
       begin
-        raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+        raise EMVCSerializationException.CreateFmt('Body is not a valid JSON Object - Expected %s got %s',
           [TJDOJsonObject.ClassName, JSONBase.ClassName]);
       end;
       JSONObject := TJDOJsonObject(JSONBase);
