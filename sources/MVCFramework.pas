@@ -563,7 +563,7 @@ type
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
 
-    procedure SessionStart(SessionType: String = ''); virtual;
+    procedure SessionStart; virtual;
     procedure SessionStop(const ARaiseExceptionIfExpired: Boolean = True); virtual;
 
     function SessionStarted: Boolean;
@@ -2387,9 +2387,13 @@ begin
     if not Assigned(FWebSession) then
     begin
       lSessionType := Config[TMVCConfigKey.SessionType];
+      if lSessionType.IsEmpty then
+      begin
+        raise EMVCException.Create('SessionType cannot be empty');
+      end;
       if not TMVCSessionFactory.GetInstance.TryFindSessionID(lSessionType, lSessionIDFromRequest) then
       begin
-        SessionStart(lSessionType);
+        SessionStart;
       end
       else
       begin
@@ -2431,16 +2435,18 @@ begin
   Result := FSessionMustBeClose;
 end;
 
-procedure TWebContext.SessionStart(SessionType: String);
+procedure TWebContext.SessionStart;
 var
   ID: string;
+  SessionType: String;
 begin
   if not Assigned(FWebSession) then
   begin
     ID := TMVCEngine.SendSessionCookie(Self);
+    SessionType := Config[TMVCConfigKey.SessionType];
     if SessionType.IsEmpty then
     begin
-      SessionType := Config[TMVCConfigKey.SessionType];
+      SessionType := 'memory';
     end;
     FWebSession := AddSessionToTheSessionList(SessionType, ID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
@@ -3329,8 +3335,8 @@ begin
     if not AContext.Request.SegmentParam(lParamName, lStrValue) then
     begin
       raise EMVCException.CreateFmt(http_status.BadRequest,
-        'Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
-        [lParamName, AActionName]);
+        'Invalid parameter "%s" for action "%s" (Hint: Here parameters names are case-sensitive)',
+        [lParamName, AContext.ActionQualifiedName]);
     end;
     AActualParams[I] := GetActualParam(AActionFormalParams[I], lStrValue);
   end;
@@ -3340,7 +3346,7 @@ begin
   begin
     raise EMVCException.CreateFmt(http_status.BadRequest,
       'Parameters count mismatch (expected %d actual %d) for action "%s"',
-      [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
+      [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AContext.ActionQualifiedName]);
   end;
 end;
 
