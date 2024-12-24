@@ -27,7 +27,7 @@ implementation
 {$R *.dfm}
 
 
-uses AppControllerU, MVCFramework.Commons;
+uses AppControllerU, MVCFramework.Commons, MVCFramework.Middleware.Redirect;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -39,6 +39,7 @@ begin
       Config[TMVCConfigKey.SessionType] := 'file';
     end);
   MVC.AddController(TApp1MainController);
+  MVC.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/name'));
 end;
 
 end.
