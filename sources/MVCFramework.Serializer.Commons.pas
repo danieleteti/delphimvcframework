@@ -209,6 +209,7 @@ type
       overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
       overload; static;
+    class function GetPropertyKeyName(const APropertyName: String; const AClass: TClass): string; static;
     class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
     class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
       overload; static;
@@ -861,6 +862,34 @@ begin
     end;
   end;
   Result := TMVCSerializerHelper.ApplyNameCase(MVCNameCaseDefault, Result);
+end;
+
+class function TMVCSerializerHelper.GetPropertyKeyName(const APropertyName: String; const AClass: TClass): string;
+var
+  Context: TRttiContext;
+  ObjectType: TRttiType;
+  lProp: TRttiProperty;
+begin
+{$IF not Defined(TokyoOrBetter)}
+  Result := nil;
+{$ENDIF}
+  Context := TRttiContext.Create;
+  try
+    ObjectType := Context.FindType(AClass.QualifiedClassName);
+    if not Assigned(ObjectType) then
+      raise Exception.CreateFmt
+        ('Cannot find RTTI for %s. Hint: Is the specified classtype linked in the module?',
+        [AClass.QualifiedClassName])
+    else
+    begin
+      lProp := ObjectType.GetProperty(APropertyName);
+      if not Assigned(lProp) then
+        raise Exception.Create('Cannot find property ' + APropertyName);
+      Result := TMVCSerializerHelper.GetKeyName(lProp, ObjectType);
+    end;
+  finally
+    Context.Free;
+  end;
 end;
 
 class function TMVCSerializerHelper.GetTypeKindAsString(const ATypeKind: TTypeKind): string;
