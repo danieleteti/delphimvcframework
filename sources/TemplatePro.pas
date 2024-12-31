@@ -2235,7 +2235,34 @@ begin
   begin
     CheckParNumber(1, aParameters);
     CheckParamType('formatfloat', @aParameters[0], [TFilterParameterType.fptString]);
-    Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+    if aValue.IsType<Integer> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsInteger, fLocaleFormatSettings);
+    end
+    else if aValue.IsType<Int64> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsInt64, fLocaleFormatSettings);
+    end
+    else if aValue.IsType<UInt64> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsUInt64, fLocaleFormatSettings);
+    end
+    else if aValue.IsType<TBcd> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, BcdToDouble(aValue.AsType<TBcd>), fLocaleFormatSettings);
+    end
+    else if aValue.IsType<Currency> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsCurrency, fLocaleFormatSettings);
+    end
+    else if aValue.IsType<Extended> or aValue.IsType<Double> then
+    begin
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+    end
+    else
+    begin
+      Error('Invalid type passed to FormatFloat filter');
+    end;
   end
   else if SameText(aFunctionName, 'totrue') then
   begin
