@@ -72,3 +72,4 @@ samples/110_rest_appender_mobile/Android/
 unittests/Win32/PLAINDUNITX/dunitx-results.xml
 unittests/Win32/TESTINSIGHT/TestInsightSettings.ini
 *.log
+unittests/Win32/CI/dunitx-results.xml

@@ -2,13 +2,13 @@ program AuthenticationAuthorizationClient;
 
 uses
   Vcl.Forms,
-  MainClientFormU in 'MainClientFormU.pas' {Form5};
+  MainClientFormU in 'MainClientFormU.pas' {MainForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm5, Form5);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

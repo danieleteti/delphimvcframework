@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //           
@@ -134,13 +134,13 @@ begin
     SSEMessage.Text := ASSEMessage;
 
     if SSEMessage.IndexOfName('id')>-1 then
-      fLastEventId := SSEMessage.Values['id'].ToInteger;
+      fLastEventId := SSEMessage.Values['id'].Trim.ToInteger;
     if SSEMessage.IndexOfName('event')>-1 then
-      event := SSEMessage.Values['event'];
+      event := SSEMessage.Values['event'].Trim;
     if SSEMessage.IndexOfName('data')>-1 then
-      data := SSEMessage.Values['data'];
+      data := SSEMessage.Values['data'].Trim;
     if SSEMessage.IndexOfName('retry')>-1 then
-      fReconnectTimeout := StrToIntDef(SSEMessage.Values['retry'], DefaultReconnectTimeout);
+      fReconnectTimeout := StrToIntDef(SSEMessage.Values['retry'].Trim, DefaultReconnectTimeout);
 
     fOnSSEEvent(Self, fLastEventId, event, data);
   finally

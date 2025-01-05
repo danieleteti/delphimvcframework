@@ -2,11 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators with this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -417,7 +417,7 @@ begin
       try
         if lDataSetHolder.SerializationType = TMVCDatasetSerializationType.dstAllRecords then
         begin
-          lSer.DataSetToJsonArray(lDataSetHolder.Items, lOutObject.A['data'], TMVCNameCase.ncLowerCase, [])
+          lSer.DataSetToJsonArray(lDataSetHolder.Items, lOutObject.A['data'], TMVCNameCase.ncUseDefault, [])
         end
         else // single record
         begin
@@ -426,9 +426,9 @@ begin
             raise EMVCException.CreateFmt('DataSet contains %d records - exactly 1 expected',
               [lDataSetHolder.Items.RecordCount]);
           end;
-          lDSFields := lSer.GetDataSetFields(lDataSetHolder.Items, [], TMVCNameCase.ncLowerCase);
+          lDSFields := lSer.GetDataSetFields(lDataSetHolder.Items, [], TMVCNameCase.ncUseDefault);
           try
-            lSer.DataSetToJsonObject(lDataSetHolder.Items, lOutObject.O['data'], TMVCNameCase.ncLowerCase, [],
+            lSer.DataSetToJsonObject(lDataSetHolder.Items, lOutObject.O['data'], TMVCNameCase.ncUseDefault, [],
               lDSFields);
           finally
             lDSFields.Free;
@@ -636,8 +636,18 @@ end;
 
 procedure TMVCListOfStringSerializer.DeserializeRoot(const ASerializerObject,
   AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<string>;
+  lJsonArray: TJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := TMVCListOfString(AObject);
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray[i].Value);
+  end;
 end;
 
 procedure TMVCListOfStringSerializer.SerializeAttribute(
@@ -660,8 +670,18 @@ end;
 procedure TMVCListOfStringSerializer.SerializeRoot(const AObject: TObject;
   out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
+var
+  lList: TList<string>;
+  lRoot: TJDOJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := AObject as TList<string>;
+  lRoot := TJDOJsonArray.Create;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lRoot.Add(lList[i]);
+  end;
+  ASerializerObject := lRoot;
 end;
 
 { TMVCListOfIntegerSerializer }
@@ -686,8 +706,18 @@ end;
 
 procedure TMVCListOfIntegerSerializer.DeserializeRoot(const ASerializerObject,
   AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Integer>;
+  lJsonArray: TJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := TMVCListOfInteger(AObject);
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray.I[i]);
+  end;
 end;
 
 procedure TMVCListOfIntegerSerializer.SerializeAttribute(
@@ -710,9 +740,18 @@ end;
 procedure TMVCListOfIntegerSerializer.SerializeRoot(const AObject: TObject;
   out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
+var
+  lList: TList<Integer>;
+  lRoot: TJDOJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
-
+  lList := AObject as TList<Integer>;
+  lRoot := TJDOJsonArray.Create;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lRoot.Add(lList[i]);
+  end;
+  ASerializerObject := lRoot;
 end;
 
 { TMVCListOfBooleanSerializer }
@@ -737,8 +776,18 @@ end;
 
 procedure TMVCListOfBooleanSerializer.DeserializeRoot(const ASerializerObject,
   AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Boolean>;
+  lJsonArray: TJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := TMVCListOfBoolean(AObject);
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray.B[i]);
+  end;
 end;
 
 procedure TMVCListOfBooleanSerializer.SerializeAttribute(
@@ -761,8 +810,18 @@ end;
 procedure TMVCListOfBooleanSerializer.SerializeRoot(const AObject: TObject;
   out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
+var
+  lList: TList<Boolean>;
+  lRoot: TJDOJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := AObject as TList<Boolean>;
+  lRoot := TJDOJsonArray.Create;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lRoot.Add(lList[i]);
+  end;
+  ASerializerObject := lRoot;
 end;
 
 { TMVCListOfExtendedSerializer }
@@ -787,8 +846,18 @@ end;
 
 procedure TMVCListOfDoubleSerializer.DeserializeRoot(const ASerializerObject,
   AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Double>;
+  lJsonArray: TJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := TMVCListOfDouble(AObject);
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray.F[i]);
+  end;
 end;
 
 procedure TMVCListOfDoubleSerializer.SerializeAttribute(
@@ -812,8 +881,18 @@ end;
 procedure TMVCListOfDoubleSerializer.SerializeRoot(const AObject: TObject;
   out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
+var
+  lList: TList<Double>;
+  lRoot: TJDOJsonArray;
+  i: Integer;
 begin
-  raise EMVCDeserializationException.Create('Not implemented');
+  lList := AObject as TList<Double>;
+  lRoot := TJDOJsonArray.Create;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lRoot.Add(lList[i]);
+  end;
+  ASerializerObject := lRoot;
 end;
 
 end.

@@ -9,7 +9,7 @@ uses
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
   Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient,
-  Vcl.DBCtrls;
+  Vcl.DBCtrls, Vcl.Buttons;
 
 type
   TMainForm = class(TForm)
@@ -53,8 +53,8 @@ var
 implementation
 
 uses
-  System.UITypes, MVCFramework.DataSet.Utils, MVCFramework.FireDAC.Utils, MVCFramework.Commons,
-  JsonDataObjects, MVCFramework.Logger;
+  System.UITypes, MVCFramework.DataSet.Utils, MVCFramework.FireDAC.Utils,
+  MVCFramework.Commons, JsonDataObjects, MVCFramework.Logger;
 
 {$R *.dfm}
 

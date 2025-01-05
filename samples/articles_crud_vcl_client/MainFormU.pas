@@ -8,7 +8,7 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
   Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf, MVCFramework.RESTClient,
-  Vcl.DBCtrls;
+  Vcl.DBCtrls, Vcl.Buttons;
 
 type
   TMainForm = class(TForm)
@@ -41,10 +41,12 @@ type
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
     procedure btnRefreshRecordClick(Sender: TObject);
     procedure btnFilterClick(Sender: TObject);
+    procedure dsArticlesAfterPost(DataSet: TDataSet);
   private
     fFilter: string;
     fLoading: Boolean;
     fRESTClient: IMVCRESTClient;
+    fBkmrk: TArray<Byte>;
     { Private declarations }
     procedure ShowError(const AResponse: IMVCRESTResponse);
     procedure SetFilter(const Value: string);
@@ -58,7 +60,7 @@ var
 implementation
 
 uses
-  System.UITypes, MVCFramework.DataSet.Utils;
+  System.UITypes, MVCFramework.DataSet.Utils, MVCFramework.Commons, JsonDataObjects;
 
 {$R *.dfm}
 
@@ -120,6 +122,14 @@ begin
   end;
 end;
 
+procedure TMainForm.dsArticlesAfterPost(DataSet: TDataSet);
+begin
+  if DataSet.BookmarkValid(fBkmrk) then
+  begin
+    DataSet.GotoBookmark(fBkmrk);
+  end;
+end;
+
 procedure TMainForm.dsArticlesBeforeDelete(DataSet: TDataSet);
 var
   Res: IMVCRESTResponse;
@@ -147,11 +157,8 @@ begin
     begin
       ShowError(Res);
       Abort;
-    end
-    else
-    begin
-      DataSet.Refresh;
     end;
+    fBkmrk := DataSet.GetBookmark;
   end;
 end;
 
@@ -190,17 +197,26 @@ begin
 end;
 
 procedure TMainForm.ShowError(const AResponse: IMVCRESTResponse);
+var
+  lJSON: TJsonObject;
+  lMsg: string;
 begin
-  if not AResponse.Success then
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      '[' + AResponse.Content + ']',
-      mtError, [mbOK], 0)
+  if (not AResponse.Success) and
+    AResponse.ContentType.ToLower.Contains(TMVCMediaType.APPLICATION_JSON) then
+  begin
+    lJSON := StrToJSONObject(AResponse.Content);
+    try
+      lMsg := lJSON.S['message'];
+    finally
+      lJSON.Free
+    end;
+  end
   else
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      AResponse.Content,
-      mtError, [mbOK], 0);
+  begin
+    lMsg := AResponse.StatusCode.ToString + ': ' +
+            AResponse.StatusText + sLineBreak + '[' + AResponse.Content + ']';
+  end;
+  MessageDlg(lMsg, mtError, [mbOK], 0);
 end;
 
 end.

@@ -41,7 +41,6 @@ type
 
 var
   WebModuleClass: TComponentClass = TMyWebModule;
-  ConnectionDefinitionName: string = '';
 
 implementation
 
@@ -51,6 +50,7 @@ implementation
 uses
   System.IOUtils,
   MVCFramework.Commons,
+  MVCFramework.Middleware.ActiveRecord,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
   MVCFramework.Middleware.StaticFiles,
@@ -77,13 +77,10 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
-
   FMVC.AddController(TOtherController, '/api/foo');
-  FMVC.AddController(TMVCActiveRecordController,
-    function: TMVCController
-    begin
-      Result := TMVCActiveRecordController.Create(ConnectionDefinitionName);
-    end, '/api/entities');
+  FMVC.AddController(TMVCActiveRecordController, '/api/entities');
+  {Since 3.4.2-magnesium, TMVCActiveRecordMiddleware is required by TMVCActiveRecordController!}
+  FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

@@ -3,36 +3,42 @@ unit Controllers.Articles;
 interface
 
 uses
-  mvcframework,
-  mvcframework.Commons,
-  mvcframework.Serializer.Commons,
-  Controllers.Base;
+  MVCFramework,
+  MVCFramework.Commons,
+  System.Generics.Collections,
+  Controllers.Base,
+  BusinessObjects,
+  Services;
 
 type
-
   [MVCDoc('Resource that manages articles CRUD')]
   [MVCPath('/articles')]
   TArticlesController = class(TBaseController)
+  private
+    fArticlesService: IArticlesService;
   public
+    [MVCInject]
+    constructor Create(ArticlesService: IArticlesService); reintroduce;
+
     [MVCDoc('Returns the list of articles')]
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticles;
+    function GetArticles: IMVCResponse;
 
     [MVCDoc('Returns the list of articles')]
     [MVCPath('/searches')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticlesByDescription;
+    function GetArticlesByDescription(const [MVCFromQueryString('q', '')] Search: String): IMVCResponse;
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/meta')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticleMeta;
+    function GetArticleMeta: IMVCResponse;
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticleByID(id: Integer);
+    function GetArticleByID(id: Integer): IMVCResponse;
 
     [MVCDoc('Deletes the article with the specified id')]
     [MVCPath('/($id)')]
@@ -42,17 +48,17 @@ type
     [MVCDoc('Updates the article with the specified id and return "200: OK"')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateArticleByID(id: Integer);
+    function UpdateArticleByID(const [MVCFromBody] Article: TArticle; const id: Integer): IMVCResponse;
 
     [MVCDoc('Creates a new article and returns "201: Created"')]
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticle;
+    function CreateArticle(const [MVCFromBody] Article: TArticle): IMVCResponse;
 
     [MVCDoc('Creates new articles from a list and returns "201: Created"')]
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticles;
+    function CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>): IMVCResponse;
   end;
 
 implementation
@@ -60,134 +66,56 @@ implementation
 { TArticlesController }
 
 uses
-  Services,
-  BusinessObjects,
-  Commons,
-  mvcframework.Serializer.Intf,
-  System.Generics.Collections, System.SysUtils;
+  System.SysUtils;
 
-procedure TArticlesController.CreateArticle;
-var
-  Article: TArticle;
+constructor TArticlesController.Create(ArticlesService: IArticlesService);
 begin
-  Article := Context.Request.BodyAs<TArticle>;
-  try
-    GetArticlesService.Add(Article);
-    Render201Created('/articles/' + Article.id.ToString, 'Article Created');
-  finally
-    Article.Free;
-  end;
+  inherited Create;
+  fArticlesService := ArticlesService;
 end;
 
-procedure TArticlesController.CreateArticles;
-var
-  lArticles: TObjectList<TArticle>;
-  lArticle: TArticle;
+function TArticlesController.CreateArticle(const Article: TArticle): IMVCResponse;
 begin
-  lArticles := Context.Request.BodyAsListOf<TArticle>;
-  try
-    for lArticle in lArticles do
-    begin
-      GetArticlesService.Add(lArticle);
-    end;
-    Render(201, 'Articles Created');
-  finally
-    lArticles.Free;
-  end;
+  fArticlesService.Add(Article);
+  Result := CreatedResponse('/articles/' + Article.id.ToString, 'Article Created');
+end;
+
+function TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>): IMVCResponse;
+begin
+  fArticlesService.CreateArticles(ArticleList);
+  Result := CreatedResponse('', 'Articles created');
 end;
 
 procedure TArticlesController.DeleteArticleByID(id: Integer);
-var
-  Article: TArticle;
 begin
-  GetArticlesService.StartTransaction;
-  try
-    Article := GetArticlesService.GetByID(id);
-    try
-      GetArticlesService.Delete(Article);
-    finally
-      Article.Free;
-    end;
-    GetArticlesService.Commit;
-  except
-    GetArticlesService.Rollback;
-    raise;
-  end;
+  fArticlesService.Delete(fArticlesService.GetByID(id));
 end;
 
-procedure TArticlesController.GetArticles;
+function TArticlesController.GetArticles: IMVCResponse;
 begin
-  Render(
-    ObjectDict().Add('data', GetArticlesService.GetAll)
-    );
+  Result := OKResponse(fArticlesService.GetAll);
 end;
 
-procedure TArticlesController.GetArticlesByDescription;
-var
-  lSearch: string;
-  lDict: IMVCObjectDictionary;
+function TArticlesController.GetArticlesByDescription(const Search: String): IMVCResponse;
 begin
-  try
-    lSearch := Context.Request.Params['q'];
-    if lSearch = '' then
-    begin
-      lDict := ObjectDict().Add('data', GetArticlesService.GetAll);
-    end
-    else
-    begin
-      lDict := ObjectDict().Add('data', GetArticlesService.GetArticles(lSearch));
-    end;
-    Render(lDict);
-  except
-    on E: EServiceException do
-    begin
-      raise EMVCException.Create(E.Message, '', 0, 404);
-    end
-    else
-      raise;
-  end;
+  Result := OKResponse(fArticlesService.GetArticles(Search));
 end;
 
-procedure TArticlesController.UpdateArticleByID(id: Integer);
-var
-  Article: TArticle;
+function TArticlesController.UpdateArticleByID(const Article: TArticle; const id: Integer): IMVCResponse;
 begin
-  Article := Context.Request.BodyAs<TArticle>;
-  try
-    Article.id := id;
-    GetArticlesService.Update(Article);
-    Render(200, 'Article Updated');
-  finally
-    Article.Free;
-  end;
+  Article.id := id;
+  fArticlesService.Update(Article);
+  Result := OKResponse;
 end;
 
-procedure TArticlesController.GetArticleByID(id: Integer);
+function TArticlesController.GetArticleByID(id: Integer): IMVCResponse;
 begin
-  try
-    Render(ObjectDict().Add('data', GetArticlesService.GetByID(id)));
-  except
-    on E: EServiceException do
-    begin
-      raise EMVCException.Create(E.Message, '', 0, 404);
-    end
-    else
-      raise;
-  end;
+  Result := OKResponse(fArticlesService.GetByID(id));
 end;
 
-procedure TArticlesController.GetArticleMeta;
+function TArticlesController.GetArticleMeta: IMVCResponse;
 begin
-  try
-    Render(ObjectDict().Add('data', GetArticlesService.GetMeta));
-  except
-    on E: EServiceException do
-    begin
-      raise EMVCException.Create(E.Message, '', 0, 404);
-    end
-    else
-      raise;
-  end;
+  Result := OKResponse(fArticlesService.GetMeta);
 end;
 
 end.

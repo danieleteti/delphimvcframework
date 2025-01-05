@@ -2,10 +2,10 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
-// Contribution on this file: Copyright (c) 2018 - João Antônio Duarte
+// Contribution on this file: Copyright (c) 2018 - Joï¿½o Antï¿½nio Duarte
 //
 // ***************************************************************************
 //
@@ -24,7 +24,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //

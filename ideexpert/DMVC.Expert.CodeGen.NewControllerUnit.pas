@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX }
-// project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti. }
 //
 // The DUnitX project is run by Vincent Parrett and can be found at: }
 //
@@ -37,57 +37,50 @@ interface
 uses
   ToolsApi,
   System.IOUtils,
-  DMVC.Expert.CodeGen.NewUnit;
+  DMVC.Expert.CodeGen.NewUnit,
+  JsonDataObjects, DMVC.Expert.CodeGen.Executor;
 
 type
   TNewControllerUnitEx = class(TNewUnit)
   protected
-    FCreateIndexMethod: Boolean;
-    FCreateCRUDMethods: Boolean;
-    FCreateActionFiltersMethods: Boolean;
-    FControllerClassName: string;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
     constructor Create(
-      const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods: Boolean;
-      const AControllerClassName: string;
-      const APersonality: string = '');
+      const ConfigModelRef: TJSONObject;
+      const APersonality: string = ''); reintroduce;
   end;
 
-  TNewJSONRPCUnitEx = class(TNewUnit)
+  TTemplateLoadProcedure = procedure(Gen: TMVCCodeGenerator);
+
+  TNewGenericUnitFromTemplate = class(TNewUnit)
+  private
+    fTemplateLoadProcedure: TTemplateLoadProcedure;
+    fUnitIdentKeyName: string;
   protected
-    fJSONRPCClassName: String;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
-    constructor Create(const aJSONRPCClassName: String;
-      const APersonality: string = '');
+    constructor Create(
+      const ConfigModelRef: TJSONObject;
+      const TemplateLoadProcedure: TTemplateLoadProcedure;
+      const UnitIdentKeyName: String;
+      const APersonality: string = '');reintroduce;
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  VCL.Dialogs,
-  DMVC.Expert.CodeGen.Templates,
-  DMVC.Expert.CodeGen.SourceFile;
+  DMVC.Expert.CodeGen.SourceFile,
+  DMVC.Expert.Commands.Templates,
+  DMVC.Expert.Commons;
 
 constructor TNewControllerUnitEx.Create(
-  const aCreateIndexMethod, aCreateCRUDMethods,
-  aCreateActionFiltersMethods: Boolean;
-  const AControllerClassName: string;
+  const ConfigModelRef: TJSONObject;
   const APersonality: string = '');
 begin
-  Assert(Length(AControllerClassName) > 0);
-  FAncestorName := '';
-  FFormName := '';
-  FImplFileName := '';
-  FIntfFileName := '';
-  FControllerClassName := AControllerClassName;
-  FCreateIndexMethod := aCreateIndexMethod;
-  FCreateCRUDMethods := aCreateCRUDMethods;
-  FCreateActionFiltersMethods := aCreateActionFiltersMethods;
+  inherited Create(ConfigModelRef);
   Personality := APersonality;
 end;
 
@@ -97,81 +90,38 @@ var
   lUnitIdent: string;
   lFormName: string;
   lFileName: string;
-  lIndexMethodIntf: string;
-  lIndexMethodImpl: string;
-  lControllerUnit: string;
-  lActionFiltersMethodsIntf: string;
-  lActionFiltersMethodsImpl: string;
-  lCRUDMethodsIntf: string;
-  lCRUDMethodsImpl: string;
-  lBOClassesIntf: string;
-  lBOClassesImpl: string;
 begin
-  lControllerUnit := sControllerUnit;
-
-  lIndexMethodIntf := sIndexMethodIntf;
-  lIndexMethodImpl := Format(sIndexMethodImpl, [FControllerClassName]);
-
-  lCRUDMethodsIntf := sCRUDMethodsIntf;
-  lCRUDMethodsImpl := Format(sCRUDMethodsImpl, [FControllerClassName]);
-  lBOClassesIntf := sBOClassesIntf;
-  lBOClassesImpl := Format(sBOClassesImpl, ['TPerson']);
-
-
-  if not FCreateIndexMethod then
-  begin
-    lIndexMethodIntf := '';
-    lIndexMethodImpl := '';
-  end;
-
-  if not FCreateCRUDMethods then
-  begin
-    lCRUDMethodsIntf := '';
-    lCRUDMethodsImpl := '';
-    lBOClassesIntf := '';
-    lBOClassesImpl := '';
-  end;
-
-  lActionFiltersMethodsIntf := sActionFiltersIntf;
-  lActionFiltersMethodsImpl := Format(sActionFiltersImpl,
-    [FControllerClassName]);
-
-  if not FCreateActionFiltersMethods then
-  begin
-    lActionFiltersMethodsIntf := '';
-    lActionFiltersMethodsImpl := '';
-  end;
-
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lFormName, lFileName);
-  Result := TSourceFile.Create(sControllerUnit,
-    [
-      lUnitIdent,
-      FControllerClassName,
-      lIndexMethodIntf,
-      lIndexMethodImpl,
-      lActionFiltersMethodsIntf,
-      lActionFiltersMethodsImpl,
-      lCRUDMethodsIntf,
-      lCRUDMethodsImpl,
-      lBOClassesIntf,
-      lBOClassesImpl
-      ]);
+
+
+  fConfigModelRef.S[TConfigKey.controller_unit_name] := lUnitIdent;
+
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillControllerTemplates(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 { TNewJSONRPCUnitEx }
 
-constructor TNewJSONRPCUnitEx.Create(const aJSONRPCClassName,
-  APersonality: string);
+constructor TNewGenericUnitFromTemplate.Create(
+  const ConfigModelRef: TJSONObject;
+  const TemplateLoadProcedure: TTemplateLoadProcedure;
+  const UnitIdentKeyName: String;
+  const APersonality: string);
 begin
-  inherited Create;
-  fJSONRPCClassName := aJSONRPCClassName;
+  inherited Create(ConfigModelRef);
+  fTemplateLoadProcedure := TemplateLoadProcedure;
+  fUnitIdentKeyName := UnitIdentKeyName;
   Personality := aPersonality;
 end;
 
-function TNewJSONRPCUnitEx.NewImplSource(const ModuleIdent, FormIdent,
+function TNewGenericUnitFromTemplate.NewImplSource(const ModuleIdent, FormIdent,
   AncestorIdent: string): IOTAFile;
 var
   lUnitIdent: string;
@@ -180,14 +130,17 @@ var
 begin
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
-  lFileName := ''; //fJSONRPCClassName + 'U';
+  lFileName := '';
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lDummy, lFileName);
-  Result := TSourceFile.Create(sJSONRPCUnit,
-    [
-      lUnitIdent,
-      fJSONRPCClassName
-    ]);
+  fConfigModelRef.S[fUnitIdentKeyName] := lUnitIdent;
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      //FillJSONRPCTemplates(Gen);
+      fTemplateLoadProcedure(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 end.

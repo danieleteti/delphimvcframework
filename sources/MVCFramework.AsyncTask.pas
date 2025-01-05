@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,6 +34,7 @@ type
   TMVCAsyncBackgroundTask<T> =  reference to function: T;
   TMVCAsyncSuccessCallback<T> = reference to procedure(const BackgroundTaskResult: T);
   TMVCAsyncErrorCallback = reference to procedure(const Expt: Exception);
+  TMVCAsyncAlwaysCallback =  reference to procedure;
   TMVCAsyncDefaultErrorCallback = reference to procedure(const Expt: Exception;
     const ExptAddress: Pointer);
 
@@ -42,7 +43,8 @@ type
     class function Run<T>(
       Task: TMVCAsyncBackgroundTask<T>;
       Success: TMVCAsyncSuccessCallback<T>;
-      Error: TMVCAsyncErrorCallback = nil): ITask;
+      Error: TMVCAsyncErrorCallback = nil;
+      Always: TMVCAsyncAlwaysCallback = nil): ITask;
   end;
 
 var
@@ -66,7 +68,8 @@ uses
 class function MVCAsync.Run<T>(
   Task: TMVCAsyncBackgroundTask<T>;
   Success: TMVCAsyncSuccessCallback<T>;
-  Error: TMVCAsyncErrorCallback): ITask;
+  Error: TMVCAsyncErrorCallback;
+  Always: TMVCAsyncAlwaysCallback): ITask;
 var
   LRes: T;
 begin
@@ -98,12 +101,24 @@ begin
             LCurrException := Exception(Ex);
             try
               if Assigned(Error) then
-                Error(LCurrException)
+              begin
+                Error(LCurrException);
+              end
               else
+              begin
                 gDefaultTaskErrorHandler(LCurrException, ExceptionAddress);
+              end;
             finally
               FreeAndNil(LCurrException);
             end;
+          end);
+      end;
+      if Assigned(Always) then
+      begin
+        TThread.Queue(nil,
+          procedure
+          begin
+            Always();
           end);
       end;
     end);

@@ -35,9 +35,8 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config[TMVCConfigKey.SessionTimeout] := '30';
-      Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
-    end);
-  MVC
+      Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_PLAIN;
+    end)
     .AddController(TApp1MainController)
     .AddMiddleware(TMVCSalutationMiddleware.Create)
     .AddMiddleware(TMVCRedirectAndroidDeviceOnPlayStore.Create);

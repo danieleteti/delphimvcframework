@@ -52,17 +52,17 @@ This page is a showcase for all the mustache features usable from DMVCFramework 
     {{^people2}}
       <div>No People Found</div>
     {{/people2}} 
-		{{#people2}}
+	{{#people2}}
       <div>{{-index}}. {{first_name}} {{last_name}}</div>
     {{/people2}}
 	</div>
 </div>
 
 <div>	
-	<h2 class="section">Avoid HTML automatic escaping using {{=<% %>=}} {{{ content }}</h2>
-	<%={{ }}=%>	
+	<h2 class="section">Avoid HTML automatic escaping using {{=<% %>=}} {{ content }} <%={{ }}=%></h2>
+	
 	<div class="box">
-		{{#myobj}}
+	{{#myobj}}
       {{{rawhtml}}
     {{/myobj}}
     <br>
@@ -70,15 +70,97 @@ This page is a showcase for all the mustache features usable from DMVCFramework 
 	</div>	
 </div>
 
+{{<internal_partial}}
+  {{first_name}}, {{last_name}} (this is an internal partial (extension of dmustache))
+{{/internal_partial}}
+
 <div>	
 	<h2 class="section">Handling partials</h2>
 	<div>
+		<h2><pre>Using  >partial_person.mustache</pre></h2>
 		<ul>
 		{{#people}}
       <li>{{>partial_person}}</li>
     {{/people}}
     </ul>
 	</div>	
+	<div>
+		<h2><pre>Using  >partial_person2.mustache</pre></h2>	
+		<ul>
+		{{#people}}
+      <li>{{>partial_person2}}</li>
+    {{/people}}
+    </ul>
+	</div>	
+	<div>
+		<h2><pre>Using &lt;internal_partial</pre></h2>	
+		<ul>
+		{{#people}}
+      <li>{{>internal_partial}}</li>
+    {{/people}}
+    </ul>
+	</div>	
+</div>
+
+<div>	
+	<h2 class="section">Using Standard Helpers</h2>
+	<ul>
+	<li>Using syntax {{=<% %>=}} {{UpperCase "value as string" }} <%={{ }}=%> Helper UpperCase is invoked passing "value as string" as constant value.</li>
+	<li>Using syntax {{=<% %>=}} {{UpperCase first_name }} <%={{ }}=%> Helper UpperCase is invoked passing the value contained in the attribute first_name.</li>
+	<li>Helpers can be nested: {{=<% %>=}} {{UpperCase LowerCase last_name}} <%={{ }}=%> Helper LowerCase is invoked passing the value contained in the attribute last_name and then, the result, is passed to the helper UpperCase.</li>	
+	</ul>
+	<div>
+		{{#people}}
+		<div>{{-index}}. {{UpperCase first_name}} {{UpperCase LowerCase last_name}}</div>
+		{{/people}}
+	</div>
+	<hr>
+	<h3>dmustache provides the following helpers</h3>
+	<p>DateTimeToText</p>
+	<p>DateToText</p>
+	<p>DateFmt</p>
+	<p>TimeLogToText</p>
+	<p>JSONQuote</p>
+	<p>JSONQuoteURI</p>
+    <p>ToJSON</p>
+	<p>MarkdownToHtml</p>
+	<p>SimpleToHtml</p>
+	<p>WikiToHtml</p>
+	<p>BlobToBase64</p>
+	<p>EnumTrim</p>
+	<p>EnumTrimRight</p>
+	<p>PowerOfTwo</p>
+	<p>Equals</p>
+	<p>If</p>
+	<p>NewGUID</p>
+	<p>ExtractFileName</p>
+	<p>Lower</p>
+	<p>Upper</p>
+	<hr>
+	<h3>DMVCFramework provides some extensions to the dmustache helpers</h3>
+	<p>
+		{{=<% %>=}} {{UpperCase "daniele teti"}} <%={{ }}=%> outputs: {{UpperCase "daniele teti"}}
+	</p>
+	<p>
+		{{=<% %>=}} {{LowerCase "DANIELE TETI"}} <%={{ }}=%> outputs: {{LowerCase "daniele teti"}}
+	</p>
+	<p>
+		{{=<% %>=}} {{Capitalize "daniele teti"}} <%={{ }}=%> outputs: {{Capitalize "daniele teti"}}
+	</p>
+	<p>
+		{{=<% %>=}} {{SnakeCase "daniele teti"}} <%={{ }}=%> outputs: {{SnakeCase "daniele teti"}}
+	</p>
+</div>
+
+<div>	
+	<h2 class="section">Using Project Specific Helpers</h2>
+	<h3>Any project can define its own custom helpers</h3>
+	<p>
+	{{MyHelper1 "this is a text"}}
+	</p>
+	<p>
+	{{MyHelper2 "this is another text"}}
+	</p>
 </div>
 
 </body>

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -98,7 +98,7 @@ type
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
-    // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
+    // Overwritten by descendant if the SQL syntax requires more than the simple table name
     // or if the table name contains spaces.
     function GetTableNameForSQL(const TableName: string): string; virtual;
     // Overwritten by descendant if the SQL syntaxt requires more than the simple field name
@@ -315,7 +315,7 @@ begin
   end;
   if lMsg.Trim.IsEmpty then
     lMsg := '<EOF>';
-  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]);
+  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]){$IF DEFINED(MSWINDOWS)} at AddressOfReturnAddress{$ENDIF};
 end;
 
 procedure TRQL2SQL.Execute(

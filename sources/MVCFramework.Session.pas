@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,6 +29,7 @@ unit MVCFramework.Session;
 interface
 
 uses
+  System.Classes,
   System.SyncObjs,
   System.SysUtils,
   System.DateUtils,
@@ -124,7 +125,6 @@ implementation
 
 uses
   System.IOUtils,
-  System.Classes,
   MVCFramework.Serializer.Commons;
 
 var

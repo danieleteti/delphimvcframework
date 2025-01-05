@@ -54,7 +54,8 @@ uses
   Vcl.ExtActns, System.ImageList, Vcl.ImgList,
   LoggerPro.FileAppender,
   LoggerPro.VCLListBoxAppender,
-  LoggerPro;
+  LoggerPro, FireDAC.Moni.RemoteClient, FireDAC.Moni.Custom, FireDAC.Moni.Base,
+  FireDAC.Moni.FlatFile;
 
 type
   TSelectionType = (stAll, stNone, stInverse);
@@ -149,6 +150,10 @@ type
     Button6: TButton;
     gbOptions: TGroupBox;
     chkClassAsAbstract: TCheckBox;
+    FDMoniFlatFileClientLink1: TFDMoniFlatFileClientLink;
+    FDMoniCustomClientLink1: TFDMoniCustomClientLink;
+    FDMoniRemoteClientLink1: TFDMoniRemoteClientLink;
+    Label5: TLabel;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -540,12 +545,12 @@ begin
   lstSchema.Items.Clear;
   FDConnection.Params.Clear;
   FDConnection.Params.Text := mmConnectionParams.Text;
+  FDConnection.Params.AddPair('ExtendedMetadata','True'); //force ExtendedMetadata
   FDConnection.Open;
   lstSchema.Items.Clear;
   FDConnection.GetSchemaNames(FDConnection.Params.Database, '', lstSchema.Items);
   lstSchema.Items.Insert(0, '<all>');
   lstSchema.ItemIndex := 0;
-
 end;
 
 procedure TMainForm.DBGrid1CellClick(Column: TColumn);
@@ -781,13 +786,13 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  UILogFormat: String;
+//var
+//  UILogFormat: String;
 begin
-  UILogFormat := '%0:s [%2:-10s] %3:s';
+  //UILogFormat := '%0:s [%2:-10s] %3:s';
   Log := BuildLogWriter([
     TLoggerProFileAppender.Create,
-    TVCLListBoxAppender.Create(lbLog, 2000, UILogFormat)
+    TVCLListBoxAppender.Create(lbLog, 2000)
     ]);
   pcMain.ActivePageIndex := 0;
   fConfig := TJSONObject.Create;
@@ -886,7 +891,8 @@ begin
       Result := 'TDateTime {dtTimeIntervalFull}';
     dtDateTimeStamp:
       Result := 'TDateTime {dtDateTimeStamp}';
-
+    dtDateTimeStampOff:
+      Result := 'TDateTime {dtDateTimeStampOff}';
 //    dtAutoInc:
 //      Result := 'Integer {autoincrement}';
     dtBlob: //, { ftMemo, } dtGraphic, { ftFmtMemo, ftWideMemo, } dtStream:
@@ -1177,6 +1183,10 @@ begin
   if pcMain.ActivePage = tsTablesMapping then
   begin
     actRefreshTableList.Execute;
+    if EditOutputFileName.Text = '' then
+    begin
+      EditOutputFileName.Text := TPath.Combine(TPath.GetDocumentsPath, 'EntitiesU.pas');
+    end;
   end;
 end;
 

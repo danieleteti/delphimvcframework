@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //
@@ -47,7 +47,7 @@ type
 
 implementation
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 uses
   DMVC.Expert.Forms.NewUnitWizard,
@@ -55,7 +55,7 @@ uses
   VCL.Controls,
   VCL.Forms,
   WinApi.Windows,
-  ExpertsRepository;
+  ExpertsRepository, JsonDataObjects;
 
 resourcestring
   sNewDMVCUnitCaption = 'DelphiMVCFramework Controller';
@@ -72,20 +72,17 @@ begin
       ModuleServices: IOTAModuleServices;
       Project: IOTAProject;
       ControllerUnit: IOTAModule;
+      lJSON: TJSONObject;
     begin
       WizardForm := TfrmDMVCNewUnit.Create(Application);
       try
         if WizardForm.ShowModal = mrOk then
         begin
+          lJSON := WizardForm.GetConfigModel;
           ModuleServices := (BorlandIDEServices as IOTAModuleServices);
           Project := GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
-            TNewControllerUnitEx.Create(
-              WizardForm.CreateIndexMethod,
-              WizardForm.CreateCRUDMethods,
-              WizardForm.CreateActionFiltersMethods,
-              WizardForm.ControllerClassName,
-              APersonality));
+            TNewControllerUnitEx.Create(lJSON, APersonality));
           if Project <> nil then
           begin
             Project.AddFile(ControllerUnit.FileName, true);

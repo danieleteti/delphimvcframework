@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Books Search</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org/dist/htmx.min.js"></script>
+  <style>
+    .smooth {
+      transition: all 3s ease-in;
+    }  
+  </style>
+  <style>
+
+div {
+  padding: 0.2rem !important;
+  padding-left: 0.3rem !important;
+}
+div.blueTable {
+  font-family: Tahoma, Geneva, sans-serif;
+  border: 1px solid #1C6EA4;
+  background-color: #EEEEEE;
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+.divTable.blueTable .divTableCell, .divTable.blueTable .divTableHead {
+  padding: 3px 2px;
+}
+.divTable.blueTable .divTableBody .divTableCell {
+  font-size: 14px;
+}
+.divTable.blueTable .divTableRow:nth-child(even) {
+  background: #D0E4F5;
+}
+.divTable.blueTable .divTableHeading {
+  background: #1C6EA4;
+  border-bottom: 2px solid #444444;
+}
+.divTable.blueTable .divTableHeading .divTableHead {
+  font-size: 18px;
+  color: #FFFFFF;
+  text-align: left;
+}
+.blueTable .tableFootStyle {
+  font-size: 14px;
+}
+.blueTable .tableFootStyle .links {
+	 text-align: right;
+}
+.blueTable .tableFootStyle .links a{
+  display: inline-block;
+  background: #1C6EA4;
+  color: #FFFFFF;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+.blueTable.outerTableFooter {
+  border-top: none;
+}
+.blueTable.outerTableFooter .tableFootStyle {
+  padding: 3px 5px; 
+}
+/* HTMLtable.com */
+.divTable{ display: table; }
+.divTableRow { display: table-row; }
+.divTableHeading { display: table-header-group;}
+.divTableCell, .divTableHead { display: table-cell; }
+.divTableHeading { display: table-header-group;}
+.divTableFoot { display: table-footer-group;}
+.divTableBody { display: table-row-group;}
+  </style>
+{{block "headers"}}{{endblock}}
+</head>
+
+<body hx-indicator="#spinner">
+  <section class="section">
+    {{block "body"}}{{endblock}}
+  </section>
+
+  <div class="content has-text-centered">
+    <p>
+      <strong><a href="https://github.com/danieleteti/templatepro">TemplatePRO</a> {{:|version}}</strong> by <a
+        href="https://www.danieleteti.it">Daniele Teti</a>.
+
+      The source code is licensed <a
+        href="https://github.com/danieleteti/templatepro?tab=Apache-2.0-1-ov-file#readme">Apache 2.0</a>.
+    </p>
+  </div>
+</body>
+
+</html>

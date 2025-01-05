@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -60,7 +60,7 @@ begin
   begin
     if TRQLLimit(lLimit).Count = 0 then
     begin
-      raise ERQLException.Create('MSSQL Server do not support "FETCH NEXT 0"');
+      raise ERQLException.Create('MSSQL Server doesn''t support "FETCH NEXT 0"');
     end;
     if not aRQLAST.TreeContainsToken(tkSort, lTmp) then
     begin

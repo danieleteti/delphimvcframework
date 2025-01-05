@@ -1,0 +1,88 @@
+{{if ispage}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/htmx.org@latest"></script>
+    <title>HTMX App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />    
+    <style>
+        :root {
+            --pico-spacing: 0rem;
+        }
+
+        body {
+            margin: 0px;
+        }
+
+        .parent {                  
+            margin: 0px;            
+            display: grid;
+            grid-template-columns: 10rem auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+            grid-row-gap: 0px;            
+            height: 100vh;
+        }
+
+        #sidenav {
+            padding: 0.5rem;
+            background-color: rgb(1, 76, 117);
+        }
+
+        #sidenav > a {
+            padding : 0.3rem;            
+            padding-left: 0.5rem;
+            color: white;
+            display: block; 
+            cursor: pointer;        
+            text-decoration: none;  
+            margin-top: 0.2rem;  
+        }
+
+        #sidenav > .selected {
+            background-color: rgb(0, 165, 248);
+        }
+
+        #sidenav > a:hover {
+            background-color: rgb(1, 140, 212);
+        }
+
+        .main {
+            padding: 1rem;
+        }
+
+        .right {
+            text-align: end;
+        }
+
+        .center {
+            text-align: center;
+        }        
+
+        table, tr, td, th{
+            padding: 0.2rem;
+        }
+
+    </style>
+</head>
+
+<body>
+    <main class="container-fluid">
+        <div class="parent">
+            <!-- Side Navigation -->
+            {{include "partials/sidenav.html"}}
+            <!-- Main Content Area -->
+            <div class="main" id="main">
+{{endif}}            
+{{block "body"}}Please, override block "body"{{endblock}}
+{{if ispage}}
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+{{endif}}

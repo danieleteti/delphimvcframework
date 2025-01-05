@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html>
+<header>
+    <style>
+    body {
+		  font-family: Consolas, 'Courier New';
+		}
+		
+		blockquote {
+		   font-style: italic;
+		   color: #a0a0a0;
+		   padding: 0.2em;
+		}
+		
+		.section {
+		  background-color: #3a3a3a;
+		  color: white;
+			border-left: 0.5em red solid;
+			padding: 0.5em;		  
+		}
+		
+		.box {
+			border: thin black solid;
+			margin: auto;
+			width: 80%;
+			padding: 2em;
+		}
+    </style>
+</header>
+
+<body>
+<h1>TemplatePro Showcase</h1>
+<p>
+This page is a showcase for all the TemplatePro features usable from DMVCFramework Server Side Views using the default TemplatePro engine.	    
+</p>
+
+<div>	
+	<h2 class="section">List of objects</h2>
+	<div>
+	{{if people}}
+	<div>No People Found</div>
+	{{else}}
+		{{for person in people}}
+		<div>{{:person.@@index}}. {{:person.FirstName}} {{:person.LastName}}</div>
+		{{endfor}}
+	{{endif}}
+	</div>
+</div>
+
+<div>	
+	<h2 class="section">Handle empty list of objects</h2>
+	<div>
+    {{if !people2}}
+      <div>No People Found</div>
+    {{else}} 
+		{{for person in people2}}
+		<div>{{:person.@@index}}. {{:person.FirstName}} {{:person.LastName}}</div>
+		{{endfor}}
+    {{endif}}
+	</div>
+</div>
+
+<div>	
+	<h2 class="section">Avoid HTML automatic escaping using {{{variablename$}} (put a $ after variable name)</h2>
+	
+	<div class="box">
+	{{:myobj.rawhtml$}}
+    <br>
+		<blockquote >Check source code to know how to escape curly braces</blockquote >    
+	</div>	
+</div>
+
+<div>	
+	<h2 class="section">Handling Include</h2>
+	<div>
+		<h2><pre>Using include("partial_person.tpro")</pre></h2>
+		<ul>
+		{{for person in people}}
+      <li>{{include "partial_person.tpro"}}</li>
+        {{endfor}}
+    </ul>
+	</div>	
+</div>
+
+<div>	
+	<h2 class="section">Using Filters</h2>
+	<ul>
+	<li>Using syntax {{{"value as string"|uppercase}} = {{"value as string"|uppercase}} Filter "uppercase" is invoked passing "value as string" as constant value.</li>
+	<li>Using syntax {{{first_name|uppercase}} = {{:first_name|uppercase}} Filter "uppercase" is invoked passing the value contained in the attribute first_name.</li>
+	<li>Helpers cannot be nested (yet)</li>	
+	</ul>
+	<div>
+		{{for person in people}}
+		<div>{{:person.@@index}}. {{:person.FirstName|uppercase}} {{:person.FirstName|uppercase}}</div>
+		{{endfor}}
+	</div>
+	<hr>
+	<h3>TemplatePro provides the following built-in helpers</h3>
+	<p>uppercase</p>
+	<p>lowercase</p>
+	<p>capitalize</p>
+	<p>rpad</p>
+	<p>lpad</p>
+	<p>datetostr</p>
+	<p>datetimetostr</p>
+    <p>formatdatetime</p>
+	<hr>
+	<h3>DMVCFramework provides some extensions to the TemplatePro helpers</h3>
+	<p>json</p>
+	<p>
+		<h3>Serialize an iterator to json</h3>
+		{{for person1 in people}}
+		<pre>{{:person1|json}}</pre>
+		{{endfor}}		
+
+		<h3>Serialize a list of objects to json</h3>
+		{{:people|json}}
+	</p>
+</div>
+
+<div>	
+	<h2 class="section">Using Project Specific Helpers</h2>
+	<h3>Any project can define its own custom helpers</h3>
+	<p>
+	{{"this is a text"|MyHelper1}}
+	</p>
+	<p>
+	{{"this is another text"|MyHelper2}}
+	</p>
+</div>
+
+<div>	
+	<h2 class="section">Using OnGetValue event</h2>
+	<p>
+	  <p>{{:ext1}}</p>
+	  
+	  <p>{{:ext1.field1}}</p>
+	
+	  <p>{{:ext1.field1.value}}</p>
+	
+	</p>
+</div>
+
+
+</body>
+</html>        

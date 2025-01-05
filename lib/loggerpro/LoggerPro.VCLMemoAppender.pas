@@ -1,6 +1,28 @@
+// *************************************************************************** }
+//
+// LoggerPro
+//
+// Copyright (c) 2010-2024 Daniele Teti
+//
+// https://github.com/danieleteti/loggerpro
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit LoggerPro.VCLMemoAppender;
-{ <@abstract(The unit to include if you want to use the @link(TVCLMemoLogAppender))
-  @author(Daniele Teti) }
 
 interface
 
@@ -17,7 +39,7 @@ type
     FMaxLogLines: Word;
     FClearOnStartup: Boolean;
   public
-    constructor Create(aMemo: TMemo; aMaxLogLines: Word = 100; aClearOnStartup: Boolean = False; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+    constructor Create(aMemo: TMemo; aMaxLogLines: Word = 100; aClearOnStartup: Boolean = False; aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -32,9 +54,9 @@ uses
 
 { TVCLMemoLogAppender }
 
-constructor TVCLMemoLogAppender.Create(aMemo: TMemo; aMaxLogLines: Word; aClearOnStartup: Boolean; aLogFormat: string);
+constructor TVCLMemoLogAppender.Create(aMemo: TMemo; aMaxLogLines: Word; aClearOnStartup: Boolean; aLogItemRenderer: ILogItemRenderer);
 begin
-  inherited Create(aLogFormat);
+  inherited Create(aLogItemRenderer);
   FMemo := aMemo;
   FMaxLogLines := aMaxLogLines;
   FClearOnStartup := aClearOnStartup;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //
@@ -36,56 +36,58 @@ interface
 
 uses
   ToolsAPI,
-  DMVC.Expert.CodeGen.NewProject;
+  DMVC.Expert.CodeGen.NewProject, JsonDataObjects;
 
 type
   TDMVCProjectFile = class(TNewProjectEx)
   private
-    FDefaultPort: Integer;
-    procedure SetDefaultPort(const Value: Integer);
+    fConfigModelRef: TJsonObject;
   protected
     function NewProjectSource(const ProjectName: string): IOTAFile; override;
     function GetFrameworkType: string; override;
   public
     constructor Create; overload;
-    constructor Create(const APersonality: string); overload;
-    property DefaultPort: Integer read FDefaultPort write SetDefaultPort;
+    constructor Create(const APersonality: string; const ConfigModelRef: TJSONObject); overload;
   end;
 
 implementation
 
 uses
   DMVC.Expert.CodeGen.SourceFile,
-  DMVC.Expert.CodeGen.Templates,
-  System.SysUtils;
+  System.SysUtils,
+  DMVC.Expert.CodeGen.Executor,
+  DMVC.Expert.Commands.Templates,
+  DMVC.Expert.Commons;
 
 constructor TDMVCProjectFile.Create;
 begin
   // TODO: Figure out how to make this be DMVCProjectX where X is the next available.
   // Return Blank and the project will be 'ProjectX.dpr' where X is the next available number
+  inherited;
   FFileName := '';
-  FDefaultPort := 0;
 end;
 
-constructor TDMVCProjectFile.Create(const APersonality: string);
+constructor TDMVCProjectFile.Create(const APersonality: string; const ConfigModelRef: TJSONObject);
 begin
   Create;
   Personality := APersonality;
+  fConfigModelRef := ConfigModelRef;
 end;
 
 function TDMVCProjectFile.GetFrameworkType: string;
 begin
-  Result := 'VCL';
+  Result := 'FMX';
 end;
 
 function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;
 begin
-  Result := TSourceFile.Create(sDMVCDPR, [ProjectName, FDefaultPort]);
-end;
-
-procedure TDMVCProjectFile.SetDefaultPort(const Value: Integer);
-begin
-  FDefaultPort := Value;
+  fConfigModelRef.S[TConfigKey.program_name] := ProjectName;
+  Result := TSourceFile.Create(
+    procedure (Gen: TMVCCodeGenerator)
+    begin
+      FillProgramTemplates(Gen);
+    end,
+    fConfigModelRef);
 end;
 
 end.

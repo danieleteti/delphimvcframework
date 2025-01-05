@@ -23,7 +23,7 @@ uses
   FireDAC.DApt,
   FireDAC.Comp.DataSet,
   FireDAC.Phys.FBDef,
-  FireDAC.VCLUI.Wait;
+  FireDAC.VCLUI.Wait, Services;
 
 type
   TdmMain = class(TDataModule)
@@ -34,7 +34,9 @@ type
   private
     { Private declarations }
   public
+    constructor Create; reintroduce;
     function SearchProducts(const SearchText: string): TDataSet;
+
   end;
 
 implementation
@@ -44,36 +46,17 @@ implementation
 
 uses
   System.IOUtils,
+  MVCFramework.Commons,
   MVCFramework.DataSet.Utils;
 
 procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
-var
-  I: Integer;
-  lPath: string;
 begin
-  {
-    This code is just a demo. It looks for a db file doing up to 6 attempts.
-    I need this becouse this unit is used by many samples and these samples are
-    compiled at different level in the samples folders tree.
-    In a real word system you should (!!) know where your database is :-)
-  }
-  lPath := 'data\ORDERSMANAGER_FB40.FDB'; {Firebird 4.0}
-  for I := 1 to 6 do
-  begin
-    if TFile.Exists(lPath) then
-    begin
-      Connection.Params.Values['Database'] := TPath.GetFullPath(lPath);
-      Break;
-    end
-    else
-    begin
-      lPath := '..\' + lPath;
-    end;
-  end;
-  if not TFile.Exists(lPath) then
-  begin
-    raise Exception.Create('I tried hard, but I cannot find the database');
-  end;
+  Connection.Params.Values['Database'] := dotEnv.Env('database.path');
+end;
+
+constructor TdmMain.Create;
+begin
+  inherited Create(nil);
 end;
 
 function TdmMain.SearchProducts(const SearchText: string): TDataSet;

@@ -10,12 +10,10 @@ object MultipleLoggersForm: TMultipleLoggersForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   DesignSize = (
     900
     350)
-  PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 8
@@ -34,8 +32,6 @@ object MultipleLoggersForm: TMultipleLoggersForm
     ScrollBars = ssVertical
     TabOrder = 0
     WordWrap = False
-    ExplicitWidth = 567
-    ExplicitHeight = 146
   end
   object btnFormLocalLog: TButton
     Left = 8

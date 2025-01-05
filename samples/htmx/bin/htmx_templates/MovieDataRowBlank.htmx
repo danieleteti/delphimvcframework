@@ -1,0 +1,4 @@
+{{! blank row to be inserted to allow Insert button to find a target 
+Ensure colspan matches the table
+}}
+<tr id="insertMovie" style="display:none"><td colspan="6"></td></tr>

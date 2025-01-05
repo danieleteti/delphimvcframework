@@ -1,0 +1,11 @@
+<div class="row padding mx-auto">
+    <div class="col-2 text-start">
+        <a href="/people/exports/csv" class="btn btn-secondary" download="people.csv" target="_blank">Export as CSV</a>
+    </div>
+    <div class="offset-8 col-2 text-end">
+        <!-- <button class="btn btn-primary" hx-on:click="window.location.href = '/people/new'">Add New Person</button> -->
+        <button class="btn btn-primary" hx-target="#main" hx-push-url="true" hx-get="/people/new">Add New Person</button>         
+    </div>
+</div>
+
+{{include "partials/modal_placeholder.html"}}

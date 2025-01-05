@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // Contributor of this file: Janidan - https://github.com/janidan
 //
@@ -72,7 +72,7 @@ type
 
     function ResolveRole(const AContext: TWebContext; const aRole: string): string;
     function CreateParameterNameList(const aTemplate: string): TList<string>;
-  public
+  protected
     procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
 
@@ -82,6 +82,7 @@ type
 
     procedure OnAuthorization(const AContext: TWebContext; UserRoles: TList<string>;
       const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean); overload; virtual;
+  public
     constructor Create;
     destructor Destroy; override;
   end;
@@ -138,6 +139,7 @@ function TRoleBasedAuthHandler.CheckUserRoles(const AContext: TWebContext; const
 var
   vAttribute: MVCRequiresRoleAttribute;
   vSingleRole: string;
+  lRoleToCheck: string;
 begin
   // By default we will say that you are good to go.
   Result := True;
@@ -152,16 +154,25 @@ begin
     if (vAttribute.RoleEval = MVCRoleEval.reAND) then
     begin
       for vSingleRole in vAttribute.GetRoles do
-        if not AUserRoles.Contains(ResolveRole(AContext, vSingleRole)) then
+      begin
+        lRoleToCheck := ResolveRole(AContext, vSingleRole);
+        if not AUserRoles.Contains(lRoleToCheck) then
+        begin
           Exit(False);
+        end;
+      end;
     end
     else // OR evaluation
     begin
       // By default we assume we have not found the role.
       Result := False;
       for vSingleRole in vAttribute.GetRoles do
+      begin
         if AUserRoles.Contains(ResolveRole(AContext, vSingleRole)) then
+        begin
           Result := True;
+        end;
+      end;
       // If one of the roles does not match we exit the check.
       if not Result then
         Exit;

@@ -51,12 +51,12 @@
 
 			<div class="row">				
 				<div class="form-group">			
-					<label for="items" class="col-sm-2 control-label">Devices</label>					
+					<label for="devices" class="col-sm-2 control-label">Devices</label>					
 					<div class="col-sm-4">
-						<select name="items" multiple class="form-control">
-						{{#deviceslist}}
-							<option value="{{devicename}}" {{#selected}}selected{{/selected}}>{{devicename}}</option>
-						{{/deviceslist}}							
+						<select name="devices" multiple class="form-control">
+						{{#devices}}
+							<option value="{{name}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+						{{/devices}}							
 						</select>			
 						<span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						
 					</div>		

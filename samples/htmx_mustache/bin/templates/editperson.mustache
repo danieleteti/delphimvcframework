@@ -1,0 +1,72 @@
+﻿<form class="form form-horizontal" id="myForm" name="myForm" hx-post="/people">
+  <input type="hidden" value="{{person.guid}}" name="guid">
+  <div class="row">
+    <div class="col">
+      {{^person}}
+      <h3>New Person</h3>
+      {{/person}} {{#person}}
+      <h3>Edit Person</h3>
+      {{/person}}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="form-group">
+        <label for="first_name" class="control-label">First name</label>
+        <input type="text" value="{{person.first_name}}" class="form-control" id="first_name" placeholder="First name" name="first_name" autocomplete="first_name" >
+      </div>
+    </div>
+    <div class="col">        
+      <div class="form-group">
+        <label for="last_name" class="control-label">Last name</label>
+        <input type="text" value="{{person.last_name}}" class="form-control" id="last_name" placeholder="Last name" name="last_name">
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="form-group">
+        <label for="age" class="control-label">Age</label>
+        <input type="number" value="{{person.age}}" class="form-control" id="age" placeholder="Age" name="age">
+      </div>
+    </div>
+
+    <div class="col">      			
+      <div class="form-group">			
+        <label for="items" class="col-sm-10 control-label">Devices</label>					
+          <select id="items" name="items" multiple class="form-control">
+          {{#deviceslist}}
+            <option value="{{devicename}}" {{#selected}}selected{{/selected}}>{{devicename}}</option>
+          {{/deviceslist}}							
+          </select>			
+          <span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						
+      </div>		
+    </div>		
+  </div>
+
+  <div class="row" style="padding-top:2rem">
+    <div class="col">
+      <button type="button" class="btn btn-secondary btn-block w-100" onclick="history.back()">Return to the list</button>
+    </div>      
+    <div class="col offset-4">
+    </div>
+    <div class="col">
+      <button type="submit" class="btn btn-primary btn-block w-100">Save</button> 
+    </div>
+    <div class="col">        
+      {{#person}}
+        <button 
+          type="button" 
+          hx-confirm="Are you sure you wish to delete user?" 
+          hx-delete="/people/delete/{{#person}}{{guid}}{{/person}}" 
+          class="btn btn-danger btn-block w-100">
+            Delete
+          </button> 
+      {{/person}} 
+    </div>
+
+  </div>
+
+</form>

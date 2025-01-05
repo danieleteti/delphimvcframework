@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -100,15 +100,9 @@ var
 
 implementation
 
-uses
-  WinAPI.Windows;
-
-
 { TObjectPool<T> }
 
 constructor TObjectPool<T>.Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T>);
-var
-  i: Integer;
 begin
   inherited Create;
   fOnResetState := nil;
@@ -226,12 +220,10 @@ end;
 
 procedure TCleanupThread<T>.Execute;
 var
-  lTargetSize: Integer;
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
   lSampleTick: Integer;
 begin
-  lArrIndex := 0;
   lSampleTick := 0;
   while not Terminated do
   begin
@@ -243,7 +235,7 @@ begin
       fObjectPool.Lock;
       try
         fObjectPool.ShrinkPoolTo(fObjectPool.fShrinkTargetSize);
-        ZeroMemory(@lAvgSize, SizeOf(lAvgSize));
+        FillChar(lAvgSize, SizeOf(lAvgSize), 0);
       finally
         fObjectPool.UnLock;
       end;

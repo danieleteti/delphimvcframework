@@ -92,7 +92,7 @@ var
   vSchemaKind: TSchemaKind;
   vClass: TPersistentClass;
 begin
-  Result := nil;
+  //Result := nil; //dt
   vSchemaKind := GetSchemaKind<T>;
   if (vSchemaKind = skUnknown) then
     raise ETypeNotSupportedByAField.Create(c_ErrorTypeNotSupportedByAField);
@@ -100,7 +100,7 @@ begin
   case vSchemaKind of
     skObject:
     begin
-      vClass := FindClass(string(PTypeInfo(System.TypeInfo(T))^.Name));
+      vClass := FindClass(string(PTypeInfo(System.TypeInfo(T))^.NameFld.ToString));
       if not vClass.InheritsFrom(TJsonField) then
         raise ETypeNotSupportedByAField.Create(c_ErrorTypeNotSupportedByAField);
       Result := TJsonFieldClass(vClass);
@@ -129,7 +129,7 @@ end;
 function TJsonSchema.GetSchemaKind<T>: TSchemaKind;
 var
   vTypeInfo: PTypeInfo;
-  vClass: TPersistentClass;
+  //vClass: TPersistentClass;   //dt
 begin
   Result := skUnknown;
   vTypeInfo := System.TypeInfo(T);
@@ -142,25 +142,25 @@ begin
     tkString, tkUString, tkChar: Result := skString;
     tkRecord:
     begin
-      if (LowerCase(string(vTypeInfo^.Name)) = 'tguid') then
+      if vTypeInfo = System.TypeInfo(TGuid) then
         Result := skGuid
     end;
     tkInteger: Result := skInteger;
     tkInt64: Result := skInt64;
     tkEnumeration:
     begin
-      if (LowerCase(string(vTypeInfo^.Name)) = 'boolean') then
+      if vTypeInfo = System.TypeInfo(Boolean) then
         Result := skBoolean
       else
         Result := skEnumeration;
     end;
     tkFloat:
     begin
-      if (LowerCase(string(vTypeInfo^.Name)) = 'tdatetime') then
+      if vTypeInfo = System.TypeInfo(TDateTime) then
         Result := skDateTime
-      else if (LowerCase(string(vTypeInfo^.Name)) = 'tdate') then
+      else if vTypeInfo = System.TypeInfo(TDate) then
         Result := skDate
-      else if (LowerCase(string(vTypeInfo^.Name)) = 'ttime') then
+      else if vTypeInfo = System.TypeInfo(TTime) then
         Result := skTime
       else
         Result := skNumber;

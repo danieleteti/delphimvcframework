@@ -1,8 +1,8 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -155,19 +155,9 @@ type
 implementation
 
 uses
-  // ObjectsMappers,
+  JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
-
-{$IFDEF SYSTEMJSON}
-  System.JSON,
-
-{$ELSE}
-  Data.DBXJSON,
-  Data.SqlExpr,
-  DBXCommon,
-
-{$ENDIF}
   MVCFramework.Rtti.Utils,
   MVCFramework.DuckTyping,
   Generics.Collections,
@@ -217,7 +207,7 @@ end;
 
 destructor TRESTAdapter<T>.Destroy;
 begin
-  // Ezequiel J. Müller (If it is created outside, it must be destroyed out)
+  // Ezequiel J. Mï¿½ller (If it is created outside, it must be destroyed out)
   // d.spinetti added RESTClientOwner to manage desctruction of RESTClient and free its associated memory
 //  if RESTClientOwner and Assigned(fRESTClient) then
 //    fRESTClient.Free;
@@ -274,6 +264,16 @@ begin
       lResp := fRESTClient.Post(lURL, lBody);
     httpDELETE:
       lResp := fRESTClient.Delete(lURL);
+    httpPATCH:
+      lResp := fRESTClient.Patch(lURL, lBody);
+    httpOPTIONS:
+      lResp := fRESTClient.Options(lURL);
+    httpHEAD:
+      lResp := fRESTClient.Head(lURL);
+    else
+    begin
+      raise Exception.Create('Invalid HTTP method');
+    end;
   end;
 
   // if is a procedure no need a return type
@@ -347,8 +347,12 @@ begin
   lURLDict := TDictionary<string, string>.Create;
   try
     for lSplit in lSplitUrl do
+    begin
       if not lSplit.IsEmpty then
+      begin
         lURLDict.Add(lSplit, lSplit);
+      end;
+    end;
     lParameters := aMethod.GetParameters;
     // lArg := aArgs[I+1] because
     // aArgs	RTTI for the arguments of the interface method that has been called. The first argument (located at index 0) represents the interface instance itself.
@@ -362,12 +366,17 @@ begin
     end;
 
     for lSplit in lSplitUrl do
+    begin
       if not lSplit.IsEmpty then
+      begin
         Result := Result + URL_SEPARATOR + lURLDict[lSplit];
+      end;
+    end;
 
     if lURL.EndsWith(URL_SEPARATOR) and not (Result.EndsWith(URL_SEPARATOR)) then
+    begin
       Result := Result + URL_SEPARATOR;
-
+    end;
   finally
     lURLDict.Free;
   end;
@@ -387,12 +396,12 @@ begin
       GetDefaultSerializer.DeserializeCollection(aResp.Content, aResult.AsObject, lAttrListOf.Value);
     end
     // JSONValue
-    else if aRttiType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
+    else if aRttiType.AsInstance.MetaclassType.InheritsFrom(TJsonBaseObject) then
     begin
-      aResult := TJSONObject.ParseJSONValue(aResp.Content);
-      // Object
+      aResult := TJsonBaseObject.Parse(aResp.Content);
     end
     else
+    // Object
     begin
       aResult := TRttiUtils.CreateObject(aRttiType.QualifiedName);
       GetDefaultSerializer.DeserializeObject(aResp.Content, aResult.AsObject);

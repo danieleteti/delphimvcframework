@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -298,7 +298,7 @@ var
 begin
   AContext.SessionStop(False);
   AContext.LoggedUser.Clear;
-  if not AContext.Request.ThereIsRequestBody then
+  if not AContext.Request.HasBody then
   begin
     AHandled := True;
     AContext.Response.StatusCode := HTTP_STATUS.BadRequest;

@@ -1,0 +1,2 @@
+﻿{{for person in people}}{{:person.guid}};"{{:person.FirstName}}";"{{:person.LastName}}";{{:person.Age}}
+{{endfor}}

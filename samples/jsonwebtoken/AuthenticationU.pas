@@ -25,7 +25,8 @@ implementation
 
 { TMVCAuthorization }
 
-procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string;
+procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext;
+  const UserName: string;
   const Password: string;
   UserRoles: TList<System.string>;
   var IsValid: Boolean; const SessionData: TSessionData);

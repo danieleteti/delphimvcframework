@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1469,8 +1469,12 @@ begin
 
       httpPATCH:
         begin
+          {$if Defined(TOKYOORBETTER)}
+          FHTTP.Patch(AResource, RawBody, Result.Body);
+          {$else}
           raise ERESTClientException.Create
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
+          {$endif}
         end;
 
       httpDELETE:

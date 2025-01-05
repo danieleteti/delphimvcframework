@@ -15,6 +15,7 @@ object frmDMVCNewUnit: TfrmDMVCNewUnit
   Font.Style = []
   Position = poMainFormCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     271
     236)

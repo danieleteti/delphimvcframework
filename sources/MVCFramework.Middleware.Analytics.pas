@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -59,7 +59,8 @@ function GetAnalyticsDefaultLogger: ILogWriter;
 implementation
 
 uses
-  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, MVCFramework.Commons;
+  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, MVCFramework.Commons,
+  System.IOUtils;
 
 var
   GLogWriter: ILogWriter = nil;
@@ -78,7 +79,8 @@ begin
     try
       if GLogWriter = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
       begin
-        lLog := TLoggerProSimpleFileAppender.Create(10, 5000, AppPath + 'analytics', [], '%s.%2.2d.csv' {'%s.%2.2d.%s.csv'});
+        lLog := TLoggerProSimpleFileAppender.Create(10, 5000, AppPath + 'analytics',
+          TPath.ChangeExtension(TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT,'csv'));
         TLoggerProAppenderBase(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
           begin
             LogRow := Format('%s;%s;%s', [

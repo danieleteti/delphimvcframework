@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+    
         {
             "name": "Python TASK generate-nullable",
             "type": "python",
@@ -15,12 +17,34 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python TASK build-samples",
+            "name": "build-core",
+            "type": "python",
+            "request": "launch",
+            "module": "invoke",
+            "args": [
+                "build-core"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "build-samples",
             "type": "python",
             "request": "launch",
             "module": "invoke",
             "args": [
                 "build-samples"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "release",
+            "type": "python",
+            "request": "launch",
+            "module": "invoke",
+            "args": [
+                "release",
+                "--skip-build",
+                "--skip-tests"
             ],
             "console": "integratedTerminal"
         }

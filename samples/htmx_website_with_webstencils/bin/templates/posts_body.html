@@ -1,0 +1,19 @@
+<h1 class="text-2xl font-bold mb-4">Posts</h1>
+@foreach (var p in posts){
+<p>
+<article style="padding: 0.6rem">
+    <header style="font-size: 140%">
+        @(MyHelper2("ciao mondo"))
+        @(uppercase(p.title))
+    </header>
+        @p.abstract
+    <footer>
+        <div class="grid">
+            <div><small>words @p.word_count</small></div>
+            <div><small>comments @p.comments</small></div>
+            <div class="right"><small>date @p.post_date</small></div>
+        </div>
+    </footer>
+</article>
+</p>
+}

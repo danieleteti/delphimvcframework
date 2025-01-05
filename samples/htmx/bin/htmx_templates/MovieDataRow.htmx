@@ -1,0 +1,15 @@
+{{#page.IncludeBlankRow}}
+	{{> MovieDataRowBlank}}
+{{/page.IncludeBlankRow}}
+
+{{#Movies}}
+<tr class="table-light" hx-get="/movie/{{MovieID}}/edit" hx-trigger="dblclick" hx-swap="outerHTML">
+      <td>{{MovieID}}</td>
+      <td>{{MovieName}}</td>
+      <td>{{Rating}}</td>
+      <td>{{GenreName}}</td>
+      <td>{{ReleaseDate}}</td>
+      <td>{{Current}}</td>
+</tr>
+{{/Movies}}
+

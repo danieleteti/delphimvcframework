@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<header>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+        integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <style>
+        body {
+            padding: 20px 50px 20px 50px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        table {
+            font-size: 120%;
+        }
+    </style>
+</header>
+
+<body>
+
+    <div id="main" class="container">
+        <h1>Server Side Views Primer <small>DMVCFramework + TemplatePro</small></h1>
+        {{block "body"}}{{endblock}}
+        <div class="row_fluid">
+            <div class="col-sm-12">
+                <div style="height: 100px"></div>
+            </div>
+        </div>
+        <div class="row_fluid">
+            <div class="col-sm-8 bg-primary">
+                <span>Powered by DMVCFramework</span>
+            </div>
+            <div class="col-sm-4 bg-success">
+                <span>Server Side Views <a href="/showcase">showcase</a></span>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>

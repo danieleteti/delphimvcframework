@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,7 +23,7 @@
 // ***************************************************************************
 //
 // This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
 // The DUnitX project is run by Vincent Parrett and can be found at:
 //
@@ -38,7 +38,7 @@ unit DMVC.Expert.CodeGen.NewUnit;
 interface
 
 uses
-  ToolsAPI;
+  ToolsAPI, JsonDataObjects;
 
 type
 
@@ -46,6 +46,7 @@ type
   private
     FPersonality : string;
   protected
+    fConfigModelRef: TJsonObject;
     //Specific to class
     FFormName: string;
     FImplFileName: string;
@@ -74,6 +75,7 @@ type
     function NewIntfSource(const ModuleIdent, FormIdent, AncestorIdent: string): IOTAFile; virtual;
     procedure FormCreated(const FormEditor: IOTAFormEditor); virtual;
   public
+    constructor Create(ConfigModelRef: TJSONObject); virtual;
     property FormName:  string read GetFormName write SetFormName;
     property ImplFileName: string read GetImplFileName write SetImplFileName;
     property IntfFileName: string read GetIntfFileName write SetIntfFileName;
@@ -82,6 +84,12 @@ type
   end;
 
 implementation
+
+constructor TNewUnit.Create(ConfigModelRef: TJSONObject);
+begin
+  inherited Create;
+  fConfigModelRef := ConfigModelRef;
+end;
 
 { TUnitCreator }
 

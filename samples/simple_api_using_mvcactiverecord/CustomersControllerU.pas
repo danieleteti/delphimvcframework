@@ -14,17 +14,17 @@ type
   [MVCPath('/api/customers')]
   TCustomersController = class(TMVCController)
   public
-    [MVCPath]
-    [MVCHTTPMethods([httpGET])]
-    procedure GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
-
     [MVCPath('/($ID)')]
     [MVCHTTPMethods([httpGET])]
-    procedure GetCustomerByID(const ID: Integer);
+    function GetCustomerByID(const ID: Integer): TCustomer;
+
+    [MVCPath]
+    [MVCHTTPMethods([httpGET])]
+    function GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String): TObjectList<TCustomer>;
 
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
-    procedure CreateCustomer([MVCFromBody] const Customer: TCustomer);
+    function CreateCustomer([MVCFromBody] const Customer: TCustomer): IMVCResponse;
 
     [MVCPath('/_bulk')]
     [MVCHTTPMethods([httpPOST])]
@@ -43,23 +43,20 @@ uses
 
 { TCustomersController }
 
-procedure TCustomersController.CreateCustomer(const Customer: TCustomer);
+function TCustomersController.CreateCustomer(const Customer: TCustomer): IMVCResponse;
 begin
   Customer.Insert;
-  Render201Created('/api/customers/' + Customer.ID.Value.ToString);
+  Result := CreatedResponse('/api/customers/' + Customer.ID.Value.ToString);
 end;
 
-procedure TCustomersController.GetCustomerByID(const ID: Integer);
+function TCustomersController.GetCustomerByID(const ID: Integer): TCustomer;
 begin
-  Render(ObjectDict().Add('data', TMVCActiveRecord.GetByPK<TCustomer>(ID)));
+  Result := TMVCActiveRecord.GetByPK<TCustomer>(ID);
 end;
 
-procedure TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String);
+function TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String): TObjectList<TCustomer>;
 begin
-  if RQLFilter.IsEmpty then
-    Render(ObjectDict().Add('data', TMVCActiveRecord.All<TCustomer>))
-  else
-    Render(ObjectDict().Add('data', TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000)));
+  Result := TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000);
 end;
 
 procedure TCustomersController.BulkCreateCustomers(const Customers: TObjectList<TCustomer>);
@@ -74,6 +71,7 @@ begin
     Render201Created();
   except
     TMVCActiveRecord.CurrentConnection.Rollback;
+    raise;
   end;
 end;
 

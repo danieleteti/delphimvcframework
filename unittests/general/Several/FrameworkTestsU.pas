@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -85,9 +85,6 @@ type
     procedure TestPathPrefix;
     [Test]
     procedure TestReservedIPs;
-    // procedure TestRoutingSpeed;
-
-    // objects mappers
   end;
 
   [TestFixture]
@@ -240,6 +237,8 @@ type
     procedure TestStringToDateTime_NewYork;
     [Test]
     procedure TestStringToDateTime_Mumbai;
+    [Test]
+    procedure TestDteToStringAndBack;
   end;
 
   [TestFixture]
@@ -263,6 +262,8 @@ type
     procedure TestWithDevProfile;
     [Test]
     procedure TestWithDevAndTestProfile;
+    [Test]
+    procedure TestSkipDefaultWithDevAndTestProfile;
   end;
 
   [TestFixture]
@@ -271,6 +272,10 @@ type
     [Test]
     procedure TestKeyValue;
     [Test]
+    procedure TestWithBadNames;
+    [Test]
+    procedure TestWithEmptyValue;
+    [Test]
     procedure TestKeyValueWithQuotedValues;
     [Test]
     procedure TestValueWithMultiline;
@@ -278,6 +283,13 @@ type
     procedure TestVarPlaceHolders;
     [Test]
     procedure TestInLineComments;
+  end;
+
+  [TestFixture]
+  TTestSqids = class(TObject)
+  public
+    [Test]
+    procedure TestSingle;
   end;
 
 
@@ -415,16 +427,16 @@ begin
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid/pictures/imageuuid', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual('GetImage', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
-    Assert.areEqual('projectid', Params['projectid']);
-    Assert.areEqual('imageuuid', Params['imageuuid']);
+    Assert.AreEqual('GetImage', FRouter.MethodToCall.Name);
+    Assert.AreEqual<Integer>(2, Params.Count);
+    Assert.AreEqual('projectid', Params['projectid']);
+    Assert.AreEqual('imageuuid', Params['imageuuid']);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetProject', FRouter.MethodToCall.Name);
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('projectid', Params['projectid']);
   finally
     Params.Free;
@@ -444,7 +456,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/issue492/delphi$mvc$framework', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetIssue492', FRouter.MethodToCall.Name);
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('delphi$mvc$framework', Params['stringvalue']);
   finally
     Params.Free;
@@ -464,7 +476,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513', FRouter.MethodToCall.Name);
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
   finally
     Params.Free;
   end;
@@ -483,7 +495,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/daniele/teti', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
+    Assert.areEqual<Integer>(2, Params.Count);
     Assert.areEqual('daniele', Params['par1']);
     Assert.areEqual('teti', Params['par2']);
   finally
@@ -504,7 +516,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/da$niele/te$ti', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
-    Assert.areEqual(2, Params.Count);
+    Assert.areEqual<Integer>(2, Params.Count);
     Assert.areEqual('da$niele', Params['par1']);
     Assert.areEqual('te$ti', Params['par2']);
   finally
@@ -1069,7 +1081,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType, ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Orders', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1106,7 +1118,7 @@ begin
       Assert.isTrue(lRouter.ExecuteRouting('/api/orders', httpGET, 'text/plain', 'text/plain', FControllers,
         'text/plain', TMVCConstants.DEFAULT_CONTENT_CHARSET, '/api', lParams, ResponseContentType,
         ResponseContentEncoding));
-      Assert.areEqual(0, lParams.Count);
+      Assert.areEqual<Integer>(0, lParams.Count);
       Assert.areEqual('TSimpleController', lRouter.ControllerClazz.ClassName);
       Assert.areEqual('Orders', lRouter.MethodToCall.Name);
       Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
@@ -1132,7 +1144,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('789', Params['ordernumber']);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
@@ -1144,7 +1156,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/àèéìòù .-_\', httpGET, 'text/plain', 'text/plain', FControllers,
       'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(1, Params.Count);
+    Assert.areEqual<Integer>(1, Params.Count);
     Assert.areEqual('àèéìòù .-_\', Params['ordernumber']);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
@@ -1166,7 +1178,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '', 'application/json', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrdersProduceJSON', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1187,7 +1199,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '', 'application/json; charset=UTF-8', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrdersProduceJSON', FRouter.MethodToCall.Name);
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
@@ -1459,7 +1471,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
   finally
@@ -1477,7 +1489,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('', httpGET, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
-    Assert.areEqual(0, Params.Count);
+    Assert.areEqual<Integer>(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
   finally
@@ -1746,14 +1758,14 @@ begin
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
   Assert.isTrue(lMultiMap.Contains('key1'));
-  Assert.areEqual(1, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key1').Count);
   lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.areEqual('value1', lMultiMap.GetItems('key1')[0].GetDescription);
   Assert.areEqual('value2', lMultiMap.GetItems('key1')[1].GetDescription);
   lMultiMap.Add('key2', TMyIntfObject.Create(1, 'value3'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
-  Assert.areEqual(1, lMultiMap.GetItems('key2').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key2').Count);
 end;
 
 procedure TTestMultiMap.TestInterfaceMultiMapRemove;
@@ -1764,7 +1776,7 @@ begin
   lMultiMap.Remove('not valid');
   lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
   lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.isTrue(lMultiMap.Contains('key1'));
   lMultiMap.Remove('key1');
   Assert.isFalse(lMultiMap.Contains('key1'));
@@ -1780,14 +1792,14 @@ begin
   Assert.isFalse(lMultiMap.Contains('key1'));
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
   Assert.isTrue(lMultiMap.Contains('key1'));
-  Assert.areEqual(1, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key1').Count);
   lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.areEqual('value1', lMultiMap.GetItems('key1')[0].Description);
   Assert.areEqual('value2', lMultiMap.GetItems('key1')[1].Description);
   lMultiMap.Add('key2', TMyClass.Create(1, 'value3'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
-  Assert.areEqual(1, lMultiMap.GetItems('key2').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(1, lMultiMap.GetItems('key2').Count);
 end;
 
 procedure TTestMultiMap.TestObjectMultiMapRemove;
@@ -1798,7 +1810,7 @@ begin
   lMultiMap.Remove('not valid');
   lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
   lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
-  Assert.areEqual(2, lMultiMap.GetItems('key1').Count);
+  Assert.areEqual<Integer>(2, lMultiMap.GetItems('key1').Count);
   Assert.isTrue(lMultiMap.Contains('key1'));
   lMultiMap.Remove('key1');
   Assert.isFalse(lMultiMap.Contains('key1'));
@@ -1959,6 +1971,14 @@ begin
   s1 := DateTimeToStr(lDate);
   s2 := DateTimeToStr(lDateToCompare);
   Assert.areEqual(s1,s2, 'UTC with no time zone (in no DST period)');
+end;
+
+procedure TTestUTC.TestDteToStringAndBack;
+begin
+  var lDate := EncodeDateTime(2011,11,17,12,0,0,0);
+  var lDateStr := DateTimeToISOTimeStamp(lDate);
+  var lDate2 := ISOTimeStampToDateTime(lDateStr);
+  Assert.AreEqual(lDate, lDate2);
 end;
 
 procedure TTestUTC.TestStringToDateTime_in_DST_period;
@@ -2155,6 +2175,22 @@ begin
   end
 end;
 
+procedure TTestDotEnv.TestSkipDefaultWithDevAndTestProfile;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv
+    .SkipDefaultEnv
+    .UseProfile('dev')
+    .UseProfile('test')
+    .Build('..\dotEnv');
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.test.txt')),
+    'Files are different');
+end;
+
 procedure TTestDotEnv.TestWithDevAndTestProfile;
 var
   lDotEnv: IMVCDotEnv;
@@ -2322,6 +2358,58 @@ begin
   end;
 end;
 
+procedure TTestDotEnvParser.TestWithBadNames;
+const
+  DOTENVCODE = 'key1=value1' + sLineBreak + '3key2 = 12';
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      Assert.WillRaise(
+      procedure
+      begin
+        lParser.Parse(lDict, DOTENVCODE);
+      end,
+      EMVCDotEnvParser);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestWithEmptyValue;
+const
+  DOTENVCODE = 'key1=value1' + sLineBreak + 'key2 = ' + sLineBreak + 'key3 = xyz ' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1', lDict['key1']);
+      Assert.AreEqual('', lDict['key2']);
+      Assert.AreEqual('xyz', lDict['key3']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+
+
+{ TTestSqids }
+
+procedure TTestSqids.TestSingle;
+begin
+  Assert.AreEqual('Im1JUf',TMVCSqids.IntToSqid(1)); {https://sqids.org/playground}
+  Assert.AreEqual<Integer>(1, TMVCSqids.SqidToInt(TMVCSqids.IntToSqid(1)));
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2333,6 +2421,7 @@ TDUnitX.RegisterTestFixture(TTestCryptUtils);
 TDUnitX.RegisterTestFixture(TTestLRUCache);
 TDUnitX.RegisterTestFixture(TTestDotEnv);
 TDUnitX.RegisterTestFixture(TTestDotEnvParser);
+TDUnitX.RegisterTestFixture(TTestSqids);
 
 finalization
 

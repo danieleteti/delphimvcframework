@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CF5DB084-7815-4A94-85E3-F9FC0074C8AC}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="CustomRoleAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="CustomRoleAuthClient.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\avoid_mid_air_collisions_sample\avoid_mid_air_collisions_sample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="CustomRoleAuthServer">
+        <MSBuild Projects="CustomRoleAuthServer.dproj"/>
+    </Target>
+    <Target Name="CustomRoleAuthServer:Clean">
+        <MSBuild Projects="CustomRoleAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomRoleAuthServer:Make">
+        <MSBuild Projects="CustomRoleAuthServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient">
+        <MSBuild Projects="CustomRoleAuthClient.dproj"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient:Clean">
+        <MSBuild Projects="CustomRoleAuthClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient:Make">
+        <MSBuild Projects="CustomRoleAuthClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Clean">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Make">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="avoid_mid_air_collisions_sample">
+        <MSBuild Projects="..\avoid_mid_air_collisions_sample\avoid_mid_air_collisions_sample.dproj"/>
+    </Target>
+    <Target Name="avoid_mid_air_collisions_sample:Clean">
+        <MSBuild Projects="..\avoid_mid_air_collisions_sample\avoid_mid_air_collisions_sample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="avoid_mid_air_collisions_sample:Make">
+        <MSBuild Projects="..\avoid_mid_air_collisions_sample\avoid_mid_air_collisions_sample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient;JWTRoleAuthServer;avoid_mid_air_collisions_sample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean;JWTRoleAuthServer:Clean;avoid_mid_air_collisions_sample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make;JWTRoleAuthServer:Make;avoid_mid_air_collisions_sample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

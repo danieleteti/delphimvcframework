@@ -51,21 +51,25 @@ begin
   btnWithEx.Caption := 'processing...';
   btnWithEx.Enabled := False;
   MVCAsync.Run<String>(
-    function: String
+    function: String                              { background thread }
     begin
       Sleep(1000);
       raise Exception.Create('BOOOM!');
     end,
-    procedure(const Value: String)
+    procedure(const Value: String)                { main thread }
     begin
       //never called
     end,
-    procedure(const Expt: Exception)
+    procedure(const Expt: Exception)              { main thread }
     begin
+      ShowMessage(Expt.Message);
+    end,
+    procedure                                     { main thread }
+    begin
+      // always executed
       btnWithEx.Caption := lSavedCaption;
       btnWithEx.Enabled := True;
       btnWithEx.Update;
-      ShowMessage(Expt.Message);
     end
   );
 end;
@@ -84,26 +88,16 @@ begin
     procedure(const Value: String)
     begin
       //never called
-    end
-  );
-
-
-  //just to re-enable the button
-  MVCAsync.Run<Boolean>(
-    function: Boolean
-    begin
-      Sleep(3000);
-      Result := True;
     end,
-    procedure(const Value: Boolean)
+    nil, //there isn't a exception handler - the default one is used
+    procedure
     begin
+      // always executed
       btnWithExcDefault.Caption := lSavedCaption;
       btnWithExcDefault.Enabled := True;
       btnWithExcDefault.Update;
     end
   );
-
-
 end;
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2023 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -33,10 +33,11 @@ uses
   System.Classes,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Serializer.Commons;
 
 type
-
+  [MVCNameCase(ncAsIs)]
   TAppUser = class
   strict private
     FCod: Integer;

@@ -64,7 +64,7 @@ begin
   Log(Context.Request.Headers['User-Agent']);
   if Context.Request.Headers['User-Agent'].Contains('Android') then
   begin
-    Context.Response.Location := 'http://play.google.com';
+    Context.Response.Location := 'https://play.google.com';
     Context.Response.StatusCode := HTTP_STATUS.TemporaryRedirect; // 307 - temporary redirect
     Handled := True;
   end;

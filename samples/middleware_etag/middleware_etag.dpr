@@ -23,8 +23,8 @@ procedure RunServer(APort: Integer);
 var
   lServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
@@ -39,7 +39,7 @@ begin
     LServer.ListenQueue := 200;
 
     lServer.Active := True;
-    Write('CTRL+C to shutdown the server');
+    LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
     lServer.Active := False;
@@ -54,10 +54,10 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
-    RunServer(8080);
+    RunServer(dotEnv.Env('dmvc.server.port', 8080));
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogE(E.ClassName + ': ' + E.Message);
   end;
 
 end.
