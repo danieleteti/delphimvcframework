@@ -770,8 +770,13 @@ procedure TUnitWebModuleDeclarationCommand.ExecuteImplementation(
 var
   activerecord_con_def_name: string;
   activerecord_con_def_filename: string;
+  default_media_type: string;
+  lAddURLEncodedSerializer: Boolean;
 begin
   inherited;
+
+  default_media_type := 'TMVCConstants.DEFAULT_CONTENT_TYPE';
+
   Section
     .AppendLine
     .AppendLine('implementation')
@@ -790,27 +795,36 @@ begin
     .AppendLine('  System.IOUtils,')
     .AppendLine('  MVCFramework.Commons,');
 
+
+
   if Model.B[TConfigKey.program_ssv_templatepro] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.TemplatePro,')
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
+      .AppendLine('  MVCFramework.View.Renderers.TemplatePro,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
   if Model.B[TConfigKey.program_ssv_webstencils] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.WebStencils,')
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
+      .AppendLine('  MVCFramework.View.Renderers.WebStencils,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
 
   if Model.B[TConfigKey.program_ssv_mustache] then
   begin
     Section
-      .AppendLine('  MVCFramework.View.Renderers.Mustache,')
+      .AppendLine('  MVCFramework.Serializer.URLEncoded,')
+      .AppendLine('  MVCFramework.View.Renderers.Mustache,');
+    default_media_type := 'TMVCMediaType.TEXT_HTML';
   end;
 
   Section
     .AppendLine('  MVCFramework.Middleware.ActiveRecord,')
+    .AppendLine('  MVCFramework.Middleware.Redirect,')
     .AppendLine('  MVCFramework.Middleware.StaticFiles,')
     .AppendLine('  MVCFramework.Middleware.Analytics,')
     .AppendLine('  MVCFramework.Middleware.Trace,')
@@ -826,7 +840,7 @@ begin
     .AppendLine('      // session timeout (0 means session cookie)')
     .AppendLine('      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');')
     .AppendLine('      //default content-type')
-    .AppendLine('      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', TMVCConstants.DEFAULT_CONTENT_TYPE);')
+    .AppendLine('      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', ' + default_media_type  + ');')
     .AppendLine('      //default content charset')
     .AppendLine('      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env(''dmvc.default.content_charset'', TMVCConstants.DEFAULT_CONTENT_CHARSET);')
     .AppendLine('      //unhandled actions are permitted?')
@@ -854,8 +868,10 @@ begin
     .AppendLine('  // Controllers - END')
     .AppendLine;
 
+    lAddURLEncodedSerializer := False;
     if Model.B[TConfigKey.program_ssv_templatepro] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCTemplateProViewEngine);')
@@ -865,6 +881,7 @@ begin
 
     if Model.B[TConfigKey.program_ssv_webstencils] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCWebStencilsViewEngine);')
@@ -874,6 +891,7 @@ begin
 
     if Model.B[TConfigKey.program_ssv_mustache] then
     begin
+      lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
         .AppendLine('  FMVC.SetViewEngine(TMVCMustacheViewEngine);')
@@ -881,6 +899,14 @@ begin
         .AppendLine;
     end;
 
+    if lAddURLEncodedSerializer then
+    begin
+      Section
+        .AppendLine('  // Serializers')
+        .AppendLine('  FMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));')
+        .AppendLine('  // Serializers - END')
+        .AppendLine;
+    end;
 
     Section
       .AppendLine('  // Middleware');
@@ -1072,6 +1098,9 @@ begin
     .AppendLine()
     .AppendLine('  // UseConsoleLogger defines if logs must be emitted to also the console (if available).')
     .AppendLine('  UseConsoleLogger := True;')
+    .AppendLine()
+    .AppendLine('  // UseLoggerVerbosityLevel defines the lowest level of logs that will be produced.')
+    .AppendLine('  UseLoggerVerbosityLevel := TLogLevel.levNormal;')
     .AppendLine()
     .AppendLine()
     .AppendLine('  LogI(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);');
@@ -1431,15 +1460,15 @@ begin
     .AppendLine('implementation')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  TemplatePro, System.SysUtils;')
+    .AppendLine('  System.SysUtils;')
     .AppendLine
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper1)'';')
     .AppendLine('end;')
     .AppendLine
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine('begin')
     .AppendLine('  Result := Value.ToString +  '' (I''''m The MyHelper2)'';')
     .AppendLine('end;')
@@ -1488,10 +1517,10 @@ begin
     .AppendLine('interface')
     .AppendLine
     .AppendLine('uses')
-    .AppendLine('  System.Rtti;')
+    .AppendLine('  System.Rtti, TemplatePro;')
     .AppendLine
-    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;')
-    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;')
+    .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
+    .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
     .AppendLine
     .AppendLine
     .AppendLine('procedure TemplateProContextConfigure;')

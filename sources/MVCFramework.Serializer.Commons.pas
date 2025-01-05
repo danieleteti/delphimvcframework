@@ -209,6 +209,7 @@ type
       overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
       overload; static;
+    class function GetPropertyKeyName(const APropertyName: String; const AClass: TClass): string; static;
     class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
     class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
       overload; static;
@@ -451,7 +452,7 @@ function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
-  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
+  const DefaultPageSize: UInt32; const URITemplate: string; const IncludePrevURI: Boolean = True): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
 procedure RaiseDeSerializationError(const Msg: string);
 
@@ -479,7 +480,7 @@ begin
 end;
 
 function GetPaginationData(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
-  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
+  const DefaultPageSize: UInt32; const URITemplate: string; const IncludePrevURI: Boolean): TMVCStringDictionary;
 var
   lMetaKeys: array of string;
   lMetaValues: array of string;
@@ -493,7 +494,7 @@ begin
   Insert('default_page_size', lMetaKeys, 0);
   Insert(DefaultPageSize.ToString(), lMetaValues, 0);
 
-  if CurrPageNumber > 1 then
+  if (CurrPageNumber > 1) and IncludePrevURI then
   begin
     Insert('prev_page_uri', lMetaKeys, 0);
     Insert(URITemplate.Replace('($page)', (CurrPageNumber - 1).ToString), lMetaValues, 0);
@@ -861,6 +862,34 @@ begin
     end;
   end;
   Result := TMVCSerializerHelper.ApplyNameCase(MVCNameCaseDefault, Result);
+end;
+
+class function TMVCSerializerHelper.GetPropertyKeyName(const APropertyName: String; const AClass: TClass): string;
+var
+  Context: TRttiContext;
+  ObjectType: TRttiType;
+  lProp: TRttiProperty;
+begin
+{$IF not Defined(TokyoOrBetter)}
+  Result := nil;
+{$ENDIF}
+  Context := TRttiContext.Create;
+  try
+    ObjectType := Context.FindType(AClass.QualifiedClassName);
+    if not Assigned(ObjectType) then
+      raise Exception.CreateFmt
+        ('Cannot find RTTI for %s. Hint: Is the specified classtype linked in the module?',
+        [AClass.QualifiedClassName])
+    else
+    begin
+      lProp := ObjectType.GetProperty(APropertyName);
+      if not Assigned(lProp) then
+        raise Exception.Create('Cannot find property ' + APropertyName);
+      Result := TMVCSerializerHelper.GetKeyName(lProp, ObjectType);
+    end;
+  finally
+    Context.Free;
+  end;
 end;
 
 class function TMVCSerializerHelper.GetTypeKindAsString(const ATypeKind: TTypeKind): string;

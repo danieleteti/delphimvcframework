@@ -1469,8 +1469,12 @@ begin
 
       httpPATCH:
         begin
+          {$if Defined(TOKYOORBETTER)}
+          FHTTP.Patch(AResource, RawBody, Result.Body);
+          {$else}
           raise ERESTClientException.Create
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
+          {$endif}
         end;
 
       httpDELETE:

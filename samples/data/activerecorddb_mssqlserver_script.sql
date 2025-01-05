@@ -6,14 +6,26 @@ CREATE TABLE articles (
 );
 
 CREATE TABLE customers (
-	id integer  IDENTITY(1, 1) ,
+	id integer IDENTITY(1, 1) ,
 	code nvarchar(20),
 	description nvarchar(200),
 	city nvarchar(200),
 	rating INTEGER,	
-	NOTE nvarchar(max),	
+	last_contact_timestamp datetime NULL,	
+	NOTE nvarchar(max),		
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );
+
+CREATE TABLE customers2 (
+    id bigint IDENTITY(1, 1) ,
+	code nvarchar(20),
+	description nvarchar(200),
+	city nvarchar(200),
+    NOTE nvarchar(max),
+    rating integer,
+	last_contact_timestamp datetime NULL,
+);
+
 
 CREATE TABLE customers_plain (
     id integer NOT NULL,
@@ -33,6 +45,26 @@ CREATE TABLE customers_with_code (
     city nvarchar(200),
     NOTE nvarchar(max),
     rating smallint
+);
+
+CREATE TABLE customers_with_guid (
+	idguid UNIQUEIDENTIFIER NOT NULL,
+	code varchar(20) NULL,
+	description varchar(200) NULL,
+	city varchar(200) NULL,
+	note text NULL,
+	rating smallint NULL,
+	CONSTRAINT customers_with_guid_pk PRIMARY KEY (idguid)
+);
+
+CREATE TABLE customers_with_version (
+    id bigint IDENTITY(1, 1),
+    code varchar(20),
+    description varchar(200),
+    city varchar(200),
+    note text,
+    rating integer,
+	objversion integer
 );
 
 CREATE TABLE order_details (

@@ -292,20 +292,20 @@ end;
 procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
 var
   lStreamSerializer: IMVCTypeSerializer;
-  lDataSetHolderSerializer: TMVCDataSetHolderSerializer;
   fObjectDictionarySerializer: TMVCObjectDictionarySerializer;
 begin
   inherited AfterConstruction;
-  lDataSetHolderSerializer := TMVCDataSetHolderSerializer.Create;
-  GetTypeSerializers.Add(TypeInfo(TDataSetHolder), lDataSetHolderSerializer);
   lStreamSerializer := TMVCStreamSerializerJsonDataObject.Create;
   GetTypeSerializers.Add(TypeInfo(TStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TStringStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TFileStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TMemoryStream), lStreamSerializer);
+  GetTypeSerializers.Add(TypeInfo(TBytesStream), lStreamSerializer);
+
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), fStringDictionarySerializer);
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
+
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
   GetTypeSerializers.Add(TypeInfo(TMVCListOfString { TList<string> } ), TMVCListOfStringSerializer.Create);
@@ -1510,6 +1510,11 @@ var
   LClazz: TClass;
   lValueTypeInfo: PTypeInfo;
 begin
+  if AJSONObject = nil then
+  begin
+    Exit;
+  end;
+
   case AJSONObject[APropertyName].Typ of
     jdtNone:
       Exit;
@@ -3596,7 +3601,7 @@ var
   JSONBase: TJsonBaseObject;
 begin
   if (ASerializedObject = EmptyStr) then
-    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Invalid body');
+    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Body is not a valid JSON (the body is empty)');
 
   if not Assigned(AObject) then
     Exit;
@@ -3606,7 +3611,7 @@ begin
     try
       if not(JSONBase is TJDOJsonObject) then
       begin
-        raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+        raise EMVCSerializationException.CreateFmt('Body is not a valid JSON Object - Expected %s got %s',
           [TJDOJsonObject.ClassName, JSONBase.ClassName]);
       end;
       JSONObject := TJDOJsonObject(JSONBase);

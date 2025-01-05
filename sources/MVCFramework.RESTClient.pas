@@ -397,6 +397,10 @@ type
     function AddFile(const aName: string; aFileStreamValue: TStream; const aFileName: string = '';
       const aContentType: string = ''): IMVCRESTClient; overload;
 {$ENDIF}
+{$IF defined(ATHENSORBETTER)}
+    function AddFile(const aName: string; aFileStreamValue: TStream; aOwnsStream: Boolean; const aFileName: string = '';
+      const aContentType: string = ''): IMVCRESTClient; overload;
+{$ENDIF}
 
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
 {$IF defined(RIOORBETTER)}
@@ -721,11 +725,18 @@ end;
 function TMVCRESTClient.AddFile(const aName: string; aFileStreamValue: TStream; const aFileName, aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
-  {$IF Defined(ATHENSORBETTER)}
-  GetBodyFormData.AddStream(aName, aFileStreamValue, False, aFileName, aContentType);
-  {$ELSE}
+{$WARNINGS OFF}
   GetBodyFormData.AddStream(aName, aFileStreamValue, aFileName, aContentType);
-  {$ENDIF}
+{$WARNINGS ON}
+  SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
+end;
+{$ENDIF}
+
+{$IF defined(ATHENSORBETTER)}
+function TMVCRESTClient.AddFile(const aName: string; aFileStreamValue: TStream; aOwnsStream: Boolean; const aFileName, aContentType: string): IMVCRESTClient;
+begin
+  Result := Self;
+  GetBodyFormData.AddStream(aName, aFileStreamValue, aOwnsStream, aFileName, aContentType);
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}

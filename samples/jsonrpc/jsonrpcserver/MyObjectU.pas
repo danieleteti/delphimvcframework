@@ -42,7 +42,6 @@ type
   private
     function GetCustomersDataset: TFDMemTable;
     procedure FillCustomersDataset(const DataSet: TDataSet);
-    // function GetPeopleDataset: TFDMemTable;
     procedure FillPeopleDataset(const DataSet: TDataSet);
   public
     procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJDOJsonObject);

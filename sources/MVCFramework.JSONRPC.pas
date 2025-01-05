@@ -1260,9 +1260,7 @@ var
 begin
   if JSON.Types[JSONRPC_ID] = jdtString then
     lReqID := JSON.S[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtInt then
-    lReqID := JSON.I[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtLong then
+  else if JSON.Types[JSONRPC_ID] in [jdtInt, jdtLong]  then
     lReqID := JSON.L[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtULong then
     lReqID := JSON.U[JSONRPC_ID]
@@ -1271,21 +1269,6 @@ begin
 
   lMethodName := JSON.S[JSONRPC_METHOD];
   Result := TJSONRPCRequest.Create(lReqID, lMethodName);
-  {
-    if JSON.Types[JSONRPC_PARAMS] = jdtArray then
-    begin
-    lParams := JSON.A[JSONRPC_PARAMS];
-    for I := 0 to lParams.Count - 1 do
-    begin
-    Result.Params.Add(JSONDataValueToTValue(lParams[I]));
-    end;
-    end
-    else if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
-    begin
-    raise EMVCJSONRPCException.Create('Params must be a JSON array or null');
-    end;
-
-  }
 end;
 
 function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
@@ -2343,16 +2326,14 @@ begin
   begin
     Result.S[JSONRPC_ID] := FID.AsString;
   end
-  else if FID.IsType<Int32> then
-  begin
-    Result.I[JSONRPC_ID] := FID.AsInteger;
-  end
   else if FID.IsType<Int64> then
   begin
-    Result.I[JSONRPC_ID] := FID.AsInt64;
+    Result.L[JSONRPC_ID] := FID.AsInt64;
   end
   else
+  begin
     raise EMVCJSONRPCException.Create('ID can be only Int32, Int64 or String');
+  end;
 
   try
     if Assigned(FError) then

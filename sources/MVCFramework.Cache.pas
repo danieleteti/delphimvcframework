@@ -217,7 +217,7 @@ begin
     begin
       if FStorage.TryGetValue(AName, lItem) then
       begin
-        if lItem.Value.IsObjectInstance then
+        if lItem.Value.IsObject then
         begin
           lItem.Value.AsObject.Free;
         end;

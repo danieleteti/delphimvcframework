@@ -1082,7 +1082,7 @@ begin
     lPass := false;
     for lCookie in lRes.Cookies do
     begin
-      if lCookie.Value.Contains('invalid') then
+      if lCookie.Value.IsEmpty then
       begin
         lPass := true;
         Break;

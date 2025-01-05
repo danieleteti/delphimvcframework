@@ -2226,8 +2226,7 @@ begin
     lCust.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
     lCust.Insert;
     lID := lCust.ID;
-    Log('Just inserted CustomerWithVersion ' + lID.ValueOrDefault.ToString);
-    lCust.Store;
+    Log('Just inserted CustomerWithVersion with ID = ' + lID.ValueOrDefault.ToString + ' and version = ' + lCust.ObjVersion.ToString);
   finally
     lCust.Free;
   end;
@@ -2236,9 +2235,13 @@ begin
   try
     lCust.CompanyName := 'Alphabet Inc.';
     lCust.Store;
+    Log('Just updated CustomerWithVersion with ID = ' + lID.ValueOrDefault.ToString + ' and version = ' + lCust.ObjVersion.ToString);
   finally
     lCust.Free;
   end;
+
+
+  ShowMessage('Now we are going to create a logical conflict - an exception will be raised and no data will be lost');
 
   // Let's load 2 instances
   var lCust1 := TMVCActiveRecord.GetByPK<TCustomerWithVersion>(lID);

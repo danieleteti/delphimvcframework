@@ -52,8 +52,7 @@ uses
 
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS,
-    httpTRACE);
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
@@ -167,6 +166,7 @@ type
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
     LoadSystemControllers = 'load_system_controllers';
+    ErrorPageURL = 'error_page_url';
   end;
 
   TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
@@ -539,13 +539,22 @@ type
     constructor Create;
   end;
 
-  TMVCViewDataSet = class(TObjectDictionary<string, TDataset>)
+  TMVCStringPair = class
   private
-    { private declarations }
-  protected
-    { protected declarations }
+    FKey: String;
+    FValue: String;
+    procedure SetKey(const Value: String);
+    procedure SetValue(const Value: String);
   public
-    constructor Create;
+    property Key: String read FKey write SetKey;
+    property Value: String read FValue write SetValue;
+    constructor Create(const Key, Value: String);
+  end;
+
+  TMVCStringPairList = class(TObjectList<TMVCStringPair>)
+  public
+    constructor Create; virtual;
+    function AddPair(const Key, Value: String): TMVCStringPairList;
   end;
 
   TMVCCriticalSectionHelper = class helper for TCriticalSection
@@ -826,13 +835,15 @@ procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);
 implementation
 
 uses
+  MVCFramework,
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Utils,
   System.RegularExpressions,
-  MVCFramework.Logger, MVCFramework.Serializer.Commons;
+  MVCFramework.Logger,
+  MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -925,11 +936,6 @@ begin
     if (IntIP >= IP2Long(RESERVED_IPv4[I][1])) and (IntIP <= IP2Long(RESERVED_IPv4[I][2])) then
       Exit(True);
 end;
-
-// function IP2Long(const AIP: string): UInt32;
-// begin
-// Result := IdGlobal.IPv4ToUInt32(AIP);
-// end;
 
 function B64Encode(const aValue: string): string; overload;
 begin
@@ -1478,10 +1484,10 @@ end;
 
 { TMVCViewDataSet }
 
-constructor TMVCViewDataSet.Create;
-begin
-  inherited Create([]);
-end;
+//constructor TMVCViewDataSet.Create;
+//begin
+//  inherited Create([]);
+//end;
 
 { TMVCStreamHelper }
 
@@ -1957,6 +1963,38 @@ end;
 function TMVCSqidsEncoder.EncodeSingle(ANumber: UInt64): string;
 begin
   Result := fSqids.EncodeSingle(ANumber);
+end;
+
+{ TMVCStringPair }
+
+constructor TMVCStringPair.Create(const Key, Value: String);
+begin
+  inherited Create;
+  FKey := Key;
+  FValue := Value;
+end;
+
+procedure TMVCStringPair.SetKey(const Value: String);
+begin
+  FKey := Value;
+end;
+
+procedure TMVCStringPair.SetValue(const Value: String);
+begin
+  FValue := Value;
+end;
+
+{ TMVCStringPairList }
+
+function TMVCStringPairList.AddPair(const Key, Value: String): TMVCStringPairList;
+begin
+  Add(TMVCStringPair.Create(Key, Value));
+  Result := Self;
+end;
+
+constructor TMVCStringPairList.Create;
+begin
+  inherited Create(True);
 end;
 
 initialization

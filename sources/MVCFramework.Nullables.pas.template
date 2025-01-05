@@ -71,9 +71,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: $TYPE$;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: $TYPE$): $TYPE$;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -216,6 +220,19 @@ begin
     Result := Default ($TYPE$);
   end;
 end;
+
+function Nullable$TYPE$.ValueOrElse(const ElseValue: $TYPE$): $TYPE$;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 ///IMPLEMENTATION.END
 

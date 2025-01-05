@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{0582DE6A-D716-46D3-8CBD-84AD73A4B536}</ProjectGuid>
-        <ProjectVersion>20.1</ProjectVersion>
+        <ProjectVersion>20.2</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">TESTINSIGHT</Config>
@@ -364,35 +364,15 @@
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
-            <Deployment Version="4">
+            <Deployment Version="5">
                 <DeployFile LocalName="$(BDS)\Redist\iossim32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
-                <DeployFile LocalName="bin32\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="bin32\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">
-                    <Platform Name="Win32">
-                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
-                    <Platform Name="Win64">
-                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="bin64\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols">
-                    <Platform Name="Win64">
-                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
+                <DeployFile LocalName="bin32\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin32\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin64\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="CONSOLE" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
@@ -407,16 +387,6 @@
                         <Operation>0</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="AndroidClasses">
-                    <Platform Name="Android">
-                        <RemoteDir>classes</RemoteDir>
-                        <Operation>64</Operation>
-                    </Platform>
-                    <Platform Name="Android64">
-                        <RemoteDir>classes</RemoteDir>
-                        <Operation>64</Operation>
-                    </Platform>
-                </DeployClass>
                 <DeployClass Name="AndroidFileProvider">
                     <Platform Name="Android">
                         <RemoteDir>res\xml</RemoteDir>
@@ -424,12 +394,6 @@
                     </Platform>
                     <Platform Name="Android64">
                         <RemoteDir>res\xml</RemoteDir>
-                        <Operation>1</Operation>
-                    </Platform>
-                </DeployClass>
-                <DeployClass Name="AndroidGDBServer">
-                    <Platform Name="Android">
-                        <RemoteDir>library\lib\armeabi-v7a</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>

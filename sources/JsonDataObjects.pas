@@ -2702,7 +2702,7 @@ begin
   // Add the decimal separator if FloatToText didn't add it, so that the data type of
   // the property doesn't change to Integer/Int64 if it is read again.
   for I := Result - 1 downto 0 do
-    if Buffer[I] = '.' then
+    if Buffer[I] in ['.', 'E', 'e'] then
       Exit;
   Buffer[Result] := '.';
   Buffer[Result + 1] := '0';

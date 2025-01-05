@@ -89,6 +89,8 @@ type
     FCountProperty: TRttiProperty;
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
+    fIsWrappedList: Boolean;
+    function HookListMethods(const aObjType: TRttiType): Boolean;
   protected
     function GetEnumerator: TDuckListEnumerator;
     function GetOwnsObjects: Boolean;
@@ -108,8 +110,8 @@ type
     constructor Create(const AInterfaceAsDuck: IInterface; const AOwnsObject: Boolean = False); overload;
     destructor Destroy; override;
 
-    function IsWrappedList: Boolean; overload;
     function Count: Integer;
+    function IsWrappedList: Boolean;
     procedure GetItemAsTValue(const AIndex: Integer; out AValue: TValue);
     function GetItem(const AIndex: Integer): TObject;
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
@@ -248,27 +250,7 @@ begin
   FGetCountMethod := nil;
   FCountProperty := nil;
 
-  if IsWrappedList then
-  begin
-    FAddMethod := FObjType.GetMethod('Add');
-    FClearMethod := FObjType.GetMethod('Clear');
-
-{$IF CompilerVersion >= 23}
-    if Assigned(FObjType.GetIndexedProperty('Items')) then
-      FGetItemMethod := FObjType.GetIndexedProperty('Items').ReadMethod;
-
-{$IFEND}
-    if not Assigned(FGetItemMethod) then
-      FGetItemMethod := FObjType.GetMethod('GetItem');
-
-    if not Assigned(FGetItemMethod) then
-      FGetItemMethod := FObjType.GetMethod('GetElement');
-
-    FGetCountMethod := nil;
-    FCountProperty := FObjType.GetProperty('Count');
-    if not Assigned(FCountProperty) then
-      FGetCountMethod := FObjType.GetMethod('Count');
-  end;
+  fIsWrappedList := HookListMethods(FObjType);
 end;
 
 destructor TDuckTypedList.Destroy;
@@ -321,20 +303,47 @@ begin
       Result := Prop.GetValue(FObjectAsDuck).AsBoolean;
 end;
 
-function TDuckTypedList.IsWrappedList: Boolean;
-var
-  ObjectType: TRttiType;
+function TDuckTypedList.HookListMethods(const aObjType: TRttiType): Boolean;
 begin
-  ObjectType := FContext.GetType(FObjectAsDuck.ClassInfo);
+  Result := True;
 
-  Result := (ObjectType.GetMethod('Add') <> nil) and (ObjectType.GetMethod('Clear') <> nil)
+  FAddMethod := aObjType.GetMethod('Add');
+  if FAddMethod = nil then Exit(False);
 
-{$IF CompilerVersion >= 23}
-    and (ObjectType.GetIndexedProperty('Items') <> nil) and (ObjectType.GetIndexedProperty('Items').ReadMethod <> nil)
+  FClearMethod := aObjType.GetMethod('Clear');
+  if FClearMethod = nil then Exit(False);
 
-{$IFEND}
-    and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and
-    (ObjectType.GetProperty('Count') <> nil);
+  if aObjType.GetIndexedProperty('Items') <> nil then
+  begin
+    FGetItemMethod := aObjType.GetIndexedProperty('Items').ReadMethod;
+    if FGetItemMethod = nil then
+    begin
+      FGetItemMethod := FObjType.GetMethod('GetElement');
+    end;
+    if FGetItemMethod = nil then
+    begin
+      Exit(False);
+    end;
+  end
+  else
+  begin
+    Exit(False);
+  end;
+
+  FCountProperty := FObjType.GetProperty('Count');
+  if FCountProperty = nil then
+  begin
+    FGetCountMethod := FObjType.GetMethod('Count');
+    if FGetCountMethod = nil then
+    begin
+      Exit(False);
+    end;
+  end;
+end;
+
+function TDuckTypedList.IsWrappedList: Boolean;
+begin
+  Result := fIsWrappedList;
 end;
 
 function TDuckTypedList.ItemIsObject(const AIndex: Integer; out AValue: TValue): Boolean;

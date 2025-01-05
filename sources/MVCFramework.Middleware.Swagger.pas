@@ -272,6 +272,7 @@ begin
                     lSwagPath.Uri,
                     lMethod,
                     ASwagDoc.Definitions,
+                    I,
                     lControllerDefaultModelClass,
                     lControllerDefaultModelSingularName,
                     lControllerDefaultModelPluralName)
@@ -451,6 +452,7 @@ begin
                   lSwagPath.Uri,
                   lMethod,
                   ASwagDoc.Definitions,
+                  I,
                   lControllerDefaultModelClass,
                   lControllerDefaultModelSingularName,
                   lControllerDefaultModelPluralName)

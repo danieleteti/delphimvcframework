@@ -15,7 +15,7 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
-  AppControllerU in 'AppControllerU.pas';
+  AppControllerU in 'AppControllerU.pas', MVCFramework.Logger;
 
 {$R *.res}
 
@@ -24,15 +24,14 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or http://localhost:%d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
     {$IFDEF MSWINDOWS}
-    //ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
     {$ENDIF}
-    Writeln('CTRL+C to stop the server');
     WaitForTerminationSignal;
     EnterInShutdownState;
   finally
@@ -42,6 +41,8 @@ end;
 
 begin
   ReportMemoryLeaksOnShutdown := True;
+  UseConsoleLogger := True;
+  UseLoggerVerbosityLevel := TLogLevel.levDebug;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
@@ -49,7 +50,7 @@ begin
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogF(E.ClassName + ': ' + E.Message);
   end
 
 end.

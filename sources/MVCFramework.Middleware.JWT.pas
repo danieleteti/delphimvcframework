@@ -462,6 +462,11 @@ begin
           begin
             LUsername := lJObj.S[FUserNameHeaderName];
             LPassword := lJObj.S[FPasswordHeaderName];
+            if LUsername.IsEmpty then
+            begin
+              LUsername := lJObj.S['username'];
+              LPassword := lJObj.S['password'];
+            end;
           end;
         finally
           lJObj.Free;

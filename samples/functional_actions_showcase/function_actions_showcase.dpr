@@ -35,7 +35,7 @@ begin
     LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
 
     LServer.Active := True;
-    LogI('Listening on port ' + APort.ToString);
+    LogI('Listening on http://localhost:' + APort.ToString);
     LogI('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
     EnterInShutdownState;

@@ -159,7 +159,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.ETag.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.ApplicationSession.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Cache.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Console.pas"/>

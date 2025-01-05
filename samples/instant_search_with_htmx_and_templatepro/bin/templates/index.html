@@ -8,7 +8,9 @@
 </div>
 <div class="columns">
   <div class="column is-one-third is-offset-one-third">
-    <input type="text" class="input" placeholder="Search" name="q" hx-get="/search"
+    <input type="text" class="input" placeholder="Search" 
+      name="q" 
+      hx-get="/search"
       value="{{:|fromquery,"q"}}"
       hx-trigger="load, keyup changed delay:500ms" 
       hx-target="#results"

@@ -51,6 +51,9 @@ type
     btnJustLoop: TButton;
     lbForEach: TListBox;
     btnForEachWithException: TButton;
+    btnMap2: TButton;
+    btnMap2Array: TButton;
+    btnFilterEnumerable: TButton;
     procedure btnMapAddStarsClick(Sender: TObject);
     procedure btnReduceSumClick(Sender: TObject);
     procedure btnFilterBetwenClick(Sender: TObject);
@@ -62,6 +65,9 @@ type
     procedure btnMapCapitalizeClick(Sender: TObject);
     procedure btnJustLoopClick(Sender: TObject);
     procedure btnForEachWithExceptionClick(Sender: TObject);
+    procedure btnMap2Click(Sender: TObject);
+    procedure btnMap2ArrayClick(Sender: TObject);
+    procedure btnFilterEnumerableClick(Sender: TObject);
   private
     procedure FillList(Data: TArray<String>; AStrings: TStrings); overload;
     procedure FillList(Data: TArray<Integer>; AStrings: TStrings); overload;
@@ -73,6 +79,9 @@ var
   MainForm: TMainForm;
 
 implementation
+
+uses
+  System.Generics.Collections;
 
 {$R *.dfm}
 
@@ -107,6 +116,18 @@ begin
   Result[9] := 'mary';
 end;
 
+function GetComponentArrayOfData(const Form: TForm): TArray<TComponent>;
+begin
+  SetLength(Result, Form.ComponentCount);
+  var lIdx := 0;
+  for var lComp in Form do
+  begin
+    Result[lIdx] := lComp;
+    Inc(lIdx);
+  end;
+end;
+
+
 procedure TMainForm.btnFilterBetwenClick(Sender: TObject);
 var
   InputData, OutputData: TArray<Integer>;
@@ -119,6 +140,25 @@ begin
     end;
   OutputData := HigherOrder.Filter<Integer>(InputData, FilterFunc);
   FillList(OutputData, lbFilter.Items);
+end;
+
+procedure TMainForm.btnFilterEnumerableClick(Sender: TObject);
+var
+  InputData, OutputData: TArray<TComponent>;
+  Names: TArray<String>;
+begin
+  InputData := GetComponentArrayOfData(Self);
+  OutputData := HigherOrder.Filter<TComponent>(InputData,
+    function(const Item: TComponent): Boolean
+    begin
+      Result := Item is TButton;
+    end);
+  Names := HigherOrder.Map<TComponent, String>(OutputData,
+    function(const Item: TComponent): String
+    begin
+      Result := Item.Name;
+    end);
+  FillList(Names, lbFilter.Items);
 end;
 
 procedure TMainForm.btnFilterEvenClick(Sender: TObject);
@@ -168,6 +208,49 @@ begin
     begin
       lbForEach.Items.Add(Item);
     end);
+end;
+
+procedure TMainForm.btnMap2ArrayClick(Sender: TObject);
+begin
+  lbMap.Clear;
+  var lInput: TArray<Integer>;
+
+  SetLength(lInput, 10);
+  for var I := 1 to Length(lInput) do
+  begin
+    lInput[I-1] := I * 10;
+  end;
+
+  var lListOfStr := HigherOrder.Map<Integer, String>(
+    lInput, function(const Item: Integer): String
+            begin
+              Result := '**' + Item.ToString;
+            end);
+  lbMap.Items.AddStrings(lListOfStr);
+end;
+
+procedure TMainForm.btnMap2Click(Sender: TObject);
+begin
+  lbMap.Clear;
+  var lList := TList<TButton>.Create;
+  try
+    for var lControl in Self.GetControls([ceftEnabled]) do
+    begin
+      if lControl is TButton then
+      begin
+        lList.Add(TButton(lControl));
+      end;
+    end;
+
+    var lListOfStr := HigherOrder.Map<TButton, String>(
+      lList, function(const Item: TButton): String
+             begin
+               Result := String(Item.Caption).ToUpper;
+             end);
+    lbMap.Items.AddStrings(lListOfStr);
+  finally
+    lList.Free;
+  end;
 end;
 
 procedure TMainForm.btnMapAddStarsClick(Sender: TObject);

@@ -74,9 +74,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: String;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: String): String;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -130,9 +134,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Currency;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Currency): Currency;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -186,9 +194,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Boolean;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Boolean): Boolean;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -242,9 +254,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: TDate;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: TDate): TDate;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -298,9 +314,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: TTime;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: TTime): TTime;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -354,9 +374,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: TDateTime;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: TDateTime): TDateTime;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -410,9 +434,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Single;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Single): Single;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -466,9 +494,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Double;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Double): Double;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -522,9 +554,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Extended;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Extended): Extended;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -578,9 +614,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Int16;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Int16): Int16;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -634,9 +674,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: UInt16;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: UInt16): UInt16;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -690,9 +734,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Int32;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Int32): Int32;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -746,9 +794,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: UInt32;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: UInt32): UInt32;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -802,9 +854,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: Int64;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: Int64): Int64;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -858,9 +914,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: UInt64;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: UInt64): UInt64;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -914,9 +974,13 @@ type
     ///</summary>
     procedure SetNull;
     ///<summary>
-    ///Returns the value stored or the default value for the type is the value is not set
+    ///Returns the value stored or the default value for the type if the value is not set
     ///</summary>	
     function ValueOrDefault: TGUID;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: TGUID): TGUID;
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1080,6 +1144,19 @@ begin
   end;
 end;
 
+function NullableString.ValueOrElse(const ElseValue: String): String;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableCurrency }
@@ -1188,6 +1265,19 @@ begin
     Result := Default (Currency);
   end;
 end;
+
+function NullableCurrency.ValueOrElse(const ElseValue: Currency): Currency;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -1298,6 +1388,19 @@ begin
   end;
 end;
 
+function NullableBoolean.ValueOrElse(const ElseValue: Boolean): Boolean;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableTDate }
@@ -1407,6 +1510,19 @@ begin
   end;
 end;
 
+function NullableTDate.ValueOrElse(const ElseValue: TDate): TDate;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableTTime }
@@ -1515,6 +1631,19 @@ begin
     Result := Default (TTime);
   end;
 end;
+
+function NullableTTime.ValueOrElse(const ElseValue: TTime): TTime;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -1626,6 +1755,19 @@ begin
   end;
 end;
 
+function NullableTDateTime.ValueOrElse(const ElseValue: TDateTime): TDateTime;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableSingle }
@@ -1734,6 +1876,19 @@ begin
     Result := Default (Single);
   end;
 end;
+
+function NullableSingle.ValueOrElse(const ElseValue: Single): Single;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -1844,6 +1999,19 @@ begin
   end;
 end;
 
+function NullableDouble.ValueOrElse(const ElseValue: Double): Double;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableExtended }
@@ -1953,6 +2121,19 @@ begin
   end;
 end;
 
+function NullableExtended.ValueOrElse(const ElseValue: Extended): Extended;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableInt16 }
@@ -2060,6 +2241,19 @@ begin
     Result := Default (Int16);
   end;
 end;
+
+function NullableInt16.ValueOrElse(const ElseValue: Int16): Int16;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -2169,6 +2363,19 @@ begin
   end;
 end;
 
+function NullableUInt16.ValueOrElse(const ElseValue: UInt16): UInt16;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableInt32 }
@@ -2276,6 +2483,19 @@ begin
     Result := Default (Int32);
   end;
 end;
+
+function NullableInt32.ValueOrElse(const ElseValue: Int32): Int32;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -2385,6 +2605,19 @@ begin
   end;
 end;
 
+function NullableUInt32.ValueOrElse(const ElseValue: UInt32): UInt32;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableInt64 }
@@ -2492,6 +2725,19 @@ begin
     Result := Default (Int64);
   end;
 end;
+
+function NullableInt64.ValueOrElse(const ElseValue: Int64): Int64;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 
@@ -2601,6 +2847,19 @@ begin
   end;
 end;
 
+function NullableUInt64.ValueOrElse(const ElseValue: UInt64): UInt64;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
+
 
 
 { NullableTGUID }
@@ -2708,6 +2967,19 @@ begin
     Result := Default (TGUID);
   end;
 end;
+
+function NullableTGUID.ValueOrElse(const ElseValue: TGUID): TGUID;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
+end;
+
 
 
 function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;

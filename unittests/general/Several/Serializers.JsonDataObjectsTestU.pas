@@ -175,6 +175,10 @@ type
     [Test]
     [Category('serializers')]
     procedure TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists_Polimorphic;
+
+    [Test]
+    [Category('issues')]
+    procedure TestIssue792;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -215,6 +219,15 @@ type
   /// When using nested generic types it is necessary to declare explicitly for delphi's RTTI to recognize them.
   /// </summary>
   TNestedGenericEntity = TGenericEntity<TGenericEntity<TNote>>;
+
+  TMyObj = class
+  private
+    fName: string;
+    fNumber: integer;
+  public
+    property Name: string read FName write FName;
+    property Number: integer read FNumber write FNumber;
+  end;
 
 implementation
 
@@ -915,6 +928,32 @@ begin
     lObj.Free;
   end;
 
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestIssue792;
+var
+  lMyObj: TMyObj;
+  lSer: IMVCSerializer;
+begin
+  lMyObj := TMyObj.Create;
+  try
+    lMyObj.Name := 'will be changed';
+    lSer := TMVCJsonDataObjectsSerializer.Create();
+    lSer.DeserializeObject('{ "dataobject" : { "name" : "Daniele", "number" : 123 }}', lMyObj, stDefault, nil, 'dataobject');
+    Assert.Contains(lSer.SerializeObject(lMyObj), 'Daniele');
+  finally
+    lMyObj.Free;
+  end;
+
+  lMyObj := TMyObj.Create;
+  try
+    lSer := TMVCJsonDataObjectsSerializer.Create();
+    lMyObj.Name := 'the untouchable';
+    lSer.DeserializeObject('{ "dataobject" : null}', lMyObj, stDefault, nil, 'dataobject');
+    Assert.Contains(lSer.SerializeObject(lMyObj), 'the untouchable');
+  finally
+    lMyObj.Free;
+  end;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllNullableTypes;

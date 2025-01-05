@@ -68,8 +68,11 @@ uses
   MVCFramework.View.Renderers.Mustache,
   {$ENDIF}
   MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
-  MVCFramework.ActiveRecord, FDConnectionConfigU, System.IOUtils;
+  MVCFramework.Middleware.StaticFiles,
+  FireDAC.Comp.Client,
+  MVCFramework.ActiveRecord,
+  FDConnectionConfigU,
+  System.IOUtils;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin

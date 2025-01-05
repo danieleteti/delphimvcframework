@@ -40,7 +40,7 @@ const
   LOGGERPRO_TAG = 'dmvcframework';
 
 type
-  TLogLevel = (levDebug = 0, levNormal = 1, levWarning = 2, levError = 3, levException = 4);
+  TLogLevel = (levDebug = 0, levNormal = 1, levWarning = 2, levError = 3, levException = 4, levFatal = 5);
 
 {$IF Defined(SYDNEYORBETTER)}
 const
@@ -68,6 +68,8 @@ type
 {$ENDIF}
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
+function StringAsLogLevel(ALogLevelString: String): TLogLevel;
+
 procedure Log(AMessage: string); overload;
 procedure Log(AObject: TObject); overload;
 
@@ -108,6 +110,7 @@ procedure InitThreadVars;
 var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
   UseConsoleLogger: Boolean = True;
+  UseLoggerVerbosityLevel: TLogLevel = TLogLevel.levDebug;
 
 implementation
 
@@ -134,7 +137,7 @@ threadvar
 var
   gLock: TObject;
   gDefaultLogger: ILogWriter;
-  gLevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
+  gLevelsMap: array [TLogLevel.levDebug .. TLogLevel.levFatal] of LoggerPro.TLogType = (
     (
       TLogType.Debug
     ),
@@ -149,6 +152,9 @@ var
     ),
     (
       TLogType.Error
+    ),
+    (
+      TLogType.Fatal
     )
   );
 
@@ -162,6 +168,24 @@ begin
     Result := gDefaultLogger;
 end;
 
+function StringAsLogLevel(ALogLevelString: String): TLogLevel;
+begin
+  ALogLevelString := ALogLevelString.ToLower;
+  if ALogLevelString.IsEmpty or (ALogLevelString = 'debug') then
+    Exit(levDebug);
+  if (ALogLevelString = 'info') or (ALogLevelString = 'normal') then
+    Exit(levNormal);
+  if ALogLevelString = 'warning' then
+    Exit(levWarning);
+  if ALogLevelString = 'error' then
+    Exit(levError);
+  if ALogLevelString = 'exception' then
+    Exit(levException);
+  if ALogLevelString = 'fatal' then
+    Exit(levFatal);
+  raise EMVCConfigException.Create('Invalid log level: ' + ALogLevelString);
+end;
+
 function LogLevelAsString(ALogLevel: TLogLevel): string;
 begin
     case ALogLevel of
@@ -173,6 +197,8 @@ begin
         Result := 'ERROR';
       levException:
         Result := 'EXCEPTION';
+      levFatal:
+        Result := 'FATAL';
     else
       Result := 'UNKNOWN';
     end;
@@ -238,6 +264,8 @@ begin
         Log.Warn(AMessage, LOGGERPRO_TAG);
       TLogType.Error:
         Log.Error(AMessage, LOGGERPRO_TAG);
+      TLogType.Fatal:
+        Log.Fatal(AMessage, LOGGERPRO_TAG);
     else
       raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
     end;
@@ -341,7 +369,7 @@ begin
   begin
     lAppenders := [lFileAppender];
   end;
-  Result := BuildLogWriter(lAppenders);
+  Result := BuildLogWriter(lAppenders, nil, gLevelsMap[UseLoggerVerbosityLevel]);
 end;
 
 procedure ReleaseGlobalLogger;
