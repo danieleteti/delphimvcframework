@@ -2,7 +2,7 @@
 //
 // Delphi Fake Data Utils
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphi_fake_data_utils
 //
