@@ -1957,6 +1957,8 @@ var
   lNullableDate: NullableTDate;
   lValue, lVarValue: TValue;
   lExtendedValue: Extended;
+  lSQLTimestampOffset: TSQLTimeStampOffset;
+
   procedure CheckParamType(const FunctionName: String; const FilterParameter: PFilterParameter; const Types: TFilterParameterTypes);
   begin
     if not(FilterParameter.ParType in Types) then
@@ -2218,6 +2220,17 @@ begin
     end
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
+      if Length(aParameters) = 0 then
+        Result := DateTimeToStr(lDateValue, fLocaleFormatSettings)
+      else
+      begin
+        CheckParNumber(1, aParameters);
+        Result := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+      end;
+    end
+    else if aValue.TryAsType<TSQLTimeStampOffset>(lSQLTimestampOffset) then
+    begin
+      lDateValue := SQLTimeStampOffsetToDateTime(lSQLTimestampOffset);
       if Length(aParameters) = 0 then
         Result := DateTimeToStr(lDateValue, fLocaleFormatSettings)
       else
