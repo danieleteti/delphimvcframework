@@ -58,6 +58,7 @@ type
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault;
       const IgnoredFields: TArray<string> = nil): string;
+    function AsJDOJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault; const IgnoredFields: TArray<string> = nil): TJDOJsonObject;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
     procedure LoadFromJSONObject(const JSONObject: TJSONObject;
       const FieldNameCase: TMVCNameCase); overload;
@@ -238,6 +239,30 @@ begin
   except
     Result.Free;
     raise;
+  end;
+end;
+
+function TDataSetHelper.AsJDOJSONObject(FieldNameCase: TMVCNameCase; const IgnoredFields: TArray<string>): TJDOJsonObject;
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+  lDSFields: TMVCDataSetFields;
+begin
+  lSerializer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    Result := TJDOJsonObject.Create;
+    try
+      lDSFields := lSerializer.GetDataSetFields(Self, TMVCIgnoredList(IgnoredFields), FieldNameCase);
+      try
+        lSerializer.DataSetToJsonObject(Self, Result, FieldNameCase, TMVCIgnoredList(IgnoredFields), lDSFields);
+      finally
+        lDSFields.Free;
+      end;
+    except
+      Result.Free;
+      raise;
+    end;
+  finally
+    lSerializer.Free;
   end;
 end;
 

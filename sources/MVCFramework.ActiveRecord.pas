@@ -490,6 +490,7 @@ type
 
     class function GetScalar(const SQL: string; const Params: array of Variant): Variant;
     class function CurrentConnection: TFDConnection;
+    class function GetConnectionByName(const ConnectionName: String): TFDConnection;
   end;
 
   IMVCUnitOfWork<T: TMVCActiveRecord> = interface
@@ -778,6 +779,7 @@ type
     function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
     function GetCurrentConnectionName(const RaiseExceptionIfNotAvailable: Boolean = False): String;
     function GetCurrentBackend: string;
+    function GetByName(const aName: string): TFDConnection;
     procedure SetDefault;
   end;
 
@@ -1099,6 +1101,10 @@ begin
 
   fMREW.BeginWrite;
   try
+    if fConnectionsDict.ContainsKey(lConnKeyName) then
+    begin
+      raise EMVCActiveRecord.CreateFmt('Cannot add another connection with the same name for the same thread. Duplicated connection name is "%s"', [lName]);
+    end;
     lConnHolder := TConnHolder.Create;
     lConnHolder.Connection := aConnection;
     lConnHolder.OwnsConnection := aOwns;
@@ -2286,6 +2292,11 @@ begin
     fConn := ActiveRecordConnectionsRegistry.GetCurrent;
   end;
   Result := fConn;
+end;
+
+class function TMVCActiveRecord.GetConnectionByName(const ConnectionName: String): TFDConnection;
+begin
+  Result := ActiveRecordConnectionsRegistry.GetByName(ConnectionName);
 end;
 
 function TMVCActiveRecord.GetCustomTableName: String;
