@@ -63,6 +63,16 @@ type
     function RenderLogItem(const aLogItem: TLogItem): String; override;
   end;
 
+  TLogItemRendererLogFmt = class(TLogItemRenderer)
+  private
+    fFormatSettings: TFormatSettings;
+  protected
+    // ILogLayoutRenderer
+    procedure Setup; override;
+    procedure TearDown; override;
+    function RenderLogItem(const aLogItem: TLogItem): String; override;
+  end;
+
 
 function GetDefaultLogItemRenderer: ILogItemRenderer;
 
@@ -70,6 +80,9 @@ var
   gDefaultLogItemRenderer: TLogItemRendererClass = TLogItemRendererDefault;
 
 implementation
+
+uses
+  System.DateUtils;
 
 function GetDefaultLogItemRenderer: ILogItemRenderer;
 begin
@@ -160,6 +173,33 @@ begin
 end;
 
 
+
+{ TLogItemRendererLogFmt }
+
+function TLogItemRendererLogFmt.RenderLogItem(const aLogItem: TLogItem): String;
+begin
+  Result :=
+    Format('time=%s threadid=%d type=%s msg=%s tag=%s',
+      [
+        DateToISO8601(ALogItem.TimeStamp, False),
+        ALogItem.ThreadID,
+        ALogItem.LogTypeAsString,
+        ALogItem.LogMessage.QuotedString('"'),
+        ALogItem.LogTag
+        ]);
+end;
+
+procedure TLogItemRendererLogFmt.Setup;
+begin
+  inherited;
+  fFormatSettings := GetDefaultFormatSettings;
+end;
+
+procedure TLogItemRendererLogFmt.TearDown;
+begin
+  inherited;
+
+end;
 
 
 end.

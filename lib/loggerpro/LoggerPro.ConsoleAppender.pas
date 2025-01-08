@@ -65,6 +65,12 @@ type
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
 
+  TLoggerProConsoleLogFmtAppender = class(TLoggerProConsoleAppender)
+  public
+    constructor Create(ALogItemRenderer: ILogItemRenderer = nil); override;
+    function FormatLog(const ALogItem: TLogItem): string; override;
+  end;
+
   // for some reason, AttachConsole has been left out of Winapi.windows.pas
 function AttachConsole(PID: Cardinal): LongBool; stdcall;
 
@@ -74,7 +80,8 @@ implementation
 
 uses
   Winapi.Windows,
-  Winapi.Messages;
+  Winapi.Messages,
+  LoggerPro.Renderers;
 
 // for some reason, AttachConsole has been left out of Winapi.windows.pas
 const
@@ -183,6 +190,25 @@ begin
     FreeAndNil(TLoggerProConsoleAppender.FLock);
   except
     // No exception checking here or the app might blow up with a RTE 217
+  end;
+end;
+
+{ TLoggerProConsoleLogFmtAppender }
+
+constructor TLoggerProConsoleLogFmtAppender.Create(ALogItemRenderer: ILogItemRenderer);
+begin
+  inherited Create(TLogItemRendererLogFmt.Create);
+end;
+
+function TLoggerProConsoleLogFmtAppender.FormatLog(const ALogItem: TLogItem): string;
+begin
+  if Assigned(FOnLogRow) then
+  begin
+    FOnLogRow(ALogItem, Result);
+  end
+  else
+  begin
+    Result := FLogItemRenderer.RenderLogItem(ALogItem);
   end;
 end;
 

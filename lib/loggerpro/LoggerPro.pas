@@ -285,14 +285,15 @@ type
     FLogLevel: TLogType;
     FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
-    FOnLogRow: TOnAppenderLogRow;
-    FLogItemRenderer: ILogItemRenderer;
     FFormatSettings: TFormatSettings;
   protected
+    FOnLogRow: TOnAppenderLogRow;
+    FLogItemRenderer: ILogItemRenderer;
     property FormatSettings: TFormatSettings read FFormatSettings;
     property LogItemRenderer: ILogItemRenderer read FLogItemRenderer;
   public
-    constructor Create(ALogItemRenderer: ILogItemRenderer = nil); virtual;
+    constructor Create(ALogItemRenderer: ILogItemRenderer); overload; virtual;
+    constructor Create; overload; virtual;
     procedure Setup; virtual;
     function FormatLog(const ALogItem: TLogItem): string; virtual;
     procedure WriteLog(const aLogItem: TLogItem); virtual; abstract;
@@ -885,6 +886,11 @@ begin
     Self.FLogItemRenderer := GetDefaultLogItemRenderer;
   end;
   Self.FOnLogRow := nil;
+end;
+
+constructor TLoggerProAppenderBase.Create;
+begin
+  Create(nil);
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;
