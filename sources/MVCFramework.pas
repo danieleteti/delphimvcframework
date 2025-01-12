@@ -553,10 +553,10 @@ type
   protected
     fActionQualifiedName: String;
     procedure Flush; virtual;
-    procedure BindToSession(const ASessionId: string);
-    function SendSessionCookie(const AContext: TWebContext): string;
-    function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-      const ASessionTimeout: Integer): TMVCWebSession;
+//    procedure BindToSession(const ASessionId: string);
+//    function SendSessionCookie(const AContext: TWebContext): string;
+//    function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
+//      const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
   public
     constructor Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
@@ -1082,6 +1082,7 @@ type
     fConfigCache_DefaultContentCharset: String;
     fConfigCache_PathPrefix: String;
     fConfigCache_UseViewCache: Boolean;
+    fConfigCache_SessionType: String;
     fSerializers: TDictionary<string, IMVCSerializer>;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
@@ -1131,10 +1132,9 @@ type
       const ControllerClass: TMVCControllerClazz;
       const ConstructorMethod: TRttiMethod): TMVCController;
   public
-    class function GetCurrentSession(const ASessionId: string;
-      const ARaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
+    class function GetCurrentSession(const aSessionId: string;
+      const aRaiseExceptionIfExpired: Boolean = True): TMVCWebSession; static;
     class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string; static;
-    class function SendSessionCookie(const AContext: TWebContext): string; overload; static;
     class function SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
       overload; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
@@ -2193,39 +2193,35 @@ end;
 
 { TWebContext }
 
-function TWebContext.AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-  const ASessionTimeout: Integer): TMVCWebSession;
-var
-  Session: TMVCWebSession;
-begin
-  if (Trim(ASessionType) = EmptyStr) then
-    raise EMVCException.Create('Empty Session Type');
+//function TWebContext.AddSessionToTheSessionList(const ASessionType, ASessionId: string; const ASessionTimeout: Integer): TMVCWebSession;
+//begin
+//  Result := TMVCSessionFactory.GetInstance.CreateNewByType(ASessionType, ASessionId, ASessionTimeout);
+//  Result.MarkAsUsed;
+//
+////  TMonitor.Enter(GlobalSessionList);
+////  try
+////    Session := TMVCSessionFactory.GetInstance.CreateNewByType(ASessionType, ASessionId, ASessionTimeout);
+////    GlobalSessionList.Add(ASessionId, Session);
+////    Result := Session;
+////    Session.MarkAsUsed;
+////  finally
+////    TMonitor.Exit(GlobalSessionList);
+////  end;
+//end;
 
-  TMonitor.Enter(GlobalSessionList);
-  try
-    Session := TMVCSessionFactory.GetInstance.CreateNewByType(ASessionType, ASessionId,
-      ASessionTimeout);
-    GlobalSessionList.Add(ASessionId, Session);
-    Result := Session;
-    Session.MarkAsUsed;
-  finally
-    TMonitor.Exit(GlobalSessionList);
-  end;
-end;
-
-procedure TWebContext.BindToSession(const ASessionId: string);
-begin
-  if not Assigned(FWebSession) then
-  begin
-    FWebSession := TMVCEngine.GetCurrentSession(ASessionId, False);
-    if not Assigned(FWebSession) then
-      raise EMVCException.Create('Invalid SessionID');
-    FWebSession.MarkAsUsed;
-    TMVCEngine.SendSessionCookie(Self, ASessionId);
-  end
-  else
-    raise EMVCException.Create('Session already bounded for this request');
-end;
+//procedure TWebContext.BindToSession(const ASessionId: string);
+//begin
+//  if not Assigned(FWebSession) then
+//  begin
+//    FWebSession := TMVCEngine.GetCurrentSession(ASessionId, False);
+//    if not Assigned(FWebSession) then
+//      raise EMVCException.Create('Invalid SessionID');
+//    FWebSession.MarkAsUsed;
+//    TMVCEngine.SendSessionCookie(Self, ASessionId);
+//  end
+//  else
+//    raise EMVCException.Create('Session already bounded for this request');
+//end;
 
 constructor TWebContext.Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -2272,6 +2268,10 @@ end;
 
 destructor TWebContext.Destroy;
 begin
+  try
+    fWebSession.Free;
+  except
+  end;
   try
     FResponse.Free;
   except
@@ -2377,51 +2377,37 @@ end;
 
 function TWebContext.GetWebSession: TMVCWebSession;
 var
-  lSessionIDFromRequest: string;
-  lSessionType: String;
+  lSessionIDCookie: string;
 begin
   if not Assigned(FWebSession) then
   begin
-    lSessionIDFromRequest := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
-    FWebSession := TMVCEngine.GetCurrentSession(lSessionIDFromRequest, False);
-    if not Assigned(FWebSession) then
+    lSessionIDCookie := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
+    if lSessionIDCookie.IsEmpty then
     begin
-      lSessionType := Config[TMVCConfigKey.SessionType];
-      if lSessionType.IsEmpty then
-      begin
-        raise EMVCException.Create('SessionType cannot be empty');
-      end;
-      if not TMVCSessionFactory.GetInstance.TryFindSessionID(lSessionType, lSessionIDFromRequest) then
-      begin
-        SessionStart;
-      end
-      else
-      begin
-        FWebSession := AddSessionToTheSessionList(
-          lSessionType,
-          lSessionIDFromRequest,
-          StrToInt(Config[TMVCConfigKey.SessionTimeout]));
-        TMVCEngine.SendSessionCookie(Self, FWebSession.SessionId);
-      end;
+      SessionStart;
     end
     else
     begin
-      TMVCEngine.SendSessionCookie(Self, FWebSession.SessionId);
+      fWebSession := TMVCSessionFactory.GetInstance.LoadSessionBySessionID(lSessionIDCookie);
+      if fWebSession = nil then
+      begin
+        raise EMVCSessionExpiredException.Create;
+      end;
     end;
   end;
-  Result := FWebSession;
+  Result := fWebSession;
   Result.MarkAsUsed;
 end;
 
 function TWebContext.IsSessionStarted: Boolean;
 begin
-  Result := FIsSessionStarted;
+  Result := fIsSessionStarted;
 end;
 
-function TWebContext.SendSessionCookie(const AContext: TWebContext): string;
-begin
-  Result := TMVCEngine.SendSessionCookie(Self);
-end;
+//function TWebContext.SendSessionCookie(const AContext: TWebContext): string;
+//begin
+//  Result := TMVCEngine.SendSessionCookie(Self);
+//end;
 
 function TWebContext.SessionId: string;
 begin
@@ -2436,22 +2422,13 @@ begin
 end;
 
 procedure TWebContext.SessionStart;
-var
-  ID: string;
-  SessionType: String;
 begin
   if not Assigned(FWebSession) then
   begin
-    ID := TMVCEngine.SendSessionCookie(Self);
-    SessionType := Config[TMVCConfigKey.SessionType];
-    if SessionType.IsEmpty then
-    begin
-      SessionType := 'memory';
-    end;
-    FWebSession := AddSessionToTheSessionList(SessionType, ID,
-      StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
+    FWebSession := TMVCSessionFactory.GetInstance.CreateNewByType(StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
+    TMVCEngine.SendSessionCookie(Self, FWebSession.SessionId);
   end;
 end;
 
@@ -2462,12 +2439,14 @@ begin
   SId := SessionId;
   if SId.IsEmpty then
     Exit(False);
-  TMonitor.Enter(GlobalSessionList);
-  try
-    Result := GlobalSessionList.ContainsKey(SId);
-  finally
-    TMonitor.Exit(GlobalSessionList);
-  end;
+  fWebSession := TMVCSessionFactory.GetInstance.LoadSessionBySessionID(SId);
+  Result := Assigned(fWebSession);
+//  TMonitor.Enter(GlobalSessionList);
+//  try
+//    Result := GlobalSessionList.ContainsKey(SId);
+//  finally
+//    TMonitor.Exit(GlobalSessionList);
+//  end;
 end;
 
 procedure TWebContext.SessionStop(const ARaiseExceptionIfExpired: Boolean);
@@ -2484,31 +2463,52 @@ begin
   Cookie.Expires := EncodeDate(1979, 11, 4);
   Cookie.Path := '/';
 
-  TMonitor.Enter(GlobalSessionList);
-  try
-    SID := SessionId;
-    if (SId = '') and (ARaiseExceptionIfExpired) then
-    begin
-      raise EMVCSessionExpiredException.Create('Session not started');
-    end;
-
-    GlobalSessionList.Remove(SId);
-
-    if SId <> '' then
-    begin
-      FWebSession := nil;
-      try
-        TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
-      except
-        on E: Exception do
-        begin
-          LogException(E, 'Cannot delete session file for sessionid: ' + SId);
-        end;
-      end;
-    end;
-  finally
-    TMonitor.Exit(GlobalSessionList);
+  SID := SessionId;
+  if (SId = '') and (ARaiseExceptionIfExpired) then
+  begin
+    raise EMVCSessionExpiredException.Create;
   end;
+
+  if Assigned(fWebSession) then
+  begin
+    fWebSession.StopSession;
+//    FWebSession := nil;
+//    try
+//      TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
+//    except
+//      on E: Exception do
+//      begin
+//        LogException(E, 'Cannot delete session file for sessionid: ' + SId);
+//      end;
+//    end;
+  end;
+
+
+//  TMonitor.Enter(GlobalSessionList);
+//  try
+//    SID := SessionId;
+//    if (SId = '') and (ARaiseExceptionIfExpired) then
+//    begin
+//      raise EMVCSessionExpiredException.Create('Session not started');
+//    end;
+//
+//    GlobalSessionList.Remove(SId);
+//
+//    if SId <> '' then
+//    begin
+//      FWebSession := nil;
+//      try
+//        TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
+//      except
+//        on E: Exception do
+//        begin
+//          LogException(E, 'Cannot delete session file for sessionid: ' + SId);
+//        end;
+//      end;
+//    end;
+//  finally
+//    TMonitor.Exit(GlobalSessionList);
+//  end;
 
   FIsSessionStarted := False;
   FSessionMustBeClose := True;
@@ -3539,39 +3539,62 @@ begin
   end;
 end;
 
-class function TMVCEngine.GetCurrentSession(const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TMVCWebSession;
-var lSessionList: TObjectDictionary<string, TMVCWebSession>;
+class function TMVCEngine.GetCurrentSession(const aSessionID: string; const aRaiseExceptionIfExpired: Boolean): TMVCWebSession;
 begin
   Result := nil;
-  lSessionList := GlobalSessionList;
-  TMonitor.Enter(lSessionList);
-  try
-    if not ASessionId.IsEmpty then
+  if not ASessionId.IsEmpty then
+  begin
+    Result := TMVCSessionFactory.GetInstance.LoadSessionBySessionID(aSessionId);
+    if Result = nil then
     begin
-      if lSessionList.TryGetValue(ASessionId, Result) then
-      begin
-        { https://github.com/danieleteti/delphimvcframework/issues/355 }
-        if Result.IsExpired then
-        begin
-          lSessionList.Remove(ASessionId);
-          if ARaiseExceptionIfExpired then
-          begin
-            raise EMVCSessionExpiredException.Create('Session expired.')
-          end
-          else
-          begin
-            Result := nil;
-          end;
-        end
-        else
-        begin
-          Result.MarkAsUsed;
-        end;
-      end;
+      Exit(nil);
     end;
-  finally
-    TMonitor.Exit(lSessionList);
+    if Result.IsExpired then
+    begin
+      if ARaiseExceptionIfExpired then
+      begin
+        raise EMVCSessionExpiredException.Create
+      end
+      else
+      begin
+        Result := nil;
+      end;
+    end
+    else
+    begin
+      Result.MarkAsUsed;
+    end;
   end;
+
+//  lSessionList := GlobalSessionList;
+//  TMonitor.Enter(lSessionList);
+//  try
+//    if not ASessionId.IsEmpty then
+//    begin
+//      if lSessionList.TryGetValue(ASessionId, Result) then
+//      begin
+//        { https://github.com/danieleteti/delphimvcframework/issues/355 }
+//        if Result.IsExpired then
+//        begin
+//          lSessionList.Remove(ASessionId);
+//          if ARaiseExceptionIfExpired then
+//          begin
+//            raise EMVCSessionExpiredException.Create('Session expired.')
+//          end
+//          else
+//          begin
+//            Result := nil;
+//          end;
+//        end
+//        else
+//        begin
+//          Result.MarkAsUsed;
+//        end;
+//      end;
+//    end;
+//  finally
+//    TMonitor.Exit(lSessionList);
+//  end;
 end;
 
 function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TMVCWebSession;
@@ -3788,17 +3811,10 @@ begin
   end;
 end;
 
-class function TMVCEngine.SendSessionCookie(const AContext: TWebContext): string;
-var
-  SId: string;
-begin
-  SId := StringReplace(StringReplace(StringReplace(
-    'DT' + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid),
-    '}', '', [rfReplaceAll]),
-    '{', '', [rfReplaceAll]),
-    '-', '', [rfReplaceAll]);
-  Result := SendSessionCookie(AContext, SId);
-end;
+//class function TMVCEngine.SendSessionCookie(const AContext: TWebContext): string;
+//begin
+//  Result := SendSessionCookie(AContext, GenerateSessionID);
+//end;
 
 procedure TMVCEngine.SaveCacheConfigValues;
 begin
@@ -3811,11 +3827,14 @@ begin
   FConfigCache_DefaultContentCharset := Config[TMVCConfigKey.DefaultContentCharset];
   FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
   FConfigCache_UseViewCache := Config[TMVCConfigKey.ViewCache] = 'true';
+  FConfigCache_SessionType := Config[TMVCConfigKey.SessionType];
+  TMVCSessionFactory.GetInstance.SetSessionType(FConfigCache_SessionType);
 end;
 
-class function TMVCEngine.SendSessionCookie(const AContext: TWebContext;
-const ASessionId: string): string;
-var Cookie: TCookie; SessionTimeout: Integer;
+class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
+var
+  Cookie: TCookie;
+  SessionTimeout: Integer;
 begin
   ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
   Cookie := AContext.Response.Cookies.Add;
@@ -4459,7 +4478,7 @@ end;
 
 procedure TMVCController.RaiseSessionExpired;
 begin
-  raise EMVCSessionExpiredException.Create('Session expired.');
+  raise EMVCSessionExpiredException.Create;
 end;
 
 function TMVCController.RenderView(const AViewName: string;
