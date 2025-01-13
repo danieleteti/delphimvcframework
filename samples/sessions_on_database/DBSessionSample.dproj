@@ -99,7 +99,7 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="AppControllerU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Session.ActiveRecord.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

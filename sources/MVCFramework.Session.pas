@@ -44,12 +44,11 @@ type
   end;
 
   TMVCWebSession = class abstract
-  private
-    FSessionId: string;
-    FLastAccess: TDateTime;
-    FTimeout: UInt64;
-    FChanged: Boolean;
   protected
+    fSessionId: string;
+    fLastAccess: TDateTime;
+    fTimeout: UInt64;
+    fChanged: Boolean;
     function GetItems(const AKey: string): string; virtual; abstract;
     procedure SetItems(const AKey, AValue: string); virtual;
     procedure SetLastAccess(Value: TDateTime);

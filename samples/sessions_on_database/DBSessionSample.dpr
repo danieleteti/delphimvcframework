@@ -17,7 +17,7 @@ uses
   IdHTTPWebBrokerBridge,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   AppControllerU in 'AppControllerU.pas',
-  MVCFramework.Session.ActiveRecord in '..\..\sources\MVCFramework.Session.ActiveRecord.pas';
+  MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas';
 
 {$R *.res}
 

@@ -1177,6 +1177,7 @@ begin
     if not fConnectionsDict.TryGetValue(lKeyName, lConnHolder) then
       raise Exception.CreateFmt('Unknown connection %s', [aName]);
     Result := lConnHolder.Connection;
+    Result.Open;
   finally
     fMREW.EndRead;
   end;
