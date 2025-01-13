@@ -37,15 +37,8 @@ implementation
 
 procedure TApp1MainController.DoLogin(username: string);
 begin
-//  if Context.SessionStarted then
-//  begin
-    Session['username'] := username;
-    Render(200, 'Logged in');
-//  end
-//  else
-//  begin
-//    Render('Session non started');
-//  end;
+  Session['username'] := username;
+  Render(200, 'Logged in');
 end;
 
 procedure TApp1MainController.DoLogout;

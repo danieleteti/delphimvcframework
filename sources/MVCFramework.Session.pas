@@ -87,6 +87,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    function Keys: TArray<String>; override;
     function Clone: TMVCWebSession; override;
     function ToString: string; override;
     property Data: TDictionary<string, string> read FData;
@@ -97,22 +98,34 @@ type
   end;
 
 
-  TMVCWebSessionFile = class(TMVCWebSessionMemory)
+  TMVCWebSessionFile = class(TMVCWebSession)
   private
     fSessionFolder: String;
+    fData: TDictionary<string, string>;
   protected
-    procedure StartLoading;
-    procedure EndLoading;
+    class var gLock: TObject;
+    class function GetSessionFolder: String;
+    function GetItems(const AKey: string): string; override;
+    procedure SetItems(const AKey, AValue: string); override;
     function GetFileName: String; overload;
     class function GetFileName(const SessionFolder, SessionID: String): String; overload;
     procedure LoadFromFile;
     procedure SaveToFile;
-    procedure OnValueNotify(Sender: TObject; const Item: String; Action: TCollectionNotification);
+    procedure InternalApplyChanges; override;
   public
+    constructor Create; override;
     destructor Destroy; override;
-    function Keys: System.TArray<System.string>; override;
+    function Keys: TArray<String>; override;
+    function Clone: TMVCWebSession; override;
+    function ToString: string; override;
+    property Data: TDictionary<string, string> read FData;
+    class function CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
+    class function CreateFromSessionID(const aSessionId: string): TMVCWebSession; override;
     class function TryFindSessionID(const ASessionID: String): Boolean; override;
-    class procedure TryDeleteSessionID(const ASessionID: String); override;
+    class procedure TryDeleteSessionID(const aSessionID: String); override;
+    //
+    class constructor Create;
+    class destructor Destroy;
   end;
 
   TMVCSessionFactory = class sealed
@@ -130,7 +143,6 @@ type
     function TryFindSessionID(const ASessionID: String): Boolean;
     procedure TryDeleteSessionID(const ASessionID: String);
     class function GetInstance: TMVCSessionFactory; static;
-    // class procedure DestroyInstance; static;
     procedure SetSessionType(const SessionType: String);
   end;
 
@@ -139,6 +151,7 @@ implementation
 
 uses
   System.IOUtils,
+  MVCFramework.Logger,
   MVCFramework.Serializer.Commons;
 
 var
@@ -153,7 +166,7 @@ begin
     'DT' + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid),
     '}', '', [rfReplaceAll]),
     '{', '', [rfReplaceAll]),
-    '-', '$', [rfReplaceAll]);
+    '-', '', [rfReplaceAll]);
 end;
 
 class function TMVCWebSessionMemory.GlobalSessionList: TObjectDictionary<string, TMVCWebSessionMemory>;
@@ -199,12 +212,20 @@ begin
   end;
 end;
 
+function TMVCWebSessionMemory.Keys: TArray<String>;
+begin
+  Result := Data.Keys.ToArray;
+end;
+
 procedure TMVCWebSession.ApplyChanges;
 begin
-  if FChanged then
+  if Self <> nil then
   begin
-    InternalApplyChanges;
-    FChanged := False;
+    if FChanged then
+    begin
+      InternalApplyChanges;
+      FChanged := False;
+    end;
   end;
 end;
 
@@ -261,7 +282,7 @@ end;
 
 function TMVCWebSession.ToString: string;
 begin
-  Result := '';
+  Result := String.Join(',', Keys);
 end;
 
 class procedure TMVCWebSession.TryDeleteSessionID(const ASessionID: String);
@@ -462,27 +483,45 @@ begin
   Result := FSessionTypeClass.TryFindSessionID(ASessionID);
 end;
 
-{ TWebSessionMemoryController }
+function TMVCWebSessionFile.Clone: TMVCWebSession;
+var
+  lMemSess: TMVCWebSessionFile;
+begin
+  lMemSess := TMVCWebSessionFile.Create;
+  try
+    lMemSess.fSessionFolder := Self.fSessionFolder;
+    lMemSess.fSessionId := Self.fSessionId;
+    lMemSess.fLastAccess := Self.fLastAccess;
+    lMemSess.fTimeout := Self.fTimeout;
+    for var lItem in Self.Data do
+    begin
+      lMemSess.Data.Add(lItem.Key, lItem.Value);
+    end;
+  except
+    lMemSess.Free;
+    raise;
+  end;
+  Result := lMemSess;
+end;
 
-//constructor TMVCWebSessionFile.CreateNewSession(const SessionID: string; const Timeout: UInt64);
-//begin
-//  inherited;
-//  Data.OnValueNotify := OnValueNotify;
-//  fSessionFolder := TPath.Combine(AppPath, 'sessions');
-//  TDirectory.CreateDirectory(fSessionFolder);
-//  LoadFromFile;
-//  MarkAsUsed;
-//  SaveToFile;
-//end;
+{ TMVCWebSessionFile }
 
 destructor TMVCWebSessionFile.Destroy;
 begin
   inherited;
+  fData.Free;
 end;
 
-procedure TMVCWebSessionFile.EndLoading;
+constructor TMVCWebSessionFile.Create;
 begin
-  Data.OnValueNotify := OnValueNotify;
+  inherited;
+  fData := TDictionary<String, String>.Create;
+  fSessionFolder := GetSessionFolder;
+end;
+
+class destructor TMVCWebSessionFile.Destroy;
+begin
+  gLock.Free;
 end;
 
 class function TMVCWebSessionFile.GetFileName(const SessionFolder,
@@ -491,14 +530,36 @@ begin
   Result := TPath.Combine(SessionFolder, SessionId);
 end;
 
+function TMVCWebSessionFile.GetItems(const AKey: string): string;
+begin
+  if not fData.TryGetValue(AKey, Result) then
+    Result := '';
+end;
+
+class function TMVCWebSessionFile.GetSessionFolder: String;
+begin
+  Result := TPath.Combine(AppPath, TPath.GetFileNameWithoutExtension(ParamStr(0)) + '_sessions');
+  TDirectory.CreateDirectory(Result);
+end;
+
+procedure TMVCWebSessionFile.InternalApplyChanges;
+begin
+  TMonitor.Enter(gLock);
+  try
+    SaveToFile;
+  finally
+    TMonitor.Exit(gLock);
+  end;
+end;
+
+function TMVCWebSessionFile.Keys: TArray<String>;
+begin
+  Result := fData.Keys.ToArray;
+end;
+
 function TMVCWebSessionFile.GetFileName: String;
 begin
   Result := GetFileName(fSessionFolder, SessionId);
-end;
-
-function TMVCWebSessionFile.Keys: System.TArray<System.string>;
-begin
-  Result := Data.Keys.ToArray;
 end;
 
 procedure TMVCWebSessionFile.LoadFromFile;
@@ -513,33 +574,18 @@ begin
   begin
     Exit;
   end;
-  //Log.Info('Loading session %s from %s', [SessionId, lFileName], 'file_session_events');
   lFile := TFile.OpenText(lFileName);
   try
-    StartLoading;
-    try
-      SetLastAccess(ISOTimeStampToDateTime(lFile.ReadLine));
-      while not lFile.EndOfStream do
-      begin
-        lLine := lFile.ReadLine;
-        lPieces := lLine.Split(['=']);
-        Data.Add(lPieces[0], lPieces[1]);
-      end;
-    finally
-      EndLoading;
+    SetLastAccess(ISOTimeStampToDateTime(lFile.ReadLine));
+    FTimeout := lFile.ReadLine.ToInteger;
+    while not lFile.EndOfStream do
+    begin
+      lLine := lFile.ReadLine;
+      lPieces := lLine.Split(['=']);
+      SetItems(lPieces[0], lPieces[1]);
     end;
   finally
     lFile.Free;
-  end;
-end;
-
-procedure TMVCWebSessionFile.OnValueNotify(Sender: TObject; const Item: String;
-  Action: TCollectionNotification);
-begin
-  if Action in [cnAdded, cnExtracted, cnRemoved] then
-  begin
-    //Log.Info('Saving session %s because item changed [%s]', [SessionId, Item], 'file_session_events');
-    SaveToFile;
   end;
 end;
 
@@ -554,6 +600,7 @@ begin
   lFile := TFile.CreateText(lFileName);
   try
     lFile.WriteLine(DateTimeToISOTimeStamp(LastAccess));
+    lFile.WriteLine(fTimeout);
     for lPair in Data do
     begin
       lFile.WriteLine(String.Join('=', [lPair.Key, lPair.Value]));
@@ -564,20 +611,34 @@ begin
   end;
 end;
 
-procedure TMVCWebSessionFile.StartLoading;
+procedure TMVCWebSessionFile.SetItems(const AKey, AValue: string);
 begin
-  Data.OnValueNotify := nil;
+  inherited;
+  fData.AddOrSetValue(AKey, AValue);
+end;
+
+function TMVCWebSessionFile.ToString: string;
+begin
+  Result := String.Join(',', Keys);
 end;
 
 class procedure TMVCWebSessionFile.TryDeleteSessionID(const ASessionID: String);
 var
-  lSessionFolder: string;
+  lSessionFolder, lSessionFileName: string;
 begin
   inherited;
-  lSessionFolder := TPath.Combine(AppPath, 'sessions');
-  if TFile.Exists(GetFileName(lSessionFolder, ASessionID)) then
+  lSessionFolder := GetSessionFolder;
+  lSessionFileName := GetFileName(lSessionFolder, ASessionID);
+  if TFile.Exists(lSessionFileName) then
   begin
-    TFile.Delete(GetFileName(lSessionFolder, ASessionID));
+    try
+      TFile.Delete(lSessionFileName);
+    except
+      on E: Exception do
+      begin
+        LogE('Cannot delete session file ' + lSessionFileName);
+      end;
+    end;
   end;
 end;
 
@@ -587,16 +648,39 @@ var
   lSessionFolder: string;
 begin
   inherited;
-  lSessionFolder := TPath.Combine(AppPath, 'sessions');
+  lSessionFolder := GetSessionFolder;
   Result := TFile.Exists(GetFileName(lSessionFolder, ASessionID));
 end;
 
+class constructor TMVCWebSessionFile.Create;
+begin
+  gLock := TObject.Create;
+end;
+
+class function TMVCWebSessionFile.CreateFromSessionID(const aSessionId: string): TMVCWebSession;
+begin
+  Result := TMVCWebSessionFile.Create;
+  try
+    TMVCWebSessionFile(Result).fSessionId := aSessionId;
+    TMVCWebSessionFile(Result).LoadFromFile;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+class function TMVCWebSessionFile.CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession;
+begin
+  Result := TMVCWebSessionFile.Create;
+  Result.FSessionId := aSessionId;
+  Result.FTimeout := ATimeout;
+  TMVCWebSessionFile(Result).SaveToFile;
+end;
 
 initialization
 
 TMVCSessionFactory.GetInstance.RegisterSessionType('memory', TMVCWebSessionMemory);
 TMVCSessionFactory.GetInstance.RegisterSessionType('file', TMVCWebSessionFile);
-
 GlCriticalSection := TCriticalSection.Create;
 
 finalization

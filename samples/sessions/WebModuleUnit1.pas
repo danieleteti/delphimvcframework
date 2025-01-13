@@ -20,13 +20,15 @@ type
 
 var
   WebModuleClass: TComponentClass = TWebModule1;
+  SessionType: String = 'memory';
 
 implementation
 
 {$R *.dfm}
 
 
-uses AppControllerU, MVCFramework.Commons;
+uses
+  AppControllerU, MVCFramework.Commons;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -35,6 +37,7 @@ begin
     begin
       Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
       Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
+      Config[TMVCConfigKey.SessionType] := SessionType;
     end);
   MVC.AddController(TApp1MainController);
 end;

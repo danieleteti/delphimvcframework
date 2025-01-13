@@ -42,6 +42,10 @@ begin
 end;
 
 begin
+  SessionType := 'file';
+  //SessionType := 'memory';
+
+
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
