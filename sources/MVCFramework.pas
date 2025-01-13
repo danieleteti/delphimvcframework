@@ -559,6 +559,7 @@ type
 //      const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
     procedure InternalSessionStart(var Session: TMVCWebSession);
+    procedure FreeSession;
   public
     constructor Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -2270,11 +2271,6 @@ end;
 destructor TWebContext.Destroy;
 begin
   try
-    fWebSession.ApplyChanges;
-    fWebSession.Free;
-  except
-  end;
-  try
     FResponse.Free;
   except
   end;
@@ -2299,6 +2295,15 @@ end;
 procedure TWebContext.Flush;
 begin
   FResponse.Flush;
+end;
+
+procedure TWebContext.FreeSession;
+begin
+  if fWebSession <> nil then
+  begin
+    fWebSession.ApplyChanges;
+    FreeAndNil(fWebSession);
+  end;
 end;
 
 function TWebContext.GetData: TMVCStringDictionary;
@@ -3110,6 +3115,7 @@ begin
             end;
           end;
           try
+            lContext.FreeSession;
             ExecuteAfterRoutingMiddleware(lContext, lHandled);
           except
             on Ex: Exception do

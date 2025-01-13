@@ -72,12 +72,12 @@ type
     procedure UpdateToDB;
     procedure InsertIntoDB;
     procedure InternalApplyChanges; override;
-    procedure MarkAsUsed; override;
   public
     constructor Create; overload; override;
-    constructor Create(const aSessionID: String; const aTimeout: UInt64); overload;
+    constructor Create(const aSessionID: String; const aTimeout: UInt64); reintroduce; overload;
     constructor CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord); overload;
     destructor Destroy; override;
+    procedure MarkAsUsed; override;
     function Keys: TArray<String>; override;
     function Clone: TMVCWebSession; override;
     function ToString: string; override;
@@ -86,9 +86,6 @@ type
     class function CreateFromSessionID(const aSessionId: string): TMVCWebSession; override;
     class function TryFindSessionID(const ASessionID: String): Boolean; override;
     class procedure TryDeleteSessionID(const aSessionID: String); override;
-    //
-    class constructor Create;
-    class destructor Destroy;
   end;
 
 implementation
@@ -122,11 +119,6 @@ begin
   inherited;
 end;
 
-class destructor TMVCWebSessionDatabase.Destroy;
-begin
-
-end;
-
 function TMVCWebSessionDatabase.GetItems(const AKey: string): string;
 begin
   Result := fSessionData.fJSONData.S[AKey];
@@ -150,13 +142,8 @@ begin
 end;
 
 procedure TMVCWebSessionDatabase.LoadFromDB;
-var
-  lFileName: String;
-  lFile: TStreamReader;
-  lLine: string;
-  lPieces: TArray<System.string>;
 begin
-  Log.Info('Loading session %s from %s', [SessionId, lFileName], LOG_TAG);
+  Log.Info('Loading session %s from database', [SessionId], LOG_TAG);
   fSessionData := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(Self.SessionId, False);
   if not Assigned(fSessionData) then
   begin
@@ -192,12 +179,10 @@ end;
 
 function TMVCWebSessionDatabase.ToString: string;
 begin
-
+  Result := fSessionData.fJSONData.ToJSON(True);
 end;
 
 class procedure TMVCWebSessionDatabase.TryDeleteSessionID(const ASessionID: String);
-var
-  lSessionFolder: string;
 begin
   inherited;
   TMVCActiveRecord.DeleteRQL<TMVCSessionActiveRecord>('eq(session_id, "' + ASessionID + '")');
@@ -219,12 +204,7 @@ end;
 
 function TMVCWebSessionDatabase.Clone: TMVCWebSession;
 begin
-
-end;
-
-class constructor TMVCWebSessionDatabase.Create;
-begin
-
+  raise Exception.Create('Non fare il clone!');
 end;
 
 constructor TMVCWebSessionDatabase.Create(const aSessionID: String; const aTimeout: UInt64);
@@ -267,6 +247,7 @@ end;
 constructor TMVCSessionActiveRecord.Create;
 begin
   inherited Create;
+  fJSONData := TJsonObject.Create;
 end;
 
 destructor TMVCSessionActiveRecord.Destroy;
@@ -278,19 +259,17 @@ end;
 procedure TMVCSessionActiveRecord.OnAfterLoad;
 begin
   inherited;
-  if fData.IsEmpty then
-    fJSONData := TJsonObject.Create
-  else
-    fJSONData.pa := StrToJSONObject(fData);
+  if not fData.IsEmpty then
+  begin
+    FreeAndNil(fJSONData);
+    fJSONData := StrToJSONObject(fData);
+  end;
 end;
 
 procedure TMVCSessionActiveRecord.OnBeforeInsertOrUpdate;
 begin
   inherited;
-  if Assigned(fJSONData) then
-    fData := fJSONData.ToJSON(True)
-  else
-    fData := '{}';
+  fData := fJSONData.ToJSON(True)
 end;
 
 initialization

@@ -1229,6 +1229,7 @@ begin
       else
         Result := nil;
     end;
+    Result.Connected := True;
   finally
     fMREW.EndRead;
   end;

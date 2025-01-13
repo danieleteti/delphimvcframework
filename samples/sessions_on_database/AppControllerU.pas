@@ -15,45 +15,58 @@ type
   public
     [MVCPath('/name')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index;
+    function Index: String;
+
+    [MVCPath('/started')]
+    [MVCHTTPMethod([httpGET])]
+    function GetStarted: String;
 
     [MVCPath('/login/($username)')]
     [MVCHTTPMethod([httpGET])]
-    procedure DoLogin(username: string);
+    function DoLogin(username: string): String;
 
     [MVCPath('/logout')]
     [MVCHTTPMethod([httpGET])]
-    procedure DoLogout;
+    function DoLogout: String;
 
   end;
 
 implementation
 
+uses
+  TemplatePro;
+
 { TApp1MainController }
 
-procedure TApp1MainController.DoLogin(username: string);
+function TApp1MainController.DoLogin(username: string): String;
 begin
   Session['username'] := username;
-  Render(200, 'Logged in');
+  Result := TTProCompiler.CompileAndRender('<h2>Logged In</h2>', [], []);
 end;
 
-procedure TApp1MainController.DoLogout;
+function TApp1MainController.DoLogout: String;
 begin
   Context.SessionStop(false);
-  Render(200, 'Logged out');
+  Result := TTProCompiler.CompileAndRender('<h2>Logged Out</h2>', [], []);
 end;
 
-procedure TApp1MainController.Index;
+function TApp1MainController.GetStarted: String;
+begin
+  Result := TTProCompiler.CompileAndRender('<h2>{{:sessionstarted}}</h2>', ['sessionstarted'], [Context.SessionStarted]);
+end;
+
+function TApp1MainController.Index: String;
 begin
   // do not create session if not already created
   if Context.SessionStarted then
   begin
     // automaticaly create the session
-    Render(200, 'Hello ' + Session['username']);
+    Result := TTProCompiler.CompileAndRender('<h2>Hello {{:username}}</h2>', ['username'], [Session['username']]);
   end
   else
   begin
-    Render(http_status.BadRequest, 'Session not created. Do login first');
+    StatusCode := HTTP_STATUS.BadRequest;
+    Result := TTProCompiler.CompileAndRender('<h2 style="color: red">Session not created. Do login first!</h2>', [], []);
   end;
 end;
 
