@@ -96,7 +96,6 @@ type
     class procedure TryDeleteSessionID(const aSessionID: String); override;
   end;
 
-
   TMVCWebSessionFile = class(TMVCWebSession)
   private
     fSessionFolder: String;

@@ -9,7 +9,6 @@ uses
   Web.HTTPApp;
 
 type
-
   [MVCPath('/')]
   TApp1MainController = class(TMVCController)
   public

@@ -204,7 +204,7 @@ end;
 
 function TMVCWebSessionDatabase.Clone: TMVCWebSession;
 begin
-  raise Exception.Create('Non fare il clone!');
+  raise EMVCSession.Create('Clone not allowed in ' + ClassName);
 end;
 
 constructor TMVCWebSessionDatabase.Create(const aSessionID: String; const aTimeout: UInt64);
@@ -263,6 +263,10 @@ begin
   begin
     FreeAndNil(fJSONData);
     fJSONData := StrToJSONObject(fData);
+  end
+  else
+  begin
+    fJSONData.Clear;
   end;
 end;
 
