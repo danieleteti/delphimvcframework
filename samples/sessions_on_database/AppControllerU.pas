@@ -16,6 +16,10 @@ type
     [MVCHTTPMethod([httpGET])]
     function Index: String;
 
+    [MVCPath('/inc')]
+    [MVCHTTPMethod([httpGET])]
+    function DoInc: String;
+
     [MVCPath('/started')]
     [MVCHTTPMethod([httpGET])]
     function GetStarted: String;
@@ -33,7 +37,7 @@ type
 implementation
 
 uses
-  TemplatePro;
+  TemplatePro, System.SysUtils;
 
 { TApp1MainController }
 
@@ -68,5 +72,16 @@ begin
     Result := TTProCompiler.CompileAndRender('<h2 style="color: red">Session not created. Do login first!</h2>', [], []);
   end;
 end;
+
+function TApp1MainController.DoInc: String;
+begin
+  if Session['value'].IsEmpty then
+  begin
+    Session['value'] := '0';
+  end;
+  Session['value'] := (Session['value'].ToInteger + 1).ToString;
+  Result := Session['value'];
+end;
+
 
 end.
