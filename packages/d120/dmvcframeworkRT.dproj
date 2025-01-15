@@ -152,6 +152,8 @@
         <DCCReference Include="FireDACPgDriver.dcp"/>
         <DCCReference Include="FireDACSqliteDriver.dcp"/>
         <DCCReference Include="SwagDoc.dcp"/>
+        <DCCReference Include="FireDACCommonODBC.dcp"/>
+        <DCCReference Include="FireDACMSSQLDriver.dcp"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
@@ -224,6 +226,9 @@
         <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.HTMX.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
