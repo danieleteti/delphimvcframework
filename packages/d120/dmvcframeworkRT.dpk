@@ -41,7 +41,9 @@ requires
   loggerproRT,
   FireDACPgDriver,
   FireDACSqliteDriver,
-  SwagDoc;
+  SwagDoc,
+  FireDACCommonODBC,
+  FireDACMSSQLDriver;
 
 contains
   Web.HTTPDImpl,
@@ -120,7 +122,10 @@ contains
   sqids in '..\..\sources\sqids.pas',
   MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
   TemplatePro in '..\..\sources\TemplatePro.pas',
-  MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas';
+  MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
+  MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas',
+  MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
+  MVCFramework.RQL.AST2MSSQL in '..\..\sources\MVCFramework.RQL.AST2MSSQL.pas';
 
 end.
 

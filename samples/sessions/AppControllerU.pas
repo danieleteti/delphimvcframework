@@ -17,6 +17,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure Index;
 
+    [MVCPath('/started')]
+    [MVCHTTPMethod([httpGET])]
+    function SessionStarted: Boolean;
+
     [MVCPath('/login/($username)')]
     [MVCHTTPMethod([httpGET])]
     procedure DoLogin(username: string);
@@ -39,8 +43,9 @@ end;
 
 procedure TApp1MainController.DoLogout;
 begin
-  Context.SessionStop(false);
+  Context.SessionStop(False);
   Render(200, 'Logged out');
+  Assert(not Context.SessionStarted);
 end;
 
 procedure TApp1MainController.Index;
@@ -55,6 +60,12 @@ begin
   begin
     Render(http_status.BadRequest, 'Session not created. Do login first');
   end;
+end;
+
+
+function TApp1MainController.SessionStarted: Boolean;
+begin
+  Result := Context.SessionStarted;
 end;
 
 end.

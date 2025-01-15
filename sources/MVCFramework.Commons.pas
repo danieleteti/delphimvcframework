@@ -407,7 +407,7 @@ type
   protected
     { protected declarations }
   public
-    { public declarations }
+    constructor Create; reintroduce;
   end;
 
   EMVCConfigException = class(EMVCException)
@@ -1995,6 +1995,13 @@ end;
 constructor TMVCStringPairList.Create;
 begin
   inherited Create(True);
+end;
+
+{ EMVCSessionExpiredException }
+
+constructor EMVCSessionExpiredException.Create;
+begin
+  inherited Create(HTTP_STATUS.Unauthorized, 'Session expired');
 end;
 
 initialization

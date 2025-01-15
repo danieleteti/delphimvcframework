@@ -1,27 +1,17 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{96D17257-AF74-48CB-9893-7BCCB56A069D}</ProjectGuid>
-        <MainSource>dmvcframeworkRT.dpk</MainSource>
+        <ProjectGuid>{F9CBCE21-869A-478F-992C-88FCAC97BC8B}</ProjectGuid>
         <ProjectVersion>20.2</ProjectVersion>
-        <FrameworkType>None</FrameworkType>
+        <FrameworkType>VCL</FrameworkType>
+        <MainSource>DBSessionSample.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Win32</Platform>
-        <TargetedPlatforms>1</TargetedPlatforms>
-        <AppType>Package</AppType>
-        <ProjectName Condition="'$(ProjectName)'==''">dmvcframeworkRT</ProjectName>
+        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <TargetedPlatforms>2</TargetedPlatforms>
+        <AppType>Console</AppType>
+        <ProjectName Condition="'$(ProjectName)'==''">DBSessionSample</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
-        <Base>true</Base>
-    </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Android' and '$(Base)'=='true') or '$(Base_Android)'!=''">
-        <Base_Android>true</Base_Android>
-        <CfgParent>Base</CfgParent>
-        <Base>true</Base>
-    </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Android64' and '$(Base)'=='true') or '$(Base_Android64)'!=''">
-        <Base_Android64>true</Base_Android64>
-        <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
@@ -31,11 +21,6 @@
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
         <Base_Win64>true</Base_Win64>
-        <CfgParent>Base</CfgParent>
-        <Base>true</Base>
-    </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64x' and '$(Base)'=='true') or '$(Base_Win64x)'!=''">
-        <Base_Win64x>true</Base_Win64x>
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
@@ -55,56 +40,33 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
-        <Cfg_2_Win32>true</Cfg_2_Win32>
-        <CfgParent>Cfg_2</CfgParent>
-        <Cfg_2>true</Cfg_2>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
+        <SanitizedProjectName>DBSessionSample</SanitizedProjectName>
+        <DCC_UnitSearchPath>..\..\sources;..\..\lib\delphistompclient;..\..\lib\loggerpro;..\..\lib\dmustache;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <Manifest_File>None</Manifest_File>
+        <VerInfo_Locale>1040</VerInfo_Locale>
+        <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
+        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
-        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_ExeOutput>bin</DCC_ExeOutput>
         <DCC_E>false</DCC_E>
         <DCC_N>false</DCC_N>
         <DCC_S>false</DCC_S>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
-        <GenDll>true</GenDll>
-        <GenPackage>true</GenPackage>
-        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
-        <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
-        <SanitizedProjectName>dmvcframeworkRT</SanitizedProjectName>
-        <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
-        <VerInfo_Locale>1040</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_Description>DMVCFramework - CopyRight (2010-2020) Daniele Teti and the DMVCFramework Team</DCC_Description>
-        <DllSuffix>120</DllSuffix>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Base_Android)'!=''">
-        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=;minSdkVersion=23;targetSdkVersion=34</VerInfo_Keys>
-        <BT_BuildType>Debug</BT_BuildType>
-        <EnabledSysJars>activity-1.7.2.dex.jar;annotation-experimental-1.3.0.dex.jar;annotation-jvm-1.6.0.dex.jar;annotations-13.0.dex.jar;appcompat-1.2.0.dex.jar;appcompat-resources-1.2.0.dex.jar;billing-6.0.1.dex.jar;biometric-1.1.0.dex.jar;browser-1.4.0.dex.jar;cloud-messaging.dex.jar;collection-1.1.0.dex.jar;concurrent-futures-1.1.0.dex.jar;core-1.10.1.dex.jar;core-common-2.2.0.dex.jar;core-ktx-1.10.1.dex.jar;core-runtime-2.2.0.dex.jar;cursoradapter-1.0.0.dex.jar;customview-1.0.0.dex.jar;documentfile-1.0.0.dex.jar;drawerlayout-1.0.0.dex.jar;error_prone_annotations-2.9.0.dex.jar;exifinterface-1.3.6.dex.jar;firebase-annotations-16.2.0.dex.jar;firebase-common-20.3.1.dex.jar;firebase-components-17.1.0.dex.jar;firebase-datatransport-18.1.7.dex.jar;firebase-encoders-17.0.0.dex.jar;firebase-encoders-json-18.0.0.dex.jar;firebase-encoders-proto-16.0.0.dex.jar;firebase-iid-interop-17.1.0.dex.jar;firebase-installations-17.1.3.dex.jar;firebase-installations-interop-17.1.0.dex.jar;firebase-measurement-connector-19.0.0.dex.jar;firebase-messaging-23.1.2.dex.jar;fmx.dex.jar;fragment-1.2.5.dex.jar;google-play-licensing.dex.jar;interpolator-1.0.0.dex.jar;javax.inject-1.dex.jar;kotlin-stdlib-1.8.22.dex.jar;kotlin-stdlib-common-1.8.22.dex.jar;kotlin-stdlib-jdk7-1.8.22.dex.jar;kotlin-stdlib-jdk8-1.8.22.dex.jar;kotlinx-coroutines-android-1.6.4.dex.jar;kotlinx-coroutines-core-jvm-1.6.4.dex.jar;legacy-support-core-utils-1.0.0.dex.jar;lifecycle-common-2.6.1.dex.jar;lifecycle-livedata-2.6.1.dex.jar;lifecycle-livedata-core-2.6.1.dex.jar;lifecycle-runtime-2.6.1.dex.jar;lifecycle-service-2.6.1.dex.jar;lifecycle-viewmodel-2.6.1.dex.jar;lifecycle-viewmodel-savedstate-2.6.1.dex.jar;listenablefuture-1.0.dex.jar;loader-1.0.0.dex.jar;localbroadcastmanager-1.0.0.dex.jar;okio-jvm-3.4.0.dex.jar;play-services-ads-22.2.0.dex.jar;play-services-ads-base-22.2.0.dex.jar;play-services-ads-identifier-18.0.0.dex.jar;play-services-ads-lite-22.2.0.dex.jar;play-services-appset-16.0.1.dex.jar;play-services-base-18.1.0.dex.jar;play-services-basement-18.1.0.dex.jar;play-services-cloud-messaging-17.0.1.dex.jar;play-services-location-21.0.1.dex.jar;play-services-maps-18.1.0.dex.jar;play-services-measurement-base-20.1.2.dex.jar;play-services-measurement-sdk-api-20.1.2.dex.jar;play-services-stats-17.0.2.dex.jar;play-services-tasks-18.0.2.dex.jar;print-1.0.0.dex.jar;profileinstaller-1.3.0.dex.jar;room-common-2.2.5.dex.jar;room-runtime-2.2.5.dex.jar;savedstate-1.2.1.dex.jar;sqlite-2.1.0.dex.jar;sqlite-framework-2.1.0.dex.jar;startup-runtime-1.1.1.dex.jar;tracing-1.0.0.dex.jar;transport-api-3.0.0.dex.jar;transport-backend-cct-3.1.8.dex.jar;transport-runtime-3.1.8.dex.jar;user-messaging-platform-2.0.0.dex.jar;vectordrawable-1.1.0.dex.jar;vectordrawable-animated-1.1.0.dex.jar;versionedparcelable-1.1.1.dex.jar;viewpager-1.0.0.dex.jar;work-runtime-2.7.0.dex.jar</EnabledSysJars>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Base_Android64)'!=''">
-        <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=;minSdkVersion=23;targetSdkVersion=34</VerInfo_Keys>
-        <BT_BuildType>Debug</BT_BuildType>
-        <EnabledSysJars>activity-1.7.2.dex.jar;annotation-experimental-1.3.0.dex.jar;annotation-jvm-1.6.0.dex.jar;annotations-13.0.dex.jar;appcompat-1.2.0.dex.jar;appcompat-resources-1.2.0.dex.jar;billing-6.0.1.dex.jar;biometric-1.1.0.dex.jar;browser-1.4.0.dex.jar;cloud-messaging.dex.jar;collection-1.1.0.dex.jar;concurrent-futures-1.1.0.dex.jar;core-1.10.1.dex.jar;core-common-2.2.0.dex.jar;core-ktx-1.10.1.dex.jar;core-runtime-2.2.0.dex.jar;cursoradapter-1.0.0.dex.jar;customview-1.0.0.dex.jar;documentfile-1.0.0.dex.jar;drawerlayout-1.0.0.dex.jar;error_prone_annotations-2.9.0.dex.jar;exifinterface-1.3.6.dex.jar;firebase-annotations-16.2.0.dex.jar;firebase-common-20.3.1.dex.jar;firebase-components-17.1.0.dex.jar;firebase-datatransport-18.1.7.dex.jar;firebase-encoders-17.0.0.dex.jar;firebase-encoders-json-18.0.0.dex.jar;firebase-encoders-proto-16.0.0.dex.jar;firebase-iid-interop-17.1.0.dex.jar;firebase-installations-17.1.3.dex.jar;firebase-installations-interop-17.1.0.dex.jar;firebase-measurement-connector-19.0.0.dex.jar;firebase-messaging-23.1.2.dex.jar;fmx.dex.jar;fragment-1.2.5.dex.jar;google-play-licensing.dex.jar;interpolator-1.0.0.dex.jar;javax.inject-1.dex.jar;kotlin-stdlib-1.8.22.dex.jar;kotlin-stdlib-common-1.8.22.dex.jar;kotlin-stdlib-jdk7-1.8.22.dex.jar;kotlin-stdlib-jdk8-1.8.22.dex.jar;kotlinx-coroutines-android-1.6.4.dex.jar;kotlinx-coroutines-core-jvm-1.6.4.dex.jar;legacy-support-core-utils-1.0.0.dex.jar;lifecycle-common-2.6.1.dex.jar;lifecycle-livedata-2.6.1.dex.jar;lifecycle-livedata-core-2.6.1.dex.jar;lifecycle-runtime-2.6.1.dex.jar;lifecycle-service-2.6.1.dex.jar;lifecycle-viewmodel-2.6.1.dex.jar;lifecycle-viewmodel-savedstate-2.6.1.dex.jar;listenablefuture-1.0.dex.jar;loader-1.0.0.dex.jar;localbroadcastmanager-1.0.0.dex.jar;okio-jvm-3.4.0.dex.jar;play-services-ads-22.2.0.dex.jar;play-services-ads-base-22.2.0.dex.jar;play-services-ads-identifier-18.0.0.dex.jar;play-services-ads-lite-22.2.0.dex.jar;play-services-appset-16.0.1.dex.jar;play-services-base-18.1.0.dex.jar;play-services-basement-18.1.0.dex.jar;play-services-cloud-messaging-17.0.1.dex.jar;play-services-location-21.0.1.dex.jar;play-services-maps-18.1.0.dex.jar;play-services-measurement-base-20.1.2.dex.jar;play-services-measurement-sdk-api-20.1.2.dex.jar;play-services-stats-17.0.2.dex.jar;play-services-tasks-18.0.2.dex.jar;print-1.0.0.dex.jar;profileinstaller-1.3.0.dex.jar;room-common-2.2.5.dex.jar;room-runtime-2.2.5.dex.jar;savedstate-1.2.1.dex.jar;sqlite-2.1.0.dex.jar;sqlite-framework-2.1.0.dex.jar;startup-runtime-1.1.1.dex.jar;tracing-1.0.0.dex.jar;transport-api-3.0.0.dex.jar;transport-backend-cct-3.1.8.dex.jar;transport-runtime-3.1.8.dex.jar;user-messaging-platform-2.0.0.dex.jar;vectordrawable-1.1.0.dex.jar;vectordrawable-animated-1.1.0.dex.jar;versionedparcelable-1.1.1.dex.jar;viewpager-1.0.0.dex.jar;work-runtime-2.7.0.dex.jar</EnabledSysJars>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
-        <BT_BuildType>Debug</BT_BuildType>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Description>DMVCFramework - CopyRight (2010-2024) Daniele Teti and the DMVCFramework Team</DCC_Description>
-        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;dmvcframeworkDT;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>cxPivotGridChartRS17;JvMM;dxSkinSevenRS17;dxSkinBlueprintRS17;dxSkinHighContrastRS17;dxSkinOffice2007BlackRS17;dxCoreRS17;cxPageControldxBarPopupMenuRS17;dxSkinXmas2008BlueRS17;dxPSDBTeeChartRS17;JvCrypt;dxPSTeeChartRS17;dxSkinSummer2008RS17;dxPScxSchedulerLnkRS17;dxSkinBlueRS17;dxSkinDarkRoomRS17;DBXInterBaseDriver;DataSnapServer;DataSnapCommon;dxPScxTLLnkRS17;JvNet;JvDotNetCtrls;dxRibbonRS17;DbxCommonDriver;cxDataRS17;vclimg;dxSkinsdxBarPainterRS17;dxPSdxDBTVLnkRS17;dbxcds;DatasnapConnectorsFreePascal;NxDBGridDsgn_dxe3;JvXPCtrls;dxSkinMoneyTwinsRS17;vcldb;cxExportRS17;dxPSCoreRS17;dxBarExtItemsRS17;dxGDIPlusRS17;FMXfrx17;dxNavBarRS17;CustomIPTransport;cxLibraryRS17;cxGridRS17;dxSkinOffice2010BlackRS17;dsnap;IndyIPServer;IndyCore;dxSkinMcSkinRS17;CloudService;dxPScxCommonRS17;FmxTeeUI;frxDB17;AnyDAC_PhysDb2_D17;dxSkinsdxDLPainterRS17;dxSkiniMaginaryRS17;JvDB;JvRuntimeDesign;dxPScxVGridLnkRS17;JclDeveloperTools;dxSkinSevenClassicRS17;dxPScxExtCommonRS17;MyFrameTestPackage;dxPScxSSLnkRS17;NxGridRun_dxe3;dxSkinLilianRS17;fs17;dxPSdxLCLnkRS17;dxSkinOffice2010BlueRS17;NxCommonRun_dxe3;bindcompfmx;DataBindingsVCL170;dxSkinOffice2010SilverRS17;vcldbx;cxSchedulerGridRS17;dbrtl;bindcomp;inetdb;JvPluginSystem;dxBarRS17;DataBindings;DBXOdbcDriver;IcsCommonDXE3Run;JvCmp;dxBarDBNavRS17;dxSkinWhiteprintRS17;JvTimeFramework;xmlrtl;dxSkinsdxRibbonPainterRS17;ibxpress;dxDockingRS17;vclactnband;bindengine;soaprtl;FMXTee;dxADOServerModeRS17;bindcompvcl;dxBarExtDBItemsRS17;dxPSPrVwRibbonRS17;Jcl;vclie;dxSkinOffice2007PinkRS17;cxPageControlRS17;dxSkinscxPCPainterRS17;AnyDAC_PhysADS_D17;AnyDAC_PhysIB_D17;dxmdsRS17;dxSkinTheAsphaltWorldRS17;DBXInformixDriver;Intraweb;dxPsPrVwAdvRS17;NxInspectorRun_dxe3;dxSkinSilverRS17;dxdborRS17;dsnapcon;DBXFirebirdDriver;fsDB17;inet;dorm_runtime_xe3;JvPascalInterpreter;vclx;dxSkinStardustRS17;cxEditorsRS17;DBXSybaseASADriver;NxInspectorDsgn_dxe3;dbexpress;IndyIPClient;AnyDAC_PhysMySQL_D17;cxTreeListdxBarPopupMenuRS17;dxSkinVS2010RS17;NxGridDsgn_dxe3;dxThemeRS17;DBXSqliteDriver;dxPScxGridLnkRS17;fmx;JvDlgs;IndySystem;TeeDB;dxSkinValentineRS17;vclib;inetdbbde;DataSnapClient;dxSkinDevExpressStyleRS17;DataSnapProviderClient;DBXSybaseASEDriver;cxBarEditItemRS17;AnyDAC_PhysMSAcc_D17;dxServerModeRS17;cxPivotGridOLAPRS17;cxSchedulerRS17;MetropolisUILiveTile;AnyDAC_PhysSQLITE_D17;dxPSLnksRS17;dxSkinPumpkinRS17;dxPSdxDBOCLnkRS17;cxVerticalGridRS17;dxSkinSpringTimeRS17;vcldsnap;dxSkinDevExpressDarkStyleRS17;DBXDb2Driver;AnyDAC_ComI_D17;DBXOracleDriver;AnyDAC_PhysMSSQL_D17;JvCore;NxDBGridRun_dxe3;vclribbon;AnyDAC_Comp_D17;cxSpreadSheetRS17;dxSkinLiquidSkyRS17;AnyDAC_PhysODBC_D17;fmxase;vcl;dxSkinOffice2007SilverRS17;AnyDAC_PhysPg_D17;IndyIPCommon;DBXMSSQLDriver;CodeSiteExpressPkg;dxPSdxOCLnkRS17;dcldxSkinsCoreRS17;JvAppFrm;AnyDAC_PhysASA_D17;inetdbxpress;webdsnap;NxCollectionRun_dxe3;AnyDAC_PhysOracle_D17;dxSkinCoffeeRS17;JvDocking;adortl;dxSkinscxSchedulerPainterRS17;JvWizards;NxCollectionDsgn_dxe3;frx17;NxCommonDsgn_dxe3;dxtrmdRS17;dxPScxPCProdRS17;AnyDAC_GUIxForms_D17;JvBands;rtl;DbxClientDriver;AnyDAC_PhysTDBX_D17;dxTabbedMDIRS17;dxComnRS17;dxSkinSharpPlusRS17;dxSkinsCoreRS17;dxSkinLondonLiquidSkyRS17;dxdbtrRS17;Tee;JclContainers;NxAddonsRun_dxe3;CPortLibDXE;JvSystem;dxorgcRS17;svnui;dxSkinBlackRS17;JvControls;NxSheetRun_dxe3;IndyProtocols;DBXMySQLDriver;dxLayoutControlRS17;bindcompdbx;TeeUI;JvJans;JvPrintPreview;JvPageComps;JvStdCtrls;JvCustom;dxSkinOffice2007BlueRS17;dxPScxPivotGridLnkRS17;dxSpellCheckerRS17;vcltouch;dxSkinOffice2007GreenRS17;dxSkinSharpRS17;websnap;dxSkinFoggyRS17;dxTileControlRS17;VclSmp;FMXfrxDB17;dxSkinDarkSideRS17;cxPivotGridRS17;DataSnapConnectors;AnyDAC_Phys_D17;fmxobj;SynEdit_RXE3;JclVcl;cxTreeListRS17;dxPSdxFCLnkRS17;dxSkinGlassOceansRS17;frxe17;svn;dxFlowChartRS17;fmxdae;dxSkinsdxNavBarPainterRS17;bdertl;VirtualTreesR;DataSnapIndy10ServerTransport;dxDBXServerModeRS17;dxSkinCaramelRS17;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
-        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Base_Win64x)'!=''">
+        <DCC_UsePackage>cxPivotGridChartRS17;JvMM;dxSkinSevenRS17;dxSkinBlueprintRS17;dxSkinHighContrastRS17;dxSkinOffice2007BlackRS17;dxCoreRS17;cxPageControldxBarPopupMenuRS17;dxSkinXmas2008BlueRS17;dxPSDBTeeChartRS17;JvCrypt;dxPSTeeChartRS17;dxSkinSummer2008RS17;dxPScxSchedulerLnkRS17;dxSkinBlueRS17;dxSkinDarkRoomRS17;DBXInterBaseDriver;DataSnapServer;DataSnapCommon;dxPScxTLLnkRS17;JvNet;dxRibbonRS17;DbxCommonDriver;cxDataRS17;vclimg;dxSkinsdxBarPainterRS17;dxPSdxDBTVLnkRS17;dbxcds;DatasnapConnectorsFreePascal;NxDBGridDsgn_dxe3;dxSkinMoneyTwinsRS17;vcldb;cxExportRS17;dxPSCoreRS17;dxBarExtItemsRS17;dxGDIPlusRS17;dxNavBarRS17;CustomIPTransport;cxLibraryRS17;cxGridRS17;dxSkinOffice2010BlackRS17;dsnap;IndyIPServer;IndyCore;dxSkinMcSkinRS17;dxPScxCommonRS17;AnyDAC_PhysDb2_D17;dxSkinsdxDLPainterRS17;dxSkiniMaginaryRS17;JvDB;dxPScxVGridLnkRS17;dxSkinSevenClassicRS17;dxPScxExtCommonRS17;dxPScxSSLnkRS17;NxGridRun_dxe3;dxSkinLilianRS17;dxPSdxLCLnkRS17;dxSkinOffice2010BlueRS17;NxCommonRun_dxe3;bindcompfmx;dxSkinOffice2010SilverRS17;cxSchedulerGridRS17;dbrtl;bindcomp;inetdb;JvPluginSystem;dxBarRS17;DBXOdbcDriver;JvCmp;dxBarDBNavRS17;dxSkinWhiteprintRS17;JvTimeFramework;xmlrtl;dxSkinsdxRibbonPainterRS17;ibxpress;dxDockingRS17;vclactnband;bindengine;soaprtl;dxADOServerModeRS17;bindcompvcl;dxBarExtDBItemsRS17;dxPSPrVwRibbonRS17;vclie;dxSkinOffice2007PinkRS17;cxPageControlRS17;dxSkinscxPCPainterRS17;AnyDAC_PhysADS_D17;AnyDAC_PhysIB_D17;dxmdsRS17;dxSkinTheAsphaltWorldRS17;DBXInformixDriver;dxPsPrVwAdvRS17;NxInspectorRun_dxe3;dxSkinSilverRS17;dxdborRS17;dsnapcon;DBXFirebirdDriver;inet;JvPascalInterpreter;vclx;dxSkinStardustRS17;cxEditorsRS17;DBXSybaseASADriver;NxInspectorDsgn_dxe3;dbexpress;IndyIPClient;AnyDAC_PhysMySQL_D17;cxTreeListdxBarPopupMenuRS17;dxSkinVS2010RS17;NxGridDsgn_dxe3;dxThemeRS17;DBXSqliteDriver;dxPScxGridLnkRS17;fmx;JvDlgs;IndySystem;TeeDB;dxSkinValentineRS17;vclib;DataSnapClient;dxSkinDevExpressStyleRS17;DataSnapProviderClient;DBXSybaseASEDriver;cxBarEditItemRS17;AnyDAC_PhysMSAcc_D17;dxServerModeRS17;cxPivotGridOLAPRS17;cxSchedulerRS17;AnyDAC_PhysSQLITE_D17;dxPSLnksRS17;dxSkinPumpkinRS17;dxPSdxDBOCLnkRS17;cxVerticalGridRS17;dxSkinSpringTimeRS17;vcldsnap;dxSkinDevExpressDarkStyleRS17;DBXDb2Driver;AnyDAC_ComI_D17;DBXOracleDriver;AnyDAC_PhysMSSQL_D17;JvCore;NxDBGridRun_dxe3;AnyDAC_Comp_D17;cxSpreadSheetRS17;dxSkinLiquidSkyRS17;AnyDAC_PhysODBC_D17;fmxase;vcl;dxSkinOffice2007SilverRS17;AnyDAC_PhysPg_D17;IndyIPCommon;DBXMSSQLDriver;dxPSdxOCLnkRS17;dcldxSkinsCoreRS17;JvAppFrm;AnyDAC_PhysASA_D17;inetdbxpress;webdsnap;NxCollectionRun_dxe3;AnyDAC_PhysOracle_D17;dxSkinCoffeeRS17;adortl;dxSkinscxSchedulerPainterRS17;JvWizards;NxCollectionDsgn_dxe3;NxCommonDsgn_dxe3;dxtrmdRS17;dxPScxPCProdRS17;AnyDAC_GUIxForms_D17;JvBands;rtl;DbxClientDriver;AnyDAC_PhysTDBX_D17;dxTabbedMDIRS17;dxComnRS17;dxSkinSharpPlusRS17;dxSkinsCoreRS17;dxSkinLondonLiquidSkyRS17;dxdbtrRS17;Tee;NxAddonsRun_dxe3;JvSystem;dxorgcRS17;dxSkinBlackRS17;JvControls;NxSheetRun_dxe3;IndyProtocols;DBXMySQLDriver;dxLayoutControlRS17;bindcompdbx;TeeUI;JvJans;JvPrintPreview;JvPageComps;JvStdCtrls;JvCustom;dxSkinOffice2007BlueRS17;dxPScxPivotGridLnkRS17;dxSpellCheckerRS17;vcltouch;dxSkinOffice2007GreenRS17;dxSkinSharpRS17;websnap;dxSkinFoggyRS17;dxTileControlRS17;VclSmp;dxSkinDarkSideRS17;cxPivotGridRS17;DataSnapConnectors;AnyDAC_Phys_D17;fmxobj;SynEdit_RXE3;cxTreeListRS17;dxPSdxFCLnkRS17;dxSkinGlassOceansRS17;dxFlowChartRS17;fmxdae;dxSkinsdxNavBarPainterRS17;DataSnapIndy10ServerTransport;dxDBXServerModeRS17;dxSkinCaramelRS17;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
@@ -116,16 +78,11 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_MapFile>3</DCC_MapFile>
-        <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
-        <DCC_UNSUPPORTED_CONSTRUCT>false</DCC_UNSUPPORTED_CONSTRUCT>
-        <DCC_RunTimeTypeInfo>true</DCC_RunTimeTypeInfo>
-        <VerInfo_Keys>CompanyName=Daniele Teti and the DMVCFramework Team;FileDescription=DelphiMVCFramework 3.4.0-neon;FileVersion=3.4.0.0;InternalName=DelphiMVCFramework 3.4.0-neon;LegalCopyright=Daniele Teti and the DMVCFramework Team - Apache License 2;LegalTrademarks=DelphiMVCFramework;OriginalFilename=$(MSBuildProjectName);ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DelphiMVCFramework;ProductVersion=3.2.2;Comments=</VerInfo_Keys>
-        <VerInfo_MajorVer>3</VerInfo_MajorVer>
-        <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <DCC_Description>DMVCFramework - CopyRight (2010-2024) Daniele Teti and the DMVCFramework Team</DCC_Description>
+        <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <DCC_RemoteDebug>false</DCC_RemoteDebug>
+        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -133,102 +90,16 @@
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
-    </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="rtl.dcp"/>
-        <DCCReference Include="inet.dcp"/>
-        <DCCReference Include="FireDAC.dcp"/>
-        <DCCReference Include="IndyCore.dcp"/>
-        <DCCReference Include="IndyProtocols.dcp"/>
-        <DCCReference Include="FireDACIBDriver.dcp"/>
-        <DCCReference Include="FireDACMySQLDriver.dcp"/>
-        <DCCReference Include="loggerproRT.dcp"/>
-        <DCCReference Include="FireDACPgDriver.dcp"/>
-        <DCCReference Include="FireDACSqliteDriver.dcp"/>
-        <DCCReference Include="SwagDoc.dcp"/>
-        <DCCReference Include="FireDACCommonODBC.dcp"/>
-        <DCCReference Include="FireDACMSSQLDriver.dcp"/>
-        <DCCReference Include="..\..\sources\MVCFramework.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.ETag.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Cache.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Console.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.DataSet.Utils.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.DuckTyping.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.FireDAC.Utils.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.HMAC.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Analytics.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Compression.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.CORS.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.MultiMap.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Patches.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MySQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.Parser.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Rtti.Utils.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Abstract.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Defaults.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Intf.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Session.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SystemJSONUtils.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Controllers.Register.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.HTML.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.LRUCache.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Utils.pas"/>
-        <DCCReference Include="..\..\sources\JsonDataObjects.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.DotEnv.Parser.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.DotEnv.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.URLEncoded.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Signal.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Text.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Container.pas"/>
-        <DCCReference Include="..\..\sources\sqids.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas"/>
-        <DCCReference Include="..\..\sources\TemplatePro.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.HTMX.pas"/>
+        <DCCReference Include="WebModuleUnit1.pas">
+            <Form>WebModule1</Form>
+            <DesignClass>TWebModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="AppControllerU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -243,43 +114,72 @@
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Delphi.Personality.12</Borland.Personality>
-        <Borland.ProjectType>Package</Borland.ProjectType>
+        <Borland.ProjectType/>
         <BorlandProject>
             <Delphi.Personality>
+                <VersionInfo>
+                    <VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+                    <VersionInfo Name="AutoIncBuild">False</VersionInfo>
+                    <VersionInfo Name="MajorVer">1</VersionInfo>
+                    <VersionInfo Name="MinorVer">0</VersionInfo>
+                    <VersionInfo Name="Release">0</VersionInfo>
+                    <VersionInfo Name="Build">0</VersionInfo>
+                    <VersionInfo Name="Debug">False</VersionInfo>
+                    <VersionInfo Name="PreRelease">False</VersionInfo>
+                    <VersionInfo Name="Special">False</VersionInfo>
+                    <VersionInfo Name="Private">False</VersionInfo>
+                    <VersionInfo Name="DLL">False</VersionInfo>
+                    <VersionInfo Name="Locale">1040</VersionInfo>
+                    <VersionInfo Name="CodePage">1252</VersionInfo>
+                </VersionInfo>
+                <VersionInfoKeys>
+                    <VersionInfoKeys Name="CompanyName"/>
+                    <VersionInfoKeys Name="FileDescription"/>
+                    <VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="InternalName"/>
+                    <VersionInfoKeys Name="LegalCopyright"/>
+                    <VersionInfoKeys Name="LegalTrademarks"/>
+                    <VersionInfoKeys Name="OriginalFilename"/>
+                    <VersionInfoKeys Name="ProductName"/>
+                    <VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="Comments"/>
+                    <VersionInfoKeys Name="CFBundleName"/>
+                    <VersionInfoKeys Name="CFBundleDisplayName"/>
+                    <VersionInfoKeys Name="CFBundleIdentifier"/>
+                    <VersionInfoKeys Name="CFBundleVersion"/>
+                    <VersionInfoKeys Name="CFBundlePackageType"/>
+                    <VersionInfoKeys Name="CFBundleSignature"/>
+                    <VersionInfoKeys Name="CFBundleAllowMixedLocalizations"/>
+                    <VersionInfoKeys Name="CFBundleExecutable"/>
+                </VersionInfoKeys>
                 <Source>
-                    <Source Name="MainSource">dmvcframeworkRT.dpk</Source>
+                    <Source Name="MainSource">DBSessionSample.dpr</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dclSVGIconImageList290.bpl">Ethea SVGIconImageList VCL components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dclSVGIconImageListFMX290.bpl">Ethea SVGIconImageList  FMX components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\DelphiAIDeveloper.bpl">(untitled)</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dclPython290.bpl">Python4Delphi - Design-time Engine Package</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dclPythonVcl290.bpl">Python4Delphi - Design-Time Engine Package for VCL</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dclPythonFmx290.bpl">Python4Delphi - Design-time Engine Package for FMX</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\LockBoxVCLDD290.bpl">TurboPack LockBox Delphi Vcl designtime package</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\LockBoxFMXDD290.bpl">TurboPack LockBox Delphi FMX designtime package</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\DzHTMLTextDesign_VCL.bpl">Digao Dalpiaz - DzHTMLText Component - VCL Designtime</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\DzHTMLTextDesign_FMX.bpl">Digao Dalpiaz - DzHTMLText Component - FMX Designtime</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k290.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp290.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="5">
-                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">
-                    <Platform Name="iOSSimulator">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libpcre.dylib" Class="DependencyModule">
-                    <Platform Name="iOSSimulator">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Class="DependencyModule"/>
-                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
-                    <Platform Name="OSX32">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Class="DependencyModule"/>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\dmvcframeworkRT111.bpl" Configuration="Debug" Class="ProjectOutput"/>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkRT120.bpl" Configuration="Debug" Class="ProjectOutput"/>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkRT120.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Win32\Debug\DBSessionSample.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>dmvcframeworkRT.bpl</RemoteName>
+                        <RemoteName>DBSessionSample.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="Win32\Debug\SessionSample.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>
@@ -1124,12 +1024,8 @@
                 <ProjectRoot Platform="Win64x" Name="$(PROJECTNAME)"/>
             </Deployment>
             <Platforms>
-                <Platform value="Android">False</Platform>
-                <Platform value="Android64">False</Platform>
-                <Platform value="Linux64">False</Platform>
-                <Platform value="Win32">True</Platform>
-                <Platform value="Win64">False</Platform>
-                <Platform value="Win64x">False</Platform>
+                <Platform value="Win32">False</Platform>
+                <Platform value="Win64">True</Platform>
             </Platforms>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
