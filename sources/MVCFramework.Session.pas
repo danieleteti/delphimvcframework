@@ -32,8 +32,9 @@ uses
   System.Classes,
   System.SyncObjs,
   System.SysUtils,
-  System.DateUtils,
-  System.Generics.Collections, MVCFramework.Commons;
+  System.Generics.Collections,
+  MVCFramework.Commons,
+  MVCFramework.Nullables;
 
 const
   DEFAULT_SESSION_INACTIVITY = 60; // in minutes
@@ -44,18 +45,21 @@ type
   end;
 
   TMVCWebSession = class abstract
+  strict private
+    fChanged: Boolean;
+    fExpirationTimeStamp: TDateTime;
   protected
     fSessionId: string;
-    fLastAccess: TDateTime;
     fTimeout: UInt64;
-    fChanged: Boolean;
     function GetItems(const AKey: string): string; virtual; abstract;
     procedure SetItems(const AKey, AValue: string); virtual;
-    procedure SetLastAccess(Value: TDateTime);
     procedure InternalApplyChanges; virtual;
+    function GetExpirationTimeStamp: NullableTDateTime; virtual;
+    procedure SetExpirationTimeStamp(const Value: NullableTDateTime); virtual;
+    procedure SetTimeout(const Value: UInt64); virtual;
   public
     class function CreateNewSession(const ASessionId: string; const ATimeout: UInt64): TMVCWebSession; virtual; abstract;
-    class function CreateFromSessionID(const ASessionId: string): TMVCWebSession; virtual; abstract;
+    class function CreateFromSessionID(const ASessionId: string; const ATimeout: UInt64): TMVCWebSession; virtual; abstract;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure MarkAsUsed; virtual;
@@ -64,13 +68,14 @@ type
     function IsExpired: Boolean; virtual;
     function Keys: TArray<String>; virtual;
     procedure StopSession; virtual;
+    procedure RefreshSessionExpiration; virtual;
+    property ExpirationTimeStamp: NullableTDateTime read GetExpirationTimeStamp write SetExpirationTimeStamp;
     function Clone: TMVCWebSession; virtual; abstract;
     class function TryFindSessionID(const ASessionID: String): Boolean; virtual;
     class procedure TryDeleteSessionID(const ASessionID: String); virtual;
     property Items[const AKey: string]: string read GetItems write SetItems; default;
     property SessionId: string read FSessionId;
-    property LastAccess: TDateTime read FLastAccess;
-    property Timeout: UInt64 read FTimeout;
+    property Timeout: UInt64 read FTimeout write SetTimeout;
   end;
 
   TMVCWebSessionClass = class of TMVCWebSession;
@@ -91,7 +96,7 @@ type
     function ToString: string; override;
     property Data: TDictionary<string, string> read FData;
     class function CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
-    class function CreateFromSessionID(const aSessionId: string): TMVCWebSession; override;
+    class function CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
     class function TryFindSessionID(const ASessionID: String): Boolean; override;
     class procedure TryDeleteSessionID(const aSessionID: String); override;
   end;
@@ -118,7 +123,7 @@ type
     function ToString: string; override;
     property Data: TDictionary<string, string> read FData;
     class function CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
-    class function CreateFromSessionID(const aSessionId: string): TMVCWebSession; override;
+    class function CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
     class function TryFindSessionID(const ASessionID: String): Boolean; override;
     class procedure TryDeleteSessionID(const aSessionID: String); override;
     //
@@ -137,7 +142,7 @@ type
     destructor Destroy; override;
     procedure RegisterSessionType(const AName: string; AWebSessionClass: TMVCWebSessionClass);
     function CreateNewSession(const ATimeout: UInt64): TMVCWebSession;
-    function LoadSessionBySessionID(const aSessionId: string): TMVCWebSession;
+    function CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession;
     function TryFindSessionID(const ASessionID: String): Boolean;
     procedure TryDeleteSessionID(const ASessionID: String);
     class function GetInstance: TMVCSessionFactory; static;
@@ -150,7 +155,7 @@ implementation
 uses
   System.IOUtils,
   MVCFramework.Logger,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, System.DateUtils;
 
 var
   GlSessionList: TObjectDictionary<string, TMVCWebSessionMemory> = nil;
@@ -240,17 +245,22 @@ begin
   inherited Destroy;
 end;
 
+function TMVCWebSession.GetExpirationTimeStamp: NullableTDateTime;
+begin
+  Result := fExpirationTimeStamp;
+end;
+
 procedure TMVCWebSession.InternalApplyChanges;
 begin
-
+  // do nothing
 end;
 
 function TMVCWebSession.IsExpired: Boolean;
 begin
-  if (FTimeout = 0) then
-    Result := MinutesBetween(Now, LastAccess) > DEFAULT_SESSION_INACTIVITY
+  if ExpirationTimeStamp.HasValue then
+    Result := ExpirationTimeStamp.Value < RecodeSecond(Now(), 0)
   else
-    Result := MinutesBetween(Now, LastAccess) > FTimeout;
+    Result := False;
 end;
 
 function TMVCWebSession.Keys: TArray<String>;
@@ -260,7 +270,19 @@ end;
 
 procedure TMVCWebSession.MarkAsUsed;
 begin
-  FLastAccess := Now;
+  fChanged := True;
+  ExpirationTimeStamp := Now + OneMinute * Timeout;
+end;
+
+procedure TMVCWebSession.SetTimeout(const Value: UInt64);
+begin
+  fTimeout := Value;
+  RefreshSessionExpiration;
+end;
+
+procedure TMVCWebSession.SetExpirationTimeStamp(const Value: NullableTDateTime);
+begin
+  fExpirationTimeStamp := Value;
 end;
 
 procedure TMVCWebSession.SetItems(const AKey, AValue: string);
@@ -268,15 +290,16 @@ begin
   FChanged := True;
 end;
 
-procedure TMVCWebSession.SetLastAccess(Value: TDateTime);
-begin
-  FLastAccess := Value;
-end;
-
 procedure TMVCWebSession.StopSession;
 begin
   //do nothing
 end;
+
+procedure TMVCWebSession.RefreshSessionExpiration;
+begin
+  fExpirationTimeStamp := RecodeSecond(Now() + OneMinute * fTimeout, 0);
+end;
+
 
 function TMVCWebSession.ToString: string;
 begin
@@ -300,7 +323,6 @@ begin
   lMemSess := TMVCWebSessionMemory.Create;
   try
     lMemSess.FSessionId := Self.FSessionId;
-    lMemSess.FLastAccess := Self.FLastAccess;
     lMemSess.FTimeout := Self.FTimeout;
     for var lItem in Self.Data do
     begin
@@ -319,7 +341,7 @@ begin
   FData := TDictionary<String, String>.Create;
 end;
 
-class function TMVCWebSessionMemory.CreateFromSessionID(const ASessionId: string): TMVCWebSession;
+class function TMVCWebSessionMemory.CreateFromSessionID(const ASessionId: string; const ATimeout: UInt64): TMVCWebSession;
 var
   lSess: TMVCWebSessionMemory;
 begin
@@ -328,6 +350,7 @@ begin
     Result := nil;
     if GlobalSessionList.TryGetValue(ASessionId, lSess) then
     begin
+      lSess.Timeout := ATimeout;
       Result := lSess.Clone;
     end;
   finally
@@ -430,9 +453,13 @@ begin
   Result := FSessionTypeClass.CreateNewSession(GenerateSessionID, ATimeout);
 end;
 
-function TMVCSessionFactory.LoadSessionBySessionID(const aSessionId: string): TMVCWebSession;
+function TMVCSessionFactory.CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession;
 begin
-  Result := FSessionTypeClass.CreateFromSessionID(ASessionId);
+  Result := FSessionTypeClass.CreateFromSessionID(ASessionId, ATimeout);
+  if (Result = nil) or Result.IsExpired then
+  begin
+    raise EMVCSessionExpiredException.Create;
+  end;
 end;
 
 destructor TMVCSessionFactory.Destroy;
@@ -489,7 +516,6 @@ begin
   try
     lMemSess.fSessionFolder := Self.fSessionFolder;
     lMemSess.fSessionId := Self.fSessionId;
-    lMemSess.fLastAccess := Self.fLastAccess;
     lMemSess.fTimeout := Self.fTimeout;
     for var lItem in Self.Data do
     begin
@@ -574,8 +600,8 @@ begin
   end;
   lFile := TFile.OpenText(lFileName);
   try
-    SetLastAccess(ISOTimeStampToDateTime(lFile.ReadLine));
-    FTimeout := lFile.ReadLine.ToInteger;
+    ExpirationTimeStamp := ISOTimeStampToDateTime(lFile.ReadLine);
+    fTimeout := lFile.ReadLine.ToInteger;
     while not lFile.EndOfStream do
     begin
       lLine := lFile.ReadLine;
@@ -597,7 +623,7 @@ begin
   lFileName := GetFileName;
   lFile := TFile.CreateText(lFileName);
   try
-    lFile.WriteLine(DateTimeToISOTimeStamp(LastAccess));
+    lFile.WriteLine(DateTimeToISOTimeStamp(ExpirationTimeStamp));
     lFile.WriteLine(fTimeout);
     for lPair in Data do
     begin
@@ -655,12 +681,13 @@ begin
   gLock := TObject.Create;
 end;
 
-class function TMVCWebSessionFile.CreateFromSessionID(const aSessionId: string): TMVCWebSession;
+class function TMVCWebSessionFile.CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession;
 begin
   Result := TMVCWebSessionFile.Create;
   try
     TMVCWebSessionFile(Result).fSessionId := aSessionId;
     TMVCWebSessionFile(Result).LoadFromFile;
+    TMVCWebSessionFile(Result).fTimeout := ATimeout;
   except
     Result.Free;
     raise;

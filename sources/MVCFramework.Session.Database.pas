@@ -40,17 +40,19 @@ uses
   JsonDataObjects;
 
 type
-  [MVCTable('sessions')]
+  [MVCTable('dmvc_sessions')]
   TMVCSessionActiveRecord = class(TMVCActiveRecord)
-  private
+  strict private
     [MVCTableField('session_id', [foPrimaryKey])]
     fSessionID: NullableString;
     [MVCTableField('session_data', [])]
     fData: string;
     [MVCTableField('session_expiration', [])]
-    fSessionExpiration: TDateTime;
+    fSessionExpiration: NullableTDateTime;
     //transient
     fTimeout: Cardinal;
+    procedure SetTimeout(const Value: Cardinal);
+  private
     fJSONData: TJsonObject;
   protected
     procedure OnBeforeInsertOrUpdate; override;
@@ -58,7 +60,11 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    procedure RefreshSessionExpiration;
     property Data: string read FData write FData;
+    property SessionExpiration: NullableTDateTime read fSessionExpiration;
+    property Timeout: Cardinal read fTimeout write SetTimeout;
+    property SessionID: NullableString read fSessionID write fSessionID;
   end;
 
   TMVCWebSessionDatabase = class(TMVCWebSession)
@@ -68,14 +74,14 @@ type
     class var gLock: TObject;
     function GetItems(const AKey: string): string; override;
     procedure SetItems(const AKey, AValue: string); override;
-    procedure LoadFromDB;
     procedure UpdateToDB;
     procedure InsertIntoDB;
     procedure InternalApplyChanges; override;
+    function GetExpirationTimeStamp: NullableTDateTime; override;
   public
     constructor Create; overload; override;
     constructor Create(const aSessionID: String; const aTimeout: UInt64); reintroduce; overload;
-    constructor CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord); overload;
+    constructor CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64); overload;
     destructor Destroy; override;
     procedure MarkAsUsed; override;
     function Keys: TArray<String>; override;
@@ -83,8 +89,8 @@ type
     function ToString: string; override;
     property SessionData: TMVCSessionActiveRecord read fSessionData;
     class function CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
-    class function CreateFromSessionID(const aSessionId: string): TMVCWebSession; override;
-    class function TryFindSessionID(const ASessionID: String): Boolean; override;
+    class function CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
+    class function TryFindSessionID(const aSessionID: String): Boolean; override;
     class procedure TryDeleteSessionID(const aSessionID: String); override;
   end;
 
@@ -99,8 +105,8 @@ uses
   MVCFramework.SQLGenerators.Interbase,
   MVCFramework.SQLGenerators.MSSQL,
   MVCFramework.SQLGenerators.Sqlite,
-  MVCFramework.SQLGenerators.MySQL, System.DateUtils
-  ;
+  MVCFramework.SQLGenerators.MySQL,
+  System.DateUtils;
 
 { TMVCWebSessionDatabase }
 
@@ -119,6 +125,11 @@ begin
   inherited;
 end;
 
+function TMVCWebSessionDatabase.GetExpirationTimeStamp: NullableTDateTime;
+begin
+  Result := fSessionData.SessionExpiration;
+end;
+
 function TMVCWebSessionDatabase.GetItems(const AKey: string): string;
 begin
   Result := fSessionData.fJSONData.S[AKey];
@@ -128,6 +139,7 @@ procedure TMVCWebSessionDatabase.InsertIntoDB;
 begin
   MarkAsUsed;
   fSessionData.Insert;
+  LogW('InsertIntoDB');
 end;
 
 procedure TMVCWebSessionDatabase.InternalApplyChanges;
@@ -141,34 +153,25 @@ begin
   Result := [''];
 end;
 
-procedure TMVCWebSessionDatabase.LoadFromDB;
-begin
-  Log.Info('Loading session %s from database', [SessionId], LOG_TAG);
-  fSessionData := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(Self.SessionId, False);
-  if not Assigned(fSessionData) then
-  begin
-    fSessionData := TMVCSessionActiveRecord.Create;
-    fSessionData.fSessionID := Self.SessionId;
-    fSessionData.fTimeout := Self.Timeout;
-    MarkAsUsed;
-    fSessionData.Insert;
-  end
-  else
-  begin
-    UpdateToDB;
-  end;
-end;
-
 procedure TMVCWebSessionDatabase.MarkAsUsed;
+var
+  lFutureExpiration: TDateTime;
 begin
-  inherited;
-  fSessionData.fSessionExpiration := Now + OneMinute * Timeout;
+  if fSessionData.SessionExpiration.HasValue then
+  begin
+    lFutureExpiration := Now() + OneMinute * Timeout;
+    if FormatDateTime('yyyymmddhhnn', lFutureExpiration) > FormatDateTime('yyyymmddhhnn', fSessionData.SessionExpiration) then
+    begin
+      inherited;
+      fSessionData.RefreshSessionExpiration;
+    end;
+  end;
 end;
 
 procedure TMVCWebSessionDatabase.UpdateToDB;
 begin
-  MarkAsUsed;
   fSessionData.Update(True);
+  LogW('UpdateToDB');
 end;
 
 procedure TMVCWebSessionDatabase.SetItems(const AKey, AValue: string);
@@ -212,19 +215,20 @@ begin
   Create;
   FSessionId := aSessionID;
   FTimeout := aTimeout;
-  fSessionData.fSessionID := aSessionID;
-  fSessionData.fTimeout := aTimeout;
+  fSessionData.SessionID := aSessionID;
+  fSessionData.Timeout := aTimeout;
 end;
 
-constructor TMVCWebSessionDatabase.CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord);
+constructor TMVCWebSessionDatabase.CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64);
 begin
   inherited Create;
   fSessionData := aSessionData;
-  fSessionId := fSessionData.fSessionID;
-  fTimeout := fSessionData.fTimeout;
+  fSessionId := fSessionData.SessionID;
+  fSessionData.Timeout := aTimeout;
+  SetTimeout(aTimeout);
 end;
 
-class function TMVCWebSessionDatabase.CreateFromSessionID(const aSessionId: string): TMVCWebSession;
+class function TMVCWebSessionDatabase.CreateFromSessionID(const aSessionId: string; const aTimeout: UInt64): TMVCWebSession;
 var
   lSessDB: TMVCSessionActiveRecord;
 begin
@@ -232,7 +236,7 @@ begin
   lSessDB := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(aSessionId, False);
   if lSessDB <> nil then
   begin
-    Result := TMVCWebSessionDatabase.CreateFromSessionData(lSessDB);
+    Result := TMVCWebSessionDatabase.CreateFromSessionData(lSessDB, aTimeout);
   end;
 end;
 
@@ -274,6 +278,20 @@ procedure TMVCSessionActiveRecord.OnBeforeInsertOrUpdate;
 begin
   inherited;
   fData := fJSONData.ToJSON(True)
+end;
+
+procedure TMVCSessionActiveRecord.RefreshSessionExpiration;
+begin
+  if fTimeout = 0 then
+    fSessionExpiration.Clear
+  else
+    fSessionExpiration := RecodeSecond(Now() + OneMinute * fTimeout, 0);
+end;
+
+procedure TMVCSessionActiveRecord.SetTimeout(const Value: Cardinal);
+begin
+  fTimeout := Value;
+  RefreshSessionExpiration;
 end;
 
 initialization
