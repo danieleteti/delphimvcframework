@@ -17,6 +17,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure Index;
 
+    [MVCPath('/inc')]
+    [MVCHTTPMethod([httpGET])]
+    function DoInc: String;
+
     [MVCPath('/started')]
     [MVCHTTPMethod([httpGET])]
     function SessionStarted: Boolean;
@@ -33,7 +37,16 @@ type
 
 implementation
 
+uses
+  System.SysUtils;
+
 { TApp1MainController }
+
+function TApp1MainController.DoInc: String;
+begin
+  Session['value'] := (StrToIntDef(Session['value'], 0) + 1).ToString;
+  Result := Session['value'];
+end;
 
 procedure TApp1MainController.DoLogin(username: string);
 begin

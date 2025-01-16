@@ -264,7 +264,7 @@ end;
 
 procedure TMVCHTMLSerializer.RaiseNotImplemented;
 begin
-  raise EMVCException.Create('Not Implemented');
+  raise EMVCException.Create('Not Implemented for ' + ClassName);
 end;
 
 procedure TMVCHTMLSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo;

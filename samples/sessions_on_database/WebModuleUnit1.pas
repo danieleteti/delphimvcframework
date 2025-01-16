@@ -39,7 +39,16 @@ begin
       Config[TMVCConfigKey.SessionType] := 'dbactiverecord';
     end);
   MVC.AddController(TApp1MainController);
-  MVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('mydb'))
+
+
+  { You need to have a running database engine and a correct configuration in the FDConnectionDefs.ini file.
+  Also you need to create a dmvc_sessions table using one of SQL DDL script available at }
+
+  { Use the following line for MySQL database connection configured in FDConnectionDefs.ini}
+  //MVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('mysqldb'));
+
+  { Use the following line for FirebirdSQL database connection configured in FDConnectionDefs.ini}
+  MVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('firebirddb'));
 end;
 
 end.

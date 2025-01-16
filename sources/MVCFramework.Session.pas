@@ -47,7 +47,7 @@ type
   TMVCWebSession = class abstract
   strict private
     fChanged: Boolean;
-    fExpirationTimeStamp: TDateTime;
+    fExpirationTimeStamp: NullableTDateTime;
   protected
     fSessionId: string;
     fTimeout: UInt64;
@@ -258,7 +258,7 @@ end;
 function TMVCWebSession.IsExpired: Boolean;
 begin
   if ExpirationTimeStamp.HasValue then
-    Result := ExpirationTimeStamp.Value < RecodeSecond(Now(), 0)
+    Result := ExpirationTimeStamp.Value < RecodeMilliSecond(RecodeSecond(Now(), 0), 0)
   else
     Result := False;
 end;
@@ -297,9 +297,11 @@ end;
 
 procedure TMVCWebSession.RefreshSessionExpiration;
 begin
-  fExpirationTimeStamp := RecodeSecond(Now() + OneMinute * fTimeout, 0);
+  if fTimeout > 0 then
+    fExpirationTimeStamp := RecodeMilliSecond(RecodeSecond(Now() + OneMinute * fTimeout, 0), 0)
+  else
+    fExpirationTimeStamp.Clear;
 end;
-
 
 function TMVCWebSession.ToString: string;
 begin
@@ -322,8 +324,8 @@ var
 begin
   lMemSess := TMVCWebSessionMemory.Create;
   try
-    lMemSess.FSessionId := Self.FSessionId;
-    lMemSess.FTimeout := Self.FTimeout;
+    lMemSess.fSessionId := SessionId;
+    lMemSess.Timeout := Timeout;
     for var lItem in Self.Data do
     begin
       lMemSess.Data.Add(lItem.Key, lItem.Value);

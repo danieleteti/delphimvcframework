@@ -25,7 +25,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  LogI(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Listening on http://localhost:%d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;

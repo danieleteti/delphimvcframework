@@ -139,7 +139,6 @@ procedure TMVCWebSessionDatabase.InsertIntoDB;
 begin
   MarkAsUsed;
   fSessionData.Insert;
-  LogW('InsertIntoDB');
 end;
 
 procedure TMVCWebSessionDatabase.InternalApplyChanges;
@@ -159,11 +158,12 @@ var
 begin
   if fSessionData.SessionExpiration.HasValue then
   begin
-    lFutureExpiration := Now() + OneMinute * Timeout;
-    if FormatDateTime('yyyymmddhhnn', lFutureExpiration) > FormatDateTime('yyyymmddhhnn', fSessionData.SessionExpiration) then
+    lFutureExpiration := RecodeMillisecond(RecodeSecond(Now() + OneMinute * fTimeout, 0), 0);
+    if lFutureExpiration > fSessionData.SessionExpiration.Value then
     begin
       inherited;
       fSessionData.RefreshSessionExpiration;
+      ExpirationTimeStamp := fSessionData.SessionExpiration;
     end;
   end;
 end;
@@ -171,7 +171,6 @@ end;
 procedure TMVCWebSessionDatabase.UpdateToDB;
 begin
   fSessionData.Update(True);
-  LogW('UpdateToDB');
 end;
 
 procedure TMVCWebSessionDatabase.SetItems(const AKey, AValue: string);
@@ -196,7 +195,6 @@ var
   lSess: TMVCSessionActiveRecord;
 begin
   inherited;
-  LogW('ReadFromDB - EXISTS');
   lSess := TMVCActiveRecord.SelectOneByRQL<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID]), False);
   try
     Result := Assigned(lSess);
@@ -234,7 +232,6 @@ var
   lSessDB: TMVCSessionActiveRecord;
 begin
   Result := nil;
-  LogW('ReadFromDB');
   lSessDB := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(aSessionId, False);
   if lSessDB <> nil then
   begin
@@ -287,7 +284,9 @@ begin
   if fTimeout = 0 then
     fSessionExpiration.Clear
   else
-    fSessionExpiration := RecodeSecond(Now() + OneMinute * fTimeout, 0);
+  begin
+    fSessionExpiration := RecodeMillisecond(RecodeSecond(Now() + OneMinute * fTimeout, 0), 0);
+  end;
 end;
 
 procedure TMVCSessionActiveRecord.SetTimeout(const Value: Cardinal);
