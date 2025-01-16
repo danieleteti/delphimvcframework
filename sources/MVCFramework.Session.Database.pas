@@ -196,6 +196,7 @@ var
   lSess: TMVCSessionActiveRecord;
 begin
   inherited;
+  LogW('ReadFromDB - EXISTS');
   lSess := TMVCActiveRecord.SelectOneByRQL<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID]), False);
   try
     Result := Assigned(lSess);
@@ -233,6 +234,7 @@ var
   lSessDB: TMVCSessionActiveRecord;
 begin
   Result := nil;
+  LogW('ReadFromDB');
   lSessDB := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(aSessionId, False);
   if lSessDB <> nil then
   begin

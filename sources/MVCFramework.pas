@@ -550,6 +550,7 @@ type
     function GetHostingFrameworkType: TMVCHostingFrameworkType;
     function GetIntfObject: IInterface;
     procedure SetIntfObject(const Value: IInterface);
+    function GetLoggedUserExists: Boolean;
   protected
     fActionQualifiedName: String;
     procedure Flush; virtual;
@@ -575,6 +576,7 @@ type
 
     property HostingFrameworkType: TMVCHostingFrameworkType read GetHostingFrameworkType;
     property LoggedUser: TUser read GetLoggedUser;
+    property LoggedUserExists: Boolean read GetLoggedUserExists;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
     property Session: TMVCWebSession read GetWebSession;
@@ -2147,7 +2149,9 @@ var
   I: Integer;
 begin
   if not Assigned(AWebSession) then
+  begin
     Exit(False);
+  end;
   SerObj := AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY];
   Result := not SerObj.IsEmpty;
   if Result then
@@ -2334,13 +2338,18 @@ function TWebContext.GetLoggedUser: TUser;
 begin
   if not Assigned(FLoggedUser) then
   begin
-    FLoggedUser := TUser.Create;
+    fLoggedUser := TUser.Create;
     if SessionStarted then
     begin
       fLoggedUser.LoadFromSession(GetWebSession);
     end;
   end;
   Result := FLoggedUser;
+end;
+
+function TWebContext.GetLoggedUserExists: Boolean;
+begin
+  Result := fLoggedUser <> nil;
 end;
 
 function TWebContext.GetParamsTable: TMVCRequestParamsTable;
