@@ -1,0 +1,1 @@
+ gbak -REP -v -user sysdba -password masterkey C:\DEV\dmvcframework\samples\data\ACTIVERECORDDB.FBK localhost:C:\DEV\dmvcframework\samples\data\ACTIVERECORDDB.FDB
