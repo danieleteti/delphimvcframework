@@ -11,11 +11,11 @@ uses
   {$IFDEF MSWINDOWS}
   Winapi.Windows,
   Winapi.ShellAPI,
-  {$ENDIF}
+  {$ENDIF }
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   AppControllerU in 'AppControllerU.pas';
 
 {$R *.res}
@@ -42,10 +42,6 @@ begin
 end;
 
 begin
-  SessionType := 'file';
-  //SessionType := 'memory';
-
-
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
