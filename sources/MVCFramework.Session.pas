@@ -741,14 +741,11 @@ end;
 
 initialization
 
-//TMVCSessionFactory.GetInstance.RegisterSessionType('memory', TMVCWebSessionMemory);
-//TMVCSessionFactory.GetInstance.RegisterSessionType('file', TMVCWebSessionFile);
 GlCriticalSection := TCriticalSection.Create;
 
 finalization
 
-//FreeAndNil(TMVCSessionFactory.cInstance);
-//FreeAndNil(GlCriticalSection);
+FreeAndNil(GlCriticalSection);
 
 if Assigned(GlSessionList) then
   FreeAndNil(GlSessionList);

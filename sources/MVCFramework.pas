@@ -544,6 +544,7 @@ type
     fIntfObject: IInterface;
     fServiceContainerResolver: IMVCServiceContainerResolver;
     fSessionFactory: TMVCWebSessionFactory;
+    procedure CheckSessionFactory; inline;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -555,10 +556,6 @@ type
   protected
     fActionQualifiedName: String;
     procedure Flush; virtual;
-//    procedure BindToSession(const ASessionId: string);
-//    function SendSessionCookie(const AContext: TWebContext): string;
-//    function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-//      const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
     procedure InternalSessionStart(var Session: TMVCWebSession);
     procedure FreeSession;
@@ -2205,6 +2202,14 @@ end;
 
 { TWebContext }
 
+procedure TWebContext.CheckSessionFactory;
+begin
+  if fSessionFactory = nil then
+  begin
+    raise EMVCConfigException.Create('Session middleware has not been set - session cannot be used without a proper session middleware');
+  end;
+end;
+
 constructor TWebContext.Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
 begin
@@ -2371,6 +2376,7 @@ function TWebContext.GetWebSession: TMVCWebSession;
 var
   lSessionIDCookie: string;
 begin
+  CheckSessionFactory;
   if not Assigned(FWebSession) then
   begin
     lSessionIDCookie := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
