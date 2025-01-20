@@ -79,6 +79,7 @@ type
 implementation
 
 uses
+  Types,
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
@@ -171,7 +172,7 @@ var
   lViewsExtension: string;
   lViewPath: string;
   lPartialName: String;
-  lPartialFileNames: TArray<string>;
+  lPartialFileNames: TStringDynArray;
   I: Integer;
 begin
   if gPartialsLoaded then

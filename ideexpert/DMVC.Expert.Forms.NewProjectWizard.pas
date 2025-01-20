@@ -32,7 +32,7 @@
 
 unit DMVC.Expert.Forms.NewProjectWizard;
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 interface
 
