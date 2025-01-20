@@ -40,14 +40,14 @@ begin
   MVC.AddController(TApp1MainController);
 
   {To use memory session}
-  MVC.AddMiddleware(UseMemorySessionMiddleware);
+//  MVC.AddMiddleware(UseMemorySessionMiddleware);
 
   {To use file based session}
   //MVC.AddMiddleware(UseFileSessionMiddleware);
 
   {To use database based session (firebird)}
-  MVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('firebirddb'));
-  MVC.AddMiddleware(UseDatabaseSessionMiddleware(0));
+//  MVC.AddMiddleware(TMVCActiveRecordMiddleware.Create('firebirddb'));
+//  MVC.AddMiddleware(UseDatabaseSessionMiddleware(0));
 end;
 
 end.

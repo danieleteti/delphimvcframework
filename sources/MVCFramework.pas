@@ -2462,48 +2462,6 @@ begin
   end;
 
   fSessionFactory.TryDeleteSessionID(SId);
-
-//  if Assigned(fWebSession) then
-//  begin
-//    fWebSession.StopSession;
-//    FWebSession := nil;
-//    try
-//      TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
-//    except
-//      on E: Exception do
-//      begin
-//        LogException(E, 'Cannot delete session file for sessionid: ' + SId);
-//      end;
-//    end;
-//  end;
-
-
-//  TMonitor.Enter(GlobalSessionList);
-//  try
-//    SID := SessionId;
-//    if (SId = '') and (ARaiseExceptionIfExpired) then
-//    begin
-//      raise EMVCSessionExpiredException.Create('Session not started');
-//    end;
-//
-//    GlobalSessionList.Remove(SId);
-//
-//    if SId <> '' then
-//    begin
-//      FWebSession := nil;
-//      try
-//        TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
-//      except
-//        on E: Exception do
-//        begin
-//          LogException(E, 'Cannot delete session file for sessionid: ' + SId);
-//        end;
-//      end;
-//    end;
-//  finally
-//    TMonitor.Exit(GlobalSessionList);
-//  end;
-
   FIsSessionStarted := False;
   FSessionMustBeClose := True;
 end;
