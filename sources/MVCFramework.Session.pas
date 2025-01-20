@@ -511,13 +511,14 @@ end;
 function TMVCWebSessionFile.Clone: TMVCWebSession;
 var
   lMemSess: TMVCWebSessionFile;
+  lItem: TPair<String, String>;
 begin
   lMemSess := TMVCWebSessionFile.Create(GetSessionFactory, Self.fSessionFolder);
   try
     lMemSess.fSessionFolder := Self.fSessionFolder;
     lMemSess.fSessionId := Self.fSessionId;
     lMemSess.fTimeout := Self.fTimeout;
-    for var lItem in Self.Data do
+    for lItem in Self.Data do
     begin
       lMemSess.Data.Add(lItem.Key, lItem.Value);
     end;
