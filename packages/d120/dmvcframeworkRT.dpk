@@ -125,7 +125,8 @@ contains
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas',
   MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
-  MVCFramework.RQL.AST2MSSQL in '..\..\sources\MVCFramework.RQL.AST2MSSQL.pas';
+  MVCFramework.RQL.AST2MSSQL in '..\..\sources\MVCFramework.RQL.AST2MSSQL.pas',
+  MVCFramework.Middleware.Session.Internal in '..\..\sources\MVCFramework.Middleware.Session.Internal.pas';
 
 end.
 

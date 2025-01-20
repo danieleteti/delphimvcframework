@@ -340,12 +340,13 @@ end;
 function TMVCWebSessionMemory.Clone: TMVCWebSession;
 var
   lMemSess: TMVCWebSessionMemory;
+  lItem: TPair<String, String>;
 begin
   lMemSess := TMVCWebSessionMemory.Create(GetSessionFactory);
   try
     lMemSess.fSessionId := SessionId;
     lMemSess.Timeout := Timeout;
-    for var lItem in Self.Data do
+    for lItem in Self.Data do
     begin
       lMemSess.Data.Add(lItem.Key, lItem.Value);
     end;
