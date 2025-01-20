@@ -433,12 +433,13 @@ end;
 function THTMXResponseHelper.HXTriggerClientEvents(Names: TArray<string>; After: TClientEventType): TMVCWebResponse;
 var
   Value: string;
+  I: Integer;
 begin
   if Length(Names) = 0 then
     Exit(Self);
 
   Value := Names[0];
-  for var I := Low(Names) + 1 to High(Names) do
+  for I := Low(Names) + 1 to High(Names) do
     Value := Value + ', ' + Names[I];
 
   SetCustomHeader(ClientEventTypes[After], Value);

@@ -253,9 +253,11 @@ end;
 
 function TCleanupThread<T>.GetAveragePoolSize(
   var SizeSamples: TPoolSizeSamples): Integer;
+var
+  I: Integer;
 begin
   Result := 0;
-  for var I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
+  for I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
   begin
     Inc(Result, SizeSamples[I]);
   end;
