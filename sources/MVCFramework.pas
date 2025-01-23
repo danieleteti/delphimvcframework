@@ -1564,9 +1564,10 @@ var
 begin
   if (FBody = EmptyStr) then
   begin
-    if (FCharset = EmptyStr) or (SameText(FCharset, TMVCCharSet.UTF_8)) then
+    if (FCharset = EmptyStr) or SameText(FCharset, TMVCCharSet.UTF_8) or SameText(FCharset, TMVCCharSet.UTF_8_WITHOUT_DASH) then
     begin
       lFreeEncoding := False;
+      FCharset := TMVCCharSet.UTF_8;
       lEncoding := gEncodingUTF8; //utf-8 is the most used encoding, we have a global instance
     end
     else
@@ -1574,6 +1575,7 @@ begin
       lFreeEncoding := True;
       lEncoding := TEncoding.GetEncoding(FCharset);
     end;
+
     try
 {$IF Defined(BERLINORBETTER)}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
@@ -4390,7 +4392,7 @@ procedure TMVCRenderer.Render(const AContent: string);
 var
   lOutEncoding: TEncoding;
 begin
-  if SameText('UTF-8', FContentCharset) then
+  if SameText(TMVCCharSet.UTF_8, FContentCharset) or SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) then
   begin
     GetContext
       .Response
