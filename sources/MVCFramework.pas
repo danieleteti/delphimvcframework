@@ -544,7 +544,7 @@ type
     fIntfObject: IInterface;
     fServiceContainerResolver: IMVCServiceContainerResolver;
     fSessionFactory: TMVCWebSessionFactory;
-    procedure CheckSessionFactory; inline;
+    function GetSessionFactory: TMVCWebSessionFactory; inline;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -2202,12 +2202,13 @@ end;
 
 { TWebContext }
 
-procedure TWebContext.CheckSessionFactory;
+function TWebContext.GetSessionFactory: TMVCWebSessionFactory;
 begin
   if fSessionFactory = nil then
   begin
     raise EMVCConfigException.Create('Session middleware has not been set - session cannot be used without a proper session middleware');
   end;
+  Result := fSessionFactory;
 end;
 
 constructor TWebContext.Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
@@ -2376,7 +2377,6 @@ function TWebContext.GetWebSession: TMVCWebSession;
 var
   lSessionIDCookie: string;
 begin
-  CheckSessionFactory;
   if not Assigned(FWebSession) then
   begin
     lSessionIDCookie := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
@@ -2386,7 +2386,7 @@ begin
     end
     else
     begin
-      fWebSession := fSessionFactory.CreateFromSessionID(lSessionIDCookie);
+      fWebSession := GetSessionFactory.CreateFromSessionID(lSessionIDCookie);
       if fWebSession = nil then
       begin
         InternalSessionStart(fWebSession);
@@ -2402,7 +2402,7 @@ procedure TWebContext.InternalSessionStart(var Session: TMVCWebSession);
 begin
   if not Assigned(Session) then
   begin
-    Session := fSessionFactory.CreateNewSession(GenerateSessionID);
+    Session := GetSessionFactory.CreateNewSession(GenerateSessionID);
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
     TMVCEngine.SendSessionCookie(Self, Session.SessionId);
@@ -2443,7 +2443,7 @@ begin
   SId := SessionId;
   if SId.IsEmpty then
     Exit(False);
-  Result := fSessionFactory.TryFindSessionID(SId);
+  Result := GetSessionFactory.TryFindSessionID(SId);
 end;
 
 procedure TWebContext.SessionStop(const ARaiseExceptionIfExpired: Boolean);
@@ -2466,10 +2466,9 @@ begin
   begin
     raise EMVCSessionExpiredException.Create;
   end;
-
-  fSessionFactory.TryDeleteSessionID(SId);
-  FIsSessionStarted := False;
-  FSessionMustBeClose := True;
+  GetSessionFactory.TryDeleteSessionID(SId);
+  fIsSessionStarted := False;
+  fSessionMustBeClose := True;
 end;
 
 procedure TWebContext.SetIntfObject(const Value: IInterface);
@@ -3738,7 +3737,7 @@ begin
   lCookie := AContext.Response.Cookies.Add;
   lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
   lCookie.Value := aSessionId;
-  lSessionTimeout := aContext.fSessionFactory.GetTimeout;
+  lSessionTimeout := aContext.GetSessionFactory.GetTimeout;
 
   if lSessionTimeout = 0 then
     lCookie.Expires := 0 // session cookie

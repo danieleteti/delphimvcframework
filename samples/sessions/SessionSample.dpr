@@ -31,7 +31,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     {$IFDEF MSWINDOWS}
-    //ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
     {$ENDIF}
     LogI('CTRL+C to stop the server');
     WaitForTerminationSignal;

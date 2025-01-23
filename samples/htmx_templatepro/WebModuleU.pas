@@ -39,8 +39,6 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config.dotEnv := dotEnv;
-      // session timeout (0 means session cookie)
-      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env('dmvc.session_timeout', '0');
       //default content-type
       Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', TMVCMediaType.TEXT_HTML);
       //default content charset
