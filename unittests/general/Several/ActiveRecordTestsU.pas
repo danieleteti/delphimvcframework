@@ -1994,12 +1994,15 @@ begin
     var
       lCustomer: TCustomer;
       I: Integer;
+      lConn: TFDConnection;
     begin
       // ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
-      ActiveRecordConnectionsRegistry.AddConnection('load', TFDConnection.Create(nil), True);
+      lConn := TFDConnection.Create(nil);
+      ActiveRecordConnectionsRegistry.AddConnection('load', lConn, True);
       try
+        lConn.ConnectionDefName := fConDefName;
         ActiveRecordConnectionsRegistry.SetCurrent('load');
-        ActiveRecordConnectionsRegistry.GetCurrent.ConnectionDefName := fConDefName;
+        //ActiveRecordConnectionsRegistry.GetCurrent.ConnectionDefName := fConDefName;
         for I := 1 to 30 do
         begin
           lCustomer := TCustomer.Create;

@@ -225,10 +225,13 @@
         <DCCReference Include="..\..\sources\sqids.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.HTMX.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Session.Internal.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.HTMX.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

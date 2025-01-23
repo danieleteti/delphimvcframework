@@ -1405,7 +1405,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableString>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableString>(nil));
     end
     else
     begin
