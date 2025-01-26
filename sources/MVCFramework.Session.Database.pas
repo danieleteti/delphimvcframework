@@ -198,16 +198,9 @@ begin
 end;
 
 function TMVCWebSessionDatabaseFactory.TryFindSessionID(const aSessionID: String): Boolean;
-var
-  lSess: TMVCSessionActiveRecord;
 begin
   inherited;
-  lSess := TMVCActiveRecord.SelectOneByRQL<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID]), False);
-  try
-    Result := Assigned(lSess);
-  finally
-    lSess.Free;
-  end;
+  Result := TMVCActiveRecord.Count<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID])) = 1;
 end;
 
 
