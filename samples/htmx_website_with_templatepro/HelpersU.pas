@@ -3,7 +3,7 @@ unit HelpersU;
 interface
 
 uses
-  System.Rtti;
+  System.Rtti, TemplatePro;
 
 function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
 function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
@@ -14,7 +14,7 @@ procedure TemplateProContextConfigure;
 implementation
 
 uses
-  TemplatePro, System.SysUtils;
+  System.SysUtils;
 
 
 function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;

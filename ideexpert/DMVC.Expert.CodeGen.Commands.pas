@@ -913,7 +913,13 @@ begin
       .AppendLine('  // fMVC.AddMiddleware(UseMemorySessionMiddleware);')
       .AppendLine('  //')
       .AppendLine('  // To use file based session uncomment the following line')
-      .AppendLine('  // fMVC.AddMiddleware(UseFileSessionMiddleware);');
+      .AppendLine('  // fMVC.AddMiddleware(UseFileSessionMiddleware);')
+      .AppendLine('  //')
+      .AppendLine('  // To use database based session uncomment the following lines,')
+  	  .AppendLine('  // configure you firedac db connection and create table dmvc_sessions')
+  	  .AppendLine('  // fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''firedac_con_def_name''));')
+  	  .AppendLine('  // fMVC.AddMiddleware(UseDatabaseSessionMiddleware);');
+	  
 
     if Model.B[TConfigKey.webmodule_middleware_analytics] then
     begin

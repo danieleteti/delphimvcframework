@@ -2836,18 +2836,7 @@ begin
                   lSelectedController.MVCControllerAfterCreate;
                   try
                     lHandled := False;
-//                    if not ARequest.Accept.IsEmpty and (ARequest.Accept <> '*/*') then
-//                    begin
-//                      {if router allowed to reach this point, we try to adhere to
-//                       the client preferred media type, so the response content type
-//                       is by default the request accept header}
-//                      lSelectedController.ContentType := BuildContentType(ARequest.Accept, '')
-//                    end
-//                    else
-//                    begin
-//                      {if client didn't specify an accept media type, we use the default content type}
                     lSelectedController.ContentType := BuildContentType(lResponseContentMediaType, lResponseContentCharset);
-//                    end;
                     lActionFormalParams := lRouter.MethodToCall.GetParameters;
                     if (Length(lActionFormalParams) = 0) then
                       SetLength(lActualParams, 0)
@@ -3026,10 +3015,10 @@ begin
                     HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
                     E.DetailedMessage
                   ], LOGGERPRO_TAG);
-                if lContext.SessionStarted then
-                begin
-                  lContext.SessionStop;
-                end;
+//                if lContext.SessionStarted then
+//                begin
+//                  lContext.SessionStop;
+//                end;
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(E.HTTPStatusCode);

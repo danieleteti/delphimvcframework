@@ -2853,13 +2853,14 @@ end;
 
 function TMVCActiveRecord.LoadByPK(const id: string; const aFieldType: TFieldType): Boolean;
 var
-  SQL: string;
+  lSQL: string;
   lDataSet: TDataSet;
 begin
   CheckAction(TMVCEntityAction.eaRetrieve);
-  SQL := SQLGenerator.CreateSelectByPKSQL(TableName, fTableMap.fMap,
+  lSQL := SQLGenerator.CreateSelectByPKSQL(TableName, fTableMap.fMap,
     fTableMap.fPrimaryKeyFieldName, fTableMap.fPrimaryKeyOptions);
-  lDataSet := ExecQuery(SQL, [id], [aFieldType], GetConnection, True, False);
+  OnBeforeExecuteSQL(lSQL);
+  lDataSet := ExecQuery(lSQL, [id], [aFieldType], GetConnection, True, False);
   try
     Result := not lDataSet.Eof;
     if Result then

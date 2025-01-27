@@ -28,8 +28,8 @@ uses
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
   MVCFramework.Logger,
-
-  System.Generics.Collections, System.Diagnostics;
+  System.Generics.Collections,
+  System.Diagnostics;
 
 type
   TMainForm = class(TForm)
