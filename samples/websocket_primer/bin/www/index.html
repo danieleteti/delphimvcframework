@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>MVCFramework | WebSocket Primer Sample</title>
+</head>
+
+<body>
+	<h1>WebSocket | Echo Server Sample</h1>
+	<input id="txt" value="Some text...">
+	<button onclick="sendText()">Send Text</button>
+	<button onclick="disconnect()">Disconnect</button>
+	<div style="padding: 1rem" id="log"></div>
+	<script>
+		const socket = new WebSocket('ws://localhost:9090');
+
+		// Fired when a connection with a WebSocket is opened. 
+		// Also available via the onopen property.
+		socket.addEventListener('open', function (evt) {
+			socket.send('Hello There!');
+		});
+
+		// Fired when data is received through a WebSocket. 
+		// Also available via the onmessage property.
+		socket.addEventListener('message', function (evt) {
+			console.log('Server says: ' + evt.data);
+			let l = document.createElement('div');
+			l.innerHTML = (new Date()).toLocaleTimeString() + ': ' + evt.data;
+			document.querySelector('#log').appendChild(l);
+		});
+
+
+		// Fired when a connection with a WebSocket has been closed because of an error, 
+		// such as when some data couldn't be sent. 
+		// Also available via the onerror property.		
+		socket.addEventListener('error', function (evt) {
+			console.error('WS Error: ' + evt);
+		});
+
+		// Fired when a connection with a WebSocket is closed. 
+		// Also available via the onclose property		
+		socket.addEventListener('close', function (evt) {
+			console.warn('WS Close:' + evt);
+		});		
+
+		let sendText = (text) => {
+			const txt = document.querySelector('#txt');
+			socket.send(txt.value);
+			txt.value = "";
+			txt.focus();
+		}
+
+		let disconnect = () => {
+			socket.close();
+		}
+
+	</script>
+
+</body>
+
+</html>
