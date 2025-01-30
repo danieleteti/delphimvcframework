@@ -552,7 +552,7 @@ begin
       Result := lField.AsDateTime;
     ftBoolean:
       Result := lField.AsBoolean;
-    ftFMTBcd:
+    ftFMTBcd, ftBcd:
       Result := TValue.From<TBCD>(lField.AsBCD);
   else
     Error('Invalid data type for field "%s": %s', [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
