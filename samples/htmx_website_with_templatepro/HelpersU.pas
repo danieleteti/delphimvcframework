@@ -3,10 +3,10 @@ unit HelpersU;
 interface
 
 uses
-  System.Rtti;
+  System.Rtti, TemplatePro;
 
-function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;
-function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;
+function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
+function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
 
 
 procedure TemplateProContextConfigure;
@@ -14,15 +14,15 @@ procedure TemplateProContextConfigure;
 implementation
 
 uses
-  TemplatePro, System.SysUtils;
+  System.SysUtils;
 
 
-function MyHelper1(const Value: TValue; const Parameters: TArray<string>): TValue;
+function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
 begin
   Result := Value.ToString +  ' (I''m The MyHelper1)';
 end;
 
-function MyHelper2(const Value: TValue; const Parameters: TArray<string>): TValue;
+function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
 begin
   Result := Value.ToString +  ' (I''m The MyHelper2)';
 end;

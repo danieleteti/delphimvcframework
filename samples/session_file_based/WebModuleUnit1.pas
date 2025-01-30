@@ -27,18 +27,17 @@ implementation
 {$R *.dfm}
 
 
-uses AppControllerU, MVCFramework.Commons, MVCFramework.Middleware.Redirect;
+uses AppControllerU, MVCFramework.Commons, MVCFramework.Middleware.Redirect, MVCFramework.Middleware.Session;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
       Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
-      Config[TMVCConfigKey.SessionType] := 'file';
     end);
   MVC.AddController(TApp1MainController);
+  MVC.AddMiddleware(UseFileSessionMiddleware(0));
   MVC.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/name'));
 end;
 

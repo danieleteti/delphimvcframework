@@ -543,6 +543,8 @@ type
     fData: TMVCStringDictionary;
     fIntfObject: IInterface;
     fServiceContainerResolver: IMVCServiceContainerResolver;
+    fSessionFactory: TMVCWebSessionFactory;
+    function GetSessionFactory: TMVCWebSessionFactory; inline;
     function GetWebSession: TMVCWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -554,10 +556,6 @@ type
   protected
     fActionQualifiedName: String;
     procedure Flush; virtual;
-//    procedure BindToSession(const ASessionId: string);
-//    function SendSessionCookie(const AContext: TWebContext): string;
-//    function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
-//      const ASessionTimeout: Integer): TMVCWebSession;
     function GetData: TMVCStringDictionary;
     procedure InternalSessionStart(var Session: TMVCWebSession);
     procedure FreeSession;
@@ -568,6 +566,7 @@ type
 
     procedure SessionStart; virtual;
     procedure SessionStop(const ARaiseExceptionIfExpired: Boolean = True); virtual;
+    procedure SetSessionFactory(const SessionFactory: TMVCWebSessionFactory);
 
     function SessionStarted: Boolean;
     function SessionId: string;
@@ -1086,7 +1085,6 @@ type
     fConfigCache_DefaultContentCharset: String;
     fConfigCache_PathPrefix: String;
     fConfigCache_UseViewCache: Boolean;
-    fConfigCache_SessionType: String;
     fSerializers: TDictionary<string, IMVCSerializer>;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
@@ -1386,6 +1384,15 @@ begin
 end;
 
 
+function GenerateSessionID: string;
+begin
+  Result := StringReplace(StringReplace(StringReplace(
+    'DT' + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid) + GUIDToString(TGUID.NewGuid),
+    '}', '', [rfReplaceAll]),
+    '{', '', [rfReplaceAll]),
+    '-', '', [rfReplaceAll]);
+end;
+
 function GetErrorPageHandler(const ErrorPageURL: String): TMVCExceptionHandlerProc;
 begin
   Result := procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean)
@@ -1557,9 +1564,10 @@ var
 begin
   if (FBody = EmptyStr) then
   begin
-    if (FCharset = EmptyStr) or (SameText(FCharset, TMVCCharSet.UTF_8)) then
+    if (FCharset = EmptyStr) or SameText(FCharset, TMVCCharSet.UTF_8) or SameText(FCharset, TMVCCharSet.UTF_8_WITHOUT_DASH) then
     begin
       lFreeEncoding := False;
+      FCharset := TMVCCharSet.UTF_8;
       lEncoding := gEncodingUTF8; //utf-8 is the most used encoding, we have a global instance
     end
     else
@@ -1567,6 +1575,7 @@ begin
       lFreeEncoding := True;
       lEncoding := TEncoding.GetEncoding(FCharset);
     end;
+
     try
 {$IF Defined(BERLINORBETTER)}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
@@ -2195,6 +2204,15 @@ end;
 
 { TWebContext }
 
+function TWebContext.GetSessionFactory: TMVCWebSessionFactory;
+begin
+  if fSessionFactory = nil then
+  begin
+    raise EMVCConfigException.Create('Session middleware has not been set - session cannot be used without a proper session middleware');
+  end;
+  Result := fSessionFactory;
+end;
+
 constructor TWebContext.Create(const AServiceContainerResolver: IMVCServiceContainerResolver; const ARequest: TWebRequest; const AResponse: TWebResponse;
   const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
 begin
@@ -2370,7 +2388,7 @@ begin
     end
     else
     begin
-      fWebSession := TMVCSessionFactory.GetInstance.CreateFromSessionID(lSessionIDCookie, StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
+      fWebSession := GetSessionFactory.CreateFromSessionID(lSessionIDCookie);
       if fWebSession = nil then
       begin
         InternalSessionStart(fWebSession);
@@ -2386,7 +2404,7 @@ procedure TWebContext.InternalSessionStart(var Session: TMVCWebSession);
 begin
   if not Assigned(Session) then
   begin
-    Session := TMVCSessionFactory.GetInstance.CreateNewSession(StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
+    Session := GetSessionFactory.CreateNewSession(GenerateSessionID);
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
     TMVCEngine.SendSessionCookie(Self, Session.SessionId);
@@ -2427,7 +2445,7 @@ begin
   SId := SessionId;
   if SId.IsEmpty then
     Exit(False);
-  Result := TMVCSessionFactory.GetInstance.TryFindSessionID(SId);
+  Result := GetSessionFactory.TryFindSessionID(SId);
 end;
 
 procedure TWebContext.SessionStop(const ARaiseExceptionIfExpired: Boolean);
@@ -2450,52 +2468,9 @@ begin
   begin
     raise EMVCSessionExpiredException.Create;
   end;
-
-  TMVCSessionFactory.GetInstance.TryDeleteSessionID(SId);
-
-//  if Assigned(fWebSession) then
-//  begin
-//    fWebSession.StopSession;
-//    FWebSession := nil;
-//    try
-//      TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
-//    except
-//      on E: Exception do
-//      begin
-//        LogException(E, 'Cannot delete session file for sessionid: ' + SId);
-//      end;
-//    end;
-//  end;
-
-
-//  TMonitor.Enter(GlobalSessionList);
-//  try
-//    SID := SessionId;
-//    if (SId = '') and (ARaiseExceptionIfExpired) then
-//    begin
-//      raise EMVCSessionExpiredException.Create('Session not started');
-//    end;
-//
-//    GlobalSessionList.Remove(SId);
-//
-//    if SId <> '' then
-//    begin
-//      FWebSession := nil;
-//      try
-//        TMVCSessionFactory.GetInstance.TryDeleteSessionID(Config[TMVCConfigKey.SessionType], SId);
-//      except
-//        on E: Exception do
-//        begin
-//          LogException(E, 'Cannot delete session file for sessionid: ' + SId);
-//        end;
-//      end;
-//    end;
-//  finally
-//    TMonitor.Exit(GlobalSessionList);
-//  end;
-
-  FIsSessionStarted := False;
-  FSessionMustBeClose := True;
+  GetSessionFactory.TryDeleteSessionID(SId);
+  fIsSessionStarted := False;
+  fSessionMustBeClose := True;
 end;
 
 procedure TWebContext.SetIntfObject(const Value: IInterface);
@@ -2506,6 +2481,15 @@ end;
 procedure TWebContext.SetParamsTable(const AValue: TMVCRequestParamsTable);
 begin
   FRequest.ParamsTable := AValue;
+end;
+
+procedure TWebContext.SetSessionFactory(const SessionFactory: TMVCWebSessionFactory);
+begin
+  if fSessionFactory <> nil then
+  begin
+    raise EMVCSession.Create('Session factory already set. Can be used only one session middleware at a time.');
+  end;
+  fSessionFactory := SessionFactory;
 end;
 
 { TMVCEngine }
@@ -2560,7 +2544,6 @@ procedure TMVCEngine.ConfigDefaultValues;
 begin
   LogI('Loading Config default values');
 
-  Config[TMVCConfigKey.SessionTimeout] := '30' { 30 minutes };
   Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
   Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
@@ -2570,7 +2553,6 @@ begin
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework';
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
   Config[TMVCConfigKey.ExposeXPoweredBy] := 'true';
-  Config[TMVCConfigKey.SessionType] := 'memory';
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
@@ -2854,18 +2836,7 @@ begin
                   lSelectedController.MVCControllerAfterCreate;
                   try
                     lHandled := False;
-//                    if not ARequest.Accept.IsEmpty and (ARequest.Accept <> '*/*') then
-//                    begin
-//                      {if router allowed to reach this point, we try to adhere to
-//                       the client preferred media type, so the response content type
-//                       is by default the request accept header}
-//                      lSelectedController.ContentType := BuildContentType(ARequest.Accept, '')
-//                    end
-//                    else
-//                    begin
-//                      {if client didn't specify an accept media type, we use the default content type}
                     lSelectedController.ContentType := BuildContentType(lResponseContentMediaType, lResponseContentCharset);
-//                    end;
                     lActionFormalParams := lRouter.MethodToCall.GetParameters;
                     if (Length(lActionFormalParams) = 0) then
                       SetLength(lActualParams, 0)
@@ -3044,10 +3015,10 @@ begin
                     HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
                     E.DetailedMessage
                   ], LOGGERPRO_TAG);
-                if lContext.SessionStarted then
-                begin
-                  lContext.SessionStop;
-                end;
+//                if lContext.SessionStarted then
+//                begin
+//                  lContext.SessionStop;
+//                end;
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(E.HTTPStatusCode);
@@ -3746,28 +3717,25 @@ begin
   FConfigCache_DefaultContentCharset := Config[TMVCConfigKey.DefaultContentCharset];
   FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
   FConfigCache_UseViewCache := Config[TMVCConfigKey.ViewCache] = 'true';
-  FConfigCache_SessionType := Config[TMVCConfigKey.SessionType];
-  TMVCSessionFactory.GetInstance.SetSessionType(FConfigCache_SessionType);
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
 var
-  Cookie: TCookie;
-  SessionTimeout: Integer;
+  lCookie: TCookie;
+  lSessionTimeout: Integer;
 begin
   ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
-  Cookie := AContext.Response.Cookies.Add;
-  Cookie.name := TMVCConstants.SESSION_TOKEN_NAME;
-  Cookie.Value := ASessionId;
-  if not TryStrToInt(AContext.Config[TMVCConfigKey.SessionTimeout], SessionTimeout) then
-    raise EMVCException.Create('[Config::Session Timeout] is not a valid integer');
+  lCookie := AContext.Response.Cookies.Add;
+  lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
+  lCookie.Value := aSessionId;
+  lSessionTimeout := aContext.GetSessionFactory.GetTimeout;
 
-  if SessionTimeout = 0 then
-    Cookie.Expires := 0 // session cookie
+  if lSessionTimeout = 0 then
+    lCookie.Expires := 0 // session cookie
   else
-    Cookie.Expires := Now + OneMinute * SessionTimeout;
+    lCookie.Expires := Now + OneMinute * lSessionTimeout;
 
-  Cookie.Path := '/';
+  lCookie.Path := '/';
   Result := ASessionId;
 end;
 
@@ -4413,7 +4381,7 @@ procedure TMVCRenderer.Render(const AContent: string);
 var
   lOutEncoding: TEncoding;
 begin
-  if SameText('UTF-8', FContentCharset) then
+  if SameText(TMVCCharSet.UTF_8, FContentCharset) or SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) then
   begin
     GetContext
       .Response

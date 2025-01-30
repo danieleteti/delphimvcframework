@@ -51,6 +51,7 @@ uses
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
   MVCFramework.Middleware.StaticFiles,
+  MVCFramework.Middleware.Session,
   MVCFramework.Middleware.ActiveRecord,
   FDConnectionConfigU;
 
@@ -59,8 +60,6 @@ begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // session timeout (0 means session cookie)
-      Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
       Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
       // default content charset
@@ -74,6 +73,7 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
+  FMVC.AddMiddleware(UseMemorySessionMiddleware(0));
   FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(AR_CONTROLLER_CON_DEF_NAME));
   FMVC.AddController(TMVCActiveRecordController, '/api/entities');
 end;

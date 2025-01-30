@@ -79,19 +79,26 @@ type
     procedure InternalApplyChanges; override;
     function GetExpirationTimeStamp: NullableTDateTime; override;
   public
-    constructor Create; overload; override;
-    constructor Create(const aSessionID: String; const aTimeout: UInt64); reintroduce; overload;
-    constructor CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64); overload;
+    constructor Create(const aOwnerFactory: TMVCWebSessionFactory); overload; override;
+    constructor Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64); reintroduce; overload;
+    constructor CreateFromSessionData(const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64); overload;
     destructor Destroy; override;
     procedure MarkAsUsed; override;
     function Keys: TArray<String>; override;
     function Clone: TMVCWebSession; override;
     function ToString: string; override;
     property SessionData: TMVCSessionActiveRecord read fSessionData;
-    class function CreateNewSession(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
-    class function CreateFromSessionID(const aSessionId: string; const ATimeout: UInt64): TMVCWebSession; override;
-    class function TryFindSessionID(const aSessionID: String): Boolean; override;
-    class procedure TryDeleteSessionID(const aSessionID: String); override;
+  end;
+
+  TMVCWebSessionDatabaseFactory = class(TMVCWebSessionFactory)
+  private
+    fFireDACConDefName: string;
+  public
+    function CreateNewSession(const ASessionId: string): TMVCWebSession; override;
+    function CreateFromSessionID(const ASessionId: string): TMVCWebSession; override;
+    function TryFindSessionID(const ASessionID: String): Boolean; override;
+    procedure TryDeleteSessionID(const ASessionID: String); override;
+    constructor Create(aTimeoutInMinutes: Integer = 0; aFireDACConDefName: String = ''); reintroduce; virtual;
   end;
 
 implementation
@@ -113,7 +120,7 @@ uses
 const
   LOG_TAG = 'TMVCWebSessionDatabase';
 
-constructor TMVCWebSessionDatabase.Create;
+constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory);
 begin
   inherited;
   fSessionData := TMVCSessionActiveRecord.Create;
@@ -184,23 +191,16 @@ begin
   Result := fSessionData.fJSONData.ToJSON(True);
 end;
 
-class procedure TMVCWebSessionDatabase.TryDeleteSessionID(const ASessionID: String);
+procedure TMVCWebSessionDatabaseFactory.TryDeleteSessionID(const ASessionID: String);
 begin
   inherited;
   TMVCActiveRecord.DeleteRQL<TMVCSessionActiveRecord>('eq(session_id, "' + ASessionID + '")');
 end;
 
-class function TMVCWebSessionDatabase.TryFindSessionID(const aSessionID: String): Boolean;
-var
-  lSess: TMVCSessionActiveRecord;
+function TMVCWebSessionDatabaseFactory.TryFindSessionID(const aSessionID: String): Boolean;
 begin
   inherited;
-  lSess := TMVCActiveRecord.SelectOneByRQL<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID]), False);
-  try
-    Result := Assigned(lSess);
-  finally
-    lSess.Free;
-  end;
+  Result := TMVCActiveRecord.Count<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID])) = 1;
 end;
 
 
@@ -209,25 +209,32 @@ begin
   raise EMVCSession.Create('Clone not allowed in ' + ClassName);
 end;
 
-constructor TMVCWebSessionDatabase.Create(const aSessionID: String; const aTimeout: UInt64);
+constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64);
 begin
-  Create;
+  Create(aOwnerFactory);
   FSessionId := aSessionID;
   FTimeout := aTimeout;
   fSessionData.SessionID := aSessionID;
   fSessionData.Timeout := aTimeout;
 end;
 
-constructor TMVCWebSessionDatabase.CreateFromSessionData(const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64);
+constructor TMVCWebSessionDatabase.CreateFromSessionData(
+  const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64);
 begin
-  inherited Create;
+  inherited Create(aOwnerFactory);
   fSessionData := aSessionData;
   fSessionId := fSessionData.SessionID;
   fSessionData.Timeout := aTimeout;
   SetTimeout(aTimeout);
 end;
 
-class function TMVCWebSessionDatabase.CreateFromSessionID(const aSessionId: string; const aTimeout: UInt64): TMVCWebSession;
+constructor TMVCWebSessionDatabaseFactory.Create(aTimeoutInMinutes: Integer; aFireDACConDefName: String);
+begin
+  inherited Create(aTimeoutInMinutes);
+  fFireDACConDefName := aFireDACConDefName;
+end;
+
+function TMVCWebSessionDatabaseFactory.CreateFromSessionID(const aSessionId: string): TMVCWebSession;
 var
   lSessDB: TMVCSessionActiveRecord;
 begin
@@ -235,13 +242,13 @@ begin
   lSessDB := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(aSessionId, False);
   if lSessDB <> nil then
   begin
-    Result := TMVCWebSessionDatabase.CreateFromSessionData(lSessDB, aTimeout);
+    Result := TMVCWebSessionDatabase.CreateFromSessionData(Self, lSessDB, GetTimeout);
   end;
 end;
 
-class function TMVCWebSessionDatabase.CreateNewSession(const aSessionId: string; const aTimeout: UInt64): TMVCWebSession;
+function TMVCWebSessionDatabaseFactory.CreateNewSession(const aSessionId: string): TMVCWebSession;
 begin
-  Result := TMVCWebSessionDatabase.Create(aSessionId, aTimeout);
+  Result := TMVCWebSessionDatabase.Create(Self, aSessionId, GetTimeout);
   TMVCWebSessionDatabase(Result).InsertIntoDB;
 end;
 
@@ -294,10 +301,6 @@ begin
   fTimeout := Value;
   RefreshSessionExpiration;
 end;
-
-initialization
-
-TMVCSessionFactory.GetInstance.RegisterSessionType('dbactiverecord', TMVCWebSessionDatabase);
 
 end.
 

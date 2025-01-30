@@ -52,6 +52,7 @@ implementation
 uses
   MVCFramework.Tests.RESTClient,
   MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Session,
   MVCFramework.Tests.AppController,
   MVCFramework.Server,
   MVCFramework.Server.Impl;
@@ -64,7 +65,7 @@ begin
 
   // Add Controller
   FMVCEngine.AddController(TAppController);
-
+  FMVCEngine.AddMiddleware(UseMemorySessionMiddleware(0));
   FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
     TMVCDefaultAuthenticationHandler.New
     .SetOnAuthentication(

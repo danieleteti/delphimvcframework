@@ -28,6 +28,7 @@ implementation
 
 uses
   MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Session,
   MVCFramework.Server,
   MVCFramework.Server.Impl,
   StandaloneServerTestU;
@@ -46,7 +47,9 @@ begin
     end
     );
 
-  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+  FMVCEngine
+    .AddMiddleware(UseMemorySessionMiddleware(0))
+    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
     TMVCDefaultAuthenticationHandler.New
     .SetOnAuthentication(
     procedure(const AUserName, APassword: string;

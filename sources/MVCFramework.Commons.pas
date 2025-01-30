@@ -108,6 +108,7 @@ type
     ISO88598 = 'ISO-8859-8';
     ISO885915 = 'ISO-8859-15';
     UTF_8 = 'UTF-8';
+    UTF_8_WITHOUT_DASH = 'UTF8'; {this is wrong, but it is a quite common notation}
     UTF_16 = 'UTF-16';
     UTF_16BE = 'UTF-16BE';
     UTF_16LE = 'UTF-16LE';
@@ -150,7 +151,7 @@ type
 
   TMVCConfigKey = record
   public const
-    SessionTimeout = 'sessiontimeout';
+    //SessionTimeout = 'sessiontimeout';
     ViewPath = 'view_path';
     ViewCache = 'view_cache';
     DefaultContentType = 'default_content_type';
@@ -161,7 +162,7 @@ type
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
     ExposeXPoweredBy = 'xpoweredby';
-    SessionType = 'session_type';
+    //SessionType = 'session_type';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
