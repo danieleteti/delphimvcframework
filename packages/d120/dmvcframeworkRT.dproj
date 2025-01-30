@@ -152,8 +152,6 @@
         <DCCReference Include="FireDACPgDriver.dcp"/>
         <DCCReference Include="FireDACSqliteDriver.dcp"/>
         <DCCReference Include="SwagDoc.dcp"/>
-        <DCCReference Include="FireDACCommonODBC.dcp"/>
-        <DCCReference Include="FireDACMSSQLDriver.dcp"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
