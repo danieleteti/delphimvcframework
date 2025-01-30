@@ -41,9 +41,7 @@ requires
   loggerproRT,
   FireDACPgDriver,
   FireDACSqliteDriver,
-  SwagDoc,
-  FireDACCommonODBC,
-  FireDACMSSQLDriver;
+  SwagDoc;
 
 contains
   Web.HTTPDImpl,
