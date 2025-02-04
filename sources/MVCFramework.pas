@@ -786,7 +786,7 @@ type
     function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
     function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
 
-    function AcceptedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse;
+    function AcceptedResponse(const Location: string = ''; const Body: TObject = nil; const Message: String = ''): IMVCResponse; overload;
 
     function ConflictResponse: IMVCResponse;
 
@@ -3943,7 +3943,7 @@ begin
 end;
 
 function TMVCRenderer.AcceptedResponse(const Location: string;
-  const Body: TObject): IMVCResponse;
+  const Body: TObject; const Message: String): IMVCResponse;
 var
   lRespBuilder: IMVCResponseBuilder;
 begin
@@ -3955,6 +3955,10 @@ begin
   if Assigned(Body) then
   begin
     lRespBuilder.Body(Body, True);
+  end;
+  if not Message.IsEmpty then
+  begin
+    lRespBuilder.Body(Message);
   end;
   Result := lRespBuilder.StatusCode(HTTP_STATUS.Accepted).Build;
 end;
