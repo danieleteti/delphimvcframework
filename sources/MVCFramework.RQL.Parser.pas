@@ -622,6 +622,10 @@ begin
       Error('Unclosed string');
     lValueType := vtString;
   end
+  else if lToken = tkQuote then {special error case}
+  begin
+    Error('String literals must be enclosed in Double Quotes - HINT: Convert single quotes into double quotes ( '' -> " )');
+  end
   else if (aToken in [tkIn, tkOut]) and (lToken = tkOpenBracket) then
   begin
     lList := TList<string>.Create;
