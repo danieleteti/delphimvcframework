@@ -73,6 +73,10 @@ const
   STR_END_OF_LAYOUT = 'end_of_layout';
 
 type
+{$IF not defined(RIOORBETTER)}
+  PValue = ^TValue;
+{$ENDIF}
+
   TFilterParameterType = (fptInteger, fptFloat, fptString, fptVariable);
   TFilterParameterTypes = set of TFilterParameterType;
 
@@ -1958,6 +1962,7 @@ var
   lValue, lVarValue: TValue;
   lExtendedValue: Extended;
   lSQLTimestampOffset: TSQLTimeStampOffset;
+  lInt64: Int64;
 
   procedure CheckParamType(const FunctionName: String; const FilterParameter: PFilterParameter; const Types: TFilterParameterTypes);
   begin
@@ -2035,9 +2040,8 @@ begin
       Result := False
     else
     begin
-      var
-      l := lValue.AsInt64;
-      Result := l mod aParameters[0].ParIntValue;
+      lInt64 := lValue.AsInt64;
+      Result := lInt64 mod aParameters[0].ParIntValue;
     end;
   end
   else if SameText(aFunctionName, 'uppercase') then
