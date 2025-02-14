@@ -32,7 +32,7 @@ var
 begin
   ReportMemoryLeaksOnShutdown := True;
   LogI('HTMX DMVCFramework Sample');
-  LogI(Format('Starting HTTP Server on port %d', [APort]));
+  LogI(Format('Listening on http://localhost:%d', [APort]));
   ResetConsole;
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try

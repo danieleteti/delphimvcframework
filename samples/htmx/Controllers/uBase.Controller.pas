@@ -25,7 +25,7 @@ type
   public
     [MVCPath(''), MVCHTTPMethod([httpGET])]
     [MVCProduces('text/html')]
-    procedure Index;
+    function Index: String;
 
   end;
 
@@ -58,10 +58,9 @@ begin
   Result := FGenreService;
 end;
 
-procedure TBaseController.Index;
+function TBaseController.Index: String;
 begin
-  LoadView(['header', 'index', 'footer']);
-  RenderResponseStream;
+  Result := RenderViews(['header', 'index', 'footer']);
 end;
 
 procedure TBaseController.OnAfterAction(AContext: TWebContext; const AActionName: string);

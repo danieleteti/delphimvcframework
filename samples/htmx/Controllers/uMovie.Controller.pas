@@ -87,7 +87,7 @@ procedure TMovieController.RenderForm(const AViewNames: TArray<string>);
 begin
   PageData.b['InsertMode'] := FInsertMode;
   PageData.b['IncludeBlankRow'] := FIncludeBlankRow;
-  LoadView(AViewNames);
+  ResponseStream.Append(RenderViews(AViewNames));
   RenderResponseStream;
 end;
 

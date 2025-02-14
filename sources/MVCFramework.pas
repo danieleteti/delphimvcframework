@@ -948,6 +948,7 @@ type
     ///   RenderTemplate renders a single view with sensible defaults.
     /// </summary>
     function RenderView(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
+    function RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string; overload;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -4345,6 +4346,15 @@ function TMVCController.RenderView(const AViewName: string;
   const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
 begin
   Result := GetRenderedView([AViewName], OnBeforeRenderCallback);
+end;
+
+function TMVCController.RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean;
+  const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string;
+begin
+  if UseCommonHeadersAndFooters then
+    Result := GetRenderedView(fPageHeaders + [AViewName] + fPageFooters, OnBeforeRenderCallback)
+  else
+    Result := GetRenderedView([AViewName], OnBeforeRenderCallback);
 end;
 
 function TMVCController.RenderViews(const AViewNames: TArray<string>; const UseCommonHeadersAndFooters: Boolean;
