@@ -752,7 +752,7 @@ begin
     lCustomer.Insert;
     Assert.AreEqual
       ('OnValidation|OnBeforeInsert|OnBeforeInsertOrUpdate|OnBeforeExecuteSQL|MapObjectToParams|OnAfterInsert|OnAfterInsertOrUpdate',
-      lCustomer.GetHistory);
+      lCustomer.GetHistory, 'step1');
     lID := lCustomer.ID;
   finally
     lCustomer.Free;
@@ -760,24 +760,26 @@ begin
 
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLF>(lID);
   try
-    Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
+    Assert.AreEqual('OnBeforeExecuteSQL|OnBeforeLoad|MapDatasetToObject|OnAfterLoad',
+      lCustomer.GetHistory, 'step2');
     lCustomer.ClearHistory;
     lCustomer.City := 'XXX';
     lCustomer.Update;
     Assert.AreEqual
       ('OnValidation|OnBeforeUpdate|OnBeforeInsertOrUpdate|OnBeforeExecuteSQL|MapObjectToParams|OnAfterUpdate|OnAfterInsertOrUpdate',
-      lCustomer.GetHistory);
+      lCustomer.GetHistory, 'step3');
   finally
     lCustomer.Free;
   end;
 
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithLF>('id = ?', [lID]);
   try
-    Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
+    Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad',
+      lCustomer.GetHistory, 'step4');
     lCustomer.ClearHistory;
     lCustomer.Delete;
     Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
-      lCustomer.GetHistory);
+      lCustomer.GetHistory, 'step5');
   finally
     lCustomer.Free;
   end;

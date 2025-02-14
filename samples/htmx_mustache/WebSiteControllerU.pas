@@ -105,7 +105,7 @@ begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
       ViewData['deviceslist'] := lDevices;
-      Result := Page(['editperson']);
+      Result := RenderViews(['header','editperson','footer']);
     finally
       lDevices.Free;
     end;
@@ -158,7 +158,7 @@ begin
         ViewData['people'] := lPeople;
         ViewData['people2'] := lPeople2;
         ViewData['myobj'] := lMyObj;
-        Result := PageFragment(['showcase']); //it is not a "fragment" but we don't need standard headers/footer
+        Result := RenderView('showcase'); //it is not a "fragment" but we don't need standard headers/footer
       finally
         lMyObj.Free;
       end;
@@ -179,7 +179,7 @@ begin
   lDevices := LDAL.GetDevicesList;
   try
     ViewData['deviceslist'] := lDevices;
-    Result := Page(['editperson']);
+    Result := RenderView('editperson');
   finally
     lDevices.Free;
   end;
@@ -202,7 +202,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    Result := Page(['people_list_search', 'people_list', 'people_list_bottom']);
+    Result := RenderViews(['people_list_search', 'people_list', 'people_list_bottom']);
   finally
     lPeople.Free;
   end;
@@ -221,7 +221,7 @@ begin
     ViewData['people'] := lPeople;
     if Context.Request.IsHTMX then
     begin
-      Result := PageFragment(['people_list']);
+      Result := RenderView('people_list');
       if SearchText.IsEmpty then
         Context.Response.HXSetPushUrl('/people/search')
       else
@@ -232,7 +232,8 @@ begin
       var lJSON := TJSONObject.Create;
       try
         lJSON.S['q'] := SearchText;
-        Result := Page(['people_list_search', 'people_list', 'people_list_bottom'], lJSON);
+        ViewData['json'] := lJSON;
+        Result := RenderViews(['people_list_search', 'people_list', 'people_list_bottom']);
       finally
         lJSON.Free;
       end;
@@ -265,7 +266,8 @@ function TWebSiteController.ShowModal: String;
 begin
   var lJSON := StrToJSONObject('{"message":"Do you really want to delete row?", "title":"Bootstrap Modal Dialog"}');
   try
-    Result := PageFragment(['modal'], lJSON);
+    ViewData['json'] := lJSON;
+    Result := RenderView('modal');
   finally
     lJSON.Free;
   end;
@@ -278,7 +280,8 @@ begin
     lJSON.S['title'] := 'Bootstrap Modal Dialog';
     lJSON.S['message'] := 'Do you really want to delete row?';
     lJSON.S['guid'] := guid;
-    Result := PageFragment(['modal'], lJSON);
+    ViewData['json'] := lJSON;
+    Result := RenderView('modal');
   finally
     lJSON.Free;
   end;

@@ -280,7 +280,7 @@ begin
 {$if not Defined(WEBSTENCILS)}
   if SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils') then
   begin
-    ShowMessage('This Delphi version doesn''t support WebStencils, so DMVCFramework cannot use it.' +
+    ShowMessage('This Delphi version doesn''t support WebStencils, so DelphiMVCFramework cannot use it.' +
       sLineBreak + 'Consider to use TemplatePro.');
     rgSSV.ItemIndex := 1;
   end;

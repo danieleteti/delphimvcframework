@@ -83,7 +83,7 @@ class procedure TDMVCNewProjectWizard.RegisterDMVCProjectWizard(const APersonali
 begin
   RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint, sNewDMVCProjectCaption,
     'DMVC.Wizard.NewProjectWizard', // do not localize
-    'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+    'DelphiMVCFramework', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
       WizardForm: TfrmDMVCNewProject;
