@@ -50,8 +50,9 @@ type
     procedure SearchPeople;
 
     [MVCPath('/tests/people')]
+    [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetLotOfPeople;
+    function GetLotOfPeople: IMVCResponse;
 
     [MVCPath('/tests/2')]
     [MVCHTTPMethod([httpPOST])]
@@ -67,25 +68,27 @@ uses
 
 { TPeopleController }
 
-procedure TPeopleController.GetLotOfPeople;
+function TPeopleController.GetLotOfPeople: IMVCResponse;
 var
   lPerson: TPerson;
   I: Integer;
   lPeople: TObjectList<TPerson>;
 const
-  CACHE_KEY: string = 'cache::lotofpeople';
+  CACHE_KEY: string = 'cache:peoplecontroller:lotofpeople';
   FIRST_NAMES: array of string = ['Daniele', 'Peter', 'Bruce', 'Scott', 'Sue'];
   LAST_NAMES: array of string = ['Teti', 'Parker', 'Banner', 'Summers',
     'Storm'];
 
 begin
-  SetCacheKey('cache::lotofpeople');
+  SetCacheKey(CACHE_KEY, 10);
   if CacheAvailable then
     Exit;
 
+    //raise Exception.Create('Error Message');
+
   lPeople := TObjectList<TPerson>.Create(True);
   try
-    for I := 1 to 3000 do
+    for I := 1 to 3 do
     begin
       lPerson := TPerson.Create;
       lPeople.Add(lPerson);
@@ -102,8 +105,7 @@ begin
     lPeople.Free;
     raise;
   end;
-  Render<TPerson>(lPeople);
-  SetCache(60);
+  Result := OKResponse(lPeople);
 end;
 
 procedure TPeopleController.CreateBulkData(CTX: TWebContext);
@@ -174,8 +176,7 @@ var
   Person: TPerson;
 begin
   // This action put in cache the response for 10 seconds...
-
-  SetCacheKey('cache::people::' + id.ToString);
+  SetCacheKey('cache::people::' + id.ToString, 10);
   if CacheAvailable then
     Exit;
 
@@ -184,22 +185,17 @@ begin
     Render(Person)
   else
     Render(404, 'Person not found');
-
-  SetCache(120);
 end;
 
 procedure TPeopleController.GetPhotoByID(id: Integer);
 begin
   // This action put in cache the response (which is binary) for 30 seconds
-
-  SetCacheKey('cache::photo::' + id.ToString);
+  SetCacheKey('cache::photo::' + id.ToString, 30);
   if CacheAvailable then
     Exit;
 
   SendStream(PeopleModule.GetPhotoByID(id));
   ContentType := 'image/png';
-
-  SetCache(30); // the photo will be in cache for 30 seconds
 end;
 
 procedure TPeopleController.OnAfterAction(Context: TWebContext;
@@ -239,7 +235,7 @@ begin
     CurrPage := System.Math.Max(1, StrToIntDef(Context.Request.Params['page'], 1));
 
     // define the redis key depending by the search term and the requested page
-    SetCacheKey('searches::' + SearchText + '::' + CurrPage.ToString);
+    SetCacheKey('searches::' + SearchText + '::' + CurrPage.ToString, 20);
     // get content from cache
     if CacheAvailable then
     begin
@@ -267,11 +263,6 @@ begin
     // JSON.Free;
 
     MergePaginationMetainfos('/people/searches?page=%d', Context.Response.CustomHeaders, CurrPage);
-
-    // Here the response object has been correctly populated.
-    // Set the cache using the current response object values
-    // and let expires in 20 seconds
-    SetCache(20);
   finally
     Filters.Free;
   end;

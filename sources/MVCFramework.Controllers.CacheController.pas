@@ -59,6 +59,8 @@ type
     FCacheEnabled: Boolean;
     FExposeCache: Boolean;
     FCurrentCacheKey: string;
+    FExpireInSeconds: UInt64;
+    FCacheAlreadySet: Boolean;
     procedure SetCacheEnabled(const AValue: Boolean);
     procedure SetExposeCache(const AValue: Boolean);
     procedure CheckCacheKey;
@@ -74,11 +76,11 @@ type
     /// Get a previously cached string present at FragmentKey key
     /// </summary>
     function GetFromCacheFragment(const AFragmentKey: string; out AValue: string): Boolean;
-    procedure SetCache(const AExpireInSeconds: UInt64);
+
     /// <summary>
     /// Sets the cache key that will be used by the subsequent "GetFromCache" and "SetCache" methods
     /// </summary>
-    procedure SetCacheKey(const AKey: string);
+    procedure SetCacheKey(const AKey: string; const AExpireInSeconds: UInt64);
     /// <summary>
     /// Deletes the specified key(s) from the redis cache. Pattern matching can be used to delete multiple keys
     /// </summary>
@@ -102,6 +104,9 @@ type
 
 implementation
 
+uses
+  MVCFramework.Logger;
+
 function TMVCCacheController.CacheAvailable: Boolean;
 var
   lOutput: TRedisArray;
@@ -109,7 +114,7 @@ var
 begin
   if not FCacheEnabled then
     Exit(False); // ignore and return false
-
+  FCacheAlreadySet := False;
   CheckCacheKey;
 
   // check if the redis key is present
@@ -123,7 +128,7 @@ begin
     Context.Response.CustomHeaders.AddStrings(lOutput.Items[1].Value.Split([sLineBreak]));
 
     if FExposeCache then
-      Context.Response.CustomHeaders.AddPair('X-CACHE-HIT', '1');
+      Context.Response.CustomHeaders.Values['X-CACHE-HIT'] := '1';
 
     ContentType := lOutput.Items[0];
 
@@ -138,6 +143,7 @@ begin
     end;
     lStatusPieces := string(lOutput.Items[4]).Split([':']);
     ResponseStatus(StrToInt(lStatusPieces[0]), lStatusPieces[1]);
+    FCacheAlreadySet := True;
   end;
 end;
 
@@ -162,9 +168,56 @@ begin
     AValue := lValue;
 end;
 
-procedure TMVCCacheController.OnAfterAction(AContext: TWebContext; const AActionNAme: string);
+procedure TMVCCacheController.OnAfterAction(AContext: TWebContext; const AActionName: string);
 begin
   inherited;
+  if FCacheEnabled and (not Self.FCurrentCacheKey.IsEmpty) then
+  begin
+    if ExceptObject<>nil then
+    begin
+      Exit;
+    end;
+    if FCacheAlreadySet then {output has been already read from cache}
+    begin
+      LogW('SKIP SetCACHE');
+      Exit;
+    end;
+    LogI('SetCACHE');
+    RedisClient.MULTI(
+      procedure(const R: IRedisClient)
+      var
+        SS: TStringStream;
+      begin
+        if Context.Response.RawWebResponse.ContentStream = nil then
+        begin
+          R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'], [
+            ContentType,
+            Context.Response.CustomHeaders.Text,
+            Context.Response.RawWebResponse.Content,
+            'text', Context.Response.StatusCode.ToString + ':' + Context.Response.ReasonString]);
+          LogI('CACHE ContentStream = nil');
+        end
+        else
+        begin
+          Context.Response.RawWebResponse.ContentStream.Position := 0;
+          SS := TStringStream.Create('', TEncoding.ANSI);
+          try
+            SS.CopyFrom(Context.Response.RawWebResponse.ContentStream, 0);
+            R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'],
+              [ContentType,
+              Context.Response.CustomHeaders.Text,
+              SS.DataString,
+              'stream', Context.Response.StatusCode.ToString + ':' +
+              Context.Response.ReasonString]);
+            Context.Response.RawWebResponse.ContentStream.Position := 0;
+          finally
+            SS.Free;
+          end;
+          LogI('CACHE ContentStream AVAILABLE');
+        end;
+        R.EXPIRE(FCurrentCacheKey, FExpireInSeconds);
+      end);
+  end;
 end;
 
 procedure TMVCCacheController.OnBeforeAction(AContext: TWebContext; const AActionNAme: string; var AHandled: Boolean);
@@ -172,6 +225,8 @@ begin
   inherited;
   FCacheEnabled := True;
   FExposeCache := True;
+  FExpireInSeconds := 60;
+  FCacheAlreadySet := False;
 end;
 
 function TMVCCacheController.RedisClient: IRedisClient;
@@ -200,46 +255,6 @@ begin
   Result := FRedis;
 end;
 
-procedure TMVCCacheController.SetCache(const AExpireInSeconds: UInt64);
-begin
-  if not FCacheEnabled then
-    Exit; // ignore
-
-  CheckCacheKey;
-
-  if FCacheEnabled then
-    RedisClient.MULTI(
-      procedure(const R: IRedisClient)
-      var
-        SS: TStringStream;
-      begin
-        if Context.Response.RawWebResponse.ContentStream = nil then
-          R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'], [
-            ContentType,
-            Context.Response.CustomHeaders.Text,
-            Context.Response.RawWebResponse.Content,
-            'text', Context.Response.StatusCode.ToString + ':' + Context.Response.ReasonString])
-        else
-        begin
-          Context.Response.RawWebResponse.ContentStream.Position := 0;
-          SS := TStringStream.Create('', TEncoding.ANSI);
-          try
-            SS.CopyFrom(Context.Response.RawWebResponse.ContentStream, 0);
-            R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'],
-              [ContentType,
-              Context.Response.CustomHeaders.Text,
-              SS.DataString,
-              'stream', Context.Response.StatusCode.ToString + ':' +
-              Context.Response.ReasonString]);
-            Context.Response.RawWebResponse.ContentStream.Position := 0;
-          finally
-            SS.Free;
-          end;
-        end;
-        R.EXPIRE(FCurrentCacheKey, AExpireInSeconds);
-      end);
-end;
-
 procedure TMVCCacheController.SetCacheEnabled(const AValue: Boolean);
 begin
   FCacheEnabled := AValue;
@@ -247,15 +262,16 @@ begin
 end;
 
 procedure TMVCCacheController.SetCacheFragment(const AFragmentKey: string; const AValue: string;
-const AExpireInSeconds: UInt64);
+  const AExpireInSeconds: UInt64);
 begin
   if FCacheEnabled then
     RedisClient.&SET(AFragmentKey, TEncoding.Default.GetBytes(AValue), AExpireInSeconds);
 end;
 
-procedure TMVCCacheController.SetCacheKey(const AKey: string);
+procedure TMVCCacheController.SetCacheKey(const AKey: string; const AExpireInSeconds: UInt64);
 begin
   FCurrentCacheKey := AKey;
+  FExpireInSeconds := AExpireInSeconds;
 end;
 
 procedure TMVCCacheController.SetExposeCache(const AValue: Boolean);

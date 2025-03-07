@@ -97,7 +97,7 @@ begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
       ViewData['deviceslist'] := lDevices;
-      Result := Page(['editperson']);
+      Result := RenderView('editperson');
     finally
       lDevices.Free;
     end;
@@ -122,7 +122,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    Result := Page(['people_list.csv']);
+    Result := RenderView('people_list.csv');
   finally
     lPeople.Free;
   end;
@@ -142,7 +142,7 @@ begin
   lDevices := LDAL.GetDevicesList;
   try
     ViewData['deviceslist'] := lDevices;
-    Result := Page(['editperson']);
+    Result := RenderView('editperson');
   finally
     lDevices.Free;
   end;
@@ -173,7 +173,7 @@ begin
         Context.Response.HXSetPushUrl('/people?q=' + SearchText);
     end;
     ViewData['q'] := SearchText;
-    Result := Page(['people_list']);
+    Result := RenderView('people_list');
   finally
     lPeople.Free;
   end;
@@ -205,7 +205,7 @@ function TWebSiteController.ShowModal: String;
 begin
   ViewData['message'] := 'Do you really want to delete row?';
   ViewData['title'] := 'Bootstrap Modal Dialog';
-  Result := Page(['modal']);
+  Result := RenderView('modal');
 end;
 
 function TWebSiteController.ShowModalForDelete(guid: string): String;
@@ -213,7 +213,7 @@ begin
   ViewData['title'] := 'Bootstrap Modal Dialog';
   ViewData['message'] := 'Do you really want to delete row?';
   ViewData['guid'] := guid;
-  Result := Page(['modal']);
+  Result := RenderView('modal');
 end;
 
 end.

@@ -1,0 +1,43 @@
+﻿[Messages]
+FinishedHeadingLabel=Completando il Setup di [name]
+FinishedLabel=Il Setup ha finito di installare [name] sul tuo computer.
+SetupWindowTitle=%1 Setup
+WelcomeLabel1=[name] Setup
+WelcomeLabel2=Questo Setup installerà la libreria [name/ver] sul tuo computer.
+
+[CustomMessages]
+DotNet35NotFound=Microsoft .NET Framework 3.5 SP1 non è stato trovato.
+DotNet45NotFound=Microsoft .NET Framework 4.5 non è stato trovato.
+RADStudioBuildBuildingFor=Compilazione per %1 - %2...
+RADStudioBuildErrorBuilding=Errore durante la compilazione per %1 (codice %2).
+RADStudioBuildErrorCantFoundRSVars=Impossibile trovare il file rsvars "%1" di %2.
+RADStudioBuildErrorNotSupportCommandLineBuild=%1 non supporta la compilazione da riga di comando. È necessario installare manualmente la libreria.
+RADStudioProjectErrorParsingGroupProject=Errore durante l'analisi del progetto di gruppo "%1" (codice %2, riga %3, posizione %4, messaggio "%5").
+RADStudioProjectErrorParsingProject=Errore durante l'analisi del progetto "%1" (codice %2, riga %3, posizione %4, messaggio "%5").
+RADStudioProjectErrorParsingProjectUnknownPersonality=Errore durante l'analisi del progetto "%1" (testo %2, messaggio "Personalità sconosciuta").
+RADStudioProjectErrorUnexpectedParsingGroupProject=Errore imprevisto durante l'analisi del progetto di gruppo "%1" (messaggio "%2").
+RADStudioProjectErrorUnexpectedParsingProject=Errore imprevisto durante l'analisi del progetto "%1" (messaggio "%2").
+RADStudioUnknownVersionName=Nome sconosciuto
+SetupMainCouldNotDetectProjectBplOutputFileName=Impossibile rilevare il nome del file Bpl generato dal progetto "%1" di %2.
+SetupMainCouldNotUninstallDetectedVersion=Impossibile disinstallare altre versioni di %1 rilevate nel sistema.
+SetupMainCouldNotUninstallPackages=Impossibile disinstallare i Packages.
+SetupMainErrorFailedToGetGroupProjects=Impossibile ottenere i file dei progetti di gruppo.
+SetupMainErrorNoRADStudioVersionAvailable=Nessuna versione di RAD Studio disponibile nel sistema per l'installazione.
+SetupMainFailedToInstallPackage=Impossibile installare il Package "%1" in %2 (codice %3)
+SetupMainFailedToUninstallPackage=Impossibile disinstallare il Package "%1" in %2 (codice %3)
+SetupMainInstallAbortedToCloseRADStudioInstance=Chiudere RAD Studio prima di tentare l'installazione. Se è già stato chiuso, attendere un attimo prima di riprovare.
+SetupMainInstallationSuccesfullyRestartRADStudio=Installazione completata. Riavviare RAD Studio.
+SetupMainInstallingPackages=Installazione dei Packages in corso...
+SetupMainRevertingPackagesInstallationAfterFailure=Ripristino dell'installazione dei Packages dopo l'errore...
+SetupMainUninstallAbortedToCloseRADStudioInstance=Disinstallazione annullata! Chiudere tutte le istanze di RAD Studio prima di procedere.
+SetupMainUninstallingDetectedVersion=Disinstallazione di altre versioni in corso...
+SetupMainUninstallingFromGetIt=Disinstallazione da GetIt in corso...
+SetupMainUninstallingPackages=Disinstallazione dei Packages in corso...
+SetupOpenSamplesFolder=Apri cartella esempi
+SetupPagesNoneRADStudioVersionsSelectedMessage=Non è stata scelta alcuna versione di RAD Studio e, procedendo, verranno estratti solo i file. Si desidera continuare?
+SetupPagesRADStudioVersionsChoiceAlertNeedOpenFirst=È necessario aprirlo prima
+SetupPagesRADStudioVersionsChoiceMessage=Selezionare le versioni di RAD Studio per cui si desidera installare %1
+SetupPagesRADStudioVersionsChoiceTitle=Scegliere RAD Studio
+SetupPagesRADStudioVersionsChoiceUnofficialSupport=Supporto non ufficiale
+SetupUtilsPleaseReportThiIssue=%n%nSi prega di segnalare questo problema.
+SetupViewOnlineDocumentation=Visualizza documentazione online
