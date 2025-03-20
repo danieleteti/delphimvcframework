@@ -1,6 +1,6 @@
 // ***************************************************************************
 //
-// Copyright (c) 2016-2024 Daniele Teti
+// Copyright (c) 2016-2025 Daniele Teti
 //
 // https://github.com/danieleteti/templatepro
 //
@@ -2770,7 +2770,6 @@ var
   lBlockReturnAddress: Int64;
   lCurrentBlockName: string;
   lObj: TValue;
-  lLastOpenBracket: Integer;
   lCount: Integer;
 
 begin
@@ -2793,8 +2792,6 @@ begin
             if LoopStackIsEmpty or (lForLoopItem.LoopExpression <> fTokens[lIdx].Value1) then
             begin // push a new loop stack item
               SplitVariableName(fTokens[lIdx].Value1, lVarName, lVarMember);
-              { lVarName maybe an iterator, so I've to walk the stack to know
-                the real information about the iterator }
               if WalkThroughLoopStack(lVarName, lBaseVarName, lFullPath) then
               begin
                 if not lVarMember.IsEmpty then
@@ -2834,19 +2831,18 @@ begin
               end
               else if viListOfObject in lVariable.VarOption then
               begin
-                // if lVariable.VarIterator = lWrapped.Count - 1 then
+                {TODO -oDanieleT -cGeneral : We need only .Count here. Could we use something lighter than WrapAsList?}
                 lObj := GetTValueFromPath(lVariable.VarValue.AsObject, lForLoopItem.FullPath);
                 lWrapped := WrapAsList(lObj.AsObject);
                 lCount := lWrapped.Count;
                 if (lCount = 0) or (lForLoopItem.IteratorPosition = lCount - 1) then
                 begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to endif
+                  lIdx := fTokens[lIdx].Ref1; // skip to endfor
                   Continue;
                 end
                 else
                 begin
                   lForLoopItem.IncrementIteratorPosition;
-                  // lVariable.VarIterator := lVariable.VarIterator + 1;
                 end;
               end
               else if viJSONObject in lVariable.VarOption then
@@ -3489,138 +3485,6 @@ procedure TTProCompiledTemplate.Error(const aMessage: String; const Params: arra
 begin
   Error(Format(aMessage, Params));
 end;
-
-// function TTProCompiledTemplate.EvaluateIfExpression(aIdentifier: string): Boolean;
-// var
-// lVarValue: TValue;
-// lNegation: Boolean;
-// lVariable: TVarDataSource;
-// lTmp: Boolean;
-// lDataSourceName: String;
-// lHasMember: Boolean;
-// lList: ITProWrappedList;
-// lVarName, lVarMembers: String;
-// lCurrentIterator: TLoopStackItem;
-// lIsAnIterator: Boolean;
-// lHandled: Boolean;
-// begin
-// lNegation := aIdentifier.StartsWith('!');
-// if lNegation then
-// aIdentifier := aIdentifier.Remove(0,1);
-//
-// SplitVariableName(aIdentifier, lVarName, lVarMembers);
-//
-// lHasMember := Length(lVarMembers) > 0;
-//
-// lIsAnIterator := IsAnIterator(lVarName, lDataSourceName, lCurrentIterator);
-//
-// if not lIsAnIterator then
-// begin
-// lDataSourceName := lVarName;
-// end;
-//
-// if GetVariables.TryGetValue(lDataSourceName, lVariable) then
-// begin
-// if lVariable = nil then
-// begin
-// Exit(lNegation xor False);
-// end;
-// if viDataSet in lVariable.VarOption then
-// begin
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// if not lIsAnIterator then
-// begin
-// Error('Pseudovariables (@@) can be used only on iterators');
-// end;
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := TValue.From<Variant>(TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers).Value);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := not TDataSet(lVariable.VarValue.AsObject).Eof;
-// end;
-// Exit(lNegation xor lTmp);
-// end
-// else if viListOfObject in lVariable.VarOption then
-// begin
-// lList := WrapAsList(lVariable.VarValue.AsObject);
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := TTProRTTIUtils.GetProperty(lList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := lList.Count > 0;
-// end;
-//
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end
-// else if [viObject, viJSONObject] * lVariable.VarOption <> [] then
-// begin
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := GetVarAsTValue(lDataSourceName);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := not lVarValue.IsEmpty;
-// end;
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end
-// else if viSimpleType in lVariable.VarOption then
-// begin
-// lTmp := IsTruthy(lVariable.VarValue);
-// Exit(lNegation xor lTmp)
-// end;
-// end
-// else
-// begin
-// lHandled := False;
-// DoOnGetValue(lVarName, lVarMembers, lVarValue, lHandled);
-// if lHandled then
-// begin
-// lTmp := IsTruthy(lVarValue);
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end;
-// end;
-// Exit(lNegation xor False);
-// end;
 
 function TTProCompiledTemplate.EvaluateIfExpressionAt(var Idx: Int64): Boolean;
 var
