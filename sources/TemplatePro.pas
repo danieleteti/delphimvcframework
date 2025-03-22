@@ -170,6 +170,7 @@ type
     FullPath: String;
     IteratorPosition: Integer;
     IteratorName: String;
+    EOF: Boolean;
     function IncrementIteratorPosition: Integer;
     constructor Create(DataSourceName: String; LoopExpression: String; FullPath: String; IteratorName: String);
   end;
@@ -1930,14 +1931,14 @@ begin
   end
   else
   begin
-  Step;
-  I := 0;
-  while (CurrentChar <> #0) and (CurrentChar <> END_TAG[1]) and (I < 20) do
-  begin
-    Result := Result + CurrentChar;
     Step;
-    Inc(I);
-  end;
+    I := 0;
+    while (CurrentChar <> #0) and (CurrentChar <> END_TAG[1]) and (I < 20) do
+    begin
+      Result := Result + CurrentChar;
+      Step;
+      Inc(I);
+    end;
   end;
 end;
 
@@ -2215,6 +2216,7 @@ begin
       FunctionError(aFunctionName, 'Invalid date ' + GetTValueVarAsString(@aValue, aVarNameWhereShoudBeApplied));
     end;
   end
+
   else if SameText(aFunctionName, 'datetimetostr') or SameText(aFunctionName, 'formatdatetime') then
   begin
     if aValue.IsEmpty then
@@ -2273,8 +2275,8 @@ begin
     end
     else if aValue.IsType<Extended> or aValue.IsType<Double> then
     begin
-      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
-    end
+    Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+  end
     else
     begin
       Error('Invalid type passed to FormatFloat filter');
@@ -2334,7 +2336,7 @@ begin
     end
     else
     begin
-    b := Ord(s[I]);
+      b := Ord(S[I]);
       if b > 255 then
       begin
         if b = 8364 then
@@ -2345,210 +2347,210 @@ begin
       else
       begin
 {$REGION 'entities'}
-    case b of
-      Ord('>'):
-        r := 'gt';
-      Ord('<'):
-        r := 'lt';
-      34:
-        r := '#' + IntToStr(b);
-      39:
-        r := '#' + IntToStr(b);
-      43:
-        r := 'quot';
-      160:
-        r := 'nbsp';
-      161:
-        r := 'excl';
-      162:
-        r := 'cent';
-      163:
+      case b of
+        Ord('>'):
+          r := 'gt';
+        Ord('<'):
+          r := 'lt';
+        34:
+          r := '#' + IntToStr(b);
+        39:
+          r := '#' + IntToStr(b);
+        43:
+          r := 'quot';
+        160:
+          r := 'nbsp';
+        161:
+          r := 'excl';
+        162:
+          r := 'cent';
+        163:
           r := 'pound';
-      164:
-        r := 'curren';
-      165:
-        r := 'yen';
-      166:
-        r := 'brvbar';
-      167:
-        r := 'sect';
-      168:
-        r := 'uml';
-      169:
-        r := 'copy';
-      170:
-        r := 'ordf';
-      171:
-        r := 'laquo';
-      172:
-        r := 'not';
-      173:
-        r := 'shy';
-      174:
-        r := 'reg';
-      175:
-        r := 'macr';
-      176:
-        r := 'deg';
-      177:
-        r := 'plusmn';
-      178:
-        r := 'sup2';
-      179:
-        r := 'sup3';
-      180:
-        r := 'acute';
-      181:
-        r := 'micro';
-      182:
-        r := 'para';
-      183:
-        r := 'middot';
-      184:
-        r := 'cedil';
-      185:
-        r := 'sup1';
-      186:
-        r := 'ordm';
-      187:
-        r := 'raquo';
-      188:
-        r := 'frac14';
-      189:
-        r := 'frac12';
-      190:
-        r := 'frac34';
-      191:
-        r := 'iquest';
-      192:
-        r := 'Agrave';
-      193:
-        r := 'Aacute';
-      194:
-        r := 'Acirc';
-      195:
-        r := 'Atilde';
-      196:
-        r := 'Auml';
-      197:
-        r := 'Aring';
-      198:
-        r := 'AElig';
-      199:
-        r := 'Ccedil';
-      200:
-        r := 'Egrave';
-      201:
-        r := 'Eacute';
-      202:
-        r := 'Ecirc';
-      203:
-        r := 'Euml';
-      204:
-        r := 'Igrave';
-      205:
-        r := 'Iacute';
-      206:
-        r := 'Icirc';
-      207:
-        r := 'Iuml';
-      208:
-        r := 'ETH';
-      209:
-        r := 'Ntilde';
-      210:
-        r := 'Ograve';
-      211:
-        r := 'Oacute';
-      212:
-        r := 'Ocirc';
-      213:
-        r := 'Otilde';
-      214:
-        r := 'Ouml';
-      215:
-        r := 'times';
-      216:
-        r := 'Oslash';
-      217:
-        r := 'Ugrave';
-      218:
-        r := 'Uacute';
-      219:
-        r := 'Ucirc';
-      220:
-        r := 'Uuml';
-      221:
-        r := 'Yacute';
-      222:
-        r := 'THORN';
-      223:
-        r := 'szlig';
-      224:
-        r := 'agrave';
-      225:
-        r := 'aacute';
-      226:
-        r := 'acirc';
-      227:
-        r := 'atilde';
-      228:
-        r := 'auml';
-      229:
-        r := 'aring';
-      230:
-        r := 'aelig';
-      231:
-        r := 'ccedil';
-      232:
-        r := 'egrave';
-      233:
-        r := 'eacute';
-      234:
-        r := 'ecirc';
-      235:
-        r := 'euml';
-      236:
-        r := 'igrave';
-      237:
-        r := 'iacute';
-      238:
-        r := 'icirc';
-      239:
-        r := 'iuml';
-      240:
-        r := 'eth';
-      241:
-        r := 'ntilde';
-      242:
-        r := 'ograve';
-      243:
-        r := 'oacute';
-      244:
-        r := 'ocirc';
-      245:
-        r := 'otilde';
-      246:
-        r := 'ouml';
-      247:
-        r := 'divide';
-      248:
-        r := 'oslash';
-      249:
-        r := 'ugrave';
-      250:
-        r := 'uacute';
-      251:
-        r := 'ucirc';
-      252:
-        r := 'uuml';
-      253:
-        r := 'yacute';
-      254:
-        r := 'thorn';
-      255:
-        r := 'yuml';
-    end;
+        164:
+          r := 'curren';
+        165:
+          r := 'yen';
+        166:
+          r := 'brvbar';
+        167:
+          r := 'sect';
+        168:
+          r := 'uml';
+        169:
+          r := 'copy';
+        170:
+          r := 'ordf';
+        171:
+          r := 'laquo';
+        172:
+          r := 'not';
+        173:
+          r := 'shy';
+        174:
+          r := 'reg';
+        175:
+          r := 'macr';
+        176:
+          r := 'deg';
+        177:
+          r := 'plusmn';
+        178:
+          r := 'sup2';
+        179:
+          r := 'sup3';
+        180:
+          r := 'acute';
+        181:
+          r := 'micro';
+        182:
+          r := 'para';
+        183:
+          r := 'middot';
+        184:
+          r := 'cedil';
+        185:
+          r := 'sup1';
+        186:
+          r := 'ordm';
+        187:
+          r := 'raquo';
+        188:
+          r := 'frac14';
+        189:
+          r := 'frac12';
+        190:
+          r := 'frac34';
+        191:
+          r := 'iquest';
+        192:
+          r := 'Agrave';
+        193:
+          r := 'Aacute';
+        194:
+          r := 'Acirc';
+        195:
+          r := 'Atilde';
+        196:
+          r := 'Auml';
+        197:
+          r := 'Aring';
+        198:
+          r := 'AElig';
+        199:
+          r := 'Ccedil';
+        200:
+          r := 'Egrave';
+        201:
+          r := 'Eacute';
+        202:
+          r := 'Ecirc';
+        203:
+          r := 'Euml';
+        204:
+          r := 'Igrave';
+        205:
+          r := 'Iacute';
+        206:
+          r := 'Icirc';
+        207:
+          r := 'Iuml';
+        208:
+          r := 'ETH';
+        209:
+          r := 'Ntilde';
+        210:
+          r := 'Ograve';
+        211:
+          r := 'Oacute';
+        212:
+          r := 'Ocirc';
+        213:
+          r := 'Otilde';
+        214:
+          r := 'Ouml';
+        215:
+          r := 'times';
+        216:
+          r := 'Oslash';
+        217:
+          r := 'Ugrave';
+        218:
+          r := 'Uacute';
+        219:
+          r := 'Ucirc';
+        220:
+          r := 'Uuml';
+        221:
+          r := 'Yacute';
+        222:
+          r := 'THORN';
+        223:
+          r := 'szlig';
+        224:
+          r := 'agrave';
+        225:
+          r := 'aacute';
+        226:
+          r := 'acirc';
+        227:
+          r := 'atilde';
+        228:
+          r := 'auml';
+        229:
+          r := 'aring';
+        230:
+          r := 'aelig';
+        231:
+          r := 'ccedil';
+        232:
+          r := 'egrave';
+        233:
+          r := 'eacute';
+        234:
+          r := 'ecirc';
+        235:
+          r := 'euml';
+        236:
+          r := 'igrave';
+        237:
+          r := 'iacute';
+        238:
+          r := 'icirc';
+        239:
+          r := 'iuml';
+        240:
+          r := 'eth';
+        241:
+          r := 'ntilde';
+        242:
+          r := 'ograve';
+        243:
+          r := 'oacute';
+        244:
+          r := 'ocirc';
+        245:
+          r := 'otilde';
+        246:
+          r := 'ouml';
+        247:
+          r := 'divide';
+        248:
+          r := 'oslash';
+        249:
+          r := 'ugrave';
+        250:
+          r := 'uacute';
+        251:
+          r := 'ucirc';
+        252:
+          r := 'uuml';
+        253:
+          r := 'yacute';
+        254:
+          r := 'thorn';
+        255:
+          r := 'yuml';
+      end;
 {$ENDREGION}
       end;
     end;
@@ -2750,13 +2752,11 @@ function TTProCompiledTemplate.Render: String;
 var
   lIdx: Int64;
   lBuff: TStringBuilder;
-  lDataSourceName: string;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
   lJumpTo: Integer;
   lVarName: string;
   lVarValue: TValue;
-  lJArr: TJDOJsonArray;
   lJObj: TJDOJsonObject;
   lVarMember: string;
   lBaseVarName: string;
@@ -2780,7 +2780,7 @@ begin
     lIdx := 0;
     while fTokens[lIdx].TokenType <> ttEOF do
     begin
-      // Writeln(fTokens[lIdx].ToString);
+      //Writeln(fTokens[lIdx].ToString);
       case fTokens[lIdx].TokenType of
         ttContent:
           begin
@@ -2795,7 +2795,7 @@ begin
               if WalkThroughLoopStack(lVarName, lBaseVarName, lFullPath) then
               begin
                 if not lVarMember.IsEmpty then
-                lFullPath := lFullPath + '.' + lVarMember;
+                  lFullPath := lFullPath + '.' + lVarMember;
                 PushLoop(TLoopStackItem.Create(lBaseVarName, fTokens[lIdx].Value1, lFullPath, fTokens[lIdx].Value2));
               end
               else
@@ -2821,13 +2821,18 @@ begin
                 if lForLoopItem.IteratorPosition = -1 then
                 begin
                   TDataSet(lVariable.VarValue.AsObject).First;
+                end
+                else
+                begin
+                  TDataSet(lVariable.VarValue.AsObject).Next;
                 end;
-
+                lForLoopItem.IncrementIteratorPosition;
                 if TDataSet(lVariable.VarValue.AsObject).Eof then
                 begin
+                  lForLoopItem.EOF := True;
                   lIdx := fTokens[lIdx].Ref1; // skip to endfor
                   Continue;
-                end
+                end;
               end
               else if viListOfObject in lVariable.VarOption then
               begin
@@ -2837,6 +2842,7 @@ begin
                 lCount := lWrapped.Count;
                 if (lCount = 0) or (lForLoopItem.IteratorPosition = lCount - 1) then
                 begin
+                  lForLoopItem.EOF := True;
                   lIdx := fTokens[lIdx].Ref1; // skip to endfor
                   Continue;
                 end
@@ -2854,6 +2860,7 @@ begin
                 case lJValue.Typ of
                   jdtNone:
                     begin
+                      lForLoopItem.EOF := True;
                       lIdx := fTokens[lIdx].Ref1; // skip to endfor
                       Continue;
                     end;
@@ -2862,6 +2869,7 @@ begin
                     begin
                       if lForLoopItem.IteratorPosition = lJObj.Path[lForLoopItem.FullPath].ArrayValue.Count - 1 then
                       begin
+                        lForLoopItem.EOF := True;
                         lIdx := fTokens[lIdx].Ref1; // skip to endfor
                         Continue;
                       end
@@ -2870,7 +2878,6 @@ begin
                         lForLoopItem.IncrementIteratorPosition;
                       end;
                     end;
-
                 else
                   begin
                     Error('Only JSON array can be iterated');
@@ -2887,60 +2894,22 @@ begin
               Error(Format('Unknown variable in for..in statement [%s]', [fTokens[lIdx].Value1]));
             end;
           end;
+
         ttEndFor:
           begin
-            if LoopStackIsEmpty then
+            lForLoopItem := PeekLoop;
+            if lForLoopItem = nil then
             begin
               raise ETProRenderException.Create('Inconsistent "endfor"');
             end;
-
-            lForLoopItem := PeekLoop;
-            lDataSourceName := lForLoopItem.DataSourceName;
-            if GetVariables.TryGetValue(lDataSourceName, lVariable) then
+            if lForLoopItem.EOF then
             begin
-              if viDataSet in lVariable.VarOption then
-              begin
-                TDataSet(lVariable.VarValue.AsObject).Next;
-                lForLoopItem.IteratorPosition := TDataSet(lVariable.VarValue.AsObject).RecNo;
-                if not TDataSet(lVariable.VarValue.AsObject).Eof then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // goto loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end
-              else if viJSONObject in lVariable.VarOption then
-              begin
-                lJObj := TJDOJsonObject(lVariable.VarValue.AsObject);
-                lJArr := lJObj.Path[lForLoopItem.FullPath];
-                if lForLoopItem.IteratorPosition < lJArr.Count - 1 then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end
-              else if viListOfObject in lVariable.VarOption then
-              begin
-                {TODO -oDanieleT -cGeneral : We need only .Count here. Could we use something lighter than WrapAsList?}
-                lObj := GetTValueFromPath(lVariable.VarValue.AsObject, lForLoopItem.FullPath);
-                lWrapped := WrapAsList(lObj.AsObject);
-                if lForLoopItem.IteratorPosition < lWrapped.Count - 1 then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end;
+              PopLoop;
+            end
+            else
+            begin
+              lIdx := fTokens[lIdx].Ref1; // goto loop
+              Continue;
             end;
           end;
         ttIfThen:
@@ -3276,7 +3245,7 @@ begin
               Result := TTProRTTIUtils.GetProperty(WrapAsList(lVariable.VarValue.AsObject)
                 .GetItem(lCurrentIterator.IteratorPosition), lVarMembers)
             end
-          else
+            else
             begin
               lFullPath := lCurrentIterator.FullPath;
               lValue := GetTValueFromPath(lVariable.VarValue.AsObject, lFullPath);
@@ -3291,7 +3260,7 @@ begin
           begin
             if lCurrentIterator.FullPath.IsEmpty then
             begin
-            Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
+              Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
             end
             else
             begin
@@ -3878,11 +3847,12 @@ end;
 
 constructor TLoopStackItem.Create(DataSourceName, LoopExpression, FullPath: String; IteratorName: String);
 begin
-  self.DataSourceName := DataSourceName;
-  self.LoopExpression := LoopExpression;
-  self.FullPath := FullPath;
-  self.IteratorName := IteratorName;
-  self.IteratorPosition := -1;
+  Self.DataSourceName := DataSourceName;
+  Self.LoopExpression := LoopExpression;
+  Self.FullPath := FullPath;
+  Self.IteratorName := IteratorName;
+  Self.IteratorPosition := -1;
+  Self.EOF := False;
 end;
 
 function TLoopStackItem.IncrementIteratorPosition: Integer;
