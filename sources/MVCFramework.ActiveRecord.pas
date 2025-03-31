@@ -570,6 +570,15 @@ type
       const Options: TMVCActiveRecordLoadOptions;
       const OutList: TObjectList<T>): UInt32; overload;
 
+    class function LoadFromDataSet<T: TMVCActiveRecord, constructor>(
+      const DataSet: TDataSet;
+      const OutList: TObjectList<T>;
+      const Options: TMVCActiveRecordLoadOptions = []): UInt32; overload;
+
+    class function LoadFromDataSet<T: TMVCActiveRecord, constructor>(
+      const DataSet: TDataSet;
+      const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
+
     class function Select(
       const MVCActiveRecordClass: TMVCActiveRecordClass;
       const SQL: string;
@@ -581,9 +590,11 @@ type
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
       const Params: array of Variant)
       : TMVCActiveRecordList; overload;
+
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
       const Params: array of Variant;
       const Connection: TFDConnection): TMVCActiveRecordList; overload;
+
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string;
       const Params: array of Variant;
       const Connection: TFDConnection; const OutList: TMVCActiveRecordList): UInt32; overload;
@@ -3101,6 +3112,21 @@ begin
   end;
 end;
 
+class function TMVCActiveRecordHelper.LoadFromDataSet<T>(const DataSet: TDataSet; const OutList: TObjectList<T>; const Options: TMVCActiveRecordLoadOptions): UInt32;
+var
+  lAR: TMVCActiveRecord;
+begin
+  while not DataSet.Eof do
+  begin
+    lAR := T.Create;
+    OutList.Add(lAR);
+    lAR.LoadByDataset(DataSet, Options);
+    DataSet.Next;
+  end;
+  Result := OutList.Count;
+end;
+
+
 class function TMVCActiveRecordHelper.SelectByNamedQuery(
   const MVCActiveRecordClass: TMVCActiveRecordClass; const QueryName: String;
   const Params: array of Variant; const ParamTypes: array of TFieldType;
@@ -4921,6 +4947,18 @@ constructor TMVCActiveRecord.Create(const Connection: TFDConnection);
 begin
   Create(True);
   fConn := Connection;
+end;
+
+class function TMVCActiveRecordHelper.LoadFromDataSet<T>(const DataSet: TDataSet;
+  const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
+begin
+  Result := TObjectList<T>.Create(True);
+  try
+    LoadFromDataSet<T>(DataSet, Result, Options);
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
 initialization
