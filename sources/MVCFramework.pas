@@ -1154,6 +1154,7 @@ type
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
     function AddController(const AControllerClazz: TMVCControllerClazz;
       const AURLSegment: string = ''): TMVCEngine; overload;
+    function RegisterRoute(const AURLSegment: string; const AControllerClazz: TMVCControllerClazz): TMVCEngine;
     function AddController(const AControllerClazz: TMVCControllerClazz;
       const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = '')
       : TMVCEngine; overload;
@@ -3690,6 +3691,11 @@ begin
   begin
     FSerializers.Add(lDefaultSerializerContentType, TMVCTextSerializer.Create(Config));
   end;
+end;
+
+function TMVCEngine.RegisterRoute(const AURLSegment: string; const AControllerClazz: TMVCControllerClazz): TMVCEngine;
+begin
+  Result := AddController(AControllerClazz, AURLSegment);
 end;
 
 procedure TMVCEngine.ResponseErrorPage(const AException: Exception; const ARequest: TWebRequest;
