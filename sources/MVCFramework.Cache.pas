@@ -27,7 +27,7 @@ unit MVCFramework.Cache;
 interface
 
 uses
-  System.Classes, System.SysUtils, System.Generics.Collections, System.Rtti,
+  System.Classes, System.SysUtils, System.Rtti, System.Generics.Collections,
   System.SyncObjs, MVCFramework.Commons, System.DateUtils;
 
 const
@@ -48,7 +48,7 @@ type
     property TimeStamp: TDateTime read FTimeStamp;
   end;
 
-  TMVCCache = class sealed
+  TMVCCache = class
   private
     FStorage: TObjectDictionary<string, TMVCCacheItem>;
     FMREW: TMultiReadExclusiveWriteSynchronizer;
@@ -63,7 +63,56 @@ type
     function ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
     procedure BeginWrite;
     procedure EndWrite;
+
   end;
+
+  TMVCObjectCache<T: class> = class;
+
+  TMVCObjectCacheWriteTransaction<T: class> = record
+  private
+    fActive: Boolean;
+    fParent: TMVCObjectCache<T>;
+    constructor WithWriteLock(Parent: TMVCObjectCache<T>);
+  public
+    class operator Finalize(var Dest: TMVCObjectCacheWriteTransaction<T>);
+    class operator Initialize (out Dest: TMVCObjectCacheWriteTransaction<T>);
+    class operator Assign (var Dest: TMVCObjectCacheWriteTransaction<T>; const [ref] Src: TMVCObjectCacheWriteTransaction<T>);
+    // Methods to use in "transaction"
+    procedure SetValue(const AName: string; const AValue: T);
+    procedure RemoveItem(const AName: string);
+    function Contains(const AName: string; out AValue: T): Boolean;
+    function GetValue(const AName: string): T;
+    function Keys: TArray<String>;
+  end;
+
+
+  TMVCObjectCacheReadTransaction<T: class> = record
+  private
+    fActive: Boolean;
+    fParent: TMVCObjectCache<T>;
+    constructor WithReadLock(Parent: TMVCObjectCache<T>);
+  public
+    class operator Finalize(var Dest: TMVCObjectCacheReadTransaction<T>);
+    class operator Initialize (out Dest: TMVCObjectCacheReadTransaction<T>);
+    class operator Assign (var Dest: TMVCObjectCacheReadTransaction<T>; const [ref] Src: TMVCObjectCacheReadTransaction<T>);
+    // Methods to use in "transaction"
+    function Contains(const AName: string; out AValue: T): Boolean;
+    function GetValue(const AName: string): T;
+    function Keys: TArray<String>;
+  end;
+
+
+  TMVCObjectCache<T: class> = class
+  private
+    FStorage: TObjectDictionary<string, T>;
+    FMREW: TMultiReadExclusiveWriteSynchronizer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function WithSharedReadLock: TMVCObjectCacheReadTransaction<T>;
+    function WithExclusiveWriteLock: TMVCObjectCacheWriteTransaction<T>;
+  end;
+
 
   TMVCCacheSingleton = class
   private
@@ -238,6 +287,10 @@ end;
 
 destructor TMVCCacheItem.Destroy;
 begin
+  if FValue.IsObject then
+  begin
+    FValue.AsObject.Free;
+  end;
   FCriticalSection.Free;
   inherited;
 end;
@@ -318,6 +371,143 @@ begin
   finally
     fCS.Leave;
   end;
+end;
+
+{ TMVCObjectCache<T> }
+
+constructor TMVCObjectCache<T>.Create;
+begin
+  inherited Create;
+  FStorage := TObjectDictionary<String, T>.Create([doOwnsValues]);
+  FMREW := TMultiReadExclusiveWriteSynchronizer.Create;
+end;
+
+destructor TMVCObjectCache<T>.Destroy;
+begin
+  FStorage.Free;
+  FMREW.Free;
+  inherited;
+end;
+
+function TMVCObjectCache<T>.WithSharedReadLock: TMVCObjectCacheReadTransaction<T>;
+begin
+  Result := TMVCObjectCacheReadTransaction<T>.WithReadLock(Self);
+end;
+
+function TMVCObjectCache<T>.WithExclusiveWriteLock: TMVCObjectCacheWriteTransaction<T>;
+begin
+  Result := TMVCObjectCacheWriteTransaction<T>.WithWriteLock(Self);
+end;
+
+{ TMVCObjectCacheWriteTransaction<T> }
+
+function TMVCObjectCacheWriteTransaction<T>.Contains(const AName: string; out AValue: T): Boolean;
+begin
+  Result := self.fParent.FStorage.TryGetValue(AName, AValue);
+end;
+
+function TMVCObjectCacheWriteTransaction<T>.GetValue(const AName: string): T;
+begin
+  if not Contains(AName, Result) then
+  begin
+    raise EMVCException.Create('Key not available in cache - HINT: use Contains if you are not sure the item in in the cache');
+  end;
+end;
+
+class operator TMVCObjectCacheWriteTransaction<T>.Initialize(out Dest: TMVCObjectCacheWriteTransaction<T>);
+begin
+  Dest.fActive := False;
+  Dest.fParent := nil;
+end;
+
+class operator TMVCObjectCacheWriteTransaction<T>.Finalize(var Dest: TMVCObjectCacheWriteTransaction<T>);
+begin
+  if Dest.fActive then
+  begin
+    Dest.fParent.FMREW.EndWrite;
+  end;
+end;
+
+class operator TMVCObjectCacheWriteTransaction<T>.Assign(var Dest: TMVCObjectCacheWriteTransaction<T>;  const [ref] Src: TMVCObjectCacheWriteTransaction<T>);
+begin
+  if Src.fActive then
+  begin
+    raise Exception.Create('Transaction item cannot be re-assigned');
+  end;
+  Dest.fActive := True;
+  Dest.fParent := Src.fParent;
+  Dest.fParent.FMREW.BeginWrite;
+end;
+
+function TMVCObjectCacheWriteTransaction<T>.Keys: TArray<String>;
+begin
+  Result := fParent.FStorage.Keys.ToArray;
+end;
+
+procedure TMVCObjectCacheWriteTransaction<T>.RemoveItem(const AName: string);
+begin
+  Self.fParent.FStorage.Remove(AName);
+end;
+
+procedure TMVCObjectCacheWriteTransaction<T>.SetValue(const AName: string; const AValue: T);
+begin
+  Self.fParent.FStorage.AddOrSetValue(AName, AValue);
+end;
+
+constructor TMVCObjectCacheWriteTransaction<T>.WithWriteLock(Parent: TMVCObjectCache<T>);
+begin
+  fParent := Parent;
+end;
+
+{ TMVCObjectCacheReadTransaction<T> }
+
+function TMVCObjectCacheReadTransaction<T>.Contains(const AName: string; out AValue: T): Boolean;
+begin
+  Result := self.fParent.FStorage.TryGetValue(AName, AValue);
+end;
+
+class operator TMVCObjectCacheReadTransaction<T>.Initialize(out Dest: TMVCObjectCacheReadTransaction<T>);
+begin
+  Dest.fActive := False;
+  Dest.fParent := nil;
+end;
+
+class operator TMVCObjectCacheReadTransaction<T>.Assign(var Dest: TMVCObjectCacheReadTransaction<T>;
+  const [ref] Src: TMVCObjectCacheReadTransaction<T>);
+begin
+  if Src.fActive then
+  begin
+    raise Exception.Create('Transaction item cannot be re-assigned');
+  end;
+  Dest.fActive := True;
+  Dest.fParent := Src.fParent;
+  Dest.fParent.FMREW.BeginRead;
+end;
+
+class operator TMVCObjectCacheReadTransaction<T>.Finalize(var Dest: TMVCObjectCacheReadTransaction<T>);
+begin
+  if Dest.fActive then
+  begin
+    Dest.fParent.FMREW.EndRead;
+  end;
+end;
+
+function TMVCObjectCacheReadTransaction<T>.GetValue(const AName: string): T;
+begin
+  if not Contains(AName, Result) then
+  begin
+    raise EMVCException.Create('Key not available in cache - HINT: use Contains if you are not sure the item in in the cache');
+  end;
+end;
+
+function TMVCObjectCacheReadTransaction<T>.Keys: TArray<String>;
+begin
+  Result := fParent.FStorage.Keys.ToArray;
+end;
+
+constructor TMVCObjectCacheReadTransaction<T>.WithReadLock(Parent: TMVCObjectCache<T>);
+begin
+  fParent := Parent;
 end;
 
 end.

@@ -359,7 +359,7 @@ begin
   fModel.B[TConfigKey.controller_action_filters_generate] :=  chkCreateActionFiltersMethods.Checked;
   fModel.B[TConfigKey.controller_crud_methods_generate] :=  chkCreateCRUDMethods.Checked;
   fModel.B[TConfigKey.controller_actions_profiling_generate] :=  chkProfileActions.Checked;
-  fModel.B[TConfigKey.entity_generate] :=  fModel.B[TConfigKey.controller_crud_methods_generate];
+  fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
   fModel.S[TConfigKey.entity_classname] :=  'TPerson';
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;

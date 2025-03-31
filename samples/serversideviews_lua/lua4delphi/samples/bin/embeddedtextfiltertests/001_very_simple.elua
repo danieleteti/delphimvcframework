@@ -1,5 +1,0 @@
-Ciao
-<?lua io.write("hello") ?>
-mondo
-<?lua io.write("world") ?>
-close

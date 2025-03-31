@@ -205,7 +205,7 @@ type
         function GetLogLevel: TLogType;
       end;
 
-      TAppenderAdaptersList = class(TObjectList<TAppenderAdapter>)
+      TAppenderAdapterList = class(TObjectList<TAppenderAdapter>)
       public
         constructor Create;
       end;
@@ -215,7 +215,7 @@ type
     FAppenders: TLogAppenderList;
     FEventsHandlers: TLoggerProEventsHandler;
     FAppendersDecorators: TObjectList<TAppenderAdapter>;
-    function BuildAppendersDecorator: TAppenderAdaptersList;
+    function BuildAppenderAdapters: TAppenderAdapterList;
     procedure DoOnAppenderError(const FailAppenderClassName: string; const aFailedLogItem: TLogItem; const aReason: TLogErrorReason;
       var aAction: TLogErrorAction);
     procedure SetEventsHandlers(const Value: TLoggerProEventsHandler);
@@ -725,9 +725,9 @@ var
   lAction: TLogErrorAction;
   lWaitResult: TWaitResult;
 begin
-  FAppendersDecorators := BuildAppendersDecorator;
+  FAppendersDecorators := BuildAppenderAdapters;
   try
-    while true do
+    while True do
     begin
       lWaitResult := FQueue.Dequeue(lQSize, lLogItem);
       case lWaitResult of
@@ -786,11 +786,11 @@ begin
   FEventsHandlers := Value;
 end;
 
-function TLoggerThread.BuildAppendersDecorator: TAppenderAdaptersList;
+function TLoggerThread.BuildAppenderAdapters: TAppenderAdapterList;
 var
   I: Integer;
 begin
-  Result := TAppenderAdaptersList.Create;
+  Result := TAppenderAdapterList.Create;
   try
     for I := 0 to FAppenders.Count - 1 do
     begin
@@ -1063,7 +1063,7 @@ end;
 
 { TLoggerThread.TAppenderAdaptersList }
 
-constructor TLoggerThread.TAppenderAdaptersList.Create;
+constructor TLoggerThread.TAppenderAdapterList.Create;
 begin
   inherited Create(true);
 end;

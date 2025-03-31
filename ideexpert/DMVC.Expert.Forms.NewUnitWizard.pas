@@ -120,11 +120,11 @@ begin
   fModel.S[TConfigKey.program_name] :=  'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
-  fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;
-  fModel.B[TConfigKey.controller_action_filters_generate] :=  chkCreateActionFiltersMethods.Checked;
-  fModel.B[TConfigKey.controller_crud_methods_generate] :=  chkCreateCRUDMethods.Checked;
-  fModel.B[TConfigKey.entity_generate] :=  fModel.B[TConfigKey.controller_crud_methods_generate];
-  fModel.S[TConfigKey.entity_classname] :=  'TPerson';
+  fModel.B[TConfigKey.controller_index_methods_generate] := chkCreateIndexMethod.Checked;
+  fModel.B[TConfigKey.controller_action_filters_generate] := chkCreateActionFiltersMethods.Checked;
+  fModel.B[TConfigKey.controller_crud_methods_generate] := chkCreateCRUDMethods.Checked;
+  fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
+  fModel.S[TConfigKey.entity_classname] := 'TPerson';
 
   Result := fModel;
 end;

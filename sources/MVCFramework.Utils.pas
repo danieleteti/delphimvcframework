@@ -86,6 +86,8 @@ type
       const ForEachClosure: TForEachClosure<T>); overload;
   end;
 
+  _ = HigherOrder;
+
 function NewJSONSerializer: IMVCJSONSerializer;
 function StrToJSONObject(const aString: String; aRaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; aRaiseExceptionOnError: Boolean = False): TJsonArray;
