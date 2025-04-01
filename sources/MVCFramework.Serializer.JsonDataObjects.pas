@@ -242,16 +242,17 @@ type
 
   TJSONUtils = record
   private
-    class function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject;
-      const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
+    class function InternalJSONObjectToRecord<T: record >(const JSONObject: TJsonObject; const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static;
   public
     // records
-    class function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject): T; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record >(const JSONArray: TJsonArray): TArray<T>; overload; static;
+    class function JSONObjectToRecord<T: record >(const JSONObject: TJDOJSONObject): T; overload; static;
+    class function JSONObjectToRecord<T: record>(const JSONRPCResponse: IInterface): T; overload; static;
+    class function JSONArrayToArrayOfRecord<T: record >(const JSONArray: TJDOJsonArray): TArray<T>; overload; static;
+    class function JSONArrayToArrayOfRecord<T: record>(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
+
     // objects
     class function JsonObjectToObject<T: class, constructor>(const JSONObject: TJsonObject): T; overload; static;
-    class function JSONArrayToListOf<T: class, constructor>(const JSONArray: TJsonArray): TObjectList<T>;
-      overload; static;
+    class function JSONArrayToListOf<T: class, constructor>(const JSONArray: TJsonArray): TObjectList<T>; overload; static;
   end;
 
 procedure TValueToJSONObjectPropertyEx(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
@@ -273,7 +274,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables;
+  MVCFramework.Nullables, MVCFramework.JSONRPC;
 
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
@@ -4080,7 +4081,7 @@ end;
 
 { TJSONUtils }
 
-class function TJSONUtils.JSONArrayToArrayOfRecord<T>(const JSONArray: TJsonArray): TArray<T>;
+class function TJSONUtils.JSONArrayToArrayOfRecord<T>(const JSONArray: TJDOJsonArray): TArray<T>;
 var
   I: Integer;
   lSer: TMVCJsonDataObjectsSerializer;
@@ -4090,10 +4091,24 @@ begin
     SetLength(Result, JSONArray.Count);
     for I := Low(Result) to High(Result) do
     begin
-      Result[I] := JSONObjectToRecord<T>(JSONArray.Items[I].ObjectValue, lSer);
+      Result[I] := InternalJSONObjectToRecord<T>(JSONArray.Items[I].ObjectValue, lSer);
     end;
   finally
     lSer.Free;
+  end;
+end;
+
+class function TJSONUtils.JSONArrayToArrayOfRecord<T>(const JSONRPCResponse: IInterface): TArray<T>;
+var
+  lIntf: IJSONRPCResponse;
+begin
+  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
+  begin
+    Result := TJSONUtils.JSONArrayToArrayOfRecord<T>(lIntf.ResultAsJSONArray);
+  end
+  else
+  begin
+    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
   end;
 end;
 
@@ -4138,20 +4153,36 @@ begin
   end;
 end;
 
-class function TJSONUtils.JSONObjectToRecord<T>(const JSONObject: TJsonObject): T;
+class function TJSONUtils.JSONObjectToRecord<T>(const JSONRPCResponse: IInterface): T;
+var
+  lIntf: IJSONRPCResponse;
+begin
+  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
+  begin
+    Result := JSONObjectToRecord<T>(TJDOJsonObject(lIntf.ResultAsJSONObject()));
+  end
+  else
+  begin
+    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
+    {$IF Defined(ATHENSORBETTER)}
+    Result := Default(T);
+    {$ENDIF}
+  end;
+end;
+
+class function TJSONUtils.JSONObjectToRecord<T>(const JSONObject: TJDOJSONObject): T;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
   lSer := TMVCJsonDataObjectsSerializer.Create(nil);
   try
-    Result := JSONObjectToRecord<T>(JSONObject, lSer);
+    Result := InternalJSONObjectToRecord<T>(JSONObject, lSer);
   finally
     lSer.Free;
   end;
 end;
 
-class function TJSONUtils.JSONObjectToRecord<T>(const JSONObject: TJsonObject;
-  const Serializer: TMVCJsonDataObjectsSerializer): T;
+class function TJSONUtils.InternalJSONObjectToRecord<T>(const JSONObject: TJsonObject; const Serializer: TMVCJsonDataObjectsSerializer): T;
 begin
   Result := Serializer.JSONObjectToRecord<T>(JSONObject);
 end;
