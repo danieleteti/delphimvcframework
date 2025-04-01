@@ -4956,6 +4956,7 @@ begin
   inherited Create;
   fOwnsData := True;
   fData := nil;
+  fHeaders := nil;
   fMessage := '';
   fObjectDictionary := nil;
 end;
@@ -4976,6 +4977,7 @@ end;
 
 destructor TMVCResponse.Destroy;
 begin
+  fHeaders.Free;
   if FOwnsData then
   begin
     fData.Free;
