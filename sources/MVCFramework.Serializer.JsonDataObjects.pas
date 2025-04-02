@@ -90,7 +90,7 @@ type
       const ExceptionHintString: String;
       const AAttributes: TArray<TCustomAttribute>;
       var AValue: TValue);
-    function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject): T; overload;
+    function JSONObjectToRecord<T>(const JSONObject: TJsonObject): T; overload;
     function StrToRecord<T: record >(const AJSONString: String): T;
     procedure JSONObjectToNestedRecordField(const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField;
       const TypeOffset: Integer; var Buffer: PByte);
@@ -242,13 +242,13 @@ type
 
   TJSONUtils = record
   private
-    class function InternalJSONObjectToRecord<T: record >(const JSONObject: TJsonObject; const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static;
+    class function InternalJSONObjectToRecord<T>(const JSONObject: TJsonObject; const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static;
   public
     // records
-    class function JSONObjectToRecord<T: record >(const JSONObject: TJDOJSONObject): T; overload; static;
-    class function JSONObjectToRecord<T: record>(const JSONRPCResponse: IInterface): T; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record >(const JSONArray: TJDOJsonArray): TArray<T>; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record>(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
+    class function JSONObjectToRecord<T>(const JSONObject: TJDOJSONObject): T; overload; static;
+    class function JSONObjectToRecord<T>(const JSONRPCResponse: IInterface): T; overload; static;
+    class function JSONArrayToArrayOfRecord<T>(const JSONArray: TJDOJsonArray): TArray<T>; overload; static;
+    class function JSONArrayToArrayOfRecord<T>(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
 
     // objects
     class function JsonObjectToObject<T: class, constructor>(const JSONObject: TJsonObject): T; overload; static;
@@ -4016,7 +4016,7 @@ begin
   lRTTIType := lCtx.GetType(TypeInfo(T));
   if not lRTTIType.IsRecord then
   begin
-    raise EMVCDeserializationException.Create('Extected record, got ' + lRTTIType.QualifiedName);
+    raise EMVCDeserializationException.Create('Expected record, got ' + lRTTIType.QualifiedName);
   end;
 
   lBuffer := @Result;
