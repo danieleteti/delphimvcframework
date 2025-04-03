@@ -1157,7 +1157,8 @@ begin
     .AppendLine('    if dotEnv.Env(''dmvc.profiler.enabled'', ' + Model.S[TConfigKey.controller_actions_profiling_generate].ToLower + ') then')
     .AppendLine('    begin')
     .AppendLine('      Profiler.ProfileLogger := Log;')
-    .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 2000);')
+    .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 1000);')
+	.AppendLine('      Profiler.LogsOnlyIfOverThreshold := dotEnv.Env(''dmvc.profiler.logs_only_over_threshold'', True);')
     .AppendLine('    end;')
     .AppendLine('{$ENDIF}')
     .AppendLine;

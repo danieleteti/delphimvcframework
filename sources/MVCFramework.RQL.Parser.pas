@@ -202,7 +202,8 @@ type
     procedure SaveCurPos;
     procedure BackToLastPos;
     function C(const LookAhead: UInt8 = 0): Char;
-    function GetToken: TRQLToken;
+    function GetToken(const Consume: Boolean = True): TRQLToken;
+    function LookAheadChar: Char;
     procedure Skip(const Count: UInt8);
     procedure Error(const Message: string);
     function IsLetter(const aChar: Char): Boolean;
@@ -309,13 +310,17 @@ var
   lMsg: string;
 begin
   lMsg := '';
-  for I := 0 to 4 do
+  for I := 0 to 10 do
   begin
-    lMsg := lMsg + IfThen(C(I) = #0, '', C(I));
+    if C(I) = #0 then
+    begin
+      Break;
+    end;
+    lMsg := lMsg + C(I);
   end;
   if lMsg.Trim.IsEmpty then
     lMsg := '<EOF>';
-  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]){$IF DEFINED(MSWINDOWS)} at AddressOfReturnAddress{$ENDIF};
+  raise ERQLException.CreateFmt('[Error] %s (column %d - found "%s...")', [message, fCurIdx, lMsg]){$IF DEFINED(MSWINDOWS)} at AddressOfReturnAddress{$ENDIF};
 end;
 
 procedure TRQL2SQL.Execute(
@@ -346,8 +351,9 @@ begin
   if ParseFilters then
   begin
     fAST.Insert(0, TRQLWhere.Create);
-    if GetToken = tkSemicolon then
+    if GetToken(False) = tkSemicolon then
     begin
+      GetToken(True);
       ParseSortLimit(true, MaxRecordCount);
     end;
   end
@@ -356,7 +362,7 @@ begin
     ParseSortLimit(False, MaxRecordCount);
   end;
   EatWhiteSpaces;
-  if GetToken <> tkEOF then
+  if GetToken(False) <> tkEOF then
     Error('Expected EOF');
 
   // add artificial limit
@@ -409,7 +415,7 @@ begin
   RQLCompiler.AST2SQL(fAST, SQL);
 end;
 
-function TRQL2SQL.GetToken: TRQLToken;
+function TRQL2SQL.GetToken(const Consume: Boolean): TRQLToken;
 var
   lChar: Char;
 begin
@@ -421,152 +427,177 @@ begin
   end;
   if (lChar = ',') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkComma;
     Exit(fCurrToken);
   end;
   if (lChar = ';') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkSemicolon;
     Exit(fCurrToken);
   end;
   if (lChar = '+') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkPlus;
     Exit(fCurrToken);
   end;
   if (lChar = '"') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkDblQuote;
     Exit(fCurrToken);
   end;
   if (lChar = '''') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkQuote;
     Exit(fCurrToken);
   end;
   if (lChar = '-') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkMinus;
     Exit(fCurrToken);
   end;
   if (lChar = '&') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkAmpersand;
     Exit(fCurrToken);
   end;
   if (lChar = '(') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkOpenPar;
     Exit(fCurrToken);
   end;
   if (lChar = ')') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkClosedPar;
     Exit(fCurrToken);
   end;
   if (lChar = '[') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkOpenBracket;
     Exit(fCurrToken);
   end;
   if (lChar = ']') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkCloseBracket;
     Exit(fCurrToken);
   end;
   if (lChar = 'e') and (C(1) = 'q') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkEq;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 't') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkLt;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkLe;
     Exit(fCurrToken);
   end;
   if (lChar = 'g') and (C(1) = 't') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkGt;
     Exit(fCurrToken);
   end;
   if (lChar = 'g') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkGe;
     Exit(fCurrToken);
   end;
   if (lChar = 'n') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkNe;
     Exit(fCurrToken);
   end;
   if (lChar = 'a') and (C(1) = 'n') and (C(2) = 'd') then
   begin
-    Skip(3);
+    if Consume then
+      Skip(3);
     fCurrToken := tkAnd;
     Exit(fCurrToken);
   end;
   if (lChar = 'o') and (C(1) = 'r') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkOr;
     Exit(fCurrToken);
   end;
   if (lChar = 's') and (C(1) = 'o') and (C(2) = 'r') and (C(3) = 't') then
   begin
-    Skip(4);
+    if Consume then
+      Skip(4);
     fCurrToken := tkSort;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 'i') and (C(2) = 'm') and (C(3) = 'i') and (C(4) = 't') then
   begin
-    Skip(5);
+    if Consume then
+      Skip(5);
     fCurrToken := tkLimit;
     Exit(fCurrToken);
   end;
   if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and
     (C(6) = 'n') and (C(7) = 's') then
   begin
-    Skip(8);
+    if Consume then
+      Skip(8);
     fCurrToken := tkContains;
     Exit(fCurrToken);
   end;
   if (lChar = 's') and (C(1) = 't') and (C(2) = 'a') and (C(3) = 'r') and (C(4) = 't') and (C(5) = 's') then
   begin
-    Skip(6);
+    if Consume then
+      Skip(6);
     fCurrToken := tkStarts;
     Exit(fCurrToken);
   end;
   if (lChar = 'i') and (C(1) = 'n') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkIn;
     Exit(fCurrToken);
   end;
   if (lChar = 'o') and (C(1) = 'u') and (C(2) = 't') then
   begin
-    Skip(3);
+    if Consume then
+      Skip(3);
     fCurrToken := tkOut;
     Exit(fCurrToken);
   end;
@@ -588,6 +619,11 @@ end;
 function TRQL2SQL.IsLetter(const aChar: Char): Boolean;
 begin
   Result := ((aChar >= 'a') and (aChar <= 'z')) or ((aChar >= 'A') and (aChar <= 'Z'));
+end;
+
+function TRQL2SQL.LookAheadChar: Char;
+begin
+  Result := C(0);
 end;
 
 { eq(<property>,<value>) }
@@ -778,7 +814,7 @@ begin
   EatWhiteSpaces;
   lLogicOp := TRQLLogicOperator.Create(aToken);
   aAST.Add(lLogicOp);
-  while true do
+  while True do
   begin
     EatWhiteSpaces;
     lToken := GetToken;
@@ -786,6 +822,11 @@ begin
       tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
+          EatWhiteSpaces;
+          if not CharInSet(LookAheadChar, [',',')']) then
+          begin
+            Error('Expected ")" or "," - got "' + LookAheadChar + '"');
+          end;
         end;
       tkAnd, tkOr:
         begin

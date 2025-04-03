@@ -41,7 +41,7 @@ begin
   var lCustomers := GetPeople();
   try
     ViewData['customers'] := lCustomers;
-    Result := Page('pages/customers');
+    Result := RenderView('pages/customers');
   finally
     lCustomers.Free;
   end;
@@ -49,7 +49,7 @@ end;
 
 function TMyController.Home: String;
 begin
-  Result := Page('pages/home');
+  Result := RenderView('pages/home');
 end;
 
 procedure TMyController.OnBeforeAction(AContext: TWebContext;
@@ -64,7 +64,7 @@ begin
   var lPosts := GetPosts(20);
   try
     ViewData['posts'] := lPosts;
-    Result := Page('pages/posts');
+    Result := RenderView('pages/posts');
   finally
     lPosts.Free;
   end;
@@ -75,7 +75,7 @@ begin
   var lUsers := GetUsers();
   try
     ViewData['users'] := lUsers;
-    Result := Page('pages/users', procedure (const Tmpl: TObject)
+    Result := RenderView('pages/users', procedure (const Tmpl: TObject)
                                   begin
                                     TTProCompiledTemplate(Tmpl).SetData('var1', 1234);
                                   end);

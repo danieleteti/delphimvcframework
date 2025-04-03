@@ -1154,6 +1154,7 @@ type
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
     function AddController(const AControllerClazz: TMVCControllerClazz;
       const AURLSegment: string = ''): TMVCEngine; overload;
+    function RegisterRoute(const AURLSegment: string; const AControllerClazz: TMVCControllerClazz): TMVCEngine;
     function AddController(const AControllerClazz: TMVCControllerClazz;
       const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = '')
       : TMVCEngine; overload;
@@ -3692,6 +3693,11 @@ begin
   end;
 end;
 
+function TMVCEngine.RegisterRoute(const AURLSegment: string; const AControllerClazz: TMVCControllerClazz): TMVCEngine;
+begin
+  Result := AddController(AControllerClazz, AURLSegment);
+end;
+
 procedure TMVCEngine.ResponseErrorPage(const AException: Exception; const ARequest: TWebRequest;
 const AResponse: TWebResponse);
 begin
@@ -4950,6 +4956,7 @@ begin
   inherited Create;
   fOwnsData := True;
   fData := nil;
+  fHeaders := nil;
   fMessage := '';
   fObjectDictionary := nil;
 end;
@@ -4970,6 +4977,7 @@ end;
 
 destructor TMVCResponse.Destroy;
 begin
+  fHeaders.Free;
   if FOwnsData then
   begin
     fData.Free;

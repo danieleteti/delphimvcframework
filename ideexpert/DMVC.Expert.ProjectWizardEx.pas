@@ -136,7 +136,7 @@ begin
 
           lEntityUnitName := '';
           // Create ENTITY Unit
-          if lJSON.B[TConfigKey.controller_crud_methods_generate] then
+          if lJSON.B[TConfigKey.controller_crud_methods_generate] or lJSON.B[TConfigKey.program_service_container_generate] then
           begin
             EntityCreator := TNewGenericUnitFromTemplate.Create(
               lJSON,

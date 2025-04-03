@@ -468,11 +468,6 @@ type
 
   TJSONRPCProxyGeneratorClass = class of TJSONRPCProxyGenerator;
 
-  TJSONUtilsHelper = record helper for TJSONUtils
-    class function JSONObjectToRecord<T: record >(const JSONRPCResponse: IInterface): T; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record >(const JSONRPCResponse: IInterface): TArray<T>; overload; static;
-  end;
-
 procedure RegisterJSONRPCProxyGenerator(const aLanguage: string; const aClass: TJSONRPCProxyGeneratorClass);
 
 implementation
@@ -2937,41 +2932,6 @@ begin
   fErrData := ErrData;
   fErrCode := ErrCode;
   fErrMessage := ErrMessage;
-end;
-
-{ TJSONUtilsHelper }
-
-class function TJSONUtilsHelper.JSONArrayToArrayOfRecord<T>(
-  const JSONRPCResponse: IInterface): TArray<T>;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONArrayToArrayOfRecord<T>(lIntf.ResultAsJSONArray);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
-  end;
-end;
-
-class function TJSONUtilsHelper.JSONObjectToRecord<T>(
-  const JSONRPCResponse: IInterface): T;
-var
-  lIntf: IJSONRPCResponse;
-begin
-  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
-  begin
-    Result := TJSONUtils.JSONObjectToRecord<T>(lIntf.ResultAsJSONObject);
-  end
-  else
-  begin
-    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
-    {$IF Defined(ATHENSORBETTER)}
-    Result := Default(T);
-    {$ENDIF}
-  end;
 end;
 
 initialization

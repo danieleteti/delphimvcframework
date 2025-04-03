@@ -292,6 +292,14 @@ type
     procedure TestSingle;
   end;
 
+  [TestFixture]
+  TTestRQLCompiler = class(TObject)
+  public
+    [Test]
+    procedure TestFileFixtures;
+  end;
+
+
 
 implementation
 
@@ -303,6 +311,7 @@ uses
   Web.HTTPApp, Soap.EncdDecd,
   IdHashMessageDigest, idHash,
   System.Threading,
+  MVCFramework.RQL.Parser,
   MVCFramework.HMAC, System.Diagnostics,
   MVCFramework.LRUCache,
 
@@ -2401,13 +2410,51 @@ begin
 end;
 
 
-
 { TTestSqids }
 
 procedure TTestSqids.TestSingle;
 begin
   Assert.AreEqual('Im1JUf',TMVCSqids.IntToSqid(1)); {https://sqids.org/playground}
   Assert.AreEqual<Integer>(1, TMVCSqids.SqidToInt(TMVCSqids.IntToSqid(1)));
+end;
+
+{ TTestRQLCompiler }
+
+procedure TTestRQLCompiler.TestFileFixtures;
+var
+  lParser: TRQL2SQL;
+  lSQL: string;
+begin
+  lParser := TRQL2SQL.Create;
+  try
+    for var lCompName in TRQLCompilerRegistry.Instance.RegisteredCompilers do
+    begin
+      var lComp := TRQLCompilerRegistry.Instance.GetCompiler(lCompName).Create(nil);
+      try
+        Assert.IsNotNull(lComp, 'Cannot create compiler ' + lCompName);
+
+        var lRQLs := TFile.ReadAllLines('..\RQLFixtures\RQL_' + lComp.ClassName + '.fixture');
+        var lSQLs := TFile.ReadAllLines('..\RQLFixtures\SQL_' + lComp.ClassName + '.fixture');
+        Assert.AreEqual(Length(lRQLs), Length(lSQLs), 'Test case for RQL different from test cases for SQL, for compiler ' + lComp.ClassName);
+        for var I := 0 to Length(lRQLs) - 1 do
+        begin
+          try
+            lParser.Execute(lRQLs[I], lSQL, lComp);
+          except
+            on E: Exception do
+            begin
+              lSQL := 'ERROR:' + E.Message;
+            end;
+          end;
+          Assert.AreEqual(lSQLs[I], lSQL, 'Wrong compilation for "' + lSQLs[I] + '" - Compiler ' + lComp.ClassName);
+        end;
+      finally
+        lComp.Free;
+      end;
+    end;
+  finally
+    lParser.Free;
+  end;
 end;
 
 initialization
@@ -2422,6 +2469,7 @@ TDUnitX.RegisterTestFixture(TTestLRUCache);
 TDUnitX.RegisterTestFixture(TTestDotEnv);
 TDUnitX.RegisterTestFixture(TTestDotEnvParser);
 TDUnitX.RegisterTestFixture(TTestSqids);
+TDUnitX.RegisterTestFixture(TTestRQLCompiler);
 
 finalization
 

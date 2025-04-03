@@ -38,9 +38,9 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT,
   FireDACPgDriver,
   FireDACSqliteDriver,
+  loggerproRT,
   SwagDoc;
 
 contains
