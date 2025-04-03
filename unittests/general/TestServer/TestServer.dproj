@@ -7,7 +7,7 @@
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
         <FrameworkType>None</FrameworkType>
-        <ProjectVersion>20.2</ProjectVersion>
+        <ProjectVersion>20.3</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <ProjectName Condition="'$(ProjectName)'==''">TestServer</ProjectName>
     </PropertyGroup>
@@ -185,7 +185,6 @@
                 </DeployFile>
                 <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\TestServer.exe" Configuration="CI" Class="ProjectOutput"/>
-                <DeployFile LocalName="bin\TestServer.exe" Configuration="CI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\customers.json" Configuration="CI" Class="File">
                     <Platform Name="Linux64">
                         <RemoteName>customers.json</RemoteName>
@@ -319,6 +318,16 @@
                     </Platform>
                     <Platform Name="Android64">
                         <RemoteDir>res\values-v31</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidSplashStylesV35">
+                    <Platform Name="Android">
+                        <RemoteDir>res\values-v35</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="Android64">
+                        <RemoteDir>res\values-v35</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
