@@ -118,7 +118,7 @@ uses
   {$IF Defined(MSWINDOWS)}
   LoggerPro.ConsoleAppender,
   {$ELSE}
-  {$IF Not Defined(MOBILE)}
+  {$IF Defined(CONSOLE) and Not Defined(MOBILE)}
   LoggerPro.SimpleConsoleAppender, //only for linux
   {$ENDIF}
   {$ENDIF}
@@ -359,11 +359,14 @@ begin
     {$IF Defined(MSWINDOWS)}
     lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
     {$ELSE}
-    {$IF Not Defined(MOBILE)}
+    {$IF Defined(CONSOLE) and Not Defined(MOBILE)}
     lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
     {$ENDIF}
     {$ENDIF}
-    lAppenders := [lFileAppender, lConsoleAppender];
+  end;
+  if Assigned(lConsoleAppender) then
+  begin
+    lAppenders := [lFileAppender, lConsoleAppender]
   end
   else
   begin
