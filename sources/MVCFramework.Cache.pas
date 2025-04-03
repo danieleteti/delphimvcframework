@@ -66,6 +66,7 @@ type
 
   end;
 
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
   TMVCObjectCache<T: class> = class;
 
   TMVCObjectCacheWriteTransaction<T: class> = record
@@ -112,7 +113,7 @@ type
     function WithSharedReadLock: TMVCObjectCacheReadTransaction<T>;
     function WithExclusiveWriteLock: TMVCObjectCacheWriteTransaction<T>;
   end;
-
+{$ENDIF}
 
   TMVCCacheSingleton = class
   private
@@ -375,6 +376,8 @@ end;
 
 { TMVCObjectCache<T> }
 
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+
 constructor TMVCObjectCache<T>.Create;
 begin
   inherited Create;
@@ -509,5 +512,6 @@ constructor TMVCObjectCacheReadTransaction<T>.WithReadLock(Parent: TMVCObjectCac
 begin
   fParent := Parent;
 end;
+{$ENDIF}
 
 end.
