@@ -498,6 +498,7 @@ type
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
     function Count: Integer;
+    function Remove(const Name: string): TMVCStringDictionary;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
@@ -1318,6 +1319,12 @@ end;
 function TMVCStringDictionary.Keys: TArray<string>;
 begin
   Result := fDict.Keys.ToArray;
+end;
+
+function TMVCStringDictionary.Remove(const Name: string): TMVCStringDictionary;
+begin
+  fDict.Remove(Name);
+  Result := Self;
 end;
 
 procedure TMVCStringDictionary.SetItems(const Key, Value: string);
