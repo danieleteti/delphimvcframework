@@ -24,6 +24,8 @@
 
 unit MVCFramework.Cache;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
