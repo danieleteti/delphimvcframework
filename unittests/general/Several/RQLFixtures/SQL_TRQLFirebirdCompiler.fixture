@@ -47,3 +47,7 @@ ERROR:[Error] Expected EOF (column 27 - found "*/...")
  where (valore = 4) /*limit*/  ROWS 1 to 100
  where (valore < 3) /*limit*/  ROWS 1 to 100
  where (nome = 'Daniele') /*limit*/  ROWS 1 to 100
+ where (value = 1.23) /*limit*/  ROWS 1 to 100
+ where (value < 1.23) /*limit*/  ROWS 1 to 100
+ where (value > 1.23) /*limit*/  ROWS 1 to 100
+ where (value IN (1.23,2.34,3.45)) /*limit*/  ROWS 1 to 100

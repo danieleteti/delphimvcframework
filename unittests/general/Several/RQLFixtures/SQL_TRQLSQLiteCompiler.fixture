@@ -47,3 +47,7 @@ ERROR:[Error] Expected EOF (column 27 - found "*/...")
  WHERE (valore = 4) /*limit*/ LIMIT 100 OFFSET 0
  WHERE (valore < 3) /*limit*/ LIMIT 100 OFFSET 0
  WHERE (nome = 'Daniele') /*limit*/ LIMIT 100 OFFSET 0
+ WHERE (value = 1.23) /*limit*/ LIMIT 100 OFFSET 0
+ WHERE (value < 1.23) /*limit*/ LIMIT 100 OFFSET 0
+ WHERE (value > 1.23) /*limit*/ LIMIT 100 OFFSET 0
+ WHERE (value IN (1.23,2.34,3.45)) /*limit*/ LIMIT 100 OFFSET 0

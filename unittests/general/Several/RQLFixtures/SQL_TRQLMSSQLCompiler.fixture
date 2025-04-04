@@ -47,3 +47,7 @@ ERROR:[Error] Expected EOF (column 27 - found "*/...")
  WHERE (valore = 4) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
  WHERE (valore < 3) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
  WHERE (nome = 'Daniele') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value = 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value < 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value > 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN (1.23,2.34,3.45)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY

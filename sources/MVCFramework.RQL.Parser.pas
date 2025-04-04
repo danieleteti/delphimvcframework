@@ -77,7 +77,7 @@ type
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
     tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown, tkStarts);
 
-  TRQLValueType = (vtInteger, vtString, vtBoolean, vtNull, vtIntegerArray, vtStringArray);
+  TRQLValueType = (vtNumeric, vtString, vtBoolean, vtNull, vtNumericArray, vtStringArray);
 
   TRQLCustom = class;
 
@@ -391,7 +391,7 @@ begin
 //      fAST.Add(lAlwaysFalse);
 //      lAlwaysFalse.OpLeft := '1';
 //      lAlwaysFalse.OpRight := '2';
-//      lAlwaysFalse.RightValueType := vtInteger;
+//      lAlwaysFalse.RightValueType := vtNumeric;
 //      lAlwaysFalse.Token := tkEq;
 //    end;
 //  end;
@@ -636,7 +636,7 @@ var
   lList: TList<string>;
   lArrayValue: TArray<string>;
 begin
-  lValueType := TRQLValueType.vtInteger; // default
+  lValueType := TRQLValueType.vtNumeric; // default
   EatWhiteSpaces;
   if GetToken <> tkOpenPar then
     Error('Expected "("');
@@ -688,7 +688,7 @@ begin
       end
       else
       begin
-        lValueType := vtIntegerArray;
+        lValueType := vtNumericArray;
         while MatchFieldNumericValue(lFieldValue) do
         begin
           lList.Add(lFieldValue);
@@ -714,7 +714,7 @@ begin
     else if MatchFieldNullValue(lFieldValue) then
       lValueType := vtNull
     else if MatchFieldNumericValue(lFieldValue) then
-      lValueType := vtInteger
+      lValueType := vtNumeric
     else
       Error('Expected numeric, boolean or null value');
   end;
@@ -726,7 +726,7 @@ begin
   lBinOp.Token := aToken;
   lBinOp.OpLeft := lFieldName;
   lBinOp.RightValueType := lValueType;
-  if lBinOp.RightValueType in [vtIntegerArray, vtStringArray] then
+  if lBinOp.RightValueType in [vtNumericArray, vtStringArray] then
     lBinOp.OpRightArray := lArrayValue
   else
     lBinOp.OpRight := lFieldValue;
@@ -1051,7 +1051,7 @@ begin
     begin
       Skip(1);
       lChar := C(0);
-      if IsDigit(lChar) then
+      if IsDigit(lChar) or (lChar = '.') then
       begin
         lFieldValue := lFieldValue + lChar;
       end

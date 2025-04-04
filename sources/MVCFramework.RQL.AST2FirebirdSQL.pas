@@ -188,7 +188,7 @@ begin
     tkIn:
       begin
         case aRQLFIlter.RightValueType of
-          vtIntegerArray: // if array is empty, RightValueType is always vtIntegerArray
+          vtNumericArray: // if array is empty, RightValueType is always vtNumericArray
             begin
               Result := Format('(%s IN (%s))', [
                 lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)
@@ -207,7 +207,7 @@ begin
     tkOut:
       begin
         case aRQLFIlter.RightValueType of
-          vtIntegerArray:
+          vtNumericArray:
             begin
               Result := Format('(%s NOT IN (%s))', [
                 lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)

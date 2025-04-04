@@ -1,3 +1,7 @@
+eq(value,1.23)
+lt(value,1.23)
+gt(value,1.23)
+in(value,[1.23,2.34,3.45])
 and(eq(id_company, 123)eq(billing_year, 2025))
 eq(id_company, 123)eq(billing_year, 2025)
 and(eq(id_company, 123)eq(billing_year, 2025), eq(billing_month, 2))
