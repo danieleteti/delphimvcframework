@@ -2786,7 +2786,7 @@ begin
             ExecuteBeforeRoutingMiddleware(lContext, lHandled);
             if not lHandled then
             begin
-              if lRouter.ExecuteRouting(ARequest.PathInfo,
+              if lRouter.ExecuteRouting(ARequest.RawPathInfo,
                 lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
                 ARequest.ContentType, ARequest.Accept, FControllers,
                 FConfigCache_DefaultContentType, FConfigCache_DefaultContentCharset,
