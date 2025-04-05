@@ -51,3 +51,11 @@ ERROR:[Error] Expected EOF (column 27 - found "*/...")
  where (value < 1.23) /*limit*/ LIMIT 0, 100
  where (value > 1.23) /*limit*/ LIMIT 0, 100
  where (value IN (1.23,2.34,3.45)) /*limit*/ LIMIT 0, 100
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1..23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1...23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2.3)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2..3)...")
+ where ((value >= 1.23) and (value <= 5.98)) /*limit*/ LIMIT 0, 100
+ERROR:[Error] Unclosed bracket (column 15 - found "2..34,3.45]...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found ".23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.)...")

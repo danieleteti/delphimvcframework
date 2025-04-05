@@ -1,3 +1,7 @@
+and(ge(value,1.23),le(value,5.98))
+eq(value,1.2.34)
+eq(value,1...23)
+eq(value,1..23)
 eq(value,1.23)
 lt(value,1.23)
 gt(value,1.23)

@@ -1032,9 +1032,11 @@ end;
 function TRQL2SQL.MatchFieldNumericValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
+  lHasDot: Boolean;
 begin
   Result := true;
   lFieldValue := '';
+  SaveCurPos;
   lChar := C(0);
 
   if CharInSet(lChar, ['+', '-']) then
@@ -1047,12 +1049,24 @@ begin
   if IsDigit(lChar) then
   begin
     lFieldValue := lFieldValue + lChar;
+    lHasDot := False;
     while true do
     begin
       Skip(1);
       lChar := C(0);
       if IsDigit(lChar) or (lChar = '.') then
       begin
+        if (lChar = '.') and (lHasDot or (not IsDigit(C(1)))) then
+        begin
+          BackToLastPos;
+          Exit(False);
+        end;
+
+        if (lChar = '.') then
+        begin
+          lHasDot := True;
+        end;
+
         lFieldValue := lFieldValue + lChar;
       end
       else
