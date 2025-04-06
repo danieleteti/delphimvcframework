@@ -99,6 +99,7 @@ function Log: ILogWriter; overload;
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 //procedure InitializeDefaultLogger;
 function CreateLoggerWithDefaultConfiguration: ILogWriter;
+function CreateNullLogger: ILogWriter;
 
 { @abstract(Use only inside DLL because dll unloading is not a safe place to shutdown threads, so call this before unload DLL)
   Use this also in ISAPI dll. Check the @code(loggerproisapisample.dll) sample
@@ -341,6 +342,11 @@ begin
   end;
 end;
 
+
+function CreateNullLogger: ILogWriter;
+begin
+  Result := BuildLogWriter([], nil, gLevelsMap[UseLoggerVerbosityLevel]);
+end;
 
 function CreateLoggerWithDefaultConfiguration: ILogWriter;
 var

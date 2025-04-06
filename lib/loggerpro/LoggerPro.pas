@@ -168,6 +168,9 @@ type
 
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
+
+    procedure Disable;
+    procedure Enable;
   end;
 
   TLogAppenderList = TList<ILogAppender>;
@@ -244,6 +247,7 @@ type
     FLogLevel: TLogType;
     function GetAppendersClassNames: TArray<string>;
   protected
+    FEnabled: Boolean;
     procedure Initialize(const aEventsHandler: TLoggerProEventsHandler);
   public
     constructor Create(const aLogLevel: TLogType = TLogType.Debug); overload;
@@ -276,6 +280,9 @@ type
     procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
 
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
+
+    procedure Disable;
+    procedure Enable;
   end;
 
   TOnAppenderLogRow = reference to procedure(const LogItem: TLogItem; out LogRow: string);
@@ -600,7 +607,7 @@ procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: stri
 var
   lLogItem: TLogItem;
 begin
-  if aType >= FLogLevel then
+  if FEnabled and (aType >= FLogLevel) then
   begin
     lLogItem := TLogItem.Create(aType, aMessage, aTag);
     try
@@ -628,9 +635,19 @@ begin
   Log(TLogType.Debug, aMessage, aParams, aTag);
 end;
 
+procedure TLogWriter.Disable;
+begin
+  fEnabled := False;
+end;
+
 procedure TLogWriter.Error(const aMessage, aTag: string);
 begin
   Log(TLogType.Error, aMessage, aTag);
+end;
+
+procedure TLogWriter.Enable;
+begin
+  fEnabled := True;
 end;
 
 procedure TLogWriter.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
