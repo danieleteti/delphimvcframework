@@ -2423,8 +2423,9 @@ end;
 procedure TTestRQLCompiler.TestFileFixtures;
 var
   lParser: TRQL2SQL;
-  lSQL: string;
+  lSQL, lBasePath: string;
 begin
+  lBasePath := AppPath;
   lParser := TRQL2SQL.Create;
   try
     for var lCompName in TRQLCompilerRegistry.Instance.RegisteredCompilers do
@@ -2433,8 +2434,8 @@ begin
       try
         Assert.IsNotNull(lComp, 'Cannot create compiler ' + lCompName);
 
-        var lRQLs := TFile.ReadAllLines('..\RQLFixtures\RQL_' + lComp.ClassName + '.fixture');
-        var lSQLs := TFile.ReadAllLines('..\RQLFixtures\SQL_' + lComp.ClassName + '.fixture');
+        var lRQLs := TFile.ReadAllLines(TPath.Combine(lBasePath, '..\RQLFixtures\RQL_' + lComp.ClassName + '.fixture'));
+        var lSQLs := TFile.ReadAllLines(TPath.Combine(lBasePath, '..\RQLFixtures\SQL_' + lComp.ClassName + '.fixture'));
         Assert.AreEqual(Length(lRQLs), Length(lSQLs), 'Test case for RQL different from test cases for SQL, for compiler ' + lComp.ClassName);
         for var I := 0 to Length(lRQLs) - 1 do
         begin
