@@ -73,10 +73,10 @@ type
     function MatchSymbol(const Symbol: Char): Boolean;
     procedure Check(Value: Boolean; Error: String = '');
     function MatchString(out Value: String): Boolean;
-    procedure EatLineBreaks;
+    function EatLineBreaks: Boolean;
+    function EatSpaces: Boolean;
     procedure EatUpToLineBreak;
     function NextChar: Char;
-    procedure EatSpaces;
     function DetectLineBreakStyle(Code: String): TLineBreakStyle;
     procedure MatchInLineComment;
   public
@@ -125,10 +125,12 @@ begin
   Result := TLineBreakStyle.MSWindows; // just one line or empty file
 end;
 
-procedure TMVCDotEnvParser.EatLineBreaks;
+function TMVCDotEnvParser.EatLineBreaks: Boolean;
 begin
+  Result := False;
   while CharInSet(fCode.Chars[fIndex], [#13, #10]) do
   begin
+    Result := True;
     fCurrChar := NextChar;
     if (fCurrChar = String(LINE_BREAKS[fLineBreakStyle])[1]) then
     begin
@@ -138,10 +140,12 @@ begin
   end;
 end;
 
-procedure TMVCDotEnvParser.EatSpaces;
+function TMVCDotEnvParser.EatSpaces: Boolean;
 begin
+  Result := False;
   while CharInSet(fCode.Chars[fIndex], [#32, #9]) do
   begin
+    Result := True;
     NextChar;
   end;
 end;
@@ -182,7 +186,11 @@ begin
   NextChar;
   while fIndex < Length(DotEnvCode) do
   begin
-    EatLineBreaks;
+    EatSpaces;
+    if EatLineBreaks then
+    begin
+      Continue;
+    end;
     EatSpaces;
     if MatchKey(lKey) then
     begin
@@ -193,6 +201,7 @@ begin
       EnvDictionay.AddOrSetValue(lKey, lValue);
       EatSpaces;
       MatchInLineComment;
+      Inc(fCurLine);
     end
     else if fCurrChar = #0 then
     begin
@@ -317,11 +326,14 @@ begin
   if fIndex >= (fCodeLength - 1) then
   begin
     fIndex := fCodeLength;
-    Exit(#0);
+    fCurrChar := #0;
+  end
+  else
+  begin
+    Inc(fIndex);
+    fCurrChar := fCode.Chars[fIndex];
   end;
-  Inc(fIndex);
-  Result := fCode.Chars[fIndex];
-  fCurrChar := Result;
+  Result := fCurrChar;
 end;
 
 { TMVCDotEnvDictionary }
