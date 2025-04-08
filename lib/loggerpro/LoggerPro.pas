@@ -290,7 +290,6 @@ type
   TLoggerProAppenderBase = class abstract(TInterfacedObject, ILogAppender)
   private
     FLogLevel: TLogType;
-    FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
     FFormatSettings: TFormatSettings;
   protected
@@ -529,6 +528,7 @@ end;
 constructor TCustomLogWriter.Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug);
 begin
   inherited Create;
+  FEnabled := True;
   FFreeAllowed := False;
   FLogAppenders := aLogAppenders;
   FLogLevel := aLogLevel;
@@ -892,7 +892,6 @@ end;
 constructor TLoggerProAppenderBase.Create(aLogItemRenderer: ILogItemRenderer);
 begin
   inherited Create;
-  Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
   if Assigned(aLogItemRenderer) then
   begin
