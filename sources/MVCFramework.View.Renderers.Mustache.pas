@@ -135,11 +135,12 @@ var
   lViewFileName: string;
   lViewTemplate: UTF8String;
   lViewEngine: TSynMustache;
+  lActualCalculatedFileName: String;
 begin
   PrepareModels;
-  lViewFileName := GetRealFileName(ViewName);
+  lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
   if lViewFileName.IsEmpty then
-    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   Builder.Append(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
