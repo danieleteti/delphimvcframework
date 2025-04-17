@@ -28,7 +28,7 @@ interface
 
 uses
   MVCFramework, System.Generics.Collections, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils, System.Classes;
+  MVCFramework.Commons, System.IOUtils, System.Classes, MVCFramework.Utils;
 
 type
   { This class implements the TemplatePro view engine for server side views }
@@ -45,6 +45,7 @@ uses
   MVCFramework.DuckTyping,
   Data.DB,
   System.Rtti,
+  System.TypInfo,
   JsonDataObjects,
   TemplatePro;
 
@@ -89,19 +90,22 @@ begin
   end;
 end;
 
-function GetNow(const aValue: TValue; const aParameters: TArray<string>): TValue;
+function UrlEncodeFilter(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 begin
-  if not aValue.IsEmpty then
+  if aValue.IsEmpty then
   begin
-    Exit('(Error: Now cannot be applied to a value)');
+    Exit('');
+  end;
+  if not aValue.IsType<String> then
+  begin
+    raise EMVCSSVException.Create('Expected string, got ' + aValue.TypeInfo.Name);
   end;
   if Length(aParameters) <> 0 then
   begin
     raise EMVCSSVException.Create('Expected 0 params, got ' + Length(aParameters).ToString);
   end;
-  Result := Now();
+  Result := URLEncode(aValue.AsString);
 end;
-
 
 function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
 var
@@ -151,11 +155,12 @@ var
   lActualCompiledFileTimeStamp: TDateTime;
   lUseCompiledVersion: Boolean;
   lCacheDir: string;
+  lActualCalculatedFileName: String;
 begin
   lUseCompiledVersion := False;
-  lViewFileName := GetRealFileName(ViewName);
+  lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
   if lViewFileName.IsEmpty then
-    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
   if FUseViewCache then
   begin
     lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
@@ -209,6 +214,7 @@ begin
       end;
     end;
     lCompiledTemplate.AddFilter('json', DumpAsJSONString);
+    lCompiledTemplate.AddFilter('urlencode', UrlEncodeFilter);
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
     lCompiledTemplate.AddFilter('fromquery',
       function (const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue
