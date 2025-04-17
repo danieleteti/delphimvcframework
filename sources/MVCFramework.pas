@@ -1287,7 +1287,7 @@ type
     FDefaultViewFileExtension: string;
     FUseViewCache: Boolean;
     FBeforeRenderCallback: TMVCSSVBeforeRenderCallback;
-    function GetRealFileName(const AViewName: string): string; virtual;
+    function GetRealFileName(const AViewName: string; out ActualCalculatedFileName: String): string; virtual;
     function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
   public
     constructor Create(
@@ -5162,7 +5162,7 @@ begin
   inherited Destroy;
 end;
 
-function TMVCBaseViewEngine.GetRealFileName(const AViewName: string): string;
+function TMVCBaseViewEngine.GetRealFileName(const AViewName: string; out ActualCalculatedFileName: String): string;
 var
   lFileName: string;
   lDefaultViewFileExtension: string;
@@ -5191,6 +5191,7 @@ begin
       GetApplicationFileNamePath + lTemplateFolder) + lFileName);
   end;
 
+  ActualCalculatedFileName := lFileName;
   if FileExists(lFileName) then
     Result := lFileName
   else
