@@ -486,7 +486,7 @@ var
   FoundOneAttProduces: Boolean;
 begin
   Result := False;
-  if AAccept.Contains('*/*') then // 2020-08-08
+  if AAccept.IsEmpty or AAccept.Contains('*/*') then // 2020-08-08, 2025-04-17
   begin
     Exit(True);
   end;
