@@ -65,7 +65,6 @@ type
   private
     FUserName: string;
     fRoles: TUserRoles;
-    fRecordAlias: TNullableRecordAlias;
   public
     constructor Create(aUserName: string; aRoles: TUserRoles);
     property UserName: string read FUserName write FUserName;

@@ -841,8 +841,7 @@ begin
   Cust.AddressLine2 := '00100';
   Cust.City := 'ROME';
   ViewData['customer'] := Cust;
-  LoadView(['header', 'customer', 'footer']);
-  RenderResponseStream;
+  Render(RenderViews(['header', 'customer', 'footer']));
   { If you need more flexibility, you can use GetRenderedView to compose your
     output using small views.
     Here's an example:
