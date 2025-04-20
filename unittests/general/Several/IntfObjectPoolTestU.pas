@@ -62,7 +62,7 @@ var
 type
   IPoolObject = Interface
     ['{CA1012E7-5639-48A9-B26B-D94218C28508}']
-  End;
+  end;
 
 type
   TPoolObject = class(TInterfacedObject, IPoolObject)
@@ -70,7 +70,7 @@ type
     FValue: integer;
   public
     constructor Create; overload;
-    constructor Create(value: integer); overload;
+    constructor Create(Value: integer); overload;
     destructor Destroy; override;
     property value: integer read FValue;
   end;
@@ -323,7 +323,7 @@ begin
   Create(1);
 end;
 
-constructor TPoolObject.Create(value: integer);
+constructor TPoolObject.Create(Value: integer);
 begin
   inherited Create;
   FValue := value;

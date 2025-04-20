@@ -55,20 +55,20 @@ type
   TObjectPool<T: class, constructor> = class(TInterfacedObject, IObjectPool<T>)
   private
     fFactory: TFunc<T>;
-    fMaxSize: Integer;
+    fMaxSize: UInt32;
     fPool: TStack<T>;
-    fSize: Integer;
-    fShrinkTargetSize: Integer;
-    fShrinkTriggerSize: Integer;
+    fSize: UInt32;
+    fShrinkTargetSize: UInt32;
+    fShrinkTriggerSize: UInt32;
     fCleanupThread: TCleanupThread<T>;
     fLastGetFromPool: TDateTime;
     fOnResetState: TProc<T>;
   protected
     procedure Lock;
     procedure UnLock;
-    procedure ShrinkPoolTo(const TargetSize: Integer);
+    procedure ShrinkPoolTo(const TargetSize: UInt32);
   public
-    constructor Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil);
+    constructor Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil);
     destructor Destroy; override;
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
@@ -80,8 +80,8 @@ type
   private
     fObjectPool: TObjectPool<T>;
     type
-      TPoolSizeSamples = array [0..AVG_SAMPLES_COUNT-1] of Integer;
-    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): Integer;
+      TPoolSizeSamples = array [0..AVG_SAMPLES_COUNT-1] of UInt64;
+    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): UInt64;
   protected
     procedure Execute; override;
   public
@@ -90,8 +90,8 @@ type
 
   TPoolFactory = class
   public
-    class function CreatePool<T: class, constructor>(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil): IObjectPool<T>;
-    class function CreateUnlimitedPool<T: class, constructor>(ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil): IObjectPool<T>;
+    class function CreatePool<T: class, constructor>(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil): IObjectPool<T>;
+    class function CreateUnlimitedPool<T: class, constructor>(ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil): IObjectPool<T>;
   end;
 
 
@@ -102,7 +102,7 @@ implementation
 
 { TObjectPool<T> }
 
-constructor TObjectPool<T>.Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T>);
+constructor TObjectPool<T>.Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T>);
 begin
   inherited Create;
   fOnResetState := nil;
@@ -183,7 +183,7 @@ begin
   end;
 end;
 
-procedure TObjectPool<T>.ShrinkPoolTo(const TargetSize: Integer);
+procedure TObjectPool<T>.ShrinkPoolTo(const TargetSize: UInt32);
 begin
   MonitorEnter(Self);
   try
@@ -222,7 +222,7 @@ procedure TCleanupThread<T>.Execute;
 var
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
-  lSampleTick: Integer;
+  lSampleTick: UInt64;
 begin
   lSampleTick := 0;
   while not Terminated do
@@ -252,7 +252,7 @@ begin
 end;
 
 function TCleanupThread<T>.GetAveragePoolSize(
-  var SizeSamples: TPoolSizeSamples): Integer;
+  var SizeSamples: TPoolSizeSamples): UInt64;
 var
   I: Integer;
 begin
@@ -261,20 +261,20 @@ begin
   begin
     Inc(Result, SizeSamples[I]);
   end;
-  Result := Result div Length(SizeSamples);
+  Result := Result div UInt64(Length(SizeSamples));
 end;
 
 { TPoolFactory }
 
 class function TPoolFactory.CreatePool<T>(MaxSize, ShrinkTriggerSize,
-  ShrinkTargetSize: Integer; const Factory: TFunc<T>): IObjectPool<T>;
+  ShrinkTargetSize: UInt32; const Factory: TFunc<T>): IObjectPool<T>;
 begin
   Result := TObjectPool<T>.Create(MaxSize, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);
 end;
 
 class function TPoolFactory.CreateUnlimitedPool<T>(ShrinkTriggerSize,
-  ShrinkTargetSize: Integer; const Factory: TFunc<T>): IObjectPool<T>;
+  ShrinkTargetSize: UInt32; const Factory: TFunc<T>): IObjectPool<T>;
 begin
   Result := CreatePool<T>(0, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);

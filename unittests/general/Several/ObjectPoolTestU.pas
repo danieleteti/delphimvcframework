@@ -62,13 +62,13 @@ var
 type
   TPoolObject = class
   strict private
-    FValue: integer;
+    fValue: integer;
   public
     constructor Create; overload;
     constructor Create(value: integer); overload;
     destructor Destroy; override;
-    Function GetValue : integer;
-    property value: integer read FValue;
+    function GetValue : integer;
+    property Value: integer read FValue;
   end;
 
   { TTestTObjectPool }
