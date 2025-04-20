@@ -3,6 +3,7 @@
 {{endif}}
 <form class="form form-horizontal" id="myForm" name="myForm" hx-post="/people" hx-target="#main">
   <input type="hidden" value="{{:person.guid}}" name="guid">
+  <input type="hidden" value="{{:csrf_token}}" name="csrf_token">  
   <div class="row">
     <div class="col">
       {{if !person}}

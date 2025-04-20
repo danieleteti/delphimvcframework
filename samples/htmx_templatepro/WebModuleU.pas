@@ -26,6 +26,7 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.Redirect,
+  MVCFramework.Middleware.Session,
   MVCFramework.Middleware.StaticFiles;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
@@ -63,6 +64,7 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end)
     .AddController(TWebSiteController)
+    .AddMiddleware(UseMemorySessionMiddleware(10))
     .AddMiddleware(TMVCRedirectMiddleware.Create(['/'],'/people'))
     .SetViewEngine(TMVCTemplateProViewEngine)
 end;
