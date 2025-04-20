@@ -1328,6 +1328,7 @@ implementation
 
 uses
   IdURI,
+  IdStack,
   System.StrUtils,
   sqids,
   MVCFramework.SysControllers,
@@ -2037,6 +2038,10 @@ begin
     try
       Flush;
     except
+      on E: EIdSocketError do
+      begin
+        LogW(Format('Client disconnected [CLASS: %s][MSG: %s]', [E.ClassName, E.Message]));
+      end;
       on E: Exception do
       begin
         LogException(E, '');
