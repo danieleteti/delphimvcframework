@@ -1,8 +1,11 @@
-﻿<a 
-	hx-get="/people/modal/fordelete/{{:person.guid}}" 
-	href=""
-	hx-target="#modals-here" 
-	hx-trigger="click"
-    data-bs-toggle="modal"
-    data-bs-target="#modals-here"
-	>Delete</a>
+﻿<!-- <a href="" onclick="showDialog('Are you sure you want to delete this person?','Delete Person'); return false;">Delete</a> -->
+
+<button class="as_link" hx-delete="/people/{{:person.guid}}" 
+        hx-trigger='confirmed'
+        onClick="showDialog('Do you really want to delete this person?').then((res)=>{
+            if(res.isConfirmed){
+              htmx.trigger(this, 'confirmed');  
+            } 
+        })">
+  Delete
+</button>

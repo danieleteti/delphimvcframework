@@ -91,6 +91,7 @@ type
 
 const
   CSRF_SECRET = '987absd98&7asbd87ab7(d)65a=v7sd7a65?vd75a^sd98asd90a7d';
+  CSRF_SECONDS_TIMEOUT = 10;
 
 implementation
 
