@@ -1,0 +1,17 @@
+<label for="email">
+    EMail:
+</label>
+<input type="text" id="email" name="email" value="{{:email}}" required>
+
+<label for="password">
+    Password:
+</label>
+<input type="password" id="password" name="password" value="{{:password}}" required>
+{{if error}}
+<div class="error">{{:error}}</div>
+{{endif}}
+<div class="wrap">
+    <button type="submit">
+        Accedi
+    </button>
+</div>

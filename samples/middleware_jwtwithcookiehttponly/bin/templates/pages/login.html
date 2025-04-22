@@ -1,0 +1,15 @@
+{{extends "../baselayout.html"}}
+{{block "body"}}
+<div class="loginform">
+    <h3>Secure WebApp Sample</h3>
+    <form method="post" hx-post="/login" hx-target="this" hx-swap="innerHTML">
+        {{include "../partials/loginform.html"}}
+    </form>
+
+    <p>Non sei registrato?
+        <a href="#" style="text-decoration: none;">
+            Crea un account
+        </a>
+    </p>
+</div>
+{{endblock}}
