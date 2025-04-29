@@ -46,6 +46,7 @@ type
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
     procedure RequireKeys(const Keys: TArray<String>);
+    procedure Rebuild;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -78,7 +79,7 @@ var
 
 type
 {$SCOPEDENUMS ON}
-  TdotEnvEngineState = (created, building, built);
+  TdotEnvEngineState = (Created, Building, Built);
   TMVCDotEnv = class(TInterfacedObject, IMVCDotEnv, IMVCDotEnvBuilder)
   strict private
     fState: TdotEnvEngineState;
@@ -96,6 +97,8 @@ type
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
     procedure CheckAlreadyBuilt;
     procedure ExplodeReferences;
+  private
+    fDotEnvDirectory: string;
   strict protected
     function UseStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
     function SkipDefaultEnv: IMVCDotEnvBuilder;
@@ -104,6 +107,7 @@ type
     function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
+    procedure Rebuild;
     function Env(const Name: string): string; overload;
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
@@ -244,6 +248,7 @@ begin
   begin
     raise EMVCDotEnv.Create('dotEnv engine already built');
   end;
+  fDotEnvDirectory := DotEnvDirectory;
   fState := TdotEnvEngineState.building;
   Result := Self;
   fEnvPath := TDirectory.GetParent(GetModuleName(HInstance));
@@ -482,6 +487,17 @@ begin
     lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];
     PopulateDictionary(fEnvDict, lProfileEnvPath);
   end;
+end;
+
+procedure TMVCDotEnv.Rebuild;
+begin
+  if fState <> TdotEnvEngineState.Built then
+  begin
+    raise EMVCDotEnv.Create('Cannot rebuild a not-build dotEnv engine');
+  end;
+  fState := TdotEnvEngineState.created;
+  DoLog('Rebuilding dotEnv');
+  Build(fDotEnvDirectory);
 end;
 
 procedure TMVCDotEnv.RequireKeys(const Keys: TArray<String>);

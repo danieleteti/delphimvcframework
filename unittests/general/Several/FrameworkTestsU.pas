@@ -264,6 +264,8 @@ type
     procedure TestWithDevAndTestProfile;
     [Test]
     procedure TestSkipDefaultWithDevAndTestProfile;
+    [Test]
+    procedure TestRebuild;
   end;
 
   [TestFixture]
@@ -2184,6 +2186,19 @@ begin
   end
 end;
 
+procedure TTestDotEnv.TestRebuild;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.UseProfile('dev').Build('..\dotEnv');
+  lDotEnv.Rebuild;
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev.test.txt')),
+    'Files are different after rebuild');
+end;
+
 procedure TTestDotEnv.TestSkipDefaultWithDevAndTestProfile;
 var
   lDotEnv: IMVCDotEnv;
@@ -2210,6 +2225,12 @@ begin
     TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.correct.txt'),
     TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt')),
     'Files are different');
+  lDotEnv.Rebuild;
+  lDotEnv.SaveToFile(TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt'));
+  Assert.IsTrue(Are2FilesEqual(
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.correct.txt'),
+    TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-profile-dev-and-test.test.txt')),
+    'Files are different after rebuild');
 end;
 
 procedure TTestDotEnv.TestWithDevProfile;
