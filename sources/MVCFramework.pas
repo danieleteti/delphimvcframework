@@ -4889,10 +4889,12 @@ begin
         end;
       end;
 
-      if FContext.Response.ContentType.IsEmpty then
-        GetContext.Response.ContentType := Engine.FConfigCache_DefaultContentType
+
+      //We try to honor the client ACCEPT for exception as well...
+      if Serializer(FContext.Request.BestAccept, False) <> nil then
+        GetContext.Response.ContentType := FContext.Request.BestAccept
       else
-        GetContext.Response.ContentType := FContext.Response.ContentType;
+        GetContext.Response.ContentType := Engine.FConfigCache_DefaultContentType;
 
       Render(R, False, nil, R.GetIgnoredList);
     finally
