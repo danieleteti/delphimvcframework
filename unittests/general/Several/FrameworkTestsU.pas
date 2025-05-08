@@ -266,6 +266,10 @@ type
     procedure TestSkipDefaultWithDevAndTestProfile;
     [Test]
     procedure TestRebuild;
+    [Test]
+    procedure TestTypedEnv;
+    [Test]
+    procedure TestRequiredKeys;
   end;
 
   [TestFixture]
@@ -2199,6 +2203,27 @@ begin
     'Files are different after rebuild');
 end;
 
+procedure TTestDotEnv.TestRequiredKeys;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.UseProfile('typedenvtest').Build('..\dotEnv');
+  lDotEnv.RequireKeys(['key1','key2']);
+
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      lDotEnv.RequireKeys(['key_foo','key2']);
+    end, EMVCDotEnv, 'Required keys not found: key_foo');
+
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      //key8 if defined but value is empty. It is considered unexistents.
+      lDotEnv.RequireKeys(['key1','key2','key8']);
+    end, EMVCDotEnv, 'Required keys not found: key8');
+end;
+
 procedure TTestDotEnv.TestSkipDefaultWithDevAndTestProfile;
 var
   lDotEnv: IMVCDotEnv;
@@ -2213,6 +2238,33 @@ begin
     TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.correct.txt'),
     TPath.Combine(AppPath, '..\dotEnv\dotEnvDump-skip-default-profile-dev-and-test.test.txt')),
     'Files are different');
+end;
+
+procedure TTestDotEnv.TestTypedEnv;
+var
+  lDotEnv: IMVCDotEnv;
+begin
+  lDotEnv := NewDotEnv.UseProfile('typedenvtest').Build('..\dotEnv');
+  Assert.AreEqual('value1', lDotEnv.Env('key1'));
+  Assert.AreEqual('value2', lDotEnv.Env('key2'));
+  Assert.AreEqual('value3', lDotEnv.Env('key3'));
+  Assert.AreEqual('value4', lDotEnv.Env('key4'));
+  Assert.AreEqual('value2.1', lDotEnv.Env('key2.1'));
+  Assert.AreEqual('value2.1|value2.2|value2.3|value3', lDotEnv.Env('key2.4'));
+  ////////////
+  ///  EnvTyped
+  ////////////
+  Assert.AreEqual(123, lDotEnv.Env('key_int', 0));
+  Assert.AreEqual<Double>(12.3, lDotEnv.Env('key_float1', 0.0));
+  Assert.AreEqual(12, lDotEnv.Env('key_float2', 0));
+  Assert.IsTrue(lDotEnv.Env('key_boolean1', False));
+  Assert.IsFalse(lDotEnv.Env('key_boolean2', True));
+  Assert.IsTrue(lDotEnv.Env('key_boolean3', False));
+  Assert.IsFalse(lDotEnv.Env('key_boolean4', True));
+  Assert.IsTrue(lDotEnv.Env('key_boolean5', True)); //default
+  Assert.IsTrue(lDotEnv.Env('key_boolean6', True)); //default
+  Assert.IsTrue(lDotEnv.Env('key_boolean7', False));
+  Assert.IsFalse(lDotEnv.Env('key_boolean8', True));
 end;
 
 procedure TTestDotEnv.TestWithDevAndTestProfile;

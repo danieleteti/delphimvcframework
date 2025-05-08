@@ -45,6 +45,7 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    function Env(const Name: string; const DefaultValue: Double): Double; overload;
     procedure RequireKeys(const Keys: TArray<String>);
     procedure Rebuild;
     function SaveToFile(const FileName: String): IMVCDotEnv;
@@ -112,6 +113,7 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    function Env(const Name: string; const DefaultValue: Double): Double; overload;
     procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
@@ -530,6 +532,21 @@ end;
 function NewDotEnv: IMVCDotEnvBuilder;
 begin
   Result := TMVCDotEnv.Create;
+end;
+
+function TMVCDotEnv.Env(const Name: string; const DefaultValue: Double): Double;
+var
+  lTmp: String;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    Result := StrToFloat(lTmp, TFormatSettings.Create('en-US'));
+  end;
 end;
 
 end.
