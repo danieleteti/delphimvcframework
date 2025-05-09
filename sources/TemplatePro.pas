@@ -717,6 +717,8 @@ var
   lNullableTDate: NullableTDate;
   lNullableTTime: NullableTTime;
   lNullableTDateTime: NullableTDateTime;
+  lVarName: string;
+  lVarMember: string;
 begin
   if Value.IsEmpty then
   begin
@@ -738,7 +740,17 @@ begin
     else if lAsObject is TJsonBaseObject then
       Result := TJsonBaseObject(lAsObject).ToJSON()
     else
+    begin
+      SplitVariableName(VarName, lVarName, lVarMember);
+      if lVarMember.IsEmpty then
+      begin
       Result := lAsObject.ToString;
+  end
+  else
+  begin
+        Result := GetTValueFromPath(lAsObject, lVarMember).AsString;
+      end;
+    end;
   end
   else
   begin
@@ -2834,7 +2846,7 @@ begin
                   Continue;
                 end;
               end
-              else if viListOfObject in lVariable.VarOption then
+              else if [viObject, viListOfObject] * lVariable.VarOption <> [] then
               begin
                 {TODO -oDanieleT -cGeneral : We need only .Count here. Could we use something lighter than WrapAsList?}
                 lObj := GetTValueFromPath(lVariable.VarValue.AsObject, lForLoopItem.FullPath);
@@ -3228,7 +3240,7 @@ begin
         end;
       end;
     end
-    else if viListOfObject in lVariable.VarOption then
+    else if [viListOfObject, viObject] * lVariable.VarOption <> [] then
     begin
       if lVarMembers.StartsWith('@@') then
       begin
@@ -3275,12 +3287,7 @@ begin
         end
         else
         begin
-          if lHasMember then
-            Error(lDataSource + ' can be used only with filters or iterated using its alias')
-          else
-          begin
             Result := lVariable.VarValue.AsObject;
-          end;
         end;
       end;
     end
