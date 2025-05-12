@@ -369,6 +369,9 @@ type
     [Test]
     procedure TestIssue542;
 
+    [Test]
+    procedure TestIssue806;
+
   end;
 
   [TestFixture]
@@ -1877,6 +1880,23 @@ begin
   finally
     lJSON.Free;
   end;
+end;
+
+procedure TServerTest.TestIssue806;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/issues/806', '{"myProp":"hello world"}');
+  Assert.areEqual('True', r.Content);
+
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/issues/806', '{"MYPROP":"hello world"}');
+  Assert.areEqual('False', r.Content);
+
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/issues/806', '{"MyProp":"hello world"}');
+  Assert.areEqual('False', r.Content);
+
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/issues/806', '{"myprop":"hello world"}');
+  Assert.areEqual('False', r.Content);
 end;
 
 procedure TServerTest.TestMiddlewareHandler;

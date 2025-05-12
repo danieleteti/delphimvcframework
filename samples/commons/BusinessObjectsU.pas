@@ -74,6 +74,14 @@ type
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
+  [MVCNameCase(ncAsIs)]
+  TTestCasingAsIs = class
+  private
+    fmyProp: string;
+  public
+    property myProp: string read fmyProp write fmyProp;
+  end;
+
   TPeople = TObjectList<TPerson>;
 
   TClassWithArrays = class
@@ -108,7 +116,6 @@ type
     property EnumWithMappedValues: TEnumColorTest read fEnumWithMappedValues write fEnumWithMappedValues;
   end;
 
-  [MVCNameCase(ncLowerCase)]
   [MVCNameCase(ncLowerCase)]
   [MVCTable('nullables_test')]
   TNullablesTest = class(TMVCActiveRecord)
