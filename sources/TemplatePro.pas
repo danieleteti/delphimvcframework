@@ -813,7 +813,7 @@ begin
       begin
         lNullableTDate := Value.AsType<NullableTDate>;
         if lNullableTDate.HasValue then
-          Result := DateToISO8601(lNullableTDate.Value);
+          Result := DateToStr(lNullableTDate.Value, Self.fLocaleFormatSettings);
       end
       else if Value.TypeInfo = TypeInfo(NullableTTime) then
       begin
