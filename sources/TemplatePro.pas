@@ -200,6 +200,7 @@ type
     function IsTruthy(const Value: TValue): Boolean;
     function GetVarAsString(const Name: string): string;
     function GetTValueVarAsString(const Value: PValue; const VarName: string = ''): String;
+    function GetTValueWithNullableTypeAsString(const Value: PValue; const VarName: string = ''): String;
     function GetNullableTValueAsTValue(const Value: PValue; const VarName: string = ''): TValue;
     function GetVarAsTValue(const aName: string): TValue;
     function GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
@@ -706,19 +707,14 @@ function TTProCompiledTemplate.GetTValueVarAsString(const Value: PValue; const V
 var
   lIsObject: Boolean;
   lAsObject: TObject;
-  lNullableInt32: NullableInt32;
-  lNullableUInt32: NullableUInt32;
-  lNullableInt16: NullableInt16;
-  lNullableUInt16: NullableUInt16;
-  lNullableInt64: NullableInt64;
-  lNullableUInt64: NullableUInt64;
-  lNullableCurrency: NullableCurrency;
-  lNullableBoolean: NullableBoolean;
-  lNullableTDate: NullableTDate;
-  lNullableTTime: NullableTTime;
-  lNullableTDateTime: NullableTDateTime;
   lVarName: string;
   lVarMember: string;
+  lTmp: TValue;
+
+  function IsNullableType(const Value: PValue): Boolean;
+  begin
+    Result := (Value.TypeInfo.Kind = tkRecord) and String(Value.TypeInfo.Name).StartsWith('nullable', True);
+  end;
 begin
   if Value.IsEmpty then
   begin
@@ -748,13 +744,95 @@ begin
   end
   else
   begin
-        Result := GetTValueFromPath(lAsObject, lVarMember).AsString;
+        lTmp := GetTValueFromPath(lAsObject, lVarMember);
+        if IsNullableType(@lTmp) then
+        begin
+          Result := GetTValueWithNullableTypeAsString(@lTmp, VarName);
+        end
+        else
+        begin
+          Result := lTmp.AsString;
+        end;
       end;
     end;
   end
   else
   begin
-    if (Value.TypeInfo.Kind = tkRecord) and String(Value.TypeInfo.Name).StartsWith('nullable', True) then
+    if IsNullableType(Value) then
+    begin
+      Result := GetTValueWithNullableTypeAsString(Value, VarName);
+    end
+    else
+    begin
+      case Value.Kind of
+        tkInteger:
+          Result := Value.AsInteger.ToString;
+        tkInt64:
+          Result := Value.AsInt64.ToString;
+        tkString, tkUString, tkWString, tkLString:
+          Result := Value.AsString;
+        tkWChar, tkChar:
+          Result := Value.AsType<Char>;
+        tkFloat:
+          begin
+            if Value.TypeInfo.Name = 'TDate' then
+            begin
+              Result := DateToStr(Value.AsExtended, fLocaleFormatSettings);
+            end
+            else if Value.TypeInfo.Name = 'TDateTime' then
+            begin
+              Result := DateTimeToStr(Value.AsExtended, fLocaleFormatSettings);
+            end
+            else
+            begin
+              Result := FloatToStr(Value.AsExtended, fLocaleFormatSettings);
+            end;
+          end;
+        tkEnumeration:
+          Result := Value.ToString;
+        tkRecord:
+          begin
+            if Value.TypeInfo = TypeInfo(TBcd) then
+            begin
+              Result := BcdToStr(PBCD(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else if Value.TypeInfo = TypeInfo(TSQLTimeStampOffset) then
+            begin
+              Result := SQLTimeStampOffsetToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
+                PSQLTimeStampOffset(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else if Value.TypeInfo = TypeInfo(TSQLTimeStamp) then
+            begin
+              Result := SQLTimeStampToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
+                PSQLTimeStamp(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
+            end
+            else
+            begin
+              raise ETProException.Create('Unsupported type for record variable "' + VarName + '"');
+            end;
+          end
+      else
+        raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
+      end;
+      // Result := Value.ToString;
+    end;
+  end;
+
+end;
+
+function TTProCompiledTemplate.GetTValueWithNullableTypeAsString(const Value: PValue; const VarName: string): String;
+var
+  lNullableInt32: NullableInt32;
+  lNullableUInt32: NullableUInt32;
+  lNullableInt16: NullableInt16;
+  lNullableUInt16: NullableUInt16;
+  lNullableInt64: NullableInt64;
+  lNullableUInt64: NullableUInt64;
+  lNullableCurrency: NullableCurrency;
+  lNullableBoolean: NullableBoolean;
+  lNullableTDate: NullableTDate;
+  lNullableTTime: NullableTTime;
+  lNullableTDateTime: NullableTDateTime;
     begin
       Result := '';
       if Value.TypeInfo = TypeInfo(NullableInt32) then
@@ -819,75 +897,18 @@ begin
       begin
         lNullableTTime := Value.AsType<NullableTTime>;
         if lNullableTTime.HasValue then
-          Result := DateToISO8601(lNullableTTime.Value);
+      Result := TimeToStr(lNullableTTime.Value, Self.fLocaleFormatSettings);
       end
       else if Value.TypeInfo = TypeInfo(NullableTDateTime) then
       begin
         lNullableTDateTime := Value.AsType<NullableTDateTime>;
         if lNullableTDateTime.HasValue then
-          Result := DateToISO8601(lNullableTDateTime.Value);
-      end
-      else
-      begin
-        raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
-      end;
-    end
-    else
-    begin
-      case Value.Kind of
-        tkInteger:
-          Result := Value.AsInteger.ToString;
-        tkInt64:
-          Result := Value.AsInt64.ToString;
-        tkString, tkUString, tkWString, tkLString:
-          Result := Value.AsString;
-        tkWChar, tkChar:
-          Result := Value.AsType<Char>;
-        tkFloat:
-          begin
-            if Value.TypeInfo.Name = 'TDate' then
-            begin
-              Result := DateToStr(Value.AsExtended, fLocaleFormatSettings);
-            end
-            else if Value.TypeInfo.Name = 'TDateTime' then
-            begin
-              Result := DateTimeToStr(Value.AsExtended, fLocaleFormatSettings);
+      Result := DateToISO8601(lNullableTDateTime.Value, False);
             end
             else
             begin
-              Result := FloatToStr(Value.AsExtended, fLocaleFormatSettings);
-            end;
-          end;
-        tkEnumeration:
-          Result := Value.ToString;
-        tkRecord:
-          begin
-            if Value.TypeInfo = TypeInfo(TBcd) then
-            begin
-              Result := BcdToStr(PBCD(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
-            end
-            else if Value.TypeInfo = TypeInfo(TSQLTimeStampOffset) then
-            begin
-              Result := SQLTimeStampOffsetToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
-                PSQLTimeStampOffset(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
-            end
-            else if Value.TypeInfo = TypeInfo(TSQLTimeStamp) then
-            begin
-              Result := SQLTimeStampToStr(fLocaleFormatSettings.ShortDateFormat + fLocaleFormatSettings.ListSeparator + fLocaleFormatSettings.LongTimeFormat,
-                PSQLTimeStamp(Value.GetReferenceToRawData)^, fLocaleFormatSettings);
-            end
-            else
-            begin
-              raise ETProException.Create('Unsupported type for record variable "' + VarName + '"');
-            end;
-          end
-      else
         raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
       end;
-      // Result := Value.ToString;
-    end;
-  end;
-
 end;
 
 procedure TTProCompiledTemplate.AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction);
