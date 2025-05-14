@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,6 +37,67 @@ uses
 type
   EMVCNullable = class(Exception)
 
+  end;
+
+//**************************************************************************************************************
+//** Nullable<T> -- In case of generic-types Delphi compiler generates different RTTI information for each BPL
+//**                To de/serialize a Nullable<T> is required a CustomTypeSerializer
+//**************************************************************************************************************
+
+  Nullable<T> = record
+  private
+    fValue: T;
+    fHasValue: String;
+    function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
+  public
+    procedure CheckHasValue;
+    function GetValue: T;
+    procedure SetValue(const Value: T);
+    class operator Implicit(const Value: T): Nullable<T>; overload;
+    class operator Implicit(const Value: Nullable<T>): T; overload;
+    class operator Implicit(const Value: Pointer): Nullable<T>; overload;
+	  class operator Equal(LeftValue: Nullable<T>; RightValue: Nullable<T>) : Boolean;	
+    ///<summary>
+    ///Returns `True` if the Nullable<T> contains a value
+    ///</summary>	
+    property HasValue: Boolean read GetHasValue;
+    ///<summary>
+    ///Returns `True` if the Nullable<T> contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
+    procedure Clear;
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
+    procedure SetNull;
+    ///<summary>
+    ///Returns the value stored or the default value for the type if the value is not set
+    ///</summary>	
+    function ValueOrDefault: T;
+    ///<summary>
+    ///Returns the value stored or else the value passed as parameter if the value is not set
+    ///</summary>	
+    function ValueOrElse(const ElseValue: T): T;
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: Nullable<T>): Boolean;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: T): Boolean; overload;
+    ///<summary>
+    ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
+    ///</summary>	
+    function TryHasValue(out Value: TValue): Boolean; overload;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
+    property Value: T read GetValue write SetValue;
   end;
 
 //**************************
@@ -1020,6 +1081,7 @@ type
 
 
 function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
+
 
 implementation
 
@@ -3017,6 +3079,124 @@ begin
   if aTypeInfo = TypeInfo(NullableTGUID) then 
     Exit(ntNullableTGUID); 
   Result := ntInvalidNullableType;
+end;
+
+{ Nullable<T> }
+
+procedure Nullable<T>.CheckHasValue;
+begin
+  if not GetHasValue then
+  begin
+    raise EMVCNullable.Create('Nullable<T> value is null');
+  end;
+end;
+
+function Nullable<T>.TryHasValue(out Value: T): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := fValue;
+  end;
+end;
+
+function Nullable<T>.TryHasValue(out Value: TValue): Boolean;
+begin
+  Result := HasValue;
+  if Result then
+  begin
+    Value := TValue.From<Nullable<T>>(fValue);
+  end;
+end;
+
+
+procedure Nullable<T>.Clear;
+begin
+  SetNull;
+end;
+
+function Nullable<T>.Equals(const Value: Nullable<T>): Boolean;
+begin
+  Result := Self = Value;
+end;
+
+function Nullable<T>.GetHasValue: Boolean;
+begin
+  Result := fHasValue = '_';
+end;
+
+function Nullable<T>.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
+function Nullable<T>.GetValue: T;
+begin
+  CheckHasValue;
+  Result := fValue;
+end;
+
+class operator Nullable<T>.Implicit(const Value: Nullable<T>): T;
+begin
+  Result := Value.Value;
+end;
+
+class operator Nullable<T>.Implicit(const Value: T): Nullable<T>;
+begin
+  Result.Value := Value;
+end;
+
+class operator Nullable<T>.Implicit(const Value: Pointer): Nullable<T>;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
+end;
+
+class operator Nullable<T>.Equal(LeftValue: Nullable<T>; RightValue: Nullable<T>) : Boolean;
+begin
+  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+end;
+
+procedure Nullable<T>.SetNull;
+begin
+  fValue := Default(T);
+  fHasValue := '';
+end;
+
+procedure Nullable<T>.SetValue(const Value: T);
+begin
+  fValue := Value;
+  fHasValue := '_';
+end;
+
+function Nullable<T>.ValueOrDefault: T;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := Default(T);
+  end;
+end;
+
+function Nullable<T>.ValueOrElse(const ElseValue: T): T;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := ElseValue;
+  end;
 end;
 
 end.

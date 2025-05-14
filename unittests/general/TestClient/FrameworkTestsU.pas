@@ -305,6 +305,12 @@ type
     procedure TestFileFixtures;
   end;
 
+  [TestFixture]
+  TTestGenericNullables = class(TObject)
+  public
+    [Test]
+    procedure TestGenericNullables;
+  end;
 
 
 implementation
@@ -331,7 +337,7 @@ uses
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
-  MVCFramework.DotEnv.Parser;
+  MVCFramework.DotEnv.Parser, MVCFramework.Nullables;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -2531,6 +2537,32 @@ begin
   end;
 end;
 
+{ TTestGenericNullables }
+
+procedure TTestGenericNullables.TestGenericNullables;
+var
+  lNullInt: Nullable<Integer>;
+  lTmpInt: Integer;
+begin
+  Assert.IsTrue(lNullInt.IsNull);
+  Assert.IsFalse(lNullInt.HasValue);
+  lNullInt := 123;
+  Assert.IsFalse(lNullInt.IsNull);
+  Assert.IsTrue(lNullInt.HasValue);
+
+  Assert.AreEqual(123, Integer(lNullInt));
+  lTmpInt := lNullInt;
+  Assert.AreEqual(123, lTmpInt);
+
+  lNullInt := nil;
+  Assert.IsTrue(lNullInt.IsNull);
+  Assert.IsFalse(lNullInt.HasValue);
+  lNullInt := 123;
+  lNullInt.Clear;
+  Assert.IsTrue(lNullInt.IsNull);
+  Assert.IsFalse(lNullInt.HasValue);
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2544,6 +2576,7 @@ TDUnitX.RegisterTestFixture(TTestDotEnv);
 TDUnitX.RegisterTestFixture(TTestDotEnvParser);
 TDUnitX.RegisterTestFixture(TTestSqids);
 TDUnitX.RegisterTestFixture(TTestRQLCompiler);
+TDUnitX.RegisterTestFixture(TTestGenericNullables);
 
 finalization
 
