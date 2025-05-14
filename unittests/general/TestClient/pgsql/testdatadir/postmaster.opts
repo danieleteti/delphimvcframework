@@ -1,0 +1,1 @@
+C:/DEV/dmvcframework/unittests/general/TestClient/pgsql/bin/postgres.exe "-D" "C:/DEV/dmvcframework/unittests/general/TestClient/pgsql/testdatadir" "-F" "-p" "5555"

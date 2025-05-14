@@ -315,7 +315,7 @@ def tests32(ctx):
 
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
-    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
@@ -336,7 +336,7 @@ def tests32(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\Several\bin32\DMVCFrameworkTests.exe"])
+        r = subprocess.run([r"unittests\general\TestClient\bin32\DMVCFrameworkTests.exe"])
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
@@ -354,7 +354,7 @@ def tests64(ctx):
 
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
-    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
@@ -375,7 +375,7 @@ def tests64(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\Several\bin64\DMVCFrameworkTests.exe"])
+        r = subprocess.run([r"unittests\general\TestClient\bin64\DMVCFrameworkTests.exe"])
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
