@@ -286,6 +286,8 @@ type
     [Test]
     procedure TestValueWithMultiline;
     [Test]
+    procedure TestValueWithMultilineEscaped;
+    [Test]
     procedure TestVarPlaceHolders;
     [Test]
     procedure TestInLineComments;
@@ -2406,6 +2408,29 @@ begin
     try
       lParser.Parse(lDict, DOTENVCODE);
       Assert.AreEqual('value1' + slinebreak + 'value2' + sLineBreak + 'value3', lDict['key1']);
+      Assert.AreEqual('value2', lDict['key2']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestValueWithMultilineEscaped;
+const
+  DOTENVCODE =
+    'key1= "value1' + sLineBreak +
+    'value\"yes\"2' + sLineBreak +
+    'value\"3\"" # comment' + sLineBreak +
+    'key2 = value2' + sLineBreak;
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      lParser.Parse(lDict, DOTENVCODE);
+      Assert.AreEqual('value1' + slinebreak + 'value"yes"2' + sLineBreak + 'value"3"', lDict['key1']);
       Assert.AreEqual('value2', lDict['key2']);
     finally
       lDict.Free;

@@ -77,6 +77,7 @@ type
     function EatSpaces: Boolean;
     procedure EatUpToLineBreak;
     function NextChar: Char;
+    function PeekNextChar: Char;
     function DetectLineBreakStyle(Code: String): TLineBreakStyle;
     procedure MatchInLineComment;
   public
@@ -220,6 +221,18 @@ begin
   end;
 end;
 
+function TMVCDotEnvParser.PeekNextChar: Char;
+begin
+  if fIndex >= (fCodeLength - 1) then
+  begin
+    Result := #0;
+  end
+  else
+  begin
+    Result := fCode.Chars[fIndex+1];
+  end;
+end;
+
 function TMVCDotEnvParser.MatchKey(out Token: String): Boolean;
 var
   lTmp: String;
@@ -282,12 +295,23 @@ function TMVCDotEnvParser.MatchString(out Value: String): Boolean;
     end;
   end;
   procedure MatchUpToCharacterMultiLine(out Value: String; const Delimiter1: Char);
+  var
+    lTmp: Char;
   begin
     while (fIndex < fCodeLength) and (fCode.Chars[fIndex] <> Delimiter1) do
     begin
       Check(fCode.Chars[fIndex] <> #0, 'Unexpected end of file');
       Value := Value + fCode.Chars[fIndex];
-      NextChar;
+      lTmp := NextChar;
+      if lTmp = '\' then
+      begin
+        if PeekNextChar = Delimiter1 then
+        begin
+          Value := Value + Delimiter1;
+          NextChar;
+          NextChar;
+        end;
+      end;
     end;
   end;
 
