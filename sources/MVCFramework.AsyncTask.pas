@@ -38,6 +38,15 @@ type
   TMVCAsyncDefaultErrorCallback = reference to procedure(const Expt: Exception;
     const ExptAddress: Pointer);
 
+  MVCAsyncObject = class sealed
+  public
+    class function Run<T: class>(
+      Task: TMVCAsyncBackgroundTask<T>;
+      Success: TMVCAsyncSuccessCallback<T>;
+      Error: TMVCAsyncErrorCallback = nil;
+      Always: TMVCAsyncAlwaysCallback = nil): ITask;
+  end;
+
   MVCAsync = class sealed
   public
     class function Run<T>(
@@ -63,7 +72,69 @@ uses
   {$ENDIF}
   ;
 
-{ Async }
+
+class function MVCAsyncObject.Run<T>(
+  Task: TMVCAsyncBackgroundTask<T>;
+  Success: TMVCAsyncSuccessCallback<T>;
+  Error: TMVCAsyncErrorCallback;
+  Always: TMVCAsyncAlwaysCallback): ITask;
+var
+  LRes: T;
+begin
+  Result := TTask.Run(
+    procedure
+    var
+      Ex: Pointer;
+      ExceptionAddress: Pointer;
+    begin
+      Ex := nil;
+      try
+        LRes := Task();
+        if Assigned(Success) then
+        begin
+          TThread.Queue(nil,
+            procedure
+            begin
+              try
+                Success(LRes);
+              finally
+                lRes.Free;
+              end;
+            end);
+        end;
+      except
+        Ex := AcquireExceptionObject;
+        ExceptionAddress := ExceptAddr;
+        TThread.Queue(nil,
+          procedure
+          var
+            LCurrException: Exception;
+          begin
+            LCurrException := Exception(Ex);
+            try
+              if Assigned(Error) then
+              begin
+                Error(LCurrException);
+              end
+              else
+              begin
+                gDefaultTaskErrorHandler(LCurrException, ExceptionAddress);
+              end;
+            finally
+              FreeAndNil(LCurrException);
+            end;
+          end);
+      end;
+      if Assigned(Always) then
+      begin
+        TThread.Queue(nil,
+          procedure
+          begin
+            Always();
+          end);
+      end;
+    end);
+end;
 
 class function MVCAsync.Run<T>(
   Task: TMVCAsyncBackgroundTask<T>;
@@ -123,6 +194,7 @@ begin
       end;
     end);
 end;
+
 
 initialization
 
