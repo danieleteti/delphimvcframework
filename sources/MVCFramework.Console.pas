@@ -397,7 +397,7 @@ end;
 
 procedure SetDefaultColors;
 begin
-  GForeGround := Ord(TConsoleColor.DarkGray);
+  GForeGround := Ord(TConsoleColor.Gray);
   GBackGround := Ord(TConsoleColor.Black);
   UpdateMode;
 end;

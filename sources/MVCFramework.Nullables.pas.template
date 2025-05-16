@@ -106,7 +106,7 @@ type
     fValue: $TYPE$;
     fHasValue: String;
     function GetHasValue: Boolean;
-	function GetIsNull: Boolean;	
+	  function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: $TYPE$;
