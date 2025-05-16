@@ -473,6 +473,8 @@ begin
   lStopWatch := TStopWatch.StartNew;
   Result := Func(); //do not put try/except here. If exception raises the timing is a nonsense
   lStopWatch.Stop;
+  if Profiler.ProfileLogger = nil then
+    Exit;
   if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
   begin
     ProfileLogger.Log(
@@ -493,6 +495,8 @@ begin
   lStopWatch := TStopWatch.StartNew;
   Proc(); //do not put try/except here. If exception raises the timing is a nonsense
   lStopWatch.Stop;
+  if Profiler.ProfileLogger = nil then
+    Exit;
   if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
   begin
     ProfileLogger.Log(
