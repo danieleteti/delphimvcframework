@@ -100,6 +100,9 @@ var
 
 implementation
 
+uses
+  System.Math;
+
 { TObjectPool<T> }
 
 constructor TObjectPool<T>.Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T>);
@@ -223,8 +226,13 @@ var
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
   lSampleTick: UInt64;
+  I: Integer;
+  lAdjustedStep: UInt32;
+const
+  CHECK_TERMINATED_INTERVAL_FACTOR = 10;
 begin
   lSampleTick := 0;
+  lAdjustedStep := Max(GObjectPoolSamplingIntervalMS, 500) div CHECK_TERMINATED_INTERVAL_FACTOR;
   while not Terminated do
   begin
     Inc(lSampleTick);
@@ -242,7 +250,14 @@ begin
     end
     else
     begin
-      Sleep(GObjectPoolSamplingIntervalMS);
+      for I := 1 to CHECK_TERMINATED_INTERVAL_FACTOR do
+      begin
+        Sleep(lAdjustedStep); { do not sleep the thread for too long, we've to check Terminated!}
+        if Terminated then
+        begin
+          Break;
+        end;
+      end;
       if lSampleTick = MaxInt  then
       begin
         lSampleTick := 0;
