@@ -369,7 +369,7 @@ var
   lInt64Value: Int64;
   lStrValue: string;
   lExtendedValue: Extended;
-  lValue: TValue;
+  lValue, lTmp: TValue;
   function GetComparandResultStr(const aComparandType: TComparandType; const aLeftValue, aRightValue: String): TValue;
   begin
     case aComparandType of
@@ -405,10 +405,21 @@ begin
           raise ETProRenderException.Create('Invalid type for comparand');
         end;
         if aParameters[0].ParType = fptInteger then
+        begin
           lInt64Value := aParameters[0].ParIntValue
+        end
         else
         begin
-          lInt64Value := GetVarAsTValue(aParameters[0].ParStrText).AsInt64;
+          lTmp := GetVarAsTValue(aParameters[0].ParStrText);
+          if IsNullableType(@lTmp) then
+          begin
+            lTmp := GetNullableTValueAsTValue(@lTmp);
+            if lTmp.IsEmpty then
+            begin
+              Exit(False);
+            end;
+          end;
+          lInt64Value := lTmp.AsInt64;
         end;
 
         case aComparandType of
@@ -3589,6 +3600,8 @@ begin
           lFilterParameters[I].ParStrText := fTokens[Idx].Value1;
       end;
     end;
+
+    try
     case lCurrTokenType of
       ttValue:
         Result := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName), lVarName);
@@ -3598,6 +3611,12 @@ begin
         Result := ExecuteFilter(lFilterName, lFilterParameters, lVarName, lVarName);
     else
       Error('Invalid token in EvaluateValue');
+      end;
+    except
+      on E: Exception do
+      begin
+        Error('Error while evaluating filter [%s] on variable [%s]- Inner Exception: [%s][%s]', [lFilterName, lVarName, E.ClassName, E.Message]);
+      end;
     end;
   end
   else
