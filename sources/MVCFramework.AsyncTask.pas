@@ -90,22 +90,23 @@ begin
       Ex := nil;
       try
         LRes := Task();
-        if Assigned(Success) then
-        begin
-          TThread.Queue(nil,
-            procedure
-            begin
-              try
+        try
+          if Assigned(Success) then
+          begin
+            TThread.Synchronize(nil,
+              procedure
+              begin
                 Success(LRes);
-              finally
-                lRes.Free;
-              end;
-            end);
+              end);
+          end;
+        finally
+          lRes.Free;
+          lRes := nil;
         end;
       except
         Ex := AcquireExceptionObject;
         ExceptionAddress := ExceptAddr;
-        TThread.Queue(nil,
+        TThread.Synchronize(nil,
           procedure
           var
             LCurrException: Exception;
@@ -127,7 +128,7 @@ begin
       end;
       if Assigned(Always) then
       begin
-        TThread.Queue(nil,
+        TThread.Synchronize(nil,
           procedure
           begin
             Always();
@@ -155,7 +156,7 @@ begin
         LRes := Task();
         if Assigned(Success) then
         begin
-          TThread.Queue(nil,
+          TThread.Synchronize(nil,
             procedure
             begin
               Success(LRes);
@@ -164,7 +165,7 @@ begin
       except
         Ex := AcquireExceptionObject;
         ExceptionAddress := ExceptAddr;
-        TThread.Queue(nil,
+        TThread.Synchronize(nil,
           procedure
           var
             LCurrException: Exception;
@@ -186,7 +187,7 @@ begin
       end;
       if Assigned(Always) then
       begin
-        TThread.Queue(nil,
+        TThread.Synchronize(nil,
           procedure
           begin
             Always();
