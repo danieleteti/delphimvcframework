@@ -55,11 +55,9 @@ type
     function MetadataAsJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault)
       : TJSONObject;
     function AsJSONArrayOfValues: TJDOJsonArray;
-    function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault;
       const IgnoredFields: TArray<string> = nil): string;
     function AsJDOJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault; const IgnoredFields: TArray<string> = nil): TJDOJsonObject;
-    function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
     procedure LoadFromJSONObject(const JSONObject: TJSONObject;
       const FieldNameCase: TMVCNameCase); overload;
     procedure LoadFromJSONObject(const JSONObject: TJSONObject;
@@ -175,6 +173,7 @@ implementation
 
 uses
   System.TypInfo,
+  MVCFramework.ActiveRecord,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
@@ -300,11 +299,6 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONArrayString: string;
-begin
-  Result := AsJSONArray;
-end;
-
 function TDataSetHelper.AsJSONObject(FieldNameCase: TMVCNameCase;
   const IgnoredFields: TArray<string>): string;
 var
@@ -313,11 +307,6 @@ begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
   Result := lSerializer.SerializeDataSetRecord(Self,
     TMVCIgnoredList(IgnoredFields), FieldNameCase);
-end;
-
-function TDataSetHelper.AsJSONObjectString: string;
-begin
-  Result := AsJSONObject(ncUseDefault);
 end;
 
 function TDataSetHelper.AsObject<T>(CloseAfterScroll: boolean): T;
@@ -529,6 +518,7 @@ var
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
   mf: MVCColumnAttribute;
+  tf: MVCTableFieldAttribute;
   field_name: string;
   Value: TValue;
   lNeedToSet, FoundAttribute: boolean;
@@ -551,6 +541,13 @@ begin
         mf := MVCColumnAttribute(_attribute);
         _dict.Add(lRttiProp.Name, mf.FieldName);
         _keys.Add(lRttiProp.Name, mf.IsPK);
+      end
+      else if _attribute is MVCTableFieldAttribute then
+      begin
+        FoundAttribute := true;
+        tf := MVCTableFieldAttribute(_attribute);
+        _dict.Add(lRttiProp.Name, tf.FieldName);
+        _keys.Add(lRttiProp.Name, foPrimaryKey in tf.FieldOptions);
       end
       else if _attribute is MVCDoNotSerializeAttribute then
         FoundTransientAttribute := true;
