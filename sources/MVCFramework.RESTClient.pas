@@ -1944,12 +1944,12 @@ end;
 
 function TMVCRESTResponse.ToJSONArray: TJDOJsonArray;
 begin
-  Result := StrTOJSONArray(Content, True);
+  Result := StrToJSONArray(Content, True);
 end;
 
 function TMVCRESTResponse.ToJSONObject: TJDOJsonObject;
 begin
-  Result := StrTOJSONObject(Content, True);
+  Result := StrToJSONObject(Content, True);
 end;
 
 procedure TMVCRESTResponse.BodyFor(const aObject: TObject; const aRootNode: string);

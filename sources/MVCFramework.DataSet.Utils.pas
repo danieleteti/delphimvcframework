@@ -92,16 +92,13 @@ type
     procedure LoadFromJSONObjectString(const JSONObjectString: string;
       const IgnoredFields: TArray<string>;
       const FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault); overload;
-    // procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: string;
-    // const FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
+
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string;
       AIgnoredFields: TArray<string>;
       FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll
-      : boolean = false; OwnsObjects: boolean = true): TObjectList<T>;
-    function AsObject<T: class, constructor>(CloseAfterScroll
-      : boolean = false): T;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: Boolean = True): TObjectList<T>;
+    function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
 
   end;
 
@@ -184,10 +181,8 @@ procedure TDataSetHelper.LoadFromTValue(const Value: TValue;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and
-{$ENDIF} (Value.AsObject is TJDOJsonArray)) then
-    raise Exception.Create
-      ('LoadFromTValue requires a TValue containing a TJDOJsonArray');
+  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and{$ENDIF} (Value.AsObject is TJDOJsonArray)) then
+    raise Exception.Create('LoadFromTValue requires a TValue containing a TJDOJsonArray');
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try
@@ -204,20 +199,6 @@ begin
   end;
 
 end;
-
-// procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string;
-// const aPropertyName: string; const FieldNameCase: TMVCNameCase);
-// var
-// lJson: TJSONObject;
-// begin
-// lJson := TJSONObject.Create;
-// try
-// lJson.FromJSON(AJSONObjectString);
-// LoadFromJSONArray(lJson.A[aPropertyName], FieldNameCase);
-// finally
-// lJson.Free;
-// end;
-// end;
 
 function TDataSetHelper.AsJDOJSONArray(FieldNameCase
   : TMVCNameCase = TMVCNameCase.ncUseDefault): TJDOJsonArray;
