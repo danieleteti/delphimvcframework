@@ -67,7 +67,7 @@
 #define LibraryCopyright "Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team"
 #define LibraryURL "https://www.danieleteti.it/delphimvcframework/"
 #define LibrarySamplesFolder "samples"
-#define LibraryPackagesFolder "packages"
+#define LibraryPackagesFolder "setup/AllPackages"
 #define LibrarySourceFolder "sources"
 //#define LibraryDCUFolder "lib"
 #define LibraryDocumentationURL "https://www.danieleteti.it/delphimvcframework/"
@@ -82,6 +82,7 @@
 #define VclStyle "IcebergClassico.vsf"
 
 [Setup]
+WizardSizePercent=120
 AllowCancelDuringInstall=yes
 AppCopyright={#LibraryCopyright}
 ; NOTE: The value of AppId uniquely identifies this application.
