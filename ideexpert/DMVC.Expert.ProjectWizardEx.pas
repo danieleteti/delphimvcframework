@@ -282,7 +282,7 @@ begin
         WizardForm.Free;
       end;
     end,
-    function: Cardinal
+    function: {$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}
     begin
       Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
     end, TArray<string>.Create(cWin32Platform, cWin64Platform
