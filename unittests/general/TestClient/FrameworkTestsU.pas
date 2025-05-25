@@ -291,6 +291,10 @@ type
     procedure TestVarPlaceHolders;
     [Test]
     procedure TestInLineComments;
+    [Test]
+    procedure TestErrorLineDetect01;
+    [Test]
+    procedure TestErrorLineDetect02;
   end;
 
   [TestFixture]
@@ -2318,6 +2322,64 @@ begin
 end;
 
 { TTestDotEnvParser }
+
+procedure TTestDotEnvParser.TestErrorLineDetect01;
+const
+  DOTENVCODE =
+  {1}  'key1= "' + sLineBreak +
+  {2}  'hello' + sLineBreak +
+  {3}  '\"cruel\"' + sLineBreak +
+  {4}  'world' + sLineBreak +
+  {5}  '  \"' + sLineBreak +
+  {6}  '# comment' + sLineBreak +
+  {7}  'ke y4 = "v${USERNAME}alue4 "' + sLineBreak + // <-- error should be detected at line 7
+  {8}  'value3 = 123' + sLineBreak;
+
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      Assert.WillRaise(
+        procedure
+        begin
+          lParser.Parse(lDict, DOTENVCODE)
+        end, nil, 'Error: Expected "=" - got "$" at line: 7');
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
+procedure TTestDotEnvParser.TestErrorLineDetect02;
+const
+  DOTENVCODE =
+   {1} '#The DB username' + sLineBreak +
+   {2} 'db user=my_user' + sLineBreak +
+   {3} '';
+begin
+  var lParser := TMVCDotEnvParser.Create;
+  try
+    var lDict := TMVCDotEnvDictionary.Create();
+    try
+      try
+        lParser.Parse(lDict, DOTENVCODE);
+        Assert.Fail('Exception not raised in case of wrong .env');
+      except
+        on E: Exception do
+        begin
+          Assert.AreEqual('Error: Expected "=" - got "u" at line: 2 near "user=my_user"', E.Message);
+        end;
+      end;
+    finally
+      lDict.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
 
 procedure TTestDotEnvParser.TestInLineComments;
 const
