@@ -28,7 +28,7 @@ package dmvcframeworkRT;
 {$DESCRIPTION 'DMVCFramework - CopyRight (2010-2025) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '103'}
 {$RUNONLY}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   rtl,

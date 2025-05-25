@@ -28,7 +28,7 @@ package dmvcframeworkDT;
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DelphiMVCFramework IDE Expert'}
 {$LIBSUFFIX '101'}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   rtl,

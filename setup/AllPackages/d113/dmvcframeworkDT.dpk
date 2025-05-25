@@ -28,7 +28,7 @@ package dmvcframeworkDT;
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DelphiMVCFramework 3.x - Design Time Support'}
 {$LIBSUFFIX '113'}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   rtl,

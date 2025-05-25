@@ -155,6 +155,7 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl,.\InnoSetupSc
 #ifdef VclStyle
   Source: ".\InnoSetupScripts\Style\*"; DestDir: "{app}\{#SetupFolder}\Style"; Flags: ignoreversion
 #endif
+Source: "..\ideexpert\DMVC.Splash.Resources.res"; DestDir: "{app}\ideexpert\"; Flags: ignoreversion
 Source: "..\{#LibraryPackagesFolder}\*"; Excludes: "{#CommonRADStudioFilesExcludes}"; DestDir: "{app}\{#LibraryPackagesFolder}"; Flags: recursesubdirs ignoreversion
 Source: "..\*"; Excludes: "{#CommonRADStudioFilesExcludes},*.gitattributes,*.gitignore,*.gitmodules,\.github\*,\.history\*,\Documents\*,\Externals\*,Logs\*,*.Logs.txt,Objects\*,\{#SetupFolder}\*,\{#LibraryPackagesFolder}\*,\Test"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
@@ -166,6 +167,7 @@ Filename: "{app}\{#LibrarySamplesFolder}"; Description: "{cm:SetupOpenSamplesFol
 Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall unchecked;
 
 [UninstallDelete]
+Type: filesandordirs; Name: "{app}\setup\AllPackages\*";
 Type: filesandordirs; Name: "{app}\docs\*";
 Type: filesandordirs; Name: "{app}\ideexpert\*";
 Type: filesandordirs; Name: "{app}\lib\*";
@@ -181,6 +183,8 @@ Type: filesandordirs; Name: "{app}\*.MD";
 Type: filesandordirs; Name: "{app}\*.png";
 Type: filesandordirs; Name: "{app}\*.txt";
 Type: filesandordirs; Name: "{app}\*.py";
+Type: dirifempty; Name: "{app}\setup\AllPackages";
+Type: dirifempty; Name: "{app}\setup";
 Type: dirifempty; Name: "{app}\docs";
 Type: dirifempty; Name: "{app}\ideexpert";
 Type: dirifempty; Name: "{app}\lib";

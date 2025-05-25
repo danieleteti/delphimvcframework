@@ -28,7 +28,7 @@ package loggerproRT;
 {$DESCRIPTION 'LoggerPro - CopyRight 2023-2025 Daniele Teti'}
 {$LIBSUFFIX '101'}
 {$RUNONLY}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   rtl,

@@ -28,16 +28,12 @@ package dmvcframeworkDT;
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DelphiMVCFramework IDE Expert'}
 {$LIBSUFFIX '120'}
-{$IMPLICITBUILD ON}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
 
 requires
-  rtl,
-  designide,
+  designIde,
   ExpertsCreators,
-  IndySystem,
-  IndyProtocols,
-  IndyCore,
-  dbrtl,
   dmvcframeworkRT;
 
 contains
