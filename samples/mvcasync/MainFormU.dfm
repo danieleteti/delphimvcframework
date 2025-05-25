@@ -29,22 +29,41 @@ object MainForm: TMainForm
     Text = 'Edit1'
   end
   object btnWithEx: TButton
-    Left = 448
-    Top = 16
+    Left = 504
+    Top = 63
     Width = 161
     Height = 41
-    Caption = 'Async Test With Exception'
+    Caption = 'Async Test With Custom Exception Handler'
     TabOrder = 2
+    WordWrap = True
     OnClick = btnWithExClick
   end
   object btnWithExcDefault: TButton
-    Left = 272
+    Left = 504
     Top = 16
     Width = 161
     Height = 41
-    Caption = 'Async Test With Exception (default)'
+    Caption = 'Async Test With Default Exception Handler'
     TabOrder = 3
     WordWrap = True
     OnClick = btnWithExcDefaultClick
+  end
+  object btnTestWithObject: TButton
+    Left = 183
+    Top = 16
+    Width = 161
+    Height = 41
+    Caption = 'Async Test with Object'
+    TabOrder = 4
+    OnClick = btnTestWithObjectClick
+  end
+  object Memo1: TMemo
+    Left = 183
+    Top = 72
+    Width = 161
+    Height = 101
+    Lines.Strings = (
+      'Memo1')
+    TabOrder = 5
   end
 end

@@ -12,9 +12,12 @@ type
     Edit1: TEdit;
     btnWithEx: TButton;
     btnWithExcDefault: TButton;
+    btnTestWithObject: TButton;
+    Memo1: TMemo;
     procedure btnAsync1Click(Sender: TObject);
     procedure btnWithExClick(Sender: TObject);
     procedure btnWithExcDefaultClick(Sender: TObject);
+    procedure btnTestWithObjectClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -70,6 +73,24 @@ begin
       btnWithEx.Caption := lSavedCaption;
       btnWithEx.Enabled := True;
       btnWithEx.Update;
+    end
+  );
+end;
+
+procedure TMainForm.btnTestWithObjectClick(Sender: TObject);
+begin
+  btnTestWithObject.Enabled := False;
+  MVCAsyncObject.Run<TStringList>(
+    function: TStringList
+    begin
+      Sleep(1000);
+      Result := TStringList.Create;
+      Result.AddStrings(['hello','world']);
+    end,
+    procedure(const Value: TStringList)
+    begin
+      Memo1.Lines.Assign(Value);
+      btnTestWithObject.Enabled := True;
     end
   );
 end;
