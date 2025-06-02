@@ -96,7 +96,8 @@ type
     function GetBuiltInVariable(const VarName: String; out Value: String): Boolean;
     function ExplodePlaceholders(const Value: string): string;
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
-    procedure CheckAlreadyBuilt;
+    procedure CheckMustNotBeAlreadyBuilt;
+    procedure CheckMustBeAlreadyBuilt;
     procedure ExplodeReferences;
   private
     fDotEnvDirectory: string;
@@ -160,10 +161,7 @@ function TMVCDotEnv.Env(const Name: string): string;
 var
   lTmp: String;
 begin
-  if fState = TdotEnvEngineState.created then
-  begin
-    raise EMVCDotEnv.Create('dotEnv Engine not built');
-  end;
+  CheckMustBeAlreadyBuilt;
 
   if fPriority in [TMVCDotEnvPriority.FileThenEnv, TMVCDotEnvPriority.OnlyFile] then
   begin
@@ -223,21 +221,21 @@ end;
 function TMVCDotEnv.UseProfile(
   const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Add(ProfileDelegate());
   Result := Self;
 end;
 
 function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Add(ProfileName);
   Result := Self;
 end;
 
 function TMVCDotEnv.UseStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   Result := Self;
   fPriority := Priority;
 end;
@@ -272,17 +270,25 @@ begin
   fState := TdotEnvEngineState.built;
 end;
 
-procedure TMVCDotEnv.CheckAlreadyBuilt;
+procedure TMVCDotEnv.CheckMustBeAlreadyBuilt;
 begin
-  if fState in [TdotEnvEngineState.built] then
+  if fState <> TdotEnvEngineState.Built then
   begin
-    raise Exception.Create('DotEnv Engine Already Built');
+    raise Exception.Create('dotEnv Engine is not built yet');
+  end;
+end;
+
+procedure TMVCDotEnv.CheckMustNotBeAlreadyBuilt;
+begin
+  if fState = TdotEnvEngineState.Built then
+  begin
+    raise Exception.Create('dotEnv Engine Already Built');
   end;
 end;
 
 function TMVCDotEnv.ClearProfiles: IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Clear;
   Result := Self;
 end;

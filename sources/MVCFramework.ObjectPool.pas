@@ -47,7 +47,7 @@ type
     ['{0E79863D-D6F9-4426-9D80-F4C215233582}']
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
   end;
 
 
@@ -72,7 +72,7 @@ type
     destructor Destroy; override;
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
     property OnResetState: TProc<T> read fOnResetState write fOnResetState;
   end;
 
@@ -200,7 +200,7 @@ begin
   end;
 end;
 
-function TObjectPool<T>.Size: UInt32;
+function TObjectPool<T>.Size: NativeInt;
 begin
   MonitorEnter(Self);
   try
