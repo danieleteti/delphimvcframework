@@ -1173,7 +1173,7 @@ begin
         Error('Expected digit/s after "."');
       end;
       lDecimalPart := lTmp.Trim.ToInteger;
-      lTmpFloat := Power(10, lDigits);
+      lTmpFloat := Power(Double(10), lDigits);
       Result := True;
       aParamValue.ParType := fptFloat;
       aParamValue.ParFloatValue := lIntegerPart + lDecimalPart / lTmpFloat;
@@ -2263,8 +2263,7 @@ begin
       else
       begin
         CheckParNumber(1, aParameters);
-        lDateFilterFormatSetting.ShortDateFormat := aParameters[0].ParStrText;
-        Result := DateToStr(lDateValue, lDateFilterFormatSetting)
+        Result := FormatDateTime(aParameters[0].ParStrText, lDateValue);
       end;
     end
     else if aValue.TypeInfo = TypeInfo(NullableTDate) then
@@ -2293,7 +2292,6 @@ begin
       FunctionError(aFunctionName, 'Invalid date ' + GetTValueVarAsString(@aValue, lIsNull, aVarNameWhereShoudBeApplied));
     end;
   end
-
   else if SameText(aFunctionName, 'datetimetostr') or SameText(aFunctionName, 'formatdatetime') then
   begin
     if aValue.IsEmpty then
@@ -3288,6 +3286,10 @@ begin
           else if lPJSONDataValue.Typ = jdtULong then
           begin
             Result := lPJSONDataValue.ULongValue;
+          end
+          else if lPJSONDataValue.Typ = jdtFloat then
+          begin
+            Result := lPJSONDataValue.FloatValue;
           end
           else if lPJSONDataValue.Typ = jdtArray then
           begin
