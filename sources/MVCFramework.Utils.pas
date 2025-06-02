@@ -31,7 +31,7 @@ interface
 uses
   MVCFramework.Serializer.Commons, JsonDataObjects,
   MVCFramework.DuckTyping, System.Classes, System.SysUtils,
-  System.Generics.Collections;
+  System.Generics.Collections, Data.DB;
 
 type
   ICSRFTokenManager = interface
@@ -102,6 +102,7 @@ type
   TMapClosure<T> = reference to function(const Item: T): T;
   TMapClosure2<T1,T2> = reference to function(const Item: T1): T2;
   TForEachClosure<T> = reference to procedure(const Item: T);
+  TForEachRecordClosure = reference to procedure(const Item: TDataset);
   TMapReduceClosure<T> = reference to function(const Left: T; const Right: T): T;
   TPredicateClosure<T> = reference to function(const Item: T): Boolean;
 
@@ -129,6 +130,7 @@ type
       const ForEachClosure: TForEachClosure<T>); overload;
     class procedure ForEach<T>(const Enumerable: TEnumerable<T>;
       const ForEachClosure: TForEachClosure<T>); overload;
+    class procedure ForEachRecord(const InputDataset: TDataset; const ForEachClosure: TForEachRecordClosure);
   end;
 
   _ = HigherOrder;
@@ -331,6 +333,28 @@ begin
     begin
       raise EHOFilterError.CreateFmt
         ('Filter error at index %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
+class procedure HigherOrder.ForEachRecord(const InputDataset: TDataset; const ForEachClosure: TForEachRecordClosure);
+var
+  lIdx: Integer;
+begin
+  lIdx := 0;
+  try
+    while not InputDataset.Eof do
+    begin
+      ForEachClosure(InputDataset);
+      Inc(lIdx);
+      InputDataset.Next;
+    end;
+  except
+    on E: Exception do
+    begin
+      raise EHOForEachError.CreateFmt
+        ('ForEachRecord error at element %d - [Class: %s][Message: %s]',
         [lIdx, E.ClassName, E.Message]);
     end;
   end;
