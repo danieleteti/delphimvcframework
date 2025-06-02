@@ -2027,7 +2027,6 @@ function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParamet
   const aVarNameWhereShoudBeApplied: String): TValue;
 var
   lDateValue: TDateTime;
-  lDateFilterFormatSetting: TFormatSettings;
   lStrValue: string;
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;

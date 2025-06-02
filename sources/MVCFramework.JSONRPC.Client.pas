@@ -60,7 +60,7 @@ type
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
-    function HTTPHeadersCount: Integer;
+    function HTTPHeadersCount: NativeInt;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
@@ -107,7 +107,7 @@ type
     // http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
-    function HTTPHeadersCount: Integer;
+    function HTTPHeadersCount: NativeInt;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)

@@ -272,7 +272,7 @@ end;
 
 procedure TMVCDotEnv.CheckMustBeAlreadyBuilt;
 begin
-  if fState <> TdotEnvEngineState.Built then
+  if not (fState in [TdotEnvEngineState.Built, TdotEnvEngineState.Building]) then
   begin
     raise Exception.Create('dotEnv Engine is not built yet');
   end;
