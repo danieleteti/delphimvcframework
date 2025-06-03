@@ -69,7 +69,7 @@ begin
   lClient
     .AddQueryStringParam('firstname', 'Daniele')
     .AddQueryStringParam('lastname', 'Teti');
-  lResp := lClient.Get('/admin/role1');
+  lResp := lClient.Accept('text/html').Get('/admin/role1');
   if not lResp.Success then
     ShowMessage(lResp.Content);
   Memo2.Lines.Text := lResp.Content;
