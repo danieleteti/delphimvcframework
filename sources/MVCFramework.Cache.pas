@@ -161,6 +161,11 @@ begin
     begin
       if FStorage.TryGetValue(AName, lItem) then
       begin
+        // https://github.com/danieleteti/delphimvcframework/issues/825
+        if lItem.Value.IsObject and ((AValue.IsObject and (AValue.AsObject <> lItem.Value.AsObject)) or not AValue.IsObject) then
+        begin
+          lItem.Value.AsObject.Free;
+        end;
         lItem.Value := Value;
       end
       else
