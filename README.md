@@ -1,4 +1,4 @@
-# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
+# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)  [![Ask DeepWiki][DeepWikiBadge]](https://deepwiki.com/danieleteti/delphimvcframework)
 
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
 ![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
@@ -2091,3 +2091,6 @@ third template email line"
 ## Links
 
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
+
+
+[DeepwikiBadge]: https://deepwiki.com/badge.svg
