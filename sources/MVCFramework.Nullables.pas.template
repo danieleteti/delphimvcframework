@@ -43,6 +43,11 @@ type
 
   end;
 
+{$IF CompilerVersion <= 32} // 10.2 Tokyo
+  Float32 = Single;
+  Float64 = Double;
+{$IFEND}
+
 //**************************************************************************************************************
 //** Nullable<T> -- In case of generic-types Delphi compiler generates different RTTI information for each BPL
 //**                To de/serialize a Nullable<T> is required a CustomTypeSerializer
