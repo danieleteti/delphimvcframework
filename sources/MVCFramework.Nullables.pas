@@ -29,6 +29,10 @@
 
 unit MVCFramework.Nullables;
 
+{$IF CompilerVersion >= 35} // 11 Alexandria
+{$DEFINE USE_EQUALS}
+{$ENDIF}
+
 interface
 
 uses
@@ -82,10 +86,14 @@ type
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
     function ValueOrElse(const ElseValue: T): T;
+
+
+    {$IF Defined(USE_EQUALS)}
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
     function Equals(const Value: Nullable<T>): Boolean;
+    {$ENDIF}
     ///<summary>
     ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
     ///</summary>	
@@ -141,7 +149,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: AnsiString): AnsiString;
+    function ValueOrElse(const ElseValue: AnsiString): AnsiString;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -201,7 +209,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: String): String;
+    function ValueOrElse(const ElseValue: String): String;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -261,7 +269,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Currency): Currency;
+    function ValueOrElse(const ElseValue: Currency): Currency;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -321,7 +329,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Boolean): Boolean;
+    function ValueOrElse(const ElseValue: Boolean): Boolean;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -381,7 +389,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: TDate): TDate;
+    function ValueOrElse(const ElseValue: TDate): TDate;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -441,7 +449,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: TTime): TTime;
+    function ValueOrElse(const ElseValue: TTime): TTime;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -501,7 +509,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: TDateTime): TDateTime;
+    function ValueOrElse(const ElseValue: TDateTime): TDateTime;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -561,7 +569,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Single): Single;
+    function ValueOrElse(const ElseValue: Single): Single;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -621,7 +629,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Double): Double;
+    function ValueOrElse(const ElseValue: Double): Double;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -681,7 +689,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Float32): Float32;
+    function ValueOrElse(const ElseValue: Float32): Float32;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -741,7 +749,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Float64): Float64;
+    function ValueOrElse(const ElseValue: Float64): Float64;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -801,7 +809,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Extended): Extended;
+    function ValueOrElse(const ElseValue: Extended): Extended;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -861,7 +869,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Int8): Int8;
+    function ValueOrElse(const ElseValue: Int8): Int8;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -921,7 +929,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: UInt8): UInt8;
+    function ValueOrElse(const ElseValue: UInt8): UInt8;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -981,7 +989,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Byte): Byte;
+    function ValueOrElse(const ElseValue: Byte): Byte;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1041,7 +1049,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Int16): Int16;
+    function ValueOrElse(const ElseValue: Int16): Int16;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1101,7 +1109,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: UInt16): UInt16;
+    function ValueOrElse(const ElseValue: UInt16): UInt16;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1161,7 +1169,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Int32): Int32;
+    function ValueOrElse(const ElseValue: Int32): Int32;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1221,7 +1229,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Integer): Integer;
+    function ValueOrElse(const ElseValue: Integer): Integer;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1281,7 +1289,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: UInt32): UInt32;
+    function ValueOrElse(const ElseValue: UInt32): UInt32;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1341,7 +1349,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: Int64): Int64;
+    function ValueOrElse(const ElseValue: Int64): Int64;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1401,7 +1409,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: UInt64): UInt64;
+    function ValueOrElse(const ElseValue: UInt64): UInt64;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1461,7 +1469,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: TGUID): TGUID;
+    function ValueOrElse(const ElseValue: TGUID): TGUID;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1521,7 +1529,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: NativeInt): NativeInt;
+    function ValueOrElse(const ElseValue: NativeInt): NativeInt;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -1581,7 +1589,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: NativeUInt): NativeUInt;
+    function ValueOrElse(const ElseValue: NativeUInt): NativeUInt;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -4774,10 +4782,12 @@ begin
   SetNull;
 end;
 
+{$IF Defined(USE_EQUALS)}
 function Nullable<T>.Equals(const Value: Nullable<T>): Boolean;
 begin
   Result := Self = Value;
 end;
+{$ENDIF}
 
 function Nullable<T>.GetHasValue: Boolean;
 begin

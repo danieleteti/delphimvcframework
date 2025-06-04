@@ -29,6 +29,10 @@
 
 unit MVCFramework.Nullables;
 
+{$IF CompilerVersion >= 35} // 11 Alexandria
+{$DEFINE USE_EQUALS}
+{$ENDIF}
+
 interface
 
 uses
@@ -82,10 +86,14 @@ type
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
     function ValueOrElse(const ElseValue: T): T;
+
+
+    {$IF Defined(USE_EQUALS)}
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
     function Equals(const Value: Nullable<T>): Boolean;
+    {$ENDIF}
     ///<summary>
     ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
     ///</summary>	
@@ -138,7 +146,7 @@ type
     ///<summary>
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
-    function ValueOrElse(const ElseValue: $TYPE$): $TYPE$;
+    function ValueOrElse(const ElseValue: $TYPE$): $TYPE$;    
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
@@ -332,10 +340,12 @@ begin
   SetNull;
 end;
 
+{$IF Defined(USE_EQUALS)}
 function Nullable<T>.Equals(const Value: Nullable<T>): Boolean;
 begin
   Result := Self = Value;
 end;
+{$ENDIF}
 
 function Nullable<T>.GetHasValue: Boolean;
 begin
