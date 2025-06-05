@@ -157,7 +157,7 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl,.\InnoSetupSc
 #endif
 Source: "..\ideexpert\DMVC.Splash.Resources.res"; DestDir: "{app}\ideexpert\"; Flags: ignoreversion
 Source: "..\{#LibraryPackagesFolder}\*"; Excludes: "{#CommonRADStudioFilesExcludes}"; DestDir: "{app}\{#LibraryPackagesFolder}"; Flags: recursesubdirs ignoreversion
-Source: "..\*"; Excludes: "{#CommonRADStudioFilesExcludes},*.gitattributes,*.gitignore,*.gitmodules,\.github\*,\.history\*,\Documents\*,\Externals\*,Logs\*,*.Logs.txt,Objects\*,\{#SetupFolder}\*,\{#LibraryPackagesFolder}\*,\Test"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "..\*"; Excludes: "{#CommonRADStudioFilesExcludes},*.gitattributes,*.gitignore,*.gitmodules,\.github\*,\.history\*,\Documents\*,\Externals\*,Logs\*,*.Logs.txt,Objects\*,\{#SetupFolder}\*,\{#LibraryPackagesFolder}\*,\Test,\unittests,\setup,\releases,\docs,\.vscode,\lib\loggerpro\samples\,\lib\swagdoc\Demos\,\*.json,\run_scanner.bat,\*.py,\7*.*,\customer*.bmp,\clean.bat,\dmvcframework_the_official_guide_very_small.png,\docs,\"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{group}\Uninstall"; Filename: "{uninstallexe}"

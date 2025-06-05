@@ -13,7 +13,7 @@ uses
 procedure Nullable;
 begin
   TextColor(TConsoleColor.Red);
-  Writeln('GenericNullable');
+  Writeln('Nullable[Type]');
   SetDefaultColors;
 
   var lNullInt: NullableInteger;
@@ -49,7 +49,7 @@ end;
 procedure GenericNullable;
 begin
   TextColor(TConsoleColor.Red);
-  Writeln('GenericNullable');
+  Writeln('Nullable<T>');
   SetDefaultColors;
 
   var lNullInt: Nullable<Integer>;
@@ -80,6 +80,10 @@ begin
   lNullInt := nil; //like SetNull
   Assert(lNullInt.IsNull);
   Assert(lNullInt = nil);
+
+  var lNullStr1: Nullable<String> := 'Hello World';
+  var lNullStr2: Nullable<String> := 'Hello Xorld';
+  Assert(not lNullStr1.Equals(lNullStr2));
 end;
 
 
