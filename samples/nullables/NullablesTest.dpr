@@ -84,6 +84,7 @@ begin
   var lNullStr1: Nullable<String> := 'Hello World';
   var lNullStr2: Nullable<String> := 'Hello Xorld';
   Assert(not lNullStr1.Equals(lNullStr2));
+  Assert(not(lNullStr1 = lNullStr2));
 end;
 
 
