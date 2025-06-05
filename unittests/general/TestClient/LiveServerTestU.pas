@@ -2901,10 +2901,10 @@ begin
     lDict := TMVCStringDictionary.Create;
     try
       lSer.DeserializeObject(lRes.Content, lDict);
-      Assert.areEqual(3, lDict.Count);
-      Assert.areEqual('value1', lDict['prop1']);
-      Assert.areEqual('value2', lDict['prop2']);
-      Assert.areEqual('changed', lDict['fromserver']);
+      Assert.AreEqual<NativeInt>(3, lDict.Count);
+      Assert.AreEqual('value1', lDict['prop1']);
+      Assert.AreEqual('value2', lDict['prop2']);
+      Assert.AreEqual('changed', lDict['fromserver']);
     finally
       lDict.Free;
     end;

@@ -6,6 +6,9 @@
         <Projects Include="TestClient\DMVCFrameworkTests.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="TestClient\DMVCFrameworkGUITests.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="TestServer\TestServer.dproj">
             <Dependencies/>
         </Projects>
@@ -26,6 +29,15 @@
     <Target Name="DMVCFrameworkTests:Make">
         <MSBuild Projects="TestClient\DMVCFrameworkTests.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DMVCFrameworkGUITests">
+        <MSBuild Projects="TestClient\DMVCFrameworkGUITests.dproj"/>
+    </Target>
+    <Target Name="DMVCFrameworkGUITests:Clean">
+        <MSBuild Projects="TestClient\DMVCFrameworkGUITests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DMVCFrameworkGUITests:Make">
+        <MSBuild Projects="TestClient\DMVCFrameworkGUITests.dproj" Targets="Make"/>
+    </Target>
     <Target Name="TestServer">
         <MSBuild Projects="TestServer\TestServer.dproj"/>
     </Target>
@@ -36,13 +48,13 @@
         <MSBuild Projects="TestServer\TestServer.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="DMVCFrameworkTests;TestServer"/>
+        <CallTarget Targets="DMVCFrameworkTests;DMVCFrameworkGUITests;TestServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean"/>
+        <CallTarget Targets="DMVCFrameworkTests:Clean;DMVCFrameworkGUITests:Clean;TestServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make"/>
+        <CallTarget Targets="DMVCFrameworkTests:Make;DMVCFrameworkGUITests:Make;TestServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

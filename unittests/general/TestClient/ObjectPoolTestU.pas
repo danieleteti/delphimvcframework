@@ -188,7 +188,7 @@ begin
     TThread.Sleep(100);
   end;
 
-  Assert.AreEqual(POOL_SIZE, lPool.Size);
+  Assert.AreEqual<NativeInt>(POOL_SIZE, lPool.Size);
 end;
 
 procedure TTestTObjectPool.TestNotRaiseExceptionWhenPoolIsEmpty;
