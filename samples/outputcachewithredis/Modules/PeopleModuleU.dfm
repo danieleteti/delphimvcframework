@@ -1,5 +1,4 @@
 object PeopleModule: TPeopleModule
-  OldCreateOrder = True
   Height = 199
   Width = 258
   object qryPeople: TFDQuery

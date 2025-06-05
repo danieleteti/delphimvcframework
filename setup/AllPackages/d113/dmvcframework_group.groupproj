@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{EA879EE4-1245-4456-AED9-57FDF63577E6}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="..\..\lib\swagdoc\Source\SwagDoc.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\..\lib\loggerpro\packages\d113\loggerproRT.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="dmvcframeworkRT.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="dmvcframeworkDT.dproj">
+            <Dependencies>dmvcframeworkRT.dproj</Dependencies>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SwagDoc">
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj"/>
+    </Target>
+    <Target Name="SwagDoc:Clean">
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SwagDoc:Make">
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="loggerproRT">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d113\loggerproRT.dproj"/>
+    </Target>
+    <Target Name="loggerproRT:Clean">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d113\loggerproRT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="loggerproRT:Make">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d113\loggerproRT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="dmvcframeworkRT">
+        <MSBuild Projects="dmvcframeworkRT.dproj"/>
+    </Target>
+    <Target Name="dmvcframeworkRT:Clean">
+        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="dmvcframeworkRT:Make">
+        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="dmvcframeworkDT" DependsOnTargets="dmvcframeworkRT">
+        <MSBuild Projects="dmvcframeworkDT.dproj"/>
+    </Target>
+    <Target Name="dmvcframeworkDT:Clean" DependsOnTargets="dmvcframeworkRT:Clean">
+        <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="dmvcframeworkDT:Make" DependsOnTargets="dmvcframeworkRT:Make">
+        <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SwagDoc;loggerproRT;dmvcframeworkRT;dmvcframeworkDT"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SwagDoc:Clean;loggerproRT:Clean;dmvcframeworkRT:Clean;dmvcframeworkDT:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SwagDoc:Make;loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
