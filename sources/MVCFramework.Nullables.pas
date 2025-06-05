@@ -91,14 +91,10 @@ type
     ///Returns the value stored or else the value passed as parameter if the value is not set
     ///</summary>	
     function ValueOrElse(const ElseValue: T): T;
-
-
-    {$IF Defined(USE_EQUALS)}
     /// <summary>
     /// Returns true is both item have the same value and that value is not null. 
     /// </summary>
-    function Equals(const Value: Nullable<T>): Boolean;
-    {$ENDIF}
+    function Equals(const Value: Nullable<T>): Boolean;    
     ///<summary>
     ///Returns true if the nullable contains a value and returns the contained value in the out Value parameter.
     ///</summary>	
@@ -1648,7 +1644,7 @@ function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
 implementation
 
 uses
-  System.Math, System.DateUtils, System.Types;
+  System.Math, System.DateUtils, System.Types, System.Generics.Defaults;
 
 function DateAreEquals(const DateA, DateB: TDate): Boolean;
 begin
@@ -4787,12 +4783,10 @@ begin
   SetNull;
 end;
 
-{$IF Defined(USE_EQUALS)}
 function Nullable<T>.Equals(const Value: Nullable<T>): Boolean;
 begin
   Result := Self = Value;
 end;
-{$ENDIF}
 
 function Nullable<T>.GetHasValue: Boolean;
 begin
@@ -4833,8 +4827,16 @@ begin
 end;
 
 class operator Nullable<T>.Equal(LeftValue: Nullable<T>; RightValue: Nullable<T>) : Boolean;
+var
+  lComparer: IEqualityComparer<T>;
 begin
-  Result := (LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value));
+  lComparer := TEqualityComparer<T>.Default;
+  if not Assigned(lComparer) then
+  begin
+    raise EMVCNullable.Create('Cannot compare Nullable<T> values without a valid IEqualityComparer<T>.');
+  end;
+  Result := (LeftValue.IsNull and RightValue.IsNull)
+    or ((LeftValue.HasValue and RightValue.HasValue) and lComparer.Equals(LeftValue.Value, RightValue.Value));
 end;
 
 procedure Nullable<T>.SetNull;
