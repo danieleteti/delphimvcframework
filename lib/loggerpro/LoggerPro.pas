@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2024 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -168,6 +168,9 @@ type
 
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
+
+    procedure Disable;
+    procedure Enable;
   end;
 
   TLogAppenderList = TList<ILogAppender>;
@@ -205,7 +208,7 @@ type
         function GetLogLevel: TLogType;
       end;
 
-      TAppenderAdaptersList = class(TObjectList<TAppenderAdapter>)
+      TAppenderAdapterList = class(TObjectList<TAppenderAdapter>)
       public
         constructor Create;
       end;
@@ -215,7 +218,7 @@ type
     FAppenders: TLogAppenderList;
     FEventsHandlers: TLoggerProEventsHandler;
     FAppendersDecorators: TObjectList<TAppenderAdapter>;
-    function BuildAppendersDecorator: TAppenderAdaptersList;
+    function BuildAppenderAdapters: TAppenderAdapterList;
     procedure DoOnAppenderError(const FailAppenderClassName: string; const aFailedLogItem: TLogItem; const aReason: TLogErrorReason;
       var aAction: TLogErrorAction);
     procedure SetEventsHandlers(const Value: TLoggerProEventsHandler);
@@ -244,6 +247,7 @@ type
     FLogLevel: TLogType;
     function GetAppendersClassNames: TArray<string>;
   protected
+    FEnabled: Boolean;
     procedure Initialize(const aEventsHandler: TLoggerProEventsHandler);
   public
     constructor Create(const aLogLevel: TLogType = TLogType.Debug); overload;
@@ -276,6 +280,9 @@ type
     procedure Fatal(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
 
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
+
+    procedure Disable;
+    procedure Enable;
   end;
 
   TOnAppenderLogRow = reference to procedure(const LogItem: TLogItem; out LogRow: string);
@@ -283,16 +290,16 @@ type
   TLoggerProAppenderBase = class abstract(TInterfacedObject, ILogAppender)
   private
     FLogLevel: TLogType;
-    FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
-    FOnLogRow: TOnAppenderLogRow;
-    FLogItemRenderer: ILogItemRenderer;
     FFormatSettings: TFormatSettings;
   protected
+    FOnLogRow: TOnAppenderLogRow;
+    FLogItemRenderer: ILogItemRenderer;
     property FormatSettings: TFormatSettings read FFormatSettings;
     property LogItemRenderer: ILogItemRenderer read FLogItemRenderer;
   public
-    constructor Create(ALogItemRenderer: ILogItemRenderer = nil); virtual;
+    constructor Create(ALogItemRenderer: ILogItemRenderer); overload; virtual;
+    constructor Create; overload; virtual;
     procedure Setup; virtual;
     function FormatLog(const ALogItem: TLogItem): string; virtual;
     procedure WriteLog(const aLogItem: TLogItem); virtual; abstract;
@@ -521,6 +528,7 @@ end;
 constructor TCustomLogWriter.Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug);
 begin
   inherited Create;
+  FEnabled := True;
   FFreeAllowed := False;
   FLogAppenders := aLogAppenders;
   FLogLevel := aLogLevel;
@@ -599,7 +607,7 @@ procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: stri
 var
   lLogItem: TLogItem;
 begin
-  if aType >= FLogLevel then
+  if FEnabled and (aType >= FLogLevel) then
   begin
     lLogItem := TLogItem.Create(aType, aMessage, aTag);
     try
@@ -627,9 +635,19 @@ begin
   Log(TLogType.Debug, aMessage, aParams, aTag);
 end;
 
+procedure TLogWriter.Disable;
+begin
+  fEnabled := False;
+end;
+
 procedure TLogWriter.Error(const aMessage, aTag: string);
 begin
   Log(TLogType.Error, aMessage, aTag);
+end;
+
+procedure TLogWriter.Enable;
+begin
+  fEnabled := True;
 end;
 
 procedure TLogWriter.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
@@ -724,9 +742,9 @@ var
   lAction: TLogErrorAction;
   lWaitResult: TWaitResult;
 begin
-  FAppendersDecorators := BuildAppendersDecorator;
+  FAppendersDecorators := BuildAppenderAdapters;
   try
-    while true do
+    while True do
     begin
       lWaitResult := FQueue.Dequeue(lQSize, lLogItem);
       case lWaitResult of
@@ -785,11 +803,11 @@ begin
   FEventsHandlers := Value;
 end;
 
-function TLoggerThread.BuildAppendersDecorator: TAppenderAdaptersList;
+function TLoggerThread.BuildAppenderAdapters: TAppenderAdapterList;
 var
   I: Integer;
 begin
-  Result := TAppenderAdaptersList.Create;
+  Result := TAppenderAdapterList.Create;
   try
     for I := 0 to FAppenders.Count - 1 do
     begin
@@ -874,7 +892,6 @@ end;
 constructor TLoggerProAppenderBase.Create(aLogItemRenderer: ILogItemRenderer);
 begin
   inherited Create;
-  Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
   if Assigned(aLogItemRenderer) then
   begin
@@ -885,6 +902,11 @@ begin
     Self.FLogItemRenderer := GetDefaultLogItemRenderer;
   end;
   Self.FOnLogRow := nil;
+end;
+
+constructor TLoggerProAppenderBase.Create;
+begin
+  Create(nil);
 end;
 
 function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;
@@ -1057,7 +1079,7 @@ end;
 
 { TLoggerThread.TAppenderAdaptersList }
 
-constructor TLoggerThread.TAppenderAdaptersList.Create;
+constructor TLoggerThread.TAppenderAdapterList.Create;
 begin
   inherited Create(true);
 end;

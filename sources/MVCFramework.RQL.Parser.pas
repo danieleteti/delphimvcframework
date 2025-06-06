@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -77,7 +77,7 @@ type
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
     tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown, tkStarts);
 
-  TRQLValueType = (vtInteger, vtString, vtBoolean, vtNull, vtIntegerArray, vtStringArray);
+  TRQLValueType = (vtNumeric, vtString, vtBoolean, vtNull, vtNumericArray, vtStringArray);
 
   TRQLCustom = class;
 
@@ -202,7 +202,8 @@ type
     procedure SaveCurPos;
     procedure BackToLastPos;
     function C(const LookAhead: UInt8 = 0): Char;
-    function GetToken: TRQLToken;
+    function GetToken(const Consume: Boolean = True): TRQLToken;
+    function LookAheadChar: Char;
     procedure Skip(const Count: UInt8);
     procedure Error(const Message: string);
     function IsLetter(const aChar: Char): Boolean;
@@ -309,13 +310,17 @@ var
   lMsg: string;
 begin
   lMsg := '';
-  for I := 0 to 4 do
+  for I := 0 to 10 do
   begin
-    lMsg := lMsg + IfThen(C(I) = #0, '', C(I));
+    if C(I) = #0 then
+    begin
+      Break;
+    end;
+    lMsg := lMsg + C(I);
   end;
   if lMsg.Trim.IsEmpty then
     lMsg := '<EOF>';
-  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]){$IF DEFINED(MSWINDOWS)} at AddressOfReturnAddress{$ENDIF};
+  raise ERQLException.CreateFmt('[Error] %s (column %d - found "%s...")', [message, fCurIdx, lMsg]){$IF DEFINED(MSWINDOWS)} at AddressOfReturnAddress{$ENDIF};
 end;
 
 procedure TRQL2SQL.Execute(
@@ -346,8 +351,9 @@ begin
   if ParseFilters then
   begin
     fAST.Insert(0, TRQLWhere.Create);
-    if GetToken = tkSemicolon then
+    if GetToken(False) = tkSemicolon then
     begin
+      GetToken(True);
       ParseSortLimit(true, MaxRecordCount);
     end;
   end
@@ -356,7 +362,7 @@ begin
     ParseSortLimit(False, MaxRecordCount);
   end;
   EatWhiteSpaces;
-  if GetToken <> tkEOF then
+  if GetToken(False) <> tkEOF then
     Error('Expected EOF');
 
   // add artificial limit
@@ -385,7 +391,7 @@ begin
 //      fAST.Add(lAlwaysFalse);
 //      lAlwaysFalse.OpLeft := '1';
 //      lAlwaysFalse.OpRight := '2';
-//      lAlwaysFalse.RightValueType := vtInteger;
+//      lAlwaysFalse.RightValueType := vtNumeric;
 //      lAlwaysFalse.Token := tkEq;
 //    end;
 //  end;
@@ -409,7 +415,7 @@ begin
   RQLCompiler.AST2SQL(fAST, SQL);
 end;
 
-function TRQL2SQL.GetToken: TRQLToken;
+function TRQL2SQL.GetToken(const Consume: Boolean): TRQLToken;
 var
   lChar: Char;
 begin
@@ -421,152 +427,177 @@ begin
   end;
   if (lChar = ',') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkComma;
     Exit(fCurrToken);
   end;
   if (lChar = ';') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkSemicolon;
     Exit(fCurrToken);
   end;
   if (lChar = '+') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkPlus;
     Exit(fCurrToken);
   end;
   if (lChar = '"') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkDblQuote;
     Exit(fCurrToken);
   end;
   if (lChar = '''') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkQuote;
     Exit(fCurrToken);
   end;
   if (lChar = '-') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkMinus;
     Exit(fCurrToken);
   end;
   if (lChar = '&') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkAmpersand;
     Exit(fCurrToken);
   end;
   if (lChar = '(') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkOpenPar;
     Exit(fCurrToken);
   end;
   if (lChar = ')') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkClosedPar;
     Exit(fCurrToken);
   end;
   if (lChar = '[') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkOpenBracket;
     Exit(fCurrToken);
   end;
   if (lChar = ']') then
   begin
-    Skip(1);
+    if Consume then
+      Skip(1);
     fCurrToken := tkCloseBracket;
     Exit(fCurrToken);
   end;
   if (lChar = 'e') and (C(1) = 'q') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkEq;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 't') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkLt;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkLe;
     Exit(fCurrToken);
   end;
   if (lChar = 'g') and (C(1) = 't') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkGt;
     Exit(fCurrToken);
   end;
   if (lChar = 'g') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkGe;
     Exit(fCurrToken);
   end;
   if (lChar = 'n') and (C(1) = 'e') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkNe;
     Exit(fCurrToken);
   end;
   if (lChar = 'a') and (C(1) = 'n') and (C(2) = 'd') then
   begin
-    Skip(3);
+    if Consume then
+      Skip(3);
     fCurrToken := tkAnd;
     Exit(fCurrToken);
   end;
   if (lChar = 'o') and (C(1) = 'r') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkOr;
     Exit(fCurrToken);
   end;
   if (lChar = 's') and (C(1) = 'o') and (C(2) = 'r') and (C(3) = 't') then
   begin
-    Skip(4);
+    if Consume then
+      Skip(4);
     fCurrToken := tkSort;
     Exit(fCurrToken);
   end;
   if (lChar = 'l') and (C(1) = 'i') and (C(2) = 'm') and (C(3) = 'i') and (C(4) = 't') then
   begin
-    Skip(5);
+    if Consume then
+      Skip(5);
     fCurrToken := tkLimit;
     Exit(fCurrToken);
   end;
   if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and
     (C(6) = 'n') and (C(7) = 's') then
   begin
-    Skip(8);
+    if Consume then
+      Skip(8);
     fCurrToken := tkContains;
     Exit(fCurrToken);
   end;
   if (lChar = 's') and (C(1) = 't') and (C(2) = 'a') and (C(3) = 'r') and (C(4) = 't') and (C(5) = 's') then
   begin
-    Skip(6);
+    if Consume then
+      Skip(6);
     fCurrToken := tkStarts;
     Exit(fCurrToken);
   end;
   if (lChar = 'i') and (C(1) = 'n') then
   begin
-    Skip(2);
+    if Consume then
+      Skip(2);
     fCurrToken := tkIn;
     Exit(fCurrToken);
   end;
   if (lChar = 'o') and (C(1) = 'u') and (C(2) = 't') then
   begin
-    Skip(3);
+    if Consume then
+      Skip(3);
     fCurrToken := tkOut;
     Exit(fCurrToken);
   end;
@@ -590,6 +621,11 @@ begin
   Result := ((aChar >= 'a') and (aChar <= 'z')) or ((aChar >= 'A') and (aChar <= 'Z'));
 end;
 
+function TRQL2SQL.LookAheadChar: Char;
+begin
+  Result := C(0);
+end;
+
 { eq(<property>,<value>) }
 procedure TRQL2SQL.ParseBinOperator(const aToken: TRQLToken; const aAST: TObjectList<TRQLCustom>);
 var
@@ -600,7 +636,7 @@ var
   lList: TList<string>;
   lArrayValue: TArray<string>;
 begin
-  lValueType := TRQLValueType.vtInteger; // default
+  lValueType := TRQLValueType.vtNumeric; // default
   EatWhiteSpaces;
   if GetToken <> tkOpenPar then
     Error('Expected "("');
@@ -621,6 +657,10 @@ begin
     if not MatchSymbol('"') then
       Error('Unclosed string');
     lValueType := vtString;
+  end
+  else if lToken = tkQuote then {special error case}
+  begin
+    Error('String literals must be enclosed in Double Quotes - HINT: Convert single quotes into double quotes ( '' -> " )');
   end
   else if (aToken in [tkIn, tkOut]) and (lToken = tkOpenBracket) then
   begin
@@ -648,7 +688,7 @@ begin
       end
       else
       begin
-        lValueType := vtIntegerArray;
+        lValueType := vtNumericArray;
         while MatchFieldNumericValue(lFieldValue) do
         begin
           lList.Add(lFieldValue);
@@ -674,7 +714,7 @@ begin
     else if MatchFieldNullValue(lFieldValue) then
       lValueType := vtNull
     else if MatchFieldNumericValue(lFieldValue) then
-      lValueType := vtInteger
+      lValueType := vtNumeric
     else
       Error('Expected numeric, boolean or null value');
   end;
@@ -686,7 +726,7 @@ begin
   lBinOp.Token := aToken;
   lBinOp.OpLeft := lFieldName;
   lBinOp.RightValueType := lValueType;
-  if lBinOp.RightValueType in [vtIntegerArray, vtStringArray] then
+  if lBinOp.RightValueType in [vtNumericArray, vtStringArray] then
     lBinOp.OpRightArray := lArrayValue
   else
     lBinOp.OpRight := lFieldValue;
@@ -774,7 +814,7 @@ begin
   EatWhiteSpaces;
   lLogicOp := TRQLLogicOperator.Create(aToken);
   aAST.Add(lLogicOp);
-  while true do
+  while True do
   begin
     EatWhiteSpaces;
     lToken := GetToken;
@@ -782,6 +822,11 @@ begin
       tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
+          EatWhiteSpaces;
+          if not CharInSet(LookAheadChar, [',',')']) then
+          begin
+            Error('Expected ")" or "," - got "' + LookAheadChar + '"');
+          end;
         end;
       tkAnd, tkOr:
         begin
@@ -987,9 +1032,11 @@ end;
 function TRQL2SQL.MatchFieldNumericValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
+  lHasDot: Boolean;
 begin
   Result := true;
   lFieldValue := '';
+  SaveCurPos;
   lChar := C(0);
 
   if CharInSet(lChar, ['+', '-']) then
@@ -1002,12 +1049,24 @@ begin
   if IsDigit(lChar) then
   begin
     lFieldValue := lFieldValue + lChar;
+    lHasDot := False;
     while true do
     begin
       Skip(1);
       lChar := C(0);
-      if IsDigit(lChar) then
+      if IsDigit(lChar) or (lChar = '.') then
       begin
+        if (lChar = '.') and (lHasDot or (not IsDigit(C(1)))) then
+        begin
+          BackToLastPos;
+          Exit(False);
+        end;
+
+        if (lChar = '.') then
+        begin
+          lHasDot := True;
+        end;
+
         lFieldValue := lFieldValue + lChar;
       end
       else

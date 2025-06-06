@@ -18,22 +18,24 @@ uses
 type
   TMainForm = class(TForm)
     Panel1: TPanel;
-    btnParse: TButton;
+    BtnParse: TButton;
     Panel2: TPanel;
-    mmSQL: TMemo;
+    MmSQL: TMemo;
     Splitter1: TSplitter;
-    lbRQL: TListBox;
+    LbRQL: TListBox;
     Panel3: TPanel;
-    edtExpression: TEdit;
-    btnAdd: TButton;
-    rgBackend: TRadioGroup;
+    EdtExpression: TEdit;
+    BtnAdd: TButton;
+    RgBackend: TRadioGroup;
     Memo1: TMemo;
     Splitter2: TSplitter;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
-    procedure btnAddClick(Sender: TObject);
-    procedure btnParseClick(Sender: TObject);
+    procedure BtnAddClick(Sender: TObject);
+    procedure BtnParseClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure lbRQLClick(Sender: TObject);
+    procedure LbRQLClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     procedure SaveHistory;
   public
@@ -54,47 +56,46 @@ uses
   MVCFramework.RQL.AST2SQLite,
   MVCFramework.RQL.AST2PostgreSQL,
   MVCFramework.RQL.AST2MSSQL,
-  MVCFramework.RQL.AST2MySQL;
+  MVCFramework.RQL.AST2MySQL, System.Generics.Collections;
 
 {$R *.dfm}
 
-
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  lComp: string;
+  LComp: string;
 begin
   if TFile.Exists('rqlhistory.txt') then
   begin
-    lbRQL.Items.LoadFromFile('rqlhistory.txt');
+    LbRQL.Items.LoadFromFile('rqlhistory.txt');
   end;
 
-  rgBackend.Items.Clear;
-  for lComp in TRQLCompilerRegistry.Instance.RegisteredCompilers do
+  RgBackend.Items.Clear;
+  for LComp in TRQLCompilerRegistry.Instance.RegisteredCompilers do
   begin
-    rgBackend.Items.AddObject(lComp, TRQLCompilerRegistry.Instance.GetCompiler(lComp).Create(nil));
+    RgBackend.Items.AddObject(LComp, TRQLCompilerRegistry.Instance.GetCompiler(LComp).Create(nil));
   end;
-  rgBackend.ItemIndex := 0;
+  RgBackend.ItemIndex := 0;
 end;
 
-procedure TMainForm.btnAddClick(Sender: TObject);
+procedure TMainForm.BtnAddClick(Sender: TObject);
 begin
-  if not Trim(edtExpression.Text).IsEmpty then
+  if not Trim(EdtExpression.Text).IsEmpty then
   begin
-    lbRQL.Items.Insert(0, edtExpression.Text);
+    LbRQL.Items.Insert(0, EdtExpression.Text);
     SaveHistory;
   end;
 end;
 
-procedure TMainForm.btnParseClick(Sender: TObject);
+procedure TMainForm.BtnParseClick(Sender: TObject);
 var
-  lParser: TRQL2SQL;
-  lSQL: string;
+  LParser: TRQL2SQL;
+  LSQL: string;
 begin
-  lParser := TRQL2SQL.Create;
+  LParser := TRQL2SQL.Create;
   try
     try
-      lParser.Execute(edtExpression.Text, lSQL, TRQLCompiler(rgBackend.Items.Objects[rgBackend.ItemIndex]));
-      mmSQL.Lines.Text := lSQL;
+      LParser.Execute(EdtExpression.Text, LSQL, TRQLCompiler(RgBackend.Items.Objects[RgBackend.ItemIndex]));
+      MmSQL.Lines.Text := LSQL;
     except
       on E: Exception do
       begin
@@ -102,29 +103,83 @@ begin
       end;
     end;
   finally
-    lParser.Free;
+    LParser.Free;
+  end;
+end;
+
+procedure TMainForm.Button1Click(Sender: TObject);
+var
+  LParser: TRQL2SQL;
+  LSQL: string;
+  LRQLItem: String;
+  LRQLFileContent: TList<String>;
+  LSQLFileContent: TList<String>;
+begin
+  Memo1.Lines.Clear;
+  LRQLFileContent := TList<String>.Create;
+  try
+    LSQLFileContent := TList<String>.Create;
+    try
+      LParser := TRQL2SQL.Create;
+      try
+        try
+          for LRQLItem in LbRQL.Items do
+          begin
+            try
+              LParser.Execute(LRQLItem, LSQL, TRQLCompiler(RgBackend.Items.Objects[RgBackend.ItemIndex]));
+            except
+              on E: Exception do
+              begin
+                LSQL := 'ERROR:' + E.Message;
+              end;
+            end;
+            LRQLFileContent.Add(LRQLItem);
+            LSQLFileContent.Add(LSQL);
+          end;
+          TFile.WriteAllLines(
+            '..\..\..\unittests\general\Several\RQLFixtures\RQL_' + TRQLCompiler(RgBackend.Items.Objects[RgBackend.ItemIndex]).ClassName + '.fixture',
+            LRQLFileContent.ToArray
+            );
+          TFile.WriteAllLines(
+            '..\..\..\unittests\general\Several\RQLFixtures\SQL_' + TRQLCompiler(RgBackend.Items.Objects[RgBackend.ItemIndex]).ClassName + '.fixture',
+            LSQLFileContent.ToArray
+            );
+        except
+          on E: Exception do
+          begin
+            Memo1.Lines.Text := E.Message;
+          end;
+        end;
+      finally
+        LParser.Free;
+      end;
+    finally
+      LSQLFileContent.Free;
+    end;
+  finally
+    LRQLFileContent.Free;
   end;
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
 var
-  i: Integer;
+  I: Integer;
 begin
   SaveHistory;
-  for i := 0 to rgBackend.Items.count - 1 do
+  for I := 0 to RgBackend.Items.Count - 1 do
   begin
-    rgBackend.Items.Objects[i].Free;
+    RgBackend.Items.Objects[I].Free;
   end;
 end;
 
-procedure TMainForm.lbRQLClick(Sender: TObject);
+procedure TMainForm.LbRQLClick(Sender: TObject);
 begin
-  edtExpression.Text := lbRQL.Items[lbRQL.ItemIndex];
+  EdtExpression.Text := LbRQL.Items[LbRQL.ItemIndex];
 end;
 
 procedure TMainForm.SaveHistory;
 begin
-  lbRQL.Items.SaveToFile('rqlhistory.txt');
+  LbRQL.Items.SaveToFile('rqlhistory.txt');
 end;
 
 end.

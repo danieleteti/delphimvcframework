@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2024 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -28,7 +28,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, MVCFramework.Utils;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, MVCFramework.Utils,
+  System.Generics.Collections;
 
 type
   TMainForm = class(TForm)
@@ -69,6 +70,7 @@ type
     procedure btnMap2ArrayClick(Sender: TObject);
     procedure btnFilterEnumerableClick(Sender: TObject);
   private
+    function GetFormButtons(): TList<TButton>;
     procedure FillList(Data: TArray<String>; AStrings: TStrings); overload;
     procedure FillList(Data: TArray<Integer>; AStrings: TStrings); overload;
   public
@@ -80,41 +82,21 @@ var
 
 implementation
 
-uses
-  System.Generics.Collections;
-
 {$R *.dfm}
 
+const
+  STRINGS_ARRAY: TArray<String> = ['daniele',
+                                     'debora',
+                                     'mattia',
+                                     'jake',
+                                     'amy',
+                                     'george',
+                                     'joseph',
+                                     'katrine',
+                                     'max',
+                                     'mary'];
 
-function GetIntArrayOfData: TArray<Integer>;
-begin
-  SetLength(Result, 10);
-  Result[0] := 1;
-  Result[1] := 2;
-  Result[2] := 3;
-  Result[3] := 4;
-  Result[4] := 5;
-  Result[5] := 6;
-  Result[6] := 7;
-  Result[7] := 8;
-  Result[8] := 9;
-  Result[9] := 10;
-end;
-
-function GetStringArrayOfData: TArray<String>;
-begin
-  SetLength(Result, 10);
-  Result[0] := 'daniele';
-  Result[1] := 'debora';
-  Result[2] := 'mattia';
-  Result[3] := 'jake';
-  Result[4] := 'amy';
-  Result[5] := 'george';
-  Result[6] := 'joseph';
-  Result[7] := 'katrine';
-  Result[8] := 'max';
-  Result[9] := 'mary';
-end;
+  INTEGERS_ARRAY: TArray<Integer> = [1,2,3,4,5,6,7,8,9,10];
 
 function GetComponentArrayOfData(const Form: TForm): TArray<TComponent>;
 begin
@@ -130,15 +112,14 @@ end;
 
 procedure TMainForm.btnFilterBetwenClick(Sender: TObject);
 var
-  InputData, OutputData: TArray<Integer>;
+  OutputData: TArray<Integer>;
   FilterFunc: TPredicateClosure<Integer>;
 begin
-  InputData := GetIntArrayOfData;
   FilterFunc := function(const Item: Integer): boolean
     begin
       Result := (Item > 2) and (Item < 8)
     end;
-  OutputData := HigherOrder.Filter<Integer>(InputData, FilterFunc);
+  OutputData := HigherOrder.Filter<Integer>(INTEGERS_ARRAY, FilterFunc);
   FillList(OutputData, lbFilter.Items);
 end;
 
@@ -148,12 +129,12 @@ var
   Names: TArray<String>;
 begin
   InputData := GetComponentArrayOfData(Self);
-  OutputData := HigherOrder.Filter<TComponent>(InputData,
+  OutputData := _.Filter<TComponent>(InputData,
     function(const Item: TComponent): Boolean
     begin
       Result := Item is TButton;
     end);
-  Names := HigherOrder.Map<TComponent, String>(OutputData,
+  Names := _.Map<TComponent, String>(OutputData,
     function(const Item: TComponent): String
     begin
       Result := Item.Name;
@@ -162,48 +143,42 @@ begin
 end;
 
 procedure TMainForm.btnFilterEvenClick(Sender: TObject);
-var
-  InputData, OutputData: TArray<Integer>;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Filter<Integer>(InputData,
+  var lOutputData := _.Filter<Integer>([1,2,3,4,5,6,7,8,9,10],
     function(const Item: Integer): boolean
     begin
       Result := Item mod 2 = 0;
     end);
-  FillList(OutputData, lbFilter.Items);
+  FillList(lOutputData, lbFilter.Items);
 end;
 
 procedure TMainForm.btnFilterOddClick(Sender: TObject);
 var
-  InputData, OutputData: TArray<Integer>;
+  OutputData: TArray<Integer>;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Filter<Integer>(InputData,
-    function(const Item: Integer): boolean
-    begin
-      Result := Item mod 2 > 0;
-    end);
+  OutputData := _.Filter<Integer>(INTEGERS_ARRAY, function(const Item: Integer): boolean
+                                                  begin
+                                                    Result := Item mod 2 > 0;
+                                                  end);
   FillList(OutputData, lbFilter.Items);
 end;
 
 procedure TMainForm.btnForEachWithExceptionClick(Sender: TObject);
 begin
   lbForEach.Clear;
-  HigherOrder.ForEach<Integer>(GetIntArrayOfData,
-    procedure(const Item: Integer)
-    begin
-      if Item = 5 then
-      begin
-        raise Exception.Create('This is an error!');
-      end;
-    end);
+  _.ForEach<Integer>(INTEGERS_ARRAY, procedure(const Item: Integer)
+                                     begin
+                                       if Item = 5 then
+                                       begin
+                                         raise Exception.Create('This is an error!');
+                                       end;
+                                     end);
 end;
 
 procedure TMainForm.btnJustLoopClick(Sender: TObject);
 begin
   lbForEach.Clear;
-  HigherOrder.ForEach<String>(GetStringArrayOfData,
+  _.ForEach<String>(['daniele','debora','mattia','jake','amy'],
     procedure(const Item: String)
     begin
       lbForEach.Items.Add(Item);
@@ -221,7 +196,7 @@ begin
     lInput[I-1] := I * 10;
   end;
 
-  var lListOfStr := HigherOrder.Map<Integer, String>(
+  var lListOfStr := _.Map<Integer, String>(
     lInput, function(const Item: Integer): String
             begin
               Result := '**' + Item.ToString;
@@ -232,17 +207,9 @@ end;
 procedure TMainForm.btnMap2Click(Sender: TObject);
 begin
   lbMap.Clear;
-  var lList := TList<TButton>.Create;
+  var lList := GetFormButtons();
   try
-    for var lControl in Self.GetControls([ceftEnabled]) do
-    begin
-      if lControl is TButton then
-      begin
-        lList.Add(TButton(lControl));
-      end;
-    end;
-
-    var lListOfStr := HigherOrder.Map<TButton, String>(
+    var lListOfStr := _.Map<TButton, String>(
       lList, function(const Item: TButton): String
              begin
                Result := String(Item.Caption).ToUpper;
@@ -255,89 +222,73 @@ end;
 
 procedure TMainForm.btnMapAddStarsClick(Sender: TObject);
 var
-  InputData, OutputData: TArray<string>;
+  OutputData: TArray<string>;
 begin
-  InputData := GetStringArrayOfData;
-  OutputData := HigherOrder.Map<String>(InputData,
-    function(const Item: String): String
-    begin
-      Result := '*' + Item + '*';
-    end);
+  OutputData := _.Map<String>(STRINGS_ARRAY, function(const Item: String): String
+                                               begin
+                                                 Result := '*' + Item + '*';
+                                               end);
   FillList(OutputData, lbMap.Items);
 end;
 
 procedure TMainForm.btnMapCapitalizeClick(Sender: TObject);
 var
-  InputData, OutputData: TArray<string>;
+  OutputData: TArray<string>;
 begin
-  InputData := GetStringArrayOfData;
-  OutputData := HigherOrder.Map<string>(InputData,
-    function(const Item: String): String
-    begin
-      Result := String(Item.Chars[0]).ToUpper + Item.Substring(1);
-    end);
+  OutputData := _.Map<string>(STRINGS_ARRAY, function(const Item: String): String
+                                             begin
+                                               Result := String(Item.Chars[0]).ToUpper + Item.Substring(1);
+                                             end);
   FillList(OutputData, lbMap.Items);
 end;
 
 procedure TMainForm.btnReduceMaxClick(Sender: TObject);
 var
-  InputData: TArray<Integer>;
   OutputData: Integer;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Reduce<Integer>(InputData,
-    function(const Item1, Item2: Integer): Integer
-    begin
-      if Item1 > Item2 then
-        Exit(Item1)
-      else
-        Exit(Item2);
-    end, 0);
+  OutputData := _.Reduce<Integer>(INTEGERS_ARRAY, function(const Item1, Item2: Integer): Integer
+                                                  begin
+                                                    if Item1 > Item2 then
+                                                      Exit(Item1)
+                                                    else
+                                                      Exit(Item2);
+                                                  end, 0);
   lbReduce.Items.Add('MAX: ' + OutputData.ToString);
 end;
 
 procedure TMainForm.btnReduceMinClick(Sender: TObject);
 var
-  InputData: TArray<Integer>;
   OutputData: Integer;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Reduce<Integer>(InputData,
-    function(const Item1, Item2: Integer): Integer
-    begin
-      if Item1 < Item2 then
-        Exit(Item1)
-      else
-        Exit(Item2);
-    end, MaxInt);
+  OutputData := _.Reduce<Integer>(INTEGERS_ARRAY, function(const Item1, Item2: Integer): Integer
+                                                  begin
+                                                    if Item1 < Item2 then
+                                                      Exit(Item1)
+                                                    else
+                                                      Exit(Item2);
+                                                  end, MaxInt);
   lbReduce.Items.Add('MIN: ' + OutputData.ToString);
 end;
 
 procedure TMainForm.btnReduceMulClick(Sender: TObject);
 var
-  InputData: TArray<Integer>;
   OutputData: Integer;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Reduce<Integer>(InputData,
-    function(const Item1, Item2: Integer): Integer
-    begin
-      Result := Item1 * Item2;
-    end, 1);
+  OutputData := _.Reduce<Integer>(INTEGERS_ARRAY, function(const Item1, Item2: Integer): Integer
+                                                  begin
+                                                    Result := Item1 * Item2;
+                                                  end, 1);
   lbReduce.Items.Add('MUL: ' + OutputData.ToString);
 end;
 
 procedure TMainForm.btnReduceSumClick(Sender: TObject);
 var
-  InputData: TArray<Integer>;
   OutputData: Integer;
 begin
-  InputData := GetIntArrayOfData;
-  OutputData := HigherOrder.Reduce<Integer>(InputData,
-    function(const Item1, Item2: Integer): Integer
-    begin
-      Result := Item1 + Item2;
-    end, 0);
+  OutputData := _.Reduce<Integer>(INTEGERS_ARRAY, function(const Item1, Item2: Integer): Integer
+                                                  begin
+                                                    Result := Item1 + Item2;
+                                                  end, 0);
   lbReduce.Items.Add('SUM: ' + OutputData.ToString);
 end;
 
@@ -350,6 +301,18 @@ begin
     AStrings.Add(lItem.ToString);
 end;
 
+
+function TMainForm.GetFormButtons: TList<TButton>;
+begin
+  Result := TList<TButton>.Create;
+  for var lControl in GetControls([ceftEnabled]) do
+  begin
+    if lControl is TButton then
+    begin
+      Result.Add(TButton(lControl));
+    end;
+  end;
+end;
 
 procedure TMainForm.FillList(Data: TArray<String>; AStrings: TStrings);
 var

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -637,8 +637,19 @@ begin
     begin
       lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
         TRttiDynamicArrayType(lProp.PropertyType).ElementType));
+
       if Assigned(lJsonFieldClass) then
-        TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+      begin
+        if lJsonFieldClass.InheritsFrom(TJsonFieldObject) then
+        begin
+          lClass := TRttiDynamicArrayType(lProp.PropertyType).ElementType.AsInstance.MetaclassType;
+          lJsonFieldObject := TJsonFieldObject.Create;
+          ExtractJsonSchemaFromClass(lJsonFieldObject, lClass, aHTTPMethod, aIsResponseSchema);
+          TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+        end
+        else
+          TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+      end;
     end
     else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
     begin

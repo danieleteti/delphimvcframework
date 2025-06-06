@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -148,23 +148,12 @@ var
   lCacheItem: TMVCLRUCacheItem;
 begin
   Result := Contains(Key, lItemIndex);
-  if Result { and (lItemIndex <> 0) } then
+  if Result then
   begin
     if lItemIndex > 0 then
     begin
       fCache.Exchange(lItemIndex, 0);
     end;
-    //
-    //
-    // if lItemIndex = 0 then
-    // begin
-    // lCacheItem := fCache[0];
-    // end
-    // else
-    // begin
-    // lCacheItem := fCache.Extract(fCache[lItemIndex]);
-    // fCache.Insert(0, lCacheItem);
-    // end;
     lCacheItem := fCache[0];
     Item := lCacheItem.Value;
   end;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -65,7 +65,7 @@ class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const APersonality:
 begin
   RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint,
     sNewDMVCUnitCaption, 'DMVC.Wizard.NewUnitWizard', // do not localize
-    'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+    'DelphiMVCFramework', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
       WizardForm: TfrmDMVCNewUnit;
@@ -92,7 +92,7 @@ begin
         WizardForm.Free;
       end;
     end,
-    function: Cardinal
+    function: {$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}
     begin
       Result := LoadIcon(HInstance, 'DMVCNewUnitIcon');
     end, TArray<string>.Create(cWin32Platform, cWin64Platform

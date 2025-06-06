@@ -17,6 +17,9 @@ var
 begin
   lLog := BuildLogWriter([TLoggerProSimpleConsoleAppender.Create]);
 
+  //Use the following line to enable LogFmt log format
+  //lLog := BuildLogWriter([TLoggerProSimpleConsoleLogFmtAppender.Create]);
+
   Setlength (lTasks, MAX_TASK);
   for var i := 0 to MAX_TASK - 1 do begin
     lTasks[i] := TTask.Create(procedure

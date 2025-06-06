@@ -1,0 +1,43 @@
+﻿[Messages]
+FinishedHeadingLabel=Completant la instal·lació de [name]
+FinishedLabel=La instal·lació ha finalitzat l'instal·lació de [name] al seu ordinador.
+SetupWindowTitle=Instal·lació de %1
+WelcomeLabel1=Instal·lació de [name]
+WelcomeLabel2=Aquest programa instal·larà la biblioteca [name/ver] al seu ordinador.
+
+[CustomMessages]
+DotNet35NotFound=No s'ha trobat Microsoft .NET Framework 3.5 SP1.
+DotNet45NotFound=No s'ha trobat Microsoft .NET Framework 4.5.
+RADStudioBuildBuildingFor=Generant per %1 - %2...
+RADStudioBuildErrorBuilding=Error de compilació per %1 (codi %2).
+RADStudioBuildErrorCantFoundRSVars=No es pot trobar el fitxer rsvars "%1" de %2.
+RADStudioBuildErrorNotSupportCommandLineBuild=%1 no admet la compilació des de línia de comandaments. Cal instal·lar manualment la biblioteca.
+RADStudioProjectErrorParsingGroupProject=Error en analitzar el projecte de grup "%1" (codi %2, línia %3, posició %4, missatge "%5").
+RADStudioProjectErrorParsingProject=Error en analitzar el projecte "%1" (codi %2, línia %3, posició %4, missatge "%5").
+RADStudioProjectErrorParsingProjectUnknownPersonality=Error en analitzar el projecte "%1" (text %2, missatge "Personalitat desconeguda").
+RADStudioProjectErrorUnexpectedParsingGroupProject=Error inesperat en analitzar el projecte de grup "%1" (missatge "%2").
+RADStudioProjectErrorUnexpectedParsingProject=Error inesperat en analitzar el projecte "%1" (missatge "%2").
+RADStudioUnknownVersionName=Nom desconegut
+SetupMainCouldNotDetectProjectBplOutputFileName=No s'ha pogut detectar el nom del fitxer Bpl generat pel projecte "%1" de %2.
+SetupMainCouldNotUninstallDetectedVersion=No s'han pogut desinstal·lar altres versions de %1 detectades al sistema.
+SetupMainCouldNotUninstallPackages=No s'han pogut desinstal·lar els Packages.
+SetupMainErrorFailedToGetGroupProjects=No s'han pogut obtenir els fitxers de projectes de grup.
+SetupMainErrorNoRADStudioVersionAvailable=No hi ha cap versió de RAD Studio disponible al sistema per a la instal·lació.
+SetupMainFailedToInstallPackage=No s'ha pogut instal·lar el Package "%1" a %2 (codi %3)
+SetupMainFailedToUninstallPackage=No s'ha pogut desinstal·lar el Package "%1" a %2 (codi %3)
+SetupMainInstallAbortedToCloseRADStudioInstance=Si us plau, tanqui RAD Studio abans d'intentar la instal·lació. Si ja l'ha tancat, esperi una mica i torni-ho a intentar.
+SetupMainInstallationSuccesfullyRestartRADStudio=Instal·lació completada. Reiniciï RAD Studio.
+SetupMainInstallingPackages=Instal·lant Packages...
+SetupMainRevertingPackagesInstallationAfterFailure=Revertint la instal·lació de Packages després d'un error...
+SetupMainUninstallAbortedToCloseRADStudioInstance=Desinstal·lació cancel·lada! Tanqui totes les instàncies de RAD Studio abans de desinstal·lar.
+SetupMainUninstallingDetectedVersion=Desinstal·lant altres versions...
+SetupMainUninstallingFromGetIt=Desinstal·lant des de GetIt...
+SetupMainUninstallingPackages=Desinstal·lant Packages...
+SetupOpenSamplesFolder=Obre la carpeta d'exemples
+SetupPagesNoneRADStudioVersionsSelectedMessage=No ha escollit cap versió de RAD Studio i, si continua, només s'extrauran els fitxers. Vol continuar?
+SetupPagesRADStudioVersionsChoiceAlertNeedOpenFirst=Cal obrir-lo primer
+SetupPagesRADStudioVersionsChoiceMessage=Seleccioni les versions de RAD Studio per a les quals vol instal·lar %1
+SetupPagesRADStudioVersionsChoiceTitle=Trieu RAD Studio
+SetupPagesRADStudioVersionsChoiceUnofficialSupport=Suport no oficial
+SetupUtilsPleaseReportThiIssue=%n%nSi us plau, informi d'aquest problema.
+SetupViewOnlineDocumentation=Veure documentació en línia

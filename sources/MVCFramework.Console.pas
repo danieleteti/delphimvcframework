@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -90,6 +90,7 @@ procedure SetBackgroundAttr(const BackgroundAttr: Word);
 procedure HideCursor;
 procedure ShowCursor;
 procedure CenterInScreen(const Text: String);
+function KeyPressed: boolean;
 
 
 function ColorName(const color: TConsoleColor): String;
@@ -109,6 +110,7 @@ var
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
+  hConsoleInput: THandle;
 
 
 
@@ -119,6 +121,11 @@ end;
 
 
 {$IFDEF LINUX}
+function KeyPressed: boolean;
+begin
+
+end;
+
 procedure HideCursor;
 begin
 
@@ -184,12 +191,28 @@ begin
     raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
 end;
 
+procedure KeyInit;
+var
+  mode: DWORD;
+begin
+  // get input file handle
+  Reset(Input);
+  GInputHandle := TTextRec(Input).Handle;
+
+  // checks/sets so mouse input does not work
+  SetActiveWindow(0);
+  GetConsoleMode(hConsoleInput, mode);
+  if (mode and ENABLE_MOUSE_INPUT) = ENABLE_MOUSE_INPUT then
+    SetConsoleMode(hConsoleInput, mode xor ENABLE_MOUSE_INPUT);
+end;
+
 procedure Init;
 begin
   if not GIsConsoleAllocated then
   begin
     TMonitor.Enter(GLock);
     try
+      KeyInit;
       if not GIsConsoleAllocated then
       begin
         // Attempt to attach to the parent (if there is already a console allocated)
@@ -207,6 +230,14 @@ begin
       TMonitor.Exit(GLock);
     end;
   end;
+end;
+
+function KeyPressed: boolean;
+var
+  NumberOfEvents: DWORD;
+begin
+  GetNumberOfConsoleInputEvents(hConsoleInput, NumberOfEvents);
+  Result := NumberOfEvents > 0;
 end;
 
 procedure InternalShowCursor(const ShowCursor: Boolean);
@@ -366,7 +397,7 @@ end;
 
 procedure SetDefaultColors;
 begin
-  GForeGround := Ord(TConsoleColor.DarkGray);
+  GForeGround := Ord(TConsoleColor.Gray);
   GBackGround := Ord(TConsoleColor.Black);
   UpdateMode;
 end;

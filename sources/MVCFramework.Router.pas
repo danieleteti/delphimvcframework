@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -486,7 +486,7 @@ var
   FoundOneAttProduces: Boolean;
 begin
   Result := False;
-  if AAccept.Contains('*/*') then // 2020-08-08
+  if AAccept.IsEmpty or AAccept.Contains('*/*') then // 2020-08-08, 2025-04-17
   begin
     Exit(True);
   end;

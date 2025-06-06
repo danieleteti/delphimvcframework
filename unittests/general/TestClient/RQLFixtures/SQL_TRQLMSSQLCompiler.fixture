@@ -1,0 +1,61 @@
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ERROR:[Error] Expected EOF (column 19 - found "eq(billing_...")
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ WHERE ((City = 'Rome') and ((LOWER(CompanyName) LIKE '%gas%') or (LOWER(CompanyName) LIKE '%motors%'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (LOWER(nome) LIKE 'j%') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (name NOT IN ('daniele','scott')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value NOT IN (1,2,3)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Marca d''água') and (LOWER(nome) LIKE '%marca d''água%') and (nome IN ('Marca','D''água'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Marca d''água') and (LOWER(nome) LIKE '%marca d''água%')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IS NOT NULL) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IS NULL) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value = 0) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value = 1) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN (1,2,3)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN (1,2,3)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN ()) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN (1,2,3)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (name IN ('daniele','scott')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((owneruserid = '%s') and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((owneruserid = 1) and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((name = 'João') and (codperson IN (1,2,3))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (codperson IN (1,2,3)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (name = -1) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (LOWER(nome) LIKE '%joão%') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ /*sort*/ ORDER BY last_name ASC /*limit*/ OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+ /*limit*/ OFFSET 1 ROWS FETCH NEXT 5 ROWS ONLY
+ /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ERROR:[Error] Expected "sort" and/or "limit" (column 18 - found "<EOF>...")
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*sort*/ ORDER BY nome DESC /*limit*/ OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY
+ WHERE (nome >= 'pi\ppo') /*limit*/ OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+ERROR:[Error] Expected EOF (column 27 - found "*/...")
+ WHERE (nome >= 'hello world') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (nome >= '') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (nome >= 'pi\ppo') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ /*sort*/ ORDER BY nome ASC /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (valore <= 4) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (nome >= 'pippo') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (nome != 4) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (valore = 4) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (valore < 3) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (nome = 'Daniele') /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value = 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value < 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value > 1.23) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ WHERE (value IN (1.23,2.34,3.45)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1..23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1...23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2.3)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2..3)...")
+ WHERE ((value >= 1.23) and (value <= 5.98)) /*limit*/ OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+ERROR:[Error] Unclosed bracket (column 15 - found "2..34,3.45]...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found ".23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.)...")

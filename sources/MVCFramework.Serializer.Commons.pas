@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1405,7 +1405,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableString>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableString>(nil));
     end
     else
     begin

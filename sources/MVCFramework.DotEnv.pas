@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -45,7 +45,9 @@ type
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    function Env(const Name: string; const DefaultValue: Double): Double; overload;
     procedure RequireKeys(const Keys: TArray<String>);
+    procedure Rebuild;
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
   end;
@@ -78,7 +80,7 @@ var
 
 type
 {$SCOPEDENUMS ON}
-  TdotEnvEngineState = (created, building, built);
+  TdotEnvEngineState = (Created, Building, Built);
   TMVCDotEnv = class(TInterfacedObject, IMVCDotEnv, IMVCDotEnvBuilder)
   strict private
     fState: TdotEnvEngineState;
@@ -94,8 +96,11 @@ type
     function GetBuiltInVariable(const VarName: String; out Value: String): Boolean;
     function ExplodePlaceholders(const Value: string): string;
     procedure PopulateDictionary(const EnvDict: TDictionary<string, string>; const EnvFilePath: String);
-    procedure CheckAlreadyBuilt;
+    procedure CheckMustNotBeAlreadyBuilt;
+    procedure CheckMustBeAlreadyBuilt;
     procedure ExplodeReferences;
+  private
+    fDotEnvDirectory: string;
   strict protected
     function UseStrategy(const Priority: TMVCDotEnvPriority = TMVCDotEnvPriority.EnvThenFile): IMVCDotEnvBuilder; overload;
     function SkipDefaultEnv: IMVCDotEnvBuilder;
@@ -104,10 +109,12 @@ type
     function UseLogger(const LoggerProc: TProc<String>): IMVCDotEnvBuilder;
     function ClearProfiles: IMVCDotEnvBuilder;
     function Build(const DotEnvDirectory: string = ''): IMVCDotEnv; overload;
+    procedure Rebuild;
     function Env(const Name: string): string; overload;
     function Env(const Name: string; const DefaultValue: String): string; overload;
     function Env(const Name: string; const DefaultValue: Integer): Integer; overload;
     function Env(const Name: string; const DefaultValue: Boolean): Boolean; overload;
+    function Env(const Name: string; const DefaultValue: Double): Double; overload;
     procedure RequireKeys(const Keys: TArray<String>);
     function SaveToFile(const FileName: String): IMVCDotEnv;
     function ToArray(): TArray<String>;
@@ -154,10 +161,7 @@ function TMVCDotEnv.Env(const Name: string): string;
 var
   lTmp: String;
 begin
-  if fState = TdotEnvEngineState.created then
-  begin
-    raise EMVCDotEnv.Create('dotEnv Engine not built');
-  end;
+  CheckMustBeAlreadyBuilt;
 
   if fPriority in [TMVCDotEnvPriority.FileThenEnv, TMVCDotEnvPriority.OnlyFile] then
   begin
@@ -217,21 +221,21 @@ end;
 function TMVCDotEnv.UseProfile(
   const ProfileDelegate: TFunc<String>): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Add(ProfileDelegate());
   Result := Self;
 end;
 
 function TMVCDotEnv.UseProfile(const ProfileName: String): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Add(ProfileName);
   Result := Self;
 end;
 
 function TMVCDotEnv.UseStrategy(const Priority: TMVCDotEnvPriority): IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   Result := Self;
   fPriority := Priority;
 end;
@@ -244,6 +248,7 @@ begin
   begin
     raise EMVCDotEnv.Create('dotEnv engine already built');
   end;
+  fDotEnvDirectory := DotEnvDirectory;
   fState := TdotEnvEngineState.building;
   Result := Self;
   fEnvPath := TDirectory.GetParent(GetModuleName(HInstance));
@@ -265,17 +270,25 @@ begin
   fState := TdotEnvEngineState.built;
 end;
 
-procedure TMVCDotEnv.CheckAlreadyBuilt;
+procedure TMVCDotEnv.CheckMustBeAlreadyBuilt;
 begin
-  if fState in [TdotEnvEngineState.built] then
+  if not (fState in [TdotEnvEngineState.Built, TdotEnvEngineState.Building]) then
   begin
-    raise Exception.Create('DotEnv Engine Already Built');
+    raise Exception.Create('dotEnv Engine is not built yet');
+  end;
+end;
+
+procedure TMVCDotEnv.CheckMustNotBeAlreadyBuilt;
+begin
+  if fState = TdotEnvEngineState.Built then
+  begin
+    raise Exception.Create('dotEnv Engine Already Built');
   end;
 end;
 
 function TMVCDotEnv.ClearProfiles: IMVCDotEnvBuilder;
 begin
-  CheckAlreadyBuilt;
+  CheckMustNotBeAlreadyBuilt;
   fProfiles.Clear;
   Result := Self;
 end;
@@ -484,6 +497,17 @@ begin
   end;
 end;
 
+procedure TMVCDotEnv.Rebuild;
+begin
+  if fState <> TdotEnvEngineState.Built then
+  begin
+    raise EMVCDotEnv.Create('Cannot rebuild a not-build dotEnv engine');
+  end;
+  fState := TdotEnvEngineState.created;
+  DoLog('Rebuilding dotEnv');
+  Build(fDotEnvDirectory);
+end;
+
 procedure TMVCDotEnv.RequireKeys(const Keys: TArray<String>);
 var
   lKey: String;
@@ -514,6 +538,21 @@ end;
 function NewDotEnv: IMVCDotEnvBuilder;
 begin
   Result := TMVCDotEnv.Create;
+end;
+
+function TMVCDotEnv.Env(const Name: string; const DefaultValue: Double): Double;
+var
+  lTmp: String;
+begin
+  lTmp := Env(Name);
+  if lTmp.IsEmpty then
+  begin
+    Result := DefaultValue;
+  end
+  else
+  begin
+    Result := StrToFloat(lTmp, TFormatSettings.Create('en-US'));
+  end;
 end;
 
 end.

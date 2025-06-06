@@ -1,6 +1,6 @@
 // ***************************************************************************
 //
-// Copyright (c) 2016-2024 Daniele Teti
+// Copyright (c) 2016-2025 Daniele Teti
 //
 // https://github.com/danieleteti/templatepro
 //
@@ -35,7 +35,7 @@ uses
   Data.DB;
 
 const
-  TEMPLATEPRO_VERSION = '0.7.2';
+  TEMPLATEPRO_VERSION = '0.7.3';
 
 type
   ETProException = class(Exception)
@@ -73,6 +73,10 @@ const
   STR_END_OF_LAYOUT = 'end_of_layout';
 
 type
+{$IF not defined(RIOORBETTER)}
+  PValue = ^TValue;
+{$ENDIF}
+
   TFilterParameterType = (fptInteger, fptFloat, fptString, fptVariable);
   TFilterParameterTypes = set of TFilterParameterType;
 
@@ -164,8 +168,9 @@ type
     DataSourceName: String;
     LoopExpression: String;
     FullPath: String;
-    IteratorName: String;
     IteratorPosition: Integer;
+    IteratorName: String;
+    EOF: Boolean;
     function IncrementIteratorPosition: Integer;
     constructor Create(DataSourceName: String; LoopExpression: String; FullPath: String; IteratorName: String);
   end;
@@ -183,6 +188,7 @@ type
     fTemplateAnonFunctions: TDictionary<string, TTProTemplateAnonFunction>;
     fLoopsStack: TObjectList<TLoopStackItem>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
+    function IsNullableType(const Value: PValue): Boolean;
     procedure InitTemplateAnonFunctions; inline;
     function PeekLoop: TLoopStackItem;
     procedure PopLoop;
@@ -194,7 +200,8 @@ type
     procedure Error(const aMessage: String; const Params: array of const); overload;
     function IsTruthy(const Value: TValue): Boolean;
     function GetVarAsString(const Name: string): string;
-    function GetTValueVarAsString(const Value: PValue; const VarName: string = ''): String;
+    function GetTValueVarAsString(const Value: PValue; out WasNull: Boolean; const VarName: string = ''): String;
+    function GetTValueWithNullableTypeAsString(const Value: PValue; out WasNull: Boolean; const VarName: string = ''): String;
     function GetNullableTValueAsTValue(const Value: PValue; const VarName: string = ''): TValue;
     function GetVarAsTValue(const aName: string): TValue;
     function GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
@@ -289,6 +296,7 @@ type
 function HTMLEncode(s: string): string;
 function HandleTemplateSectionStateMachine(const aTokenValue1: String; var aTemplateSectionType: TTProTemplateSectionType;
   out aErrorMessage: String): Boolean;
+function GetTValueFromPath(const aObject: TObject; FullPropertyPath: String): TValue;
 
 implementation
 
@@ -361,7 +369,7 @@ var
   lInt64Value: Int64;
   lStrValue: string;
   lExtendedValue: Extended;
-  lValue: TValue;
+  lValue, lTmp: TValue;
   function GetComparandResultStr(const aComparandType: TComparandType; const aLeftValue, aRightValue: String): TValue;
   begin
     case aComparandType of
@@ -397,10 +405,21 @@ begin
           raise ETProRenderException.Create('Invalid type for comparand');
         end;
         if aParameters[0].ParType = fptInteger then
+        begin
           lInt64Value := aParameters[0].ParIntValue
+        end
         else
         begin
-          lInt64Value := GetVarAsTValue(aParameters[0].ParStrText).AsInt64;
+          lTmp := GetVarAsTValue(aParameters[0].ParStrText);
+          if IsNullableType(@lTmp) then
+          begin
+            lTmp := GetNullableTValueAsTValue(@lTmp);
+            if lTmp.IsEmpty then
+            begin
+              Exit(False);
+            end;
+          end;
+          lInt64Value := lTmp.AsInt64;
         end;
 
         case aComparandType of
@@ -552,7 +571,7 @@ begin
       Result := lField.AsDateTime;
     ftBoolean:
       Result := lField.AsBoolean;
-    ftFMTBcd:
+    ftFMTBcd, ftBcd:
       Result := TValue.From<TBCD>(lField.AsBCD);
   else
     Error('Invalid data type for field "%s": %s', [FieldName, TRttiEnumerationType.GetName<TFieldType>(lField.DataType)]);
@@ -696,21 +715,14 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.GetTValueVarAsString(const Value: PValue; const VarName: string): String;
+function TTProCompiledTemplate.GetTValueVarAsString(const Value: PValue; out WasNull: Boolean; const VarName: string): String;
 var
   lIsObject: Boolean;
   lAsObject: TObject;
-  lNullableInt32: NullableInt32;
-  lNullableUInt32: NullableUInt32;
-  lNullableInt16: NullableInt16;
-  lNullableUInt16: NullableUInt16;
-  lNullableInt64: NullableInt64;
-  lNullableUInt64: NullableUInt64;
-  lNullableCurrency: NullableCurrency;
-  lNullableBoolean: NullableBoolean;
-  lNullableTDate: NullableTDate;
-  lNullableTTime: NullableTTime;
-  lNullableTDateTime: NullableTDateTime;
+  lVarName: string;
+  lVarMember: string;
+  lTmp: TValue;
+  lIsNull: Boolean;
 begin
   if Value.IsEmpty then
   begin
@@ -732,87 +744,31 @@ begin
     else if lAsObject is TJsonBaseObject then
       Result := TJsonBaseObject(lAsObject).ToJSON()
     else
+    begin
+      SplitVariableName(VarName, lVarName, lVarMember);
+      if lVarMember.IsEmpty then
+      begin
       Result := lAsObject.ToString;
   end
   else
   begin
-    if (Value.TypeInfo.Kind = tkRecord) and String(Value.TypeInfo.Name).StartsWith('nullable', True) then
-    begin
-      Result := '';
-      if Value.TypeInfo = TypeInfo(NullableInt32) then
-      begin
-        lNullableInt32 := Value.AsType<NullableInt32>;
-        if lNullableInt32.HasValue then
-          Result := lNullableInt32.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableUInt32) then
-      begin
-        lNullableUInt32 := Value.AsType<NullableUInt32>;
-        if lNullableUInt32.HasValue then
-          Result := lNullableUInt32.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableInt16) then
-      begin
-        lNullableInt16 := Value.AsType<NullableInt16>;
-        if lNullableInt16.HasValue then
-          Result := lNullableInt16.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableUInt16) then
-      begin
-        lNullableUInt16 := Value.AsType<NullableUInt16>;
-        if lNullableUInt16.HasValue then
-          Result := lNullableUInt16.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableInt64) then
-      begin
-        lNullableInt64 := Value.AsType<NullableInt64>;
-        if lNullableInt64.HasValue then
-          Result := lNullableInt64.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableUInt64) then
-      begin
-        lNullableUInt64 := Value.AsType<NullableUInt64>;
-        if lNullableUInt64.HasValue then
-          Result := lNullableUInt64.Value.ToString
-      end
-      else if Value.TypeInfo = TypeInfo(NullableString) then
-      begin
-        Result := Value.AsType<NullableString>.ValueOrDefault;
-      end
-      else if Value.TypeInfo = TypeInfo(NullableCurrency) then
-      begin
-        lNullableCurrency := Value.AsType<NullableCurrency>;
-        if lNullableCurrency.HasValue then
-          Result := FloatToStr(lNullableCurrency.Value, fLocaleFormatSettings);
-      end
-      else if Value.TypeInfo = TypeInfo(NullableBoolean) then
-      begin
-        lNullableBoolean := Value.AsType<NullableBoolean>;
-        if lNullableBoolean.HasValue then
-          Result := BoolToStr(lNullableBoolean.Value, True);
-      end
-      else if Value.TypeInfo = TypeInfo(NullableTDate) then
-      begin
-        lNullableTDate := Value.AsType<NullableTDate>;
-        if lNullableTDate.HasValue then
-          Result := DateToISO8601(lNullableTDate.Value);
-      end
-      else if Value.TypeInfo = TypeInfo(NullableTTime) then
-      begin
-        lNullableTTime := Value.AsType<NullableTTime>;
-        if lNullableTTime.HasValue then
-          Result := DateToISO8601(lNullableTTime.Value);
-      end
-      else if Value.TypeInfo = TypeInfo(NullableTDateTime) then
-      begin
-        lNullableTDateTime := Value.AsType<NullableTDateTime>;
-        if lNullableTDateTime.HasValue then
-          Result := DateToISO8601(lNullableTDateTime.Value);
-      end
-      else
-      begin
-        raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
+        lTmp := GetTValueFromPath(lAsObject, lVarMember);
+        if IsNullableType(@lTmp) then
+        begin
+          Result := GetTValueWithNullableTypeAsString(@lTmp, lIsNull, VarName);
+        end
+        else
+        begin
+          Result := lTmp.AsString;
+        end;
       end;
+    end;
+  end
+  else
+  begin
+    if IsNullableType(Value) then
+    begin
+      Result := GetTValueWithNullableTypeAsString(Value, WasNull, VarName);
     end
     else
     begin
@@ -870,6 +826,132 @@ begin
     end;
   end;
 
+end;
+
+function TTProCompiledTemplate.GetTValueWithNullableTypeAsString(const Value: PValue; out WasNull: Boolean; const VarName: string): String;
+var
+  lNullableInt32: NullableInt32;
+  lNullableUInt32: NullableUInt32;
+  lNullableInt16: NullableInt16;
+  lNullableUInt16: NullableUInt16;
+  lNullableInt64: NullableInt64;
+  lNullableUInt64: NullableUInt64;
+  lNullableCurrency: NullableCurrency;
+  lNullableBoolean: NullableBoolean;
+  lNullableTDate: NullableTDate;
+  lNullableTTime: NullableTTime;
+  lNullableTDateTime: NullableTDateTime;
+    begin
+      Result := '';
+  WasNull := True;
+      if Value.TypeInfo = TypeInfo(NullableInt32) then
+      begin
+        lNullableInt32 := Value.AsType<NullableInt32>;
+        if lNullableInt32.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableInt32.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt32) then
+      begin
+        lNullableUInt32 := Value.AsType<NullableUInt32>;
+        if lNullableUInt32.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableUInt32.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableInt16) then
+      begin
+        lNullableInt16 := Value.AsType<NullableInt16>;
+        if lNullableInt16.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableInt16.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt16) then
+      begin
+        lNullableUInt16 := Value.AsType<NullableUInt16>;
+        if lNullableUInt16.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableUInt16.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableInt64) then
+      begin
+        lNullableInt64 := Value.AsType<NullableInt64>;
+        if lNullableInt64.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableInt64.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableUInt64) then
+      begin
+        lNullableUInt64 := Value.AsType<NullableUInt64>;
+        if lNullableUInt64.HasValue then
+    begin
+      WasNull := False;
+          Result := lNullableUInt64.Value.ToString
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableString) then
+      begin
+        Result := Value.AsType<NullableString>.ValueOrDefault;
+    WasNull := False;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableCurrency) then
+      begin
+        lNullableCurrency := Value.AsType<NullableCurrency>;
+        if lNullableCurrency.HasValue then
+    begin
+      WasNull := False;
+          Result := FloatToStr(lNullableCurrency.Value, fLocaleFormatSettings);
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableBoolean) then
+      begin
+        lNullableBoolean := Value.AsType<NullableBoolean>;
+        if lNullableBoolean.HasValue then
+    begin
+      WasNull := False;
+          Result := BoolToStr(lNullableBoolean.Value, True);
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTDate) then
+      begin
+        lNullableTDate := Value.AsType<NullableTDate>;
+        if lNullableTDate.HasValue then
+    begin
+      WasNull := False;
+          Result := DateToStr(lNullableTDate.Value, Self.fLocaleFormatSettings);
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTTime) then
+      begin
+        lNullableTTime := Value.AsType<NullableTTime>;
+        if lNullableTTime.HasValue then
+    begin
+      WasNull := False;
+      Result := TimeToStr(lNullableTTime.Value, Self.fLocaleFormatSettings);
+    end;
+      end
+      else if Value.TypeInfo = TypeInfo(NullableTDateTime) then
+      begin
+        lNullableTDateTime := Value.AsType<NullableTDateTime>;
+        if lNullableTDateTime.HasValue then
+    begin
+      WasNull := False;
+      Result := DateToISO8601(lNullableTDateTime.Value, False);
+    end;
+            end
+            else
+            begin
+        raise ETProException.Create('Unsupported type for variable "' + VarName + '"');
+      end;
 end;
 
 procedure TTProCompiledTemplate.AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction);
@@ -1091,7 +1173,7 @@ begin
         Error('Expected digit/s after "."');
       end;
       lDecimalPart := lTmp.Trim.ToInteger;
-      lTmpFloat := Power(10, lDigits);
+      lTmpFloat := Power(Double(10), lDigits);
       Result := True;
       aParamValue.ParType := fptFloat;
       aParamValue.ParFloatValue := lIntegerPart + lDecimalPart / lTmpFloat;
@@ -1645,8 +1727,6 @@ begin
 end;
 
 function CapitalizeString(const s: string; const CapitalizeFirst: Boolean): string;
-const
-  ALLOWEDCHARS = ['a' .. 'z', '_'];
 var
   index: Integer;
   bCapitalizeNext: Boolean;
@@ -1662,7 +1742,7 @@ begin
         Result[index] := UpCase(Result[index]);
         bCapitalizeNext := False;
       end
-      else if not CharInSet(Result[index], ALLOWEDCHARS) then
+      else if Result[index] = ' ' then
       begin
         bCapitalizeNext := True;
       end;
@@ -1927,14 +2007,14 @@ begin
   end
   else
   begin
-  Step;
-  I := 0;
-  while (CurrentChar <> #0) and (CurrentChar <> END_TAG[1]) and (I < 20) do
-  begin
-    Result := Result + CurrentChar;
     Step;
-    Inc(I);
-  end;
+    I := 0;
+    while (CurrentChar <> #0) and (CurrentChar <> END_TAG[1]) and (I < 20) do
+    begin
+      Result := Result + CurrentChar;
+      Step;
+      Inc(I);
+    end;
   end;
 end;
 
@@ -1947,7 +2027,6 @@ function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParamet
   const aVarNameWhereShoudBeApplied: String): TValue;
 var
   lDateValue: TDateTime;
-  lDateFilterFormatSetting: TFormatSettings;
   lStrValue: string;
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
@@ -1957,6 +2036,10 @@ var
   lNullableDate: NullableTDate;
   lValue, lVarValue: TValue;
   lExtendedValue: Extended;
+  lSQLTimestampOffset: TSQLTimeStampOffset;
+  lInt64: Int64;
+  lIsNull: Boolean;
+
   procedure CheckParamType(const FunctionName: String; const FilterParameter: PFilterParameter; const Types: TFilterParameterTypes);
   begin
     if not(FilterParameter.ParType in Types) then
@@ -2033,9 +2116,8 @@ begin
       Result := False
     else
     begin
-      var
-      l := lValue.AsInt64;
-      Result := l mod aParameters[0].ParIntValue;
+      lInt64 := lValue.AsInt64;
+      Result := lInt64 mod aParameters[0].ParIntValue;
     end;
   end
   else if SameText(aFunctionName, 'uppercase') then
@@ -2180,8 +2262,7 @@ begin
       else
       begin
         CheckParNumber(1, aParameters);
-        lDateFilterFormatSetting.ShortDateFormat := aParameters[0].ParStrText;
-        Result := DateToStr(lDateValue, lDateFilterFormatSetting)
+        Result := FormatDateTime(aParameters[0].ParStrText, lDateValue);
       end;
     end
     else if aValue.TypeInfo = TypeInfo(NullableTDate) then
@@ -2207,7 +2288,7 @@ begin
     end
     else
     begin
-      FunctionError(aFunctionName, 'Invalid date ' + GetTValueVarAsString(@aValue, aVarNameWhereShoudBeApplied));
+      FunctionError(aFunctionName, 'Invalid date ' + GetTValueVarAsString(@aValue, lIsNull, aVarNameWhereShoudBeApplied));
     end;
   end
   else if SameText(aFunctionName, 'datetimetostr') or SameText(aFunctionName, 'formatdatetime') then
@@ -2218,6 +2299,17 @@ begin
     end
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
+      if Length(aParameters) = 0 then
+        Result := DateTimeToStr(lDateValue, fLocaleFormatSettings)
+      else
+      begin
+        CheckParNumber(1, aParameters);
+        Result := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+      end;
+    end
+    else if aValue.TryAsType<TSQLTimeStampOffset>(lSQLTimestampOffset) then
+    begin
+      lDateValue := SQLTimeStampOffsetToDateTime(lSQLTimestampOffset);
       if Length(aParameters) = 0 then
         Result := DateTimeToStr(lDateValue, fLocaleFormatSettings)
       else
@@ -2257,8 +2349,8 @@ begin
     end
     else if aValue.IsType<Extended> or aValue.IsType<Double> then
     begin
-      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
-    end
+    Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+  end
     else
     begin
       Error('Invalid type passed to FormatFloat filter');
@@ -2318,7 +2410,7 @@ begin
     end
     else
     begin
-    b := Ord(s[I]);
+      b := Ord(S[I]);
       if b > 255 then
       begin
         if b = 8364 then
@@ -2329,210 +2421,210 @@ begin
       else
       begin
 {$REGION 'entities'}
-    case b of
-      Ord('>'):
-        r := 'gt';
-      Ord('<'):
-        r := 'lt';
-      34:
-        r := '#' + IntToStr(b);
-      39:
-        r := '#' + IntToStr(b);
-      43:
-        r := 'quot';
-      160:
-        r := 'nbsp';
-      161:
-        r := 'excl';
-      162:
-        r := 'cent';
-      163:
+      case b of
+        Ord('>'):
+          r := 'gt';
+        Ord('<'):
+          r := 'lt';
+        34:
+          r := '#' + IntToStr(b);
+        39:
+          r := '#' + IntToStr(b);
+        43:
+          r := 'quot';
+        160:
+          r := 'nbsp';
+        161:
+          r := 'excl';
+        162:
+          r := 'cent';
+        163:
           r := 'pound';
-      164:
-        r := 'curren';
-      165:
-        r := 'yen';
-      166:
-        r := 'brvbar';
-      167:
-        r := 'sect';
-      168:
-        r := 'uml';
-      169:
-        r := 'copy';
-      170:
-        r := 'ordf';
-      171:
-        r := 'laquo';
-      172:
-        r := 'not';
-      173:
-        r := 'shy';
-      174:
-        r := 'reg';
-      175:
-        r := 'macr';
-      176:
-        r := 'deg';
-      177:
-        r := 'plusmn';
-      178:
-        r := 'sup2';
-      179:
-        r := 'sup3';
-      180:
-        r := 'acute';
-      181:
-        r := 'micro';
-      182:
-        r := 'para';
-      183:
-        r := 'middot';
-      184:
-        r := 'cedil';
-      185:
-        r := 'sup1';
-      186:
-        r := 'ordm';
-      187:
-        r := 'raquo';
-      188:
-        r := 'frac14';
-      189:
-        r := 'frac12';
-      190:
-        r := 'frac34';
-      191:
-        r := 'iquest';
-      192:
-        r := 'Agrave';
-      193:
-        r := 'Aacute';
-      194:
-        r := 'Acirc';
-      195:
-        r := 'Atilde';
-      196:
-        r := 'Auml';
-      197:
-        r := 'Aring';
-      198:
-        r := 'AElig';
-      199:
-        r := 'Ccedil';
-      200:
-        r := 'Egrave';
-      201:
-        r := 'Eacute';
-      202:
-        r := 'Ecirc';
-      203:
-        r := 'Euml';
-      204:
-        r := 'Igrave';
-      205:
-        r := 'Iacute';
-      206:
-        r := 'Icirc';
-      207:
-        r := 'Iuml';
-      208:
-        r := 'ETH';
-      209:
-        r := 'Ntilde';
-      210:
-        r := 'Ograve';
-      211:
-        r := 'Oacute';
-      212:
-        r := 'Ocirc';
-      213:
-        r := 'Otilde';
-      214:
-        r := 'Ouml';
-      215:
-        r := 'times';
-      216:
-        r := 'Oslash';
-      217:
-        r := 'Ugrave';
-      218:
-        r := 'Uacute';
-      219:
-        r := 'Ucirc';
-      220:
-        r := 'Uuml';
-      221:
-        r := 'Yacute';
-      222:
-        r := 'THORN';
-      223:
-        r := 'szlig';
-      224:
-        r := 'agrave';
-      225:
-        r := 'aacute';
-      226:
-        r := 'acirc';
-      227:
-        r := 'atilde';
-      228:
-        r := 'auml';
-      229:
-        r := 'aring';
-      230:
-        r := 'aelig';
-      231:
-        r := 'ccedil';
-      232:
-        r := 'egrave';
-      233:
-        r := 'eacute';
-      234:
-        r := 'ecirc';
-      235:
-        r := 'euml';
-      236:
-        r := 'igrave';
-      237:
-        r := 'iacute';
-      238:
-        r := 'icirc';
-      239:
-        r := 'iuml';
-      240:
-        r := 'eth';
-      241:
-        r := 'ntilde';
-      242:
-        r := 'ograve';
-      243:
-        r := 'oacute';
-      244:
-        r := 'ocirc';
-      245:
-        r := 'otilde';
-      246:
-        r := 'ouml';
-      247:
-        r := 'divide';
-      248:
-        r := 'oslash';
-      249:
-        r := 'ugrave';
-      250:
-        r := 'uacute';
-      251:
-        r := 'ucirc';
-      252:
-        r := 'uuml';
-      253:
-        r := 'yacute';
-      254:
-        r := 'thorn';
-      255:
-        r := 'yuml';
-    end;
+        164:
+          r := 'curren';
+        165:
+          r := 'yen';
+        166:
+          r := 'brvbar';
+        167:
+          r := 'sect';
+        168:
+          r := 'uml';
+        169:
+          r := 'copy';
+        170:
+          r := 'ordf';
+        171:
+          r := 'laquo';
+        172:
+          r := 'not';
+        173:
+          r := 'shy';
+        174:
+          r := 'reg';
+        175:
+          r := 'macr';
+        176:
+          r := 'deg';
+        177:
+          r := 'plusmn';
+        178:
+          r := 'sup2';
+        179:
+          r := 'sup3';
+        180:
+          r := 'acute';
+        181:
+          r := 'micro';
+        182:
+          r := 'para';
+        183:
+          r := 'middot';
+        184:
+          r := 'cedil';
+        185:
+          r := 'sup1';
+        186:
+          r := 'ordm';
+        187:
+          r := 'raquo';
+        188:
+          r := 'frac14';
+        189:
+          r := 'frac12';
+        190:
+          r := 'frac34';
+        191:
+          r := 'iquest';
+        192:
+          r := 'Agrave';
+        193:
+          r := 'Aacute';
+        194:
+          r := 'Acirc';
+        195:
+          r := 'Atilde';
+        196:
+          r := 'Auml';
+        197:
+          r := 'Aring';
+        198:
+          r := 'AElig';
+        199:
+          r := 'Ccedil';
+        200:
+          r := 'Egrave';
+        201:
+          r := 'Eacute';
+        202:
+          r := 'Ecirc';
+        203:
+          r := 'Euml';
+        204:
+          r := 'Igrave';
+        205:
+          r := 'Iacute';
+        206:
+          r := 'Icirc';
+        207:
+          r := 'Iuml';
+        208:
+          r := 'ETH';
+        209:
+          r := 'Ntilde';
+        210:
+          r := 'Ograve';
+        211:
+          r := 'Oacute';
+        212:
+          r := 'Ocirc';
+        213:
+          r := 'Otilde';
+        214:
+          r := 'Ouml';
+        215:
+          r := 'times';
+        216:
+          r := 'Oslash';
+        217:
+          r := 'Ugrave';
+        218:
+          r := 'Uacute';
+        219:
+          r := 'Ucirc';
+        220:
+          r := 'Uuml';
+        221:
+          r := 'Yacute';
+        222:
+          r := 'THORN';
+        223:
+          r := 'szlig';
+        224:
+          r := 'agrave';
+        225:
+          r := 'aacute';
+        226:
+          r := 'acirc';
+        227:
+          r := 'atilde';
+        228:
+          r := 'auml';
+        229:
+          r := 'aring';
+        230:
+          r := 'aelig';
+        231:
+          r := 'ccedil';
+        232:
+          r := 'egrave';
+        233:
+          r := 'eacute';
+        234:
+          r := 'ecirc';
+        235:
+          r := 'euml';
+        236:
+          r := 'igrave';
+        237:
+          r := 'iacute';
+        238:
+          r := 'icirc';
+        239:
+          r := 'iuml';
+        240:
+          r := 'eth';
+        241:
+          r := 'ntilde';
+        242:
+          r := 'ograve';
+        243:
+          r := 'oacute';
+        244:
+          r := 'ocirc';
+        245:
+          r := 'otilde';
+        246:
+          r := 'ouml';
+        247:
+          r := 'divide';
+        248:
+          r := 'oslash';
+        249:
+          r := 'ugrave';
+        250:
+          r := 'uacute';
+        251:
+          r := 'ucirc';
+        252:
+          r := 'uuml';
+        253:
+          r := 'yacute';
+        254:
+          r := 'thorn';
+        255:
+          r := 'yuml';
+      end;
 {$ENDREGION}
       end;
     end;
@@ -2734,13 +2826,11 @@ function TTProCompiledTemplate.Render: String;
 var
   lIdx: Int64;
   lBuff: TStringBuilder;
-  lDataSourceName: string;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
   lJumpTo: Integer;
   lVarName: string;
   lVarValue: TValue;
-  lJArr: TJDOJsonArray;
   lJObj: TJDOJsonObject;
   lVarMember: string;
   lBaseVarName: string;
@@ -2753,6 +2843,8 @@ var
   lErrorMessage: String;
   lBlockReturnAddress: Int64;
   lCurrentBlockName: string;
+  lObj: TValue;
+  lCount: Integer;
 
 begin
   lBlockReturnAddress := -1;
@@ -2762,7 +2854,7 @@ begin
     lIdx := 0;
     while fTokens[lIdx].TokenType <> ttEOF do
     begin
-      // Writeln(fTokens[lIdx].ToString);
+      //Writeln(fTokens[lIdx].ToString);
       case fTokens[lIdx].TokenType of
         ttContent:
           begin
@@ -2774,11 +2866,10 @@ begin
             if LoopStackIsEmpty or (lForLoopItem.LoopExpression <> fTokens[lIdx].Value1) then
             begin // push a new loop stack item
               SplitVariableName(fTokens[lIdx].Value1, lVarName, lVarMember);
-              { lVarName maybe an iterator, so I've to walk the stack to know
-                the real information about the iterator }
               if WalkThroughLoopStack(lVarName, lBaseVarName, lFullPath) then
               begin
-                lFullPath := lFullPath + '.' + lVarMember;
+                if not lVarMember.IsEmpty then
+                  lFullPath := lFullPath + '.' + lVarMember;
                 PushLoop(TLoopStackItem.Create(lBaseVarName, fTokens[lIdx].Value1, lFullPath, fTokens[lIdx].Value2));
               end
               else
@@ -2804,27 +2895,34 @@ begin
                 if lForLoopItem.IteratorPosition = -1 then
                 begin
                   TDataSet(lVariable.VarValue.AsObject).First;
+                end
+                else
+                begin
+                  TDataSet(lVariable.VarValue.AsObject).Next;
                 end;
-
+                lForLoopItem.IncrementIteratorPosition;
                 if TDataSet(lVariable.VarValue.AsObject).Eof then
                 begin
+                  lForLoopItem.EOF := True;
                   lIdx := fTokens[lIdx].Ref1; // skip to endfor
                   Continue;
-                end
+                end;
               end
-              else if viListOfObject in lVariable.VarOption then
+              else if [viObject, viListOfObject] * lVariable.VarOption <> [] then
               begin
-                lWrapped := WrapAsList(lVariable.VarValue.AsObject);
-                // if lVariable.VarIterator = lWrapped.Count - 1 then
-                if lForLoopItem.IteratorPosition = lWrapped.Count - 1 then
+                {TODO -oDanieleT -cGeneral : We need only .Count here. Could we use something lighter than WrapAsList?}
+                lObj := GetTValueFromPath(lVariable.VarValue.AsObject, lForLoopItem.FullPath);
+                lWrapped := WrapAsList(lObj.AsObject);
+                lCount := lWrapped.Count;
+                if (lCount = 0) or (lForLoopItem.IteratorPosition = lCount - 1) then
                 begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to endif
+                  lForLoopItem.EOF := True;
+                  lIdx := fTokens[lIdx].Ref1; // skip to endfor
                   Continue;
                 end
                 else
                 begin
-                  PeekLoop.IncrementIteratorPosition;
-                  // lVariable.VarIterator := lVariable.VarIterator + 1;
+                  lForLoopItem.IncrementIteratorPosition;
                 end;
               end
               else if viJSONObject in lVariable.VarOption then
@@ -2836,6 +2934,7 @@ begin
                 case lJValue.Typ of
                   jdtNone:
                     begin
+                      lForLoopItem.EOF := True;
                       lIdx := fTokens[lIdx].Ref1; // skip to endfor
                       Continue;
                     end;
@@ -2844,6 +2943,7 @@ begin
                     begin
                       if lForLoopItem.IteratorPosition = lJObj.Path[lForLoopItem.FullPath].ArrayValue.Count - 1 then
                       begin
+                        lForLoopItem.EOF := True;
                         lIdx := fTokens[lIdx].Ref1; // skip to endfor
                         Continue;
                       end
@@ -2852,7 +2952,6 @@ begin
                         lForLoopItem.IncrementIteratorPosition;
                       end;
                     end;
-
                 else
                   begin
                     Error('Only JSON array can be iterated');
@@ -2869,58 +2968,22 @@ begin
               Error(Format('Unknown variable in for..in statement [%s]', [fTokens[lIdx].Value1]));
             end;
           end;
+
         ttEndFor:
           begin
-            if LoopStackIsEmpty then
+            lForLoopItem := PeekLoop;
+            if lForLoopItem = nil then
             begin
               raise ETProRenderException.Create('Inconsistent "endfor"');
             end;
-
-            lForLoopItem := PeekLoop;
-            lDataSourceName := lForLoopItem.DataSourceName;
-            if GetVariables.TryGetValue(lDataSourceName, lVariable) then
+            if lForLoopItem.EOF then
             begin
-              if viDataSet in lVariable.VarOption then
-              begin
-                TDataSet(lVariable.VarValue.AsObject).Next;
-                lForLoopItem.IteratorPosition := TDataSet(lVariable.VarValue.AsObject).RecNo;
-                if not TDataSet(lVariable.VarValue.AsObject).Eof then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // goto loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end
-              else if viJSONObject in lVariable.VarOption then
-              begin
-                lJObj := TJDOJsonObject(lVariable.VarValue.AsObject);
-                lJArr := lJObj.Path[lForLoopItem.FullPath];
-                if lForLoopItem.IteratorPosition < lJArr.Count - 1 then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end
-              else if viListOfObject in lVariable.VarOption then
-              begin
-                lWrapped := TTProDuckTypedList.Wrap(lVariable.VarValue.AsObject);
-                if lForLoopItem.IteratorPosition < lWrapped.Count - 1 then
-                begin
-                  lIdx := fTokens[lIdx].Ref1; // skip to loop
-                  Continue;
-                end
-                else
-                begin
-                  PopLoop;
-                end;
-              end;
+              PopLoop;
+            end
+            else
+            begin
+              lIdx := fTokens[lIdx].Ref1; // goto loop
+              Continue;
             end;
           end;
         ttIfThen:
@@ -3068,10 +3131,11 @@ function TTProCompiledTemplate.GetVarAsString(const Name: string): string;
 var
   lValue: TValue;
   lPValue: PValue;
+  lIsNull: Boolean;
 begin
   lValue := GetVarAsTValue(Name);
   lPValue := @lValue;
-  Result := GetTValueVarAsString(lPValue, Name);
+  Result := GetTValueVarAsString(lPValue, lIsNull, Name);
 end;
 
 function TTProCompiledTemplate.GetVarAsTValue(const aName: string): TValue;
@@ -3087,6 +3151,9 @@ var
   lCurrentIterator: TLoopStackItem;
   lPJSONDataValue: TJsonDataValueHelper;
   lHandled: Boolean;
+  lFullPath: string;
+  lValue: TValue;
+  lTmpList: ITProWrappedList;
 begin
   lCurrentIterator := nil;
   SplitVariableName(aName, lVarName, lVarMembers);
@@ -3219,6 +3286,10 @@ begin
           begin
             Result := lPJSONDataValue.ULongValue;
           end
+          else if lPJSONDataValue.Typ = jdtFloat then
+          begin
+            Result := lPJSONDataValue.FloatValue;
+          end
           else if lPJSONDataValue.Typ = jdtArray then
           begin
             Result := lPJSONDataValue.ArrayValue;
@@ -3236,7 +3307,7 @@ begin
         end;
       end;
     end
-    else if viListOfObject in lVariable.VarOption then
+    else if [viListOfObject, viObject] * lVariable.VarOption <> [] then
     begin
       if lVarMembers.StartsWith('@@') then
       begin
@@ -3247,29 +3318,64 @@ begin
         if lIsAnIterator then
         begin
           if lHasMember then
-            Result := TTProRTTIUtils.GetProperty(WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition),
-              lVarMembers)
+          begin
+            if lCurrentIterator.FullPath.IsEmpty then
+            begin
+              Result := TTProRTTIUtils.GetProperty(WrapAsList(lVariable.VarValue.AsObject)
+                .GetItem(lCurrentIterator.IteratorPosition), lVarMembers)
+            end
+            else
+            begin
+              lFullPath := lCurrentIterator.FullPath;
+              lValue := GetTValueFromPath(lVariable.VarValue.AsObject, lFullPath);
+              lTmpList := WrapAsList(lValue.AsObject);
+              if Assigned(lTmpList)then
+                Result := TTProRTTIUtils.GetProperty(lTmpList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers)
+              else
+                Result := TTProRTTIUtils.GetProperty(lValue.AsObject, lVarMembers)
+            end;
+          end
           else
-            Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
+          begin
+            if lCurrentIterator.FullPath.IsEmpty then
+            begin
+              Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
+            end
+            else
+            begin
+              lValue := GetTValueFromPath(lVariable.VarValue.AsObject, lCurrentIterator.FullPath);
+              lTmpList := WrapAsList(lValue.AsObject);
+              if Assigned(lTmpList)then
+                Result := TTProRTTIUtils.GetProperty(lTmpList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers)
+              else
+                Result := TTProRTTIUtils.GetProperty(lValue.AsObject, lVarMembers)
+            end;
+          end;
         end
         else
         begin
-          if lHasMember then
-            Error(lDataSource + ' can be used only with filters or iterated using its alias')
-          else
-          begin
-            Result := lVariable.VarValue.AsObject;
-          end;
+      if lHasMember then
+      begin
+        Result := GetTValueFromPath(lVariable.VarValue.AsObject, lVarMembers);
+      end
+      else
+      begin
+        Result := lVariable.VarValue;
+      end;
         end;
       end;
     end
-    else if viObject in lVariable.VarOption then
-    begin
-      if lHasMember then
-        Result := TTProRTTIUtils.GetProperty(lVariable.VarValue.AsObject, lVarMembers)
-      else
-        Result := lVariable.VarValue;
-    end
+//    else if viObject in lVariable.VarOption then
+//    begin
+//      if lHasMember then
+//      begin
+//        Result := GetTValueFromPath(lVariable.VarValue.AsObject, lVarMembers);
+//      end
+//      else
+//      begin
+//        Result := lVariable.VarValue;
+//      end;
+//    end
     else if viSimpleType in lVariable.VarOption then
     begin
       if lVariable.VarValue.IsEmpty then
@@ -3350,11 +3456,19 @@ begin
   end;
 end;
 
+function TTProCompiledTemplate.IsNullableType(const Value: PValue): Boolean;
+begin
+  Result := (Value.TypeInfo.Kind = tkRecord) and String(Value.TypeInfo.Name).StartsWith('nullable', True);
+end;
+
 function TTProCompiledTemplate.IsTruthy(const Value: TValue): Boolean;
 var
   lStrValue: String;
   lWrappedList: ITProWrappedList;
+  lIsNull: Boolean;
+  lIsFalsy: Boolean;
 begin
+  lIsNull := False;
   if Value.IsEmpty then
   begin
     Exit(False);
@@ -3383,7 +3497,7 @@ begin
       lWrappedList := TTProDuckTypedList.Wrap(Value.AsObject);
       if lWrappedList = nil then
       begin
-        lStrValue := '';
+        lStrValue := 'true'; //it is an object <> nil, so evaluates to true
       end
       else
       begin
@@ -3394,8 +3508,13 @@ begin
   else if Value.IsType<Boolean> then
   begin
     lStrValue := Value.AsType<Boolean>.ToString.ToLower;
+  end
+  else if IsNullableType(@Value) then
+  begin
+    lStrValue := GetTValueWithNullableTypeAsString(@Value, lIsNull, '<if_comparison>');
   end;
-  Result := not(SameText(lStrValue, 'false') or SameText(lStrValue, '0') or SameText(lStrValue, ''));
+  lIsFalsy := lIsNull or SameText(lStrValue, 'false') or SameText(lStrValue, '0') or SameText(lStrValue, '');
+  Result := not lIsFalsy;
 end;
 
 function TTProCompiledTemplate.LoopStackIsEmpty: Boolean;
@@ -3429,138 +3548,6 @@ procedure TTProCompiledTemplate.Error(const aMessage: String; const Params: arra
 begin
   Error(Format(aMessage, Params));
 end;
-
-// function TTProCompiledTemplate.EvaluateIfExpression(aIdentifier: string): Boolean;
-// var
-// lVarValue: TValue;
-// lNegation: Boolean;
-// lVariable: TVarDataSource;
-// lTmp: Boolean;
-// lDataSourceName: String;
-// lHasMember: Boolean;
-// lList: ITProWrappedList;
-// lVarName, lVarMembers: String;
-// lCurrentIterator: TLoopStackItem;
-// lIsAnIterator: Boolean;
-// lHandled: Boolean;
-// begin
-// lNegation := aIdentifier.StartsWith('!');
-// if lNegation then
-// aIdentifier := aIdentifier.Remove(0,1);
-//
-// SplitVariableName(aIdentifier, lVarName, lVarMembers);
-//
-// lHasMember := Length(lVarMembers) > 0;
-//
-// lIsAnIterator := IsAnIterator(lVarName, lDataSourceName, lCurrentIterator);
-//
-// if not lIsAnIterator then
-// begin
-// lDataSourceName := lVarName;
-// end;
-//
-// if GetVariables.TryGetValue(lDataSourceName, lVariable) then
-// begin
-// if lVariable = nil then
-// begin
-// Exit(lNegation xor False);
-// end;
-// if viDataSet in lVariable.VarOption then
-// begin
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// if not lIsAnIterator then
-// begin
-// Error('Pseudovariables (@@) can be used only on iterators');
-// end;
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := TValue.From<Variant>(TDataSet(lVariable.VarValue.AsObject).FieldByName(lVarMembers).Value);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := not TDataSet(lVariable.VarValue.AsObject).Eof;
-// end;
-// Exit(lNegation xor lTmp);
-// end
-// else if viListOfObject in lVariable.VarOption then
-// begin
-// lList := WrapAsList(lVariable.VarValue.AsObject);
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := TTProRTTIUtils.GetProperty(lList.GetItem(lCurrentIterator.IteratorPosition), lVarMembers);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := lList.Count > 0;
-// end;
-//
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end
-// else if [viObject, viJSONObject] * lVariable.VarOption <> [] then
-// begin
-// if lHasMember then
-// begin
-// if lVarMembers.StartsWith('@@') then
-// begin
-// lVarValue := GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers);
-// end
-// else
-// begin
-// lVarValue := GetVarAsTValue(lDataSourceName);
-// end;
-// lTmp := IsTruthy(lVarValue);
-// end
-// else
-// begin
-// lTmp := not lVarValue.IsEmpty;
-// end;
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end
-// else if viSimpleType in lVariable.VarOption then
-// begin
-// lTmp := IsTruthy(lVariable.VarValue);
-// Exit(lNegation xor lTmp)
-// end;
-// end
-// else
-// begin
-// lHandled := False;
-// DoOnGetValue(lVarName, lVarMembers, lVarValue, lHandled);
-// if lHandled then
-// begin
-// lTmp := IsTruthy(lVarValue);
-// if lNegation then
-// begin
-// Exit(not lTmp);
-// end;
-// Exit(lTmp);
-// end;
-// end;
-// Exit(lNegation xor False);
-// end;
 
 function TTProCompiledTemplate.EvaluateIfExpressionAt(var Idx: Int64): Boolean;
 var
@@ -3614,6 +3601,8 @@ begin
           lFilterParameters[I].ParStrText := fTokens[Idx].Value1;
       end;
     end;
+
+    try
     case lCurrTokenType of
       ttValue:
         Result := ExecuteFilter(lFilterName, lFilterParameters, GetVarAsTValue(lVarName), lVarName);
@@ -3623,6 +3612,12 @@ begin
         Result := ExecuteFilter(lFilterName, lFilterParameters, lVarName, lVarName);
     else
       Error('Invalid token in EvaluateValue');
+      end;
+    except
+      on E: Exception do
+      begin
+        Error('Error while evaluating filter [%s] on variable [%s]- Inner Exception: [%s][%s]', [lFilterName, lVarName, E.ClassName, E.Message]);
+      end;
     end;
   end
   else
@@ -3954,11 +3949,12 @@ end;
 
 constructor TLoopStackItem.Create(DataSourceName, LoopExpression, FullPath: String; IteratorName: String);
 begin
-  self.DataSourceName := DataSourceName;
-  self.LoopExpression := LoopExpression;
-  self.FullPath := FullPath;
-  self.IteratorName := IteratorName;
-  self.IteratorPosition := -1;
+  Self.DataSourceName := DataSourceName;
+  Self.LoopExpression := LoopExpression;
+  Self.FullPath := FullPath;
+  Self.IteratorName := IteratorName;
+  Self.IteratorPosition := -1;
+  Self.EOF := False;
 end;
 
 function TLoopStackItem.IncrementIteratorPosition: Integer;
@@ -4028,6 +4024,78 @@ begin
   // Result := BobJenkinsHash(Value[1], Length(Value) * SizeOf(Value[1]), 0);
   Result := Length(Value);
 end;
+
+
+
+function GetTValueFromPath(const aObject: TObject; FullPropertyPath: String): TValue;
+var
+  lObjAsList: ITProWrappedList;
+  lIdx: Integer;
+  lPropName: string;
+  lTmpValue: TValue;
+  function FetchUpTo(const aChar: Char): String;
+  var
+    lFirst: Integer;
+  begin
+    lFirst := FullPropertyPath.IndexOf(aChar);
+    if lFirst = -1 then
+    begin
+      Result := FullPropertyPath;
+    end
+    else
+    begin
+      Result := FullPropertyPath.Substring(0, lFirst);
+    end;
+    FullPropertyPath := FullPropertyPath.Substring(Length(Result) + 1);
+  end;
+begin
+  if FullPropertyPath = '.' then
+  begin
+    Exit(aObject);
+  end;
+
+  if FullPropertyPath.StartsWith('[') then //the main object must be a list!
+  begin
+    lObjAsList := WrapAsList(aObject);
+    FullPropertyPath := FullPropertyPath.Remove(0,1);
+    lIdx := FetchUpTo(']').ToInteger;
+    Result := GetTValueFromPath(lObjAsList.GetItem(lIdx), FullPropertyPath);
+  end
+  else
+  begin
+    if FullPropertyPath.StartsWith('.') then
+    begin
+      FullPropertyPath := FullPropertyPath.Remove(0,1);
+    end;
+    if FullPropertyPath.StartsWith('[') then
+    begin
+      Result := GetTValueFromPath(aObject, FullPropertyPath);
+    end
+    else
+    begin
+      lPropName := FetchUpTo('.');
+      if lPropName.IsEmpty then
+      begin
+        Result := aObject;
+      end
+      else
+      begin
+        lTmpValue := TTProRTTIUtils.GetProperty(aObject, lPropName);
+        if (not FullPropertyPath.IsEmpty) then
+        begin
+          if not lTmpValue.IsObject then
+            raise ETProException.Create('Invalid Path - cannot read property of a non object');
+          Result := GetTValueFromPath(lTmpValue.AsObject, FullPropertyPath);
+        end
+        else
+        begin
+          Result := lTmpValue;
+        end;
+      end;
+    end;
+  end;
+end;
+
 
 initialization
 

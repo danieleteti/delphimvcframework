@@ -1,0 +1,61 @@
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ERROR:[Error] Expected EOF (column 19 - found "eq(billing_...")
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ WHERE ((City = 'Rome') and ((CompanyName ILIKE '%gas%') or (CompanyName ILIKE '%motors%'))) /*limit*/ LIMIT 100
+ WHERE (nome ILIKE 'j%') /*limit*/ LIMIT 100
+ WHERE (name NOT IN ('daniele','scott')) /*limit*/ LIMIT 100
+ WHERE (value NOT IN (1,2,3)) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Marca d''água') and (nome ILIKE '%marca d''água%') and (nome IN ('Marca','D''água'))) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Marca d''água') and (nome ILIKE '%marca d''água%')) /*limit*/ LIMIT 100
+ WHERE (value IS NOT NULL) /*limit*/ LIMIT 100
+ WHERE (value IS NULL) /*limit*/ LIMIT 100
+ WHERE (value = false) /*limit*/ LIMIT 100
+ WHERE (value = true) /*limit*/ LIMIT 100
+ WHERE (value IN (1,2,3)) /*limit*/ LIMIT 100
+ WHERE (value IN (1,2,3)) /*limit*/ LIMIT 100
+ WHERE (value IN ()) /*limit*/ LIMIT 100
+ WHERE (value IN (1,2,3)) /*limit*/ LIMIT 100
+ WHERE (name IN ('daniele','scott')) /*limit*/ LIMIT 100
+ WHERE ((owneruserid = '%s') and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ LIMIT 100
+ WHERE ((owneruserid = 1) and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ LIMIT 100
+ WHERE ((name = 'João') and (codperson IN (1,2,3))) /*limit*/ LIMIT 100
+ WHERE (codperson IN (1,2,3)) /*limit*/ LIMIT 100
+ WHERE (name = -1) /*limit*/ LIMIT 100
+ WHERE (nome ILIKE '%joão%') /*limit*/ LIMIT 100
+ /*sort*/ ORDER BY last_name ASC /*limit*/ LIMIT 1
+ /*limit*/ LIMIT 5 OFFSET 1
+ /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 100
+ERROR:[Error] Expected "sort" and/or "limit" (column 18 - found "<EOF>...")
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*sort*/ ORDER BY nome DESC /*limit*/ LIMIT 20 OFFSET 10
+ WHERE (nome >= 'pi\ppo') /*limit*/ LIMIT 10
+ERROR:[Error] Expected EOF (column 27 - found "*/...")
+ WHERE (nome >= 'hello world') /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 100
+ WHERE (nome >= '') /*limit*/ LIMIT 100
+ WHERE (nome >= 'pi\ppo') /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 100
+ /*sort*/ ORDER BY nome ASC /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ LIMIT 100
+ WHERE ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 100
+ WHERE (valore <= 4) /*limit*/ LIMIT 100
+ WHERE (nome >= 'pippo') /*limit*/ LIMIT 100
+ WHERE (nome != 4) /*limit*/ LIMIT 100
+ WHERE (valore = 4) /*limit*/ LIMIT 100
+ WHERE (valore < 3) /*limit*/ LIMIT 100
+ WHERE (nome = 'Daniele') /*limit*/ LIMIT 100
+ WHERE (value = 1.23) /*limit*/ LIMIT 100
+ WHERE (value < 1.23) /*limit*/ LIMIT 100
+ WHERE (value > 1.23) /*limit*/ LIMIT 100
+ WHERE (value IN (1.23,2.34,3.45)) /*limit*/ LIMIT 100
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1..23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1...23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2.3)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2..3)...")
+ WHERE ((value >= 1.23) and (value <= 5.98)) /*limit*/ LIMIT 100
+ERROR:[Error] Unclosed bracket (column 15 - found "2..34,3.45]...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found ".23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.)...")

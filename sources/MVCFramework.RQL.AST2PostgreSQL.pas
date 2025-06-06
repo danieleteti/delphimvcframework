@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -131,7 +131,7 @@ begin
     tkIn:
       begin
         case aRQLFIlter.RightValueType of
-          vtIntegerArray: // if array is empty, RightValueType is always vtIntegerArray
+          vtNumericArray: // if array is empty, RightValueType is always vtNumericArray
             begin
               Result := Format('(%s IN (%s))', [
                 GetFieldNameForSQL(lDBFieldName), string.Join(',', aRQLFIlter.OpRightArray)
@@ -150,7 +150,7 @@ begin
     tkOut:
       begin
         case aRQLFIlter.RightValueType of
-          vtIntegerArray:
+          vtNumericArray:
             begin
               Result := Format('(%s NOT IN (%s))', [
                 GetFieldNameForSQL(lDBFieldName), string.Join(',', aRQLFIlter.OpRightArray)

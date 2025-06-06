@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -74,6 +74,14 @@ type
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
+  [MVCNameCase(ncAsIs)]
+  TTestCasingAsIs = class
+  private
+    fmyProp: string;
+  public
+    property myProp: string read fmyProp write fmyProp;
+  end;
+
   TPeople = TObjectList<TPerson>;
 
   TClassWithArrays = class
@@ -108,7 +116,6 @@ type
     property EnumWithMappedValues: TEnumColorTest read fEnumWithMappedValues write fEnumWithMappedValues;
   end;
 
-  [MVCNameCase(ncLowerCase)]
   [MVCNameCase(ncLowerCase)]
   [MVCTable('nullables_test')]
   TNullablesTest = class(TMVCActiveRecord)

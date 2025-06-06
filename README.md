@@ -1,7 +1,7 @@
-# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
+# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)  [![Ask DeepWiki][DeepWikiBadge]](https://deepwiki.com/danieleteti/delphimvcframework)
 
-![](https://img.shields.io/badge/stable-dmvcframework--3.4.1--sodium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.4.2--magnesium--rc4-red)  
+![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
+![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
 
 ## 📍 [Help DMVCFramework and your business! Click Here to access premium contents!](https://www.patreon.com/bePatron?u=72182967) 
 
@@ -24,9 +24,9 @@
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
   - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
-  - [What's New in DMVCFramework-3.4.2-magnesium-rc2 (release candidate 2 version)](#whats-new-in-dmvcframework-342-magnesium-rc2-release-candidate-2-version)
-  - [What's New in DMVCFramework-3.4.1-sodium (stable version)](#whats-new-in-dmvcframework-341-sodium-stable-version)
+  - [What's New in DMVCFramework-3.4.2-magnesium (stable version)](#whats-new-in-dmvcframework-342-magnesium-stable-version)
   - [Older Versions](#older-versions)
+    - [What's New in DMVCFramework-3.4.1-sodium](#whats-new-in-dmvcframework-341-sodium)
     - [What's New in DMVCFramework-3.4.0-neon](#whats-new-in-dmvcframework-340-neon)
     - [What's New in DMVCFramework-3.3.0-fluorine](#whats-new-in-dmvcframework-330-fluorine)
     - [What's New in DMVCFramework-3.2.3-radium](#whats-new-in-dmvcframework-323-radium)
@@ -225,16 +225,17 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "I managed to generate an API for my application thanks to this framework, it is truly useful and efficient!" -- J. Urbani
 
 
-## What's New in DMVCFramework-3.4.2-magnesium-rc2 (release candidate 2 version)
+## What's New in DMVCFramework-3.4.2-magnesium (stable version)
 >👉 A deep analisys of what's new in DelphiMVCFramework-3.4.2-magnesium is available on [Daniele Teti Blog]
 https://www.danieleteti.it/post/delphimvcframework-3-4-2-magnesium/
 
-## What's New in DMVCFramework-3.4.1-sodium (stable version)
+  
+## Older Versions
+
+### What's New in DMVCFramework-3.4.1-sodium
 
 >👉 A deep analisys of what's new in DelphiMVCFramework-3.4.1-sodium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-1-sodium/) 👈
 
-  
-## Older Versions
 
 ### What's New in DMVCFramework-3.4.0-neon
 
@@ -2090,3 +2091,6 @@ third template email line"
 ## Links
 
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
+
+
+[DeepwikiBadge]: https://deepwiki.com/badge.svg

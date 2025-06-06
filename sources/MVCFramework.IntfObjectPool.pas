@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -55,21 +55,20 @@ type
   TIntfObjectPool = class(TInterfacedObject, IIntfObjectPool)
   private
     fFactory: TFunc<IInterface>;
-    fMaxSize: Integer;
-//    fPool : TInterfaceList;
+    fMaxSize: UInt32;
     fPool : TList<IInterface>;
-    fSize: Integer;
-    fShrinkTargetSize: Integer;
-    fShrinkTriggerSize: Integer;
+    fSize: UInt32;
+    fShrinkTargetSize: UInt32;
+    fShrinkTriggerSize: UInt32;
     fCleanupThread: TIntfCleanupThread<IInterface>;
     fLastGetFromPool: TDateTime;
     fOnResetState: TProc<IInterface>;
   protected
     procedure Lock;
     procedure UnLock;
-    procedure ShrinkPoolTo(const TargetSize: Integer);
+    procedure ShrinkPoolTo(const TargetSize: UInt32);
   public
-    constructor Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>);
+    constructor Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>);
     destructor Destroy; override;
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False) : IInterface;
     procedure ReleaseToPool(const Obj: IInterface);
@@ -82,7 +81,7 @@ type
     fObjectPool: TIntfObjectPool;
     type
       TPoolSizeSamples = array [0..AVG_SAMPLES_COUNT-1] of Integer;
-    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): Integer;
+    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): UInt64;
   protected
     procedure Execute; override;
   public
@@ -91,8 +90,8 @@ type
 
   TIntfPoolFactory = class
   public
-    class function CreatePool(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>): IIntfObjectPool;
-    class function CreateUnlimitedPool(ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>): IIntfObjectPool;
+    class function CreatePool(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>): IIntfObjectPool;
+    class function CreateUnlimitedPool(ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>): IIntfObjectPool;
   end;
 
 
@@ -107,7 +106,7 @@ uses
 
 { TObjectPool<T> }
 
-constructor TIntfObjectPool.Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>);
+constructor TIntfObjectPool.Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>);
 begin
   inherited Create;
   fOnResetState := nil;
@@ -183,7 +182,7 @@ begin
   end;
 end;
 
-procedure TIntfObjectPool.ShrinkPoolTo(const TargetSize: Integer);
+procedure TIntfObjectPool.ShrinkPoolTo(const TargetSize: UInt32);
 begin
   MonitorEnter(Self);
   try
@@ -252,25 +251,27 @@ begin
 end;
 
 function TIntfCleanupThread<IInterface>.GetAveragePoolSize(
-  var SizeSamples: TPoolSizeSamples): Integer;
+  var SizeSamples: TPoolSizeSamples): UInt64;
+var
+  I: Integer;
 begin
   Result := 0;
-  for var I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
+  for I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
   begin
     Inc(Result, SizeSamples[I]);
   end;
-  Result := Result div Length(SizeSamples);
+  Result := Result div UInt64(Length(SizeSamples));
 end;
 
 { TPoolFactory }
 
-class function TIntfPoolFactory.CreatePool(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>): IIntfObjectPool;
+class function TIntfPoolFactory.CreatePool(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>): IIntfObjectPool;
 begin
   Result := TIntfObjectPool.Create(MaxSize, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);
 end;
 
-class function TIntfPoolFactory.CreateUnlimitedPool(ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<IInterface>): IIntfObjectPool;
+class function TIntfPoolFactory.CreateUnlimitedPool(ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<IInterface>): IIntfObjectPool;
 begin
   Result := CreatePool(0, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);

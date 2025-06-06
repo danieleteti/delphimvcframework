@@ -6,7 +6,8 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Logger,
-  Web.HTTPApp;
+  Web.HTTPApp,
+  JsonDataObjects;
 
 type
 
@@ -15,10 +16,10 @@ type
   public
     [MVCPath('/public')]
     [MVCHTTPMethod([httpGET])]
-    procedure PublicSection(ctx: TWebContext);
+    function PublicSection: String;
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    function Index: String;
   end;
 
   [MVCPath('/admin')]
@@ -27,78 +28,76 @@ type
     [MVCPath('/role1')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole1(ctx: TWebContext);
+    function OnlyRole1: String;
     [MVCPath('/role1')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole1EmittingJSON;
+    function OnlyRole1EmittingJSON: TJSONObject;
     [MVCPath('/role2')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole2(ctx: TWebContext);
+    function OnlyRole2: String;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.JSON, System.Classes;
+  System.SysUtils, System.Classes;
 
 { TApp1MainController }
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+function TApp1MainController.Index: String;
 begin
   Redirect('/index.html');
 end;
 
-procedure TApp1MainController.PublicSection(ctx: TWebContext);
+function TApp1MainController.PublicSection: String;
 begin
-  Render('This is a public section');
+  Result := 'This is a public section';
 end;
 
 { TAdminController }
 
-procedure TAdminController.OnlyRole1(ctx: TWebContext);
+function TAdminController.OnlyRole1: String;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
-    ', now you are a logged user and this is a protected content!');
-  ResponseStream.AppendLine('As logged user you have the following roles: ' +
-    sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
-  RenderResponseStream;
+  Result := Context.LoggedUser.CustomData['mycustomvalue'] + sLineBreak +
+  'Hey! Hello ' + Context.LoggedUser.UserName + ', now you are a logged user and this is a protected content!' + sLineBreak +
+  'As logged user you have the following roles: ' + sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray);
 end;
 
-procedure TAdminController.OnlyRole1EmittingJSON;
+function TAdminController.OnlyRole1EmittingJSON: TJsonObject;
 var
   lJObj: TJSONObject;
   lJArr: TJSONArray;
   lQueryParams: TStrings;
   I: Integer;
+  lItem: TJsonObject;
 begin
   ContentType := TMVCMediaType.APPLICATION_JSON;
   lJObj := TJSONObject.Create;
-  lJObj.AddPair('message', 'This is protected content accessible only by user1');
-  lJArr := TJSONArray.Create;
-  lJObj.AddPair('querystringparameters', lJArr);
-
-  lQueryParams := Context.Request.QueryStringParams;
-  for I := 0 to lQueryParams.Count - 1 do
-  begin
-    lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(
-      lQueryParams.Names[I],
-      lQueryParams.ValueFromIndex[I])));
+  try
+    lJObj.S['message'] := 'This is protected content accessible only by user1';
+    lJArr := lJObj.A['querystringparameters'];
+    lQueryParams := Context.Request.QueryStringParams;
+    for I := 0 to lQueryParams.Count - 1 do
+    begin
+      lItem := lJArr.AddObject;
+      lItem.S[lQueryParams.Names[I]] := lQueryParams.ValueFromIndex[I];
+    end;
+    Result := lJObj;
+  except
+    lJObj.Free;
+    raise;
   end;
-
-  Render(lJObj);
 end;
 
-procedure TAdminController.OnlyRole2(ctx: TWebContext);
+function TAdminController.OnlyRole2: String;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
-    ', now you are a logged user and this is a protected content!');
-  ResponseStream.AppendLine('As logged user you have the following roles: ' +
-    sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
-  RenderResponseStream;
+  Result := Context.LoggedUser.CustomData['mycustomvalue'] + sLineBreak +
+    'Hey! Hello ' + Context.LoggedUser.UserName + ', now you are a logged user and this is a protected content!' + sLineBreak +
+    'As logged user you have the following roles: ' + sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray);
 end;
 
 end.

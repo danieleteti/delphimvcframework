@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -35,7 +35,7 @@ uses
   System.Generics.Collections,
   Data.DB,
   BusinessObjectsU, MVCFramework.Serializer.Commons, System.Classes,
-  System.UITypes;
+  System.UITypes, JsonDataObjects;
 
 type
 
@@ -374,6 +374,10 @@ type
     [MVCPath('/issues/542')]
     procedure TestIssue542;
 
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/issues/806')]
+    function TestIssue806(const [MVCFromBody] Entity: TTestCasingAsIs): Boolean;
+
     {sqids}
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/sqids/stoi/($id:sqids)')]
@@ -561,7 +565,6 @@ type
 implementation
 
 uses
-  JsonDataObjects,
   System.JSON,
   Web.HTTPApp,
   Generics.Collections,
@@ -1106,6 +1109,11 @@ begin
   Render(lObj);
 end;
 
+function TTestServerController.TestIssue806(const Entity: TTestCasingAsIs): Boolean;
+begin
+  Result := Entity.myProp = 'hello world';
+end;
+
 procedure TTestServerController.TestJSONArrayAsObjectList;
 var
   lUsers: TObjectList<TCustomer>;
@@ -1326,7 +1334,7 @@ begin
     lDS.LoadFromFile(lFName);
     ViewData['customers'] := lDS;
     ViewData['customers2'] := lDS;
-    ResponseStream.Append(Page('dataset_list'));
+    ResponseStream.Append(RenderView('dataset_list'));
     RenderResponseStream;
   finally
     lDS.Free;

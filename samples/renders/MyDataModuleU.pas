@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -61,20 +61,6 @@ type
     FDPhysFBDriverLink1: TFDPhysFBDriverLink;
     qryCountry: TFDQuery;
     FDGUIxWaitCursor1: TFDGUIxWaitCursor;
-    qryCustomersCUST_NO: TIntegerField;
-    qryCustomersCUSTOMER: TStringField;
-    qryCustomersCONTACT_FIRST: TStringField;
-    qryCustomersCONTACT_LAST: TStringField;
-    qryCustomersPHONE_NO: TStringField;
-    qryCustomersADDRESS_LINE1: TStringField;
-    qryCustomersADDRESS_LINE2: TStringField;
-    qryCustomersCITY: TStringField;
-    qryCustomersSTATE_PROVINCE: TStringField;
-    qryCustomersCOUNTRY: TStringField;
-    qryCustomersPOSTAL_CODE: TStringField;
-    qryCustomersON_HOLD: TStringField;
-    qryCustomersCN_HELLO: TWideStringField;
-    qryCustomersSR_HELLO: TWideStringField;
   private
     { Private declarations }
   public

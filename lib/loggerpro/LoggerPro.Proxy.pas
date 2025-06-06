@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2024 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -64,6 +64,9 @@ type
 
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
+
+    procedure Disable;
+    procedure Enable;
 
     { ICustomLogWriter}
     function GetAppendersClassNames: TArray<string>;
@@ -188,9 +191,19 @@ begin
   fDecoratedLogWriter.DelAppender(aAppender);
 end;
 
+procedure TLogWriterDecorator.Disable;
+begin
+  fDecoratedLogWriter.Disable;
+end;
+
 procedure TLogWriterDecorator.Error(const aMessage, aTag: string);
 begin
   Log(TLogType.Error, aMessage, aTag);
+end;
+
+procedure TLogWriterDecorator.Enable;
+begin
+  fDecoratedLogWriter.Enable;
 end;
 
 procedure TLogWriterDecorator.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);

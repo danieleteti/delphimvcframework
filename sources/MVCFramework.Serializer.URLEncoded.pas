@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -422,6 +422,7 @@ procedure TMVCURLEncodedSerializer.DataValueToAttribute(const AObject: TObject; 
   const AIgnored: TMVCIgnoredList; const ACustomAttributes: TArray<TCustomAttribute>);
 var
   RttiType: TRttiType;
+  lTmp: String;
   lValueTypeInfo: PTypeInfo;
   lOutInteger: Integer;
   lOutInteger64: Int64;
@@ -430,6 +431,9 @@ var
   lOutDouble: Double;
   lOutExtended: Extended;
   lOutUInteger: Cardinal;
+  lOutNullableTDate: NullableTDate;
+  lOutNullableTDateTime: NullableTDateTime;
+  lOutNullableTTime: NullableTTime;
 begin
   RttiType := nil;
   AValue.Empty;
@@ -449,7 +453,17 @@ begin
     tkInt64:
       AValue := RawData.ToInt64;
     tkFloat:
-      AValue := RawData.ToDouble;
+      begin
+        lTmp := RttiType.ToString;
+        if SameText(lTmp, 'tdate') then
+          AValue := ISODateToDate(RawData)
+        else if SameText(lTmp, 'ttime') then
+          AValue := ISOTimeToTime(RawData)
+        else if SameText(lTmp, 'tdatetime') then
+          AValue := ISOTimeStampToDateTime(RawData)
+        else
+          AValue := RawData.ToDouble;
+      end;
     tkEnumeration:
       begin
         if SameText(RttiType.ToString, 'boolean') then
@@ -527,6 +541,43 @@ begin
           else
             AValue := TValue.Empty;
         end
+        { date and time related types}
+        else if (lValueTypeInfo = TypeInfo(NullableTDateTime)) then
+        begin
+          if RawData.IsEmpty then
+          begin
+            lOutNullableTDateTime.Clear;
+          end
+          else
+          begin
+            lOutNullableTDateTime := ISOTimeStampToDateTime(RawData);
+          end;
+          AValue := TValue.From<NullableTDateTime>(lOutNullableTDateTime);
+        end
+        else if (lValueTypeInfo = TypeInfo(NullableTDate)) then
+        begin
+          if RawData.IsEmpty then
+          begin
+            lOutNullableTDate.Clear;
+          end
+          else
+          begin
+            lOutNullableTDate := ISODateToDate(RawData);
+          end;
+          AValue := TValue.From<NullableTDate>(lOutNullableTDate);
+        end
+        else if (lValueTypeInfo = TypeInfo(NullableTTime)) then
+        begin
+          if RawData.IsEmpty then
+          begin
+            lOutNullableTTime.Clear;
+          end
+          else
+          begin
+            lOutNullableTTime := ISOTimeToTime(RawData);
+          end;
+          AValue := TValue.From<NullableTTime>(lOutNullableTTime);
+        end
         else
         begin
           raise EMVCDeserializationException.Create('(DataValueToAttribute) Cannot deserialize Nullable type ' + String(RttiType.Handle^.Name));
@@ -569,4 +620,3 @@ end;
 
 
 end.
-

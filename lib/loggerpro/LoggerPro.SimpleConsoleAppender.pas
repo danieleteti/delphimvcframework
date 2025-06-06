@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2024 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -44,18 +44,19 @@ type
   }
   TLoggerProSimpleConsoleAppender = class(TLoggerProAppenderBase)
   public
-    procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
 
+  TLoggerProSimpleConsoleLogFmtAppender = class(TLoggerProSimpleConsoleAppender)
+  public
+    constructor Create; override;
+  end;
+
 implementation
 
-
-procedure TLoggerProSimpleConsoleAppender.Setup;
-begin
-  inherited;
-end;
+uses
+  LoggerPro.Renderers;
 
 procedure TLoggerProSimpleConsoleAppender.TearDown;
 begin
@@ -65,6 +66,13 @@ end;
 procedure TLoggerProSimpleConsoleAppender.WriteLog(const aLogItem: TLogItem);
 begin
   Writeln(FormatLog(aLogItem));
+end;
+
+{ TLoggerProSimpleConsoleLogFmtAppender }
+
+constructor TLoggerProSimpleConsoleLogFmtAppender.Create;
+begin
+  inherited Create(TLogItemRendererLogFmt.Create);
 end;
 
 end.

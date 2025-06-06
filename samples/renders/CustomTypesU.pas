@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -65,7 +65,6 @@ type
   private
     FUserName: string;
     fRoles: TUserRoles;
-    fRecordAlias: TNullableRecordAlias;
   public
     constructor Create(aUserName: string; aRoles: TUserRoles);
     property UserName: string read FUserName write FUserName;

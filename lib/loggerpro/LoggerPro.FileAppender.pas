@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2024 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -188,6 +188,17 @@ type
     procedure TearDown; override;
   end;
 
+  TLoggerProLogFmtFileAppender = class(TLoggerProSimpleFileAppender)
+  protected
+    function GetLogFileName(const aTag: string; const aFileNumber: Integer): string; override;
+    procedure EmitStartRotateLogItem(aWriter: TStreamWriter); override;
+    procedure EmitEndRotateLogItem(aWriter: TStreamWriter); override;
+  public
+    constructor Create(aMaxBackupFileCount: Integer = TLoggerProFileAppender.DEFAULT_MAX_BACKUP_FILE_COUNT;
+      aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppender.DEFAULT_MAX_FILE_SIZE_KB; aLogsFolder: string = '';
+      aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT; aEncoding: TEncoding = nil);
+      reintroduce;
+  end;
 
 implementation
 
@@ -196,8 +207,9 @@ uses
   System.StrUtils,
   System.Math,
   System.DateUtils,
+  LoggerPro.Renderers,
   idGlobal
-{$IF Defined(Android), System.SysUtils}
+{$IF Defined(Android)}
     ,Androidapi.Helpers
     ,Androidapi.JNI.GraphicsContentViewText
     ,Androidapi.JNI.JavaTypes
@@ -700,6 +712,43 @@ begin
   begin
     RotateLog;
   end;
+end;
+
+{ TLoggerProLogFmtFileAppender }
+
+constructor TLoggerProLogFmtFileAppender.Create(aMaxBackupFileCount, aMaxFileSizeInKiloByte: Integer; aLogsFolder,
+  aLogFileNameFormat: string; aEncoding: TEncoding);
+begin
+  inherited Create(
+    aMaxBackupFileCount,
+    aMaxFileSizeInKiloByte,
+    aLogsFolder,
+    aLogFileNameFormat,
+    TLogItemRendererLogFmt.Create,
+    aEncoding);
+end;
+
+procedure TLoggerProLogFmtFileAppender.EmitEndRotateLogItem(aWriter: TStreamWriter);
+begin
+  // do nothing
+end;
+
+procedure TLoggerProLogFmtFileAppender.EmitStartRotateLogItem(aWriter: TStreamWriter);
+begin
+  // do nothing
+end;
+
+function TLoggerProLogFmtFileAppender.GetLogFileName(const aTag: string; const aFileNumber: Integer): string;
+var
+  lOrigFName, lOrigExt: string;
+begin
+  lOrigFName := inherited;
+  lOrigExt := TPath.GetExtension(lOrigFName);
+  if lOrigExt.IsEmpty then
+  begin
+    lOrigExt := '.log';
+  end;
+  Result := TPath.ChangeExtension(lOrigFName, '.logfmt' + lOrigExt);
 end;
 
 end.

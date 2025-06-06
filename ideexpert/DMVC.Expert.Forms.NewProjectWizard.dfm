@@ -31,14 +31,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblWbModule: TLabel
     Left = 24
-    Top = 167
+    Top = 163
     Width = 114
     Height = 13
     Caption = 'WebModule Class Name'
   end
   object Label2: TLabel
     Left = 24
-    Top = 214
+    Top = 210
     Width = 55
     Height = 13
     Caption = 'Server Port'
@@ -492,14 +492,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object edtWebModuleName: TEdit
     Left = 24
-    Top = 186
+    Top = 182
     Width = 225
     Height = 21
     TabOrder = 1
   end
   object edtServerPort: TEdit
     Left = 24
-    Top = 233
+    Top = 229
     Width = 65
     Height = 21
     TabOrder = 2
@@ -751,7 +751,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMSHeap: TCheckBox
     Left = 24
-    Top = 283
+    Top = 303
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -760,7 +760,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkCustomConfigDotEnv: TCheckBox
     Left = 24
-    Top = 264
+    Top = 325
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -769,7 +769,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkServicesContainer: TCheckBox
     Left = 24
-    Top = 303
+    Top = 259
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -780,13 +780,11 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkSqids: TCheckBox
     Left = 24
-    Top = 323
+    Top = 281
     Width = 225
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
     Caption = 'Use Sqids'
-    Checked = True
-    State = cbChecked
     TabOrder = 11
   end
   object rgNameCase: TRadioGroup

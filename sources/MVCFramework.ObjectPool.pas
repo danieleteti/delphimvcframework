@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -47,7 +47,7 @@ type
     ['{0E79863D-D6F9-4426-9D80-F4C215233582}']
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
   end;
 
 
@@ -55,24 +55,24 @@ type
   TObjectPool<T: class, constructor> = class(TInterfacedObject, IObjectPool<T>)
   private
     fFactory: TFunc<T>;
-    fMaxSize: Integer;
+    fMaxSize: UInt32;
     fPool: TStack<T>;
-    fSize: Integer;
-    fShrinkTargetSize: Integer;
-    fShrinkTriggerSize: Integer;
+    fSize: UInt32;
+    fShrinkTargetSize: UInt32;
+    fShrinkTriggerSize: UInt32;
     fCleanupThread: TCleanupThread<T>;
     fLastGetFromPool: TDateTime;
     fOnResetState: TProc<T>;
   protected
     procedure Lock;
     procedure UnLock;
-    procedure ShrinkPoolTo(const TargetSize: Integer);
+    procedure ShrinkPoolTo(const TargetSize: UInt32);
   public
-    constructor Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil);
+    constructor Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil);
     destructor Destroy; override;
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
     property OnResetState: TProc<T> read fOnResetState write fOnResetState;
   end;
 
@@ -80,8 +80,8 @@ type
   private
     fObjectPool: TObjectPool<T>;
     type
-      TPoolSizeSamples = array [0..AVG_SAMPLES_COUNT-1] of Integer;
-    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): Integer;
+      TPoolSizeSamples = array [0..AVG_SAMPLES_COUNT-1] of UInt64;
+    function GetAveragePoolSize(var SizeSamples: TPoolSizeSamples): UInt64;
   protected
     procedure Execute; override;
   public
@@ -90,8 +90,8 @@ type
 
   TPoolFactory = class
   public
-    class function CreatePool<T: class, constructor>(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil): IObjectPool<T>;
-    class function CreateUnlimitedPool<T: class, constructor>(ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T> = nil): IObjectPool<T>;
+    class function CreatePool<T: class, constructor>(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil): IObjectPool<T>;
+    class function CreateUnlimitedPool<T: class, constructor>(ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T> = nil): IObjectPool<T>;
   end;
 
 
@@ -100,9 +100,12 @@ var
 
 implementation
 
+uses
+  System.Math;
+
 { TObjectPool<T> }
 
-constructor TObjectPool<T>.Create(MaxSize: Integer; ShrinkTriggerSize, ShrinkTargetSize: Integer; const Factory: TFunc<T>);
+constructor TObjectPool<T>.Create(MaxSize: UInt32; ShrinkTriggerSize, ShrinkTargetSize: UInt32; const Factory: TFunc<T>);
 begin
   inherited Create;
   fOnResetState := nil;
@@ -183,7 +186,7 @@ begin
   end;
 end;
 
-procedure TObjectPool<T>.ShrinkPoolTo(const TargetSize: Integer);
+procedure TObjectPool<T>.ShrinkPoolTo(const TargetSize: UInt32);
 begin
   MonitorEnter(Self);
   try
@@ -197,7 +200,7 @@ begin
   end;
 end;
 
-function TObjectPool<T>.Size: UInt32;
+function TObjectPool<T>.Size: NativeInt;
 begin
   MonitorEnter(Self);
   try
@@ -222,9 +225,14 @@ procedure TCleanupThread<T>.Execute;
 var
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
-  lSampleTick: Integer;
+  lSampleTick: UInt64;
+  I: Integer;
+  lAdjustedStep: UInt32;
+const
+  CHECK_TERMINATED_INTERVAL_FACTOR = 10;
 begin
   lSampleTick := 0;
+  lAdjustedStep := Max(GObjectPoolSamplingIntervalMS, 500) div CHECK_TERMINATED_INTERVAL_FACTOR;
   while not Terminated do
   begin
     Inc(lSampleTick);
@@ -242,7 +250,14 @@ begin
     end
     else
     begin
-      Sleep(GObjectPoolSamplingIntervalMS);
+      for I := 1 to CHECK_TERMINATED_INTERVAL_FACTOR do
+      begin
+        Sleep(lAdjustedStep); { do not sleep the thread for too long, we've to check Terminated!}
+        if Terminated then
+        begin
+          Break;
+        end;
+      end;
       if lSampleTick = MaxInt  then
       begin
         lSampleTick := 0;
@@ -252,27 +267,29 @@ begin
 end;
 
 function TCleanupThread<T>.GetAveragePoolSize(
-  var SizeSamples: TPoolSizeSamples): Integer;
+  var SizeSamples: TPoolSizeSamples): UInt64;
+var
+  I: Integer;
 begin
   Result := 0;
-  for var I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
+  for I := Low(TPoolSizeSamples) to High(TPoolSizeSamples) do
   begin
     Inc(Result, SizeSamples[I]);
   end;
-  Result := Result div Length(SizeSamples);
+  Result := Result div UInt64(Length(SizeSamples));
 end;
 
 { TPoolFactory }
 
 class function TPoolFactory.CreatePool<T>(MaxSize, ShrinkTriggerSize,
-  ShrinkTargetSize: Integer; const Factory: TFunc<T>): IObjectPool<T>;
+  ShrinkTargetSize: UInt32; const Factory: TFunc<T>): IObjectPool<T>;
 begin
   Result := TObjectPool<T>.Create(MaxSize, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);
 end;
 
 class function TPoolFactory.CreateUnlimitedPool<T>(ShrinkTriggerSize,
-  ShrinkTargetSize: Integer; const Factory: TFunc<T>): IObjectPool<T>;
+  ShrinkTargetSize: UInt32; const Factory: TFunc<T>): IObjectPool<T>;
 begin
   Result := CreatePool<T>(0, ShrinkTriggerSize,
     ShrinkTargetSize, Factory);

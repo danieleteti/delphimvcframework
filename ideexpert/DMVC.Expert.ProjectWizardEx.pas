@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -83,7 +83,7 @@ class procedure TDMVCNewProjectWizard.RegisterDMVCProjectWizard(const APersonali
 begin
   RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint, sNewDMVCProjectCaption,
     'DMVC.Wizard.NewProjectWizard', // do not localize
-    'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+    'DelphiMVCFramework', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
       WizardForm: TfrmDMVCNewProject;
@@ -136,7 +136,7 @@ begin
 
           lEntityUnitName := '';
           // Create ENTITY Unit
-          if lJSON.B[TConfigKey.controller_crud_methods_generate] then
+          if lJSON.B[TConfigKey.controller_crud_methods_generate] or lJSON.B[TConfigKey.program_service_container_generate] then
           begin
             EntityCreator := TNewGenericUnitFromTemplate.Create(
               lJSON,
@@ -282,7 +282,7 @@ begin
         WizardForm.Free;
       end;
     end,
-    function: Cardinal
+    function: {$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}
     begin
       Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
     end, TArray<string>.Create(cWin32Platform, cWin64Platform

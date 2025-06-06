@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -79,6 +79,7 @@ type
 implementation
 
 uses
+  Types,
   JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
@@ -134,11 +135,12 @@ var
   lViewFileName: string;
   lViewTemplate: UTF8String;
   lViewEngine: TSynMustache;
+  lActualCalculatedFileName: String;
 begin
   PrepareModels;
-  lViewFileName := GetRealFileName(ViewName);
+  lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
   if lViewFileName.IsEmpty then
-    raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
+    raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   Builder.Append(UTF8Tostring(RenderJSON(lViewEngine, FJSONModelAsString, fPartials, fHelpers, nil, false)));
@@ -171,7 +173,7 @@ var
   lViewsExtension: string;
   lViewPath: string;
   lPartialName: String;
-  lPartialFileNames: TArray<string>;
+  lPartialFileNames: TStringDynArray;
   I: Integer;
 begin
   if gPartialsLoaded then
@@ -185,7 +187,7 @@ begin
       if not gPartialsLoaded then
       begin
         lViewsExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
-        lViewPath := Config[TMVCConfigKey.ViewPath];
+        lViewPath := TMVCBase.GetApplicationFileNamePath + Config.Value[TMVCConfigKey.ViewPath];
         lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension, TSearchOption.soAllDirectories);
         FreeAndNil(fPartials);
         fPartials := TSynMustachePartials.Create;

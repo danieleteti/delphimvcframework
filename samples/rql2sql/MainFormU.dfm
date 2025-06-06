@@ -10,11 +10,9 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
@@ -31,6 +29,20 @@ object MainForm: TMainForm
       Caption = 'RQL to SQL'
       TabOrder = 0
       OnClick = btnParseClick
+    end
+    object Button1: TButton
+      AlignWithMargins = True
+      Left = 4
+      Top = 394
+      Width = 113
+      Height = 25
+      Align = alBottom
+      Caption = 'Generate Test Files'
+      TabOrder = 1
+      OnClick = Button1Click
+      ExplicitLeft = 24
+      ExplicitTop = 200
+      ExplicitWidth = 75
     end
   end
   object Panel2: TPanel

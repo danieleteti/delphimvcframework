@@ -9,12 +9,26 @@
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
 
     <style>
+        :root {
+            --blue: #186ec4;
+            --blue_hover: #1563b1;
+        }        
+
+        a {
+            color: var(--blue);
+        }
+
+        a:hover {
+            color: var(--blue_hover);
+            text-decoration: none;
+        }
+
         h1 a:hover {
             text-decoration: none;
         }
 
         #footer a {
-            text-decoration: none;            
+            text-decoration: none;
         }
 
         /* unvisited link */
@@ -36,7 +50,82 @@
         #footer a:active {
             color: blue;
         }
+
+        dialog {
+            min-width: 30rem;
+            padding: 1.2rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            max-width: 80vw;
+        }
+
+        dialog button {
+            margin-right: 0.5rem;
+            width: 10rem !important;
+        }
+
+        ::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        button.as_link {
+            background: none !important;
+            border: none;
+            padding: 0 !important;
+            color: var(--blue);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        button.as_link:hover {
+            color: var(--blue_hover);
+            text-decoration: none;
+        }
     </style>
+    <script>
+        function showDialog(message, title = null) {
+            const dialog = document.getElementById('mydialog');
+            const btns = dialog.querySelectorAll('button');
+            btns.forEach((btn) => {
+                btn.addEventListener('click', function (evt) {
+                    evt.preventDefault();
+                    dialog.close(evt.target.value);
+                });
+            });
+
+            dialog.querySelector('#message').innerText = message;
+            dialog.querySelector('#title').innerText = title || 'Confirmation';
+
+            return new Promise((resolve, reject) => {
+                dialog.showModal();
+
+                dialog.addEventListener('close', () => {
+                    if (dialog.returnValue === 'OK') {
+                        resolve({ isConfirmed: true });
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('htmx:responseError', (evt) => {
+            // Handle the error based on the status code
+            let msg = null;
+            if (evt.detail.xhr.status === 403) {
+                msg = 'You do not have permission to access this resource.';
+            } else if (evt.detail.xhr.status === 400) {
+                msg = 'Bad Request.';
+            } else if (evt.detail.xhr.status === 404) {
+                msg = 'Resource not found.';
+            } else if (evt.detail.xhr.status === 500) {
+                msg = 'Internal server error. Please try again later.';
+            }
+            else {
+                msg = 'An unexpected error occurred. Please try again.';
+            }
+            evt.detail.xhr.getResponseHeader('Content-Type').startsWith('application/json') ?
+                alert(msg + "\n" + JSON.parse(evt.detail.xhr.responseText).message) : alert(msg);
+        });
+    </script>
 </header>
 
 <body hx-boost="true" class="text-capitalize">

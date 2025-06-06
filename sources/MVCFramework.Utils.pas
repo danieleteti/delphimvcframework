@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -31,9 +31,54 @@ interface
 uses
   MVCFramework.Serializer.Commons, JsonDataObjects,
   MVCFramework.DuckTyping, System.Classes, System.SysUtils,
-  System.Generics.Collections;
+  System.Generics.Collections, Data.DB;
 
 type
+  ICSRFTokenManager = interface
+    ['{0A7F62EB-1DF6-4F69-945C-75F6A336CF35}']
+    /// <summary>
+    /// Generates a valid CSRF token for a specified number of minutes.
+    /// </summary>
+    function GenerateToken(const SecretKey: string; const ExpirationSeconds: Integer): string;
+
+    /// <summary>
+    /// Verifies if a given CSRF token is valid and not expired.
+    /// </summary>
+    function IsTokenValid(const SecretKey: string; const Token: string): Boolean;
+
+    /// <summary>
+    /// Verifies if a given CSRF token is expired and, so, not valid.
+    /// </summary>
+    function IsTokenExpired(const SecretKey: string; const Token: string): Boolean;
+  end;
+
+  /// <summary>
+  /// Class to handle the generation and verification of signed CSRF tokens.
+  /// </summary>
+  TCSRFTokenManager = class(TInterfacedObject, ICSRFTokenManager)
+  private
+    function GetExpiryTime(ExpirationSeconds: Integer): Int64;
+    function GenerateHMAC(const SecretKey: string; const Payload: string): string;
+    function ExtractPayloadAndSignature(Token: string; out Payload, Signature: string): Boolean;
+  public
+    constructor Create; virtual;
+
+    /// <summary>
+    /// Generates a valid CSRF token for a specified number of minutes.
+    /// </summary>
+    function GenerateToken(const SecretKey: string; const ExpirationSeconds: Integer): string;
+
+    /// <summary>
+    /// Verifies if a given CSRF token is valid and not expired.
+    /// </summary>
+    function IsTokenValid(const SecretKey: string; const Token: string): Boolean;
+
+    /// <summary>
+    /// Verifies if a given CSRF token is expired and, so, not valid. It is an alias for "not IsTokenValid(...,...)"
+    /// </summary>
+    function IsTokenExpired(const SecretKey: string; const Token: string): Boolean;
+  end;
+
   EHOError = class(Exception)
 
   end;
@@ -57,6 +102,7 @@ type
   TMapClosure<T> = reference to function(const Item: T): T;
   TMapClosure2<T1,T2> = reference to function(const Item: T1): T2;
   TForEachClosure<T> = reference to procedure(const Item: T);
+  TForEachRecordClosure = reference to procedure(const Item: TDataset);
   TMapReduceClosure<T> = reference to function(const Left: T; const Right: T): T;
   TPredicateClosure<T> = reference to function(const Item: T): Boolean;
 
@@ -84,7 +130,10 @@ type
       const ForEachClosure: TForEachClosure<T>); overload;
     class procedure ForEach<T>(const Enumerable: TEnumerable<T>;
       const ForEachClosure: TForEachClosure<T>); overload;
+    class procedure ForEachRecord(const InputDataset: TDataset; const ForEachClosure: TForEachRecordClosure);
   end;
+
+  _ = HigherOrder;
 
 function NewJSONSerializer: IMVCJSONSerializer;
 function StrToJSONObject(const aString: String; aRaiseExceptionOnError: Boolean = False): TJsonObject;
@@ -94,6 +143,7 @@ function GetMD5HashFromStream(const aStream: TStream): string;
 function GetMD5HashFromString(const aString: String): string;
 function GetSHA1HashFromString(const aString: String): string;
 function GetSHA1HashFromStream(const aStream: TStream): string;
+function BytesToHex(const Bytes: TBytes): string;
 
 implementation
 
@@ -106,7 +156,7 @@ uses
 {$ENDIF}
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Commons,
-  System.TypInfo;
+  System.TypInfo, System.DateUtils;
 
 function GetMD5HashFromStream(const aStream: TStream): string;
 {$IF not defined(TOKYOORBETTER)}
@@ -288,6 +338,28 @@ begin
   end;
 end;
 
+class procedure HigherOrder.ForEachRecord(const InputDataset: TDataset; const ForEachClosure: TForEachRecordClosure);
+var
+  lIdx: Integer;
+begin
+  lIdx := 0;
+  try
+    while not InputDataset.Eof do
+    begin
+      ForEachClosure(InputDataset);
+      Inc(lIdx);
+      InputDataset.Next;
+    end;
+  except
+    on E: Exception do
+    begin
+      raise EHOForEachError.CreateFmt
+        ('ForEachRecord error at element %d - [Class: %s][Message: %s]',
+        [lIdx, E.ClassName, E.Message]);
+    end;
+  end;
+end;
+
 class procedure HigherOrder.ForEach<T>(const Enumerable: TEnumerable<T>; const ForEachClosure: TForEachClosure<T>);
 var
   lIdx: Integer;
@@ -408,6 +480,121 @@ begin
         [lIdx, E.ClassName, E.Message]);
     end;
   end;
+end;
+
+function BytesToHex(const Bytes: TBytes): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Length(Bytes) - 1 do
+    Result := Result + IntToHex(Bytes[I], 2); // Formatta ciascun byte come due cifre esadecimali
+end;
+
+{ TCSRFTokenManager }
+
+constructor TCSRFTokenManager.Create;
+begin
+  inherited;
+end;
+
+/// <summary>
+/// Calculates the expiration timestamp in milliseconds.
+/// </summary>
+function TCSRFTokenManager.GetExpiryTime(ExpirationSeconds: Integer): Int64;
+begin
+  Result := DateTimeToUnix(Now() + OneSecond * ExpirationSeconds);
+end;
+
+/// <summary>
+/// Generates an HMAC-SHA256 signature for the given payload.
+/// </summary>
+function TCSRFTokenManager.GenerateHMAC(const SecretKey: string; const Payload: string): string;
+begin
+  Result := BytesToHex(THashSHA2.GetHMACAsBytes(Payload, SecretKey));
+end;
+
+/// <summary>
+/// Extracts the payload and signature from a token.
+/// </summary>
+function TCSRFTokenManager.ExtractPayloadAndSignature(Token: string; out Payload, Signature: string): Boolean;
+var
+  Parts: TArray<string>;
+begin
+  Parts := Token.Split(['.']);
+  if Length(Parts) = 2 then
+  begin
+    Payload := Parts[0];
+    Signature := Parts[1];
+    Result := True;
+  end
+  else
+  begin
+    Payload := '';
+    Signature := '';
+    Result := False;
+  end;
+end;
+
+/// <summary>
+/// Generates a signed CSRF token.
+/// </summary>
+function TCSRFTokenManager.GenerateToken(const SecretKey: string; const ExpirationSeconds: Integer): string;
+var
+  Payload: string;
+  ExpiryTime: Int64;
+begin
+  // Calculate the expiration timestamp
+  ExpiryTime := GetExpiryTime(ExpirationSeconds);
+
+  // Create the payload with the expiration timestamp
+  Payload := IntToStr(ExpiryTime);
+
+  // Generate the token as: <payload>.<signature>
+  Result := Payload + '.' + GenerateHMAC(SecretKey, Payload);
+end;
+
+function TCSRFTokenManager.IsTokenExpired(const SecretKey, Token: string): Boolean;
+begin
+  Result := not IsTokenValid(SecretKey, Token);
+end;
+
+/// <summary>
+/// Verifies if a given CSRF token is valid and not expired.
+/// </summary>
+function TCSRFTokenManager.IsTokenValid(const SecretKey: string; const Token: string): Boolean;
+var
+  Payload, Signature, ExpectedSignature: string;
+  CurrentTime, ExpiryTime: Int64;
+begin
+  // Extract the payload and signature from the token
+  if not ExtractPayloadAndSignature(Token, Payload, Signature) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Recreate the expected signature using the payload and secret key
+  ExpectedSignature := GenerateHMAC(SecretKey, Payload);
+  if not SameText(Signature, ExpectedSignature) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Extract the expiration timestamp from the payload
+  try
+    ExpiryTime := StrToInt64(Payload);
+  except
+    Result := False;
+    Exit;
+  end;
+
+  // Get the current time in milliseconds
+  CurrentTime := DateTimeToUnix(Now());
+
+  // Check if the token has expired
+  Result := CurrentTime <= ExpiryTime;
 end;
 
 end.

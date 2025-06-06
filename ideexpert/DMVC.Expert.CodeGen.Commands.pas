@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -824,6 +824,7 @@ begin
 
   Section
     .AppendLine('  MVCFramework.Middleware.ActiveRecord,')
+    .AppendLine('  MVCFramework.Middleware.Session,')
     .AppendLine('  MVCFramework.Middleware.Redirect,')
     .AppendLine('  MVCFramework.Middleware.StaticFiles,')
     .AppendLine('  MVCFramework.Middleware.Analytics,')
@@ -834,11 +835,9 @@ begin
     .AppendLine
     .AppendLine('procedure ' + Model.S[TConfigKey.webmodule_classname] + '.WebModuleCreate(Sender: TObject);')
     .AppendLine('begin')
-    .AppendLine('  FMVC := TMVCEngine.Create(Self,')
+    .AppendLine('  fMVC := TMVCEngine.Create(Self,')
     .AppendLine('    procedure(Config: TMVCConfig)')
     .AppendLine('    begin')
-    .AppendLine('      // session timeout (0 means session cookie)')
-    .AppendLine('      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env(''dmvc.session_timeout'', ''0'');')
     .AppendLine('      //default content-type')
     .AppendLine('      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env(''dmvc.default.content_type'', ' + default_media_type  + ');')
     .AppendLine('      //default content charset')
@@ -864,7 +863,7 @@ begin
     .AppendLine('    end);')
     .AppendLine
     .AppendLine('  // Controllers')
-    .AppendLine('  FMVC.AddController(' + Model[TConfigKey.controller_classname] + ');')
+    .AppendLine('  fMVC.AddController(' + Model[TConfigKey.controller_classname] + ');')
     .AppendLine('  // Controllers - END')
     .AppendLine;
 
@@ -874,7 +873,7 @@ begin
       lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
-        .AppendLine('  FMVC.SetViewEngine(TMVCTemplateProViewEngine);')
+        .AppendLine('  fMVC.SetViewEngine(TMVCTemplateProViewEngine);')
         .AppendLine('  // Server Side View - END')
         .AppendLine;
     end;
@@ -884,7 +883,7 @@ begin
       lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
-        .AppendLine('  FMVC.SetViewEngine(TMVCWebStencilsViewEngine);')
+        .AppendLine('  fMVC.SetViewEngine(TMVCWebStencilsViewEngine);')
         .AppendLine('  // Server Side View - END')
         .AppendLine;
     end;
@@ -894,7 +893,7 @@ begin
       lAddURLEncodedSerializer := True;
       Section
         .AppendLine('  // Server Side View')
-        .AppendLine('  FMVC.SetViewEngine(TMVCMustacheViewEngine);')
+        .AppendLine('  fMVC.SetViewEngine(TMVCMustacheViewEngine);')
         .AppendLine('  // Server Side View - END')
         .AppendLine;
     end;
@@ -903,13 +902,24 @@ begin
     begin
       Section
         .AppendLine('  // Serializers')
-        .AppendLine('  FMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));')
+        .AppendLine('  fMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));')
         .AppendLine('  // Serializers - END')
         .AppendLine;
     end;
 
     Section
-      .AppendLine('  // Middleware');
+      .AppendLine('  // Middleware')
+      .AppendLine('  // To use memory session uncomment the following line')
+      .AppendLine('  // fMVC.AddMiddleware(UseMemorySessionMiddleware);')
+      .AppendLine('  //')
+      .AppendLine('  // To use file based session uncomment the following line')
+      .AppendLine('  // fMVC.AddMiddleware(UseFileSessionMiddleware);')
+      .AppendLine('  //')
+      .AppendLine('  // To use database based session uncomment the following lines,')
+  	  .AppendLine('  // configure you firedac db connection and create table dmvc_sessions')
+  	  .AppendLine('  // fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''firedac_con_def_name''));')
+  	  .AppendLine('  // fMVC.AddMiddleware(UseDatabaseSessionMiddleware);');
+	  
 
     if Model.B[TConfigKey.webmodule_middleware_analytics] then
     begin
@@ -974,7 +984,7 @@ begin
       .AppendLine
       .AppendLine('procedure ' + Model.S[TConfigKey.webmodule_classname] + '.WebModuleDestroy(Sender: TObject);')
       .AppendLine('begin')
-      .AppendLine('  FMVC.Free;')
+      .AppendLine('  fMVC.Free;')
       .AppendLine('end;')
       .AppendLine
       .AppendLine('end.')
@@ -1147,7 +1157,8 @@ begin
     .AppendLine('    if dotEnv.Env(''dmvc.profiler.enabled'', ' + Model.S[TConfigKey.controller_actions_profiling_generate].ToLower + ') then')
     .AppendLine('    begin')
     .AppendLine('      Profiler.ProfileLogger := Log;')
-    .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 2000);')
+    .AppendLine('      Profiler.WarningThreshold := dotEnv.Env(''dmvc.profiler.warning_threshold'', 1000);')
+	.AppendLine('      Profiler.LogsOnlyIfOverThreshold := dotEnv.Env(''dmvc.profiler.logs_only_over_threshold'', True);')
     .AppendLine('    end;')
     .AppendLine('{$ENDIF}')
     .AppendLine;

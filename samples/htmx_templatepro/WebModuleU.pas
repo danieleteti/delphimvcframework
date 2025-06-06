@@ -26,6 +26,7 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.Redirect,
+  MVCFramework.Middleware.Session,
   MVCFramework.Middleware.StaticFiles;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
@@ -39,8 +40,6 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config.dotEnv := dotEnv;
-      // session timeout (0 means session cookie)
-      Config[TMVCConfigKey.SessionTimeout] := dotEnv.Env('dmvc.session_timeout', '0');
       //default content-type
       Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', TMVCMediaType.TEXT_HTML);
       //default content charset
@@ -65,6 +64,7 @@ begin
       Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end)
     .AddController(TWebSiteController)
+    .AddMiddleware(UseMemorySessionMiddleware(10))
     .AddMiddleware(TMVCRedirectMiddleware.Create(['/'],'/people'))
     .SetViewEngine(TMVCTemplateProViewEngine)
 end;

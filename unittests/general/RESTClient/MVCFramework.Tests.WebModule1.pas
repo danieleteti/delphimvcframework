@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -52,6 +52,7 @@ implementation
 uses
   MVCFramework.Tests.RESTClient,
   MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Session,
   MVCFramework.Tests.AppController,
   MVCFramework.Server,
   MVCFramework.Server.Impl;
@@ -64,7 +65,7 @@ begin
 
   // Add Controller
   FMVCEngine.AddController(TAppController);
-
+  FMVCEngine.AddMiddleware(UseMemorySessionMiddleware(0));
   FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
     TMVCDefaultAuthenticationHandler.New
     .SetOnAuthentication(

@@ -48,7 +48,7 @@ begin
       JWT.Claims.NotBefore := Now - OneMinute * 5; // valid since 5 minutes ago
       JWT.Claims.IssuedAt := Now;
       JWT.Claims.ExpirationTime := Now + OneSecond * 30;
-      JWT.CustomClaims['mycustomvalue'] := 'hello there';
+      JWT.CustomClaims['mycustomvalue'] := 'THIS IS A CUSTOM CLAIM!';
       // Here we dont use a fixed ExpirationTime but a LiveValidityWindowInSeconds
       // to make the ExpirationTime dynamic, incrementing the
       // ExpirationTime by LiveValidityWindowInSeconds seconds at each request
@@ -58,7 +58,6 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '30';
       Config[TMVCConfigKey.DefaultContentType] := 'text/html';
     end);
   MVC

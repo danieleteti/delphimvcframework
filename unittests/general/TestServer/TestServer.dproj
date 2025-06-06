@@ -7,7 +7,7 @@
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
         <FrameworkType>None</FrameworkType>
-        <ProjectVersion>20.2</ProjectVersion>
+        <ProjectVersion>20.3</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <ProjectName Condition="'$(ProjectName)'==''">TestServer</ProjectName>
     </PropertyGroup>
@@ -130,8 +130,8 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
-        <DCCReference Include="..\Several\Entities.pas"/>
-        <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
+        <DCCReference Include="..\TestClient\Entities.pas"/>
+        <DCCReference Include="..\TestClient\EntitiesProcessors.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.pas"/>
@@ -184,7 +184,6 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput"/>
-                <DeployFile LocalName="bin\TestServer.exe" Configuration="CI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\TestServer.exe" Configuration="CI" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\customers.json" Configuration="CI" Class="File">
                     <Platform Name="Linux64">
@@ -319,6 +318,16 @@
                     </Platform>
                     <Platform Name="Android64">
                         <RemoteDir>res\values-v31</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidSplashStylesV35">
+                    <Platform Name="Android">
+                        <RemoteDir>res\values-v35</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="Android64">
+                        <RemoteDir>res\values-v35</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>

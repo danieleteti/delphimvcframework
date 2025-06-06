@@ -1,9 +1,11 @@
 {{if !ishtmx}}
 {{include "partials/header.html"}}
 {{endif}}
+
 {{include "people_list_search.html"}}
+
 <div class="row" id="people_list" hx-target="#main">
-    <div class="col">
+    <div class="col">        
         {{include "people_table.html"}}
     </div>
 </div>

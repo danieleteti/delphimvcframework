@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -117,12 +117,16 @@ begin
   try
     Context.Request.RawWebRequest.ReadTotalContent;
     lReq := Context.Request;
-    Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d]', [
+    Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d][ACCEPT: %s][USER-AGENT: %s][AUTHORIZATION: %s]', [
       lReq.HTTPMethodAsString,
       lReq.ClientIp,
       lReq.RawWebRequest.PathInfo,
       lReq.RawWebRequest.QueryFields.DelimitedText,
-      lReq.RawWebRequest.ContentLength
+      lReq.RawWebRequest.ContentLength,
+      lReq.RawWebRequest.Accept,
+      lReq.RawWebRequest.UserAgent,
+      lReq.RawWebRequest.Authorization
+
       ],'trace');
     if Context.Request.HTTPMethod in [httpPOST, httpPUT] then
     begin

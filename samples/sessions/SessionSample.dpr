@@ -11,11 +11,11 @@ uses
   {$IFDEF MSWINDOWS}
   Winapi.Windows,
   Winapi.ShellAPI,
-  {$ENDIF}
+  {$ENDIF }
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   AppControllerU in 'AppControllerU.pas';
 
 {$R *.res}
@@ -25,7 +25,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  LogI(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Listening on http://localhost:%d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;

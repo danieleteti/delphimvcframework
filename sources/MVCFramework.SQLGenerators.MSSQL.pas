@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,9 +27,12 @@ unit MVCFramework.SQLGenerators.MSSQL;
 interface
 
 uses
+  {
+    //do not include these 2 unit in this unit
+    //because it will not compiles in Delphi Pro
   FireDAC.Phys.MSSQLDef,
   FireDAC.Phys.MSSQL,
-  System.Rtti,
+  }
   System.Generics.Collections,
   MVCFramework.RQL.Parser,
   MVCFramework.ActiveRecord,
@@ -48,6 +51,7 @@ type
 implementation
 
 uses
+  System.Rtti,
   System.SysUtils,
   MVCFramework.RQL.AST2MSSQL;
 

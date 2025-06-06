@@ -39,16 +39,8 @@
 {$DEFINE MOBILE}
 {$ENDIF}
 
-{$IF CompilerVersion <= 27} // XE6
-DelphiMVCFramework is compatible with Delphi version XE7 or better
-{$ENDIF}
-
-{$IF CompilerVersion >= 28} // XE7
-{$DEFINE XE7ORBETTER}
-{$ENDIF}
-
-{$IF CompilerVersion >= 29} // XE8
-{$DEFINE XE8ORBETTER}
+{$IF CompilerVersion <= 29} // XE8
+DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$ENDIF}
 
 {$IF CompilerVersion >= 30} // 10.0 Seattle
@@ -87,7 +79,7 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE JSONBOOL}
 {$ENDIF}
 
-{$IFDEF XE7ORBETTER}
+{$IFDEF SEATTLEORBETTER}
 {$DEFINE SYSTEMNETENCODING}
 {$DEFINE TOJSON}
 {$ENDIF}

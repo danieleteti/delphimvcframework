@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1944,12 +1944,12 @@ end;
 
 function TMVCRESTResponse.ToJSONArray: TJDOJsonArray;
 begin
-  Result := StrTOJSONArray(Content, True);
+  Result := StrToJSONArray(Content, True);
 end;
 
 function TMVCRESTResponse.ToJSONObject: TJDOJsonObject;
 begin
-  Result := StrTOJSONObject(Content, True);
+  Result := StrToJSONObject(Content, True);
 end;
 
 procedure TMVCRESTResponse.BodyFor(const aObject: TObject; const aRootNode: string);

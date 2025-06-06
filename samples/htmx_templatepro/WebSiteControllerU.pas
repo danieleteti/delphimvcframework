@@ -24,15 +24,17 @@ type
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure SavePerson(
       const [MVCFromContentField('guid','')] GUID: String;
-      const [MVCFromContentField('first_name')] FirstName: String;
-      const [MVCFromContentField('last_name')] LastName: String;
+      const [MVCFromContentField('first_name', '')] FirstName: String;
+      const [MVCFromContentField('last_name', '')] LastName: String;
       const [MVCFromContentField('age', 0)] Age: Integer;
-      const [MVCFromContentField('items')] Devices: TArray<String>
+      const [MVCFromContentField('items')] Devices: TArray<String>;
+      const [MVCFromContentField('csrf_token', '')] CSRF: String
     );
 
-    [MVCPath('/delete/($guid)')]
+    [MVCPath('/($guid)')]
     [MVCHTTPMethods([httpDELETE])]
     function DeletePerson(const guid: string): String;
 
@@ -67,7 +69,7 @@ implementation
 
 { TWebSiteController }
 
-uses DAL, System.SysUtils, Web.HTTPApp;
+uses DAL, System.SysUtils, Web.HTTPApp, MVCFramework.Utils;
 
 function TWebSiteController.DeletePerson(const guid: string): String;
 var
@@ -85,6 +87,8 @@ var
   lPerson: TPerson;
   lDevices: TDeviceList;
   lItem: TDevice;
+  lICSRFTokenManager: ICSRFTokenManager;
+  lToken: string;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lPerson := LDAL.GetPersonByGUID(guid);
@@ -96,8 +100,12 @@ begin
       begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
+      lICSRFTokenManager := TCSRFTokenManager.Create;
+      lToken := lICSRFTokenManager.GenerateToken(CSRF_SECRET, CSRF_SECONDS_TIMEOUT);
+      Session['csrf_token'] := lToken;
+      ViewData['csrf_token'] := lToken;
       ViewData['deviceslist'] := lDevices;
-      Result := Page(['editperson']);
+      Result := RenderView('editperson');
     finally
       lDevices.Free;
     end;
@@ -122,7 +130,7 @@ begin
   lPeople := LDAL.GetPeople;
   try
     ViewData['people'] := lPeople;
-    Result := Page(['people_list.csv']);
+    Result := RenderView('people_list.csv');
   finally
     lPeople.Free;
   end;
@@ -136,13 +144,19 @@ end;
 function TWebSiteController.NewPerson: String;
 var
   LDAL: IPeopleDAL;
+  lICSRFTokenManager: ICSRFTokenManager;
   lDevices: TDeviceList;
+  lToken: string;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lDevices := LDAL.GetDevicesList;
   try
+    lICSRFTokenManager := TCSRFTokenManager.Create();
+    lToken := lICSRFTokenManager.GenerateToken(CSRF_SECRET, CSRF_SECONDS_TIMEOUT);
+    Session['csrf_token'] := lToken;
+    ViewData['csrf_token'] := lToken;
     ViewData['deviceslist'] := lDevices;
-    Result := Page(['editperson']);
+    Result := RenderView('editperson');
   finally
     lDevices.Free;
   end;
@@ -173,7 +187,7 @@ begin
         Context.Response.HXSetPushUrl('/people?q=' + SearchText);
     end;
     ViewData['q'] := SearchText;
-    Result := Page(['people_list']);
+    Result := RenderView('people_list');
   finally
     lPeople.Free;
   end;
@@ -184,14 +198,20 @@ procedure TWebSiteController.SavePerson(
       const FirstName: String;
       const LastName: String;
       const Age: Integer;
-      const Devices: TArray<String>);
+      const Devices: TArray<String>;
+      const CSRF: String);
 var
   LPeopleDAL: IPeopleDAL;
 begin
+  var lCSRF: ICSRFTokenManager := TCSRFTokenManager.Create;
+  if (Session['csrf_token'] <> CSRF) or (lCSRF.IsTokenExpired(CSRF_SECRET, CSRF)) then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Data entry is expired or has been tampered. Please, restart editing.');
+  end;
+
   if FirstName.IsEmpty or LastName.IsEmpty or (Age <= 0) then
   begin
-    { TODO -oDaniele -cGeneral : Show how to properly render an exception }
-    raise EMVCException.Create('Invalid data', 'First name, last name and age are not optional', 0);
+    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'First name, last name and age are not optional');
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
@@ -205,7 +225,7 @@ function TWebSiteController.ShowModal: String;
 begin
   ViewData['message'] := 'Do you really want to delete row?';
   ViewData['title'] := 'Bootstrap Modal Dialog';
-  Result := Page(['modal']);
+  Result := RenderView('modal');
 end;
 
 function TWebSiteController.ShowModalForDelete(guid: string): String;
@@ -213,7 +233,7 @@ begin
   ViewData['title'] := 'Bootstrap Modal Dialog';
   ViewData['message'] := 'Do you really want to delete row?';
   ViewData['guid'] := guid;
-  Result := Page(['modal']);
+  Result := RenderView('modal');
 end;
 
 end.

@@ -1,0 +1,61 @@
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ERROR:[Error] Expected EOF (column 19 - found "eq(billing_...")
+ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
+ where ((City = 'Rome') and ((LOWER(CompanyName) LIKE '%gas%') or (LOWER(CompanyName) LIKE '%motors%'))) /*limit*/ LIMIT 0, 100
+ where (LOWER(nome) LIKE 'j%') /*limit*/ LIMIT 0, 100
+ where (name NOT IN ('daniele','scott')) /*limit*/ LIMIT 0, 100
+ where (value NOT IN (1,2,3)) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Marca d''água') and (LOWER(nome) LIKE '%marca d''água%') and (nome IN ('Marca','D''água'))) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Marca d''água') and (LOWER(nome) LIKE '%marca d''água%')) /*limit*/ LIMIT 0, 100
+ where (value IS NOT NULL) /*limit*/ LIMIT 0, 100
+ where (value IS NULL) /*limit*/ LIMIT 0, 100
+ where (value = 0) /*limit*/ LIMIT 0, 100
+ where (value = 1) /*limit*/ LIMIT 0, 100
+ where (value IN (1,2,3)) /*limit*/ LIMIT 0, 100
+ where (value IN (1,2,3)) /*limit*/ LIMIT 0, 100
+ where (value IN ()) /*limit*/ LIMIT 0, 100
+ where (value IN (1,2,3)) /*limit*/ LIMIT 0, 100
+ where (name IN ('daniele','scott')) /*limit*/ LIMIT 0, 100
+ where ((owneruserid = '%s') and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ LIMIT 0, 100
+ where ((owneruserid = 1) and (status IN ('ERROR','TO_SEND','NOT_COMPLETED'))) /*limit*/ LIMIT 0, 100
+ where ((name = 'João') and (codperson IN (1,2,3))) /*limit*/ LIMIT 0, 100
+ where (codperson IN (1,2,3)) /*limit*/ LIMIT 0, 100
+ where (name = -1) /*limit*/ LIMIT 0, 100
+ where (LOWER(nome) LIKE '%joão%') /*limit*/ LIMIT 0, 100
+ /*sort*/ ORDER BY last_name ASC /*limit*/ LIMIT 0, 1
+ /*limit*/ LIMIT 1, 5
+ /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 0, 100
+ERROR:[Error] Expected "sort" and/or "limit" (column 18 - found "<EOF>...")
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*sort*/ ORDER BY nome DESC /*limit*/ LIMIT 10, 20
+ where (nome >= 'pi\ppo') /*limit*/ LIMIT 0, 10
+ERROR:[Error] Expected EOF (column 27 - found "*/...")
+ where (nome >= 'hello world') /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
+ where (nome >= '') /*limit*/ LIMIT 0, 100
+ where (nome >= 'pi\ppo') /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 0, 100
+ /*sort*/ ORDER BY nome ASC /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ LIMIT 0, 100
+ where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
+ where (valore <= 4) /*limit*/ LIMIT 0, 100
+ where (nome >= 'pippo') /*limit*/ LIMIT 0, 100
+ where (nome != 4) /*limit*/ LIMIT 0, 100
+ where (valore = 4) /*limit*/ LIMIT 0, 100
+ where (valore < 3) /*limit*/ LIMIT 0, 100
+ where (nome = 'Daniele') /*limit*/ LIMIT 0, 100
+ where (value = 1.23) /*limit*/ LIMIT 0, 100
+ where (value < 1.23) /*limit*/ LIMIT 0, 100
+ where (value > 1.23) /*limit*/ LIMIT 0, 100
+ where (value IN (1.23,2.34,3.45)) /*limit*/ LIMIT 0, 100
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1..23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1...23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2.3)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.2..3)...")
+ where ((value >= 1.23) and (value <= 5.98)) /*limit*/ LIMIT 0, 100
+ERROR:[Error] Unclosed bracket (column 15 - found "2..34,3.45]...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found ".23)...")
+ERROR:[Error] Expected numeric, boolean or null value (column 9 - found "1.)...")

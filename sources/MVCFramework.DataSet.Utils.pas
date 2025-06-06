@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -55,10 +55,9 @@ type
     function MetadataAsJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault)
       : TJSONObject;
     function AsJSONArrayOfValues: TJDOJsonArray;
-    function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault;
       const IgnoredFields: TArray<string> = nil): string;
-    function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
+    function AsJDOJSONObject(FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault; const IgnoredFields: TArray<string> = nil): TJDOJsonObject;
     procedure LoadFromJSONObject(const JSONObject: TJSONObject;
       const FieldNameCase: TMVCNameCase); overload;
     procedure LoadFromJSONObject(const JSONObject: TJSONObject;
@@ -93,16 +92,13 @@ type
     procedure LoadFromJSONObjectString(const JSONObjectString: string;
       const IgnoredFields: TArray<string>;
       const FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault); overload;
-    // procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: string;
-    // const FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
+
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string;
       AIgnoredFields: TArray<string>;
       FieldNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll
-      : boolean = false; OwnsObjects: boolean = true): TObjectList<T>;
-    function AsObject<T: class, constructor>(CloseAfterScroll
-      : boolean = false): T;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: Boolean = True): TObjectList<T>;
+    function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
 
   end;
 
@@ -174,6 +170,7 @@ implementation
 
 uses
   System.TypInfo,
+  MVCFramework.ActiveRecord,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
@@ -184,10 +181,8 @@ procedure TDataSetHelper.LoadFromTValue(const Value: TValue;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and
-{$ENDIF} (Value.AsObject is TJDOJsonArray)) then
-    raise Exception.Create
-      ('LoadFromTValue requires a TValue containing a TJDOJsonArray');
+  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and{$ENDIF} (Value.AsObject is TJDOJsonArray)) then
+    raise Exception.Create('LoadFromTValue requires a TValue containing a TJDOJsonArray');
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try
@@ -204,20 +199,6 @@ begin
   end;
 
 end;
-
-// procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string;
-// const aPropertyName: string; const FieldNameCase: TMVCNameCase);
-// var
-// lJson: TJSONObject;
-// begin
-// lJson := TJSONObject.Create;
-// try
-// lJson.FromJSON(AJSONObjectString);
-// LoadFromJSONArray(lJson.A[aPropertyName], FieldNameCase);
-// finally
-// lJson.Free;
-// end;
-// end;
 
 function TDataSetHelper.AsJDOJSONArray(FieldNameCase
   : TMVCNameCase = TMVCNameCase.ncUseDefault): TJDOJsonArray;
@@ -238,6 +219,30 @@ begin
   except
     Result.Free;
     raise;
+  end;
+end;
+
+function TDataSetHelper.AsJDOJSONObject(FieldNameCase: TMVCNameCase; const IgnoredFields: TArray<string>): TJDOJsonObject;
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+  lDSFields: TMVCDataSetFields;
+begin
+  lSerializer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    Result := TJDOJsonObject.Create;
+    try
+      lDSFields := lSerializer.GetDataSetFields(Self, TMVCIgnoredList(IgnoredFields), FieldNameCase);
+      try
+        lSerializer.DataSetToJsonObject(Self, Result, FieldNameCase, TMVCIgnoredList(IgnoredFields), lDSFields);
+      finally
+        lDSFields.Free;
+      end;
+    except
+      Result.Free;
+      raise;
+    end;
+  finally
+    lSerializer.Free;
   end;
 end;
 
@@ -275,11 +280,6 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONArrayString: string;
-begin
-  Result := AsJSONArray;
-end;
-
 function TDataSetHelper.AsJSONObject(FieldNameCase: TMVCNameCase;
   const IgnoredFields: TArray<string>): string;
 var
@@ -288,11 +288,6 @@ begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
   Result := lSerializer.SerializeDataSetRecord(Self,
     TMVCIgnoredList(IgnoredFields), FieldNameCase);
-end;
-
-function TDataSetHelper.AsJSONObjectString: string;
-begin
-  Result := AsJSONObject(ncUseDefault);
 end;
 
 function TDataSetHelper.AsObject<T>(CloseAfterScroll: boolean): T;
@@ -504,6 +499,7 @@ var
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
   mf: MVCColumnAttribute;
+  tf: MVCTableFieldAttribute;
   field_name: string;
   Value: TValue;
   lNeedToSet, FoundAttribute: boolean;
@@ -526,6 +522,13 @@ begin
         mf := MVCColumnAttribute(_attribute);
         _dict.Add(lRttiProp.Name, mf.FieldName);
         _keys.Add(lRttiProp.Name, mf.IsPK);
+      end
+      else if _attribute is MVCTableFieldAttribute then
+      begin
+        FoundAttribute := true;
+        tf := MVCTableFieldAttribute(_attribute);
+        _dict.Add(lRttiProp.Name, tf.FieldName);
+        _keys.Add(lRttiProp.Name, foPrimaryKey in tf.FieldOptions);
       end
       else if _attribute is MVCDoNotSerializeAttribute then
         FoundTransientAttribute := true;

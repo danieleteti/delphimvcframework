@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -108,6 +108,7 @@ type
     ISO88598 = 'ISO-8859-8';
     ISO885915 = 'ISO-8859-15';
     UTF_8 = 'UTF-8';
+    UTF_8_WITHOUT_DASH = 'UTF8'; {this is wrong, but it is a quite common notation}
     UTF_16 = 'UTF-16';
     UTF_16BE = 'UTF-16BE';
     UTF_16LE = 'UTF-16LE';
@@ -122,14 +123,14 @@ type
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
     SSE_RETRY_DEFAULT = 100;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
-    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל''"@\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
-    COPYRIGHT = 'Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team';
+    COPYRIGHT = 'Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
@@ -150,7 +151,7 @@ type
 
   TMVCConfigKey = record
   public const
-    SessionTimeout = 'sessiontimeout';
+    //SessionTimeout = 'sessiontimeout';
     ViewPath = 'view_path';
     ViewCache = 'view_cache';
     DefaultContentType = 'default_content_type';
@@ -161,7 +162,7 @@ type
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
     ExposeXPoweredBy = 'xpoweredby';
-    SessionType = 'session_type';
+    //SessionType = 'session_type';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
@@ -407,7 +408,7 @@ type
   protected
     { protected declarations }
   public
-    { public declarations }
+    constructor Create; reintroduce;
   end;
 
   EMVCConfigException = class(EMVCException)
@@ -496,7 +497,8 @@ type
     function AddStrings(const Strings: TStrings): TMVCStringDictionary;
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-    function Count: Integer;
+    function Count: NativeInt;
+    function Remove(const Name: string): TMVCStringDictionary;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
@@ -1265,7 +1267,7 @@ begin
   Result := fDict.ContainsKey(Key);
 end;
 
-function TMVCStringDictionary.Count: Integer;
+function TMVCStringDictionary.Count: NativeInt;
 begin
   Result := fDict.Count;
 end;
@@ -1317,6 +1319,12 @@ end;
 function TMVCStringDictionary.Keys: TArray<string>;
 begin
   Result := fDict.Keys.ToArray;
+end;
+
+function TMVCStringDictionary.Remove(const Name: string): TMVCStringDictionary;
+begin
+  fDict.Remove(Name);
+  Result := Self;
 end;
 
 procedure TMVCStringDictionary.SetItems(const Key, Value: string);
@@ -1995,6 +2003,13 @@ end;
 constructor TMVCStringPairList.Create;
 begin
   inherited Create(True);
+end;
+
+{ EMVCSessionExpiredException }
+
+constructor EMVCSessionExpiredException.Create;
+begin
+  inherited Create(HTTP_STATUS.Unauthorized, 'Session expired');
 end;
 
 initialization

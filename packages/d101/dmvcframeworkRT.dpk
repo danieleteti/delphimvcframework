@@ -25,7 +25,7 @@ package dmvcframeworkRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'DMVCFramework 3.x'}
+{$DESCRIPTION 'DMVCFramework - CopyRight (2010-2025) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '101'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -114,10 +114,19 @@ contains
   MVCFramework.DotEnv.Parser in '..\..\sources\MVCFramework.DotEnv.Parser.pas',
   MVCFramework.DotEnv in '..\..\sources\MVCFramework.DotEnv.pas',
   MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
+  MVCFramework.Signal in '..\..\sources\MVCFramework.Signal.pas',
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
-  LoggerPro.ConsoleAppender in '..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas',
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
-  sqids in '..\..\sources\sqids.pas';
+  sqids in '..\..\sources\sqids.pas',
+  MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
+  TemplatePro in '..\..\sources\TemplatePro.pas',
+  MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas',
+  MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
+  MVCFramework.RQL.AST2MSSQL in '..\..\sources\MVCFramework.RQL.AST2MSSQL.pas',
+  MVCFramework.Middleware.Session.Internal in '..\..\sources\MVCFramework.Middleware.Session.Internal.pas',
+  MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
+  MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
+  MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas';
 
 end.
 

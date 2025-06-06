@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -38,7 +38,7 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath]
   TRenderSampleController = class(TMVCController)
   protected
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
@@ -841,8 +841,7 @@ begin
   Cust.AddressLine2 := '00100';
   Cust.City := 'ROME';
   ViewData['customer'] := Cust;
-  LoadView(['header', 'customer', 'footer']);
-  RenderResponseStream;
+  Render(RenderViews(['header', 'customer', 'footer']));
   { If you need more flexibility, you can use GetRenderedView to compose your
     output using small views.
     Here's an example:
