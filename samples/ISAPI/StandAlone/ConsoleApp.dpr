@@ -13,10 +13,10 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WinesBO in '..\..\WineCellarSample\winecellarserver\WinesBO.pas',
-  WineCellarAppControllerU in '..\..\WineCellarSample\winecellarserver\WineCellarAppControllerU.pas',
-  MainWebModuleUnit in '..\..\WineCellarSample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
-  MainDataModuleUnit in '..\..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule};
+  WinesBO in '..\..\wine_cellar_sample\winecellarserver\WinesBO.pas',
+  WineCellarAppControllerU in '..\..\wine_cellar_sample\winecellarserver\WineCellarAppControllerU.pas',
+  MainDataModuleUnit in '..\..\wine_cellar_sample\winecellarserver\MainDataModuleUnit.pas',
+  MainWebModuleUnit in '..\..\wine_cellar_sample\winecellarserver\MainWebModuleUnit.pas';
 
 {$R *.res}
 
