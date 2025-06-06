@@ -412,9 +412,14 @@ type
     procedure OnBeforeInsertOrUpdate; virtual;
 
     /// <summary>
-    /// Called before execute sql
+    /// Called before execute non query sql
     /// </summary>
     procedure OnBeforeExecuteSQL(var SQL: string); virtual;
+	
+    /// <summary>
+    /// Called before execute query sql
+    /// </summary>
+    class procedure OnBeforeExecuteQuerySQL(var SQL: string); virtual;	
 
     /// <summary>
     /// Called after insert or update the object to the database
@@ -2933,6 +2938,11 @@ begin
   // do nothing
 end;
 
+class procedure TMVCActiveRecord.OnBeforeExecuteQuerySQL(var SQL: string);
+begin
+  // do nothing
+end;
+
 procedure TMVCActiveRecord.OnBeforeInsert;
 begin
   // do nothing
@@ -4316,9 +4326,13 @@ class function TMVCActiveRecord.ExecQuery(
   const DirectExecute: Boolean): TDataSet;
 var
   lQry: TFDQuery;
+  lSQL: string;  
 begin
   lQry := CreateQuery(Unidirectional, DirectExecute);
   try
+    lSQL := SQL;
+    OnBeforeExecuteQuerySQL(lSQL);
+	
     if Connection = nil then
     begin
       lQry.Connection := ActiveRecordConnectionsRegistry.GetCurrent;
@@ -4329,11 +4343,11 @@ begin
     end;
     if Length(ValueTypes) = 0 then
     begin
-      lQry.Open(SQL, Values);
+      lQry.Open(lSQL, Values);
     end
     else
     begin
-      lQry.Open(SQL, Values, ValueTypes);
+      lQry.Open(lSQL, Values, ValueTypes);
     end;
     Result := lQry;
   except
