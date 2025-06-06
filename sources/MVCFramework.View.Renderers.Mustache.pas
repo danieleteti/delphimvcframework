@@ -187,7 +187,7 @@ begin
       if not gPartialsLoaded then
       begin
         lViewsExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
-        lViewPath := Config[TMVCConfigKey.ViewPath];
+        lViewPath := TMVCBase.GetApplicationFileNamePath + Config.Value[TMVCConfigKey.ViewPath];
         lPartialFileNames := TDirectory.GetFiles(lViewPath, '*.' + lViewsExtension, TSearchOption.soAllDirectories);
         FreeAndNil(fPartials);
         fPartials := TSynMustachePartials.Create;
