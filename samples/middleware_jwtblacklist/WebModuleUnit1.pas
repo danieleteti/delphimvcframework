@@ -75,7 +75,7 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '30';
+
     end);
   MVC
     .AddController(TApp1MainController)

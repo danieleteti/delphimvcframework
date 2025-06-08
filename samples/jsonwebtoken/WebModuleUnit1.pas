@@ -60,7 +60,6 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '30';
       Config[TMVCConfigKey.DefaultContentType] := 'text/html';
     end);
   MVC

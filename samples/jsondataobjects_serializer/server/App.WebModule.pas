@@ -63,8 +63,6 @@ begin
   FMVCEngine := TMVCEngine.Create(Self,
     procedure(AConfig: TMVCConfig)
     begin
-      // session timeout (0 means session cookie)
-      AConfig[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
       AConfig[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
       // default content charset
