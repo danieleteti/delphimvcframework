@@ -56,8 +56,8 @@ begin
   FEngine
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
-    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300));
+    .AddMiddleware(UseJWTMiddleware(TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300));
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);
