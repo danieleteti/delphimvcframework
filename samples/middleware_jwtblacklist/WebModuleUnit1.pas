@@ -75,13 +75,12 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '30';
+
     end);
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(
-    TMVCJWTAuthenticationMiddleware.Create(
+    .AddMiddleware(UseJWTMiddleware(
       TAuthenticationSample.Create,
       lClaimsSetup,
       'mys3cr37',
@@ -91,8 +90,7 @@ begin
       TJWTCheckableClaim.NotBefore,
       TJWTCheckableClaim.IssuedAt
       ], 300))
-    .AddMiddleware(
-      TMVCJWTBlackListMiddleware.Create(lOnAcceptToken, lOnNewJWTToBlackList)
+    .AddMiddleware(UseJWTBlackListMiddleware(lOnAcceptToken, lOnNewJWTToBlackList)
     );
 end;
 

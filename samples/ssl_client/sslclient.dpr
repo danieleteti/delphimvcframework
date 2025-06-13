@@ -1,4 +1,4 @@
-program sslclient;
+program SSLClient;
 
 uses
   Vcl.Forms,

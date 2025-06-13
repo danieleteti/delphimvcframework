@@ -1,4 +1,4 @@
-program SSLSample;
+program SSLServer;
 {$APPTYPE CONSOLE}
 
 
@@ -95,7 +95,7 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(4433 { standard https port } );
+    RunServer(443 { standard https port } );
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
