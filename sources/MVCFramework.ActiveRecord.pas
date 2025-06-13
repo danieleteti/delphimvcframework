@@ -2203,7 +2203,7 @@ end;
 
 class function TMVCActiveRecordHelper.Count<T>(const RQL: string = ''): int64;
 begin
-  Result := TMVCActiveRecord.Count(TMVCActiveRecordClass(T), RQL);
+  Result := Count(TMVCActiveRecordClass(T), RQL);
 end;
 
 class function TMVCActiveRecordHelper.CountRQLByNamedQuery<T>(
@@ -2244,7 +2244,7 @@ end;
 
 class function TMVCActiveRecordHelper.DeleteRQL<T>(const RQL: string): int64;
 begin
-  Result := TMVCActiveRecord.DeleteRQL(TMVCActiveRecordClass(T), RQL);
+  Result := DeleteRQL(TMVCActiveRecordClass(T), RQL);
 end;
 
 class function TMVCActiveRecordHelper.DeleteRQLByNamedQuery<T>(
@@ -3029,7 +3029,7 @@ end;
 class function TMVCActiveRecordHelper.SelectDataSet(const SQL: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const Unidirectional: Boolean; const DirectExecute: Boolean): TDataSet;
 begin
-  Result := TMVCActiveRecord.ExecQuery(SQL, Params, ParamTypes, Unidirectional, DirectExecute);
+  Result := ExecQuery(SQL, Params, ParamTypes, Unidirectional, DirectExecute);
 end;
 
 class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
@@ -3041,7 +3041,7 @@ end;
 class function TMVCActiveRecordHelper.SelectDataSet(const SQL: string; const Params: array of Variant;
   const Unidirectional: Boolean; const DirectExecute: Boolean): TDataSet;
 begin
-  Result := TMVCActiveRecord.ExecQuery(SQL, Params, Unidirectional, DirectExecute);
+  Result := ExecQuery(SQL, Params, Unidirectional, DirectExecute);
 end;
 
 function TMVCActiveRecordHelper.SelectRQL(const RQL: string; const MaxRecordCount: Integer): TMVCActiveRecordList;
@@ -3743,7 +3743,7 @@ class function TMVCActiveRecordHelper.All(const aQualifiedClassName: String): TO
 var
   lAR: TMVCActiveRecord;
 begin
-  lAR := TMVCActiveRecord.CreateMVCActiveRecord<TMVCActiveRecord>(aQualifiedClassName, []);
+  lAR := CreateMVCActiveRecord<TMVCActiveRecord>(aQualifiedClassName, []);
   try
     Result := Select(TMVCActiveRecordClass(lAR.ClassType),
       lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
