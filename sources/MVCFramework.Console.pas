@@ -91,6 +91,7 @@ procedure HideCursor;
 procedure ShowCursor;
 procedure CenterInScreen(const Text: String);
 function KeyPressed: boolean;
+procedure EnableUTF8Console;
 
 
 function ColorName(const color: TConsoleColor): String;
@@ -126,14 +127,19 @@ begin
 
 end;
 
+procedure EnableUTF8Console;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
 procedure HideCursor;
 begin
-
+  raise EMVCConsole.Create('Not Implemented');
 end;
 
 procedure ShowCursor;
 begin
-
+  raise EMVCConsole.Create('Not Implemented');
 end;
 
 procedure Init; inline;
@@ -184,6 +190,11 @@ const
   ATTACH_PARENT_PROCESS = DWORD(-1);
 function AttachConsole(dwProcessId: DWORD): BOOL; stdcall; external kernel32 name 'AttachConsole';
 {.$ENDIF}
+
+procedure EnableUTF8Console;
+begin
+  SetConsoleOutputCP(CP_UTF8);
+end;
 
 procedure WinCheck(const Value: LongBool);
 begin
