@@ -597,7 +597,13 @@ end;
 
 function TMVCActionParamCacheItem.Match(const Value: String): TMatch;
 begin
-  Result := fRegEx.Match(Value);
+  TMonitor.Enter(Self);
+  try
+    // See https://stackoverflow.com/questions/53016707/is-system-regularexpressions-tregex-thread-safe
+    Result := fRegEx.Match(Value);
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 function TMVCActionParamCacheItem.Params: TList<TPair<String, String>>;
