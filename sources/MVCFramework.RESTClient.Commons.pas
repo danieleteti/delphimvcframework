@@ -7,7 +7,7 @@
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// Jo�o Ant�nio Duarte (https://github.com/joaoduarte19)
+// João Antônio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -71,6 +71,8 @@ type
   end;
 
   EMVCRESTClientException = class(Exception);
+
+  EMVCRESTClientHttpException = class(EMVCRESTClientException);
 
   TMVCRESTClientConsts = record
   public const
