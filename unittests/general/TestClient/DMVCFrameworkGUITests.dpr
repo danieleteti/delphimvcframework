@@ -32,7 +32,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
-  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas';
+  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
+  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas';
 
 {$R *.res}
 

@@ -44,6 +44,49 @@ uses
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
 
+  TMVCCSVExportSettings = record
+    IncludeHeaders: Boolean;
+    Delimiter: Char;
+    QuoteChar: Char;
+    EscapeQuotes: Boolean;
+    LineEnding: string;
+    DateFormat: string;
+    DateTimeFormat: string;
+    TimeFormat: string;
+    DecimalSeparator: Char;
+    BooleanTrueValue: string;
+    BooleanFalseValue: string;
+    NullValueRepresentation: string;
+    AlwaysQuoteStrings: Boolean;
+    QuoteEmptyStrings: Boolean;
+    TrimStringValues: Boolean;
+
+    class function Default: TMVCCSVExportSettings; static;
+    class function Excel: TMVCCSVExportSettings; static;
+    class function RFC4180: TMVCCSVExportSettings; static;
+  end;
+
+  EMVCCSVSerializationError = class(EMVCSerializationException);
+
+  TMVCDataSetCSVSerializer = class
+  private
+    FSettings: TMVCCSVExportSettings;
+    function EscapeCSVValue(const AValue: string): string;
+    function FormatFieldValue(AField: TField): string;
+    function ShouldQuoteValue(const AValue: string): Boolean;
+    function GetFieldHeaders(ADataSet: TDataSet): string;
+    function GetDataRow(ADataSet: TDataSet): string;
+  public
+    constructor Create(const ASettings: TMVCCSVExportSettings);
+
+    function SerializeToString(ADataSet: TDataSet): string;
+    procedure SerializeToStream(ADataSet: TDataSet; AStream: TStream;
+      AEncoding: TEncoding = nil);
+    procedure SerializeToFile(ADataSet: TDataSet; const AFileName: string;
+      AEncoding: TEncoding = nil);
+    property Settings: TMVCCSVExportSettings read FSettings write FSettings;
+  end;
+
   TDataSetHelper = class helper for TDataSet
   public
     procedure LoadFromJSONRPCResponse(const Value: IJSONRPCResponse; const aNameCase: TMVCNameCase = TMVCNameCase.ncUseDefault);
@@ -100,6 +143,10 @@ type
     function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: Boolean = True): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
 
+    // CSV Oriented methods
+    function AsCSV(const CSVExportSettings: TMVCCSVExportSettings; const Encoding: TEncoding = nil): String;
+    procedure AsCSVStream(const CSVExportSettings: TMVCCSVExportSettings; const Stream: TStream; const Encoding: TEncoding = nil);
+    procedure AsCSVFile(const CSVExportSettings: TMVCCSVExportSettings; const FileName: String; const Encoding: TEncoding = nil);
   end;
 
   TDataSetUtils = class sealed
@@ -198,6 +245,44 @@ begin
     lSer.Free;
   end;
 
+end;
+
+function TDataSetHelper.AsCSV(const CSVExportSettings: TMVCCSVExportSettings; const Encoding: TEncoding): String;
+var
+  lSer: TMVCDataSetCSVSerializer;
+begin
+  lSer := TMVCDataSetCSVSerializer.Create(CSVExportSettings);
+  try
+    Result := lSer.SerializeToString(Self);
+  finally
+    lSer.Free;
+  end;
+end;
+
+procedure TDataSetHelper.AsCSVFile(const CSVExportSettings: TMVCCSVExportSettings; const FileName: String;
+  const Encoding: TEncoding);
+var
+  lSer: TMVCDataSetCSVSerializer;
+begin
+  lSer := TMVCDataSetCSVSerializer.Create(CSVExportSettings);
+  try
+    lSer.SerializeToFile(Self, FileName, Encoding);
+  finally
+    lSer.Free;
+  end;
+end;
+
+procedure TDataSetHelper.AsCSVStream(const CSVExportSettings: TMVCCSVExportSettings; const Stream: TStream;
+  const Encoding: TEncoding);
+var
+  lSer: TMVCDataSetCSVSerializer;
+begin
+  lSer := TMVCDataSetCSVSerializer.Create(CSVExportSettings);
+  try
+    lSer.SerializeToStream(Self, Stream, Encoding);
+  finally
+    lSer.Free;
+  end;
 end;
 
 function TDataSetHelper.AsJDOJSONArray(FieldNameCase
@@ -784,6 +869,268 @@ begin
       AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak + AResponse.Content)
   else
     raise EMVCException.Create(AResponse.Content);
+end;
+
+
+{ TMVCCSVExportSettings }
+
+class function TMVCCSVExportSettings.Default: TMVCCSVExportSettings;
+begin
+  Result.IncludeHeaders := True;
+  Result.Delimiter := ',';
+  Result.QuoteChar := '"';
+  Result.EscapeQuotes := True;
+  Result.LineEnding := sLineBreak;
+  Result.DateFormat := 'yyyy-mm-dd';
+  Result.DateTimeFormat := 'yyyy-mm-dd hh:nn:ss';
+  Result.TimeFormat := 'hh:nn:ss';
+  Result.DecimalSeparator := '.';
+  Result.BooleanTrueValue := 'True';
+  Result.BooleanFalseValue := 'False';
+  Result.NullValueRepresentation := '';
+  Result.AlwaysQuoteStrings := False;
+  Result.QuoteEmptyStrings := False;
+  Result.TrimStringValues := True;
+end;
+
+class function TMVCCSVExportSettings.Excel: TMVCCSVExportSettings;
+begin
+  Result := Default;
+  Result.Delimiter := ';';
+  Result.DecimalSeparator := ',';
+  Result.AlwaysQuoteStrings := True;
+end;
+
+class function TMVCCSVExportSettings.RFC4180: TMVCCSVExportSettings;
+begin
+  Result := Default;
+  Result.LineEnding := #13#10;
+  Result.AlwaysQuoteStrings := False;
+  Result.QuoteEmptyStrings := False;
+end;
+
+{ TDataSetCSVSerializer }
+
+constructor TMVCDataSetCSVSerializer.Create(const ASettings: TMVCCSVExportSettings);
+begin
+  inherited Create;
+  FSettings := ASettings;
+end;
+
+function TMVCDataSetCSVSerializer.EscapeCSVValue(const AValue: string): string;
+var
+  NeedsQuoting: Boolean;
+begin
+  Result := AValue;
+
+  // Determina se il valore necessita di quoting
+  NeedsQuoting := ShouldQuoteValue(AValue);
+
+  if NeedsQuoting then
+  begin
+    // Escape delle virgolette interne (raddoppiamento secondo RFC 4180)
+    if FSettings.EscapeQuotes and (Pos(FSettings.QuoteChar, Result) > 0) then
+      Result := StringReplace(Result, FSettings.QuoteChar,
+                             FSettings.QuoteChar + FSettings.QuoteChar, [rfReplaceAll]);
+
+    // Racchiudi tra virgolette
+    Result := FSettings.QuoteChar + Result + FSettings.QuoteChar;
+  end;
+end;
+
+function TMVCDataSetCSVSerializer.ShouldQuoteValue(const AValue: string): Boolean;
+begin
+  Result := FSettings.AlwaysQuoteStrings or
+           (FSettings.QuoteEmptyStrings and (AValue = '')) or
+           (Pos(FSettings.Delimiter, AValue) > 0) or
+           (Pos(FSettings.QuoteChar, AValue) > 0) or
+           (Pos(#13, AValue) > 0) or
+           (Pos(#10, AValue) > 0);
+end;
+
+function TMVCDataSetCSVSerializer.FormatFieldValue(AField: TField): string;
+var
+  lFormatSettings: TFormatSettings;
+begin
+  if AField.IsNull then
+  begin
+    Result := FSettings.NullValueRepresentation;
+    Exit;
+  end;
+
+  case AField.DataType of
+    ftString, ftMemo, ftWideMemo, ftWideString, ftFixedChar, ftFixedWideChar:
+      begin
+        Result := AField.AsString;
+        if FSettings.TrimStringValues then
+          Result := Trim(Result);
+        Result := EscapeCSVValue(Result);
+      end;
+
+    ftInteger, ftLargeint, ftAutoInc, ftSmallint, ftWord, ftLongWord:
+      Result := AField.AsString;
+
+    ftFloat, ftCurrency, ftBCD, ftFMTBcd:
+      begin
+        lFormatSettings:= TFormatSettings.Create('us_US');
+        lFormatSettings.DecimalSeparator := FSettings.DecimalSeparator;
+        Result := FloatToStr(AField.AsExtended, lFormatSettings);
+      end;
+
+    ftDate:
+      Result := FormatDateTime(FSettings.DateFormat, AField.AsDateTime);
+
+    ftTime:
+      Result := FormatDateTime(FSettings.TimeFormat, AField.AsDateTime);
+
+    ftDateTime, ftTimeStamp:
+      Result := FormatDateTime(FSettings.DateTimeFormat, AField.AsDateTime);
+
+    ftBoolean:
+      if AField.AsBoolean then
+        Result := FSettings.BooleanTrueValue
+      else
+        Result := FSettings.BooleanFalseValue;
+
+    ftBlob, ftGraphic, ftOraBlob, ftOraClob:
+      begin
+        Result := EscapeCSVValue('[BLOB Data]');
+      end;
+
+    else
+      Result := EscapeCSVValue(AField.AsString);
+  end;
+end;
+
+function TMVCDataSetCSVSerializer.GetFieldHeaders(ADataSet: TDataSet): string;
+var
+  I: Integer;
+  HeaderList: TStringList;
+begin
+  HeaderList := TStringList.Create;
+  try
+    HeaderList.Delimiter := FSettings.Delimiter;
+    HeaderList.StrictDelimiter := True;
+    HeaderList.QuoteChar := #0;
+
+
+    for I := 0 to ADataSet.FieldCount - 1 do
+    begin
+      if ADataSet.Fields[I].Visible then
+      begin
+        HeaderList.Add(EscapeCSVValue(ADataSet.Fields[I].FieldName));
+      end;
+    end;
+
+    Result := HeaderList.DelimitedText;
+  finally
+    HeaderList.Free;
+  end;
+end;
+
+function TMVCDataSetCSVSerializer.GetDataRow(ADataSet: TDataSet): string;
+var
+  I: Integer;
+  RowData: TStringList;
+begin
+  RowData := TStringList.Create;
+  try
+    RowData.Delimiter := FSettings.Delimiter;
+    RowData.StrictDelimiter := True;
+    RowData.QuoteChar := #0;
+
+    for I := 0 to ADataSet.FieldCount - 1 do
+    begin
+      if ADataSet.Fields[I].Visible then
+        RowData.Add(FormatFieldValue(ADataSet.Fields[I]));
+    end;
+
+    Result := RowData.DelimitedText;
+  finally
+    RowData.Free;
+  end;
+end;
+
+function TMVCDataSetCSVSerializer.SerializeToString(ADataSet: TDataSet): string;
+var
+  Output: TStringBuilder;
+  BookmarkSaved: TBookmark;
+begin
+  if not Assigned(ADataSet) then
+    raise EMVCCSVSerializationError.Create('DataSet non assegnato');
+
+  if not ADataSet.Active then
+    raise EMVCCSVSerializationError.Create('DataSet non attivo');
+
+  Output := TStringBuilder.Create;
+  try
+    BookmarkSaved := ADataSet.Bookmark;
+    try
+      ADataSet.DisableControls;
+      try
+        // Headers
+        if FSettings.IncludeHeaders then
+        begin
+          Output.Append(GetFieldHeaders(ADataSet));
+          Output.Append(FSettings.LineEnding);
+        end;
+
+        // Data rows
+        ADataSet.First;
+        while not ADataSet.Eof do
+        begin
+          Output.Append(GetDataRow(ADataSet));
+          ADataSet.Next;
+
+          if not ADataSet.Eof then
+            Output.Append(FSettings.LineEnding);
+        end;
+
+      finally
+        ADataSet.EnableControls;
+      end;
+    finally
+      if ADataSet.BookmarkValid(BookmarkSaved) then
+        ADataSet.Bookmark := BookmarkSaved;
+    end;
+
+    Result := Output.ToString;
+  finally
+    Output.Free;
+  end;
+end;
+
+procedure TMVCDataSetCSVSerializer.SerializeToStream(ADataSet: TDataSet;
+  AStream: TStream; AEncoding: TEncoding);
+var
+  CSVData: string;
+  Bytes: TBytes;
+begin
+  if not Assigned(AStream) then
+    raise EMVCCSVSerializationError.Create('Stream non assegnato');
+
+  if not Assigned(AEncoding) then
+    AEncoding := TEncoding.UTF8;
+
+  CSVData := SerializeToString(ADataSet);
+  Bytes := AEncoding.GetBytes(CSVData);
+  AStream.WriteBuffer(Bytes[0], Length(Bytes));
+end;
+
+procedure TMVCDataSetCSVSerializer.SerializeToFile(ADataSet: TDataSet;
+  const AFileName: string; AEncoding: TEncoding);
+var
+  FileStream: TFileStream;
+begin
+  if AFileName = '' then
+    raise EMVCCSVSerializationError.Create('Nome file non specificato');
+
+  FileStream := TFileStream.Create(AFileName, fmCreate);
+  try
+    SerializeToStream(ADataSet, FileStream, AEncoding);
+  finally
+    FileStream.Free;
+  end;
 end;
 
 end.

@@ -78,7 +78,8 @@ uses
   MVCFramework.DotEnv.Parser in '..\..\..\sources\MVCFramework.DotEnv.Parser.pas',
   MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas',
   InjectorTestU in 'InjectorTestU.pas',
-  MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas';
+  MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas',
+  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas';
 
 {$R *.RES}
 
