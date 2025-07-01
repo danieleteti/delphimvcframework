@@ -1,4 +1,4 @@
-﻿// ***************************************************************************
+// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -7,7 +7,7 @@
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-// Jo�o Ant�nio Duarte (https://github.com/joaoduarte19)
+// João Antônio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -1498,7 +1498,7 @@ begin
   except
     on E: Exception do
     begin
-      raise EMVCRESTClientException.Create(E.Message);
+      Exception.RaiseOuterException(EMVCRESTClientHttpException.Create(E.Message));
     end;
   end;
 
