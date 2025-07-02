@@ -690,6 +690,7 @@ function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCL
 
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
+function PascalCase(const Value: string): string;
 function SnakeCase(const Value: string): string;
 
 const
@@ -1724,6 +1725,11 @@ begin
   finally
     lSB.Free;
   end;
+end;
+
+function PascalCase(const Value: string): string;
+begin
+  Result := CamelCase(Value, True);
 end;
 
 function SnakeCase(const Value: string): string;
