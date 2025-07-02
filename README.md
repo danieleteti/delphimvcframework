@@ -11,6 +11,12 @@
   <img src="https://contrib.rocks/image?repo=danieleteti/delphimvcframework" />
 </a>
 
+## Contributing
+
+We welcome contributions! If you'd like to contribute to the DelphiMVCFramework, fork the project, create your test, add your changes and create a PR.
+
+![Alt](https://repobeats.axiom.co/api/embed/161e33b4dad5d83966b77491809cfc683f2fc0ac.svg "Repobeats analytics image")
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
