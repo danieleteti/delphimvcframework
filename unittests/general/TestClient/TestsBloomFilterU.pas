@@ -119,19 +119,22 @@ begin
 end;
 
 procedure TBloomFilterTests.TestAddAndContainsAsInterface;
+var
+  lBloomFilter: IMVCBloomFilter;
 begin
+  lBloomFilter := TMVCBloomFilter.Create(1000, 3);
   // Test element not present
-  Assert.IsFalse(fBloomFilter.MightContain('test@example.com'));
+  Assert.IsFalse(lBloomFilter.MightContain('test@example.com'));
 
   // Add element
-  fBloomFilter.Add('test@example.com');
-  Assert.AreEqual(UInt32(1), fBloomFilter.InsertedCount);
+  lBloomFilter.Add('test@example.com');
+  Assert.AreEqual(UInt32(1), lBloomFilter.GetInsertedCount);
 
   // Test element present
-  Assert.IsTrue(fBloomFilter.MightContain('test@example.com'));
+  Assert.IsTrue(lBloomFilter.MightContain('test@example.com'));
 
   // Test other element not present
-  Assert.IsFalse(fBloomFilter.MightContain('other@example.com'));
+  Assert.IsFalse(lBloomFilter.MightContain('other@example.com'));
 end;
 
 
