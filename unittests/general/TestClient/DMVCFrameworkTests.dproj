@@ -278,6 +278,8 @@
         <DCCReference Include="InjectorTestU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Container.pas"/>
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
+        <DCCReference Include="TestsBloomFilterU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

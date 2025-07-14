@@ -116,7 +116,8 @@ contains
   MVCFramework.Serializer.URLEncoded in '..\..\sources\MVCFramework.Serializer.URLEncoded.pas',
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
-  sqids in '..\..\sources\sqids.pas';
+  sqids in '..\..\sources\sqids.pas',
+  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas';
 
 end.
 

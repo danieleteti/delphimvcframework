@@ -79,7 +79,9 @@ uses
   MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas',
   InjectorTestU in 'InjectorTestU.pas',
   MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas',
-  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas';
+  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
+  MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
+  TestsBloomFilterU in 'TestsBloomFilterU.pas';
 
 {$R *.RES}
 

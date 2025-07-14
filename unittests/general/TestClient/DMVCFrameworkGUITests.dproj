@@ -158,6 +158,7 @@
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.RESTClient.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.AppController.pas"/>
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

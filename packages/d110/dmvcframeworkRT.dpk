@@ -9,21 +9,21 @@ package dmvcframeworkRT;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
+{$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO ON}
+{$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
+{$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DMVCFramework - CopyRight (2010-2025) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '110'}
@@ -126,7 +126,8 @@ contains
   MVCFramework.Middleware.Session.Internal in '..\..\sources\MVCFramework.Middleware.Session.Internal.pas',
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
-  MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas';
+  MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
+  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas';
 
 end.
 
