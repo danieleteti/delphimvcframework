@@ -47,11 +47,11 @@ end;
 
 procedure DemoBasicUsage;
 var
-  lBloomFilter: TBloomFilter;
+  lBloomFilter: TMVCBloomFilter;
 begin
   PrintHeader('DEMO 1: Basic Usage');
 
-  lBloomFilter := TBloomFilter.Create(1000, 3);
+  lBloomFilter := TMVCBloomFilter.Create(1000, 3);
   try
     Writeln('Created Bloom Filter with 1000 bits and 3 hash functions');
     Writeln(Format('Memory usage: %d bytes', [lBloomFilter.GetMemoryUsage]));
@@ -91,7 +91,7 @@ end;
 
 procedure DemoOptimalConfiguration;
 var
-  lBasicFilter, lOptimalFilter: TBloomFilter;
+  lBasicFilter, lOptimalFilter: TMVCBloomFilter;
 begin
   PrintHeader('DEMO 2: Optimal Configuration');
 
@@ -99,14 +99,14 @@ begin
   Writeln;
 
   // Manual configuration
-  lBasicFilter := TBloomFilter.Create(5000, 3);
+  lBasicFilter := TMVCBloomFilter.Create(5000, 3);
   try
     Writeln('Manual Configuration:');
     Writeln(Format('  Bits: %d, Hash functions: %d', [lBasicFilter.BitCount, lBasicFilter.HashFunctions]));
     Writeln(Format('  Memory usage: %d bytes', [lBasicFilter.GetMemoryUsage]));
 
     // Optimal configuration
-    lOptimalFilter := TBloomFilter.CreateOptimal(1000, 0.01);
+    lOptimalFilter := TMVCBloomFilter.CreateOptimal(1000, 0.01);
     try
       Writeln;
       Writeln('Optimal Configuration:');
@@ -124,13 +124,13 @@ end;
 
 procedure DemoNoFalseNegatives;
 var
-  lBloomFilter: TBloomFilter;
+  lBloomFilter: TMVCBloomFilter;
   lTestEmails: TArray<string>;
   lAllFound: Boolean;
 begin
   PrintHeader('DEMO 3: No False Negatives Guarantee');
 
-  lBloomFilter := TBloomFilter.CreateOptimal(100, 0.01);
+  lBloomFilter := TMVCBloomFilter.CreateOptimal(100, 0.01);
   try
     // Prepare test data
     SetLength(lTestEmails, 100);
@@ -167,14 +167,14 @@ end;
 
 procedure DemoFalsePositives;
 var
-  lBloomFilter: TBloomFilter;
+  lBloomFilter: TMVCBloomFilter;
   lFalsePositives: Integer;
   lTestEmail: string;
   lFalsePositiveRate: Double;
 begin
   PrintHeader('DEMO 4: False Positives Analysis');
 
-  lBloomFilter := TBloomFilter.CreateOptimal(500, 0.05); // 5% target false positive rate
+  lBloomFilter := TMVCBloomFilter.CreateOptimal(500, 0.05); // 5% target false positive rate
   try
     Writeln('Target false positive rate: 5%');
     Writeln('Inserting 500 emails "inserted_X@test.com"...');
@@ -211,14 +211,14 @@ end;
 
 procedure DemoPerformance;
 var
-  lBloomFilter: TBloomFilter;
+  lBloomFilter: TMVCBloomFilter;
   lStopwatch: TStopwatch;
   lAddTime, lSearchTime: Int64;
   lTestData: TArray<string>;
 begin
   PrintHeader('DEMO 5: Performance Benchmarks');
 
-  lBloomFilter := TBloomFilter.CreateOptimal(10000, 0.01);
+  lBloomFilter := TMVCBloomFilter.CreateOptimal(10000, 0.01);
   try
     // Prepare test data
     Writeln('Preparing 10,000 test emails...');
@@ -262,7 +262,7 @@ end;
 
 procedure DemoMemoryComparison;
 var
-  lBloomFilter: TBloomFilter;
+  lBloomFilter: TMVCBloomFilter;
   lHashSet: TStringList;
   lBloomMemory, lHashSetMemory: UInt32;
   lTestData: TArray<string>;
@@ -275,7 +275,7 @@ begin
     lTestData[lI] := Format('memory_test_%d@example.com', [lI]);
 
   // Test Bloom Filter
-  lBloomFilter := TBloomFilter.CreateOptimal(1000, 0.01);
+  lBloomFilter := TMVCBloomFilter.CreateOptimal(1000, 0.01);
   try
     for var lI := 0 to 999 do
       lBloomFilter.Add(lTestData[lI]);
@@ -313,7 +313,7 @@ end;
 
 procedure DemoRealWorldScenario;
 var
-  lUserRegistrationFilter: TBloomFilter;
+  lUserRegistrationFilter: TMVCBloomFilter;
   lExistingEmails, lNewEmails: TArray<string>;
   lDatabaseQueries, lDirectInserts: Integer;
   lEmail: string;
@@ -321,7 +321,7 @@ var
 begin
   PrintHeader('DEMO 7: Real-World Scenario - User Registration API');
 
-  lUserRegistrationFilter := TBloomFilter.CreateOptimal(10000, 0.01);
+  lUserRegistrationFilter := TMVCBloomFilter.CreateOptimal(10000, 0.01);
   try
     Writeln('SCENARIO: Registration API with 10,000 existing registered emails');
     Writeln('Using DelphiMVCFramework in high-volume production system');
@@ -396,15 +396,15 @@ end;
 
 procedure DemoAdvancedFeatures;
 var
-  lFilter: TBloomFilter;
+  lFilter: TMVCBloomFilter;
   lOptimalBits: UInt32;
   lOptimalHashes: Integer;
 begin
   PrintHeader('DEMO 8: Advanced Features & Statistics');
 
   // Demonstrate optimal parameter calculation
-  lOptimalBits := TBloomFilter.CalculateOptimalBitCount(5000, 0.001); // 0.1% false positive
-  lOptimalHashes := TBloomFilter.CalculateOptimalHashCount(lOptimalBits, 5000);
+  lOptimalBits := TMVCBloomFilter.CalculateOptimalBitCount(5000, 0.001); // 0.1% false positive
+  lOptimalHashes := TMVCBloomFilter.CalculateOptimalHashCount(lOptimalBits, 5000);
 
   Writeln('OPTIMAL PARAMETER CALCULATION:');
   Writeln(Format('  For 5000 elements with 0.1%% false positive rate:', []));
@@ -412,7 +412,7 @@ begin
   Writeln(Format('  Optimal hash functions: %d', [lOptimalHashes]));
   Writeln;
 
-  lFilter := TBloomFilter.Create(lOptimalBits, lOptimalHashes);
+  lFilter := TMVCBloomFilter.Create(lOptimalBits, lOptimalHashes);
   try
     // Add some elements
     Writeln('Adding 2500 elements to monitor filter saturation...');
