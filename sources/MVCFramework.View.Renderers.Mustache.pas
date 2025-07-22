@@ -190,7 +190,7 @@ begin
             .Remove(lPartialFileNames[i].Length - lViewsExtension.Length - 1)
             .Replace(TPath.DirectorySeparatorChar, '/');
           lPartialName := lPartialName.Remove(0, lViewPath.Length + 1);
-          fPartials.Add(lPartialName, TFile.ReadAllText(lPartialFileNames[i]));
+          fPartials.Add(lPartialName, TFile.ReadAllText(lPartialFileNames[i], TEncoding.UTF8));
         end;
         gPartialsLoaded := SameText(Config[TMVCConfigKey.ViewCache], 'true');
       end;
