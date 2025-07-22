@@ -60,7 +60,6 @@ const
   {$IFEND}
 
 var
-  bmSplashScreen: HBITMAP;
   iAboutPluginIndex: Integer;
   AboutBoxServices: IOTAAboutBoxServices = nil;
 
