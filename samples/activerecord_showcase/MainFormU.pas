@@ -67,6 +67,7 @@ type
     btnCRUDWithOptions: TButton;
     btnTransaction: TButton;
     btnUseExplicitConnection: TButton;
+    btnErrorWith2PKs: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -103,6 +104,7 @@ type
     procedure btnCRUDWithOptionsClick(Sender: TObject);
     procedure btnTransactionClick(Sender: TObject);
     procedure btnUseExplicitConnectionClick(Sender: TObject);
+    procedure btnErrorWith2PKsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -654,6 +656,19 @@ begin
   end;
 
 
+end;
+
+procedure TMainForm.btnErrorWith2PKsClick(Sender: TObject);
+var
+  lWrongArticle: TWrongArticle;
+begin
+  Log('** Error if entoty defines more than one PK field');
+  lWrongArticle := TWrongArticle.Create;
+  try
+    lWrongArticle.LoadByPK(1);
+  finally
+    lWrongArticle.Free;
+  end;
 end;
 
 procedure TMainForm.btnInheritanceClick(Sender: TObject);

@@ -338,4 +338,14 @@ object MainForm: TMainForm
     WordWrap = True
     OnClick = btnUseExplicitConnectionClick
   end
+  object btnErrorWith2PKs: TButton
+    Left = 144
+    Top = 643
+    Width = 121
+    Height = 34
+    Caption = 'Raise Error if More Thank One PK'
+    TabOrder = 34
+    WordWrap = True
+    OnClick = btnErrorWith2PKsClick
+  end
 end
