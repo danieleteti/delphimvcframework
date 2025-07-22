@@ -8,6 +8,7 @@ uses
   Web.HTTPApp,
   MVCFramework,
   MVCFramework.Middleware.CORS,
+  MVCFramework.View.Renderers.Mustache,
   MVCFramework.Middleware.Compression;
 
 type
@@ -38,7 +39,8 @@ uses
 
 procedure TMainWebModule.DataModuleCreate(Sender: TObject);
 begin
-  fEngine := TMVCEngine.Create(self).AddController(TMainController);
+  //fEngine := TMVCEngine.Create(self).AddController(TMainController);
+  fEngine := TMVCEngine.Create(self).AddController(TMainController).SetViewEngine(TMVCMustacheViewEngine);
 end;
 
 procedure TMainWebModule.DataModuleDestroy(Sender: TObject);

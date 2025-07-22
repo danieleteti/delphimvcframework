@@ -44,7 +44,6 @@ type
     fModelPrepared: Boolean;
     class var fPartials: TSynMustachePartials;
     class var fHelpers: TSynMustacheHelpers;
-    class var fSerializerPool: IIntfObjectPool;
     var FJSONModelAsString: string;
     procedure LoadPartials;
     procedure LoadHelpers;
@@ -111,17 +110,11 @@ end;
 
 class constructor TMVCMustacheViewEngine.Create;
 begin
-  fSerializerPool := MVCFramework.IntfObjectPool.TIntfObjectPool.Create(10000, 10,1,
-    function: IInterface
-    begin
-      Result := TMVCJsonDataObjectsSerializer.Create(nil);
-      RegisterOptionalCustomTypesSerializers(Result as IMVCSerializer);
-    end);
 end;
 
 class destructor TMVCMustacheViewEngine.Destroy;
 begin
-  fPartials.Free;
+
 end;
 
 function TMVCMustacheViewEngine.RenderJSON(lViewEngine: TSynMustache; const JSON: UTF8String; Partials: TSynMustachePartials;
@@ -213,7 +206,7 @@ end;
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
   DataObj: TPair<string, TValue>;
-  lSer: IMVCSerializer;
+  lSer: TMVCJsonDataObjectsSerializer;
   lJSONModel: TJsonObject;
 begin
   if fModelPrepared then
@@ -221,8 +214,9 @@ begin
     Exit;
   end;
 
-  lSer := fSerializerPool.GetFromPool(True) as IMVCSerializer;
+  lSer := TMVCJsonDataObjectsSerializer.Create(nil);
   try
+    RegisterOptionalCustomTypesSerializers(lSer);
     lJSONModel := TJsonObject.Create;
     try
       if Assigned(ViewModel) then
@@ -237,7 +231,7 @@ begin
       lJSONModel.Free;
     end;
   finally
-    fSerializerPool.ReleaseToPool(lSer)
+    lSer.Free;
   end;
   fModelPrepared := True;
 end;
@@ -279,5 +273,12 @@ begin
   Result := System.SysUtils.UpperCase(Value);
 end;
 
+
+
+initialization
+
+finalization
+
+FreeAndNil(TMVCMustacheViewEngine.fPartials);
 
 end.
