@@ -35,7 +35,7 @@ uses
   System.Generics.Collections,
   Data.DB,
   BusinessObjectsU, MVCFramework.Serializer.Commons, System.Classes,
-  System.UITypes;
+  System.UITypes, JsonDataObjects;
 
 type
 
@@ -374,6 +374,10 @@ type
     [MVCPath('/issues/542')]
     procedure TestIssue542;
 
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/issues/806')]
+    function TestIssue806(const [MVCFromBody] Entity: TTestCasingAsIs): Boolean;
+
     {sqids}
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/sqids/stoi/($id:sqids)')]
@@ -561,7 +565,6 @@ type
 implementation
 
 uses
-  JsonDataObjects,
   System.JSON,
   Web.HTTPApp,
   Generics.Collections,
@@ -1104,6 +1107,11 @@ begin
   lObj.NullableGUID := StringToGUID('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}');
   lObj.NullableGUID2.Clear;
   Render(lObj);
+end;
+
+function TTestServerController.TestIssue806(const Entity: TTestCasingAsIs): Boolean;
+begin
+  Result := Entity.myProp = 'hello world';
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

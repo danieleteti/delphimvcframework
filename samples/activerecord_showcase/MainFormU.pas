@@ -67,6 +67,7 @@ type
     btnCRUDWithOptions: TButton;
     btnTransaction: TButton;
     btnUseExplicitConnection: TButton;
+    btnErrorWith2PKs: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -103,6 +104,7 @@ type
     procedure btnCRUDWithOptionsClick(Sender: TObject);
     procedure btnTransactionClick(Sender: TObject);
     procedure btnUseExplicitConnectionClick(Sender: TObject);
+    procedure btnErrorWith2PKsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -656,6 +658,19 @@ begin
 
 end;
 
+procedure TMainForm.btnErrorWith2PKsClick(Sender: TObject);
+var
+  lWrongArticle: TWrongArticle;
+begin
+  Log('** Error if entoty defines more than one PK field');
+  lWrongArticle := TWrongArticle.Create;
+  try
+    lWrongArticle.LoadByPK(1);
+  finally
+    lWrongArticle.Free;
+  end;
+end;
+
 procedure TMainForm.btnInheritanceClick(Sender: TObject);
 var
   lCustomerEx: TCustomerEx;
@@ -721,12 +736,47 @@ end;
 procedure TMainForm.btnJSON_XML_TypesClick(Sender: TObject);
 var
   lCTypes: TComplexTypes;
+  lCTypeJSON: TComplexTypesOnlyJSON;
   lID: Int64;
 begin
-  if GetBackEndByConnection(TMVCActiveRecord.CurrentConnection) = TMVCActiveRecordBackEnd.PostgreSQL then
-  begin
-    TMVCActiveRecord.DeleteAll(TComplexTypes);
+  //mysql and mariadb don't support XML data type.
+  //postgresql supports json, jsonb and xml
 
+  TMVCActiveRecord.DeleteAll(TComplexTypes);
+
+  if (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
+     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') then
+  begin
+    Log('mysql/mariadb support JSON');
+    lCTypeJSON := TComplexTypesOnlyJSON.Create;
+    try
+      lCTypeJSON.JSON := '{"field_type":"json"}';
+      lCTypeJSON.Insert;
+      lID := lCTypeJSON.ID;
+    finally
+      lCTypeJSON.Free;
+    end;
+
+    lCTypeJSON := TMVCActiveRecord.GetByPK<TComplexTypesOnlyJSON>(lID);
+    try
+      lCTypeJSON.JSON := '{"field_type":"json", "updated": true}';
+      lCTypeJSON.Update;
+    finally
+      lCTypeJSON.Free;
+    end;
+
+    Log('Executing ==> JSON_VALUE(json_field, ''$.updated'') = true');
+    lCTypeJSON := TMVCActiveRecord.GetFirstByWhere<TComplexTypesOnlyJSON>('JSON_VALUE(json_field, ''$.updated'') = true', []);
+    try
+      Log('JSON ==> ' + lCTypeJSON.JSON);
+    finally
+      lCTypeJSON.Free;
+    end;
+  end;
+
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+  begin
+    Log('postgresql supports JSON, JSONB and XML');
     lCTypes := TComplexTypes.Create;
     try
       lCTypes.JSON := '{"field_type":"json"}';
@@ -2386,6 +2436,8 @@ end;
 procedure TMainForm.FormShow(Sender: TObject);
 var
   lEngine: TRDBMSEngine;
+  lFoundIndex: Integer;
+  lFound: Boolean;
 begin
   if not TEngineChoiceForm.Execute(lEngine) then
   begin
@@ -2439,7 +2491,14 @@ begin
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
 
-  btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  Caption := Caption + ' | ' + ActiveRecordConnectionsRegistry.GetCurrentBackend;
+  lFound := TArray.BinarySearch<String>(['mariadb', 'mysql', 'postgresql'], ActiveRecordConnectionsRegistry.GetCurrentBackend, lFoundIndex);
+  btnJSON_XML_Types.Enabled := lFound;
+  btnJSON_XML_Types.Caption := 'JSON';
+  if 'postgresql' = ActiveRecordConnectionsRegistry.GetCurrentBackend then
+  begin
+    btnJSON_XML_Types.Caption := btnJSON_XML_Types.Caption + ', JSONB & XML';
+  end;
 end;
 
 procedure TMainForm.LoadCustomers(const HowManyCustomers: Integer = 50);

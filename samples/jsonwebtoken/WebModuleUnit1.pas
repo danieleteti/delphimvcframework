@@ -60,27 +60,21 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.SessionTimeout] := '30';
       Config[TMVCConfigKey.DefaultContentType] := 'text/html';
     end);
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(
-      TMVCJWTAuthenticationMiddleware.Create(
-        TAuthenticationSample.Create,
-        lClaimsSetup,
-        'mys3cr37',
-        '/login',
-        [
-          TJWTCheckableClaim.ExpirationTime,
-          TJWTCheckableClaim.NotBefore,
-          TJWTCheckableClaim.IssuedAt
-        ], 300))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/static', { StaticFilesPath }
-    '..\..\www' { DocumentRoot }
-    ));
+    .AddMiddleware(UseJWTMiddleware(TAuthenticationSample.Create,
+                                    lClaimsSetup,
+                                    'mys3cr37',
+                                    '/login',
+                                    [
+                                      TJWTCheckableClaim.ExpirationTime,
+                                      TJWTCheckableClaim.NotBefore,
+                                      TJWTCheckableClaim.IssuedAt
+                                    ], 300))
+    .AddMiddleware(UseStaticFilesMiddleware('/static', { StaticFilesPath } '..\..\www' { DocumentRoot }));
 end;
 
 end.

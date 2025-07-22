@@ -38,7 +38,7 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath]
   TRenderSampleController = class(TMVCController)
   protected
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;

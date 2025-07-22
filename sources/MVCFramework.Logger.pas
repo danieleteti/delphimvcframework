@@ -67,8 +67,8 @@ type
   end;
 {$ENDIF}
 
-function LogLevelAsString(ALogLevel: TLogLevel): string;
-function StringAsLogLevel(ALogLevelString: String): TLogLevel;
+function LogLevelToStr(ALogLevel: TLogLevel): string;
+function StrToLogLevel(ALogLevelString: String): TLogLevel;
 
 procedure Log(AMessage: string); overload;
 procedure Log(AObject: TObject); overload;
@@ -169,9 +169,13 @@ begin
     Result := gDefaultLogger;
 end;
 
-function StringAsLogLevel(ALogLevelString: String): TLogLevel;
+function StrToLogLevel(ALogLevelString: String): TLogLevel;
 begin
   ALogLevelString := ALogLevelString.ToLower;
+  if ALogLevelString.StartsWith('lev') then
+  begin
+    ALogLevelString := ALogLevelString.Remove(0, 3);
+  end;
   if ALogLevelString.IsEmpty or (ALogLevelString = 'debug') then
     Exit(levDebug);
   if (ALogLevelString = 'info') or (ALogLevelString = 'normal') then
@@ -187,7 +191,7 @@ begin
   raise EMVCConfigException.Create('Invalid log level: ' + ALogLevelString);
 end;
 
-function LogLevelAsString(ALogLevel: TLogLevel): string;
+function LogLevelToStr(ALogLevel: TLogLevel): string;
 begin
     case ALogLevel of
       levNormal:
@@ -473,6 +477,8 @@ begin
   lStopWatch := TStopWatch.StartNew;
   Result := Func(); //do not put try/except here. If exception raises the timing is a nonsense
   lStopWatch.Stop;
+  if Profiler.ProfileLogger = nil then
+    Exit;
   if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
   begin
     ProfileLogger.Log(
@@ -493,6 +499,8 @@ begin
   lStopWatch := TStopWatch.StartNew;
   Proc(); //do not put try/except here. If exception raises the timing is a nonsense
   lStopWatch.Stop;
+  if Profiler.ProfileLogger = nil then
+    Exit;
   if lStopWatch.ElapsedMilliseconds >= WarningThreshold then
   begin
     ProfileLogger.Log(

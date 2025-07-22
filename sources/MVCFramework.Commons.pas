@@ -497,7 +497,7 @@ type
     function AddStrings(const Strings: TStrings): TMVCStringDictionary;
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-    function Count: Integer;
+    function Count: NativeInt;
     function Remove(const Name: string): TMVCStringDictionary;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
@@ -690,6 +690,7 @@ function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCL
 
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
+function PascalCase(const Value: string): string;
 function SnakeCase(const Value: string): string;
 
 const
@@ -1267,7 +1268,7 @@ begin
   Result := fDict.ContainsKey(Key);
 end;
 
-function TMVCStringDictionary.Count: Integer;
+function TMVCStringDictionary.Count: NativeInt;
 begin
   Result := fDict.Count;
 end;
@@ -1724,6 +1725,11 @@ begin
   finally
     lSB.Free;
   end;
+end;
+
+function PascalCase(const Value: string): string;
+begin
+  Result := CamelCase(Value, True);
 end;
 
 function SnakeCase(const Value: string): string;

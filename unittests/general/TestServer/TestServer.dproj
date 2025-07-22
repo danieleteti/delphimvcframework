@@ -130,8 +130,8 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
-        <DCCReference Include="..\Several\Entities.pas"/>
-        <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
+        <DCCReference Include="..\TestClient\Entities.pas"/>
+        <DCCReference Include="..\TestClient\EntitiesProcessors.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.pas"/>

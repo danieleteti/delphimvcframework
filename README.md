@@ -1,7 +1,7 @@
-# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
+# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)  [![Ask DeepWiki][DeepWikiBadge]](https://deepwiki.com/danieleteti/delphimvcframework)
 
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium--dev)
+![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
 
 ## 📍 [Help DMVCFramework and your business! Click Here to access premium contents!](https://www.patreon.com/bePatron?u=72182967) 
 
@@ -10,6 +10,12 @@
 <a href="https://github.com/danieleteti/delphimvcframework/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=danieleteti/delphimvcframework" />
 </a>
+
+## Contributing
+
+We welcome contributions! If you'd like to contribute to the DelphiMVCFramework, fork the project, create your test, add your changes and create a PR.
+
+![Alt](https://repobeats.axiom.co/api/embed/161e33b4dad5d83966b77491809cfc683f2fc0ac.svg "Repobeats analytics image")
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -2091,3 +2097,6 @@ third template email line"
 ## Links
 
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
+
+
+[DeepwikiBadge]: https://deepwiki.com/badge.svg

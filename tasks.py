@@ -315,7 +315,7 @@ def tests32(ctx):
 
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
-    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
@@ -336,7 +336,7 @@ def tests32(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\Several\bin32\DMVCFrameworkTests.exe"])
+        r = subprocess.run([r"unittests\general\TestClient\bin32\DMVCFrameworkTests.exe"])
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
@@ -354,7 +354,7 @@ def tests64(ctx):
 
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
-    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
@@ -375,7 +375,7 @@ def tests64(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\Several\bin64\DMVCFrameworkTests.exe"])
+        r = subprocess.run([r"unittests\general\TestClient\bin64\DMVCFrameworkTests.exe"])
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
@@ -505,6 +505,10 @@ def generate_nullables(ctx):
 
     delphi_types = [
         [
+            "AnsiString",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (LeftValue.Value = RightValue.Value))",
+        ],
+        [
             "String",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t (LeftValue.Value = RightValue.Value))",
         ],
@@ -537,9 +541,29 @@ def generate_nullables(ctx):
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))",
         ],
         [
+            "Float32", #like Single
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000001))",
+        ],
+        [
+            "Float64", #like Double
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))",
+        ],
+        [
             "Extended",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))",
         ],
+        [
+            "Int8",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ],
+        [
+            "UInt8",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ],
+        [
+            "Byte", #like UInt8
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ],        
         [
             "Int16",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
@@ -550,6 +574,10 @@ def generate_nullables(ctx):
         ],
         [
             "Int32",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ],
+        [
+            "Integer", #like Int32
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
         ],
         [
@@ -568,6 +596,14 @@ def generate_nullables(ctx):
             "TGUID",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
         ],
+        [
+            "NativeInt",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ],
+        [
+            "NativeUInt",
+            "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
+        ]        
     ]
 
     str_main_tmpl = "".join(main_tmpl)

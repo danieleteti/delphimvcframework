@@ -1,4 +1,0 @@
-key1=testvalue1
-key2=devvalue2
-key3=devvalue3
-mode=test

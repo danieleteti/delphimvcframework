@@ -47,7 +47,7 @@ type
     ['{0E79863D-D6F9-4426-9D80-F4C215233582}']
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
   end;
 
 
@@ -72,7 +72,7 @@ type
     destructor Destroy; override;
     function GetFromPool(const RaiseExceptionIfNotAvailable: Boolean = False): T;
     procedure ReleaseToPool(const Obj: T);
-    function Size: UInt32;
+    function Size: NativeInt;
     property OnResetState: TProc<T> read fOnResetState write fOnResetState;
   end;
 
@@ -99,6 +99,9 @@ var
   GObjectPoolSamplingIntervalMS: UInt32 = 10000;
 
 implementation
+
+uses
+  System.Math;
 
 { TObjectPool<T> }
 
@@ -197,7 +200,7 @@ begin
   end;
 end;
 
-function TObjectPool<T>.Size: UInt32;
+function TObjectPool<T>.Size: NativeInt;
 begin
   MonitorEnter(Self);
   try
@@ -223,8 +226,13 @@ var
   lAvgSize: TPoolSizeSamples;
   lArrIndex: Integer;
   lSampleTick: UInt64;
+  I: Integer;
+  lAdjustedStep: UInt32;
+const
+  CHECK_TERMINATED_INTERVAL_FACTOR = 10;
 begin
   lSampleTick := 0;
+  lAdjustedStep := Max(GObjectPoolSamplingIntervalMS, 500) div CHECK_TERMINATED_INTERVAL_FACTOR;
   while not Terminated do
   begin
     Inc(lSampleTick);
@@ -242,7 +250,14 @@ begin
     end
     else
     begin
-      Sleep(GObjectPoolSamplingIntervalMS);
+      for I := 1 to CHECK_TERMINATED_INTERVAL_FACTOR do
+      begin
+        Sleep(lAdjustedStep); { do not sleep the thread for too long, we've to check Terminated!}
+        if Terminated then
+        begin
+          Break;
+        end;
+      end;
       if lSampleTick = MaxInt  then
       begin
         lSampleTick := 0;

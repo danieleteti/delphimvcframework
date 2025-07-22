@@ -150,9 +150,9 @@ uses
 function TMVCCache.SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
 var
   lCacheItem: TMVCCacheItem;
-  Value: TValue;
+  lValue: TValue;
 begin
-  Value := AValue;
+  lValue := AValue;
 
   FMREW.DoWithWriteLock(
     procedure
@@ -161,13 +161,18 @@ begin
     begin
       if FStorage.TryGetValue(AName, lItem) then
       begin
-        lItem.Value := Value;
+        // https://github.com/danieleteti/delphimvcframework/issues/825
+        if lItem.Value.IsObject and ((lValue.IsObject and (lValue.AsObject <> lItem.Value.AsObject)) or not lValue.IsObject) then
+        begin
+          lItem.Value.AsObject.Free;
+        end;
+        lItem.Value := lValue;
       end
       else
       begin
         lCacheItem := TMVCCacheItem.Create;
         try
-          lCacheItem.Value := Value;
+          lCacheItem.Value := lValue;
           FStorage.Add(AName, lCacheItem);
         except
           lCacheItem.Free;

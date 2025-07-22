@@ -60,7 +60,7 @@ type
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
-    function HTTPHeadersCount: Integer;
+    function HTTPHeadersCount: NativeInt;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
@@ -107,7 +107,7 @@ type
     // http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
-    function HTTPHeadersCount: Integer;
+    function HTTPHeadersCount: NativeInt;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
@@ -210,7 +210,7 @@ type
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
-    function HTTPHeadersCount: Integer;
+    function HTTPHeadersCount: NativeInt;
     function CreateRequest(const MethodName: String; const RequestID: UInt64): IJSONRPCRequest; overload;
     function CreateRequest(const MethodName: String; const RequestID: String): IJSONRPCRequest; overload;
     function CreateNotification(const MethodName: String): IJSONRPCNotification;
@@ -411,7 +411,7 @@ begin
   end;
 end;
 
-function TMVCJSONRPCExecutor.HTTPHeadersCount: Integer;
+function TMVCJSONRPCExecutor.HTTPHeadersCount: NativeInt;
 begin
   if Assigned(fHTTPRequestHeaders) then
   begin

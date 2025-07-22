@@ -3138,7 +3138,7 @@ begin
           begin
             if Obj is TDataSet then
             begin
-              DataSetToJsonArray(TDataSet(Obj), JSONArray.AddArray, TMVCNameCase.ncUseDefault, nil,nil,);
+              DataSetToJsonArray(TDataSet(Obj), JSONArray.AddArray, TMVCNameCase.ncUseDefault, nil,nil);
             end
             else
             begin

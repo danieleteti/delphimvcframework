@@ -9,11 +9,11 @@ uses
   Web.WebBroker,
   Web.Win.ISAPIApp,
   Web.Win.ISAPIThreadPool,
-  MainDataModuleUnit in '..\..\WineCellarSample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
-  MainWebModuleUnit in '..\..\WineCellarSample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
-  WinesBO in '..\..\WineCellarSample\winecellarserver\WinesBO.pas',
-  WineCellarAppControllerU in '..\..\WineCellarSample\winecellarserver\WineCellarAppControllerU.pas',
-  Winapi.Windows;
+  Winapi.Windows,
+  WinesBO in '..\..\wine_cellar_sample\winecellarserver\WinesBO.pas',
+  WineCellarAppControllerU in '..\..\wine_cellar_sample\winecellarserver\WineCellarAppControllerU.pas',
+  MainWebModuleUnit in '..\..\wine_cellar_sample\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  MainDataModuleUnit in '..\..\wine_cellar_sample\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule};
 
 {$R *.res}
 
@@ -32,19 +32,5 @@ begin
   CoInitFlags := COINIT_MULTITHREADED;
   Application.Initialize;
   Application.WebModuleClass := WebModuleClass;
-  dotEnvConfigure(
-    function: IMVCDotEnv
-    begin
-      Result := NewDotEnv
-               .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                                   //if available, by default, loads default environment (.env)
-               .UseProfile('test') //if available loads the test environment (.env.test)
-               .UseProfile('prod') //if available loads the prod environment (.env.prod)
-               .UseLogger(procedure(LogItem: String)
-                          begin
-                            LogW('dotEnv: ' + LogItem);
-                          end)
-               .Build();             //uses the executable folder to look for .env* files
-    end);
   Application.Run;
 end.

@@ -105,7 +105,7 @@ begin
         lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
       end;
       ViewData['deviceslist'] := lDevices;
-      Result := RenderViews(['header','editperson','footer']);
+      Result := RenderViews(['editperson']);
     finally
       lDevices.Free;
     end;

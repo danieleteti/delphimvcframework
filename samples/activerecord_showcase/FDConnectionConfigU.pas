@@ -32,7 +32,8 @@ var
   LParams: TStringList;
 begin
   {
-    docker run --detach --env MARIADB_USER=example-user --env MARIADB_PASSWORD=my_cool_secret --env MARIADB_ROOT_PASSWORD=root  -p 3306:3306 mariadb:latest
+    docker run --name mariadb --detach --env MARIADB_USER=root --env MARIADB_PASSWORD=root --env MARIADB_ROOT_PASSWORD=root -p 3306:3306 mariadb:latest
+    docker run --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:oraclelinux9 --default-authentication-plugin=mysql_native_password
   }
 
   LParams := TStringList.Create;

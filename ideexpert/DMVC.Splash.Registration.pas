@@ -35,18 +35,33 @@ unit DMVC.Splash.Registration;
 
 interface
 
+{$R DMVC.Splash.Resources.res}
+
+
 uses
   Winapi.Windows;
 
-var
-  bmSplashScreen: HBITMAP;
-  // iAboutPluginIndex: Integer = 0;
+procedure Register;
 
 implementation
 
 uses
-  ToolsAPI, SysUtils, Vcl.Dialogs,
+  ToolsAPI, System.SysUtils, System.Classes,
+  Vcl.Dialogs, Vcl.Imaging.PngImage, Vcl.Graphics,
   MVCFramework.Commons;
+
+const
+  {$IF CompilerVersion >= 35}
+  ABOUT_RES_NAME = 'DMVCSPLASH48PNG';
+  SPLASH_RES_NAME = 'DMVCSPLASH48PNG';
+  {$ELSE}
+  ABOUT_RES_NAME = 'DMVCPLASH24BMP';
+  SPLASH_RES_NAME = 'DMVCPLASH24BMP';
+  {$IFEND}
+
+var
+  iAboutPluginIndex: Integer;
+  AboutBoxServices: IOTAAboutBoxServices = nil;
 
 resourcestring
   resPackageName = 'DelphiMVCFramework ' + DMVCFRAMEWORK_VERSION;
@@ -55,20 +70,107 @@ resourcestring
   resAboutTitle = 'DelphiMVCFramework';
   resAboutDescription = 'https://github.com/danieleteti/delphimvcframework';
 
-initialization
+{$IF CompilerVersion >= 35}
+function CreateBitmapFromPngRes(const AResName: string): Vcl.Graphics.TBitmap;
+var
+  LPngImage: TPngImage;
+  LResStream: TResourceStream;
+begin
+  LPngImage := nil;
+  try
+    Result := Vcl.Graphics.TBitmap.Create;
+    LPngImage := TPngImage.Create;
+    LResStream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
+    try
+      LPngImage.LoadFromStream(LResStream);
+      Result.Assign(LPngImage);
+    finally
+      LResStream.Free;
+    end;
+  finally
+    LPngImage.Free;
+  end;
+end;
 
-bmSplashScreen := LoadBitmap(hInstance, 'SplashScreen');
-(SplashScreenServices as IOTASplashScreenServices).AddPluginBitmap(
-  resPackageName,
-  bmSplashScreen,
-  False,
-  resLicense);
+procedure RegisterAboutBox;
+var
+  LBitmap: Vcl.Graphics.TBitmap;
+begin
+  Supports(BorlandIDEServices,IOTAAboutBoxServices, AboutBoxServices);
+  LBitmap := CreateBitmapFromPngRes(ABOUT_RES_NAME);
+  try
+    iAboutPluginIndex := AboutBoxServices.AddPluginInfo(
+      resAboutTitle+' '+DMVCFRAMEWORK_VERSION,
+      resAboutDescription+sLineBreak+resAboutCopyright,
+      LBitmap.Handle, False, resLicense);
+  finally
+    LBitmap.Free;
+  end;
+end;
+
+procedure UnregisterAboutBox;
+begin
+  if (iAboutPluginIndex <> 0) and Assigned(AboutBoxServices) then
+  begin
+    AboutBoxServices.RemovePluginInfo(iAboutPluginIndex);
+    iAboutPluginIndex := 0;
+    AboutBoxServices := nil;
+  end;
+end;
+
+procedure RegisterWithSplashScreen;
+var
+  LBitmap: Vcl.Graphics.TBitmap;
+begin
+  LBitmap := CreateBitmapFromPngRes(SPLASH_RES_NAME);
+  try
+    SplashScreenServices.AddPluginBitmap(
+      resAboutTitle+' '+DMVCFRAMEWORK_VERSION,
+      LBitmap.Handle, False, resLicense, '');
+  finally
+    LBitmap.Free;
+  end;
+end;
+{$ELSE}
+procedure RegisterAboutBox;
+var
+  ProductImage: HBITMAP;
+begin
+  Supports(BorlandIDEServices,IOTAAboutBoxServices, AboutBoxServices);
+  ProductImage := LoadBitmap(FindResourceHInstance(HInstance), ABOUT_RES_NAME);
+  iAboutPluginIndex := AboutBoxServices.AddPluginInfo(resAboutTitle+' '+DMVCFRAMEWORK_VERSION,
+    resAboutDescription+sLineBreak+resAboutCopyright, ProductImage, False, resLicense);
+end;
+
+procedure UnregisterAboutBox;
+begin
+  if (iAboutPluginIndex <> 0) and Assigned(AboutBoxServices) then
+  begin
+    AboutBoxServices.RemovePluginInfo(iAboutPluginIndex);
+    iAboutPluginIndex := 0;
+    AboutBoxServices := nil;
+  end;
+end;
+
+procedure RegisterWithSplashScreen;
+var
+  ProductImage: HBITMAP;
+begin
+  ProductImage := LoadBitmap(FindResourceHInstance(HInstance), SPLASH_RES_NAME);
+  SplashScreenServices.AddPluginBitmap(resAboutTitle, ProductImage,
+    False, resLicense);
+end;
+{$IFEND}
+
+procedure Register;
+begin
+  RegisterWithSplashScreen;
+end;
+
+initialization
+  RegisterAboutBox;
 
 finalization
-
-
-// Remove Aboutbox Plugin Interface
-// if iAboutPluginIndex > 0 then
-// (BorlandIDEServices as IOTAAboutBoxServices).RemovePluginInfo(iAboutPluginIndex);
+  UnRegisterAboutBox;
 
 end.

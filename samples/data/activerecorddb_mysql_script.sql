@@ -51,17 +51,10 @@ CREATE TABLE customers (
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );
 
-
-CREATE TABLE customers2 (
-	id integer NOT NULL AUTO_INCREMENT,
-	code varchar(20) NULL,
-	description varchar(200),
-	city varchar(200),
-	rating INTEGER NULL,	
-    note text character set "utf8mb4" collate "utf8mb4_unicode_ci" DEFAULT NULL,	
-	CONSTRAINT customers2_pk PRIMARY KEY (id)
+CREATE TABLE complex_types (
+    id bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    json_field json
 );
-
 
 CREATE TABLE customers_plain (
     id integer NOT NULL,
@@ -157,3 +150,4 @@ CREATE TABLE customers_with_version (
 
 ALTER TABLE orders ADD CONSTRAINT orders_customers_fk FOREIGN KEY (id_customer) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE order_details ADD CONSTRAINT order_details_orders_fk FOREIGN KEY (id_order) REFERENCES orders(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
