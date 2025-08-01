@@ -20,6 +20,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+// ***************************************************************************
+//
+// This unit provides cross-platform console functionality including:
+// - Colored text output
+// - Tables, boxes, progress bars, and menus
+// - Interactive menus with keyboard navigation
+// - Robust keyboard input handling using ReadConsoleInput on Windows
+// - Full support for special keys (arrows, function keys, etc.)
+//
 // *************************************************************************** }
 
 unit MVCFramework.Console;
@@ -42,6 +51,15 @@ uses
   Posix.Fcntl
 {$ENDIF}
     ;
+
+const
+  // Special key codes (256 + VirtualKeyCode to avoid conflicts with ASCII)
+  KEY_UP    = 256 + 38;  // VK_UP
+  KEY_DOWN  = 256 + 40;  // VK_DOWN
+  KEY_LEFT  = 256 + 37;  // VK_LEFT
+  KEY_RIGHT = 256 + 39;  // VK_RIGHT
+  KEY_ESCAPE = 27;       // Standard ESC
+  KEY_ENTER = 13;        // Standard Enter
 
 type
   // https://stackoverflow.com/questions/17125440/c-win32-console-color
@@ -108,6 +126,14 @@ type
   TConsoleColorArray = array of TConsoleColor;
   TIntegerArray = array of Integer;
 
+  // Menu types
+  TMenuItemStyle = record
+    Text: string;
+    Icon: string;
+    Enabled: Boolean;
+  end;
+  TMenuItemsArray = array of TMenuItemStyle;
+
 // Basic console functions
 procedure ResetConsole;
 procedure TextColor(const color: TConsoleColor);
@@ -118,6 +144,9 @@ function GetConsoleBufferSize: TMVCConsoleSize;
 function GetCursorPosition: TMVCConsolePoint;
 procedure ClrScr;
 function GetCh: Char;
+
+function GetKey: Integer;  // Returns key code, special keys are 256+VirtualKeyCode
+function IsSpecialKey(KeyCode: Integer): Boolean; inline;  // True if key is a special key (>= 256)
 procedure WaitForReturn;
 procedure SaveColors;
 procedure RestoreSavedColors;
@@ -165,6 +194,21 @@ procedure WriteStatusLine(const Items: TStringArray; const Statuses: TStringArra
 procedure ShowSimpleMenu(const Title: string; const Items: TStringArray; SelectedIndex: Integer = 0);
 procedure WriteFormattedList(const Title: string; const Items: TStringArray;
                            ListStyle: TListStyle);
+
+// Interactive menu functions
+// These functions use GetKey to handle special keys like arrows
+function ShowInteractiveMenu(const Title: string; const Items: TStringArray;
+                           DefaultIndex: Integer = 0;
+                           const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+
+function ShowAdvancedMenu(const Title: string; const Items: TMenuItemsArray;
+                        DefaultIndex: Integer = 0;
+                        HighlightColor: TConsoleColor = DarkCyan;
+                        const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+
+// Helper function for menu items
+function CreateMenuItem(const Text: string; const Icon: string = ''; Enabled: Boolean = True): TMenuItemStyle;
+
 // Dashboard and report utilities
 procedure ShowSystemDashboard(const Title: string; const ServerStatuses: TStringArray;
                               const ServerColors: TConsoleColorArray;
@@ -462,6 +506,10 @@ end;
 // Platform-specific implementations
 // ============================================================================
 
+// GetKey returns the full key code. For special keys like arrows, it returns
+// 256 + VirtualKeyCode to distinguish them from ASCII characters.
+// GetCh returns only ASCII characters for backward compatibility.
+
 function ColorName(const color: TConsoleColor): String;
 begin
   Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
@@ -657,6 +705,7 @@ var
 begin
   Reset(Input);
   GInputHandle := TTextRec(Input).Handle;
+  hConsoleInput := GInputHandle; // Initialize hConsoleInput
 
   SetActiveWindow(0);
   GetConsoleMode(hConsoleInput, mode);
@@ -690,12 +739,37 @@ begin
 end;
 
 function KeyPressed: boolean;
+{$IFDEF MSWINDOWS}
 var
-  NumberOfEvents: DWORD;
+  InputRecord: INPUT_RECORD;
+  NumRead: DWORD;
 begin
-  GetNumberOfConsoleInputEvents(hConsoleInput, NumberOfEvents);
-  Result := NumberOfEvents > 0;
+  Result := False;
+  Init;
+
+  if PeekConsoleInput(GInputHandle, InputRecord, 1, NumRead) and (NumRead > 0) then
+  begin
+    if (InputRecord.EventType = KEY_EVENT) and InputRecord.Event.KeyEvent.bKeyDown then
+      Result := True
+    else
+      // Discard non-keyboard events or key-up events
+      ReadConsoleInput(GInputHandle, InputRecord, 1, NumRead);
+  end;
 end;
+{$ENDIF}
+{$IFDEF LINUX}
+var
+  FDSet: fd_set;
+  TimeVal: timeval;
+begin
+  SetupTerminal;
+  __FD_ZERO(FDSet);
+  __FD_SET(STDIN_FILENO, FDSet);
+  TimeVal.tv_sec := 0;
+  TimeVal.tv_usec := 0;
+  Result := select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
+end;
+{$ENDIF}
 
 procedure InternalShowCursor(const ShowCursor: Boolean);
 var
@@ -774,22 +848,89 @@ end;
 
 function GetCh: Char;
 var
-  lMode, lCC: DWORD;
-  C: Char;
+  Key: Integer;
+begin
+  Key := GetKey;
+  if Key < 256 then
+    Result := Chr(Key)
+  else
+    Result := #0;  // Special key, use GetKey for full code
+end;
+
+function GetKey: Integer;
+{$IFDEF MSWINDOWS}
+var
+  InputRecord: INPUT_RECORD;
+  NumRead: DWORD;
+  KeyEvent: KEY_EVENT_RECORD;
 begin
   Init;
-  EnsureStdInput;
-  C := #0;
-  WinCheck(GetConsoleMode(GInputHandle, lMode));
-  WinCheck(SetConsoleMode(GInputHandle, lMode and (not(ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))));
-  try
-    lCC := 0;
-    WinCheck(ReadConsole(GInputHandle, @C, SizeOf(Char), lCC, nil));
-  finally
-    WinCheck(SetConsoleMode(GInputHandle, lMode));
-  end;
-  Result := C;
+
+  repeat
+    if ReadConsoleInput(GInputHandle, InputRecord, 1, NumRead) then
+    begin
+      if (InputRecord.EventType = KEY_EVENT) then
+      begin
+        KeyEvent := InputRecord.Event.KeyEvent;
+        if KeyEvent.bKeyDown then
+        begin
+          if KeyEvent.AsciiChar <> #0 then
+          begin
+            // Normal ASCII key
+            Result := Ord(KeyEvent.AsciiChar);
+            Exit;
+          end
+          else
+          begin
+            // Special key like arrow keys (no ASCII)
+            // Return 256 + VirtualKeyCode
+            Result := 256 + KeyEvent.wVirtualKeyCode;
+            Exit;
+          end;
+        end;
+      end;
+    end;
+  until False;
 end;
+{$ENDIF}
+{$IFDEF LINUX}
+var
+  Buffer: array[0..0] of Char;
+  Ch: Char;
+begin
+  Result := 0;
+  SetupTerminal;
+
+  if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+  begin
+    Ch := Buffer[0];
+    Result := Ord(Ch);
+
+    // Handle Linux escape sequences for arrow keys
+    if Ch = #27 then
+    begin
+      if KeyPressed then
+      begin
+        if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+        begin
+          if Buffer[0] = '[' then
+          begin
+            if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+            begin
+              case Buffer[0] of
+                'A': Result := KEY_UP;    // Up arrow
+                'B': Result := KEY_DOWN;  // Down arrow
+                'C': Result := KEY_RIGHT; // Right arrow
+                'D': Result := KEY_LEFT;  // Left arrow
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+{$ENDIF}
 
 function GetConsoleBufferSize: TMVCConsoleSize;
 var
@@ -1635,6 +1776,10 @@ begin
   WriteLineColored(Line, HeaderColor);
 end;
 
+// ============================================================================
+// QUICK UTILITY FUNCTIONS
+// ============================================================================
+
 procedure WriteHeader(const Text: string; Width: Integer; CharSymbol: Char);
 var
   Line: string;
@@ -1682,6 +1827,370 @@ procedure WriteInfo(const Message: string);
 begin
   WriteColoredText('[INFO] ', Cyan);
   WriteLineColored(Message, White);
+end;
+
+// ============================================================================
+// INTERACTIVE MENU FUNCTIONS
+// ============================================================================
+
+function ShowInteractiveMenu(const Title: string; const Items: TStringArray;
+                           DefaultIndex: Integer = 0;
+                           const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+var
+  SelectedIndex: Integer;
+  Key: Integer;
+  Done: Boolean;
+  I: Integer;
+  MaxWidth: Integer;
+  StartX, StartY: Word;
+  CurPos: TMVCConsolePoint;
+  ConsoleSize: TMVCConsoleSize;
+  Line: string;
+  MenuHeight: Integer;
+begin
+  Result := -1;  // Default to cancelled
+  if Length(Items) = 0 then Exit;
+
+  Init; // Ensure console is initialized
+
+  SelectedIndex := DefaultIndex;
+  if SelectedIndex < 0 then SelectedIndex := 0;
+  if SelectedIndex > High(Items) then SelectedIndex := High(Items);
+
+  // Calculate max width
+  MaxWidth := Length(Title);
+  for I := 0 to High(Items) do
+    if Length(Items[I]) + 6 > MaxWidth then
+      MaxWidth := Length(Items[I]) + 6;
+  Inc(MaxWidth, 4); // Add border padding
+
+  // Calculate menu height
+  MenuHeight := Length(Items) + 5; // Items + borders + title + separator
+  if Hint <> '' then Inc(MenuHeight);
+
+  // Get console size and current position
+  ConsoleSize := GetConsoleSize;
+  CurPos := GetCursorPosition;
+  StartX := CurPos.X;
+  StartY := CurPos.Y;
+
+  // Ensure menu fits in console
+  if StartY + MenuHeight > ConsoleSize.Rows then
+  begin
+    StartY := ConsoleSize.Rows - MenuHeight - 1;
+    //if StartY < 0 then StartY := 0;
+    GotoXY(StartX, StartY);
+  end;
+
+  // Hide cursor during menu
+  HideCursor;
+  try
+    Done := False;
+    while not Done do
+    begin
+      // Go back to start position
+      GotoXY(StartX, StartY);
+
+      // Draw menu
+      // Top border
+      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Title
+      WriteColoredText('| ', Cyan);
+      WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
+      WriteLineColored(' |', Cyan);
+
+      // Separator
+      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Menu items
+      for I := 0 to High(Items) do
+      begin
+        WriteColoredText('| ', Cyan);
+
+        if I = SelectedIndex then
+        begin
+          // Highlighted item
+          SaveColors;
+          TextBackground(DarkCyan);
+          TextColor(White);
+          Write('> ' + PadRight(Items[I], MaxWidth - 6) + ' ');
+          RestoreSavedColors;
+        end
+        else
+        begin
+          WriteColoredText('  ' + PadRight(Items[I], MaxWidth - 6) + ' ', White);
+        end;
+
+        WriteLineColored('|', Cyan);
+      end;
+
+      // Bottom border
+      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Hint
+      if Hint <> '' then
+        WriteLineColored(Hint, DarkGray);
+
+      // Flush output
+{$IFDEF MSWINDOWS}
+      Flush(Output);
+{$ENDIF}
+{$IFDEF LINUX}
+      Flush(Output);
+{$ENDIF}
+
+      // Read key
+      Key := GetKey;
+
+      // Handle keys
+      case Key of
+        KEY_UP:
+          begin
+            Dec(SelectedIndex);
+            if SelectedIndex < 0 then
+              SelectedIndex := High(Items);
+          end;
+        KEY_DOWN:
+          begin
+            Inc(SelectedIndex);
+            if SelectedIndex > High(Items) then
+              SelectedIndex := 0;
+          end;
+        KEY_ENTER:
+          begin
+            Done := True;
+            Result := SelectedIndex;
+          end;
+        KEY_ESCAPE:
+          begin
+            Done := True;
+            Result := -1;
+          end;
+      end;
+    end;
+
+    // Clear the menu area safely
+    for I := 0 to MenuHeight - 1 do
+    begin
+      if StartY + I < ConsoleSize.Rows then
+      begin
+        GotoXY(StartX, StartY + I);
+        Write(StringOfChar(' ', Min(MaxWidth + 5, ConsoleSize.Columns - StartX)));
+      end;
+    end;
+
+    if StartY < ConsoleSize.Rows then
+      GotoXY(StartX, StartY);
+
+  finally
+    ShowCursor;
+  end;
+end;
+
+function ShowAdvancedMenu(const Title: string; const Items: TMenuItemsArray;
+                        DefaultIndex: Integer = 0;
+                        HighlightColor: TConsoleColor = DarkCyan;
+                        const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+var
+  SelectedIndex: Integer;
+  Key: Integer;
+  Done: Boolean;
+  I: Integer;
+  MaxWidth: Integer;
+  StartX, StartY: Word;
+  CurPos: TMVCConsolePoint;
+  ConsoleSize: TMVCConsoleSize;
+  Line: string;
+  ItemText: string;
+  MenuHeight: Integer;
+begin
+  Result := -1;  // Default to cancelled
+  if Length(Items) = 0 then Exit;
+
+  Init; // Ensure console is initialized
+
+  SelectedIndex := DefaultIndex;
+  if SelectedIndex < 0 then SelectedIndex := 0;
+  if SelectedIndex > High(Items) then SelectedIndex := High(Items);
+
+  // Skip to first enabled item if default is disabled
+  while (SelectedIndex <= High(Items)) and (not Items[SelectedIndex].Enabled) do
+    Inc(SelectedIndex);
+  if SelectedIndex > High(Items) then
+  begin
+    SelectedIndex := 0;
+    while (SelectedIndex <= High(Items)) and (not Items[SelectedIndex].Enabled) do
+      Inc(SelectedIndex);
+  end;
+
+  // Calculate max width
+  MaxWidth := Length(Title);
+  for I := 0 to High(Items) do
+  begin
+    ItemText := Items[I].Icon + ' ' + Items[I].Text;
+    if Length(ItemText) + 6 > MaxWidth then
+      MaxWidth := Length(ItemText) + 6;
+  end;
+  Inc(MaxWidth, 4); // Add border padding
+
+  // Calculate menu height
+  MenuHeight := Length(Items) + 5; // Items + borders + title + separator
+  if Hint <> '' then Inc(MenuHeight);
+
+  // Get console size and current position
+  ConsoleSize := GetConsoleSize;
+  CurPos := GetCursorPosition;
+  StartX := CurPos.X;
+  StartY := CurPos.Y;
+
+  // Ensure menu fits in console
+  if StartY + MenuHeight > ConsoleSize.Rows then
+  begin
+    StartY := ConsoleSize.Rows - MenuHeight - 1;
+    GotoXY(StartX, StartY);
+  end;
+
+  // Hide cursor during menu
+  HideCursor;
+  try
+    Done := False;
+    while not Done do
+    begin
+      // Go back to start position
+      GotoXY(StartX, StartY);
+
+      // Draw menu
+      // Top border
+      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Title
+      WriteColoredText('| ', Cyan);
+      WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
+      WriteLineColored(' |', Cyan);
+
+      // Separator
+      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Menu items
+      for I := 0 to High(Items) do
+      begin
+        WriteColoredText('| ', Cyan);
+
+        ItemText := Items[I].Icon + ' ' + Items[I].Text;
+
+        if not Items[I].Enabled then
+        begin
+          // Disabled item
+          WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', DarkGray);
+        end
+        else if I = SelectedIndex then
+        begin
+          // Highlighted item
+          SaveColors;
+          TextBackground(HighlightColor);
+          TextColor(White);
+          Write('> ' + PadRight(ItemText, MaxWidth - 6) + ' ');
+          RestoreSavedColors;
+        end
+        else
+        begin
+          WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', White);
+        end;
+
+        WriteLineColored('|', Cyan);
+      end;
+
+      // Bottom border
+      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      WriteLineColored(Line, Cyan);
+
+      // Hint
+      if Hint <> '' then
+        WriteLineColored(Hint, DarkGray);
+
+      // Flush output
+{$IFDEF MSWINDOWS}
+      Flush(Output);
+{$ENDIF}
+{$IFDEF LINUX}
+      Flush(Output);
+{$ENDIF}
+
+      // Read key
+      Key := GetKey;
+
+      // Handle keys
+      case Key of
+        KEY_UP:
+          begin
+            repeat
+              Dec(SelectedIndex);
+              if SelectedIndex < 0 then
+                SelectedIndex := High(Items);
+            until Items[SelectedIndex].Enabled;
+          end;
+        KEY_DOWN:
+          begin
+            repeat
+              Inc(SelectedIndex);
+              if SelectedIndex > High(Items) then
+                SelectedIndex := 0;
+            until Items[SelectedIndex].Enabled;
+          end;
+        KEY_ENTER:
+          begin
+            if Items[SelectedIndex].Enabled then
+            begin
+              Done := True;
+              Result := SelectedIndex;
+            end;
+          end;
+        KEY_ESCAPE:
+          begin
+            Done := True;
+            Result := -1;
+          end;
+      end;
+    end;
+
+    // Clear the menu area safely
+    for I := 0 to MenuHeight - 1 do
+    begin
+      if StartY + I < ConsoleSize.Rows then
+      begin
+        GotoXY(StartX, StartY + I);
+        Write(StringOfChar(' ', Min(MaxWidth + 5, ConsoleSize.Columns - StartX)));
+      end;
+    end;
+
+    if StartY < ConsoleSize.Rows then
+      GotoXY(StartX, StartY);
+
+  finally
+    ShowCursor;
+  end;
+end;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function IsSpecialKey(KeyCode: Integer): Boolean;
+begin
+  Result := KeyCode > 255;
+end;
+
+function CreateMenuItem(const Text: string; const Icon: string = ''; Enabled: Boolean = True): TMenuItemStyle;
+begin
+  Result.Text := Text;
+  Result.Icon := Icon;
+  Result.Enabled := Enabled;
 end;
 
 initialization

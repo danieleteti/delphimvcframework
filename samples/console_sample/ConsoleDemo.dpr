@@ -97,6 +97,8 @@ end;
 procedure ShowMenuExample;
 var
   MenuItems: TStringArray;
+  AdvancedItems: TMenuItemsArray;
+  SelectedItem: Integer;
 begin
   WriteHeader('Demo Menu');
   WriteLn;
@@ -108,7 +110,40 @@ begin
   MenuItems[3] := 'Settings';
   MenuItems[4] := 'Exit';
 
+  // Static menu display
+  WriteLineColored('Static Menu Display:', White);
   ShowSimpleMenu('Main Menu', MenuItems, 2); // Item 2 selected
+  WriteLn;
+
+  // Interactive menu
+  WriteLineColored('Interactive Menu (try it!):', White);
+  SelectedItem := ShowInteractiveMenu('Main Menu', MenuItems, 0);
+
+  if SelectedItem >= 0 then
+    WriteSuccess('You selected: ' + MenuItems[SelectedItem])
+  else
+    WriteWarning('Menu cancelled');
+
+  WriteLn;
+
+  // Advanced menu with icons and disabled items
+  WriteLineColored('Advanced Menu with Icons (try it!):', White);
+  SetLength(AdvancedItems, 6);
+
+  // Using the helper function
+  AdvancedItems[0] := CreateMenuItem('New File', '+', True);
+  AdvancedItems[1] := CreateMenuItem('Open File', 'O', True);
+  AdvancedItems[2] := CreateMenuItem('Save File', 'S', False); // Disabled
+  AdvancedItems[3] := CreateMenuItem('Print', 'P', False); // Disabled
+  AdvancedItems[4] := CreateMenuItem('Settings', '*', True);
+  AdvancedItems[5] := CreateMenuItem('Exit', 'X', True);
+
+  SelectedItem := ShowAdvancedMenu('File Menu', AdvancedItems, 0, DarkGreen);
+
+  if SelectedItem >= 0 then
+    WriteSuccess('You selected: ' + AdvancedItems[SelectedItem].Text)
+  else
+    WriteWarning('Menu cancelled');
 end;
 
 procedure ShowListExample;
