@@ -12,15 +12,15 @@ var
   Headers: TStringArray;
   Data: TStringMatrix;
 begin
-  WriteHeader('Demo Tabelle con Libreria');
+  WriteHeader('Tables DEMO');
   WriteLn;
 
   // Esempio tabella sviluppatori
   SetLength(Headers, 4);
   Headers[0] := 'ID';
-  Headers[1] := 'Nome';
+  Headers[1] := 'Name';
   Headers[2] := 'Framework';
-  Headers[3] := 'Linguaggio';
+  Headers[3] := 'Language';
 
   SetLength(Data, 5);
 
@@ -37,7 +37,7 @@ begin
   Data[3][0] := '004'; Data[3][1] := 'Paolo Neri'; Data[3][2] := 'Laravel'; Data[3][3] := 'PHP';
 
   SetLength(Data[4], 4);
-  Data[4][0] := '005'; Data[4][1] := 'Sara Gialli'; Data[4][2] := 'Express.js'; Data[4][3] := 'Node.js';
+  Data[4][0] := '005'; Data[4][1] := 'Sara Gialli'; Data[4][2] := 'FastAPI'; Data[4][3] := 'Python';
 
   WriteSimpleTable(Headers, Data);
 
@@ -47,7 +47,7 @@ end;
 
 procedure ShowProgressExample;
 begin
-  WriteHeader('Demo Progress Bar');
+  WriteHeader('Progress Bar DEMO');
   WriteLn;
 
   WriteInfo('Starting download simulation...');
@@ -73,7 +73,7 @@ procedure ShowBoxExample;
 var
   Content: TStringArray;
 begin
-  WriteHeader('Demo Box e Layout');
+  WriteHeader('Box and Layout DEMO');
   WriteLn;
 
   // Simple box
@@ -100,7 +100,7 @@ var
   AdvancedItems: TMenuItemsArray;
   SelectedItem: Integer;
 begin
-  WriteHeader('Demo Menu');
+  WriteHeader('Menu DEMO');
   WriteLn;
 
   SetLength(MenuItems, 5);
@@ -151,7 +151,7 @@ var
   Features: TStringArray;
   Tasks: TStringArray;
 begin
-  WriteHeader('Demo Liste');
+  WriteHeader('Lists DEMO');
   WriteLn;
 
   // Feature list
@@ -295,8 +295,6 @@ begin
     ClrScr;
 
     WriteHeader('DMVCFramework Console Library Demo', 80);
-    WriteLn;
-    WriteLineColored('Esempi di utilizzo delle funzioni di libreria', Cyan);
     WriteLn;
 
     // Demo delle varie funzioni

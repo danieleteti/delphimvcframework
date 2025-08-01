@@ -134,6 +134,11 @@ type
   end;
   TMenuItemsArray = array of TMenuItemStyle;
 
+  TConsoleDefault = record
+    DefaultTextColor, DefaultBackground, DefaultDrawColor, DefaultSymbolsColor, DefaultBackgroundHighlightColor: TConsoleColor;
+  end;
+
+
 // Basic console functions
 procedure ResetConsole;
 procedure TextColor(const color: TConsoleColor);
@@ -229,6 +234,14 @@ procedure WriteInfo(const Message: string);
 
 // Utility functions
 function PadRight(const S: string; Len: Integer): string;
+
+var
+  MVCConsoleDefaults: TConsoleDefault = (
+    DefaultTextColor : TConsoleColor.White;
+    DefaultBackground : TConsoleColor.Black;
+    DefaultDrawColor : TConsoleColor.DarkYellow;
+    DefaultSymbolsColor : TConsoleColor.Gray;
+  );
 
 implementation
 
@@ -1483,39 +1496,39 @@ begin
 
   // Top border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
   // Title
-  WriteColoredText('| ', Cyan);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-  WriteLineColored(' |', Cyan);
+  WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
+  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleDefaults.DefaultTextColor);
+  WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
 
   // Separator
   Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
   // Menu items
   for I := 0 to High(Items) do
   begin
-    WriteColoredText('| ', Cyan);
+    WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
 
     if I = SelectedIndex then
     begin
-      WriteColoredText('> ', Yellow);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), Yellow);
+      WriteColoredText('> ', MVCConsoleDefaults.DefaultTextColor);
+      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleDefaults.DefaultTextColor);
     end
     else
     begin
-      WriteColoredText('  ', White);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), White);
+      WriteColoredText('  ', MVCConsoleDefaults.DefaultTextColor);
+      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleDefaults.DefaultTextColor);
     end;
 
-    WriteLineColored(' |', Cyan);
+    WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
   end;
 
   // Bottom border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 end;
 
 procedure WriteFormattedList(const Title: string; const Items: TStringArray;
@@ -1526,7 +1539,7 @@ var
 begin
   if Title <> '' then
   begin
-    WriteLineColored(Title, Cyan);
+    WriteLineColored(Title, MVCConsoleDefaults.DefaultTextColor);
     WriteLn;
   end;
 
@@ -1539,8 +1552,8 @@ begin
       lsArrow: Prefix := '  > ';
     end;
 
-    WriteColoredText(Prefix, Gray);
-    WriteLineColored(Items[I], White);
+    WriteColoredText(Prefix, MVCConsoleDefaults.DefaultSymbolsColor);
+    WriteLineColored(Items[I], MVCConsoleDefaults.DefaultTextColor);
   end;
 end;
 
@@ -1563,40 +1576,40 @@ begin
 
   // Top border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
   // Title
-  WriteColoredText('| ', Cyan);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-  WriteLineColored(' |', Cyan);
+  WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
+  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleDefaults.DefaultTextColor);
+  WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
 
   // Separator
   Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
   // Server statuses
-  WriteColoredText('| ', Cyan);
-  WriteColoredText(PadRight('Server Status:', MaxWidth - 4), White);
-  WriteLineColored(' |', Cyan);
+  WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
+  WriteColoredText(PadRight('Server Status:', MaxWidth - 4), MVCConsoleDefaults.DefaultTextColor);
+  WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
 
   MaxLen := Min(Length(ServerStatuses), Length(ServerColors));
   for I := 0 to MaxLen - 1 do
   begin
-    WriteColoredText('| ', Cyan);
+    WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
     WriteColoredText('  ' + ServerStatuses[I], ServerColors[I]);
-    WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), White);
-    WriteLineColored(' |', Cyan);
+    WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), MVCConsoleDefaults.DefaultTextColor);
+    WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
   end;
 
   // Metrics
   if Length(MetricNames) > 0 then
   begin
     Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-    WriteLineColored(Line, Cyan);
+    WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
-    WriteColoredText('| ', Cyan);
-    WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), White);
-    WriteLineColored(' |', Cyan);
+    WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
+    WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), MVCConsoleDefaults.DefaultTextColor);
+    WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
 
     MaxLen := Min(Length(MetricNames), Length(MetricValues));
     for I := 0 to MaxLen - 1 do
@@ -1613,15 +1626,15 @@ begin
       // Build complete line
       MetricLine := '  ' + MetricNames[I] + ': ' + ProgressStr;
 
-      WriteColoredText('| ', Cyan);
-      WriteColoredText(PadRight(MetricLine, MaxWidth - 4), White);
-      WriteLineColored(' |', Cyan);
+      WriteColoredText('| ', MVCConsoleDefaults.DefaultDrawColor);
+      WriteColoredText(PadRight(MetricLine, MaxWidth - 4), MVCConsoleDefaults.DefaultTextColor);
+      WriteLineColored(' |', MVCConsoleDefaults.DefaultDrawColor);
     end;
   end;
 
   // Bottom border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 end;
 
 procedure WriteReport(const Title: string; const Sections: TStringArray;
@@ -1786,17 +1799,17 @@ var
   PaddingSize: Integer;
 begin
   Line := StringOfChar(CharSymbol, Width);
-  WriteLineColored(Line, Cyan);
+  WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
 
   if Text <> '' then
   begin
     PaddingSize := (Width - Length(Text) - 2) div 2;
     Line := StringOfChar(' ', PaddingSize) + ' ' + Text + ' ' +
             StringOfChar(' ', Width - PaddingSize - Length(Text) - 2);
-    WriteLineColored(Line, Yellow);
+    WriteLineColored(Line, MVCConsoleDefaults.DefaultTextColor);
 
     Line := StringOfChar(CharSymbol, Width);
-    WriteLineColored(Line, Cyan);
+    WriteLineColored(Line, MVCConsoleDefaults.DefaultDrawColor);
   end;
 end;
 
