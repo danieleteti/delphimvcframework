@@ -151,7 +151,6 @@ type
 
   TMVCConfigKey = record
   public const
-    //SessionTimeout = 'sessiontimeout';
     ViewPath = 'view_path';
     ViewCache = 'view_cache';
     DefaultContentType = 'default_content_type';

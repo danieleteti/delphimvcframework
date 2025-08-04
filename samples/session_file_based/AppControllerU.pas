@@ -37,6 +37,7 @@ implementation
 
 uses
   System.SysUtils,
+  TemplatePro,
   System.Classes;
 
 { TApp1MainController }
@@ -44,15 +45,20 @@ uses
 function TApp1MainController.DoLogin(username: String): String;
 begin
   Session['username'] := username;
-  Result :=
-    'Logged as ' + username + sLineBreak +
-     sLineBreak +
-    'In the browser address bar, you can write: ' + sLineBreak +
-    'http://localhost:8080/list             to check the current values in session ' + sLineBreak +
-    'http://localhost:8080/fruit/apple      to register apple ' + sLineBreak +
-    'http://localhost:8080/fruit/banana     to register banana ' + sLineBreak +
-    'http://localhost:8080/logout           to end session ' + sLineBreak +
-    'http://localhost:8080/login/johndoe    to login as johndoe';
+  Result := TTProCompiler.CompileAndRender(
+    '''
+    <h2>Logged as {{:username}} </h2>
+
+    Click on the following links to explore session features:<br>
+    <a href="http://localhost:8080/list">http://localhost:8080/list</a>                   to check the current values in session <br>
+    <a href="http://localhost:8080/fruit/apple">http://localhost:8080/fruit/apple</a>     to register apple <br>
+    <a href="http://localhost:8080/fruit/banana">http://localhost:8080/fruit/banana</a>   to register banana <br>
+    <a href="http://localhost:8080/logout">http://localhost:8080/logout</a>               to end session  <br>
+    <a href="http://localhost:8080/login/johndoe">http://localhost:8080/login/johndoe</a> to login as johndoe <br>
+    ''',
+    ['username'],
+    [username]
+    )
 end;
 
 procedure TApp1MainController.RegisterFruit(nameOfFruit: String);
@@ -73,11 +79,12 @@ var
   lList: TArray<String>;
 begin
   lList := Session.Keys;
-  Result := 'List of fruits:' + sLineBreak;
+  Result := 'List of fruits: <ul>';
   for I := 0 to Length(lList) - 1 do
   begin
-    Result := Result + sLineBreak + IntToStr(I + 1) + '-' + Session[lList[I]] + sLineBreak;
+    Result := Result + '<li>' + IntToStr(I + 1) + ' - ' + Session[lList[I]] + '</li>';
   end;
+  Result := Result + '</ul>';
 end;
 
 function TApp1MainController.Index: String;

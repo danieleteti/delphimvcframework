@@ -85,7 +85,8 @@ uses
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons, MVCFramework.Swagger.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Swagger.Commons;
 
 type
 
@@ -344,15 +345,6 @@ type
     constructor Create(ServiceName: String = '');
     property ServiceName: String read fServiceName;
   end;
-
-  // test
-  // TMVCHackHTTPAppRequest = class(TIdHTTPAppRequest)
-  // private
-  // function GetHeaders: TStringList;
-  // public
-  // property Headers: TStringList read GetHeaders;
-  // end;
-  // test-end
 
   TMVCWebRequest = class
   private
@@ -1101,9 +1093,6 @@ type
     function GetViewEngineClass: TMVCViewEngineClass;
     procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
       const InjectableParamAttribute: MVCInjectableParamAttribute);
-//    procedure FillActualParamsForConstructor(
-//      const AActionFormalParams: TArray<TRttiParameter>;
-//      var AActualParams: TArray<TValue>);
   protected
     procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
     procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
@@ -1136,8 +1125,6 @@ type
       const ConstructorMethod: TRttiMethod): TMVCController;
   public
     class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string; static;
-    class function SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
-      overload; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
   public
     constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil); reintroduce;
@@ -2414,7 +2401,7 @@ begin
     Session := GetSessionFactory.CreateNewSession(GenerateSessionID);
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
-    TMVCEngine.SendSessionCookie(Self, Session.SessionId);
+    Session.SendSessionCookie(Self.fResponse.RawWebResponse, Session.SessionId);
   end;
 end;
 
@@ -2422,11 +2409,6 @@ function TWebContext.IsSessionStarted: Boolean;
 begin
   Result := fIsSessionStarted;
 end;
-
-//function TWebContext.SendSessionCookie(const AContext: TWebContext): string;
-//begin
-//  Result := TMVCEngine.SendSessionCookie(Self);
-//end;
 
 function TWebContext.SessionId: string;
 begin
@@ -3731,25 +3713,26 @@ begin
   FConfigCache_UseViewCache := Config[TMVCConfigKey.ViewCache] = 'true';
 end;
 
-class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
-var
-  lCookie: TCookie;
-  lSessionTimeout: Integer;
-begin
-  ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
-  lCookie := AContext.Response.Cookies.Add;
-  lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
-  lCookie.Value := aSessionId;
-  lSessionTimeout := aContext.GetSessionFactory.GetTimeout;
-
-  if lSessionTimeout = 0 then
-    lCookie.Expires := 0 // session cookie
-  else
-    lCookie.Expires := Now + OneMinute * lSessionTimeout;
-
-  lCookie.Path := '/';
-  Result := ASessionId;
-end;
+//class function TMVCEngine.SendSessionCookie(const aContext: TWebContext; aHttpOnly: Boolean; const aSessionId: string): string;
+//var
+//  lCookie: TCookie;
+//  lSessionTimeout: Integer;
+//begin
+//  ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
+//  lCookie := AContext.Response.Cookies.Add;
+//  lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
+//  lCookie.Value := aSessionId;
+//  lCookie.HttpOnly := aHttpOnly;
+//  lSessionTimeout := aContext.GetSessionFactory.GetTimeout;
+//
+//  if lSessionTimeout = 0 then
+//    lCookie.Expires := 0 // session cookie
+//  else
+//    lCookie.Expires := Now + OneMinute * lSessionTimeout;
+//
+//  lCookie.Path := '/';
+//  Result := ASessionId;
+//end;
 
 function TMVCEngine.Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean): IMVCSerializer;
 var

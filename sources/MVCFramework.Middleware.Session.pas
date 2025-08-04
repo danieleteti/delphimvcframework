@@ -34,9 +34,9 @@ uses
   MVCFramework.Middleware.Session.Internal
   ;
 
-  function UseMemorySessionMiddleware(aTimeoutInMinutes: Integer = 0): TMVCSessionMiddleware;
-  function UseFileSessionMiddleware(aTimeoutInMinutes: Integer = 0; aSessionFolder: String = 'dmvc_sessions'): TMVCSessionMiddleware;
-  function UseDatabaseSessionMiddleware(aTimeoutInMinutes: Integer = 0): TMVCSessionMiddleware;
+  function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False): TMVCSessionMiddleware;
+  function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False; const aSessionFolder: String = 'dmvc_sessions'): TMVCSessionMiddleware;
+  function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False): TMVCSessionMiddleware;
 
 implementation
 
@@ -44,20 +44,20 @@ uses
   MVCFramework.Session.Database;
 
 
-function UseMemorySessionMiddleware(aTimeoutInMinutes: Integer = 0): TMVCSessionMiddleware;
+function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean): TMVCSessionMiddleware;
 begin
-  Result := TMVCSessionMiddleware.Create(TMVCWebSessionMemoryFactory.Create(aTimeoutInMinutes));
+  Result := TMVCSessionMiddleware.Create(TMVCWebSessionMemoryFactory.Create(aHttpOnly, aTimeoutInMinutes));
 end;
 
-function UseFileSessionMiddleware(aTimeoutInMinutes: Integer = 0; aSessionFolder: String = 'dmvc_sessions'): TMVCSessionMiddleware;
+function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean; const aSessionFolder: String): TMVCSessionMiddleware;
 begin
-  Result := TMVCSessionMiddleware.Create(TMVCWebSessionFileFactory.Create(aTimeoutInMinutes, aSessionFolder));
+  Result := TMVCSessionMiddleware.Create(TMVCWebSessionFileFactory.Create(aHttpOnly, aTimeoutInMinutes, aSessionFolder));
 end;
 
-function UseDatabaseSessionMiddleware(aTimeoutInMinutes: Integer = 0): TMVCSessionMiddleware;
+function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean): TMVCSessionMiddleware;
 begin
   Result := TMVCSessionMiddleware.Create(
-    TMVCWebSessionDatabaseFactory.Create(aTimeoutInMinutes, 'notused'));
+    TMVCWebSessionDatabaseFactory.Create(aHttpOnly, aTimeoutInMinutes, 'notused'));
 end;
 
 
