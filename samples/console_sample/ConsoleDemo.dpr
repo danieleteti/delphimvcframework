@@ -324,10 +324,9 @@ begin
 
     ShowReportExample;
 
-    WriteHeader('Fine Demo', 80);
-    WriteLineColored('Tutte le funzioni sono ora disponibili nella unit MVCFramework.Console!', Green);
+    WriteHeader('DEMO TERMINATED', 80);
     WriteLn;
-    WriteLineColored('Premi INVIO per uscire...', Gray);
+    WriteLineColored('Press ENTER to EXIT...', Gray);
     ReadLn;
 
   except

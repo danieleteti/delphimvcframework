@@ -1768,19 +1768,36 @@ begin
   WriteLineColored(Line, HeaderColor);
 
   // Data rows with color
+
   for I := 0 to High(Data) do
   begin
-    Line := '|';
+    WriteColoredText('|', HeaderColor);
+    Line := '';
     for J := 0 to High(Headers) do
     begin
       if J < Length(Data[I]) then
         Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
       else
         Cell := StringOfChar(' ', ColWidths[J]);
-      Line := Line + Cell + '|';
+      WriteColoredText(Cell, DataColor);
+      WriteColoredText('|', HeaderColor);
     end;
-    WriteLineColored(Line, DataColor);
+    Writeln;
   end;
+
+//  for I := 0 to High(Data) do
+//  begin
+//    Line := '|';
+//    for J := 0 to High(Headers) do
+//    begin
+//      if J < Length(Data[I]) then
+//        Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
+//      else
+//        Cell := StringOfChar(' ', ColWidths[J]);
+//      Line := Line + Cell + '|';
+//    end;
+//    WriteLineColored(Line, DataColor);
+//  end;
 
   // Bottom border
   Line := '+';
