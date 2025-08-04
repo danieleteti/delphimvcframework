@@ -152,3 +152,4 @@ samples/wine_cellar_sample/winecellarclient_mobile/Android/Debug/
 samples/wine_cellar_sample/winecellarclient_mobile/Android64/Debug/
 *.delphilsp.json
 /unittests/general/TestClient/pgsql/testdatadir/
+**/dmvc_sessions/*

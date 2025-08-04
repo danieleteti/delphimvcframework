@@ -36,26 +36,28 @@ uses
 {$R *.res}
 
 procedure Logo;
+var
+  lPoint: TMVCConsolePoint;
+  lPlatform: String;
 begin
-  ResetConsole();
+  lPlatForm := {$IF Defined(Win32)} 'WIN32' {$ENDIF}
+  {$IF Defined(Win64)} 'WIN64' {$ENDIF}
+  {$IF Defined(Linux64)} 'Linux64' {$ENDIF}
+  ;
+
+//  MVCConsoleStyle.TextColor := TConsoleColor.Blue;
+//  MVCConsoleStyle.BackgroundColor := TConsoleColor.White;
+
+  TextColor(TConsoleColor.Green);
+  DrawSimpleBox('DMVCFramework TEST SERVER', [lPlatform, DMVCFRAMEWORK_VERSION]);
   Writeln;
-  TextBackground(TConsoleColor.Black);
-  TextColor(TConsoleColor.Red);
-  Writeln(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
-  Writeln(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
-  Writeln(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
-  Writeln(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
-  Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
-  Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
-  Writeln(' ');
-  TextColor(TConsoleColor.White);
-  Write('PLATFORM: ');
-  {$IF Defined(Win32)} Writeln('WIN32'); {$ENDIF}
-  {$IF Defined(Win64)} Writeln('WIN64'); {$ENDIF}
-  {$IF Defined(Linux64)} Writeln('Linux64'); {$ENDIF}
-  TextColor(TConsoleColor.Yellow);
-  Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-  TextColor(TConsoleColor.White);
+  lPoint := GetCursorPosition;
+  WriteColoredTable(
+    ['FEATURE','VALUE'],
+    [
+      ['PLATFORM',lPlatform],
+      ['DMVCFRAMEWORK VERSION', DMVCFRAMEWORK_VERSION]
+    ]);
 end;
 
 procedure RunServer(APort: Integer);
@@ -72,8 +74,10 @@ begin
     LServer.Active := True;
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
-    Writeln('Press RETURN to stop the server');
-    WaitForReturn;
+    TextColor(TConsoleColor.Gray);
+    Writeln;
+    WriteLineColored('Press RETURN to stop the server', TConsoleColor.White, TConsoleColor.Blue);
+    while GetCh() <> Char(KEY_ENTER) do;
     TextColor(TConsoleColor.Red);
     Writeln('Server stopped');
     ResetConsole();
@@ -86,6 +90,7 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   gLocalTimeStampAsUTC := False;
   UseConsoleLogger := False;
+  EnableUTF8Console;
   TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', 'axDlw8dRnsPCrbZIAEMFG4TQ6gc3iWtOy9v5NBz0LfSmuKV71JHkUhYpej2Xqo');
   TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
   try
