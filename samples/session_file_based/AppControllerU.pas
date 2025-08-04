@@ -53,11 +53,12 @@ begin
     <a href="http://localhost:8080/list">http://localhost:8080/list</a>                   to check the current values in session <br>
     <a href="http://localhost:8080/fruit/apple">http://localhost:8080/fruit/apple</a>     to register apple <br>
     <a href="http://localhost:8080/fruit/banana">http://localhost:8080/fruit/banana</a>   to register banana <br>
+    <a href="http://localhost:8080/fruit/banana?dtsessionid={{:sessionid}}">http://localhost:8080/fruit/banana(with session on url)</a>   to register banana <br>
     <a href="http://localhost:8080/logout">http://localhost:8080/logout</a>               to end session  <br>
     <a href="http://localhost:8080/login/johndoe">http://localhost:8080/login/johndoe</a> to login as johndoe <br>
     ''',
-    ['username'],
-    [username]
+    ['username', 'sessionid'],
+    [username, Session.SessionId]
     )
 end;
 
@@ -89,8 +90,6 @@ end;
 
 function TApp1MainController.Index: String;
 begin
-  ContentType := TMVCMediaType.TEXT_PLAIN;
-
   // do not create session if not already created
   if Context.SessionStarted then
   begin
