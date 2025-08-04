@@ -34,29 +34,25 @@ uses
   MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
-
-procedure Logo;
-var
-  lPoint: TMVCConsolePoint;
-  lPlatform: String;
-begin
-  lPlatForm := {$IF Defined(Win32)} 'WIN32' {$ENDIF}
+const
+  gPLATFORM =  {$IF Defined(Win32)} 'WIN32' {$ENDIF}
   {$IF Defined(Win64)} 'WIN64' {$ENDIF}
   {$IF Defined(Linux64)} 'Linux64' {$ENDIF}
   ;
-
-//  MVCConsoleStyle.TextColor := TConsoleColor.Blue;
-//  MVCConsoleStyle.BackgroundColor := TConsoleColor.White;
-
+procedure Logo;
+var
+  lPoint: TMVCConsolePoint;
+begin
   TextColor(TConsoleColor.Green);
-  DrawSimpleBox('DMVCFramework TEST SERVER', [lPlatform, DMVCFRAMEWORK_VERSION]);
+  WriteHeader('DMVCFramework TEST SERVER', TConsoleColor.Red);
   Writeln;
   lPoint := GetCursorPosition;
   WriteColoredTable(
     ['FEATURE','VALUE'],
     [
-      ['PLATFORM',lPlatform],
-      ['DMVCFRAMEWORK VERSION', DMVCFRAMEWORK_VERSION]
+      ['PLATFORM',gPLATFORM],
+      ['DMVCFRAMEWORK VERSION', DMVCFRAMEWORK_VERSION],
+      ['OS Version', TOSVersion.ToString]
     ]);
 end;
 

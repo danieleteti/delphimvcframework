@@ -207,7 +207,7 @@ procedure FlashScreen;
 // Enhanced library functions - ASCII-based for maximum compatibility
 procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix);
 procedure ShowSimpleProgressBar(const Title: string; Position, MaxValue: Integer; Width: Integer = 50);
-procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer = 60; TextColor: TConsoleColor = UseDefault; Style: TBoxStyle = bsRounded);
+procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer = 80; TextColor: TConsoleColor = UseDefault; Style: TBoxStyle = bsRounded);
 procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment = taCenter; TextColor: TConsoleColor = UseDefault);
 procedure ShowProgressAnimation(const Title: string; Steps: Integer = 20; DelayMs: Integer = 100);
 procedure WriteStatusLine(const Items: TStringArray; const Statuses: TStringArray;
@@ -245,7 +245,7 @@ procedure WriteColoredTable(const Headers: TStringArray;
                            BoxStyle: TBoxStyle = bsRounded);
 
 // Quick utility functions
-procedure WriteHeader(const Text: string; Width: Integer = 80; CharSymbol: Char = '=');
+procedure WriteHeader(const Text: string; HeaderColor: TConsoleColor = UseDefault; Width: Integer = 80);
 procedure WriteSeparator(Width: Integer = 60; CharSymbol: Char = '-');
 procedure WriteSuccess(const Message: string);
 procedure WriteWarning(const Message: string);
@@ -1686,7 +1686,7 @@ begin
     WriteLn;
   end;
 
-  WriteHeader('End of Report', 60);
+  WriteHeader('End of Report');
 end;
 
 procedure ShowLoadingSpinner(const Message: string; Iterations: Integer);
@@ -1854,11 +1854,14 @@ end;
 // QUICK UTILITY FUNCTIONS
 // ============================================================================
 
-procedure WriteHeader(const Text: string; Width: Integer; CharSymbol: Char);
+procedure WriteHeader(const Text: string; HeaderColor: TConsoleColor; Width: Integer);
 var
   Line: string;
   PaddingSize: Integer;
+  CharSymbol: Char;
 begin
+  HeaderColor := GetColorOrDefault(HeaderColor, sccHighLightText);
+  CharSymbol := GetBoxChars(MVCConsolestyle.BoxStyle).Horizontal;
   Line := StringOfChar(CharSymbol, Width);
   WriteLineColored(Line, MVCConsoleStyle.DrawColor);
 
@@ -1867,7 +1870,7 @@ begin
     PaddingSize := (Width - Length(Text) - 2) div 2;
     Line := StringOfChar(' ', PaddingSize) + ' ' + Text + ' ' +
             StringOfChar(' ', Width - PaddingSize - Length(Text) - 2);
-    WriteLineColored(Line, MVCConsoleStyle.TextColor);
+    WriteLineColored(Line, HeaderColor);
 
     Line := StringOfChar(CharSymbol, Width);
     WriteLineColored(Line, MVCConsoleStyle.DrawColor);
