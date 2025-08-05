@@ -1329,7 +1329,6 @@ uses
 
 var
   gIsShuttingDown: Boolean = False;
-  gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
   gEncodingUTF8: TEncoding;
 
@@ -2774,7 +2773,7 @@ begin
       DefineDefaultResponseHeaders(lContext);
       DoWebContextCreateEvent(lContext);
       lHandled := False;
-      lRouter := TMVCRouter.Create(FConfig, gMVCGlobalActionParamsCache);
+      lRouter := TMVCRouter.Create;
       try // finally
         lSelectedController := nil;
         try // only for lSelectedController
@@ -5367,14 +5366,11 @@ TRttiContext.KeepContext;
 
 gIsShuttingDown := False;
 
-gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 gEncodingUTF8 := TEncoding.GetEncoding(TMVCCharSet.UTF_8);
 
 finalization
 
 FreeAndNil(gEncodingUTF8);
-FreeAndNil(gMVCGlobalActionParamsCache);
-
 
 // https://quality.embarcadero.com/browse/RSP-38281
 TRttiContext.DropContext;

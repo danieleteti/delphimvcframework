@@ -56,12 +56,10 @@ type
   TMVCRouter = class(TMVCCustomRouter)
   private
     FRttiContext: TRttiContext;
-    FConfig: TMVCConfig;
     FMethodToCall: TRttiMethod;
     FControllerClazz: TMVCControllerClazz;
     FControllerCreateAction: TMVCControllerCreateAction;
     FControllerInjectableConstructor: TRttiMethod;
-    FActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
 
@@ -91,8 +89,7 @@ type
       const aControllerMappedPaths: TStringList);
   public
     class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
-    constructor Create(const aConfig: TMVCConfig;
-      const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
+    constructor Create;
     destructor Destroy; override;
     function ExecuteRouting(const ARequestPathInfo: string;
       const ARequestMethodType: TMVCHTTPMethodType;
@@ -118,18 +115,18 @@ uses
   System.TypInfo,
   System.NetEncoding, MVCFramework.Rtti.Utils, MVCFramework.Container;
 
+var
+  gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
+
 { TMVCRouter }
 
-constructor TMVCRouter.Create(const aConfig: TMVCConfig;
-  const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
+constructor TMVCRouter.Create;
 begin
   inherited Create;
   FRttiContext := TRttiContext.Create;
-  FConfig := aConfig;
   FMethodToCall := nil;
   FControllerClazz := nil;
   FControllerCreateAction := nil;
-  FActionParamsCache := aActionParamsCache;
 end;
 
 destructor TMVCRouter.Destroy;
@@ -379,12 +376,20 @@ begin
     Exit(True);
   end;
 
-  if not FActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
+  if not gMVCGlobalActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
   begin
     lNames := GetParametersNames(AMVCPath);
     lPattern := ToPattern(AMVCPath, lNames);
-    lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
-    FActionParamsCache.Add(AMVCPath, lCacheItem); {do not commit this!}
+    TMonitor.Enter(gMVCGlobalActionParamsCache);
+    try
+      if not gMVCGlobalActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
+      begin
+        lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
+        gMVCGlobalActionParamsCache.Add(AMVCPath, lCacheItem);
+      end;
+    finally
+      TMonitor.Exit(gMVCGlobalActionParamsCache);
+    end;
   end;
 
   lMatch := lCacheItem.Match(APath);
@@ -615,5 +620,14 @@ function TMVCActionParamCacheItem.Value: string;
 begin
   Result := FValue;
 end;
+
+
+initialization
+
+gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+
+finalization
+
+FreeAndNil(gMVCGlobalActionParamsCache);
 
 end.
