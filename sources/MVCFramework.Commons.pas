@@ -841,6 +841,7 @@ uses
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
+  System.SysConst,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Utils,
   System.RegularExpressions,
@@ -1645,25 +1646,28 @@ end;
 
 class function TMVCGuidHelper.StringToGUIDEx(const aGuidStr: string): TGUID;
 var
-  lGuidStr: string;
+  I: Integer;
+  LGuidStr: string;
 begin
-  case aGuidStr.Length of
-    32: { string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465 }
-      begin
-        lGuidStr := Format('{%s-%s-%s-%s-%s}', [aGuidStr.Substring(0, 8), aGuidStr.Substring(8, 4),
-          aGuidStr.Substring(12, 4), aGuidStr.Substring(16, 4), aGuidStr.Substring(20, 12)]);
-      end;
-    36: { string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465 }
-      begin
-        lGuidStr := Format('{%s}', [aGuidStr])
-      end
-  else
-    begin
-      lGuidStr := aGuidStr;
-    end;
+  LGuidStr := '';
+  for I := 0 to Pred(aGuidStr.Length) do
+  begin
+    if CharInSet(aGuidStr.Chars[I], ['0' .. '9', 'a' .. 'f', 'A' .. 'F']) then
+      LGuidStr := LGuidStr + aGuidStr.Chars[I];
   end;
+  if LGuidStr.Length <> 32 then
+    raise EConvertError.CreateResFmt(@SInvalidGUID, [LGuidStr]);
 
-  Result := StringToGUID(lGuidStr);
+  LGuidStr := Format('{%s-%s-%s-%s-%s}',
+    [
+     LGuidStr.Substring(0, 8),
+     LGuidStr.Substring(8, 4),
+     LGuidStr.Substring(12, 4),
+     LGuidStr.Substring(16, 4),
+     LGuidStr.Substring(20, 12)
+    ]);
+
+  Result := StringToGUID(LGuidStr);
 end;
 
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean): string;
