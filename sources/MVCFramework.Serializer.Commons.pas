@@ -68,10 +68,17 @@ type
 
   TMVCEnumSerializationType = (estEnumName, estEnumOrd, estEnumMappedValues);
 
+  /// <summary>
+  ///  Default: Braces
+  ///  Digits: 00000000000000000000000000000000
+  ///  Dashes: 00000000-0000-0000-0000-000000000000
+  ///  Braces: {00000000-0000-0000-0000-000000000000}
+  /// </summary>
+  TMVCGuidSerializationType = (gstUseDefault, gstDigits, gstDashes, gstBraces);
+
   TMVCIgnoredList = array of string;
 
-  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T;
-    const Links: IMVCLinks);
+  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
   TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
   TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset;
     const Links: IMVCLinks);
@@ -184,7 +191,6 @@ type
     property MappedValues: TList<string> read FMappedValues;
   end;
 
-
   MVCOwnedAttribute = class(TCustomAttribute)
   private
     fClassRef: TClass;
@@ -192,27 +198,48 @@ type
     constructor Create(const ClassRef: TClass = nil);
     property ClassRef: TClass read fClassRef;
   end;
-  
+
+  MVCGuidSerializationAttribute  = class(TCustomAttribute)
+  private
+    FGuidSerializationType: TMVCGuidSerializationType;
+  public
+    constructor Create(const AGuidSerializationType: TMVCGuidSerializationType);
+    property GuidSerializationType: TMVCGuidSerializationType read FGuidSerializationType;
+  end;
+
+  MVCGuidSerializationDigitsAttribute = class(MVCGuidSerializationAttribute)
+  public
+    constructor Create;
+  end;
+
+  MVCGuidSerializationDashesAttribute = class(MVCGuidSerializationAttribute)
+  public
+    constructor Create;
+  end;
+
+  MVCGuidSerializationBracesAttribute = class(MVCGuidSerializationAttribute)
+  public
+    constructor Create;
+  end;
+
   /// <summary>
   ///  Use this attribute in the model class to define a field of type TGuid if at the time of attribute serialization the value
   ///  of the guid field will be obtained without braces.
   ///  Sample: 61013848-8736-4d8b-ad25-91df4c255561
   /// </summary>
-  MVCSerializeGuidWithoutBracesAttribute = class(TCustomAttribute);
+  MVCSerializeGuidWithoutBracesAttribute = MVCGuidSerializationDashesAttribute  deprecated 'Use MVCGuidSerializationDashesAttribute';
 
   TMVCSerializerHelper = record
   private
     { private declarations }
   public
     class function ApplyNameCase(NameCase: TMVCNameCase; const Value: string): string; static; inline;
-    class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
-      overload; static;
-    class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
-      overload; static;
+    class function ApplyGuidSerialization(AGuidSerialization: TMVCGuidSerializationType; const AValue: TGuid): string; static; inline;
+    class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
+    class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
     class function GetPropertyKeyName(const APropertyName: String; const AClass: TClass): string; static;
     class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
-      overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean; overload; static;
     class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>;
       out AAttribute: T): Boolean; overload; static; inline;
     class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>)
@@ -422,6 +449,7 @@ var
 
 var
   MVCNameCaseDefault: TMVCNameCase = TMVCNameCase.ncLowerCase;
+  MVCGuidSerializationTypeDefault: TMVCGuidSerializationType = TMVCGuidSerializationType.gstBraces;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
@@ -672,6 +700,23 @@ begin
       Break;
     end;
   Result := (AAttribute <> nil);
+end;
+
+class function TMVCSerializerHelper.ApplyGuidSerialization(AGuidSerialization: TMVCGuidSerializationType; const AValue: TGuid): string;
+begin
+  if AGuidSerialization = TMVCGuidSerializationType.gstUseDefault then
+  begin
+    AGuidSerialization := MVCGuidSerializationTypeDefault;
+  end;
+
+  case AGuidSerialization of
+    gstDigits:
+      Result := TMVCGuidHelper.GUIDToStringEx(AValue).Replace('-', '');
+    gstDashes:
+      Result := TMVCGuidHelper.GUIDToStringEx(AValue);
+    gstBraces:
+      Result := AValue.ToString;
+  end;
 end;
 
 class function TMVCSerializerHelper.ApplyNameCase(NameCase: TMVCNameCase;
@@ -1947,7 +1992,34 @@ begin
 end;
 
 
+{ MVCGuidSerializationAttribute }
 
+constructor MVCGuidSerializationAttribute.Create(const AGuidSerializationType: TMVCGuidSerializationType);
+begin
+  inherited Create;
+  FGuidSerializationType := AGuidSerializationType;
+end;
+
+{ MVCGuidSerializationDigitsAttribute }
+
+constructor MVCGuidSerializationDigitsAttribute.Create;
+begin
+  inherited Create(gstDigits);
+end;
+
+{ MVCGuidSerializationDashesAttribute }
+
+constructor MVCGuidSerializationDashesAttribute.Create;
+begin
+  inherited Create(gstDashes);
+end;
+
+{ MVCGuidSerializationBracesAttribute }
+
+constructor MVCGuidSerializationBracesAttribute.Create;
+begin
+  inherited Create(gstBraces);
+end;
 
 initialization
 
