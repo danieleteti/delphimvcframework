@@ -233,6 +233,41 @@ type
     property NullableGuid2: NullableTGUID read FNullableGuid2 write FNullableGuid2;
   end;
 
+  TEntityCustomWithGuid2 = class(TEntityCustom)
+  private
+    FGuidValue: TGUID;
+    FGuidDefault: TGUID;
+    FGuidDigits: TGUID;
+    FGuidBraces: TGUID;
+    FGuidDashes: TGUID;
+    FNullableGuidDefault: NullableTGUID;
+    FNullableGuidDigits: NullableTGUID;
+    FNullableGuidBraces: NullableTGUID;
+    FNullableGuidDashes: NullableTGUID;
+    FNullableGuidValue: NullableTGUID;
+  public
+    property GuidValue: TGUID read FGuidValue write FGuidValue;
+    [MVCGuidSerialization(gstUseDefault)]
+    property GuidDefault: TGUID read FGuidDefault write FGuidDefault;
+    [MVCGuidSerialization(gstDigits)]
+    property GuidDigits: TGUID read FGuidDigits write FGuidDigits;
+    [MVCGuidSerialization(gstDashes)]
+    property GuidDashes: TGUID read FGuidDashes write FGuidDashes;
+    [MVCGuidSerialization(gstBraces)]
+    property GuidBraces: TGUID read FGuidBraces write FGuidBraces;
+
+    property NullableGuidValue: NullableTGUID read FNullableGuidValue write FNullableGuidValue;
+    [MVCGuidSerialization(gstUseDefault)]
+    property NullableGuidDefault: NullableTGUID read FNullableGuidDefault write FNullableGuidDefault;
+    [MVCGuidSerialization(gstDigits)]
+    property NullableGuidDigits: NullableTGUID read FNullableGuidDigits write FNullableGuidDigits;
+    [MVCGuidSerialization(gstDashes)]
+    property NullableGuidDashes: NullableTGUID read FNullableGuidDashes write FNullableGuidDashes;
+    [MVCGuidSerialization(gstBraces)]
+    property NullableGuidBraces: NullableTGUID read FNullableGuidBraces write FNullableGuidBraces;
+  end;
+
+
   TColorEnum = (RED, GREEN, BLUE);
   TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
   TMonths = set of TMonthEnum;
