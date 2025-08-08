@@ -86,7 +86,7 @@ type
 
   TProgressBarStyle = (pbsSimple, pbsBlocks, pbsArrows, pbsCircles);
 
-  TBoxStyle = (bsSingle, bsDouble, bsRounded, bsThick);
+  TBoxStyle = (bsSingle, bsDouble, bsRounded, bsThick, bsUseDefault);
 
   EMVCConsole = class(Exception)
   end;
@@ -145,7 +145,7 @@ type
 var
   //CONSOLE STYLE
   MVCConsoleStyle: TConsoleColorStyle = (
-    TextColor : TConsoleColor.Yellow;
+    TextColor : TConsoleColor.Cyan;
     BackgroundColor : TConsoleColor.Black;
     DrawColor : TConsoleColor.White;
     SymbolsColor : TConsoleColor.Gray;
@@ -191,8 +191,8 @@ procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor = UseDef
                           BackColor: TConsoleColor = UseDefault);
 procedure DrawBox(X, Y, Width, Height: Word; Style: TBoxStyle = bsRounded;
                  const Title: string = '');
-procedure DrawHorizontalLine(X, Y, Length: Word; Style: TBoxStyle = bsRounded);
-procedure DrawVerticalLine(X, Y, Length: Word; Style: TBoxStyle = bsRounded);
+procedure DrawHorizontalLine(X, Y, Length: Word; Style: TBoxStyle = bsUseDefault);
+procedure DrawVerticalLine(X, Y, Length: Word; Style: TBoxStyle = bsUseDefault);
 procedure ClearRegion(X, Y, Width, Height: Word);
 procedure SaveCursorPosition;
 procedure RestoreCursorPosition;
@@ -205,9 +205,9 @@ procedure Beep;
 procedure FlashScreen;
 
 // Enhanced library functions - ASCII-based for maximum compatibility
-procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix);
+procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix; const Style: TBoxStyle = bsUseDefault);
 procedure ShowSimpleProgressBar(const Title: string; Position, MaxValue: Integer; Width: Integer = 50);
-procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer = 80; TextColor: TConsoleColor = UseDefault; Style: TBoxStyle = bsRounded);
+procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer = 80; TextColor: TConsoleColor = UseDefault; Style: TBoxStyle = bsUseDefault);
 procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment = taCenter; TextColor: TConsoleColor = UseDefault);
 procedure ShowProgressAnimation(const Title: string; Steps: Integer = 20; DelayMs: Integer = 100);
 procedure WriteStatusLine(const Items: TStringArray; const Statuses: TStringArray;
@@ -242,10 +242,10 @@ procedure WriteColoredTable(const Headers: TStringArray;
                            HeaderColor: TConsoleColor = UseDefault;
                            DrawColor: TConsoleColor = UseDefault;
                            DataColor: TConsoleColor = UseDefault;
-                           BoxStyle: TBoxStyle = bsRounded);
+                           BoxStyle: TBoxStyle = bsUseDefault);
 
 // Quick utility functions
-procedure WriteHeader(const Text: string; HeaderColor: TConsoleColor = UseDefault; Width: Integer = 80);
+procedure WriteHeader(const Text: string; Width: Integer = 80; HeaderColor: TConsoleColor = UseDefault);
 procedure WriteSeparator(Width: Integer = 60; CharSymbol: Char = '-');
 procedure WriteSuccess(const Message: string);
 procedure WriteWarning(const Message: string);
@@ -330,9 +330,19 @@ const
 
 {$ENDIF}
 
+function GetBoxStyleOrDefault(BoxStyle: TBoxStyle): TBoxStyle;
+begin
+  Result := BoxStyle;
+  if Result = bsUseDefault then
+  begin
+    Result := MVCConsoleStyle.BoxStyle;
+  end;
+end;
+
 //On Windows Requires UTF8 Console and proper font
 function GetBoxChars(Style: TBoxStyle): TBoxChars;
 begin
+  Style := GetBoxStyleOrDefault(Style);
   case Style of
     bsSingle: begin
       Result.TopLeft := '┌';
@@ -423,6 +433,47 @@ begin
   else if Length(Result) > Len then
     Result := Copy(Result, 1, Len);
 end;
+
+procedure WriteTableBottomBorder(ColWidths: array of Integer; const Style: TBoxStyle);
+var
+  lBoxChars: TBoxChars;
+  Line: string;
+  I: Integer;
+begin
+  lBoxChars := GetBoxChars(Style);
+  WriteColoredText(lBoxChars.BottomLeft, MVCConsoleStyle.DrawColor);
+  Line := '';
+  for I := 0 to High(ColWidths) do
+  begin
+    Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
+    if I < High(ColWidths) then
+      Line := Line + lBoxChars.BottomJoin
+    else
+      Line := Line + lBoxChars.BottomRight
+  end;
+  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+end;
+
+procedure WriteTableTopBorder(ColWidths: array of Integer; const Style: TBoxStyle);
+var
+  lBoxChars: TBoxChars;
+  Line: string;
+  I: Integer;
+begin
+  lBoxChars := GetBoxChars(Style);
+  WriteColoredText(lBoxChars.TopLeft, MVCConsoleStyle.DrawColor);
+  Line := '';
+  for I := 0 to High(ColWidths) do
+  begin
+    Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
+    if I < High(ColWidths) then
+      Line := Line + lBoxChars.TopJoin
+    else
+      Line := Line + lBoxChars.TopRight
+  end;
+  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+end;
+
 
 // ============================================================================
 // Progress Bar Implementation
@@ -1145,7 +1196,6 @@ begin
   // Top border
   GotoXY(X, Y);
   Write(BoxChars.TopLeft);
-
   TitleStart := (Width - Length(Title)) div 2;
   J := 1;
   while J <= Width - 2 do
@@ -1277,13 +1327,16 @@ end;
 // ENHANCED LIBRARY FUNCTIONS - ASCII Based for Maximum Compatibility
 // ============================================================================
 
-procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix);
+procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix; const Style: TBoxStyle);
 var
   ColWidths: array of Integer;
   I, J: Integer;
   Line, Cell: string;
+  lBoxChars: TBoxChars;
 begin
   if Length(Headers) = 0 then Exit;
+
+  lBoxChars := GetBoxChars(Style);
 
   // Calculate column widths
   SetLength(ColWidths, Length(Headers));
@@ -1299,46 +1352,50 @@ begin
   end;
 
   // Top border
-  Line := '+';
-  for I := 0 to High(ColWidths) do
-    Line := Line + StringOfChar('-', ColWidths[I]) + '+';
-  WriteLineColored(Line, White);
+  WriteTableTopBorder(ColWidths, Style);
 
   // Headers
-  Line := '|';
+  WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+  Line := '';
   for I := 0 to High(Headers) do
   begin
     Cell := ' ' + PadRight(Headers[I], ColWidths[I] - 2) + ' ';
-    Line := Line + Cell + '|';
+    WriteColoredText(Cell, MVCConsoleStyle.TextHighlightColor);
+    if I < High(ColWidths) then
+      WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor)
   end;
-  WriteLineColored(Line, White);
+  WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
 
   // Header separator
-  Line := '+';
+  WriteColoredText(lBoxChars.LeftJoin, MVCConsoleStyle.DrawColor);
+  Line := '';
   for I := 0 to High(ColWidths) do
-    Line := Line + StringOfChar('-', ColWidths[I]) + '+';
-  WriteLineColored(Line, White);
+  begin
+    Line := StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
+    WriteColoredText(Line, MVCConsoleStyle.DrawColor);
+    if I < High(ColWidths) then
+      WriteColoredText(lBoxChars.Cross, MVCConsoleStyle.DrawColor)
+  end;
+  WriteLineColored(lBoxChars.RightJoin, MVCConsoleStyle.DrawColor);
 
   // Data rows
   for I := 0 to High(Data) do
   begin
-    Line := '|';
+    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    Line := '';
     for J := 0 to High(Headers) do
     begin
       if J < Length(Data[I]) then
         Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
       else
         Cell := StringOfChar(' ', ColWidths[J]);
-      Line := Line + Cell + '|';
+      Line := Line + Cell + lBoxChars.Vertical;
     end;
-    WriteLineColored(Line, White);
+    WriteLineColored(Line);
   end;
 
   // Bottom border
-  Line := '+';
-  for I := 0 to High(ColWidths) do
-    Line := Line + StringOfChar('-', ColWidths[I]) + '+';
-  WriteLineColored(Line, White);
+  WriteTableBottomBorder(ColWidths, Style);
 end;
 
 procedure ShowSimpleProgressBar(const Title: string; Position, MaxValue: Integer; Width: Integer);
@@ -1390,7 +1447,6 @@ begin
   lBoxChars := GetBoxChars(Style);
 
   // Top border
-  //Line := '+' + StringOfChar('-', Width - 2) + '+';
   Line := lBoxChars.TopLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.TopRight;
   WriteLineColored(Line, MVCConsoleStyle.DrawColor);
 
@@ -1854,7 +1910,7 @@ end;
 // QUICK UTILITY FUNCTIONS
 // ============================================================================
 
-procedure WriteHeader(const Text: string; HeaderColor: TConsoleColor; Width: Integer);
+procedure WriteHeader(const Text: string; Width: Integer; HeaderColor: TConsoleColor);
 var
   Line: string;
   PaddingSize: Integer;
@@ -2276,6 +2332,9 @@ initialization
   GLock := TObject.Create;
   GSavedCursorX := 0;
   GSavedCursorY := 0;
+
+  GForeGround := Ord(MVCConsoleStyle.TextColor);
+  GBackGround := Ord(MVCConsoleStyle.BackgroundColor);
 
 finalization
 {$IFDEF LINUX}

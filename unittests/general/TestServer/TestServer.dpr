@@ -40,20 +40,15 @@ const
   {$IF Defined(Linux64)} 'Linux64' {$ENDIF}
   ;
 procedure Logo;
-var
-  lPoint: TMVCConsolePoint;
 begin
-  TextColor(TConsoleColor.Green);
-  WriteHeader('DMVCFramework TEST SERVER', TConsoleColor.Red);
-  Writeln;
-  lPoint := GetCursorPosition;
-  WriteColoredTable(
-    ['FEATURE','VALUE'],
-    [
-      ['PLATFORM',gPLATFORM],
-      ['DMVCFRAMEWORK VERSION', DMVCFRAMEWORK_VERSION],
-      ['OS Version', TOSVersion.ToString]
-    ]);
+  ClrScr;
+  DrawSimpleBox('DMVCFramework TEST SERVER',
+  [
+      'PLATFORM'.PadRight(25) + gPLATFORM,
+      'DMVCFRAMEWORK VERSION'.PadRight(25) + DMVCFRAMEWORK_VERSION,
+      'OS Version'.PadRight(25) + TOSVersion.ToString
+  ], 100);
+
 end;
 
 procedure RunServer(APort: Integer);
@@ -64,19 +59,19 @@ begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication :=
-      TMVCParseAuthentication.OnParseAuthentication;
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
     TextColor(TConsoleColor.Gray);
     Writeln;
-    WriteLineColored('Press RETURN to stop the server', TConsoleColor.White, TConsoleColor.Blue);
+    WriteLineColored(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
+    HideCursor;
     while GetCh() <> Char(KEY_ENTER) do;
-    TextColor(TConsoleColor.Red);
-    Writeln('Server stopped');
+    WriteLineColored('Server stopped', TConsoleColor.Red);
     ResetConsole();
+    ShowCursor;
   finally
     LServer.Free;
   end;
