@@ -218,8 +218,9 @@ end;
 procedure TMVCBloomFilter.Add(const aValue: string);
 var
   lHashValue: UInt32;
+  lI: Integer;
 begin
-  for var lI := 0 to fHashFunctions - 1 do
+  for lI := 0 to fHashFunctions - 1 do
   begin
     lHashValue := ComputeHash(aValue, UInt32(lI));
     SetBit(lHashValue);
@@ -230,9 +231,10 @@ end;
 function TMVCBloomFilter.MightContain(const aValue: string): Boolean;
 var
   lHashValue: UInt32;
+  lI: Integer;
 begin
   Result := True;
-  for var lI := 0 to fHashFunctions - 1 do
+  for lI := 0 to fHashFunctions - 1 do
   begin
     lHashValue := ComputeHash(aValue, UInt32(lI));
     if not GetBit(lHashValue) then
@@ -244,8 +246,10 @@ begin
 end;
 
 procedure TMVCBloomFilter.Clear;
+var
+  lI: Integer;
 begin
-  for var lI := 0 to Length(fBitArray) - 1 do
+  for lI := 0 to Length(fBitArray) - 1 do
     fBitArray[lI] := 0;
   fInsertedCount := 0;
 end;
@@ -254,6 +258,8 @@ function TMVCBloomFilter.GetEstimatedFalsePositiveRate: Double;
 var
   lBitsSet: UInt32;
   lMask: UInt32;
+  lI: Integer;
+  lJ: Integer;
 begin
   if fInsertedCount = 0 then
   begin
@@ -263,11 +269,11 @@ begin
 
   // Count set bits in the filter
   lBitsSet := 0;
-  for var lI := 0 to Length(fBitArray) - 1 do
+  for lI := 0 to Length(fBitArray) - 1 do
   begin
     if fBitArray[lI] <> 0 then
     begin
-      for var lJ := 0 to 31 do
+      for lJ := 0 to 31 do
       begin
         lMask := 1 shl lJ;
         if (fBitArray[lI] and lMask) <> 0 then
