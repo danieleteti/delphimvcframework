@@ -124,6 +124,8 @@ type
     [Test]
     procedure TestSerializeDeserializeGuid;
     [Test]
+    procedure TestSerializeDeserializeGuidSerializtionType;
+    [Test]
     procedure TestSerializeDeserializeEntityWithInterface;
 
     [Test]
@@ -1843,6 +1845,8 @@ var
   LEntity: TEntityCustomWithGuid;
   LJson: string;
 begin
+  MVCNameCaseDefault := ncAsIs;
+
   LEntity := TEntityCustomWithGuid.Create;
   try
     LEntity.Id := 1;
@@ -1872,6 +1876,133 @@ begin
   finally
     LEntity.Free;
   end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuidSerializtionType;
+const
+  JSON =
+    '{' +
+    '"GuidValue":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"GuidDefault":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"GuidDigits":"d0e6449bae014e3d96b1d4a90f466a80",' +
+    '"GuidDashes":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"GuidBraces":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"NullableGuidValue":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"NullableGuidDefault":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"NullableGuidDigits":"d0e6449bae014e3d96b1d4a90f466a80",' +
+    '"NullableGuidDashes":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"NullableGuidBraces":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"Id":1,' + '"Code":2,' +
+    '"Name":"João Antônio"' + '}';
+
+const
+  JSON_CHANGED_GLOBAL_DEFAULT_TO_DASHES =
+    '{' +
+    '"GuidValue":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"GuidDefault":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"GuidDigits":"d0e6449bae014e3d96b1d4a90f466a80",' +
+    '"GuidDashes":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"GuidBraces":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"NullableGuidValue":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"NullableGuidDefault":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"NullableGuidDigits":"d0e6449bae014e3d96b1d4a90f466a80",' +
+    '"NullableGuidDashes":"d0e6449b-ae01-4e3d-96b1-d4a90f466a80",' +
+    '"NullableGuidBraces":"{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}",' +
+    '"Id":1,' + '"Code":2,' +
+    '"Name":"João Antônio"' + '}';
+
+var
+  LEntity: TEntityCustomWithGuid2;
+  LJson: string;
+begin
+  MVCNameCaseDefault := ncAsIs;
+
+  LEntity := TEntityCustomWithGuid2.Create;
+  try
+    LEntity.Id := 1;
+    LEntity.Code := 2;
+    LEntity.Name := 'João Antônio';
+    LEntity.GuidValue := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDefault := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDigits := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDashes := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidBraces := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidValue := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDefault := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDigits := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDashes := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidBraces := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+
+    LJson := fSerializer.SerializeObject(LEntity);
+    Assert.AreEqual(JSON, LJson);
+  finally
+    LEntity.Free;
+  end;
+
+  LEntity := TEntityCustomWithGuid2.Create;
+  try
+    fSerializer.DeserializeObject(LJson, LEntity);
+    Assert.AreEqual(int64(1), LEntity.Id);
+    Assert.AreEqual(Integer(2), LEntity.Code);
+    Assert.AreEqual('João Antônio', LEntity.Name);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidValue);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDefault);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDigits);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDashes);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidBraces);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidValue.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDefault.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDigits.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDashes.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidBraces.Value);
+  finally
+    LEntity.Free;
+  end;
+
+  MVCGuidSerializationTypeDefault := gstDashes;
+
+  LEntity := TEntityCustomWithGuid2.Create;
+  try
+    LEntity.Id := 1;
+    LEntity.Code := 2;
+    LEntity.Name := 'João Antônio';
+    LEntity.GuidValue := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDefault := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDigits := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidDashes := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.GuidBraces := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidValue := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDefault := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDigits := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidDashes := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+    LEntity.NullableGuidBraces := StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}');
+
+    LJson := fSerializer.SerializeObject(LEntity);
+    Assert.AreEqual(JSON_CHANGED_GLOBAL_DEFAULT_TO_DASHES, LJson);
+  finally
+    LEntity.Free;
+  end;
+
+  LEntity := TEntityCustomWithGuid2.Create;
+  try
+    fSerializer.DeserializeObject(LJson, LEntity);
+    Assert.AreEqual(int64(1), LEntity.Id);
+    Assert.AreEqual(Integer(2), LEntity.Code);
+    Assert.AreEqual('João Antônio', LEntity.Name);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidValue);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDefault);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDigits);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidDashes);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.GuidBraces);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidValue.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDefault.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDigits.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidDashes.Value);
+    Assert.AreEqual(StringToGUID('{D0E6449B-AE01-4E3D-96B1-D4A90F466A80}'), LEntity.NullableGuidBraces.Value);
+  finally
+    LEntity.Free;
+  end;
+  MVCGuidSerializationTypeDefault := gstBraces;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeMultipleGenericEntity;

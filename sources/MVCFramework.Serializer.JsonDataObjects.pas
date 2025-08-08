@@ -271,10 +271,12 @@ const
 implementation
 
 uses
+  System.SysConst,
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables, MVCFramework.JSONRPC;
+  MVCFramework.Nullables,
+  MVCFramework.JSONRPC;
 
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
@@ -842,7 +844,7 @@ begin
             AJsonArray.Add(ADataSet.Fields[lField.I].AsLargeInt);
 {$IFDEF TOKYOORBETTER}
           ftGuid:
-            AJsonArray.Add(GUIDToString(ADataSet.Fields[lField.I].AsGuid));
+            AJsonArray.Add(TMVCSerializerHelper.ApplyGuidSerialization(gstUseDefault, ADataSet.Fields[lField.I].AsGuid));
 {$ENDIF}
           ftSingle, ftFloat:
             AJsonArray.Add(ADataSet.Fields[lField.I].AsFloat);
@@ -1016,7 +1018,7 @@ begin
             AJSONObject.L[lFName] := ADataSet.Fields[lField.I].AsLargeInt;
 {$IFDEF TOKYOORBETTER}
           ftGuid:
-            AJSONObject.S[lFName] := GUIDToString(ADataSet.Fields[lField.I].AsGuid);
+            AJSONObject.S[lFName] := TMVCSerializerHelper.ApplyGuidSerialization(gstUseDefault, ADataSet.Fields[lField.I].AsGuid);
 {$ENDIF}
           ftSingle, ftFloat:
             AJSONObject.F[lFName] := ADataSet.Fields[lField.I].AsFloat;
@@ -2193,7 +2195,7 @@ begin
 
 {$IFDEF TOKYOORBETTER}
         TFieldType.ftGuid:
-          Field.AsGuid := StringToGUID(AJSONObject.S[lName]);
+          Field.AsGuid := TMVCGuidHelper.StringToGUIDEx(AJSONObject.S[lName]);
 {$ENDIF}
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin
@@ -2318,7 +2320,7 @@ begin
 
 {$IFDEF TOKYOORBETTER}
         TFieldType.ftGuid:
-          Field.AsGuid := StringToGUID(AJSONObject.S[lName]);
+          Field.AsGuid := TMVCGuidHelper.StringToGUIDEx(AJSONObject.S[lName]);
 {$ENDIF}
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin
@@ -3406,6 +3408,8 @@ function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue; c
   const AName: string; const ACustomAttributes: TArray<TCustomAttribute>): Boolean;
 var
   lFoundANullable: Boolean;
+  lGuidSerializationType: TMVCGuidSerializationType;
+  lGuidSerializationAttr: MVCGuidSerializationAttribute;
 begin
   Result := False;
   lFoundANullable := False;
@@ -3576,10 +3580,12 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableTGUID>().HasValue then
     begin
-      if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(ACustomAttributes) then
-        AJSONObject.S[AName] := TMVCGuidHelper.GUIDToStringEx(AValue.AsType<NullableTGUID>().Value)
-      else
-        AJSONObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
+      lGuidSerializationType := TMVCGuidSerializationType.gstUseDefault;
+      if TMVCSerializerHelper.AttributeExists<MVCGuidSerializationAttribute>(ACustomAttributes, lGuidSerializationAttr) then
+      begin
+        lGuidSerializationType := lGuidSerializationAttr.GuidSerializationType;
+      end;
+      AJSONObject.S[AName] := TMVCSerializerHelper.ApplyGuidSerialization(lGuidSerializationType, AValue.AsType<NullableTGUID>().Value);
       Result := True;
     end;
   end;
