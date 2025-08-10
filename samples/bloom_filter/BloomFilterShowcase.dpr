@@ -6,8 +6,6 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
-//
 // ***************************************************************************
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

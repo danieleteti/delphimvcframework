@@ -79,9 +79,9 @@ type
     procedure InternalApplyChanges; override;
     function GetExpirationTimeStamp: NullableTDateTime; override;
   public
-    constructor Create(const aOwnerFactory: TMVCWebSessionFactory); overload; override;
-    constructor Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64); reintroduce; overload;
-    constructor CreateFromSessionData(const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64); overload;
+    constructor Create(const aOwnerFactory: TMVCWebSessionFactory; const aHttpOnly: Boolean); overload; override;
+    constructor Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64; const aHttpOnly: Boolean); reintroduce; overload;
+    constructor CreateFromSessionData(const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64; const aHttpOnly: Boolean); overload;
     destructor Destroy; override;
     procedure MarkAsUsed; override;
     function Keys: TArray<String>; override;
@@ -98,7 +98,7 @@ type
     function CreateFromSessionID(const ASessionId: string): TMVCWebSession; override;
     function TryFindSessionID(const ASessionID: String): Boolean; override;
     procedure TryDeleteSessionID(const ASessionID: String); override;
-    constructor Create(aTimeoutInMinutes: Integer = 0; aFireDACConDefName: String = ''); reintroduce; virtual;
+    constructor Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer = 0; aFireDACConDefName: String = ''); reintroduce; virtual;
   end;
 
 implementation
@@ -120,7 +120,7 @@ uses
 const
   LOG_TAG = 'TMVCWebSessionDatabase';
 
-constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory);
+constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory; const aHttpOnly: Boolean);
 begin
   inherited;
   fSessionData := TMVCSessionActiveRecord.Create;
@@ -209,9 +209,9 @@ begin
   raise EMVCSession.Create('Clone not allowed in ' + ClassName);
 end;
 
-constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64);
+constructor TMVCWebSessionDatabase.Create(const aOwnerFactory: TMVCWebSessionFactory; const aSessionID: String; const aTimeout: UInt64; const aHttpOnly: Boolean);
 begin
-  Create(aOwnerFactory);
+  Create(aOwnerFactory, aHttpOnly);
   FSessionId := aSessionID;
   FTimeout := aTimeout;
   fSessionData.SessionID := aSessionID;
@@ -219,18 +219,18 @@ begin
 end;
 
 constructor TMVCWebSessionDatabase.CreateFromSessionData(
-  const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64);
+  const aOwnerFactory: TMVCWebSessionFactory; const aSessionData: TMVCSessionActiveRecord; const aTimeout: UInt64; const aHttpOnly: Boolean);
 begin
-  inherited Create(aOwnerFactory);
+  inherited Create(aOwnerFactory, aHttpOnly);
   fSessionData := aSessionData;
   fSessionId := fSessionData.SessionID;
   fSessionData.Timeout := aTimeout;
   SetTimeout(aTimeout);
 end;
 
-constructor TMVCWebSessionDatabaseFactory.Create(aTimeoutInMinutes: Integer; aFireDACConDefName: String);
+constructor TMVCWebSessionDatabaseFactory.Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer; aFireDACConDefName: String);
 begin
-  inherited Create(aTimeoutInMinutes);
+  inherited Create(aHttpOnly, aTimeoutInMinutes);
   fFireDACConDefName := aFireDACConDefName;
 end;
 
@@ -242,13 +242,13 @@ begin
   lSessDB := TMVCActiveRecord.GetByPK<TMVCSessionActiveRecord>(aSessionId, False);
   if lSessDB <> nil then
   begin
-    Result := TMVCWebSessionDatabase.CreateFromSessionData(Self, lSessDB, GetTimeout);
+    Result := TMVCWebSessionDatabase.CreateFromSessionData(Self, lSessDB, GetTimeout, Self.HttpOnly);
   end;
 end;
 
 function TMVCWebSessionDatabaseFactory.CreateNewSession(const aSessionId: string): TMVCWebSession;
 begin
-  Result := TMVCWebSessionDatabase.Create(Self, aSessionId, GetTimeout);
+  Result := TMVCWebSessionDatabase.Create(Self, aSessionId, GetTimeout, Self.HttpOnly);
   TMVCWebSessionDatabase(Result).InsertIntoDB;
 end;
 

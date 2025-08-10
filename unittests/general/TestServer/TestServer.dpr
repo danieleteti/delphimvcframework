@@ -34,28 +34,20 @@ uses
   MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
-
+const
+  gPLATFORM =  {$IF Defined(Win32)} 'WIN32' {$ENDIF}
+  {$IF Defined(Win64)} 'WIN64' {$ENDIF}
+  {$IF Defined(Linux64)} 'Linux64' {$ENDIF}
+  ;
 procedure Logo;
 begin
-  ResetConsole();
-  Writeln;
-  TextBackground(TConsoleColor.Black);
-  TextColor(TConsoleColor.Red);
-  Writeln(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
-  Writeln(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
-  Writeln(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
-  Writeln(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
-  Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
-  Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
-  Writeln(' ');
-  TextColor(TConsoleColor.White);
-  Write('PLATFORM: ');
-  {$IF Defined(Win32)} Writeln('WIN32'); {$ENDIF}
-  {$IF Defined(Win64)} Writeln('WIN64'); {$ENDIF}
-  {$IF Defined(Linux64)} Writeln('Linux64'); {$ENDIF}
-  TextColor(TConsoleColor.Yellow);
-  Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-  TextColor(TConsoleColor.White);
+  DrawSimpleBox('DMVCFramework TEST SERVER',
+  [
+      'PLATFORM'.PadRight(25) + gPLATFORM,
+      'DMVCFRAMEWORK VERSION'.PadRight(25) + DMVCFRAMEWORK_VERSION,
+      'OS Version'.PadRight(25) + TOSVersion.ToString
+  ], 100);
+
 end;
 
 procedure RunServer(APort: Integer);
@@ -66,17 +58,19 @@ begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication :=
-      TMVCParseAuthentication.OnParseAuthentication;
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
-    Writeln('Press RETURN to stop the server');
-    WaitForReturn;
-    TextColor(TConsoleColor.Red);
-    Writeln('Server stopped');
+    TextColor(TConsoleColor.Gray);
+    Writeln;
+    WriteLineColored(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
+    HideCursor;
+    while GetCh() <> Char(KEY_ENTER) do;
+    WriteLineColored('Server stopped', TConsoleColor.Red);
     ResetConsole();
+    ShowCursor;
   finally
     LServer.Free;
   end;
@@ -86,6 +80,7 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   gLocalTimeStampAsUTC := False;
   UseConsoleLogger := False;
+  EnableUTF8Console;
   TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', 'axDlw8dRnsPCrbZIAEMFG4TQ6gc3iWtOy9v5NBz0LfSmuKV71JHkUhYpej2Xqo');
   TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
   try
