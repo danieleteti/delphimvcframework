@@ -93,6 +93,7 @@ var
 begin
   LParser := TRQL2SQL.Create;
   try
+    Memo1.Clear;
     try
       LParser.Execute(EdtExpression.Text, LSQL, TRQLCompiler(RgBackend.Items.Objects[RgBackend.ItemIndex]));
       MmSQL.Lines.Text := LSQL;
