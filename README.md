@@ -1,4 +1,4 @@
-# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)  [![Ask DeepWiki][DeepWikiBadge]](https://deepwiki.com/danieleteti/delphimvcframework) <a href="https://trackgit.com"><img src="https://us-central1-trackgit-analytics.cloudfunctions.net/token/ping/mdrrzbv4o7men0jytgmd" alt="trackgit-views" /></a>
+# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)  [![Ask DeepWiki][DeepWikiBadge]](https://deepwiki.com/danieleteti/delphimvcframework)
 
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
 ![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)

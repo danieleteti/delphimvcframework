@@ -226,10 +226,10 @@ type
     FNullableGuid2: NullableTGUID;
   public
     property GuidValue: TGUID read FGuidValue write FGuidValue;
-    [MVCSerializeGuidWithoutBraces]
+    [MVCGuidSerializationDashes]
     property GuidValue2: TGUID read FGuidValue2 write FGuidValue2;
     property NullableGuid: NullableTGUID read FNullableGuid write FNullableGuid;
-    [MVCSerializeGuidWithoutBraces]
+    [MVCGuidSerializationDashes]
     property NullableGuid2: NullableTGUID read FNullableGuid2 write FNullableGuid2;
   end;
 

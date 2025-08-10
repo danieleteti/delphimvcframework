@@ -41,7 +41,6 @@ const
   ;
 procedure Logo;
 begin
-  ClrScr;
   DrawSimpleBox('DMVCFramework TEST SERVER',
   [
       'PLATFORM'.PadRight(25) + gPLATFORM,
