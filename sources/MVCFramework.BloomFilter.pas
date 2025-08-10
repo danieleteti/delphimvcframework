@@ -26,6 +26,8 @@
 
 unit MVCFramework.BloomFilter;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -131,6 +133,14 @@ type
   EMVCBloomFilterException = class(Exception)
   end;
 
+
+// hashing algorithm FNV-1a at 32 bit.
+
+function FNV1a_32(const aData: Pointer; aSize: Cardinal): Cardinal;
+// Helper version of FNV-1a at 32 bit for String
+function FNV1a_32_UnicodeString(const aString: String): Cardinal;
+
+
 implementation
 
 constructor TMVCBloomFilter.Create(aBitCount: UInt32; aHashFunctions: Integer);
@@ -199,6 +209,47 @@ begin
   Result := (fBitArray[lArrayIndex] and (1 shl lBitIndex)) <> 0;
 end;
 
+function FNV1a_32(const aData: Pointer; aSize: Cardinal): Cardinal;
+var
+  P: PByte;
+  I: Cardinal;
+begin
+  // Temporarily disable overflow checking
+  {$IFOPT Q+} {$DEFINE WAS_OVERFLOW_CHECKS_ON} {$ENDIF}
+  {$Q-}
+  // Initial value for FNV-1a 32-bit hash
+  Result := 2166136261; // 0x811C9DC5
+
+  // Pointer to the data bytes
+  P := PByte(aData);
+
+  // Loop through each byte
+  for I := 0 to aSize - 1 do
+  begin
+    // FNV-1a: hash = (hash XOR byte) * prime
+    Result := Result xor P^;
+    Result := Result * 16777619; // 0x01000193 - FNV_prime for 32-bit
+    Inc(P);
+  end;
+  // Restore the original overflow checking state
+  {$IFDEF WAS_OVERFLOW_CHECKS_ON}
+  {$Q+}
+  {$ENDIF}
+end;
+
+// Helper version for String
+function FNV1a_32_UnicodeString(const aString: String): Cardinal;
+var
+  LenBytes: Cardinal;
+begin
+  LenBytes := Length(aString) * SizeOf(Char); // Calcola la lunghezza in byte
+  if LenBytes > 0 then
+    Result := FNV1a_32(Pointer(aString), LenBytes)
+  else
+    // Hash di una stringa vuota
+    Result := 2166136261; // 0x811C9DC5
+end;
+
 function TMVCBloomFilter.ComputeHash(const aValue: string; aSeed: UInt32): UInt32;
 var
   lHash1Val, lHash2Val: Cardinal;
@@ -206,7 +257,11 @@ var
 begin
   // Use double hashing to simulate multiple independent hash functions
   lHash1Val := Cardinal(THashBobJenkins.GetHashValue(aValue));
+  {$IF Defined(SYDNEYORBETTER)}
   lHash2Val := Cardinal(THashFNV1a32.GetHashValue(aValue));
+  {$ELSE}
+  lHash2Val := FNV1a_32_UnicodeString(aValue);
+  {$ENDIF}
 
   // Combine with seed to create different hash functions
   lCombined := UInt64(lHash1Val) + UInt64(aSeed) * UInt64(lHash2Val);
