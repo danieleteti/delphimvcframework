@@ -357,12 +357,12 @@ begin
 
   if not gMVCGlobalActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
   begin
-    lNames := GetParametersNames(AMVCPath);
-    lPattern := ToPattern(AMVCPath, lNames);
     TMonitor.Enter(gMVCGlobalActionParamsCache);
     try
       if not gMVCGlobalActionParamsCache.TryGetValue(AMVCPath, lCacheItem) then
       begin
+        lNames := GetParametersNames(AMVCPath);
+        lPattern := ToPattern(AMVCPath, lNames);
         lCacheItem := TMVCActionParamCacheItem.Create('^' + lPattern + '$', lNames);
         gMVCGlobalActionParamsCache.Add(AMVCPath, lCacheItem);
       end;
