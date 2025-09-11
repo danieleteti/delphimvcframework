@@ -29,10 +29,9 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  MVCFramework.ActiveRecord,
+  MVCFramework.ActiveRecord.UniDAC,
   System.Generics.Collections,
   System.Classes,
-  FireDAC.Stan.Param,
   MVCFramework.Nullables;
 
 type

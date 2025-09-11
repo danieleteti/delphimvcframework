@@ -135,7 +135,7 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.UniDAC.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <BuildConfiguration Include="Base">

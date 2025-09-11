@@ -17,7 +17,7 @@ uses
   DBAccess,
   MemDS,
   MVCFramework.Nullables,
-  MVCFramework.ActiveRecord,
+  MVCFramework.ActiveRecord.UniDAC,
   MVCFramework.Logger,
   System.Generics.Collections,
   System.Diagnostics;
@@ -116,7 +116,7 @@ implementation
 uses
   EntitiesU,
   System.Threading,
-  MVCFramework.DataSet.Utils,
+  MVCFramework.UniDAC.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
   UniConnectionConfigU,
