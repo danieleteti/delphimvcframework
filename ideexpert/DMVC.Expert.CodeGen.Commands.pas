@@ -340,16 +340,63 @@ begin
       .AppendLine('  MVCFramework.View.Renderers.Mustache,')
       .AppendLine('  mormot.core.mustache,');
   end;
+
   if Model.B[TConfigKey.program_service_container_generate] then
   begin
     Section
       .AppendLine('  MVCFramework.Container,')
   end;
+
+  if Model.B[TConfigKey.program_ssl] then
+  begin
+    Section
+      .AppendLine('  TaurusTLS,')
+  end;
   Section
     .AppendLine('  MVCFramework.Signal;')
     .AppendLine()
     .AppendLine('{$R *.res}')
-    .AppendLine
+    .AppendLine;
+
+  if Model.B[TConfigKey.program_ssl] then
+  begin
+    Section
+      .AppendLine('type')
+      .AppendLine('  TSSLHandler = class')
+      .AppendLine('    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);')
+      .AppendLine('    procedure OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);')
+      .AppendLine('    procedure ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);')
+      .AppendLine('  end;')
+      .AppendLine
+      .AppendLine('{ TSSLHandler }')
+      .AppendLine
+      .AppendLine('procedure TSSLHandler.ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);')
+      .AppendLine('var')
+      .AppendLine('  lTaurusIOHandleSSL: TTaurusTLSServerIOHandler;')
+      .AppendLine('begin')
+      .AppendLine('  lTaurusIOHandleSSL := TTaurusTLSServerIOHandler.Create(aServer);')
+      .AppendLine('  lTaurusIOHandleSSL.SSLOptions.Mode := sslmServer;')
+	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.RootKey := dotEnv.Env(''https.cert.rootcert'', '''');')
+	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.PublicKey := dotEnv.Env(''https.cert.cacert'', ''certificates\localhost.crt'');')
+	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.PrivateKey := dotEnv.Env(''https.cert.privkey'', ''certificates\localhost.key'');')
+      .AppendLine('  lTaurusIOHandleSSL.OnGetPassword := OnGetSSLPassword;')
+      .AppendLine('  aServer.IOHandler := lTaurusIOHandleSSL;')
+      .AppendLine('  aServer.OnQuerySSLPort := OnQuerySSLPort;')
+      .AppendLine('end;')
+      .AppendLine('')
+      .AppendLine('procedure TSSLHandler.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);')
+      .AppendLine('begin')
+      .AppendLine('  aPassword := dotEnv.Env(''https.cert.password'', '''');')
+      .AppendLine('  aOk := True;')
+      .AppendLine('end;')
+      .AppendLine('')
+      .AppendLine('procedure TSSLHandler.OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);')
+      .AppendLine('begin')
+      .AppendLine('  vUseSSL := true;')
+      .AppendLine('end;')
+      .AppendLine;
+  end;
+
 end;
 
 { TUnitControllerCommand }
@@ -1238,26 +1285,67 @@ end;
 
 procedure TUnitRunServerProcBody.ExecuteImplementation(Section: TStringBuilder;
   Model: TJSONObject);
+var
+  LIndent: String;
 begin
   inherited;
   Section
     .AppendLine('procedure RunServer(APort: Integer);')
     .AppendLine('var')
-    .AppendLine('  LServer: TIdHTTPWebBrokerBridge;')
+    .AppendLine('  LServer: TIdHTTPWebBrokerBridge;');
+  if Model.B[TConfigKey.program_ssl] then
+  begin
+    Section
+      .AppendLine('  LSSLHandler: TSSLHandler;')
+  end;
+
+  Section
+    .AppendLine('  LProtocol: String;')
     .AppendLine('begin')
+    .AppendLine('  LProtocol := ''http'';')
     .AppendLine('  LServer := TIdHTTPWebBrokerBridge.Create(nil);')
     .AppendLine('  try')
     .AppendLine('    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;')
     .AppendLine('    LServer.DefaultPort := APort;')
     .AppendLine('    LServer.KeepAlive := dotEnv.Env(''dmvc.indy.keep_alive'', True);')
     .AppendLine('    LServer.MaxConnections := dotEnv.Env(''dmvc.webbroker.max_connections'', 0);')
-    .AppendLine('    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);')
-    .AppendLine('    LServer.Active := True;')
-    .AppendLine('    LogI(''Listening on http://localhost:'' + APort.ToString);')
+    .AppendLine('    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);');
+
+  LIndent := '    ';
+  if Model.B[TConfigKey.program_ssl] then
+  begin
+    Section
+      .AppendLine('    LSSLHandler := TSSLHandler.Create;')
+      .AppendLine('    try')
+      .AppendLine('      if dotEnv.Env(''https.enabled'', false) then //enable is you want HTTPS')
+      .AppendLine('      begin')
+	  .AppendLine('        LogI(''HTTPS is enabled'');')
+      .AppendLine('        LSSLHandler.ConfigureTLS(LServer);')
+      .AppendLine('        LProtocol := ''https'';')
+      .AppendLine('      end')
+	  .AppendLine('      else')
+	  .AppendLine('      begin')
+	  .AppendLine('        LogW(''HTTPS is available but CURRENTLY NOT ENABLED'');')
+	  .AppendLine('      end;')
+  end;
+
+  Section
+    .AppendLine( '    LServer.Active := True;')
+    .AppendLine('    LogI(''Listening on '' + LProtocol + ''://localhost:'' + APort.ToString);')
     .AppendLine('    LogI(''Application started. Press Ctrl+C to shut down.'');')
     .AppendLine('    WaitForTerminationSignal;')
     .AppendLine('    EnterInShutdownState;')
-    .AppendLine('    LServer.Active := False;')
+    .AppendLine('    LServer.Active := False;');
+
+  if Model.B[TConfigKey.program_ssl] then
+  begin
+    Section
+      .AppendLine('    finally')
+      .AppendLine('      LSSLHandler.Free;')
+      .AppendLine('    end;')
+  end;
+
+  Section
     .AppendLine('  finally')
     .AppendLine('    LServer.Free;')
     .AppendLine('  end;')

@@ -848,6 +848,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 13
     OnClick = rgSSVClick
   end
+  object chkSSL: TCheckBox
+    Left = 95
+    Top = 231
+    Width = 213
+    Height = 17
+    Caption = 'Support TLS/SSL (requires TaurusTLS)'
+    TabOrder = 14
+  end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
     Left = 264

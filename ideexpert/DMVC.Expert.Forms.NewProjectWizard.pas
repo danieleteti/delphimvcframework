@@ -105,6 +105,7 @@ type
     rgSSV: TRadioGroup;
     Image2: TImage;
     Shape2: TShape;
+    chkSSL: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -172,10 +173,21 @@ begin
 end;
 
 procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+var
+  lHints: TArray<String>;
 begin
+  lHints := [];
   if chkActiveRecord.Checked then
   begin
-    ShowMessage('Remember to include required FireDAC units in your project');
+    lHints := lHints + ['- Include required FireDAC units in your project'];
+  end;
+  if chkSSL.Checked then
+  begin
+    lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
+  end;
+  if Length(lHints) > 0 then
+  begin
+    ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
   end;
 end;
 
@@ -353,6 +365,7 @@ begin
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'templatepro');
   fModel.B[TConfigKey.program_ssv_webstencils] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils');
   fModel.B[TConfigKey.program_ssv_mustache] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'mustache');
+  fModel.B[TConfigKey.program_ssl] := chkSSL.Checked;
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
