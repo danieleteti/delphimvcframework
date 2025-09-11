@@ -31,10 +31,6 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.ActiveRecord,
-  FireDAC.Stan.Def,
-  FireDAC.Stan.Pool,
-  FireDAC.Stan.Async,
-  FireDAC.Comp.Client,
   MVCFramework.RQL.Parser,
   System.Generics.Collections,
   MVCFramework.Serializer.Commons, MVCFramework.Swagger.Commons;

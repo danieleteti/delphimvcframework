@@ -30,8 +30,8 @@ interface
 
 uses
   Uni,
+  DBAccess,
   MemDS,
-  VirtualTable,
   System.Rtti,
   JsonDataObjects,
   Data.DB;
@@ -48,15 +48,15 @@ type
     class function ExecuteQueryNoResult(AQuery: TUniQuery;
       AObject: TObject): Int64;
     class procedure ExecuteQuery(AQuery: TUniQuery; AObject: TObject);
-    class procedure ObjectToParameters(AParams: TParams; AObject: TObject; AParamPrefix: string = '';
+    class procedure ObjectToParameters(AUniParams: TUniParams; AObject: TObject; AParamPrefix: string = '';
       ASetParamTypes: boolean = True);
-    class procedure CreateDatasetFromMetadata(AMemTable: TCustomUniDataSet; AMeta: TJSONObject);
+    class procedure CreateDatasetFromMetadata(AUniMemTable: TCustomUniDataSet; AMeta: TJSONObject);
   end;
 
-  TCustomUniDataSetHelper = class helper for TCustomUniDataSet
+  TUniCustomDataSetHelper = class helper for TCustomUniDataSet
   public
     procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
-    class function CloneFrom(const ADataSet: TDataSet): TCustomUniDataSet; static;
+    class function CloneFrom(const ADataSet: TDataSet): TUniMemTable; static;
   end;
 
 implementation
@@ -75,7 +75,7 @@ begin
 end;
 
 class procedure TUniDACUtils.CreateDatasetFromMetadata(
-  AMemTable: TCustomUniDataSet; AMeta: TJSONObject);
+  AUniMemTable: TCustomUniDataSet; AMeta: TJSONObject);
 var
   lJArr: TJSONArray;
   I: Integer;
@@ -86,19 +86,19 @@ begin
     raise EMVCDeserializationException.Create('Invalid Metadata objects. Property [fielddefs] required.');
   end;
 
-  AMemTable.Active := False;
-  AMemTable.FieldDefs.Clear;
+  AUniMemTable.Active := False;;
+  AUniMemTable.FieldDefs.Clear;
   lJArr := AMeta.A['fielddefs'];
   for I := 0 to lJArr.Count - 1 do
   begin
     lJObj := lJArr.Items[I].ObjectValue;
-    AMemTable.FieldDefs.Add(
+    AUniMemTable.FieldDefs.Add(
       lJObj.S['fieldname'],
       TFieldType(lJObj.I['datatype']),
       lJObj.I['size']);
-    AMemTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
+    AUniMemTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
   end;
-  AMemTable.CreateDataSet;
+  AUniMemTable.CreateDataSet;
 end;
 
 class destructor TUniDACUtils.Destroy;
@@ -117,7 +117,7 @@ begin
   Result := InternalExecuteQuery(AQuery, AObject, False);
 end;
 
-class procedure TUniDACUtils.ObjectToParameters(AParams: TParams;
+class procedure TUniDACUtils.ObjectToParameters(AUniParams: TUniParams;
   AObject: TObject; AParamPrefix: string; ASetParamTypes: boolean);
 var
   I: Integer;
@@ -158,7 +158,7 @@ var
       tkInterface:
         Result := ftInterface;
       tkInt64:
-        Result := ftLongWord;
+        Result := ftLargeInt;
     else
       Result := ftUnknown;
     end;
@@ -185,9 +185,9 @@ begin
         end
       end;
     end;
-    for I := 0 to AParams.Count - 1 do
+    for I := 0 to AUniParams.Count - 1 do
     begin
-      pname := AParams[I].Name.ToLower;
+      pname := AUniParams[I].Name.ToLower;
       if pname.StartsWith(AParamPrefix, True) then
         Delete(pname, 1, PrefixLength);
       if Map.TryGetValue(pname, f) then
@@ -195,18 +195,18 @@ begin
         fv := f.GetValue(AObject);
         if ASetParamTypes then
         begin
-          AParams[I].DataType := KindToFieldType(fv.Kind, f);
+          AUniParams[I].DataType := KindToFieldType(fv.Kind, f);
         end;
-        AParams[I].Value := fv.AsVariant;
+        AUniParams[I].Value := fv.AsVariant;
       end
       else
       begin
-        AParams[I].Clear;
+        AUniParams[I].Clear;
       end;
     end;
   finally
     Map.Free;
-  end;
+  end
 end;
 
 class function TUniDACUtils.InternalExecuteQuery(AQuery: TUniQuery; AObject: TObject;
@@ -223,18 +223,13 @@ begin
   end;
 end;
 
-{ TCustomUniDataSetHelper }
-
-class function TCustomUniDataSetHelper.CloneFrom(const ADataSet: TDataSet): TCustomUniDataSet;
-var
-  LUniMemDataSet: TUniMemDataSet;
+class function TUniCustomDataSetHelper.CloneFrom(const ADataSet: TDataSet): TUniMemTable;
 begin
-  LUniMemDataSet := TUniMemDataSet.Create(nil);
-  LUniMemDataSet.CopyFrom(ADataSet);
-  Result := LUniMemDataSet;
+  Result := TUniMemTable.Create(nil);
+  Result.CopyFrom(ADataSet);
 end;
 
-procedure TCustomUniDataSetHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
+procedure TUniCustomDataSetHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
 begin
   TUniDACUtils.CreateDatasetFromMetadata(Self, AJSONMetadata);
 end;

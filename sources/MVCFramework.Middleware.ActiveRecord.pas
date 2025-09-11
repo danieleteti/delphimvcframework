@@ -75,12 +75,12 @@ type
       const DefaultConnectionDefName: string); overload; virtual;
     constructor Create(
       const DefaultConnectionDefName: string;
-      const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
+      const ConnectionDefFileName: string{ = 'ConnectionDefs.ini'}); overload; virtual;
     constructor Create(
       const DefaultConnectionDefName: string;
       const AdditionalARConnectionNames: TArray<String>;
       const AdditionalConnectionDefNames: TArray<String>;
-      const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
+      const ConnectionDefFileName: string{ = 'ConnectionDefs.ini'}); overload; virtual;
   end;
 
 implementation
@@ -88,7 +88,8 @@ implementation
 uses
   MVCFramework.ActiveRecord,
   System.SyncObjs,
-  FireDAC.Comp.Client;
+  UniProviders,
+  Uni;
 
 var
   gCONNECTION_DEF_FILE_LOADED: Integer = 0;
@@ -117,7 +118,7 @@ end;
 constructor TMVCActiveRecordMiddleware.Create(
   const DefaultConnectionDefName: string);
 begin
-  Create(DefaultConnectionDefName, 'FDConnectionDefs.ini');
+  Create(DefaultConnectionDefName, 'ConnectionDefs.ini');
 end;
 
 procedure TMVCActiveRecordMiddleware.EnsureConnection;
@@ -139,21 +140,20 @@ begin
     begin
       if not fConnectionDefFileName.IsEmpty then
       begin
-        FDManager.ConnectionDefFileAutoLoad := False;
-        FDManager.ConnectionDefFileName := fConnectionDefFileName;
-        if not FDManager.ConnectionDefFileLoaded then
+        UniProviderManager.ConnectionDefFileName := fConnectionDefFileName;
+        if not UniProviderManager.ConnectionDefFileLoaded then
         begin
-          FDManager.LoadConnectionDefFile;
+          UniProviderManager.LoadConnectionDefFile;
         end;
       end;
 
       //loading default connection
       if not fDefaultConnectionDefName.IsEmpty then
       begin
-        if not FDManager.IsConnectionDef(fDefaultConnectionDefName) then
+        if not UniProviderManager.IsConnectionDef(fDefaultConnectionDefName) then
         begin
           raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s" - or config file not present',
-            [fDefaultConnectionDefName, FDManager.ActualConnectionDefFileName]);
+            [fDefaultConnectionDefName, UniProviderManager.ConnectionDefFileName]);
         end;
       end;
 
@@ -168,10 +168,10 @@ begin
         end;
         for I := 0 to fAdditionalConnectionDefNamesCount - 1 do
         begin
-          if not FDManager.IsConnectionDef(fAdditionalConnectionDefNames[I]) then
+          if not UniProviderManager.IsConnectionDef(fAdditionalConnectionDefNames[I]) then
           begin
             raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
-              [fAdditionalConnectionDefNames[I], FDManager.ActualConnectionDefFileName]);
+              [fAdditionalConnectionDefNames[I], UniProviderManager.ConnectionDefFileName]);
           end;
         end;
       end;
