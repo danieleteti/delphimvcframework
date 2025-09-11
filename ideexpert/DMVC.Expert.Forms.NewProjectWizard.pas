@@ -103,6 +103,8 @@ type
     chkSqids: TCheckBox;
     rgNameCase: TRadioGroup;
     rgSSV: TRadioGroup;
+    Image2: TImage;
+    Shape2: TShape;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
