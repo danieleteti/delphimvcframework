@@ -31,7 +31,7 @@ interface
 uses
   Uni,
   DBAccess,
-  MemDS,
+  VirtualTable,
   System.Rtti,
   JsonDataObjects,
   Data.DB;
@@ -56,7 +56,7 @@ type
   TUniCustomDataSetHelper = class helper for TCustomUniDataSet
   public
     procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
-    class function CloneFrom(const ADataSet: TDataSet): TUniMemTable; static;
+    class function CloneFrom(const ADataSet: TDataSet): TVirtualTable; static;
   end;
 
 implementation
@@ -223,9 +223,9 @@ begin
   end;
 end;
 
-class function TUniCustomDataSetHelper.CloneFrom(const ADataSet: TDataSet): TUniMemTable;
+class function TUniCustomDataSetHelper.CloneFrom(const ADataSet: TDataSet): TVirtualTable;
 begin
-  Result := TUniMemTable.Create(nil);
+  Result := TVirtualTable.Create(nil);
   Result.CopyFrom(ADataSet);
 end;
 
