@@ -34,9 +34,9 @@ uses
   System.Generics.Defaults,
   System.Generics.Collections,
   System.RTTI,
+  Data.DB,
 {$IFDEF USE_FIREDAC}
   FireDAC.DApt,
-  Data.DB,
   FireDAC.Comp.Client,
   FireDAC.Stan.Def,
   FireDAC.Stan.Pool,
@@ -47,7 +47,6 @@ uses
   Uni,
   DBAccess,
   MemDS,
-  Data.DB,
 {$ENDIF}
   MVCFramework,
   MVCFramework.Commons,
@@ -1217,7 +1216,12 @@ begin
   if aConnection.Transaction = nil then
   begin
     { needed for Delphi 10.4 Sydney+ }
+    {$IFDEF USE_FIREDAC}
     aConnection.TxOptions.Isolation := TFDTxIsolation.xiReadCommitted;
+    {$ENDIF}
+    {$IFDEF USE_UNIDAC}
+    aConnection.TxOptions.Isolation := xilReadCommitted;
+    {$ENDIF}
   end;
 
   fMREW.BeginWrite;
@@ -1257,12 +1261,25 @@ end;
 procedure TMVCConnectionsRepository.AddConnection(const aName,
   aConnectionDefName: String);
 var
+  {$IFDEF USE_FIREDAC}
   lConn: TFDConnection;
+  {$ENDIF}
+  {$IFDEF USE_UNIDAC}
+  lConn: TUniConnection;
+  {$ENDIF}
 begin
+  {$IFDEF USE_FIREDAC}
   lConn := TFDConnection.Create(nil);
   try
     lConn.ConnectionDefName := aConnectionDefName;
     AddConnection(aName, lConn, True);
+  {$ENDIF}
+  {$IFDEF USE_UNIDAC}
+  lConn := TUniConnection.Create(nil);
+  try
+    lConn.ConnectionName := aConnectionDefName;
+    AddConnection(aName, lConn, True);
+  {$ENDIF}
   except
     on E: Exception do
     begin
@@ -4528,6 +4545,7 @@ class function TMVCActiveRecord.ExecQuery(
 var
   lQry: TUniQuery;
   lSQL: string;
+  I: Integer;
 begin
   lQry := CreateQuery(Unidirectional, DirectExecute);
   try
@@ -4543,9 +4561,13 @@ begin
       lQry.Connection := Connection;
     end;
     lQry.SQL.Text := lSQL;
-    for var i := 0 to High(Values) do
+    for I := 0 to High(Values) do
     begin
-      lQry.Params[i].Value := Values[i];
+      lQry.Params[I].Value := Values[I];
+      if I < Length(ValueTypes) then
+      begin
+        lQry.Params[I].DataType := ValueTypes[I];
+      end;
     end;
     lQry.Open;
     Result := lQry;
@@ -4559,7 +4581,12 @@ end;
 class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant;
   const ValueTypes: array of TFieldType; const Unidirectional: Boolean; const DirectExecute: Boolean): TDataSet;
 begin
+  {$IFDEF USE_FIREDAC}
   Result := ExecQuery(SQL, Values, ValueTypes, nil, Unidirectional, DirectExecute);
+  {$ENDIF}
+  {$IFDEF USE_UNIDAC}
+  Result := ExecQuery(SQL, Values, ValueTypes, nil, Unidirectional, DirectExecute);
+  {$ENDIF}
 end;
 
 { TFieldsMap }

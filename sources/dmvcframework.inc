@@ -90,7 +90,16 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$DEFINE WEBAPACHEHTTP}
 {$ENDIF}
 {$ENDIF}
-{$DEFINE USEFIREDAC}
+
+{$IFNDEF USE_UNIDAC}
+  {$DEFINE USE_FIREDAC}
+{$ENDIF}
+
+{$IFDEF USE_FIREDAC}
+  {$IFDEF USE_UNIDAC}
+    {$FATAL 'Cannot use both FireDAC and UniDAC at the same time'}
+  {$ENDIF}
+{$ENDIF}
 
 {$IF Defined(SYDNEYORBETTER)}
 {$DEFINE CUSTOM_MANAGED_RECORDS}
