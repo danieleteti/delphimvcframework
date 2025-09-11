@@ -133,6 +133,8 @@ def copy_sources():
     # copying tools
     print("Copying tools...")
     copytree("tools\\entitygenerator", g_output_folder + "\\tools\\entitygenerator")
+    copytree("tools\\certificatesgenerator", g_output_folder + "\\tools\\certificatesgenerator")
+    copytree("tools\\sample_env_file", g_output_folder + "\\tools\\sample_env_file")
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")

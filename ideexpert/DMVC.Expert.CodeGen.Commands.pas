@@ -362,35 +362,34 @@ begin
   begin
     Section
       .AppendLine('type')
-      .AppendLine('  TSSLHandler = class')
+      .AppendLine('  TTLSHandler = class')
       .AppendLine('    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);')
       .AppendLine('    procedure OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);')
       .AppendLine('    procedure ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);')
       .AppendLine('  end;')
       .AppendLine
-      .AppendLine('{ TSSLHandler }')
+      .AppendLine('{ TTLSHandler }')
       .AppendLine
-      .AppendLine('procedure TSSLHandler.ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);')
+      .AppendLine('procedure TTLSHandler.ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);')
       .AppendLine('var')
-      .AppendLine('  lTaurusIOHandleSSL: TTaurusTLSServerIOHandler;')
+      .AppendLine('  lTaurusTLSHandler: TTaurusTLSServerIOHandler;')
       .AppendLine('begin')
-      .AppendLine('  lTaurusIOHandleSSL := TTaurusTLSServerIOHandler.Create(aServer);')
-      .AppendLine('  lTaurusIOHandleSSL.SSLOptions.Mode := sslmServer;')
-	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.RootKey := dotEnv.Env(''https.cert.rootcert'', '''');')
-	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.PublicKey := dotEnv.Env(''https.cert.cacert'', ''certificates\localhost.crt'');')
-	  .AppendLine('  lTaurusIOHandleSSL.DefaultCert.PrivateKey := dotEnv.Env(''https.cert.privkey'', ''certificates\localhost.key'');')
-      .AppendLine('  lTaurusIOHandleSSL.OnGetPassword := OnGetSSLPassword;')
-      .AppendLine('  aServer.IOHandler := lTaurusIOHandleSSL;')
+      .AppendLine('  lTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(aServer);')
+      .AppendLine('  lTaurusTLSHandler.SSLOptions.Mode := sslmServer;')
+	  .AppendLine('  lTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env(''https.cert.cacert'', ''certificates\localhost.crt'');')
+	  .AppendLine('  lTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env(''https.cert.privkey'', ''certificates\localhost.key'');')
+      .AppendLine('  lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;')
+      .AppendLine('  aServer.IOHandler := lTaurusTLSHandler;')
       .AppendLine('  aServer.OnQuerySSLPort := OnQuerySSLPort;')
       .AppendLine('end;')
       .AppendLine('')
-      .AppendLine('procedure TSSLHandler.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);')
+      .AppendLine('procedure TTLSHandler.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);')
       .AppendLine('begin')
       .AppendLine('  aPassword := dotEnv.Env(''https.cert.password'', '''');')
       .AppendLine('  aOk := True;')
       .AppendLine('end;')
       .AppendLine('')
-      .AppendLine('procedure TSSLHandler.OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);')
+      .AppendLine('procedure TTLSHandler.OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);')
       .AppendLine('begin')
       .AppendLine('  vUseSSL := true;')
       .AppendLine('end;')
@@ -1296,7 +1295,7 @@ begin
   if Model.B[TConfigKey.program_ssl] then
   begin
     Section
-      .AppendLine('  LSSLHandler: TSSLHandler;')
+      .AppendLine('  LSSLHandler: TTLSHandler;')
   end;
 
   Section
@@ -1315,7 +1314,7 @@ begin
   if Model.B[TConfigKey.program_ssl] then
   begin
     Section
-      .AppendLine('    LSSLHandler := TSSLHandler.Create;')
+      .AppendLine('    LSSLHandler := TTLSHandler.Create;')
       .AppendLine('    try')
       .AppendLine('      if dotEnv.Env(''https.enabled'', false) then //enable is you want HTTPS')
       .AppendLine('      begin')
