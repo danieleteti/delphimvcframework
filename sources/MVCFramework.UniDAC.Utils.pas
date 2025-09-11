@@ -98,7 +98,7 @@ begin
       lJObj.I['size']);
     AUniMemTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
   end;
-  AUniMemTable.CreateDataSet;
+  AUniMemTable.Open;
 end;
 
 class destructor TUniDACUtils.Destroy;
@@ -226,7 +226,7 @@ end;
 class function TUniCustomDataSetHelper.CloneFrom(const ADataSet: TDataSet): TVirtualTable;
 begin
   Result := TVirtualTable.Create(nil);
-  Result.CopyFrom(ADataSet);
+  Result.Assign(ADataSet);
 end;
 
 procedure TUniCustomDataSetHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
