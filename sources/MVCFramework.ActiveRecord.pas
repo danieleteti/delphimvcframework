@@ -290,7 +290,7 @@ type
     function VersionValueAsInt64For(AR: TMVCActiveRecordBase): Int64; //inline;
   end;
 
-  TMVCActiveRecordBase = class abstract
+  TMVCActiveRecordBase = class(TObject)
   private
     fChildren: TObjectList<TObject>;
     fSQLGenerator: TMVCSQLGenerator;
@@ -855,6 +855,7 @@ type
     Other = 'other';
   end;
 
+// Corrected block
 {$IFDEF USE_FIREDAC}
   TMVCActiveRecordFireDAC = class(TMVCActiveRecordBase)
   private
@@ -895,10 +896,9 @@ type
     class function CurrentConnection: TFDConnection;
     class function GetConnectionByName(const ConnectionName: String): TFDConnection;
   end;
-
   TMVCActiveRecord = TMVCActiveRecordFireDAC;
 {$ELSE}
-  TMVCActiveRecord = TMVCActiveRecordBase;
+  TMVCActiveRecord = class(TMVCActiveRecordBase);
 {$ENDIF}
 
 {$IFDEF USE_FIREDAC}
