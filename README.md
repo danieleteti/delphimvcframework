@@ -233,11 +233,11 @@ DelphiMVCFramework is released under the Apache License 2.0. See [LICENSE](LICEN
 
 | Documentation | Community |
 |---|---|
-| [Quick Start](quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
+| [Quick Start](docs/quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
 | [Installation](INSTALLATION.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
-| [Samples](SAMPLES.md) | [Stack Overflow](https://stackoverflow.com/questions/tagged/delphimvcframework) |
-| [RQL Guide](RQL.md) | [X](https://x.com/danieleteti) |
-| [dotEnv](DOTENV.md) | [Blog](https://www.danieleteti.it) |
+| [Samples](SAMPLES.md) | [X](https://x.com/danieleteti) |
+| [RQL Guide](RQL.md) | [Blog](https://www.danieleteti.it) |
+| [dotEnv](DOTENV.md) |  |
 
 ---
 
