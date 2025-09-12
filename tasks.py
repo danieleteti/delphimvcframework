@@ -30,6 +30,7 @@ delphi_versions = [
     {"version": "11.2", "path": "22.0", "desc": "Delphi 11.2 Alexandria"},
     {"version": "11.3", "path": "22.0", "desc": "Delphi 11.3 Alexandria"},
     {"version": "12.0", "path": "23.0", "desc": "Delphi 12 Athens"},
+    {"version": "13.0", "path": "37.0", "desc": "Delphi 13 Florence"},    
 ]
 
 
@@ -51,7 +52,7 @@ def get_delphi_projects_to_build(which=""):
     return sorted(projects)
 
 
-def get_best_delphi_version_available() -> (dict, str):
+def get_best_delphi_version_available() -> tuple[dict, str]:
     global delphi_version
     found = False
     rsvars_path = None

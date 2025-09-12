@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
 ![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
 
-## 📍 [Help DMVCFramework and your business! Click Here to access premium contents!](https://www.patreon.com/bePatron?u=72182967) 
+## 📍 [Be Faster! Access premium Articles, Videos and Sample Code becoming a PATREON supporter!](https://www.patreon.com/bePatron?u=72182967) 
 
 ## 💻 Code Contributors
 

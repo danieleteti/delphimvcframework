@@ -241,10 +241,11 @@ end;
 procedure TMVCWebStencilsViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
 var
   lViewFileName: string;
+  lActualCalculatedFileName: string;
   lWebStencilsProcessor: TWebStencilsProcessor;
   lPair: TPair<String, TValue>;
 begin
-  lViewFileName := GetRealFileName(ViewName);
+  lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
   if lViewFileName.IsEmpty then
     raise EMVCSSVException.CreateFmt('View [%s] not found', [ViewName]);
 
