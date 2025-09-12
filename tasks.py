@@ -18,7 +18,6 @@ g_output_folder = ""  # defined at runtime
 g_version = "DEV"
 
 
-
 delphi_versions = [
     {"version": "10.0", "path": "17.0", "desc": "Delphi 10 Seattle"},
     {"version": "10.1", "path": "18.0", "desc": "Delphi 10.1 Berlin"},
@@ -30,7 +29,7 @@ delphi_versions = [
     {"version": "11.2", "path": "22.0", "desc": "Delphi 11.2 Alexandria"},
     {"version": "11.3", "path": "22.0", "desc": "Delphi 11.3 Alexandria"},
     {"version": "12.0", "path": "23.0", "desc": "Delphi 12 Athens"},
-    {"version": "13.0", "path": "37.0", "desc": "Delphi 13 Florence"},    
+    {"version": "13.0", "path": "37.0", "desc": "Delphi 13 Florence"},
 ]
 
 
@@ -58,7 +57,7 @@ def get_best_delphi_version_available() -> tuple[dict, str]:
     rsvars_path = None
     i = len(delphi_versions)
     while (not found) and (i >= 0):
-        i-=1
+        i -= 1
         delphi_version = delphi_versions[i]
         version_path = delphi_version["path"]
         rsvars_path = f"C:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat"
@@ -78,7 +77,7 @@ def build_delphi_project(
     ctx: context.Context, project_filename, config="DEBUG", platform="Win32"
 ):
     delphi_version, rsvars_path = get_best_delphi_version_available()
-    print('\nBUILD WITH: ' + delphi_version["desc"])
+    print("\nBUILD WITH: " + delphi_version["desc"])
     cmdline = (
         '"'
         + rsvars_path
@@ -134,7 +133,10 @@ def copy_sources():
     # copying tools
     print("Copying tools...")
     copytree("tools\\entitygenerator", g_output_folder + "\\tools\\entitygenerator")
-    copytree("tools\\certificatesgenerator", g_output_folder + "\\tools\\certificatesgenerator")
+    copytree(
+        "tools\\certificatesgenerator",
+        g_output_folder + "\\tools\\certificatesgenerator",
+    )
     copytree("tools\\sample_env_file", g_output_folder + "\\tools\\sample_env_file")
 
     # copying ideexperts
@@ -159,7 +161,18 @@ def copy_sources():
         "dmvcframeworkDT.dpk",
     ]
 
-    folders = ["d100", "d101", "d102", "d103", "d104", "d110", "d113", "d120"]
+    folders = [
+        "d100",
+        "d101",
+        "d102",
+        "d103",
+        "d104",
+        "d110",
+        "d113",
+        "d120",
+        "d130",
+        "d130_64bit",
+    ]
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")
@@ -231,9 +244,7 @@ def init_build(version):
     copy2("License.txt", g_output_folder)
 
 
-def build_delphi_project_list(
-    ctx, projects, config="DEBUG", filter=""
-):
+def build_delphi_project_list(ctx, projects, config="DEBUG", filter=""):
     ret = True
     for delphi_project in projects:
         if filter and (not filter in delphi_project):
@@ -322,13 +333,9 @@ def tests32(ctx):
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
-    build_delphi_project(
-        ctx, testclient, config="CI", platform="Win32"
-    )
+    build_delphi_project(ctx, testclient, config="CI", platform="Win32")
     print("\nBuilding Test Server")
-    build_delphi_project(
-        ctx, testserver, config="CI", platform="Win32"
-    )
+    build_delphi_project(ctx, testserver, config="CI", platform="Win32")
 
     # import subprocess
     # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
@@ -339,7 +346,9 @@ def tests32(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\TestClient\bin32\DMVCFrameworkTests.exe"])
+        r = subprocess.run(
+            [r"unittests\general\TestClient\bin32\DMVCFrameworkTests.exe"]
+        )
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
@@ -361,13 +370,9 @@ def tests64(ctx):
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
     print("\nBuilding Unit Test client")
-    build_delphi_project(
-        ctx, testclient, config="CI", platform="Win64"
-    )
+    build_delphi_project(ctx, testclient, config="CI", platform="Win64")
     print("\nBuilding Test Server")
-    build_delphi_project(
-        ctx, testserver, config="CI", platform="Win64"
-    )
+    build_delphi_project(ctx, testserver, config="CI", platform="Win64")
 
     # import subprocess
     # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
@@ -378,7 +383,9 @@ def tests64(ctx):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = None
     try:
-        r = subprocess.run([r"unittests\general\TestClient\bin64\DMVCFrameworkTests.exe"])
+        r = subprocess.run(
+            [r"unittests\general\TestClient\bin64\DMVCFrameworkTests.exe"]
+        )
         if r.returncode != 0:
             return Exit("Cannot run unit test client: \n" + str(r.stdout))
     finally:
@@ -393,25 +400,32 @@ def tests64(ctx):
 def tests(ctx):
     pass
 
+
 def get_version_from_file():
     with open(r".\sources\dmvcframeworkbuildconsts.inc") as f:
-        lines = f.readlines()   
+        lines = f.readlines()
     res = [x for x in lines if "DMVCFRAMEWORK_VERSION" in x]
     if len(res) != 1:
-        raise Exception("Cannot find DMVCFRAMEWORK_VERSION in dmvcframeworkbuildconsts.inc file")
+        raise Exception(
+            "Cannot find DMVCFRAMEWORK_VERSION in dmvcframeworkbuildconsts.inc file"
+        )
     version_line: str = res[0]
     version_line = version_line.strip(" ;\t")
     pieces = version_line.split("=")
     if len(pieces) != 2:
-        raise Exception("Version line in wrong format in dmvcframeworkbuildconsts.inc file: " + version_line)
+        raise Exception(
+            "Version line in wrong format in dmvcframeworkbuildconsts.inc file: "
+            + version_line
+        )
     version = pieces[1].strip("' ")
-    if not 'framework' in version:
+    if not "framework" in version:
         version = "dmvcframework-" + version
     if "beta" in version.lower():
         print(Fore.RESET + Fore.RED + "WARNING - BETA VERSION: " + version + Fore.RESET)
     else:
         print(Fore.RESET + Fore.GREEN + "BUILDING VERSION: " + version + Fore.RESET)
     return version
+
 
 @task()
 def release(
@@ -429,28 +443,27 @@ def release(
         tests(ctx)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build("")
-        if not build_delphi_project_list(
-            ctx, delphi_projects, version, ""
-        ):
-            return False  # fails build
+        if not _build_projects(ctx, delphi_projects, version, ""):
+            return False
     print(Fore.RESET)
     copy_sources()
     copy_libs(ctx)
     clean(ctx)
     zip_samples(version)
     create_zip(ctx, version)
+    return True
+
+
+def _build_projects(ctx, delphi_projects, version, filter):
+    return build_delphi_project_list(ctx, delphi_projects, version, filter)
 
 
 @task
-def build_samples(
-    ctx, version="DEBUG", filter=""
-):
+def build_samples(ctx, version="DEBUG", filter=""):
     """Builds samples"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build("samples")
-    return build_delphi_project_list(
-        ctx, delphi_projects, version, filter
-    )
+    return _build_projects(ctx, delphi_projects, version, filter)
 
 
 @task(post=[])
@@ -458,8 +471,7 @@ def build_core(ctx, version="DEBUG"):
     """Builds core packages extensions"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build("core")
-    ret = build_delphi_project_list(ctx, delphi_projects, version, "")
-    if not ret:
+    if not _build_projects(ctx, delphi_projects, version, ""):
         raise Exit("Build failed")
 
 
@@ -544,11 +556,11 @@ def generate_nullables(ctx):
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))",
         ],
         [
-            "Float32", #like Single
+            "Float32",  # like Single
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000001))",
         ],
         [
-            "Float64", #like Double
+            "Float64",  # like Double
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and \n\t SameValue(LeftValue.Value, RightValue.Value, 0.000000001))",
         ],
         [
@@ -564,9 +576,9 @@ def generate_nullables(ctx):
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
         ],
         [
-            "Byte", #like UInt8
+            "Byte",  # like UInt8
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
-        ],        
+        ],
         [
             "Int16",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
@@ -580,7 +592,7 @@ def generate_nullables(ctx):
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
         ],
         [
-            "Integer", #like Int32
+            "Integer",  # like Int32
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
         ],
         [
@@ -606,7 +618,7 @@ def generate_nullables(ctx):
         [
             "NativeUInt",
             "(LeftValue.IsNull and RightValue.IsNull) or ((LeftValue.HasValue and RightValue.HasValue) and (LeftValue.Value = RightValue.Value))",
-        ]        
+        ],
     ]
 
     str_main_tmpl = "".join(main_tmpl)
