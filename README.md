@@ -1,3 +1,36 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [DelphiMVCFramework](#delphimvcframework)
+  - [🚀 Quick Links](#-quick-links)
+  - [🎯 Key Features](#-key-features)
+    - [🏗️ **Architecture & Framework**](#-architecture--framework)
+    - [🔐 **Security & Authentication**](#-security--authentication)
+    - [💾 **Data Access & ORM**](#-data-access--orm)
+    - [🌐 **Web & API Features**](#-web--api-features)
+    - [📊 **Data Serialization**](#-data-serialization)
+    - [🛠️ **Development & Deployment**](#-development--deployment)
+  - [🖥️ **Platform Support**](#-platform-support)
+    - [Delphi Versions](#delphi-versions)
+    - [Operating Systems](#operating-systems)
+    - [Deployment Targets](#deployment-targets)
+  - [🔒 **Security & TLS 1.3 Support**](#-security--tls-13-support)
+  - [🏁 **Quick Start**](#-quick-start)
+  - [📚 **Learning Resources**](#-learning-resources)
+    - [📖 **Official Guide**](#-official-guide)
+    - [🎓 **Training & Support**](#-training--support)
+  - [🤝 **Community & Support**](#-community--support)
+    - [💬 **Get Help**](#-get-help)
+    - [🎯 **Support the Project**](#-support-the-project)
+    - [👥 **Contributors**](#-contributors)
+  - [🏆 **Success Stories**](#-success-stories)
+  - [🏢 **Sponsors**](#-sponsors)
+  - [📄 **License**](#-license)
+  - [🔗 **Quick Navigation**](#-quick-navigation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # DelphiMVCFramework
 [![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)](https://github.com/danieleteti/delphimvcframework/releases)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danieleteti/delphimvcframework)
