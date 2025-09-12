@@ -48,12 +48,12 @@ type
     class function ExecuteQueryNoResult(AQuery: TUniQuery;
       AObject: TObject): Int64;
     class procedure ExecuteQuery(AQuery: TUniQuery; AObject: TObject);
-    class procedure ObjectToParameters(AUniParams: TUniParams; AObject: TObject; AParamPrefix: string = '';
+    class procedure ObjectToParameters(AParams: TParams; AObject: TObject; AParamPrefix: string = '';
       ASetParamTypes: boolean = True);
-    class procedure CreateDatasetFromMetadata(AUniMemTable: TCustomUniDataSet; AMeta: TJSONObject);
+    class procedure CreateDatasetFromMetadata(AVirtualTable: TVirtualTable; AMeta: TJSONObject);
   end;
 
-  TUniCustomDataSetHelper = class helper for TCustomUniDataSet
+  TVirtualTableHelper = class helper for TVirtualTable
   public
     procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
     class function CloneFrom(const ADataSet: TDataSet): TVirtualTable; static;
@@ -75,7 +75,7 @@ begin
 end;
 
 class procedure TUniDACUtils.CreateDatasetFromMetadata(
-  AUniMemTable: TCustomUniDataSet; AMeta: TJSONObject);
+  AVirtualTable: TVirtualTable; AMeta: TJSONObject);
 var
   lJArr: TJSONArray;
   I: Integer;
@@ -86,19 +86,19 @@ begin
     raise EMVCDeserializationException.Create('Invalid Metadata objects. Property [fielddefs] required.');
   end;
 
-  AUniMemTable.Active := False;;
-  AUniMemTable.FieldDefs.Clear;
+  AVirtualTable.Active := False;
+  AVirtualTable.FieldDefs.Clear;
   lJArr := AMeta.A['fielddefs'];
   for I := 0 to lJArr.Count - 1 do
   begin
     lJObj := lJArr.Items[I].ObjectValue;
-    AUniMemTable.FieldDefs.Add(
+    AVirtualTable.FieldDefs.Add(
       lJObj.S['fieldname'],
       TFieldType(lJObj.I['datatype']),
       lJObj.I['size']);
-    AUniMemTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
+    AVirtualTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
   end;
-  AUniMemTable.Open;
+  AVirtualTable.CreateDataSet;
 end;
 
 class destructor TUniDACUtils.Destroy;
@@ -117,7 +117,7 @@ begin
   Result := InternalExecuteQuery(AQuery, AObject, False);
 end;
 
-class procedure TUniDACUtils.ObjectToParameters(AUniParams: TUniParams;
+class procedure TUniDACUtils.ObjectToParameters(AParams: TParams;
   AObject: TObject; AParamPrefix: string; ASetParamTypes: boolean);
 var
   I: Integer;
@@ -185,9 +185,9 @@ begin
         end
       end;
     end;
-    for I := 0 to AUniParams.Count - 1 do
+    for I := 0 to AParams.Count - 1 do
     begin
-      pname := AUniParams[I].Name.ToLower;
+      pname := AParams[I].Name.ToLower;
       if pname.StartsWith(AParamPrefix, True) then
         Delete(pname, 1, PrefixLength);
       if Map.TryGetValue(pname, f) then
@@ -195,13 +195,13 @@ begin
         fv := f.GetValue(AObject);
         if ASetParamTypes then
         begin
-          AUniParams[I].DataType := KindToFieldType(fv.Kind, f);
+          AParams[I].DataType := KindToFieldType(fv.Kind, f);
         end;
-        AUniParams[I].Value := fv.AsVariant;
+        AParams[I].Value := fv.AsVariant;
       end
       else
       begin
-        AUniParams[I].Clear;
+        AParams[I].Clear;
       end;
     end;
   finally
@@ -223,13 +223,13 @@ begin
   end;
 end;
 
-class function TUniCustomDataSetHelper.CloneFrom(const ADataSet: TDataSet): TVirtualTable;
+class function TVirtualTableHelper.CloneFrom(const ADataSet: TDataSet): TVirtualTable;
 begin
   Result := TVirtualTable.Create(nil);
   Result.Assign(ADataSet);
 end;
 
-procedure TUniCustomDataSetHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
+procedure TVirtualTableHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
 begin
   TUniDACUtils.CreateDatasetFromMetadata(Self, AJSONMetadata);
 end;

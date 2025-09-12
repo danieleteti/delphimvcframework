@@ -88,7 +88,7 @@ implementation
 uses
   MVCFramework.ActiveRecord,
   System.SyncObjs,
-  UniProviders,
+  UniProvider,
   Uni;
 
 var
