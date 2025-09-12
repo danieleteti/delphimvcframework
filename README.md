@@ -13,11 +13,10 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 ## 🚀 Quick Links
 
 - **[📖 Official Guide](http://www.danieleteti.it/books/)** - Comprehensive documentation and tutorials
-- **[⚡ Quick Start Guide](QUICKSTART.md)** - Get up and running in 5 minutes
-- **[📦 Installation](INSTALLATION.md)** - Step-by-step installation instructions
-- **[🎯 Samples](SAMPLES.md)** - 40+ examples covering all features
-- **[📝 Changelog](CHANGELOG.md)** - Version history and release notes
-- **[❓ FAQ](FAQ.md)** - Frequently asked questions
+- **[⚡ Quick Start Guide](docs/quickstart_guide.md)** - Get up and running in 5 minutes
+- **[📦 Installation](docs/installation_guide.md)** - Step-by-step installation instructions
+- **[🎯 Samples](docs/samples_guide.md)** - 40+ examples covering all features
+- **[📝 Changelog](docs/changelog.md)** - Version history and release notes
 
 ## 🎯 Key Features
 
@@ -135,7 +134,7 @@ FMVC := TMVCEngine.Create(Self);
 FMVC.AddController(TMyController);
 ```
 
-**[👉 See full Quick Start Guide](QUICKSTART.md)**
+**[👉 See full Quick Start Guide](docs/quickstart_guide.md)**
 
 ## 📚 **Learning Resources**
 
@@ -161,7 +160,7 @@ The comprehensive **"DelphiMVCFramework - The Official Guide"** is available in 
 - ⭐ **Star this repository** - Help others discover DMVCFramework
 - 🐛 **Report bugs** - Help improve the framework
 - 📝 **Contribute documentation** - Share your knowledge
-- 💰 **[Become a Patron](https://www.patreon.com/bePatron?u=72182967)** - Support continued development
+- 💰 **[Become a Patron](https://www.patreon.com/delphimvcframework)** - Access to premium contents, videos, article etc. reserved to supporters
 
 ### 👥 **Contributors**
 <a href="https://github.com/danieleteti/delphimvcframework/graphs/contributors">
@@ -176,7 +175,6 @@ The comprehensive **"DelphiMVCFramework - The Official Guide"** is available in 
 
 > *"We started the process of migrating our systems to micro services and are loving the DMVCFramework."* - E. Costa
 
-**[See more testimonials](TESTIMONIALS.md)**
 
 ## 🏢 **Sponsors**
 
@@ -200,13 +198,13 @@ DelphiMVCFramework is released under the Apache License 2.0. See [LICENSE](LICEN
 
 ## 🔗 **Quick Navigation**
 
-| Documentation | Development | Community |
-|---|---|---|
-| [Quick Start](QUICKSTART.md) | [Contributing](CONTRIBUTING.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
-| [Installation](INSTALLATION.md) | [Roadmap](ROADMAP.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
-| [Samples](SAMPLES.md) | [Changelog](CHANGELOG.md) | [Stack Overflow](https://stackoverflow.com/questions/tagged/delphimvcframework) |
-| [RQL Guide](RQL.md) | [Testing](TESTING.md) | [Twitter](https://twitter.com/danieleteti) |
-| [dotEnv](DOTENV.md) | [API Reference](API.md) | [Blog](https://www.danieleteti.it) |
+| Documentation | Community |
+|---|---|
+| [Quick Start](quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
+| [Installation](INSTALLATION.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
+| [Samples](SAMPLES.md) | [Stack Overflow](https://stackoverflow.com/questions/tagged/delphimvcframework) |
+| [RQL Guide](RQL.md) | [X](https://x.com/danieleteti) |
+| [dotEnv](DOTENV.md) | [Blog](https://www.danieleteti.it) |
 
 ---
 
