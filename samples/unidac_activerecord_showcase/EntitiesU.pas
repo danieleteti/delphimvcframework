@@ -32,7 +32,7 @@ uses
   MVCFramework.ActiveRecord,
   System.Generics.Collections,
   System.Classes,
-  FireDAC.Stan.Param,
+  Data.DB,
   MVCFramework.Nullables;
 
 type
