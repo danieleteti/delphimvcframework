@@ -638,10 +638,20 @@ begin
           if lRttiProp.PropertyType.Handle = TypeInfo(boolean) then
           begin
             case LField.DataType of
-              ftInteger, ftSmallint, ftLargeint:
+              ftInteger, ftSmallint:
                 begin
                   Value := (LField.AsInteger = 1);
                 end;
+              ftLargeint:
+                begin
+                  Value := (LField.AsLargeInt = 1);
+                end;
+{$IF Defined(FLORENCEORBETTER)}
+              ftLargeUint:
+                begin
+                  Value := (LField.AsLargeUInt = 1);
+                end;
+{$ENDIF}
               ftBoolean:
                 begin
                   Value := LField.AsBoolean;
@@ -967,7 +977,8 @@ begin
         Result := EscapeCSVValue(Result);
       end;
 
-    ftInteger, ftLargeint, ftAutoInc, ftSmallint, ftWord, ftLongWord:
+    ftInteger, ftLargeint, ftAutoInc, ftSmallint,
+    ftWord, ftLongWord {$IF Defined(FLORENCEORBETTER)}, ftLargeUInt {$ENDIF}:
       Result := AField.AsString;
 
     ftFloat, ftCurrency, ftBCD, ftFMTBcd:

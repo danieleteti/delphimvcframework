@@ -1242,7 +1242,7 @@ begin
         end;
         // aRTTIField.SetValue(AObject, AField.AsString);
       end;
-    ftLargeint, ftAutoInc:
+    ftLargeInt, ftAutoInc:
       begin
         aRTTIField.SetValue(AObject, AField.AsLargeInt);
       end;

@@ -2597,7 +2597,11 @@ begin
       begin
         if not aValue.AsType<NullableUInt64>().HasValue then
         begin
+{$IF Defined(FLORENCEORBETTER)}
+          aParam.DataType := ftLargeUint;
+{$ELSE}
           aParam.DataType := ftLargeInt;
+{$ENDIF}
           aParam.Clear;
           Exit(True);
         end
@@ -2906,7 +2910,7 @@ end;
 
 function TMVCActiveRecord.LoadByPK(const id: int64): Boolean;
 begin
-  Result := LoadByPK(id.ToString, ftInteger);
+  Result := LoadByPK(id.ToString, ftLargeint);
 end;
 
 function TMVCActiveRecord.LoadByPK(const id: TGuid): Boolean;
@@ -4648,7 +4652,7 @@ begin
           begin
             fRQLFilter := fRQLFilter + 'eq(' + FieldNames[I] + ',' + FieldValues[I].QuotedString('"') + '),';
           end;
-        ftInteger:
+        ftInteger, ftLargeInt:
           begin
             fRQLFilter := fRQLFilter + 'eq(' + FieldNames[I] + ',' + FieldValues[I] + '),';
           end;
@@ -4705,7 +4709,7 @@ begin
 
             Result.FieldNames.Add(lItems[0]);
             if lItems[1] = 'integer' then
-              Result.FieldTypes.Add(ftInteger)
+              Result.FieldTypes.Add(ftLargeint)
             else if lItems[1] = 'string' then
             begin
               Result.FieldTypes.Add(ftString)

@@ -421,6 +421,12 @@ begin
   end
   else
   begin
+    if aTypeInfo.Kind <> tkInterface then
+    begin
+      raise EMVCContainerErrorUnknownConstructor.CreateFmt(
+        'Cannot inject type "%s". Only Interface types are allowed in automagically invoked constructors',
+        [aTypeInfo.Name]);
+    end;
     Result := fContainer.ResolveEx(Self, aTypeInfo, aName, lKey, lRegType);
     if lRegType = TRegistrationType.SingletonPerRequest then
     begin

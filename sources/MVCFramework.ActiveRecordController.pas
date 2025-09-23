@@ -199,7 +199,9 @@ begin
               //Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + )
               case TMVCActiveRecord(AObject).GetPrimaryKeyFieldType of
                 ftInteger:
-                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString)
+                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInteger.ToString);
+                ftLargeint:
+                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString);
               end;
             end)
           .Add('meta', lStrDict));
