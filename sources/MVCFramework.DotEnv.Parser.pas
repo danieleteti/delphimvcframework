@@ -26,7 +26,7 @@ unit MVCFramework.DotEnv.Parser;
 
 interface
 
-uses System.Generics.Collections, System.SysUtils;
+uses System.Generics.Collections, System.SysUtils, System.Variants, ExprEvaluator;
 
 type
 {$SCOPEDENUMS ON}
@@ -67,6 +67,8 @@ type
     fCodeLength: Integer;
     fCurrentLineBreak: string;
     fCurrentLineBreakLength: Integer;
+    fExprEvaluator: TExprEvaluator;
+    fEnvDict: TMVCDotEnvDictionary;
     function IsPartOfLineBreak(const aChar: Char): Boolean;
     function MatchIdentifier(out Value: String): Boolean;
     function MatchKey(out Token: String): Boolean;
@@ -81,6 +83,8 @@ type
     function PeekNextChar: Char;
     function DetectLineBreakStyle(Code: String): TLineBreakStyle;
     procedure MatchInLineComment;
+    function EvaluateExpression(const Expr: string): string;
+    function MatchExpression(out Value: string): Boolean;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -134,10 +138,12 @@ end;
 constructor TMVCDotEnvParser.Create;
 begin
   inherited;
+  fExprEvaluator := TExprEvaluator.Create;
 end;
 
 destructor TMVCDotEnvParser.Destroy;
 begin
+  fExprEvaluator.Free;
   inherited;
 end;
 
@@ -208,6 +214,7 @@ var
 begin
   fCode := DotEnvCode;
   fCodeLength := Length(fCode);
+  fEnvDict := EnvDictionay;
   lLineBreakStyle := DetectLineBreakStyle(fCode);
   fCurrentLineBreak := String(LINE_BREAKS[lLineBreakStyle]);
   fCurrentLineBreakLength := Length(fCurrentLineBreak);
@@ -380,7 +387,16 @@ end;
 
 function TMVCDotEnvParser.MatchValue(out Token: String): Boolean;
 begin
-  Result := MatchString(Token);
+  // First try to match an expression
+  if MatchExpression(Token) then
+  begin
+    Result := True;
+  end
+  else
+  begin
+    // If not an expression, use standard string matching
+    Result := MatchString(Token);
+  end;
 end;
 
 function TMVCDotEnvParser.NextChar: Char;
@@ -396,6 +412,88 @@ begin
     fCurrChar := fCode.Chars[fIndex];
   end;
   Result := fCurrChar;
+end;
+
+function TMVCDotEnvParser.EvaluateExpression(const Expr: string): string;
+var
+  lResult: Variant;
+  lKey: string;
+begin
+  // Set all current environment variables as expression variables
+  if Assigned(fEnvDict) then
+  begin
+    for lKey in fEnvDict.Keys do
+    begin
+      fExprEvaluator.SetVar(lKey, fEnvDict[lKey]);
+    end;
+  end;
+
+  try
+    lResult := fExprEvaluator.Evaluate(Expr);
+    Result := VarToStr(lResult);
+  except
+    on E: Exception do
+    begin
+      raise EMVCDotEnvParser.CreateFmt('Expression evaluation error in "%s": %s at line %d', [Expr, E.Message, fCurLine]);
+    end;
+  end;
+end;
+
+function TMVCDotEnvParser.MatchExpression(out Value: string): Boolean;
+var
+  lExpr: string;
+  lStartPos: Integer;
+begin
+  Result := False;
+  Value := '';
+
+  // Check for $[ syntax
+  if not MatchSymbol('$') then
+    Exit(False);
+
+  if not MatchSymbol('[') then
+  begin
+    // Backtrack - this might be a regular ${} placeholder
+    Dec(fIndex);
+    fCurrChar := fCode.Chars[fIndex];
+    Exit(False);
+  end;
+
+  lStartPos := fIndex;
+  lExpr := '';
+
+  // Find closing bracket
+  while (fCurrChar <> ']') and (fCurrChar <> #0) do
+  begin
+    lExpr := lExpr + fCurrChar;
+    NextChar;
+  end;
+
+  if fCurrChar <> ']' then
+  begin
+    fIndex := lStartPos - 2; // Backtrack past both $ and [
+    NextChar;
+    Exit(False);
+  end;
+
+  // Consume closing bracket
+  NextChar;
+
+  if lExpr.Trim.IsEmpty then
+  begin
+    raise EMVCDotEnvParser.CreateFmt('Empty expression at line %d', [fCurLine]);
+  end;
+
+  try
+    Value := EvaluateExpression(lExpr.Trim);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      // Re-raise with more context
+      raise EMVCDotEnvParser.CreateFmt('Expression error at line %d: %s', [fCurLine, E.Message]);
+    end;
+  end;
 end;
 
 { TMVCDotEnvDictionary }

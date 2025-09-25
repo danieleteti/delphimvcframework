@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
-  MVCFramework.DotEnv, Vcl.ComCtrls, System.IOUtils;
+  MVCFramework.DotEnv, Vcl.ComCtrls, System.IOUtils, ExprEvaluator;
 
 type
   TMainForm = class(TForm)
@@ -125,6 +125,28 @@ begin
       'It can raise exceptions many times while using the playground');
   end;
 
+  // Load initial playground content if source is empty
+  if memSrc.Lines.Count = 0 then
+  begin
+    memSrc.Lines.Add('# Test expressions in .env values with $[expr]');
+    memSrc.Lines.Add('PORT=8080');
+    memSrc.Lines.Add('DATABASE_PORT=$[PORT + 1000]');
+    memSrc.Lines.Add('DEBUG_LEVEL=$[IF PORT > 8000 THEN 3 ELSE 1]');
+    memSrc.Lines.Add('');
+    memSrc.Lines.Add('# String operations');
+    memSrc.Lines.Add('APP_NAME=MyApp');
+    memSrc.Lines.Add('VERSION=1.5');
+    memSrc.Lines.Add('FULL_NAME=$[APP_NAME + "_v" + ToString(VERSION)]');
+    memSrc.Lines.Add('');
+    memSrc.Lines.Add('# Mathematical calculations');
+    memSrc.Lines.Add('BASE_VALUE=100');
+    memSrc.Lines.Add('CALCULATED=$[BASE_VALUE * 2.5 + sqrt(16)]');
+    memSrc.Lines.Add('');
+    memSrc.Lines.Add('# Mix with ${} variables');
+    memSrc.Lines.Add('HOST=localhost');
+    memSrc.Lines.Add('DB_URL=${HOST}:$[PORT + 1000]');
+  end;
+
   UpdatePlayGround;
 end;
 
@@ -148,7 +170,7 @@ begin
   except
     on E: Exception do
     begin
-      memDst.Lines.Text := E.Message;
+      memDst.Lines.Text := 'ERROR: ' + E.Message;
       memDst.Color := clRed;
     end;
   end;
