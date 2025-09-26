@@ -226,6 +226,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
+        <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -272,7 +273,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkRT120.bpl" Configuration="Release" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\37.0\Bpl\dmvcframeworkRT130.bpl" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

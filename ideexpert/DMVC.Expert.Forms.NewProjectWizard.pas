@@ -63,7 +63,7 @@ type
     edtWebModuleName: TEdit;
     lblWbModule: TLabel;
     edtServerPort: TEdit;
-    Label2: TLabel;
+    lblServerPort: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
     Panel2: TPanel;
@@ -106,6 +106,7 @@ type
     Image2: TImage;
     Shape2: TShape;
     chkSSL: TCheckBox;
+    rgServerType: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -121,6 +122,7 @@ type
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
     procedure rgSSVClick(Sender: TObject);
+    procedure chkSSLClick(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
@@ -161,6 +163,14 @@ uses
 
 procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
   var Done: Boolean);
+  procedure SyncServerPort(const aPort: String);
+  begin
+    if String(edtServerPort.Text).IsEmpty or (edtServerPort.Text = edtServerPort.TextHint) then
+    begin
+      edtServerPort.Text := aPort;
+      edtServerPort.TextHint := aPort;
+    end;
+  end;
 begin
   EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
   EdtConnDefName.Enabled := chkActiveRecord.Checked;
@@ -169,6 +179,26 @@ begin
   if not chkProfileActions.Enabled then
   begin
     chkProfileActions.Checked := False;
+  end;
+  case rgServerType.ItemIndex of
+    0: begin
+        chkSSL.Enabled := True;
+        lblServerPort.Caption := 'HTTP/S Server Port';
+        if chkSSL.Checked then
+        begin
+          SyncServerPort('443');
+        end
+        else
+        begin
+          SyncServerPort('8080');
+        end;
+       end;
+    1: begin
+         chkSSL.Checked := False;
+         chkSSL.Enabled := False;
+         SyncServerPort('9000');
+         lblServerPort.Caption := 'FastCGI Server Port';
+       end;
   end;
 end;
 
@@ -191,6 +221,10 @@ begin
   end;
 end;
 
+procedure TfrmDMVCNewProject.chkSSLClick(Sender: TObject);
+begin
+end;
+
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
 begin
   edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
@@ -200,6 +234,11 @@ begin
   chkJSONRPC.Checked := False;
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
   fModel := TJsonObject.Create;
+
+  {$IF not Defined(FASTCGI)}
+  rgServerType.ItemIndex := 0;
+  rgServerType.Enabled := False;
+  {$ENDIF}
 end;
 
 procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
@@ -380,6 +419,14 @@ begin
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
   fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
+
+  case rgServerType.ItemIndex of
+    0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+    1: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+    else
+      raise Exception.Create('Invalid Server Type');
+  end;
+
   //webmodule
 
   fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;

@@ -106,3 +106,8 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$DEFINE WEBSTENCILS}
 {$ENDIF}
 {$ENDIF}
+
+{$UNDEF FASTCGI}
+{$IF Defined(FLORENCEORBETTER)}
+{$DEFINE FASTCGI}
+{$ENDIF}

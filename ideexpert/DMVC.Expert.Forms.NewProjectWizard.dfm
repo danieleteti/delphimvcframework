@@ -36,7 +36,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Height = 13
     Caption = 'WebModule Class Name'
   end
-  object Label2: TLabel
+  object lblServerPort: TLabel
     Left = 24
     Top = 210
     Width = 55
@@ -441,7 +441,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Pen.Color = clGray
   end
   object Image2: TImage
-    Left = 515
+    Left = 513
     Top = 34
     Width = 36
     Height = 41
@@ -521,7 +521,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object edtWebModuleName: TEdit
     Left = 24
     Top = 182
-    Width = 225
+    Width = 268
     Height = 21
     TabOrder = 1
   end
@@ -531,13 +531,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Width = 65
     Height = 21
     TabOrder = 2
+    Text = '8080'
     TextHint = '8080'
   end
   object Panel2: TPanel
     Left = 0
-    Top = 425
+    Top = 444
     Width = 308
-    Height = 200
+    Height = 186
     Anchors = [akLeft, akBottom]
     BevelOuter = bvNone
     Caption = 'Panel2'
@@ -547,10 +548,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 5
     DesignSize = (
       308
-      200)
+      186)
     object gbControllerUnitOptions: TGroupBox
       Left = 12
-      Top = 17
+      Top = 1
       Width = 296
       Height = 176
       Anchors = [akLeft, akTop, akRight, akBottom]
@@ -561,7 +562,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         176)
       object lblClassName: TLabel
         Left = 16
-        Top = 115
+        Top = 120
         Width = 105
         Height = 13
         Caption = 'Controller Class Name'
@@ -586,7 +587,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object edtControllerClassName: TEdit
         Left = 16
-        Top = 135
+        Top = 140
         Width = 264
         Height = 19
         Anchors = [akLeft, akTop, akRight]
@@ -665,8 +666,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 0
     end
     object chkCompression: TCheckBox
-      Left = 36
-      Top = 24
+      Left = 34
+      Top = 27
       Width = 153
       Height = 17
       Anchors = [akTop]
@@ -675,7 +676,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
     object chkStaticFiles: TCheckBox
       Left = 34
-      Top = 76
+      Top = 74
       Width = 135
       Height = 17
       Anchors = [akTop]
@@ -683,7 +684,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 2
     end
     object chkTrace: TCheckBox
-      Left = 214
+      Left = 213
       Top = 50
       Width = 150
       Height = 17
@@ -694,7 +695,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
     object chkCORS: TCheckBox
       Left = 213
-      Top = 24
+      Top = 27
       Width = 135
       Height = 17
       Anchors = [akTop]
@@ -702,8 +703,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 4
     end
     object chkETAG: TCheckBox
-      Left = 216
-      Top = 76
+      Left = 213
+      Top = 74
       Width = 202
       Height = 17
       Anchors = [akTop]
@@ -740,7 +741,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 314
-    Top = 442
+    Top = 444
     Width = 439
     Height = 105
     Anchors = [akLeft, akRight, akBottom]
@@ -819,7 +820,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Left = 314
     Top = 362
     Width = 439
-    Height = 71
+    Height = 76
     Caption = 'Default style for serialized property names (MVCNameCaseDefault)'
     Columns = 3
     ItemIndex = 2
@@ -833,10 +834,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 12
   end
   object rgSSV: TRadioGroup
-    Left = 12
-    Top = 362
-    Width = 296
-    Height = 71
+    Left = 314
+    Top = 555
+    Width = 255
+    Height = 66
     Caption = 'Server Side Views Template Engine'
     Columns = 2
     ItemIndex = 0
@@ -855,6 +856,19 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Height = 17
     Caption = 'Support TLS/SSL (requires TaurusTLS)'
     TabOrder = 14
+    OnClick = chkSSLClick
+  end
+  object rgServerType: TRadioGroup
+    Left = 12
+    Top = 362
+    Width = 296
+    Height = 74
+    Caption = 'Server Type'
+    ItemIndex = 0
+    Items.Strings = (
+      'HTTP/S Console Application (Windows/Linux)'
+      'FastCGI Console Application (Windows/Linux)')
+    TabOrder = 15
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
