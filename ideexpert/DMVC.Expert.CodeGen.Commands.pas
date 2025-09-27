@@ -1204,8 +1204,7 @@ end;
 
 procedure TUnitRunServerProcBody.ExecuteImplementation(Section: TStringBuilder; Model: TJSONObject);
 var
-  lIndent: String;
-  lProtocol: String;
+  LIndent: String;
 begin
   inherited;
   if (Model[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE) or
@@ -1215,15 +1214,16 @@ begin
         .AppendLine('procedure RunServer(APort: Integer);')
         .AppendLine('var')
         .AppendLine('  LServer: TIdHTTPWebBrokerBridge;');
-    lProtocol := 'http';
+
     if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
-      Section.AppendLine('  LSSLHandler: TTLSHandler;');
-      lProtocol := 'https';
+      Section.AppendLine('  LSSLHandler: TTLSHandler;')
     end;
 
     Section
+        .AppendLine('  LProtocol: String;')
         .AppendLine('begin')
+        .AppendLine('  LProtocol := ''http'';')
         .AppendLine('  LServer := TIdHTTPWebBrokerBridge.Create(nil);')
         .AppendLine('  try')
         .AppendLine('    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;')
@@ -1242,6 +1242,7 @@ begin
           .AppendLine('      begin')
           .AppendLine('        LogI(''HTTPS is enabled'');')
           .AppendLine('        LSSLHandler.ConfigureTLS(LServer);')
+          .AppendLine('        LProtocol := ''https'';')
           .AppendLine('      end')
           .AppendLine('      else')
           .AppendLine('      begin')
@@ -1251,7 +1252,7 @@ begin
 
     Section
         .AppendLine('    LServer.Active := True;')
-        .AppendLine('    LogI(''Listening on ' + LProtocol + '://localhost:'' + APort.ToString);')
+        .AppendLine('    LogI(''Listening on '' + LProtocol + ''://localhost:'' + APort.ToString);')
         .AppendLine('    LogI(''Application started. Press Ctrl+C to shut down.'');')
         .AppendLine('    WaitForTerminationSignal;')
         .AppendLine('    EnterInShutdownState;')
