@@ -230,7 +230,8 @@ begin
       .AppendLine('  MVCFramework.Serializer.Commons,');
 
 
-  if Model[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE then
+  if (Model[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE) or
+     (Model[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE) then
   begin
     Section
         .AppendLine('  IdContext,')
@@ -258,7 +259,7 @@ begin
     Section.AppendLine('  MVCFramework.Container,')
   end;
 
-  if Model.B[TConfigKey.program_ssl] then
+  if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
   begin
     Section.AppendLine('  TaurusTLS,')
   end;
@@ -269,7 +270,7 @@ begin
     .AppendLine('{$R *.res}')
     .AppendLine;
 
-  if Model.B[TConfigKey.program_ssl] then
+  if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
   begin
     Section
         .AppendLine('type')
@@ -1203,24 +1204,26 @@ end;
 
 procedure TUnitRunServerProcBody.ExecuteImplementation(Section: TStringBuilder; Model: TJSONObject);
 var
-  LIndent: String;
+  lIndent: String;
+  lProtocol: String;
 begin
   inherited;
-  if Model.S[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE then
+  if (Model[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE) or
+     (Model[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE) then
   begin
     Section
         .AppendLine('procedure RunServer(APort: Integer);')
         .AppendLine('var')
         .AppendLine('  LServer: TIdHTTPWebBrokerBridge;');
-    if Model.B[TConfigKey.program_ssl] then
+    lProtocol := 'http';
+    if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
-      Section.AppendLine('  LSSLHandler: TTLSHandler;')
+      Section.AppendLine('  LSSLHandler: TTLSHandler;');
+      lProtocol := 'https';
     end;
 
     Section
-        .AppendLine('  LProtocol: String;')
         .AppendLine('begin')
-        .AppendLine('  LProtocol := ''http'';')
         .AppendLine('  LServer := TIdHTTPWebBrokerBridge.Create(nil);')
         .AppendLine('  try')
         .AppendLine('    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;')
@@ -1230,7 +1233,7 @@ begin
         .AppendLine('    LServer.ListenQueue := dotEnv.Env(''dmvc.indy.listen_queue'', 500);');
 
     LIndent := '    ';
-    if Model.B[TConfigKey.program_ssl] then
+    if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
       Section
           .AppendLine('    LSSLHandler := TTLSHandler.Create;')
@@ -1239,7 +1242,6 @@ begin
           .AppendLine('      begin')
           .AppendLine('        LogI(''HTTPS is enabled'');')
           .AppendLine('        LSSLHandler.ConfigureTLS(LServer);')
-          .AppendLine('        LProtocol := ''https'';')
           .AppendLine('      end')
           .AppendLine('      else')
           .AppendLine('      begin')
@@ -1249,12 +1251,12 @@ begin
 
     Section
         .AppendLine('    LServer.Active := True;')
-        .AppendLine('    LogI(''Listening on '' + LProtocol + ''://localhost:'' + APort.ToString);')
+        .AppendLine('    LogI(''Listening on ' + LProtocol + '://localhost:'' + APort.ToString);')
         .AppendLine('    LogI(''Application started. Press Ctrl+C to shut down.'');')
         .AppendLine('    WaitForTerminationSignal;')
         .AppendLine('    EnterInShutdownState;')
         .AppendLine('    LServer.Active := False;');
-    if Model.B[TConfigKey.program_ssl] then
+    if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
       Section.AppendLine('    finally').AppendLine('      LSSLHandler.Free;').AppendLine('    end;')
     end;

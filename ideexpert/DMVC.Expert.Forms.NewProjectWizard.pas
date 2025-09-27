@@ -105,7 +105,6 @@ type
     rgSSV: TRadioGroup;
     Image2: TImage;
     Shape2: TShape;
-    chkSSL: TCheckBox;
     rgServerType: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -122,7 +121,6 @@ type
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
     procedure rgSSVClick(Sender: TObject);
-    procedure chkSSLClick(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
@@ -181,23 +179,17 @@ begin
     chkProfileActions.Checked := False;
   end;
   case rgServerType.ItemIndex of
-    0: begin
-        chkSSL.Enabled := True;
-        lblServerPort.Caption := 'HTTP/S Server Port';
-        if chkSSL.Checked then
-        begin
-          SyncServerPort('443');
-        end
-        else
-        begin
-          SyncServerPort('8080');
-        end;
+    0: begin //http
+         lblServerPort.Caption := 'HTTP Server Port';
+         SyncServerPort('8080');
        end;
-    1: begin
-         chkSSL.Checked := False;
-         chkSSL.Enabled := False;
-         SyncServerPort('9000');
+    1: begin //https
+         lblServerPort.Caption := 'HTTPS Server Port';
+         SyncServerPort('443');
+       end;
+    2: begin //fastcgi
          lblServerPort.Caption := 'FastCGI Server Port';
+         SyncServerPort('9000');
        end;
   end;
 end;
@@ -211,7 +203,7 @@ begin
   begin
     lHints := lHints + ['- Include required FireDAC units in your project'];
   end;
-  if chkSSL.Checked then
+  if rgServerType.ItemIndex = 1 then
   begin
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
   end;
@@ -219,10 +211,6 @@ begin
   begin
     ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
   end;
-end;
-
-procedure TfrmDMVCNewProject.chkSSLClick(Sender: TObject);
-begin
 end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
@@ -404,7 +392,6 @@ begin
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'templatepro');
   fModel.B[TConfigKey.program_ssv_webstencils] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils');
   fModel.B[TConfigKey.program_ssv_mustache] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'mustache');
-  fModel.B[TConfigKey.program_ssl] := chkSSL.Checked;
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
@@ -422,7 +409,8 @@ begin
 
   case rgServerType.ItemIndex of
     0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
-    1: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+    1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
+    2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
     else
       raise Exception.Create('Invalid Server Type');
   end;

@@ -68,7 +68,6 @@ type
       program_ssv_templatepro = 'program.ssv.templatepro';
       program_ssv_webstencils = 'program.ssv.webstencils';
       program_ssv_mustache = 'program.ssv.mustache';
-      program_ssl = 'program.ssl';
       program_type = 'program.type'; //http.console, fastcgi.console, apache, isapi
       program_service_container_generate = 'program.service.container.generate';
       program_service_container_unit_name = 'program.service.container.unit_name';
@@ -104,6 +103,7 @@ type
   TProgramTypes = record
     const
       HTTP_CONSOLE = 'http.console';
+      HTTPS_CONSOLE = 'https.console';
       FASTCGI_CONSOLE = 'fastcgi.console';
       APACHE = 'apache';
       ISAPI = 'isapi';

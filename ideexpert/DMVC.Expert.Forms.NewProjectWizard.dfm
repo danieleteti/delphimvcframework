@@ -31,14 +31,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblWbModule: TLabel
     Left = 24
-    Top = 163
+    Top = 269
     Width = 114
     Height = 13
     Caption = 'WebModule Class Name'
   end
   object lblServerPort: TLabel
-    Left = 24
-    Top = 210
+    Left = 213
+    Top = 269
     Width = 55
     Height = 13
     Caption = 'Server Port'
@@ -520,15 +520,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object edtWebModuleName: TEdit
     Left = 24
-    Top = 182
-    Width = 268
+    Top = 288
+    Width = 183
     Height = 21
     TabOrder = 1
   end
   object edtServerPort: TEdit
-    Left = 24
-    Top = 229
-    Width = 65
+    Left = 213
+    Top = 288
+    Width = 92
     Height = 21
     TabOrder = 2
     Text = '8080'
@@ -550,15 +550,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       308
       186)
     object gbControllerUnitOptions: TGroupBox
-      Left = 12
+      Left = 24
       Top = 1
-      Width = 296
+      Width = 284
       Height = 176
       Anchors = [akLeft, akTop, akRight, akBottom]
       Caption = 'Controller Unit Options'
       TabOrder = 0
       DesignSize = (
-        296
+        284
         176)
       object lblClassName: TLabel
         Left = 16
@@ -577,51 +577,56 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       object chkCreateIndexMethod: TCheckBox
         Left = 16
         Top = 25
-        Width = 264
+        Width = 252
         Height = 17
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Create Index And Sample Actions'
+        Caption = 'Generate Index And Sample Actions'
         Checked = True
         State = cbChecked
         TabOrder = 0
+        ExplicitWidth = 264
       end
       object edtControllerClassName: TEdit
         Left = 16
         Top = 140
-        Width = 264
+        Width = 252
         Height = 19
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 3
+        ExplicitWidth = 264
       end
       object chkCreateActionFiltersMethods: TCheckBox
         Left = 16
         Top = 48
-        Width = 264
+        Width = 252
         Height = 17
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Create Action Filters Methods'
+        Caption = 'Generate Action Filters Methods'
         TabOrder = 1
+        ExplicitWidth = 264
       end
       object chkCreateCRUDMethods: TCheckBox
         Left = 16
         Top = 71
-        Width = 264
+        Width = 252
         Height = 17
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Create Sample CRUD Actions'
+        Caption = 'Generate Sample CRUD Actions'
         Checked = True
         State = cbChecked
         TabOrder = 2
+        ExplicitWidth = 264
       end
       object chkProfileActions: TCheckBox
         Left = 16
         Top = 89
-        Width = 276
+        Width = 264
         Height = 26
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Actions Profiling'
+        Caption = 'Include Actions Profiling Code'
         TabOrder = 4
         WordWrap = True
+        ExplicitWidth = 276
       end
     end
   end
@@ -779,8 +784,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
   end
   object chkMSHeap: TCheckBox
-    Left = 24
-    Top = 301
+    Left = 28
+    Top = 391
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -788,8 +793,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 8
   end
   object chkCustomConfigDotEnv: TCheckBox
-    Left = 24
-    Top = 323
+    Left = 28
+    Top = 413
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -797,8 +802,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 9
   end
   object chkServicesContainer: TCheckBox
-    Left = 24
-    Top = 257
+    Left = 28
+    Top = 347
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -808,8 +813,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 10
   end
   object chkSqids: TCheckBox
-    Left = 24
-    Top = 279
+    Left = 28
+    Top = 369
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -849,30 +854,22 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 13
     OnClick = rgSSVClick
   end
-  object chkSSL: TCheckBox
-    Left = 95
-    Top = 231
-    Width = 213
-    Height = 17
-    Caption = 'Support TLS/SSL (requires TaurusTLS)'
-    TabOrder = 14
-    OnClick = chkSSLClick
-  end
   object rgServerType: TRadioGroup
-    Left = 12
-    Top = 362
-    Width = 296
-    Height = 74
-    Caption = 'Server Type'
+    Left = 24
+    Top = 165
+    Width = 284
+    Height = 90
+    Caption = 'Server Application Type'
     ItemIndex = 0
     Items.Strings = (
-      'HTTP/S Console Application (Windows/Linux)'
-      'FastCGI Console Application (Windows/Linux)')
-    TabOrder = 15
+      'HTTP Console (Windows/Linux)'
+      'HTTPS Console (Windows/Linux, requires TaurusTLS)'
+      'FastCGI Console (Windows/Linux)')
+    TabOrder = 14
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
-    Left = 264
-    Top = 128
+    Left = 408
+    Top = 64
   end
 end
