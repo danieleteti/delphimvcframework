@@ -84,6 +84,8 @@ type
     function GetVariable(const VarName: string): Variant;
     procedure SetVariable(const VarName: string; Value: Variant);
     function ParseAssignment: Variant;
+    function IsKeywordAtPosition(const Keyword: string): Boolean;
+    function ConsumeKeyword(const Keyword: string): Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -121,6 +123,8 @@ begin
     begin
       if Length(Args) <> 1 then
         raise Exception.Create('sqrt requires 1 argument');
+      if not VarIsNumeric(Args[0]) then
+        raise Exception.Create('sqrt requires a numeric argument');
       Result := Sqrt(Args[0]);
     end);
 
@@ -128,6 +132,8 @@ begin
     begin
       if Length(Args) <> 1 then
         raise Exception.Create('logn requires 1 argument');
+      if not VarIsNumeric(Args[0]) then
+        raise Exception.Create('logn requires a numeric argument');
       Result := Ln(Args[0]);
     end);
 
@@ -135,7 +141,29 @@ begin
     begin
       if Length(Args) <> 1 then
         raise Exception.Create('log requires 1 argument');
+      if not VarIsNumeric(Args[0]) then
+        raise Exception.Create('log requires a numeric argument');
       Result := System.Math.Log10(Args[0]);
+    end);
+
+  RegisterFunction('round', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('Round requires 2 arguments');
+      if not VarIsNumeric(Args[0]) then
+        raise Exception.Create('Round requires first argument to be numeric');
+      if not VarIsNumeric(Args[1]) then
+        raise Exception.Create('Round requires second argument to be numeric');
+      Result := System.Math.RoundTo(Args[0], Args[1]);
+    end);
+
+  RegisterFunction('contains', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('Contains requires 2 arguments');
+      if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
+        raise Exception.Create('Contains requires non-null arguments');
+      Result := String(Args[1]).Contains(String(Args[0]), True);
     end);
 
   RegisterFunction('ToString', function(const Args: array of Variant): Variant
@@ -159,6 +187,140 @@ begin
       if Length(Args) <> 1 then
         raise Exception.Create('ToFloat requires 1 argument');
       Result := StrToFloat(VarToStr(Args[0]), System.SysUtils.FormatSettings);
+    end);
+
+  // Add Min function (2 or more numeric arguments)
+  RegisterFunction('Min', function(const Args: array of Variant): Variant
+    var
+      I: Integer;
+    begin
+      if Length(Args) < 2 then
+        raise Exception.Create('Min requires at least 2 arguments');
+
+      // Validate all arguments are numeric
+      for I := 0 to High(Args) do
+      begin
+        if not (VarIsNumeric(Args[I])) then
+          raise Exception.Create('Min requires all arguments to be numeric');
+      end;
+
+      Result := Args[0];
+      for I := 1 to High(Args) do
+      begin
+        if Args[I] < Result then
+          Result := Args[I];
+      end;
+    end);
+
+  // Add Max function (2 or more numeric arguments)
+  RegisterFunction('Max', function(const Args: array of Variant): Variant
+    var
+      I: Integer;
+    begin
+      if Length(Args) < 2 then
+        raise Exception.Create('Max requires at least 2 arguments');
+
+      // Validate all arguments are numeric
+      for I := 0 to High(Args) do
+      begin
+        if not (VarIsNumeric(Args[I])) then
+          raise Exception.Create('Max requires all arguments to be numeric');
+      end;
+
+      Result := Args[0];
+      for I := 1 to High(Args) do
+      begin
+        if Args[I] > Result then
+          Result := Args[I];
+      end;
+    end);
+
+  // Add Sort function (2 or more homogeneous arguments)
+  RegisterFunction('Sort', function(const Args: array of Variant): Variant
+    var
+      I, J: Integer;
+      IsNumeric: Boolean;
+      NumericValues: TArray<Double>;
+      StringValues: TArray<string>;
+      Temp: Double;
+      TempStr: string;
+      ResultStr: string;
+    begin
+      if Length(Args) < 2 then
+        raise Exception.Create('Sort requires at least 2 arguments');
+
+      // Determine if arguments are numeric or string by checking first argument
+      IsNumeric := VarIsNumeric(Args[0]);
+
+      // Validate homogeneous types and prepare arrays
+      if IsNumeric then
+      begin
+        SetLength(NumericValues, Length(Args));
+        for I := 0 to High(Args) do
+        begin
+          if not VarIsNumeric(Args[I]) then
+            raise Exception.Create('Sort requires all arguments to be of the same type (all numeric or all strings)');
+          NumericValues[I] := Args[I];
+        end;
+
+        // Simple bubble sort for numeric values
+        for I := 0 to High(NumericValues) - 1 do
+        begin
+          for J := 0 to High(NumericValues) - I - 1 do
+          begin
+            if NumericValues[J] > NumericValues[J + 1] then
+            begin
+              Temp := NumericValues[J];
+              NumericValues[J] := NumericValues[J + 1];
+              NumericValues[J + 1] := Temp;
+            end;
+          end;
+        end;
+
+        // Build result string
+        ResultStr := '';
+        for I := 0 to High(NumericValues) do
+        begin
+          if I > 0 then
+            ResultStr := ResultStr + ',';
+          ResultStr := ResultStr + FloatToStr(NumericValues[I]);
+        end;
+      end
+      else
+      begin
+        SetLength(StringValues, Length(Args));
+        for I := 0 to High(Args) do
+        begin
+          if VarIsNumeric(Args[I]) then
+            raise Exception.Create('Sort requires all arguments to be of the same type (all numeric or all strings)');
+          StringValues[I] := VarToStr(Args[I]);
+        end;
+
+        // Simple bubble sort for string values
+        for I := 0 to High(StringValues) - 1 do
+        begin
+          for J := 0 to High(StringValues) - I - 1 do
+          begin
+            if StringValues[J] > StringValues[J + 1] then
+            begin
+              TempStr := StringValues[J];
+              StringValues[J] := StringValues[J + 1];
+              StringValues[J + 1] := TempStr;
+            end;
+          end;
+        end;
+
+        // Build result string
+        ResultStr := '';
+        for I := 0 to High(StringValues) do
+        begin
+          if I > 0 then
+            ResultStr := ResultStr + ',';
+          ResultStr := ResultStr + StringValues[I];
+        end;
+      end;
+
+      Result := ResultStr;
     end);
 end;
 
@@ -260,13 +422,13 @@ begin
   Condition := ParseLogical;
 
   SkipWhitespace;
-  if ParseIdentifier <> 'THEN' then
+  if not ConsumeKeyword('THEN') then
     raise Exception.Create('Expected THEN after IF condition');
 
   ThenValue := ParseIfExpression;
 
   SkipWhitespace;
-  if ParseIdentifier <> 'ELSE' then
+  if not ConsumeKeyword('ELSE') then
     raise Exception.Create('Expected ELSE after THEN');
 
   ElseValue := ParseIfExpression;
@@ -372,6 +534,21 @@ begin
     NumStr := ParseNumber;
     Result := StrToFloat(NumStr, System.SysUtils.FormatSettings);
   end
+  else if CurrentChar = '-' then
+  begin
+    NextChar; // skip '-'
+    SkipWhitespace;
+    if IsDigit(CurrentChar) then
+    begin
+      NumStr := ParseNumber;
+      Result := -StrToFloat(NumStr, System.SysUtils.FormatSettings);
+    end
+    else
+    begin
+      // This is a unary minus on an expression, parse the expression and negate it
+      Result := -ParsePrimary;
+    end;
+  end
   else if IsAlpha(CurrentChar) then
   begin
     Id := ParseIdentifier;
@@ -441,17 +618,26 @@ begin
   Left := ParseFactor;
   SkipWhitespace;
 
-  while CharInSet(CurrentChar, ['*', '/', 'm', 'M']) do
+  while CharInSet(CurrentChar, ['*', '/', 'm', 'M', 'd', 'D']) do
   begin
     if CharInSet(CurrentChar, ['m', 'M']) then
     begin
-      if (UpperCase(Copy(FInput, FPos, 3)) = 'MOD') and
-         ((FPos + 3 > Length(FInput)) or CharInSet(FInput[FPos + 3], [' ', #9, #10, #13, ')', ';'])) then
+      if ConsumeKeyword('MOD') then
       begin
-        Inc(FPos, 3);
         SkipWhitespace;
         Right := ParseFactor;
         Left := Trunc(Left) mod Trunc(Right);
+      end
+      else
+        Break;
+    end
+    else if CharInSet(CurrentChar, ['d', 'D']) then
+    begin
+      if ConsumeKeyword('DIV') then
+      begin
+        SkipWhitespace;
+        Right := ParseFactor;
+        Left := Trunc(Left) div Trunc(Right);
       end
       else
         Break;
@@ -573,28 +759,22 @@ begin
   // Handle logical operators
   while True do
   begin
-    if (UpperCase(Copy(FInput, FPos, 3)) = 'AND') and
-       ((FPos + 3 > Length(FInput)) or CharInSet(FInput[FPos + 3], [' ', #9, #10, #13, ')', ';'])) then
+    if ConsumeKeyword('AND') then
     begin
-      Inc(FPos, 3);
       SkipWhitespace;
       Right := ParseRelational;
       Left := Left and Right;
       SkipWhitespace;
     end
-    else if (UpperCase(Copy(FInput, FPos, 2)) = 'OR') and
-            ((FPos + 2 > Length(FInput)) or CharInSet(FInput[FPos + 2], [' ', #9, #10, #13, ')', ';'])) then
+    else if ConsumeKeyword('OR') then
     begin
-      Inc(FPos, 2);
       SkipWhitespace;
       Right := ParseRelational;
       Left := Left or Right;
       SkipWhitespace;
     end
-    else if (UpperCase(Copy(FInput, FPos, 3)) = 'XOR') and
-            ((FPos + 3 > Length(FInput)) or CharInSet(FInput[FPos + 3], [' ', #9, #10, #13, ')', ';'])) then
+    else if ConsumeKeyword('XOR') then
     begin
-      Inc(FPos, 3);
       SkipWhitespace;
       Right := ParseRelational;
       Left := Left xor Right;
@@ -645,6 +825,40 @@ end;
 function TExprEvaluator.GetVar(const Name: string): Variant;
 begin
   Result := GetVariable(Name);
+end;
+
+function TExprEvaluator.IsKeywordAtPosition(const Keyword: string): Boolean;
+var
+  KeywordLen: Integer;
+  NextCharPos: Integer;
+begin
+  KeywordLen := Length(Keyword);
+
+  // Check if we have enough characters left
+  if FPos + KeywordLen - 1 > Length(FInput) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Check if the keyword matches (case insensitive)
+  if UpperCase(Copy(FInput, FPos, KeywordLen)) <> UpperCase(Keyword) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // Check word boundary - next character should be a delimiter or end of input
+  NextCharPos := FPos + KeywordLen;
+  Result := (NextCharPos > Length(FInput)) or
+            CharInSet(FInput[NextCharPos], [' ', #9, #10, #13, ')', ';', ',']);
+end;
+
+function TExprEvaluator.ConsumeKeyword(const Keyword: string): Boolean;
+begin
+  Result := IsKeywordAtPosition(Keyword);
+  if Result then
+    Inc(FPos, Length(Keyword));
 end;
 
 end.
