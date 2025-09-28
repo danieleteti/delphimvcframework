@@ -159,6 +159,7 @@
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
+        <DCCReference Include="DotEnvTestU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

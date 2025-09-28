@@ -322,6 +322,263 @@ begin
 
       Result := ResultStr;
     end);
+
+  // String manipulation functions
+  RegisterFunction('Length', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Length requires 1 argument');
+      Result := Length(VarToStr(Args[0]));
+    end);
+
+  RegisterFunction('Upper', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Upper requires 1 argument');
+      Result := UpperCase(VarToStr(Args[0]));
+    end);
+
+  RegisterFunction('Lower', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Lower requires 1 argument');
+      Result := LowerCase(VarToStr(Args[0]));
+    end);
+
+  RegisterFunction('Trim', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Trim requires 1 argument');
+      Result := Trim(VarToStr(Args[0]));
+    end);
+
+  RegisterFunction('Left', function(const Args: array of Variant): Variant
+    var
+      Str: string;
+      Count: Integer;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('Left requires 2 arguments (string, count)');
+      Str := VarToStr(Args[0]);
+      Count := Args[1];
+      if Count < 0 then
+        raise Exception.Create('Left count must be non-negative');
+      if Count > Length(Str) then
+        Count := Length(Str);
+      Result := Copy(Str, 1, Count);
+    end);
+
+  RegisterFunction('Right', function(const Args: array of Variant): Variant
+    var
+      Str: string;
+      Count: Integer;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('Right requires 2 arguments (string, count)');
+      Str := VarToStr(Args[0]);
+      Count := Args[1];
+      if Count < 0 then
+        raise Exception.Create('Right count must be non-negative');
+      if Count > Length(Str) then
+        Count := Length(Str);
+      Result := Copy(Str, Length(Str) - Count + 1, Count);
+    end);
+
+  RegisterFunction('Substr', function(const Args: array of Variant): Variant
+    var
+      Str: string;
+      Start, Len: Integer;
+    begin
+      if (Length(Args) < 2) or (Length(Args) > 3) then
+        raise Exception.Create('Substr requires 2 or 3 arguments (string, start [, length])');
+      Str := VarToStr(Args[0]);
+      Start := Args[1];
+      if Start < 1 then
+        raise Exception.Create('Substr start position must be >= 1');
+      if Length(Args) = 3 then
+      begin
+        Len := Args[2];
+        if Len < 0 then
+          raise Exception.Create('Substr length must be non-negative');
+        Result := Copy(Str, Start, Len);
+      end
+      else
+        Result := Copy(Str, Start, MaxInt);
+    end);
+
+  RegisterFunction('IndexOf', function(const Args: array of Variant): Variant
+    var
+      Str, SubStr: string;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('IndexOf requires 2 arguments (string, substring)');
+      Str := VarToStr(Args[0]);
+      SubStr := VarToStr(Args[1]);
+      Result := Pos(SubStr, Str);
+    end);
+
+  RegisterFunction('Replace', function(const Args: array of Variant): Variant
+    var
+      Str, OldStr, NewStr: string;
+    begin
+      if Length(Args) <> 3 then
+        raise Exception.Create('Replace requires 3 arguments (string, old, new)');
+      Str := VarToStr(Args[0]);
+      OldStr := VarToStr(Args[1]);
+      NewStr := VarToStr(Args[2]);
+      Result := StringReplace(Str, OldStr, NewStr, [rfReplaceAll]);
+    end);
+
+  // Date/Time functions
+  RegisterFunction('Now', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 0 then
+        raise Exception.Create('Now requires no arguments');
+      Result := Now;
+    end);
+
+  RegisterFunction('Today', function(const Args: array of Variant): Variant
+    begin
+      if Length(Args) <> 0 then
+        raise Exception.Create('Today requires no arguments');
+      Result := Date;
+    end);
+
+  RegisterFunction('Year', function(const Args: array of Variant): Variant
+    var
+      DateValue: TDateTime;
+      Y, M, D: Word;
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Year requires 1 argument (date)');
+      try
+        DateValue := VarToDateTime(Args[0]);
+        DecodeDate(DateValue, Y, M, D);
+        Result := Y;
+      except
+        raise Exception.Create('Year requires a valid date argument');
+      end;
+    end);
+
+  RegisterFunction('Month', function(const Args: array of Variant): Variant
+    var
+      DateValue: TDateTime;
+      Y, M, D: Word;
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Month requires 1 argument (date)');
+      try
+        DateValue := VarToDateTime(Args[0]);
+        DecodeDate(DateValue, Y, M, D);
+        Result := M;
+      except
+        raise Exception.Create('Month requires a valid date argument');
+      end;
+    end);
+
+  RegisterFunction('Day', function(const Args: array of Variant): Variant
+    var
+      DateValue: TDateTime;
+      Y, M, D: Word;
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('Day requires 1 argument (date)');
+      try
+        DateValue := VarToDateTime(Args[0]);
+        DecodeDate(DateValue, Y, M, D);
+        Result := D;
+      except
+        raise Exception.Create('Day requires a valid date argument');
+      end;
+    end);
+
+  RegisterFunction('FormatDate', function(const Args: array of Variant): Variant
+    var
+      DateValue: TDateTime;
+      Format: string;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('FormatDate requires 2 arguments (date, format)');
+      try
+        DateValue := VarToDateTime(Args[0]);
+        Format := VarToStr(Args[1]);
+        Result := FormatDateTime(Format, DateValue);
+      except
+        raise Exception.Create('FormatDate requires a valid date and format string');
+      end;
+    end);
+
+  RegisterFunction('ParseDate', function(const Args: array of Variant): Variant
+    var
+      DateStr: string;
+      Year, Month, Day: Word;
+      YearStr, MonthStr, DayStr: string;
+    begin
+      if Length(Args) <> 1 then
+        raise Exception.Create('ParseDate requires 1 argument (date string in YYYY-MM-DD format)');
+
+      DateStr := VarToStr(Args[0]);
+
+      // Validate format: must be exactly YYYY-MM-DD (10 characters)
+      if Length(DateStr) <> 10 then
+        raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
+
+      if (DateStr[5] <> '-') or (DateStr[8] <> '-') then
+        raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
+
+      try
+        YearStr := Copy(DateStr, 1, 4);
+        MonthStr := Copy(DateStr, 6, 2);
+        DayStr := Copy(DateStr, 9, 2);
+
+        Year := StrToInt(YearStr);
+        Month := StrToInt(MonthStr);
+        Day := StrToInt(DayStr);
+
+        // Validate ranges
+        if (Year < 1) or (Month < 1) or (Month > 12) or (Day < 1) or (Day > 31) then
+          raise Exception.Create('ParseDate: Invalid date values');
+
+        Result := EncodeDate(Year, Month, Day);
+      except
+        on E: Exception do
+          if Pos('ParseDate', E.Message) > 0 then
+            raise
+          else
+            raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
+      end;
+    end);
+
+  RegisterFunction('DateAdd', function(const Args: array of Variant): Variant
+    var
+      DateValue: TDateTime;
+      Days: Integer;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('DateAdd requires 2 arguments (date, days)');
+      try
+        DateValue := VarToDateTime(Args[0]);
+        Days := Args[1];
+        Result := DateValue + Days;
+      except
+        raise Exception.Create('DateAdd requires a valid date and number of days');
+      end;
+    end);
+
+  RegisterFunction('DateDiff', function(const Args: array of Variant): Variant
+    var
+      Date1, Date2: TDateTime;
+    begin
+      if Length(Args) <> 2 then
+        raise Exception.Create('DateDiff requires 2 arguments (date1, date2)');
+      try
+        Date1 := VarToDateTime(Args[0]);
+        Date2 := VarToDateTime(Args[1]);
+        Result := Trunc(Date2 - Date1);
+      except
+        raise Exception.Create('DateDiff requires two valid dates');
+      end;
+    end);
 end;
 
 destructor TExprEvaluator.Destroy;
@@ -453,9 +710,47 @@ begin
 end;
 
 procedure TExprEvaluator.SkipWhitespace;
+var
+  CommentEnd: Integer;
 begin
-  while (FPos <= Length(FInput)) and (CharInSet(FInput[FPos], [' ', #9, #10, #13])) do
-    Inc(FPos);
+  while FPos <= Length(FInput) do
+  begin
+    // Skip regular whitespace
+    if CharInSet(FInput[FPos], [' ', #9, #10, #13]) then
+    begin
+      Inc(FPos);
+      Continue;
+    end;
+
+    // Handle // style comments (single line)
+    if (FPos < Length(FInput)) and (FInput[FPos] = '/') and (FInput[FPos + 1] = '/') then
+    begin
+      // Skip to end of line or end of input
+      Inc(FPos, 2); // Skip the //
+      while (FPos <= Length(FInput)) and not CharInSet(FInput[FPos], [#10, #13]) do
+        Inc(FPos);
+      Continue;
+    end;
+
+    // Handle { } style comments (can span multiple lines)
+    if FInput[FPos] = '{' then
+    begin
+      Inc(FPos); // Skip the opening {
+      // Find the closing }
+      CommentEnd := FPos;
+      while (CommentEnd <= Length(FInput)) and (FInput[CommentEnd] <> '}') do
+        Inc(CommentEnd);
+
+      if CommentEnd <= Length(FInput) then
+        FPos := CommentEnd + 1 // Skip past the closing }
+      else
+        raise Exception.Create('Unterminated comment - missing closing }');
+      Continue;
+    end;
+
+    // No more whitespace or comments to skip
+    Break;
+  end;
 end;
 
 function TExprEvaluator.IsDigit(c: Char): Boolean;
@@ -650,7 +945,12 @@ begin
 
       case Op of
         '*': Left := Left * Right;
-        '/': Left := Left / Right;
+        '/':
+          begin
+            if Right = 0 then
+              raise Exception.Create('Division by zero');
+            Left := Left / Right;
+          end;
       end;
     end;
     SkipWhitespace;

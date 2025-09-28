@@ -81,7 +81,8 @@ uses
   MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas',
   TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
   MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
-  TestsBloomFilterU in 'TestsBloomFilterU.pas';
+  TestsBloomFilterU in 'TestsBloomFilterU.pas',
+  DotEnvTestU in 'DotEnvTestU.pas';
 
 {$R *.RES}
 

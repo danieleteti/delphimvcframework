@@ -4,7 +4,7 @@
         <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">TESTINSIGHT</Config>
+        <Config Condition="'$(Config)'==''">CI</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -280,6 +280,7 @@
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="TestsBloomFilterU.pas"/>
+        <DCCReference Include="DotEnvTestU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -34,7 +34,8 @@ uses
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
   TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
   MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
-  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
+  DotEnvTestU in 'DotEnvTestU.pas';
 
 {$R *.res}
 
