@@ -163,7 +163,7 @@ begin
         raise Exception.Create('Contains requires 2 arguments');
       if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
         raise Exception.Create('Contains requires non-null arguments');
-      Result := String(Args[1]).Contains(String(Args[0]), True);
+      Result := String(Args[1]).Contains(String(Args[0]){$IF DEFINED(FLORENCEORBETTER)}, True{$ENDIF});
     end);
 
   RegisterFunction('ToString', function(const Args: array of Variant): Variant
