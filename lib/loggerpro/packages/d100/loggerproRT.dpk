@@ -9,23 +9,23 @@ package loggerproRT;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
+{$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO ON}
+{$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
+{$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggerPro'}
+{$DESCRIPTION 'LoggerPro - CopyRight 2023-2025 Daniele Teti'}
 {$LIBSUFFIX '100'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -50,6 +50,7 @@ contains
   LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
   ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
   LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
-  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas';
+  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
+  LoggerPro.ConsoleAppender in '..\..\LoggerPro.ConsoleAppender.pas';
 
 end.
