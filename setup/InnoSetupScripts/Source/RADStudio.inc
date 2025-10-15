@@ -370,6 +370,7 @@ begin
   end;
 
   // Adding newer versions (which theoretically are not officially supported by the packages) to be able to try to install them
+(*  
   if GetArrayLength(Result) > 0 then
   begin
     for I := 0 to GetArrayLength(_FRADStudioVersions) - 1 do
@@ -379,7 +380,7 @@ begin
         Result[GetArrayLength(Result) - 1] := GetRADStudioInfo(_FRADStudioVersions[I]);
       end;
   end;
-
+*)
   // Sort results
   Result := _SortRADStudioInfos(Result);
 
@@ -539,7 +540,7 @@ begin
   LRADStudioVersion.MaxDprojVersion := '18.4';
   LRADStudioVersion.MinDprojVersion := '18.2'; // Conflicted
   LRADStudioVersion.PackageVersion := '250';
-  LRADStudioVersion.OldLibSuffix := 'D10_2';  
+  LRADStudioVersion.OldLibSuffix := 'D10_2';
   LRADStudioVersion.HasGetItCmd := False; // It has but is obsolete
   LRADStudioVersion.GetItCmdListInstalledParams := '-listavailable:"%s" -filter:Installed';
   LRADStudioVersion.GetItCmdUninstallParams := '-u"%s"';
@@ -556,7 +557,7 @@ begin
   LRADStudioVersion.MaxDprojVersion := '18.8';
   LRADStudioVersion.MinDprojVersion := '18.5';
   LRADStudioVersion.PackageVersion := '260';
-  LRADStudioVersion.OldLibSuffix := 'D10_3';  
+  LRADStudioVersion.OldLibSuffix := 'D10_3';
   LRADStudioVersion.HasGetItCmd := False; // It has but is obsolete
   LRADStudioVersion.GetItCmdListInstalledParams := '-l="%s" -dnsef';
   LRADStudioVersion.GetItCmdUninstallParams := '-u="%s" -dnsef';
@@ -573,7 +574,7 @@ begin
   LRADStudioVersion.MaxDprojVersion := '19.2';
   LRADStudioVersion.MinDprojVersion := '19.0';
   LRADStudioVersion.PackageVersion := '270';
-  LRADStudioVersion.OldLibSuffix := 'D10_4';  
+  LRADStudioVersion.OldLibSuffix := 'D10_4';
   LRADStudioVersion.HasGetItCmd := True;
   LRADStudioVersion.GetItCmdListInstalledParams := '-l="%s" -dnsef';
   LRADStudioVersion.GetItCmdUninstallParams := '-u="%s" -dnsef';
@@ -590,7 +591,7 @@ begin
   LRADStudioVersion.MaxDprojVersion := '19.5';
   LRADStudioVersion.MinDprojVersion := '19.3';
   LRADStudioVersion.PackageVersion := '280';
-  LRADStudioVersion.OldLibSuffix := 'D11';  
+  LRADStudioVersion.OldLibSuffix := 'D11';
   LRADStudioVersion.HasGetItCmd := True;
   LRADStudioVersion.GetItCmdListInstalledParams := '-l="%s" -dnsef';
   LRADStudioVersion.GetItCmdUninstallParams := '-u="%s" -dnsef';
@@ -602,12 +603,29 @@ begin
   // RAD Studio 12 Athens
   LRADStudioVersion.Name := 'RAD Studio 12 Athens';
   LRADStudioVersion.RegVersion := '23.0';
-  LRADStudioVersion.SupportedPlatformsDelphi := [pfWin32, pfWin64, pfAndroid, pfAndroid64, pfiOSDevice64, pfiOSSimARM64, pfiOSSimulator, pfOSX64, pfOSXARM64, pfLinux64];
+  LRADStudioVersion.SupportedPlatformsDelphi := [pfWin32, pfWin64, pfWin64x, pfAndroid, pfAndroid64, pfiOSDevice64, pfiOSSimARM64, pfOSX64, pfOSXARM64, pfLinux64];
   LRADStudioVersion.SupportedPlatforms := LRADStudioVersion.SupportedPlatformsDelphi;
-  LRADStudioVersion.MaxDprojVersion := '20.3';
+  LRADStudioVersion.MaxDprojVersion := '20.2'; // 20.3 Conflicted RAD Studio 13
   LRADStudioVersion.MinDprojVersion := '20.1';
   LRADStudioVersion.PackageVersion := '290';
-  LRADStudioVersion.OldLibSuffix := 'D12';  
+  LRADStudioVersion.OldLibSuffix := 'D12';
+  LRADStudioVersion.HasGetItCmd := True;
+  LRADStudioVersion.GetItCmdListInstalledParams := '-l="%s" -dnsef';
+  LRADStudioVersion.GetItCmdUninstallParams := '-u="%s" -dnsef';
+  LRADStudioVersion.DotNetVersion := net45;
+  LRADStudioVersion.DotNetServicePack := 0;
+  SetArrayLength(_FRADStudioVersions, GetArrayLength(_FRADStudioVersions) + 1);
+  _FRADStudioVersions[GetArrayLength(_FRADStudioVersions) - 1] := LRADStudioVersion;
+
+  // RAD Studio 13 Florence
+  LRADStudioVersion.Name := 'RAD Studio 13 Florence';
+  LRADStudioVersion.RegVersion := '37.0';
+  LRADStudioVersion.SupportedPlatformsDelphi := [pfWin32, pfWin64, pfWin64x, pfAndroid, pfAndroid64, pfiOSDevice64, pfiOSSimARM64, pfOSX64, pfOSXARM64, pfLinux64];
+  LRADStudioVersion.SupportedPlatforms := LRADStudioVersion.SupportedPlatformsDelphi;
+  LRADStudioVersion.MaxDprojVersion := '20.3'; // Use it for RAD Studio 13
+  LRADStudioVersion.MinDprojVersion := '20.3';
+  LRADStudioVersion.PackageVersion := '370';
+  LRADStudioVersion.OldLibSuffix := 'D13';  
   LRADStudioVersion.HasGetItCmd := True;
   LRADStudioVersion.GetItCmdListInstalledParams := '-l="%s" -dnsef';
   LRADStudioVersion.GetItCmdUninstallParams := '-u="%s" -dnsef';
