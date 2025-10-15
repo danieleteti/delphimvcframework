@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{2921E3FB-91B6-4BA4-A930-D3F18FEED6C6}</ProjectGuid>
+        <ProjectGuid>{9EA3EBB9-DF0F-4832-8375-857DC182D26B}</ProjectGuid>
         <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <MainSource>RESTAPIUsingRepository.dpr</MainSource>
