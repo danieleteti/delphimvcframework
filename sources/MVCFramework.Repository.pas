@@ -214,6 +214,12 @@ type
     destructor Destroy; override;
   end;
 
+  TMVCRepository = class
+  {$IF Defined(CUSTOM_MANAGED_RECORDS)}
+      class function UseTransactionContext: TMVCTransactionContext;
+  {$ENDIF}
+  end;
+
 implementation
 
 { TMVCRepository<T> }
@@ -418,5 +424,14 @@ function TMVCRepositoryWithConnection<T>.GetConnection: TFDConnection;
 begin
   Result := fConnection;
 end;
+
+
+{$IF Defined(CUSTOM_MANAGED_RECORDS)}
+class function TMVCRepository.UseTransactionContext: TMVCTransactionContext;
+begin
+  Result := TMVCTransactionContext.Create(0);
+end;
+{$ENDIF}
+
 
 end.
