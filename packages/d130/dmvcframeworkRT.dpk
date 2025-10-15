@@ -9,21 +9,21 @@ package dmvcframeworkRT;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
+{$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO ON}
+{$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
+{$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DMVCFramework - CopyRight (2010-2025) Daniele Teti and the DMVCFramework Team'}
 {$LIBSUFFIX '130'}
@@ -118,9 +118,7 @@ contains
   MVCFramework.Serializer.Text in '..\..\sources\MVCFramework.Serializer.Text.pas',
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
   sqids in '..\..\sources\sqids.pas',
-<<<<<<<< HEAD:packages/d113/dmvcframeworkRT.dpk
-  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas';
-========
+  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
   MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
   TemplatePro in '..\..\sources\TemplatePro.pas',
   MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas',
@@ -129,8 +127,8 @@ contains
   MVCFramework.Middleware.Session.Internal in '..\..\sources\MVCFramework.Middleware.Session.Internal.pas',
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
-  MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas';
->>>>>>>> feature_setup:packages/d130/dmvcframeworkRT.dpk
+  MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
+  ExprEvaluator in '..\..\sources\ExprEvaluator.pas';
 
 end.
 
