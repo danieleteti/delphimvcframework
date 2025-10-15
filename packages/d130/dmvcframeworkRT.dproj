@@ -211,6 +211,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
         <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Repository.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

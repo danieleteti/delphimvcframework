@@ -128,7 +128,8 @@ contains
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
   MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
-  ExprEvaluator in '..\..\sources\ExprEvaluator.pas';
+  ExprEvaluator in '..\..\sources\ExprEvaluator.pas',
+  MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas';
 
 end.
 
