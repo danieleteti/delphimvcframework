@@ -1,15 +1,15 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{1611FBE6-5266-48FE-BDF5-E46EEAA922BE}</ProjectGuid>
-        <MainSource>loggerproRT.dpk</MainSource>
-        <ProjectVersion>20.2</ProjectVersion>
+        <ProjectGuid>{5B9408E7-46AC-4431-9716-C9EB9F8589B1}</ProjectGuid>
+        <MainSource>SwagDoc.dpk</MainSource>
+        <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Package</AppType>
-        <ProjectName Condition="'$(ProjectName)'==''">loggerproRT</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">SwagDoc</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -51,19 +51,19 @@
         <GenPackage>true</GenPackage>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
-        <SanitizedProjectName>loggerproRT</SanitizedProjectName>
-        <VerInfo_Keys>CompanyName=Daniele Teti;FileVersion=1.4.1.0;InternalName=;LegalCopyright=Daniele Teti;LegalTrademarks=;OriginalFilename=;ProductVersion=1.4.1.0;Comments=</VerInfo_Keys>
-        <DCC_Description>LoggerPro - CopyRight 2023-2025 Daniele Teti</DCC_Description>
+        <SanitizedProjectName>SwagDoc</SanitizedProjectName>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_Keys>CompanyName=Jaloto Software;FileDescription=;FileVersion=2.0.0.0;InternalName=;LegalCopyright=Copyright Jaloto Software;LegalTrademarks=;OriginalFilename=;ProgramID=;ProductName=;ProductVersion=2.0;Comments=</VerInfo_Keys>
+        <VerInfo_MajorVer>2</VerInfo_MajorVer>
+        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <DCC_Description>SwagDoc Library</DCC_Description>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
-        <DllSuffix>120</DllSuffix>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <VerInfo_Release>1</VerInfo_Release>
+        <DllSuffix>130</DllSuffix>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
@@ -90,24 +90,36 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
-        <DCCReference Include="IndySystem.dcp"/>
-        <DCCReference Include="IndyProtocols.dcp"/>
-        <DCCReference Include="IndyCore.dcp"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.ElasticSearchAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.EMailAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.FileAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.GlobalLogger.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.MemoryAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.NSQAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.Proxy.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.RESTAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.UDPSyslogAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.Utils.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\ThreadSafeQueueU.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.OutputDebugStringAppender.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.Renderers.pas"/>
-        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.ConsoleAppender.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Common.Helpers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Common.Types.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Booleans.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Numbers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.DateTimes.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Arrays.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Objects.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Enums.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Strings.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Consts.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Types.Helpers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Types.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Definition.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.Contact.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.License.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.RequestParameter.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.Response.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.ResponseHeaders.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinition.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionApiKey.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionBasic.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.FileLoader.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -126,7 +138,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">loggerproRT.dpk</Source>
+                    <Source Name="MainSource">SwagDoc.dpk</Source>
                 </Source>
                 <Excluded_Packages/>
             </Delphi.Personality>

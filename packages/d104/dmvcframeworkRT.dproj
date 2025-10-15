@@ -177,6 +177,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.HTMX.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -197,8 +198,7 @@
                 <Source>
                     <Source Name="MainSource">dmvcframeworkRT.dpk</Source>
                 </Source>
-                <Excluded_Packages>
-                </Excluded_Packages>
+                <Excluded_Packages/>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>
