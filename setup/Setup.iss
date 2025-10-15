@@ -62,7 +62,8 @@
 
 #define LibraryName "DelphiMVCFramework"
 #define SetupName "DMVCFramework"
-#define LibraryVersion "3.4.2"
+#define LibraryVersion "3.4.3"
+#define LibraryVersionInfo "aluminium rc3"
 #define LibraryPublisher "Daniele Teti"
 #define LibraryCopyright "Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team"
 #define LibraryURL "https://www.danieleteti.it/delphimvcframework/"
@@ -94,7 +95,7 @@ AppPublisher={#LibraryPublisher}
 AppPublisherURL={#LibraryURL}
 AppSupportURL={#LibrarySupportURL}
 AppUpdatesURL={#LibraryUpdatesURL}
-AppVersion={#LibraryVersion}
+AppVersion={#LibraryVersion} {#LibraryVersionInfo}
 VersionInfoVersion={#LibraryVersion}
 CloseApplications=no
 Compression=lzma2/ultra64
@@ -164,7 +165,7 @@ Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\{#LibrarySamplesFolder}"; Description: "{cm:SetupOpenSamplesFolder}"; Flags: shellexec runasoriginaluser postinstall;
-Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall unchecked;
+Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall;
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\setup\AllPackages\*";

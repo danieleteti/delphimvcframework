@@ -257,7 +257,7 @@ var
 begin
   // Use double hashing to simulate multiple independent hash functions
   lHash1Val := Cardinal(THashBobJenkins.GetHashValue(aValue));
-  {$IF Defined(SYDNEYORBETTER)}
+  {$IF Defined(ALEXANDRIAORBETTER)}
   lHash2Val := Cardinal(THashFNV1a32.GetHashValue(aValue));
   {$ELSE}
   lHash2Val := FNV1a_32_UnicodeString(aValue);
