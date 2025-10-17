@@ -45,6 +45,7 @@ uses
   System.SysUtils,
   System.TypInfo,
   System.IOUtils,
+  System.SysConst,
   System.SyncObjs,
   System.DateUtils,
   System.Generics.Collections,
@@ -470,6 +471,7 @@ type
     function GetStatusCode: Integer;
     function GetCookies: TCookieCollection;
     function GetContentType: string;
+    function GetContentEncoding: string;
     function GetLocation: string;
     function GetContent: string;
     procedure SetReasonString(const AValue: string);
@@ -487,6 +489,7 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ReasonString: string read GetReasonString write SetReasonString;
     property ContentType: string read GetContentType write SetContentType;
+    property ContentEncoding: string read GetContentEncoding;
     property CustomHeaders: TStrings read GetCustomHeaders;
     property Cookies: TCookieCollection read GetCookies;
     property Location: string read GetLocation write SetLocation;
@@ -1317,7 +1320,6 @@ uses
   IdURI,
   IdStack,
   System.StrUtils,
-  System.SysConst,
   sqids,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
@@ -2050,9 +2052,14 @@ begin
   Result := FWebResponse.Content;
 end;
 
+function TMVCWebResponse.GetContentEncoding: string;
+begin
+  Result := FWebResponse.ContentEncoding;
+end;
+
 function TMVCWebResponse.GetContentType: string;
 begin
-  Result := FWebResponse.ContentType;
+  Result := BuildContentType(FWebResponse.ContentType, FWebResponse.ContentEncoding);
 end;
 
 function TMVCWebResponse.GetCookies: TCookieCollection;
@@ -2087,14 +2094,13 @@ end;
 
 procedure TMVCWebResponse.SetContentStream(const AStream: TStream; const AContentType: string);
 begin
-  ContentType := AContentType;
   FWebResponse.ContentStream := AStream;
+  ContentType := AContentType;
 end;
 
 procedure TMVCWebResponse.SetContentType(const AValue: string);
 begin
-  FWebResponse.ContentType := '';
-  FWebResponse.ContentType := AValue;
+  FWebResponse.ContentType := aValue;
 end;
 
 procedure TMVCWebResponse.SetCustomHeader(const AName, AValue: string);
@@ -4015,6 +4021,7 @@ begin
   inherited;
   FContext := nil;
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   FResponseStream := nil;
 end;
 
@@ -4319,7 +4326,9 @@ var AHandled: Boolean);
 begin
   AHandled := False;
   if ContentType.IsEmpty then
-    ContentType := Config[TMVCConfigKey.DefaultContentType];
+  begin
+    ContentType := BuildContentType(Config[TMVCConfigKey.DefaultContentType], Config[TMVCConfigKey.DefaultContentCharset]);
+  end;
   { Implement if need be. }
 end;
 
@@ -4400,12 +4409,13 @@ end;
 procedure TMVCRenderer.Render(const AContent: string);
 var
   lOutEncoding: TEncoding;
+  lWebResponse: TMVCWebResponse;
 begin
+  lWebResponse := GetContext.Response;
+
   if SameText(TMVCCharSet.UTF_8, FContentCharset) or SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) then
   begin
-    GetContext
-      .Response
-      .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), GetContentType)
+    lWebResponse.SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), GetContentType);
   end
   else
   begin
