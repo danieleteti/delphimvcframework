@@ -36,7 +36,8 @@ uses
   System.DateUtils,
   IdContext,
   IdIOHandler,
-  MVCFramework.WebSocket;
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.RateLimiter;
 
 type
   TMVCWebSocketConnection = class;
@@ -81,6 +82,7 @@ type
     FLock: TCriticalSection;
     FManager: TMVCWebSocketConnectionManager;
     FCustomData: TDictionary<string, string>;
+    FRateLimiter: TMVCConnectionRateLimiter;  // RATE LIMITING SUPPORT
 
     procedure SetUserData(const Value: TObject);
   public
@@ -157,6 +159,11 @@ type
     /// Underlying IO handler
     /// </summary>
     property IOHandler: TIdIOHandler read FIOHandler;
+
+    /// <summary>
+    /// Rate limiter for this connection
+    /// </summary>
+    property RateLimiter: TMVCConnectionRateLimiter read FRateLimiter;
   end;
 
   /// <summary>
@@ -171,6 +178,8 @@ type
     FOnBinaryMessage: TMVCWebSocketBinaryMessageEvent;
     FOnClose: TMVCWebSocketCloseEvent;
     FOnError: TMVCWebSocketErrorEvent;
+    FMaxMessagesPerSecond: Integer;  // RATE LIMITING CONFIG
+    FMaxBytesPerSecond: Integer;     // RATE LIMITING CONFIG
   public
     constructor Create;
     destructor Destroy; override;
@@ -229,6 +238,18 @@ type
     property OnBinaryMessage: TMVCWebSocketBinaryMessageEvent read FOnBinaryMessage write FOnBinaryMessage;
     property OnClose: TMVCWebSocketCloseEvent read FOnClose write FOnClose;
     property OnError: TMVCWebSocketErrorEvent read FOnError write FOnError;
+
+    /// <summary>
+    /// Maximum messages per second per connection (default: 30)
+    /// Set to 0 to disable rate limiting
+    /// </summary>
+    property MaxMessagesPerSecond: Integer read FMaxMessagesPerSecond write FMaxMessagesPerSecond;
+
+    /// <summary>
+    /// Maximum bytes per second per connection (default: 102400 = 100KB)
+    /// Set to 0 to disable rate limiting
+    /// </summary>
+    property MaxBytesPerSecond: Integer read FMaxBytesPerSecond write FMaxBytesPerSecond;
   end;
 
 implementation
@@ -260,10 +281,24 @@ begin
   FManager := AManager;
   FOwnsUserData := False;
   FCustomData := TDictionary<string, string>.Create;
+
+  // Create rate limiter with manager's settings
+  if (AManager.MaxMessagesPerSecond > 0) and (AManager.MaxBytesPerSecond > 0) then
+  begin
+    FRateLimiter := TMVCConnectionRateLimiter.Create(
+      FConnectionId,
+      AManager.MaxMessagesPerSecond,
+      AManager.MaxBytesPerSecond
+    );
+  end
+  else
+    FRateLimiter := nil;  // Rate limiting disabled
 end;
 
 destructor TMVCWebSocketConnection.Destroy;
 begin
+  if Assigned(FRateLimiter) then
+    FRateLimiter.Free;
   if FOwnsUserData and Assigned(FUserData) then
     FUserData.Free;
   FCustomData.Free;
@@ -280,12 +315,29 @@ end;
 
 procedure TMVCWebSocketConnection.SendText(const AMessage: string);
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
+  lMessageBytes: TBytes;
+  lMessageSize: Integer;
 begin
+  // Check rate limit if enabled
+  if Assigned(FRateLimiter) then
+  begin
+    lMessageBytes := TEncoding.UTF8.GetBytes(AMessage);
+    lMessageSize := Length(lMessageBytes);
+
+    if not FRateLimiter.RecordMessage(lMessageSize) then
+    begin
+      // Rate limit exceeded
+      Log.Warn(Format('Rate limit exceeded for connection %s (tried to send %d bytes)',
+        [FConnectionId, lMessageSize]), 'RateLimiter');
+      raise EMVCWebSocketException.Create('Rate limit exceeded');
+    end;
+  end;
+
   FLock.Enter;
   try
-    Frame := TMVCWebSocketFrameParser.CreateTextFrame(AMessage, False);
-    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, Frame);
+    lFrame := TMVCWebSocketFrameParser.CreateTextFrame(AMessage, False);
+    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, lFrame);
     // Flush the output buffer to ensure immediate delivery
     FIOHandler.WriteBufferFlush;
     FLastActivity := Now;
@@ -296,12 +348,23 @@ end;
 
 procedure TMVCWebSocketConnection.SendBinary(const AData: TBytes);
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
 begin
+  // Check rate limit if enabled
+  if Assigned(FRateLimiter) then
+  begin
+    if not FRateLimiter.RecordMessage(Length(AData)) then
+    begin
+      Log.Warn(Format('Rate limit exceeded for connection %s (tried to send %d bytes)',
+        [FConnectionId, Length(AData)]), 'RateLimiter');
+      raise EMVCWebSocketException.Create('Rate limit exceeded');
+    end;
+  end;
+
   FLock.Enter;
   try
-    Frame := TMVCWebSocketFrameParser.CreateBinaryFrame(AData, False);
-    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, Frame);
+    lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(AData, False);
+    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, lFrame);
     FIOHandler.WriteBufferFlush;
     FLastActivity := Now;
   finally
@@ -311,12 +374,12 @@ end;
 
 procedure TMVCWebSocketConnection.SendPing(const AData: TBytes);
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
 begin
   FLock.Enter;
   try
-    Frame := TMVCWebSocketFrameParser.CreatePingFrame(AData, False);
-    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, Frame);
+    lFrame := TMVCWebSocketFrameParser.CreatePingFrame(AData, False);
+    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, lFrame);
     FIOHandler.WriteBufferFlush;
     FLastActivity := Now;
   finally
@@ -326,12 +389,12 @@ end;
 
 procedure TMVCWebSocketConnection.SendPong(const AData: TBytes);
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
 begin
   FLock.Enter;
   try
-    Frame := TMVCWebSocketFrameParser.CreatePongFrame(AData, False);
-    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, Frame);
+    lFrame := TMVCWebSocketFrameParser.CreatePongFrame(AData, False);
+    TMVCWebSocketFrameParser.WriteFrame(FIOHandler, lFrame);
     FIOHandler.WriteBufferFlush;
     FLastActivity := Now;
   finally
@@ -341,14 +404,14 @@ end;
 
 procedure TMVCWebSocketConnection.Close(ACode: TMVCWebSocketCloseCode; const AReason: string);
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
 begin
   FLock.Enter;
   try
     if IsConnected then
     begin
-      Frame := TMVCWebSocketFrameParser.CreateCloseFrame(ACode, AReason, False);
-      TMVCWebSocketFrameParser.WriteFrame(FIOHandler, Frame);
+      lFrame := TMVCWebSocketFrameParser.CreateCloseFrame(ACode, AReason, False);
+      TMVCWebSocketFrameParser.WriteFrame(FIOHandler, lFrame);
       FContext.Connection.Disconnect;
     end;
   finally
@@ -369,6 +432,10 @@ begin
   FConnections := TThreadList<TMVCWebSocketConnection>.Create;
   FConnectionsById := TDictionary<string, TMVCWebSocketConnection>.Create;
   FLock := TCriticalSection.Create;
+
+  // Default rate limiting settings
+  FMaxMessagesPerSecond := 30;      // 30 messages per second
+  FMaxBytesPerSecond := 102400;     // 100KB per second
 end;
 
 destructor TMVCWebSocketConnectionManager.Destroy;
@@ -412,11 +479,11 @@ end;
 
 procedure TMVCWebSocketConnectionManager.RemoveConnection(const AConnectionId: string);
 var
-  Conn: TMVCWebSocketConnection;
+  lConn: TMVCWebSocketConnection;
 begin
-  Conn := GetConnection(AConnectionId);
-  if Assigned(Conn) then
-    RemoveConnection(Conn);
+  lConn := GetConnection(AConnectionId);
+  if Assigned(lConn) then
+    RemoveConnection(lConn);
 end;
 
 function TMVCWebSocketConnectionManager.GetConnection(const AConnectionId: string): TMVCWebSocketConnection;
@@ -432,11 +499,11 @@ end;
 
 function TMVCWebSocketConnectionManager.GetAllConnections: TArray<TMVCWebSocketConnection>;
 var
-  List: TList<TMVCWebSocketConnection>;
+  lList: TList<TMVCWebSocketConnection>;
 begin
-  List := FConnections.LockList;
+  lList := FConnections.LockList;
   try
-    Result := List.ToArray;
+    Result := lList.ToArray;
   finally
     FConnections.UnlockList;
   end;
@@ -444,11 +511,11 @@ end;
 
 function TMVCWebSocketConnectionManager.GetConnectionCount: Integer;
 var
-  List: TList<TMVCWebSocketConnection>;
+  lList: TList<TMVCWebSocketConnection>;
 begin
-  List := FConnections.LockList;
+  lList := FConnections.LockList;
   try
-    Result := List.Count;
+    Result := lList.Count;
   finally
     FConnections.UnlockList;
   end;
@@ -456,53 +523,71 @@ end;
 
 procedure TMVCWebSocketConnectionManager.BroadcastText(const AMessage: string);
 var
-  Connections: TArray<TMVCWebSocketConnection>;
-  Conn: TMVCWebSocketConnection;
-  SuccessCount: Integer;
+  lConnections: TArray<TMVCWebSocketConnection>;
+  lConn: TMVCWebSocketConnection;
+  lSuccessCount: Integer;
 begin
-  SuccessCount := 0;
-  Connections := GetAllConnections;
+  lSuccessCount := 0;
+  lConnections := GetAllConnections;
 
   // Debug: Log broadcast attempt
-  Log.Debug(Format('Broadcasting to %d connections', [Length(Connections)]), 'WebSocket');
+  Log.Debug(Format('Broadcasting to %d connections', [Length(lConnections)]), 'WebSocket');
 
-  for Conn in Connections do
+  for lConn in lConnections do
   begin
     try
-      if Conn.IsConnected then
+      if lConn.IsConnected then
       begin
-        Log.Debug('Sending to: ' + Conn.ConnectionId, 'WebSocket');
-        Conn.SendText(AMessage);
-        Inc(SuccessCount);
+        Log.Debug('Sending to: ' + lConn.ConnectionId, 'WebSocket');
+        lConn.SendText(AMessage);
+        Inc(lSuccessCount);
       end
       else
       begin
-        Log.Debug('Skipping disconnected: ' + Conn.ConnectionId, 'WebSocket');
+        Log.Debug('Skipping disconnected: ' + lConn.ConnectionId, 'WebSocket');
       end;
     except
+      on E: EMVCWebSocketException do
+      begin
+        if E.Message.Contains('Rate limit') then
+        begin
+          // Rate limit exceeded - log but continue
+          Log.Warn('Rate limit exceeded for ' + lConn.ConnectionId, 'WebSocket');
+        end
+        else
+        begin
+          // Other WebSocket error
+          Log.Error('Broadcast error to ' + lConn.ConnectionId + ': ' + E.Message, 'WebSocket');
+        end;
+      end;
       on E: Exception do
       begin
         // Log error but continue broadcasting to others
-        Log.Error('Broadcast error to ' + Conn.ConnectionId + ': ' + E.Message, 'WebSocket');
+        Log.Error('Broadcast error to ' + lConn.ConnectionId + ': ' + E.Message, 'WebSocket');
       end;
     end;
   end;
-  Log.Debug(Format('Broadcast completed: %d/%d successful', [SuccessCount, Length(Connections)]), 'WebSocket');
+  Log.Debug(Format('Broadcast completed: %d/%d successful', [lSuccessCount, Length(lConnections)]), 'WebSocket');
 end;
 
 procedure TMVCWebSocketConnectionManager.BroadcastBinary(const AData: TBytes);
 var
-  Connections: TArray<TMVCWebSocketConnection>;
-  Conn: TMVCWebSocketConnection;
+  lConnections: TArray<TMVCWebSocketConnection>;
+  lConn: TMVCWebSocketConnection;
 begin
-  Connections := GetAllConnections;
-  for Conn in Connections do
+  lConnections := GetAllConnections;
+  for lConn in lConnections do
   begin
     try
-      if Conn.IsConnected then
-        Conn.SendBinary(AData);
+      if lConn.IsConnected then
+        lConn.SendBinary(AData);
     except
-      // Ignore errors for individual connections
+      on E: EMVCWebSocketException do
+      begin
+        if E.Message.Contains('Rate limit') then
+          Log.Warn('Rate limit exceeded for ' + lConn.ConnectionId, 'WebSocket');
+      end;
+      // Ignore other errors for individual connections
     end;
   end;
 end;
@@ -510,14 +595,14 @@ end;
 procedure TMVCWebSocketConnectionManager.CloseAll(ACode: TMVCWebSocketCloseCode;
   const AReason: string);
 var
-  Connections: TArray<TMVCWebSocketConnection>;
-  Conn: TMVCWebSocketConnection;
+  lConnections: TArray<TMVCWebSocketConnection>;
+  lConn: TMVCWebSocketConnection;
 begin
-  Connections := GetAllConnections;
-  for Conn in Connections do
+  lConnections := GetAllConnections;
+  for lConn in lConnections do
   begin
     try
-      Conn.Close(ACode, AReason);
+      lConn.Close(ACode, AReason);
     except
       // Ignore errors
     end;
@@ -526,24 +611,24 @@ end;
 
 procedure TMVCWebSocketConnectionManager.RemoveStaleConnections(ATimeoutMinutes: Integer);
 var
-  Connections: TArray<TMVCWebSocketConnection>;
-  Conn: TMVCWebSocketConnection;
-  Cutoff: TDateTime;
+  lConnections: TArray<TMVCWebSocketConnection>;
+  lConn: TMVCWebSocketConnection;
+  lCutoff: TDateTime;
 begin
-  Cutoff := IncMinute(Now, -ATimeoutMinutes);
-  Connections := GetAllConnections;
+  lCutoff := IncMinute(Now, -ATimeoutMinutes);
+  lConnections := GetAllConnections;
 
-  for Conn in Connections do
+  for lConn in lConnections do
   begin
-    if (Conn.LastActivity < Cutoff) or (not Conn.IsConnected) then
+    if (lConn.LastActivity < lCutoff) or (not lConn.IsConnected) then
     begin
       try
-        if Conn.IsConnected then
-          Conn.Close(TMVCWebSocketCloseCode.GoingAway, 'Timeout');
+        if lConn.IsConnected then
+          lConn.Close(TMVCWebSocketCloseCode.GoingAway, 'Timeout');
       except
         // Ignore errors
       end;
-      RemoveConnection(Conn);
+      RemoveConnection(lConn);
     end;
   end;
 end;

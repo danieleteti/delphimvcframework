@@ -82,7 +82,10 @@ uses
   TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
   MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
   TestsBloomFilterU in 'TestsBloomFilterU.pas',
-  DotEnvTestU in 'DotEnvTestU.pas';
+  DotEnvTestU in 'DotEnvTestU.pas',
+  WebSocketTestsU in 'WebSocketTestsU.pas',
+  MVCFramework.WebSocket in '..\..\..\sources\MVCFramework.WebSocket.pas',
+  MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas';
 
 {$R *.RES}
 

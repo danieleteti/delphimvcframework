@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
-  MVCFramework.WebSocket.Client;
+  MVCFramework.WebSocket.Client, MVCFramework.WebSocket;
 
 type
   TFormWebSocketClient = class(TForm)
@@ -30,7 +30,7 @@ type
   private
     FWebSocketClient: TMVCWebSocketClient;
     procedure OnConnect(Sender: TMVCWebSocketClient);
-    procedure OnDisconnect(Sender: TMVCWebSocketClient);
+    procedure OnDisconnect(Sender: TMVCWebSocketClient; ACode: TMVCWebSocketCloseCode; const AReason: string);
     procedure OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
     procedure OnBinaryMessage(Sender: TMVCWebSocketClient; const AData: TBytes);
     procedure OnError(Sender: TMVCWebSocketClient; const AError: Exception);
@@ -48,7 +48,7 @@ implementation
 procedure TFormWebSocketClient.FormCreate(Sender: TObject);
 begin
   MemoLog.Clear;
-  EditURL.Text := 'ws://localhost:8080/ws/echo';
+  EditURL.Text := 'ws://localhost:9090/ws/echo';
   ButtonDisconnect.Enabled := False;
   ButtonSend.Enabled := False;
   ButtonPing.Enabled := False;
@@ -149,19 +149,28 @@ end;
 
 procedure TFormWebSocketClient.OnConnect(Sender: TMVCWebSocketClient);
 begin
-  TThread.Synchronize(nil,
+  TThread.Queue(nil,
     procedure
     begin
       Log('Connected!');
     end);
 end;
 
-procedure TFormWebSocketClient.OnDisconnect(Sender: TMVCWebSocketClient);
+procedure TFormWebSocketClient.OnDisconnect(Sender: TMVCWebSocketClient;
+  ACode: TMVCWebSocketCloseCode; const AReason: string);
+var
+  LCode: Integer;
+  LReason: string;
 begin
-  TThread.Synchronize(nil,
+  LCode := Ord(ACode);
+  LReason := AReason;
+  TThread.Queue(nil,
     procedure
     begin
-      Log('Disconnected!');
+      if LReason <> '' then
+        Log(Format('Disconnected! Code: %d, Reason: %s', [LCode, LReason]))
+      else
+        Log(Format('Disconnected! Code: %d', [LCode]));
       ButtonConnect.Enabled := True;
       ButtonDisconnect.Enabled := False;
       ButtonSend.Enabled := False;
@@ -172,7 +181,7 @@ end;
 
 procedure TFormWebSocketClient.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
 begin
-  TThread.Synchronize(nil,
+  TThread.Queue(nil,
     procedure
     begin
       Log('< ' + AMessage);
@@ -181,7 +190,7 @@ end;
 
 procedure TFormWebSocketClient.OnBinaryMessage(Sender: TMVCWebSocketClient; const AData: TBytes);
 begin
-  TThread.Synchronize(nil,
+  TThread.Queue(nil,
     procedure
     begin
       Log(Format('< Received %d bytes of binary data', [Length(AData)]));
@@ -190,7 +199,7 @@ end;
 
 procedure TFormWebSocketClient.OnError(Sender: TMVCWebSocketClient; const AError: Exception);
 begin
-  TThread.Synchronize(nil,
+  TThread.Queue(nil,
     procedure
     begin
       Log('ERROR: ' + AError.Message);

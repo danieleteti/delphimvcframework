@@ -51,6 +51,10 @@ type
     FConnectionManager: TMVCWebSocketConnectionManager;
     FPingInterval: Integer;
     FMaxMessageSize: Int64;
+    function GetMaxMessagesPerSecond: Integer;
+    procedure SetMaxMessagesPerSecond(const Value: Integer);
+    function GetMaxBytesPerSecond: Integer;
+    procedure SetMaxBytesPerSecond(const Value: Integer);
     procedure HandleConnection(AContext: TIdContext);
     function PerformHandshake(AContext: TIdContext): Boolean;
     procedure ProcessFrames(AConnection: TMVCWebSocketConnection);
@@ -151,6 +155,22 @@ type
     /// Default: 1MB
     /// </summary>
     property MaxMessageSize: Int64 read FMaxMessageSize write FMaxMessageSize;
+
+    /// <summary>
+    /// Maximum messages per second per connection (0 = disabled)
+    /// Default: 30 messages/sec
+    /// Set this property to customize rate limiting for your application
+    /// Example: MaxMessagesPerSecond := 50; // Allow 50 messages per second
+    /// </summary>
+    property MaxMessagesPerSecond: Integer read GetMaxMessagesPerSecond write SetMaxMessagesPerSecond;
+
+    /// <summary>
+    /// Maximum bytes per second per connection (0 = disabled)
+    /// Default: 102400 (100KB/sec)
+    /// Set this property to customize bandwidth limiting for your application
+    /// Example: MaxBytesPerSecond := 1048576; // Allow 1MB per second
+    /// </summary>
+    property MaxBytesPerSecond: Integer read GetMaxBytesPerSecond write SetMaxBytesPerSecond;
   end;
 
   /// <summary>
@@ -175,6 +195,8 @@ begin
   FConnectionManager := TMVCWebSocketConnectionManager.Create;
   FPingInterval := 30; // 30 seconds default
   FMaxMessageSize := 1024 * 1024; // 1MB default
+  // Rate limiting is configured with defaults in TMVCWebSocketConnectionManager
+  // (30 messages/sec, 100KB/sec)
 end;
 
 destructor TMVCWebSocketController.Destroy;
@@ -535,6 +557,26 @@ end;
 function TMVCWebSocketController.GetConnectionCount: Integer;
 begin
   Result := FConnectionManager.GetConnectionCount;
+end;
+
+function TMVCWebSocketController.GetMaxMessagesPerSecond: Integer;
+begin
+  Result := FConnectionManager.MaxMessagesPerSecond;
+end;
+
+procedure TMVCWebSocketController.SetMaxMessagesPerSecond(const Value: Integer);
+begin
+  FConnectionManager.MaxMessagesPerSecond := Value;
+end;
+
+function TMVCWebSocketController.GetMaxBytesPerSecond: Integer;
+begin
+  Result := FConnectionManager.MaxBytesPerSecond;
+end;
+
+procedure TMVCWebSocketController.SetMaxBytesPerSecond(const Value: Integer);
+begin
+  FConnectionManager.MaxBytesPerSecond := Value;
 end;
 
 end.

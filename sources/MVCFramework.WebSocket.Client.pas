@@ -50,7 +50,8 @@ type
   /// <summary>
   /// Event triggered when disconnected from the server
   /// </summary>
-  TMVCWebSocketClientDisconnectEvent = procedure(Sender: TMVCWebSocketClient) of object;
+  TMVCWebSocketClientDisconnectEvent = procedure(Sender: TMVCWebSocketClient;
+    ACode: TMVCWebSocketCloseCode; const AReason: string) of object;
 
   /// <summary>
   /// Event triggered when a text message is received
@@ -100,6 +101,7 @@ type
     procedure StartReceiveThread;
     procedure StopReceiveThread;
     procedure DoReceive;
+    procedure SendPong(const AData: TBytes);
   public
     constructor Create(const AURL: string);
     destructor Destroy; override;
@@ -286,7 +288,7 @@ begin
 
   // Generate random key
   SecWebSocketKey := TIdEncoderMIME.EncodeBytes(
-    TIdGlobal.IndyGetBytes(IntToStr(Random(MaxInt)) + IntToStr(DateTimeToUnix(Now))));
+    ToBytes(IntToStr(Random(MaxInt)) + IntToStr(DateTimeToUnix(Now))));
 
   // Calculate expected accept key
   ExpectedAccept := TMVCWebSocketHandshake.CalculateAcceptKey(SecWebSocketKey);
@@ -406,7 +408,7 @@ begin
 
     // Trigger event
     if Assigned(FOnDisconnect) then
-      FOnDisconnect(Self);
+      FOnDisconnect(Self, TMVCWebSocketCloseCode.NormalClosure, '');
 
   finally
     FLock.Leave;
@@ -461,6 +463,22 @@ begin
   end;
 end;
 
+procedure TMVCWebSocketClient.SendPong(const AData: TBytes);
+var
+  Frame: TMVCWebSocketFrame;
+begin
+  if not FConnected then
+    raise EMVCWebSocketClientException.Create('Not connected');
+
+  FLock.Enter;
+  try
+    Frame := TMVCWebSocketFrameParser.CreatePongFrame(AData, True); // Client must mask
+    TMVCWebSocketFrameParser.WriteFrame(FTCPClient.IOHandler, Frame);
+  finally
+    FLock.Leave;
+  end;
+end;
+
 function TMVCWebSocketClient.IsConnected: Boolean;
 begin
   FLock.Enter;
@@ -497,7 +515,7 @@ var
   CloseCode: TMVCWebSocketCloseCode;
   CloseReason: string;
 begin
-  while FConnected and not FReceiveThread.Terminated do
+  while FConnected and not TThread.CurrentThread.CheckTerminated do
   begin
     try
       // Check if data available
@@ -542,6 +560,10 @@ begin
             CloseCode := TMVCWebSocketCloseCode.NoStatusReceived;
             CloseReason := '';
           end;
+
+          // Trigger event before disconnecting
+          if Assigned(FOnDisconnect) then
+            FOnDisconnect(Self, CloseCode, CloseReason);
 
           Disconnect;
           Break;

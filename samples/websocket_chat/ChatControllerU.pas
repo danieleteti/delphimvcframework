@@ -58,7 +58,7 @@ type
     [MVCPath('/page')]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
-    procedure GetChatPage;
+    function GetChatPage: String;
   end;
 
 implementation
@@ -130,7 +130,6 @@ begin
   // NOTE: Do NOT call inherited - we manage connections in global manager
   // inherited would add to per-instance manager which is wrong
 
-  // CRITICAL: Add connection to GLOBAL manager (not per-instance)
   GChatConnectionManager.AddConnection(AConnection);
 
   Log.Info('New chat connection: ' + AConnection.ConnectionId, 'Chat');
@@ -301,13 +300,13 @@ begin
     Stats.I['messagesInHistory'] := Length(GetHistory);
     Stats.S['timestamp'] := DateTimeToStr(Now);
 
-    Render(Stats);
+    Render(Stats, False);
   finally
     Stats.Free;
   end;
 end;
 
-procedure TChatController.GetChatPage;
+function TChatController.GetChatPage: String;
 const
   HTML_PAGE =
     '<!DOCTYPE html>' +
@@ -455,9 +454,9 @@ const
     '</body>' +
     '</html>';
 begin
-  ContentType := TMVCMediaType.TEXT_HTML;
-  Render(HTML_PAGE);
+  Result := HTML_PAGE;
 end;
+
 
 initialization
   GChatHistory := TThreadList<string>.Create;

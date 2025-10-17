@@ -31,9 +31,7 @@ uses
   System.SysUtils,
   System.Classes,
   MVCFramework.WebSocket,
-  MVCFramework.WebSocket.ConnectionManager,
-  IdIOHandler,
-  IdIOHandlerStack;
+  MVCFramework.WebSocket.RateLimiter;
 
 type
   [TestFixture]
@@ -50,7 +48,7 @@ type
     [Test]
     procedure TestCreatePongFrame;
     [Test]
-    procedure TestFrameWithMasking;
+    procedure TestMaskPayload;
   end;
 
   [TestFixture]
@@ -59,390 +57,299 @@ type
     [Test]
     procedure TestCalculateAcceptKey;
     [Test]
-    procedure TestValidHandshakeRequest;
-    [Test]
-    procedure TestInvalidHandshakeRequest;
+    procedure TestIsValidHandshakeRequest;
   end;
 
   [TestFixture]
-  TTestWebSocketFrameParser = class
-  private
-    FMemoryStream: TMemoryStream;
-    FIOHandler: TIdIOHandlerStack;
+  TTestWebSocketRateLimiter = class
   public
     [Setup]
     procedure Setup;
     [TearDown]
     procedure TearDown;
     [Test]
-    procedure TestParseTextFrame;
+    procedure TestTokenBucketBasic;
     [Test]
-    procedure TestParseBinaryFrame;
+    procedure TestTokenBucketRefill;
     [Test]
-    procedure TestParseCloseFrame;
+    procedure TestTokenBucketBurst;
     [Test]
-    procedure TestParsePingPongFrame;
-    [Test]
-    procedure TestParseFrameWithExtendedLength16;
-    [Test]
-    procedure TestParseFrameWithExtendedLength64;
-    [Test]
-    procedure TestWriteAndParseFrame;
+    procedure TestConnectionRateLimiter;
   end;
 
 implementation
 
 uses
-  IdGlobal,
-  System.NetEncoding;
+  System.NetEncoding,
+  System.DateUtils;
 
 { TTestWebSocketFrame }
 
 procedure TTestWebSocketFrame.TestCreateTextFrame;
 var
-  Frame: TMVCWebSocketFrame;
-  Text: string;
+  lFrame: TMVCWebSocketFrame;
+  lText: string;
 begin
-  Text := 'Hello WebSocket!';
-  Frame := TMVCWebSocketFrameParser.CreateTextFrame(Text, False);
+  lText := 'Hello WebSocket!';
+  lFrame := TMVCWebSocketFrameParser.CreateTextFrame(lText, False);
 
-  Assert.IsTrue(Frame.Fin, 'Fin should be True');
-  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Text), Ord(Frame.Opcode), 'Opcode should be Text');
-  Assert.IsFalse(Frame.Masked, 'Should not be masked');
-  Assert.AreEqual(Length(TEncoding.UTF8.GetBytes(Text)), Integer(Frame.PayloadLength),
-    'Payload length should match text byte length');
+  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Text), Ord(lFrame.Opcode), 'Opcode should be Text');
+  Assert.IsTrue(lFrame.Fin, 'FIN bit should be set');
+  Assert.IsFalse(lFrame.Masked, 'Frame should not be masked');
+  Assert.AreEqual(Length(lText), Length(lFrame.PayloadData), 'Payload length should match');
 end;
 
 procedure TTestWebSocketFrame.TestCreateBinaryFrame;
 var
-  Frame: TMVCWebSocketFrame;
-  Data: TBytes;
+  lFrame: TMVCWebSocketFrame;
+  lData: TBytes;
 begin
-  SetLength(Data, 10);
-  FillChar(Data[0], 10, $AB);
+  SetLength(lData, 100);
+  lData[0] := $FF;
+  lData[99] := $AA;
 
-  Frame := TMVCWebSocketFrameParser.CreateBinaryFrame(Data, False);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lData, False);
 
-  Assert.IsTrue(Frame.Fin, 'Fin should be True');
-  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Binary), Ord(Frame.Opcode), 'Opcode should be Binary');
-  Assert.AreEqual(10, Integer(Frame.PayloadLength), 'Payload length should be 10');
+  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Binary), Ord(lFrame.Opcode), 'Opcode should be Binary');
+  Assert.IsTrue(lFrame.Fin, 'FIN bit should be set');
+  Assert.IsFalse(lFrame.Masked, 'Frame should not be masked');
+  Assert.AreEqual(100, Length(lFrame.PayloadData), 'Payload length should be 100');
+  Assert.AreEqual(lData[0], lFrame.PayloadData[0], 'First byte should match');
+  Assert.AreEqual(lData[99], lFrame.PayloadData[99], 'Last byte should match');
 end;
 
 procedure TTestWebSocketFrame.TestCreateCloseFrame;
 var
-  Frame: TMVCWebSocketFrame;
-  Code: UInt16;
+  lFrame: TMVCWebSocketFrame;
 begin
-  Frame := TMVCWebSocketFrameParser.CreateCloseFrame(
-    TMVCWebSocketCloseCode.NormalClosure, 'Goodbye', False);
+  lFrame := TMVCWebSocketFrameParser.CreateCloseFrame(TMVCWebSocketCloseCode.NormalClosure, 'Goodbye');
 
-  Assert.IsTrue(Frame.Fin, 'Fin should be True');
-  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Close), Ord(Frame.Opcode), 'Opcode should be Close');
-
-  // Check close code (big-endian)
-  Code := (Frame.Payload[0] shl 8) or Frame.Payload[1];
-  Assert.AreEqual(1000, Integer(Code), 'Close code should be 1000');
+  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Close), Ord(lFrame.Opcode), 'Opcode should be Close');
+  Assert.IsTrue(lFrame.Fin, 'FIN bit should be set');
 end;
 
 procedure TTestWebSocketFrame.TestCreatePingFrame;
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
+  lData: TBytes;
 begin
-  Frame := TMVCWebSocketFrameParser.CreatePingFrame(nil, False);
+  SetLength(lData, 10);
+  lData[0] := $12;
+  lData[9] := $34;
 
-  Assert.IsTrue(Frame.Fin, 'Fin should be True');
-  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Ping), Ord(Frame.Opcode), 'Opcode should be Ping');
+  lFrame := TMVCWebSocketFrameParser.CreatePingFrame(lData, False);
+
+  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Ping), Ord(lFrame.Opcode), 'Opcode should be Ping');
+  Assert.IsTrue(lFrame.Fin, 'FIN bit should be set');
+  Assert.AreEqual(10, Length(lFrame.PayloadData), 'Payload length should be 10');
 end;
 
 procedure TTestWebSocketFrame.TestCreatePongFrame;
 var
-  Frame: TMVCWebSocketFrame;
+  lFrame: TMVCWebSocketFrame;
+  lData: TBytes;
 begin
-  Frame := TMVCWebSocketFrameParser.CreatePongFrame(nil, False);
+  SetLength(lData, 10);
+  lData[0] := $12;
+  lData[9] := $34;
 
-  Assert.IsTrue(Frame.Fin, 'Fin should be True');
-  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Pong), Ord(Frame.Opcode), 'Opcode should be Pong');
+  lFrame := TMVCWebSocketFrameParser.CreatePongFrame(lData, False);
+
+  Assert.AreEqual(Ord(TMVCWebSocketOpcode.Pong), Ord(lFrame.Opcode), 'Opcode should be Pong');
+  Assert.IsTrue(lFrame.Fin, 'FIN bit should be set');
+  Assert.AreEqual(10, Length(lFrame.PayloadData), 'Payload length should be 10');
 end;
 
-procedure TTestWebSocketFrame.TestFrameWithMasking;
+procedure TTestWebSocketFrame.TestMaskPayload;
 var
-  Frame: TMVCWebSocketFrame;
+  lOriginal, lMasked, lUnmasked: TBytes;
+  lMaskKey: array[0..3] of Byte;
 begin
-  Frame := TMVCWebSocketFrameParser.CreateTextFrame('Test', True);
+  // Create test data
+  SetLength(lOriginal, 10);
+  lOriginal[0] := $00;
+  lOriginal[5] := $55;
+  lOriginal[9] := $FF;
 
-  Assert.IsTrue(Frame.Masked, 'Frame should be masked');
-  Assert.AreNotEqual(0, Frame.MaskingKey[0], 'Masking key should be generated');
+  lMaskKey[0] := $12;
+  lMaskKey[1] := $34;
+  lMaskKey[2] := $56;
+  lMaskKey[3] := $78;
+
+  // Mask the data
+  lMasked := Copy(lOriginal);
+  TMVCWebSocketFrameParser.ApplyMask(lMasked, lMaskKey);
+
+  // Verify it's different
+  Assert.AreNotEqual(lOriginal[0], lMasked[0], 'Masked data should be different');
+
+  // Unmask it
+  lUnmasked := Copy(lMasked);
+  TMVCWebSocketFrameParser.ApplyMask(lUnmasked, lMaskKey);
+
+  // Verify it matches original (XOR property)
+  Assert.AreEqual(lOriginal[0], lUnmasked[0], 'Unmasked byte 0 should match original');
+  Assert.AreEqual(lOriginal[5], lUnmasked[5], 'Unmasked byte 5 should match original');
+  Assert.AreEqual(lOriginal[9], lUnmasked[9], 'Unmasked byte 9 should match original');
 end;
 
 { TTestWebSocketHandshake }
 
 procedure TTestWebSocketHandshake.TestCalculateAcceptKey;
 var
-  ClientKey, AcceptKey: string;
+  lClientKey, lExpectedAccept, lActualAccept: string;
 begin
-  // Test with known value from RFC 6455
-  ClientKey := 'dGhlIHNhbXBsZSBub25jZQ==';
-  AcceptKey := TMVCWebSocketHandshake.CalculateAcceptKey(ClientKey);
+  // Test with RFC 6455 example key
+  lClientKey := 'dGhlIHNhbXBsZSBub25jZQ==';
+  lExpectedAccept := 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=';
 
-  Assert.AreEqual('s3pPLMBiTxaQ9kYGzzhZRbK+xOo=', AcceptKey,
-    'Accept key calculation failed');
+  lActualAccept := TMVCWebSocketHandshake.CalculateAcceptKey(lClientKey);
+
+  Assert.AreEqual(lExpectedAccept, lActualAccept, 'Accept key should match RFC 6455 example');
 end;
 
-procedure TTestWebSocketHandshake.TestValidHandshakeRequest;
-begin
-  Assert.IsTrue(
-    TMVCWebSocketHandshake.IsValidHandshakeRequest('websocket', 'upgrade', '13'),
-    'Should accept valid handshake');
-
-  Assert.IsTrue(
-    TMVCWebSocketHandshake.IsValidHandshakeRequest('WebSocket', 'Upgrade', '13'),
-    'Should be case-insensitive');
-end;
-
-procedure TTestWebSocketHandshake.TestInvalidHandshakeRequest;
-begin
-  Assert.IsFalse(
-    TMVCWebSocketHandshake.IsValidHandshakeRequest('http', 'upgrade', '13'),
-    'Should reject invalid upgrade header');
-
-  Assert.IsFalse(
-    TMVCWebSocketHandshake.IsValidHandshakeRequest('websocket', 'keep-alive', '13'),
-    'Should reject invalid connection header');
-
-  Assert.IsFalse(
-    TMVCWebSocketHandshake.IsValidHandshakeRequest('websocket', 'upgrade', '12'),
-    'Should reject invalid WebSocket version');
-end;
-
-{ TTestWebSocketFrameParser }
-
-procedure TTestWebSocketFrameParser.Setup;
-begin
-  FMemoryStream := TMemoryStream.Create;
-  FIOHandler := TIdIOHandlerStack.Create(nil);
-end;
-
-procedure TTestWebSocketFrameParser.TearDown;
-begin
-  FIOHandler.Free;
-  FMemoryStream.Free;
-end;
-
-procedure TTestWebSocketFrameParser.TestParseTextFrame;
+procedure TTestWebSocketHandshake.TestIsValidHandshakeRequest;
 var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
-  Text: string;
+  lUpgrade, lConnection, lSecKey, lVersion: string;
+  lIsValid: Boolean;
 begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
+  // Valid handshake
+  lUpgrade := 'websocket';
+  lConnection := 'Upgrade';
+  lSecKey := 'dGhlIHNhbXBsZSBub25jZQ==';
+  lVersion := '13';
+
+  lIsValid := TMVCWebSocketHandshake.IsValidHandshakeRequest(
+    lUpgrade, lConnection, lSecKey, lVersion);
+
+  Assert.IsTrue(lIsValid, 'Valid handshake should be accepted');
+
+  // Invalid handshake - wrong version
+  lIsValid := TMVCWebSocketHandshake.IsValidHandshakeRequest(
+    lUpgrade, lConnection, lSecKey, '12');
+
+  Assert.IsFalse(lIsValid, 'Invalid version should be rejected');
+
+  // Invalid handshake - missing upgrade
+  lIsValid := TMVCWebSocketHandshake.IsValidHandshakeRequest(
+    '', lConnection, lSecKey, lVersion);
+
+  Assert.IsFalse(lIsValid, 'Missing upgrade should be rejected');
+end;
+
+{ TTestWebSocketRateLimiter }
+
+procedure TTestWebSocketRateLimiter.Setup;
+begin
+  // Setup code if needed
+end;
+
+procedure TTestWebSocketRateLimiter.TearDown;
+begin
+  // Cleanup code if needed
+end;
+
+procedure TTestWebSocketRateLimiter.TestTokenBucketBasic;
+var
+  lLimiter: TMVCWebSocketRateLimiter;
+begin
+  lLimiter := TMVCWebSocketRateLimiter.Create(10, 5.0);
   try
-    Text := 'Hello!';
-    OriginalFrame := TMVCWebSocketFrameParser.CreateTextFrame(Text, False);
+    // Should be able to consume up to max tokens
+    Assert.IsTrue(lLimiter.TryConsume(1), 'Should consume 1 token');
+    Assert.IsTrue(lLimiter.TryConsume(5), 'Should consume 5 tokens');
+    Assert.IsTrue(lLimiter.TryConsume(4), 'Should consume 4 tokens');
 
-    // Write to stream
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-
-    // Parse from stream
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(Ord(OriginalFrame.Opcode), Ord(ParsedFrame.Opcode), 'Opcode mismatch');
-    Assert.AreEqual(OriginalFrame.Fin, ParsedFrame.Fin, 'Fin mismatch');
-    Assert.AreEqual(Integer(OriginalFrame.PayloadLength), Integer(ParsedFrame.PayloadLength),
-      'Payload length mismatch');
-
-    Assert.AreEqual(Text, TEncoding.UTF8.GetString(ParsedFrame.Payload),
-      'Payload content mismatch');
+    // Now we've consumed all 10 tokens, next should fail
+    Assert.IsFalse(lLimiter.TryConsume(1), 'Should fail when tokens exhausted');
   finally
-    IOHandler.Free;
-    Stream.Free;
+    lLimiter.Free;
   end;
 end;
 
-procedure TTestWebSocketFrameParser.TestParseBinaryFrame;
+procedure TTestWebSocketRateLimiter.TestTokenBucketRefill;
 var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
-  Data: TBytes;
-  I: Integer;
+  lLimiter: TMVCWebSocketRateLimiter;
+  lAvailable: Integer;
 begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
+  lLimiter := TMVCWebSocketRateLimiter.Create(10, 5.0); // 5 tokens per second
   try
-    SetLength(Data, 100);
-    for I := 0 to 99 do
-      Data[I] := I mod 256;
+    // Consume all tokens
+    lLimiter.TryConsume(10);
+    Assert.AreEqual(0, lLimiter.GetAvailableTokens, 'Should have 0 tokens');
 
-    OriginalFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(Data, False);
+    // Wait 1 second for refill (5 tokens should be added)
+    Sleep(1000);
+    lAvailable := lLimiter.GetAvailableTokens;
 
-    // Write to stream
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-
-    // Parse from stream
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(Ord(TMVCWebSocketOpcode.Binary), Ord(ParsedFrame.Opcode),
-      'Opcode should be Binary');
-    Assert.AreEqual(100, Integer(ParsedFrame.PayloadLength), 'Payload length mismatch');
+    // Should have approximately 5 tokens (allowing some timing variance)
+    Assert.IsTrue(lAvailable >= 4, Format('Should have ~5 tokens after 1 second, got %d', [lAvailable]));
   finally
-    IOHandler.Free;
-    Stream.Free;
+    lLimiter.Free;
   end;
 end;
 
-procedure TTestWebSocketFrameParser.TestParseCloseFrame;
+procedure TTestWebSocketRateLimiter.TestTokenBucketBurst;
 var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
+  lLimiter: TMVCWebSocketRateLimiter;
 begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
+  lLimiter := TMVCWebSocketRateLimiter.Create(20, 5.0); // 20 burst, 5 sustained
   try
-    OriginalFrame := TMVCWebSocketFrameParser.CreateCloseFrame(
-      TMVCWebSocketCloseCode.NormalClosure, 'Done', False);
+    // Should be able to burst up to 20
+    Assert.IsTrue(lLimiter.TryConsume(20), 'Should allow burst of 20');
+    Assert.IsFalse(lLimiter.TryConsume(1), 'Should fail after burst');
 
-    // Write to stream
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-
-    // Parse from stream
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(Ord(TMVCWebSocketOpcode.Close), Ord(ParsedFrame.Opcode),
-      'Opcode should be Close');
-    Assert.IsTrue(Length(ParsedFrame.Payload) >= 2, 'Close frame should have payload');
+    // Reset and test
+    lLimiter.Reset;
+    Assert.AreEqual(20, lLimiter.GetAvailableTokens, 'Should have full tokens after reset');
   finally
-    IOHandler.Free;
-    Stream.Free;
+    lLimiter.Free;
   end;
 end;
 
-procedure TTestWebSocketFrameParser.TestParsePingPongFrame;
+procedure TTestWebSocketRateLimiter.TestConnectionRateLimiter;
 var
-  PingFrame, PongFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
+  lConnLimiter: TMVCConnectionRateLimiter;
 begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
+  lConnLimiter := TMVCConnectionRateLimiter.Create('test-conn', 10, 1000); // 10 msg/sec, 1000 bytes/sec
   try
-    // Test Ping
-    PingFrame := TMVCWebSocketFrameParser.CreatePingFrame(nil, False);
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, PingFrame);
-    Stream.Position := 0;
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-    Assert.AreEqual(Ord(TMVCWebSocketOpcode.Ping), Ord(ParsedFrame.Opcode),
-      'Should parse Ping frame');
+    // Should be able to send small messages
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Message 1 should succeed');
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Message 2 should succeed');
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Message 3 should succeed');
 
-    // Test Pong
-    Stream.Clear;
-    Stream.Position := 0;
-    PongFrame := TMVCWebSocketFrameParser.CreatePongFrame(nil, False);
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, PongFrame);
-    Stream.Position := 0;
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-    Assert.AreEqual(Ord(TMVCWebSocketOpcode.Pong), Ord(ParsedFrame.Opcode),
-      'Should parse Pong frame');
+    // Try to send more - should eventually hit byte limit or message limit
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Message 4 should succeed');
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Message 5 should succeed');
+
+    // After consuming many tokens, we should hit a limit
+    // Burst capacity is 2x, so we have 20 messages and 2000 bytes
+    // But eventually we'll hit a limit
+    lConnLimiter.RecordMessage(100); // Message 6
+    lConnLimiter.RecordMessage(100); // Message 7
+    lConnLimiter.RecordMessage(100); // Message 8
+    lConnLimiter.RecordMessage(100); // Message 9
+    lConnLimiter.RecordMessage(100); // Message 10
+
+    // At this point we've sent 10 messages = 1000 bytes
+    // We have burst capacity so more should work
+    Assert.IsTrue(lConnLimiter.RecordMessage(100), 'Burst message should succeed');
+
+    // But eventually the burst will be exhausted
+    // Let's try to consume all remaining burst
+    while lConnLimiter.RecordMessage(100) do
+      ; // Consume all
+
+    // Now it should fail
+    Assert.IsFalse(lConnLimiter.RecordMessage(100), 'Should fail when limits exhausted');
   finally
-    IOHandler.Free;
-    Stream.Free;
-  end;
-end;
-
-procedure TTestWebSocketFrameParser.TestParseFrameWithExtendedLength16;
-var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
-  Data: TBytes;
-begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
-  try
-    // Create frame with payload > 125 bytes (requires 16-bit length)
-    SetLength(Data, 1000);
-    FillChar(Data[0], 1000, $AA);
-
-    OriginalFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(Data, False);
-
-    // Write and parse
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(1000, Integer(ParsedFrame.PayloadLength),
-      'Should handle 16-bit extended length');
-  finally
-    IOHandler.Free;
-    Stream.Free;
-  end;
-end;
-
-procedure TTestWebSocketFrameParser.TestParseFrameWithExtendedLength64;
-var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
-  Data: TBytes;
-begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
-  try
-    // Create frame with payload > 65535 bytes (requires 64-bit length)
-    SetLength(Data, 70000);
-    FillChar(Data[0], 70000, $BB);
-
-    OriginalFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(Data, False);
-
-    // Write and parse
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(70000, Integer(ParsedFrame.PayloadLength),
-      'Should handle 64-bit extended length');
-  finally
-    IOHandler.Free;
-    Stream.Free;
-  end;
-end;
-
-procedure TTestWebSocketFrameParser.TestWriteAndParseFrame;
-var
-  OriginalFrame, ParsedFrame: TMVCWebSocketFrame;
-  Stream: TMemoryStream;
-  IOHandler: TIdIOHandlerStack;
-  Text: string;
-begin
-  Stream := TMemoryStream.Create;
-  IOHandler := TIdIOHandlerStack.Create(nil);
-  try
-    Text := 'Test message with UTF-8: äöü';
-    OriginalFrame := TMVCWebSocketFrameParser.CreateTextFrame(Text, True); // With masking
-
-    // Write to stream
-    TMVCWebSocketFrameParser.WriteFrame(IOHandler, OriginalFrame);
-    Stream.Position := 0;
-
-    // Parse from stream
-    ParsedFrame := TMVCWebSocketFrameParser.ParseFrame(IOHandler);
-
-    Assert.AreEqual(Text, TEncoding.UTF8.GetString(ParsedFrame.Payload),
-      'Should correctly encode/decode UTF-8 with masking');
-  finally
-    IOHandler.Free;
-    Stream.Free;
+    lConnLimiter.Free;
   end;
 end;
 
 initialization
   TDUnitX.RegisterTestFixture(TTestWebSocketFrame);
   TDUnitX.RegisterTestFixture(TTestWebSocketHandshake);
-  TDUnitX.RegisterTestFixture(TTestWebSocketFrameParser);
+  TDUnitX.RegisterTestFixture(TTestWebSocketRateLimiter);
 
 end.

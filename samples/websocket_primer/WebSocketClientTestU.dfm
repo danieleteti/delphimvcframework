@@ -17,13 +17,13 @@ object FormWebSocketClient: TFormWebSocketClient
     Left = 0
     Top = 0
     Width = 624
-    Height = 81
+    Height = 97
     Align = alTop
     TabOrder = 0
     object Label1: TLabel
       Left = 16
       Top = 16
-      Width = 78
+      Width = 80
       Height = 13
       Caption = 'WebSocket URL:'
     end
@@ -33,7 +33,7 @@ object FormWebSocketClient: TFormWebSocketClient
       Width = 457
       Height = 21
       TabOrder = 0
-      Text = 'ws://localhost:8080/ws/echo'
+      Text = 'ws://localhost:9090/ws/echo'
     end
     object ButtonConnect: TButton
       Left = 488
@@ -55,7 +55,7 @@ object FormWebSocketClient: TFormWebSocketClient
     end
     object CheckAutoReconnect: TCheckBox
       Left = 16
-      Top = 58
+      Top = 62
       Width = 153
       Height = 17
       Caption = 'Auto-Reconnect'
@@ -63,7 +63,7 @@ object FormWebSocketClient: TFormWebSocketClient
     end
     object ButtonPing: TButton
       Left = 392
-      Top = 54
+      Top = 62
       Width = 81
       Height = 25
       Caption = 'Send Ping'
@@ -73,9 +73,9 @@ object FormWebSocketClient: TFormWebSocketClient
   end
   object MemoLog: TMemo
     Left = 0
-    Top = 81
+    Top = 97
     Width = 624
-    Height = 304
+    Height = 288
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -86,6 +86,8 @@ object FormWebSocketClient: TFormWebSocketClient
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 1
+    ExplicitTop = 81
+    ExplicitHeight = 304
   end
   object PanelBottom: TPanel
     Left = 0
