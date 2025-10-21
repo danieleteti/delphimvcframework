@@ -28,8 +28,6 @@ object MainForm: TMainForm
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 0
-    ExplicitLeft = 0
-    ExplicitWidth = 884
   end
   object Panel1: TPanel
     Left = 0

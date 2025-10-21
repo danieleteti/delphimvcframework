@@ -130,7 +130,7 @@ begin
       lCustomer.City := Cities[Random(Length(Cities))];
       lCustomer.Rating := Random(5) + 1;
       lCustomer.Note := 'Sample customer ' + I.ToString;
-      lCustomer.Insert;
+      lRepo.Insert(lCustomer);
     finally
       lCustomer.Free;
     end;
