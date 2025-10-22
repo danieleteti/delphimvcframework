@@ -615,7 +615,7 @@ begin
         _dict.Add(lRttiProp.Name, tf.FieldName);
         _keys.Add(lRttiProp.Name, foPrimaryKey in tf.FieldOptions);
       end
-      else if _attribute is MVCDoNotSerializeAttribute then
+      else if _attribute is MVCDoNotDeSerializeAttribute then
         FoundTransientAttribute := true;
     end;
     if ((not FoundAttribute) and (not FoundTransientAttribute)) then
