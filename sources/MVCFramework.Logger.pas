@@ -194,6 +194,8 @@ end;
 function LogLevelToStr(ALogLevel: TLogLevel): string;
 begin
     case ALogLevel of
+      levDebug :
+        Result := 'DEBUG';
       levNormal:
         Result := ''; // normal is '' because is more readable
       levWarning:
