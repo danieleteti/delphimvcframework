@@ -2694,59 +2694,68 @@ begin
   InternalObjectToJsonObject(AObject, AJSONObject, AType, AIgnoredAttributes, nil, nil, nil);
 end;
 
-procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(
-  const AObject: TObject;
-  const AJSONObject: TJDOJsonObject;
-  const AType: TMVCSerializationType;
-  const AIgnoredAttributes: TMVCIgnoredList;
-  const ASerializationAction: TMVCSerializationAction;
-  const Links: IMVCLinks;
-  const Serializer: IMVCTypeSerializer);
+procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(const AObject: TObject; const AJSONObject: TJDOJsonObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks; const Serializer: IMVCTypeSerializer);
 var
-  ObjType: TRttiType;
-  Prop: TRttiProperty;
-  Fld: TRttiField;
+  LRttiType: TRttiType;
+  LRttiProperty: TRttiProperty;
+  LRttiField: TRttiField;
+  LFieldName: string;
+  LQualifiedFieldName: string;
 begin
   { TODO -oDanieleT -cGeneral : Find a way to automatically add HATEOS }
   if AObject = nil then
   begin
     Exit;
   end;
-  ObjType := GetRttiContext.GetType(AObject.ClassType);
+  LRttiType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
-        for Prop in ObjType.GetProperties do
+        for LRttiProperty in LRttiType.GetProperties do
         begin
-          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+          if TMVCSerializerHelper.IsAPropertyToSkip(LRttiProperty.Name) then
           begin
             Continue;
           end;
-
-//          if Prop.Name = 'RefCount' then
-//          begin
-//            Continue;
-//          end;
-
-{$IFDEF AUTOREFCOUNT}
-          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+          {$IFDEF AUTOREFCOUNT}
+          if TMVCSerializerHelper.IsAPropertyToSkip(LRttiProperty.Name) then
             continue;
+          {$ENDIF}
 
-{$ENDIF}
-          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
-            TValueToJSONObjectProperty(AJSONObject, TMVCSerializerHelper.GetKeyName(Prop, ObjType),
-              Prop.GetValue(AObject), AType, AIgnoredAttributes, Prop.GetAttributes);
+          LFieldName := LRttiProperty.Name;
+          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiProperty.Name]);
+          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiProperty)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
+          then
+            TValueToJSONObjectProperty(
+              AJSONObject,
+              TMVCSerializerHelper.GetKeyName(LRttiProperty, LRttiType),
+              LRttiProperty.GetValue(AObject),
+              AType,
+              AIgnoredAttributes,
+              LRttiProperty.GetAttributes
+            );
         end;
       end;
     stFields:
       begin
-        for Fld in ObjType.GetFields do
+        for LRttiField in LRttiType.GetFields do
         begin
-          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
-            TValueToJSONObjectProperty(AJSONObject, TMVCSerializerHelper.GetKeyName(Fld, ObjType),
-              Fld.GetValue(AObject), AType, AIgnoredAttributes, Fld.GetAttributes);
+          LFieldName := LRttiField.Name;
+          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiField.Name]);
+          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiField)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
+          then
+            TValueToJSONObjectProperty(
+              AJSONObject,
+              TMVCSerializerHelper.GetKeyName(LRttiField, LRttiType),
+              LRttiField.GetValue(AObject),
+              AType,
+              AIgnoredAttributes,
+              LRttiField.GetAttributes
+            );
         end;
       end;
   end;
