@@ -58,15 +58,14 @@ begin
       // Called when: A client successfully connects after WebSocket handshake completes
       // Use for:
       //   - Initialize per-client session data (AClient.Data := TMyClass.Create)
-      //   - Set per-client periodic message interval (AInitialInterval := 5000)
+      //   - Set per-client periodic message interval (AClient.PeriodicInterval := 5000)
       //   - Log connection events
       //   - Authenticate/authorize clients
       //   - Send welcome messages
       // Parameters:
       //   - AClient: The connected client object
-      //   - AInitialInterval: var parameter - set to override server default periodic interval
       // ============================================================================
-      Server.OnClientConnect := procedure(AClient: TWebSocketClient; var AInitialInterval: Integer)
+      Server.OnClientConnect := procedure(AClient: TWebSocketClient)
       begin
         Writeln(Format('[%s] CLIENT CONNECTED: %s', [TimeToStr(Now), AClient.ClientId]));
 
@@ -76,17 +75,17 @@ begin
         // Set different intervals based on client IP
         if AClient.ClientId.StartsWith('192.168.') then
         begin
-          AInitialInterval := 3000; // Local network: every 3 seconds
+          AClient.PeriodicInterval := 3000; // Local network: every 3 seconds
           Writeln(Format('  -> Local client, setting interval to 3 seconds', []));
         end
         else if AClient.ClientId = '127.0.0.1' then
         begin
-          AInitialInterval := 2000; // Localhost: every 2 seconds (for testing)
+          AClient.PeriodicInterval := 2000; // Localhost: every 2 seconds (for testing)
           Writeln(Format('  -> Localhost client, setting interval to 2 seconds', []));
         end
         else
         begin
-          AInitialInterval := 10000; // Others: every 10 seconds
+          AClient.PeriodicInterval := 10000; // Others: every 10 seconds
           Writeln(Format('  -> Remote client, setting interval to 10 seconds', []));
         end;
       end;
@@ -118,8 +117,8 @@ begin
       // Called when: A text message is received from a client
       // Use for:
       //   - Process incoming text messages
-      //   - Send responses via Server.SendTextToClient(AClient, 'response')
-      //   - Broadcast to all clients via Server.BroadcastText('message')
+      //   - Send responses using AClient methods (Broadcast, BroadcastToPeers, SendTo, etc.)
+      //   - Send direct responses via Server.SendTextToClient(AClient, 'response')
       //   - Access client session data via AClient.Data
       // Parameters:
       //   - AClient: The client who sent the message
@@ -129,8 +128,8 @@ begin
       begin
         Writeln(Format('[%s] Message from %s: %s', [TimeToStr(Now), AClient.ClientId, AMessage]));
 
-        // Echo back the message
-        Server.SendTextToClient(AClient, Format('Echo: %s', [AMessage]));
+        // Echo back the message using client method
+        AClient.SendText(Format('Echo: %s', [AMessage]));
       end;
 
       // ============================================================================

@@ -15,8 +15,15 @@ uses
   MVCFramework.WebSocket;
 
 type
-  // Forward declaration
+  /// <summary>
+  /// Exception raised to terminate a WebSocket connection
+  /// Can be raised from any event handler (OnMessage, OnClientConnect, etc.)
+  /// </summary>
+  EMVCWebSocketDisconnect = class(Exception);
+
+  // Forward declarations
   TWebSocketClient = class;
+  TMVCWebSocketServer = class;
 
   /// <summary>
   /// Event types for WebSocket server callbacks
@@ -28,11 +35,8 @@ type
   /// <summary>
   /// Called when client connects after successful handshake
   /// AClient.Data: Assign your custom object here, will be freed automatically on disconnect
-  /// AInitialInterval: Set the initial periodic message interval for this client
-  ///   Use 0 to disable periodic messages for this client
-  ///   If not modified, uses the server's default PeriodicMessageInterval
   /// </summary>
-  TWebSocketClientConnectEvent = reference to procedure(AClient: TWebSocketClient; var AInitialInterval: Integer);
+  TWebSocketClientConnectEvent = reference to procedure(AClient: TWebSocketClient);
   /// <summary>
   /// Called when client disconnects
   /// AClient.Data is still available here, will be freed after this event
@@ -53,15 +57,88 @@ type
   private
     FContext: TIdContext;
     FClientId: string;
+    FUsername: string;
+    FGroups: TArray<string>;
     FData: TObject;
     FOwnsData: Boolean;
     FPeriodicInterval: Integer;
+    FServer: TMVCWebSocketServer;
+    function GetConnectedUsersCount: Integer;
   public
-    constructor Create(AContext: TIdContext; const AClientId: string; AOwnsData: Boolean = True);
+    constructor Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer; AOwnsData: Boolean = True);
     destructor Destroy; override;
+
+    /// <summary>
+    /// Send text message to this client
+    /// </summary>
+    procedure SendText(const AMessage: string);
+
+    /// <summary>
+    /// Send binary data to this client
+    /// </summary>
+    procedure SendBinary(const AData: TBytes);
+
+    /// <summary>
+    /// Broadcast text message to all connected clients (including self)
+    /// </summary>
+    procedure Broadcast(const AMessage: string);
+
+    /// <summary>
+    /// Broadcast text message to all connected clients except self
+    /// </summary>
+    procedure BroadcastToPeers(const AMessage: string);
+
+    /// <summary>
+    /// Send text message to a specific user by username
+    /// Returns True if user was found and message sent
+    /// </summary>
+    function SendTo(const AUsername: string; const AMessage: string): Boolean;
+
+    /// <summary>
+    /// Send text message to all users in a specific group
+    /// Returns number of users who received the message
+    /// </summary>
+    function SendToGroup(const AGroupName: string; const AMessage: string): Integer;
+
+    /// <summary>
+    /// Add this client to a group
+    /// </summary>
+    procedure JoinGroup(const AGroupName: string);
+
+    /// <summary>
+    /// Remove this client from a group
+    /// </summary>
+    procedure LeaveGroup(const AGroupName: string);
+
+    /// <summary>
+    /// Check if this client is in a specific group
+    /// </summary>
+    function IsInGroup(const AGroupName: string): Boolean;
+
+    /// <summary>
+    /// Disconnect this client
+    /// Raises EMVCWebSocketDisconnect exception to terminate the connection cleanly
+    /// </summary>
+    procedure Disconnect(const AReason: string = '');
 
     property Context: TIdContext read FContext;
     property ClientId: string read FClientId;
+
+    /// <summary>
+    /// Username for this client (can be set in OnClientConnect)
+    /// If not set, defaults to ClientId (IP address)
+    /// </summary>
+    property Username: string read FUsername write FUsername;
+
+    /// <summary>
+    /// Groups this client belongs to
+    /// </summary>
+    property Groups: TArray<string> read FGroups;
+
+    /// <summary>
+    /// Total number of connected users
+    /// </summary>
+    property ConnectedUsersCount: Integer read GetConnectedUsersCount;
 
     /// <summary>
     /// Custom session data for this client
@@ -106,7 +183,7 @@ type
     procedure DoMessage(AClient: TWebSocketClient; const AMessage: string); virtual;
     procedure DoBinaryData(AClient: TWebSocketClient; const AData: TBytes); virtual;
     procedure DoError(AClient: TWebSocketClient; const AError: string); virtual;
-    procedure DoClientConnect(AClient: TWebSocketClient; var AInitialInterval: Integer); virtual;
+    procedure DoClientConnect(AClient: TWebSocketClient); virtual;
     procedure DoClientDisconnect(AClient: TWebSocketClient); virtual;
     /// <summary>
     /// Override this to handle incoming text messages
@@ -149,6 +226,22 @@ type
     /// </summary>
     procedure SendBinaryToClient(AClient: TWebSocketClient; const AData: TBytes);
 
+    /// <summary>
+    /// Find a client by username
+    /// Returns nil if not found
+    /// </summary>
+    function FindClientByUsername(const AUsername: string): TWebSocketClient;
+
+    /// <summary>
+    /// Get all clients in a specific group
+    /// </summary>
+    function GetClientsByGroup(const AGroupName: string): TArray<TWebSocketClient>;
+
+    /// <summary>
+    /// Get all connected usernames
+    /// </summary>
+    function GetConnectedUsernames: TArray<string>;
+
     property ClientCount: Integer read GetClientCount;
     property OnLog: TWebSocketLogEvent read FOnLog write FOnLog;
     property OnMessage: TWebSocketMessageEvent read FOnMessage write FOnMessage;
@@ -167,14 +260,17 @@ uses
 
 { TWebSocketClient }
 
-constructor TWebSocketClient.Create(AContext: TIdContext; const AClientId: string; AOwnsData: Boolean);
+constructor TWebSocketClient.Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer; AOwnsData: Boolean);
 begin
   inherited Create;
   FContext := AContext;
   FClientId := AClientId;
+  FUsername := AClientId; // Default username is ClientId (IP address)
+  FServer := AServer;
   FData := nil;
   FOwnsData := AOwnsData;
   FPeriodicInterval := 0; // Will use server default
+  SetLength(FGroups, 0); // Empty groups array
 end;
 
 destructor TWebSocketClient.Destroy;
@@ -182,6 +278,127 @@ begin
   if FOwnsData and Assigned(FData) then
     FData.Free;
   inherited;
+end;
+
+procedure TWebSocketClient.SendText(const AMessage: string);
+begin
+  if Assigned(FServer) then
+    FServer.SendTextToClient(Self, AMessage);
+end;
+
+procedure TWebSocketClient.SendBinary(const AData: TBytes);
+begin
+  if Assigned(FServer) then
+    FServer.SendBinaryToClient(Self, AData);
+end;
+
+procedure TWebSocketClient.Broadcast(const AMessage: string);
+begin
+  if Assigned(FServer) then
+    FServer.BroadcastText(AMessage);
+end;
+
+procedure TWebSocketClient.BroadcastToPeers(const AMessage: string);
+begin
+  if Assigned(FServer) then
+    FServer.BroadcastText(AMessage, Self);
+end;
+
+function TWebSocketClient.SendTo(const AUsername: string; const AMessage: string): Boolean;
+var
+  LTargetClient: TWebSocketClient;
+begin
+  Result := False;
+  if Assigned(FServer) then
+  begin
+    LTargetClient := FServer.FindClientByUsername(AUsername);
+    if Assigned(LTargetClient) then
+    begin
+      FServer.SendTextToClient(LTargetClient, AMessage);
+      Result := True;
+    end;
+  end;
+end;
+
+function TWebSocketClient.SendToGroup(const AGroupName: string; const AMessage: string): Integer;
+var
+  LClients: TArray<TWebSocketClient>;
+  LClient: TWebSocketClient;
+begin
+  Result := 0;
+  if Assigned(FServer) then
+  begin
+    LClients := FServer.GetClientsByGroup(AGroupName);
+    for LClient in LClients do
+    begin
+      FServer.SendTextToClient(LClient, AMessage);
+      Inc(Result);
+    end;
+  end;
+end;
+
+procedure TWebSocketClient.JoinGroup(const AGroupName: string);
+var
+  I: Integer;
+begin
+  // Check if already in group
+  for I := 0 to Length(FGroups) - 1 do
+  begin
+    if SameText(FGroups[I], AGroupName) then
+      Exit; // Already in group
+  end;
+
+  // Add to group
+  SetLength(FGroups, Length(FGroups) + 1);
+  FGroups[Length(FGroups) - 1] := AGroupName;
+end;
+
+procedure TWebSocketClient.LeaveGroup(const AGroupName: string);
+var
+  I, J: Integer;
+begin
+  for I := 0 to Length(FGroups) - 1 do
+  begin
+    if SameText(FGroups[I], AGroupName) then
+    begin
+      // Remove this group by shifting array
+      for J := I to Length(FGroups) - 2 do
+        FGroups[J] := FGroups[J + 1];
+      SetLength(FGroups, Length(FGroups) - 1);
+      Exit;
+    end;
+  end;
+end;
+
+function TWebSocketClient.IsInGroup(const AGroupName: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to Length(FGroups) - 1 do
+  begin
+    if SameText(FGroups[I], AGroupName) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function TWebSocketClient.GetConnectedUsersCount: Integer;
+begin
+  if Assigned(FServer) then
+    Result := FServer.ClientCount
+  else
+    Result := 0;
+end;
+
+procedure TWebSocketClient.Disconnect(const AReason: string);
+begin
+  if AReason.IsEmpty then
+    raise EMVCWebSocketDisconnect.Create('Client disconnected')
+  else
+    raise EMVCWebSocketDisconnect.Create(AReason);
 end;
 
 { TMVCWebSocketServer }
@@ -227,10 +444,10 @@ begin
     FOnError(AClient, AError);
 end;
 
-procedure TMVCWebSocketServer.DoClientConnect(AClient: TWebSocketClient; var AInitialInterval: Integer);
+procedure TMVCWebSocketServer.DoClientConnect(AClient: TWebSocketClient);
 begin
   if Assigned(FOnClientConnect) then
-    FOnClientConnect(AClient, AInitialInterval);
+    FOnClientConnect(AClient);
 end;
 
 procedure TMVCWebSocketServer.DoClientDisconnect(AClient: TWebSocketClient);
@@ -263,7 +480,7 @@ function TMVCWebSocketServer.PerformHandshake(AContext: TIdContext; out AClientI
 var
   LRequestLine, LLine: string;
   LHeaders: TStringList;
-  LWebSocketKey, LAcceptKey: string;
+  LWebSocketKey, LAcceptKey, LProtocol: string;
   LIOHandler: TIdIOHandler;
 begin
   Result := False;
@@ -284,14 +501,18 @@ begin
       LHeaders.Add(LLine);
     end;
 
-    // Find Sec-WebSocket-Key
+    // Find required headers
     LWebSocketKey := '';
+    LProtocol := '';
     for LLine in LHeaders do
     begin
       if LLine.StartsWith('Sec-WebSocket-Key:', True) then
       begin
         LWebSocketKey := LLine.Substring(18).Trim;
-        Break;
+      end
+      else if LLine.StartsWith('Sec-WebSocket-Protocol:', True) then
+      begin
+        LProtocol := LLine.Substring(23).Trim;
       end;
     end;
 
@@ -301,18 +522,34 @@ begin
     // Calculate accept key
     LAcceptKey := TMVCWebSocketHandshake.CalculateAcceptKey(LWebSocketKey);
 
+    // Extract client ID from protocol header (format: "chat-username")
+    if not LProtocol.IsEmpty then
+    begin
+      if LProtocol.StartsWith('chat-') then
+        AClientId := LProtocol.Substring(5) // Extract username after "chat-"
+      else
+        AClientId := LProtocol; // Use protocol as-is if not chat format
+    end
+    else
+    begin
+      // Fallback to IP if no protocol specified
+      AClientId := AContext.Connection.Socket.Binding.PeerIP;
+    end;
+
     // Send 101 Switching Protocols response
     LIOHandler.WriteLn('HTTP/1.1 101 Switching Protocols');
     LIOHandler.WriteLn('Upgrade: websocket');
     LIOHandler.WriteLn('Connection: Upgrade');
     LIOHandler.WriteLn('Sec-WebSocket-Accept: ' + LAcceptKey);
+
+    // Echo back the protocol if client sent one
+    if not LProtocol.IsEmpty then
+      LIOHandler.WriteLn('Sec-WebSocket-Protocol: ' + LProtocol);
+
     LIOHandler.WriteLn(''); // Empty line to end headers
 
     // CRITICAL: Clear buffer after handshake
     LIOHandler.InputBuffer.Clear;
-
-    // Use client IP as ID
-    AClientId := AContext.Connection.Socket.Binding.PeerIP;
 
     Result := True;
   finally
@@ -421,6 +658,12 @@ begin
       end;
 
     except
+      on E: EMVCWebSocketDisconnect do
+      begin
+        // Client requested disconnection - terminate cleanly
+        DoLog(Format('Client %s disconnected: %s', [AClient.ClientId, E.Message]));
+        Break;
+      end;
       on E: Exception do
       begin
         DoError(AClient, E.Message);
@@ -434,7 +677,6 @@ procedure TMVCWebSocketServer.OnExecuteEvent(AContext: TIdContext);
 var
   LClientId: string;
   LClient: TWebSocketClient;
-  LInitialInterval: Integer;
 begin
   LClient := nil;
   try
@@ -444,7 +686,7 @@ begin
       DoLog(Format('WebSocket handshake successful for %s', [LClientId]));
 
       // Create client object
-      LClient := TWebSocketClient.Create(AContext, LClientId);
+      LClient := TWebSocketClient.Create(AContext, LClientId, Self);
 
       // Add to clients list
       FClientsLock.Enter;
@@ -454,15 +696,9 @@ begin
         FClientsLock.Leave;
       end;
 
-      // Get default interval
-      LInitialInterval := FPeriodicMessageInterval;
 
-      // Notify client connected (can modify LInitialInterval and set LClient.Data)
-      DoClientConnect(LClient, LInitialInterval);
-
-      // Save the interval for this client if modified
-      LClient.PeriodicInterval := LInitialInterval;
-
+      // Notify client connected
+      DoClientConnect(LClient);
       // Process WebSocket frames
       ProcessFrames(LClient);
     end
@@ -556,6 +792,69 @@ var
 begin
   LFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(AData, False);
   TMVCWebSocketFrameParser.WriteFrame(AClient.Context.Connection.IOHandler, LFrame);
+end;
+
+function TMVCWebSocketServer.FindClientByUsername(const AUsername: string): TWebSocketClient;
+var
+  LClient: TWebSocketClient;
+begin
+  Result := nil;
+  FClientsLock.Enter;
+  try
+    for LClient in FClients do
+    begin
+      if SameText(LClient.Username, AUsername) then
+      begin
+        Result := LClient;
+        Exit;
+      end;
+    end;
+  finally
+    FClientsLock.Leave;
+  end;
+end;
+
+function TMVCWebSocketServer.GetClientsByGroup(const AGroupName: string): TArray<TWebSocketClient>;
+var
+  LClient: TWebSocketClient;
+  LList: TList<TWebSocketClient>;
+begin
+  LList := TList<TWebSocketClient>.Create;
+  try
+    FClientsLock.Enter;
+    try
+      for LClient in FClients do
+      begin
+        if LClient.IsInGroup(AGroupName) then
+          LList.Add(LClient);
+      end;
+    finally
+      FClientsLock.Leave;
+    end;
+    Result := LList.ToArray;
+  finally
+    LList.Free;
+  end;
+end;
+
+function TMVCWebSocketServer.GetConnectedUsernames: TArray<string>;
+var
+  LClient: TWebSocketClient;
+  LList: TList<string>;
+begin
+  LList := TList<string>.Create;
+  try
+    FClientsLock.Enter;
+    try
+      for LClient in FClients do
+        LList.Add(LClient.Username);
+    finally
+      FClientsLock.Leave;
+    end;
+    Result := LList.ToArray;
+  finally
+    LList.Free;
+  end;
 end;
 
 end.

@@ -79,12 +79,12 @@ Connect with:
 Server.PeriodicMessageInterval := 5000; // 5 seconds
 
 // Or configure per-client in OnClientConnect
-Server.OnClientConnect := procedure(AClient: TWebSocketClient; var AInitialInterval: Integer)
+Server.OnClientConnect := procedure(AClient: TWebSocketClient)
 begin
   if AClient.ClientId = '127.0.0.1' then
-    AInitialInterval := 2000  // Localhost: every 2 seconds
+    AClient.PeriodicInterval := 2000  // Localhost: every 2 seconds
   else
-    AInitialInterval := 10000; // Others: every 10 seconds
+    AClient.PeriodicInterval := 10000; // Others: every 10 seconds
 end;
 ```
 
@@ -112,7 +112,24 @@ begin
 end;
 ```
 
-### 4. All Event Handlers
+### 4. Sending Messages to Clients
+```delphi
+// Send echo response using client method
+Server.OnMessage := procedure(AClient: TWebSocketClient; const AMessage: string)
+begin
+  // Simple and direct - send to this client
+  AClient.SendText(Format('Echo: %s', [AMessage]));
+
+  // Alternative methods available:
+  // AClient.SendBinary(ByteData);           // Send binary data
+  // AClient.Broadcast(msg);                 // Send to all clients including self
+  // AClient.BroadcastToPeers(msg);          // Send to all except self
+  // AClient.SendTo(username, msg);          // Send to specific user
+  // AClient.SendToGroup(groupName, msg);    // Send to a group
+end;
+```
+
+### 5. All Event Handlers
 The demo shows usage of:
 - ✅ `OnLog` - Server internal events
 - ✅ `OnClientConnect` - Client connection with session initialization
@@ -131,12 +148,22 @@ Uses `TMVCWebSocketServer` - a unified WebSocket server that supports:
 - Broadcast/chat patterns (see `websocket_chat` demo)
 - Hybrid patterns combining both
 
-### Per-Client State
-Each connected client has:
+### Per-Client Methods
+Each connected client (`TWebSocketClient`) has methods to send messages:
+- `AClient.SendText(msg)` - Send text message to this client
+- `AClient.SendBinary(data)` - Send binary data to this client
+- `AClient.Broadcast(msg)` - Send to all clients including self
+- `AClient.BroadcastToPeers(msg)` - Send to all other clients (excluding self)
+- `AClient.SendTo(username, msg)` - Send to a specific user by username
+- `AClient.SendToGroup(groupName, msg)` - Send to all users in a group
+
+### Per-Client Properties
 - `AClient.ClientId` - Unique identifier (IP address)
+- `AClient.Username` - Username (can be set, defaults to ClientId)
 - `AClient.Data` - Custom session object (auto-freed)
 - `AClient.PeriodicInterval` - Individual periodic message interval
 - `AClient.Context` - Indy TCP connection context
+- `AClient.Groups` - Array of groups this client belongs to
 
 ## 📝 When to Use This Pattern
 

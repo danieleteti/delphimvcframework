@@ -123,12 +123,12 @@ type
     procedure Disconnect;
 
     /// <summary>
-    /// Send a text message
+    /// Send a text message to the connected server
     /// </summary>
     procedure SendText(const AMessage: string);
 
     /// <summary>
-    /// Send a binary message
+    /// Send a binary message to the connected server
     /// </summary>
     procedure SendBinary(const AData: TBytes);
 
