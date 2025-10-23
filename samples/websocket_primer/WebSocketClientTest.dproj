@@ -114,7 +114,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="WebSocketClientTestU.pas">
-            <Form>FormWebSocketClient</Form>
+            <Form>MainClientForm</Form>
         </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

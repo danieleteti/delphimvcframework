@@ -1,244 +1,190 @@
-# DelphiMVCFramework WebSocket Client Sample
+﻿# WebSocket Echo Server with Periodic Messages
 
-This sample demonstrates the VCL WebSocket client implementation in DelphiMVCFramework.
+This demo showcases DelphiMVCFramework WebSocket support featuring:
+- **Echo server** with request/response pattern
+- **Periodic heartbeat messages** sent automatically by the server
+- **Per-client session data** management
+- **Dynamic interval adjustment** based on client behavior
 
-## What's Included
+## 🎯 What You'll Learn
 
-### Client Application
+- How to handle WebSocket connections
+- Sending periodic server-initiated messages
+- Managing per-client session state
+- Dynamically adjusting message intervals
+- Using all WebSocket event handlers
 
-- **WebSocketClientTest.dpr** - VCL application entry point
-- **WebSocketClientTestU.pas/.dfm** - Main form with WebSocket client UI
+## 📦 What's Included
 
-## Features
+### Server
+- **WebSocketServerEcho.dpr** - Console echo server using `TMVCWebSocketServer`
+  - Listens on port **9091**
+  - Echoes back all text messages
+  - **Sends periodic heartbeat messages** to each client
+  - Demonstrates per-client interval configuration (localhost: 2s, local network: 3s, others: 10s)
+  - **Dynamic interval adjustment**: After 5 heartbeats, interval increases by 1 second each time
+  - Per-client session data tracking message count
+  - Fully documented event handlers (see source code for detailed comments)
 
-- ✅ Connect to WebSocket servers
-- ✅ Send text messages
-- ✅ Send Ping frames and receive Pong responses
-- ✅ Automatic reconnection support
-- ✅ Real-time message logging
-- ✅ Thread-safe UI updates
+### Clients
+1. **WebSocketClientTest.dpr** - VCL desktop client application
+2. **www/index.html** - Web browser client with real-time statistics
 
-## How to Run
+## 🚀 How to Run
 
-### 1. Start the WebSocket Server
-
-Use the minimal server sample:
-
-```bash
-cd ..\websocket_minimal
-dcc32 -B -NSSystem -U"..\..\sources" MinimalWebSocketServer.dpr
-MinimalWebSocketServer.exe
-```
-
-The server will start on port 9091.
-
-### 2. Run the VCL Client
+### 1. Start the Echo Server
 
 ```bash
 cd samples\websocket_primer
-dcc32 -B -NSSystem -U"..\..\sources" WebSocketClientTest.dpr
-WebSocketClientTest.exe
+WebSocketServerEcho.exe
 ```
 
-### 3. Use the Client
+You'll see:
+```
+=== WebSocket Echo Server with Periodic Messages ===
 
-1. The default URL is `ws://localhost:9091/` (connects to minimal server)
-2. Click **Connect** to establish WebSocket connection
-3. Use **Send** to send text messages
-4. Use **Ping** to test server responsiveness
-5. Monitor the log area for incoming messages and events
-6. Enable **Auto Reconnect** for automatic reconnection on disconnect
+Starting echo server on port 9091...
+Echo server running!
 
-## Client Features
-
-### Connection Management
-- Connect/disconnect buttons
-- Visual connection state
-- Auto-reconnect option with 5-second interval
-
-### Messaging
-- Send text messages to server
-- Receive and display server messages
-- Real-time message logging
-
-### Ping/Pong
-- Send Ping frames
-- Receive and display Pong responses
-- Verify server responsiveness
-
-### Thread Safety
-- All UI updates synchronized via `TThread.Queue`
-- Safe event callbacks from background thread
-
-## Testing Scenarios
-
-### 1. Basic Connection Test
-1. Start minimal server
-2. Click "Connect"
-3. Verify "Connected!" message in log
-4. Click "Disconnect"
-5. Verify "Disconnected" message
-
-### 2. Message Exchange
-1. Connect to server
-2. Type message in text field
-3. Click "Send"
-4. See echo response in log
-
-### 3. Ping/Pong Test
-1. Connect to server
-2. Click "Ping"
-3. See "Pong received!" in log
-4. Verifies connection is alive
-
-### 4. Auto-Reconnect
-1. Enable "Auto Reconnect" checkbox
-2. Connect to server
-3. Stop the server
-4. See "Disconnected" and "Attempting to reconnect..." messages
-5. Restart server within 5 seconds
-6. See automatic reconnection
-
-## Client Architecture
-
-```delphi
-// Create WebSocket client
-FWebSocketClient := TMVCWebSocketClient.Create(EditURL.Text);
-
-// Set up event callbacks
-FWebSocketClient.OnConnect := OnConnect;
-FWebSocketClient.OnDisconnect := OnDisconnect;
-FWebSocketClient.OnTextMessage := OnTextMessage;
-FWebSocketClient.OnError := OnError;
-FWebSocketClient.OnPong := OnPong;
-
-// Configure auto-reconnect
-FWebSocketClient.AutoReconnect := CheckAutoReconnect.Checked;
-
-// Connect
-FWebSocketClient.Connect;
-
-// Send messages
-FWebSocketClient.SendText('Hello WebSocket!');
-
-// Send ping
-FWebSocketClient.SendPing;
-
-// Disconnect
-FWebSocketClient.Disconnect;
+Connect with:
+  ws://localhost:9091/
 ```
 
-## Event Handlers
+### 2. Test with Web Client (Recommended)
 
-All event handlers use `TThread.Queue` for thread-safe UI updates:
+1. Open `www/index.html` in your browser
+2. Click **Connect** (URL is pre-filled: `ws://localhost:9091/`)
+3. Watch the statistics panel for:
+   - **Messages Sent** - Your outgoing messages
+   - **Messages Received** - Echo responses from server
+   - **Periodic Messages** - Automatic heartbeat messages (green)
+   - **Connected Time** - Live connection timer
+4. Type messages and press Enter to test echo functionality
+5. Observe heartbeat messages arriving automatically every 2 seconds
+6. After 5 heartbeats, watch the interval increase dynamically
 
+### 3. Test with VCL Client
+
+1. Run `WebSocketClientTest.exe`
+2. URL is already set to `ws://localhost:9091/`
+3. Click **Connect**
+4. Type message and click **Send**
+5. Observe both echo responses and periodic heartbeat messages
+
+## 💡 Key Features Demonstrated
+
+### 1. Periodic Messages
 ```delphi
-procedure TFormWebSocketClient.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
-begin
-  TThread.Queue(nil,
-    procedure
-    begin
-      Log('Received: ' + AMessage);
-    end);
-end;
+// Set default interval
+Server.PeriodicMessageInterval := 5000; // 5 seconds
 
-procedure TFormWebSocketClient.OnPong(Sender: TMVCWebSocketClient);
+// Or configure per-client in OnClientConnect
+Server.OnClientConnect := procedure(AClient: TWebSocketClient; var AInitialInterval: Integer)
 begin
-  TThread.Queue(nil,
-    procedure
-    begin
-      Log('Pong received!');
-    end);
+  if AClient.ClientId = '127.0.0.1' then
+    AInitialInterval := 2000  // Localhost: every 2 seconds
+  else
+    AInitialInterval := 10000; // Others: every 10 seconds
 end;
 ```
 
-## Protocol Details
+### 2. Session Data Management
+```delphi
+// Create session data for each client
+AClient.Data := TClientSessionData.Create;
 
-### WebSocket Opcodes
+// Access it in any event
+LSessionData := TClientSessionData(AClient.Data);
+Inc(LSessionData.MessageCount);
 
-- `0x1` - Text frame (UTF-8)
-- `0x2` - Binary frame
-- `0x8` - Connection close
-- `0x9` - Ping
-- `0xA` - Pong
+// Automatically freed on disconnect
+```
 
-### Close Codes
+### 3. Dynamic Interval Adjustment
+```delphi
+Server.OnPeriodicMessage := function(AClient: TWebSocketClient; var ACurrentInterval: Integer): string
+begin
+  // Change interval dynamically
+  if SomeCondition then
+    ACurrentInterval := ACurrentInterval + 1000; // Slow down
 
-- `1000` - Normal closure
-- `1001` - Going away
-- `1002` - Protocol error
-- `1011` - Internal server error
+  Result := 'Heartbeat message';
+end;
+```
 
-### Masking
+### 4. All Event Handlers
+The demo shows usage of:
+- ✅ `OnLog` - Server internal events
+- ✅ `OnClientConnect` - Client connection with session initialization
+- ✅ `OnClientDisconnect` - Client disconnection with statistics
+- ✅ `OnMessage` - Incoming text messages with echo response
+- ✅ `OnError` - Error handling
+- ✅ `OnPeriodicMessage` - Server-initiated messages with dynamic timing
 
-Per RFC 6455:
-- Client → Server: frames MUST be masked
-- Server → Client: frames MUST NOT be masked
+See the source code for detailed comments explaining when and how to use each event.
 
-The client automatically handles masking for all outgoing frames.
+## 🏗️ Architecture
 
-## Related Samples
+### Unified Server Class
+Uses `TMVCWebSocketServer` - a unified WebSocket server that supports:
+- Simple echo/request-response patterns (this demo)
+- Broadcast/chat patterns (see `websocket_chat` demo)
+- Hybrid patterns combining both
 
-- **`samples/websocket_minimal/`** - Standalone WebSocket server
-  - Minimal implementation (~200 lines)
-  - Event-based architecture
-  - No MVC dependencies
-  - Perfect for testing this client
+### Per-Client State
+Each connected client has:
+- `AClient.ClientId` - Unique identifier (IP address)
+- `AClient.Data` - Custom session object (auto-freed)
+- `AClient.PeriodicInterval` - Individual periodic message interval
+- `AClient.Context` - Indy TCP connection context
 
-- **`samples/websocket_minimal/test_minimal.html`** - Browser test client
-  - HTML/JavaScript WebSocket client
-  - Works alongside VCL client
+## 📝 When to Use This Pattern
 
-## Implementation Files
+**Use Echo/Request-Response pattern when:**
+- Clients don't need to communicate with each other
+- You need request/response semantics (like REST over WebSocket)
+- Server needs to push periodic updates to clients
+- Each client has independent state/session
 
-### Core WebSocket Units
-- `sources/MVCFramework.WebSocket.pas` - RFC 6455 protocol implementation
-- `sources/MVCFramework.WebSocket.Client.pas` - Client implementation
-- `sources/MVCFramework.WebSocket.ConnectionManager.pas` - Connection tracking
-- `sources/MVCFramework.WebSocket.RateLimiter.pas` - Rate limiting utilities
+**For chat/broadcasting, see:** `samples/websocket_chat`
 
-## Requirements
+## 🎨 Web Client Features
 
-- Delphi 11 Alexandria or later (tested with Delphi 12)
-- Indy components (included with Delphi)
-- DelphiMVCFramework
+The HTML client (`www/index.html`) includes:
+- 📊 Real-time statistics dashboard
+- 🟢 Visual distinction between echo and heartbeat messages
+- ⏱️ Connection duration timer
+- 📋 Message log with timestamps
+- 🧹 Clear log functionality
+- 🎯 Fully responsive design
 
-## Troubleshooting
+## 🔧 Customization Ideas
 
-### Connection refused
-**Solution**: Ensure minimal server is running on port 9091. Check firewall settings.
+1. **Change heartbeat frequency** - Modify `AInitialInterval` values
+2. **Add authentication** - Check credentials in `OnClientConnect`
+3. **Implement rate limiting** - Track message count in session data
+4. **Custom message format** - Parse JSON in `OnMessage`
+5. **Health monitoring** - Use `OnPeriodicMessage` to check client responsiveness
 
-### "Reserved bits must be 0" error
-**Solution**: This has been fixed. Client correctly handles unmasked frames from server.
+## 📚 Related Demos
 
-### Pong not appearing
-**Solution**: OnPong event is now implemented. Verify Ping button is clicked while connected.
+- **websocket_chat** - Broadcasting server with multi-user chat
+- See source code comments for complete event handler documentation
 
-### Messages not appearing in log
-**Solution**: Verify EditMessage field is enabled (only enabled when connected).
+## 🐛 Troubleshooting
 
-## Technical Notes
+**Port already in use?**
+```
+Error: EIdCouldNotBindSocket
+```
+→ Change port in `TMVCWebSocketServer.Create(9091)`
 
-- Uses Indy `TIdTCPClient` for TCP connection
-- Implements RFC 6455 WebSocket protocol
-- Background thread for receiving messages
-- Proper cleanup on disconnect
-- Graceful shutdown with Close frame
+**No periodic messages?**
+→ Make sure `AInitialInterval > 0` is set in `OnClientConnect`
 
-## Next Steps
+**Client can't connect?**
+→ Check firewall settings for port 9091
 
-- Add support for binary messages
-- Implement compression (permessage-deflate)
-- Add authentication (JWT in handshake headers)
-- Add SSL/TLS support (wss://)
-- Add message history/replay
+## 📄 License
 
-## References
-
-- [RFC 6455 - The WebSocket Protocol](https://tools.ietf.org/html/rfc6455)
-- [MDN WebSocket API](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
-- [DelphiMVCFramework Documentation](https://github.com/danieleteti/delphimvcframework)
-
-## License
-
-Apache License 2.0 (same as DelphiMVCFramework)
+Apache License 2.0

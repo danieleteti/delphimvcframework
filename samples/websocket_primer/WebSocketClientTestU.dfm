@@ -1,7 +1,7 @@
-object FormWebSocketClient: TFormWebSocketClient
+object MainClientForm: TMainClientForm
   Left = 0
   Top = 0
-  Caption = 'DMVC WebSocket Client Test'
+  Caption = 'DMVCFramework WebSocket Client Test'
   ClientHeight = 441
   ClientWidth = 624
   Color = clBtnFace

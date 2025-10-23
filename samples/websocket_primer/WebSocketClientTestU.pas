@@ -8,7 +8,7 @@ uses
   MVCFramework.WebSocket.Client, MVCFramework.WebSocket;
 
 type
-  TFormWebSocketClient = class(TForm)
+  TMainClientForm = class(TForm)
     MemoLog: TMemo;
     PanelTop: TPanel;
     EditURL: TEdit;
@@ -40,13 +40,13 @@ type
   end;
 
 var
-  FormWebSocketClient: TFormWebSocketClient;
+  MainClientForm: TMainClientForm;
 
 implementation
 
 {$R *.dfm}
 
-procedure TFormWebSocketClient.FormCreate(Sender: TObject);
+procedure TMainClientForm.FormCreate(Sender: TObject);
 begin
   MemoLog.Clear;
   EditURL.Text := 'ws://localhost:9091/';
@@ -55,7 +55,7 @@ begin
   ButtonPing.Enabled := False;
 end;
 
-procedure TFormWebSocketClient.FormDestroy(Sender: TObject);
+procedure TMainClientForm.FormDestroy(Sender: TObject);
 begin
   if Assigned(FWebSocketClient) then
   begin
@@ -64,7 +64,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.ButtonConnectClick(Sender: TObject);
+procedure TMainClientForm.ButtonConnectClick(Sender: TObject);
 begin
   try
     Log('Connecting to ' + EditURL.Text + '...');
@@ -100,7 +100,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.ButtonDisconnectClick(Sender: TObject);
+procedure TMainClientForm.ButtonDisconnectClick(Sender: TObject);
 begin
   if Assigned(FWebSocketClient) then
   begin
@@ -116,7 +116,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.ButtonSendClick(Sender: TObject);
+procedure TMainClientForm.ButtonSendClick(Sender: TObject);
 begin
   if Assigned(FWebSocketClient) and FWebSocketClient.IsConnected then
   begin
@@ -133,7 +133,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.ButtonPingClick(Sender: TObject);
+procedure TMainClientForm.ButtonPingClick(Sender: TObject);
 begin
   if Assigned(FWebSocketClient) and FWebSocketClient.IsConnected then
   begin
@@ -142,7 +142,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.EditMessageKeyPress(Sender: TObject; var Key: Char);
+procedure TMainClientForm.EditMessageKeyPress(Sender: TObject; var Key: Char);
 begin
   if Key = #13 then
   begin
@@ -151,7 +151,7 @@ begin
   end;
 end;
 
-procedure TFormWebSocketClient.OnConnect(Sender: TMVCWebSocketClient);
+procedure TMainClientForm.OnConnect(Sender: TMVCWebSocketClient);
 begin
   TThread.Queue(nil,
     procedure
@@ -160,7 +160,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.OnDisconnect(Sender: TMVCWebSocketClient;
+procedure TMainClientForm.OnDisconnect(Sender: TMVCWebSocketClient;
   ACode: TMVCWebSocketCloseCode; const AReason: string);
 var
   LCode: Integer;
@@ -184,7 +184,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
+procedure TMainClientForm.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
 begin
   TThread.Queue(nil,
     procedure
@@ -193,7 +193,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.OnBinaryMessage(Sender: TMVCWebSocketClient; const AData: TBytes);
+procedure TMainClientForm.OnBinaryMessage(Sender: TMVCWebSocketClient; const AData: TBytes);
 begin
   TThread.Queue(nil,
     procedure
@@ -202,7 +202,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.OnError(Sender: TMVCWebSocketClient; const AError: Exception);
+procedure TMainClientForm.OnError(Sender: TMVCWebSocketClient; const AError: Exception);
 begin
   TThread.Queue(nil,
     procedure
@@ -211,7 +211,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.OnPong(Sender: TMVCWebSocketClient);
+procedure TMainClientForm.OnPong(Sender: TMVCWebSocketClient);
 begin
   TThread.Queue(nil,
     procedure
@@ -220,7 +220,7 @@ begin
     end);
 end;
 
-procedure TFormWebSocketClient.Log(const AMessage: string);
+procedure TMainClientForm.Log(const AMessage: string);
 begin
   MemoLog.Lines.Add(FormatDateTime('[hh:nn:ss] ', Now) + AMessage);
 end;
