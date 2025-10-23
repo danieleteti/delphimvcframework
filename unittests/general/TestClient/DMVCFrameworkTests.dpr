@@ -82,7 +82,8 @@ uses
   TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
   MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
   TestsBloomFilterU in 'TestsBloomFilterU.pas',
-  DotEnvTestU in 'DotEnvTestU.pas';
+  DotEnvTestU in 'DotEnvTestU.pas',
+  MVCFramework.Middleware.RateLimit in '..\..\..\sources\MVCFramework.Middleware.RateLimit.pas';
 
 {$R *.RES}
 

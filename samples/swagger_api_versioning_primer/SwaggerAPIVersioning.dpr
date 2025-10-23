@@ -1,4 +1,4 @@
-program SwaggerPrimer;
+program SwaggerAPIVersioning;
 
 {$APPTYPE CONSOLE}
 

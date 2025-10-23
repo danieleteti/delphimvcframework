@@ -479,6 +479,7 @@ type
     procedure SetContentType(const AValue: string);
     procedure SetLocation(const AValue: string);
     procedure SetContent(const AValue: string);
+    procedure SetContentEncoding(const Value: string);
   public
     constructor Create(const AWebResponse: TWebResponse);
     destructor Destroy; override;
@@ -489,7 +490,7 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ReasonString: string read GetReasonString write SetReasonString;
     property ContentType: string read GetContentType write SetContentType;
-    property ContentEncoding: string read GetContentEncoding;
+    property ContentEncoding: string read GetContentEncoding write SetContentEncoding;
     property CustomHeaders: TStrings read GetCustomHeaders;
     property Cookies: TCookieCollection read GetCookies;
     property Location: string read GetLocation write SetLocation;
@@ -715,6 +716,7 @@ type
     procedure SetContext(const Context: TWebContext);
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    property ContentType: string read GetContentType write SetContentType;
     class procedure InternalRenderMVCResponse(const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -967,7 +969,6 @@ type
     // Properties
     property Context: TWebContext read GetContext write SetContext;
     property Session: TMVCWebSession read GetSession;
-    property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     procedure PushObjectToView(const aModelName: string; const AModel: TObject);
       deprecated 'Use "ViewData"';
@@ -2059,7 +2060,7 @@ end;
 
 function TMVCWebResponse.GetContentType: string;
 begin
-  Result := BuildContentType(FWebResponse.ContentType, FWebResponse.ContentEncoding);
+  Result := FWebResponse.ContentType;
 end;
 
 function TMVCWebResponse.GetCookies: TCookieCollection;
@@ -2090,6 +2091,11 @@ end;
 procedure TMVCWebResponse.SetContent(const AValue: string);
 begin
   FWebResponse.Content := AValue;
+end;
+
+procedure TMVCWebResponse.SetContentEncoding(const Value: string);
+begin
+  FWebResponse.ContentEncoding := Value;
 end;
 
 procedure TMVCWebResponse.SetContentStream(const AStream: TStream; const AContentType: string);
@@ -4069,12 +4075,12 @@ end;
 function TMVCRenderer.GetContentType: string;
 begin
   Result := GetContext.Response.ContentType;
-  if Result.IsEmpty or FContentCharset.IsEmpty then
-  begin
-    Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
-    GetContext.Response.ContentType := Result;
-    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset); //update FContentMediaType, FContentCharset
-  end;
+//  if Result.IsEmpty then
+//  begin
+//    Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
+//    GetContext.Response.ContentType := Result;
+//    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset); //update FContentMediaType, FContentCharset
+//  end;
 end;
 
 function TMVCRenderer.GetContext: TWebContext;
@@ -4419,18 +4425,24 @@ begin
   end
   else
   begin
-    lOutEncoding := TEncoding.GetEncoding(FContentCharset);
-    try
-      GetContext
-        .Response
-        .SetContentStream(
-          TBytesStream.Create(
-            TEncoding.Convert(
-              TEncoding.Default,
-              lOutEncoding,
-              TEncoding.Default.GetBytes(AContent))), GetContentType);
-    finally
-      lOutEncoding.Free;
+    if FContentCharset.IsEmpty then
+    begin
+      lWebResponse.SetContentStream(TStringStream.Create(AContent, TEncoding.Default, False), GetContentType);
+    end
+    else
+    begin
+      lOutEncoding := TEncoding.GetEncoding(FContentCharset);
+      try
+        lWebResponse
+          .SetContentStream(
+            TBytesStream.Create(
+              TEncoding.Convert(
+                TEncoding.Default,
+                lOutEncoding,
+                TEncoding.Default.GetBytes(AContent))), GetContentType);
+      finally
+        lOutEncoding.Free;
+      end;
     end;
   end;
 end;
@@ -4531,7 +4543,7 @@ begin
   end;
 
   GetContext.Response.RawWebResponse.Content := EmptyStr;
-  GetContext.Response.RawWebResponse.ContentType := GetContentType;
+//  GetContext.Response.RawWebResponse.ContentType := GetContentType;
   GetContext.Response.RawWebResponse.ContentStream := lTemp;
   GetContext.Response.RawWebResponse.FreeContentStream := True;
 end;
@@ -4549,8 +4561,14 @@ begin
 end;
 
 procedure TMVCRenderer.SetContentType(const AValue: string);
+var
+  lContentType, lContentMediaType, lContentCharset: String;
 begin
-  GetContext.Response.ContentType := AValue.Trim;
+  lContentType := AValue.Trim;
+  GetContext.Response.ContentType := lContentType;
+  SplitContentMediaTypeAndCharset(lContentType, lContentMediaType, lContentCharset);
+  FContentCharset := lContentCharset;
+  FContentMediaType := lContentMediaType;
 end;
 
 procedure TMVCRenderer.SetContext(const Context: TWebContext);

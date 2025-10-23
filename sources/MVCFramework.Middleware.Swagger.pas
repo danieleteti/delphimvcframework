@@ -582,19 +582,11 @@ end;
 
 procedure TMVCSwaggerMiddleware.InternalRender(AContent: string; AContext: TWebContext);
 var
-  LContentType: string;
-  LEncoding: TEncoding;
+  lContentType: String;
 begin
-  LContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET);
+  lContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8);
   AContext.Response.RawWebResponse.ContentType := LContentType;
-
-  LEncoding := TEncoding.GetEncoding(TMVCConstants.DEFAULT_CONTENT_CHARSET);
-  try
-    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, LEncoding,
-      TEncoding.Default.GetBytes(AContent))), LContentType);
-  finally
-    LEncoding.Free;
-  end;
+  AContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8), lContentType);
 end;
 
 procedure TMVCSwaggerMiddleware.OnAfterControllerAction(AContext: TWebContext;
