@@ -36,7 +36,14 @@ type
   /// Customer Repository - uses default implementation
   /// Can be injected as IMVCRepository<TCustomer> in controllers
   /// </summary>
-  TCustomerRepository = class(TMVCRepository<TCustomer>)
+
+  ICustomerRepository = interface(IMVCRepository<TCustomer>)
+    ['{969BC9CE-E30E-4104-8F74-CE2A7C18AD21}']
+    function GetCustomersByCity(const City: string): TObjectList<TCustomer>;
+    function GetTopRatedCustomers: TObjectList<TCustomer>;
+  end;
+
+  TCustomerRepository = class(TMVCRepository<TCustomer>, ICustomerRepository)
   public
     // Add custom methods here if needed
     function GetCustomersByCity(const City: string): TObjectList<TCustomer>;

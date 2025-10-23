@@ -345,7 +345,7 @@ end;
 
 procedure TMainForm.btnCustomMethodsClick(Sender: TObject);
 var
-  lRepo: TCustomerRepository;
+  lRepo: ICustomerRepository;
   lCustomers: TObjectList<TCustomer>;
   lCustomer: TCustomer;
 begin
@@ -353,28 +353,25 @@ begin
   Log('** Custom Repository Methods');
 
   lRepo := TCustomerRepository.Create;
-  try
-    // Custom method: GetCustomersByCity
-    lCustomers := lRepo.GetCustomersByCity('London');
-    try
-      Log(Format('GetCustomersByCity("London") returned %d customers', [lCustomers.Count]));
-      for lCustomer in lCustomers do
-        Log('  ' + lCustomer.ToString);
-    finally
-      lCustomers.Free;
-    end;
 
-    // Custom method: GetTopRatedCustomers
-    lCustomers := lRepo.GetTopRatedCustomers;
-    try
-      Log(Format('GetTopRatedCustomers returned %d customers', [lCustomers.Count]));
-      for lCustomer in lCustomers do
-        Log('  ' + lCustomer.ToString);
-    finally
-      lCustomers.Free;
-    end;
+  // Custom method: GetCustomersByCity
+  lCustomers := lRepo.GetCustomersByCity('London');
+  try
+    Log(Format('GetCustomersByCity("London") returned %d customers', [lCustomers.Count]));
+    for lCustomer in lCustomers do
+      Log('  ' + lCustomer.ToString);
   finally
-    lRepo.Free;
+    lCustomers.Free;
+  end;
+
+  // Custom method: GetTopRatedCustomers
+  lCustomers := lRepo.GetTopRatedCustomers;
+  try
+    Log(Format('GetTopRatedCustomers returned %d customers', [lCustomers.Count]));
+    for lCustomer in lCustomers do
+      Log('  ' + lCustomer.ToString);
+  finally
+    lCustomers.Free;
   end;
 end;
 
