@@ -30,13 +30,13 @@ object FormWebSocketClient: TFormWebSocketClient
     object EditURL: TEdit
       Left = 16
       Top = 35
-      Width = 457
+      Width = 337
       Height = 21
       TabOrder = 0
-      Text = 'ws://localhost:9090/ws/echo'
+      Text = 'ws://localhost:9091/'
     end
     object ButtonConnect: TButton
-      Left = 488
+      Left = 368
       Top = 33
       Width = 120
       Height = 25
@@ -50,6 +50,7 @@ object FormWebSocketClient: TFormWebSocketClient
       Width = 120
       Height = 25
       Caption = 'Disconnect'
+      Enabled = False
       TabOrder = 2
       OnClick = ButtonDisconnectClick
     end
@@ -62,11 +63,12 @@ object FormWebSocketClient: TFormWebSocketClient
       TabOrder = 3
     end
     object ButtonPing: TButton
-      Left = 392
+      Left = 488
       Top = 62
-      Width = 81
+      Width = 120
       Height = 25
       Caption = 'Send Ping'
+      Enabled = False
       TabOrder = 4
       OnClick = ButtonPingClick
     end
@@ -86,8 +88,6 @@ object FormWebSocketClient: TFormWebSocketClient
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 1
-    ExplicitTop = 81
-    ExplicitHeight = 304
   end
   object PanelBottom: TPanel
     Left = 0
@@ -101,6 +101,7 @@ object FormWebSocketClient: TFormWebSocketClient
       Top = 16
       Width = 457
       Height = 21
+      Enabled = False
       TabOrder = 0
       OnKeyPress = EditMessageKeyPress
     end
@@ -110,6 +111,7 @@ object FormWebSocketClient: TFormWebSocketClient
       Width = 120
       Height = 25
       Caption = 'Send'
+      Enabled = False
       TabOrder = 1
       OnClick = ButtonSendClick
     end

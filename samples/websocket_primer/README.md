@@ -1,169 +1,161 @@
-# DelphiMVCFramework WebSocket Sample
+# DelphiMVCFramework WebSocket Client Sample
 
-This sample demonstrates the WebSocket implementation in DelphiMVCFramework.
+This sample demonstrates the VCL WebSocket client implementation in DelphiMVCFramework.
 
 ## What's Included
 
-### Server Components
+### Client Application
 
-- **WebSocketServerU.dpr** - Console server application
-- **WebSocketWebModuleU.pas** - Web module configuration
-- **WebSocketControllerU.pas** - WebSocket controllers
-  - `TWebSocketEchoController` - Simple echo server
-  - `TWebSocketChatController` - Multi-user chat room
+- **WebSocketClientTest.dpr** - VCL application entry point
+- **WebSocketClientTestU.pas/.dfm** - Main form with WebSocket client UI
 
-### Client Components
+## Features
 
-1. **VCL Client** (WebSocketClientTest.dpr)
-   - Full-featured Delphi VCL test client
-   - Connect/disconnect functionality
-   - Send text messages
-   - Auto-reconnect option
-   - Ping/pong support
-
-2. **Web Client** (www/index.html)
-   - HTML/JavaScript browser client
-   - Modern UI design
-   - Works with any browser
-
-## WebSocket Endpoints
-
-### `/ws/echo` - Echo Server
-- Echoes back any text message you send
-- Demonstrates basic WebSocket communication
-- Adds timestamp to echoed messages
-
-### `/ws/chat` - Chat Room
-- Broadcasts messages to all connected clients
-- Shows user join/leave notifications
-- Displays total user count
-- Demonstrates multi-client scenarios
+- ✅ Connect to WebSocket servers
+- ✅ Send text messages
+- ✅ Send Ping frames and receive Pong responses
+- ✅ Automatic reconnection support
+- ✅ Real-time message logging
+- ✅ Thread-safe UI updates
 
 ## How to Run
 
-### 1. Start the Server
+### 1. Start the WebSocket Server
+
+Use the minimal server sample:
 
 ```bash
-# Compile and run the server
-dcc32 WebSocketServerU.dpr
-WebSocketServerU.exe
+cd ..\websocket_minimal
+dcc32 -B -NSSystem -U"..\..\sources" MinimalWebSocketServer.dpr
+MinimalWebSocketServer.exe
 ```
 
-The server will start on port 8080 and display:
-```
-** DelphiMVCFramework WebSocket Sample **
-Starting HTTP Server on port 8080
+The server will start on port 9091.
 
-WebSocket Endpoints:
-  ws://localhost:8080/ws/echo  - Echo server
-  ws://localhost:8080/ws/chat  - Chat room
+### 2. Run the VCL Client
 
-Press Ctrl+C to stop the server
+```bash
+cd samples\websocket_primer
+dcc32 -B -NSSystem -U"..\..\sources" WebSocketClientTest.dpr
+WebSocketClientTest.exe
 ```
 
-### 2. Test with VCL Client
+### 3. Use the Client
 
-1. Compile `WebSocketClientTest.dpr`
-2. Run the executable
-3. Enter WebSocket URL (default: `ws://localhost:8080/ws/echo`)
-4. Click "Connect"
-5. Type messages and click "Send"
+1. The default URL is `ws://localhost:9091/` (connects to minimal server)
+2. Click **Connect** to establish WebSocket connection
+3. Use **Send** to send text messages
+4. Use **Ping** to test server responsiveness
+5. Monitor the log area for incoming messages and events
+6. Enable **Auto Reconnect** for automatic reconnection on disconnect
 
-### 3. Test with Browser
+## Client Features
 
-1. Open your browser
-2. Navigate to: `http://localhost:8080/static/index.html`
-3. Select endpoint from dropdown
-4. Click "Connect"
-5. Start chatting!
+### Connection Management
+- Connect/disconnect buttons
+- Visual connection state
+- Auto-reconnect option with 5-second interval
 
-## Features Demonstrated
+### Messaging
+- Send text messages to server
+- Receive and display server messages
+- Real-time message logging
 
-### Core Features
-- ✅ WebSocket handshake (RFC 6455)
-- ✅ Text message frames
-- ✅ Binary message frames
-- ✅ Ping/Pong frames (keep-alive)
-- ✅ Close frames with reason codes
-- ✅ Frame masking (client to server)
-- ✅ Extended payload lengths (16-bit and 64-bit)
+### Ping/Pong
+- Send Ping frames
+- Receive and display Pong responses
+- Verify server responsiveness
 
-### Advanced Features
-- ✅ Connection management
-- ✅ Broadcasting to multiple clients
-- ✅ Per-connection state management
-- ✅ Auto-reconnect (client-side)
-- ✅ Thread-safe operations
-- ✅ Graceful disconnection
+### Thread Safety
+- All UI updates synchronized via `TThread.Queue`
+- Safe event callbacks from background thread
 
-## Architecture
+## Testing Scenarios
 
-### Server-Side
+### 1. Basic Connection Test
+1. Start minimal server
+2. Click "Connect"
+3. Verify "Connected!" message in log
+4. Click "Disconnect"
+5. Verify "Disconnected" message
+
+### 2. Message Exchange
+1. Connect to server
+2. Type message in text field
+3. Click "Send"
+4. See echo response in log
+
+### 3. Ping/Pong Test
+1. Connect to server
+2. Click "Ping"
+3. See "Pong received!" in log
+4. Verifies connection is alive
+
+### 4. Auto-Reconnect
+1. Enable "Auto Reconnect" checkbox
+2. Connect to server
+3. Stop the server
+4. See "Disconnected" and "Attempting to reconnect..." messages
+5. Restart server within 5 seconds
+6. See automatic reconnection
+
+## Client Architecture
 
 ```delphi
-// Define a WebSocket controller
-[MVCPath('/ws/myendpoint')]
-TMyWebSocketController = class(TMVCWebSocketController)
-protected
-  procedure OnConnect(AConnection: TMVCWebSocketConnection); override;
-  procedure OnTextMessage(AConnection: TMVCWebSocketConnection;
-    const AMessage: string); override;
-  procedure OnDisconnect(AConnection: TMVCWebSocketConnection;
-    ACode: TMVCWebSocketCloseCode; const AReason: string); override;
-end;
+// Create WebSocket client
+FWebSocketClient := TMVCWebSocketClient.Create(EditURL.Text);
 
-// Register in WebModule
-FMVC.AddController(TMyWebSocketController);
-```
+// Set up event callbacks
+FWebSocketClient.OnConnect := OnConnect;
+FWebSocketClient.OnDisconnect := OnDisconnect;
+FWebSocketClient.OnTextMessage := OnTextMessage;
+FWebSocketClient.OnError := OnError;
+FWebSocketClient.OnPong := OnPong;
 
-### Client-Side
-
-```delphi
-// Create client
-FClient := TMVCWebSocketClient.Create('ws://localhost:8080/ws/myendpoint');
-FClient.OnTextMessage := OnTextMessage;
-FClient.OnConnect := OnConnect;
-FClient.AutoReconnect := True;
+// Configure auto-reconnect
+FWebSocketClient.AutoReconnect := CheckAutoReconnect.Checked;
 
 // Connect
-FClient.Connect;
+FWebSocketClient.Connect;
 
-// Send message
-FClient.SendText('Hello WebSocket!');
+// Send messages
+FWebSocketClient.SendText('Hello WebSocket!');
 
-// Cleanup
-FClient.Disconnect;
-FClient.Free;
+// Send ping
+FWebSocketClient.SendPing;
+
+// Disconnect
+FWebSocketClient.Disconnect;
+```
+
+## Event Handlers
+
+All event handlers use `TThread.Queue` for thread-safe UI updates:
+
+```delphi
+procedure TFormWebSocketClient.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
+begin
+  TThread.Queue(nil,
+    procedure
+    begin
+      Log('Received: ' + AMessage);
+    end);
+end;
+
+procedure TFormWebSocketClient.OnPong(Sender: TMVCWebSocketClient);
+begin
+  TThread.Queue(nil,
+    procedure
+    begin
+      Log('Pong received!');
+    end);
+end;
 ```
 
 ## Protocol Details
 
-### WebSocket Frame Structure
+### WebSocket Opcodes
 
-```
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-------+-+-------------+-------------------------------+
-|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-|N|V|V|V|       |S|             |   (if payload len==126/127)   |
-| |1|2|3|       |K|             |                               |
-+-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-|     Extended payload length continued, if payload len == 127  |
-+ - - - - - - - - - - - - - - - +-------------------------------+
-|                               |Masking-key, if MASK set to 1  |
-+-------------------------------+-------------------------------+
-| Masking-key (continued)       |          Payload Data         |
-+-------------------------------- - - - - - - - - - - - - - - - +
-:                     Payload Data continued ...                :
-+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-|                     Payload Data continued ...                |
-+---------------------------------------------------------------+
-```
-
-### Opcodes
-
-- `0x0` - Continuation frame
 - `0x1` - Text frame (UTF-8)
 - `0x2` - Binary frame
 - `0x8` - Connection close
@@ -175,114 +167,71 @@ FClient.Free;
 - `1000` - Normal closure
 - `1001` - Going away
 - `1002` - Protocol error
-- `1003` - Unsupported data
-- `1007` - Invalid payload
-- `1008` - Policy violation
-- `1009` - Message too big
 - `1011` - Internal server error
 
-## Testing Scenarios
+### Masking
 
-### 1. Basic Echo Test
-1. Connect to `/ws/echo`
-2. Send: "Hello"
-3. Receive: "[timestamp] Echo: Hello"
+Per RFC 6455:
+- Client → Server: frames MUST be masked
+- Server → Client: frames MUST NOT be masked
 
-### 2. Multi-User Chat
-1. Open two browser tabs (or one browser + VCL client)
-2. Connect both to `/ws/chat`
-3. Send message from one client
-4. See message appear in both clients
-5. Disconnect one client
-6. See notification in remaining client
+The client automatically handles masking for all outgoing frames.
 
-### 3. Connection Resilience
-1. Enable auto-reconnect in client
-2. Connect to server
-3. Stop the server
-4. Restart the server
-5. Client should auto-reconnect
+## Related Samples
 
-### 4. Ping/Pong Keep-Alive
-1. Connect to any endpoint
-2. Wait (server sends ping every 30 seconds)
-3. Client automatically responds with pong
-4. Connection stays alive
+- **`samples/websocket_minimal/`** - Standalone WebSocket server
+  - Minimal implementation (~200 lines)
+  - Event-based architecture
+  - No MVC dependencies
+  - Perfect for testing this client
 
-## Configuration
+- **`samples/websocket_minimal/test_minimal.html`** - Browser test client
+  - HTML/JavaScript WebSocket client
+  - Works alongside VCL client
 
-### Server Configuration
+## Implementation Files
 
-```delphi
-// In your WebSocket controller
-constructor TMyWebSocketController.Create;
-begin
-  inherited;
-  PingInterval := 30; // Ping interval in seconds (0 = disabled)
-  MaxMessageSize := 1024 * 1024; // 1MB max message size
-end;
-```
-
-### Client Configuration
-
-```delphi
-FClient.AutoReconnect := True;
-FClient.ReconnectInterval := 5; // Reconnect after 5 seconds
-```
-
-## Thread Safety
-
-All WebSocket operations are thread-safe:
-- Connection manager uses `TCriticalSection`
-- Per-connection locks for send operations
-- Safe broadcasting to multiple clients
-- Event callbacks synchronized with main thread (in VCL client)
-
-## Logging
-
-The server uses LoggerPro for logging:
-- Connection events (connect/disconnect)
-- Message traffic
-- Errors and exceptions
-
-Check console output for real-time logs.
+### Core WebSocket Units
+- `sources/MVCFramework.WebSocket.pas` - RFC 6455 protocol implementation
+- `sources/MVCFramework.WebSocket.Client.pas` - Client implementation
+- `sources/MVCFramework.WebSocket.ConnectionManager.pas` - Connection tracking
+- `sources/MVCFramework.WebSocket.RateLimiter.pas` - Rate limiting utilities
 
 ## Requirements
 
-- Delphi 11 Alexandria or later
+- Delphi 11 Alexandria or later (tested with Delphi 12)
 - Indy components (included with Delphi)
 - DelphiMVCFramework
-- LoggerPro (included with DMVC)
 
 ## Troubleshooting
 
-### "Can only be used with INDY based application server"
-**Solution**: This implementation requires Indy. Make sure you're using `TIdHTTPWebBrokerBridge`.
-
 ### Connection refused
-**Solution**: Ensure server is running on port 8080. Check firewall settings.
+**Solution**: Ensure minimal server is running on port 9091. Check firewall settings.
 
-### Messages not appearing
-**Solution**: Check browser console for JavaScript errors. Verify WebSocket URL is correct.
+### "Reserved bits must be 0" error
+**Solution**: This has been fixed. Client correctly handles unmasked frames from server.
 
-### Auto-reconnect not working
-**Solution**: Enable auto-reconnect option and ensure ReconnectInterval is set.
+### Pong not appearing
+**Solution**: OnPong event is now implemented. Verify Ping button is clicked while connected.
 
-## Performance Tips
+### Messages not appearing in log
+**Solution**: Verify EditMessage field is enabled (only enabled when connected).
 
-1. **Broadcast Optimization**: For high-frequency broadcasts, consider batching messages
-2. **Message Size**: Keep messages reasonably sized (< 1MB recommended)
-3. **Connection Limits**: Default is 1024 connections, adjust based on your needs
-4. **Ping Interval**: Balance between keeping connections alive and reducing traffic
+## Technical Notes
+
+- Uses Indy `TIdTCPClient` for TCP connection
+- Implements RFC 6455 WebSocket protocol
+- Background thread for receiving messages
+- Proper cleanup on disconnect
+- Graceful shutdown with Close frame
 
 ## Next Steps
 
-- Implement authentication (use JWT in handshake)
-- Add rooms/channels for chat
+- Add support for binary messages
 - Implement compression (permessage-deflate)
-- Add binary protocol (MessagePack)
-- Scale with connection pooling
-- Add metrics/monitoring
+- Add authentication (JWT in handshake headers)
+- Add SSL/TLS support (wss://)
+- Add message history/replay
 
 ## References
 
@@ -292,4 +241,4 @@ Check console output for real-time logs.
 
 ## License
 
-Same as DelphiMVCFramework - Apache License 2.0
+Apache License 2.0 (same as DelphiMVCFramework)

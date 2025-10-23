@@ -34,6 +34,7 @@ type
     procedure OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
     procedure OnBinaryMessage(Sender: TMVCWebSocketClient; const AData: TBytes);
     procedure OnError(Sender: TMVCWebSocketClient; const AError: Exception);
+    procedure OnPong(Sender: TMVCWebSocketClient);
     procedure Log(const AMessage: string);
   public
   end;
@@ -48,7 +49,7 @@ implementation
 procedure TFormWebSocketClient.FormCreate(Sender: TObject);
 begin
   MemoLog.Clear;
-  EditURL.Text := 'ws://localhost:9090/ws/echo';
+  EditURL.Text := 'ws://localhost:9091/';
   ButtonDisconnect.Enabled := False;
   ButtonSend.Enabled := False;
   ButtonPing.Enabled := False;
@@ -77,6 +78,7 @@ begin
     FWebSocketClient.OnTextMessage := OnTextMessage;
     FWebSocketClient.OnBinaryMessage := OnBinaryMessage;
     FWebSocketClient.OnError := OnError;
+    FWebSocketClient.OnPong := OnPong;
     FWebSocketClient.AutoReconnect := CheckAutoReconnect.Checked;
     FWebSocketClient.ReconnectInterval := 5;
 
@@ -86,6 +88,7 @@ begin
     ButtonDisconnect.Enabled := True;
     ButtonSend.Enabled := True;
     ButtonPing.Enabled := True;
+    EditMessage.Enabled := True;
     EditURL.Enabled := False;
 
   except
@@ -108,6 +111,7 @@ begin
     ButtonDisconnect.Enabled := False;
     ButtonSend.Enabled := False;
     ButtonPing.Enabled := False;
+    EditMessage.Enabled := False;
     EditURL.Enabled := True;
   end;
 end;
@@ -175,6 +179,7 @@ begin
       ButtonDisconnect.Enabled := False;
       ButtonSend.Enabled := False;
       ButtonPing.Enabled := False;
+      EditMessage.Enabled := False;
       EditURL.Enabled := True;
     end);
 end;
@@ -203,6 +208,15 @@ begin
     procedure
     begin
       Log('ERROR: ' + AError.Message);
+    end);
+end;
+
+procedure TFormWebSocketClient.OnPong(Sender: TMVCWebSocketClient);
+begin
+  TThread.Queue(nil,
+    procedure
+    begin
+      Log('Pong received!');
     end);
 end;
 

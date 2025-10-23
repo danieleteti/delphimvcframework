@@ -72,6 +72,11 @@ type
     const AError: Exception) of object;
 
   /// <summary>
+  /// Event triggered when a pong is received (in response to ping)
+  /// </summary>
+  TMVCWebSocketClientPongEvent = procedure(Sender: TMVCWebSocketClient) of object;
+
+  /// <summary>
   /// WebSocket client implementation for Delphi
   /// </summary>
   TMVCWebSocketClient = class
@@ -95,6 +100,7 @@ type
     FOnTextMessage: TMVCWebSocketClientTextMessageEvent;
     FOnBinaryMessage: TMVCWebSocketClientBinaryMessageEvent;
     FOnError: TMVCWebSocketClientErrorEvent;
+    FOnPong: TMVCWebSocketClientPongEvent;
 
     procedure ParseURL(const AURL: string);
     function PerformHandshake: Boolean;
@@ -164,6 +170,7 @@ type
     property OnTextMessage: TMVCWebSocketClientTextMessageEvent read FOnTextMessage write FOnTextMessage;
     property OnBinaryMessage: TMVCWebSocketClientBinaryMessageEvent read FOnBinaryMessage write FOnBinaryMessage;
     property OnError: TMVCWebSocketClientErrorEvent read FOnError write FOnError;
+    property OnPong: TMVCWebSocketClientPongEvent read FOnPong write FOnPong;
   end;
 
   /// <summary>
@@ -337,6 +344,10 @@ begin
 
   // Validate accept key
   Result := SameText(AcceptKey, ExpectedAccept);
+
+  // Clear input buffer after successful handshake
+  if Result then
+    FTCPClient.IOHandler.InputBuffer.Clear;
 end;
 
 procedure TMVCWebSocketClient.Connect;
@@ -526,8 +537,8 @@ begin
           Continue;
       end;
 
-      // Read frame
-      Frame := TMVCWebSocketFrameParser.ParseFrame(FTCPClient.IOHandler);
+      // Read frame (client side, expecting unmasked frames from server)
+      Frame := TMVCWebSocketFrameParser.ParseFrame(FTCPClient.IOHandler, False);
 
       // Process frame
       case Frame.Opcode of
@@ -575,10 +586,11 @@ begin
           SendPong(Frame.Payload);
         end;
 
-        // Ignore pong frames
         TMVCWebSocketOpcode.Pong:
         begin
-          // Nothing to do
+          // Pong received - connection is alive
+          if Assigned(FOnPong) then
+            FOnPong(Self);
         end;
       end;
 

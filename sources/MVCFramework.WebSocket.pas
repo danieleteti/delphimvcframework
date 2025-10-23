@@ -134,8 +134,9 @@ type
     /// Parse a WebSocket frame from a stream
     /// </summary>
     /// <param name="AIOHandler">Indy IO handler to read from</param>
+    /// <param name="AServerSide">True if parsing as server (expects masked frames), False if parsing as client</param>
     /// <returns>Parsed WebSocket frame</returns>
-    class function ParseFrame(AIOHandler: TIdIOHandler): TMVCWebSocketFrame; static;
+    class function ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean = True): TMVCWebSocketFrame; static;
 
     /// <summary>
     /// Write a WebSocket frame to a stream
@@ -237,7 +238,7 @@ begin
   end;
 end;
 
-class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler): TMVCWebSocketFrame;
+class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean): TMVCWebSocketFrame;
 var
   Byte1, Byte2: Byte;
   ExtendedPayloadLength: UInt64;
@@ -260,11 +261,19 @@ begin
   Result.Masked := (Byte2 and $80) <> 0;
   Result.PayloadLength := Byte2 and $7F;
 
-  // RFC 6455 Section 5.1: Client frames MUST be masked
-  // Note: This check should only be done on server-side
-  // For now, we assume we're always server receiving from client
-  if not Result.Masked then
-    raise EMVCWebSocketException.Create('Client frames must be masked (RFC 6455 Section 5.1)');
+  // RFC 6455 Section 5.1: Client->Server frames MUST be masked, Server->Client frames MUST NOT be masked
+  if AServerSide then
+  begin
+    // Server side: expecting masked frames from client
+    if not Result.Masked then
+      raise EMVCWebSocketException.Create('Client frames must be masked (RFC 6455 Section 5.1)');
+  end
+  else
+  begin
+    // Client side: expecting unmasked frames from server
+    if Result.Masked then
+      raise EMVCWebSocketException.Create('Server frames must not be masked (RFC 6455 Section 5.1)');
+  end;
 
   // RFC 6455 Section 5.5: Control frames validation
   // Control frames are identified by opcodes where the most significant bit is 1 (0x8-0xF)
