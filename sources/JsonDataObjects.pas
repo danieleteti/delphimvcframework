@@ -1,7 +1,7 @@
 (*****************************************************************************
 The MIT License (MIT)
 
-Copyright (c) 2015-2016 Andreas Hausladen
+Copyright (c) 2015-2025 Andreas Hausladen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,56 +22,91 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *****************************************************************************)
 
-{$A8,B-,C+,E-,F-,G+,H+,I+,J-,K-,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Z1}
-{$WARN WIDECHAR_REDUCED OFF} // All sets only use ASCII chars (<=#127) and the compiler generates the >=#128 check itself
-{$STRINGCHECKS OFF} // It only slows down Delphi strings, doesn't help C++Builder migration and is finally gone in XE+
-{$WARN SYMBOL_DEPRECATED OFF} // for StrLen/StrLComp
-{$POINTERMATH ON}
+{$IFDEF FPC}
+  {$mode DelphiUnicode}
+{$ELSE}
+  {$A8,B-,C+,E-,F-,G+,H+,I+,J-,K-,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Z1}
+  {$WARN WIDECHAR_REDUCED OFF} // All sets only use ASCII chars (<=#127) and the compiler generates the >=#128 check itself
+  {$STRINGCHECKS OFF} // It only slows down Delphi strings, doesn't help C++Builder migration and is finally gone in XE+
+  {$WARN SYMBOL_DEPRECATED OFF} // for StrLen/StrLComp
+  {$POINTERMATH ON}
+{$ENDIF FPC}
 
 unit JsonDataObjects;
 
-{$IFDEF VER200}
-  // Delphi 2009's ErrorInsight parser uses the CompilerVersion's memory address instead of 20.0, failing all the
-  // IF CompilerVersion compiler directives
-  {$DEFINE CPUX86}
-{$ELSE}
-  {$IF CompilerVersion >= 24.0} // XE3 or newer
-    {$LEGACYIFEND ON}
-    {$IF CompilerVersion >= 35.0} // 11.0 or newer
-      {$DEFINE STREAM_USES_NATIVEINT}
-    {$IFEND}
-  {$IFEND}
-  {$IF CompilerVersion >= 23.0}
-    {$DEFINE HAS_UNIT_SCOPE}
-    {$DEFINE HAS_RETURN_ADDRESS}
-  {$IFEND}
-  {$IF CompilerVersion <= 22.0} // XE or older
-    {$DEFINE CPUX86}
-  {$IFEND}
-{$ENDIF VER200}
-
-{$IFDEF NEXTGEN}
-  {$IF CompilerVersion >= 31.0} // 10.1 Berlin or newer
-    {$DEFINE SUPPORTS_UTF8STRING} // Delphi 10.1 Berlin supports UTF8String for mobile compilers
-  {$IFEND}
-{$ELSE}
+{--------------------------------------------------------------------------------------------------}
+{ Detect Compiler/RTL features                                                                     }
+{--------------------------------------------------------------------------------------------------}
+{$IFDEF FPC}
   {$DEFINE SUPPORTS_UTF8STRING}
-{$ENDIF}
+{$ELSE}
+  {$IFDEF VER200}
+    // Delphi 2009's ErrorInsight parser uses the CompilerVersion's memory address instead of 20.0, failing all the
+    // IF CompilerVersion compiler directives
+    {$DEFINE CPUX86}
+  {$ELSE}
+    {$IF CompilerVersion >= 24.0} // XE3 or newer
+      {$LEGACYIFEND ON}
+      {$IF CompilerVersion >= 35.0} // 11.0 or newer
+        {$DEFINE STREAM_USES_NATIVEINT}
+      {$IFEND}
+    {$IFEND}
+    {$IF CompilerVersion >= 23.0}
+      {$DEFINE HAS_UNIT_SCOPE}
+      {$DEFINE HAS_RETURN_ADDRESS}
+    {$IFEND}
+    {$IF CompilerVersion <= 22.0} // XE or older
+      {$DEFINE CPUX86}
+    {$IFEND}
+  {$ENDIF VER200}
 
-{$IFDEF CPUX64}
-  {$IFNDEF LINUX64} // Linux 64 compiler doesn't support ASM for x64 code => LLVM
+  {$IFDEF NEXTGEN}
+    {$IF CompilerVersion >= 31.0} // 10.1 Berlin or newer
+      {$DEFINE SUPPORTS_UTF8STRING} // Delphi 10.1 Berlin supports UTF8String for mobile compilers
+    {$IFEND}
+  {$ELSE}
+    {$DEFINE SUPPORTS_UTF8STRING}
+  {$ENDIF}
+
+  {$IFDEF AUTOREFCOUNT}
+    // Delphi's ARC is slow (RSP-9712). This switch enables a faster ARC handling and even skips memory
+    // barrier were possible.
+    {$DEFINE USE_FAST_AUTOREFCOUNT}
+  {$ENDIF AUTOREFCOUNT}
+
+  {$IFDEF CPUX64}
+    {$IFNDEF LINUX64} // Linux 64 compiler doesn't support ASM for x64 code => LLVM
+      {$DEFINE ASMSUPPORT}
+    {$ENDIF ~LINUX64}
+  {$ENDIF CPUX64}
+  {$IFDEF CPUX86}
     {$DEFINE ASMSUPPORT}
-  {$ENDIF ~LINUX64}
-{$ENDIF CPUX64}
-{$IFDEF CPUX86}
-  {$DEFINE ASMSUPPORT}
-{$ENDIF CPUX86}
-{$IFDEF EXTERNALLINKER} // implicates LLVM
-  {$UNDEF ASMSUPPORT}
-{$ENDIF EXTERNALLINKER}
+  {$ENDIF CPUX86}
+  {$IFDEF EXTERNALLINKER} // implies LLVM
+    {$UNDEF ASMSUPPORT}
+  {$ENDIF EXTERNALLINKER}
+{$ENDIF FPC}
+
+{--------------------------------------------------------------------------------------------------}
+{ Optional features                                                                                }
+{--------------------------------------------------------------------------------------------------}
+
+{$IFDEF SUPPORTS_UTF8STRING}
+  // Enables internal UTF8 values for values written via UTF8[], ValueUTF8 or loaded by the UTF8-Parser.
+  // Alle keys will remain UnicodeStrings. The UTF8 values will automatically by converted to
+  // UnicodeStrings if accessed by anything other than UTF8[], ValueUTF8. The internal UTF8 value
+  // is then replaced by the UnicodeString. The JSON-Writer (UTF8 and UTF16) also converts all
+  // internal UTF8 values to UnicodeString.
+  // So this only helps to save memory if the JSON is loaded, accessed via UTF8[], ValueUTF8 and never
+  // written.
+  {.$DEFINE USE_UTF8STRING_VALUES}
+{$ENDIF SUPPORTS_UTF8STRING}
 
 // Sanity checks all array index accesses and raise an EListError exception.
 {$DEFINE CHECK_ARRAY_INDEX}
+
+// If defined the JSON parser is more strict to what is allowed and what not.
+{$DEFINE STRICT_JSON_PARSER}
 
 // JSON allows the slash to be escaped. This is only necessary if you plan to put the JSON string
 // into a <script>-Tag because then "</" can't be used and must be escaped to "<\/". This switch
@@ -87,30 +122,20 @@ unit JsonDataObjects;
 // and seals the TJsonArray and TJsonObject classes because it isn't safe to derive from them.
 {$DEFINE USE_FAST_NEWINSTANCE}
 
-//{$IF CompilerVersion < 28.0} // XE6 or older
-  // The XE7 compiler is broken. It doesn't collapse duplicate string literals anymore. (RSP-10015)
-  // But if the string literals are used in loops this optimization still helps.
-
-  // Optimizes the following pattern:
-  //   O['Name'][MyPropStr]
-  //   O['Name']['MyProp'].
-  // where the second O['Name'] is handled very fast by caching the pointer to the 'Name' string literal.
-  {$DEFINE USE_LAST_NAME_STRING_LITERAL_CACHE}
-//{$IFEND}
+// Optimizes the following pattern:
+//   O['Name'][MyPropStr]
+//   O['Name']['MyProp'].
+// where the second O['Name'] is handled very fast by caching the pointer to the 'Name' string literal.
+{$DEFINE USE_LAST_NAME_STRING_LITERAL_CACHE}
 
 // When parsing the JSON string, the UStrAsg calls are skipped for internal strings what eliminates
 // the CPU locks for those string assignments.
 {$DEFINE USE_FAST_STRASG_FOR_INTERNAL_STRINGS}
 
-{$IFDEF AUTOREFCOUNT}
-  // Delphi's ARC is slow (RSP-9712). This switch enables a faster ARC handling and even skips memory
-  // barrier were possible.
-  {$DEFINE USE_FAST_AUTOREFCOUNT}
-{$ENDIF AUTOREFCOUNT}
 
 {$IFDEF MSWINDOWS}
   // When adding JSON object properties with string literals, the string literals are stored directly
-  // in the "Name" field instead of using UStrAsg that creates a new heap string. This improves the
+  // in the "Name" field instead of using UStrAsg what creates a new heap string. This improves the
   // performance as no string is copied and it slighly reduces the memory usage.
   // The string literals are only used if they are in the main instance or the DLL that contains the
   // JsonDataObjects unit. Other string literals are copied using UStrAsg because unloading the DLL
@@ -127,6 +152,11 @@ unit JsonDataObjects;
   {$DEFINE SUPPORT_WINDOWS2000}
 
 {$ENDIF MSWINDOWS}
+
+{$IFDEF FPC}
+  // Not supported features in FPC
+  {$UNDEF USE_NAME_STRING_LITERAL}
+{$ENDIF FPC}
 
 interface
 
@@ -284,7 +314,11 @@ type
   end;
 
   TJsonDataType = (
-    jdtNone, jdtString, jdtInt, jdtLong, jdtULong, jdtFloat, jdtDateTime, jdtUtcDateTime, jdtBool, jdtArray, jdtObject
+    jdtNone, jdtString, jdtInt, jdtLong, jdtULong, jdtFloat, jdtDateTime, jdtUtcDateTime, jdtBool,
+    jdtArray, jdtObject
+    {$IFDEF USE_UTF8STRING_VALUES}
+    , jdtUTF8String // used only internally Types[] returns it as jdtString
+    {$ENDIF USE_UTF8STRING_VALUES}
   );
 
   // TJsonDataValue holds the actual value
@@ -294,6 +328,9 @@ type
     TJsonDataValueRec = record
       case TJsonDataType of
         jdtNone: (P: PChar);     // helps when debugging
+        {$IFDEF USE_UTF8STRING_VALUES}
+        jdtUTF8String: (UTF8: PAnsiChar); // only for debugging, "S: Pointer" is used in the code
+        {$ENDIF USE_UTF8STRING_VALUES}
         jdtString: (S: Pointer); // We manage the string ourself. Delphi doesn't allow "string" in a
                                  // variant record and if we have no string, we don't need to clean
                                  // it up, anyway.
@@ -310,6 +347,9 @@ type
     FValue: TJsonDataValueRec;
     FTyp: TJsonDataType;
     function GetValue: string;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    function GetValueUTF8: UTF8String;
+    {$ENDIF SUPPORTS_UTF8STRING}
     function GetIntValue: Integer;
     function GetLongValue: Int64;
     function GetULongValue: UInt64;
@@ -322,6 +362,9 @@ type
     function GetVariantValue: Variant;
 
     procedure SetValue(const AValue: string);
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure SetValueUTF8(const AValue: UTF8String);
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure SetIntValue(const AValue: Integer);
     procedure SetLongValue(const AValue: Int64);
     procedure SetULongValue(const AValue: UInt64);
@@ -336,15 +379,24 @@ type
     procedure InternToJSON(var Writer: TJsonOutputWriter);
     procedure InternSetValue(const AValue: string); // skips the call to Clear()
     procedure InternSetValueTransfer(var AValue: string); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    {$IFDEF USE_UTF8STRING_VALUES}
+    procedure InternSetValueUTF8(const AValue: UTF8String); // skips the call to Clear()
+    procedure InternSetValueUTF8Transfer(P: PAnsiChar; Len: Integer); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    procedure ConvertUTF8ToStringType;
+    {$ENDIF USE_UTF8STRING_VALUES}
     procedure InternSetArrayValue(const AValue: TJsonArray);
     procedure InternSetObjectValue(const AValue: TJsonObject);
     procedure Clear;
     procedure TypeCastError(ExpectedType: TJsonDataType);
   public
     function IsNull: Boolean;
+    procedure Assign(AValue: PJsonDataValue);
 
     property Typ: TJsonDataType read FTyp;
     property Value: string read GetValue write SetValue;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    property ValueUTF8: UTF8String read GetValueUTF8 write SetValueUTF8;
+    {$ENDIF SUPPORTS_UTF8STRING}
     property IntValue: Integer read GetIntValue write SetIntValue;
     property LongValue: Int64 read GetLongValue write SetLongValue;
     property ULongValue: UInt64 read GetULongValue write SetULongValue;
@@ -360,8 +412,13 @@ type
   // TJsonDataValueHelper is used to implement the "easy access" functionality. It is
   // slightly slower than using the direct indexed properties.
   TJsonDataValueHelper = record
+  private type
+     TInternSkipClearType = (iscNone, iscValue, iscObj{$IFDEF USE_UTF8STRING_VALUES}, iscValueUTF8{$ENDIF});
   private
     function GetValue: string; inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    function GetValueUTF8: UTF8String; inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
     function GetIntValue: Integer; inline;
     function GetLongValue: Int64; inline;
     function GetULongValue: UInt64; //inline;  no implicit operator due to conflict with Int64
@@ -374,6 +431,9 @@ type
     function GetVariantValue: Variant; inline;
 
     procedure SetValue(const Value: string);
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure SetValueUTF8(const Value: UTF8String);
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure SetIntValue(const Value: Integer);
     procedure SetLongValue(const Value: Int64);
     procedure SetULongValue(const Value: UInt64);
@@ -389,6 +449,9 @@ type
     function GetArrayCount: Integer; inline;
 
     function GetObjectString(const Name: string): string; inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    function GetObjectUTF8String(const Name: string): UTF8String; inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
     function GetObjectInt(const Name: string): Integer; inline;
     function GetObjectLong(const Name: string): Int64; inline;
     function GetObjectULong(const Name: string): UInt64; inline;
@@ -397,13 +460,12 @@ type
     function GetObjectUtcDateTime(const Name: string): TDateTime; inline;
     function GetObjectBool(const Name: string): Boolean; inline;
     function GetArray(const Name: string): TJsonArray; inline;
-    {$IFDEF BCB}
     function GetObj(const Name: string): TJsonDataValueHelper; inline; // work around C++Builder Windows.h::GetObject macro
-    {$ELSE}
-    function GetObject(const Name: string): TJsonDataValueHelper; inline;
-    {$ENDIF BCB}
     function GetObjectVariant(const Name: string): Variant; inline;
     procedure SetObjectString(const Name, Value: string); inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure SetObjectUTF8String(const Name: string; const Value: UTF8String); inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure SetObjectInt(const Name: string; const Value: Integer); inline;
     procedure SetObjectLong(const Name: string; const Value: Int64); inline;
     procedure SetObjectULong(const Name: string; const Value: UInt64); inline;
@@ -420,10 +482,18 @@ type
 
     function GetTyp: TJsonDataType;
     procedure ResolveName;
+    procedure InternClear(SkipClear: TInternSkipClearType);
+    {$IFDEF USE_UTF8STRING_VALUES}
+    procedure ConvertUTF8ToStringType;
+    {$ENDIF USE_UTF8STRING_VALUES}
     class procedure SetInternValue(Item: PJsonDataValue; const Value: TJsonDataValueHelper); static;
   public
     class operator Implicit(const Value: string): TJsonDataValueHelper; overload;
     class operator Implicit(const Value: TJsonDataValueHelper): string; overload;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    class operator Implicit(const Value: UTF8String): TJsonDataValueHelper; overload;
+    class operator Implicit(const Value: TJsonDataValueHelper): UTF8String; overload;
+    {$ENDIF SUPPORTS_UTF8STRING}
     class operator Implicit(const Value: Integer): TJsonDataValueHelper; overload;
     class operator Implicit(const Value: TJsonDataValueHelper): Integer; overload;
     class operator Implicit(const Value: Int64): TJsonDataValueHelper; overload;
@@ -432,8 +502,10 @@ type
     //class operator Implicit(const Value: TJsonDataValueHelper): UInt64; overload;  conflicts with Int64 operator
     class operator Implicit(const Value: Double): TJsonDataValueHelper; overload;
     class operator Implicit(const Value: TJsonDataValueHelper): Double; overload;
+    {$IFNDEF FPC}
     class operator Implicit(const Value: Extended): TJsonDataValueHelper; overload;
     class operator Implicit(const Value: TJsonDataValueHelper): Extended; overload;
+    {$ENDIF ~FPC}
     class operator Implicit(const Value: TDateTime): TJsonDataValueHelper; overload;
     class operator Implicit(const Value: TJsonDataValueHelper): TDateTime; overload;
     class operator Implicit(const Value: Boolean): TJsonDataValueHelper; overload;
@@ -450,6 +522,9 @@ type
     
     property Typ: TJsonDataType read GetTyp;
     property Value: string read GetValue write SetValue;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    property ValueUTF8: UTF8String read GetValueUTF8 write SetValueUTF8;
+    {$ENDIF SUPPORTS_UTF8STRING}
     property IntValue: Integer read GetIntValue write SetIntValue;
     property LongValue: Int64 read GetLongValue write SetLongValue;
     property ULongValue: UInt64 read GetULongValue write SetULongValue;
@@ -467,6 +542,9 @@ type
     property Items[Index: Integer]: TJsonDataValueHelper read GetArrayItem;
 
     property S[const Name: string]: string read GetObjectString write SetObjectString;        // returns '' if property doesn't exist, auto type-cast except for array/object
+    {$IFDEF SUPPORTS_UTF8STRING}
+    property UTF8[const Name: string]: UTF8String read GetObjectUTF8String write SetObjectUTF8String; // returns '' if property doesn't exist, auto type-cast except for array/object
+    {$ENDIF SUPPORTS_UTF8STRING}
     property I[const Name: string]: Integer read GetObjectInt write SetObjectInt;             // returns 0 if property doesn't exist, auto type-cast except for array/object
     property L[const Name: string]: Int64 read GetObjectLong write SetObjectLong;             // returns 0 if property doesn't exist, auto type-cast except for array/object
     property U[const Name: string]: UInt64 read GetObjectULong write SetObjectULong;          // returns 0 if property doesn't exist, auto type-cast except for array/object
@@ -477,7 +555,7 @@ type
     // Used to auto create arrays
     property A[const Name: string]: TJsonArray read GetArray write SetArray;
     // Used to auto create objects and as default property where no Implicit operator matches
-    property O[const Name: string]: TJsonDataValueHelper read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject; default;
+    property O[const Name: string]: TJsonDataValueHelper read GetObj write SetObject; default;
     property V[const Name: string]: Variant read GetObjectVariant write SetObjectVariant;
 
     property Path[const Name: string]: TJsonDataValueHelper read GetObjectPath write SetObjectPath;
@@ -487,6 +565,9 @@ type
       FName: string;
       FNameResolver: TJsonObject;
       FValue: string; // must be managed by Delphi otherwise we have a memory leak
+      {$IFDEF USE_UTF8STRING_VALUES}
+      FValueUTF8: UTF8String; // must be managed by Delphi otherwise we have a memory leak
+      {$ENDIF USE_UTF8STRING_VALUES}
       {$IFDEF AUTOREFCOUNT}
       FObj: TJsonBaseObject;
       {$ENDIF AUTOREFCOUNT}
@@ -532,6 +613,9 @@ type
   public
     const DataTypeNames: array[TJsonDataType] of string = (
       'null', 'String', 'Integer', 'Long', 'ULong', 'Float', 'DateTime', 'UTC-DateTime', 'Bool', 'Array', 'Object'
+      {$IFDEF USE_UTF8STRING_VALUES}
+      , 'UTF8-String'
+      {$ENDIF USE_UTF8STRING_VALUES}
     );
 
     {$IFDEF USE_FAST_NEWINSTANCE}
@@ -547,7 +631,7 @@ type
     {$ENDIF SUPPORTS_UTF8STRING}
     class function ParseUtf8Bytes(S: PByte; Len: Integer = -1; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; static;
     class function Parse(S: PWideChar; Len: Integer = -1; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static;
-    class function Parse(const S: UnicodeString; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static; inline;
+    class function Parse(const S: string; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static; inline;
     class function Parse(const Bytes: TBytes; Encoding: TEncoding = nil; ByteIndex: Integer = 0;
       ByteCount: Integer = -1; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static;
     class function ParseFromFile(const FileName: string; Utf8WithoutBOM: Boolean = True; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; static;
@@ -581,13 +665,30 @@ type
     procedure ToUtf8JSON(var Bytes: TBytes; Compact: Boolean = True); overload; inline;
     procedure ToUtf8JSON(var Bytes: TBytes; const Config: TJsonSerializationConfig; Compact: Boolean = True); overload;
     // ToString() returns a compact JSON string
-    function ToString: string; override;
+    function ToString: {$IFDEF FPC}AnsiString{$ELSE}string{$ENDIF}; override;
 
     function Clone: TJsonBaseObject;
 
     class function JSONToDateTime(const Value: string; ConvertToLocalTime: Boolean = True): TDateTime; static;
     class function DateTimeToJSON(const Value: TDateTime; UseUtcTime: Boolean): string; static;
     class function UtcDateTimeToJSON(const UtcDateTime: TDateTime): string; static;
+  end;
+
+  TJsonPrimitiveValue = class(TJsonBaseObject)
+  private
+    FValue: TJsonDataValue;
+    function GetValue: TJsonDataValueHelper;
+    procedure SetValue(const Value: TJsonDataValueHelper);
+    function GetItem: PJsonDataValue; inline;
+  protected
+    procedure InternToJSON(var Writer: TJsonOutputWriter); override;
+  public
+    destructor Destroy; override;
+    function Clone: TJsonPrimitiveValue;
+    procedure Assign(ASource: TJsonPrimitiveValue);
+
+    property Item: PJsonDataValue read GetItem;
+    property Value: TJsonDataValueHelper read GetValue write SetValue;
   end;
 
   PJsonDataValueArray = ^TJsonDataValueArray;
@@ -612,6 +713,9 @@ type
     FCapacity: Integer;
     FCount: Integer;
     function GetString(Index: Integer): string; inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    function GetUTF8String(Index: Integer): UTF8String; inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
     function GetInt(Index: Integer): Integer; inline;
     function GetLong(Index: Integer): Int64; inline;
     function GetULong(Index: Integer): UInt64; inline;
@@ -620,14 +724,13 @@ type
     function GetUtcDateTime(Index: Integer): TDateTime; inline;
     function GetBool(Index: Integer): Boolean; inline;
     function GetArray(Index: Integer): TJsonArray; inline;
-    {$IFDEF BCB}
     function GetObj(Index: Integer): TJsonObject; inline;
-    {$ELSE}
-    function GetObject(Index: Integer): TJsonObject; inline;
-    {$ENDIF BCB}
     function GetVariant(Index: Integer): Variant; inline;
 
     procedure SetString(Index: Integer; const Value: string); inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure SetUTF8String(Index: Integer; const Value: UTF8String); inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure SetInt(Index: Integer; const Value: Integer); inline;
     procedure SetLong(Index: Integer; const Value: Int64); inline;
     procedure SetULong(Index: Integer; const Value: UInt64); inline;
@@ -641,6 +744,7 @@ type
 
     function GetItem(Index: Integer): PJsonDataValue; inline;
     function GetType(Index: Integer): TJsonDataType; inline;
+    function GetTypeEx(Index: Integer): TJsonDataType; inline;
     function GetValue(Index: Integer): TJsonDataValueHelper;
 
     procedure SetValue(Index: Integer; const Value: TJsonDataValueHelper);
@@ -667,6 +771,10 @@ type
     function Clone: TJsonArray;
 
     procedure Add(const AValue: string); overload;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure Add(const AValue: UTF8String); overload;
+    procedure AddUtf8(const AValue: PAnsiChar; ALen: Integer);
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure Add(const AValue: Integer); overload;
     procedure Add(const AValue: Int64); overload;
     procedure Add(const AValue: UInt64); overload;
@@ -682,6 +790,9 @@ type
     procedure AddObject(const Value: TJsonObject); overload; inline; // makes it easier to add "null"
 
     procedure Insert(Index: Integer; const AValue: string); overload;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure Insert(Index: Integer; const AValue: UTF8String); overload;
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure Insert(Index: Integer; const AValue: Integer); overload;
     procedure Insert(Index: Integer; const AValue: Int64); overload;
     procedure Insert(Index: Integer; const AValue: UInt64); overload;
@@ -700,10 +811,14 @@ type
     function IsNull(Index: Integer): Boolean;
 
     property Types[Index: Integer]: TJsonDataType read GetType;
+    property TypesEx[Index: Integer]: TJsonDataType read GetTypeEx;
     property Values[Index: Integer]: TJsonDataValueHelper read GetValue write SetValue; default;
 
     // Short names
     property S[Index: Integer]: string read GetString write SetString;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    property UTF8[Index: Integer]: UTF8String read GetUTF8String write SetUTF8String;
+    {$ENDIF SUPPORTS_UTF8STRING}
     property I[Index: Integer]: Integer read GetInt write SetInt;
     property L[Index: Integer]: Int64 read GetLong write SetLong;
     property U[Index: Integer]: UInt64 read GetULong write SetULong;
@@ -712,7 +827,7 @@ type
     property DUtc[Index: Integer]: TDateTime read GetUtcDateTime write SetUtcDateTime;
     property B[Index: Integer]: Boolean read GetBool write SetBool;
     property A[Index: Integer]: TJsonArray read GetArray write SetArray;
-    property O[Index: Integer]: TJsonObject read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject;
+    property O[Index: Integer]: TJsonObject read GetObj write SetObject;
     property V[Index: Integer]: Variant read GetVariant write SetVariant;
 
     property Items[Index: Integer]: PJsonDataValue read GetItem;
@@ -742,11 +857,15 @@ type
   private type
     PJsonStringArray = ^TJsonStringArray;
     TJsonStringArray = array[0..MaxInt div SizeOf(string) - 1] of string;
+    PJsonStringSortIndexArray = ^TJsonStringSortIndexArray;
+    TJsonStringSortIndexArray = array[0..MaxInt div SizeOf(Integer) - 1] of Integer;
   private
     FItems: PJsonDataValueArray;
     FNames: PJsonStringArray;
     FCapacity: Integer;
     FCount: Integer;
+    FSortedNames: PJsonStringSortIndexArray;
+    FFirstUnsortedNameIndex: Integer;
     {$IFDEF USE_LAST_NAME_STRING_LITERAL_CACHE}
     FLastValueItem: PJsonDataValue;
     FLastValueItemNamePtr: Pointer;
@@ -756,6 +875,9 @@ type
     function RequireItem(const Name: string): PJsonDataValue;
 
     function GetString(const Name: string): string;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    function GetUTF8String(const Name: string): UTF8String;
+    {$ENDIF SUPPORTS_UTF8STRING}
     function GetBool(const Name: string): Boolean;
     function GetInt(const Name: string): Integer;
     function GetLong(const Name: string): Int64;
@@ -763,13 +885,13 @@ type
     function GetFloat(const Name: string): Double;
     function GetDateTime(const Name: string): TDateTime;
     function GetUtcDateTime(const Name: string): TDateTime;
-    {$IFDEF BCB}
     function GetObj(const Name: string): TJsonObject;
-    {$ELSE}
-    function GetObject(const Name: string): TJsonObject;
-    {$ENDIF BCB}
     function GetArray(const Name: string): TJsonArray;
+
     procedure SetString(const Name, Value: string);
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure SetUTF8String(const Name: string; const Value: UTF8String);
+    {$ENDIF SUPPORTS_UTF8STRING}
     procedure SetBool(const Name: string; const Value: Boolean);
     procedure SetInt(const Name: string; const Value: Integer);
     procedure SetLong(const Name: string; const Value: Int64);
@@ -781,6 +903,7 @@ type
     procedure SetArray(const Name: string; const Value: TJsonArray);
 
     function GetType(const Name: string): TJsonDataType;
+    function GetTypeEx(const Name: string): TJsonDataType;
     function GetName(Index: Integer): string; inline;
     function GetItem(Index: Integer): PJsonDataValue; inline;
     procedure SetValue(const Name: string; const Value: TJsonDataValueHelper);
@@ -788,6 +911,9 @@ type
 
     { Used from the reader, never every use them outside the reader, they may crash your strings }
     procedure InternAdd(var AName: string; const AValue: string); overload;
+    {$IFDEF USE_UTF8STRING_VALUES}
+    procedure InternAdd(var AName: string; const AValue: UTF8String); overload;
+    {$ENDIF USE_UTF8STRING_VALUES}
     procedure InternAdd(var AName: string; const AValue: Integer); overload;
     procedure InternAdd(var AName: string; const AValue: Int64); overload;
     procedure InternAdd(var AName: string; const AValue: UInt64); overload;
@@ -799,6 +925,12 @@ type
     function InternAddArray(var AName: string): TJsonArray;
     function InternAddObject(var AName: string): TJsonObject;
 
+    procedure SortUnsortedNames;
+    function CompareSortedName(SortIndex1, SortIndex2: Integer): Integer;
+    procedure QuickSortNames(L, R: Integer);
+    function InternIndexOfSortedName(const Name: string): Integer;
+    function InternFindSortedNameInsertIndex(NameIndex: Integer): Integer;
+    procedure InternDeleteSortedName(SortIndex: Integer);
     function InternAddItem(var Name: string): PJsonDataValue;
     function AddItem(const Name: string): PJsonDataValue;
 
@@ -841,10 +973,14 @@ type
     function IsNull(const Name: string): Boolean;
 
     property Types[const Name: string]: TJsonDataType read GetType;
+    property TypesEx[const Name: string]: TJsonDataType read GetTypeEx;
     property Values[const Name: string]: TJsonDataValueHelper read GetValue write SetValue; default;
 
     // Short names
     property S[const Name: string]: string read GetString write SetString;        // returns '' if property doesn't exist, auto type-cast except for array/object
+    {$IFDEF SUPPORTS_UTF8STRING}
+    property UTF8[const Name: string]: UTF8String read GetUTF8String write SetUTF8String; // returns '' if property doesn't exist, auto type-cast except for array/object
+    {$ENDIF SUPPORTS_UTF8STRING}
     property I[const Name: string]: Integer read GetInt write SetInt;             // returns 0 if property doesn't exist, auto type-cast except for array/object
     property L[const Name: string]: Int64 read GetLong write SetLong;             // returns 0 if property doesn't exist, auto type-cast except for array/object
     property U[const Name: string]: UInt64 read GetULong write SetULong;          // returns 0 if property doesn't exist, auto type-cast except for array/object
@@ -853,7 +989,7 @@ type
     property DUtc[const Name: string]: TDateTime read GetUtcDateTime write SetUtcDateTime; // returns 0 if property doesn't exist, auto type-cast except for array/object
     property B[const Name: string]: Boolean read GetBool write SetBool;           // returns false if property doesn't exist, auto type-cast with "<>'true'" and "<>0" except for array/object
     property A[const Name: string]: TJsonArray read GetArray write SetArray;      // auto creates array on first access
-    property O[const Name: string]: TJsonObject read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject;   // auto creates object on first access
+    property O[const Name: string]: TJsonObject read GetObj write SetObject;   // auto creates object on first access
 
     property Path[const NamePath: string]: TJsonDataValueHelper read GetPath write SetPath;
 
@@ -878,6 +1014,24 @@ var
     NullConvertsToValueTypes: False;  // If True and an object is nil/null, a convertion to String, Int, Long, Float, DateTime, Boolean will return ''/0/False
   );
 
+/// <summary>
+/// Result True if the string is a valid json object or json array
+/// starting with "{" or "[" and with valid json content
+/// </summary>
+function IsValidJSON(const JSONString: string): Boolean;
+
+/// <summary>
+/// Result True if the string is a valid json object
+/// starting with "{" and with valid json content
+/// </summary>
+function IsValidJSONObject(const JSONString: string): Boolean;
+
+/// <summary>
+/// Result True if the string is a valid json array
+/// starting with "[" and with valid json content
+/// </summary>
+function IsValidJSONArray(const JSONString: string): Boolean;
+
 implementation
 
 uses
@@ -896,7 +1050,7 @@ uses
     {$ELSE}
   DateUtils,
     {$ENDIF MSWINDOWS}
-  Variants, RTLConsts, TypInfo, Math, SysConst;
+  Variants, {$IFNDEF FPC}RTLConsts,{$ENDIF} TypInfo, Math, SysConst;
   {$ENDIF HAS_UNIT_SCOPE}
 
 {$IF SizeOf(LongWord) <> 4}
@@ -930,7 +1084,8 @@ type
     jtkEof, jtkInvalidSymbol,
     jtkLBrace, jtkRBrace, jtkLBracket, jtkRBracket, jtkComma, jtkColon,
     jtkIdent,
-    jtkValue, jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse, jtkNull
+    jtkValue{ only for error message},
+    jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse, jtkNull
   );
 
 const
@@ -959,6 +1114,19 @@ const
   {$IFEND}
 
 type
+  {$IFDEF FPC}
+  PStrRec = ^TStrRec;
+  TStrRec = record
+    CodePage: TSystemCodePage;
+    EkenSize: Word;
+    {$ifdef CPU64}
+    { align fields }
+  	Dummy: DWORD;
+    {$endif CPU64}
+    RefCnt: SizeInt;
+    Length: SizeInt;
+  end;
+  {$ELSE}
   PStrRec = ^TStrRec;
   TStrRec = packed record
     {$IF defined(CPUX64) or defined(CPU64BITS)} // XE2-XE7 (CPUX64), XE8+ (CPU64BITS)
@@ -969,6 +1137,7 @@ type
     RefCnt: Integer;
     Length: Integer;
   end;
+  {$ENDIF FPC}
 
   // TEncodingStrictAccess gives us access to the strict protected functions which are much easier
   // to use with TJsonStringBuilder than converting FData to a dynamic TCharArray.
@@ -983,7 +1152,6 @@ type
   {$IFDEF USE_STRINGINTERN_FOR_NAMES}
   TStringIntern = record
   private type
-    PJsonStringEntry = ^TJsonStringEntry;
     TJsonStringEntry = record
       Next: Integer;
       Hash: Integer;
@@ -1012,6 +1180,11 @@ type
   {$ENDIF USE_STRINGINTERN_FOR_NAMES}
 
   TJsonToken = record
+  {$IFDEF USE_UTF8STRING_VALUES}
+  public
+    procedure RequireUnicodeString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+  public
     Kind: TJsonTokenKind;
     S: string; // jtkIdent/jtkString
     case Integer of
@@ -1019,6 +1192,9 @@ type
       1: (L: Int64);
       2: (U: UInt64);
       3: (F: Double);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      4: (UTF8: PAnsiChar; UTF8Len: Integer);
+      {$ENDIF USE_UTF8STRING_VALUES}
   end;
 
   TJsonReader = class(TObject)
@@ -1104,7 +1280,7 @@ type
   private
     FDataString: UTF8String;
   protected
-    function Realloc(var NewCapacity: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND}): Pointer; override;
+    function Realloc(var NewCapacity: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF}): Pointer; override;
   public
     constructor Create;
     property DataString: UTF8String read FDataString;
@@ -1115,7 +1291,7 @@ type
   private
     FBytes: TBytes;
   protected
-    function Realloc(var NewCapacity: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND}): Pointer; override;
+    function Realloc(var NewCapacity: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF}): Pointer; override;
   public
     constructor Create;
     property Bytes: TBytes read FBytes;
@@ -1187,6 +1363,13 @@ end;
 
 type
   PDynArrayRec = ^TDynArrayRec;
+  {$IFDEF FPC}
+  TDynArrayRec = record
+    RefCnt: PtrInt;
+    High: TDynarrayIndex;
+    Data: record end;
+  end;
+  {$ELSE}
   TDynArrayRec = packed record
     {$IF defined(CPUX64) or defined(CPU64BITS)} // XE2-XE7 (CPUX64), XE8+ (CPU64BITS)
     _Padding: Integer;
@@ -1195,6 +1378,7 @@ type
     Length: NativeInt;
     Data: record end;
   end;
+  {$ENDIF FPC}
 
 procedure ByteArraySetLengthUninit(var A: TBytes; Count: Integer);
 var
@@ -1206,7 +1390,11 @@ begin
     begin
       GetMem(Pointer(P), SizeOf(TDynArrayRec) + Count * SizeOf(Byte));
       P.RefCnt := 1;
+      {$IFDEF FPC}
+      P.High := Count - 1;
+      {$ELSE}
       P.Length := Count;
+      {$ENDIF FPC}
       Pointer(A) := @P.Data;
     end;
   end
@@ -1225,15 +1413,25 @@ begin
     if P.RefCnt = 1 then
     begin
       ReallocMem(Pointer(P), SizeOf(TDynArrayRec) + Count * SizeOf(Byte));
+      {$IFDEF FPC}
+      P.High := Count - 1;
+      {$ELSE}
       P.Length := Count;
+      {$ENDIF FPC}
       Pointer(A) := @P.Data;
     end
     else
     begin
       GetMem(Pointer(P), SizeOf(TDynArrayRec) + Count * SizeOf(Integer));
+      {$IFDEF FPC}
+      Move(A[0], P.Data, (PDynArrayRec(PByte(A) - SizeOf(TDynArrayRec)).High + 1) * SizeOf(Byte));
+      P.RefCnt := 1;
+      P.High := Count - 1;
+      {$ELSE}
       Move(A[0], P.Data, PDynArrayRec(PByte(A) - SizeOf(TDynArrayRec)).Length * SizeOf(Byte));
       P.RefCnt := 1;
       P.Length := Count;
+      {$ENDIF FPC}
       Pointer(A) := @P.Data;
     end;
   end;
@@ -1539,6 +1737,18 @@ begin
     S := '';
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure ConvertUTF8ToString(var S: string; const Value: UTF8String);
+begin
+  S := UTF8ToString(Value);
+end;
+
+procedure ConvertStringToUTF8(var S: UTF8String; const Value: string);
+begin
+  S := UTF8Encode(Value);
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 procedure AppendString(var S: string; P: PChar; Len: Integer);
 var
   OldLen: Integer;
@@ -1595,6 +1805,16 @@ begin
   Result := @Self;
 end;
 
+{ TJsonToken }
+
+{$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonToken.RequireUnicodeString;
+begin
+  if (Kind = jtkString) and (UTF8 <> nil) {and (S = '')} then
+    SetStringUtf8(S, PByte(UTF8), UTF8Len);
+end;
+{$ENDIF USE_UTF8STRING_VALUES}
+
 { TJsonReader }
 
 {$IFDEF USE_FAST_NEWINSTANCE}
@@ -1621,6 +1841,11 @@ begin
   Pointer(FPropName) := nil;
   Pointer(FLook.S) := nil;
   {$ENDIF USE_FAST_NEWINSTANCE}
+  {$IFDEF USE_UTF8STRING_VALUES}
+  FLook.UTF8 := nil;
+  FLook.UTF8Len := 0;
+  {$ENDIF USE_UTF8STRING_VALUES}
+
   {$IFDEF USE_STRINGINTERN_FOR_NAMES}
   FIdents.Init;
   {$ENDIF USE_STRINGINTERN_FOR_NAMES}
@@ -1751,6 +1976,9 @@ begin
             Inc(P, 3);
           end;
       else
+        {$IFDEF STRICT_JSON_PARSER}
+        InvalidStringCharacterError(Reader);
+        {$ENDIF STRICT_JSON_PARSER}
         Break;
       end;
       Inc(P);
@@ -1828,6 +2056,9 @@ begin
             Inc(P, 3);
           end;
       else
+        {$IFDEF STRICT_JSON_PARSER}
+        InvalidStringCharacterError(Reader);
+        {$ENDIF STRICT_JSON_PARSER}
         Break;
       end;
       Inc(P);
@@ -1861,6 +2092,8 @@ begin
 end;
 
 procedure TJsonReader.Parse(Data: TJsonBaseObject);
+var
+  A: TJsonArray;
 begin
   if Data is TJsonObject then
   begin
@@ -1877,7 +2110,27 @@ begin
     Accept(jtkLBracket);
     ParseArrayBody(TJsonArray(Data));
     Accept(jtkRBracket)
-  end;
+  end 
+  else if Data is TJsonPrimitiveValue then
+  begin
+    TJsonPrimitiveValue(Data).Item.Clear;
+    Next; // initialize Lexer 
+    if FLook.Kind < jtkString then // block everything that isn't a value
+      Accept(jtkLBracket); // throw "{" expected error. That's what happened before TJsonPrimitiveValue was added
+
+    // Use the array parser to parse the value
+    A := TJsonArray.Create;
+    try
+      ParseArrayPropertyValue(A);
+      if (A.Count > 0) and not A.Items[0].IsNull then
+        TJsonPrimitiveValue(Data).Item.Assign(A.Items[0]);
+    finally
+      A.Free;
+    end;
+  end;      
+  {$IFDEF STRICT_JSON_PARSER}
+  Accept(jtkEof);
+  {$ENDIF STRICT_JSON_PARSER}
 end;
 
 procedure TJsonReader.ParseObjectBody(const Data: TJsonObject);
@@ -1898,8 +2151,16 @@ end;
 procedure TJsonReader.ParseObjectProperty(const Data: TJsonObject);
 // Property ::= IDENT ":" ObjectPropertyValue
 begin
+  {$IFDEF STRICT_JSON_PARSER}
+  if FLook.Kind = jtkString then
+  {$ELSE}
   if FLook.Kind >= jtkIdent then // correct JSON would be "tkString" only
+  {$ENDIF STRICT_JSON_PARSER}
   begin
+    {$IFDEF USE_UTF8STRING_VALUES}
+    if FLook.UTF8 <> nil then
+      FLook.RequireUnicodeString; // If we use the UTF8-Parser we must convert the PropName to a UnicodeString
+    {$ENDIF USE_UTF8STRING_VALUES}
     {$IFDEF USE_STRINGINTERN_FOR_NAMES}
     FIdents.Intern(FLook.S, FPropName);
     {$ELSE}
@@ -1941,10 +2202,17 @@ begin
         Next;
       end;
 
+    {$IFNDEF STRICT_JSON_PARSER}
     jtkIdent,
+    {$ENDIF ~STRICT_JSON_PARSER}
     jtkString:
       begin
-        Data.InternAddItem(FPropName).InternSetValueTransfer(FLook.S);
+        {$IFDEF USE_UTF8STRING_VALUES}
+        if FLook.UTF8 <> nil then
+          Data.InternAddItem(FPropName).InternSetValueUTF8Transfer(FLook.UTF8, FLook.UTF8Len)
+        else
+        {$ENDIF USE_UTF8STRING_VALUES}
+          Data.InternAddItem(FPropName).InternSetValueTransfer(FLook.S);
         Next;
       end;
 
@@ -2027,10 +2295,17 @@ begin
         Next;
       end;
 
+    {$IFNDEF STRICT_JSON_PARSER}
     jtkIdent,
+    {$ENDIF ~STRICT_JSON_PARSER}
     jtkString:
       begin
-        Data.Add(FLook.S);
+        {$IFDEF USE_UTF8STRING_VALUES}
+        if FLook.UTF8 <> nil then
+          Data.AddUtf8(FLook.UTF8, FLook.UTF8Len)
+        else
+        {$ENDIF USE_UTF8STRING_VALUES}
+          Data.Add(FLook.S);
         Next;
       end;
 
@@ -2104,6 +2379,10 @@ begin
   case FTyp of
     jdtString:
       string(FValue.S) := '';
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      UTF8String(FValue.S) := '';
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       FValue.I := 0;
     jdtLong:
@@ -2224,6 +2503,10 @@ begin
       Result := Unassigned;
     jdtString:
       Result := string(FValue.S);
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      Result := UTF8String(FValue.S);
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2263,6 +2546,7 @@ begin
     case LTyp of
       jdtString:
         string(FValue.S) := AValue;
+      //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
       jdtInt:
         FValue.I := AValue;
       jdtLong:
@@ -2314,6 +2598,13 @@ begin
       Result := '';
     jdtString:
       Result := string(FValue.S);
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType; // switch the value to a jdtString
+        Result := string(FValue.S);
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := IntToStr(FValue.I);
     jdtLong:
@@ -2371,6 +2662,80 @@ begin
   Pointer(AValue) := nil;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+
+  {$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonDataValue.ConvertUTF8ToStringType;
+var
+  S: string;
+begin
+  S := UTF8ToString(UTF8String(FValue.S));
+  UTF8String(FValue.S) := '';
+
+  FValue.S := Pointer(S);
+  Pointer(S) := nil;
+  FTyp := jdtString; // now we have a UnicodeString in the value
+end;
+
+procedure TJsonDataValue.InternSetValueUTF8(const AValue: UTF8string);
+begin
+  FTyp := jdtUTF8String;
+  UTF8String(FValue.S) := AValue;
+end;
+
+procedure TJsonDataValue.InternSetValueUTF8Transfer(P: PAnsiChar; Len: Integer);
+begin
+  FTyp := jdtUTF8String;
+  if Len > 0 then
+    SetString(UTF8String(FValue.S), P, Len)
+  else
+    FValue.S := nil;
+end;
+  {$ENDIF USE_UTF8STRING_VALUES}
+
+function TJsonDataValue.GetValueUTF8: UTF8String;
+
+  procedure SlowConvert(var S: UTF8String);
+  begin
+    Result := UTF8Encode(GetValue);
+  end;
+
+begin
+  case FTyp of
+    jdtString:
+      ConvertStringToUTF8(Result, string(FValue.S));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      Result := UTF8String(FValue.S);
+    {$ENDIF USE_UTF8STRING_VALUES}
+    jdtNone:
+      Result := '';
+  else
+    SlowConvert(Result);
+  end;
+end;
+
+procedure TJsonDataValue.SetValueUTF8(const AValue: UTF8String);
+{$IFDEF USE_UTF8STRING_VALUES}
+var
+  LTyp: TJsonDataType;
+{$ENDIF USE_UTF8STRING_VALUES}
+begin
+  {$IFDEF USE_UTF8STRING_VALUES}
+  LTyp := FTyp;
+  if (LTyp <> jdtUTF8String) or (AValue <> UTF8String(FValue.S)) then
+  begin
+    if LTyp <> jdtNone then
+      Clear;
+    FTyp := jdtUTF8String;
+    UTF8String(FValue.S) := AValue;
+  end;
+  {$ELSE}
+  SetValue(UTF8ToString(AValue));
+  {$ENDIF USE_UTF8STRING_VALUES}
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 function TJsonDataValue.GetIntValue: Integer;
 begin
   case FTyp of
@@ -2379,6 +2744,14 @@ begin
     jdtString:
       if not TryStrToInt(string(FValue.S), Result) then
         Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        if not TryStrToInt(string(FValue.S), Result) then
+          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2425,6 +2798,14 @@ begin
     jdtString:
       if not TryStrToInt64(string(FValue.S), Result) then
         Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        if not TryStrToInt64(string(FValue.S), Result) then
+          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2471,6 +2852,14 @@ begin
     jdtString:
       if not TryStrToUInt64(string(FValue.S), Result) then
         Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        if not TryStrToUInt64(string(FValue.S), Result) then
+          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2516,6 +2905,13 @@ begin
       Result := 0;
     jdtString:
       Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2561,6 +2957,13 @@ begin
       Result := 0;
     jdtString:
       Result := TJsonBaseObject.JSONToDateTime(string(FValue.S));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        Result := TJsonBaseObject.JSONToDateTime(string(FValue.S));
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2608,6 +3011,13 @@ begin
       Result := 0;
     jdtString:
       Result := TJsonBaseObject.JSONToDateTime(string(FValue.S), False);
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        Result := TJsonBaseObject.JSONToDateTime(string(FValue.S), False);
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2655,6 +3065,10 @@ begin
       Result := False;
     jdtString:
       Result := string(FValue.S) = 'true';
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      Result := UTF8String(FValue.S) = 'true';
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Result := FValue.I <> 0;
     jdtLong:
@@ -2696,8 +3110,17 @@ end;
 function DoubleToText(Buffer: PChar; const Value: Extended): Integer; {inline;}
 var
   I: Integer;
+  {$IFDEF FPC}
+  AnsiBuf: array[0..63 + 2] of AnsiChar;
+  {$ENDIF FPC}
 begin
+  {$IFDEF FPC}
+  Result := FloatToText(AnsiBuf, Value, ffGeneral, 15, 0, JSONFormatSettings);
+  for I := 0 to Result - 1 do
+    Buffer[I] := WideChar(Ord(AnsiBuf[I])); // we only have digits and -, +, ., E as characters
+  {$ELSE}
   Result := FloatToText(Buffer, Value, fvExtended, ffGeneral, 15, 0, JSONFormatSettings);
+  {$ENDIF FPC}
 
   // Add the decimal separator if FloatToText didn't add it, so that the data type of
   // the property doesn't change to Integer/Int64 if it is read again.
@@ -2812,6 +3235,13 @@ begin
       Writer.AppendValue(sNull);
     jdtString:
       TJsonBaseObject.StrToJSONStr(Writer.AppendStrValue, string(FValue.S));
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        ConvertUTF8ToStringType;
+        TJsonBaseObject.StrToJSONStr(Writer.AppendStrValue, string(FValue.S));
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       begin
         BufEnd := @PChar(@Buffer[0])[Length(Buffer)]; // extra typecast to work around a compiler bug (fixed in XE3)
@@ -2896,8 +3326,12 @@ function TJsonBaseObject.Clone: TJsonBaseObject;
 begin
   if Self is TJsonArray then
     Result := TJsonArray(Self).Clone
+  else if Self is TJsonObject then
+    Result := TJsonObject(Self).Clone
+  else if Self is TJsonPrimitiveValue then
+    Result := TJsonPrimitiveValue(Self).Clone
   else
-    Result := TJsonObject(Self).Clone;
+    Result := (Self as TJsonObject).Clone; // raise Cast-Exception
 end;
 
 class function TJsonBaseObject.DateTimeToJSON(const Value: TDateTime; UseUtcTime: Boolean): string;
@@ -3031,8 +3465,7 @@ begin
   P := PChar(Pointer(S));
   if P <> nil then
   begin
-    //EndP := P + Length(S);  inlined Length introduces too much unnecessary code
-    EndP := P + PInteger(@PByte(S)[-4])^;
+    EndP := P + PStrRec(@PByte(S)[-SizeOf(TStrRec)]).Length; // inlined Length() introduces too much unnecessary code
 
     // find the first char that must be escaped
     F := P;
@@ -3236,9 +3669,9 @@ begin
   end;
 end;
 
-class function TJsonBaseObject.Parse(const S: UnicodeString; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
+class function TJsonBaseObject.Parse(const S: string; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
 begin
-  Result := Parse(PWideChar(Pointer(S)), Length(S), AProgress);
+  Result := Parse(PChar(Pointer(S)), Length(S), AProgress);
 end;
 
 class function TJsonBaseObject.Parse(S: PWideChar; Len: Integer; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
@@ -3265,8 +3698,10 @@ begin
     begin
       if (L > 0) and (P^ = '[') then
         Result := TJsonArray.Create
-      else
-        Result := TJsonObject.Create;
+      else if P^ = '{' then
+        Result := TJsonObject.Create
+      else         
+        Result := TJsonPrimitiveValue.Create;
 
       {$IFDEF AUTOREFCOUNT}
       Result.FromJSON(S, Len, AProgress);
@@ -3690,7 +4125,7 @@ begin
     ByteArraySetLengthUninit(Bytes, Size);
 end;
 
-function TJsonBaseObject.ToString: string;
+function TJsonBaseObject.ToString: {$IFDEF FPC}AnsiString{$ELSE}string{$ENDIF};
 begin
   Result := ToJSON;
 end;
@@ -3704,6 +4139,13 @@ begin
         Dest.FValue.P := nil;
         string(Dest.FValue.S) := string(Source.FValue.S);
       end;
+    {$IFDEF USE_UTF8STRING_VALUES}
+    jdtUTF8String:
+      begin
+        Dest.FValue.P := nil;
+        UTF8String(Dest.FValue.S) := UTF8String(Source.FValue.S);
+      end;
+    {$ENDIF USE_UTF8STRING_VALUES}
     jdtInt:
       Dest.FValue.I := Source.FValue.I;
     jdtLong:
@@ -3764,6 +4206,64 @@ begin
   raise EJsonCastException.CreateResFmt(@RsTypeCastError,
     [TJsonBaseObject.DataTypeNames[FTyp], TJsonBaseObject.DataTypeNames[ExpectedType]])
     {$IFDEF HAS_RETURN_ADDRESS} at ReturnAddress{$ENDIF};
+end;
+
+procedure TJsonDataValue.Assign(AValue: PJsonDataValue);
+begin
+  if AValue <> @Self then
+  begin
+    Clear;
+    if AValue <> nil then
+      TJsonBaseObject.InternInitAndAssignItem(@Self, AValue);
+  end;
+end;
+
+{ TJsonPrimitiveValue }
+
+destructor TJsonPrimitiveValue.Destroy;
+begin
+  FValue.Clear;
+  inherited Destroy;
+end;
+
+function TJsonPrimitiveValue.GetValue: TJsonDataValueHelper;
+begin
+  Result.FData.FIntern := @FValue;
+  Result.FData.FTyp := jdtNone;
+end;
+
+procedure TJsonPrimitiveValue.SetValue(const Value: TJsonDataValueHelper);
+begin
+  TJsonDataValueHelper.SetInternValue(@FValue, Value);
+end;
+
+procedure TJsonPrimitiveValue.InternToJSON(var Writer: TJsonOutputWriter);
+begin
+  FValue.InternToJSON(Writer);
+end;
+
+function TJsonPrimitiveValue.GetItem: PJsonDataValue;
+begin
+  Result := @FValue;
+end;
+
+function TJsonPrimitiveValue.Clone: TJsonPrimitiveValue;
+begin
+  Result := TJsonPrimitiveValue.Create;
+  try
+    Result.Assign(Self);
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+procedure TJsonPrimitiveValue.Assign(ASource: TJsonPrimitiveValue);
+begin
+  if ASource <> nil then
+    FValue.Assign(@ASource.FValue)
+  else
+    FValue.Clear;
 end;
 
 { TJsonArrayEnumerator }
@@ -3918,7 +4418,6 @@ begin
   Result := FItems[Index].BoolValue;
 end;
 
-{$IFDEF BCB}
 function TJsonArray.GetObj(Index: Integer): TJsonObject;
 begin
   {$IFDEF CHECK_ARRAY_INDEX}
@@ -3927,16 +4426,6 @@ begin
   {$ENDIF CHECK_ARRAY_INDEX}
   Result := FItems[Index].ObjectValue;
 end;
-{$ELSE}
-function TJsonArray.GetObject(Index: Integer): TJsonObject;
-begin
-  {$IFDEF CHECK_ARRAY_INDEX}
-  if Cardinal(Index) >= Cardinal(FCount) then
-    RaiseListError(Index);
-  {$ENDIF CHECK_ARRAY_INDEX}
-  Result := FItems[Index].ObjectValue;
-end;
-{$ENDIF BCB}
 
 function TJsonArray.GetVariant(Index: Integer): Variant;
 begin
@@ -4019,6 +4508,17 @@ begin
   Result := FItems[Index].Value;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+function TJsonArray.GetUTF8String(Index: Integer): UTF8String;
+begin
+  {$IFDEF CHECK_ARRAY_INDEX}
+  if Cardinal(Index) >= Cardinal(FCount) then
+    RaiseListError(Index);
+  {$ENDIF CHECK_ARRAY_INDEX}
+  Result := FItems[Index].ValueUTF8;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 procedure TJsonArray.Add(const AValue: TJsonObject);
 var
   Data: PJsonDataValue;
@@ -4098,6 +4598,32 @@ begin
   Data := AddItem;
   Data.Value := AValue;
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonArray.Add(const AValue: UTF8String);
+var
+  Data: PJsonDataValue;
+begin
+  Data := AddItem;
+  Data.ValueUTF8 := AValue;
+end;
+
+procedure TJsonArray.AddUtf8(const AValue: PAnsiChar; ALen: Integer);
+var
+  {$IFDEF USE_UTF8STRING_VALUES}
+  S: UTF8String;
+  {$ELSE}
+  S: string;
+  {$ENDIF USE_UTF8STRING_VALUES}
+begin
+  {$IFDEF USE_UTF8STRING_VALUES}
+  System.SetString(S, AValue, ALen);
+  {$ELSE}
+  SetStringUtf8(S, PByte(AValue), ALen);
+  {$ENDIF USE_UTF8STRING_VALUES}
+  Add(S);
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 procedure TJsonArray.Add(const AValue: Variant);
 var
@@ -4219,6 +4745,16 @@ begin
   Data.Value := AValue;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonArray.Insert(Index: Integer; const AValue: UTF8String);
+var
+  Data: PJsonDataValue;
+begin
+  Data := InsertItem(Index);
+  Data.ValueUTF8 := AValue;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 procedure TJsonArray.Insert(Index: Integer; const AValue: Variant);
 var
   Data: PJsonDataValue;
@@ -4289,6 +4825,17 @@ begin
   {$ENDIF CHECK_ARRAY_INDEX}
   FItems[Index].Value := Value;
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonArray.SetUTF8String(Index: Integer; const Value: UTF8String);
+begin
+  {$IFDEF CHECK_ARRAY_INDEX}
+  if Cardinal(Index) >= Cardinal(FCount) then
+    RaiseListError(Index);
+  {$ENDIF CHECK_ARRAY_INDEX}
+  FItems[Index].ValueUTF8 := Value;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 procedure TJsonArray.SetInt(Index: Integer; const Value: Integer);
 begin
@@ -4387,6 +4934,19 @@ begin
     RaiseListError(Index);
   {$ENDIF CHECK_ARRAY_INDEX}
   Result := FItems[Index].Typ;
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if Result = jdtUTF8String then
+    Result := jdtString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+end;
+
+function TJsonArray.GetTypeEx(Index: Integer): TJsonDataType;
+begin
+  {$IFDEF CHECK_ARRAY_INDEX}
+  if Cardinal(Index) >= Cardinal(FCount) then
+    RaiseListError(Index);
+  {$ENDIF CHECK_ARRAY_INDEX}
+  Result := FItems[Index].Typ;
 end;
 
 function TJsonArray.GetValue(Index: Integer): TJsonDataValueHelper;
@@ -4454,7 +5014,7 @@ function TJsonArray.Clone: TJsonArray;
 begin
   Result := TJsonArray.Create;
   try
-    TJsonArray(Result).Assign(Self);
+    Result.Assign(Self);
   except
     Result.Free;
     raise;
@@ -4512,13 +5072,14 @@ begin
   Clear;
   FreeMem(FItems);
   FreeMem(FNames);
+  FreeMem(FSortedNames);
   //inherited Destroy;
 end;
 
 {$IFDEF USE_LAST_NAME_STRING_LITERAL_CACHE}
 procedure TJsonObject.UpdateLastValueItem(const Name: string; Item: PJsonDataValue);
 begin
-  if (Pointer(Name) <> nil) and (PInteger(@PByte(Name)[-8])^ = -1) then // string literal
+  if (Pointer(Name) <> nil) and (PStrRec(@PByte(Name)[-SizeOf(TStrRec)]).RefCnt = -1) then // string literal
   begin
     FLastValueItem := Item;
     FLastValueItemNamePtr := Pointer(Name);
@@ -4550,6 +5111,7 @@ begin
   {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
   ReallocMem(Pointer(FItems), FCapacity * SizeOf(FItems[0]));
   ReallocMem(Pointer(FNames), FCapacity * SizeOf(FNames[0]));
+  ReallocMem(Pointer(FSortedNames), FCapacity * SizeOf(FSortedNames[0]));
 end;
 
 procedure TJsonObject.SetCapacity(const Value: Integer);
@@ -4586,6 +5148,7 @@ begin
     FItems[I].Clear;
   end;
   FCount := 0;
+  FFirstUnsortedNameIndex := -1;
 end;
 
 procedure TJsonObject.Remove(const Name: string);
@@ -4642,21 +5205,180 @@ begin
     Result := True;
 end;
 
+procedure TJsonObject.SortUnsortedNames;
+var
+  I: Integer;
+  SortIndex: Integer;
+begin
+  if FFirstUnsortedNameIndex <> -1 then
+  begin
+    if FCount <> 0 then
+    begin
+      if FCount - FFirstUnsortedNameIndex = 1 then
+      begin
+        SortIndex := InternFindSortedNameInsertIndex(FFirstUnsortedNameIndex);
+        if SortIndex < FFirstUnsortedNameIndex then // FCount is still the old count before the addition
+          Move(FSortedNames[SortIndex], FSortedNames[SortIndex + 1], (FFirstUnsortedNameIndex - SortIndex) * SizeOf(FSortedNames[0]));
+        FSortedNames[SortIndex] := FFirstUnsortedNameIndex;
+      end
+      else
+      begin
+        for I := 0 to FCount - 1 do
+          FSortedNames[I] := I;
+        QuickSortNames(0, FCount - 1);
+      end;
+    end;
+    FFirstUnsortedNameIndex := -1; // reset so that we don't recurve in InternAddSortedName
+  end;
+end;
+
+function TJsonObject.CompareSortedName(SortIndex1, SortIndex2: Integer): Integer;
+var
+  P1, P2: {$IFDEF FPC}PUnicodeString{$ELSE}PString{$ENDIF};
+begin
+  P1 := @FNames[FSortedNames[SortIndex1]];
+  P2 := @FNames[FSortedNames[SortIndex2]];
+
+  Result := Length(P1^) - Length(P2^);
+  if Result = 0 then
+    Result := CompareStr(P1^, P2^);
+end;
+
+procedure TJsonObject.QuickSortNames(L, R: Integer);
+var
+  I, J, P, X: Integer;
+begin
+  repeat
+    I := L;
+    J := R;
+    P := (L + R) shr 1;
+    repeat
+      while CompareSortedName(I, P) < 0 do
+        Inc(I);
+      while CompareSortedName(J, P) > 0 do
+        Dec(J);
+      if I <= J then
+      begin
+        if I <> J then
+        begin
+          X := FSortedNames[J];
+          FSortedNames[J] := FSortedNames[I];
+          FSortedNames[I] := X
+        end;
+        if P = I then
+          P := J
+        else if P = J then
+          P := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+
+
+    if L < J then
+    begin
+      // Use the recursion only for the smaller part to reduce the recursion depth in
+      // the worst-case scenario.
+      if (J - L) <= (R - I) then
+      begin
+        QuickSortNames(L, J);
+        L := I;
+      end
+      else
+      begin
+        QuickSortNames(I, R);
+        R := J;
+        I := L;
+      end;
+    end
+    else
+      L := I;
+  until I >= R;
+end;
+
+function TJsonObject.InternIndexOfSortedName(const Name: string): Integer;
+var
+  H, I, C: Integer;
+  NameLen: Integer;
+begin
+  NameLen := Length(Name);
+  Result := 0;
+  H := FCount - 1;
+  while Result <= H do
+  begin
+    I := (Result + H) shr 1;
+    C := Length(FNames[FSortedNames[I]]) - NameLen;
+    if C = 0 then
+      C := CompareStr(FNames[FSortedNames[I]], Name);
+    if C < 0 then
+      Result := I + 1
+    else
+    begin
+      H := I - 1;
+      if C = 0 then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+  end;
+  Result := -1;
+end;
+
+function TJsonObject.InternFindSortedNameInsertIndex(NameIndex: Integer): Integer;
+var
+  H, I, C, NameLen: Integer;
+begin
+  NameLen := Length(FNames[NameIndex]);
+  Result := 0;
+  if FFirstUnsortedNameIndex <> -1 then
+    H := FFirstUnsortedNameIndex - 1
+  else
+    H := FCount - 1;
+
+  while Result <= H do
+  begin
+    I := (Result + H) shr 1;
+    C := Length(FNames[FSortedNames[I]]) - NameLen;
+    if C = 0 then
+      C := CompareStr(FNames[FSortedNames[I]], FNames[NameIndex]);
+    if C < 0 then
+      Result := I + 1
+    else
+    begin
+      H := I - 1;
+      if C = 0 then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+procedure TJsonObject.InternDeleteSortedName(SortIndex: Integer);
+begin
+  if SortIndex < FCount - 1 then // FCount is still the old count before the deletion
+    Move(FSortedNames[SortIndex + 1], FSortedNames[SortIndex], (FCount - SortIndex) * SizeOf(FSortedNames[0]));
+end;
+
 function TJsonObject.AddItem(const Name: string): PJsonDataValue;
 var
-  P: PString;
+  P: {$IFDEF FPC}PUnicodeString{$ELSE}PString{$ENDIF};
 begin
   if FCount = FCapacity then
     Grow;
   Result := @FItems[FCount];
   P := @FNames[FCount];
-  Inc(FCount);
   Pointer(P^) := nil; // initialize the string
   {$IFDEF USE_NAME_STRING_LITERAL}
   AsgString(P^, Name);
   {$ELSE}
   P^ := Name;
   {$ENDIF USE_NAME_STRING_LITERAL}
+  if FFirstUnsortedNameIndex = -1 then
+    FFirstUnsortedNameIndex := FCount;
+  Inc(FCount);
 
   Result.FValue.P := nil;
   Result.FTyp := jdtNone;
@@ -4664,16 +5386,18 @@ end;
 
 function TJsonObject.InternAddItem(var Name: string): PJsonDataValue;
 var
-  P: PString;
+  P: {$IFDEF FPC}PUnicodeString{$ELSE}PString{$ENDIF};
 begin
   if FCount = FCapacity then
     Grow;
   Result := @FItems[FCount];
   P := @FNames[FCount];
-  Inc(FCount);
   // Transfer the string without going through UStrAsg and UStrClr
   Pointer(P^) := Pointer(Name);
   Pointer(Name) := nil;
+  if FFirstUnsortedNameIndex = -1 then
+    FFirstUnsortedNameIndex := FCount;
+  Inc(FCount);
 
   Result.FValue.P := nil;
   Result.FTyp := jdtNone;
@@ -4765,7 +5489,6 @@ begin
     Result := 0;
 end;
 
-{$IFDEF BCB}
 function TJsonObject.GetObj(const Name: string): TJsonObject;
 var
   Item: PJsonDataValue;
@@ -4781,23 +5504,6 @@ begin
     {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
   end;
 end;
-{$ELSE}
-function TJsonObject.GetObject(const Name: string): TJsonObject;
-var
-  Item: PJsonDataValue;
-begin
-  if FindItem(Name, Item) then
-    Result := Item.ObjectValue
-  else
-  begin
-    Result := TJsonObject.Create;
-    AddItem(Name).ObjectValue := Result;
-    {$IFDEF USE_LAST_NAME_STRING_LITERAL_CACHE}
-    UpdateLastValueItem(Name, Item);
-    {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
-  end;
-end;
-{$ENDIF BCB}
 
 function TJsonObject.GetString(const Name: string): string;
 var
@@ -4808,6 +5514,18 @@ begin
   else
     Result := '';
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+function TJsonObject.GetUTF8String(const Name: string): UTF8String;
+var
+  Item: PJsonDataValue;
+begin
+  if FindItem(Name, Item) then
+    Result := Item.ValueUTF8
+  else
+    Result := '';
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 procedure TJsonObject.SetArray(const Name: string; const Value: TJsonArray);
 begin
@@ -4859,7 +5577,30 @@ begin
   RequireItem(Name).Value := Value;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonObject.SetUTF8String(const Name: string; const Value: UTF8String);
+begin
+  RequireItem(Name).ValueUTF8 := Value;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 function TJsonObject.GetType(const Name: string): TJsonDataType;
+var
+  Item: PJsonDataValue;
+begin
+  if FindItem(Name, Item) then
+  begin
+    Result := Item.Typ;
+    {$IFDEF USE_UTF8STRING_VALUES}
+    if Result = jdtUTF8String then
+      Result := jdtString;
+    {$ENDIF USE_UTF8STRING_VALUES}
+  end
+  else
+    Result := jdtNone;
+end;
+
+function TJsonObject.GetTypeEx(const Name: string): TJsonDataType;
 var
   Item: PJsonDataValue;
 begin
@@ -4884,33 +5625,25 @@ end;
 
 function TJsonObject.IndexOfPChar(S: PChar; Len: Integer): Integer;
 var
-  P: PJsonStringArray;
+  Value: string;
 begin
-  P := FNames;
   if Len = 0 then
-  begin
-    for Result := 0 to FCount - 1 do
-      if P[Result] = '' then
-        Exit;
-  end
+    Result := IndexOf('')
   else
   begin
-    for Result := 0 to FCount - 1 do
-      if (Length(P[Result]) = Len) and CompareMem(S, Pointer(P[Result]), Len * SizeOf(Char)) then
-        Exit;
+    System.SetString(Value, S, Len);
+    Result := IndexOf(Value);
   end;
-  Result := -1;
 end;
 
 function TJsonObject.IndexOf(const Name: string): Integer;
-var
-  P: PJsonStringArray;
 begin
-  P := FNames;
-  for Result := 0 to FCount - 1 do
-    if {(Pointer(Name) = Pointer(P[Result])) or} (Name = P[Result]) then
-      Exit;
-  Result := -1;
+  if FFirstUnsortedNameIndex <> -1 then
+    SortUnsortedNames;
+
+  Result := InternIndexOfSortedName(Name);
+  if Result <> -1 then
+    Result := FSortedNames[Result];
 end;
 
 function TJsonObject.FindItem(const Name: string; var Item: PJsonDataValue): Boolean;
@@ -4985,6 +5718,8 @@ begin
 end;
 
 procedure TJsonObject.Delete(Index: Integer);
+var
+  SortIndex, NameIndex, SortCount: Integer;
 begin
   if (Index < 0) or (Index >= FCount) then
     ListError(@SListIndexError, Index);
@@ -4996,6 +5731,21 @@ begin
     //FLastValueItemNamePtr := nil;
   end;
   {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
+  // Adjust all NameIndex values after the found name and remove the element
+  SortCount := FFirstUnsortedNameIndex;
+  if SortCount = -1 then
+    SortCount := FCount;
+  for SortIndex := SortCount - 1 downto 0 do
+  begin
+    NameIndex := FSortedNames[SortIndex];
+    if NameIndex = Index then
+      InternDeleteSortedName(SortIndex)
+    else if NameIndex > Index then
+      Dec(FSortedNames[SortIndex]);
+  end;
+  if (FFirstUnsortedNameIndex <> -1) and (FFirstUnsortedNameIndex < Index) then
+    Dec(FFirstUnsortedNameIndex);
+
   FNames[Index] := '';
   FItems[Index].Clear;
   Dec(FCount);
@@ -5097,6 +5847,16 @@ begin
   Data.InternSetValue(AValue);
 end;
 
+{$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonObject.InternAdd(var AName: string; const AValue: UTF8String);
+var
+  Data: PJsonDataValue;
+begin
+  Data := InternAddItem(AName);
+  Data.InternSetValueUTF8(AValue);
+end;
+{$ENDIF USE_UTF8STRING_VALUES}
+
 function TJsonObject.InternAddArray(var AName: string): TJsonArray;
 begin
   {$IFDEF USE_FAST_AUTOREFCOUNT}
@@ -5162,7 +5922,7 @@ begin
 
               tkFloat:
                 begin
-                  PropType := PropList[Index].PropType^;
+                  PropType := PropList[Index].PropType{$IFNDEF FPC}^{$ENDIF};
                   if (PropType = TypeInfo(TDateTime)) or (PropType = TypeInfo(TDate)) or (PropType = TypeInfo(TTime)) then
                     SetFloatProp(AObject, PropList[Index], Item.DateTimeValue)
                   else
@@ -5173,7 +5933,11 @@ begin
                 SetInt64Prop(AObject, PropList[Index], Item.LongValue);
 
               tkString, tkLString, tkWString, tkUString:
+                {$IFDEF FPC}
+                SetUnicodeStrProp(AObject, PropList[Index], Item.Value);
+                {$ELSE}
                 SetStrProp(AObject, PropList[Index], Item.Value);
+                {$ENDIF FPC}
 
               tkSet:
                 SetSetProp(AObject, PropList[Index], Item.Value);
@@ -5218,6 +5982,9 @@ var
   PropList: PPropList;
   PropType: PTypeInfo;
   PropName: string;
+  {$IFDEF USE_UTF8STRING_VALUES}
+  A: RawByteString;
+  {$ENDIF USE_UTF8STRING_VALUES}
   V: Variant;
   D: Double;
   Ch: Char;
@@ -5257,7 +6024,7 @@ begin
 
             tkEnumeration:
               begin
-                PropType := PropList[Index].PropType^;
+                PropType := PropList[Index].PropType{$IFNDEF FPC}^{$ENDIF};
                 if (PropType = TypeInfo(Boolean)) or (PropType = TypeInfo(ByteBool)) or
                    (PropType = TypeInfo(WordBool)) or (PropType = TypeInfo(LongBool)) then
                   InternAdd(PropName, GetOrdProp(AObject, PropList[Index]) <> 0)
@@ -5267,7 +6034,7 @@ begin
 
             tkFloat:
               begin
-                PropType := PropList[Index].PropType^;
+                PropType := PropList[Index].PropType{$IFNDEF FPC}^{$ENDIF};
                 D := GetFloatProp(AObject, PropList[Index]);
                 if (PropType = TypeInfo(TDateTime)) or (PropType = TypeInfo(TDate)) or (PropType = TypeInfo(TTime)) then
                   InternAdd(PropName, TDateTime(D))
@@ -5278,11 +6045,31 @@ begin
             tkInt64:
               InternAdd(PropName, GetInt64Prop(AObject, PropList[Index]));
 
-            tkString, tkLString, tkWString, tkUString:
+            {$IFDEF USE_UTF8STRING_VALUES}
+            tkLString:
+              begin
+                {$IFDEF FPC}
+                A := GetStrProp(AObject, PropList[Index]);
+                {$ELSE}
+                A := GetAnsiStrProp(AObject, PropList[Index]);
+                {$ENDIF FPC}
+                if StringCodePage(A) = CP_UTF8 then
+                  InternAdd(PropName, UTF8String(A))
+                else
+                  InternAdd(PropName, UnicodeString(A));
+              end;
+            {$ELSE}
+            tkLString,
+            {$ENDIF USE_UTF8STRING_VALUES}
+            tkString, tkWString, tkUString:
+              {$IFDEF FPC}
+              InternAdd(PropName, GetUnicodeStrProp(AObject, PropList[Index]));
+              {$ELSE}
               InternAdd(PropName, GetStrProp(AObject, PropList[Index]));
+              {$ENDIF FPC}
 
             tkSet:
-              InternAdd(PropName, GetSetProp(AObject, PropList[Index]));
+              InternAdd(PropName, GetSetProp(AObject, PropList[Index]{$IFDEF FPC}, False{$ENDIF}));
 
             tkVariant:
               begin
@@ -5298,10 +6085,15 @@ begin
                       InternAdd(PropName, Integer(V));
                     varLongWord:
                       InternAdd(PropName, Int64(LongWord(V)));
-                    {$IF CompilerVersion >= 23.0} // XE2+
+                    {$IFDEF FPC}
                     varInt64:
                       InternAdd(PropName, Int64(V));
-                    {$IFEND}
+                    {$ELSE}
+                      {$IF CompilerVersion >= 23.0} // XE2+
+                    varInt64:
+                      InternAdd(PropName, Int64(V));
+                      {$IFEND}
+                    {$ENDIF FPC}
                     varBoolean:
                       InternAdd(PropName, Boolean(V));
                   else
@@ -5322,15 +6114,22 @@ function TJsonObject.FindCaseInsensitiveItem(const ACaseInsensitiveName: string)
 var
   I: Integer;
 begin
-  for I := 0 to Count - 1 do
+  // Try with the faster case sensitive search
+  I := IndexOf(ACaseInsensitiveName);
+  if I <> -1 then
+    Result := @FItems[I]
+  else
   begin
-    if AnsiSameText(FNames[I], ACaseInsensitiveName) then
+    for I := 0 to Count - 1 do
     begin
-      Result := @FItems[I];
-      Exit;
+      if AnsiSameText(FNames[I], ACaseInsensitiveName) then
+      begin
+        Result := @FItems[I];
+        Exit;
+      end;
     end;
+    Result := nil;
   end;
-  Result := nil;
 end;
 
 procedure TJsonObject.Assign(ASource: TJsonObject);
@@ -5352,6 +6151,8 @@ begin
       {$ELSE}
       FNames[I] := ASource.FNames[I];
       {$ENDIF USE_NAME_STRING_LITERAL}
+      FSortedNames[I] := ASource.FSortedNames[I];
+      FFirstUnsortedNameIndex := ASource.FFirstUnsortedNameIndex;
       InternInitAndAssignItem(@FItems[I], @ASource.FItems[I]);
     end;
   end
@@ -5359,6 +6160,7 @@ begin
   begin
     FreeMem(FItems);
     FreeMem(FNames);
+    FreeMem(FSortedNames);
     FCapacity := 0;
   end;
 end;
@@ -5367,7 +6169,7 @@ function TJsonObject.Clone: TJsonObject;
 begin
   Result := TJsonObject.Create;
   try
-    TJsonObject(Result).Assign(Self);
+    Result.Assign(Self);
   except
     Result.Free;
     raise;
@@ -5592,12 +6394,12 @@ begin
       if Source <> nil then
       begin
         {$IFDEF DEBUG}
-        //if PInteger(@PByte(Source)[-8])^ = -1 then
+        //if PStrRec(@PByte(Source)[-SizeOf(TStrRec)]).RefCnt = -1 then
         //  InternAsgStringUsageError;
         {$ENDIF DEBUG}
         Pointer(PropName) := Source;
         // We are parsing JSON, no other thread knowns about the string => skip the CPU lock
-        Inc(PInteger(@PByte(Source)[-8])^);
+        Inc(PStrRec(@PByte(Source)[-SizeOf(TStrRec)]).RefCnt);
       end;
       {$ELSE}
       PropName := FStrings[Index].Name;
@@ -5615,40 +6417,51 @@ begin
 end;
 
 class function TStringIntern.GetHash(const Name: string): Integer;
+// FNV-1a hash
+label
+  Pad2, Pad1;
+const
+  FNV_PRIME = $01000193;
+  FNV_SEED  = $811C9DC5;
 var
-  P: PChar;
-  Ch: Word;
+  Len: NativeInt;
+  P: PWideChar;
 begin
-  // Only used to reduce memory when parsing large JSON strings
   Result := 0;
-  P := PChar(Pointer(Name));
+  P := PWideChar(Pointer(Name));
   if P <> nil then
   begin
-    Result := PInteger(@PByte(Name)[-4])^;
-    while True do
+    Len := PStrRec(@PByte(Name)[-SizeOf(TStrRec)]).Length;
+    P := @P[Len];
+    Len := -Len + 4;
+    Result := Integer(FNV_SEED);
+    while Len <= 0 do
     begin
-      Ch := Word(P[0]);
-      if Ch = 0 then
-        Break;
-      Result := Result + Ch;
+      Result := (Result xor Word(P[Len - 4])) * FNV_PRIME;
+      Result := (Result xor Word(P[Len - 3])) * FNV_PRIME;
+      Result := (Result xor Word(P[Len - 2])) * FNV_PRIME;
+      Result := (Result xor Word(P[Len - 1])) * FNV_PRIME;
+      Inc(Len, 4);
+    end;
 
-      Ch := Word(P[1]);
-      if Ch = 0 then
-        Break;
-      Result := Result + Ch;
-
-      Ch := Word(P[2]);
-      if Ch = 0 then
-        Break;
-      Result := Result + Ch;
-
-      Ch := Word(P[3]);
-      if Ch = 0 then
-        Break;
-      Result := Result + Ch;
-
-      Result := (Result shl 6) or ((Result shr 26) and $3F);
-      Inc(P, 4);
+    // Process the up to 3 remaining chars
+    case 4 - Len of
+      3:
+        begin
+          Result := (Result xor Word(P[-3])) * FNV_PRIME;
+          goto Pad2;
+        end;
+      2:
+        begin
+Pad2:
+          Result := (Result xor Word(P[-2])) * FNV_PRIME;
+          goto Pad1;
+        end;
+      1:
+        begin
+Pad1:
+          Result := (Result xor Word(P[-1])) * FNV_PRIME;
+        end;
     end;
   end;
 end;
@@ -5669,7 +6482,8 @@ begin
     Next := Bucket^;
     Hash := AHash;
     Pointer(Name) := Pointer(S);
-    Inc(PInteger(@PByte(Name)[-8])^);
+    // We are parsing JSON, no other thread knowns about the string => skip the CPU lock
+    Inc(PStrRec(@PByte(Name)[-SizeOf(TStrRec)]).RefCnt);
   end;
   Bucket^ := Index;
 end;
@@ -6071,11 +6885,13 @@ var
 begin
   P := FText;
   EndP := FTextEnd;
-  {$IF CompilerVersion <= 30.0} // Delphi 10 Seattle or older
-    {$IFNDEF CPUX64}
+  {$IFNDEF FPC}
+    {$IF CompilerVersion <= 30.0} // Delphi 10 Seattle or older
+      {$IFNDEF CPUX64}
   Ch := 0; // silence compiler warning
-    {$ENDIF ~CPUX64}
-  {$IFEND}
+      {$ENDIF ~CPUX64}
+    {$IFEND}
+  {$ENDIF ~FPC}
   while True do
   begin
     while True do
@@ -6212,9 +7028,24 @@ begin
 
   EndP := @EndP[Idx];
   if EscapeSequences = nil then
-    SetStringUtf8(FLook.S, P, EndP - P)
+  begin
+    {$IFDEF USE_UTF8STRING_VALUES}
+    FLook.S := '';
+    FLook.UTF8 := PAnsiChar(P);
+    FLook.UTF8Len := EndP - P;
+    {$ELSE}
+    SetStringUtf8(FLook.S, P, EndP - P);
+    {$ENDIF USE_UTF8STRING_VALUES}
+  end
   else
+  begin
+    // We can't use the text buffer if there are escape charaters in the string
+    {$IFDEF USE_UTF8STRING_VALUES}
+    FLook.UTF8 := nil;
+    FLook.UTF8Len := 0;
+    {$ENDIF USE_UTF8STRING_VALUES}
     TUtf8JsonReader.JSONUtf8StrToStr(P, EndP, EscapeSequences - P, FLook.S, Self);
+  end;
 
   if Ch = Byte(Ord('"')) then
     Inc(EndP);
@@ -6597,7 +7428,13 @@ begin
           FLook.Kind := jtkFalse
         else
         begin
+          {$IFDEF USE_UTF8STRING_VALUES}
+          FLook.UTF8 := PAnsiChar(F);
+          FLook.UTF8Len := P - F;
+          FLook.S := '';
+          {$ELSE}
           SetStringUtf8(FLook.S, F, P - F);
+          {$ENDIF USE_UTF8STRING_VALUES}
           FLook.Kind := jtkIdent;
         end;
       end;
@@ -6739,6 +7576,10 @@ begin
 
   if Ch = '"' then
     Inc(EndP);
+  {$IFDEF USE_UTF8STRING_VALUES}
+  FLook.UTF8 := nil;
+  FLook.UTF8Len := 0;
+  {$ENDIF USE_UTF8STRING_VALUES}
   FLook.Kind := jtkString;
   FText := EndP;
 
@@ -7139,13 +7980,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: string): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscValue);
   Result.FData.FTyp := jdtString;
   Result.FData.FValue := Value;
 end;
@@ -7158,6 +7993,10 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := Value.FData.FValue;
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        ConvertUTF8ToString(Result, Value.FData.FValueUTF8);
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := IntToStr(Value.FData.FIntValue);
       jdtLong:
@@ -7180,17 +8019,59 @@ begin
     end;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+
+  {$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonDataValueHelper.ConvertUTF8ToStringType;
+begin
+  FData.FTyp := jdtString;
+  ConvertUTF8ToString(FData.FValue, FData.FValueUTF8);
+  FData.FValueUTF8 := '';
+end;
+  {$ENDIF USE_UTF8STRING_VALUES}
+
+class operator TJsonDataValueHelper.Implicit(const Value: UTF8String): TJsonDataValueHelper;
+begin
+  {$IFDEF USE_UTF8STRING_VALUES}
+  Result.InternClear(iscValueUTF8);
+  Result.FData.FTyp := jdtUTF8String;
+  Result.FData.FValueUTF8 := Value;
+  {$ELSE}
+  Result.InternClear(iscValue);
+  Result.FData.FTyp := jdtString;
+  Result.FData.FValue := UTF8ToString(Value);
+  {$ENDIF USE_UTF8STRING_VALUES}
+end;
+
+class operator TJsonDataValueHelper.Implicit(const Value: TJsonDataValueHelper): UTF8String;
+
+  procedure SlowConvert(var S: UTF8String);
+  begin
+    S := UTF8Encode(Value.Value);
+  end;
+
+begin
+  if Value.FData.FIntern <> nil then
+    Result := Value.FData.FIntern.ValueUTF8
+  else
+    case Value.FData.FTyp of
+      jdtString:
+        ConvertStringToUTF8(Result, Value.FData.FValue);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        Result := Value.FData.FValueUTF8;
+      {$ENDIF USE_UTF8STRING_VALUES}
+      jdtNone:
+        Result := '';
+    else
+      SlowConvert(Result);
+    end;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 class operator TJsonDataValueHelper.Implicit(const Value: Integer): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtInt;
   Result.FData.FIntValue := Value;
 end;
@@ -7203,6 +8084,13 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := StrToIntDef(Value.FData.FValue, 0);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          Value.ConvertUTF8ToStringType;
+          Result := StrToIntDef(Value.FData.FValue, 0);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7222,15 +8110,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: Int64): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtLong;
   Result.FData.FLongValue := Value;
 end;
@@ -7243,6 +8123,13 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := StrToInt64Def(Value.FData.FValue, 0);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          Value.ConvertUTF8ToStringType;
+          Result := StrToInt64Def(Value.FData.FValue, 0);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7262,15 +8149,7 @@ end;
 
 //class operator TJsonDataValueHelper.Implicit(const Value: UInt64): TJsonDataValueHelper;
 //begin
-//  Result.FData.FName := '';
-//  Result.FData.FNameResolver := nil;
-//  Result.FData.FIntern := nil;
-//  if Result.FData.FValue <> '' then
-//    Result.FData.FValue := '';
-//  {$IFDEF AUTOREFCOUNT}
-//  if Result.FData.FObj <> nil then
-//    Result.FData.FObj := nil;
-//  {$ENDIF AUTOREFCOUNT}
+//  Result.InternClear(iscNone);
 //  Result.FData.FTyp := jdtULong;
 //  Result.FData.FULongValue := Value;
 //end;
@@ -7283,6 +8162,13 @@ end;
 //    case Value.FData.FTyp of
 //      jdtString:
 //        Result := StrToInt64Def(Value.FData.FValue, 0);
+//      {$IFDEF USE_UTF8STRING_VALUES}
+//      jdtUTF8String:
+//        begin
+//          ConvertUTF8ToStringType;
+//          Result := StrToInt64Def(Value.FData.FValue, 0);
+//        end;
+//      {$ENDIF USE_UTF8STRING_VALUES}
 //      jdtInt:
 //        Result := Value.FData.FIntValue;
 //      jdtLong:
@@ -7302,15 +8188,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: Double): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtFloat;
   Result.FData.FFloatValue := Value;
 end;
@@ -7323,6 +8201,13 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          Value.ConvertUTF8ToStringType;
+          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7340,22 +8225,15 @@ begin
     end;
 end;
 
-class operator TJsonDataValueHelper.Implicit(const Value: Extended): TJsonDataValueHelper;  // same that double
+{$IFNDEF FPC}
+class operator TJsonDataValueHelper.Implicit(const Value: Extended): TJsonDataValueHelper;  // same as double
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtFloat;
   Result.FData.FFloatValue := Value;
 end;
 
-class operator TJsonDataValueHelper.Implicit(const Value: TJsonDataValueHelper): Extended;  // same that double
+class operator TJsonDataValueHelper.Implicit(const Value: TJsonDataValueHelper): Extended;  // same as double
 begin
   if Value.FData.FIntern <> nil then
     Result := Value.FData.FIntern.FloatValue
@@ -7363,6 +8241,13 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          Value.ConvertUTF8ToStringType;
+          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7379,18 +8264,11 @@ begin
       Result := 0;
     end;
 end;
+{$ENDIF ~FPC}
 
 class operator TJsonDataValueHelper.Implicit(const Value: TDateTime): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtDateTime;
   Result.FData.FDateTimeValue := Value;
 end;
@@ -7403,6 +8281,13 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := TJsonBaseObject.JSONToDateTime(Value.FData.FValue);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          Value.ConvertUTF8ToStringType;
+          Result := TJsonBaseObject.JSONToDateTime(Value.FData.FValue);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7424,15 +8309,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: Boolean): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
   Result.FData.FTyp := jdtBool;
   Result.FData.FBoolValue := Value;
 end;
@@ -7445,6 +8322,10 @@ begin
     case Value.FData.FTyp of
       jdtString:
         Result := Value.FData.FValue = 'true';
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        Result := Value.FData.FValueUTF8 = 'true';
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue <> 0;
       jdtLong:
@@ -7464,11 +8345,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: TJsonArray): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
+  Result.InternClear(iscObj);
   Result.FData.FTyp := jdtArray;
   Result.FData.FObj := Value;
 end;
@@ -7490,11 +8367,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: TJsonObject): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
+  Result.InternClear(iscObj);
   Result.FData.FTyp := jdtObject;
   Result.FData.FObj := Value;
 end;
@@ -7516,11 +8389,7 @@ end;
 
 class operator TJsonDataValueHelper.Implicit(const Value: Pointer): TJsonDataValueHelper;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
+  Result.InternClear(iscObj);
   Result.FData.FTyp := jdtObject;
   Result.FData.FObj := nil;
 end;
@@ -7535,6 +8404,10 @@ begin
         Result := Unassigned;
       jdtString:
         Result := Value.FData.FValue;
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        Result := Value.FData.FValueUTF8;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -7565,15 +8438,7 @@ class operator TJsonDataValueHelper.Implicit(const Value: Variant): TJsonDataVal
 var
   LTyp: TJsonDataType;
 begin
-  Result.FData.FName := '';
-  Result.FData.FNameResolver := nil;
-  Result.FData.FIntern := nil;
-  if Result.FData.FValue <> '' then
-    Result.FData.FValue := '';
-  {$IFDEF AUTOREFCOUNT}
-  if Result.FData.FObj <> nil then
-    Result.FData.FObj := nil;
-  {$ENDIF AUTOREFCOUNT}
+  Result.InternClear(iscNone);
 
   LTyp := VarTypeToJsonDataType(VarType(Value));
   if LTyp <> jdtNone then
@@ -7582,6 +8447,7 @@ begin
     case LTyp of
       jdtString:
         Result.FData.FValue := Value;
+      //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
       jdtInt:
         Result.FData.FIntValue := Value;
       jdtLong:
@@ -7607,6 +8473,13 @@ begin
   Result := Self;
 end;
 
+{$IFDEF SUPPORTS_UTF8STRING}
+function TJsonDataValueHelper.GetValueUTF8: UTF8String;
+begin
+  Result := Self;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
 procedure TJsonDataValueHelper.SetValue(const Value: string);
 begin
   ResolveName;
@@ -7615,6 +8488,17 @@ begin
   else
     Self := Value;
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonDataValueHelper.SetValueUTF8(const Value: UTF8String);
+begin
+  ResolveName;
+  if FData.FIntern <> nil then
+    FData.FIntern.ValueUTF8 := Value
+  else
+    Self := Value;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 function TJsonDataValueHelper.GetIntValue: Integer;
 begin
@@ -7654,6 +8538,13 @@ begin
     case FData.FTyp of
       jdtString:
         Result := StrToInt64Def(FData.FValue, 0);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          ConvertUTF8ToStringType;
+          Result := StrToInt64Def(FData.FValue, 0);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
@@ -7680,15 +8571,7 @@ begin
   begin
     //Self := Value;
     // copied from UInt64 implicit operator
-    FData.FName := '';
-    FData.FNameResolver := nil;
-    FData.FIntern := nil;
-    if FData.FValue <> '' then
-      FData.FValue := '';
-    {$IFDEF AUTOREFCOUNT}
-    if FData.FObj <> nil then
-      FData.FObj := nil;
-    {$ENDIF AUTOREFCOUNT}
+    InternClear(iscNone);
     FData.FTyp := jdtLong;
     FData.FLongValue := Value;
   end;
@@ -7730,6 +8613,13 @@ begin
     case FData.FTyp of
       jdtString:
         Result := TJsonBaseObject.JSONToDateTime(FData.FValue, False);
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        begin
+          ConvertUTF8ToStringType;
+          Result := TJsonBaseObject.JSONToDateTime(FData.FValue, False);
+        end;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
@@ -7756,15 +8646,7 @@ begin
     FData.FIntern.UtcDateTimeValue := Value
   else
   begin
-    FData.FName := '';
-    FData.FNameResolver := nil;
-    FData.FIntern := nil;
-    if FData.FValue <> '' then
-      FData.FValue := '';
-    {$IFDEF AUTOREFCOUNT}
-    if FData.FObj <> nil then
-      FData.FObj := nil;
-    {$ENDIF AUTOREFCOUNT}
+    InternClear(iscNone);
     FData.FTyp := jdtUtcDateTime;
     FData.FDateTimeValue := Value;
   end;
@@ -7856,15 +8738,16 @@ class procedure TJsonDataValueHelper.SetInternValue(Item: PJsonDataValue;
 begin
   Value.ResolveName;
   if Value.FData.FIntern <> nil then
-  begin
-    Item.Clear;
-    TJsonBaseObject.InternInitAndAssignItem(Item, Value.FData.FIntern); // clones arrays and objects
-  end
+    Item.Assign(Value.FData.FIntern) // clones arrays and objects
   else
   begin
     case Value.FData.FTyp of
       jdtString:
         Item.Value := Value.FData.FValue;
+      {$IFDEF USE_UTF8STRING_VALUES}
+      jdtUTF8String:
+        Item.ValueUTF8 := Value.FData.FValueUTF8;
+      {$ENDIF USE_UTF8STRING_VALUES}
       jdtInt:
         Item.IntValue := Value.FData.FIntValue;
       jdtLong:
@@ -7907,10 +8790,34 @@ begin
   end;
 end;
 
+procedure TJsonDataValueHelper.InternClear(SkipClear: TInternSkipClearType);
+begin
+  FData.FName := '';
+  FData.FNameResolver := nil;
+  FData.FIntern := nil;
+  if (SkipClear <> iscValue) and (FData.FValue <> '') then
+    FData.FValue := '';
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if (SkipClear <> iscValueUTF8) and (FData.FValueUTF8 <> '') then
+    FData.FValueUTF8 := '';
+  {$ENDIF USE_UTF8STRING_VALUES}
+  {$IFDEF AUTOREFCOUNT}
+  if (SkipClear <> iscObj) and (FData.FObj <> nil) then
+    FData.FObj := nil;
+  {$ENDIF AUTOREFCOUNT}
+end;
+
 function TJsonDataValueHelper.GetObjectString(const Name: string): string;
 begin
   Result := ObjectValue.S[Name];
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+function TJsonDataValueHelper.GetObjectUTF8String(const Name: string): UTF8String;
+begin
+  Result := ObjectValue.UTF8[Name];
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 function TJsonDataValueHelper.GetObjectInt(const Name: string): Integer;
 begin
@@ -7952,17 +8859,10 @@ begin
   Result := ObjectValue.A[Name];
 end;
 
-{$IFDEF BCB}
 function TJsonDataValueHelper.GetObj(const Name: string): TJsonDataValueHelper;
 begin
   Result := ObjectValue.Values[Name];
 end;
-{$ELSE}
-function TJsonDataValueHelper.GetObject(const Name: string): TJsonDataValueHelper;
-begin
-  Result := ObjectValue.Values[Name];
-end;
-{$ENDIF BCB}
 
 function TJsonDataValueHelper.GetObjectVariant(const Name: string): Variant;
 begin
@@ -7973,6 +8873,13 @@ procedure TJsonDataValueHelper.SetObjectString(const Name, Value: string);
 begin
   ObjectValue.S[Name] := Value;
 end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonDataValueHelper.SetObjectUTF8String(const Name: string; const Value: UTF8String);
+begin
+  ObjectValue.UTF8[Name] := Value;
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
 
 procedure TJsonDataValueHelper.SetObjectInt(const Name: string; const Value: Integer);
 begin
@@ -8186,8 +9093,10 @@ begin
     // Build the buffer with the StrRec header so it can be easily mapped to a "native string" in
     // DoneToString.
     GetMem(Pointer(StrP), SizeOf(TStrRec) + (C + 1) * SizeOf(Char)); // allocate +1 char for the #0 that DoneToString() adds
+    {$IFNDEF FPC}
     StrP.CodePage := Word(DefaultUnicodeCodePage);
     StrP.ElemSize := SizeOf(Char);
+    {$ENDIF ~FPC}
     StrP.RefCnt := 1;
     StrP.Length := 0; // DoneToString set the correct value
   end;
@@ -8276,7 +9185,6 @@ begin
   FLen := LLen + 2;
 end;
 
-
 procedure TJsonOutputWriter.TJsonStringBuilder.Append3(Ch1: Char; const S2, S3: string);
 var
   L, S2Len, S3Len, LLen: Integer;
@@ -8330,7 +9238,7 @@ begin
   end;
   Inc(LLen, P2Len);
 
-  FData[LLen] := Ch1;
+  FData[LLen] := Ch3;
   FLen := LLen + 1;
 end;
 
@@ -8360,9 +9268,11 @@ begin
   SetPointer(nil, 0);
 end;
 
-function TJsonUTF8StringStream.Realloc(var NewCapacity: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND}): Pointer;
+function TJsonUTF8StringStream.Realloc(
+  var NewCapacity: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF}
+  ): Pointer;
 var
-  L: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND};
+  L: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF};
 begin
   if NewCapacity <> Capacity then
   begin
@@ -8398,9 +9308,11 @@ begin
   SetPointer(nil, 0);
 end;
 
-function TJsonBytesStream.Realloc(var NewCapacity: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND}): Pointer;
+function TJsonBytesStream.Realloc(
+  var NewCapacity: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF}
+  ): Pointer;
 var
-  L: {$IF Defined(STREAM_USES_NATIVEINT)}NativeInt{$ELSE}Longint{$IFEND};
+  L: {$IFDEF FPC}PtrInt{$ELSE}{$IFDEF STREAM_USES_NATIVEINT}NativeInt{$ELSE}Longint{$ENDIF}{$ENDIF};
 begin
   if NewCapacity <> Capacity then
   begin
@@ -8425,6 +9337,58 @@ begin
     end;
   end;
   Result := Pointer(FBytes);
+end;
+
+
+function IsValidJSON(const JSONString: string): Boolean;
+var
+  Obj: TJsonBaseObject;
+begin
+  try
+    Obj := TJsonObject.Parse(JSONString);
+    try
+      Result := Obj <> nil;
+    finally
+      Obj.Free;
+    end;
+  except
+    // Invalid JSON will raise an exception
+    Result := False;
+  end;
+end;
+
+function IsValidJSONArray(const JSONString: string): Boolean;
+var
+  Obj: TJsonBaseObject;
+begin
+  try
+    Obj := TJsonObject.Parse(JSONString);
+    try
+      Result := Obj is TJsonArray;
+    finally
+      Obj.Free;
+    end;
+  except
+    // Invalid JSON will raise an exception
+    Result := False;
+  end;
+end;
+
+function IsValidJSONObject(const JSONString: string): Boolean;
+var
+  Obj: TJsonBaseObject;
+begin
+  try
+    Obj := TJsonObject.Parse(JSONString);
+    try
+      Result := Obj is TJsonObject;
+    finally
+      Obj.Free;
+    end;
+  except
+    // Invalid JSON will raise an exception
+    Result := False;
+  end;
 end;
 
 initialization
