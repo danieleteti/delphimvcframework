@@ -281,7 +281,12 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="TestsBloomFilterU.pas"/>
         <DCCReference Include="DotEnvTestU.pas"/>
-        <DCCReference Include="..\..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
+        <DCCReference Include="WebSocketTestsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.Client.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.Controller.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

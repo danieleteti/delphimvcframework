@@ -83,7 +83,12 @@ uses
   MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
   TestsBloomFilterU in 'TestsBloomFilterU.pas',
   DotEnvTestU in 'DotEnvTestU.pas',
-  MVCFramework.Middleware.RateLimit in '..\..\..\sources\MVCFramework.Middleware.RateLimit.pas';
+  WebSocketTestsU in 'WebSocketTestsU.pas',
+  MVCFramework.WebSocket in '..\..\..\sources\MVCFramework.WebSocket.pas',
+  MVCFramework.WebSocket.Client in '..\..\..\sources\MVCFramework.WebSocket.Client.pas',
+  MVCFramework.WebSocket.Controller in '..\..\..\sources\MVCFramework.WebSocket.Controller.pas',
+  MVCFramework.WebSocket.ConnectionManager in '..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas',
+  MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas';
 
 {$R *.RES}
 
