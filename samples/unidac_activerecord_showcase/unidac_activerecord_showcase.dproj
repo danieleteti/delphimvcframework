@@ -3,13 +3,13 @@
         <ProjectGuid>{F8576ED6-649F-4E28-B364-1F60687C75F2}</ProjectGuid>
         <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
-        <MainSource>activerecord_showcase.dpr</MainSource>
+        <MainSource>unidac_activerecord_showcase.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">BUILD</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
-        <ProjectName Condition="'$(ProjectName)'==''">activerecord_showcase</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">unidac_activerecord_showcase</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -67,7 +67,7 @@
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <UWP_DelphiLogo44>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_44.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
-        <SanitizedProjectName>activerecord_showcase</SanitizedProjectName>
+        <SanitizedProjectName>unidac_activerecord_showcase</SanitizedProjectName>
         <VerInfo_Locale>1040</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
@@ -117,7 +117,7 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="EntitiesU.pas"/>
-        <DCCReference Include="FDConnectionConfigU.pas"/>
+        <DCCReference Include="UniDACConnectionConfigU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
@@ -156,7 +156,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">activerecord_showcase.dpr</Source>
+                    <Source Name="MainSource">unidac_activerecord_showcase.dpr</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
