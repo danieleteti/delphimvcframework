@@ -180,7 +180,7 @@ begin
       //   - Interval can be changed per-client via ACurrentInterval parameter
       //   - Also accessible via AClient.PeriodicInterval property
       // ============================================================================
-      Server.OnPeriodicMessage := function(AClient: TWebSocketClient; var ACurrentInterval: Integer): string
+      Server.OnPeriodicMessage := procedure(AClient: TWebSocketClient; out AMessage: String)
       var
         LSessionData: TClientSessionData;
       begin
@@ -191,17 +191,17 @@ begin
         // After 5 messages, slow down progressively (demonstrates dynamic interval adjustment)
         if LSessionData.MessageCount > 5 then
         begin
-          ACurrentInterval := ACurrentInterval + 1000; // Add 1 second each time
-          Result := Format('[SERVER HEARTBEAT #%d] Time: %s | Interval: %d ms (slowing down)',
-            [LSessionData.MessageCount, FormatDateTime('hh:nn:ss', Now), ACurrentInterval]);
+          AClient.PeriodicInterval := AClient.PeriodicInterval + 1000; // Add 1 second each time
+          AMessage := Format('[SERVER HEARTBEAT #%d] Time: %s | Interval: %d ms (slowing down)',
+            [LSessionData.MessageCount, FormatDateTime('hh:nn:ss', Now), AClient.PeriodicInterval]);
         end
         else
         begin
-          Result := Format('[SERVER HEARTBEAT #%d] Time: %s | Interval: %d ms',
-            [LSessionData.MessageCount, FormatDateTime('hh:nn:ss', Now), ACurrentInterval]);
+          AMessage := Format('[SERVER HEARTBEAT #%d] Time: %s | Interval: %d ms',
+            [LSessionData.MessageCount, FormatDateTime('hh:nn:ss', Now), AClient.PeriodicInterval]);
         end;
 
-        Writeln(Format('[%s] Sent periodic message to %s: %s', [TimeToStr(Now), AClient.ClientId, Result]));
+        Writeln(Format('[%s] Sent periodic message to %s: %s', [TimeToStr(Now), AClient.ClientId, AMessage]));
       end;
 
       Server.Active := True;
