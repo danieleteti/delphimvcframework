@@ -45,10 +45,9 @@ type
   /// <summary>
   /// Called periodically (based on PeriodicMessageInterval) to generate custom messages to send to client
   /// AClient.Data: Your custom object (set in OnClientConnect)
-  /// ACurrentInterval: Pass by reference - you can modify it to change the interval for next iteration
   /// Return empty string to skip sending
   /// </summary>
-  TWebSocketPeriodicMessageEvent = reference to function(AClient: TWebSocketClient; var ACurrentInterval: Integer): string;
+  TWebSocketPeriodicMessageEvent = reference to procedure(AClient: TWebSocketClient; out AMessage: string);
 
   /// <summary>
   /// Represents a connected WebSocket client
@@ -591,8 +590,9 @@ begin
       if (LClientInterval > 0) and Assigned(FOnPeriodicMessage) and
          (MilliSecondsBetween(Now, LLastPeriodicMessageTime) >= LClientInterval) then
       begin
-        // Call event with interval passed by reference
-        LPeriodicMessage := FOnPeriodicMessage(AClient, LClientInterval);
+        // Call event with message passed by reference
+        LPeriodicMessage := '';
+        FOnPeriodicMessage(AClient, LPeriodicMessage);
 
         // If interval was changed inside the callback, update it
         AClient.PeriodicInterval := LClientInterval;

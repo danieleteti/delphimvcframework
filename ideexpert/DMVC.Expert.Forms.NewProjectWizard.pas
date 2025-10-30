@@ -106,6 +106,7 @@ type
     Image2: TImage;
     Shape2: TShape;
     rgServerType: TRadioGroup;
+    chkRateLimit: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -424,6 +425,7 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_compression] :=  chkCompression.Checked;
   fModel.B[TConfigKey.webmodule_middleware_etag] :=  chkETAG.Checked;
   fModel.B[TConfigKey.webmodule_middleware_cors] :=  chkCORS.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_ratelimit] :=  chkRateLimit.Checked;
   fModel.B[TConfigKey.webmodule_middleware_activerecord] :=  chkActiveRecord.Checked;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  EdtConnDefName.Text;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  EdtFDConnDefFileName.Text;

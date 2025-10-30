@@ -584,7 +584,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Checked = True
         State = cbChecked
         TabOrder = 0
-        ExplicitWidth = 264
       end
       object edtControllerClassName: TEdit
         Left = 16
@@ -593,7 +592,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Height = 19
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 3
-        ExplicitWidth = 264
       end
       object chkCreateActionFiltersMethods: TCheckBox
         Left = 16
@@ -603,7 +601,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Generate Action Filters Methods'
         TabOrder = 1
-        ExplicitWidth = 264
       end
       object chkCreateCRUDMethods: TCheckBox
         Left = 16
@@ -615,7 +612,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Checked = True
         State = cbChecked
         TabOrder = 2
-        ExplicitWidth = 264
       end
       object chkProfileActions: TCheckBox
         Left = 16
@@ -626,7 +622,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Include Actions Profiling Code'
         TabOrder = 4
         WordWrap = True
-        ExplicitWidth = 276
       end
     end
   end
@@ -689,17 +684,17 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 2
     end
     object chkTrace: TCheckBox
-      Left = 213
+      Left = 175
       Top = 50
-      Width = 150
+      Width = 98
       Height = 17
       Hint = 'Debug purposes'
       Anchors = [akTop]
-      Caption = 'Tracing (debug purposes)'
+      Caption = 'Tracing (debug)'
       TabOrder = 3
     end
     object chkCORS: TCheckBox
-      Left = 213
+      Left = 175
       Top = 27
       Width = 135
       Height = 17
@@ -708,12 +703,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 4
     end
     object chkETAG: TCheckBox
-      Left = 213
+      Left = 175
       Top = 74
-      Width = 202
+      Width = 76
       Height = 17
       Anchors = [akTop]
-      Caption = 'ETag (Cache of unchanged resources)'
+      Caption = 'ETag'
       TabOrder = 5
     end
     object chkActiveRecord: TCheckBox
@@ -742,6 +737,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 8
       TextHint = 'MyConnDef'
+    end
+    object chkRateLimit: TCheckBox
+      Left = 323
+      Top = 27
+      Width = 113
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Rate Limit'
+      TabOrder = 9
     end
   end
   object GroupBoxJSONRPC: TGroupBox

@@ -752,7 +752,10 @@ begin
     Section.AppendLine('  ' + Model[TConfigKey.jsonrpc_unit_name] + ',')
   end;
 
-  Section.AppendLine('  System.IOUtils,').AppendLine('  MVCFramework.Commons,');
+  Section
+    .AppendLine('  System.IOUtils,')
+    .AppendLine('  MVCFramework.Commons,')
+    .AppendLine('  MVCFramework.Logger,');
 
   if Model.B[TConfigKey.program_ssv_templatepro] then
   begin
@@ -785,9 +788,19 @@ begin
       .AppendLine('  MVCFramework.Middleware.Trace,')
       .AppendLine('  MVCFramework.Middleware.CORS,')
       .AppendLine('  MVCFramework.Middleware.ETag,')
+      .AppendLine('  MVCFramework.Middleware.RateLimit,')
       .AppendLine('  MVCFramework.Middleware.Compression;')
       .AppendLine
-      .AppendLine('procedure ' + Model.S[TConfigKey.webmodule_classname] + '.WebModuleCreate(Sender: TObject);')
+      .AppendLine('procedure ' + Model.S[TConfigKey.webmodule_classname] + '.WebModuleCreate(Sender: TObject);');
+
+  if Model.B[TConfigKey.webmodule_middleware_ratelimit] then
+  begin
+    Section
+      .AppendLine('var')
+      .AppendLine('  LRateLimitMiddleware: TMVCRateLimitMiddleware;');
+  end;
+
+  Section
       .AppendLine('begin')
       .AppendLine('  fMVC := TMVCEngine.Create(Self,')
       .AppendLine('    procedure(Config: TMVCConfig)')
@@ -873,8 +886,44 @@ begin
         .AppendLine;
   end;
 
+
+  if Model.B[TConfigKey.webmodule_middleware_ratelimit] then
+  begin
+    Section
+      .AppendLine('  LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(')
+      .AppendLine('    10,           // Max requests')
+      .AppendLine('    60,           // Window in seconds')
+      .AppendLine('    rlkIPAddress  // Rate limit by IP address')
+      .AppendLine('  );')
+      .AppendLine('')
+      .AppendLine('  // Exclude health check endpoint from rate limiting (uncomment and configure)')
+      .AppendLine('  // LRateLimitMiddleware.AddExcludedPath(''/health'');')
+      .AppendLine('  // LRateLimitMiddleware.AddExcludedPath(''/metrics'');')
+      .AppendLine('')
+      .AppendLine('  // Set custom callback for rate limit exceeded event')
+      .AppendLine('  LRateLimitMiddleware.SetOnRateLimitExceeded(')
+      .AppendLine('  procedure(const AContext: TWebContext; const AKey: string;')
+      .AppendLine('    const ALimit: Integer; const AWindowSeconds: Integer)')
+      .AppendLine('  begin')
+      .AppendLine('    LogW(Format(''Rate limit exceeded for key: %s (Limit: %d requests per %d seconds)'',')
+      .AppendLine('      [AKey, ALimit, AWindowSeconds]));')
+      .AppendLine('  end')
+      .AppendLine('  );')
+
+  end;
+
+
   Section
-      .AppendLine('  // Middleware')
+      .AppendLine('  // Middleware');
+
+  if Model.B[TConfigKey.webmodule_middleware_ratelimit] then
+  begin
+    Section
+      .AppendLine('  fMVC.AddMiddleware(LRateLimitMiddleware);');
+  end;
+
+
+  Section
       .AppendLine('  // To use memory session uncomment the following line')
       .AppendLine('  // fMVC.AddMiddleware(UseMemorySessionMiddleware);')
       .AppendLine('  //')
