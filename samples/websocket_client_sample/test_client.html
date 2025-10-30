@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test Client</title>
+</head>
+<body>
+    <h1>WebSocket Test Client</h1>
+    <button onclick="connect()">Connect</button>
+    <button onclick="sendName()">Send Name</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+
+        function log(message) {
+            document.getElementById('log').innerHTML += '<br>' + message;
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8765');
+
+            ws.onopen = function() {
+                log('Connected!');
+            };
+
+            ws.onmessage = function(event) {
+                log('Received: ' + event.data);
+            };
+
+            ws.onerror = function(error) {
+                log('Error: ' + JSON.stringify(error));
+            };
+
+            ws.onclose = function() {
+                log('Disconnected');
+            };
+        }
+
+        function sendName() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('Daniele');
+                log('Sent: Daniele');
+            } else {
+                log('Not connected');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+    </script>
+</body>
+</html>
