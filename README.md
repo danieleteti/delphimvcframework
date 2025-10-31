@@ -78,6 +78,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - **Automatic entity generation** from database schema
 
 ### 🌐 **Web & API Features**
+- **WebSocket support** for real-time bidirectional communication (server & client)
 - **Content negotiation** with multiple MIME types
 - **Server-Side Views** with Mustache and TemplatePro support
 - **Static file serving** middleware
@@ -86,6 +87,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - **HATEOAS** (Hypermedia as the Engine of Application State) support
 - **OpenAPI/Swagger** documentation generation
 - **Compression** support (gzip, deflate)
+- **Rate limiting** with in-memory and Redis-backed implementations
 
 ### 📊 **Data Serialization**
 - **Flexible JSON serialization/deserialization**
