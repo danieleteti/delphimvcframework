@@ -107,6 +107,7 @@ type
     Shape2: TShape;
     rgServerType: TRadioGroup;
     chkRateLimit: TCheckBox;
+    chkWebSocketServer: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -221,6 +222,7 @@ begin
   edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
+  chkWebSocketServer.Checked := False;
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
   fModel := TJsonObject.Create;
 
@@ -407,6 +409,8 @@ begin
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
   fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
+  fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
+  fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
 
   case rgServerType.ItemIndex of
     0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;

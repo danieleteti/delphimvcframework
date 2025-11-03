@@ -63,6 +63,12 @@ type
     procedure ExecuteImplementation(Section: TStringBuilder; Model: TJsonObject); override;
   end;
 
+  TUnitWebSocketServerDeclarationCommand = class(TCustomCommand)
+  public
+    procedure ExecuteInterface(Section: TStringBuilder; Model: TJSONObject); override;
+    procedure ExecuteImplementation(Section: TStringBuilder; Model: TJsonObject); override;
+  end;
+
   TUnitProgramCommand = class(TCustomCommand)
   public
     procedure ExecuteInterface(Section: TStringBuilder; Model: TJSONObject); override;
@@ -237,6 +243,15 @@ begin
         .AppendLine('  IdContext,')
         .AppendLine('  IdHTTPWebBrokerBridge,')
   end;
+
+
+  if Model.B[TConfigKey.websocket_generate] then
+  begin
+    Section
+      .AppendLine('    MVCFramework.WebSocket,')
+      .AppendLine('    MVCFramework.WebSocket.Server,')
+  end;
+
 
   if Model.S[TConfigKey.program_type] = TProgramTypes.FASTCGI_CONSOLE then
   begin
@@ -1260,13 +1275,18 @@ begin
      (Model[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE) then
   begin
     Section
-        .AppendLine('procedure RunServer(APort: Integer);')
+        .AppendLine('procedure RunServer(aPort: Integer);')
         .AppendLine('var')
         .AppendLine('  LServer: TIdHTTPWebBrokerBridge;');
 
     if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
       Section.AppendLine('  LSSLHandler: TTLSHandler;')
+    end;
+
+    if Model.B[TConfigKey.websocket_generate] then
+    begin
+      Section.AppendLine('  LWSServer: TMVCWebSocketServer;')
     end;
 
     Section
@@ -1287,7 +1307,7 @@ begin
       Section
           .AppendLine('    LSSLHandler := TTLSHandler.Create;')
           .AppendLine('    try')
-          .AppendLine('      if dotEnv.Env(''https.enabled'', false) then //enable is you want HTTPS')
+          .AppendLine('      if dotEnv.Env(''https.enabled'', false) then //enable if you want HTTPS support')
           .AppendLine('      begin')
           .AppendLine('        LogI(''HTTPS is enabled'');')
           .AppendLine('        LSSLHandler.ConfigureTLS(LServer);')
@@ -1301,10 +1321,32 @@ begin
 
     Section
         .AppendLine('    LServer.Active := True;')
-        .AppendLine('    LogI(''Listening on '' + LProtocol + ''://localhost:'' + APort.ToString);')
-        .AppendLine('    LogI(''Application started. Press Ctrl+C to shut down.'');')
-        .AppendLine('    WaitForTerminationSignal;')
-        .AppendLine('    EnterInShutdownState;')
+        .AppendLine('    LogI(''Listening on '' + LProtocol + ''://localhost:'' + APort.ToString);');
+
+    if Model.B[TConfigKey.websocket_generate] then
+    begin
+      Section
+        .AppendLine('    LWSServer := BuildWebSocketServer(dotEnv.Env(''dmvc.wsserver.port'', 9000));')
+        .AppendLine('    try')
+        .AppendLine('      LWSServer.Active := True;')
+        .AppendLine('      LogI(''Listening on ws://localhost:'' + LWSServer.DefaultPort.ToString);');
+    end;
+
+    Section
+        .AppendLine('      LogI(''Application started. Press Ctrl+C to shut down.'');')
+        .AppendLine('      WaitForTerminationSignal;')
+        .AppendLine('      EnterInShutdownState;');
+
+    if Model.B[TConfigKey.websocket_generate] then
+    begin
+      Section
+        .AppendLine('    finally')
+        .AppendLine('      LWSServer.Free;')
+        .AppendLine('    end;')
+        .AppendLine;
+    end;
+
+    Section
         .AppendLine('    LServer.Active := False;');
     if Model.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE then
     begin
@@ -1316,7 +1358,7 @@ begin
   if Model.S[TConfigKey.program_type] = TProgramTypes.FASTCGI_CONSOLE then
   begin
     Section
-        .AppendLine('procedure RunServer(APort: Integer);')
+        .AppendLine('procedure RunServer(aPort: Integer);')
         .AppendLine('var')
         .AppendLine('  LServer: TFastCGIApplication;')
         .AppendLine('begin')
@@ -1676,6 +1718,92 @@ begin
       .AppendLine
       .AppendLine('procedure WebStencilsProcessorConfigure;')
       .AppendLine;
+end;
+
+{ TUnitWebSocketServerDeclarationCommand }
+
+procedure TUnitWebSocketServerDeclarationCommand.ExecuteImplementation(Section: TStringBuilder; Model: TJsonObject);
+begin
+  Section
+      .AppendLine('implementation')
+      .AppendLine
+      .AppendLine('uses')
+      .AppendLine('  System.SysUtils, MVCFramework.WebSocket, MVCFramework.Logger;')
+      .AppendLine
+      .AppendLine('function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;')
+      .AppendLine('var')
+      .AppendLine('  LWSServer: TMVCWebSocketServer;')
+      .AppendLine('begin')
+      .AppendLine('  LWSServer := TMVCWebSocketServer.Create(aWSPort);')
+      .AppendLine('  try')
+      .AppendLine('    // Handle client connection - send welcome message to all')
+      .AppendLine('    LWSServer.OnClientConnect := procedure(AClient: TWebSocketClient)')
+      .AppendLine('    var')
+      .AppendLine('      LWelcomeMsg: string;')
+      .AppendLine('    begin')
+      .AppendLine('      AClient.PeriodicInterval := 1000; // Update interval in milliseconds. If PeriodicInterval is 0 = disabled')
+      .AppendLine('      LWelcomeMsg := Format(''[SERVER]: %s joined the chat (%d users online)'',')
+      .AppendLine('        [AClient.Username, AClient.ConnectedUsersCount]);')
+      .AppendLine('      AClient.Broadcast(LWelcomeMsg);')
+      .AppendLine('    end;')
+      .AppendLine
+      .AppendLine('    // Handle incoming text messages - broadcast to all clients')
+      .AppendLine('    LWSServer.OnMessage := procedure(AClient: TWebSocketClient; const AMessage: string)')
+      .AppendLine('    var')
+      .AppendLine('      LChatMsg: string;')
+      .AppendLine('    begin')
+      .AppendLine('      // Format and broadcast message to all clients')
+      .AppendLine('      LChatMsg := Format(''[%s]: %s'', [AClient.Username, AMessage]);')
+      .AppendLine('      AClient.Broadcast(LChatMsg);')
+      .AppendLine('    end;')
+      .AppendLine
+      .AppendLine('    // Setup event handlers')
+      .AppendLine('    LWSServer.OnLog := procedure(const AMessage: string)')
+      .AppendLine('    begin')
+      .AppendLine('      LogI(Format(''[%s] %s'', [TimeToStr(Now), AMessage]));')
+      .AppendLine('    end;')
+      .AppendLine
+      .AppendLine('    LWSServer.OnPeriodicMessage := procedure(AClient: TWebSocketClient; out AMessage: String)')
+      .AppendLine('    begin')
+      .AppendLine('      AMessage := '''';')
+      .AppendLine('    end;')
+      .AppendLine
+      .AppendLine('    // Handle client disconnection - notify remaining users')
+      .AppendLine('    LWSServer.OnClientDisconnect := procedure(AClient: TWebSocketClient)')
+      .AppendLine('    begin')
+      .AppendLine('      //')
+      .AppendLine('    end;')
+      .AppendLine
+      .AppendLine('    LWSServer.OnError := procedure(AClient: TWebSocketClient; const AError: string)')
+      .AppendLine('    begin')
+      .AppendLine('      LogE(Format(''[%s] ERROR from %s: %s'', [TimeToStr(Now), AClient.Username, AError]));')
+      .AppendLine('    end;')
+      .AppendLine('  except')
+      .AppendLine('    LWSServer.Free;')
+      .AppendLine('    raise;')
+      .AppendLine('  end;')
+      .AppendLine('  Result := LWSServer;')
+      .AppendLine('end;')
+      .AppendLine
+      .AppendLine('end.')
+
+
+end;
+
+procedure TUnitWebSocketServerDeclarationCommand.ExecuteInterface(Section: TStringBuilder; Model: TJSONObject);
+begin
+  CheckFor(TConfigKey.websocket_unit_name, Model);
+  Section
+      .AppendLine('unit ' + Model[TConfigKey.websocket_unit_name] + ';')
+      .AppendLine
+      .AppendLine('interface')
+      .AppendLine
+      .AppendLine('uses')
+      .AppendLine('  MVCFramework.WebSocket.Server;')
+      .AppendLine
+      .AppendLine('function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;')
+      .AppendLine;
+
 end;
 
 end.

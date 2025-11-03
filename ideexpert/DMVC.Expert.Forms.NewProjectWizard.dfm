@@ -789,7 +789,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkMSHeap: TCheckBox
     Left = 28
-    Top = 391
+    Top = 390
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -807,7 +807,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkServicesContainer: TCheckBox
     Left = 28
-    Top = 347
+    Top = 346
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -818,7 +818,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkSqids: TCheckBox
     Left = 28
-    Top = 369
+    Top = 368
     Width = 257
     Height = 17
     Anchors = [akLeft, akRight, akBottom]
@@ -870,6 +870,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       'HTTPS Console (Windows/Linux, requires TaurusTLS)'
       'FastCGI Console (Windows/Linux)')
     TabOrder = 14
+  end
+  object chkWebSocketServer: TCheckBox
+    Left = 28
+    Top = 324
+    Width = 179
+    Height = 17
+    Anchors = [akLeft, akRight, akBottom]
+    Caption = 'Create Web Socket Server'
+    TabOrder = 15
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle
