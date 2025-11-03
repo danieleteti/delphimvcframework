@@ -437,7 +437,8 @@ begin
 
   try
     lResult := fExprEvaluator.Evaluate(Expr);
-    Result := VarToStr(lResult);
+    // Use VariantToString to ensure consistent formatting (dot as decimal separator)
+    Result := fExprEvaluator.VariantToString(lResult);
   except
     on E: Exception do
     begin

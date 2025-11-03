@@ -93,6 +93,7 @@ type
     FReceiveThread: TThread;
     FAutoReconnect: Boolean;
     FReconnectInterval: Integer;
+    FPollInterval: Integer;
 
     // Events
     FOnConnect: TMVCWebSocketClientConnectEvent;
@@ -163,6 +164,15 @@ type
     property ReconnectInterval: Integer read FReconnectInterval write FReconnectInterval;
 
     /// <summary>
+    /// Polling interval in milliseconds (default: 10ms)
+    /// Controls how often the receive loop checks for data.
+    /// The lock is held for only ~1ms per check regardless of this value.
+    /// Lower values = higher CPU usage but same write responsiveness (lock always ~1ms).
+    /// Typical values: 1ms (high-frequency), 10ms (interactive), 50ms (normal), 100ms (low-priority)
+    /// </summary>
+    property PollInterval: Integer read FPollInterval write FPollInterval default 10;
+
+    /// <summary>
     /// Event handlers
     /// </summary>
     property OnConnect: TMVCWebSocketClientConnectEvent read FOnConnect write FOnConnect;
@@ -222,6 +232,7 @@ begin
   FConnected := False;
   FAutoReconnect := False;
   FReconnectInterval := 5;
+  FPollInterval := 10; // Default: 10ms (good balance between responsiveness and CPU usage)
 end;
 
 destructor TMVCWebSocketClient.Destroy;
@@ -526,27 +537,55 @@ begin
 end;
 
 procedure TMVCWebSocketClient.DoReceive;
+const
+  LOCK_TIMEOUT = 1; // Keep lock for max 1ms to minimize write latency
 var
   Frame: TMVCWebSocketFrame;
   TextMessage: string;
   CloseCode: TMVCWebSocketCloseCode;
   CloseReason: string;
+  HasData: Boolean;
 begin
   while FConnected and not TThread.CurrentThread.CheckTerminated do
   begin
     try
-      // Check if data available
-      if FTCPClient.IOHandler.InputBufferIsEmpty then
-      begin
-        FTCPClient.IOHandler.CheckForDataOnSource(100);
+      // Check for data with minimal lock duration to maximize write responsiveness
+      FLock.Enter;
+      try
+        // Check if data available
         if FTCPClient.IOHandler.InputBufferIsEmpty then
+        begin
+          // Quick check (1ms max) to minimize lock contention
+          // This ensures Send operations are never blocked for more than ~1ms
+          FTCPClient.IOHandler.CheckForDataOnSource(LOCK_TIMEOUT);
+          if FTCPClient.IOHandler.InputBufferIsEmpty then
+          begin
+            HasData := False;
+          end
+          else
+            HasData := True;
+        end
+        else
+          HasData := True;
+
+        if not HasData then
+        begin
+          // Release lock immediately before sleeping
+          FLock.Leave;
+          // Sleep outside the lock to allow Send operations to proceed
+          // This keeps CPU usage low while maintaining excellent write responsiveness
+          if FPollInterval > LOCK_TIMEOUT then
+            Sleep(FPollInterval - LOCK_TIMEOUT);
           Continue;
+        end;
+
+        // Read frame (client side, expecting unmasked frames from server)
+        Frame := TMVCWebSocketFrameParser.ParseFrame(FTCPClient.IOHandler, False);
+      finally
+        FLock.Leave;
       end;
 
-      // Read frame (client side, expecting unmasked frames from server)
-      Frame := TMVCWebSocketFrameParser.ParseFrame(FTCPClient.IOHandler, False);
-
-      // Process frame
+      // Process frame outside the lock to minimize lock contention
       case Frame.Opcode of
         TMVCWebSocketOpcode.Text:
         begin
@@ -588,7 +627,7 @@ begin
 
         TMVCWebSocketOpcode.Ping:
         begin
-          // Send pong response
+          // Send pong response (SendPong takes FLock internally)
           SendPong(Frame.Payload);
         end;
 
