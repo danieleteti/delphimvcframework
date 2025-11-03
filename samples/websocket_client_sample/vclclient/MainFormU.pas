@@ -49,11 +49,11 @@ type
   /// The WebSocket client runs on a background thread and uses TThread.Synchronize
   /// to update the UI safely from event handlers.
   /// </summary>
-  TForm14 = class(TForm)
+  TMainForm = class(TForm)
     edtServerURL: TEdit;
     btnConnect: TButton;
     edtName: TEdit;
-    btnSendName: TButton;
+    btnSend: TButton;
     Memo1: TMemo;
     Label1: TLabel;
     Label2: TLabel;
@@ -64,7 +64,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
-    procedure btnSendNameClick(Sender: TObject);
+    procedure btnSendClick(Sender: TObject);
     procedure btnDisconnectClick(Sender: TObject);
     procedure btnClearClick(Sender: TObject);
   private
@@ -117,13 +117,13 @@ type
   end;
 
 var
-  Form14: TForm14;
+  MainForm: TMainForm;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm14.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // Create WebSocket client with default URL
   // The URL can be changed by the user before connecting
@@ -141,7 +141,7 @@ begin
   UpdateUI;
 end;
 
-procedure TForm14.FormDestroy(Sender: TObject);
+procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   // Clean up: disconnect and free the WebSocket client
   if FWebSocketClient.IsConnected then
@@ -149,14 +149,14 @@ begin
   FWebSocketClient.Free;
 end;
 
-procedure TForm14.Log(const AMessage: string);
+procedure TMainForm.Log(const AMessage: string);
 begin
   // Add timestamped message to the log memo
   // Format: [HH:MM:SS] Message
   Memo1.Lines.Add(Format('[%s] %s', [FormatDateTime('hh:nn:ss', Now), AMessage]));
 end;
 
-procedure TForm14.btnConnectClick(Sender: TObject);
+procedure TMainForm.btnConnectClick(Sender: TObject);
 begin
   try
     // Check if URL has changed - if so, recreate the client
@@ -193,7 +193,7 @@ begin
   end;
 end;
 
-procedure TForm14.btnDisconnectClick(Sender: TObject);
+procedure TMainForm.btnDisconnectClick(Sender: TObject);
 begin
   // Close the WebSocket connection
   if FWebSocketClient.IsConnected then
@@ -204,7 +204,7 @@ begin
   end;
 end;
 
-procedure TForm14.btnSendNameClick(Sender: TObject);
+procedure TMainForm.btnSendClick(Sender: TObject);
 begin
   // Send a text message to the server
   // The server will echo it back with a timestamp
@@ -218,13 +218,13 @@ begin
     ShowMessage('Not connected to server!');
 end;
 
-procedure TForm14.btnClearClick(Sender: TObject);
+procedure TMainForm.btnClearClick(Sender: TObject);
 begin
   // Clear the message log
   Memo1.Clear;
 end;
 
-procedure TForm14.OnConnect(Sender: TMVCWebSocketClient);
+procedure TMainForm.OnConnect(Sender: TMVCWebSocketClient);
 begin
   // IMPORTANT: This event is called from a background thread!
   // We use TThread.Queue (non-blocking) instead of TThread.Synchronize (blocking)
@@ -237,7 +237,7 @@ begin
     end);
 end;
 
-procedure TForm14.OnDisconnect(Sender: TMVCWebSocketClient; ACode: TMVCWebSocketCloseCode; const AReason: string);
+procedure TMainForm.OnDisconnect(Sender: TMVCWebSocketClient; ACode: TMVCWebSocketCloseCode; const AReason: string);
 begin
   // IMPORTANT: This event is called from a background thread!
   // ACode indicates the reason for disconnection:
@@ -254,7 +254,7 @@ begin
     end);
 end;
 
-procedure TForm14.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
+procedure TMainForm.OnTextMessage(Sender: TMVCWebSocketClient; const AMessage: string);
 begin
   // IMPORTANT: This event is called from a background thread!
   // This is triggered when the server sends us a text message
@@ -272,7 +272,7 @@ begin
     end);
 end;
 
-procedure TForm14.OnError(Sender: TMVCWebSocketClient; const AError: Exception);
+procedure TMainForm.OnError(Sender: TMVCWebSocketClient; const AError: Exception);
 begin
   // IMPORTANT: This event is called from a background thread!
   // This handles WebSocket errors like connection failures, protocol errors, etc.
@@ -284,7 +284,7 @@ begin
     end);
 end;
 
-procedure TForm14.UpdateUI;
+procedure TMainForm.UpdateUI;
 var
   IsConnected: Boolean;
 begin
@@ -295,7 +295,7 @@ begin
   // Enable/disable buttons based on connection state
   btnConnect.Enabled := not IsConnected;      // Can only connect when disconnected
   btnDisconnect.Enabled := IsConnected;        // Can only disconnect when connected
-  btnSendName.Enabled := IsConnected;          // Can only send messages when connected
+  btnSend.Enabled := IsConnected;          // Can only send messages when connected
   edtServerURL.Enabled := not IsConnected;     // Can only change URL when disconnected
 
   // Update visual status indicator

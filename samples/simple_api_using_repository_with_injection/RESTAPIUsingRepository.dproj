@@ -124,14 +124,14 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="CustomersControllerU.pas"/>
+        <DCCReference Include="Controller.CustomersU.pas"/>
         <DCCReference Include="MainWM.pas">
             <Form>TMunicipalLibraryWebModule</Form>
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="EntitiesU.pas"/>
-        <DCCReference Include="CustomerServiceU.pas"/>
+        <DCCReference Include="RegistrationU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -12,8 +12,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
   MVCFramework.Serializer.Commons,
-  MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
-  MVCFramework.WebSocket in '..\..\sources\MVCFramework.WebSocket.pas',
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule};
 
 var

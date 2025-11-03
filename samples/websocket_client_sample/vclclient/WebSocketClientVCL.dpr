@@ -51,13 +51,13 @@ program WebSocketClientVCL;
 
 uses
   Vcl.Forms,
-  MainFormU in 'MainFormU.pas' {Form14};
+  MainFormU in 'MainFormU.pas' {MainForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm14, Form14);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

@@ -159,3 +159,8 @@ samples/wine_cellar_sample/winecellarclient_mobile/Android64/Debug/
 /samples/websocket_groups/_README.md
 nul
 *nul
+/tools/certificatesgenerator/*.srl
+/tools/certificatesgenerator/*.crt
+/tools/certificatesgenerator/*.csr
+/tools/certificatesgenerator/*.key
+/tools/certificatesgenerator/*.crt

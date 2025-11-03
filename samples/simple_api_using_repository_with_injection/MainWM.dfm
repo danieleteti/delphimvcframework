@@ -1,5 +1,4 @@
 object TMunicipalLibraryWebModule: TTMunicipalLibraryWebModule
-  OldCreateOrder = False
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <>

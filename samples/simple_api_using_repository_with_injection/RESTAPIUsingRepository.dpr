@@ -14,10 +14,10 @@ uses
   Web.WebBroker,
   IdContext,
   IdHTTPWebBrokerBridge,
-  CustomersControllerU in 'CustomersControllerU.pas',
+  Controller.CustomersU in 'Controller.CustomersU.pas',
   MainWM in 'MainWM.pas' {TMunicipalLibraryWebModule: TWebModule},
   EntitiesU in 'EntitiesU.pas',
-  CustomerServiceU in 'CustomerServiceU.pas';
+  RegistrationU in 'RegistrationU.pas';
 
 {$R *.res}
 

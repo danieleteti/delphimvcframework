@@ -6,8 +6,8 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   System.SyncObjs,
-  MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
-  MVCFramework.WebSocket in '..\..\sources\MVCFramework.WebSocket.pas';
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server;
 
 type
   /// <summary>

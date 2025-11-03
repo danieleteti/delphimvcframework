@@ -42,6 +42,9 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.Signal,
   JsonDataObjects,
+  {$IF Defined(MSWINDOWS)}
+  Winapi.ShellAPI, Winapi.Windows,
+  {$ENDIF}
   ControllerU in 'ControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
 
@@ -200,6 +203,10 @@ begin
 
       LWSServer.Active := True;
       LogI('Listening on ws://localhost:' + lWSServer.DefaultPort.ToString);
+      {$IF Defined(MSWINDOWS)}
+      ShellExecute(0, 'open', PChar(LProtocol + '://localhost:' + APort.ToString + '/static'), nil, nil, SW_SHOW);
+      {$ENDIF}
+
       WaitForTerminationSignal;
       EnterInShutdownState;
 

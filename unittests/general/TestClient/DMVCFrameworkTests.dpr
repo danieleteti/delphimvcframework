@@ -86,7 +86,6 @@ uses
   WebSocketTestsU in 'WebSocketTestsU.pas',
   MVCFramework.WebSocket in '..\..\..\sources\MVCFramework.WebSocket.pas',
   MVCFramework.WebSocket.Client in '..\..\..\sources\MVCFramework.WebSocket.Client.pas',
-  MVCFramework.WebSocket.Controller in '..\..\..\sources\MVCFramework.WebSocket.Controller.pas',
   MVCFramework.WebSocket.ConnectionManager in '..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas',
   MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas';
 

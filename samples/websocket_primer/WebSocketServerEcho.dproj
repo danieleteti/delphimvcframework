@@ -119,9 +119,6 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Server.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.pas"/>
-        <None Include="README.md"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -142,7 +139,7 @@
                 <Source>
                     <Source Name="MainSource">WebSocketServerEcho.dpr</Source>
                 </Source>
-                <WelcomePageFile Path="README.md"/>
+                <WelcomePageFile/>
                 <WelcomePageFolder/>
             </Delphi.Personality>
             <Platforms>
@@ -165,12 +162,6 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="README.md" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win32">
-                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

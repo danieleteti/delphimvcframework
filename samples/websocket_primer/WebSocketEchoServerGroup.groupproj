@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{284AD897-1F67-4DD9-BF9F-CE6B7EA89620}</ProjectGuid>
+        <ProjectGuid>{D1FB8B0A-F936-4908-8F68-2F210B5C2FE0}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
         <Projects Include="WebSocketServerEcho.dproj">

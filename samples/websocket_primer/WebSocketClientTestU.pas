@@ -95,7 +95,6 @@ begin
     on E: Exception do
     begin
       Log('Connection error: ' + E.Message);
-      ShowMessage('Connection failed: ' + E.Message);
     end;
   end;
 end;

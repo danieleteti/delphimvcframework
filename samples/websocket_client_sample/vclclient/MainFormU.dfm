@@ -1,4 +1,4 @@
-object Form14: TForm14
+object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'DMVCFramework WebSocket Client Demo'
@@ -24,9 +24,9 @@ object Form14: TForm14
   object Label2: TLabel
     Left = 16
     Top = 64
-    Width = 62
+    Width = 49
     Height = 15
-    Caption = 'Your Name:'
+    Caption = 'Message:'
   end
   object Label3: TLabel
     Left = 16
@@ -73,15 +73,15 @@ object Form14: TForm14
     TabOrder = 2
     Text = 'Daniele'
   end
-  object btnSendName: TButton
+  object btnSend: TButton
     Left = 552
     Top = 83
     Width = 130
     Height = 25
-    Caption = 'Send Name'
+    Caption = 'Send Message'
     Enabled = False
     TabOrder = 3
-    OnClick = btnSendNameClick
+    OnClick = btnSendClick
   end
   object Memo1: TMemo
     Left = 16

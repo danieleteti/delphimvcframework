@@ -19,6 +19,7 @@ object MainClientForm: TMainClientForm
     Width = 624
     Height = 97
     Align = alTop
+    BevelOuter = bvNone
     TabOrder = 0
     object Label1: TLabel
       Left = 16
@@ -95,6 +96,7 @@ object MainClientForm: TMainClientForm
     Width = 624
     Height = 56
     Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 2
     object EditMessage: TEdit
       Left = 16
