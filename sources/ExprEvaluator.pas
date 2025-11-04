@@ -26,6 +26,8 @@ unit ExprEvaluator;
 
 interface
 
+{$I dmvcframework.inc}
+
 uses
   System.SysUtils, System.Variants, System.Math, System.Generics.Collections;
 
@@ -206,7 +208,11 @@ begin
         raise Exception.Create('Contains requires 2 arguments');
       if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
         raise Exception.Create('Contains requires non-null arguments');
+      {$IF Defined(FLORENCEORBETTER)}
       Result := String(Args[1]).Contains(String(Args[0]), True);
+      {$ELSE}
+      Result := String(Args[1]).ToLower.Contains(String(Args[0]).ToLower);
+      {$ENDIF}
     end);
 
   RegisterFunction('ToString', function(const Args: array of Variant): Variant
