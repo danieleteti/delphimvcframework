@@ -1,10 +1,10 @@
-program activerecord_showcase;
+program unidac_activerecord_showcase;
 
 uses
   Vcl.Forms,
   MainFormU in 'MainFormU.pas' {MainForm},
   EntitiesU in 'EntitiesU.pas',
-  FDConnectionConfigU in 'FDConnectionConfigU.pas',
+  UniDACConnectionConfigU in 'UniDACConnectionConfigU.pas',
   MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
   MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
   MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
