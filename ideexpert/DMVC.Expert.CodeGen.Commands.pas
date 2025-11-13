@@ -1730,6 +1730,29 @@ begin
       .AppendLine('uses')
       .AppendLine('  System.SysUtils, MVCFramework.WebSocket, MVCFramework.Logger;')
       .AppendLine
+      .AppendLine
+      .AppendLine('  /// <summary>')
+      .AppendLine('  /// Per-client session data')
+      .AppendLine('  /// This object is created in OnClientConnect and automatically freed on disconnect')
+      .AppendLine('  /// </summary>')
+      .AppendLine('type')
+      .AppendLine('  TWSClientSessionData = class')
+      .AppendLine('  private')
+      .AppendLine('    FMessageCount: Integer;')
+      .AppendLine('  public')
+      .AppendLine('    constructor Create;')
+      .AppendLine('    property MessageCount: Integer read fMessageCount write fMessageCount;')
+      .AppendLine('  end;')
+      .AppendLine
+      .AppendLine('{ TWSClientSessionData }')
+      .AppendLine('')
+      .AppendLine('constructor TWSClientSessionData.Create;')
+      .AppendLine('begin')
+      .AppendLine('  inherited;')
+      .AppendLine('  FMessageCount := 0;')
+      .AppendLine('end;')
+      .AppendLine
+      .AppendLine
       .AppendLine('function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;')
       .AppendLine('var')
       .AppendLine('  LWSServer: TMVCWebSocketServer;')
@@ -1741,6 +1764,7 @@ begin
       .AppendLine('    var')
       .AppendLine('      LWelcomeMsg: string;')
       .AppendLine('    begin')
+      .AppendLine('      AClient.Data := TWSClientSessionData.Create; //client session')
       .AppendLine('      AClient.PeriodicInterval := 1000; // Update interval in milliseconds. If PeriodicInterval is 0 = disabled')
       .AppendLine('      LWelcomeMsg := Format(''[SERVER]: %s joined the chat (%d users online)'',')
       .AppendLine('        [AClient.Username, AClient.ConnectedUsersCount]);')

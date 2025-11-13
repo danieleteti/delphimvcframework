@@ -70,7 +70,7 @@ object MainForm: TMainForm
       OnClick = btnAdvancedRepositoryClick
     end
     object btnBasicCRUD: TButton
-      Left = 8
+      Left = 11
       Top = 8
       Width = 169
       Height = 33

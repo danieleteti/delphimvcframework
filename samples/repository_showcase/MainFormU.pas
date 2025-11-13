@@ -148,7 +148,7 @@ begin
   Log('');
   Log('** Basic CRUD Operations with Repository');
 
-  lRepo := TCustomerRepository.Create;
+  lRepo := TMVCRepository<TCustomer>.Create;
 
   // Create
   lCustomer := TCustomer.Create;
