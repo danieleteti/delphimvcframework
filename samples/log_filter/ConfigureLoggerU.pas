@@ -11,6 +11,7 @@ uses
   MVCFramework.Logger,
   LoggerPro,
   LoggerPro.FileAppender,
+  LoggerPro.SimpleConsoleAppender,
   LoggerPro.Proxy,
   LoggerPro.Renderers;
 
@@ -19,11 +20,12 @@ begin
   SetDefaultLogger(
       BuildLogWriter(
           [
+              TLoggerProSimpleConsoleAppender.Create,
               TLoggerProFilter.Build(
                   TLoggerProFileAppender.Create(
                       10,
                       5,
-                      '..\..',
+                      '..\..\logs',
                       TLoggerProFileAppender.DEFAULT_FILENAME_FORMAT,
                       TLogItemRendererNoTag.Create
                   ),
