@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano MÃ¼ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -78,6 +78,7 @@ type
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
     TEXT_CSV = 'text/csv';
+    TEXT_CALENDAR = 'text/calendar';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_X_ICON = 'image/x-icon';
@@ -123,7 +124,7 @@ type
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
     SSE_RETRY_DEFAULT = 100;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
-    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' àèéùòì''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' Ã Ã¨Ã©Ã¹Ã²Ã¬''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
@@ -2038,3 +2039,4 @@ finalization
 FreeAndNil(GLock);
 
 end.
+
