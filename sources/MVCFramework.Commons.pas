@@ -78,6 +78,7 @@ type
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
     TEXT_CSV = 'text/csv';
+    TEXT_CALENDAR = 'text/calendar';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_X_ICON = 'image/x-icon';
