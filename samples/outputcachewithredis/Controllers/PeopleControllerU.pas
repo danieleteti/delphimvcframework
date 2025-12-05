@@ -6,7 +6,6 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   PeopleModuleU,
-  Redis.Commons,
   MVCFramework.Controllers.CacheController;
 
 type
@@ -49,7 +48,7 @@ type
     [MVCConsumes('application/json')]
     procedure SearchPeople;
 
-    [MVCPath('/tests/people')]
+    [MVCPath('/tests/many')]
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     function GetLotOfPeople: IMVCResponse;

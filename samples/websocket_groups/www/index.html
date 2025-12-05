@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Group Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #1976d2;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #1976d2;
+        }
+
+        .connection-panel {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f44336;
+        }
+
+        .status-dot.connected {
+            background: #4caf50;
+        }
+
+        .username-panel {
+            margin-bottom: 15px;
+        }
+
+        .username-panel input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #43a047;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53935;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .room-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .room-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .room-item.joined {
+            background: #e8f5e9;
+            border-left: 3px solid #4caf50;
+        }
+
+        .room-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 11px;
+            width: auto;
+        }
+
+        .new-room {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .new-room input {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .chat-tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .chat-tab {
+            padding: 10px 20px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .chat-tab.active {
+            background: #1976d2;
+            color: white;
+        }
+
+        .chat-tab:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        .chat-content {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        .chat-content.active {
+            display: flex;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        .message.system {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 3px solid #ff9800;
+        }
+
+        .message.sent {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border-left: 3px solid #1976d2;
+        }
+
+        .message.received {
+            background: #f1f8e9;
+            color: #33691e;
+            border-left: 3px solid #689f38;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        .username {
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        .message-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .message-input input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .message-input button {
+            width: auto;
+            padding: 12px 30px;
+        }
+
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+
+        .welcome-screen h2 {
+            border: none;
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen p {
+            margin-bottom: 10px;
+        }
+
+        .help-box {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        .help-box strong {
+            color: #e65100;
+        }
+
+        .user-count {
+            font-size: 11px;
+            color: #666;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h1>🏘️ Group Chat</h1>
+
+            <!-- Connection -->
+            <div class="connection-panel">
+                <div class="status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <button id="connectBtn" class="btn-success" onclick="connect()">Connect</button>
+                <button id="disconnectBtn" class="btn-danger" onclick="disconnect()" disabled>Disconnect</button>
+            </div>
+
+            <!-- Username -->
+            <div class="section username-panel">
+                <h2>Username</h2>
+                <input type="text" id="usernameInput" placeholder="Enter username" disabled>
+                <button id="setUsernameBtn" class="btn-primary" onclick="setUsername()" disabled>Set Username</button>
+            </div>
+
+            <!-- My Rooms -->
+            <div class="section">
+                <h2>My Rooms</h2>
+                <div class="room-list" id="myRooms">
+                    <p style="color: #999; font-size: 13px;">Not in any rooms yet</p>
+                </div>
+            </div>
+
+            <!-- Available Rooms -->
+            <div class="section">
+                <h2>Available Rooms</h2>
+                <div class="room-list" id="availableRooms">
+                    <div class="room-item">
+                        <span class="room-name">lobby</span>
+                        <button class="btn-success btn-small" onclick="joinRoom('lobby')">Join</button>
+                    </div>
+                    <div class="room-item">
+                        <span class="room-name">general</span>
+                        <button class="btn-success btn-small" onclick="joinRoom('general')">Join</button>
+                    </div>
+                    <div class="room-item">
+                        <span class="room-name">developers</span>
+                        <button class="btn-success btn-small" onclick="joinRoom('developers')">Join</button>
+                    </div>
+                    <div class="room-item">
+                        <span class="room-name">random</span>
+                        <button class="btn-success btn-small" onclick="joinRoom('random')">Join</button>
+                    </div>
+                </div>
+                <div class="new-room">
+                    <input type="text" id="newRoomInput" placeholder="New room name">
+                    <button class="btn-primary btn-small" onclick="joinNewRoom()">Create</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Chat Tabs -->
+            <div class="chat-tabs" id="chatTabs">
+                <!-- Tabs will be added dynamically -->
+            </div>
+
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <h2>Welcome to WebSocket Group Chat!</h2>
+                <p>👈 Connect to the server to get started</p>
+                <p>📝 Set your username</p>
+                <p>🚪 Join a room from the available rooms list</p>
+                <p>💬 Start chatting!</p>
+
+                <div class="help-box">
+                    <strong>💡 Tips:</strong><br>
+                    • Join multiple rooms at once<br>
+                    • Create custom rooms by typing a new name<br>
+                    • Each room has its own chat history<br>
+                    • Messages are only visible to users in the same room
+                </div>
+            </div>
+
+            <!-- Chat Contents (will be added dynamically) -->
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let myRooms = [];
+        let currentRoom = null;
+        let roomMessages = {}; // Store messages per room
+
+        function updateStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const usernameInput = document.getElementById('usernameInput');
+            const setUsernameBtn = document.getElementById('setUsernameBtn');
+
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                usernameInput.disabled = false;
+                setUsernameBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                usernameInput.disabled = true;
+                setUsernameBtn.disabled = true;
+            }
+        }
+
+        function connect() {
+            const url = 'ws://localhost:9092/';
+
+            try {
+                ws = new WebSocket(url);
+
+                ws.onopen = function() {
+                    updateStatus(true);
+                    addSystemMessage('Connected to server');
+                };
+
+                ws.onmessage = function(event) {
+                    handleMessage(event.data);
+                };
+
+                ws.onerror = function(error) {
+                    addSystemMessage('WebSocket error occurred');
+                };
+
+                ws.onclose = function() {
+                    updateStatus(false);
+                    addSystemMessage('Disconnected from server');
+                    ws = null;
+                };
+            } catch (error) {
+                addSystemMessage('Failed to connect: ' + error.message);
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function setUsername() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (username && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('/setname ' + username);
+            }
+        }
+
+        function joinRoom(roomName) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('/join ' + roomName);
+            }
+        }
+
+        function joinNewRoom() {
+            const roomName = document.getElementById('newRoomInput').value.trim();
+            if (roomName) {
+                joinRoom(roomName);
+                document.getElementById('newRoomInput').value = '';
+            }
+        }
+
+        function leaveRoom(roomName) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('/leave ' + roomName);
+            }
+        }
+
+        function sendMessage(roomName) {
+            const input = document.getElementById('input-' + roomName);
+            const message = input.value.trim();
+
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                // Send message to server
+                const fullMessage = '/msg ' + roomName + ' ' + message;
+                console.log('Sending:', fullMessage);
+                ws.send(fullMessage);
+
+                // Clear input immediately for better UX
+                input.value = '';
+            }
+        }
+
+        function handleMessage(text) {
+            console.log('Received:', text);
+
+            // Parse server responses
+            if (text.includes('You joined room:')) {
+                const roomName = text.split(':')[1].trim();
+                addRoom(roomName);
+                addRoomMessage(roomName, text, 'system');
+            } else if (text.includes('You left room:')) {
+                const roomName = text.split(':')[1].trim();
+                removeRoom(roomName);
+                addSystemMessage(text);
+            } else if (text.startsWith('[') && text.includes(']')) {
+                // Format: [roomName] username: message or [SYSTEM] message
+                const match = text.match(/^\[([^\]]+)\]\s+(.+)/);
+                if (match) {
+                    const roomName = match[1];
+                    const content = match[2];
+
+                    if (content.includes('joined the room') || content.includes('left the room') || content.includes('disconnected')) {
+                        addRoomMessage(roomName, content, 'system');
+                    } else {
+                        // Show all messages as received (server already echoes our messages back)
+                        addRoomMessage(roomName, content, 'received');
+                    }
+                }
+            } else {
+                // System message (not room-specific)
+                addSystemMessage(text);
+            }
+        }
+
+        function addRoom(roomName) {
+            if (myRooms.includes(roomName)) return;
+
+            myRooms.push(roomName);
+            roomMessages[roomName] = [];
+
+            // Update My Rooms list
+            updateMyRoomsList();
+
+            // Add tab
+            addChatTab(roomName);
+
+            // Show welcome screen or switch to new room
+            document.getElementById('welcomeScreen').style.display = 'none';
+            switchToRoom(roomName);
+        }
+
+        function removeRoom(roomName) {
+            myRooms = myRooms.filter(r => r !== roomName);
+            delete roomMessages[roomName];
+
+            // Update My Rooms list
+            updateMyRoomsList();
+
+            // Remove tab and content
+            const tab = document.getElementById('tab-' + roomName);
+            const content = document.getElementById('content-' + roomName);
+            if (tab) tab.remove();
+            if (content) content.remove();
+
+            // Switch to first available room or show welcome
+            if (myRooms.length > 0) {
+                switchToRoom(myRooms[0]);
+            } else {
+                document.getElementById('welcomeScreen').style.display = 'flex';
+            }
+        }
+
+        function updateMyRoomsList() {
+            const container = document.getElementById('myRooms');
+
+            if (myRooms.length === 0) {
+                container.innerHTML = '<p style="color: #999; font-size: 13px;">Not in any rooms yet</p>';
+                return;
+            }
+
+            container.innerHTML = myRooms.map(room => `
+                <div class="room-item joined">
+                    <span class="room-name">${room}</span>
+                    <div class="room-actions">
+                        <button class="btn-primary btn-small" onclick="switchToRoom('${room}')">Open</button>
+                        <button class="btn-danger btn-small" onclick="leaveRoom('${room}')">Leave</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addChatTab(roomName) {
+            const tabsContainer = document.getElementById('chatTabs');
+            const mainContent = document.querySelector('.main-content');
+
+            // Add tab
+            const tab = document.createElement('button');
+            tab.id = 'tab-' + roomName;
+            tab.className = 'chat-tab';
+            tab.textContent = roomName;
+            tab.onclick = () => switchToRoom(roomName);
+            tabsContainer.appendChild(tab);
+
+            // Add content
+            const content = document.createElement('div');
+            content.id = 'content-' + roomName;
+            content.className = 'chat-content';
+            content.innerHTML = `
+                <div class="messages" id="messages-${roomName}"></div>
+                <div class="message-input">
+                    <input type="text" id="input-${roomName}" placeholder="Type your message in ${roomName}..." onkeypress="if(event.key==='Enter') sendMessage('${roomName}')">
+                    <button class="btn-primary" onclick="sendMessage('${roomName}')">Send</button>
+                </div>
+            `;
+            mainContent.appendChild(content);
+        }
+
+        function switchToRoom(roomName) {
+            currentRoom = roomName;
+
+            // Update tabs
+            document.querySelectorAll('.chat-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const activeTab = document.getElementById('tab-' + roomName);
+            if (activeTab) activeTab.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.chat-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            const activeContent = document.getElementById('content-' + roomName);
+            if (activeContent) activeContent.classList.add('active');
+        }
+
+        function addRoomMessage(roomName, text, type = 'received') {
+            if (!roomMessages[roomName]) {
+                roomMessages[roomName] = [];
+            }
+
+            const messagesDiv = document.getElementById('messages-' + roomName);
+            if (!messagesDiv) return;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `<span class="timestamp">${timestamp}</span>${escapeHtml(text)}`;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            // Add to current room or all rooms if not in any
+            if (currentRoom && myRooms.includes(currentRoom)) {
+                addRoomMessage(currentRoom, text, 'system');
+            } else if (myRooms.length > 0) {
+                myRooms.forEach(room => {
+                    addRoomMessage(room, text, 'system');
+                });
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Enter key on username input
+        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') setUsername();
+        });
+
+        // Allow Enter key on new room input
+        document.getElementById('newRoomInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') joinNewRoom();
+        });
+    </script>
+</body>
+</html>

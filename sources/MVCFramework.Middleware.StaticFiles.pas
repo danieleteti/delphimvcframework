@@ -52,10 +52,6 @@ type
     /// </summary>
     INDEX_DOCUMENT = 'index.html';
 
-    /// <summary>
-    /// Charset of static files
-    /// </summary>
-    STATIC_FILES_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
   end;
 
   TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
@@ -81,7 +77,6 @@ type
       const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
       const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
       const ASPAWebAppSupport: Boolean = True;
-      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
       const ARules: TMVCStaticFileRulesProc = nil;
       const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer = nil);
     destructor Destroy; override;
@@ -102,7 +97,6 @@ type
       const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
       const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
       const ASPAWebAppSupport: Boolean = True;
-      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
       const ARules: TMVCStaticFileRulesProc = nil;
       const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer = nil): IMVCMiddleware;
 
@@ -120,7 +114,6 @@ function UseStaticFilesMiddleware(
     const aDocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
     const aIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
     const aSPAWebAppSupport: Boolean = True;
-    const aStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
     const aRules: TMVCStaticFileRulesProc = nil;
     const aMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer = nil): IMVCMiddleware;
 begin
@@ -129,7 +122,6 @@ begin
     aDocumentRoot,
     aIndexDocument,
     aSPAWebAppSupport,
-    aStaticFilesCharset,
     aRules,
     aMediaTypesCustomizer
   );
@@ -139,14 +131,14 @@ end;
 
 procedure TMVCStaticFilesMiddleware.AddMediaTypes;
 begin
-  fMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
-  fMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
-  fMediaTypes.Add('.txt', TMVCMediaType.TEXT_PLAIN);
-  fMediaTypes.Add('.text', TMVCMediaType.TEXT_PLAIN);
-  fMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV);
-  fMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
-  fMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
-  fMediaTypes.Add('.json', TMVCMediaType.APPLICATION_JSON);
+  fMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML + ';charset=' + TMVCCharSet.UTF_8);
+  fMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML + ';charset=' + TMVCCharSet.UTF_8);
+  fMediaTypes.Add('.txt', TMVCMediaType.TEXT_PLAIN + ';charset=' + TMVCCharSet.US_ASCII);
+  fMediaTypes.Add('.text', TMVCMediaType.TEXT_PLAIN + ';charset=' + TMVCCharSet.US_ASCII);
+  fMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV + ';charset=' + TMVCCharSet.UTF_8);
+  fMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS + ';charset=' + TMVCCharSet.UTF_8);
+  fMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT + ';charset=' + TMVCCharSet.UTF_8);
+  fMediaTypes.Add('.json', TMVCMediaType.APPLICATION_JSON + ';charset=' + TMVCCharSet.UTF_8);
   fMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpe', TMVCMediaType.IMAGE_JPEG);
@@ -154,9 +146,9 @@ begin
   fMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
   fMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
-  fMediaTypes.Add('.xml', TMVCMediaType.TEXT_XML);
+  fMediaTypes.Add('.xml', TMVCMediaType.TEXT_XML + ';charset=' + TMVCCharSet.UTF_8);
   fMediaTypes.Add('.pdf', TMVCMediaType.APPLICATION_PDF);
-  fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
+  fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML + ';charset=' + TMVCCharSet.UTF_8);
   fMediaTypes.Add('.gif', TMVCMediaType.IMAGE_GIF);
 end;
 
@@ -165,7 +157,6 @@ constructor TMVCStaticFilesMiddleware.Create(
       const ADocumentRoot: string;
       const AIndexDocument: string;
       const ASPAWebAppSupport: Boolean;
-      const AStaticFilesCharset: string;
       const ARules: TMVCStaticFileRulesProc;
       const AMediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer);
 begin
@@ -184,7 +175,6 @@ begin
     fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
   end;
   fIndexDocument := AIndexDocument;
-  fStaticFilesCharset := AStaticFilesCharset;
   fSPAWebAppSupport := ASPAWebAppSupport;
   fMediaTypes := TMVCStringDictionary.Create;
   fRules := ARules;

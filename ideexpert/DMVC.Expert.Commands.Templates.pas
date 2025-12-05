@@ -39,6 +39,7 @@ procedure FillWebStencilsTemplates(Gen: TMVCCodeGenerator);
 procedure FillMustacheTemplates(Gen: TMVCCodeGenerator);
 procedure FillEntitiesTemplates(Gen: TMVCCodeGenerator);
 procedure FillServicesTemplates(Gen: TMVCCodeGenerator);
+procedure FillWebSocketServerTemplates(Gen: TMVCCodeGenerator);
 
 implementation
 
@@ -118,6 +119,13 @@ procedure FillEntitiesTemplates(Gen: TMVCCodeGenerator);
 begin
   Gen.Commands.AddRange([
     TUnitControllerEntityDeclarationCommand.Create
+    ]);
+end;
+
+procedure FillWebSocketServerTemplates(Gen: TMVCCodeGenerator);
+begin
+  Gen.Commands.AddRange([
+    TUnitWebSocketServerDeclarationCommand.Create
     ]);
 end;
 

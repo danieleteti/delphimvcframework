@@ -78,7 +78,16 @@ uses
   MVCFramework.DotEnv.Parser in '..\..\..\sources\MVCFramework.DotEnv.Parser.pas',
   MVCFramework.DotEnv in '..\..\..\sources\MVCFramework.DotEnv.pas',
   InjectorTestU in 'InjectorTestU.pas',
-  MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas';
+  MVCFramework.Container in '..\..\..\sources\MVCFramework.Container.pas',
+  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
+  MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
+  TestsBloomFilterU in 'TestsBloomFilterU.pas',
+  DotEnvTestU in 'DotEnvTestU.pas',
+  WebSocketTestsU in 'WebSocketTestsU.pas',
+  MVCFramework.WebSocket in '..\..\..\sources\MVCFramework.WebSocket.pas',
+  MVCFramework.WebSocket.Client in '..\..\..\sources\MVCFramework.WebSocket.Client.pas',
+  MVCFramework.WebSocket.ConnectionManager in '..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas',
+  MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas';
 
 {$R *.RES}
 

@@ -9,4 +9,4 @@ In order to generate a valid self-signed certificate to use https, follow these 
 - Open a command prompt in samples\sslserver and run `GENERATE_CERTIFICATES.BAT`
 - Copy `libeay32.dll` and `ssleay32.dll` (from the openssl zip) into the `samples\sslserver\bin` folder
 - Run the DMVCFramework ssl sample
-- Navitate to `https://localhost`
+- Navigate to `https://localhost`

@@ -120,7 +120,7 @@ end;
 
 procedure TMyControllerV2.GetCustomers;
 begin
-  GetCustomers;
+  inherited GetCustomers;
 end;
 
 end.

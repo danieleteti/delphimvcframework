@@ -24,7 +24,6 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas',
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\..\bitpresenze\commons\dmvcframework\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
   FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
   ActiveRecordControllerWebModuleU in 'webmodules\ActiveRecordControllerWebModuleU.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
@@ -32,7 +31,11 @@ uses
   MVCFramework.Commons,
   MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
-  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas';
+  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
+  TestDataSetCSVSerializer in 'TestDataSetCSVSerializer.pas',
+  MVCFramework.BloomFilter in '..\..\..\sources\MVCFramework.BloomFilter.pas',
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
+  DotEnvTestU in 'DotEnvTestU.pas';
 
 {$R *.res}
 

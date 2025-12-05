@@ -86,7 +86,7 @@ type
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
-    procedure InternalRender(AJSONOb: TJDOJsonObject; AContentType: string; AContentEncoding: string;
+    procedure InternalRender(AJSONOb: TJDOJsonObject; AMediaType: string; AContentCharset: string;
       AContext: TWebContext; AInstanceOwner: Boolean = True); virtual;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean); virtual;
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
@@ -272,35 +272,35 @@ begin
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject;
-  AContentType, AContentEncoding: string; AContext: TWebContext; AInstanceOwner: Boolean);
+  AMediaType, AContentCharset: string; AContext: TWebContext; AInstanceOwner: Boolean);
 var
-  Encoding: TEncoding;
-  ContentType, JValue: string;
-  Cookie: TCookie;
+  lEncoding: TEncoding;
+  lContentType, lJValue: string;
+  lCookie: TCookie;
 begin
-  JValue := AJSONOb.ToJSON;
+  lJValue := AJSONOb.ToJSON;
 
   if FUseHttpOnly then
   begin
-    Cookie := AContext.Response.Cookies.Add;
-    Cookie.Expires := FTokenHttpOnlyExpires;
-    Cookie.Path := '/';
-    Cookie.Name := 'token';
-    Cookie.Value := AJSONOb.S['token'];
-    Cookie.HttpOnly := True;
+    lCookie := AContext.Response.Cookies.Add;
+    lCookie.Expires := FTokenHttpOnlyExpires;
+    lCookie.Path := '/';
+    lCookie.Name := 'token';
+    lCookie.Value := AJSONOb.S['token'];
+    lCookie.HttpOnly := True;
     // Cookie.Secure := True;
     // Cookie.SameSite := 'none';
   end;
 
-  AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
-  ContentType := AContentType + '; charset=' + AContentEncoding;
+  lContentType := BuildContentType(AMediaType, AContentCharset);
+  AContext.Response.RawWebResponse.ContentType := lContentType;
 
-  Encoding := TEncoding.GetEncoding(AContentEncoding);
+  lEncoding := TEncoding.GetEncoding(AContentCharset);
   try
-    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding,
-      TEncoding.Default.GetBytes(JValue))), ContentType);
+    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, lEncoding,
+      TEncoding.Default.GetBytes(lJValue))), lContentType);
   finally
-    Encoding.Free;
+    lEncoding.Free;
   end;
 
   if AInstanceOwner then

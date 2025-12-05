@@ -64,14 +64,19 @@ begin
 
   CreateSqlitePrivateConnDef(True);
 
-  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', 'JUeQArjG4z2RgYIP7HTaBxuni9cWK60VytwsDoldEqvfkLbOhXmpS153N8MZFC');
+  TMVCSqids.SQIDS_ALPHABET :=
+      dotEnv.Env(
+          'dmvc.sqids.alphabet',
+          'JUeQArjG4z2RgYIP7HTaBxuni9cWK60VytwsDoldEqvfkLbOhXmpS153N8MZFC'
+      );
   TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
 
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
 
-    WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
+    WebRequestHandlerProc.MaxConnections :=
+        dotEnv.Env('dmvc.handler.max_connections', 1024);
 
 {$IF CompilerVersion >= 34} //SYDNEY+
     if dotEnv.Env('dmvc.profiler.enabled', false) then

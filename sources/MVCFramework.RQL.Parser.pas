@@ -990,13 +990,14 @@ end;
 function TRQL2SQL.MatchFieldName(out lFieldName: string): Boolean;
 var
   lChar: Char;
+  lTmpSecondPart: String;
 begin
-  Result := true;
+  Result := True;
   lChar := C(0);
   if IsLetter(lChar) then
   begin
     lFieldName := lChar;
-    while true do
+    while True do
     begin
       Skip(1);
       lChar := C(0);
@@ -1006,6 +1007,17 @@ begin
       end
       else
         Break;
+    end;
+
+    while LookAheadChar = '.' do
+    begin
+      Skip(1);
+      lTmpSecondPart := '';
+      if not MatchFieldName(lTmpSecondPart) then
+      begin
+        Exit(False);
+      end;
+      lFieldName := lFieldName + '.' + lTmpSecondPart;
     end;
   end
   else

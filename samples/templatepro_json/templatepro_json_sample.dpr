@@ -17,7 +17,8 @@ uses
   MVCFramework.Signal,
   ControllerU in 'ControllerU.pas',
   HelpersU in 'HelpersU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  RandomUtilsU in '..\commons\RandomUtilsU.pas';
 
 {$R *.res}
 

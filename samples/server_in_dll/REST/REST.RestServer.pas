@@ -30,11 +30,7 @@ uses
 procedure TDMVCRestServer.Activate;
 begin
   fServer.Active := true;
-
-  if fServer.Active then
-  begin
-    LogD('Server active on port=' + IntToStr(fServer.DefaultPort));
-  end;
+  LogD('Server active on port = ' + IntToStr(fServer.DefaultPort));
 end;
 
 constructor TDMVCRestServer.Create(const aPort: integer);

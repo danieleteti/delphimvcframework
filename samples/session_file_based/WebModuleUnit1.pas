@@ -34,10 +34,10 @@ begin
   MVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
+      Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML
     end);
   MVC.AddController(TApp1MainController);
-  MVC.AddMiddleware(UseFileSessionMiddleware(0));
+  MVC.AddMiddleware(UseFileSessionMiddleware(0, True));
   MVC.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/name'));
 end;
 

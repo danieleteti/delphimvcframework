@@ -139,8 +139,7 @@
                 <Source>
                     <Source Name="MainSource">SwagDoc.dpk</Source>
                 </Source>
-                <Excluded_Packages>
-                </Excluded_Packages>
+                <Excluded_Packages/>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>

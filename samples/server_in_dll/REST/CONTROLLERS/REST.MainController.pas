@@ -3,9 +3,9 @@ unit REST.MainController;
 interface
 
 uses
-  mvcframework,
-  mvcframework.Commons,
-  mvcframework.logger,
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.logger,
   generics.collections;
 
 type
@@ -28,6 +28,7 @@ uses
 procedure TMainController.Index;
 begin
   LogD('[TMainController] Index');
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   Render('Hello DelphiMVCFramework World (Server is hosted by ' + TPath.GetFileName(GetModuleName(HInstance)) + ')');
 end;
 

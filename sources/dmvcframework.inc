@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2024 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -71,6 +71,10 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$DEFINE ATHENSORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 37} // 13 Florence
+{$DEFINE FLORENCEORBETTER}
+{$ENDIF}
+
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}
@@ -101,4 +105,9 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$IF declared(RTLVersion122) or (RTLVersion >= 37)}
 {$DEFINE WEBSTENCILS}
 {$ENDIF}
+{$ENDIF}
+
+{$UNDEF FASTCGI}
+{$IF Defined(FLORENCEORBETTER)}
+{$DEFINE FASTCGI}
 {$ENDIF}

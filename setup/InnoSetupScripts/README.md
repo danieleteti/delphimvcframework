@@ -4,11 +4,13 @@
 
 ## A collection of InnoSetup Scripts to build a RAD Studio Setup for Delphi Packages of Components and Libraries of any types.
 
-### Actual official version 1.1.0
+### Actual official version 1.2.0
 
 Copyright <sup>©</sup> 2024-2025 Ethea S.r.l.
 Original Code is Copyright <sup>©</sup> 2021-2025 Skia4Delphi Project.
 Use of this source code is governed by the MIT license.
+
+![./SupportingDelphi](./SupportingDelphi.jpg)
 
 ## Scope of this Scripts collection
 
@@ -105,14 +107,14 @@ This is an example of the "Build Groups Panel":
 
 Check in your .dproj xml file, if contains the correct "ProjectVersion" number, because the scripts use it to known the correct Delphi Version.
 
-for Example, for Delphi 12.3 ProjectVersion must be 20.3:
+for Example, for Delphi 11, ProjectVersion must be between 19.3 and 19.5.
 
 ```xml
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{00000000-0000-0000-0000-000000000000}</ProjectGuid>
         <MainSource>PackageName.dpk</MainSource>
-        <ProjectVersion>20.2</ProjectVersion>
+        <ProjectVersion>19.5</ProjectVersion>
 ```
 
 Use this table for the correct "ProjectVersion" of every Delphi versions:
@@ -129,15 +131,24 @@ Use this table for the correct "ProjectVersion" of every Delphi versions:
 | RAD Studio 10.3 Rio      | 18.5               | 18.8               | 260            |
 | RAD Studio 10.4 Sydney   | 19.0               | 19.2               | 270 or $(Auto) |
 | RAD Studio 11 Alexandria | 19.3               | 19.5               | 280 or $(Auto) |
-| RAD Studio 12 Athens     | 20.1               | 20.3               | 290 or $(Auto) |
+| RAD Studio 12 Athens     | 20.1               | 20.3\*             | 290 or $(Auto) |
+| RAD Studio 13 Florence   | 20.3\*             | 20.3\*             | 370 or $(Auto) |
 
 \*In case of conflict the script searches for Package Version\*\* (LibSuffix), so it is recommended to use "standard" Lib Suffix values.
+
+### How to distinguish RAD Studio 12 and RAD Studio 13:
+
+It's recommended to use 20.2 for RAD Studio 12 and 20.3 for RAD Studio 13 to distinguish them.
+
+### Other Delphi versions not included in the table:
 
 If you need other versions not included in this table you must edit RADStudio.inc file to include them in:
 
 ```Pascal
 procedure _InitializationUnitRADStudio
 ```
+
+or open an Issue for support them.
 
 ## Compile and Run Installer
 
@@ -164,9 +175,12 @@ After the installation check your Evironment Variable in Delphi IDE and Search P
   License [MIT-License](https://github.com/skia4delphi/skia4delphi?tab=MIT-1-ov-file)
 
 ### RELEASE NOTES
+18 Aug 2025: version 1.2.0
+- Added support for RAD Studio 13.0
+
 27 Feb 2025: version 1.1.0
 - Added support to build design-time 64bit Packages for Delphi 12.3
-- Added support for Delphi 12.3
+- Added support for RAD Studio 12.3
 
 2 Jan 2025: version 1.0.0
 - Added support for bpl packages built in RAD Studio Common Bpl Folders

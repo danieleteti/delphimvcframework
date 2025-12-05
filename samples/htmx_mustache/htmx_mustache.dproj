@@ -98,7 +98,6 @@
             <Form>MyDataModule</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="..\htmx\MVCFramework.HTMX.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -129,6 +128,12 @@
             <Deployment Version="5">
                 <DeployFile LocalName="bin\ServerSideViews.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin\htmx_mustache.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="bin\htmx_mustache.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>htmx_mustache.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

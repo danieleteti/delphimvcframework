@@ -1,5 +1,4 @@
 object MainWebModule: TMainWebModule
-  OldCreateOrder = False
   OnCreate = DataModuleCreate
   OnDestroy = DataModuleDestroy
   Actions = <

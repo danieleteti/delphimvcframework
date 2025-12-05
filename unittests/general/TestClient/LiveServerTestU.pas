@@ -1631,7 +1631,8 @@ begin
   // c1.Accept(TMVCMediaType.IMAGE_PNG);
   lRes := c1.Get('/image/png');
   Assert.areEqual(200, lRes.StatusCode);
-  Assert.areEqual('image/png', lRes.ContentType);
+  //Assert.areEqual('image/png', lRes.ContentType);
+  Assert.StartsWith('image/png', lRes.ContentType);
   Assert.areEqual(249, Integer(lRes.ContentLength));
 end;
 

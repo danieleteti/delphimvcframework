@@ -6,6 +6,9 @@ program routingsample;
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
+  MVCFramework,
+  MVCFramework.Logger,
+  MVCFramework.Signal,
   Web.WebReq,
   Web.WebBroker,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
@@ -19,27 +22,30 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  LogI(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
     LServer.ServerSoftware := 'DMVCFramework';
-    Writeln('Press RETURN to stop the server');
-    ReadLn;
+    LogI('Press CTRL+C to stop the server');
+    WaitForTerminationSignal;
+    LogW('Shutting down...');
   finally
     LServer.Free;
   end;
 end;
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
+  UseConsoleLogger := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(8080);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      LogException(E, E.Message);
   end
 
 end.

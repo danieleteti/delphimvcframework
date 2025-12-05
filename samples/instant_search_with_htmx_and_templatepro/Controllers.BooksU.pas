@@ -3,35 +3,40 @@ unit Controllers.BooksU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections;
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+  System.Generics.Collections;
 
 type
   [MVCPath]
   TBooksController = class(TMVCController)
   public
     [MVCPath]
-    function Index([MVCFromQueryString('query','')] SearchQueryText: String): String;
+    function Index([MVCFromQueryString('query', '')] SearchQueryText: String): String;
 
     [MVCPath]
     [MVCPath('/search')]
-    function Search([MVCFromQueryString('q','')] SearchQueryText: String): String;
+    function Search([MVCFromQueryString('q', '')] SearchQueryText: String): String;
   end;
 
 implementation
 
 uses
-  System.StrUtils, System.SysUtils, MVCFramework.Logger,
-  MVCFramework.ActiveRecord, JsonDataObjects,
+  System.StrUtils,
+  System.SysUtils,
+  MVCFramework.Logger,
+  MVCFramework.ActiveRecord,
+  JsonDataObjects,
   MVCFramework.HTMX,
   MVCFramework.Middleware.ActiveRecord,
   Data.DB;
-
 
 { TBooksController }
 
 function TBooksController.Index(SearchQueryText: String): String;
 begin
-  Result := Page(['index']);
+  Result := RenderView('index');
 end;
 
 function TBooksController.Search(SearchQueryText: String): String;
@@ -48,20 +53,25 @@ begin
   end
   else
   begin
-    lDS := TMVCActiveRecord.SelectDataSet(
-      lBaseSelect + ' where instr(lower(book_name), ?) > 0 or instr(lower(author_name), ?) > 0 or instr(lower(genre), ?) > 0 ' + lOrdering,
-      [SearchQueryText, SearchQueryText, SearchQueryText], True);
+    lDS :=
+        TMVCActiveRecord.SelectDataSet(
+            lBaseSelect
+                + ' where instr(lower(book_name), ?) > 0 or instr(lower(author_name), ?) > 0 or instr(lower(genre), ?) > 0 '
+                + lOrdering,
+            [SearchQueryText, SearchQueryText, SearchQueryText],
+            True
+        );
   end;
   try
     ViewData['books'] := lDS;
     ViewData['books_count'] := lDS.RecordCount;
     if Context.Request.IsHTMX then
     begin
-      Result := Page('search_results');
+      Result := RenderView('search_results');
     end
     else
     begin
-      Result := Page('index');
+      Result := RenderView('index');
     end;
   finally
     lDS.Free;

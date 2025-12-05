@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Chat Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
+        h1 { color: #333; }
+        button { padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer; }
+        button.connect { background: #28a745; color: white; border: none; }
+        button.disconnect { background: #dc3545; color: white; border: none; }
+        button.send { background: #007bff; color: white; border: none; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        input { padding: 8px; font-size: 14px; }
+        #url { width: 300px; }
+        #username { width: 150px; }
+        #message { width: 400px; }
+        #log { border: 1px solid #ccc; padding: 10px; height: 450px; overflow-y: scroll;
+               background: #f9f9f9; font-family: 'Courier New', monospace; font-size: 13px; }
+        .msg-own { color: #0066cc; font-weight: bold; }
+        .msg-other { color: #006600; }
+        .msg-server { color: #cc6600; font-style: italic; }
+        .msg-error { color: #cc0000; font-weight: bold; }
+        .msg-info { color: #666666; }
+        .status { padding: 5px 10px; border-radius: 3px; display: inline-block; margin: 10px 0; }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>💬 WebSocket Chat Client</h1>
+
+    <div class="status disconnected" id="status">Disconnected</div>
+
+    <div style="margin: 20px 0;">
+        <input type="text" id="url" value="ws://localhost:9092/" placeholder="WebSocket URL">
+        <input type="text" id="username" value="" placeholder="Your name">
+        <button class="connect" id="btnConnect" onclick="connect()">Connect</button>
+        <button class="disconnect" id="btnDisconnect" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <input type="text" id="message" value="" placeholder="Type your message..." disabled>
+        <button class="send" id="btnSend" onclick="sendMessage()" disabled>Send</button>
+    </div>
+
+    <div>
+        <h3>Chat:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let myUsername = '';
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = 'msg-' + type;
+            div.textContent = `[${timestamp}] ${message}`;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            const btnConnect = document.getElementById('btnConnect');
+            const btnDisconnect = document.getElementById('btnDisconnect');
+            const messageInput = document.getElementById('message');
+            const btnSend = document.getElementById('btnSend');
+            const urlInput = document.getElementById('url');
+            const usernameInput = document.getElementById('username');
+
+            if (connected) {
+                statusEl.textContent = `Connected as ${myUsername}`;
+                statusEl.className = 'status connected';
+                btnConnect.disabled = true;
+                btnDisconnect.disabled = false;
+                messageInput.disabled = false;
+                btnSend.disabled = false;
+                urlInput.disabled = true;
+                usernameInput.disabled = true;
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                btnConnect.disabled = false;
+                btnDisconnect.disabled = true;
+                messageInput.disabled = true;
+                btnSend.disabled = true;
+                urlInput.disabled = false;
+                usernameInput.disabled = false;
+            }
+        }
+
+        function connect() {
+            const url = document.getElementById('url').value;
+            const username = document.getElementById('username').value.trim();
+
+            if (!username) {
+                alert('Please enter your name!');
+                return;
+            }
+
+            myUsername = username;
+            log(`Connecting to ${url} as ${username}...`, 'info');
+
+            try {
+                // Send username via Sec-WebSocket-Protocol header
+                ws = new WebSocket(url, ['chat-' + username]);
+
+                ws.onopen = function(event) {
+                    log('✓ Connected to chat server!', 'info');
+                    updateStatus(true);
+                };
+
+                ws.onmessage = function(event) {
+                    const msg = event.data;
+
+                    // Determine message type
+                    if (msg.startsWith('[SERVER]:')) {
+                        log(msg, 'server');
+                    } else if (msg.startsWith(`[${myUsername}]:`)) {
+                        log(msg, 'own');
+                    } else {
+                        log(msg, 'other');
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    log(`✗ WebSocket error!`, 'error');
+                    console.error(error);
+                };
+
+                ws.onclose = function(event) {
+                    log(`✗ Disconnected (code: ${event.code}, reason: ${event.reason || 'none'})`, 'info');
+                    ws = null;
+                    updateStatus(false);
+                };
+            } catch (e) {
+                log(`✗ Exception: ${e.message}`, 'error');
+                updateStatus(false);
+            }
+        }
+
+        function disconnect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Disconnecting...', 'info');
+                ws.close(1000, 'User requested disconnect');
+            } else {
+                log('Not connected!', 'error');
+            }
+        }
+
+        function sendMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = document.getElementById('message').value.trim();
+                if (message) {
+                    ws.send(message);
+                    document.getElementById('message').value = '';
+                    document.getElementById('message').focus();
+                }
+            } else {
+                log('✗ Not connected! Click Connect first.', 'error');
+            }
+        }
+
+        // Allow pressing Enter in message box
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize status
+        updateStatus(false);
+
+        // Generate random username on load
+        const randomNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'];
+        document.getElementById('username').value = randomNames[Math.floor(Math.random() * randomNames.length)] + Math.floor(Math.random() * 100);
+    </script>
+</body>
+</html>

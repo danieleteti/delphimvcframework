@@ -492,8 +492,11 @@ begin
   end;
   for I := 0 to fProfiles.Count - 1 do
   begin
-    lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];
-    PopulateDictionary(fEnvDict, lProfileEnvPath);
+    if not fProfiles[I].Trim.IsEmpty then
+    begin
+      lProfileEnvPath := TPath.Combine(fEnvPath, '.env') + '.' + fProfiles[I];
+      PopulateDictionary(fEnvDict, lProfileEnvPath);
+    end;
   end;
 end;
 

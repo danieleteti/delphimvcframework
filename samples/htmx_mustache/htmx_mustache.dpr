@@ -20,7 +20,8 @@ uses
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
-  MVCFramework.HTMX in '..\htmx\MVCFramework.HTMX.pas', MVCFramework.Commons,
+  MVCFramework.Commons,
+  MVCFramework.HTMX,
   MVCFramework.DotEnv;
 
 {$R *.res}

@@ -271,10 +271,12 @@ const
 implementation
 
 uses
+  System.SysConst,
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables, MVCFramework.JSONRPC;
+  MVCFramework.Nullables,
+  MVCFramework.JSONRPC;
 
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
@@ -842,7 +844,7 @@ begin
             AJsonArray.Add(ADataSet.Fields[lField.I].AsLargeInt);
 {$IFDEF TOKYOORBETTER}
           ftGuid:
-            AJsonArray.Add(GUIDToString(ADataSet.Fields[lField.I].AsGuid));
+            AJsonArray.Add(TMVCSerializerHelper.ApplyGuidSerialization(gstUseDefault, ADataSet.Fields[lField.I].AsGuid));
 {$ENDIF}
           ftSingle, ftFloat:
             AJsonArray.Add(ADataSet.Fields[lField.I].AsFloat);
@@ -1016,7 +1018,7 @@ begin
             AJSONObject.L[lFName] := ADataSet.Fields[lField.I].AsLargeInt;
 {$IFDEF TOKYOORBETTER}
           ftGuid:
-            AJSONObject.S[lFName] := GUIDToString(ADataSet.Fields[lField.I].AsGuid);
+            AJSONObject.S[lFName] := TMVCSerializerHelper.ApplyGuidSerialization(gstUseDefault, ADataSet.Fields[lField.I].AsGuid);
 {$ENDIF}
           ftSingle, ftFloat:
             AJSONObject.F[lFName] := ADataSet.Fields[lField.I].AsFloat;
@@ -2193,7 +2195,7 @@ begin
 
 {$IFDEF TOKYOORBETTER}
         TFieldType.ftGuid:
-          Field.AsGuid := StringToGUID(AJSONObject.S[lName]);
+          Field.AsGuid := TMVCGuidHelper.StringToGUIDEx(AJSONObject.S[lName]);
 {$ENDIF}
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin
@@ -2318,7 +2320,7 @@ begin
 
 {$IFDEF TOKYOORBETTER}
         TFieldType.ftGuid:
-          Field.AsGuid := StringToGUID(AJSONObject.S[lName]);
+          Field.AsGuid := TMVCGuidHelper.StringToGUIDEx(AJSONObject.S[lName]);
 {$ENDIF}
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin
@@ -2692,59 +2694,68 @@ begin
   InternalObjectToJsonObject(AObject, AJSONObject, AType, AIgnoredAttributes, nil, nil, nil);
 end;
 
-procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(
-  const AObject: TObject;
-  const AJSONObject: TJDOJsonObject;
-  const AType: TMVCSerializationType;
-  const AIgnoredAttributes: TMVCIgnoredList;
-  const ASerializationAction: TMVCSerializationAction;
-  const Links: IMVCLinks;
-  const Serializer: IMVCTypeSerializer);
+procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(const AObject: TObject; const AJSONObject: TJDOJsonObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks; const Serializer: IMVCTypeSerializer);
 var
-  ObjType: TRttiType;
-  Prop: TRttiProperty;
-  Fld: TRttiField;
+  LRttiType: TRttiType;
+  LRttiProperty: TRttiProperty;
+  LRttiField: TRttiField;
+  LFieldName: string;
+  LQualifiedFieldName: string;
 begin
   { TODO -oDanieleT -cGeneral : Find a way to automatically add HATEOS }
   if AObject = nil then
   begin
     Exit;
   end;
-  ObjType := GetRttiContext.GetType(AObject.ClassType);
+  LRttiType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
-        for Prop in ObjType.GetProperties do
+        for LRttiProperty in LRttiType.GetProperties do
         begin
-          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+          if TMVCSerializerHelper.IsAPropertyToSkip(LRttiProperty.Name) then
           begin
             Continue;
           end;
-
-//          if Prop.Name = 'RefCount' then
-//          begin
-//            Continue;
-//          end;
-
-{$IFDEF AUTOREFCOUNT}
-          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+          {$IFDEF AUTOREFCOUNT}
+          if TMVCSerializerHelper.IsAPropertyToSkip(LRttiProperty.Name) then
             continue;
+          {$ENDIF}
 
-{$ENDIF}
-          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
-            TValueToJSONObjectProperty(AJSONObject, TMVCSerializerHelper.GetKeyName(Prop, ObjType),
-              Prop.GetValue(AObject), AType, AIgnoredAttributes, Prop.GetAttributes);
+          LFieldName := LRttiProperty.Name;
+          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiProperty.Name]);
+          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiProperty)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
+          then
+            TValueToJSONObjectProperty(
+              AJSONObject,
+              TMVCSerializerHelper.GetKeyName(LRttiProperty, LRttiType),
+              LRttiProperty.GetValue(AObject),
+              AType,
+              AIgnoredAttributes,
+              LRttiProperty.GetAttributes
+            );
         end;
       end;
     stFields:
       begin
-        for Fld in ObjType.GetFields do
+        for LRttiField in LRttiType.GetFields do
         begin
-          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
-            TValueToJSONObjectProperty(AJSONObject, TMVCSerializerHelper.GetKeyName(Fld, ObjType),
-              Fld.GetValue(AObject), AType, AIgnoredAttributes, Fld.GetAttributes);
+          LFieldName := LRttiField.Name;
+          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiField.Name]);
+          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiField)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
+             (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
+          then
+            TValueToJSONObjectProperty(
+              AJSONObject,
+              TMVCSerializerHelper.GetKeyName(LRttiField, LRttiType),
+              LRttiField.GetValue(AObject),
+              AType,
+              AIgnoredAttributes,
+              LRttiField.GetAttributes
+            );
         end;
       end;
   end;
@@ -3406,6 +3417,8 @@ function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue; c
   const AName: string; const ACustomAttributes: TArray<TCustomAttribute>): Boolean;
 var
   lFoundANullable: Boolean;
+  lGuidSerializationType: TMVCGuidSerializationType;
+  lGuidSerializationAttr: MVCGuidSerializationAttribute;
 begin
   Result := False;
   lFoundANullable := False;
@@ -3576,10 +3589,12 @@ begin
     lFoundANullable := True;
     if AValue.AsType<NullableTGUID>().HasValue then
     begin
-      if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(ACustomAttributes) then
-        AJSONObject.S[AName] := TMVCGuidHelper.GUIDToStringEx(AValue.AsType<NullableTGUID>().Value)
-      else
-        AJSONObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
+      lGuidSerializationType := TMVCGuidSerializationType.gstUseDefault;
+      if TMVCSerializerHelper.AttributeExists<MVCGuidSerializationAttribute>(ACustomAttributes, lGuidSerializationAttr) then
+      begin
+        lGuidSerializationType := lGuidSerializationAttr.GuidSerializationType;
+      end;
+      AJSONObject.S[AName] := TMVCSerializerHelper.ApplyGuidSerialization(lGuidSerializationType, AValue.AsType<NullableTGUID>().Value);
       Result := True;
     end;
   end;

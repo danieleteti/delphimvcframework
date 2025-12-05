@@ -1,3 +1,6 @@
+eq(wrong..name,"Daniele")
+eq(table1.name.other,"Daniele")
+eq(table1.name,"Daniele")
 and(ge(value,1.23),le(value,5.98))
 eq(value,1.2.34)
 eq(value,1...23)
