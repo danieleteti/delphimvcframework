@@ -7175,6 +7175,19 @@ begin
   end;
 end;
 
+// 32-bit ARM64 emulation fix: Manual digit-by-digit conversion
+// Both UInt64/Double division AND UInt64->Double implicit conversion fail
+function U64ToDouble(u: UInt64): Double;
+const
+  TWO32: Double = 4294967296.0;
+var
+  hi, lo: Cardinal;
+begin
+  hi := Cardinal(u shr 32);
+  lo := Cardinal(u);
+  Result := hi * TWO32 + lo;
+end;
+
 procedure TUtf8JsonReader.LexNumber(P: PByte{$IFDEF CPUARM}; EndP: PByte{$ENDIF});
 var
   F: PByte;
@@ -7297,7 +7310,7 @@ begin
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in [Ord('0')..Ord('9')]) do
       Inc(P);
-    Value := Value + ParseUInt64Utf8(F, P) / Power10[P - F];
+    Value := Value + U64ToDouble(ParseUInt64Utf8(F, P)) / Power10[P - F];
 
     // "Double" can't handle that many digits
     while (P < EndP) and (P^ in [Ord('0')..Ord('9')]) do
@@ -7828,7 +7841,7 @@ begin
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in ['0'..'9']) do
       Inc(P);
-    Value := Value + ParseUInt64(F, P) / Power10[P - F];
+    Value := Value + U64ToDouble(ParseUInt64(F, P)) / Power10[P - F];
 
     // "Double" can't handle that many digits
     while (P < EndP) and (P^ in ['0'..'9']) do
