@@ -780,7 +780,7 @@ type
     function UnprocessableContentResponse: IMVCResponse; overload;
     function UnprocessableContentResponse(const Message: String): IMVCResponse; overload;
 
-    function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
+    function CreatedResponse(const Location: string = ''; const Body: TObject = nil; const AOwns: Boolean = True): IMVCResponse; overload;
     function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
 
     function AcceptedResponse(const Location: string = ''; const Body: TObject = nil; const Message: String = ''): IMVCResponse; overload;
@@ -945,7 +945,7 @@ type
     ///   RenderTemplate renders a single view with sensible defaults.
     /// </summary>
     function RenderView(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
-    function RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string; overload;
+    function RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -1056,8 +1056,7 @@ type
   TMVCExceptionHandlerProc = reference to procedure(E: Exception;
     SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
   TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
-  TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
-    const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
+  TMVCRouterLogHandlerProc = reference to procedure(const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
   TMVCJSONRPCExceptionHandlerProc = reference to procedure(E: Exception;
     { SelectedController: TMVCController; //YAGNI }
     WebContext: TWebContext;
@@ -2571,7 +2570,6 @@ begin
 
   fOnRouterLog :=
       procedure(
-        const Sender: TMVCCustomRouter;
         const RouterLogState: TMVCRouterLogState;
         const Context: TWebContext)
     var
@@ -2993,7 +2991,7 @@ begin
                 lRouterControllerClazzQualifiedClassName,
                 lRouterMethodToCallName,
                 lHandled);
-              fOnRouterLog(nil, rlsRouteFound, lContext);
+              fOnRouterLog(rlsRouteFound, lContext);
             end
             else // execute-routing
             begin
@@ -3002,7 +3000,7 @@ begin
                 lContext.Response.StatusCode := http_status.NotFound;
                 lContext.Response.ReasonString := 'Not Found';
                 SendHTTPStatus(lContext, HTTP_STATUS.NotFound);
-                fOnRouterLog(nil, rlsRouteNotFound, lContext);
+                fOnRouterLog(rlsRouteNotFound, lContext);
               end
               else
               begin
@@ -4056,7 +4054,7 @@ begin
 end;
 
 function TMVCRenderer.CreatedResponse(const Location: string;
-  const Body: TObject): IMVCResponse;
+  const Body: TObject; const AOwns: Boolean): IMVCResponse;
 var
   lRespBuilder: IMVCResponseBuilder;
 begin
@@ -4067,7 +4065,7 @@ begin
   end;
   if Assigned(Body) then
   begin
-    lRespBuilder.Body(Body, True);
+    lRespBuilder.Body(Body, AOwns);
   end;
   Result := lRespBuilder.StatusCode(HTTP_STATUS.Created).Build;
 end;
