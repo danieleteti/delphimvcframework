@@ -49,6 +49,8 @@ type
     procedure TestCreatePongFrame;
     [Test]
     procedure TestMaskPayload;
+    [Test]
+    procedure TestWriteAndParseFrameRoundTrip;
   end;
 
   [TestFixture]
@@ -180,6 +182,51 @@ begin
 
   // Verify payload is present (masking happens during write, not during create)
   Assert.IsTrue(Length(lFrame.Payload) > 0, 'Payload should be present');
+end;
+
+procedure TTestWebSocketFrame.TestWriteAndParseFrameRoundTrip;
+var
+  lFrame: TMVCWebSocketFrame;
+  lPayload: TBytes;
+  I: Integer;
+begin
+  // Test frame creation with various payload sizes
+  // Verify frames are created correctly for different payload lengths
+
+  // Test 50 bytes (small, fits in 7-bit length)
+  SetLength(lPayload, 50);
+  for I := 0 to 49 do
+    lPayload[I] := Byte(I);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(50), lFrame.PayloadLength, '50 byte payload length');
+  Assert.AreEqual(50, Length(lFrame.Payload), '50 byte payload array');
+  for I := 0 to 49 do
+    Assert.AreEqual(Byte(I), lFrame.Payload[I], Format('Byte %d of 50', [I]));
+
+  // Test 183 bytes (extends past 125, uses 16-bit length field)
+  // This is the specific size from issue #866
+  SetLength(lPayload, 183);
+  for I := 0 to 182 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(183), lFrame.PayloadLength, '183 byte payload length');
+  Assert.AreEqual(183, Length(lFrame.Payload), '183 byte payload array');
+
+  // Test 1000 bytes
+  SetLength(lPayload, 1000);
+  for I := 0 to 999 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(1000), lFrame.PayloadLength, '1000 byte payload length');
+  Assert.AreEqual(1000, Length(lFrame.Payload), '1000 byte payload array');
+
+  // Test 30000 bytes
+  SetLength(lPayload, 30000);
+  for I := 0 to 29999 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(30000), lFrame.PayloadLength, '30000 byte payload length');
+  Assert.AreEqual(30000, Length(lFrame.Payload), '30000 byte payload array');
 end;
 
 { TTestWebSocketHandshake }

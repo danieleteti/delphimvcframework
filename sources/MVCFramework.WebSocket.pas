@@ -241,7 +241,6 @@ end;
 class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean): TMVCWebSocketFrame;
 var
   Byte1, Byte2: Byte;
-  ExtendedPayloadLength: UInt64;
   I: Integer;
 begin
   // Read first two bytes
@@ -289,27 +288,17 @@ begin
   end;
 
   // Extended payload length
+  // Note: Indy's ReadUInt16/ReadUInt64 read big-endian (network byte order) and
+  // return values already converted to native endianness, so no manual swap needed
   if Result.PayloadLength = 126 then
   begin
-    // 16-bit extended payload length
-    ExtendedPayloadLength := AIOHandler.ReadUInt16;
-    Result.PayloadLength := ((ExtendedPayloadLength and $FF) shl 8) or
-                           ((ExtendedPayloadLength and $FF00) shr 8);
+    // 16-bit extended payload length (RFC 6455: network byte order)
+    Result.PayloadLength := AIOHandler.ReadUInt16;
   end
   else if Result.PayloadLength = 127 then
   begin
-    // 64-bit extended payload length
-    ExtendedPayloadLength := AIOHandler.ReadUInt64;
-    // Swap bytes for big-endian to little-endian
-    Result.PayloadLength :=
-      ((ExtendedPayloadLength and $FF) shl 56) or
-      ((ExtendedPayloadLength and $FF00) shl 40) or
-      ((ExtendedPayloadLength and $FF0000) shl 24) or
-      ((ExtendedPayloadLength and $FF000000) shl 8) or
-      ((ExtendedPayloadLength and $FF00000000) shr 8) or
-      ((ExtendedPayloadLength and $FF0000000000) shr 24) or
-      ((ExtendedPayloadLength and $FF000000000000) shr 40) or
-      ((ExtendedPayloadLength and $FF00000000000000) shr 56);
+    // 64-bit extended payload length (RFC 6455: network byte order)
+    Result.PayloadLength := AIOHandler.ReadUInt64;
   end;
 
   // Read masking key if present
