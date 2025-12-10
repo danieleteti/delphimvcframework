@@ -21,7 +21,7 @@ implementation
 
 uses
   System.SysUtils, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  Data.DB;
+  Data.DB, FireDAC.Comp.Client;
 
 { TStatusService }
 
@@ -52,12 +52,15 @@ end;
 
 function TStatusService.GetLastPersistedStatus: TFullStatusEntity;
 var
-  lDataSet: TDataSet;
+  lQry: TFDQuery;
 begin
-  fModule.Connection.ExecSQL('select id, value, created_at from notifications order by id desc limit 1', lDataSet);
+  lQry := TFDQuery.Create(nil);
   try
+    lQry.Connection := fModule.Connection;
+    lQry.SQL.Text := 'select id, value, created_at from notifications order by id desc limit 1';
+    lQry.Open;
     Result := TFullStatusEntity.Create;
-    if lDataSet.Eof then
+    if lQry.Eof then
     begin
       Result.Id := -1;
       Result.Value := '';
@@ -65,13 +68,12 @@ begin
     end
     else
     begin
-      Result := TFullStatusEntity.Create;
-      Result.Id := lDataSet.FieldByName('id').AsInteger;
-      Result.Value := lDataSet.FieldByName('value').AsString;
-      Result.PushedAt := lDataSet.FieldByName('created_at').AsString;
+      Result.Id := lQry.FieldByName('id').AsInteger;
+      Result.Value := lQry.FieldByName('value').AsString;
+      Result.PushedAt := lQry.FieldByName('created_at').AsString;
     end;
   finally
-    lDataSet.Free;
+    lQry.Free;
   end;
 end;
 

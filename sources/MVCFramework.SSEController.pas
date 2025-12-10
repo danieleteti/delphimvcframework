@@ -144,7 +144,7 @@ begin
       begin
         if not lSSEData.Id.IsEmpty then
         begin
-          lIOHandler.Write(Format('id: %s' + EOL, [lSSEData.Id]));
+          lIOHandler.Write(Format('id: %s' + EOL, [lSSEData.Id]), IndyTextEncoding(fSSECharset));
           lLastEventID := lSSEData.Id;
         end;
         if not lSSEData.Event.IsEmpty then
@@ -152,7 +152,7 @@ begin
           lIOHandler.Write(Format('event: %s' + EOL, [lSSEData.Event]), IndyTextEncoding(fSSECharset));
         end;
         lIOHandler.Write(Format('data: %s' + EOL, [lSSEData.Data]), IndyTextEncoding(fSSECharset));
-        lIOHandler.Write(Format('retry: %d' + EOL + EOL { end of message } , [FRetryTimeout]));
+        lIOHandler.Write(Format('retry: %d' + EOL + EOL { end of message } , [FRetryTimeout]), IndyTextEncoding(fSSECharset));
       end;
       lIOHandler.WriteBufferClose;
     end;

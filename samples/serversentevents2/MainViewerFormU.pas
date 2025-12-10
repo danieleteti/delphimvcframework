@@ -64,7 +64,7 @@ begin
           end;
           if lRes.StatusCode = 200 then
           begin
-            lMessage := lres.ContentAsString;
+            lMessage := lRes.ContentAsString;
             lPieces := lMessage.Split([#13]);
             lLastEventID := '-1';
             lData := '';
