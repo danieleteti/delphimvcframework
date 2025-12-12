@@ -227,8 +227,8 @@ begin
   fModel := TJsonObject.Create;
 
   {$IF not Defined(FASTCGI)}
+  rgServerType.Items.Delete(rgServerType.Items.Count-1);
   rgServerType.ItemIndex := 0;
-  rgServerType.Enabled := False;
   {$ENDIF}
 end;
 

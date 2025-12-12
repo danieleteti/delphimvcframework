@@ -164,3 +164,6 @@ nul
 /tools/certificatesgenerator/*.csr
 /tools/certificatesgenerator/*.key
 /tools/certificatesgenerator/*.crt
+/samples/tls13/bin/certificates/*
+/unittests/general/TestClient/pgsql/testdatadir/*
+/CLAUDE.md
