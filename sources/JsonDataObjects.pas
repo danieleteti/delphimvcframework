@@ -92,17 +92,22 @@ unit JsonDataObjects;
 {--------------------------------------------------------------------------------------------------}
 
 {$IFDEF SUPPORTS_UTF8STRING}
-  // Enables internal UTF8 values for values written via UTF8[], ValueUTF8 or loaded by the UTF8-Parser.
-  // Alle keys will remain UnicodeStrings. The UTF8 values will automatically by converted to
-  // UnicodeStrings if accessed by anything other than UTF8[], ValueUTF8. The internal UTF8 value
+  // Enables internal UTF8 values for values set via UTF8[], ValueUTF8 or loaded by the UTF8-Parser.
+  // Alle keys remain UnicodeStrings. The UTF8 values will automatically by converted to
+  // UnicodeStrings if accessed by anything other than UTF8[] or ValueUTF8. The internal UTF8 value
   // is then replaced by the UnicodeString. The JSON-Writer (UTF8 and UTF16) also converts all
   // internal UTF8 values to UnicodeString.
-  // So this only helps to save memory if the JSON is loaded, accessed via UTF8[], ValueUTF8 and never
-  // written.
+  // So this only helps to save memory if the JSON is loaded, accessed via UTF8[] or ValueUTF8 and
+  // never written.
   {.$DEFINE USE_UTF8STRING_VALUES}
 {$ENDIF SUPPORTS_UTF8STRING}
 
-// Sanity checks all array index accesses and raise an EListError exception.
+// If defined, then a number value that would be read as a float because it doesn't fit into an
+// Int64 or UInt64, will be stored as text and converted to the target datatype on every access.
+// This keeps the number intact, but increases memory usage und decreases the performance.
+{.$DEFINE KEEP_BIGDECIMAL_PRECISION}
+
+// Sanity checks all array index accesses and raises an EListError exception.
 {$DEFINE CHECK_ARRAY_INDEX}
 
 // If defined the JSON parser is more strict to what is allowed and what not.
@@ -113,7 +118,7 @@ unit JsonDataObjects;
 // enables the special handling for "</" but makes the parser slightly slower.
 {.$DEFINE ESCAPE_SLASH_AFTER_LESSTHAN}
 
-// When parsing a JSON string the pair names are interned to reduce the memory foot print. This
+// When parsing a JSON string the property names are interned to reduce the memory foot print. This
 // slightly slows down the parser but saves a lot of memory if the JSON string contains repeating
 // pair names. The interning uses a hashset to store the strings.
 {$DEFINE USE_STRINGINTERN_FOR_NAMES}
@@ -136,7 +141,7 @@ unit JsonDataObjects;
 {$IFDEF MSWINDOWS}
   // When adding JSON object properties with string literals, the string literals are stored directly
   // in the "Name" field instead of using UStrAsg what creates a new heap string. This improves the
-  // performance as no string is copied and it slighly reduces the memory usage.
+  // performance because no string is copied and it slighly reduces the memory usage.
   // The string literals are only used if they are in the main instance or the DLL that contains the
   // JsonDataObjects unit. Other string literals are copied using UStrAsg because unloading the DLL
   // that holds them would cause access violations.
@@ -179,6 +184,10 @@ type
   // allows us to remove some IFDEFs.
   PAnsiChar = MarshaledAString;
   {$ENDIF NEXTGEN}
+
+  {$IF not declared(PFormatSettings)}
+  PFormatSettings = ^TFormatSettings;
+  {$IFEND}
 
   EJsonException = class(Exception);
   EJsonCastException = class(EJsonException);
@@ -316,6 +325,9 @@ type
   TJsonDataType = (
     jdtNone, jdtString, jdtInt, jdtLong, jdtULong, jdtFloat, jdtDateTime, jdtUtcDateTime, jdtBool,
     jdtArray, jdtObject
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    , jdtBigDecimal // used only internally Types[] returns it as jdtFloat
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     {$IFDEF USE_UTF8STRING_VALUES}
     , jdtUTF8String // used only internally Types[] returns it as jdtString
     {$ENDIF USE_UTF8STRING_VALUES}
@@ -331,9 +343,10 @@ type
         {$IFDEF USE_UTF8STRING_VALUES}
         jdtUTF8String: (UTF8: PAnsiChar); // only for debugging, "S: Pointer" is used in the code
         {$ENDIF USE_UTF8STRING_VALUES}
-        jdtString: (S: Pointer); // We manage the string ourself. Delphi doesn't allow "string" in a
-                                 // variant record and if we have no string, we don't need to clean
-                                 // it up, anyway.
+        jdtString{$IFDEF KEEP_BIGDECIMAL_PRECISION}, jdtBigDecimal{$ENDIF}:
+          (S: Pointer); // We manage the string ourself. Delphi doesn't allow "string" in a
+                        // variant record and if we have no string, we don't need to clean
+                        // it up, anyway.
         jdtInt: (I: Integer);
         jdtLong: (L: Int64);
         jdtULong: (U: UInt64);
@@ -365,6 +378,9 @@ type
     {$IFDEF SUPPORTS_UTF8STRING}
     procedure SetValueUTF8(const AValue: UTF8String);
     {$ENDIF SUPPORTS_UTF8STRING}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure SetBigDecimalValue(const AValue: string);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     procedure SetIntValue(const AValue: Integer);
     procedure SetLongValue(const AValue: Int64);
     procedure SetULongValue(const AValue: UInt64);
@@ -376,9 +392,14 @@ type
     procedure SetObjectValue(const AValue: TJsonObject);
     procedure SetVariantValue(const AValue: Variant);
 
+    function GetTyp: TJsonDataType;
+
     procedure InternToJSON(var Writer: TJsonOutputWriter);
     procedure InternSetValue(const AValue: string); // skips the call to Clear()
     procedure InternSetValueTransfer(var AValue: string); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure InternSetValueTransferBigDecimal(var AValue: string); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     {$IFDEF USE_UTF8STRING_VALUES}
     procedure InternSetValueUTF8(const AValue: UTF8String); // skips the call to Clear()
     procedure InternSetValueUTF8Transfer(P: PAnsiChar; Len: Integer); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
@@ -392,7 +413,7 @@ type
     function IsNull: Boolean;
     procedure Assign(AValue: PJsonDataValue);
 
-    property Typ: TJsonDataType read FTyp;
+    property Typ: TJsonDataType read GetTyp;
     property Value: string read GetValue write SetValue;
     {$IFDEF SUPPORTS_UTF8STRING}
     property ValueUTF8: UTF8String read GetValueUTF8 write SetValueUTF8;
@@ -613,6 +634,9 @@ type
   public
     const DataTypeNames: array[TJsonDataType] of string = (
       'null', 'String', 'Integer', 'Long', 'ULong', 'Float', 'DateTime', 'UTC-DateTime', 'Bool', 'Array', 'Object'
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      , 'BigDecimal'
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       {$IFDEF USE_UTF8STRING_VALUES}
       , 'UTF8-String'
       {$ENDIF USE_UTF8STRING_VALUES}
@@ -712,6 +736,11 @@ type
     FItems: PJsonDataValueArray;
     FCapacity: Integer;
     FCount: Integer;
+
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure AddBigDecimal(const AValue: string);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
     function GetString(Index: Integer): string; inline;
     {$IFDEF SUPPORTS_UTF8STRING}
     function GetUTF8String(Index: Integer): UTF8String; inline;
@@ -750,6 +779,7 @@ type
     procedure SetValue(Index: Integer; const Value: TJsonDataValueHelper);
     function AddItem: PJsonDataValue;
     function InsertItem(Index: Integer): PJsonDataValue;
+
 
     procedure Grow;
     procedure InternApplyCapacity; inline;
@@ -989,7 +1019,7 @@ type
     property DUtc[const Name: string]: TDateTime read GetUtcDateTime write SetUtcDateTime; // returns 0 if property doesn't exist, auto type-cast except for array/object
     property B[const Name: string]: Boolean read GetBool write SetBool;           // returns false if property doesn't exist, auto type-cast with "<>'true'" and "<>0" except for array/object
     property A[const Name: string]: TJsonArray read GetArray write SetArray;      // auto creates array on first access
-    property O[const Name: string]: TJsonObject read GetObj write SetObject;   // auto creates object on first access
+    property O[const Name: string]: TJsonObject read GetObj write SetObject;      // auto creates object on first access
 
     property Path[const NamePath: string]: TJsonDataValueHelper read GetPath write SetPath;
 
@@ -1013,6 +1043,25 @@ var
     EscapeAllNonASCIIChars: False;  // If True all characters >= #128 will be escaped when generating the JSON string
     NullConvertsToValueTypes: False;  // If True and an object is nil/null, a convertion to String, Int, Long, Float, DateTime, Boolean will return ''/0/False
   );
+
+/// <summary>
+/// All StrToFloat and FloatToStr calls that are used to auto-convert values from their internal
+/// type, will use these global JSON-FormatSettings unless a different FormatSettings for the current
+/// thread is configured via SetJsonThreadAutoConvertDoubleStringFormatSettings. If the global
+/// JSON-FormatSettings is set to nil (default), the JSON Storage FormatSettings are used with
+/// DecimalSeparator = '.' <br/>
+/// The function returns the old FormatSettings pointer.<br/>
+/// The caller must guarantee that the FormatSettings pointer stays valid while it is assigned.
+/// </summary>
+function SetJsonGlobalAutoConvertDoubleStringFormatSettings(GlobalFormatSettings: PFormatSettings): PFormatSettings;
+
+/// <summary>
+/// All StrToFloat and FloatToStr calls in the current thread that are used to auto-convert values
+/// from their internal type, will use the thread FormatSettings. If the variable is set to nil,
+/// the global JSON-FormatSettings are used. The function returns the old FormatSettings pointer.<br/>
+/// The caller must guarantee that the FormatSettings pointer stays valid while it is assigned.
+/// </summary>
+function SetJsonThreadAutoConvertDoubleStringFormatSettings(ThreadFormatSettings: PFormatSettings): PFormatSettings;
 
 /// <summary>
 /// Result True if the string is a valid json object or json array
@@ -1084,8 +1133,11 @@ type
     jtkEof, jtkInvalidSymbol,
     jtkLBrace, jtkRBrace, jtkLBracket, jtkRBracket, jtkComma, jtkColon,
     jtkIdent,
-    jtkValue{ only for error message},
-    jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse, jtkNull
+    jtkValue{ only for error message}, jtkString, jtkInt, jtkLong, jtkULong, jtkFloat,
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal, // the number is stored as a string
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    jtkTrue, jtkFalse, jtkNull
   );
 
 const
@@ -1093,13 +1145,26 @@ const
     'end of file', 'invalid symbol',
     '"{"', '"}"', '"["', '"]"', '","', '":"',
     'identifier',
-    'value', 'value', 'value', 'value', 'value', 'value', 'value', 'value', 'value'
+    'value', 'value', 'value', 'value', 'value', 'value',
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    'value',
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    'value', 'value', 'value'
   );
 
   Power10: array[0..18] of Double = (
     1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7, 1E8, 1E9,
     1E10, 1E11, 1E12, 1E13, 1E14, 1E15, 1E16, 1E17, 1E18
   );
+
+  ReciprocalPower10: array[0..18] of Double = (
+    1/1E0, 1/1E1, 1/1E2, 1/1E3, 1/1E4, 1/1E5, 1/1E6, 1/1E7, 1/1E8, 1/1E9,
+    1/1E10, 1/1E11, 1/1E12, 1/1E13, 1/1E14, 1/1E15, 1/1E16, 1/1E17, 1/1E18
+  );
+
+  {$IFDEF CPUX86}
+  Single2ToThePowerOf64: Single = 1.84467440737096E+19; // used for UInt64->Double conversion
+  {$ENDIF CPUX86}
 
   // XE7 broke string literal collapsing
 var
@@ -1114,6 +1179,12 @@ const
   {$IFEND}
 
 type
+  {$IFDEF CPUX86}
+  TInt64HiLo = record
+    Lo, Hi: Integer;
+  end;
+  {$ENDIF CPUX86}
+
   {$IFDEF FPC}
   PStrRec = ^TStrRec;
   TStrRec = record
@@ -1298,7 +1369,7 @@ type
   end;
 
 var
-  JSONFormatSettings: TFormatSettings;
+  JSONStorageFormatSettings: TFormatSettings;
   {$IFDEF USE_NAME_STRING_LITERAL}
   JsonMemInfoInitialized: Boolean = False;
   JsonMemInfoBlockStart: PByte = nil;
@@ -1306,6 +1377,11 @@ var
   JsonMemInfoMainBlockStart: PByte = nil;
   JsonMemInfoMainBlockEnd: PByte = nil;
   {$ENDIF USE_NAME_STRING_LITERAL}
+  JsonGlobalAutoConvertDoubleStringFormatSettings: PFormatSettings = nil;
+
+threadvar
+  JsonThreadAutoConvertDoubleStringFormatSettings: PFormatSettings;
+
 
 {$IFDEF MSWINDOWS}
 
@@ -1481,6 +1557,21 @@ begin
   raise EJsonCastException.CreateResFmt(@RsVarTypeNotSupported, [VarType]);
 end;
 
+function MapJsonDataType(ATyp: TJsonDataType): TJsonDataType; inline;
+begin
+  Result := ATyp;
+  // Change the internal types to external types
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if Result = jdtUTF8String then
+    Result := jdtString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  if Result = jdtBigDecimal then
+    Result := jdtFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+end;
+
+
 {$IFDEF USE_NAME_STRING_LITERAL}
 procedure AsgString(var Dest: string; const Source: string);
 begin
@@ -1509,6 +1600,40 @@ end;
 procedure AnsiLowerCamelCaseString(var S: string);
 begin
   S := AnsiLowerCase(PChar(S)^) + Copy(S, 2);
+end;
+
+
+function SetJsonGlobalAutoConvertDoubleStringFormatSettings(GlobalFormatSettings: PFormatSettings): PFormatSettings;
+begin
+  Result := JsonGlobalAutoConvertDoubleStringFormatSettings;
+  JsonGlobalAutoConvertDoubleStringFormatSettings := GlobalFormatSettings;
+end;
+
+function SetJsonThreadAutoConvertDoubleStringFormatSettings(ThreadFormatSettings: PFormatSettings): PFormatSettings;
+begin
+  Result := JsonThreadAutoConvertDoubleStringFormatSettings;
+  JsonThreadAutoConvertDoubleStringFormatSettings := ThreadFormatSettings;
+end;
+
+function GetConvertFormatSettings: PFormatSettings;
+begin
+  Result := Pointer(JsonThreadAutoConvertDoubleStringFormatSettings);
+  if Result = nil then
+  begin
+    Result := Pointer(JsonGlobalAutoConvertDoubleStringFormatSettings);
+    if Result = nil then
+      Result := @JSONStorageFormatSettings; // old behavior
+  end;
+end;
+
+function ConvertFloatToStr(Value: Double): string; inline;
+begin
+  Result := FloatToStr(Value, GetConvertFormatSettings()^);
+end;
+
+function ConvertStrToFloat(const Value: string): Double; inline;
+begin
+  Result := StrToFloat(Value, GetConvertFormatSettings()^);
 end;
 
 {$IF not declared(TryStrToUInt64)}
@@ -1808,6 +1933,30 @@ begin
   else
     SetLength(S, OldLen);
 end;
+
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure BigDecimalToString(var Result: string; const AValue: string);
+var
+  Ps: Integer;
+  FS: PFormatSettings;
+begin
+  Result := AValue;
+  // BigDecimal has a '.' as Decimal separator. But if we want to convert it to a string, so we
+  // need to follow the rules as if we would do a ConvertFloatToStr(value).
+  FS := GetConvertFormatSettings;
+  if FS.DecimalSeparator <> '.' then
+  begin
+    Ps := Pos('.', AValue);
+    if Ps > 0 then
+      Result[Ps] := FormatSettings.DecimalSeparator;
+  end;
+end;
+
+function BigDecimalToFloat(const AValue: string): Double; inline;
+begin
+  Result := StrToFloat(AValue, JSONStorageFormatSettings); // force '.' decimal separator
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
 { TJsonSerializationConfig }
 
@@ -2246,6 +2395,15 @@ begin
         Next;
       end;
 
+
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal:
+      begin
+        Data.InternAddItem(FPropName).InternSetValueTransferBigDecimal(FLook.S);
+        Next;
+      end;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
     jtkInt:
       begin
         Data.InternAdd(FPropName, FLook.I);
@@ -2280,7 +2438,7 @@ begin
       begin
         Data.InternAdd(FPropName, False);
         Next;
-      end
+      end;
   else
     Accept(jtkValue);
   end;
@@ -2338,6 +2496,14 @@ begin
           Data.Add(FLook.S);
         Next;
       end;
+
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal:
+      begin
+        Data.AddBigDecimal(FLook.S);
+        Next;
+      end;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
     jtkInt:
       begin
@@ -2399,6 +2565,11 @@ end;
 
 { TJsonDataValue }
 
+function TJsonDataValue.GetTyp: TJsonDataType;
+begin
+  Result := MapJsonDataType(FTyp);
+end;
+
 procedure TJsonDataValue.Clear;
 {$IFDEF USE_FAST_AUTOREFCOUNT}
 var
@@ -2413,6 +2584,10 @@ begin
     jdtUTF8String:
       UTF8String(FValue.S) := '';
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      string(FValue.S) := '';
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       FValue.I := 0;
     jdtLong:
@@ -2537,6 +2712,10 @@ begin
     jdtUTF8String:
       Result := UTF8String(FValue.S);
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2577,6 +2756,7 @@ begin
       jdtString:
         string(FValue.S) := AValue;
       //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
+      //jdtBigDecimal: VarTypeToJsonDataType doesn't return jdtBigDecimal
       jdtInt:
         FValue.I := AValue;
       jdtLong:
@@ -2635,6 +2815,10 @@ begin
         Result := string(FValue.S);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      BigDecimalToString(Result, string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := IntToStr(FValue.I);
     jdtLong:
@@ -2642,7 +2826,7 @@ begin
     jdtULong:
       Result := UIntToStr(FValue.U);
     jdtFloat:
-      Result := FloatToStr(FValue.F, JSONFormatSettings);
+      Result := ConvertFloatToStr(FValue.F);
     jdtDateTime:
       Result := TJsonBaseObject.DateTimeToJSON(FValue.F, JsonSerializationConfig.UseUtcTime);
     jdtUtcDateTime:
@@ -2692,6 +2876,14 @@ begin
   Pointer(AValue) := nil;
 end;
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonDataValue.InternSetValueTransferBigDecimal(var AValue: string);
+begin
+  InternSetValueTransfer(AValue);
+  FTyp := jdtBigDecimal;
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 {$IFDEF SUPPORTS_UTF8STRING}
 
   {$IFDEF USE_UTF8STRING_VALUES}
@@ -2727,7 +2919,7 @@ function TJsonDataValue.GetValueUTF8: UTF8String;
 
   procedure SlowConvert(var S: UTF8String);
   begin
-    Result := UTF8Encode(GetValue);
+    Result := UTF8Encode(GetValue); // uses GetValue() to convert the value to a string
   end;
 
 begin
@@ -2766,6 +2958,22 @@ begin
 end;
 {$ENDIF SUPPORTS_UTF8STRING}
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonDataValue.SetBigDecimalValue(const AValue: string);
+var
+  LTyp: TJsonDataType;
+begin
+  LTyp := FTyp;
+  if (LTyp <> jdtBigDecimal) or (AValue <> string(FValue.S)) then
+  begin
+    if LTyp <> jdtNone then
+      Clear;
+    FTyp := jdtBigDecimal;
+    string(FValue.S) := AValue;
+  end;
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 function TJsonDataValue.GetIntValue: Integer;
 begin
   case FTyp of
@@ -2773,15 +2981,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToInt(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToInt(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2827,15 +3039,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToInt64(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToInt64(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2881,15 +3097,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToUInt64(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToUInt64(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2934,20 +3154,31 @@ begin
     jdtNone:
       Result := 0;
     jdtString:
-      Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+      Result := ConvertStrToFloat(string(FValue.S));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
-        Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+        Result := ConvertStrToFloat(string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := BigDecimalToFloat(string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime, jdtUtcDateTime:
@@ -2994,12 +3225,23 @@ begin
         Result := TJsonBaseObject.JSONToDateTime(string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime:
@@ -3048,12 +3290,23 @@ begin
         Result := TJsonBaseObject.JSONToDateTime(string(FValue.S), False);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime:
@@ -3099,6 +3352,10 @@ begin
     jdtUTF8String:
       Result := UTF8String(FValue.S) = 'true';
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := string(FValue.S) <> '0';
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I <> 0;
     jdtLong:
@@ -3137,7 +3394,7 @@ begin
   end;
 end;
 
-function DoubleToText(Buffer: PChar; const Value: Extended): Integer; {inline;}
+function DoubleToText(Buffer: PChar; const Value: Extended): Integer;
 var
   I: Integer;
   {$IFDEF FPC}
@@ -3145,11 +3402,11 @@ var
   {$ENDIF FPC}
 begin
   {$IFDEF FPC}
-  Result := FloatToText(AnsiBuf, Value, ffGeneral, 15, 0, JSONFormatSettings);
+  Result := FloatToText(AnsiBuf, Value, ffGeneral, 15, 0, JSONStorageFormatSettings);
   for I := 0 to Result - 1 do
     Buffer[I] := WideChar(Ord(AnsiBuf[I])); // we only have digits and -, +, ., E as characters
   {$ELSE}
-  Result := FloatToText(Buffer, Value, fvExtended, ffGeneral, 15, 0, JSONFormatSettings);
+  Result := FloatToText(Buffer, Value, fvExtended, ffGeneral, 15, 0, JSONStorageFormatSettings);
   {$ENDIF FPC}
 
   // Add the decimal separator if FloatToText didn't add it, so that the data type of
@@ -3272,6 +3529,10 @@ begin
         TJsonBaseObject.StrToJSONStr(Writer.AppendStrValue, string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Writer.AppendValue(string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       begin
         BufEnd := @PChar(@Buffer[0])[Length(Buffer)]; // extra typecast to work around a compiler bug (fixed in XE3)
@@ -3692,8 +3953,10 @@ begin
     begin
       if (L > 0) and (P^ = Byte(Ord('['))) then
         Result := TJsonArray.Create
+      else if P^ = Byte(Ord('{')) then
+        Result := TJsonObject.Create
       else
-        Result := TJsonObject.Create;
+        Result := TJsonPrimitiveValue.Create;
 
       {$IFDEF AUTOREFCOUNT}
       Result.FromUtf8JSON(S, Len, AProgress);
@@ -4186,6 +4449,13 @@ begin
         UTF8String(Dest.FValue.S) := UTF8String(Source.FValue.S);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      begin
+        Dest.FValue.P := nil;
+        string(Dest.FValue.S) := string(Source.FValue.S);
+      end;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Dest.FValue.I := Source.FValue.I;
     jdtLong:
@@ -4583,6 +4853,16 @@ begin
   Data.BoolValue := AValue;
 end;
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonArray.AddBigDecimal(const AValue: string);
+var
+  Data: PJsonDataValue;
+begin
+  Data := AddItem;
+  Data.SetBigDecimalValue(AValue);
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 procedure TJsonArray.Add(const AValue: Integer);
 var
   Data: PJsonDataValue;
@@ -4973,11 +5253,7 @@ begin
   if Cardinal(Index) >= Cardinal(FCount) then
     RaiseListError(Index);
   {$ENDIF CHECK_ARRAY_INDEX}
-  Result := FItems[Index].Typ;
-  {$IFDEF USE_UTF8STRING_VALUES}
-  if Result = jdtUTF8String then
-    Result := jdtString;
-  {$ENDIF USE_UTF8STRING_VALUES}
+  Result := MapJsonDataType(FItems[Index].Typ);
 end;
 
 function TJsonArray.GetTypeEx(Index: Integer): TJsonDataType;
@@ -5629,13 +5905,7 @@ var
   Item: PJsonDataValue;
 begin
   if FindItem(Name, Item) then
-  begin
-    Result := Item.Typ;
-    {$IFDEF USE_UTF8STRING_VALUES}
-    if Result = jdtUTF8String then
-      Result := jdtString;
-    {$ENDIF USE_UTF8STRING_VALUES}
-  end
+    Result := MapJsonDataType(Item.Typ)
   else
     Result := jdtNone;
 end;
@@ -5984,7 +6254,7 @@ begin
 
               tkVariant:
                 begin
-                  case Types[PropName] of
+                  case Types[PropName] of // maps jdtUtf8String->jdtString and jdtBigDecimal->jdtFloat
                     jdtObject, jdtArray:
                       V := Null;
                     jdtInt:
@@ -7221,17 +7491,27 @@ var
   {$IFNDEF CPUARM}
   EndP: PByte;
   {$ENDIF ~CPUARM}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart: PByte;
+  {$ELSE}
   EndInt64P: PByte;
+  Value, FractionValue, Scale: Double;
+  Exponent: Integer;
+  NegE: Boolean;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
   Ch: Byte;
-  Value, Scale: Double;
-  Exponent, IntValue: Integer;
-  Neg, NegE: Boolean;
+  IntValue: Integer;
+  Neg: Boolean;
   DigitCount: Integer;
 begin
   {$IFNDEF CPUARM}
   EndP := FTextEnd;
   {$ENDIF ~CPUARM}
   Neg := False;
+
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart := P;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   Ch := P^;
   if Ch = Byte(Ord('-')) then
@@ -7284,62 +7564,119 @@ begin
       FText := P;
       Exit;
     end;
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     Value := FLook.I;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
   end
   else if DigitCount <= 20 then // UInt64 fits 20 digits (not all)
   begin
     FLook.U := ParseUInt64Utf8(F, P);
     if (DigitCount = 20) and (FLook.U mod 10 <> PByte(P - 1)^ - Byte(Ord('0'))) then // overflow => too large
+    begin
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Value := ParseAsDoubleUtf8(F, P)
-    else if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
-      // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
-      Value := FLook.U
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    end
     else
     begin
-      FLook.Kind := jtkLong;
-      case DigitCount of
-        19:
-         if FLook.HI and $80000000 <> 0 then // can't be negative because we cached that case already
-           FLook.Kind := jtkULong;
-        20:
-          FLook.Kind := jtkULong;
-      end;
-
-      if not (P^ in [Ord('.'), Ord('E'), Ord('e')]) then
+      if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
+        // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
+      else
       begin
-        // just an integer
-        if Neg then
-        begin
-          if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
-          begin
-            FLook.I := -FLook.I;
-            FLook.Kind := jtkInt;
-          end
-          else                 // 64bit Integer
-            FLook.L := -FLook.L;
+        FLook.Kind := jtkLong;
+        case DigitCount of
+          19:
+            if FLook.HI and $80000000 <> 0 then // can't be negative because we catched that case already
+              FLook.Kind := jtkULong;
+          20:
+            FLook.Kind := jtkULong;
         end;
-        FText := P;
-        Exit;
+
+        if not (P^ in [Ord('.'), Ord('E'), Ord('e')]) then
+        begin
+          // just an integer
+          if Neg then
+          begin
+            if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
+            begin
+              FLook.I := -FLook.I;
+              FLook.Kind := jtkInt;
+            end
+            else // 64bit Integer
+              FLook.L := -FLook.L;
+          end;
+          FText := P;
+          Exit;
+        end;
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
+        Value := FLook.I
+      else
+        Value := FLook.I + Single2ToThePowerOf64;
+        {$ELSE}
       Value := FLook.U;
+        {$ENDIF CPUX86}
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end;
   end
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  ;
+  {$ELSE}
   else
     Value := ParseAsDoubleUtf8(F, P);
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   // decimal digits
   if (P + 1 < EndP) and (P^ = Byte(Ord('.'))) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+    // skip leading '0' digits
+    F := P;
+    while (P < EndP) and (P^ = Byte(Ord('0'))) do
+      Inc(P);
+    DigitCount := P - F;
+    // find the last decimal digit
     F := P;
     EndInt64P := F + 18;
     if EndInt64P > EndP then
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in [Ord('0')..Ord('9')]) do
       Inc(P);
-    Value := Value + ParseUInt64Utf8(F, P) / Power10[P - F];
 
-    // "Double" can't handle that many digits
+    // if we have up to 18 digits in total, we can use one floating point multipication
+    if DigitCount + (P - F) <= 18 then
+    begin
+      F := F - DigitCount;
+      FractionValue := Int64(ParseUInt64Utf8(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+    end
+    else
+    begin
+      FractionValue := Int64(ParseUInt64Utf8(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+      if DigitCount > 0 then
+      begin
+        Scale := 1;
+        while DigitCount >= 50 do
+        begin
+          Scale := Scale * (1/1E50);
+          Dec(DigitCount, 50);
+        end;
+        while DigitCount >= 18 do
+        begin
+          Scale := Scale * (1/1E18);
+          Dec(DigitCount, 18);
+        end;
+        if DigitCount > 0 then
+          FractionValue := FractionValue * ReciprocalPower10[DigitCount] * Scale;
+      end;
+    end;
+
+    Value := Value + FractionValue;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+
+    // "Double" can't handle that many significant digits
     while (P < EndP) and (P^ in [Ord('0')..Ord('9')]) do
       Inc(P);
   end;
@@ -7348,23 +7685,31 @@ begin
   if (P < EndP) and (P^ in [Ord('e'), Ord('E')]) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     NegE := False;
-    if (P < EndP) then
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    if P < EndP then
     begin
       case P^ of
         Ord('-'):
           begin
+            {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
             NegE := True;
+            {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
             Inc(P);
           end;
         Ord('+'):
           Inc(P);
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Exponent := 0;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
       F := P;
       while (P < EndP) and (P^ in [Ord('0')..Ord('9')]) do
       begin
+        {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         Exponent := Exponent * 10 + (P^ - Byte(Ord('0')));
+        {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
         Inc(P);
       end;
       if P = F then
@@ -7375,6 +7720,7 @@ begin
         Exit;
       end;
 
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       if Exponent > 308 then
         Exponent := 308;
 
@@ -7395,6 +7741,7 @@ begin
         Value := Value / Scale
       else
         Value := Value * Scale;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end
     else
     begin
@@ -7404,11 +7751,18 @@ begin
     end;
   end;
 
-  if Neg then
-    FLook.F := -Value
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  // if we need a Double then we make it a BigDecimal "String" to keep the exact value from the JSON
+  SetStringUtf8(FLook.S, NumberStart, P - NumberStart);
+  FLook.Kind := jtkBigDecimal;
+  {$ELSE}
+  if not Neg then
+    FLook.F := Value
   else
-    FLook.F := Value;
+    FLook.F := -Value;
   FLook.Kind := jtkFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
   FText := P;
 end;
 
@@ -7752,17 +8106,27 @@ var
   {$IFNDEF CPUARM}
   EndP: PChar;
   {$ENDIF ~CPUARM}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart: PChar;
+  {$ELSE}
   EndInt64P: PChar;
+  Value, FractionValue, Scale: Double;
+  Exponent: Integer;
+  NegE: Boolean;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
   Ch: Char;
-  Value, Scale: Double;
-  Exponent, IntValue: Integer;
-  Neg, NegE: Boolean;
+  IntValue: Integer;
+  Neg: Boolean;
   DigitCount: Integer;
 begin
   {$IFNDEF CPUARM}
   EndP := FTextEnd;
   {$ENDIF ~CPUARM}
   Neg := False;
+
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart := P;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   Ch := P^;
   if Ch = '-' then
@@ -7815,62 +8179,119 @@ begin
       FText := P;
       Exit;
     end;
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     Value := FLook.I;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
   end
   else if DigitCount <= 20 then // UInt64 fits 20 digits (not all)
   begin
     FLook.U := ParseUInt64(F, P);
     if (DigitCount = 20) and (FLook.U mod 10 <> Ord(PWideChar(P - 1)^) - Ord('0')) then // overflow => too large
+    begin
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Value := ParseAsDouble(F, P)
-    else if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
-      // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
-      Value := FLook.U
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    end
     else
     begin
-      FLook.Kind := jtkLong;
-      case DigitCount of
-        19:
-         if FLook.HI and $80000000 <> 0 then // can't be negative because we cached that case already
-           FLook.Kind := jtkULong;
-        20:
-          FLook.Kind := jtkULong;
-      end;
-
-      if not (P^ in ['.', 'E', 'e']) then
+      if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
+        // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
+      else
       begin
-        // just an integer
-        if Neg then
-        begin
-          if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
-          begin
-            FLook.I := -FLook.I;
-            FLook.Kind := jtkInt;
-          end
-          else                 // 64bit Integer
-            FLook.L := -FLook.L;
+        FLook.Kind := jtkLong;
+        case DigitCount of
+          19:
+            if FLook.HI and $80000000 <> 0 then // can't be negative because we catched that case already
+              FLook.Kind := jtkULong;
+          20:
+            FLook.Kind := jtkULong;
         end;
-        FText := P;
-        Exit;
+
+        if not (P^ in ['.', 'E', 'e']) then
+        begin
+          // just an integer
+          if Neg then
+          begin
+            if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
+            begin
+              FLook.I := -FLook.I;
+              FLook.Kind := jtkInt;
+            end
+            else // 64bit Integer
+              FLook.L := -FLook.L;
+          end;
+          FText := P;
+          Exit;
+        end;
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
+        Value := FLook.I
+      else
+        Value := FLook.I + Single2ToThePowerOf64;
+        {$ELSE}
       Value := FLook.U;
+        {$ENDIF CPUX86}
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end;
   end
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  ;
+  {$ELSE}
   else
     Value := ParseAsDouble(F, P);
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   // decimal digits
   if (P + 1 < EndP) and (P^ = '.') then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+    // skip leading '0' digits
+    F := P;
+    while (P < EndP) and (P^ = '0') do
+      Inc(P);
+    DigitCount := P - F;
+    // find the last decimal digit
     F := P;
     EndInt64P := F + 18;
     if EndInt64P > EndP then
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in ['0'..'9']) do
       Inc(P);
-    Value := Value + ParseUInt64(F, P) / Power10[P - F];
 
-    // "Double" can't handle that many digits
+    // if we have up to 18 digits in total, we can use one floating point multipication
+    if DigitCount + (P - F) <= 18 then
+    begin
+      F := F - DigitCount;
+      FractionValue := Int64(ParseUInt64(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+    end
+    else
+    begin
+      FractionValue := Int64(ParseUInt64(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+      if DigitCount > 0 then
+      begin
+        Scale := 1;
+        while DigitCount >= 50 do
+        begin
+          Scale := Scale * (1/1E50);
+          Dec(DigitCount, 50);
+        end;
+        while DigitCount >= 18 do
+        begin
+          Scale := Scale * (1/1E18);
+          Dec(DigitCount, 18);
+        end;
+        if DigitCount > 0 then
+          FractionValue := FractionValue * ReciprocalPower10[DigitCount] * Scale;
+      end;
+    end;
+
+    Value := Value + FractionValue;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+
+    // "Double" can't handle that many significant digits
     while (P < EndP) and (P^ in ['0'..'9']) do
       Inc(P);
   end;
@@ -7879,23 +8300,31 @@ begin
   if (P < EndP) and ((P^ = 'e') or (P^ = 'E')) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     NegE := False;
-    if (P < EndP) then
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    if P < EndP then
     begin
       case P^ of
         '-':
           begin
+            {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
             NegE := True;
+            {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
             Inc(P);
           end;
         '+':
           Inc(P);
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Exponent := 0;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
       F := P;
       while (P < EndP) and (P^ in ['0'..'9']) do
       begin
+        {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         Exponent := Exponent * 10 + (Ord(P^) - Ord('0'));
+        {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
         Inc(P);
       end;
       if P = F then
@@ -7906,6 +8335,7 @@ begin
         Exit;
       end;
 
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       if Exponent > 308 then
         Exponent := 308;
 
@@ -7926,6 +8356,7 @@ begin
         Value := Value / Scale
       else
         Value := Value * Scale;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end
     else
     begin
@@ -7935,11 +8366,18 @@ begin
     end;
   end;
 
-  if Neg then
-    FLook.F := -Value
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  // if we need a Double then we make it a BigDecimal "String" to keep the exact value from the JSON
+  SetString(FLook.S, NumberStart, P - NumberStart);
+  FLook.Kind := jtkBigDecimal;
+  {$ELSE}
+  if not Neg then
+    FLook.F := Value
   else
-    FLook.F := Value;
+    FLook.F := -Value;
   FLook.Kind := jtkFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
   FText := P;
 end;
 
@@ -8037,6 +8475,10 @@ begin
       jdtUTF8String:
         ConvertUTF8ToString(Result, Value.FData.FValueUTF8);
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        BigDecimalToString(Result, Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := IntToStr(Value.FData.FIntValue);
       jdtLong:
@@ -8044,7 +8486,7 @@ begin
       jdtULong:
         Result := UIntToStr(Value.FData.FULongValue);
       jdtFloat:
-        Result := FloatToStr(Value.FData.FFloatValue, JSONFormatSettings);
+        Result := ConvertFloatToStr(Value.FData.FFloatValue);
       jdtDateTime:
         Result := TJsonBaseObject.DateTimeToJSON(Value.FData.FDateTimeValue, JsonSerializationConfig.UseUtcTime);
       jdtUtcDateTime:
@@ -8087,7 +8529,7 @@ class operator TJsonDataValueHelper.Implicit(const Value: TJsonDataValueHelper):
 
   procedure SlowConvert(var S: UTF8String);
   begin
-    S := UTF8Encode(Value.Value);
+    S := UTF8Encode(Value.Value); // uses GetValue() to convert the value to a string
   end;
 
 begin
@@ -8131,6 +8573,10 @@ begin
           Result := StrToIntDef(Value.FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(Value.GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8170,6 +8616,10 @@ begin
           Result := StrToInt64Def(Value.FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(Value.GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8209,6 +8659,10 @@ end;
 //          Result := StrToInt64Def(Value.FData.FValue, 0);
 //        end;
 //      {$ENDIF USE_UTF8STRING_VALUES}
+//      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+//      jdtBigDecimal:
+//        Result := Trunc(Value.GetFloatValue);
+//      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 //      jdtInt:
 //        Result := Value.FData.FIntValue;
 //      jdtLong:
@@ -8240,20 +8694,31 @@ begin
   else
     case Value.FData.FTyp of
       jdtString:
-        Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        Result := ConvertStrToFloat(Value.FData.FValue);
       {$IFDEF USE_UTF8STRING_VALUES}
       jdtUTF8String:
         begin
           Value.ConvertUTF8ToStringType;
-          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+          Result := ConvertStrToFloat(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := BigDecimalToFloat(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime, jdtUtcDateTime:
@@ -8280,20 +8745,31 @@ begin
   else
     case Value.FData.FTyp of
       jdtString:
-        Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        Result := ConvertStrToFloat(Value.FData.FValue);
       {$IFDEF USE_UTF8STRING_VALUES}
       jdtUTF8String:
         begin
           Value.ConvertUTF8ToStringType;
-          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+          Result := ConvertStrToFloat(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := BigDecimalToFloat(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime, jdtUtcDateTime:
@@ -8328,12 +8804,23 @@ begin
           Result := TJsonBaseObject.JSONToDateTime(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime:
@@ -8366,6 +8853,10 @@ begin
       jdtUTF8String:
         Result := Value.FData.FValueUTF8 = 'true';
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.FData.FValue <> '0';
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue <> 0;
       jdtLong:
@@ -8448,6 +8939,10 @@ begin
       jdtUTF8String:
         Result := Value.FData.FValueUTF8;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8483,10 +8978,10 @@ begin
   LTyp := VarTypeToJsonDataType(VarType(Value));
   if LTyp <> jdtNone then
   begin
-    Result.FData.FTyp := LTyp;
     case LTyp of
       jdtString:
         Result.FData.FValue := Value;
+      //jdtBigDecimal: VarTypeToJsonDataType doesn't return jdtBigDecimal
       //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
       jdtInt:
         Result.FData.FIntValue := Value;
@@ -8505,6 +9000,7 @@ begin
         Result.FData.FObj := nil;
       {$ENDIF ~AUTOREFCOUNT}
     end;
+    Result.FData.FTyp := LTyp;
   end;
 end;
 
@@ -8585,6 +9081,10 @@ begin
           Result := StrToInt64Def(FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
@@ -8660,12 +9160,23 @@ begin
           Result := TJsonBaseObject.JSONToDateTime(FData.FValue, False);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
         Result := FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(FData.FULongValue).Hi and $80000000 = 0 then
+          Result := FData.FLongValue
+        else
+          Result := FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := FData.FFloatValue;
       jdtDateTime:
@@ -8754,6 +9265,14 @@ begin
     Result := FData.FIntern.Typ
   else
     Result := FData.FTyp;
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if Result = jdtUTF8String then
+    Result := jdtString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  if Result = jdtBigDecimal then
+    Result := jdtFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 end;
 
 function TJsonDataValueHelper.IsNull: Boolean;
@@ -8788,6 +9307,10 @@ begin
       jdtUTF8String:
         Item.ValueUTF8 := Value.FData.FValueUTF8;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Item.SetBigDecimalValue(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Item.IntValue := Value.FData.FIntValue;
       jdtLong:
@@ -9446,6 +9969,7 @@ initialization
   // create a new string.
   UniqueString(sTrue);
   UniqueString(sFalse);
-  JSONFormatSettings.DecimalSeparator := '.';
+  JSONStorageFormatSettings.ThousandSeparator := ',';
+  JSONStorageFormatSettings.DecimalSeparator := '.';
 
 end.
