@@ -7,7 +7,7 @@ from shutil import copy2, rmtree, copytree
 from datetime import datetime
 import pathlib
 from typing import *
-
+import time
 from pathlib import Path
 
 init()
@@ -344,6 +344,7 @@ def tests32(ctx):
 
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
+    time.sleep(1)
     r = None
     try:
         r = subprocess.run(
@@ -381,6 +382,7 @@ def tests64(ctx):
 
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
+    time.sleep(1)
     r = None
     try:
         r = subprocess.run(

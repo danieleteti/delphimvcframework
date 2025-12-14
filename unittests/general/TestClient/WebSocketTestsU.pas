@@ -199,7 +199,7 @@ begin
     lPayload[I] := Byte(I);
   lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
   Assert.AreEqual(UInt64(50), lFrame.PayloadLength, '50 byte payload length');
-  Assert.AreEqual(50, Length(lFrame.Payload), '50 byte payload array');
+  Assert.AreEqual<Integer>(50, Length(lFrame.Payload), '50 byte payload array');
   for I := 0 to 49 do
     Assert.AreEqual(Byte(I), lFrame.Payload[I], Format('Byte %d of 50', [I]));
 
@@ -210,7 +210,7 @@ begin
     lPayload[I] := Byte(I mod 256);
   lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
   Assert.AreEqual(UInt64(183), lFrame.PayloadLength, '183 byte payload length');
-  Assert.AreEqual(183, Length(lFrame.Payload), '183 byte payload array');
+  Assert.AreEqual<Integer>(183, Length(lFrame.Payload), '183 byte payload array');
 
   // Test 1000 bytes
   SetLength(lPayload, 1000);
@@ -218,7 +218,7 @@ begin
     lPayload[I] := Byte(I mod 256);
   lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
   Assert.AreEqual(UInt64(1000), lFrame.PayloadLength, '1000 byte payload length');
-  Assert.AreEqual(1000, Length(lFrame.Payload), '1000 byte payload array');
+  Assert.AreEqual<Integer>(1000, Length(lFrame.Payload), '1000 byte payload array');
 
   // Test 30000 bytes
   SetLength(lPayload, 30000);
@@ -226,7 +226,7 @@ begin
     lPayload[I] := Byte(I mod 256);
   lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
   Assert.AreEqual(UInt64(30000), lFrame.PayloadLength, '30000 byte payload length');
-  Assert.AreEqual(30000, Length(lFrame.Payload), '30000 byte payload array');
+  Assert.AreEqual<Integer>(30000, Length(lFrame.Payload), '30000 byte payload array');
 end;
 
 { TTestWebSocketHandshake }
