@@ -22,37 +22,41 @@
 //
 // *************************************************************************** }
 
-unit MVCFramework.FireDAC.Utils;
+unit MVCFramework.UniDAC.Utils;
 
 {$I dmvcframework.inc}
 
 interface
 
 uses
-  FireDAC.Comp.Client, FireDAC.Stan.Param, System.Rtti, JsonDataObjects,
-  Data.DB, FireDAC.Comp.DataSet;
+  Uni,
+  DBAccess,
+  VirtualTable,
+  System.Rtti,
+  JsonDataObjects,
+  Data.DB;
 
 type
-  TFireDACUtils = class sealed
+  TUniDACUtils = class sealed
   private
     class var CTX: TRttiContext;
-    class function InternalExecuteQuery(AQuery: TFDQuery; AObject: TObject;
+    class function InternalExecuteQuery(AQuery: TUniQuery; AObject: TObject;
       WithResult: boolean): Int64;
   public
     class constructor Create;
     class destructor Destroy;
-    class function ExecuteQueryNoResult(AQuery: TFDQuery;
+    class function ExecuteQueryNoResult(AQuery: TUniQuery;
       AObject: TObject): Int64;
-    class procedure ExecuteQuery(AQuery: TFDQuery; AObject: TObject);
-    class procedure ObjectToParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = '';
+    class procedure ExecuteQuery(AQuery: TUniQuery; AObject: TObject);
+    class procedure ObjectToParameters(AParams: TParams; AObject: TObject; AParamPrefix: string = '';
       ASetParamTypes: boolean = True);
-    class procedure CreateDatasetFromMetadata(AFDMemTable: TFDCustomMemTable; AMeta: TJSONObject);
+    class procedure CreateDatasetFromMetadata(AVirtualTable: TVirtualTable; AMeta: TJSONObject);
   end;
-  
-  TFDCustomMemTableHelper = class helper for TFDCustomMemTable
+
+  TVirtualTableHelper = class helper for TVirtualTable
   public
     procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
-    class function CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable; static;
+    class function CloneFrom(const ADataSet: TDataSet): TVirtualTable; static;
   end;
 
 implementation
@@ -63,15 +67,15 @@ uses
   MVCFramework.Serializer.Commons,
   System.SysUtils;
 
-{ TFireDACUtils }
+{ TUniDACUtils }
 
-class constructor TFireDACUtils.Create;
+class constructor TUniDACUtils.Create;
 begin
-  TFireDACUtils.CTX := TRttiContext.Create;
+  TUniDACUtils.CTX := TRttiContext.Create;
 end;
 
-class procedure TFireDACUtils.CreateDatasetFromMetadata(
-  AFDMemTable: TFDCustomMemTable; AMeta: TJSONObject);
+class procedure TUniDACUtils.CreateDatasetFromMetadata(
+  AVirtualTable: TVirtualTable; AMeta: TJSONObject);
 var
   lJArr: TJSONArray;
   I: Integer;
@@ -82,39 +86,38 @@ begin
     raise EMVCDeserializationException.Create('Invalid Metadata objects. Property [fielddefs] required.');
   end;
 
-  AFDMemTable.Active := False;;
-  AFDMemTable.FieldDefs.Clear;
+  AVirtualTable.Active := False;
+  AVirtualTable.FieldDefs.Clear;
   lJArr := AMeta.A['fielddefs'];
   for I := 0 to lJArr.Count - 1 do
   begin
     lJObj := lJArr.Items[I].ObjectValue;
-    AFDMemTable.FieldDefs.Add(
+    AVirtualTable.FieldDefs.Add(
       lJObj.S['fieldname'],
       TFieldType(lJObj.I['datatype']),
       lJObj.I['size']);
-    { TODO -oDanieleT -cGeneral : Why don't change the display name? }
-    AFDMemTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
+    AVirtualTable.FieldDefs[I].DisplayName := lJObj.S['displayname'];
   end;
-  AFDMemTable.CreateDataset;
+  AVirtualTable.CreateDataSet;
 end;
 
-class destructor TFireDACUtils.Destroy;
+class destructor TUniDACUtils.Destroy;
 begin
-  TFireDACUtils.CTX.Free;
+  TUniDACUtils.CTX.Free;
 end;
 
-class procedure TFireDACUtils.ExecuteQuery(AQuery: TFDQuery; AObject: TObject);
+class procedure TUniDACUtils.ExecuteQuery(AQuery: TUniQuery; AObject: TObject);
 begin
   InternalExecuteQuery(AQuery, AObject, True);
 end;
 
-class function TFireDACUtils.ExecuteQueryNoResult(AQuery: TFDQuery;
+class function TUniDACUtils.ExecuteQueryNoResult(AQuery: TUniQuery;
   AObject: TObject): Int64;
 begin
   Result := InternalExecuteQuery(AQuery, AObject, False);
 end;
 
-class procedure TFireDACUtils.ObjectToParameters(AFDParams: TFDParams;
+class procedure TUniDACUtils.ObjectToParameters(AParams: TParams;
   AObject: TObject; AParamPrefix: string; ASetParamTypes: boolean);
 var
   I: Integer;
@@ -134,7 +137,7 @@ var
       tkInteger:
         Result := ftInteger;
       tkFloat:
-        begin // daniele teti 2014-05-23
+        begin
           if AProp.PropertyType.QualifiedName = 'System.TDate' then
             Result := ftDate
           else if AProp.PropertyType.QualifiedName = 'System.TDateTime' then
@@ -155,7 +158,7 @@ var
       tkInterface:
         Result := ftInterface;
       tkInt64:
-        Result := ftLongWord;
+        Result := ftLargeInt;
     else
       Result := ftUnknown;
     end;
@@ -182,26 +185,23 @@ begin
         end
       end;
     end;
-    for I := 0 to AFDParams.Count - 1 do
+    for I := 0 to AParams.Count - 1 do
     begin
-      pname := AFDParams[I].Name.ToLower;
+      pname := AParams[I].Name.ToLower;
       if pname.StartsWith(AParamPrefix, True) then
         Delete(pname, 1, PrefixLength);
       if Map.TryGetValue(pname, f) then
       begin
         fv := f.GetValue(AObject);
-        // #001: Erro ao definir parametros
         if ASetParamTypes then
         begin
-          AFDParams[I].DataType := KindToFieldType(fv.Kind, f);
+          AParams[I].DataType := KindToFieldType(fv.Kind, f);
         end;
-        // #001: FIM
-        // DmitryG - 2014-03-28
-        AFDParams[I].Value := fv.AsVariant;
+        AParams[I].Value := fv.AsVariant;
       end
       else
       begin
-        AFDParams[I].Clear;
+        AParams[I].Clear;
       end;
     end;
   finally
@@ -209,7 +209,7 @@ begin
   end
 end;
 
-class function TFireDACUtils.InternalExecuteQuery(AQuery: TFDQuery; AObject: TObject;
+class function TUniDACUtils.InternalExecuteQuery(AQuery: TUniQuery; AObject: TObject;
   WithResult: boolean): Int64;
 begin
   ObjectToParameters(AQuery.Params, AObject);
@@ -223,15 +223,15 @@ begin
   end;
 end;
 
-class function TFDCustomMemTableHelper.CloneFrom(const FDDataSet: TFDDataSet): TFDMemTable;
+class function TVirtualTableHelper.CloneFrom(const ADataSet: TDataSet): TVirtualTable;
 begin
-  Result := TFDMemTable.Create(nil);
-  TFDMemTable(Result).CloneCursor(FDDataSet);
+  Result := TVirtualTable.Create(nil);
+  Result.Assign(ADataSet);
 end;
 
-procedure TFDCustomMemTableHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
+procedure TVirtualTableHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
 begin
-  TFireDACUtils.CreateDatasetFromMetadata(Self, AJSONMetadata);
+  TUniDACUtils.CreateDatasetFromMetadata(Self, AJSONMetadata);
 end;
 
 end.

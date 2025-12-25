@@ -1,4 +1,4 @@
-﻿unit MainFormU;
+unit MainFormU;
 
 interface
 
@@ -13,18 +13,11 @@ uses
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.StdCtrls,
-  FireDAC.Stan.Intf,
-  FireDAC.Stan.Option,
-  FireDAC.Stan.Error,
-  FireDAC.UI.Intf,
-  FireDAC.Phys.Intf,
-  FireDAC.Stan.Def,
-  FireDAC.Stan.Pool,
-  FireDAC.Stan.Async,
-  FireDAC.Phys,
-  FireDAC.VCLUI.Wait,
+  Uni,
+  UniDacVcl,
+  DBAccess,
+  UniProvider,
   Data.DB,
-  FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
   MVCFramework.Logger,
@@ -127,7 +120,7 @@ uses
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU,
+  UniDACConnectionConfigU,
   EngineChoiceFormU,
   System.Rtti;
 
@@ -2028,12 +2021,12 @@ var
   lCustomer: TCustomer;
   lID: Integer;
   lTestNote: string;
-  lConn: TFDConnection;
+  lConn: TUniConnection;
 begin
   Log('** Use Explicit Connection');
-  lConn := TFDConnection.Create(nil);
+  lConn := TUniConnection.Create(nil);
   try
-    lConn.ConnectionDefName := CON_DEF_NAME;
+    lConn.ConnectionName := CON_DEF_NAME;
     lCustomer := TCustomer.Create(lConn);
     try
       Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
@@ -2447,37 +2440,37 @@ begin
   case lEngine of
     TRDBMSEngine.PostgreSQL:
       begin
-        FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+        UniDACConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
       end;
     TRDBMSEngine.Firebird:
       begin
-        FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+        UniDACConnectionConfigU.CreateFirebirdPrivateConnDef(True);
       end;
     TRDBMSEngine.Interbase:
       begin
-        FDConnectionConfigU.CreateInterbasePrivateConnDef(True);
+        UniDACConnectionConfigU.CreateInterbasePrivateConnDef(True);
       end;
     TRDBMSEngine.MySQL:
       begin
-        FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+        UniDACConnectionConfigU.CreateMySQLPrivateConnDef(True);
       end;
     TRDBMSEngine.MariaDB:
       begin
-        FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+        UniDACConnectionConfigU.CreateMySQLPrivateConnDef(True);
       end;
     TRDBMSEngine.SQLite:
       begin
-        FDConnectionConfigU.CreateSqlitePrivateConnDef(True);
+        UniDACConnectionConfigU.CreateSqlitePrivateConnDef(True);
       end;
     TRDBMSEngine.MSSQLServer:
       begin
-        FDConnectionConfigU.CreateMSSQLServerPrivateConnDef(True);
+        UniDACConnectionConfigU.CreateMSSQLServerPrivateConnDef(True);
       end;
   else
     raise Exception.Create('Unknown RDBMS');
   end;
 
-  ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConnectionConfigU.CON_DEF_NAME);
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(UniDACConnectionConfigU.CON_DEF_NAME);
   Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
 {$IFDEF USE_SEQUENCES}
   Caption := Caption + ' USE_SEQUENCES';
