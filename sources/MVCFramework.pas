@@ -2753,7 +2753,6 @@ var
   lActualParams: TArray<TValue>;
   lBodyParameter, lResponseObject: TObject;
   lInvokeResult: TValue;
-  lObjList: IMVCList;
   lRespStatus: Integer;
   lRouterResult: TMVCRouterResult;
 begin
@@ -2909,21 +2908,9 @@ begin
                                 begin
                                   TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
                                 end
-                                else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
-                                begin
-                                  { Object can be wrapped as a list (e.g., TObjectList<T>, TList<T>).
-                                    Check if a custom type serializer is registered for this specific type.
-                                    - If yes: use Render(Object) which calls SerializeObject with the custom serializer
-                                      (e.g., TMVCListOfString, TMVCListOfInteger, TMVCStringDictionary)
-                                    - If no: use duck typing to serialize as a collection of objects
-                                      (e.g., TObjectList<TPerson>) }
-                                  if lSelectedController.Serializer(lSelectedController.GetContentType).TypeSerializerExists(lResponseObject.ClassInfo) then
-                                    lSelectedController.Render(lResponseObject, False)
-                                  else
-                                    lSelectedController.Render(lObjList);
-                                end
                                 else
                                 begin
+                                  { Render handles duck typing vs type serializer logic internally }
                                   lSelectedController.Render(lResponseObject, False);
                                 end;
                               end
@@ -4654,9 +4641,27 @@ procedure TMVCRenderer.Render(
   const AType: TMVCSerializationType;
   const ASerializationAction: TMVCSerializationAction = nil;
   const AIgnoredFields: TMVCIgnoredList = nil);
+var
+  lObjList: IMVCList;
+  lSerializer: IMVCSerializer;
 begin
   try
-    Render(Serializer(GetContentType).SerializeObject(AObject, AType, AIgnoredFields, ASerializationAction));
+    lSerializer := Serializer(GetContentType);
+    { If object can be wrapped as list (duck typing) AND no custom type serializer
+      is registered for this specific type, use collection serialization.
+      Otherwise use object serialization (which will use the custom type serializer
+      if one is registered, e.g., for TMVCListOfString, TMVCListOfInteger, etc.) }
+    if Assigned(AObject) and
+       (not AObject.InheritsFrom(TJsonBaseObject)) and
+       (not lSerializer.TypeSerializerExists(AObject.ClassInfo)) and
+       TDuckTypedList.CanBeWrappedAsList(AObject, lObjList) then
+    begin
+      Render(lSerializer.SerializeCollection(TObject(lObjList), AType, AIgnoredFields, ASerializationAction));
+    end
+    else
+    begin
+      Render(lSerializer.SerializeObject(AObject, AType, AIgnoredFields, ASerializationAction));
+    end;
   finally
     if AOwns then
       AObject.Free;
