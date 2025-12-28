@@ -71,6 +71,7 @@ type
   IMVCSerializer = interface
     ['{1ECA942A-E3C4-45DD-9D23-C00363B5E334}']
     procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+    function TypeSerializerExists(const ATypeInfo: PTypeInfo): Boolean;
 
     function SerializeObject(
       const AObject: TObject;

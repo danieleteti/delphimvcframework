@@ -2911,7 +2911,16 @@ begin
                                 end
                                 else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
                                 begin
-                                  lSelectedController.Render(lObjList);
+                                  { Object can be wrapped as a list (e.g., TObjectList<T>, TList<T>).
+                                    Check if a custom type serializer is registered for this specific type.
+                                    - If yes: use Render(Object) which calls SerializeObject with the custom serializer
+                                      (e.g., TMVCListOfString, TMVCListOfInteger, TMVCStringDictionary)
+                                    - If no: use duck typing to serialize as a collection of objects
+                                      (e.g., TObjectList<TPerson>) }
+                                  if lSelectedController.Serializer(lSelectedController.GetContentType).TypeSerializerExists(lResponseObject.ClassInfo) then
+                                    lSelectedController.Render(lResponseObject, False)
+                                  else
+                                    lSelectedController.Render(lObjList);
                                 end
                                 else
                                 begin
