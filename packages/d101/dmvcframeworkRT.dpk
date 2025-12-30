@@ -127,7 +127,9 @@ contains
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
   MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
-  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas';
+  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas',
+  ExprEvaluator in '..\..\sources\ExprEvaluator.pas';
 
 end.
 

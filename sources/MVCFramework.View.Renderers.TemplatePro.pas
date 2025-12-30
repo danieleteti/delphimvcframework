@@ -47,7 +47,8 @@ uses
   System.Rtti,
   System.TypInfo,
   JsonDataObjects,
-  TemplatePro;
+  TemplatePro,
+  TemplatePro.Types;
 
 {$WARNINGS OFF}
 

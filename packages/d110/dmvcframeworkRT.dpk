@@ -129,7 +129,8 @@ contains
   MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
   MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
   ExprEvaluator in '..\..\sources\ExprEvaluator.pas',
-  MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas';
+  MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas',
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
 
 end.
 

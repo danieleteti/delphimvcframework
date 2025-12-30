@@ -135,7 +135,8 @@ contains
   MVCFramework.WebSocket in '..\..\sources\MVCFramework.WebSocket.pas',
   MVCFramework.WebSocket.RateLimiter in '..\..\sources\MVCFramework.WebSocket.RateLimiter.pas',
   MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
-  MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas';
+  MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas',
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
 
 end.
 

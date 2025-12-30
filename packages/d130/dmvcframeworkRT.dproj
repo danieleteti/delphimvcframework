@@ -218,6 +218,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Server.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
+        <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

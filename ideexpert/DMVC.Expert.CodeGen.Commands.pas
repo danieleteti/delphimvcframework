@@ -306,6 +306,7 @@ begin
         .AppendLine('  lTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env(''https.cert.cacert'', ''certificates\localhost.crt'');')
         .AppendLine('  lTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env(''https.cert.privkey'', ''certificates\localhost.key'');')
         .AppendLine('  lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;')
+        .AppendLine('  lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;')
         .AppendLine('  aServer.IOHandler := lTaurusTLSHandler;')
         .AppendLine('  aServer.OnQuerySSLPort := OnQuerySSLPort;')
         .AppendLine('end;')
@@ -1637,7 +1638,7 @@ begin
       .AppendLine('interface')
       .AppendLine
       .AppendLine('uses')
-      .AppendLine('  System.Rtti, TemplatePro;')
+      .AppendLine('  System.Rtti, TemplatePro, TemplatePro.Types;')
       .AppendLine
       .AppendLine('function MyHelper1(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
       .AppendLine('function MyHelper2(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;')
