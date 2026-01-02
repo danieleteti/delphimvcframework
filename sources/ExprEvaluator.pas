@@ -2,7 +2,7 @@
 //
 // Delphi Expression Evaluator
 //
-// Copyright (c) 2024-2025 Daniele Teti
+// Copyright (c) 2024-2026 Daniele Teti
 //
 // https://github.com/danieleteti/delphi-expressions-evaluator
 //

@@ -1,6 +1,6 @@
 // ***************************************************************************
 //
-// Copyright (c) 2016-2025 Daniele Teti
+// Copyright (c) 2016-2026 Daniele Teti
 //
 // https://github.com/danieleteti/templatepro
 //

@@ -1,6 +1,6 @@
 ﻿// ***************************************************************************
 //
-// Copyright (c) 2016-2025 Daniele Teti
+// Copyright (c) 2016-2026 Daniele Teti
 //
 // https://github.com/danieleteti/templatepro
 //
@@ -1262,6 +1262,7 @@ procedure TTProCompiler.Compile(const aTemplate: string; const aTokens: TList<TT
 var
   lForStatementCount: Integer;
   lIfStatementCount: Integer;
+  lElseIfPendingCounts: TArray<Integer>;  // Stack to track pending elseif endifs per if-level
   lLastToken: TTokenType;
   lChar: Char;
   lVarName: string;
@@ -1314,6 +1315,7 @@ begin
   fCurrentLine := 1;
   lIfStatementCount := -1;
   lForStatementCount := -1;
+  SetLength(lElseIfPendingCounts, 0);
   fInputString := aTemplate;
   lStartVerbatim := 0;
   if fInputString.Length > 0 then
@@ -1661,7 +1663,17 @@ begin
             Error('Expected closing tag for "endif"');
           end;
 
+          // Emit extra ttEndIf tokens for pending elseif chains
           lLastToken := ttEndIf;
+          if Length(lElseIfPendingCounts) > 0 then
+          begin
+            for I := 0 to lElseIfPendingCounts[High(lElseIfPendingCounts)] - 1 do
+              aTokens.Add(TToken.Create(lLastToken, '', ''));
+            // Pop the stack
+            SetLength(lElseIfPendingCounts, Length(lElseIfPendingCounts) - 1);
+          end;
+
+          // Emit the main ttEndIf
           aTokens.Add(TToken.Create(lLastToken, '', ''));
 
           Dec(lIfStatementCount);
@@ -1684,6 +1696,9 @@ begin
             lLastToken := ttIfThen;
             aTokens.Add(TToken.Create(lLastToken, '', ''));
             Inc(lIfStatementCount);
+            // Push 0 onto elseif pending stack for this if-level
+            SetLength(lElseIfPendingCounts, Length(lElseIfPendingCounts) + 1);
+            lElseIfPendingCounts[High(lElseIfPendingCounts)] := 0;
             lStartVerbatim := fCharIndex;
 
             // Use ttExpression for the condition (Ref2 = 1 marks it as expression-based)
@@ -1712,11 +1727,79 @@ begin
             lLastToken := ttIfThen;
             aTokens.Add(TToken.Create(lLastToken, '' { lIdentifier } , ''));
             Inc(lIfStatementCount);
+            // Push 0 onto elseif pending stack for this if-level
+            SetLength(lElseIfPendingCounts, Length(lElseIfPendingCounts) + 1);
+            lElseIfPendingCounts[High(lElseIfPendingCounts)] := 0;
             lStartVerbatim := fCharIndex;
 
             lLastToken := ttBoolExpression;
             { Ref1 now stores number of filters (0 = no filter, >0 = filter count) }
             aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', Length(lFilters), -1 { no html escape } ));
+
+            // add filter tokens
+            AddFilterTokens(aTokens, lFilters);
+          end;
+        end
+        else if MatchSymbol('elseif') or MatchSymbol('elif') then
+        begin
+          // elseif/elif is syntactic sugar for {{else}}{{if condition}}
+          // The implicit endif will be emitted when we see the main endif
+          if lIfStatementCount < 0 then
+            Error('"elseif" without "if"');
+
+          // Emit ttElse token
+          lLastToken := ttElse;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
+
+          // Increment pending elseif count for current if level
+          Inc(lElseIfPendingCounts[High(lElseIfPendingCounts)]);
+
+          if not MatchSpace then
+            Error('Expected <space> after "elseif"');
+
+          // Parse the condition (same as if)
+          if MatchExpression(lIdentifier) then
+          begin
+            MatchSpace;
+            if not MatchEndTag then
+              Error('Expected closing tag for "elseif" after expression');
+
+            // Emit ttIfThen for the nested if
+            lLastToken := ttIfThen;
+            aTokens.Add(TToken.Create(lLastToken, '', ''));
+            lStartVerbatim := fCharIndex;
+
+            // Use ttExpression for the condition
+            lLastToken := ttBoolExpression;
+            aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', 0, 1 { 1 = expression mode }));
+          end
+          else
+          begin
+            // Variable-based condition
+            lNegation := MatchSymbol('!');
+            MatchSpace;
+            if not MatchVariable(lIdentifier) then
+              Error('Expected identifier after "elseif"');
+            SetLength(lFilters, 0);
+            if MatchSymbol('|') then
+            begin
+              MatchFilters(lIdentifier, lFilters);
+            end;
+            MatchSpace;
+            if not MatchEndTag then
+              Error('Expected closing tag for "elseif" after "' + lIdentifier + '"');
+            if lNegation then
+            begin
+              lIdentifier := '!' + lIdentifier;
+            end;
+
+            // Emit ttIfThen for the nested if
+            lLastToken := ttIfThen;
+            aTokens.Add(TToken.Create(lLastToken, '', ''));
+            lStartVerbatim := fCharIndex;
+
+            lLastToken := ttBoolExpression;
+            aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', Length(lFilters), -1 { no html escape }));
 
             // add filter tokens
             AddFilterTokens(aTokens, lFilters);
@@ -2557,6 +2640,8 @@ begin
   begin
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
+    else if aValue.IsType<Int64> then
+      lStrValue := aValue.AsInt64.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
@@ -2575,6 +2660,8 @@ begin
 
     if aValue.IsType<Integer> then
       lStrValue := aValue.AsInteger.ToString
+    else if aValue.IsType<Int64> then
+      lStrValue := aValue.AsInt64.ToString
     else if aValue.IsType<string> then
       lStrValue := aValue.AsString
     else
@@ -2586,7 +2673,7 @@ begin
       if aParameters[0].ParType = fptVariable then
       begin
         lVarValue := GetVarAsTValue(aParameters[0].ParStrText);
-        aResult := lStrValue.PadLeft(lVarValue.AsInteger);
+        aResult := lStrValue.PadLeft(lVarValue.AsInt64);
       end
       else
         aResult := lStrValue.PadLeft(aParameters[0].ParIntValue);
@@ -2634,6 +2721,7 @@ function TTProCompiledTemplate.ExecuteDateFilter(const aFunctionName: string;
 var
   lDateValue: TDateTime;
   lNullableDate: NullableTDate;
+  lNullableDateTime: NullableTDateTime;
   lSQLTimestampOffset: TSQLTimeStampOffset;
   lIsNull: Boolean;
 begin
@@ -2645,7 +2733,7 @@ begin
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
       if Length(aParameters) = 0 then
-        aResult := DateToStr(lDateValue, fLocaleFormatSettings)
+        aResult := FormatDateTime('yyyy-mm-dd', lDateValue)  // ISO 8601 default
       else
       begin
         CheckParNumber(1, aParameters);
@@ -2661,11 +2749,51 @@ begin
       begin
         lDateValue := lNullableDate.Value;
         if Length(aParameters) = 0 then
-          aResult := DateToStr(lDateValue, fLocaleFormatSettings)
+          aResult := FormatDateTime('yyyy-mm-dd', lDateValue)  // ISO 8601 default
         else
         begin
           CheckParNumber(1, aParameters);
           aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+        end;
+      end;
+    end
+    else if aValue.TypeInfo = TypeInfo(NullableTDateTime) then
+    begin
+      lNullableDateTime := aValue.AsType<NullableTDateTime>(True);
+      if lNullableDateTime.IsNull then
+        aResult := ''
+      else
+      begin
+        lDateValue := lNullableDateTime.Value;
+        if Length(aParameters) = 0 then
+          aResult := FormatDateTime('yyyy-mm-dd', lDateValue)  // ISO 8601 default
+        else
+        begin
+          CheckParNumber(1, aParameters);
+          aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+        end;
+      end;
+    end
+    else if aValue.TypeInfo.Kind in [tkString, tkUString, tkLString, tkWString] then
+    begin
+      // Handle empty string - return empty result
+      if aValue.AsString.IsEmpty then
+        aResult := ''
+      else
+      begin
+        // Try to parse ISO 8601 date string
+        try
+          lDateValue := ISO8601ToDate(aValue.AsString, False);
+          if Length(aParameters) = 0 then
+            aResult := FormatDateTime('yyyy-mm-dd', lDateValue)  // ISO 8601 default
+          else
+          begin
+            CheckParNumber(1, aParameters);
+            aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+          end;
+        except
+          on E: Exception do
+            FunctionError(aFunctionName, 'Invalid date string ' + aValue.AsString.QuotedString + ' - ' + E.Message);
         end;
       end;
     end
@@ -2679,7 +2807,7 @@ begin
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
       if Length(aParameters) = 0 then
-        aResult := DateTimeToStr(lDateValue, fLocaleFormatSettings)
+        aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)  // ISO 8601 default
       else
       begin
         CheckParNumber(1, aParameters);
@@ -2690,11 +2818,51 @@ begin
     begin
       lDateValue := SQLTimeStampOffsetToDateTime(lSQLTimestampOffset);
       if Length(aParameters) = 0 then
-        aResult := DateTimeToStr(lDateValue, fLocaleFormatSettings)
+        aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)  // ISO 8601 default
       else
       begin
         CheckParNumber(1, aParameters);
         aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+      end;
+    end
+    else if aValue.TypeInfo = TypeInfo(NullableTDateTime) then
+    begin
+      lNullableDateTime := aValue.AsType<NullableTDateTime>(True);
+      if lNullableDateTime.IsNull then
+        aResult := ''
+      else
+      begin
+        lDateValue := lNullableDateTime.Value;
+        if Length(aParameters) = 0 then
+          aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)  // ISO 8601 default
+        else
+        begin
+          CheckParNumber(1, aParameters);
+          aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+        end;
+      end;
+    end
+    else if aValue.TypeInfo.Kind in [tkString, tkUString, tkLString, tkWString] then
+    begin
+      // Handle empty string - return empty result
+      if aValue.AsString.IsEmpty then
+        aResult := ''
+      else
+      begin
+        // Try to parse ISO 8601 datetime string
+        try
+          lDateValue := ISO8601ToDate(aValue.AsString, False);
+          if Length(aParameters) = 0 then
+            aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)  // ISO 8601 default
+          else
+          begin
+            CheckParNumber(1, aParameters);
+            aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+          end;
+        except
+          on E: Exception do
+            FunctionError(aFunctionName, 'Invalid datetime string ' + aValue.AsString.QuotedString + ' - ' + E.Message);
+        end;
       end;
     end
     else
@@ -2804,7 +2972,7 @@ begin
     if aParameters[0].ParType = fptVariable then
     begin
       lVarValue := GetVarAsTValue(aParameters[0].ParStrText);
-      lIntegerPar1 := lVarValue.AsInteger;
+      lIntegerPar1 := lVarValue.AsInt64;
     end
     else
     begin
@@ -4346,7 +4514,7 @@ begin
       end;
     tkInterface:
       GetVariables.AddOrSetValue(Name, TVarDataSource.Create(Value.AsInterface as TObject, [viObject]));
-    tkInteger, tkString, tkUString, tkFloat, tkEnumeration:
+    tkInteger, tkInt64, tkString, tkUString, tkFloat, tkEnumeration, tkRecord:
       GetVariables.AddOrSetValue(Name, TVarDataSource.Create(Value, [viSimpleType]));
   else
     raise ETProException.Create('Invalid type for variable "' + Name + '": ' + TRttiEnumerationType.GetName<TTypeKind>(Value.Kind));
