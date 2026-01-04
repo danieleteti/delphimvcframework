@@ -5,18 +5,36 @@ All notable changes to DelphiMVCFramework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.4.2-magnesium] - Current Stable
+## [3.4.3-aluminium] - Current Stable
+
+> 👉 A deep analysis of what's new in DelphiMVCFramework-3.4.3-aluminium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/released-dmvcframework-3-4-3-aluminium/)
+
+### Added
+- **WebSocket support** (RFC 6455) - Full bidirectional real-time communication
+  - Server implementation with groups, periodic messages, and broadcasting
+  - Client implementation with auto-reconnect support
+- **Repository pattern** support for cleaner data access abstractions
+- **Rate limiting middleware** with in-memory and Redis-backed implementations
+- **Server-Sent Events (SSE)** improvements with `TMVCSSEController`
+- Enhanced build system with centralized dependency management
+
+### Improved
+- Updated TemplatePro to version 0.9.0
+- Better package structure for all Delphi versions
+- Performance optimizations and bug fixes
+
+## [3.4.2-magnesium] - Previous Stable
 
 > 👉 A deep analysis of what's new in DelphiMVCFramework-3.4.2-magnesium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-2-magnesium/)
 
 ### Added
-- Support for Delphi 13 Athens
+- Support for Delphi 13 Florence
 - Enhanced TLS 1.3 support with automatic cipher suite negotiation
 - Improved security headers handling
 - Better SNI (Server Name Indication) support
 - Enhanced certificate validation mechanisms
 
-## [3.4.1-sodium] - Previous Stable
+## [3.4.1-sodium]
 
 > 👉 A deep analysis of what's new in DelphiMVCFramework-3.4.1-sodium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/delphimvcframework-3-4-1-sodium/)
 

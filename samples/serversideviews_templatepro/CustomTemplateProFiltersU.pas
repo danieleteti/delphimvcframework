@@ -27,7 +27,7 @@ unit CustomTemplateProFiltersU;
 interface
 
 uses
-  TemplatePro, System.Rtti;
+  TemplatePro, TemplatePro.Types, System.Rtti;
 
 procedure TemplateProContextConfigure;
 
