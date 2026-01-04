@@ -36,8 +36,8 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danieleteti/delphimvcframework)
 [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/sindresorhus/awesome)
 
-![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
+![](https://img.shields.io/badge/stable-dmvcframework--3.4.3--aluminium-blue)
+![](https://img.shields.io/badge/beta-dmvcframework--3.5.0--silicon-orange)
 
 **The most popular Delphi RESTful framework on GitHub**
 

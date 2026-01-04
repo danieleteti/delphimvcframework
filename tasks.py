@@ -3,6 +3,7 @@ import os
 import subprocess
 from colorama import *
 import glob
+import shutil
 from shutil import copy2, rmtree, copytree
 from datetime import datetime
 import pathlib
@@ -12,10 +13,25 @@ from pathlib import Path
 
 init()
 
-g_releases_path = "releases"
-g_output = "bin"
-g_output_folder = ""  # defined at runtime
-g_version = "DEV"
+
+class BuildConfig:
+    """Configuration for the build process"""
+    def __init__(self):
+        self.releases_path = "releases"
+        self.output = "bin"
+        self.output_folder = ""  # defined at runtime
+        self.version = "DEV"
+        # Project root directory (where tasks.py is located)
+        self.project_root = os.path.dirname(os.path.abspath(__file__))
+        self.seven_zip = os.path.join(self.project_root, "7z.exe")
+
+    @property
+    def output_folder_path(self):
+        return os.path.join(self.releases_path, self.version)
+
+
+# Global config instance
+config = BuildConfig()
 
 
 delphi_versions = [
@@ -31,6 +47,20 @@ delphi_versions = [
     {"version": "12.0", "path": "23.0", "desc": "Delphi 12 Athens"},
     {"version": "13.0", "path": "37.0", "desc": "Delphi 13 Florence"},
 ]
+
+
+def get_package_folders():
+    """Get list of package folders by scanning the packages directory.
+    Returns folders that match the pattern 'd*' (e.g., d100, d110, d130)"""
+    packages_dir = "packages"
+    if not os.path.isdir(packages_dir):
+        return []
+    folders = []
+    for item in os.listdir(packages_dir):
+        item_path = os.path.join(packages_dir, item)
+        if os.path.isdir(item_path) and item.startswith("d") and item[1:].isdigit():
+            folders.append(item)
+    return sorted(folders)
 
 
 def get_delphi_projects_to_build(which=""):
@@ -94,50 +124,63 @@ def build_delphi_project(
         print(r.stderr)
         raise Exit("Build failed for " + delphi_version["desc"])
 
-
-def zip_samples(version):
-    global g_output_folder
+def zip_samples(ctx, version):
     cmdline = (
-        "7z a "
-        + g_output_folder
+        f'"{config.seven_zip}" a '
+        + config.output_folder
         + f"\\..\\{version}_samples.zip -r -i@7ziplistfile.txt"
     )
-    return subprocess.call(cmdline, shell=True) == 0
+    print("ZIPPING SAMPLES")
+    print("CMDLINE: " + cmdline)
+    result = ctx.run(cmdline, warn=True)
+    if result.failed:
+        print(Fore.RED + "ERROR: Failed to zip samples" + Fore.RESET)
+        return False
+    return True
 
 
 def create_zip(ctx, version):
-    global g_output_folder
     print("CREATING ZIP")
     archive_name = "..\\" + version + ".zip"
-    switches = ""
-    files_name = "*"
-    cmdline = f"..\\..\\7z.exe a {switches} {archive_name} *"
+    cmdline = f'"{config.seven_zip}" a {archive_name} *'
     print(cmdline)
-    with ctx.cd(g_output_folder):
-        ctx.run(cmdline, hide=False)
+    with ctx.cd(config.output_folder):
+        result = ctx.run(cmdline, hide=False, warn=True)
+        if result.failed:
+            print(Fore.RED + "ERROR: Failed to create zip" + Fore.RESET)
+            raise Exit("Failed to create zip archive")
 
 
 def copy_sources():
-    global g_output_folder
-    os.makedirs(g_output_folder + "\\sources", exist_ok=True)
-    os.makedirs(g_output_folder + "\\ideexpert", exist_ok=True)
-    os.makedirs(g_output_folder + "\\packages", exist_ok=True)
-    os.makedirs(g_output_folder + "\\tools", exist_ok=True)
+    # Validate source directories exist
+    ensure_dir_exists("sources", "DMVCFramework sources")
+    ensure_dir_exists("ideexpert", "IDE Expert")
+    ensure_dir_exists("packages", "Packages")
+    ensure_dir_exists("tools\\entitygenerator", "Entity Generator tool")
+    ensure_dir_exists("tools\\certificatesgenerator", "Certificates Generator tool")
+    ensure_dir_exists("tools\\sample_env_file", "Sample env file tool")
+
+    os.makedirs(config.output_folder + "\\sources", exist_ok=True)
+    os.makedirs(config.output_folder + "\\ideexpert", exist_ok=True)
+    os.makedirs(config.output_folder + "\\packages", exist_ok=True)
+    os.makedirs(config.output_folder + "\\tools", exist_ok=True)
     # copying main sources
     print("Copying DMVCFramework Sources...")
     src = glob.glob("sources\\*.pas") + glob.glob("sources\\*.inc")
     for file in src:
-        print("Copying " + file + " to " + g_output_folder + "\\sources")
-        copy2(file, g_output_folder + "\\sources\\")
+        print("Copying " + file + " to " + config.output_folder + "\\sources")
+        copy2(file, config.output_folder + "\\sources\\")
 
     # copying tools
     print("Copying tools...")
-    copytree("tools\\entitygenerator", g_output_folder + "\\tools\\entitygenerator")
+    ignore_patterns = shutil.ignore_patterns("*.identcache", "*.dcu", "__history", "__recovery")
+    copytree("tools\\entitygenerator", config.output_folder + "\\tools\\entitygenerator", ignore=ignore_patterns)
     copytree(
         "tools\\certificatesgenerator",
-        g_output_folder + "\\tools\\certificatesgenerator",
+        config.output_folder + "\\tools\\certificatesgenerator",
+        ignore=ignore_patterns,
     )
-    copytree("tools\\sample_env_file", g_output_folder + "\\tools\\sample_env_file")
+    copytree("tools\\sample_env_file", config.output_folder + "\\tools\\sample_env_file", ignore=ignore_patterns)
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")
@@ -146,141 +189,147 @@ def copy_sources():
         + glob.glob("ideexpert\\*.dfm")
         + glob.glob("ideexpert\\*.ico")
         + glob.glob("ideexpert\\*.bmp")
+        + glob.glob("ideexpert\\*.png")
+        + glob.glob("ideexpert\\*.res")
     )
 
     for file in src:
-        print("Copying " + file + " to " + g_output_folder + "\\ideexpert")
-        copy2(file, g_output_folder + "\\ideexpert\\")
+        print("Copying " + file + " to " + config.output_folder + "\\ideexpert")
+        copy2(file, config.output_folder + "\\ideexpert\\")
 
     files = [
-        "dmvcframeworkDTResource.rc",
+        #"dmvcframeworkDTResource.rc",
         "dmvcframework_group.groupproj",
         "dmvcframeworkRT.dproj",
         "dmvcframeworkRT.dpk",
         "dmvcframeworkDT.dproj",
         "dmvcframeworkDT.dpk",
+        # loggerproRT è in lib\loggerpro\packages\
+        # SwagDoc è in lib\swagdoc\
     ]
 
-    folders = [
-        "d100",
-        "d101",
-        "d102",
-        "d103",
-        "d104",
-        "d110",
-        "d113",
-        "d120",
-        "d130",
-        "d130_64bit",
-    ]
+    # Get package folders dynamically from packages directory
+    folders = get_package_folders()
+    if not folders:
+        raise Exit("No package folders found in packages directory")
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")
         for file in files:
-            os.makedirs(g_output_folder + f"\\packages\\{folder}", exist_ok=True)
+            os.makedirs(config.output_folder + f"\\packages\\{folder}", exist_ok=True)
+            print("Copying " + file + " to " + config.output_folder + f"\\packages\\{folder}")
             copy2(
-                rf"packages\{folder}\{file}", g_output_folder + rf"\packages\{folder}"
+                rf"packages\{folder}\{file}", config.output_folder + rf"\packages\{folder}"
             )
-    # copy2(
-    #     rf"packages\common_contains.inc", g_output_folder + rf"\packages"
-    # )
-    # copy2(
-    #     rf"packages\common_defines.inc", g_output_folder + rf"\packages"
-    # )
-    # copy2(
-    #     rf"packages\common_defines_design.inc", g_output_folder + rf"\packages"
-    # )
+
+
+def ensure_dir_exists(path, description=""):
+    """Validate that a directory exists, raise Exit if not"""
+    if not os.path.isdir(path):
+        desc = f" ({description})" if description else ""
+        raise Exit(f"Source directory not found{desc}: {path}")
+
+
+def run_robocopy(ctx, source, dest, extra_args=""):
+    """Run robocopy and handle its non-standard exit codes.
+    Robocopy exit codes: 0-7 = success, 8+ = error"""
+    ensure_dir_exists(source)
+    # Always exclude Delphi compilation artifacts
+    default_excludes = "/XF *.identcache *.dcu"
+    cmd = rf"robocopy {source} {dest} /E /NFL /NDL /NJH /NJS /nc /ns /np /r:1 /w:1 {default_excludes} {extra_args}"
+    result = ctx.run(cmd, warn=True, hide=True)
+    # Robocopy: exit codes 0-7 are success, 8+ are errors
+    if result.return_code >= 8:
+        print(Fore.RED + f"ERROR: robocopy failed with exit code {result.return_code}" + Fore.RESET)
+        print(f"Command: {cmd}")
+        print(f"stdout: {result.stdout}")
+        print(f"stderr: {result.stderr}")
+        raise Exit(f"Cannot copy from {source} to {dest}")
+    return True
 
 
 def copy_libs(ctx):
-    global g_output_folder
-
     # swagdoc
     print("Copying libraries: SwagDoc...")
-    curr_folder = g_output_folder + "\\lib\\swagdoc"
+    curr_folder = config.output_folder + "\\lib\\swagdoc"
     os.makedirs(curr_folder, exist_ok=True)
-    if not ctx.run(rf"xcopy lib\swagdoc\*.* {curr_folder}\*.* /E /Y /R /V /F"):
-        raise Exception("Cannot copy SwagDoc")
+    run_robocopy(ctx, r"lib\swagdoc", curr_folder)
 
     # loggerpro
     print("Copying libraries: LoggerPro...")
-    curr_folder = g_output_folder + "\\lib\\loggerpro"
+    curr_folder = config.output_folder + "\\lib\\loggerpro"
     os.makedirs(curr_folder, exist_ok=True)
-    if not ctx.run(rf"xcopy lib\loggerpro\*.* {curr_folder}\*.* /E /Y /R /V /F"):
-        raise Exception("Cannot copy loggerpro")
+    run_robocopy(ctx, r"lib\loggerpro", curr_folder,
+                 "/XD .vscode __history __recovery samples unittests "
+                 "/XF *.log *.png *.ico LOGGERPRO-BUILD-TIMESTAMP.TXT")
 
     # dmustache
     print("Copying libraries: dmustache...")
-    curr_folder = g_output_folder + "\\lib\\dmustache"
+    curr_folder = config.output_folder + "\\lib\\dmustache"
     os.makedirs(curr_folder, exist_ok=True)
-    if not ctx.run(rf"xcopy lib\dmustache\*.* {curr_folder}\*.* /E /Y /R /V /F"):
-        raise Exception("Cannot copy dmustache")
+    run_robocopy(ctx, r"lib\dmustache", curr_folder, "/XF *.log *.png *.ico")
 
 
 def printkv(key, value):
     print(Fore.RESET + key + ": " + Fore.GREEN + value.rjust(60) + Fore.RESET)
 
 
-def init_build(version):
+def init_build(version, clean_releases=False):
     """Required by all tasks"""
-    global g_version
-    global g_output_folder
-    global g_releases_path
-    g_version = version
-    g_output_folder = g_releases_path + "\\" + g_version
+    config.version = version
+    config.output_folder = config.releases_path + "\\" + config.version
     print()
     print(Fore.RESET + Fore.RED + "*" * 80)
-    print(Fore.RESET + Fore.RED + " BUILD VERSION: " + g_version + Fore.RESET)
-    print(Fore.RESET + Fore.RED + " OUTPUT PATH  : " + g_output_folder + Fore.RESET)
+    print(Fore.RESET + Fore.RED + " BUILD VERSION: " + config.version + Fore.RESET)
+    print(Fore.RESET + Fore.RED + " OUTPUT PATH  : " + config.output_folder + Fore.RESET)
     print(Fore.RESET + Fore.RED + "*" * 80)
 
-    rmtree(g_output_folder, True)
-    os.makedirs(g_output_folder, exist_ok=True)
-    f = open(g_output_folder + "\\version.txt", "w")
-    f.write("VERSION " + g_version + "\n")
+    if clean_releases:
+        print("Cleaning releases folder...")
+        rmtree(config.releases_path, True)
+    else:
+        rmtree(config.output_folder, True)
+    os.makedirs(config.output_folder, exist_ok=True)
+    f = open(config.output_folder + "\\version.txt", "w")
+    f.write("VERSION " + config.version + "\n")
     f.write("BUILD DATETIME " + datetime.now().isoformat() + "\n")
     f.close()
-    copy2("README.md", g_output_folder)
-    copy2("License.txt", g_output_folder)
+    copy2("README.md", config.output_folder)
+    copy2("License.txt", config.output_folder)
 
 
-def build_delphi_project_list(ctx, projects, config="DEBUG", filter=""):
+def build_delphi_project_list(ctx, projects, build_config="DEBUG", filter=""):
     ret = True
     for delphi_project in projects:
         if filter and (not filter in delphi_project):
             print(f"Skipped {os.path.basename(delphi_project)}")
             continue
-        msg = f"Building: {os.path.basename(delphi_project)}  ({config})"
+        msg = f"Building: {os.path.basename(delphi_project)}  ({build_config})"
         print(Fore.RESET + msg.ljust(90, "."), end="")
         try:
-            build_delphi_project(ctx, delphi_project, "DEBUG")
+            build_delphi_project(ctx, delphi_project, build_config)
             print(Fore.GREEN + "OK" + Fore.RESET)
         except Exception as e:
             print(Fore.RED + "\n\nBUILD ERROR")
             print(Fore.RESET)
             print(e)
 
-        # if res.ok:
-        #     print(Fore.GREEN + "OK" + Fore.RESET)
-        # else:
-        #     ret = False
-        #     print(Fore.RED + "\n\nBUILD ERROR")
-        #     print(Fore.RESET + res.stdout)
-        #     print("\n")
-
     return ret
 
 
 @task
 def clean(ctx, folder=None):
-    global g_output_folder
-    import os
-    import glob
-
     if folder is None:
-        folder = g_output_folder
+        folder = config.output_folder
+    if not folder:
+        raise Exit("No folder specified for clean operation")
+    if not os.path.isdir(folder):
+        print(f"Folder does not exist, nothing to clean: {folder}")
+        return
     print(f"Cleaning folder {folder}")
-    output = pathlib.Path(folder)
+    # Files to preserve (source resources, not compiled)
+    preserve_files = {"DMVC.Splash.Resources.res"}
+
     to_delete = []
     to_delete += glob.glob(folder + r"\**\*.exe", recursive=True)
     to_delete += glob.glob(folder + r"\**\*.dcu", recursive=True)
@@ -295,111 +344,81 @@ def clean(ctx, folder=None):
     to_delete += glob.glob(folder + r"\**\*.gitignore", recursive=True)
     to_delete += glob.glob(folder + r"\**\*.gitattributes", recursive=True)
 
+    # Filter out preserved files
+    to_delete = [f for f in to_delete if os.path.basename(f) not in preserve_files]
+
     for f in to_delete:
         print(f"Deleting {f}")
         os.remove(f)
 
     rmtree(folder + r"\lib\loggerpro\Win32", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d100\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d100\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d101\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d101\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d102\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d102\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d103\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d103\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d104\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d104\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d110\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d110\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d111\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d111\Win32\Debug", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d112\__history", True)
-    rmtree(folder + r"\lib\loggerpro\packages\d112\Win32\Debug", True)
+    # Clean loggerpro packages - find all package folders dynamically
+    loggerpro_packages = folder + r"\lib\loggerpro\packages"
+    if os.path.isdir(loggerpro_packages):
+        for pkg_folder in os.listdir(loggerpro_packages):
+            pkg_path = os.path.join(loggerpro_packages, pkg_folder)
+            if os.path.isdir(pkg_path):
+                rmtree(os.path.join(pkg_path, "__history"), True)
+                rmtree(os.path.join(pkg_path, "Win32", "Debug"), True)
+                rmtree(os.path.join(pkg_path, "Win64", "Debug"), True)
     rmtree(folder + r"\lib\dmustache\.git", True)
     rmtree(folder + r"\lib\swagdoc\lib", True)
     rmtree(folder + r"\lib\swagdoc\deploy", True)
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
 
-@task()
-def tests32(ctx):
-    """Builds and execute the unit tests"""
-    import os
-
-    apppath = os.path.dirname(os.path.realpath(__file__))
-    res = True
+def _run_tests(ctx, platform):
+    """Internal function to build and execute unit tests for a specific platform"""
+    bin_folder = "bin32" if platform == "Win32" else "bin64"
     testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
     testserver = r"unittests\general\TestServer\TestServer.dproj"
 
-    print("\nBuilding Unit Test client")
-    build_delphi_project(ctx, testclient, config="CI", platform="Win32")
-    print("\nBuilding Test Server")
-    build_delphi_project(ctx, testserver, config="CI", platform="Win32")
+    print(f"\n{'='*60}")
+    print(f"Running {platform} tests")
+    print(f"{'='*60}")
 
-    # import subprocess
-    # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
-    # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
-    import subprocess
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", platform=platform)
+    print("\nBuilding Test Server")
+    build_delphi_project(ctx, testserver, config="CI", platform=platform)
 
     print("\nExecuting tests...")
-    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
+    server_proc = subprocess.Popen(
+        [r"unittests\general\TestServer\bin\TestServer.exe"],
+        shell=True
+    )
     time.sleep(1)
     r = None
     try:
         r = subprocess.run(
-            [r"unittests\general\TestClient\bin32\DMVCFrameworkTests.exe"]
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe"]
         )
         if r.returncode != 0:
-            return Exit("Cannot run unit test client: \n" + str(r.stdout))
+            raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
     finally:
-        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
+        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"],
+                      capture_output=True)
     if r.returncode > 0:
         print(r)
-        print("Unit Tests Failed")
-        return Exit("Unit tests failed")
+        print(f"Unit Tests Failed ({platform})")
+        raise Exit(f"Unit tests failed ({platform})")
+
+
+@task()
+def tests32(ctx):
+    """Builds and execute the unit tests (Win32)"""
+    _run_tests(ctx, "Win32")
 
 
 @task()
 def tests64(ctx):
-    """Builds and execute the unit tests"""
-    import os
-
-    apppath = os.path.dirname(os.path.realpath(__file__))
-    res = True
-    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
-    testserver = r"unittests\general\TestServer\TestServer.dproj"
-
-    print("\nBuilding Unit Test client")
-    build_delphi_project(ctx, testclient, config="CI", platform="Win64")
-    print("\nBuilding Test Server")
-    build_delphi_project(ctx, testserver, config="CI", platform="Win64")
-
-    # import subprocess
-    # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
-    # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
-    import subprocess
-
-    print("\nExecuting tests...")
-    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
-    time.sleep(1)
-    r = None
-    try:
-        r = subprocess.run(
-            [r"unittests\general\TestClient\bin64\DMVCFrameworkTests.exe"]
-        )
-        if r.returncode != 0:
-            return Exit("Cannot run unit test client: \n" + str(r.stdout))
-    finally:
-        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
-    if r.returncode > 0:
-        print(r)
-        print("Unit Tests Failed")
-        return Exit("Unit tests failed")
+    """Builds and execute the unit tests (Win64)"""
+    _run_tests(ctx, "Win64")
 
 
 @task(pre=[tests32, tests64])
 def tests(ctx):
+    """Builds and execute all unit tests (Win32 and Win64)"""
     pass
 
 
@@ -439,10 +458,11 @@ def release(
 
     version = get_version_from_file()
 
-    init_build(version)
+    init_build(version, clean_releases=True)
 
     if not skip_tests:
-        tests(ctx)
+        tests32(ctx)
+        tests64(ctx)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build("")
         if not _build_projects(ctx, delphi_projects, version, ""):
@@ -451,7 +471,7 @@ def release(
     copy_sources()
     copy_libs(ctx)
     clean(ctx)
-    zip_samples(version)
+    zip_samples(ctx, version)
     create_zip(ctx, version)
     return True
 
@@ -674,12 +694,4 @@ def generate_nullables(ctx):
 
     with open(output_unitname, "w") as f:
         f.writelines(str_main_tmpl)
-
-    with open(src_folder.joinpath("main.out.txt"), "w") as f:
-        f.writelines(main_tmpl)
-
-    with open(src_folder.joinpath("interface.out.txt"), "w") as f:
-        f.writelines(intf_tmpl)
-
-    with open(src_folder.joinpath("implementation.out.txt"), "w") as f:
-        f.writelines(impl_tmpl)
+    print(f"Generated: {output_unitname}")
