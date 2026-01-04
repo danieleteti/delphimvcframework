@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -45,6 +45,7 @@ uses
   System.SysUtils,
   System.TypInfo,
   System.IOUtils,
+  System.SysConst,
   System.SyncObjs,
   System.DateUtils,
   System.Generics.Collections,
@@ -470,6 +471,7 @@ type
     function GetStatusCode: Integer;
     function GetCookies: TCookieCollection;
     function GetContentType: string;
+    function GetContentEncoding: string;
     function GetLocation: string;
     function GetContent: string;
     procedure SetReasonString(const AValue: string);
@@ -477,6 +479,7 @@ type
     procedure SetContentType(const AValue: string);
     procedure SetLocation(const AValue: string);
     procedure SetContent(const AValue: string);
+    procedure SetContentEncoding(const Value: string);
   public
     constructor Create(const AWebResponse: TWebResponse);
     destructor Destroy; override;
@@ -487,6 +490,7 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ReasonString: string read GetReasonString write SetReasonString;
     property ContentType: string read GetContentType write SetContentType;
+    property ContentEncoding: string read GetContentEncoding write SetContentEncoding;
     property CustomHeaders: TStrings read GetCustomHeaders;
     property Cookies: TCookieCollection read GetCookies;
     property Location: string read GetLocation write SetLocation;
@@ -712,6 +716,7 @@ type
     procedure SetContext(const Context: TWebContext);
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    property ContentType: string read GetContentType write SetContentType;
     class procedure InternalRenderMVCResponse(const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -775,7 +780,7 @@ type
     function UnprocessableContentResponse: IMVCResponse; overload;
     function UnprocessableContentResponse(const Message: String): IMVCResponse; overload;
 
-    function CreatedResponse(const Location: string = ''; const Body: TObject = nil): IMVCResponse; overload;
+    function CreatedResponse(const Location: string = ''; const Body: TObject = nil; const AOwns: Boolean = True): IMVCResponse; overload;
     function CreatedResponse(const Location: string; const Message: String): IMVCResponse; overload;
 
     function AcceptedResponse(const Location: string = ''; const Body: TObject = nil; const Message: String = ''): IMVCResponse; overload;
@@ -940,7 +945,7 @@ type
     ///   RenderTemplate renders a single view with sensible defaults.
     /// </summary>
     function RenderView(const AViewName: string; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
-    function RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback): string; overload;
+    function RenderView(const AViewName: string; const UseCommonHeadersAndFooters: Boolean; const OnBeforeRenderCallback: TMVCSSVBeforeRenderCallback = nil): string; overload;
 
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath
@@ -964,7 +969,6 @@ type
     // Properties
     property Context: TWebContext read GetContext write SetContext;
     property Session: TMVCWebSession read GetSession;
-    property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     procedure PushObjectToView(const aModelName: string; const AModel: TObject);
       deprecated 'Use "ViewData"';
@@ -1052,8 +1056,7 @@ type
   TMVCExceptionHandlerProc = reference to procedure(E: Exception;
     SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
   TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
-  TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
-    const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
+  TMVCRouterLogHandlerProc = reference to procedure(const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
   TMVCJSONRPCExceptionHandlerProc = reference to procedure(E: Exception;
     { SelectedController: TMVCController; //YAGNI }
     WebContext: TWebContext;
@@ -1317,7 +1320,6 @@ uses
   IdURI,
   IdStack,
   System.StrUtils,
-  System.SysConst,
   sqids,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
@@ -2050,6 +2052,11 @@ begin
   Result := FWebResponse.Content;
 end;
 
+function TMVCWebResponse.GetContentEncoding: string;
+begin
+  Result := FWebResponse.ContentEncoding;
+end;
+
 function TMVCWebResponse.GetContentType: string;
 begin
   Result := FWebResponse.ContentType;
@@ -2085,16 +2092,20 @@ begin
   FWebResponse.Content := AValue;
 end;
 
+procedure TMVCWebResponse.SetContentEncoding(const Value: string);
+begin
+  FWebResponse.ContentEncoding := Value;
+end;
+
 procedure TMVCWebResponse.SetContentStream(const AStream: TStream; const AContentType: string);
 begin
-  ContentType := AContentType;
   FWebResponse.ContentStream := AStream;
+  ContentType := AContentType;
 end;
 
 procedure TMVCWebResponse.SetContentType(const AValue: string);
 begin
-  FWebResponse.ContentType := '';
-  FWebResponse.ContentType := AValue;
+  FWebResponse.ContentType := aValue;
 end;
 
 procedure TMVCWebResponse.SetCustomHeader(const AName, AValue: string);
@@ -2559,7 +2570,6 @@ begin
 
   fOnRouterLog :=
       procedure(
-        const Sender: TMVCCustomRouter;
         const RouterLogState: TMVCRouterLogState;
         const Context: TWebContext)
     var
@@ -2743,7 +2753,6 @@ var
   lActualParams: TArray<TValue>;
   lBodyParameter, lResponseObject: TObject;
   lInvokeResult: TValue;
-  lObjList: IMVCList;
   lRespStatus: Integer;
   lRouterResult: TMVCRouterResult;
 begin
@@ -2899,12 +2908,9 @@ begin
                                 begin
                                   TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
                                 end
-                                else if (not lResponseObject.InheritsFrom(TJsonBaseObject)) and TDuckTypedList.CanBeWrappedAsList(lResponseObject, lObjList) then
-                                begin
-                                  lSelectedController.Render(lObjList);
-                                end
                                 else
                                 begin
+                                  { Render handles duck typing vs type serializer logic internally }
                                   lSelectedController.Render(lResponseObject, False);
                                 end;
                               end
@@ -2981,7 +2987,7 @@ begin
                 lRouterControllerClazzQualifiedClassName,
                 lRouterMethodToCallName,
                 lHandled);
-              fOnRouterLog(nil, rlsRouteFound, lContext);
+              fOnRouterLog(rlsRouteFound, lContext);
             end
             else // execute-routing
             begin
@@ -2990,7 +2996,7 @@ begin
                 lContext.Response.StatusCode := http_status.NotFound;
                 lContext.Response.ReasonString := 'Not Found';
                 SendHTTPStatus(lContext, HTTP_STATUS.NotFound);
-                fOnRouterLog(nil, rlsRouteNotFound, lContext);
+                fOnRouterLog(rlsRouteNotFound, lContext);
               end
               else
               begin
@@ -4015,6 +4021,7 @@ begin
   inherited;
   FContext := nil;
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   FResponseStream := nil;
 end;
 
@@ -4043,7 +4050,7 @@ begin
 end;
 
 function TMVCRenderer.CreatedResponse(const Location: string;
-  const Body: TObject): IMVCResponse;
+  const Body: TObject; const AOwns: Boolean): IMVCResponse;
 var
   lRespBuilder: IMVCResponseBuilder;
 begin
@@ -4054,7 +4061,7 @@ begin
   end;
   if Assigned(Body) then
   begin
-    lRespBuilder.Body(Body, True);
+    lRespBuilder.Body(Body, AOwns);
   end;
   Result := lRespBuilder.StatusCode(HTTP_STATUS.Created).Build;
 end;
@@ -4062,12 +4069,12 @@ end;
 function TMVCRenderer.GetContentType: string;
 begin
   Result := GetContext.Response.ContentType;
-  if Result.IsEmpty or FContentCharset.IsEmpty then
-  begin
-    Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
-    GetContext.Response.ContentType := Result;
-    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset); //update FContentMediaType, FContentCharset
-  end;
+//  if Result.IsEmpty then
+//  begin
+//    Result := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
+//    GetContext.Response.ContentType := Result;
+//    SplitContentMediaTypeAndCharset(Result, FContentMediaType, FContentCharset); //update FContentMediaType, FContentCharset
+//  end;
 end;
 
 function TMVCRenderer.GetContext: TWebContext;
@@ -4319,7 +4326,9 @@ var AHandled: Boolean);
 begin
   AHandled := False;
   if ContentType.IsEmpty then
-    ContentType := Config[TMVCConfigKey.DefaultContentType];
+  begin
+    ContentType := BuildContentType(Config[TMVCConfigKey.DefaultContentType], Config[TMVCConfigKey.DefaultContentCharset]);
+  end;
   { Implement if need be. }
 end;
 
@@ -4400,27 +4409,34 @@ end;
 procedure TMVCRenderer.Render(const AContent: string);
 var
   lOutEncoding: TEncoding;
+  lWebResponse: TMVCWebResponse;
 begin
+  lWebResponse := GetContext.Response;
+
   if SameText(TMVCCharSet.UTF_8, FContentCharset) or SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) then
   begin
-    GetContext
-      .Response
-      .SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), GetContentType)
+    lWebResponse.SetContentStream(TStringStream.Create(AContent, gEncodingUTF8, False), GetContentType);
   end
   else
   begin
-    lOutEncoding := TEncoding.GetEncoding(FContentCharset);
-    try
-      GetContext
-        .Response
-        .SetContentStream(
-          TBytesStream.Create(
-            TEncoding.Convert(
-              TEncoding.Default,
-              lOutEncoding,
-              TEncoding.Default.GetBytes(AContent))), GetContentType);
-    finally
-      lOutEncoding.Free;
+    if FContentCharset.IsEmpty then
+    begin
+      lWebResponse.SetContentStream(TStringStream.Create(AContent, TEncoding.Default, False), GetContentType);
+    end
+    else
+    begin
+      lOutEncoding := TEncoding.GetEncoding(FContentCharset);
+      try
+        lWebResponse
+          .SetContentStream(
+            TBytesStream.Create(
+              TEncoding.Convert(
+                TEncoding.Default,
+                lOutEncoding,
+                TEncoding.Default.GetBytes(AContent))), GetContentType);
+      finally
+        lOutEncoding.Free;
+      end;
     end;
   end;
 end;
@@ -4521,7 +4537,7 @@ begin
   end;
 
   GetContext.Response.RawWebResponse.Content := EmptyStr;
-  GetContext.Response.RawWebResponse.ContentType := GetContentType;
+//  GetContext.Response.RawWebResponse.ContentType := GetContentType;
   GetContext.Response.RawWebResponse.ContentStream := lTemp;
   GetContext.Response.RawWebResponse.FreeContentStream := True;
 end;
@@ -4539,8 +4555,14 @@ begin
 end;
 
 procedure TMVCRenderer.SetContentType(const AValue: string);
+var
+  lContentType, lContentMediaType, lContentCharset: String;
 begin
-  GetContext.Response.ContentType := AValue.Trim;
+  lContentType := AValue.Trim;
+  GetContext.Response.ContentType := lContentType;
+  SplitContentMediaTypeAndCharset(lContentType, lContentMediaType, lContentCharset);
+  FContentCharset := lContentCharset;
+  FContentMediaType := lContentMediaType;
 end;
 
 procedure TMVCRenderer.SetContext(const Context: TWebContext);
@@ -4619,9 +4641,27 @@ procedure TMVCRenderer.Render(
   const AType: TMVCSerializationType;
   const ASerializationAction: TMVCSerializationAction = nil;
   const AIgnoredFields: TMVCIgnoredList = nil);
+var
+  lObjList: IMVCList;
+  lSerializer: IMVCSerializer;
 begin
   try
-    Render(Serializer(GetContentType).SerializeObject(AObject, AType, AIgnoredFields, ASerializationAction));
+    lSerializer := Serializer(GetContentType);
+    { If object can be wrapped as list (duck typing) AND no custom type serializer
+      is registered for this specific type, use collection serialization.
+      Otherwise use object serialization (which will use the custom type serializer
+      if one is registered, e.g., for TMVCListOfString, TMVCListOfInteger, etc.) }
+    if Assigned(AObject) and
+       (not AObject.InheritsFrom(TJsonBaseObject)) and
+       (not lSerializer.TypeSerializerExists(AObject.ClassInfo)) and
+       TDuckTypedList.CanBeWrappedAsList(AObject, lObjList) then
+    begin
+      Render(lSerializer.SerializeCollection(TObject(lObjList), AType, AIgnoredFields, ASerializationAction));
+    end
+    else
+    begin
+      Render(lSerializer.SerializeObject(AObject, AType, AIgnoredFields, ASerializationAction));
+    end;
   finally
     if AOwns then
       AObject.Free;

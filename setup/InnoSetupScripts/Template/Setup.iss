@@ -15,14 +15,14 @@
 {                          Custom Parameters                             }
 {                                                                        }
 { /RADStudioVersions=                                                    }
-{   Values allowed: 10.0 to 24.0 separed by comma or all keyword         }
+{   Values allowed: 10.0 to 37.0 separed by comma or all keyword         }
 {   Default: (latest version found in computer)                          }
 {   Description: The version used is the product version in resgistry,   }
-{     i.e, the RAD Studio 11 Alexandria is "22.0", the RAD Studio 12     }
-{     Athens is "23.0", etc. This is used to set the RAD Studio          }
+{     i.e, the RAD Studio 12 Athens is "23.0", the RAD Studio 13         }
+{     Florence is "37.0", etc. This is used to set the RAD Studio        }
 {     versions, in silent mode, that will installed the library.         }
-{     Ex: /RADStudioVersions=23.0,22.0 will install only in              }
-{     RAD Studio 12 Athens and 11 Alexandria. But if the parameter is    }
+{     Ex: /RADStudioVersions=37.0,23.0 will install only in              }
+{     RAD Studio 13 Florence and 12 Athens. But if the parameter is      }
 {     /RADStudioVersions=all will install in all RAD Studio installed in }
 {     the machine. Without set this parameter, the value will be only    }
 {     the newest RAD Studio version found on the machine. A cool tip of  }
@@ -40,22 +40,22 @@
 {************************************************************************}
 {                                                                        }
 { Example of command line to install in silent mode:                     }
-{   cmd /C ""SVGIconImageList_4.3.0_Setup.exe"                           }
-{     /DIR="C:\Dev\SVGIconImageList" /SILENT                             }
+{   cmd /C ""MyComponents_Setup.exe"                                     }
+{     /DIR="C:\Dev\MyComponents" /SILENT                                 }
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the installation command could be:            }
-{   cmd /C ""$(BDSCatalogRepository)\SVGIconImageList-4.3.0\             }
-{     SVGIconImageList_4.3.0_Setup.exe"                                  }
-{     /DIR="$(BDSCatalogRepository)\SVGIconImageList-4.3.0" /VERYSILENT  }
+{   cmd /C ""$(BDSCatalogRepository)\MyComponents\                       }
+{     MyComponents_Setup.exe"                                            }
+{     /DIR="$(BDSCatalogRepository)\MyComponents" /VERYSILENT            }
 {     /RADStudioVersions=$(ProductVersion) /CreateUninstallRegKey=no"    }
 {                                                                        }
 { Example of command line to uninstall in silent mode:                   }
-{   cmd /C ""C:\SVGIconImageList\unins000.exe" /VERYSILENT               }
+{   cmd /C ""C:\MyComponents\unins000.exe" /VERYSILENT                   }
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the uninstall command could be:               }
-{   cmd /C ""$(BDSCatalogRepository)\SVGIconImageList-4.3.0\unins000.exe"}
+{   cmd /C ""$(BDSCatalogRepository)\MyComponents\unins000.exe"          }
 {     /VERYSILENT /RADStudioVersions=$(ProductVersion)"                  }
 {                                                                        }
 {************************************************************************}
@@ -65,7 +65,7 @@
 #define SetupName "MyLibraryFolder"
 #define LibraryVersion "1.0.0"
 #define LibraryPublisher "My Company"
-#define LibraryCopyright "Copyright (c) 2024 MyCompany"
+#define LibraryCopyright "Copyright (c) 2025 MyCompany"
 #define LibraryURL "https://mycompany.com/MyLibrary/"
 #define LibrarySamplesFolder "Demos"
 #define LibraryPackagesFolder "Packages"
@@ -73,21 +73,22 @@
 #define LibraryDCUFolder "Lib"
 #define LibraryDocumentationURL "https://mycompany.com/MyLibrary/docs"
 #define LibrarySupportURL "https://github.com/mycompany/MyLibrary/issues/"
-#define LibraryUpdatesURL "https://github.com/EtheaDev/SVGIconImageList/releases/"
+#define LibraryUpdatesURL "https://github.com/EtheaDev/MyProject/releases/"
 #define LibraryLicenseFileName "..\LICENSE"
 #define BannerImagesFileName "WizClassicImage.bmp"
 #define SmallImagesFileName "WizClassicSmallImage.bmp"
 #define SetupFolder "Setup"
 #define FilesEmbedded
-//TODO: you can choose your preferred Style contained in folder: InnoSetupScripts\Style 
+//you can choose your preferred Style contained in folder: InnoSetupScripts\Style 
 //#define VclStyle "Windows11.Dark.vsf"
 
 [Setup]
+WizardSizePercent=120
 AllowCancelDuringInstall=yes
 AppCopyright={#LibraryCopyright}
-; TODO: To generate a new GUID, click Tools | Generate GUID inside the IDE.
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
+; TODO: To generate a new GUID, click Tools | Generate GUID inside the IDE.
 AppId={{00000000-0000-0000-0000-000000000000}
 AppName={#LibraryName}
 AppPublisher={#LibraryPublisher}
@@ -95,6 +96,7 @@ AppPublisherURL={#LibraryURL}
 AppSupportURL={#LibrarySupportURL}
 AppUpdatesURL={#LibraryUpdatesURL}
 AppVersion={#LibraryVersion}
+VersionInfoVersion={#LibraryVersion}
 CloseApplications=no
 Compression=lzma2/ultra64
 CreateUninstallRegKey=NeedsUninstallRegKey
@@ -119,7 +121,7 @@ SolidCompression=yes
 UsePreviousAppDir=no
 WizardImageFile={#BannerImagesFileName}
 WizardSmallImageFile={#SmallImagesFileName}
-OutputBaseFilename={#SetupName}_{#LibraryVersion}_Setup
+OutputBaseFilename={#SetupName}_Setup
 OutputDir=.\Output\
 Uninstallable=yes
 
@@ -163,10 +165,10 @@ Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\{#LibrarySamplesFolder}"; Description: "{cm:SetupOpenSamplesFolder}"; Flags: shellexec runasoriginaluser postinstall;
-Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall unchecked;
+Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall;
 
 [UninstallDelete]
-//TODO: Add the Folder list of your project
+//TODO: Check the Folder list to install of your Components
 Type: filesandordirs; Name: "{app}\Demos\*";
 Type: filesandordirs; Name: "{app}\Lib\*";
 Type: filesandordirs; Name: "{app}\Packages\*";
@@ -202,7 +204,6 @@ function _OnTryPrepareProjectInstallation(var AProjectItem: TRADStudioGroupProje
 var
   I: Integer;
   LAppPath: string;
-  LPlatform: TProjectPlatform;
 begin
   Log(Format('_OnTryPrepareProjectInstallation: Preparing package "%s" before install...', [AProjectItem.Project.FileName]));
   if not ContainsString(_FRADStudioInstalledList, AInfo.Version.RegVersion, False) then
@@ -220,7 +221,6 @@ function _OnTryPrepareProjectUninstallation(var AProjectItem: TRADStudioGroupPro
 var
   I: Integer;
   LAppPath: string;
-  LPlatform: TProjectPlatform;
 begin
   Log(Format('_OnTryPrepareProjectUninstallation: Preparing package "%s" to uninstall...', [AProjectItem.Project.FileName]));
   if not ContainsString(_FRADStudioUninstalledList, AInfo.Version.RegVersion, False) then

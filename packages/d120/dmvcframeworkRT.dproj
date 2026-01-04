@@ -95,6 +95,9 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64x)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <BCC_EnableBatchCompilation>true</BCC_EnableBatchCompilation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -207,6 +210,15 @@
         <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
+        <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Repository.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Client.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Server.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
+        <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -253,7 +265,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkRT120.bpl" Configuration="Release" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\37.0\Bpl\dmvcframeworkRT120.bpl" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

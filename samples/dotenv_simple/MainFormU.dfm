@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'dotEnv :: Simple'
+  Caption = 'dotEnv :: Demo'
   ClientHeight = 353
   ClientWidth = 843
   Color = clBtnFace

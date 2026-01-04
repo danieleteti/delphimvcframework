@@ -127,9 +127,9 @@
         <DCCReference Include="IndyProtocols.dcp"/>
         <DCCReference Include="FireDACIBDriver.dcp"/>
         <DCCReference Include="FireDACMySQLDriver.dcp"/>
-        <DCCReference Include="loggerproRT.dcp"/>
         <DCCReference Include="FireDACPgDriver.dcp"/>
         <DCCReference Include="FireDACSqliteDriver.dcp"/>
+        <DCCReference Include="loggerproRT.dcp"/>
         <DCCReference Include="SwagDoc.dcp"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.AsyncTask.pas"/>
@@ -210,6 +210,9 @@
         <DCCReference Include="..\..\sources\MVCFramework.IntfObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ObjectPool.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
+        <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Repository.pas"/>
+        <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -256,7 +259,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\dmvcframeworkRT103.bpl" Configuration="Release" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\37.0\Bpl\dmvcframeworkRT103.bpl" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

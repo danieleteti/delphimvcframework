@@ -4,7 +4,7 @@
         <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">TESTINSIGHT</Config>
+        <Config Condition="'$(Config)'==''">CI</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -280,6 +280,12 @@
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="TestsBloomFilterU.pas"/>
+        <DCCReference Include="DotEnvTestU.pas"/>
+        <DCCReference Include="WebSocketTestsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.Client.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -374,10 +380,22 @@
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols"/>
                 <DeployFile LocalName="bin32\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin32\DMVCFrameworkTests.rsm" Configuration="TESTINSIGHT" Class="DebugSymbols"/>
+                <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="CI" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput"/>
                 <DeployFile LocalName="bin64\DMVCFrameworkTests.exe" Configuration="TESTINSIGHT" Class="ProjectOutput">
                     <Platform Name="Win64">
                         <RemoteName>DMVCFrameworkTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin64\DMVCFrameworkTests.rsm" Configuration="CI" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

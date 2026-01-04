@@ -38,9 +38,9 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT,
   FireDACPgDriver,
   FireDACSqliteDriver,
+  loggerproRT,
   SwagDoc;
 
 contains
@@ -127,7 +127,10 @@ contains
   MVCFramework.HTMX in '..\..\sources\MVCFramework.HTMX.pas',
   MVCFramework.IntfObjectPool in '..\..\sources\MVCFramework.IntfObjectPool.pas',
   MVCFramework.ObjectPool in '..\..\sources\MVCFramework.ObjectPool.pas',
-  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas';
+  MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
+  MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas',
+  ExprEvaluator in '..\..\sources\ExprEvaluator.pas',
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
 
 end.
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1153,6 +1153,8 @@ begin
       begin
         if aPropType.Handle = TypeInfo(TGUID) then
           Result := stGuid
+        else if aPropType.Handle = TypeInfo(NullableAnsiString) then
+          Result := stString
         else if aPropType.Handle = TypeInfo(NullableString) then
           Result := stString
         else if aPropType.Handle = TypeInfo(NullableCurrency) then
@@ -1169,19 +1171,37 @@ begin
           Result := stNumber
         else if aPropType.Handle = TypeInfo(NullableDouble) then
           Result := stNumber
+        else if aPropType.Handle = TypeInfo(NullableFloat32) then
+          Result := stNumber
+        else if aPropType.Handle = TypeInfo(NullableFloat64) then
+          Result := stNumber
         else if aPropType.Handle = TypeInfo(NullableExtended) then
           Result := stNumber
+        else if aPropType.Handle = TypeInfo(NullableInt8) then
+          Result := stInteger
+        else if aPropType.Handle = TypeInfo(NullableUInt8) then
+          Result := stInteger
+        else if aPropType.Handle = TypeInfo(NullableByte) then
+          Result := stInteger
         else if aPropType.Handle = TypeInfo(NullableInt16) then
           Result := stInteger
         else if aPropType.Handle = TypeInfo(NullableUInt16) then
           Result := stInteger
         else if aPropType.Handle = TypeInfo(NullableInt32) then
           Result := stInteger
+        else if aPropType.Handle = TypeInfo(NullableInteger) then
+          Result := stInteger
         else if aPropType.Handle = TypeInfo(NullableUInt32) then
           Result := stInteger
         else if aPropType.Handle = TypeInfo(NullableInt64) then
           Result := stInt64
         else if aPropType.Handle = TypeInfo(NullableUInt64) then
+          Result := stInt64
+        else if aPropType.Handle = TypeInfo(NullableTGUID) then
+          Result := stGuid
+        else if aPropType.Handle = TypeInfo(NullableNativeInt) then
+          Result := stInt64
+        else if aPropType.Handle = TypeInfo(NullableNativeUInt) then
           Result := stInt64
         else if aPropType.IsRecord then
           Result := stObject;

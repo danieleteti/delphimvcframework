@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -78,6 +78,7 @@ type
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
     TEXT_CSV = 'text/csv';
+    TEXT_CALENDAR = 'text/calendar';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_X_ICON = 'image/x-icon';
@@ -130,7 +131,7 @@ type
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
-    COPYRIGHT = 'Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team';
+    COPYRIGHT = 'Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record

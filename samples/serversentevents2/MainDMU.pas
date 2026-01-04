@@ -9,7 +9,7 @@ uses
   Data.DB, FireDAC.Comp.Client, FireDAC.Phys.MSSQL, FireDAC.Phys.MSSQLDef,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
   FireDAC.Comp.DataSet, FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef,
-  FireDAC.Stan.ExprFuncs;
+  FireDAC.Stan.ExprFuncs, FireDAC.Phys.SQLiteWrapper.Stat;
 
 type
   TdmMain = class(TDataModule)
@@ -40,6 +40,7 @@ end;
 procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
 begin
   Connection.Params.Database := 'serversentevent.db';
+  Connection.Params.Values['OpenMode'] := 'CreateUTF8';
 end;
 
 end.

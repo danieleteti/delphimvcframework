@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -133,10 +133,10 @@ type
     property ItemsAsDateTime[const index: string]: TDateTime read GetItemAsDateTime write SetItemAsDateTime;
     property Items[const index: string]: string read GetItem write SetItem; default;
   protected
-    function Contains(const Index: string): Boolean;
     function Keys: TArray<string>;
   public
     constructor Create; virtual;
+    function Contains(const Index: string): Boolean;
     destructor Destroy; override;
   end;
 

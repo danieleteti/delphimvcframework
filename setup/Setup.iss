@@ -15,14 +15,14 @@
 {                          Custom Parameters                             }
 {                                                                        }
 { /RADStudioVersions=                                                    }
-{   Values allowed: 10.0 to 24.0 separed by comma or all keyword         }
+{   Values allowed: 10.0 to 37.0 separed by comma or all keyword         }
 {   Default: (latest version found in computer)                          }
 {   Description: The version used is the product version in resgistry,   }
-{     i.e, the RAD Studio 11 Alexandria is "22.0", the RAD Studio 12     }
-{     Athens is "23.0", etc. This is used to set the RAD Studio          }
+{     i.e, the RAD Studio 12 Athens is "23.0", the RAD Studio 13         }
+{     Florence is "37.0", etc. This is used to set the RAD Studio        }
 {     versions, in silent mode, that will installed the library.         }
-{     Ex: /RADStudioVersions=23.0,22.0 will install only in              }
-{     RAD Studio 12 Athens and 11 Alexandria. But if the parameter is    }
+{     Ex: /RADStudioVersions=37.0,23.0 will install only in              }
+{     RAD Studio 13 Florence and 12 Athens. But if the parameter is      }
 {     /RADStudioVersions=all will install in all RAD Studio installed in }
 {     the machine. Without set this parameter, the value will be only    }
 {     the newest RAD Studio version found on the machine. A cool tip of  }
@@ -40,34 +40,35 @@
 {************************************************************************}
 {                                                                        }
 { Example of command line to install in silent mode:                     }
-{   cmd /C ""SVGIconImageList_Setup.exe"                                 }
-{     /DIR="C:\Dev\SVGIconImageList" /SILENT                             }
+{   cmd /C ""MyComponents_Setup.exe"                                     }
+{     /DIR="C:\Dev\MyComponents" /SILENT                                 }
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the installation command could be:            }
-{   cmd /C ""$(BDSCatalogRepository)\SVGIconImageList\                   }
-{     SVGIconImageList_Setup.exe"                                        }
-{     /DIR="$(BDSCatalogRepository)\SVGIconImageList" /VERYSILENT        }
+{   cmd /C ""$(BDSCatalogRepository)\MyComponents\                       }
+{     MyComponents_Setup.exe"                                            }
+{     /DIR="$(BDSCatalogRepository)\MyComponents" /VERYSILENT            }
 {     /RADStudioVersions=$(ProductVersion) /CreateUninstallRegKey=no"    }
 {                                                                        }
 { Example of command line to uninstall in silent mode:                   }
-{   cmd /C ""C:\$(UserDocs)SVGIconImageList\unins000.exe" /VERYSILENT    }
+{   cmd /C ""C:\MyComponents\unins000.exe" /VERYSILENT                   }
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the uninstall command could be:               }
-{   cmd /C ""$(BDSCatalogRepository)\SVGIconImageList\unins000.exe"      }
+{   cmd /C ""$(BDSCatalogRepository)\MyComponents\unins000.exe"          }
 {     /VERYSILENT /RADStudioVersions=$(ProductVersion)"                  }
 {                                                                        }
 {************************************************************************}
 
 #define LibraryName "DelphiMVCFramework"
 #define SetupName "DMVCFramework"
-#define LibraryVersion "3.4.2"
+#define LibraryVersion "3.4.3"
+#define LibraryVersionInfo "aluminium rc3"
 #define LibraryPublisher "Daniele Teti"
 #define LibraryCopyright "Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team"
 #define LibraryURL "https://www.danieleteti.it/delphimvcframework/"
 #define LibrarySamplesFolder "samples"
-#define LibraryPackagesFolder "setup/AllPackages"
+#define LibraryPackagesFolder "packages"
 #define LibrarySourceFolder "sources"
 //#define LibraryDCUFolder "lib"
 #define LibraryDocumentationURL "https://www.danieleteti.it/delphimvcframework/"
@@ -94,7 +95,7 @@ AppPublisher={#LibraryPublisher}
 AppPublisherURL={#LibraryURL}
 AppSupportURL={#LibrarySupportURL}
 AppUpdatesURL={#LibraryUpdatesURL}
-AppVersion={#LibraryVersion}
+AppVersion={#LibraryVersion} {#LibraryVersionInfo}
 VersionInfoVersion={#LibraryVersion}
 CloseApplications=no
 Compression=lzma2/ultra64
@@ -164,7 +165,7 @@ Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\{#LibrarySamplesFolder}"; Description: "{cm:SetupOpenSamplesFolder}"; Flags: shellexec runasoriginaluser postinstall;
-Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall unchecked;
+Filename: "{#LibraryDocumentationURL}"; Description: "{cm:SetupViewOnlineDocumentation}"; Flags: shellexec runasoriginaluser postinstall;
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\setup\AllPackages\*";

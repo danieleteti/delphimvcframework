@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -63,7 +63,7 @@ type
     edtWebModuleName: TEdit;
     lblWbModule: TLabel;
     edtServerPort: TEdit;
-    Label2: TLabel;
+    lblServerPort: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
     Panel2: TPanel;
@@ -103,6 +103,11 @@ type
     chkSqids: TCheckBox;
     rgNameCase: TRadioGroup;
     rgSSV: TRadioGroup;
+    Image2: TImage;
+    Shape2: TShape;
+    rgServerType: TRadioGroup;
+    chkRateLimit: TCheckBox;
+    chkWebSocketServer: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -158,6 +163,14 @@ uses
 
 procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
   var Done: Boolean);
+  procedure SyncServerPort(const aPort: String);
+  begin
+    if String(edtServerPort.Text).IsEmpty or (edtServerPort.Text = edtServerPort.TextHint) then
+    begin
+      edtServerPort.Text := aPort;
+      edtServerPort.TextHint := aPort;
+    end;
+  end;
 begin
   EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
   EdtConnDefName.Enabled := chkActiveRecord.Checked;
@@ -167,13 +180,38 @@ begin
   begin
     chkProfileActions.Checked := False;
   end;
+  case rgServerType.ItemIndex of
+    0: begin //http
+         lblServerPort.Caption := 'HTTP Server Port';
+         SyncServerPort('8080');
+       end;
+    1: begin //https
+         lblServerPort.Caption := 'HTTPS Server Port';
+         SyncServerPort('443');
+       end;
+    2: begin //fastcgi
+         lblServerPort.Caption := 'FastCGI Server Port';
+         SyncServerPort('9000');
+       end;
+  end;
 end;
 
 procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+var
+  lHints: TArray<String>;
 begin
+  lHints := [];
   if chkActiveRecord.Checked then
   begin
-    ShowMessage('Remember to include required FireDAC units in your project');
+    lHints := lHints + ['- Include required FireDAC units in your project'];
+  end;
+  if rgServerType.ItemIndex = 1 then
+  begin
+    lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
+  end;
+  if Length(lHints) > 0 then
+  begin
+    ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
   end;
 end;
 
@@ -184,8 +222,14 @@ begin
   edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
+  chkWebSocketServer.Checked := False;
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
   fModel := TJsonObject.Create;
+
+  {$IF not Defined(FASTCGI)}
+  rgServerType.Items.Delete(rgServerType.Items.Count-1);
+  rgServerType.ItemIndex := 0;
+  {$ENDIF}
 end;
 
 procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
@@ -365,6 +409,17 @@ begin
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
   fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
+  fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
+  fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
+
+  case rgServerType.ItemIndex of
+    0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+    1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
+    2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+    else
+      raise Exception.Create('Invalid Server Type');
+  end;
+
   //webmodule
 
   fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;
@@ -374,6 +429,7 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_compression] :=  chkCompression.Checked;
   fModel.B[TConfigKey.webmodule_middleware_etag] :=  chkETAG.Checked;
   fModel.B[TConfigKey.webmodule_middleware_cors] :=  chkCORS.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_ratelimit] :=  chkRateLimit.Checked;
   fModel.B[TConfigKey.webmodule_middleware_activerecord] :=  chkActiveRecord.Checked;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  EdtConnDefName.Text;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  EdtFDConnDefFileName.Text;

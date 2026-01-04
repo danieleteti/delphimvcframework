@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -199,7 +199,9 @@ begin
               //Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + )
               case TMVCActiveRecord(AObject).GetPrimaryKeyFieldType of
                 ftInteger:
-                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString)
+                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInteger.ToString);
+                ftLargeint:
+                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString);
               end;
             end)
           .Add('meta', lStrDict));

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -57,6 +57,7 @@ type
     class function GetNameAs(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: string): string;
     function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
     procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+    function TypeSerializerExists(const ATypeInfo: PTypeInfo): Boolean;
     function GetObjectTypeOfGenericList(const ATypeInfo: PTypeInfo; out ARttiType: TRttiType): Boolean; overload;
     function GetObjectTypeOfGenericList(const ATypeInfo: PTypeInfo): TClass; overload;
     constructor Create(const Config: TMVCConfig); overload;
@@ -359,6 +360,11 @@ begin
   {$ENDIF}
 
   FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
+end;
+
+function TMVCAbstractSerializer.TypeSerializerExists(const ATypeInfo: PTypeInfo): Boolean;
+begin
+  Result := FTypeSerializers.ContainsKey(ATypeInfo);
 end;
 
 end.

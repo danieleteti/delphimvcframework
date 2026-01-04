@@ -153,3 +153,17 @@ samples/wine_cellar_sample/winecellarclient_mobile/Android64/Debug/
 *.delphilsp.json
 /unittests/general/TestClient/pgsql/testdatadir/
 **/dmvc_sessions/*
+.claude
+/samples/websocket_chat/_README.md
+/samples/websocket_primer/_README.md
+/samples/websocket_groups/_README.md
+nul
+*nul
+/tools/certificatesgenerator/*.srl
+/tools/certificatesgenerator/*.crt
+/tools/certificatesgenerator/*.csr
+/tools/certificatesgenerator/*.key
+/tools/certificatesgenerator/*.crt
+/samples/tls13/bin/certificates/*
+/unittests/general/TestClient/pgsql/testdatadir/*
+/CLAUDE.md

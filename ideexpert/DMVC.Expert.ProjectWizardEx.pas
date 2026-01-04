@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -91,12 +91,14 @@ begin
       Project: IOTAProject;
       Config: IOTABuildConfiguration;
       ControllerUnit: IOTAModule;
+      WebSocketServerUnit: IOTAModule;
       JSONRPCUnit: IOTAModule;
       ServicesUnit: IOTAModule;
       WebModuleUnit: IOTAModule;
       MustacheHelperUnit: IOTAModule;
       TemplateProHelperUnit: IOTAModule;
       ControllerCreator: IOTACreator;
+      WebSocketServerCreator: IOTACreator;
       EntityCreator: IOTACreator;
       JSONRPCUnitCreator: IOTACreator;
       ServicesUnitCreator: IOTACreator;
@@ -185,6 +187,23 @@ begin
             end;
           end;
 
+          // Create WebSocket Server Unit
+          if lJSON.B[TConfigKey.websocket_generate] then
+          begin
+            WebSocketServerCreator := TNewGenericUnitFromTemplate.Create(
+              lJSON,
+              FillWebSocketServerTemplates,
+              TConfigKey.websocket_unit_name,
+              APersonality);
+            WebSocketServerUnit := ModuleServices.CreateModule(WebSocketServerCreator);
+            ChangeIOTAModuleFileNamePrefix(WebSocketServerUnit, 'WebSocketServerU');
+            lJSON.S[TConfigKey.websocket_unit_name] := TPath.GetFileNameWithoutExtension(WebSocketServerUnit.FileName);
+            if Project <> nil then
+            begin
+              Project.AddFile(WebSocketServerUnit.FileName, True);
+            end;
+          end;
+
 
           lJSONRPCUnitName := '';
           // Create JSONRPC Unit
@@ -267,9 +286,7 @@ begin
           {******** END - SERVER SIDE VIEWS TEMPLATE ENGINE CONFIGURATION ************}
 
           // Create Webmodule Unit
-          WebModuleCreator := TNewWebModuleUnitEx.Create(
-            lJSON,
-            APersonality);
+          WebModuleCreator := TNewWebModuleUnitEx.Create(lJSON, APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
           ChangeIOTAModuleFileNamePrefix(WebModuleUnit, lJSON.S[TConfigKey.webmodule_classname].SubString(1));
           lJSON.S[TConfigKey.webmodule_unit_name] := TPath.GetFileNameWithoutExtension(WebModuleUnit.FileName);

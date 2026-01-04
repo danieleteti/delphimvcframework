@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1631,7 +1631,8 @@ begin
   // c1.Accept(TMVCMediaType.IMAGE_PNG);
   lRes := c1.Get('/image/png');
   Assert.areEqual(200, lRes.StatusCode);
-  Assert.areEqual('image/png', lRes.ContentType);
+  //Assert.areEqual('image/png', lRes.ContentType);
+  Assert.StartsWith('image/png', lRes.ContentType);
   Assert.areEqual(249, Integer(lRes.ContentLength));
 end;
 

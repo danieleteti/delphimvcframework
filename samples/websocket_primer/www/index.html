@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMVCFramework WebSocket Echo Server Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .connection-panel {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 12px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-connect {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-connect:hover {
+            background: #218838;
+        }
+
+        .btn-disconnect {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-disconnect:hover {
+            background: #c82333;
+        }
+
+        .btn-send {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-send:hover {
+            background: #5568d3;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .messages-panel {
+            padding: 20px;
+            height: 450px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .message {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.sent {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message.received {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .message.periodic {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .message.system {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            font-style: italic;
+        }
+
+        .message .time {
+            color: #6c757d;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+
+        .message .label {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .message.periodic .label {
+            background: #4caf50;
+        }
+
+        .input-panel {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 DMVC WebSocket Echo Server</h1>
+            <p>Web Test Client with periodic message monitoring</p>
+        </div>
+
+        <div class="connection-panel">
+            <div class="input-group">
+                <input type="text" id="wsUrl" value="ws://localhost:9091/" placeholder="WebSocket URL">
+                <button id="btnConnect" class="btn-connect">Connect</button>
+                <button id="btnDisconnect" class="btn-disconnect" disabled>Disconnect</button>
+            </div>
+
+            <div class="status disconnected" id="status">Disconnected</div>
+
+            <div class="stats-panel">
+                <div class="stat-box">
+                    <div class="stat-label">Messages Sent</div>
+                    <div class="stat-value" id="statSent">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Messages Received</div>
+                    <div class="stat-value" id="statReceived">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Periodic Messages</div>
+                    <div class="stat-value" id="statPeriodic">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Connected Time</div>
+                    <div class="stat-value" id="statTime">--:--:--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="messages-panel" id="messages"></div>
+
+        <div class="input-panel">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="Type your message here and press Enter..." disabled>
+                <button id="btnSend" class="btn-send" disabled>Send</button>
+                <button id="btnClear" class="btn-clear">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let stats = {
+            sent: 0,
+            received: 0,
+            periodic: 0,
+            connectedSince: null
+        };
+        let timerInterval = null;
+
+        const btnConnect = document.getElementById('btnConnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+        const btnSend = document.getElementById('btnSend');
+        const btnClear = document.getElementById('btnClear');
+        const wsUrl = document.getElementById('wsUrl');
+        const messageInput = document.getElementById('messageInput');
+        const messagesPanel = document.getElementById('messages');
+        const statusEl = document.getElementById('status');
+        const statSent = document.getElementById('statSent');
+        const statReceived = document.getElementById('statReceived');
+        const statPeriodic = document.getElementById('statPeriodic');
+        const statTime = document.getElementById('statTime');
+
+        function addMessage(text, type = 'system') {
+            const time = new Date().toLocaleTimeString();
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+
+            let label = '';
+            if (type === 'periodic') {
+                label = '<span class="label">HEARTBEAT</span>';
+            } else if (type === 'received') {
+                label = '<span class="label">ECHO</span>';
+            }
+
+            msg.innerHTML = `<span class="time">${time}</span>${label}${escapeHtml(text)}`;
+            messagesPanel.appendChild(msg);
+            messagesPanel.scrollTop = messagesPanel.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setStatus(status, text) {
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = text;
+        }
+
+        function updateStats() {
+            statSent.textContent = stats.sent;
+            statReceived.textContent = stats.received;
+            statPeriodic.textContent = stats.periodic;
+        }
+
+        function updateTimer() {
+            if (stats.connectedSince) {
+                const elapsed = Math.floor((Date.now() - stats.connectedSince) / 1000);
+                const hours = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                statTime.textContent = `${hours}:${minutes}:${seconds}`;
+            }
+        }
+
+        function connect() {
+            try {
+                addMessage(`Connecting to ${wsUrl.value}...`, 'system');
+                setStatus('connecting', 'Connecting...');
+
+                ws = new WebSocket(wsUrl.value);
+
+                ws.onopen = function() {
+                    addMessage('✅ Connected! Waiting for messages...', 'system');
+                    addMessage('💡 The server will send periodic heartbeat messages automatically', 'system');
+                    setStatus('connected', 'Connected');
+                    btnConnect.disabled = true;
+                    btnDisconnect.disabled = false;
+                    btnSend.disabled = false;
+                    messageInput.disabled = false;
+                    wsUrl.disabled = true;
+
+                    stats.connectedSince = Date.now();
+                    timerInterval = setInterval(updateTimer, 1000);
+                };
+
+                ws.onmessage = function(event) {
+                    const message = event.data;
+
+                    // Check if it's a periodic heartbeat message
+                    if (message.includes('[SERVER HEARTBEAT')) {
+                        stats.periodic++;
+                        addMessage(message, 'periodic');
+                    } else {
+                        stats.received++;
+                        addMessage(message, 'received');
+                    }
+
+                    updateStats();
+                };
+
+                ws.onerror = function(error) {
+                    addMessage('❌ Error occurred', 'system');
+                };
+
+                ws.onclose = function() {
+                    addMessage('🔌 Connection closed', 'system');
+                    setStatus('disconnected', 'Disconnected');
+                    btnConnect.disabled = false;
+                    btnDisconnect.disabled = true;
+                    btnSend.disabled = true;
+                    messageInput.disabled = true;
+                    wsUrl.disabled = false;
+
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                    }
+                    stats.connectedSince = null;
+                };
+
+            } catch (error) {
+                addMessage('❌ Connection failed: ' + error.message, 'system');
+                setStatus('disconnected', 'Connection Failed');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function sendMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = messageInput.value.trim();
+                if (message) {
+                    ws.send(message);
+                    stats.sent++;
+                    addMessage(message, 'sent');
+                    updateStats();
+                    messageInput.value = '';
+                }
+            }
+        }
+
+        function clearLog() {
+            messagesPanel.innerHTML = '';
+            addMessage('Log cleared', 'system');
+        }
+
+        btnConnect.addEventListener('click', connect);
+        btnDisconnect.addEventListener('click', disconnect);
+        btnSend.addEventListener('click', sendMessage);
+        btnClear.addEventListener('click', clearLog);
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initial message
+        addMessage('👋 Welcome to DMVC WebSocket Echo Server Test Client', 'system');
+        addMessage('📝 Click Connect to start. The server will automatically send periodic heartbeat messages.', 'system');
+    </script>
+</body>
+</html>

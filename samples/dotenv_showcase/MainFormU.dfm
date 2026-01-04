@@ -18,11 +18,9 @@ object MainForm: TMainForm
     Top = 3
     Width = 1172
     Height = 628
-    ActivePage = TabSheet1
+    ActivePage = TabSheet2
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 1168
-    ExplicitHeight = 627
     object TabSheet1: TTabSheet
       Caption = 'dotEnv Samples'
       DesignSize = (
@@ -96,8 +94,6 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         TabOrder = 6
-        ExplicitWidth = 978
-        ExplicitHeight = 587
       end
       object btnSkipDefaultFile: TButton
         Left = 8
@@ -127,7 +123,6 @@ object MainForm: TMainForm
         Align = alLeft
         Caption = 'Panel1'
         TabOrder = 0
-        ExplicitHeight = 597
         object Label1: TLabel
           AlignWithMargins = True
           Left = 4
@@ -223,8 +218,11 @@ object MainForm: TMainForm
             '# append or replace the trace file contents at each execution?'
             'firedac.trace_file_append = false '
             ''
-            ''
-            '')
+            '#############################################'
+            '# Expressions Support'
+            '#############################################'
+            'db_port2=$[ToInteger(db_port) + 10]'
+            'expr = $[3 + (3 / 3 + logN(1))]')
           ParentCtl3D = False
           ParentFont = False
           TabOrder = 0
@@ -240,13 +238,11 @@ object MainForm: TMainForm
         Align = alClient
         Caption = 'Panel2'
         TabOrder = 1
-        ExplicitWidth = 532
-        ExplicitHeight = 597
         object Label2: TLabel
           AlignWithMargins = True
           Left = 4
           Top = 4
-          Width = 211
+          Width = 528
           Height = 25
           Align = alTop
           Caption = 'What'#39's application "sees"'
@@ -256,6 +252,7 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
+          ExplicitWidth = 211
         end
         object memDst: TMemo
           AlignWithMargins = True
@@ -276,8 +273,6 @@ object MainForm: TMainForm
           ReadOnly = True
           TabOrder = 0
           WordWrap = False
-          ExplicitWidth = 524
-          ExplicitHeight = 558
         end
       end
     end
