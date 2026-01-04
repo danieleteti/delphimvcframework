@@ -75,7 +75,7 @@ begin
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static3',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www3'),
-      'index.html',True,'UTF-8',
+      'index.html',True,
       procedure(const Context: TWebContext; var PathInfo: String; var Allow: Boolean)
       begin
         // This rule disallow any .txt file and translates file1.html into file2.html

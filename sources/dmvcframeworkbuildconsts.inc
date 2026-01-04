@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '3.4.3-aluminium-rc4';
+  DMVCFRAMEWORK_VERSION = '3.4.3-aluminium';

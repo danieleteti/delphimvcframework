@@ -130,6 +130,12 @@ contains
   MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
   ExprEvaluator in '..\..\sources\ExprEvaluator.pas',
   MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas',
+  MVCFramework.WebSocket.Client in '..\..\sources\MVCFramework.WebSocket.Client.pas',
+  MVCFramework.WebSocket.ConnectionManager in '..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas',
+  MVCFramework.WebSocket in '..\..\sources\MVCFramework.WebSocket.pas',
+  MVCFramework.WebSocket.RateLimiter in '..\..\sources\MVCFramework.WebSocket.RateLimiter.pas',
+  MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
+  MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas',
   TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
 
 end.
