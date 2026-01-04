@@ -130,7 +130,11 @@ contains
   MVCFramework.BloomFilter in '..\..\sources\MVCFramework.BloomFilter.pas',
   ExprEvaluator in '..\..\sources\ExprEvaluator.pas',
   MVCFramework.Repository in '..\..\sources\MVCFramework.Repository.pas',
-  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas',
+  MVCFramework.Validation in '..\..\sources\MVCFramework.Validation.pas',
+  MVCFramework.ValidationEngine in '..\..\sources\MVCFramework.ValidationEngine.pas',
+  MVCFramework.Validators in '..\..\sources\MVCFramework.Validators.pas',
+  MVCFramework.Validators.CrossField in '..\..\sources\MVCFramework.Validators.CrossField.pas';
 
 end.
 

@@ -87,7 +87,8 @@ uses
   Swag.Common.Types,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  MVCFramework.ValidationEngine;
 
 type
 
@@ -3232,6 +3233,9 @@ begin
             ASelectedController.Serializer(AContext.Request.ContentType, True).DeserializeObject(ASelectedController.Context.Request.Body,
               ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
           end;
+          // Automatic validation for objects with validation attributes (OPT-IN)
+          if TMVCValidationEngine.IsValidatableClass(ABodyParameter.ClassType) then
+            TMVCValidationEngine.ValidateAndRaise(ABodyParameter);
           AActualParams[I] := ABodyParameter;
         end
         else
