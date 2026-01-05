@@ -33,6 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved security headers handling
 - Better SNI (Server Name Indication) support
 - Enhanced certificate validation mechanisms
+- ⚡ **Comprehensive Validation System** with 50+ validators
+  - Property-level validators: `MVCRequired`, `MVCEmail`, `MVCRange`, `MVCPattern`, etc.
+  - Format validators: `MVCCreditCard`, `MVCIBAN`, `MVCIPv4`, `MVCSemVer`, etc.
+  - Tax ID validators: `MVCITCodiceFiscale`, `MVCITPartitaIVA`, `MVCUSSSN`, `MVCBRCPF`, etc.
+  - Cross-field validator: `MVCCompareField` for password confirmation, etc.
+  - Object-level validation: `OnValidate(const AErrors: PMVCValidationErrors)` method for complex cross-field rules
+  - Automatic validation on `[MVCFromBody]` parameter injection
+  - Recursive validation for nested objects and collections
+  - Zero allocation for valid objects (lazy dictionary creation)
+  - HTTP 422 response with JSON error details on validation failure
 
 ## [3.4.1-sodium]
 

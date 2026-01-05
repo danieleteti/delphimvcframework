@@ -136,7 +136,11 @@ contains
   MVCFramework.WebSocket.RateLimiter in '..\..\sources\MVCFramework.WebSocket.RateLimiter.pas',
   MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
   MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas',
-  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas';
+  TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas',
+  MVCFramework.Validation in '..\..\sources\MVCFramework.Validation.pas',
+  MVCFramework.ValidationEngine in '..\..\sources\MVCFramework.ValidationEngine.pas',
+  MVCFramework.Validators in '..\..\sources\MVCFramework.Validators.pas',
+  MVCFramework.Validators.CrossField in '..\..\sources\MVCFramework.Validators.CrossField.pas';
 
 end.
 

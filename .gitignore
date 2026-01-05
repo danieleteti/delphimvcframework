@@ -167,3 +167,4 @@ nul
 /samples/tls13/bin/certificates/*
 /unittests/general/TestClient/pgsql/testdatadir/*
 /CLAUDE.md
+/unittests/general/TestClient/pgsql/testdatadir/*

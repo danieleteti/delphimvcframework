@@ -87,7 +87,12 @@ uses
   MVCFramework.WebSocket in '..\..\..\sources\MVCFramework.WebSocket.pas',
   MVCFramework.WebSocket.Client in '..\..\..\sources\MVCFramework.WebSocket.Client.pas',
   MVCFramework.WebSocket.ConnectionManager in '..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas',
-  MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas';
+  MVCFramework.WebSocket.RateLimiter in '..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas',
+  ValidationTestsU in 'ValidationTestsU.pas',
+  MVCFramework.Validation in '..\..\..\sources\MVCFramework.Validation.pas',
+  MVCFramework.ValidationEngine in '..\..\..\sources\MVCFramework.ValidationEngine.pas',
+  MVCFramework.Validators in '..\..\..\sources\MVCFramework.Validators.pas',
+  MVCFramework.Validators.CrossField in '..\..\..\sources\MVCFramework.Validators.CrossField.pas';
 
 {$R *.RES}
 

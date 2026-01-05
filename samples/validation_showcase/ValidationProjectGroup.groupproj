@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{394EE28B-84A4-49EB-B45E-A69F29B31939}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="ValidationShowcaseClient.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ValidationShowcaseServer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ValidationShowcaseClient">
+        <MSBuild Projects="ValidationShowcaseClient.dproj"/>
+    </Target>
+    <Target Name="ValidationShowcaseClient:Clean">
+        <MSBuild Projects="ValidationShowcaseClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ValidationShowcaseClient:Make">
+        <MSBuild Projects="ValidationShowcaseClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ValidationShowcaseServer">
+        <MSBuild Projects="ValidationShowcaseServer.dproj"/>
+    </Target>
+    <Target Name="ValidationShowcaseServer:Clean">
+        <MSBuild Projects="ValidationShowcaseServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ValidationShowcaseServer:Make">
+        <MSBuild Projects="ValidationShowcaseServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ValidationShowcaseClient;ValidationShowcaseServer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ValidationShowcaseClient:Clean;ValidationShowcaseServer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ValidationShowcaseClient:Make;ValidationShowcaseServer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
