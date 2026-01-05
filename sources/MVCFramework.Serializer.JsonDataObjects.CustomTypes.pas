@@ -38,6 +38,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
   JsonDataObjects,
+  System.SysConst,
   MVCFramework.Commons,
   MVCFramework.Serializer.JsonDataObjects;
 
@@ -169,7 +170,6 @@ type
 implementation
 
 uses
-  System.SysConst,
   Data.DB,
   MVCFramework.DuckTyping,
   System.Generics.Collections,

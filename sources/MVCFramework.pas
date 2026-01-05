@@ -1330,7 +1330,8 @@ uses
   MVCFramework.Serializer.HTML,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Utils,
-  MVCFramework.Serializer.Text;
+  MVCFramework.Serializer.Text,
+  MVCFramework.Validation;
 
 var
   gIsShuttingDown: Boolean = False;
@@ -2756,6 +2757,9 @@ var
   lInvokeResult: TValue;
   lRespStatus: Integer;
   lRouterResult: TMVCRouterResult;
+  lEValidException: EMVCValidationException;
+  lValidationErrorsStr: string;
+  lValidationError: TPair<string, string>;
 begin
   Result := False;
 
@@ -3014,15 +3018,36 @@ begin
             end;
             if not CustomExceptionHandling(E, lSelectedController, lContext) then
             begin
-              Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
-                [
-                  E.Classname,
-                  E.Message,
-                  GetRequestShortDescription(ARequest),
-                  E.HTTPStatusCode,
-                  HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
-                  E.DetailedMessage
-                ], LOGGERPRO_TAG);
+              if E is EMVCValidationException then
+              begin
+                lEValidException := EMVCValidationException(E);
+                lValidationErrorsStr := '';
+                for lValidationError in lEValidException.ValidationErrors do
+                begin
+                  if lValidationErrorsStr <> '' then
+                    lValidationErrorsStr := lValidationErrorsStr + '; ';
+                  lValidationErrorsStr := lValidationErrorsStr + lValidationError.Key + ': ' + lValidationError.Value;
+                end;
+                Log.Warn('[%s] %s [PathInfo "%s"] - %d %s (Validation Errors: "%s")',
+                  [
+                    lEValidException.Classname,
+                    lEValidException.Message,
+                    GetRequestShortDescription(ARequest),
+                    lEValidException.HTTPStatusCode,
+                    HTTP_STATUS.ReasonStringFor(lEValidException.HTTPStatusCode),
+                    lValidationErrorsStr
+                  ], LOGGERPRO_TAG)
+              end
+              else
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                  [
+                    E.Classname,
+                    E.Message,
+                    GetRequestShortDescription(ARequest),
+                    E.HTTPStatusCode,
+                    HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
+                    E.DetailedMessage
+                  ], LOGGERPRO_TAG);
               if Assigned(lSelectedController) then
               begin
                 lSelectedController.ResponseStatus(E.HTTPStatusCode);
