@@ -91,9 +91,11 @@ type
     function WithPropertyFmt(const aKey: string; const aFormat: string; const aArgs: array of const): ILogWriter;
 
     function WithDefaultTag(const aTag: string): ILogWriter;
+    function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
 
     procedure Disable;
     procedure Enable;
+    procedure Shutdown;
 
     { ICustomLogWriter}
     function GetAppendersClassNames: TArray<string>;
@@ -239,6 +241,11 @@ begin
   fDecoratedLogWriter.Enable;
 end;
 
+procedure TLogWriterDecorator.Shutdown;
+begin
+  fDecoratedLogWriter.Shutdown;
+end;
+
 procedure TLogWriterDecorator.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 begin
   Log(TLogType.Error, aMessage, aParams, aTag);
@@ -374,6 +381,11 @@ end;
 function TLogWriterDecorator.WithDefaultTag(const aTag: string): ILogWriter;
 begin
   Result := fDecoratedLogWriter.WithDefaultTag(aTag);
+end;
+
+function TLogWriterDecorator.WithDefaultContext(const aContext: array of LogParam): ILogWriter;
+begin
+  Result := fDecoratedLogWriter.WithDefaultContext(aContext);
 end;
 
 procedure TLogWriterDecorator.Debug(const aMessage: string);

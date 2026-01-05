@@ -76,20 +76,26 @@ procedure Log(AObject: TObject); overload;
 
 procedure LogD(AMessage: string); overload;
 procedure LogD(AMessage: TObject); overload;
+procedure LogD(AMessage: string; const AContext: array of LogParam); overload;
 
 procedure LogI(AMessage: string); overload;
 procedure LogI(AObject: TObject); overload;
+procedure LogI(AMessage: string; const AContext: array of LogParam); overload;
 
 procedure LogW(AMessage: string); overload;
 procedure LogW(AObject: TObject); overload;
+procedure LogW(AMessage: string; const AContext: array of LogParam); overload;
 
-procedure LogE(AMessage: string);
+procedure LogE(AMessage: string); overload;
+procedure LogE(AMessage: string; const AContext: array of LogParam); overload;
 
-procedure LogF(AMessage: string);
+procedure LogF(AMessage: string); overload;
+procedure LogF(AMessage: string; const AContext: array of LogParam); overload;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
 
-procedure LogException(const E: Exception; const AMessage: String);
+procedure LogException(const E: Exception); overload;
+procedure LogException(const E: Exception; const AMessage: String); overload;
 
 procedure LogEnterMethod(const AMethodName: string);
 procedure LogExitMethod(const AMethodName: string);
@@ -110,7 +116,6 @@ procedure ReleaseGlobalLogger;
 procedure InitThreadVars;
 
 var
-  LogLevelLimit: TLogLevel = TLogLevel.levNormal;
   UseConsoleLogger: Boolean = True;
   UseLoggerVerbosityLevel: TLogLevel = TLogLevel.levDebug;
 
@@ -246,6 +251,11 @@ begin
     Log.Fatal(AMessage, LOGGERPRO_TAG);
 end;
 
+procedure LogException(const E: Exception);
+begin
+  Log.LogException(E, '', LOGGERPRO_TAG);
+end;
+
 procedure LogException(const E: Exception; const AMessage: String);
 begin
   Log.LogException(E, AMessage, LOGGERPRO_TAG);
@@ -315,6 +325,31 @@ begin
     LogW(ObjectToJSON(AObject));
 end;
 
+procedure LogD(AMessage: string; const AContext: array of LogParam);
+begin
+  Log.Debug(AMessage, LOGGERPRO_TAG, AContext);
+end;
+
+procedure LogI(AMessage: string; const AContext: array of LogParam);
+begin
+  Log.Info(AMessage, LOGGERPRO_TAG, AContext);
+end;
+
+procedure LogW(AMessage: string; const AContext: array of LogParam);
+begin
+  Log.Warn(AMessage, LOGGERPRO_TAG, AContext);
+end;
+
+procedure LogE(AMessage: string; const AContext: array of LogParam);
+begin
+  Log.Error(AMessage, LOGGERPRO_TAG, AContext);
+end;
+
+procedure LogF(AMessage: string; const AContext: array of LogParam);
+begin
+  Log.Fatal(AMessage, LOGGERPRO_TAG, AContext);
+end;
+
 procedure InitializeDefaultLogger;
 begin
   { This procedure must be called in a synchronized context
@@ -352,7 +387,9 @@ end;
 
 function CreateNullLogger: ILogWriter;
 begin
-  Result := BuildLogWriter([], nil, gLevelsMap[UseLoggerVerbosityLevel]);
+  Result := LoggerProBuilder
+    .WithMinimumLevel(gLevelsMap[UseLoggerVerbosityLevel])
+    .Build;
 end;
 
 function CreateLoggerWithDefaultConfiguration: ILogWriter;
@@ -394,6 +431,7 @@ begin
       try
         if gDefaultLogger <> nil then // double check
         begin
+          gDefaultLogger.Shutdown;  // Flush and stop logger thread
           gDefaultLogger := nil;
         end;
       finally
@@ -533,46 +571,10 @@ initialization
   Profiler.LoggerTag := 'profiler';
   Profiler.WarningThreshold := 1000; //one sec
 {$ENDIF}
-  { The TLoggerProFileAppender has its defaults defined as follows:
-    DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
-    DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
-    DEFAULT_MAX_FILE_SIZE_KB = 1000;
-
-    You can override these dafaults passing parameters to the constructor.
-    Here's some configuration examples:
-    @longcode(#
-    // Creates log in the same exe folder without PID in the filename
-    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-    [TFileAppenderOption.LogsInTheSameFolder])]);
-
-    // Creates log in the AppData/Roaming with PID in the filename
-    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-    [TFileAppenderOption.IncludePID])]);
-
-    // Creates log in the same folder with PID in the filename
-    _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-    [TFileAppenderOption.IncludePID])]);
-    #)
-  }
-
-  // Creates log in the ..\..\ folder without PID in the filename
-
-  // DefaultDMVCFrameworkLogger := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
-  // Create logs in the exe' same folder
-  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
-
-  // Creates log in the AppData/Roaming with PID in the filename
-  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-  // [TFileAppenderOption.IncludePID])]);
-
-  // Creates log in the same folder with PID in the filename
-  // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5,
-  // [TFileAppenderOption.IncludePID])]);
-
 
 finalization
 
+  ReleaseGlobalLogger;
   gLock.Free;
-
 
 end.
