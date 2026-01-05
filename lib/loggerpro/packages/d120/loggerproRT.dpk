@@ -37,20 +37,23 @@ requires
   IndyCore;
 
 contains
+  LoggerPro in '..\..\LoggerPro.pas',
+  LoggerPro.CallbackAppender in '..\..\LoggerPro.CallbackAppender.pas',
+  LoggerPro.ConsoleAppender in '..\..\LoggerPro.ConsoleAppender.pas',
   LoggerPro.ElasticSearchAppender in '..\..\LoggerPro.ElasticSearchAppender.pas',
   LoggerPro.EMailAppender in '..\..\LoggerPro.EMailAppender.pas',
   LoggerPro.FileAppender in '..\..\LoggerPro.FileAppender.pas',
   LoggerPro.GlobalLogger in '..\..\LoggerPro.GlobalLogger.pas',
+  LoggerPro.HTTPAppender in '..\..\LoggerPro.HTTPAppender.pas',
+  LoggerPro.JSONLFileAppender in '..\..\LoggerPro.JSONLFileAppender.pas',
   LoggerPro.MemoryAppender in '..\..\LoggerPro.MemoryAppender.pas',
   LoggerPro.NSQAppender in '..\..\LoggerPro.NSQAppender.pas',
-  LoggerPro in '..\..\LoggerPro.pas',
+  LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
   LoggerPro.Proxy in '..\..\LoggerPro.Proxy.pas',
-  LoggerPro.RESTAppender in '..\..\LoggerPro.RESTAppender.pas',
+  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
+  LoggerPro.TimeRotatingFileAppender in '..\..\LoggerPro.TimeRotatingFileAppender.pas',
   LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
   LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
-  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
-  LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
-  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
-  LoggerPro.ConsoleAppender in '..\..\LoggerPro.ConsoleAppender.pas';
+  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas';
 
 end.

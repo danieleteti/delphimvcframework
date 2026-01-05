@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -81,6 +81,7 @@ var
   lText: string;
 begin
   lText := FormatLog(aLogItem);
+
   TThread.Queue(nil,
     procedure
     var

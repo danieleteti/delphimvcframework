@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -148,20 +148,20 @@ end;
 constructor TLoggerProUDPSyslogPacket.Create(pLogItem: TLogItem; pHostName: string; pUserName: string;
   pApplication: string; pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean);
 begin
-  // ## start https://github.com/danieleteti/loggerpro/issues/56
+  // RFC 5424 Severity mapping
+  // 7 = Debug, 6 = Informational, 4 = Warning, 3 = Error, 2 = Critical
   case pLogItem.LogType of
     TLogType.Debug:
       FPriority := RFC5424Priority(1, 7);
     TLogType.Info:
       FPriority := RFC5424Priority(1, 6);
     TLogType.Warning:
-      FPriority := RFC5424Priority(1, 4); // 4 = slWarning
+      FPriority := RFC5424Priority(1, 4);
     TLogType.Error:
-      FPriority := RFC5424Priority(1, 3); // 3 = slError
+      FPriority := RFC5424Priority(1, 3);
+    TLogType.Fatal:
+      FPriority := RFC5424Priority(1, 2);
   end;
-  if pLogItem.LogMessage.Contains('Access Violation') then
-    FPriority := RFC5424Priority(1, 2); // 2 = slCritical
-  // ## end
   FApplication := pApplication;
   FVersion := pVersion;
   FTimestamp := DateToISO8601(pLogItem.Timestamp);

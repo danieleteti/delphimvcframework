@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -39,6 +39,7 @@ type
     property InternalLogFormat: String read fInternalLogFormat;
     property InternalFormatSettings: TFormatSettings read fInternalFormatSettings;
     function GetLogLayoutWithPlaceHolders: String; virtual;
+    function RenderContext(const aLogItem: TLogItem): String; virtual;
     // ILogLayoutRenderer
     procedure Setup; override;
     procedure TearDown; override;
@@ -82,7 +83,9 @@ var
 implementation
 
 uses
-  System.DateUtils;
+  System.DateUtils,
+  System.Rtti,
+  System.TypInfo;
 
 function GetDefaultLogItemRenderer: ILogItemRenderer;
 begin
@@ -111,6 +114,46 @@ begin
   Result := '{timestamp}[TID {threadid}][{loglevel}] {message} [{tag}]';
 end;
 
+function TLogItemRendererDefault.RenderContext(const aLogItem: TLogItem): String;
+var
+  I: Integer;
+  lParam: LogParam;
+  lValueStr: string;
+begin
+  // Use pre-rendered context if available (optimization for fixed context)
+  if aLogItem.PreRenderedContext <> '' then
+  begin
+    Result := aLogItem.PreRenderedContext;
+    Exit;
+  end;
+
+  Result := '';
+  if not aLogItem.HasContext then
+    Exit;
+
+  for I := 0 to High(aLogItem.Context) do
+  begin
+    lParam := aLogItem.Context[I];
+    case lParam.Value.Kind of
+      tkInteger, tkInt64:
+        lValueStr := lParam.Value.AsInt64.ToString;
+      tkFloat:
+        if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+        else
+          lValueStr := FloatToStr(lParam.Value.AsExtended, InternalFormatSettings);
+      tkEnumeration:
+        if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+          lValueStr := BoolToStr(lParam.Value.AsBoolean, True).ToLower
+        else
+          lValueStr := lParam.Value.ToString;
+    else
+      lValueStr := lParam.Value.ToString.QuotedString('"');
+    end;
+    Result := Result + ' ' + lParam.Key + '=' + lValueStr;
+  end;
+end;
+
 function TLogItemRendererDefault.RenderLogItem(const aLogItem: TLogItem): String;
 begin
   Result := Format(InternalLogFormat, [
@@ -119,7 +162,7 @@ begin
     ALogItem.LogTypeAsString,
     ALogItem.LogMessage,
     ALogItem.LogTag
-  ]);
+  ]) + RenderContext(aLogItem);
 end;
 
 { TLogItemRendererNoTag }
@@ -136,7 +179,7 @@ begin
     ALogItem.ThreadID.ToString,
     ALogItem.LogTypeAsString,
     ALogItem.LogMessage
-  ]);
+  ]) + RenderContext(aLogItem);
 end;
 
 { TLogItemRendererNoThreadID }
@@ -153,7 +196,7 @@ begin
     ALogItem.LogTypeAsString,
     ALogItem.LogMessage,
     aLogItem.LogTag
-  ]);
+  ]) + RenderContext(aLogItem);
 end;
 
 { TLogItemRendererNoTagNoThreadID }
@@ -169,7 +212,7 @@ begin
     DateTimeToStr(ALogItem.TimeStamp, InternalFormatSettings),
     ALogItem.LogTypeAsString,
     ALogItem.LogMessage
-  ]);
+  ]) + RenderContext(aLogItem);
 end;
 
 
@@ -177,6 +220,11 @@ end;
 { TLogItemRendererLogFmt }
 
 function TLogItemRendererLogFmt.RenderLogItem(const aLogItem: TLogItem): String;
+var
+  lContextStr: string;
+  I: Integer;
+  lParam: LogParam;
+  lValueStr: string;
 begin
   Result :=
     Format('time=%s threadid=%d type=%s msg=%s tag=%s',
@@ -187,6 +235,40 @@ begin
         ALogItem.LogMessage.QuotedString('"'),
         ALogItem.LogTag
         ]);
+
+  // Use pre-rendered context if available (optimization for fixed context)
+  if ALogItem.PreRenderedContext <> '' then
+  begin
+    Result := Result + ALogItem.PreRenderedContext;
+    Exit;
+  end;
+
+  if ALogItem.HasContext then
+  begin
+    lContextStr := '';
+    for I := 0 to High(ALogItem.Context) do
+    begin
+      lParam := ALogItem.Context[I];
+      case lParam.Value.Kind of
+        tkInteger, tkInt64:
+          lValueStr := lParam.Value.AsInt64.ToString;
+        tkFloat:
+          if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+            lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+          else
+            lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
+        tkEnumeration:
+          if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+            lValueStr := BoolToStr(lParam.Value.AsBoolean, True).ToLower
+          else
+            lValueStr := lParam.Value.ToString;
+      else
+        lValueStr := lParam.Value.ToString.QuotedString('"');
+      end;
+      lContextStr := lContextStr + ' ' + lParam.Key + '=' + lValueStr;
+    end;
+    Result := Result + lContextStr;
+  end;
 end;
 
 procedure TLogItemRendererLogFmt.Setup;

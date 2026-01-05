@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -162,9 +162,8 @@ type
   TMakeFileNameProc = reference to procedure(out AFileName: string);
 
   { by an idea of Mark Lobanov <mark.v.lobanov@gmail.com> }
-  TLoggerProFileByFolderAppender = class(TLoggerProFileAppender)
+  TLoggerProFileByFolderAppender = class(TLoggerProSimpleFileAppender)
   private
-    fFileWriter: TStreamWriter;
     fCurrentDate: TDateTime;
     function GetLogFolder: string;
     function GetFileFormat: string;
@@ -494,7 +493,13 @@ begin
 end;
 
 procedure TLoggerProFileAppender.TearDown;
+var
+  lWriter: TStreamWriter;
 begin
+  for lWriter in fWritersDictionary.Values do
+  begin
+    lWriter.Flush;
+  end;
   fWritersDictionary.Free;
   inherited;
 end;
@@ -568,6 +573,7 @@ end;
 
 procedure TLoggerProSimpleFileAppender.TearDown;
 begin
+  fFileWriter.Flush;
   fFileWriter.Free;
   inherited;
 end;
@@ -677,19 +683,15 @@ end;
 procedure TLoggerProFileByFolderAppender.Setup;
 begin
   inherited;
-  fFileWriter := CreateWriter(GetLogFileName(EmptyStr, 0));
   RefreshCurrentDate;
 end;
 
 procedure TLoggerProFileByFolderAppender.TearDown;
 begin
-  fFileWriter.Free;
   inherited;
 end;
 
 procedure TLoggerProFileByFolderAppender.WriteLog(const ALogItem: TLogItem);
-var
-  lLogRow: string;
 begin
   if not SameDate(fCurrentDate, Date) then
   begin
@@ -697,16 +699,7 @@ begin
     RefreshCurrentDate;
   end;
 
-  if Assigned(OnLogRow) then
-  begin
-    OnLogRow(ALogItem, lLogRow);
-  end
-  else
-  begin
-    lLogRow := LogItemRenderer.RenderLogItem(ALogItem);
-  end;
-
-  WriteToStream(fFileWriter, lLogRow);
+  WriteToStream(fFileWriter, FormatLog(ALogItem));
 
   if fFileWriter.BaseStream.Size > fMaxFileSizeInKiloByte * 1024 then
   begin

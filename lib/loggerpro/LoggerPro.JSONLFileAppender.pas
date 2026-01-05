@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -24,7 +24,7 @@
 
 unit LoggerPro.JSONLFileAppender;
 
-{$DEFINE USE_JDO}
+{.$DEFINE USE_JDO}
 
 
 interface
@@ -55,6 +55,12 @@ implementation
 
 uses
   System.IOUtils,
+  System.DateUtils,
+  System.Rtti,
+  System.TypInfo,
+{$IF Defined(MSWINDOWS)}
+  Winapi.Windows,
+{$ENDIF}
 {$IF Defined(USE_JDO)}
   JsonDataObjects
 {$ELSE}
@@ -66,9 +72,8 @@ uses
 type
   TLogItemRendererJSONL = class(TLogItemRenderer)
   private
-    fFormatSettings: TFormatSettings;
+    fHostName: string;
   protected
-    // ILogLayoutRenderer
     procedure Setup; override;
     procedure TearDown; override;
     function RenderLogItem(const aLogItem: TLogItem): String; override;
@@ -121,21 +126,76 @@ end;
 function TLogItemRendererJSONL.RenderLogItem(const aLogItem: TLogItem): String;
 var
   lJSON: TJsonObject;
+  {$IF NOT Defined(USE_JDO)}
+  lContextObj: TJSONObject;
+  {$ENDIF}
+  I: Integer;
+  lParam: LogParam;
 begin
   lJSON := TJSONObject.Create;
   try
     {$IF Defined(USE_JDO)}
-    lJSON.S['type'] := ALogItem.LogTypeAsString;
+    lJSON.S['timestamp'] := DateToISO8601(ALogItem.TimeStamp);
+    lJSON.S['level'] := ALogItem.LogTypeAsString;
     lJSON.S['message'] := ALogItem.LogMessage;
     lJSON.S['tag'] := ALogItem.LogTag;
-    lJSON.S['ts'] := DateTimeToStr(ALogItem.TimeStamp, fFormatSettings).TrimRight;
+    lJSON.S['hostname'] := fHostName;
     lJSON.I['tid'] := ALogItem.ThreadID;
+    if ALogItem.HasContext then
+    begin
+      for I := 0 to High(ALogItem.Context) do
+      begin
+        lParam := ALogItem.Context[I];
+        case lParam.Value.Kind of
+          tkInteger, tkInt64:
+            lJSON.I[lParam.Key] := lParam.Value.AsInt64;
+          tkFloat:
+            if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+              lJSON.S[lParam.Key] := DateToISO8601(lParam.Value.AsType<TDateTime>)
+            else
+              lJSON.F[lParam.Key] := lParam.Value.AsExtended;
+          tkEnumeration:
+            if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+              lJSON.B[lParam.Key] := lParam.Value.AsBoolean
+            else
+              lJSON.S[lParam.Key] := lParam.Value.ToString;
+        else
+          lJSON.S[lParam.Key] := lParam.Value.ToString;
+        end;
+      end;
+    end;
     {$ELSE}
-    lJSON.AddPair('type', ALogItem.LogTypeAsString);
+    lJSON.AddPair('timestamp', DateToISO8601(ALogItem.TimeStamp));
+    lJSON.AddPair('level', ALogItem.LogTypeAsString);
     lJSON.AddPair('message', ALogItem.LogMessage);
     lJSON.AddPair('tag', ALogItem.LogTag);
-    lJSON.AddPair('ts', DateTimeToStr(ALogItem.TimeStamp, fFormatSettings).TrimRight);
+    lJSON.AddPair('hostname', fHostName);
     lJSON.AddPair('tid', ALogItem.ThreadID);
+    if ALogItem.HasContext then
+    begin
+      lContextObj := TJSONObject.Create;
+      for I := 0 to High(ALogItem.Context) do
+      begin
+        lParam := ALogItem.Context[I];
+        case lParam.Value.Kind of
+          tkInteger, tkInt64:
+            lContextObj.AddPair(lParam.Key, TJSONNumber.Create(lParam.Value.AsInt64));
+          tkFloat:
+            if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+              lContextObj.AddPair(lParam.Key, DateToISO8601(lParam.Value.AsType<TDateTime>))
+            else
+              lContextObj.AddPair(lParam.Key, TJSONNumber.Create(lParam.Value.AsExtended));
+          tkEnumeration:
+            if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+              lContextObj.AddPair(lParam.Key, TJSONBool.Create(lParam.Value.AsBoolean))
+            else
+              lContextObj.AddPair(lParam.Key, lParam.Value.ToString);
+        else
+          lContextObj.AddPair(lParam.Key, lParam.Value.ToString);
+        end;
+      end;
+      lJSON.AddPair('context', lContextObj);
+    end;
     {$ENDIF}
     Result := lJSON.ToJSON;
   finally
@@ -144,9 +204,27 @@ begin
 end;
 
 procedure TLogItemRendererJSONL.Setup;
+{$IF Defined(MSWINDOWS)}
+var
+  lBufferSize: Cardinal;
+  lBuffer: string;
+{$ENDIF}
 begin
   inherited;
-  fFormatSettings := GetDefaultFormatSettings;
+  {$IF Defined(MSWINDOWS)}
+  lBufferSize := 256;
+  SetLength(lBuffer, lBufferSize);
+  if GetComputerName(PChar(lBuffer), lBufferSize) then
+    fHostName := Copy(lBuffer, 1, lBufferSize)
+  else
+    fHostName := 'unknown';
+  {$ELSEIF Defined(POSIX)}
+  fHostName := GetEnvironmentVariable('HOSTNAME');
+  if fHostName.IsEmpty then
+    fHostName := 'unknown';
+  {$ELSE}
+  fHostName := 'unknown';
+  {$ENDIF}
 end;
 
 procedure TLogItemRendererJSONL.TearDown;

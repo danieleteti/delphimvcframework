@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -47,6 +47,7 @@ type
     function Dequeue: T; overload;
     function QueueSize: UInt64;
     procedure DoShutDown;
+    procedure SetEvent;
     constructor Create(const MaxSize: UInt64; const PopTimeout: UInt64); overload; virtual;
     destructor Destroy; override;
   end;
@@ -145,6 +146,11 @@ begin
   finally
     fCriticalSection.Leave;
   end;
+end;
+
+procedure TThreadSafeQueue<T>.SetEvent;
+begin
+  fEvent.SetEvent;
 end;
 
 function TThreadSafeQueue<T>.Enqueue(const Item: T): Boolean;

@@ -2,12 +2,13 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2026 Daniele Teti
+// Copyright (c) 2010-2025 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
-// Contributors for this file: 
+// Contributors for this file:
 //    Fulgan - https://github.com/Fulgan
+//    David Cornelius
 //
 // ***************************************************************************
 //
@@ -30,34 +31,34 @@ unit LoggerPro.ConsoleAppender;
 interface
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   LoggerPro,
   SyncObjs;
 
 type
-  /// <summary>TLoggerProConsoleAppender
-  /// This class creates a new console (if needed) when setup.
-  /// Warning: If the application is of type GUI and it is started from a console,
-  /// this will NOT log to the calling console but create a new one.
-  /// This is because the way cmd.exe works: if the application is of type GUI,
-  /// then is immediately detaches from cmd.exe which doesn't wait. This means that
-  /// there is never a console to attach to except if a new console is created
-  /// elsewhere in the app.
-  /// In case this class is used from a console, then there is no guarantee that
-  /// the messages will be
-  /// displayed in chronological order.
+  /// <summary>
+  /// Cross-platform console appender with optional color support.
+  /// On Windows: Uses Windows Console API for colors and can create/attach consoles for GUI apps.
+  /// On Linux/macOS: Uses ANSI escape codes for colors.
   /// </summary>
   TLoggerProConsoleAppender = class(TLoggerProAppenderBase)
   strict private
-    class var FLock: TCriticalSection; // used to prevent syncroneous operations to run at the same time
-    class var FConsoleAllocated: Int64; // used to ensure one and only one console is created
-    class constructor Create; // allocate global vars
+    class var FLock: TCriticalSection;
+{$IFDEF MSWINDOWS}
+    class var FConsoleAllocated: Int64;
+{$ENDIF}
+    class constructor Create;
     class destructor Destroy;
   protected
+{$IFDEF MSWINDOWS}
     fColors: array [TLogType.Debug .. TLogType.Fatal] of Integer;
     fSavedColors: Integer;
-    procedure SetColor(const Color: Integer);
+{$ELSE}
+    fColors: array [TLogType.Debug .. TLogType.Fatal] of string;
+{$ENDIF}
+    procedure SetColor(const aLogType: TLogType);
+    procedure ResetColor;
     procedure SetupColorMappings; virtual;
   public
     procedure Setup; override;
@@ -71,39 +72,52 @@ type
     function FormatLog(const ALogItem: TLogItem): string; override;
   end;
 
-  // for some reason, AttachConsole has been left out of Winapi.windows.pas
+  /// <summary>
+  /// Simple cross-platform console appender without colors.
+  /// Uses plain Writeln, works on all platforms (Windows, Linux, macOS).
+  /// </summary>
+  TLoggerProSimpleConsoleAppender = class(TLoggerProAppenderBase)
+  public
+    procedure Setup; override;
+    procedure TearDown; override;
+    procedure WriteLog(const aLogItem: TLogItem); override;
+  end;
+
+  TLoggerProSimpleConsoleLogFmtAppender = class(TLoggerProSimpleConsoleAppender)
+  public
+    constructor Create(ALogItemRenderer: ILogItemRenderer = nil); override;
+    function FormatLog(const ALogItem: TLogItem): string; override;
+  end;
+
+{$IFDEF MSWINDOWS}
 function AttachConsole(PID: Cardinal): LongBool; stdcall;
+{$ENDIF}
 
 implementation
 
-{ TLoggerProConsoleAppender }
-
 uses
+{$IFDEF MSWINDOWS}
   Winapi.Windows,
-  Winapi.Messages,
+{$ENDIF}
   LoggerPro.Renderers;
 
-// for some reason, AttachConsole has been left out of Winapi.windows.pas
+{$IFDEF MSWINDOWS}
 const
   ATTACH_PARENT_PROCESS = Cardinal(-1);
-function AttachConsole; external kernel32 name 'AllocConsole';
+
+function AttachConsole; external kernel32 name 'AttachConsole';
 
 const
   { FOREGROUND COLORS - CAN BE COMBINED }
-  FOREGROUND_BLUE = 1; { text color blue. }
-  FOREGROUND_GREEN = 2; { text color green }
-  FOREGROUND_RED = 4; { text color red }
-  FOREGROUND_INTENSITY = 8; { text color is intensified }
+  FOREGROUND_BLUE = 1;
+  FOREGROUND_GREEN = 2;
+  FOREGROUND_RED = 4;
+  FOREGROUND_INTENSITY = 8;
   { BACKGROUND COLORS - CAN BE COMBINED }
-  BACKGROUND_BLUE = $10; { background color blue }
-  BACKGROUND_GREEN = $20; { background color green }
-  BACKGROUND_RED = $40; { background color red. }
-  BACKGROUND_INTENSITY = $80; { background color is intensified }
-
-procedure TLoggerProConsoleAppender.SetColor(const Color: Integer);
-begin
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), Color);
-end;
+  BACKGROUND_BLUE = $10;
+  BACKGROUND_GREEN = $20;
+  BACKGROUND_RED = $40;
+  BACKGROUND_INTENSITY = $80;
 
 function GetCurrentColors: Integer;
 var
@@ -111,85 +125,126 @@ var
 begin
   Result := -1;
   if GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), info) then
-  begin
     Result := info.wAttributes;
+end;
+{$ELSE}
+const
+  { ANSI escape codes for colors }
+  ANSI_RESET = #27'[0m';
+  ANSI_GREEN = #27'[32m';           // Debug
+  ANSI_WHITE_BRIGHT = #27'[97m';    // Info
+  ANSI_YELLOW = #27'[33m';          // Warning (dark yellow)
+  ANSI_RED_BRIGHT = #27'[91m';      // Error
+  ANSI_MAGENTA_BRIGHT = #27'[95m';  // Fatal
+{$ENDIF}
+
+{ TLoggerProConsoleAppender }
+
+class constructor TLoggerProConsoleAppender.Create;
+begin
+  FLock := TCriticalSection.Create;
+{$IFDEF MSWINDOWS}
+  FConsoleAllocated := 0;
+{$ENDIF}
+end;
+
+class destructor TLoggerProConsoleAppender.Destroy;
+begin
+  try
+    FLock.Enter;
+    FreeAndNil(FLock);
+  except
+    // No exception checking here or the app might blow up with a RTE 217
   end;
 end;
 
 procedure TLoggerProConsoleAppender.Setup;
 begin
   inherited;
-  if TInterlocked.read(TLoggerProConsoleAppender.FConsoleAllocated) < 2 then
+  SetupColorMappings;
+{$IFDEF MSWINDOWS}
+  if TInterlocked.Read(FConsoleAllocated) < 2 then
   begin
-    TLoggerProConsoleAppender.FLock.Enter;
+    FLock.Enter;
     try
-      if TInterlocked.Increment(TLoggerProConsoleAppender.FConsoleAllocated) = 1 then
+      if TInterlocked.Increment(FConsoleAllocated) = 1 then
       begin
-        SetupColorMappings;
-        // Attempt to attach to the parent (if there is already a console allocated)
+        // Attempt to attach to the parent console (if there is already a console allocated)
         if not IsConsole then
         begin
           if not AttachConsole(ATTACH_PARENT_PROCESS) then
-          begin
             AllocConsole; // No console allocated, create a new one
-          end;
         end;
         fSavedColors := GetCurrentColors;
-        TInterlocked.Increment(TLoggerProConsoleAppender.FConsoleAllocated);
+        TInterlocked.Increment(FConsoleAllocated);
       end;
     finally
-      TLoggerProConsoleAppender.FLock.Leave;
+      FLock.Leave;
     end;
   end;
+{$ENDIF}
 end;
 
 procedure TLoggerProConsoleAppender.SetupColorMappings;
 begin
-  fColors[TLogType.Debug] := FOREGROUND_GREEN;
-  fColors[TLogType.Info] := FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED or FOREGROUND_INTENSITY;
-  fColors[TLogType.Warning] := FOREGROUND_RED or FOREGROUND_GREEN;
+{$IFDEF MSWINDOWS}
+  fColors[TLogType.Debug] := FOREGROUND_GREEN or FOREGROUND_INTENSITY;
+  fColors[TLogType.Info] := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
+  fColors[TLogType.Warning] := FOREGROUND_RED or FOREGROUND_GREEN;  // Dark yellow/orange
   fColors[TLogType.Error] := FOREGROUND_RED or FOREGROUND_INTENSITY;
   fColors[TLogType.Fatal] := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
+{$ELSE}
+  fColors[TLogType.Debug] := ANSI_GREEN;
+  fColors[TLogType.Info] := ANSI_WHITE_BRIGHT;
+  fColors[TLogType.Warning] := ANSI_YELLOW;
+  fColors[TLogType.Error] := ANSI_RED_BRIGHT;
+  fColors[TLogType.Fatal] := ANSI_MAGENTA_BRIGHT;
+{$ENDIF}
+end;
+
+procedure TLoggerProConsoleAppender.SetColor(const aLogType: TLogType);
+begin
+{$IFDEF MSWINDOWS}
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fColors[aLogType]);
+{$ELSE}
+  Write(fColors[aLogType]);
+{$ENDIF}
+end;
+
+procedure TLoggerProConsoleAppender.ResetColor;
+begin
+{$IFDEF MSWINDOWS}
+  if fSavedColors > -1 then
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fSavedColors)
+  else
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+{$ELSE}
+  Write(ANSI_RESET);
+{$ENDIF}
 end;
 
 procedure TLoggerProConsoleAppender.TearDown;
 begin
+{$IFDEF MSWINDOWS}
   if fSavedColors > -1 then
-    SetColor(fSavedColors)
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fSavedColors)
   else
-    SetColor(FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+{$ENDIF}
 end;
 
 procedure TLoggerProConsoleAppender.WriteLog(const aLogItem: TLogItem);
 var
   lText: string;
-  lColor: Integer;
 begin
-  lColor := fColors[aLogItem.LogType];
   lText := FormatLog(aLogItem);
-  TLoggerProConsoleAppender.FLock.Enter;
+  FLock.Enter;
   try
-    SetColor(lColor);
+    SetColor(aLogItem.LogType);
     Writeln(lText);
+    ResetColor;
   finally
-    TLoggerProConsoleAppender.FLock.Leave;
-  end;
-end;
-
-class constructor TLoggerProConsoleAppender.Create;
-begin
-  TLoggerProConsoleAppender.FLock := TCriticalSection.Create;
-  TLoggerProConsoleAppender.FConsoleAllocated := 0;
-end;
-
-class destructor TLoggerProConsoleAppender.Destroy;
-begin
-  // make sure all code
-  try
-    TLoggerProConsoleAppender.FLock.Enter;
-    FreeAndNil(TLoggerProConsoleAppender.FLock);
-  except
-    // No exception checking here or the app might blow up with a RTE 217
+    FLock.Leave;
   end;
 end;
 
@@ -203,13 +258,41 @@ end;
 function TLoggerProConsoleLogFmtAppender.FormatLog(const ALogItem: TLogItem): string;
 begin
   if Assigned(FOnLogRow) then
-  begin
-    FOnLogRow(ALogItem, Result);
-  end
+    FOnLogRow(ALogItem, Result)
   else
-  begin
     Result := FLogItemRenderer.RenderLogItem(ALogItem);
-  end;
+end;
+
+{ TLoggerProSimpleConsoleAppender }
+
+procedure TLoggerProSimpleConsoleAppender.Setup;
+begin
+  inherited;
+end;
+
+procedure TLoggerProSimpleConsoleAppender.TearDown;
+begin
+  // nothing to do
+end;
+
+procedure TLoggerProSimpleConsoleAppender.WriteLog(const aLogItem: TLogItem);
+begin
+  Writeln(FormatLog(aLogItem));
+end;
+
+{ TLoggerProSimpleConsoleLogFmtAppender }
+
+constructor TLoggerProSimpleConsoleLogFmtAppender.Create(ALogItemRenderer: ILogItemRenderer);
+begin
+  inherited Create(TLogItemRendererLogFmt.Create);
+end;
+
+function TLoggerProSimpleConsoleLogFmtAppender.FormatLog(const ALogItem: TLogItem): string;
+begin
+  if Assigned(FOnLogRow) then
+    FOnLogRow(ALogItem, Result)
+  else
+    Result := FLogItemRenderer.RenderLogItem(ALogItem);
 end;
 
 end.

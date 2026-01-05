@@ -34,6 +34,7 @@ uses
   MVCFramework.Commons,
   System.Diagnostics,
   LoggerPro,
+  LoggerPro.Builder,
   LoggerPro.FileAppender;
 
 const
@@ -247,7 +248,7 @@ end;
 
 procedure LogException(const E: Exception; const AMessage: String);
 begin
-    LogE(E.ClassName + ': ' + E.Message + ' - (Custom Message: ' + AMessage + ')');
+  Log.LogException(E, AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogEnterMethod(const AMethodName: string);
@@ -357,34 +358,32 @@ end;
 function CreateLoggerWithDefaultConfiguration: ILogWriter;
 var
   lLogsFolder: String;
-  lFileAppender, lConsoleAppender: ILogAppender;
-  lAppenders: TArray<ILogAppender>;
+  lBuilder: ILoggerProBuilder;
 begin
 {$IF NOT DEFINED(MOBILE)}
   lLogsFolder := AppPath + 'logs';
 {$ELSE}
   lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
 {$ENDIF}
-  lFileAppender := TLoggerProFileAppender.Create(5, 10000, lLogsFolder);
+
+  lBuilder := LoggerProBuilder
+    .WithMinimumLevel(gLevelsMap[UseLoggerVerbosityLevel])
+    .WriteToFile
+      .WithLogsFolder(lLogsFolder)
+      .WithMaxBackupFiles(5)
+      .WithMaxFileSizeInKB(10000)
+      .Done;
+
   if IsConsole and UseConsoleLogger then
   begin
     {$IF Defined(MSWINDOWS)}
-    lConsoleAppender := TLoggerProConsoleAppender.Create(TLogItemRendererNoTag.Create);
-    {$ELSE}
-    {$IF Defined(CONSOLE) and Not Defined(MOBILE)}
-    lConsoleAppender := TLoggerProSimpleConsoleAppender.Create(TLogItemRendererNoTag.Create);
-    {$ENDIF}
+    lBuilder.WriteToConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
+    {$ELSEIF Defined(CONSOLE) and Not Defined(MOBILE)}
+    lBuilder.WriteToSimpleConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
     {$ENDIF}
   end;
-  if Assigned(lConsoleAppender) then
-  begin
-    lAppenders := [lFileAppender, lConsoleAppender]
-  end
-  else
-  begin
-    lAppenders := [lFileAppender];
-  end;
-  Result := BuildLogWriter(lAppenders, nil, gLevelsMap[UseLoggerVerbosityLevel]);
+
+  Result := lBuilder.Build;
 end;
 
 procedure ReleaseGlobalLogger;
