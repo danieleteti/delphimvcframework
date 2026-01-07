@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2025 Daniele Teti
+// Copyright (c) 2010-2026 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -185,6 +185,13 @@ type
     function WithLogLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator;
   end;
+
+  { Windows Event Log appender configurator (Windows only) }
+  IWindowsEventLogAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6}']
+    function WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
+    function WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
+  end;
 {$ENDIF}
 
   { FireDAC DB appender configurator (cross-platform) }
@@ -225,6 +232,10 @@ type
     function WriteToVCLMemo(aMemo: TObject): IVCLMemoAppenderConfigurator;
     function WriteToVCLListBox(aListBox: TObject): IVCLListBoxAppenderConfigurator;
     function WriteToVCLListView(aListView: TObject): IVCLListViewAppenderConfigurator;
+    { Windows Event Log appender }
+    function WriteToWindowsEventLog: IWindowsEventLogAppenderConfigurator;
+    { Windows Event Log appender for Windows Services (uses TService.LogMessage) }
+    function WriteToWindowsEventLogForService(aService: TObject): IWindowsEventLogAppenderConfigurator;
 {$ENDIF}
     { FireDAC appender (cross-platform) }
     function WriteToFireDAC: IFireDACAppenderConfigurator;
@@ -264,8 +275,10 @@ uses
   , LoggerPro.VCLMemoAppender
   , LoggerPro.VCLListBoxAppender
   , LoggerPro.VCLListViewAppender
+  , LoggerPro.WindowsEventLogAppender
   , Vcl.StdCtrls
   , Vcl.ComCtrls
+  , Vcl.SvcMgr
 {$ENDIF}
   ;
 
@@ -506,6 +519,20 @@ type
     function Done: ILoggerProBuilder;
   end;
 
+  { Windows Event Log appender configurator (Windows only) }
+  TWindowsEventLogAppenderConfigurator = class(TBaseAppenderConfigurator, IWindowsEventLogAppenderConfigurator)
+  private
+    FService: TService;
+    FSourceName: string;
+    FUseService: Boolean;
+  public
+    constructor Create(aBuilder: TLoggerProBuilder); overload;
+    constructor Create(aBuilder: TLoggerProBuilder; aService: TService); overload;
+    function WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
+    function WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
+    function Done: ILoggerProBuilder;
+  end;
+
 {$ENDIF}
 
   { FireDAC DB appender configurator (cross-platform) }
@@ -563,6 +590,9 @@ type
     function WriteToVCLMemo(aMemo: TObject): IVCLMemoAppenderConfigurator;
     function WriteToVCLListBox(aListBox: TObject): IVCLListBoxAppenderConfigurator;
     function WriteToVCLListView(aListView: TObject): IVCLListViewAppenderConfigurator;
+    // Windows Event Log appender (Windows only)
+    function WriteToWindowsEventLog: IWindowsEventLogAppenderConfigurator;
+    function WriteToWindowsEventLogForService(aService: TObject): IWindowsEventLogAppenderConfigurator;
 {$ENDIF}
     // FireDAC appender (cross-platform)
     function WriteToFireDAC: IFireDACAppenderConfigurator;
@@ -719,6 +749,18 @@ begin
   if not (aListView is TListView) then
     raise ELoggerPro.Create('WriteToVCLListView requires a TListView instance');
   Result := TVCLListViewAppenderConfigurator.Create(Self, TListView(aListView));
+end;
+
+function TLoggerProBuilder.WriteToWindowsEventLog: IWindowsEventLogAppenderConfigurator;
+begin
+  Result := TWindowsEventLogAppenderConfigurator.Create(Self);
+end;
+
+function TLoggerProBuilder.WriteToWindowsEventLogForService(aService: TObject): IWindowsEventLogAppenderConfigurator;
+begin
+  if not (aService is TService) then
+    raise ELoggerPro.Create('WriteToWindowsEventLogForService requires a TService instance');
+  Result := TWindowsEventLogAppenderConfigurator.Create(Self, TService(aService));
 end;
 
 {$ENDIF}
@@ -1503,6 +1545,50 @@ var
   lAppender: ILogAppender;
 begin
   lAppender := TVCLListViewAppender.Create(FListView, FMaxLogLines, GetRenderer);
+  ApplyLogLevel(lAppender);
+  FBuilder.InternalAddAppender(lAppender);
+  Result := FBuilder;
+end;
+
+{ TWindowsEventLogAppenderConfigurator }
+
+constructor TWindowsEventLogAppenderConfigurator.Create(aBuilder: TLoggerProBuilder);
+begin
+  inherited Create(aBuilder);
+  FService := nil;
+  FSourceName := '';
+  FUseService := False;
+end;
+
+constructor TWindowsEventLogAppenderConfigurator.Create(aBuilder: TLoggerProBuilder; aService: TService);
+begin
+  inherited Create(aBuilder);
+  FService := aService;
+  FSourceName := '';
+  FUseService := True;
+end;
+
+function TWindowsEventLogAppenderConfigurator.WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
+begin
+  FLogLevel := aLogLevel;
+  FLogLevelSet := True;
+  Result := Self;
+end;
+
+function TWindowsEventLogAppenderConfigurator.WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
+begin
+  FSourceName := aSourceName;
+  Result := Self;
+end;
+
+function TWindowsEventLogAppenderConfigurator.Done: ILoggerProBuilder;
+var
+  lAppender: ILogAppender;
+begin
+  if FUseService then
+    lAppender := TLoggerProWindowsEventLogAppender.Create(FService)
+  else
+    lAppender := TLoggerProWindowsEventLogAppender.Create(FSourceName);
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;

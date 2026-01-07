@@ -2,11 +2,11 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2025 Daniele Teti
+// Copyright (c) 2010-2026 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
-// Contributors for this file: 
+// Contributors for this file:
 //    David Cornelius
 //
 // ***************************************************************************
@@ -34,16 +34,26 @@ unit LoggerPro.WindowsEventLogAppender;
 interface
 
 uses
-  Vcl.SvcMgr,
   LoggerPro;
 
 type
-  { @abstract(This appender is for logging from Windows Services to the Windows Event Log) }
+  { @abstract(Appender for logging to Windows Event Log)
+    Can be used in two modes:
+    1. With a TService instance (for Windows Services) - uses TService.LogMessage
+    2. With a source name (for any Windows application) - uses ReportEvent API
+  }
   TLoggerProWindowsEventLogAppender = class(TLoggerProAppenderBase)
   private
-    FService: TService;
+    FService: TObject;  // TService when used in service mode
+    FEventSource: THandle;
+    FSourceName: string;
+    FUseService: Boolean;
   public
-    constructor Create(AService: TService); reintroduce;
+    { Creates appender for Windows Service using TService.LogMessage }
+    constructor Create(AService: TObject); reintroduce; overload;
+    { Creates appender for any Windows application using ReportEvent API }
+    constructor Create(const ASourceName: string = ''); reintroduce; overload;
+    destructor Destroy; override;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -52,34 +62,105 @@ type
 implementation
 
 uses
-  Winapi.Windows;
+  Winapi.Windows,
+  System.SysUtils,
+  Vcl.SvcMgr;
 
-constructor TLoggerProWindowsEventLogAppender.Create(AService: TService);
+function LogTypeToEventType(aLogType: TLogType): Word;
+begin
+  case aLogType of
+    TLogType.Debug,
+    TLogType.Info:
+      Result := EVENTLOG_INFORMATION_TYPE;
+    TLogType.Warning:
+      Result := EVENTLOG_WARNING_TYPE;
+    TLogType.Error,
+    TLogType.Fatal:
+      Result := EVENTLOG_ERROR_TYPE;
+  else
+    Result := EVENTLOG_INFORMATION_TYPE;
+  end;
+end;
+
+constructor TLoggerProWindowsEventLogAppender.Create(AService: TObject);
 begin
   inherited Create;
+  if not (AService is TService) then
+    raise ELoggerPro.Create('TLoggerProWindowsEventLogAppender.Create requires a TService instance');
   FService := AService;
+  FUseService := True;
+  FEventSource := 0;
+end;
+
+constructor TLoggerProWindowsEventLogAppender.Create(const ASourceName: string);
+begin
+  inherited Create;
+  FService := nil;
+  FUseService := False;
+  FEventSource := 0;
+  if ASourceName.IsEmpty then
+    FSourceName := ChangeFileExt(ExtractFileName(ParamStr(0)), '')
+  else
+    FSourceName := ASourceName;
+end;
+
+destructor TLoggerProWindowsEventLogAppender.Destroy;
+begin
+  TearDown;
+  inherited;
 end;
 
 procedure TLoggerProWindowsEventLogAppender.Setup;
 begin
-  // do nothing
+  if not FUseService then
+  begin
+    FEventSource := RegisterEventSource(nil, PChar(FSourceName));
+    if FEventSource = 0 then
+      RaiseLastOSError;
+  end;
 end;
 
 procedure TLoggerProWindowsEventLogAppender.TearDown;
 begin
-  // do nothing
+  if (not FUseService) and (FEventSource <> 0) then
+  begin
+    DeregisterEventSource(FEventSource);
+    FEventSource := 0;
+  end;
 end;
 
 procedure TLoggerProWindowsEventLogAppender.WriteLog(const aLogItem: TLogItem);
+var
+  lEventType: Word;
+  lMessage: string;
+  lMessagePtr: PChar;
 begin
-  case aLogItem.LogType of
-    TLogType.Debug,
-    TLogType.Info:
-      FService.LogMessage(aLogItem.LogMessage, EVENTLOG_INFORMATION_TYPE);
-    TLogType.Warning:
-      FService.LogMessage(aLogItem.LogMessage, EVENTLOG_WARNING_TYPE);
-    TLogType.Error, TLogType.Fatal:
-      FService.LogMessage(aLogItem.LogMessage, EVENTLOG_ERROR_TYPE);
+  lEventType := LogTypeToEventType(aLogItem.LogType);
+  lMessage := aLogItem.LogMessage;
+
+  if FUseService then
+  begin
+    // Use TService.LogMessage for Windows Services
+    TService(FService).LogMessage(lMessage, lEventType);
+  end
+  else
+  begin
+    // Use ReportEvent API for regular applications
+    if FEventSource <> 0 then
+    begin
+      lMessagePtr := PChar(lMessage);
+      ReportEvent(
+        FEventSource,      // event log handle
+        lEventType,        // event type
+        0,                 // category
+        0,                 // event ID
+        nil,               // user SID
+        1,                 // number of strings
+        0,                 // data size
+        @lMessagePtr,      // strings
+        nil                // data
+      );
+    end;
   end;
 end;
 

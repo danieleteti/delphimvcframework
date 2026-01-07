@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2025 Daniele Teti
+// Copyright (c) 2010-2026 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -36,6 +36,8 @@ uses
 
 const
   DEFAULT_LOG_TAG = 'main';
+
+{$I loggerprobuildconsts.inc}  
 
 var
   DefaultLoggerProMainQueueSize: Cardinal = 50000;
