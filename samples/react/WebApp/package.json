@@ -9,7 +9,7 @@
     "axios": "^1.6.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-router-dom": "^6.10.0",
+    "react-router-dom": "^6.30.3",
     "react-scripts": "5.0.1"
   },
   "scripts": {
