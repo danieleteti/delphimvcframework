@@ -28,6 +28,7 @@ interface
 
 uses
   LoggerPro,
+  System.Types,
   System.SysUtils,
   System.Classes,
   System.IOUtils,
@@ -257,7 +258,7 @@ end;
 
 procedure TLoggerProTimeRotatingFileAppender.CleanupOldFiles;
 var
-  lFiles: TArray<string>;
+  lFiles: TStringDynArray;
   lPattern: string;
   I: Integer;
 begin

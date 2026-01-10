@@ -301,18 +301,15 @@ var
   Line: string;
   AcceptKey: string;
   I: Integer;
+  RandomBytes: TIdBytes;
 begin
   Result := False;
 
   // Generate random 16-byte key (as per RFC 6455)
-  var
-    RandomBytes: TIdBytes;
-  begin
-    SetLength(RandomBytes, 16);
-    for I := 0 to 15 do
-      RandomBytes[i] := Random(256);
-    SecWebSocketKey := TIdEncoderMIME.EncodeBytes(RandomBytes);
-  end;
+  SetLength(RandomBytes, 16);
+  for I := 0 to 15 do
+    RandomBytes[i] := Random(256);
+  SecWebSocketKey := TIdEncoderMIME.EncodeBytes(RandomBytes);
 
   // Calculate expected accept key
   ExpectedAccept := TMVCWebSocketHandshake.CalculateAcceptKey(SecWebSocketKey);
