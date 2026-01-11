@@ -326,6 +326,7 @@ var
   LOnValidateMethod: TMethod;
   LOnValidateProc: TOnValidateProc;
   LOnValidateErrors: TMVCValidationErrors;
+  LPair: TPair<string, string>;
 begin
   if AObject = nil then
     Exit;
@@ -447,7 +448,7 @@ begin
         else
         begin
           // Merge errors
-          for var LPair in LOnValidateErrors.FErrors do
+          for LPair in LOnValidateErrors.FErrors do
             if not AErrors.ContainsKey(LPair.Key) then
               AErrors.Add(LPair.Key, LPair.Value);
           LOnValidateErrors.Clear;

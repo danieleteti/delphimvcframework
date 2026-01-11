@@ -111,12 +111,13 @@ constructor EMVCValidationException.Create(const AErrors: TDictionary<string, st
 var
   LKey: string;
   LErrorItems: TArray<string>;
+  LIndex: Integer;
 begin
   FValidationErrors := TDictionary<string, string>.Create;
 
   // Copy errors and build ErrorItems array for EMVCException compatibility
   SetLength(LErrorItems, AErrors.Count);
-  var LIndex := 0;
+  LIndex := 0;
   for LKey in AErrors.Keys do
   begin
     FValidationErrors.Add(LKey, AErrors[LKey]);
