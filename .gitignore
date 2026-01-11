@@ -168,3 +168,4 @@ nul
 /unittests/general/TestClient/pgsql/testdatadir/*
 /CLAUDE.md
 /unittests/general/TestClient/pgsql/testdatadir/*
+/build_tests.bat
