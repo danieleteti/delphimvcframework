@@ -122,13 +122,7 @@ var
 implementation
 
 uses
-  {$IF Defined(MSWINDOWS)}
   LoggerPro.ConsoleAppender,
-  {$ELSE}
-  {$IF Defined(CONSOLE) and Not Defined(MOBILE)}
-  LoggerPro.SimpleConsoleAppender, //only for linux
-  {$ENDIF}
-  {$ENDIF}
   LoggerPro.Renderers,
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
@@ -413,11 +407,7 @@ begin
 
   if IsConsole and UseConsoleLogger then
   begin
-    {$IF Defined(MSWINDOWS)}
     lBuilder.WriteToConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
-    {$ELSEIF Defined(CONSOLE) and Not Defined(MOBILE)}
-    lBuilder.WriteToSimpleConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
-    {$ENDIF}
   end;
 
   Result := lBuilder.Build;

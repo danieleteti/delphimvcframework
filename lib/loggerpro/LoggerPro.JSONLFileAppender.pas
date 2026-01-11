@@ -170,7 +170,7 @@ begin
     lJSON.AddPair('message', ALogItem.LogMessage);
     lJSON.AddPair('tag', ALogItem.LogTag);
     lJSON.AddPair('hostname', fHostName);
-    lJSON.AddPair('tid', ALogItem.ThreadID);
+    lJSON.AddPair('tid', ALogItem.ThreadID.ToString);
     if ALogItem.HasContext then
     begin
       lContextObj := TJSONObject.Create;

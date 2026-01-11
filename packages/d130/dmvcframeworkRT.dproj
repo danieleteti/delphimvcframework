@@ -219,6 +219,10 @@
         <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Server.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Validation.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ValidationEngine.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Validators.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Validators.CrossField.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
