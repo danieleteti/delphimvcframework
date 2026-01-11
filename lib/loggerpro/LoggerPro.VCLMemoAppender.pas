@@ -26,6 +26,8 @@ unit LoggerPro.VCLMemoAppender;
 
 interface
 
+{$IF Defined(MSWINDOWS)}
+
 uses
   LoggerPro,
   System.Classes,
@@ -45,7 +47,11 @@ type
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
 
+{$ENDIF}
+
 implementation
+
+{$IF Defined(MSWINDOWS)}
 
 uses
   System.SysUtils,
@@ -105,4 +111,5 @@ begin
     end);
 end;
 
+{$ENDIF}
 end.

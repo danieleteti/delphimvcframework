@@ -29,6 +29,7 @@ unit LoggerPro.VCLListBoxAppender;
 
 interface
 
+{$IF Defined(MSWINDOWS)}
 uses
   LoggerPro,
   System.Classes,
@@ -46,9 +47,10 @@ type
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
-
+{$ENDIF}
 implementation
 
+{$IF Defined(MSWINDOWS)}
 uses
   System.SysUtils;
 
@@ -99,5 +101,7 @@ begin
       end;
     end);
 end;
+
+{$ENDIF}
 
 end.
