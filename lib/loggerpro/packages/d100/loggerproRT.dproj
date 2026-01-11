@@ -118,6 +118,8 @@
         <DCCReference Include="IndySystem.dcp"/>
         <DCCReference Include="IndyProtocols.dcp"/>
         <DCCReference Include="IndyCore.dcp"/>
+        <DCCReference Include="FireDAC.dcp"/>
+        <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="..\..\LoggerPro.pas"/>
         <DCCReference Include="..\..\LoggerPro.CallbackAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.ConsoleAppender.pas"/>
@@ -136,6 +138,12 @@
         <DCCReference Include="..\..\LoggerPro.UDPSyslogAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.Utils.pas"/>
         <DCCReference Include="..\..\ThreadSafeQueueU.pas"/>
+        <DCCReference Include="..\..\LoggerPro.Builder.pas"/>
+        <DCCReference Include="..\..\LoggerPro.DBAppender.FireDAC.pas"/>
+        <DCCReference Include="..\..\LoggerPro.DBAppender.pas"/>
+        <DCCReference Include="..\..\LoggerPro.VCLListBoxAppender.pas"/>
+        <DCCReference Include="..\..\LoggerPro.VCLListViewAppender.pas"/>
+        <DCCReference Include="..\..\LoggerPro.VCLMemoAppender.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

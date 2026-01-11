@@ -25,7 +25,7 @@ package loggerproRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggerPro'}
+{$DESCRIPTION 'LoggerPro - CopyRight 2026 Daniele Teti'}
 {$LIBSUFFIX '110'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -34,7 +34,9 @@ requires
   rtl,
   IndySystem,
   IndyProtocols,
-  IndyCore;
+  IndyCore,
+  FireDAC,
+  vcl;
 
 contains
   LoggerPro in '..\..\LoggerPro.pas',
@@ -54,6 +56,12 @@ contains
   LoggerPro.TimeRotatingFileAppender in '..\..\LoggerPro.TimeRotatingFileAppender.pas',
   LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
   LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
-  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas';
+  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
+  LoggerPro.Builder in '..\..\LoggerPro.Builder.pas',
+  LoggerPro.DBAppender.FireDAC in '..\..\LoggerPro.DBAppender.FireDAC.pas',
+  LoggerPro.DBAppender in '..\..\LoggerPro.DBAppender.pas',
+  LoggerPro.VCLListBoxAppender in '..\..\LoggerPro.VCLListBoxAppender.pas',
+  LoggerPro.VCLListViewAppender in '..\..\LoggerPro.VCLListViewAppender.pas',
+  LoggerPro.VCLMemoAppender in '..\..\LoggerPro.VCLMemoAppender.pas';
 
 end.
