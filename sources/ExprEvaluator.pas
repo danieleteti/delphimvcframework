@@ -2,7 +2,7 @@
 //
 // Delphi Expression Evaluator
 //
-// Copyright (c) 2024-2026 Daniele Teti
+// Copyright (c) 2024-2025 Daniele Teti
 //
 // https://github.com/danieleteti/delphi-expressions-evaluator
 //
@@ -26,7 +26,11 @@ unit ExprEvaluator;
 
 interface
 
-{$I dmvcframework.inc}
+
+{$IF CompilerVersion >= 37} // 13 Florence
+{$DEFINE DELPHI_FLORENCE}
+{$ENDIF}
+
 
 uses
   System.SysUtils, System.Variants, System.Math, System.Generics.Collections,
@@ -221,7 +225,7 @@ begin
         raise Exception.Create('Contains requires 2 arguments');
       if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
         raise Exception.Create('Contains requires non-null arguments');
-      {$IF Defined(FLORENCEORBETTER)}
+      {$IF Defined(DELPHI_FLORENCE)}
       Result := String(Args[1]).Contains(String(Args[0]), True);
       {$ELSE}
       Result := String(Args[1]).ToLower.Contains(String(Args[0]).ToLower);

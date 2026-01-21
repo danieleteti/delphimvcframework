@@ -129,6 +129,7 @@
         <DCCReference Include="..\..\LoggerPro.VCLListBoxAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.VCLListViewAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.VCLMemoAppender.pas"/>
+        <DCCReference Include="..\..\LoggerPro.WindowsEventLogAppender.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

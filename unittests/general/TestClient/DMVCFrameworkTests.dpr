@@ -92,7 +92,8 @@ uses
   MVCFramework.Validation in '..\..\..\sources\MVCFramework.Validation.pas',
   MVCFramework.ValidationEngine in '..\..\..\sources\MVCFramework.ValidationEngine.pas',
   MVCFramework.Validators in '..\..\..\sources\MVCFramework.Validators.pas',
-  MVCFramework.Validators.CrossField in '..\..\..\sources\MVCFramework.Validators.CrossField.pas';
+  MVCFramework.Validators.CrossField in '..\..\..\sources\MVCFramework.Validators.CrossField.pas',
+  LoggerTestsU in 'LoggerTestsU.pas';
 
 {$R *.RES}
 

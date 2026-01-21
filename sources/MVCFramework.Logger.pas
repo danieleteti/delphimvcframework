@@ -77,20 +77,42 @@ procedure Log(AObject: TObject); overload;
 procedure LogD(AMessage: string); overload;
 procedure LogD(AMessage: TObject); overload;
 procedure LogD(AMessage: string; const AContext: array of LogParam); overload;
+procedure LogD(const AMessage: string; const Args: array of const); overload;
+procedure LogD(const AMessage: string; const ATag: string); overload;
+procedure LogD(const AMessage: string; const Args: array of const; const ATag: string); overload;
+procedure LogD(const AMessage: string; AObject: TObject); overload;
 
 procedure LogI(AMessage: string); overload;
 procedure LogI(AObject: TObject); overload;
 procedure LogI(AMessage: string; const AContext: array of LogParam); overload;
+procedure LogI(const AMessage: string; const Args: array of const); overload;
+procedure LogI(const AMessage: string; const ATag: string); overload;
+procedure LogI(const AMessage: string; const Args: array of const; const ATag: string); overload;
+procedure LogI(const AMessage: string; AObject: TObject); overload;
 
 procedure LogW(AMessage: string); overload;
 procedure LogW(AObject: TObject); overload;
 procedure LogW(AMessage: string; const AContext: array of LogParam); overload;
+procedure LogW(const AMessage: string; const Args: array of const); overload;
+procedure LogW(const AMessage: string; const ATag: string); overload;
+procedure LogW(const AMessage: string; const Args: array of const; const ATag: string); overload;
+procedure LogW(const AMessage: string; AObject: TObject); overload;
 
 procedure LogE(AMessage: string); overload;
 procedure LogE(AMessage: string; const AContext: array of LogParam); overload;
+procedure LogE(const AMessage: string; const Args: array of const); overload;
+procedure LogE(const AMessage: string; const ATag: string); overload;
+procedure LogE(const AMessage: string; const Args: array of const; const ATag: string); overload;
+procedure LogE(const AMessage: string; AObject: TObject); overload;
+procedure LogE(const E: Exception); overload;
+procedure LogE(const E: Exception; const AMessage: string); overload;
 
 procedure LogF(AMessage: string); overload;
 procedure LogF(AMessage: string; const AContext: array of LogParam); overload;
+procedure LogF(const AMessage: string; const Args: array of const); overload;
+procedure LogF(const AMessage: string; const ATag: string); overload;
+procedure LogF(const AMessage: string; const Args: array of const; const ATag: string); overload;
+procedure LogF(const AMessage: string; AObject: TObject); overload;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
 
@@ -100,12 +122,19 @@ procedure LogException(const E: Exception; const AMessage: String); overload;
 procedure LogEnterMethod(const AMethodName: string);
 procedure LogExitMethod(const AMethodName: string);
 
+// Log level check helpers - useful to avoid expensive message construction
+function IsDebugEnabled: Boolean; inline;
+function IsInfoEnabled: Boolean; inline;
+function IsWarningEnabled: Boolean; inline;
+function IsErrorEnabled: Boolean; inline;
+
 // direct access to loggerpro logger
 function Log: ILogWriter; overload;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 //procedure InitializeDefaultLogger;
 function CreateLoggerWithDefaultConfiguration: ILogWriter;
+function CreateLogBuilderWithDefaultConfiguration: ILoggerProBuilder;
 function CreateNullLogger: ILogWriter;
 
 { @abstract(Use only inside DLL because dll unloading is not a safe place to shutdown threads, so call this before unload DLL)
@@ -123,6 +152,7 @@ implementation
 
 uses
   LoggerPro.ConsoleAppender,
+  LoggerPro.CallbackAppender,
   LoggerPro.Renderers,
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
@@ -215,34 +245,34 @@ function ObjectToJSON(const AObject: TObject): String;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-    lSer := TMVCJsonDataObjectsSerializer.Create;
-    try
-      if TDuckTypedList.CanBeWrappedAsList(AObject) then
-      begin
-        Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeCollection(AObject);
-      end
-      else
-      begin
-        Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeObject(AObject);
-      end;
-    finally
-      lSer.Free;
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    if TDuckTypedList.CanBeWrappedAsList(AObject) then
+    begin
+      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeCollection(AObject);
+    end
+    else
+    begin
+      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeObject(AObject);
     end;
+  finally
+    lSer.Free;
+  end;
 end;
 
 procedure LogW(AMessage: string);
 begin
-    Log.Warn(AMessage, LOGGERPRO_TAG);
+  Log.Warn(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogE(AMessage: string);
 begin
-    Log.Error(AMessage, LOGGERPRO_TAG);
+  Log.Error(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogF(AMessage: string);
 begin
-    Log.Fatal(AMessage, LOGGERPRO_TAG);
+  Log.Fatal(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogException(const E: Exception);
@@ -257,66 +287,66 @@ end;
 
 procedure LogEnterMethod(const AMethodName: string);
 begin
-    LogI('>> ' + AMethodName);
+  LogI('>> ' + AMethodName);
 end;
 
 procedure LogExitMethod(const AMethodName: string);
 begin
-    LogI('<< ' + AMethodName);
+  LogI('<< ' + AMethodName);
 end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 begin
-    case gLevelsMap[LogLevel] of
-      TLogType.Debug:
-        Log.Debug(AMessage, LOGGERPRO_TAG);
-      TLogType.Info:
-        Log.Info(AMessage, LOGGERPRO_TAG);
-      TLogType.Warning:
-        Log.Warn(AMessage, LOGGERPRO_TAG);
-      TLogType.Error:
-        Log.Error(AMessage, LOGGERPRO_TAG);
-      TLogType.Fatal:
-        Log.Fatal(AMessage, LOGGERPRO_TAG);
-    else
-      raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
-    end;
+  case gLevelsMap[LogLevel] of
+    TLogType.Debug:
+      Log.Debug(AMessage, LOGGERPRO_TAG);
+    TLogType.Info:
+      Log.Info(AMessage, LOGGERPRO_TAG);
+    TLogType.Warning:
+      Log.Warn(AMessage, LOGGERPRO_TAG);
+    TLogType.Error:
+      Log.Error(AMessage, LOGGERPRO_TAG);
+    TLogType.Fatal:
+      Log.Fatal(AMessage, LOGGERPRO_TAG);
+  else
+    raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
+  end;
 
 end;
 
 procedure Log(AMessage: string); overload;
 begin
-    LogI(AMessage);
+  LogI(AMessage);
 end;
 
 procedure Log(AObject: TObject); overload;
 begin
-    Log(ObjectToJSON(AObject));
+  Log(ObjectToJSON(AObject));
 end;
 
 procedure LogI(AMessage: string); overload;
 begin
-    Log.Info(AMessage, LOGGERPRO_TAG);
+  Log.Info(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogD(AMessage: string); overload;
 begin
-    Log.Debug(AMessage, LOGGERPRO_TAG);
+  Log.Debug(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogD(AMessage: TObject); overload;
 begin
-    LogD(ObjectToJSON(AMessage));
+  LogD(ObjectToJSON(AMessage));
 end;
 
 procedure LogI(AObject: TObject); overload;
 begin
-    LogI(ObjectToJSON(AObject));
+  LogI(ObjectToJSON(AObject));
 end;
 
 procedure LogW(AObject: TObject); overload;
 begin
-    LogW(ObjectToJSON(AObject));
+  LogW(ObjectToJSON(AObject));
 end;
 
 procedure LogD(AMessage: string; const AContext: array of LogParam);
@@ -344,6 +374,148 @@ begin
   Log.Fatal(AMessage, LOGGERPRO_TAG, AContext);
 end;
 
+{ Format String overloads }
+
+procedure LogD(const AMessage: string; const Args: array of const);
+begin
+  Log.Debug(Format(AMessage, Args), LOGGERPRO_TAG);
+end;
+
+procedure LogI(const AMessage: string; const Args: array of const);
+begin
+  Log.Info(Format(AMessage, Args), LOGGERPRO_TAG);
+end;
+
+procedure LogW(const AMessage: string; const Args: array of const);
+begin
+  Log.Warn(Format(AMessage, Args), LOGGERPRO_TAG);
+end;
+
+procedure LogE(const AMessage: string; const Args: array of const);
+begin
+  Log.Error(Format(AMessage, Args), LOGGERPRO_TAG);
+end;
+
+procedure LogF(const AMessage: string; const Args: array of const);
+begin
+  Log.Fatal(Format(AMessage, Args), LOGGERPRO_TAG);
+end;
+
+{ Tag overloads }
+
+procedure LogD(const AMessage: string; const ATag: string);
+begin
+  Log.Debug(AMessage, ATag);
+end;
+
+procedure LogI(const AMessage: string; const ATag: string);
+begin
+  Log.Info(AMessage, ATag);
+end;
+
+procedure LogW(const AMessage: string; const ATag: string);
+begin
+  Log.Warn(AMessage, ATag);
+end;
+
+procedure LogE(const AMessage: string; const ATag: string);
+begin
+  Log.Error(AMessage, ATag);
+end;
+
+procedure LogF(const AMessage: string; const ATag: string);
+begin
+  Log.Fatal(AMessage, ATag);
+end;
+
+{ Format String + Tag overloads }
+
+procedure LogD(const AMessage: string; const Args: array of const; const ATag: string);
+begin
+  Log.Debug(Format(AMessage, Args), ATag);
+end;
+
+procedure LogI(const AMessage: string; const Args: array of const; const ATag: string);
+begin
+  Log.Info(Format(AMessage, Args), ATag);
+end;
+
+procedure LogW(const AMessage: string; const Args: array of const; const ATag: string);
+begin
+  Log.Warn(Format(AMessage, Args), ATag);
+end;
+
+procedure LogE(const AMessage: string; const Args: array of const; const ATag: string);
+begin
+  Log.Error(Format(AMessage, Args), ATag);
+end;
+
+procedure LogF(const AMessage: string; const Args: array of const; const ATag: string);
+begin
+  Log.Fatal(Format(AMessage, Args), ATag);
+end;
+
+{ Message + Object overloads }
+
+procedure LogD(const AMessage: string; AObject: TObject);
+begin
+  Log.Debug(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
+end;
+
+procedure LogI(const AMessage: string; AObject: TObject);
+begin
+  Log.Info(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
+end;
+
+procedure LogW(const AMessage: string; AObject: TObject);
+begin
+  Log.Warn(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
+end;
+
+procedure LogE(const AMessage: string; AObject: TObject);
+begin
+  Log.Error(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
+end;
+
+procedure LogF(const AMessage: string; AObject: TObject);
+begin
+  Log.Fatal(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
+end;
+
+{ LogE Exception overloads }
+
+procedure LogE(const E: Exception);
+begin
+  LogException(E);
+end;
+
+procedure LogE(const E: Exception; const AMessage: string);
+begin
+  LogException(E, AMessage);
+end;
+
+{ Log level check helpers }
+
+function IsDebugEnabled: Boolean;
+begin
+  Result := UseLoggerVerbosityLevel <= TLogLevel.levDebug;
+end;
+
+function IsInfoEnabled: Boolean;
+begin
+  Result := UseLoggerVerbosityLevel <= TLogLevel.levNormal;
+end;
+
+function IsWarningEnabled: Boolean;
+begin
+  Result := UseLoggerVerbosityLevel <= TLogLevel.levWarning;
+end;
+
+function IsErrorEnabled: Boolean;
+begin
+  Result := UseLoggerVerbosityLevel <= TLogLevel.levError;
+end;
+
 procedure InitializeDefaultLogger;
 begin
   { This procedure must be called in a synchronized context
@@ -365,7 +537,6 @@ begin
         if aLogWriter <> nil then
         begin
           gDefaultLogger := aLogWriter;
-          Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
         end
         else
         begin
@@ -383,10 +554,13 @@ function CreateNullLogger: ILogWriter;
 begin
   Result := LoggerProBuilder
     .WithMinimumLevel(gLevelsMap[UseLoggerVerbosityLevel])
+    .WriteToCallback
+      .WithCallback(procedure(const aLogItem: TLogItem; const aFormattedMessage: string) begin end)
+      .Done
     .Build;
 end;
 
-function CreateLoggerWithDefaultConfiguration: ILogWriter;
+function CreateLogBuilderWithDefaultConfiguration: ILoggerProBuilder;
 var
   lLogsFolder: String;
   lBuilder: ILoggerProBuilder;
@@ -410,7 +584,12 @@ begin
     lBuilder.WriteToConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
   end;
 
-  Result := lBuilder.Build;
+  Result := lBuilder;
+end;
+
+function CreateLoggerWithDefaultConfiguration(): ILogWriter;
+begin
+  Result := CreateLogBuilderWithDefaultConfiguration.Build;
 end;
 
 procedure ReleaseGlobalLogger;
