@@ -1830,7 +1830,9 @@ begin
   // Skip other digits. TDateTime's precision cannot represent them
   if Result^ in ['0'..'9'] then
   begin
-    if Result^ >= '5' then
+    // Don't round 0.9995 up to 1.0. We can't have 1000ms as a "millisecond" component and
+    // we don't want to change the "second" component either.
+    if (MSec < 999) and (Result^ >= '5') then
       Inc(MSec); // round up
     while Result^ in ['0'..'9'] do
       Inc(Result);
