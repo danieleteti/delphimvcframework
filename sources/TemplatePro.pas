@@ -80,6 +80,7 @@ type
     fMacros: TDictionary<string, TMacroDefinition>;
     fLoopsStack: TObjectList<TLoopStackItem>;
     fIncludeSavedVarsStack: TObjectList<TIncludeSavedVars>;
+    fAutoescapeStack: TStack<Boolean>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
     fExprEvaluator: IExprEvaluator;
     function IsNullableType(const Value: PValue): Boolean;
@@ -160,6 +161,7 @@ type
     fCurrentFileName: String;
     fLastMatchedLineBreakLength: Integer;
     fInheritanceChain: TList<string>;
+    fStripNextLeadingWS: Boolean;  // For whitespace control: -}} strips leading WS from next content
     function MatchLineBreak: Boolean;
     function MatchStartTag: Boolean;
     function MatchEndTag: Boolean;
@@ -243,6 +245,7 @@ type
   TTProRTTIUtils = class sealed
   public
     class function GetProperty(AObject: TObject; const APropertyName: string): TValue;
+    class function ObjectToJSONString(AObject: TObject): string;
   end;
 
   TTProDuckTypedList = class(TInterfacedObject, ITProWrappedList)
@@ -1002,8 +1005,21 @@ begin
 end;
 
 function TTProCompiler.MatchEndTag: Boolean;
+var
+  lHasMinus: Boolean;
 begin
+  // Check for -}} (strip leading whitespace from next content)
+  lHasMinus := (CurrentChar = '-');
+  if lHasMinus then
+    Step; // skip the '-'
   Result := MatchSymbol(END_TAG);
+  if Result and lHasMinus then
+    fStripNextLeadingWS := True
+  else if not Result and lHasMinus then
+  begin
+    // We stepped past '-' but didn't find '}}'', need to step back
+    Dec(fCharIndex);
+  end;
 end;
 
 function TTProCompiler.MatchVariable(var aIdentifier: string): Boolean;
@@ -1348,6 +1364,10 @@ var
   lIsFieldIteration: Integer;
   lIncludeToken: TToken;
   lBlockStack: string;  // Stack of 'F' (for) and 'I' (if) to track nesting for for-else
+  // Variables for whitespace control
+  lStripTrailingWS: Boolean; // Strip trailing whitespace from current content ({{-)
+  lRawEndPos: Integer;       // Position of {{endraw}} for raw blocks
+  lRawContent: string;       // Content inside raw block
 begin
   aTokens.Add(TToken.Create(ttSystemVersion, TEMPLATEPRO_VERSION, ''));
   lLastToken := ttEOF;
@@ -1360,6 +1380,7 @@ begin
   lForStatementCount := -1;
   lBlockStack := '';  // Empty stack at start
   SetLength(lElseIfPendingCounts, 0);
+  fStripNextLeadingWS := False;  // Initialize whitespace control
   fInputString := aTemplate;
   lStartVerbatim := 0;
   if fInputString.Length > 0 then
@@ -1380,7 +1401,14 @@ begin
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
         lLastToken := ttContent;
-        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
+        lStrVerbatim := fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim);
+        // Handle whitespace stripping from previous -}} tag
+        if fStripNextLeadingWS then
+        begin
+          lStrVerbatim := lStrVerbatim.TrimLeft;
+          fStripNextLeadingWS := False;
+        end;
+        aTokens.Add(TToken.Create(lLastToken, lStrVerbatim, ''));
       end;
       aTokens.Add(TToken.Create(ttEOF, '', ''));
       Break;
@@ -1393,13 +1421,24 @@ begin
       begin
         Inc(lContentOnThisLine);
         lStrVerbatim := fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim);
+        // Handle whitespace stripping from previous -}} tag
+        if fStripNextLeadingWS then
+        begin
+          lStrVerbatim := lStrVerbatim.TrimLeft;
+          fStripNextLeadingWS := False;
+        end;
         aTokens.Add(TToken.Create(ttContent, lStrVerbatim, ''));
-      end;
+      end
+      else if fStripNextLeadingWS then
+        fStripNextLeadingWS := False;  // Reset flag even if no content
       lStartVerbatim := fCharIndex;
       if lLastToken = ttLineBreak then
         Inc(lContentOnThisLine);
       lLastToken := ttLineBreak;
-      if lContentOnThisLine > 0 then
+      // Add line break token if:
+      // - coDisableEatLineBreaks is set (always preserve line breaks), or
+      // - There was content on this line (default "eat linebreaks" behavior)
+      if (coDisableEatLineBreaks in fOptions) or (lContentOnThisLine > 0) then
       begin
         aTokens.Add(TToken.Create(lLastToken, '', ''));
       end;
@@ -1413,7 +1452,30 @@ begin
       if lEndVerbatim - lStartVerbatim > 0 then
       begin
         lLastToken := ttContent;
-        aTokens.Add(TToken.Create(lLastToken, fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim), ''));
+        lStrVerbatim := fInputString.Substring(lStartVerbatim, lEndVerbatim - lStartVerbatim);
+        // Handle whitespace stripping from previous -}} tag
+        if fStripNextLeadingWS then
+        begin
+          lStrVerbatim := lStrVerbatim.TrimLeft;
+          fStripNextLeadingWS := False;
+        end;
+        aTokens.Add(TToken.Create(lLastToken, lStrVerbatim, ''));
+      end
+      else if fStripNextLeadingWS then
+        fStripNextLeadingWS := False;  // Reset flag even if no content
+
+      // Check for {{- (strip trailing whitespace from previous content)
+      lStripTrailingWS := (CurrentChar = '-');
+      if lStripTrailingWS then
+      begin
+        Step; // skip the '-'
+        // Trim trailing whitespace from the last content token
+        if (aTokens.Count > 0) and (aTokens[aTokens.Count - 1].TokenType = ttContent) then
+        begin
+          aTokens[aTokens.Count - 1] := TToken.Create(ttContent,
+            aTokens[aTokens.Count - 1].Value1.TrimRight, '');
+        end;
+        MatchSpace; // skip whitespace after {{- before tag content
       end;
 
       if CurrentChar = START_TAG[1] then
@@ -1541,7 +1603,35 @@ begin
       else
       begin
         MatchSpace;
-        if MatchSymbol('for') then { loop }
+        if MatchSymbol('raw') then { raw block - output content without processing }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag after "raw"');
+          // Find {{endraw}}
+          lRawEndPos := Pos('{{endraw}}', fInputString, fCharIndex + 1); // Pos uses 1-based offset
+          if lRawEndPos = 0 then
+            Error('Missing {{endraw}} for raw block');
+          // Extract raw content (lRawEndPos is 1-based, fCharIndex is 0-based)
+          lRawContent := fInputString.Substring(fCharIndex, lRawEndPos - 1 - fCharIndex);
+          // Handle whitespace stripping from previous -}} tag
+          if fStripNextLeadingWS then
+          begin
+            lRawContent := lRawContent.TrimLeft;
+            fStripNextLeadingWS := False;
+          end;
+          // Add as content token
+          if not lRawContent.IsEmpty then
+          begin
+            lLastToken := ttContent;
+            aTokens.Add(TToken.Create(lLastToken, lRawContent, ''));
+            Inc(lContentOnThisLine);
+          end;
+          // Skip past {{endraw}} (convert 1-based lRawEndPos to 0-based fCharIndex)
+          fCharIndex := lRawEndPos - 1 + Length('{{endraw}}');
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('for') then { loop }
         begin
           if not MatchSpace then
             Error('Expected "space"');
@@ -2065,8 +2155,9 @@ begin
                   aTokens.Add(lMapToken);
               end;
 
-              // Compile the included template
-              InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName, [coIgnoreSysVersion, coParentTemplate]);
+              // Compile the included template (propagate coDisableEatLineBreaks if set)
+              InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName,
+                [coIgnoreSysVersion, coParentTemplate] + (fOptions * [coDisableEatLineBreaks]));
 
               if lHasMappings then
               begin
@@ -2121,7 +2212,9 @@ begin
           end;
           Inc(lContentOnThisLine);
           aTokens.Add(TToken.Create(ttInfo, STR_BEGIN_OF_LAYOUT, ''));
-          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName, [coIgnoreSysVersion]);
+          // Propagate coDisableEatLineBreaks if set
+          InternalCompileIncludedTemplate(lTemplateSource, aTokens, lCurrentFileName,
+            [coIgnoreSysVersion] + (fOptions * [coDisableEatLineBreaks]));
           aTokens.Add(TToken.Create(ttInfo, STR_END_OF_LAYOUT, ''));
           lStartVerbatim := fCharIndex;
         end
@@ -2154,6 +2247,8 @@ begin
             Error('Expected closing tag for "inherited"');
           lLastToken := ttInherited;
           aTokens.Add(TToken.Create(lLastToken, '', ''));
+          // Note: {{inherited}} does not increment lContentOnThisLine to maintain
+          // backward compatibility with "eat linebreaks" behavior
           lStartVerbatim := fCharIndex;
         end
         else if MatchSymbol('macro') then { macro definition }
@@ -2225,6 +2320,35 @@ begin
           lLastToken := ttEOF;
           aTokens.Add(TToken.Create(lLastToken, '', ''));
           Break;
+        end
+        else if MatchSymbol('autoescape') then { autoescape true/false }
+        begin
+          MatchSpace;
+          if MatchSymbol('true') then
+          begin
+            lLastToken := ttAutoescape;
+            aTokens.Add(TToken.Create(lLastToken, 'true', ''));
+          end
+          else if MatchSymbol('false') then
+          begin
+            lLastToken := ttAutoescape;
+            aTokens.Add(TToken.Create(lLastToken, 'false', ''));
+          end
+          else
+            Error('Expected "true" or "false" after autoescape');
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag');
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endautoescape') then { endautoescape }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag');
+          lLastToken := ttEndAutoescape;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
+          lStartVerbatim := fCharIndex;
         end
         else if MatchString(lStringValue) then { string }
         begin
@@ -2825,6 +2949,27 @@ begin
       lStrValue := aParameters[0].ParStrText;
     aResult := aValue.AsString.ToLowerInvariant.Contains(lStrValue);
   end
+  else if SameText(aFunctionName, 'urlencode') then
+  begin
+    CheckParNumber(0, 0, aParameters);
+    aResult := TNetEncoding.URL.Encode(GetStringInput);
+  end
+  else if SameText(aFunctionName, 'truncate') then
+  begin
+    // truncate,maxlen[,"ellipsis"]  - default ellipsis is "..."
+    CheckParNumber(1, 2, aParameters);
+    lStrValue := aValue.AsString;
+    lIntegerPar1 := aParameters[0].ParIntValue;
+    if Length(lStrValue) > lIntegerPar1 then
+    begin
+      if Length(aParameters) > 1 then
+        aResult := lStrValue.Substring(0, lIntegerPar1) + aParameters[1].ParStrText
+      else
+        aResult := lStrValue.Substring(0, lIntegerPar1) + '...';
+    end
+    else
+      aResult := lStrValue;
+  end
   else
     Result := False;
 end;
@@ -3152,6 +3297,24 @@ begin
     CheckParNumber(0, aParameters);
     Result := TEMPLATEPRO_VERSION;
   end
+  else if SameText(aFunctionName, 'json') then
+  begin
+    // Serialize value to JSON string
+    CheckParNumber(0, 0, aParameters);
+    if aValue.IsObject then
+    begin
+      if aValue.AsObject is TJDOJsonObject then
+        Result := TJDOJsonObject(aValue.AsObject).ToJSON
+      else if aValue.AsObject is TJDOJsonArray then
+        Result := TJDOJsonArray(aValue.AsObject).ToJSON
+      else
+        Result := TTProRTTIUtils.ObjectToJSONString(aValue.AsObject);
+    end
+    else if aValue.IsEmpty then
+      Result := 'null'
+    else
+      Result := aValue.ToString;
+  end
   else if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
   begin
     Result := lFunc(aValue, aParameters);
@@ -3423,6 +3586,8 @@ begin
   inherited Create;
   fLoopsStack := TObjectList<TLoopStackItem>.Create(True);
   fIncludeSavedVarsStack := TObjectList<TIncludeSavedVars>.Create(True);
+  fAutoescapeStack := TStack<Boolean>.Create;
+  fAutoescapeStack.Push(True); // Default: autoescape enabled
   fTokens := Tokens;
   fTemplateFunctions := TDictionary<string, TTProTemplateFunction>.Create(TTProEqualityComparer.Create);
   fTemplateAnonFunctions := nil;
@@ -3482,6 +3647,7 @@ destructor TTProCompiledTemplate.Destroy;
 begin
   fLoopsStack.Free;
   fIncludeSavedVarsStack.Free;
+  fAutoescapeStack.Free;
   fTemplateFunctions.Free;
   fTemplateAnonFunctions.Free;
   fMacros.Free;
@@ -3919,10 +4085,12 @@ begin
         ttValue, ttLiteralString:
           begin
             lVarValue := EvaluateValue(lIdx, lMustBeEncoded { must be encoded } );
-            if lMustBeEncoded { lRef2 = -1 // encoded } then
-              lBuff.Append(HTMLEncode(lVarValue.ToString))
+            // lMustBeEncoded = False means explicit raw ($) - never encode
+            // lMustBeEncoded = True means follow autoescape stack
+            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+              lBuff.Append(lVarValue.ToString)
             else
-              lBuff.Append(lVarValue.ToString);
+              lBuff.Append(HTMLEncode(lVarValue.ToString));
             if lVarValue.IsObjectInstance then
             begin
               lVarValue.AsObject.Free;
@@ -3937,10 +4105,12 @@ begin
             if lExprFilterCount > 0 then
               ApplyFilters(lIdx, lVarValue, lExprFilterCount, 'expression');
             // Apply HTML encoding if required
-            if lMustBeEncoded then
-              lBuff.Append(HTMLEncode(lVarValue.ToString))
+            // lMustBeEncoded = False means explicit raw ($) - never encode
+            // lMustBeEncoded = True means follow autoescape stack
+            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+              lBuff.Append(lVarValue.ToString)
             else
-              lBuff.Append(lVarValue.ToString);
+              lBuff.Append(HTMLEncode(lVarValue.ToString));
           end;
         ttSet:
           ProcessSetToken(lIdx);
@@ -4099,6 +4269,17 @@ begin
             lBuff.Append(ExecuteMacro(lIdx));
             // Skip the call parameters
             lIdx := lIdx + fTokens[lIdx].Ref1;
+          end;
+        ttAutoescape:
+          begin
+            // Push autoescape state: Value1 is 'true' or 'false'
+            fAutoescapeStack.Push(fTokens[lIdx].Value1 = 'true');
+          end;
+        ttEndAutoescape:
+          begin
+            // Pop autoescape state, but keep at least the default
+            if fAutoescapeStack.Count > 1 then
+              fAutoescapeStack.Pop;
           end;
       else
         begin
@@ -4911,6 +5092,48 @@ begin
     raise Exception.CreateFmt('Property is not readable [%s.%s]', [ARttiType.ToString, APropertyName]);
 end;
 
+class function TTProRTTIUtils.ObjectToJSONString(AObject: TObject): string;
+var
+  lRttiType: TRttiType;
+  lProp: TRttiProperty;
+  lValue: TValue;
+  lJSON: TJDOJsonObject;
+begin
+  if AObject = nil then
+    Exit('null');
+
+  lJSON := TJDOJsonObject.Create;
+  try
+    lRttiType := GlContext.GetType(AObject.ClassType);
+    for lProp in lRttiType.GetProperties do
+    begin
+      if lProp.IsReadable and (lProp.Visibility in [mvPublic, mvPublished]) then
+      begin
+        lValue := lProp.GetValue(AObject);
+        case lProp.PropertyType.TypeKind of
+          tkInteger, tkInt64:
+            lJSON.I[lProp.Name] := lValue.AsInt64;
+          tkFloat:
+            if lProp.PropertyType.Handle = TypeInfo(TDateTime) then
+              lJSON.S[lProp.Name] := DateToISO8601(lValue.AsExtended)
+            else
+              lJSON.F[lProp.Name] := lValue.AsExtended;
+          tkString, tkLString, tkWString, tkUString:
+            lJSON.S[lProp.Name] := lValue.AsString;
+          tkEnumeration:
+            if lProp.PropertyType.Handle = TypeInfo(Boolean) then
+              lJSON.B[lProp.Name] := lValue.AsBoolean
+            else
+              lJSON.S[lProp.Name] := lValue.ToString;
+        end;
+      end;
+    end;
+    Result := lJSON.ToJSON;
+  finally
+    lJSON.Free;
+  end;
+end;
+
 { TDuckTypedList }
 
 procedure TTProDuckTypedList.Add(const AObject: TObject);
@@ -5388,15 +5611,34 @@ begin
             ttValue, ttLiteralString:
               begin
                 lParamValue := EvaluateValue(lIdx, lMustBeEncoded);
-                if lMustBeEncoded then
-                  lBuff.Append(HTMLEncode(lParamValue.ToString))
+                // lMustBeEncoded = False means explicit raw ($) - never encode
+                // lMustBeEncoded = True means follow autoescape stack
+                if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                  lBuff.Append(lParamValue.ToString)
                 else
-                  lBuff.Append(lParamValue.ToString);
+                  lBuff.Append(HTMLEncode(lParamValue.ToString));
               end;
             ttExpression:
               begin
                 lParamValue := EvaluateExpression(fTokens[lIdx].Value1);
-                lBuff.Append(lParamValue.ToString);
+                lMustBeEncoded := fTokens[lIdx].Ref2 = -1;
+                // lMustBeEncoded = False means explicit raw ($) - never encode
+                // lMustBeEncoded = True means follow autoescape stack
+                if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                  lBuff.Append(lParamValue.ToString)
+                else
+                  lBuff.Append(HTMLEncode(lParamValue.ToString));
+              end;
+            ttAutoescape:
+              begin
+                // Push autoescape state: Value1 is 'true' or 'false'
+                fAutoescapeStack.Push(fTokens[lIdx].Value1 = 'true');
+              end;
+            ttEndAutoescape:
+              begin
+                // Pop autoescape state, but keep at least the default
+                if fAutoescapeStack.Count > 1 then
+                  fAutoescapeStack.Pop;
               end;
             ttSet:
               ProcessSetToken(lIdx);

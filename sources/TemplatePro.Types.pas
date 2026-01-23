@@ -63,13 +63,13 @@ type
 
   TTokenType = (ttContent, ttInclude, ttFor, ttEndFor, ttForElse, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment, ttJump, ttBlock,
     ttEndBlock, ttInherited, ttContinue, ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttExit,
-    ttEOF, ttInfo, ttMacro, ttEndMacro, ttCallMacro, ttMacroParam, ttExpression, ttSet, ttIncludeStart, ttIncludeEnd);
+    ttEOF, ttInfo, ttMacro, ttEndMacro, ttCallMacro, ttMacroParam, ttExpression, ttSet, ttIncludeStart, ttIncludeEnd, ttAutoescape, ttEndAutoescape);
 
 const
   TOKEN_TYPE_DESCR: array [Low(TTokenType) .. High(TTokenType)] of string = ('ttContent', 'ttInclude', 'ttFor', 'ttEndFor', 'ttForElse', 'ttIfThen',
     'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment', 'ttJump', 'ttBlock', 'ttEndBlock', 'ttInherited', 'ttContinue', 'ttLiteralString',
     'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttExit', 'ttEOF', 'ttInfo', 'ttMacro',
-    'ttEndMacro', 'ttCallMacro', 'ttMacroParam', 'ttExpression', 'ttSet', 'ttIncludeStart', 'ttIncludeEnd');
+    'ttEndMacro', 'ttCallMacro', 'ttMacroParam', 'ttExpression', 'ttSet', 'ttIncludeStart', 'ttIncludeEnd', 'ttAutoescape', 'ttEndAutoescape');
 
 const
   { ttInfo value1 can be: }
@@ -191,7 +191,11 @@ type
   end;
 
   TTProTemplateSectionType = (stUnknown, stLayout, stPage);
-  TTProCompilerOption = (coIgnoreSysVersion, coParentTemplate);
+  TTProCompilerOption = (
+    coIgnoreSysVersion,     // Internal: skip system version token
+    coParentTemplate,       // Internal: compiling a parent template
+    coDisableEatLineBreaks  // Disable automatic linebreak removal on tag-only lines
+  );
   TTProCompilerOptions = set of TTProCompilerOption;
 
   TIncludeSavedVar = record
