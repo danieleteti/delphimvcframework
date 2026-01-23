@@ -40,6 +40,24 @@ uses
   Web.HTTPApp;
 
 type
+  /// <summary>
+  /// SameSite cookie attribute for CSRF protection
+  /// </summary>
+  TMVCJWTCookieSameSite = (
+    /// <summary>
+    /// Cookie only sent in first-party context (maximum security)
+    /// </summary>
+    ssStrict,
+    /// <summary>
+    /// Cookie sent with top-level navigations and GET from third-party sites
+    /// </summary>
+    ssLax,
+    /// <summary>
+    /// Cookie sent in all contexts (requires Secure=True)
+    /// </summary>
+    ssNone
+  );
+
   TMVCJWTDefaults = class sealed
   public const
     /// <summary>
@@ -112,6 +130,7 @@ type
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AHMACAlgorithm: String = HMAC_HS512); overload; virtual;
+      deprecated 'Use TMVCJWTCookieAuthenticationMiddleware for secure cookie-based JWT authentication';
     property AuthorizationHeaderName: string read FAuthorizationHeaderName;
     property UserNameHeaderName: string read FUserNameHeaderName;
     property PasswordHeaderName: string read FPasswordHeaderName;
@@ -155,6 +174,81 @@ type
       BlackListRequestURLSegment: string = '/logout');
   end;
 
+  /// <summary>
+  /// Secure JWT authentication middleware using HTTP-only cookies.
+  /// This middleware provides secure-by-default settings for cookie-based JWT authentication.
+  /// Default settings: Secure=True, SameSite=Strict, HttpOnly=True
+  /// </summary>
+  TMVCJWTCookieAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  private
+    FAuthenticationHandler: IMVCAuthenticationHandler;
+    FClaimsToChecks: TJWTCheckableClaims;
+    FSetupJWTClaims: TJWTClaimsSetup;
+    FSecret: string;
+    FLeewaySeconds: Cardinal;
+    FLoginURLSegment: string;
+    FLogoutURLSegment: string;
+    FHMACAlgorithm: String;
+    // Cookie settings with secure defaults
+    FCookieName: string;
+    FCookieSecure: Boolean;
+    FCookieSameSite: TMVCJWTCookieSameSite;
+    FCookiePath: string;
+    FCookieDomain: string;
+    FTokenExpires: TDateTime;
+  protected
+    procedure SetCookie(AContext: TWebContext; const AToken: string; AExpires: TDateTime);
+    procedure InvalidateCookie(AContext: TWebContext);
+    function GetTokenFromCookie(AContext: TWebContext): string;
+    function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
+    procedure ExtendExpirationTime(const JWTValue: TJWT);
+    procedure RenderLoginResponse(AContext: TWebContext; const AToken: string);
+    procedure RenderLogoutResponse(AContext: TWebContext);
+    // IMVCMiddleware
+    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+    procedure OnBeforeControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string; var AHandled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+  public
+    constructor Create(
+      AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string;
+      ALoginURLSegment: string = '/login';
+      ALogoutURLSegment: string = '/logout';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300;
+      AHMACAlgorithm: String = HMAC_HS512
+    ); virtual;
+    /// <summary>
+    /// Sets the cookie name (default: 'jwt_token')
+    /// </summary>
+    function SetCookieName(const AName: string): TMVCJWTCookieAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the Secure flag (default: True - requires HTTPS)
+    /// Set to False only for local development over HTTP
+    /// </summary>
+    function SetCookieSecure(ASecure: Boolean): TMVCJWTCookieAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the SameSite attribute (default: ssStrict - maximum CSRF protection)
+    /// Use ssLax if you need cross-site top-level navigation
+    /// Use ssNone only if absolutely necessary (requires Secure=True)
+    /// </summary>
+    function SetCookieSameSite(ASameSite: TMVCJWTCookieSameSite): TMVCJWTCookieAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the cookie path (default: '/')
+    /// </summary>
+    function SetCookiePath(const APath: string): TMVCJWTCookieAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the cookie domain (default: '' - current domain)
+    /// </summary>
+    function SetCookieDomain(const ADomain: string): TMVCJWTCookieAuthenticationMiddleware;
+  end;
+
   function UseJWTMiddleware(
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
@@ -173,6 +267,34 @@ type
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
       aHMACAlgorithm: String = HMAC_HS512): IMVCMiddleware;
+      deprecated 'Use UseJWTCookieAuthentication for secure cookie-based JWT authentication';
+
+  /// <summary>
+  /// Creates a secure JWT authentication middleware using HTTP-only cookies.
+  /// This is the recommended way to implement cookie-based JWT authentication.
+  /// Default settings provide maximum security: Secure=True, SameSite=Strict, HttpOnly=True
+  /// </summary>
+  /// <example>
+  /// Engine.AddMiddleware(
+  ///   UseJWTCookieAuthentication(MyAuthHandler, MyClaimsSetup, 'my-secret')
+  /// );
+  ///
+  /// // For local development over HTTP:
+  /// Engine.AddMiddleware(
+  ///   UseJWTCookieAuthentication(MyAuthHandler, MyClaimsSetup, 'my-secret')
+  ///     .SetCookieSecure(False)
+  /// );
+  /// </example>
+  function UseJWTCookieAuthentication(
+      AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string;
+      ALoginURLSegment: string = '/login';
+      ALogoutURLSegment: string = '/logout';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300;
+      AHMACAlgorithm: String = HMAC_HS512
+  ): TMVCJWTCookieAuthenticationMiddleware;
 
   function UseJWTBlackListMiddleware(
       OnAcceptToken: TMVCOnAcceptTokenProc;
@@ -223,6 +345,29 @@ function UseJWTBlackListMiddleware(
   ): IMVCMiddleware;
 begin
   Result := TMVCJWTBlackListMiddleware.Create(OnAcceptToken, OnNewJWTToBlackList, BlackListRequestURLSegment);
+end;
+
+function UseJWTCookieAuthentication(
+    AAuthenticationHandler: IMVCAuthenticationHandler;
+    AConfigClaims: TJWTClaimsSetup;
+    ASecret: string;
+    ALoginURLSegment: string = '/login';
+    ALogoutURLSegment: string = '/logout';
+    AClaimsToCheck: TJWTCheckableClaims = [];
+    ALeewaySeconds: Cardinal = 300;
+    AHMACAlgorithm: String = HMAC_HS512
+): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  Result := TMVCJWTCookieAuthenticationMiddleware.Create(
+    AAuthenticationHandler,
+    AConfigClaims,
+    ASecret,
+    ALoginURLSegment,
+    ALogoutURLSegment,
+    AClaimsToCheck,
+    ALeewaySeconds,
+    AHMACAlgorithm
+  );
 end;
 
 
@@ -723,6 +868,434 @@ begin
       end;
     end;
   end;
+end;
+
+
+{ TMVCJWTCookieAuthenticationMiddleware }
+
+constructor TMVCJWTCookieAuthenticationMiddleware.Create(
+  AAuthenticationHandler: IMVCAuthenticationHandler;
+  AConfigClaims: TJWTClaimsSetup;
+  ASecret: string;
+  ALoginURLSegment: string;
+  ALogoutURLSegment: string;
+  AClaimsToCheck: TJWTCheckableClaims;
+  ALeewaySeconds: Cardinal;
+  AHMACAlgorithm: String);
+begin
+  inherited Create;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FSetupJWTClaims := AConfigClaims;
+  FSecret := ASecret;
+  FLoginURLSegment := ALoginURLSegment;
+  FLogoutURLSegment := ALogoutURLSegment;
+  FClaimsToChecks := AClaimsToCheck;
+  FLeewaySeconds := ALeewaySeconds;
+  FHMACAlgorithm := AHMACAlgorithm;
+  // Secure defaults
+  FCookieName := 'jwt_token';
+  FCookieSecure := True;
+  FCookieSameSite := ssStrict;
+  FCookiePath := '/';
+  FCookieDomain := '';
+  FTokenExpires := 0;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.SetCookieName(
+  const AName: string): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  FCookieName := AName;
+  Result := Self;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.SetCookieSecure(
+  ASecure: Boolean): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  // SameSite=None requires Secure=True per browser requirements
+  if (not ASecure) and (FCookieSameSite = ssNone) then
+    raise EMVCException.Create('Cannot set Secure=False when SameSite=None. ' +
+      'Browsers require Secure=True for SameSite=None cookies.');
+  FCookieSecure := ASecure;
+  Result := Self;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.SetCookieSameSite(
+  ASameSite: TMVCJWTCookieSameSite): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  // SameSite=None requires Secure=True per browser requirements
+  if (ASameSite = ssNone) and (not FCookieSecure) then
+    raise EMVCException.Create('SameSite=None requires Secure=True. ' +
+      'Call SetCookieSecure(True) before setting SameSite=None.');
+  FCookieSameSite := ASameSite;
+  Result := Self;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.SetCookiePath(
+  const APath: string): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  FCookiePath := APath;
+  Result := Self;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.SetCookieDomain(
+  const ADomain: string): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  FCookieDomain := ADomain;
+  Result := Self;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.SetCookie(
+  AContext: TWebContext; const AToken: string; AExpires: TDateTime);
+var
+  lCookie: TCookie;
+  lSameSite: string;
+begin
+  lCookie := AContext.Response.Cookies.Add;
+  lCookie.Name := FCookieName;
+  lCookie.Value := AToken;
+  lCookie.Path := FCookiePath;
+  lCookie.Expires := AExpires;
+  lCookie.HttpOnly := True;  // Always True for XSS protection
+  lCookie.Secure := FCookieSecure;
+  if not FCookieDomain.IsEmpty then
+    lCookie.Domain := FCookieDomain;
+
+  // Set SameSite attribute
+  case FCookieSameSite of
+    ssStrict: lSameSite := 'Strict';
+    ssLax: lSameSite := 'Lax';
+    ssNone: lSameSite := 'None';
+  end;
+  {$IF CompilerVersion >= 34.0}  // Delphi 10.4 Sydney and later
+  lCookie.SameSite := lSameSite;
+  {$ENDIF}
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.InvalidateCookie(AContext: TWebContext);
+begin
+  // Set cookie with empty value and past expiration date
+  SetCookie(AContext, '', EncodeDate(1970, 1, 1));
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.GetTokenFromCookie(
+  AContext: TWebContext): string;
+begin
+  Result := Trim(TNetEncoding.URL.Decode(AContext.Request.Cookie(FCookieName)));
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.NeedsToBeExtended(
+  const JWTValue: TJWT): Boolean;
+var
+  lWillExpireIn: Int64;
+begin
+  lWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
+  Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.ExtendExpirationTime(
+  const JWTValue: TJWT);
+begin
+  JWTValue.Claims.ExpirationTime := Max(JWTValue.Claims.ExpirationTime, Now) +
+    (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
+  FTokenExpires := JWTValue.Claims.ExpirationTime;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.RenderLoginResponse(
+  AContext: TWebContext; const AToken: string);
+var
+  lJsonObject: TJDOJsonObject;
+  lEncoding: TEncoding;
+  lContentType: string;
+begin
+  // Set the secure cookie
+  SetCookie(AContext, AToken, FTokenExpires);
+
+  // Render JSON response
+  lJsonObject := TJDOJsonObject.Create;
+  try
+    lJsonObject.S['token'] := AToken;
+    lContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET);
+    AContext.Response.RawWebResponse.ContentType := lContentType;
+
+    lEncoding := TEncoding.GetEncoding(TMVCConstants.DEFAULT_CONTENT_CHARSET);
+    try
+      AContext.Response.SetContentStream(
+        TBytesStream.Create(
+          TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(lJsonObject.ToJSON))
+        ),
+        lContentType
+      );
+    finally
+      lEncoding.Free;
+    end;
+  finally
+    lJsonObject.Free;
+  end;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.RenderLogoutResponse(AContext: TWebContext);
+const
+  ReturnMessage = '{ "message": "Successful logout" }';
+  ContentType = 'application/json; charset=UTF-8';
+var
+  lEncoding: TEncoding;
+begin
+  // Invalidate the cookie
+  InvalidateCookie(AContext);
+
+  // Render JSON response
+  AContext.Response.RawWebResponse.ContentType := ContentType;
+  lEncoding := TEncoding.UTF8;
+  AContext.Response.SetContentStream(
+    TBytesStream.Create(lEncoding.GetBytes(ReturnMessage)),
+    ContentType
+  );
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.OnBeforeRouting(
+  AContext: TWebContext; var AHandled: Boolean);
+var
+  LUsername: string;
+  LPassword: string;
+  LBasicAuthHeader: string;
+  LBasicAuthParts: TArray<string>;
+  LRolesList: TList<string>;
+  LSessionData: TSessionData;
+  LIsValid: Boolean;
+  LJWTValue: TJWT;
+  LCustomPair: TPair<string, string>;
+  lJObj: TJsonObject;
+begin
+  // Handle login
+  if SameText(AContext.Request.PathInfo, FLoginURLSegment) then
+  begin
+    LBasicAuthHeader := AContext.Request.Headers[TMVCJWTDefaults.AUTHORIZATION_HEADER];
+    if LBasicAuthHeader.IsEmpty then
+    begin
+      // read from headers
+      LUsername := TNetEncoding.URL.Decode(AContext.Request.Headers[TMVCJWTDefaults.USERNAME_HEADER]);
+      LPassword := TNetEncoding.URL.Decode(AContext.Request.Headers[TMVCJWTDefaults.PASSWORD_HEADER]);
+
+      // read from content
+      if LUsername.IsEmpty and not SameText(AContext.Request.ContentMediaType, TMVCMediaType.APPLICATION_JSON) then
+      begin
+        LUsername := AContext.Request.ContentParam(TMVCJWTDefaults.USERNAME_HEADER);
+        LPassword := AContext.Request.ContentParam(TMVCJWTDefaults.PASSWORD_HEADER);
+      end;
+
+      // read from json content
+      if LUsername.IsEmpty then
+      begin
+        lJObj := StrToJSONObject(AContext.Request.Body, False);
+        try
+          if Assigned(lJObj) then
+          begin
+            LUsername := lJObj.S[TMVCJWTDefaults.USERNAME_HEADER];
+            LPassword := lJObj.S[TMVCJWTDefaults.PASSWORD_HEADER];
+            if LUsername.IsEmpty then
+            begin
+              LUsername := lJObj.S['username'];
+              LPassword := lJObj.S['password'];
+            end;
+          end;
+        finally
+          lJObj.Free;
+        end;
+      end;
+
+      if (LUsername.IsEmpty) or (LPassword.IsEmpty) then
+        raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Username and password required');
+    end
+    else
+    begin
+      if not LBasicAuthHeader.StartsWith('basic', True) then
+        raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
+
+      LBasicAuthHeader := LBasicAuthHeader.Remove(0, 'basic'.Length).Trim;
+      LBasicAuthParts := TBase64Encoding.Base64.Decode(LBasicAuthHeader).Split([':']);
+
+      if Length(LBasicAuthParts) <> 2 then
+        raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
+
+      LUsername := LBasicAuthParts[0];
+      LPassword := LBasicAuthParts[1];
+    end;
+
+    // check the authorization for the requested resource
+    LRolesList := TList<string>.Create;
+    try
+      LSessionData := TSessionData.Create;
+      try
+        if Assigned(FAuthenticationHandler) then
+        begin
+          FAuthenticationHandler.OnAuthentication(AContext, LUsername, LPassword, LRolesList, LIsValid, LSessionData);
+          if not LIsValid then
+            raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Unauthorized');
+        end;
+
+        LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        try
+          // let's user config claims and custom claims
+          if not Assigned(FSetupJWTClaims) then
+            raise EMVCJWTException.Create('SetupJWTClaims not set');
+          LJWTValue.Data := AContext.Request;
+          FSetupJWTClaims(LJWTValue);
+
+          FTokenExpires := LJWTValue.Claims.ExpirationTime;
+
+          // these claims are mandatory and managed by the middleware
+          if not LJWTValue.CustomClaims['username'].IsEmpty then
+            raise EMVCJWTException.Create(
+              'Custom claim "username" is reserved and cannot be modified in the JWT setup');
+
+          if not LJWTValue.CustomClaims['roles'].IsEmpty then
+            raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+
+          LJWTValue.CustomClaims['username'] := LUsername;
+          LJWTValue.CustomClaims['roles'] := string.Join(',', LRolesList.ToArray);
+
+          if LJWTValue.LiveValidityWindowInSeconds > 0 then
+            if NeedsToBeExtended(LJWTValue) then
+              ExtendExpirationTime(LJWTValue);
+
+          // setup the current logged user from the JWT
+          AContext.LoggedUser.Roles.AddRange(LRolesList);
+          AContext.LoggedUser.UserName := LJWTValue.CustomClaims['username'];
+          AContext.LoggedUser.LoggedSince := LJWTValue.Claims.IssuedAt;
+          AContext.LoggedUser.Realm := LJWTValue.Claims.Subject;
+
+          if LSessionData.Count > 0 then
+          begin
+            AContext.LoggedUser.CustomData := TMVCCustomData.Create;
+            for LCustomPair in LSessionData do
+            begin
+              AContext.LoggedUser.CustomData.AddOrSetValue(LCustomPair.Key, LCustomPair.Value);
+              if not LJWTValue.CustomClaims.Items[LCustomPair.Key].IsEmpty then
+                raise EMVCJWTException.CreateFmt('JWT Error: "%s" is a reserved key name', [LCustomPair.Key]);
+              LJWTValue.CustomClaims.Items[LCustomPair.Key] := LCustomPair.Value;
+            end;
+          end;
+
+          RenderLoginResponse(AContext, LJWTValue.GetToken);
+          AHandled := True;
+        finally
+          LJWTValue.Free;
+        end;
+      finally
+        LSessionData.Free;
+      end;
+    finally
+      LRolesList.Free;
+    end;
+  end
+  // Handle logout
+  else if SameText(AContext.Request.PathInfo, FLogoutURLSegment) then
+  begin
+    RenderLogoutResponse(AContext);
+    AHandled := True;
+  end;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext;
+  const AControllerQualifiedClassName, AActionName: string;
+  var AHandled: Boolean);
+var
+  AuthRequired: Boolean;
+  IsAuthorized: Boolean;
+  JWTValue: TJWT;
+  AuthToken: string;
+  ErrorMsg: string;
+begin
+  // check if the resource is protected
+  if Assigned(FAuthenticationHandler) then
+  begin
+    FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
+    if not AuthRequired then
+    begin
+      AHandled := False;
+      // Load token for non-protected resources to support LoggedUser.IsValid
+      AuthToken := GetTokenFromCookie(AContext);
+      if not AuthToken.IsEmpty then
+      begin
+        JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        try
+          JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
+          if JWTValue.LoadToken(AuthToken, ErrorMsg) then
+          begin
+            AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+            AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
+            AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+            AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
+          end;
+        finally
+          JWTValue.Free;
+        end;
+      end;
+      Exit;
+    end;
+  end;
+
+  // Verify token from cookie
+  JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+  try
+    JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
+    AuthToken := GetTokenFromCookie(AContext);
+
+    if AuthToken.IsEmpty then
+      raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Authorization Required');
+    if not JWTValue.LoadToken(AuthToken, ErrorMsg) then
+      raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, ErrorMsg);
+
+    if JWTValue.CustomClaims['username'].IsEmpty then
+      raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid Token, Authorization Required');
+
+    AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+    AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
+    AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+    AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
+
+    if Assigned(FAuthenticationHandler) then
+    begin
+      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName,
+        AActionName, IsAuthorized);
+      if not IsAuthorized then
+        raise EMVCJWTException.Create(HTTP_STATUS.Forbidden, 'Authorization Forbidden');
+    end;
+
+    // Handle token refresh
+    if JWTValue.LiveValidityWindowInSeconds > 0 then
+    begin
+      if NeedsToBeExtended(JWTValue) then
+      begin
+        ExtendExpirationTime(JWTValue);
+        // Update the cookie with the new token
+        SetCookie(AContext, JWTValue.GetToken, FTokenExpires);
+        // Add header to inform client about token refresh
+        AContext.Response.SetCustomHeader('X-JWT-Refreshed', 'true');
+      end;
+    end;
+
+    AHandled := False;
+  finally
+    JWTValue.Free;
+  end;
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.OnAfterControllerAction(
+  AContext: TWebContext;
+  const AControllerQualifiedClassName: string;
+  const AActionName: string;
+  const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCJWTCookieAuthenticationMiddleware.OnAfterRouting(
+  AContext: TWebContext;
+  const AHandled: Boolean);
+begin
+  // Implement as needed
 end;
 
 
