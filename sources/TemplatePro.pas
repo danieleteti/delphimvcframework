@@ -82,7 +82,7 @@ type
     fIncludeSavedVarsStack: TObjectList<TIncludeSavedVars>;
     fAutoescapeStack: TStack<Boolean>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
-    fExprEvaluator: IExprEvaluator;
+    fExprEvaluator: TExprEvaluator;
     function IsNullableType(const Value: PValue): Boolean;
     procedure InitTemplateAnonFunctions; inline;
     function PeekLoop: TLoopStackItem;
@@ -126,7 +126,7 @@ type
       const aValue: TValue; const aExecuteAsFilterOnAValue: Boolean; out aResult: TValue): Boolean;
     function ExecuteDateFilter(const aFunctionName: string; var aParameters: TArray<TFilterParameter>;
       const aValue: TValue; const aVarNameWhereShoudBeApplied: String; out aResult: TValue): Boolean;
-    function GetExprEvaluator: IExprEvaluator;
+    function GetExprEvaluator: TExprEvaluator;
     function TValueToVariant(const Value: TValue): Variant;
     function VariantToTValue(const Value: Variant): TValue;
     function GetFieldProperty(const AField: TField; const PropName: string): TValue;
@@ -2847,7 +2847,10 @@ var
     if aExecuteAsFilterOnAValue then
     begin
       CheckParNumber(0, aParameters);
-      Result := aValue.AsString;
+      if aValue.IsEmpty then
+        Result := ''
+      else
+        Result := aValue.AsString;
     end
     else
     begin
@@ -2989,6 +2992,23 @@ begin
   begin
     if aValue.IsEmpty then
       aResult := ''
+    else if aValue.IsObject and (aValue.AsObject <> nil) and (aValue.AsObject is TField) then
+    begin
+      // Handle TField passed from macro or iteration
+      if TField(aValue.AsObject).IsNull then
+        aResult := ''
+      else
+      begin
+        lDateValue := TField(aValue.AsObject).AsDateTime;
+        if Length(aParameters) = 0 then
+          aResult := FormatDateTime('yyyy-mm-dd', lDateValue)
+        else
+        begin
+          CheckParNumber(1, aParameters);
+          aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+        end;
+      end;
+    end
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
       if Length(aParameters) = 0 then
@@ -3063,6 +3083,23 @@ begin
   begin
     if aValue.IsEmpty then
       aResult := ''
+    else if aValue.IsObject and (aValue.AsObject <> nil) and (aValue.AsObject is TField) then
+    begin
+      // Handle TField passed from macro or iteration
+      if TField(aValue.AsObject).IsNull then
+        aResult := ''
+      else
+      begin
+        lDateValue := TField(aValue.AsObject).AsDateTime;
+        if Length(aParameters) = 0 then
+          aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)
+        else
+        begin
+          CheckParNumber(1, aParameters);
+          aResult := FormatDateTime(aParameters[0].ParStrText, lDateValue);
+        end;
+      end;
+    end
     else if aValue.TryAsType<TDateTime>(lDateValue) then
     begin
       if Length(aParameters) = 0 then
@@ -3155,6 +3192,18 @@ begin
   lExecuteAsFilterOnAValue := not aVarNameWhereShoudBeApplied.IsEmpty;
   aFunctionName := lowercase(aFunctionName);
 
+  // Normalize TField to its actual value before applying filters
+  // This ensures consistent behavior: TField.IsNull -> Empty, otherwise -> actual value
+  if aValue.IsObject and (aValue.AsObject <> nil) and (aValue.AsObject is TField) then
+  begin
+    if TField(aValue.AsObject).IsNull then
+      aValue := TValue.Empty
+    else
+      aValue := GetDataSetFieldAsTValue(
+        TField(aValue.AsObject).DataSet,
+        TField(aValue.AsObject).FieldName);
+  end;
+
   // Try string filters first
   if ExecuteStringFilter(aFunctionName, aParameters, aValue, lExecuteAsFilterOnAValue, Result) then
     Exit;
@@ -3226,30 +3275,41 @@ begin
   begin
     CheckParNumber(1, aParameters);
     CheckParamType('round', @aParameters[0], [fptInteger, fptVariable]);
-    lDecimalMask := '';
-
-    if aParameters[0].ParType = fptVariable then
+    if aValue.IsEmpty then
     begin
-      lVarValue := GetVarAsTValue(aParameters[0].ParStrText);
-      lIntegerPar1 := lVarValue.AsInt64;
+      Result := '';
     end
     else
     begin
-      lIntegerPar1 := aParameters[0].ParIntValue;
-    end;
+      lDecimalMask := '';
 
-    if lIntegerPar1 < 0 then
-    begin
-      lDecimalMask := '.' + StringOfChar('0', Abs(lIntegerPar1));
+      if aParameters[0].ParType = fptVariable then
+      begin
+        lVarValue := GetVarAsTValue(aParameters[0].ParStrText);
+        lIntegerPar1 := lVarValue.AsInt64;
+      end
+      else
+      begin
+        lIntegerPar1 := aParameters[0].ParIntValue;
+      end;
+
+      if lIntegerPar1 < 0 then
+      begin
+        lDecimalMask := '.' + StringOfChar('0', Abs(lIntegerPar1));
+      end;
+      lExtendedValue := RoundTo(aValue.AsExtended, lIntegerPar1);
+      Result := FormatFloat('0' + lDecimalMask, lExtendedValue);
     end;
-    lExtendedValue := RoundTo(aValue.AsExtended, lIntegerPar1);
-    Result := FormatFloat('0' + lDecimalMask, lExtendedValue);
   end
   else if SameText(aFunctionName, 'formatfloat') then
   begin
     CheckParNumber(1, aParameters);
     CheckParamType('formatfloat', @aParameters[0], [TFilterParameterType.fptString]);
-    if aValue.IsType<Integer> then
+    if aValue.IsEmpty then
+    begin
+      Result := '';
+    end
+    else if aValue.IsType<Integer> then
     begin
       Result := FormatFloat(aParameters[0].ParStrText, aValue.AsInteger, fLocaleFormatSettings);
     end
@@ -3645,6 +3705,9 @@ end;
 
 destructor TTProCompiledTemplate.Destroy;
 begin
+  fOnGetValue := nil;
+  fExprEvaluator.Free;
+  fDynamicIncludeCache.Free;
   fLoopsStack.Free;
   fIncludeSavedVarsStack.Free;
   fAutoescapeStack.Free;
@@ -3653,7 +3716,6 @@ begin
   fMacros.Free;
   fTokens.Free;
   fVariables.Free;
-  fDynamicIncludeCache.Free;
   inherited;
 end;
 
@@ -4360,8 +4422,9 @@ begin
           end
           else if lVarMembers.IsEmpty then
           begin
-            // Return field value
-            Result := lField.AsString;
+            // Return TField object (for passing to macros)
+            // GetTValueVarAsString will convert it to AsString when needed for display
+            Result := TValue.From<TObject>(lField);
           end
           else
           begin
@@ -4663,6 +4726,21 @@ begin
       begin
         Result := TValue.Empty;
       end
+      else if lHasMember then
+      begin
+        // Handle member access for objects stored in simple types (e.g., TField passed to macro)
+        if lVariable.VarValue.IsObject and (lVariable.VarValue.AsObject <> nil) then
+        begin
+          if lVariable.VarValue.AsObject is TField then
+            Result := GetFieldProperty(TField(lVariable.VarValue.AsObject), lVarMembers)
+          else
+            Result := GetTValueFromPath(lVariable.VarValue.AsObject, lVarMembers);
+        end
+        else
+        begin
+          Result := TValue.Empty;
+        end;
+      end
       else
       begin
         Result := lVariable.VarValue;
@@ -4772,6 +4850,14 @@ begin
     else if Value.AsObject is TJsonObject then
     begin
       lStrValue := TJsonObject(Value.AsObject).Count.ToString;
+    end
+    else if Value.AsObject is TField then
+    begin
+      // TField with null value is falsy
+      if TField(Value.AsObject).IsNull then
+        lStrValue := ''
+      else
+        lStrValue := 'true';
     end
     else
     begin
@@ -4899,6 +4985,10 @@ begin
     else
       Error('Invalid token in EvaluateValue');
     end;
+
+    // Unwrap Nullable types before passing to filters
+    if (not lCurrentValue.IsEmpty) and IsNullableType(@lCurrentValue) then
+      lCurrentValue := GetNullableTValueAsTValue(@lCurrentValue, lVarName);
 
     // Apply filters
     ApplyFilters(Idx, lCurrentValue, lFilterCount, lVarName);
@@ -5850,7 +5940,7 @@ begin
   Result := GetFieldProperty(lField, lPropName);
 end;
 
-function TTProCompiledTemplate.GetExprEvaluator: IExprEvaluator;
+function TTProCompiledTemplate.GetExprEvaluator: TExprEvaluator;
 var
   lSelf: TTProCompiledTemplate;
 begin
@@ -5882,7 +5972,7 @@ end;
 
 function TTProCompiledTemplate.EvaluateExpression(const Expression: string): TValue;
 var
-  lEval: IExprEvaluator;
+  lEval: TExprEvaluator;
   lResult: Variant;
 begin
   lEval := GetExprEvaluator;

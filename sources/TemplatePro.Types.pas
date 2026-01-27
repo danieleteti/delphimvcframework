@@ -32,7 +32,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '1.0';
+  TEMPLATEPRO_VERSION = '1.1';
 
 type
   ETProException = class(Exception)
