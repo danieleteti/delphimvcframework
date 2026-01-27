@@ -11,7 +11,6 @@ object MyDataModule: TMyDataModule
       'CharacterSet=UTF8'
       'DriverID=FB')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     Left = 160
     Top = 40

@@ -84,7 +84,7 @@ type
     // Render BASED
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/simple')]
-    procedure GetCustomers_AsDataSet;
+    function GetCustomers_AsDataSet: TDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/people')]
@@ -544,17 +544,13 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet;
+function TRenderSampleController.GetCustomers_AsDataSet: TDataSet;
 var
   lDM: TMyDataModule;
 begin
-  lDM := TMyDataModule.Create(nil);
-  try
-    lDM.qryCustomers.Open;
-    Render(lDM.qryCustomers, False);
-  finally
-    lDM.Free;
-  end;
+  lDM := ToFree<TMyDataModule>(TMyDataModule.Create(nil));
+  lDM.qryCustomers.Open;
+  Result := lDM.qryCustomers;
 end;
 
 function TRenderSampleController.GetCustomers_AsDataSet_AsFunction: TDataSet;
