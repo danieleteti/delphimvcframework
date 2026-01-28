@@ -5941,23 +5941,20 @@ begin
 end;
 
 function TTProCompiledTemplate.GetExprEvaluator: TExprEvaluator;
-var
-  lSelf: TTProCompiledTemplate;
 begin
   if fExprEvaluator = nil then
   begin
-    fExprEvaluator := CreateExprEvaluator;
-    lSelf := Self;
+    fExprEvaluator := TExprEvaluator.Create;
     fExprEvaluator.SetOnResolveExternalVariable(
       function(const VarName: string; out Value: Variant): Boolean
       var
         lTValue: TValue;
       begin
         try
-          lTValue := lSelf.GetVarAsTValue(VarName);
+          lTValue := Self.GetVarAsTValue(VarName);
           if not lTValue.IsEmpty then
           begin
-            Value := lSelf.TValueToVariant(lTValue);
+            Value := Self.TValueToVariant(lTValue);
             Result := True;
           end
           else
