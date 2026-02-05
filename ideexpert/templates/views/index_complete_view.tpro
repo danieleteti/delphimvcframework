@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{:program_name}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{:program_name}}</h1>
+            <p>Powered by DelphiMVCFramework {{:dmvc_version}}</p>
+        </header>
+
+        <div class="content">
+            <div class="hero">
+                <h2>Welcome to {{:program_name}}! 🚀</h2>
+                <p>Your DelphiMVCFramework application is up and running</p>
+                <p style="color: #06b6d4; font-weight: 600; margin-top: 10px;">⚡ High Performance - Built on Delphi's native compilation</p>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <h3>🎨 Web App</h3>
+                    <p>Complete web applications with TemplatePro, WebStencils and Mustache template engines</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔧 RESTful API</h3>
+                    <p>Full RESTful services support with automatic content negotiation</p>
+                </div>
+{{if controller_crud_methods_generate}}
+
+                <div class="feature-card">
+                    <h3>📊 CRUD Operations</h3>
+                    <p>Complete Create, Read, Update, Delete operations ready to use</p>
+                </div>
+{{endif}}
+{{if webmodule_middleware_jwt}}
+
+                <div class="feature-card">
+                    <h3>🔐 JWT Authentication</h3>
+                    <p>Secure authentication with JWT cookie-based middleware</p>
+                </div>
+{{endif}}
+{{if webmodule_middleware_activerecord}}
+
+                <div class="feature-card">
+                    <h3>💾 ActiveRecord ORM</h3>
+                    <p>Database access with MVCActiveRecord pattern</p>
+                </div>
+{{endif}}
+
+                <div class="feature-card">
+                    <h3>🔌 WebSockets</h3>
+                    <p>Real-time bidirectional communication with WebSocket server support</p>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 40px;">
+                <strong>💡 Quick Start:</strong> This page is rendered from <code>templates/index.{{:template_extension}}</code><br>
+                Edit the template file to customize this page, or check the controller at <code>{{:controller_unit_name}}.pas</code>
+            </div>
+
+            <div class="info-box" style="margin-top: 20px; background: rgba(6, 182, 212, 0.1); border-left-color: #06b6d4;">
+                <strong>📊 ViewData from Controller:</strong><br>
+                <div style="margin-top: 10px; font-family: monospace; font-size: 0.9em;">
+                    <div style="margin: 5px 0;">📱 <strong>App Name:</strong> {{{{:app_name}}}}</div>
+                    <div style="margin: 5px 0;">📅 <strong>Date:</strong> {{{{:current_date}}}}</div>
+                    <div style="margin: 5px 0;">⏰ <strong>Time:</strong> {{{{:current_time}}}}</div>
+                    <div style="margin: 5px 0;">🚀 <strong>DMVC Version:</strong> {{{{:dmvc_version}}}}</div>
+                    <div style="margin: 5px 0;">💻 <strong>Compiler:</strong> {{{{:compiler_version}}}}</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="https://www.danieleteti.it/delphimvcframework/" class="btn">📚 View Documentation</a>
+{{if controller_crud_methods_generate}}
+                <a href="/web/people" class="btn" style="margin-left: 10px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">👥 View People API</a>
+{{endif}}
+            </div>
+        </div>
+
+        <footer style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
+            <p>&copy; {{:current_year}} {{:program_name}} | Built with <a href="https://www.danieleteti.it/delphimvcframework/" style="color: white; text-decoration: underline;">DelphiMVCFramework</a></p>
+        </footer>
+    </div>
+</body>
+</html>

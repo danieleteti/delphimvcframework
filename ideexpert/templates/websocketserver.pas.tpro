@@ -1,0 +1,95 @@
+{{include "_license_header.tpro"}}
+unit {{:websocketserver_unit_name}};
+
+interface
+
+uses
+  MVCFramework.WebSocket.Server;
+
+function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;
+
+implementation
+
+uses
+  System.SysUtils, MVCFramework.WebSocket, MVCFramework.Logger;
+
+
+  /// <summary>
+  /// Per-client session data
+  /// This object is created in OnClientConnect and automatically freed on disconnect
+  /// </summary>
+type
+  TWSClientSessionData = class
+  private
+    FMessageCount: Integer;
+  public
+    constructor Create;
+    property MessageCount: Integer read fMessageCount write fMessageCount;
+  end;
+
+{ TWSClientSessionData }
+
+constructor TWSClientSessionData.Create;
+begin
+  inherited;
+  FMessageCount := 0;
+end;
+
+
+function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;
+var
+  LWSServer: TMVCWebSocketServer;
+begin
+  LWSServer := TMVCWebSocketServer.Create(aWSPort);
+  try
+    // Handle client connection - send welcome message to all
+    LWSServer.OnClientConnect := procedure(AClient: TWebSocketClient)
+    var
+      LWelcomeMsg: string;
+    begin
+      AClient.Data := TWSClientSessionData.Create; //client session
+      AClient.PeriodicInterval := 1000; // Update interval in milliseconds. If PeriodicInterval is 0 = disabled
+      LWelcomeMsg := Format('[SERVER]: %s joined the chat (%d users online)',
+        [AClient.Username, AClient.ConnectedUsersCount]);
+      AClient.Broadcast(LWelcomeMsg);
+    end;
+
+    // Handle incoming text messages - broadcast to all clients
+    LWSServer.OnMessage := procedure(AClient: TWebSocketClient; const AMessage: string)
+    var
+      LChatMsg: string;
+    begin
+      // Format and broadcast message to all clients
+      LChatMsg := Format('[%s]: %s', [AClient.Username, AMessage]);
+      AClient.Broadcast(LChatMsg);
+    end;
+
+    // Setup event handlers
+    LWSServer.OnLog := procedure(const AMessage: string)
+    begin
+      LogI(Format('[%s] %s', [TimeToStr(Now), AMessage]));
+    end;
+
+    LWSServer.OnPeriodicMessage := procedure(AClient: TWebSocketClient; out AMessage: String)
+    begin
+      AMessage := '';
+    end;
+
+    // Handle client disconnection - notify remaining users
+    LWSServer.OnClientDisconnect := procedure(AClient: TWebSocketClient)
+    begin
+      //
+    end;
+
+    LWSServer.OnError := procedure(AClient: TWebSocketClient; const AError: string)
+    begin
+      LogE(Format('[%s] ERROR from %s: %s', [TimeToStr(Now), AClient.Username, AError]));
+    end;
+  except
+    LWSServer.Free;
+    raise;
+  end;
+  Result := LWSServer;
+end;
+
+end.

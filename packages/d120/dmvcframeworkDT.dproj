@@ -157,9 +157,8 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Registration.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Splash.Registration.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Commons.pas"/>
-        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Executor.pas"/>
-        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Commands.Templates.pas"/>
-        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Commands.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.TemplateEngine.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>

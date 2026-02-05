@@ -59,8 +59,6 @@ uses
   System.SysUtils,
   VCL.Dialogs,
   DMVC.Expert.CodeGen.SourceFile,
-  DMVC.Expert.CodeGen.Executor,
-  DMVC.Expert.Commands.Templates,
   DMVC.Expert.Commons;
 
 constructor TNewWebModuleUnitEx.Create(
@@ -80,26 +78,15 @@ end;
 
 function TNewWebModuleUnitEx.NewFormFile(const FormIdent, AncestorIdent: string): IOTAFile;
 begin
-  Result := TSourceFile.Create(
-    procedure (Gen: TMVCCodeGenerator)
-    begin
-      FillWebModuleDFMTemplates(Gen);
-    end,
-    fConfigModelRef);
+  Result := TSourceFile.Create('webmodule.dfm.tpro', fConfigModelRef);
 end;
 
 function TNewWebModuleUnitEx.NewImplSource(const ModuleIdent, FormIdent,  AncestorIdent: string): IOTAFile;
 begin
   //ModuleIdent is blank for some reason.
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
-
   fConfigModelRef.S[TConfigKey.webmodule_unit_name] := FUnitIdent;
-  Result := TSourceFile.Create(
-    procedure (Gen: TMVCCodeGenerator)
-    begin
-      FillWebModuleTemplates(Gen);
-    end,
-    fConfigModelRef);
+  Result := TSourceFile.Create('webmodule.pas.tpro', fConfigModelRef);
 end;
 
 

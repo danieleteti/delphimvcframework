@@ -1,0 +1,22 @@
+{{include "_license_header.tpro"}}
+unit {{:jsonrpc_unit_name}};
+
+interface
+
+type
+  {{:jsonrpc_classname}} = class
+  public
+    function ReverseString(const Value: String): String;
+  end;
+
+implementation
+
+uses
+  System.StrUtils;
+
+function {{:jsonrpc_classname}}.ReverseString(const Value: String): String;
+begin
+  Result := System.StrUtils.ReverseString(Value);
+end;
+
+end.

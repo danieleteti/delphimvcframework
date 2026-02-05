@@ -1,0 +1,308 @@
+{{include "_license_header.tpro"}}
+program {{:program_name}};
+
+{$APPTYPE CONSOLE}
+
+uses
+{{if program_msheap}}
+  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
+{{endif}}
+  System.SysUtils,
+  Web.ReqMulti,
+  Web.WebReq,
+  Web.WebBroker,
+  MVCFramework,
+  MVCFramework.Logger,
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+{{if program_type|eq,"http.console"}}
+  IdContext,
+  IdHTTPWebBrokerBridge,
+{{endif}}
+{{if program_type|eq,"https.console"}}
+  IdContext,
+  IdHTTPWebBrokerBridge,
+  TaurusTLS,
+{{endif}}
+{{if websocketserver_generate}}
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server,
+{{endif}}
+{{if program_type|eq,"fastcgi.console"}}
+  IPPeerServer,
+  Web.FastCGIApp,
+{{endif}}
+{{if program_ssv_mustache}}
+  MVCFramework.View.Renderers.Mustache,
+  mormot.core.mustache,
+{{endif}}
+{{if program_service_container_generate}}
+  MVCFramework.Container,
+{{endif}}
+  MVCFramework.Signal,
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{if entity_generate}}
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
+{{endif}}
+{{if program_service_container_generate}}
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas',
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas',
+{{endif}}
+{{if websocketserver_generate}}
+  {{:websocketserver_unit_name}} in '{{:websocketserver_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_mustache}}
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_templatepro}}
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_webstencils}}
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
+{{endif}}
+  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}};
+
+{$R *.res}
+
+{{if program_type|eq,"https.console"}}
+type
+  TTLSHandler = class
+    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+    procedure OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);
+    procedure ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);
+  end;
+
+{ TTLSHandler }
+
+procedure TTLSHandler.ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);
+var
+  lTaurusTLSHandler: TTaurusTLSServerIOHandler;
+begin
+  lTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(aServer);
+  lTaurusTLSHandler.SSLOptions.Mode := sslmServer;
+  lTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+  lTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+  lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
+  lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
+  aServer.IOHandler := lTaurusTLSHandler;
+  aServer.OnQuerySSLPort := OnQuerySSLPort;
+end;
+
+procedure TTLSHandler.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+begin
+  aPassword := dotEnv.Env('https.cert.password', '');
+  aOk := True;
+end;
+
+procedure TTLSHandler.OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);
+begin
+  vUseSSL := true;
+end;
+
+{{endif}}
+{{if program_type|eq,"http.console"}}
+procedure RunServer(aPort: Integer);
+var
+  LServer: TIdHTTPWebBrokerBridge;
+{{if websocketserver_generate}}
+  LWSServer: TMVCWebSocketServer;
+{{endif}}
+  LProtocol: String;
+begin
+  LProtocol := 'http';
+  LServer := TIdHTTPWebBrokerBridge.Create(nil);
+  try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    LServer.DefaultPort := APort;
+    LServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
+    LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
+    LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
+    LServer.Active := True;
+    LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+{{if websocketserver_generate}}
+    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    try
+      LWSServer.Active := True;
+      LogI('Listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+{{endif}}
+      LogI('Application started. Press Ctrl+C to shut down.');
+      WaitForTerminationSignal;
+      EnterInShutdownState;
+{{if websocketserver_generate}}
+    finally
+      LWSServer.Free;
+    end;
+
+{{endif}}
+    LServer.Active := False;
+  finally
+    LServer.Free;
+  end;
+end;
+{{endif}}
+{{if program_type|eq,"https.console"}}
+procedure RunServer(aPort: Integer);
+var
+  LServer: TIdHTTPWebBrokerBridge;
+  LSSLHandler: TTLSHandler;
+{{if websocketserver_generate}}
+  LWSServer: TMVCWebSocketServer;
+{{endif}}
+  LProtocol: String;
+begin
+  LProtocol := 'http';
+  LServer := TIdHTTPWebBrokerBridge.Create(nil);
+  try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    LServer.DefaultPort := APort;
+    LServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
+    LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
+    LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
+    LSSLHandler := TTLSHandler.Create;
+    try
+      if dotEnv.Env('https.enabled', false) then //enable if you want HTTPS support
+      begin
+        LogI('HTTPS is enabled');
+        LSSLHandler.ConfigureTLS(LServer);
+        LProtocol := 'https';
+      end
+      else
+      begin
+        LogW('HTTPS is available but CURRENTLY NOT ENABLED');
+      end;
+    LServer.Active := True;
+    LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+{{if websocketserver_generate}}
+    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    try
+      LWSServer.Active := True;
+      LogI('Listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+{{endif}}
+      LogI('Application started. Press Ctrl+C to shut down.');
+      WaitForTerminationSignal;
+      EnterInShutdownState;
+{{if websocketserver_generate}}
+    finally
+      LWSServer.Free;
+    end;
+
+{{endif}}
+    LServer.Active := False;
+    finally
+      LSSLHandler.Free;
+    end;
+  finally
+    LServer.Free;
+  end;
+end;
+{{endif}}
+{{if program_type|eq,"fastcgi.console"}}
+procedure RunServer(aPort: Integer);
+var
+  LServer: TFastCGIApplication;
+begin
+  LServer := TFastCGIApplication(Application);
+  LServer.DefaultPort := APort;
+  LServer.Active := True;
+  LogI('Listening on fastcgi://localhost:' + APort.ToString);
+  LogI('Application started. Press Ctrl+C to shut down.');
+  WaitForTerminationSignal;
+  EnterInShutdownState;
+  LServer.Active := False;
+end;
+{{endif}}
+
+begin
+  { Enable ReportMemoryLeaksOnShutdown during debug }
+  // ReportMemoryLeaksOnShutdown := True;
+  IsMultiThread := True;
+
+  // DMVCFramework Specific Configurations
+  //   When MVCSerializeNulls = True empty nullables and nil are serialized as json null.
+  //   When MVCSerializeNulls = False empty nullables and nil are not serialized at all.
+  MVCSerializeNulls := True;
+
+  // MVCNameCaseDefault defines the name case of property names generated by the serializers.
+  //   Possibile values are: ncAsIs, ncUpperCase, ncLowerCase (default), ncCamelCase, ncPascalCase, ncSnakeCase
+  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
+
+  // UseConsoleLogger defines if logs must be emitted to also the console (if available).
+  UseConsoleLogger := True;
+
+  // UseLoggerVerbosityLevel defines the lowest level of logs that will be produced.
+  UseLoggerVerbosityLevel := TLogLevel.levNormal;
+
+
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+{{if program_dotenv}}
+
+    dotEnvConfigure(
+      function: IMVCDotEnv
+      begin
+        Result := NewDotEnv
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                                       //if available, by default, loads default environment (.env)
+                 .UseProfile('test') //if available loads the test environment (.env.test)
+                 .UseProfile('prod') //if available loads the prod environment (.env.prod)
+                 .UseLogger(procedure(LogItem: String)
+                            begin
+                              LogD('dotEnv: ' + LogItem);
+                            end)
+                 .Build();             //uses the executable folder to look for .env* files
+      end);
+{{endif}}
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+
+  try
+    if WebRequestHandler <> nil then
+      WebRequestHandler.WebModuleClass := WebModuleClass;
+
+    WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
+
+{$IF CompilerVersion >= 34} //SYDNEY+
+    if dotEnv.Env('dmvc.profiler.enabled', {{:controller_actions_profiling_generate}}) then
+    begin
+      Profiler.ProfileLogger := Log;
+      Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 1000);
+      Profiler.LogsOnlyIfOverThreshold := dotEnv.Env('dmvc.profiler.logs_only_over_threshold', True);
+    end;
+{$ENDIF}
+{{if program_ssv_templatepro}}
+
+    TemplateProContextConfigure;
+{{endif}}
+{{if program_ssv_webstencils}}
+
+    WebStencilsProcessorConfigure;
+{{endif}}
+{{if program_ssv_mustache}}
+
+  // Project specific Mustache helpers
+  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+  begin
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+  end;
+{{endif}}
+{{if program_service_container_generate}}
+
+    RegisterServices(DefaultMVCServiceContainer);
+    DefaultMVCServiceContainer.Build;
+{{endif}}
+
+    RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
+  except
+    on E: Exception do
+      LogF(E.ClassName + ': ' + E.Message);
+  end;
+end.

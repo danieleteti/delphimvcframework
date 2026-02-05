@@ -59,14 +59,12 @@ type
   TfrmDMVCNewProject = class(TForm)
     btnOK: TButton;
     btnCancel: TButton;
-    chkAddToProjectGroup: TCheckBox;
     edtWebModuleName: TEdit;
     lblWbModule: TLabel;
     edtServerPort: TEdit;
     lblServerPort: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    Panel2: TPanel;
     gbControllerUnitOptions: TGroupBox;
     lblClassName: TLabel;
     Label1: TLabel;
@@ -85,29 +83,40 @@ type
     lblBook: TLabel;
     chkActiveRecord: TCheckBox;
     EdtFDConnDefFileName: TEdit;
-    GroupBoxJSONRPC: TGroupBox;
-    Label3: TLabel;
-    EdtJSONRPCClassName: TEdit;
-    chkJSONRPC: TCheckBox;
     Label4: TLabel;
     Bevel1: TBevel;
     Label5: TLabel;
     EdtConnDefName: TEdit;
     ApplicationEvents: TApplicationEvents;
     lblCopyRight: TLabel;
-    chkMSHeap: TCheckBox;
-    chkCustomConfigDotEnv: TCheckBox;
     chkProfileActions: TCheckBox;
     lblPATREON: TLabel;
-    chkServicesContainer: TCheckBox;
-    chkSqids: TCheckBox;
-    rgNameCase: TRadioGroup;
-    rgSSV: TRadioGroup;
     Image2: TImage;
     Shape2: TShape;
     rgServerType: TRadioGroup;
     chkRateLimit: TCheckBox;
+    chkJWT: TCheckBox;
+    lblProjectName: TLabel;
+    lblProjectFolder: TLabel;
+    edtProjectName: TEdit;
+    edtProjectFolder: TEdit;
+    btnBrowseFolder: TButton;
+    gbNameCase: TGroupBox;
+    cbNameCase: TComboBox;
+    Label2: TLabel;
+    Label6: TLabel;
+    cbSSV: TComboBox;
+    Label7: TLabel;
+    cbSessionType: TComboBox;
+    chkJSONRPC: TCheckBox;
+    Label3: TLabel;
+    EdtJSONRPCClassName: TEdit;
     chkWebSocketServer: TCheckBox;
+    chkServicesContainer: TCheckBox;
+    chkSqids: TCheckBox;
+    chkMSHeap: TCheckBox;
+    chkCustomConfigDotEnv: TCheckBox;
+    Bevel2: TBevel;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
@@ -123,10 +132,10 @@ type
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
     procedure rgSSVClick(Sender: TObject);
+    procedure btnBrowseFolderClick(Sender: TObject);
   private
     { Private declarations }
     fModel: TJsonObject;
-    function GetAddToProjectGroup: boolean;
     function GetCreateIndexMethod: boolean;
     function GetCreateControllerUnit: boolean;
     function GetControllerClassName: string;
@@ -136,18 +145,23 @@ type
     function GetCreateCRUDMethods: boolean;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
+    function GetBaseFolder: string;
+    function GetProjectName: string;
+    function GetProjectFolder: string;
+    procedure UpdateProjectNameHint;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
     property ControllerClassName: string read GetControllerClassName;
     property CreateControllerUnit: boolean read GetCreateControllerUnit;
     property JSONRPCClassName: String read GetJSONRPCClassName;
-    property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
+    property ProjectName: string read GetProjectName;
+    property ProjectFolder: string read GetProjectFolder;
     function GetConfigModel: TJSONObject;
   end;
 
@@ -157,6 +171,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
   System.StrUtils,
+  System.IOUtils,
+  Vcl.FileCtrl,
   DMVC.Expert.Commons, System.TypInfo;
 
 {$R *.dfm}
@@ -196,10 +212,69 @@ begin
   end;
 end;
 
+function IsValidDelphiIdentifier(const AName: string): Boolean;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := False;
+  if AName.IsEmpty then
+    Exit;
+
+  // First character must be a letter or underscore
+  C := AName[1];
+  if not CharInSet(C, ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+
+  // Remaining characters must be letters, digits, or underscores
+  for I := 2 to Length(AName) do
+  begin
+    C := AName[I];
+    if not CharInSet(C, ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+      Exit;
+  end;
+
+  Result := True;
+end;
+
 procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
 var
   lHints: TArray<String>;
+  lProjectFolder: string;
+  lProjectName: string;
 begin
+  // Validate project name
+  lProjectName := Trim(edtProjectName.Text);
+  if lProjectName.IsEmpty then
+    lProjectName := 'MyDMVCProject';
+
+  if not IsValidDelphiIdentifier(lProjectName) then
+  begin
+    ShowMessage('Project name must be a valid Delphi identifier:' + sLineBreak +
+      '- Start with a letter or underscore' + sLineBreak +
+      '- Contain only letters, digits, and underscores' + sLineBreak +
+      '- No spaces or special characters');
+    ModalResult := mrNone;
+    edtProjectName.SetFocus;
+    Exit;
+  end;
+
+  // Check if project folder already exists and has files
+  lProjectFolder := GetProjectFolder;
+  if TDirectory.Exists(lProjectFolder) then
+  begin
+    if (Length(TDirectory.GetFiles(lProjectFolder)) > 0) or
+       (Length(TDirectory.GetDirectories(lProjectFolder)) > 0) then
+    begin
+      if MessageDlg('The project folder already exists and is not empty. Continue?',
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+      begin
+        ModalResult := mrNone;
+        Exit;
+      end;
+    end;
+  end;
+
   lHints := [];
   if chkActiveRecord.Checked then
   begin
@@ -216,6 +291,8 @@ begin
 end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
+var
+  lDefaultProjectsFolder: string;
 begin
   edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
   edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
@@ -226,6 +303,18 @@ begin
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
   fModel := TJsonObject.Create;
 
+  // Set default project folder to Embarcadero\Studio\Projects folder (or home folder if not exists)
+  lDefaultProjectsFolder := TPath.Combine(
+    TPath.GetDocumentsPath,
+    'Embarcadero\Studio\Projects');
+  if not TDirectory.Exists(lDefaultProjectsFolder) then
+    lDefaultProjectsFolder := TPath.GetHomePath;
+  edtProjectFolder.Text := lDefaultProjectsFolder;
+  edtProjectFolder.TextHint := lDefaultProjectsFolder;
+
+  // Set default project name hint (will show next available DMVCFrameworkProjectN)
+  UpdateProjectNameHint;
+
   {$IF not Defined(FASTCGI)}
   rgServerType.Items.Delete(rgServerType.Items.Count-1);
   rgServerType.ItemIndex := 0;
@@ -235,11 +324,6 @@ end;
 procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
 begin
   fModel.Free;
-end;
-
-function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
-begin
-  Result := chkAddToProjectGroup.Checked;
 end;
 
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
@@ -387,14 +471,21 @@ end;
 function TfrmDMVCNewProject.GetConfigModel: TJSONObject;
 begin
   fModel.Clear;
-  fModel.S[TConfigKey.program_name] :=  'TBA';
+  fModel.S[TConfigKey.program_name] := GetProjectName;
   fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
-  fModel.B[TConfigKey.program_ssv_templatepro] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'templatepro');
-  fModel.B[TConfigKey.program_ssv_webstencils] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils');
-  fModel.B[TConfigKey.program_ssv_mustache] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'mustache');
+  fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');
+  fModel.B[TConfigKey.program_ssv_webstencils] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'webstencils');
+  fModel.B[TConfigKey.program_ssv_mustache] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'mustache');
+  // Set default media type based on SSV selection
+  if fModel.B[TConfigKey.program_ssv_templatepro] or
+     fModel.B[TConfigKey.program_ssv_webstencils] or
+     fModel.B[TConfigKey.program_ssv_mustache] then
+    fModel.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML'
+  else
+    fModel.S[TConfigKey.default_media_type] := 'TMVCConstants.DEFAULT_CONTENT_TYPE';
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
@@ -405,10 +496,11 @@ begin
   fModel.B[TConfigKey.controller_actions_profiling_generate] :=  chkProfileActions.Checked;
   fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
   fModel.S[TConfigKey.entity_classname] :=  'TPerson';
+  fModel.S[TConfigKey.entity_unit_name] := 'TBA';
   fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
   fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
-  fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
+  fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), cbNameCase.ItemIndex + 1);
   fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
   fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
 
@@ -420,9 +512,15 @@ begin
       raise Exception.Create('Invalid Server Type');
   end;
 
-  //webmodule
+  // Helper unit names (defaults, will be updated after units are created)
+  fModel.S[TConfigKey.mustache_helpers_unit_name] := 'TBA';
+  fModel.S[TConfigKey.templatepro_helpers_unit_name] := 'TBA';
+  fModel.S[TConfigKey.webstencils_helpers_unit_name] := 'TBA';
 
+  //webmodule
+  fModel.S[TConfigKey.webmodule_unit_name] := 'TBA';
   fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;
+  fModel.S[TConfigKey.webmodule_classname_short] := GetWebModuleClassName.Substring(1); // TMyWebModule -> MyWebModule
   fModel.B[TConfigKey.webmodule_middleware_analytics] :=  chkAnalyticsMiddleware.Checked;
   fModel.B[TConfigKey.webmodule_middleware_staticfiles] :=  chkStaticFiles.Checked;
   fModel.B[TConfigKey.webmodule_middleware_trace] :=  chkTrace.Checked;
@@ -430,9 +528,18 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_etag] :=  chkETAG.Checked;
   fModel.B[TConfigKey.webmodule_middleware_cors] :=  chkCORS.Checked;
   fModel.B[TConfigKey.webmodule_middleware_ratelimit] :=  chkRateLimit.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_jwt] :=  chkJWT.Checked;
   fModel.B[TConfigKey.webmodule_middleware_activerecord] :=  chkActiveRecord.Checked;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  EdtConnDefName.Text;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  EdtFDConnDefFileName.Text;
+  // Extract just the filename for file generation (e.g., "$(AppPath)FDConnectionDefs.ini" -> "FDConnectionDefs.ini")
+  fModel.S[TConfigKey.con_def_filename] := ExtractFileName(StringReplace(EdtFDConnDefFileName.Text, '$(AppPath)', '', [rfIgnoreCase]));
+
+  // Session middleware
+  fModel.B[TConfigKey.webmodule_middleware_session_memory] := cbSessionType.ItemIndex = 1;
+  fModel.B[TConfigKey.webmodule_middleware_session_file] := cbSessionType.ItemIndex = 2;
+  fModel.B[TConfigKey.webmodule_middleware_session_database] := cbSessionType.ItemIndex = 3;
+  fModel.I[TConfigKey.webmodule_middleware_session_timeout] := 0; // Default timeout
 
   //webmodule - end
   Result := fModel;
@@ -447,6 +554,72 @@ begin
   else
   begin
     Result := Trim(edtControllerClassName.Text);
+  end;
+end;
+
+procedure TfrmDMVCNewProject.UpdateProjectNameHint;
+var
+  LBaseFolder: string;
+  LCounter: Integer;
+  LSuggestedName: string;
+begin
+  LBaseFolder := GetBaseFolder;
+  LCounter := 1;
+  repeat
+    LSuggestedName := 'DMVCFrameworkProject' + LCounter.ToString;
+    Inc(LCounter);
+  until not TDirectory.Exists(TPath.Combine(LBaseFolder, LSuggestedName));
+
+  // Set both the Text and TextHint to the suggested name
+  edtProjectName.Text := LSuggestedName;
+  edtProjectName.TextHint := LSuggestedName;
+end;
+
+function TfrmDMVCNewProject.GetBaseFolder: string;
+begin
+  Result := Trim(edtProjectFolder.Text);
+  if Result.IsEmpty then
+  begin
+    Result := TPath.Combine(TPath.GetDocumentsPath, 'Embarcadero\Studio\Projects');
+    // Fallback to user's home directory if Embarcadero folder doesn't exist
+    if not TDirectory.Exists(Result) then
+      Result := TPath.GetHomePath;
+  end;
+end;
+
+function TfrmDMVCNewProject.GetProjectName: string;
+var
+  LBaseFolder: string;
+  LCounter: Integer;
+begin
+  Result := Trim(edtProjectName.Text);
+  if Result.IsEmpty then
+  begin
+    // Generate automatic project name: DMVCFrameworkProject1, DMVCFrameworkProject2, etc.
+    LBaseFolder := GetBaseFolder;
+    LCounter := 1;
+    repeat
+      Result := 'DMVCFrameworkProject' + LCounter.ToString;
+      Inc(LCounter);
+    until not TDirectory.Exists(TPath.Combine(LBaseFolder, Result));
+  end;
+end;
+
+function TfrmDMVCNewProject.GetProjectFolder: string;
+begin
+  // Append project name as subfolder to base folder
+  Result := TPath.Combine(GetBaseFolder, GetProjectName);
+end;
+
+procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
+var
+  LDir: string;
+begin
+  LDir := edtProjectFolder.Text;
+  if SelectDirectory('Select Project Folder', '', LDir) then
+  begin
+    edtProjectFolder.Text := LDir;
+    UpdateProjectNameHint;
   end;
 end;
 

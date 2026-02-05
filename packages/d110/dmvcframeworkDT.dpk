@@ -54,8 +54,7 @@ contains
   DMVC.Expert.Registration in '..\..\ideexpert\DMVC.Expert.Registration.pas',
   DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas',
   DMVC.Expert.Commons in '..\..\ideexpert\DMVC.Expert.Commons.pas',
-  DMVC.Expert.CodeGen.Executor in '..\..\ideexpert\DMVC.Expert.CodeGen.Executor.pas',
-  DMVC.Expert.Commands.Templates in '..\..\ideexpert\DMVC.Expert.Commands.Templates.pas',
-  DMVC.Expert.CodeGen.Commands in '..\..\ideexpert\DMVC.Expert.CodeGen.Commands.pas';
+  DMVC.Expert.CodeGen.TemplateEngine in '..\..\ideexpert\DMVC.Expert.CodeGen.TemplateEngine.pas',
+  DMVC.Expert.ProjectGenerator in '..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas';
 
 end.

@@ -1,0 +1,202 @@
+{{include "_license_header.tpro"}}
+unit {{:controller_unit_name}};
+
+interface
+
+uses
+  MVCFramework, MVCFramework.Commons, {{if entity_generate}}MVCFramework.Nullables, {{:entity_unit_name}}, {{endif}}{{if program_service_container_generate}}{{:program_service_container_unit_name}}, {{endif}}MVCFramework.Serializer.Commons, System.Generics.Collections;
+
+type
+{{if program_ssv_any}}
+  [MVCPath('/web')]
+{{else}}
+  [MVCPath('/api')]
+{{endif}}
+  {{:controller_classname}} = class(TMVCController)
+{{if controller_action_filters_generate}}
+  protected
+    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;
+    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
+{{endif}}
+{{if controller_index_methods_generate}}
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function Index: String;
+
+    [MVCPath('/reversedstrings/($Value)')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetReversedString(const Value: String): String;
+
+{{endif}}
+{{if controller_crud_methods_generate}}
+{{if !controller_index_methods_generate}}
+  public
+{{endif}}
+    //Sample CRUD Actions for a "People" entity
+    [MVCPath('/people')]
+    [MVCHTTPMethod([httpGET])]
+{{if program_service_container_generate}}
+    function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;
+{{else}}
+    function GetPeople: IMVCResponse;
+{{endif}}
+
+    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPerson(ID: Integer): TPerson;
+
+    [MVCPath('/people')]
+    [MVCHTTPMethod([httpPOST])]
+    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+
+    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpPUT])]
+    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
+
+    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpDELETE])]
+    function DeletePerson(ID: Integer): IMVCResponse;
+{{endif}}
+  end;
+
+implementation
+
+uses
+  System.StrUtils, System.SysUtils, MVCFramework.Logger;
+
+{{if controller_action_filters_generate}}
+procedure {{:controller_classname}}.OnAfterAction(Context: TWebContext; const AActionName: string);
+begin
+  { Executed after each action }
+  inherited;
+end;
+
+procedure {{:controller_classname}}.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);
+begin
+  { Executed before each action
+    if handled is true (or an exception is raised) the actual
+    action will not be called }
+  inherited;
+end;
+{{endif}}
+
+{{if controller_index_methods_generate}}
+function {{:controller_classname}}.Index: String;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+{{if program_ssv_any}}
+  // Pass data to the view using ViewData
+  ViewData['app_name'] := '{{:program_name}}';
+  ViewData['current_date'] := FormatDateTime('dddd, dd mmmm yyyy', Now);
+  ViewData['current_time'] := FormatDateTime('hh:nn:ss', Now);
+  ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
+  ViewData['compiler_version'] := Format('Delphi %.1f', [CompilerVersion]);
+
+  // Render the index view with the data
+  Result := RenderView('index');
+{{else}}
+  //use Context property to access to the HTTP request and response
+  Result := '<p>Hello <strong>DelphiMVCFramework</strong> World</p>' +
+            '<p><small>dmvcframework-' + DMVCFRAMEWORK_VERSION + '</small></p>';
+{{endif}}
+end;
+
+function {{:controller_classname}}.GetReversedString(const Value: String): String;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  Result := System.StrUtils.ReverseString(Value.Trim);
+end;
+{{endif}}
+
+{{if controller_crud_methods_generate}}
+{{if program_service_container_generate}}
+//Sample CRUD Actions for a "People" entity (with service injection)
+function {{:controller_classname}}.GetPeople(PeopleService: IPeopleService): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  Result := OkResponse(PeopleService.GetAll);
+end;
+{{else}}
+//Sample CRUD Actions for a "People" entity (no service injection)
+function {{:controller_classname}}.GetPeople: IMVCResponse;
+var
+  lPeople: TObjectList<TPerson>;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  lPeople := TObjectList<TPerson>.Create(True);
+  try
+    lPeople.Add(TPerson.Create(1, 'Peter','Parker', EncodeDate(1965, 10, 4)));
+    lPeople.Add(TPerson.Create(2, 'Bruce','Banner', EncodeDate(1945, 9, 6)));
+    lPeople.Add(TPerson.Create(3, 'Reed','Richards', EncodeDate(1955, 3, 7)));
+    Result := OkResponse(lPeople);
+  except
+    lPeople.Free;
+    raise;
+  end;
+end;
+{{endif}}
+
+function {{:controller_classname}}.GetPerson(ID: Integer): TPerson;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  Result := TPerson.Create(ID, 'Daniele', 'Teti', EncodeDate(1979, 11, 4));
+end;
+
+function {{:controller_classname}}.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
+  Result := CreatedResponse('', 'Person created');
+end;
+
+function {{:controller_classname}}.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Updated ' + Person.FirstName + ' ' + Person.LastName);
+  Result := NoContentResponse();
+end;
+
+function {{:controller_classname}}.DeletePerson(ID: Integer): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Deleted person with id ' + ID.ToString);
+  Result := NoContentResponse();
+end;
+{{endif}}
+
+end.

@@ -3,8 +3,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DelphiMVCFramework :: New Project Wizard'
-  ClientHeight = 629
-  ClientWidth = 761
+  ClientHeight = 672
+  ClientWidth = 764
   Color = clBtnFace
   Constraints.MinHeight = 145
   Constraints.MinWidth = 250
@@ -17,13 +17,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
-    761
-    629)
+    764
+    672)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
     Top = 0
-    Width = 761
+    Width = 764
     Height = 121
     Align = alTop
     Pen.Color = clWhite
@@ -31,14 +31,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblWbModule: TLabel
     Left = 24
-    Top = 269
+    Top = 365
     Width = 114
     Height = 13
     Caption = 'WebModule Class Name'
   end
   object lblServerPort: TLabel
-    Left = 213
-    Top = 269
+    Left = 258
+    Top = 365
     Width = 55
     Height = 13
     Caption = 'Server Port'
@@ -434,14 +434,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ParentFont = False
   end
   object Shape2: TShape
-    Left = 512
+    Left = 497
     Top = 34
-    Width = 241
+    Width = 256
     Height = 41
     Pen.Color = clGray
   end
   object Image2: TImage
-    Left = 513
+    Left = 498
     Top = 34
     Width = 36
     Height = 41
@@ -485,159 +485,96 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnMouseEnter = lblPATREONMouseEnter
     OnMouseLeave = lblPATREONMouseLeave
   end
+  object lblProjectName: TLabel
+    Left = 24
+    Top = 135
+    Width = 64
+    Height = 13
+    Caption = 'Project Name'
+  end
+  object lblProjectFolder: TLabel
+    Left = 24
+    Top = 179
+    Width = 203
+    Height = 13
+    Caption = 'Base Folder (project created as subfolder)'
+  end
   object btnOK: TButton
-    Left = 593
-    Top = 594
+    Left = 596
+    Top = 637
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
     Caption = 'OK'
     Default = True
     ModalResult = 1
-    TabOrder = 3
+    TabOrder = 7
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 676
-    Top = 594
+    Left = 679
+    Top = 637
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 4
+    TabOrder = 8
   end
-  object chkAddToProjectGroup: TCheckBox
+  object edtProjectName: TEdit
     Left = 24
-    Top = 135
-    Width = 225
-    Height = 17
-    Caption = 'Add to Existing Project Group'
-    Checked = True
-    State = cbChecked
+    Top = 154
+    Width = 297
+    Height = 21
     TabOrder = 0
+    TextHint = 'DMVCFrameworkProject1'
   end
-  object edtWebModuleName: TEdit
+  object edtProjectFolder: TEdit
     Left = 24
-    Top = 288
-    Width = 183
+    Top = 198
+    Width = 265
     Height = 21
     TabOrder = 1
   end
-  object edtServerPort: TEdit
-    Left = 213
-    Top = 288
-    Width = 92
-    Height = 21
+  object btnBrowseFolder: TButton
+    Left = 295
+    Top = 196
+    Width = 26
+    Height = 25
+    Caption = '...'
     TabOrder = 2
+    OnClick = btnBrowseFolderClick
+  end
+  object edtWebModuleName: TEdit
+    Left = 24
+    Top = 384
+    Width = 228
+    Height = 21
+    TabOrder = 3
+  end
+  object edtServerPort: TEdit
+    Left = 258
+    Top = 384
+    Width = 63
+    Height = 21
+    TabOrder = 4
     Text = '8080'
     TextHint = '8080'
   end
-  object Panel2: TPanel
-    Left = 0
-    Top = 444
-    Width = 308
-    Height = 186
-    Anchors = [akLeft, akBottom]
-    BevelOuter = bvNone
-    Caption = 'Panel2'
-    Ctl3D = False
-    ParentCtl3D = False
-    ShowCaption = False
-    TabOrder = 5
-    DesignSize = (
-      308
-      186)
-    object gbControllerUnitOptions: TGroupBox
-      Left = 24
-      Top = 1
-      Width = 284
-      Height = 176
-      Anchors = [akLeft, akTop, akRight, akBottom]
-      Caption = 'Controller Unit Options'
-      TabOrder = 0
-      DesignSize = (
-        284
-        176)
-      object lblClassName: TLabel
-        Left = 16
-        Top = 120
-        Width = 105
-        Height = 13
-        Caption = 'Controller Class Name'
-      end
-      object Label1: TLabel
-        Left = 16
-        Top = -48
-        Width = 31
-        Height = 13
-        Caption = 'Label1'
-      end
-      object chkCreateIndexMethod: TCheckBox
-        Left = 16
-        Top = 25
-        Width = 252
-        Height = 17
-        Anchors = [akLeft, akTop, akRight]
-        Caption = 'Generate Index And Sample Actions'
-        Checked = True
-        State = cbChecked
-        TabOrder = 0
-      end
-      object edtControllerClassName: TEdit
-        Left = 16
-        Top = 140
-        Width = 252
-        Height = 19
-        Anchors = [akLeft, akTop, akRight]
-        TabOrder = 3
-      end
-      object chkCreateActionFiltersMethods: TCheckBox
-        Left = 16
-        Top = 48
-        Width = 252
-        Height = 17
-        Anchors = [akLeft, akTop, akRight]
-        Caption = 'Generate Action Filters Methods'
-        TabOrder = 1
-      end
-      object chkCreateCRUDMethods: TCheckBox
-        Left = 16
-        Top = 71
-        Width = 252
-        Height = 17
-        Anchors = [akLeft, akTop, akRight]
-        Caption = 'Generate Sample CRUD Actions'
-        Checked = True
-        State = cbChecked
-        TabOrder = 2
-      end
-      object chkProfileActions: TCheckBox
-        Left = 16
-        Top = 89
-        Width = 264
-        Height = 26
-        Anchors = [akLeft, akTop, akRight]
-        Caption = 'Include Actions Profiling Code'
-        TabOrder = 4
-        WordWrap = True
-      end
-    end
-  end
   object GroupBox1: TGroupBox
-    Left = 314
+    Left = 340
     Top = 135
-    Width = 439
-    Height = 221
+    Width = 416
+    Height = 200
     Caption = 'Middlewares'
     TabOrder = 6
     DesignSize = (
-      439
-      221)
+      416
+      200)
     object Label4: TLabel
-      Left = 163
-      Top = 118
+      Left = 31
+      Top = 145
       Width = 144
       Height = 13
       Caption = 'FireDAC Connections filename'
@@ -650,14 +587,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Shape = bsTopLine
     end
     object Label5: TLabel
-      Left = 163
-      Top = 169
+      Left = 228
+      Top = 145
       Width = 101
       Height = 13
       Caption = 'ConnectionDef Name'
     end
     object chkAnalyticsMiddleware: TCheckBox
-      Left = 34
+      Left = 28
       Top = 50
       Width = 135
       Height = 17
@@ -666,7 +603,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 0
     end
     object chkCompression: TCheckBox
-      Left = 34
+      Left = 28
       Top = 27
       Width = 153
       Height = 17
@@ -675,7 +612,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 1
     end
     object chkStaticFiles: TCheckBox
-      Left = 34
+      Left = 28
       Top = 74
       Width = 135
       Height = 17
@@ -684,7 +621,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 2
     end
     object chkTrace: TCheckBox
-      Left = 175
+      Left = 163
       Top = 50
       Width = 98
       Height = 17
@@ -694,7 +631,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 3
     end
     object chkCORS: TCheckBox
-      Left = 175
+      Left = 162
       Top = 27
       Width = 135
       Height = 17
@@ -703,7 +640,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 4
     end
     object chkETAG: TCheckBox
-      Left = 175
+      Left = 164
       Top = 74
       Width = 76
       Height = 17
@@ -712,8 +649,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 5
     end
     object chkActiveRecord: TCheckBox
-      Left = 34
-      Top = 118
+      Left = 28
+      Top = 121
       Width = 135
       Height = 17
       Anchors = [akTop]
@@ -721,25 +658,25 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 6
     end
     object EdtFDConnDefFileName: TEdit
-      Left = 161
-      Top = 136
-      Width = 262
+      Left = 31
+      Top = 164
+      Width = 180
       Height = 21
-      Anchors = [akLeft, akTop, akRight]
       TabOrder = 7
+      Text = 'FDConnectionDefs.ini'
       TextHint = 'FDConnectionDefs.ini'
     end
     object EdtConnDefName: TEdit
-      Left = 161
-      Top = 188
-      Width = 262
+      Left = 228
+      Top = 164
+      Width = 180
       Height = 21
-      Anchors = [akLeft, akTop, akRight]
       TabOrder = 8
+      Text = 'MyConnDef'
       TextHint = 'MyConnDef'
     end
     object chkRateLimit: TCheckBox
-      Left = 323
+      Left = 304
       Top = 27
       Width = 113
       Height = 17
@@ -747,138 +684,262 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'Rate Limit'
       TabOrder = 9
     end
-  end
-  object GroupBoxJSONRPC: TGroupBox
-    Left = 314
-    Top = 444
-    Width = 439
-    Height = 105
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'JSON-RPC end-point Options'
-    TabOrder = 7
-    DesignSize = (
-      439
-      105)
-    object Label3: TLabel
-      Left = 16
-      Top = 53
-      Width = 104
-      Height = 13
-      Caption = 'End-Point Class Name'
-    end
-    object EdtJSONRPCClassName: TEdit
-      Left = 16
-      Top = 72
-      Width = 408
-      Height = 21
-      Anchors = [akLeft, akTop, akRight]
-      TabOrder = 0
-      TextHint = 'TMyRPC'
-    end
-    object chkJSONRPC: TCheckBox
-      Left = 16
-      Top = 22
-      Width = 401
+    object chkJWT: TCheckBox
+      Left = 304
+      Top = 50
+      Width = 113
       Height = 17
-      Anchors = [akLeft, akTop, akRight]
-      Caption = 'Create JSON-RPC 2.0 end-point'
-      Checked = True
-      State = cbChecked
-      TabOrder = 1
+      Anchors = [akTop]
+      Caption = 'JWT (Cookie)'
+      TabOrder = 10
     end
-  end
-  object chkMSHeap: TCheckBox
-    Left = 28
-    Top = 390
-    Width = 257
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Use MSHeap on MS Windows'
-    TabOrder = 8
-  end
-  object chkCustomConfigDotEnv: TCheckBox
-    Left = 28
-    Top = 413
-    Width = 257
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Generate custom .env configuration'
-    TabOrder = 9
-  end
-  object chkServicesContainer: TCheckBox
-    Left = 28
-    Top = 346
-    Width = 257
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Use Services Container'
-    Checked = True
-    State = cbChecked
-    TabOrder = 10
-  end
-  object chkSqids: TCheckBox
-    Left = 28
-    Top = 368
-    Width = 257
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Use Sqids'
-    TabOrder = 11
-  end
-  object rgNameCase: TRadioGroup
-    Left = 314
-    Top = 362
-    Width = 439
-    Height = 76
-    Caption = 'Default style for serialized property names (MVCNameCaseDefault)'
-    Columns = 3
-    ItemIndex = 2
-    Items.Strings = (
-      'AsIs (as declared)'
-      'UpperCase (FOOBAR)'
-      'LowerCase (foobar)'
-      'CamelCase (fooBar)'
-      'PascalCase (FooBar)'
-      'SnakeCase (foo_bar)')
-    TabOrder = 12
-  end
-  object rgSSV: TRadioGroup
-    Left = 314
-    Top = 555
-    Width = 255
-    Height = 66
-    Caption = 'Server Side Views Template Engine'
-    Columns = 2
-    ItemIndex = 0
-    Items.Strings = (
-      'None'
-      'TemplatePro'
-      'WebStencils'
-      'Mustache')
-    TabOrder = 13
-    OnClick = rgSSVClick
   end
   object rgServerType: TRadioGroup
     Left = 24
-    Top = 165
-    Width = 284
-    Height = 90
+    Top = 243
+    Width = 297
+    Height = 92
     Caption = 'Server Application Type'
     ItemIndex = 0
     Items.Strings = (
       'HTTP Console (Windows/Linux)'
       'HTTPS Console (Windows/Linux, requires TaurusTLS)'
       'FastCGI Console (Windows/Linux)')
-    TabOrder = 14
+    TabOrder = 5
   end
-  object chkWebSocketServer: TCheckBox
-    Left = 28
-    Top = 324
-    Width = 179
-    Height = 17
-    Anchors = [akLeft, akRight, akBottom]
-    Caption = 'Create Web Socket Server'
-    TabOrder = 15
+  object gbNameCase: TGroupBox
+    Left = 340
+    Top = 362
+    Width = 416
+    Height = 270
+    Caption = 'Options'
+    TabOrder = 9
+    DesignSize = (
+      416
+      270)
+    object Label2: TLabel
+      Left = 16
+      Top = 25
+      Width = 335
+      Height = 13
+      Caption = 
+        'Default name case for properties serialization (MVCNameCaseDefau' +
+        'lt)'
+    end
+    object Label6: TLabel
+      Left = 16
+      Top = 73
+      Width = 167
+      Height = 13
+      Caption = 'Server Side Views Template Engine'
+    end
+    object Label7: TLabel
+      Left = 208
+      Top = 73
+      Width = 63
+      Height = 13
+      Caption = 'Session Type'
+    end
+    object Label3: TLabel
+      Left = 208
+      Top = 123
+      Width = 148
+      Height = 13
+      Caption = 'JSON-RPC Handler Class Name'
+    end
+    object Bevel2: TBevel
+      Left = 11
+      Top = 180
+      Width = 402
+      Height = 3
+      Shape = bsTopLine
+    end
+    object cbNameCase: TComboBox
+      Left = 16
+      Top = 44
+      Width = 393
+      Height = 21
+      Style = csDropDownList
+      ItemIndex = 2
+      TabOrder = 0
+      Text = 'LowerCase (foobar)'
+      Items.Strings = (
+        'AsIs (as declared)'
+        'UpperCase (FOOBAR)'
+        'LowerCase (foobar)'
+        'CamelCase (fooBar)'
+        'PascalCase (FooBar)'
+        'SnakeCase (foo_bar)')
+    end
+    object cbSSV: TComboBox
+      Left = 16
+      Top = 92
+      Width = 186
+      Height = 21
+      Style = csDropDownList
+      ItemIndex = 0
+      TabOrder = 1
+      Text = 'None'
+      Items.Strings = (
+        'None'
+        'TemplatePro'
+        'WebStencils'
+        'Mustache')
+    end
+    object cbSessionType: TComboBox
+      Left = 208
+      Top = 92
+      Width = 201
+      Height = 21
+      Style = csDropDownList
+      ItemIndex = 0
+      TabOrder = 2
+      Text = 'None'
+      Items.Strings = (
+        'None'
+        'Memory'
+        'File'
+        'Database')
+    end
+    object chkJSONRPC: TCheckBox
+      Left = 16
+      Top = 144
+      Width = 157
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Create JSON-RPC 2.0 end-point'
+      Checked = True
+      State = cbChecked
+      TabOrder = 3
+    end
+    object EdtJSONRPCClassName: TEdit
+      Left = 208
+      Top = 142
+      Width = 201
+      Height = 21
+      TabOrder = 4
+      TextHint = 'TMyRPC'
+    end
+    object chkWebSocketServer: TCheckBox
+      Left = 16
+      Top = 195
+      Width = 200
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Create Web Socket Server'
+      TabOrder = 5
+    end
+    object chkServicesContainer: TCheckBox
+      Left = 16
+      Top = 218
+      Width = 200
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Use Services Container'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
+    end
+    object chkSqids: TCheckBox
+      Left = 208
+      Top = 218
+      Width = 200
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Use Sqids'
+      TabOrder = 7
+    end
+    object chkMSHeap: TCheckBox
+      Left = 208
+      Top = 195
+      Width = 200
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Use MSHeap on MS Windows'
+      TabOrder = 8
+    end
+    object chkCustomConfigDotEnv: TCheckBox
+      Left = 16
+      Top = 241
+      Width = 200
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'Generate custom .env configuration'
+      TabOrder = 9
+    end
+  end
+  object gbControllerUnitOptions: TGroupBox
+    Left = 24
+    Top = 456
+    Width = 297
+    Height = 176
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Caption = 'Controller Unit Options'
+    TabOrder = 10
+    DesignSize = (
+      297
+      176)
+    object lblClassName: TLabel
+      Left = 16
+      Top = 120
+      Width = 105
+      Height = 13
+      Caption = 'Controller Class Name'
+    end
+    object Label1: TLabel
+      Left = 16
+      Top = -48
+      Width = 31
+      Height = 13
+      Caption = 'Label1'
+    end
+    object chkCreateIndexMethod: TCheckBox
+      Left = 16
+      Top = 25
+      Width = 265
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Generate Index And Sample Actions'
+      Checked = True
+      State = cbChecked
+      TabOrder = 0
+    end
+    object edtControllerClassName: TEdit
+      Left = 16
+      Top = 140
+      Width = 265
+      Height = 21
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 3
+    end
+    object chkCreateActionFiltersMethods: TCheckBox
+      Left = 16
+      Top = 48
+      Width = 265
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Generate Action Filters Methods'
+      TabOrder = 1
+    end
+    object chkCreateCRUDMethods: TCheckBox
+      Left = 16
+      Top = 71
+      Width = 265
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Generate Sample CRUD Actions'
+      TabOrder = 2
+    end
+    object chkProfileActions: TCheckBox
+      Left = 16
+      Top = 89
+      Width = 277
+      Height = 26
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Include Actions Profiling Code'
+      TabOrder = 4
+      WordWrap = True
+    end
   end
   object ApplicationEvents: TApplicationEvents
     OnIdle = ApplicationEventsIdle

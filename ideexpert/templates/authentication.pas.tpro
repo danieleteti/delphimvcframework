@@ -1,0 +1,175 @@
+{{include "_license_header.tpro"}}
+unit {{:authentication_unit_name}};
+
+interface
+
+uses
+  System.SysUtils,
+  System.Generics.Collections,
+  MVCFramework,
+  MVCFramework.Commons;
+
+type
+  /// <summary>
+  /// Sample authentication handler for JWT middleware.
+  /// This is a basic implementation that you should customize based on your needs.
+  ///
+  /// Typical customizations:
+  /// - OnAuthentication: Validate credentials against database, LDAP, Active Directory, etc.
+  /// - OnAuthorization: Check user roles/permissions from database or cache
+  /// - OnRequest: Define which controllers/actions require authentication
+  /// </summary>
+  {{:authentication_classname}} = class(TInterfacedObject, IMVCAuthenticationHandler)
+  protected
+    /// <summary>
+    /// Called before each request to determine if authentication is required.
+    /// Set AuthenticationRequired to True for protected resources.
+    /// </summary>
+    procedure OnRequest(
+      const AContext: TWebContext;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
+      var AuthenticationRequired: Boolean);
+
+    /// <summary>
+    /// Called when user attempts to authenticate (usually on /login endpoint).
+    /// Validate credentials and populate UserRoles and SessionData.
+    /// Set IsValid to True if credentials are correct.
+    /// </summary>
+    procedure OnAuthentication(
+      const AContext: TWebContext;
+      const UserName: string;
+      const Password: string;
+      UserRoles: TList<string>;
+      var IsValid: Boolean;
+      const SessionData: TSessionData);
+
+    /// <summary>
+    /// Called after successful authentication to check if user is authorized
+    /// to access the specific controller action.
+    /// Set IsAuthorized to True if user has required permissions.
+    /// </summary>
+    procedure OnAuthorization(
+      const AContext: TWebContext;
+      UserRoles: TList<string>;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
+      var IsAuthorized: Boolean);
+  end;
+
+implementation
+
+uses
+  MVCFramework.Logger;
+
+{ {{:authentication_classname}} }
+
+procedure {{:authentication_classname}}.OnRequest(
+  const AContext: TWebContext;
+  const ControllerQualifiedClassName: string;
+  const ActionName: string;
+  var AuthenticationRequired: Boolean);
+begin
+  // TODO: Customize which endpoints require authentication
+  //
+  // Example 1: All controllers require authentication except TPublicController
+  // AuthenticationRequired := not ControllerQualifiedClassName.Contains('TPublicController');
+  //
+  // Example 2: Only specific controllers require authentication
+  // AuthenticationRequired := ControllerQualifiedClassName.Contains('TAdminController') or
+  //                           ControllerQualifiedClassName.Contains('TSecureController');
+  //
+  // Example 3: All endpoints require authentication (strictest)
+  // AuthenticationRequired := True;
+
+  // Default: No authentication required (you must configure this!)
+  AuthenticationRequired := False;
+
+  LogI(Format('OnRequest: %s.%s - Auth Required: %s',
+    [ControllerQualifiedClassName, ActionName, BoolToStr(AuthenticationRequired, True)]));
+end;
+
+procedure {{:authentication_classname}}.OnAuthentication(
+  const AContext: TWebContext;
+  const UserName: string;
+  const Password: string;
+  UserRoles: TList<string>;
+  var IsValid: Boolean;
+  const SessionData: TSessionData);
+begin
+  // TODO: Implement real authentication against your user database/LDAP/etc.
+  //
+  // This is a DEMO implementation where username must equal password.
+  // DO NOT use this in production!
+
+  IsValid := (not UserName.IsEmpty) and UserName.Equals(Password);
+
+  if IsValid then
+  begin
+    LogI(Format('Authentication successful for user: %s', [UserName]));
+
+    // TODO: Load actual user roles from database
+    // Example role assignment based on username (for demo purposes):
+    if UserName = 'admin' then
+    begin
+      UserRoles.Add('admin');
+      UserRoles.Add('user');
+    end
+    else if UserName = 'manager' then
+    begin
+      UserRoles.Add('manager');
+      UserRoles.Add('user');
+    end
+    else
+    begin
+      UserRoles.Add('user');
+    end;
+
+    // Add custom session data (will be included in JWT claims)
+    // This data will be available in all subsequent authenticated requests
+    SessionData.AddOrSetValue('username', UserName);
+    SessionData.AddOrSetValue('login_time', DateTimeToStr(Now));
+
+    // TODO: Add more session data as needed:
+    // SessionData.AddOrSetValue('user_id', IntToStr(UserID));
+    // SessionData.AddOrSetValue('department', UserDepartment);
+    // SessionData.AddOrSetValue('email', UserEmail);
+  end
+  else
+  begin
+    LogW(Format('Authentication failed for user: %s', [UserName]));
+    UserRoles.Clear;
+  end;
+end;
+
+procedure {{:authentication_classname}}.OnAuthorization(
+  const AContext: TWebContext;
+  UserRoles: TList<string>;
+  const ControllerQualifiedClassName: string;
+  const ActionName: string;
+  var IsAuthorized: Boolean);
+begin
+  // TODO: Implement role-based authorization logic
+  //
+  // Example 1: Admin-only actions
+  // if ActionName.StartsWith('Admin') then
+  //   IsAuthorized := UserRoles.Contains('admin')
+  //
+  // Example 2: Multiple role requirements
+  // if ActionName = 'DeleteUser' then
+  //   IsAuthorized := UserRoles.Contains('admin') or UserRoles.Contains('superuser')
+  //
+  // Example 3: Check against action attributes
+  // Use MVCRequiresRole attribute on controller actions and check here
+
+  // Default: Allow all authenticated users (least restrictive)
+  // Change this based on your security requirements!
+  IsAuthorized := True;
+
+  LogI(Format('OnAuthorization: %s.%s for roles [%s] - Authorized: %s',
+    [ControllerQualifiedClassName, ActionName,
+     String.Join(',', UserRoles.ToArray),
+     BoolToStr(IsAuthorized, True)]));
+end;
+
+end.

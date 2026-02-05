@@ -38,6 +38,18 @@ uses
   TemplatePro.Types;
 
 type
+  /// <summary>
+  /// Callback procedure for custom template loading.
+  /// Used to load templates from sources other than the file system (e.g., embedded resources, database, etc.)
+  /// </summary>
+  /// <param name="TemplateName">The name of the template as specified in the include/extends directive</param>
+  /// <param name="TemplateContent">Output parameter: set to the content of the template if found</param>
+  /// <param name="Handled">Output parameter: set to True if the template was loaded, False to fall back to file system</param>
+  TTProTemplateResolver = reference to procedure(
+    const TemplateName: string;
+    var TemplateContent: string;
+    var Handled: Boolean);
+
   ITProCompiledTemplate = interface
     ['{0BE04DE7-6930-456B-86EE-BFD407BA6C46}']
     function Render: String;
@@ -63,6 +75,15 @@ type
     function GetOutputLineEnding: TLineEndingStyle;
     procedure SetOutputLineEnding(const Value: TLineEndingStyle);
     property OutputLineEnding: TLineEndingStyle read GetOutputLineEnding write SetOutputLineEnding;
+    function GetOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
+    procedure SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
+    /// <summary>
+    /// Optional callback for custom template loading during dynamic includes at runtime.
+    /// When set, this callback is invoked for runtime include directives like {{include @(expression)}}.
+    /// If the callback sets Handled to True, the provided content is used.
+    /// If Handled is False, the template falls back to loading from the file system.
+    /// </summary>
+    property OnGetDynamicallyIncludedTemplate: TTProTemplateResolver read GetOnGetDynamicallyIncludedTemplate write SetOnGetDynamicallyIncludedTemplate;
   end;
 
   TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
@@ -82,6 +103,7 @@ type
     fIncludeSavedVarsStack: TObjectList<TIncludeSavedVars>;
     fAutoescapeStack: TStack<Boolean>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
+    fOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
     fExprEvaluator: TExprEvaluator;
     function IsNullableType(const Value: PValue): Boolean;
     procedure InitTemplateAnonFunctions; inline;
@@ -134,6 +156,8 @@ type
     function GetOutputLineEnding: TLineEndingStyle;
     procedure SetOutputLineEnding(const Value: TLineEndingStyle);
     function GetLineEndingString: string;
+    function GetOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
+    procedure SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
   public
     function EvaluateExpression(const Expression: string): TValue;
     destructor Destroy; override;
@@ -149,6 +173,7 @@ type
     property FormatSettings: PTProFormatSettings read GetFormatSettings write SetFormatSettings;
     property OnGetValue: TTProCompiledTemplateGetValueEvent read GetOnGetValue write SetOnGetValue;
     property OutputLineEnding: TLineEndingStyle read GetOutputLineEnding write SetOutputLineEnding;
+    property OnGetDynamicallyIncludedTemplate: TTProTemplateResolver read GetOnGetDynamicallyIncludedTemplate write SetOnGetDynamicallyIncludedTemplate;
   end;
 
   TTProCompiler = class
@@ -162,6 +187,7 @@ type
     fLastMatchedLineBreakLength: Integer;
     fInheritanceChain: TList<string>;
     fStripNextLeadingWS: Boolean;  // For whitespace control: -}} strips leading WS from next content
+    fOnGetIncludedTemplate: TTProTemplateResolver;
     function MatchLineBreak: Boolean;
     function MatchStartTag: Boolean;
     function MatchEndTag: Boolean;
@@ -187,6 +213,7 @@ type
     constructor Create(const aEncoding: TEncoding; const aOptions: TTProCompilerOptions = []); overload;
     procedure MatchFilters(lVarName: string; var lFilters: TArray<TFilterInfo>);
     procedure AddFilterTokens(aTokens: TList<TToken>; const aFilters: TArray<TFilterInfo>);
+    function LoadTemplateSource(const aTemplateName: string; const aFullPath: string): string;
   public
     destructor Destroy; override;
     function Compile(const aTemplate: string; const aFileNameRefPath: String = ''): ITProCompiledTemplate; overload;
@@ -199,6 +226,13 @@ type
     function CompileFromString(const aTemplateString: string): ITProCompiledTemplate;
     constructor Create(aEncoding: TEncoding = nil); overload;
     class function CompileAndRender(const aTemplate: string; const VarNames: TArray<String>; const VarValues: TArray<TValue>): String;
+    /// <summary>
+    /// Optional callback for custom template loading.
+    /// When set, this callback is invoked for include and extends directives.
+    /// If the callback returns True, the provided content is used.
+    /// If it returns False, the compiler falls back to loading from the file system.
+    /// </summary>
+    property OnGetIncludedTemplate: TTProTemplateResolver read fOnGetIncludedTemplate write fOnGetIncludedTemplate;
   end;
 
   ITProWrappedList = interface
@@ -537,6 +571,16 @@ begin
   end;
 end;
 
+function TTProCompiledTemplate.GetOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
+begin
+  Result := fOnGetDynamicallyIncludedTemplate;
+end;
+
+procedure TTProCompiledTemplate.SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
+begin
+  fOnGetDynamicallyIncludedTemplate := Value;
+end;
+
 function TTProCompiledTemplate.GetNullableTValueAsTValue(const Value: PValue; const VarName: string): TValue;
 var
   lNullableInt32: NullableInt32;
@@ -871,6 +915,23 @@ begin
   end;
 end;
 
+function TTProCompiler.LoadTemplateSource(const aTemplateName: string;
+  const aFullPath: string): string;
+var
+  lHandled: Boolean;
+begin
+  // First, try the callback if assigned
+  if Assigned(fOnGetIncludedTemplate) then
+  begin
+    lHandled := False;
+    fOnGetIncludedTemplate(aTemplateName, Result, lHandled);
+    if lHandled then
+      Exit;
+  end;
+  // Fallback to file system using the pre-computed full path
+  Result := TFile.ReadAllText(aFullPath, fEncoding);
+end;
+
 procedure TTProCompiler.InternalCompileIncludedTemplate(const aTemplate: string; const aTokens: TList<TToken>;
   const aFileNameRefPath: String; const aCompilerOptions: TTProCompilerOptions);
 var
@@ -882,6 +943,8 @@ begin
     // Copy inheritance chain to sub-compiler for circular inheritance detection
     for lFile in fInheritanceChain do
       lCompiler.fInheritanceChain.Add(lFile);
+    // Propagate the template resolver callback
+    lCompiler.fOnGetIncludedTemplate := fOnGetIncludedTemplate;
     lCompiler.Compile(aTemplate, aTokens, aFileNameRefPath);
     if aTokens[aTokens.Count - 1].TokenType <> ttEOF then
     begin
@@ -2122,17 +2185,14 @@ begin
             else
             begin
               // Static include - compile at compile time
-              // Read the included file
+              // Resolve full path for nested includes
+              if TDirectory.Exists(aFileNameRefPath) then
+                lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lIncludeFileName))
+              else
+                lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lIncludeFileName));
+              // Load template (via callback or file system)
               try
-                if TDirectory.Exists(aFileNameRefPath) then
-                begin
-                  lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lIncludeFileName));
-                end
-                else
-                begin
-                  lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lIncludeFileName));
-                end;
-                lTemplateSource := TFile.ReadAllText(lCurrentFileName, fEncoding);
+                lTemplateSource := LoadTemplateSource(lIncludeFileName, lCurrentFileName);
               except
                 on E: Exception do
                 begin
@@ -2190,20 +2250,18 @@ begin
           MatchSpace;
           if not MatchEndTag then
             Error('Expected closing tag for "extends"');
+          // Resolve full path for nested includes
           if TDirectory.Exists(aFileNameRefPath) then
-          begin
-            lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lStringValue));
-          end
+            lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lStringValue))
           else
-          begin
             lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lStringValue));
-          end;
           // Check for circular inheritance before reading file
           if fInheritanceChain.Contains(lCurrentFileName) then
             raise ETProCompilerException.Create('Circular template inheritance detected');
           fInheritanceChain.Add(lCurrentFileName);
+          // Load template (via callback or file system)
           try
-            lTemplateSource := TFile.ReadAllText(lCurrentFileName, fEncoding);
+            lTemplateSource := LoadTemplateSource(lStringValue, lCurrentFileName);
           except
             on E: Exception do
             begin
@@ -3792,6 +3850,7 @@ var
   lDynIncludeSource: String;
   lDynIncludeCompiler: TTProCompiler;
   lDynIncludeTemplate: ITProCompiledTemplate;
+  lDynHandled: Boolean;
   // Variables for expression filters
   lExprFilterCount: Int64;
   // Variables for JSON array path parsing
@@ -3977,6 +4036,7 @@ begin
               else if viJSONArray in lVariable.VarOption then
               begin
                 lForLoopItem := PeekLoop;
+                lCount := 0; // Initialize to avoid compiler warning (Error() raises exception)
                 if lForLoopItem.FullPath.IsEmpty then
                 begin
                   // Direct iteration over the JSON array
@@ -4100,34 +4160,48 @@ begin
             // Get filename from expression
             lDynIncludeFileName := EvaluateExpression(fTokens[lIdx].Value1).AsString;
 
-            // Build full path
+            // Build full path for file system fallback
             lDynBasePath := fTokens[lIdx].Value2;
             if TDirectory.Exists(lDynBasePath) then
               lDynFullPath := TPath.GetFullPath(TPath.Combine(lDynBasePath, lDynIncludeFileName))
             else
               lDynFullPath := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(lDynBasePath), lDynIncludeFileName));
 
-            // Check cache first
-            if not fDynamicIncludeCache.TryGetValue(lDynFullPath, lDynIncludeTemplate) then
+            // Check cache first (use template name as key to support callback-provided templates)
+            if not fDynamicIncludeCache.TryGetValue(lDynIncludeFileName, lDynIncludeTemplate) then
             begin
-              // Load template source
-              try
-                lDynIncludeSource := TFile.ReadAllText(lDynFullPath, fEncoding);
-              except
-                on E: Exception do
-                  Error('Cannot read dynamic include "' + lDynIncludeFileName + '": ' + E.Message);
+              // Try callback first if assigned
+              lDynHandled := False;
+              if Assigned(fOnGetDynamicallyIncludedTemplate) then
+              begin
+                fOnGetDynamicallyIncludedTemplate(lDynIncludeFileName, lDynIncludeSource, lDynHandled);
+              end;
+
+              // Fallback to file system if not handled
+              if not lDynHandled then
+              begin
+                try
+                  lDynIncludeSource := TFile.ReadAllText(lDynFullPath, fEncoding);
+                except
+                  on E: Exception do
+                    Error('Cannot read dynamic include "' + lDynIncludeFileName + '": ' + E.Message);
+                end;
               end;
 
               // Compile the included template
               lDynIncludeCompiler := TTProCompiler.Create(fEncoding);
               try
+                // Propagate the callback to the sub-compiler for any static includes in the dynamic template
+                lDynIncludeCompiler.OnGetIncludedTemplate := fOnGetDynamicallyIncludedTemplate;
                 lDynIncludeTemplate := lDynIncludeCompiler.Compile(lDynIncludeSource, lDynFullPath);
+                // Propagate the callback to the compiled template for nested dynamic includes
+                lDynIncludeTemplate.OnGetDynamicallyIncludedTemplate := fOnGetDynamicallyIncludedTemplate;
               finally
                 lDynIncludeCompiler.Free;
               end;
 
               // Store in cache
-              fDynamicIncludeCache.Add(lDynFullPath, lDynIncludeTemplate);
+              fDynamicIncludeCache.Add(lDynIncludeFileName, lDynIncludeTemplate);
             end;
 
             // Copy all variables to the included template

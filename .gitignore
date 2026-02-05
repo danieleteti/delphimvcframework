@@ -169,3 +169,8 @@ nul
 /CLAUDE.md
 /unittests/general/TestClient/pgsql/testdatadir/*
 /build_tests.bat
+/output/*
+/ideexpert/tests/output/*
+/ideexpert/build_now.bat
+/ideexpert/build_wizard.bat
+/ideexpert/build_wizard2.bat

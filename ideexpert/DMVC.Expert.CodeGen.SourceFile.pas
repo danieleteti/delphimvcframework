@@ -21,14 +21,6 @@
 // limitations under the License.
 //
 // ***************************************************************************
-//
-// This IDE expert is based off of the one included with the DUnitX
-// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
-//
-// The DUnitX project is run by Vincent Parrett and can be found at:
-//
-// https://github.com/VSoftTechnologies/DUnitX
-// ***************************************************************************
 
 unit DMVC.Expert.CodeGen.SourceFile;
 
@@ -38,36 +30,31 @@ uses
   System.SysUtils,
   System.Classes,
   JsonDataObjects,
-  ToolsAPI,
-  DMVC.Expert.CodeGen.Executor;
+  ToolsAPI;
 
 type
   TSourceFile = class(TInterfacedObject, IOTAFile)
   private
-    fGeneratorCallback: TProc<TMVCCodeGenerator>;
-    fJSON: TJsonObject;
+    fTemplateName: string;
+    fConfigRef: TJsonObject; // Reference, not owned
   public
     function GetSource: string;
     function GetAge: TDateTime;
-    constructor Create(const GeneratorCallback: TProc<TMVCCodeGenerator>; const Args: TJsonObject);
-    destructor Destroy; override;
+    constructor Create(const ATemplateName: string; const AConfigRef: TJsonObject);
   end;
 
 implementation
 
+uses
+  DMVC.Expert.CodeGen.TemplateEngine;
+
 { TSourceFile }
 
-constructor TSourceFile.Create(const GeneratorCallback: TProc<TMVCCodeGenerator>; const Args: TJsonObject);
+constructor TSourceFile.Create(const ATemplateName: string; const AConfigRef: TJsonObject);
 begin
   inherited Create;
-  fGeneratorCallback := GeneratorCallback;
-  fJSON := Args.Clone as TJsonObject;
-end;
-
-destructor TSourceFile.Destroy;
-begin
-  fJSON.Free;
-  inherited;
+  fTemplateName := ATemplateName;
+  fConfigRef := AConfigRef; // Keep reference, don't clone - values are set after creation
 end;
 
 function TSourceFile.GetAge: TDateTime;
@@ -77,12 +64,7 @@ end;
 
 function TSourceFile.GetSource: string;
 begin
-  Result := TMVCCodeGenerator.GenerateSource(fJSON,
-                        procedure (Gen: TMVCCodeGenerator)
-                        begin
-                          fGeneratorCallback(Gen)
-                        end);
+  Result := TDMVCTemplateEngine.Render(fTemplateName, fConfigRef);
 end;
 
 end.
-

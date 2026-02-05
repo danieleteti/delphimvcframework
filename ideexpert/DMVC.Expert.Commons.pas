@@ -86,6 +86,8 @@ type
       jsonrpc_generate = 'jsonrpc.generate';
       jsonrpc_classname = 'jsonrpc.classname';
       jsonrpc_unit_name = 'jsonrpc.unit_name';
+      authentication_unit_name = 'authentication.unit_name';
+      authentication_classname = 'authentication.classname';
       websocket_unit_name = 'websocketserver.unit_name';
       websocket_generate = 'websocketserver.generate';
       serializer_name_case = 'serializer.name_case';
@@ -98,9 +100,19 @@ type
       webmodule_middleware_etag = 'webmodule.middleware.etag';
       webmodule_middleware_cors = 'webmodule.middleware.cors';
       webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
+      webmodule_middleware_jwt = 'webmodule.middleware.jwt';
       webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
       webmodule_middleware_activerecord_con_def_name = 'webmodule.middleware.activerecord.con_def_name';
       webmodule_middleware_activerecord_con_def_filename = 'webmodule.middleware.activerecord.con_def_filename';
+      con_def_filename = 'con_def_filename'; // Just the filename for file generation
+      // Session middleware
+      webmodule_middleware_session_memory = 'webmodule.middleware.session.memory';
+      webmodule_middleware_session_file = 'webmodule.middleware.session.file';
+      webmodule_middleware_session_database = 'webmodule.middleware.session.database';
+      webmodule_middleware_session_timeout = 'webmodule.middleware.session.timeout'; // timeout in minutes (0 = default)
+      // Computed values for templates
+      webmodule_classname_short = 'webmodule.classname_short'; // TMyWebModule -> MyWebModule
+      default_media_type = 'default_media_type';
   end;
 
   TProgramTypes = record

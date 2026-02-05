@@ -38,7 +38,7 @@ uses
   ToolsApi,
   System.IOUtils,
   DMVC.Expert.CodeGen.NewUnit,
-  JsonDataObjects, DMVC.Expert.CodeGen.Executor;
+  JsonDataObjects;
 
 type
   TNewControllerUnitEx = class(TNewUnit)
@@ -51,11 +51,9 @@ type
       const APersonality: string = ''); reintroduce;
   end;
 
-  TTemplateLoadProcedure = procedure(Gen: TMVCCodeGenerator);
-
   TNewGenericUnitFromTemplate = class(TNewUnit)
   private
-    fTemplateLoadProcedure: TTemplateLoadProcedure;
+    fTemplateName: string;
     fUnitIdentKeyName: string;
   protected
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
@@ -63,9 +61,9 @@ type
   public
     constructor Create(
       const ConfigModelRef: TJSONObject;
-      const TemplateLoadProcedure: TTemplateLoadProcedure;
-      const UnitIdentKeyName: String;
-      const APersonality: string = '');reintroduce;
+      const TemplateName: string;
+      const UnitIdentKeyName: string;
+      const APersonality: string = ''); reintroduce;
   end;
 
 implementation
@@ -73,7 +71,6 @@ implementation
 uses
   System.SysUtils,
   DMVC.Expert.CodeGen.SourceFile,
-  DMVC.Expert.Commands.Templates,
   DMVC.Expert.Commons;
 
 constructor TNewControllerUnitEx.Create(
@@ -96,29 +93,22 @@ begin
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lFormName, lFileName);
 
-
   fConfigModelRef.S[TConfigKey.controller_unit_name] := lUnitIdent;
-
-  Result := TSourceFile.Create(
-    procedure (Gen: TMVCCodeGenerator)
-    begin
-      FillControllerTemplates(Gen);
-    end,
-    fConfigModelRef);
+  Result := TSourceFile.Create('controller.pas.tpro', fConfigModelRef);
 end;
 
-{ TNewJSONRPCUnitEx }
+{ TNewGenericUnitFromTemplate }
 
 constructor TNewGenericUnitFromTemplate.Create(
   const ConfigModelRef: TJSONObject;
-  const TemplateLoadProcedure: TTemplateLoadProcedure;
-  const UnitIdentKeyName: String;
+  const TemplateName: string;
+  const UnitIdentKeyName: string;
   const APersonality: string);
 begin
   inherited Create(ConfigModelRef);
-  fTemplateLoadProcedure := TemplateLoadProcedure;
+  fTemplateName := TemplateName;
   fUnitIdentKeyName := UnitIdentKeyName;
-  Personality := aPersonality;
+  Personality := APersonality;
 end;
 
 function TNewGenericUnitFromTemplate.NewImplSource(const ModuleIdent, FormIdent,
@@ -126,7 +116,7 @@ function TNewGenericUnitFromTemplate.NewImplSource(const ModuleIdent, FormIdent,
 var
   lUnitIdent: string;
   lFileName: string;
-  lDummy: String;
+  lDummy: string;
 begin
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
@@ -134,13 +124,7 @@ begin
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
     lUnitIdent, lDummy, lFileName);
   fConfigModelRef.S[fUnitIdentKeyName] := lUnitIdent;
-  Result := TSourceFile.Create(
-    procedure (Gen: TMVCCodeGenerator)
-    begin
-      //FillJSONRPCTemplates(Gen);
-      fTemplateLoadProcedure(Gen);
-    end,
-    fConfigModelRef);
+  Result := TSourceFile.Create(fTemplateName, fConfigModelRef);
 end;
 
 end.

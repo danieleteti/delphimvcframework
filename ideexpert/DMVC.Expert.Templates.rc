@@ -1,0 +1,24 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework - IDE Expert Templates Resources
+//
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
+//
+// ***************************************************************************
+
+_LICENSE_HEADER RCDATA "templates\\_license_header.tpro"
+PROGRAM_DPR RCDATA "templates\\program.dpr.tpro"
+CONTROLLER_PAS RCDATA "templates\\controller.pas.tpro"
+ENTITY_PAS RCDATA "templates\\entity.pas.tpro"
+WEBMODULE_PAS RCDATA "templates\\webmodule.pas.tpro"
+WEBMODULE_DFM RCDATA "templates\\webmodule.dfm.tpro"
+JSONRPC_PAS RCDATA "templates\\jsonrpc.pas.tpro"
+SERVICES_PAS RCDATA "templates\\services.pas.tpro"
+HELPERS_MUSTACHE_PAS RCDATA "templates\\helpers_mustache.pas.tpro"
+HELPERS_TEMPLATEPRO_PAS RCDATA "templates\\helpers_templatepro.pas.tpro"
+HELPERS_WEBSTENCILS_PAS RCDATA "templates\\helpers_webstencils.pas.tpro"
+WEBSOCKETSERVER_PAS RCDATA "templates\\websocketserver.pas.tpro"
+AUTHENTICATION_PAS RCDATA "templates\\authentication.pas.tpro"
+PROJECT_DPROJ RCDATA "templates\\project.dproj.tpro"
+PROJECT_RC RCDATA "templates\\project.rc.tpro"
+VIEWS_INDEX_COMPLETE_VIEW RCDATA "templates\\views\\index_complete_view.tpro"

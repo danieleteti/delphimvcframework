@@ -1,0 +1,7 @@
+        </div>
+        <footer style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
+            <p>&copy; {{:current_year}} {{:program_name}} | Built with <a href="https://github.com/danieleteti/delphimvcframework" style="color: white; text-decoration: underline;">DelphiMVCFramework</a></p>
+        </footer>
+    </div>
+</body>
+</html>

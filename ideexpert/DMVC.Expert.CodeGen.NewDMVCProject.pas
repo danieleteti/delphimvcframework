@@ -55,8 +55,6 @@ implementation
 uses
   DMVC.Expert.CodeGen.SourceFile,
   System.SysUtils,
-  DMVC.Expert.CodeGen.Executor,
-  DMVC.Expert.Commands.Templates,
   DMVC.Expert.Commons;
 
 constructor TDMVCProjectFile.Create;
@@ -82,12 +80,7 @@ end;
 function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;
 begin
   fConfigModelRef.S[TConfigKey.program_name] := ProjectName;
-  Result := TSourceFile.Create(
-    procedure (Gen: TMVCCodeGenerator)
-    begin
-      FillProgramTemplates(Gen);
-    end,
-    fConfigModelRef);
+  Result := TSourceFile.Create('program.dpr.tpro', fConfigModelRef);
 end;
 
 end.
