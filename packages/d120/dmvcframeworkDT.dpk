@@ -1,6 +1,7 @@
 package dmvcframeworkDT;
 
 {$R *.res}
+{$R '..\..\ideexpert\DMVC.Expert.Templates.res'}
 {$R *.dres}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}

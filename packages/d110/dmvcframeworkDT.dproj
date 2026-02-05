@@ -191,6 +191,10 @@
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>
+    <Target Name="PreBuildEvent" BeforeTargets="Build">
+        <Message Text="Compiling template resources..." Importance="high"/>
+        <Exec Command="brcc32 &quot;$(MSBuildProjectDirectory)\..\..\ideexpert\DMVC.Expert.Templates.rc&quot;" WorkingDirectory="$(MSBuildProjectDirectory)\..\..\ideexpert"/>
+    </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
 </Project>

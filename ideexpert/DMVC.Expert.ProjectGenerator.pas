@@ -235,6 +235,16 @@ begin
     LTemplate.OnGetValue :=
       procedure(const DataSource, Members: string; var Value: TValue; var Handled: Boolean)
       begin
+        // Special handling for runtime variables (prefixed with "data_")
+        // These are preserved as template variables for runtime processing
+        if DataSource.StartsWith('data_') then
+        begin
+          // Remove "data_" prefix and output as template variable for runtime
+          Value := '{{:' + DataSource.Substring(5) + '}}';
+          Handled := True;
+          Exit;
+        end;
+
         // Return empty/false for undefined variables (graceful degradation)
         // This allows {{if undefined_var}} to work as expected (evaluates to false)
         Value := TValue.Empty;
