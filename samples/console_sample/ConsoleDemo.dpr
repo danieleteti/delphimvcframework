@@ -13,6 +13,7 @@ var
   Data: TStringMatrix;
   SelectedRow: Integer;
 begin
+  ClrScr;
   WriteHeader('Tables Demo');
   WriteLn;
 
@@ -40,19 +41,28 @@ begin
   SetLength(Data[4], 4);
   Data[4][0] := '005'; Data[4][1] := 'Sara Gialli'; Data[4][2] := 'FastAPI'; Data[4][3] := 'Python';
 
-  WriteLine('Test 1: Simple Table Display', Cyan);
+  WriteLine('Test 1: Static Table Display', Cyan);
   WriteLn;
 
-  // NEW: Unified Table API with auto-sizing!
+  // Simple table without title
+  WriteLine('  a) Simple table (no title):', White);
+  WriteLn;
   Table(Headers, Data);
   WriteLn;
 
   // With title
+  WriteLine('  b) Table with title:', White);
+  WriteLn;
   Table(Headers, Data, 'Development Team');
   WriteLn;
-  WriteLn;
+
+  WriteLine('Press ENTER to continue to interactive table...', Gray);
+  ReadLn;
+  ClrScr;
 
   WriteLine('Test 2: Interactive Table (Menu-style selection)', Cyan);
+  WriteLn;
+  WriteLine('Use arrow keys to navigate, ENTER to select, ESC to cancel', Gray);
   WriteLn;
 
   // NEW: Interactive table with row selection!
@@ -72,6 +82,7 @@ var
   P: IProgress;
   I: Integer;
 begin
+  ClrScr;
   WriteHeader('Progress Bar Demo');
   WriteLn;
 
@@ -107,6 +118,7 @@ procedure ShowBoxExample;
 var
   Content: TStringArray;
 begin
+  ClrScr;
   WriteHeader('Box and Layout Demo');
   WriteLn;
 
@@ -134,6 +146,7 @@ var
   FileMenuItems: TStringArray;
   SelectedItem: Integer;
 begin
+  ClrScr;
   WriteHeader('Menu Demo');
   WriteLn;
 
@@ -175,6 +188,7 @@ end;
 
 procedure ShowConfirmExample;
 begin
+  ClrScr;
   WriteHeader('Confirm and Choose Demo');
   WriteLn;
 
@@ -218,6 +232,7 @@ var
   MetricNames: TStringArray;
   MetricValues: TIntegerArray;
 begin
+  ClrScr;
   WriteHeader('Dashboard Demo');
   WriteLn;
 
@@ -248,6 +263,7 @@ end;
 
 procedure ShowNewAPIFeatures;
 begin
+  ClrScr;
   WriteHeader('New Simplified API Features');
   WriteLn;
 
@@ -294,41 +310,36 @@ begin
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowProgressExample;
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowBoxExample;
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowMenuExample;
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowConfirmExample;
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowDashboardExample;
     WriteLn;
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
-    ClrScr;
 
     ShowNewAPIFeatures;
     WriteLn;
 
+    ClrScr;
     WriteHeader('DEMO COMPLETED', 80);
     WriteLn;
     WriteLine('Press ENTER to exit...', Gray);

@@ -1689,7 +1689,10 @@ var
   I: Integer;
   Line: string;
   MaxWidth: Integer;
+  BoxChars: TBoxChars;
 begin
+  BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+
   // Calculate max width
   MaxWidth := Length(Title);
   for I := 0 to High(Items) do
@@ -1698,22 +1701,22 @@ begin
   Inc(MaxWidth, 4); // Add border padding
 
   // Top border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+  Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
   WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Title
-  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
   WriteColoredText(PadRight(Title, MaxWidth - 4), ConsoleTheme.TextColor);
-  WriteLine(' |', ConsoleTheme.DrawColor);
+  WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
 
   // Separator
-  Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+  Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
   WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Menu items
   for I := 0 to High(Items) do
   begin
-    WriteColoredText('| ', ConsoleTheme.DrawColor);
+    WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
 
     if I = SelectedIndex then
     begin
@@ -1726,11 +1729,11 @@ begin
       WriteColoredText(PadRight(Items[I], MaxWidth - 6), ConsoleTheme.TextColor);
     end;
 
-    WriteLine(' |', ConsoleTheme.DrawColor);
+    WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
   end;
 
   // Bottom border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+  Line := BoxChars.BottomLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.BottomRight;
   WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
@@ -1741,10 +1744,7 @@ var
   Prefix: string;
 begin
   if Title <> '' then
-  begin
     WriteLine(Title, ConsoleTheme.TextColor);
-    WriteLn;
-  end;
 
   for I := 0 to High(Items) do
   begin
@@ -1773,46 +1773,55 @@ var
   ProgressBarWidth: Integer;
   ProgressStr: string;
   MetricLine: string;
+  BoxChars: TBoxChars;
+  MaxMetricNameLen: Integer;
 begin
   MaxWidth := 60;
   ProgressBarWidth := 20;
+  BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+
+  // Find max metric name length for alignment
+  MaxMetricNameLen := 0;
+  for I := 0 to High(MetricNames) do
+    if Length(MetricNames[I]) > MaxMetricNameLen then
+      MaxMetricNameLen := Length(MetricNames[I]);
 
   // Top border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+  Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
   WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Title
-  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
   WriteColoredText(PadRight(Title, MaxWidth - 4), ConsoleTheme.TextColor);
-  WriteLine(' |', ConsoleTheme.DrawColor);
+  WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
 
   // Separator
-  Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+  Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
   WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Server statuses
-  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
   WriteColoredText(PadRight('Server Status:', MaxWidth - 4), ConsoleTheme.TextColor);
-  WriteLine(' |', ConsoleTheme.DrawColor);
+  WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
 
   MaxLen := Min(Length(ServerStatuses), Length(ServerColors));
   for I := 0 to MaxLen - 1 do
   begin
-    WriteColoredText('| ', ConsoleTheme.DrawColor);
+    WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
     WriteColoredText('  ' + ServerStatuses[I], ServerColors[I]);
     WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), ConsoleTheme.TextColor);
-    WriteLine(' |', ConsoleTheme.DrawColor);
+    WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
   end;
 
   // Metrics
   if Length(MetricNames) > 0 then
   begin
-    Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+    Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
     WriteLine(Line, ConsoleTheme.DrawColor);
 
-    WriteColoredText('| ', ConsoleTheme.DrawColor);
+    WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
     WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), ConsoleTheme.TextColor);
-    WriteLine(' |', ConsoleTheme.DrawColor);
+    WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
 
     MaxLen := Min(Length(MetricNames), Length(MetricValues));
     for I := 0 to MaxLen - 1 do
@@ -1821,22 +1830,22 @@ begin
       Progress := MetricValues[I] / 100;
       FilledChars := Round(Progress * ProgressBarWidth);
 
-      // Build progress string
-      ProgressStr := '[' + StringOfChar('=', FilledChars) +
-                     StringOfChar(' ', ProgressBarWidth - FilledChars) + '] ' +
+      // Build progress string with Unicode block characters
+      ProgressStr := '[' + StringOfChar('█', FilledChars) +
+                     StringOfChar('░', ProgressBarWidth - FilledChars) + '] ' +
                      Format('%3d%%', [MetricValues[I]]);
 
-      // Build complete line
-      MetricLine := '  ' + MetricNames[I] + ': ' + ProgressStr;
+      // Build complete line with aligned metric names
+      MetricLine := '  ' + PadRight(MetricNames[I], MaxMetricNameLen) + ': ' + ProgressStr;
 
-      WriteColoredText('| ', ConsoleTheme.DrawColor);
+      WriteColoredText(BoxChars.Vertical + ' ', ConsoleTheme.DrawColor);
       WriteColoredText(PadRight(MetricLine, MaxWidth - 4), ConsoleTheme.TextColor);
-      WriteLine(' |', ConsoleTheme.DrawColor);
+      WriteLine(' ' + BoxChars.Vertical, ConsoleTheme.DrawColor);
     end;
   end;
 
   // Bottom border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+  Line := BoxChars.BottomLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.BottomRight;
   WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
@@ -2146,23 +2155,25 @@ begin
       GotoXY(StartX, StartY);
 
       // Draw menu
+      var BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+
       // Top border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
       WriteLine(Line, Cyan);
 
       // Title
-      WriteColoredText('| ', Cyan);
+      WriteColoredText(BoxChars.Vertical + ' ', Cyan);
       WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLine(' |', Cyan);
+      WriteLine(' ' + BoxChars.Vertical, Cyan);
 
       // Separator
-      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+      Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
       WriteLine(Line, Cyan);
 
       // Menu items
       for I := 0 to High(Items) do
       begin
-        WriteColoredText('| ', Cyan);
+        WriteColoredText(BoxChars.Vertical + ' ', Cyan);
 
         if I = SelectedIndex then
         begin
@@ -2178,11 +2189,11 @@ begin
           WriteColoredText('  ' + PadRight(Items[I], MaxWidth - 6) + ' ', White);
         end;
 
-        WriteLine('|', Cyan);
+        WriteLine(BoxChars.Vertical, Cyan);
       end;
 
       // Bottom border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      Line := BoxChars.BottomLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.BottomRight;
       WriteLine(Line, Cyan);
 
       // Hint
@@ -2320,23 +2331,25 @@ begin
       GotoXY(StartX, StartY);
 
       // Draw menu
+      var BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+
       // Top border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
       WriteLine(Line, Cyan);
 
       // Title
-      WriteColoredText('| ', Cyan);
+      WriteColoredText(BoxChars.Vertical + ' ', Cyan);
       WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLine(' |', Cyan);
+      WriteLine(' ' + BoxChars.Vertical, Cyan);
 
       // Separator
-      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
+      Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
       WriteLine(Line, Cyan);
 
       // Menu items
       for I := 0 to High(Items) do
       begin
-        WriteColoredText('| ', Cyan);
+        WriteColoredText(BoxChars.Vertical + ' ', Cyan);
 
         ItemText := Items[I].Icon + ' ' + Items[I].Text;
 
@@ -2359,11 +2372,11 @@ begin
           WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', White);
         end;
 
-        WriteLine('|', Cyan);
+        WriteLine(BoxChars.Vertical, Cyan);
       end;
 
       // Bottom border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
+      Line := BoxChars.BottomLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.BottomRight;
       WriteLine(Line, Cyan);
 
       // Hint
@@ -2597,7 +2610,6 @@ procedure Table(const Headers: TStringArray; const Data: TStringMatrix; const Ti
 var
   ColWidths: array of Integer;
   I, J: Integer;
-  MaxWidth: Integer;
 begin
   // Auto-calculate column widths
   SetLength(ColWidths, Length(Headers));
@@ -2617,8 +2629,11 @@ begin
   for I := 0 to High(ColWidths) do
     ColWidths[I] := ColWidths[I] + 2;
 
-  // Draw table using existing WriteSimpleTable (it handles the drawing)
-  // For now, just call the existing implementation
+  // Show title if provided
+  if Title <> '' then
+    WriteLine(Title, ConsoleTheme.TextHighlightColor);
+
+  // Draw table
   WriteSimpleTable(Headers, Data);
 end;
 
@@ -2659,13 +2674,7 @@ end;
 function Confirm(const Question: string; DefaultYes: Boolean): Boolean;
 var
   Response: string;
-  DefaultChar: Char;
 begin
-  if DefaultYes then
-    DefaultChar := 'Y'
-  else
-    DefaultChar := 'N';
-
   Write(Question + ' [Y/N]');
   if DefaultYes then
     Write(' (Y): ')
@@ -2725,22 +2734,18 @@ var
   lBoxChars: TBoxChars;
   SelectedIndex: Integer;
   Key: Integer;
-  StartX, StartY: Integer;
-  TableHeight: Integer;
+  StartY: Integer;
 
   procedure DrawTable;
   var
     Line: string;
     I, J: Integer;
   begin
-    GotoXY(StartX, StartY);
+    GotoXY(0, StartY);
 
     // Title
     if Title <> '' then
-    begin
       WriteLine(Title, ConsoleTheme.TextHighlightColor);
-      WriteLn;
-    end;
 
     // Top border
     WriteColoredText(lBoxChars.TopLeft, ConsoleTheme.DrawColor);
@@ -2833,14 +2838,9 @@ begin
     Inc(ColWidths[I], 2); // Add padding
   end;
 
-  // Calculate table height for redrawing
-  TableHeight := 4 + Length(Data) + 2; // Top + Header + Sep + Data + Bottom + Hint
-  if Title <> '' then
-    Inc(TableHeight, 2); // Title + empty line
-
-  // Save start position
-  StartX := GetCursorPosition.X;
-  StartY := GetCursorPosition.Y;
+  // Clear screen once at start
+  ClrScr;
+  StartY := 0;
 
   // Interactive selection
   SelectedIndex := DefaultIndex;
@@ -2858,9 +2858,6 @@ begin
       KEY_ENTER: Exit(SelectedIndex);
       KEY_ESCAPE: Exit(-1);
     end;
-
-    // Go back to start position for redraw
-    GotoXY(StartX, StartY);
   until False;
 end;
 
