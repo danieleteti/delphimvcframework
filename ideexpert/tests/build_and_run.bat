@@ -7,4 +7,4 @@ if errorlevel 1 (
     exit /b 1
 )
 echo Build successful, running tests...
-TestTemplateGenerator.exe
+%CD%\TestTemplateGenerator.exe

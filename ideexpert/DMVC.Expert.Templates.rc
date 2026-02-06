@@ -8,6 +8,9 @@
 
 _LICENSE_HEADER RCDATA "templates\\_license_header.tpro"
 PROGRAM_DPR RCDATA "templates\\program.dpr.tpro"
+PROGRAM_SERVICE_DPR RCDATA "templates\\program_service.dpr.tpro"
+SERVICE_PAS RCDATA "templates\\service.pas.tpro"
+SERVICE_DFM RCDATA "templates\\service.dfm.tpro"
 CONTROLLER_PAS RCDATA "templates\\controller.pas.tpro"
 ENTITY_PAS RCDATA "templates\\entity.pas.tpro"
 WEBMODULE_PAS RCDATA "templates\\webmodule.pas.tpro"

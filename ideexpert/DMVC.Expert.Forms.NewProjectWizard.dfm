@@ -694,18 +694,31 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 10
     end
   end
-  object rgServerType: TRadioGroup
+  object rgServerProtocol: TRadioGroup
     Left = 24
     Top = 243
-    Width = 297
+    Width = 145
     Height = 92
-    Caption = 'Server Application Type'
+    Caption = 'Server Protocol'
     ItemIndex = 0
     Items.Strings = (
-      'HTTP Console (Windows/Linux)'
-      'HTTPS Console (Windows/Linux, requires TaurusTLS)'
-      'FastCGI Console (Windows/Linux)')
+      'HTTP'
+      'HTTPS (requires TaurusTLS)'
+      'FastCGI')
     TabOrder = 5
+  end
+  object rgApplicationType: TRadioGroup
+    Left = 175
+    Top = 243
+    Width = 146
+    Height = 92
+    Caption = 'Application Type'
+    ItemIndex = 0
+    Items.Strings = (
+      'Console (Win/Linux)'
+      'Windows Service'
+      'Linux Daemon')
+    TabOrder = 11
   end
   object gbNameCase: TGroupBox
     Left = 340

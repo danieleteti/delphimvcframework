@@ -229,6 +229,9 @@ begin
     LTemplate.SetData('dmvc_version', GetDMVCVersion);
     LTemplate.SetData('webmodule_form_reference',
       '{' + AConfig.S[TConfigKey.webmodule_classname_short] + ': TWebModule}');
+    // Form reference for Windows Service
+    LTemplate.SetData('service_form_reference',
+      '{DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService}');
 
     // Handler for missing variables - log warning but don't crash
     // For boolean checks ({{if var}}), undefined vars should evaluate to false
@@ -292,6 +295,20 @@ begin
   LogToFile('Project: ' + AProjectName);
   LogToFile('Folder: ' + AProjectFolder);
 
+  // Log key configuration values for debugging
+  LogToFile('--- Configuration ---');
+  LogToFile('program.type: ' + AConfig.S[TConfigKey.program_type]);
+  if AConfig.Contains('program.server.protocol') then
+    LogToFile('program.server.protocol: ' + AConfig.S['program.server.protocol']);
+  LogToFile('program.default_server_port: ' + AConfig.S[TConfigKey.program_default_server_port]);
+  LogToFile('controller.classname: ' + AConfig.S[TConfigKey.controller_classname]);
+  LogToFile('webmodule.classname: ' + AConfig.S[TConfigKey.webmodule_classname]);
+  if AConfig.Contains(TConfigKey.websocket_generate) then
+    LogToFile('websocketserver.generate: ' + BoolToStr(AConfig.B[TConfigKey.websocket_generate], True));
+  if AConfig.Contains(TConfigKey.jsonrpc_generate) then
+    LogToFile('jsonrpc.generate: ' + BoolToStr(AConfig.B[TConfigKey.jsonrpc_generate], True));
+  LogToFile('---------------------');
+
   // Create project folder
   if not TDirectory.Exists(AProjectFolder) then
     TDirectory.CreateDirectory(AProjectFolder);
@@ -332,7 +349,18 @@ begin
   // Project files
   // Note: We only generate the .dpr file. Delphi will automatically create
   // the .dproj file when opening the project for the first time.
-  SaveFile(AProjectName + '.dpr', RenderTemplate('program.dpr.tpro', AConfig));
+  if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+  begin
+    // Windows Service uses different program template and adds ServiceU unit
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program_service.dpr.tpro', AConfig));
+    SaveFile('ServiceU.pas', RenderTemplate('service.pas.tpro', AConfig));
+    SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
+  end
+  else
+  begin
+    // Console/FastCGI/Apache/ISAPI use standard program template
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program.dpr.tpro', AConfig));
+  end;
 
   // Required units
   SaveFile(CONTROLLER_UNIT + '.pas', RenderTemplate('controller.pas.tpro', AConfig));

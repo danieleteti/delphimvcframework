@@ -93,7 +93,8 @@ type
     lblPATREON: TLabel;
     Image2: TImage;
     Shape2: TShape;
-    rgServerType: TRadioGroup;
+    rgServerProtocol: TRadioGroup;
+    rgApplicationType: TRadioGroup;
     chkRateLimit: TCheckBox;
     chkJWT: TCheckBox;
     lblProjectName: TLabel;
@@ -196,7 +197,7 @@ begin
   begin
     chkProfileActions.Checked := False;
   end;
-  case rgServerType.ItemIndex of
+  case rgServerProtocol.ItemIndex of
     0: begin //http
          lblServerPort.Caption := 'HTTP Server Port';
          SyncServerPort('8080');
@@ -280,7 +281,7 @@ begin
   begin
     lHints := lHints + ['- Include required FireDAC units in your project'];
   end;
-  if rgServerType.ItemIndex = 1 then
+  if rgServerProtocol.ItemIndex = 1 then
   begin
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
   end;
@@ -316,8 +317,9 @@ begin
   UpdateProjectNameHint;
 
   {$IF not Defined(FASTCGI)}
-  rgServerType.Items.Delete(rgServerType.Items.Count-1);
-  rgServerType.ItemIndex := 0;
+  // FastCGI is only available from Delphi 13 Florence onwards
+  rgServerProtocol.Items.Delete(rgServerProtocol.Items.Count-1);
+  rgServerProtocol.ItemIndex := 0;
   {$ENDIF}
 end;
 
@@ -504,12 +506,31 @@ begin
   fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
   fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
 
-  case rgServerType.ItemIndex of
-    0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
-    1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
-    2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+  // Determine program type based on Server Protocol + Application Type
+  // Store server protocol for all types
+  case rgServerProtocol.ItemIndex of
+    0: fModel.S['program.server.protocol'] := 'http';
+    1: fModel.S['program.server.protocol'] := 'https';
+    2: fModel.S['program.server.protocol'] := 'fastcgi';
+  end;
+
+  // Determine application type
+  case rgApplicationType.ItemIndex of
+    0: begin // Console
+         case rgServerProtocol.ItemIndex of
+           0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+           1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
+           2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+         end;
+       end;
+    1: begin // Windows Service
+         fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+       end;
+    2: begin // Linux Daemon (future)
+         fModel.S[TConfigKey.program_type] := 'linux.daemon';
+       end;
     else
-      raise Exception.Create('Invalid Server Type');
+      raise Exception.Create('Invalid Application Type');
   end;
 
   // Helper unit names (defaults, will be updated after units are created)

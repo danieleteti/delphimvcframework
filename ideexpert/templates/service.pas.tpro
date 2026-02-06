@@ -1,0 +1,168 @@
+{{include "_license_header.tpro"}}
+unit ServiceU;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.SvcMgr,
+  Vcl.Dialogs,
+  IdHTTPWebBrokerBridge{{if program_server_protocol|eq,"https"}},
+  IdContext,
+  TaurusTLS{{endif}};
+
+type
+  TDMVCFrameworkWindowsService = class(TService)
+    procedure ServiceCreate(Sender: TObject);
+    procedure ServiceStart(Sender: TService; var Started: Boolean);
+    procedure ServiceStop(Sender: TService; var Stopped: Boolean);
+    procedure ServiceExecute(Sender: TService);
+  private
+    fServer: TIdHTTPWebBrokerBridge;
+{{if program_server_protocol|eq,"https"}}
+    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+{{endif}}
+  public
+    function GetServiceController: TServiceController; override;
+  end;
+
+var
+  DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService;
+
+implementation
+
+{$R *.dfm}
+
+uses
+  Web.WebReq,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  MVCFramework.Logger,
+  MVCFramework.Commons,
+  {{:webmodule_unit_name}};
+
+procedure ServiceController(CtrlCode: DWord); stdcall;
+begin
+  DMVCFrameworkWindowsService.Controller(CtrlCode);
+end;
+
+function TDMVCFrameworkWindowsService.GetServiceController: TServiceController;
+begin
+  Result := ServiceController;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceCreate(Sender: TObject);
+begin
+{{if program_dotenv}}
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+        .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+        .UseProfile('development')
+        .UseLogger(procedure(LogItem: String)
+          begin
+            LogW('dotEnv: ' + LogItem);
+          end)
+        .Build();
+    end);
+{{endif}}
+  if WebRequestHandler <> nil then
+    WebRequestHandler.WebModuleClass := WebModuleClass;
+  WebRequestHandlerProc.MaxConnections := 1024;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceExecute(Sender: TService);
+begin
+  while not Terminated do
+  begin
+    ServiceThread.ProcessRequests(True);
+    Sleep(1000);
+  end;
+end;
+
+{{if program_server_protocol|eq,"https"}}
+procedure TDMVCFrameworkWindowsService.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+begin
+  aPassword := dotEnv.Env('https.cert.password', '');
+  aOk := True;
+end;
+
+{{endif}}
+procedure TDMVCFrameworkWindowsService.ServiceStart(Sender: TService; var Started: Boolean);
+{{if program_server_protocol|eq,"https"}}
+var
+  LTaurusTLSHandler: TTaurusTLSServerIOHandler;
+{{endif}}
+begin
+  LogI('Starting {{:program_name}} Service...');
+  try
+    fServer := TIdHTTPWebBrokerBridge.Create(nil);
+    try
+{{if program_server_protocol|eq,"https"}}
+      // HTTPS Configuration with TaurusTLS
+      LTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(fServer);
+      LTaurusTLSHandler.SSLOptions.Mode := sslmServer;
+      LTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+      LTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+      LTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
+      fServer.IOHandler := LTaurusTLSHandler;
+      fServer.DefaultPort := StrToIntDef(dotEnv.Env('dmvc.default_server_port', '{{:program_default_server_port}}'), 443);
+{{else}}
+      fServer.DefaultPort := StrToIntDef(dotEnv.Env('dmvc.default_server_port', '{{:program_default_server_port}}'), {{:program_default_server_port}});
+{{endif}}
+      fServer.MaxConnections := WebRequestHandlerProc.MaxConnections;
+      fServer.ListenQueue := 200;
+{{if program_server_protocol|ne,"https"}}
+      fServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+{{endif}}
+      fServer.Active := True;
+      LogI('Service started on port ' + fServer.DefaultPort.ToString);
+      Started := True;
+    except
+      on E: Exception do
+      begin
+        LogE('Cannot start service: ' + E.ClassName + ': ' + E.Message);
+        Started := False;
+        FreeAndNil(fServer);
+        raise;
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      LogE('Service start error: ' + E.ClassName + ': ' + E.Message);
+      Started := False;
+      raise;
+    end;
+  end;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceStop(Sender: TService; var Stopped: Boolean);
+begin
+  LogI('Stopping {{:program_name}} Service...');
+  try
+    if Assigned(fServer) then
+    begin
+      fServer.Active := False;
+      fServer.Free;
+      fServer := nil;
+      LogI('Service stopped');
+    end;
+    Stopped := True;
+  except
+    on E: Exception do
+    begin
+      LogE('Service stop error: ' + E.ClassName + ': ' + E.Message);
+      Stopped := False;
+    end;
+  end;
+end;
+
+end.
