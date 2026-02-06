@@ -54,7 +54,7 @@ begin
   WriteLn;
 
   // Progress bar statico
-  WriteLineColored('Current Progress:', Cyan);
+  WriteLine('Current Progress:', Cyan);
   ShowSimpleProgressBar('Download', 75, 100, 40);
   WriteLn;
   WriteLn;
@@ -111,12 +111,12 @@ begin
   MenuItems[4] := 'Exit';
 
   // Static menu display
-  WriteLineColored('Static Menu Display:', White);
+  WriteLine('Static Menu Display:', White);
   ShowSimpleMenu('Main Menu', MenuItems, 2); // Item 2 selected
   WriteLn;
 
   // Interactive menu
-  WriteLineColored('Interactive Menu (try it!):', White);
+  WriteLine('Interactive Menu (try it!):', White);
   SelectedItem := ShowInteractiveMenu('Main Menu', MenuItems, 0);
 
   if SelectedItem >= 0 then
@@ -127,7 +127,7 @@ begin
   WriteLn;
 
   // Advanced menu with icons and disabled items
-  WriteLineColored('Advanced Menu with Icons (try it!):', White);
+  WriteLine('Advanced Menu with Icons (try it!):', White);
   SetLength(AdvancedItems, 6);
 
   // Using the helper function
@@ -326,7 +326,7 @@ begin
 
     WriteHeader('DEMO TERMINATED', 80);
     WriteLn;
-    WriteLineColored('Press ENTER to EXIT...', Gray);
+    WriteLine('Press ENTER to EXIT...', Gray);
     ReadLn;
 
   except
@@ -335,7 +335,7 @@ begin
       WriteLn;
       WriteError('Errore durante l''esecuzione: ' + E.Message);
       WriteLn;
-      WriteLineColored('Premi INVIO per uscire...', Gray);
+      WriteLine('Premi INVIO per uscire...', Gray);
       ReadLn;
     end;
   end;

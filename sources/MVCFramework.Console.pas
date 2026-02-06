@@ -143,8 +143,11 @@ type
 
 
 var
-  //CONSOLE STYLE
-  MVCConsoleStyle: TConsoleColorStyle = (
+  /// <summary>
+  /// Global console theme configuration for colors and styles.
+  /// Customize this record to change the default appearance of console output.
+  /// </summary>
+  ConsoleTheme: TConsoleColorStyle = (
     TextColor : TConsoleColor.Cyan;
     BackgroundColor : TConsoleColor.Black;
     DrawColor : TConsoleColor.White;
@@ -153,6 +156,12 @@ var
     TextHighlightColor: TConsoleColor.Blue;
     BoxStyle: TBoxStyle.bsRounded;
   );
+
+  /// <summary>
+  /// Alias for ConsoleTheme. Kept for backward compatibility.
+  /// NOTE: Use ConsoleTheme instead in new code.
+  /// </summary>
+  MVCConsoleStyle: TConsoleColorStyle absolute ConsoleTheme;
 
 
 // Basic console functions
@@ -187,8 +196,34 @@ procedure EnableUTF8Console;
 // Enhanced functions
 procedure WriteColoredText(const Text: string; ForeColor: TConsoleColor = UseDefault;
                           BackColor: TConsoleColor = UseDefault);
+
+/// <summary>
+/// Writes text to console with optional colors and a newline.
+/// </summary>
+/// <param name="Text">Text to write</param>
+procedure WriteLine(const Text: string); overload;
+
+/// <summary>
+/// Writes colored text to console with a newline.
+/// </summary>
+/// <param name="Text">Text to write</param>
+/// <param name="ForeColor">Foreground color (UseDefault to use theme color)</param>
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor); overload;
+
+/// <summary>
+/// Writes colored text to console with foreground and background colors, followed by a newline.
+/// </summary>
+/// <param name="Text">Text to write</param>
+/// <param name="ForeColor">Foreground color (UseDefault to use theme color)</param>
+/// <param name="BackColor">Background color (UseDefault to use theme color)</param>
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor; BackColor: TConsoleColor); overload;
+
+/// <summary>
+/// @deprecated Use WriteLine instead. This procedure is kept for backward compatibility.
+/// </summary>
 procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor = UseDefault;
-                          BackColor: TConsoleColor = UseDefault);
+                          BackColor: TConsoleColor = UseDefault); deprecated 'Use WriteLine instead';
+
 procedure DrawBox(X, Y, Width, Height: Word; Style: TBoxStyle = bsRounded;
                  const Title: string = '');
 procedure DrawHorizontalLine(X, Y, Length: Word; Style: TBoxStyle = bsUseDefault);
@@ -335,7 +370,7 @@ begin
   Result := BoxStyle;
   if Result = bsUseDefault then
   begin
-    Result := MVCConsoleStyle.BoxStyle;
+    Result := ConsoleTheme.BoxStyle;
   end;
 end;
 
@@ -409,12 +444,12 @@ begin
   if Color = TConsoleColor.UseDefault then
   begin
     case StyleColorComponent of
-      sccText: Result := MVCConsoleStyle.TextColor;
-      sccBackground: Result := MVCConsoleStyle.BackgroundColor;
-      sccDraw: Result := MVCConsoleStyle.DrawColor;
-      sccSymbol: Result := MVCConsoleStyle.SymbolsColor;
-      sccHighLightBackground: Result := MVCConsoleStyle.BackgroundHighlightColor;
-      sccHighLightText: Result := MVCConsoleStyle.TextHighlightColor;
+      sccText: Result := ConsoleTheme.TextColor;
+      sccBackground: Result := ConsoleTheme.BackgroundColor;
+      sccDraw: Result := ConsoleTheme.DrawColor;
+      sccSymbol: Result := ConsoleTheme.SymbolsColor;
+      sccHighLightBackground: Result := ConsoleTheme.BackgroundHighlightColor;
+      sccHighLightText: Result := ConsoleTheme.TextHighlightColor;
       else
         raise EMVCConsole.Create('Unknown StyleColorComponent');
     end;
@@ -441,7 +476,7 @@ var
   I: Integer;
 begin
   lBoxChars := GetBoxChars(Style);
-  WriteColoredText(lBoxChars.BottomLeft, MVCConsoleStyle.DrawColor);
+  WriteColoredText(lBoxChars.BottomLeft, ConsoleTheme.DrawColor);
   Line := '';
   for I := 0 to High(ColWidths) do
   begin
@@ -451,7 +486,7 @@ begin
     else
       Line := Line + lBoxChars.BottomRight
   end;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
 procedure WriteTableTopBorder(ColWidths: array of Integer; const Style: TBoxStyle);
@@ -461,7 +496,7 @@ var
   I: Integer;
 begin
   lBoxChars := GetBoxChars(Style);
-  WriteColoredText(lBoxChars.TopLeft, MVCConsoleStyle.DrawColor);
+  WriteColoredText(lBoxChars.TopLeft, ConsoleTheme.DrawColor);
   Line := '';
   for I := 0 to High(ColWidths) do
   begin
@@ -471,7 +506,7 @@ begin
     else
       Line := Line + lBoxChars.TopRight
   end;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
 
@@ -497,7 +532,7 @@ begin
 
   if FTitle <> '' then
   begin
-    WriteLineColored(FTitle, White);
+    WriteLine(FTitle, White);
     Inc(FStartY);
   end;
 
@@ -1164,11 +1199,29 @@ begin
   end;
 end;
 
-procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor;
-                          BackColor: TConsoleColor);
+// WriteLine overloads - new unified API
+procedure WriteLine(const Text: string);
+begin
+  WriteLn(Text);
+end;
+
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor);
+begin
+  WriteColoredText(Text, ForeColor, UseDefault);
+  WriteLn;
+end;
+
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor; BackColor: TConsoleColor);
 begin
   WriteColoredText(Text, ForeColor, BackColor);
   WriteLn;
+end;
+
+// Backward compatibility wrapper
+procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor;
+                          BackColor: TConsoleColor);
+begin
+  WriteLine(Text, ForeColor, BackColor);
 end;
 
 procedure SaveCursorPosition;
@@ -1355,33 +1408,33 @@ begin
   WriteTableTopBorder(ColWidths, Style);
 
   // Headers
-  WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+  WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
   Line := '';
   for I := 0 to High(Headers) do
   begin
     Cell := ' ' + PadRight(Headers[I], ColWidths[I] - 2) + ' ';
-    WriteColoredText(Cell, MVCConsoleStyle.TextHighlightColor);
+    WriteColoredText(Cell, ConsoleTheme.TextHighlightColor);
     if I < High(ColWidths) then
-      WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor)
+      WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor)
   end;
-  WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+  WriteLine(lBoxChars.Vertical, ConsoleTheme.DrawColor);
 
   // Header separator
-  WriteColoredText(lBoxChars.LeftJoin, MVCConsoleStyle.DrawColor);
+  WriteColoredText(lBoxChars.LeftJoin, ConsoleTheme.DrawColor);
   Line := '';
   for I := 0 to High(ColWidths) do
   begin
     Line := StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
-    WriteColoredText(Line, MVCConsoleStyle.DrawColor);
+    WriteColoredText(Line, ConsoleTheme.DrawColor);
     if I < High(ColWidths) then
-      WriteColoredText(lBoxChars.Cross, MVCConsoleStyle.DrawColor)
+      WriteColoredText(lBoxChars.Cross, ConsoleTheme.DrawColor)
   end;
-  WriteLineColored(lBoxChars.RightJoin, MVCConsoleStyle.DrawColor);
+  WriteLine(lBoxChars.RightJoin, ConsoleTheme.DrawColor);
 
   // Data rows
   for I := 0 to High(Data) do
   begin
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
     Line := '';
     for J := 0 to High(Headers) do
     begin
@@ -1391,7 +1444,7 @@ begin
         Cell := StringOfChar(' ', ColWidths[J]);
       Line := Line + Cell + lBoxChars.Vertical;
     end;
-    WriteLineColored(Line);
+    WriteLine(Line);
   end;
 
   // Bottom border
@@ -1448,33 +1501,33 @@ begin
 
   // Top border
   Line := lBoxChars.TopLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.TopRight;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Title (if provided)
   if Title <> '' then
   begin
     ContentLine := ' ' + PadRight(Title, Width - 4) + ' ';
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
     WriteColoredText(ContentLine, GetColorOrDefault(TextColor, sccHighLightText));
-    WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    WriteLine(lBoxChars.Vertical, ConsoleTheme.DrawColor);
 
     // Title separator
     Line := lBoxChars.LeftJoin + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.RightJoin;
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+    WriteLine(Line, ConsoleTheme.DrawColor);
   end;
 
   // Content lines
   for I := 0 to High(Content) do
   begin
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
     ContentLine := ' ' + PadRight(Content[I], Width - 4) + ' ';
     WriteColoredText(ContentLine, TextColor);
-    WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+    WriteLine(lBoxChars.Vertical, ConsoleTheme.DrawColor);
   end;
 
   // Bottom border
   Line := lBoxChars.BottomLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.BottomRight;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
 procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment; TextColor: TConsoleColor);
@@ -1486,7 +1539,7 @@ begin
 
   if Length(Text) >= Width then
   begin
-    WriteLineColored(Text, TextColor);
+    WriteLine(Text, TextColor);
     Exit;
   end;
 
@@ -1503,7 +1556,7 @@ begin
     end;
   end;
 
-  WriteLineColored(AlignedText, TextColor);
+  WriteLine(AlignedText, TextColor);
 end;
 
 procedure ShowProgressAnimation(const Title: string; Steps: Integer; DelayMs: Integer);
@@ -1514,7 +1567,7 @@ var
   CurPos: TMVCConsolePoint;
 begin
   if Title <> '' then
-    WriteLineColored(Title, Yellow);
+    WriteLine(Title, Yellow);
 
   // Save cursor position for animation
   CurPos := GetCursorPosition;
@@ -1557,9 +1610,9 @@ begin
   begin
     WriteColoredText(Items[I] + ': ', Gray);
     if I < Length(Colors) then
-      WriteLineColored(Statuses[I], Colors[I])
+      WriteLine(Statuses[I], Colors[I])
     else
-      WriteLineColored(Statuses[I], White);
+      WriteLine(Statuses[I], White);
   end;
 end;
 
@@ -1578,39 +1631,39 @@ begin
 
   // Top border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Title
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(PadRight(Title, MaxWidth - 4), ConsoleTheme.TextColor);
+  WriteLine(' |', ConsoleTheme.DrawColor);
 
   // Separator
   Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Menu items
   for I := 0 to High(Items) do
   begin
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
+    WriteColoredText('| ', ConsoleTheme.DrawColor);
 
     if I = SelectedIndex then
     begin
-      WriteColoredText('> ', MVCConsoleStyle.TextColor);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleStyle.TextColor);
+      WriteColoredText('> ', ConsoleTheme.TextColor);
+      WriteColoredText(PadRight(Items[I], MaxWidth - 6), ConsoleTheme.TextColor);
     end
     else
     begin
-      WriteColoredText('  ', MVCConsoleStyle.TextColor);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleStyle.TextColor);
+      WriteColoredText('  ', ConsoleTheme.TextColor);
+      WriteColoredText(PadRight(Items[I], MaxWidth - 6), ConsoleTheme.TextColor);
     end;
 
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+    WriteLine(' |', ConsoleTheme.DrawColor);
   end;
 
   // Bottom border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
 procedure WriteFormattedList(const Title: string; const Items: TStringArray;
@@ -1621,7 +1674,7 @@ var
 begin
   if Title <> '' then
   begin
-    WriteLineColored(Title, MVCConsoleStyle.TextColor);
+    WriteLine(Title, ConsoleTheme.TextColor);
     WriteLn;
   end;
 
@@ -1634,8 +1687,8 @@ begin
       lsArrow: Prefix := '  > ';
     end;
 
-    WriteColoredText(Prefix, MVCConsoleStyle.SymbolsColor);
-    WriteLineColored(Items[I], MVCConsoleStyle.TextColor);
+    WriteColoredText(Prefix, ConsoleTheme.SymbolsColor);
+    WriteLine(Items[I], ConsoleTheme.TextColor);
   end;
 end;
 
@@ -1658,40 +1711,40 @@ begin
 
   // Top border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Title
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(PadRight(Title, MaxWidth - 4), ConsoleTheme.TextColor);
+  WriteLine(' |', ConsoleTheme.DrawColor);
 
   // Separator
   Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   // Server statuses
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight('Server Status:', MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+  WriteColoredText('| ', ConsoleTheme.DrawColor);
+  WriteColoredText(PadRight('Server Status:', MaxWidth - 4), ConsoleTheme.TextColor);
+  WriteLine(' |', ConsoleTheme.DrawColor);
 
   MaxLen := Min(Length(ServerStatuses), Length(ServerColors));
   for I := 0 to MaxLen - 1 do
   begin
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
+    WriteColoredText('| ', ConsoleTheme.DrawColor);
     WriteColoredText('  ' + ServerStatuses[I], ServerColors[I]);
-    WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), MVCConsoleStyle.TextColor);
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+    WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), ConsoleTheme.TextColor);
+    WriteLine(' |', ConsoleTheme.DrawColor);
   end;
 
   // Metrics
   if Length(MetricNames) > 0 then
   begin
     Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+    WriteLine(Line, ConsoleTheme.DrawColor);
 
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-    WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), MVCConsoleStyle.TextColor);
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+    WriteColoredText('| ', ConsoleTheme.DrawColor);
+    WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), ConsoleTheme.TextColor);
+    WriteLine(' |', ConsoleTheme.DrawColor);
 
     MaxLen := Min(Length(MetricNames), Length(MetricValues));
     for I := 0 to MaxLen - 1 do
@@ -1708,15 +1761,15 @@ begin
       // Build complete line
       MetricLine := '  ' + MetricNames[I] + ': ' + ProgressStr;
 
-      WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-      WriteColoredText(PadRight(MetricLine, MaxWidth - 4), MVCConsoleStyle.TextColor);
-      WriteLineColored(' |', MVCConsoleStyle.DrawColor);
+      WriteColoredText('| ', ConsoleTheme.DrawColor);
+      WriteColoredText(PadRight(MetricLine, MaxWidth - 4), ConsoleTheme.TextColor);
+      WriteLine(' |', ConsoleTheme.DrawColor);
     end;
   end;
 
   // Bottom border
   Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 end;
 
 procedure WriteReport(const Title: string; const Sections: TStringArray;
@@ -1733,11 +1786,11 @@ begin
   MaxLen := Min(Length(Sections), Length(SectionContents));
   for I := 0 to MaxLen - 1 do
   begin
-    WriteLineColored(Sections[I], Yellow);
+    WriteLine(Sections[I], Yellow);
     WriteSeparator(40);
 
     for J := 0 to High(SectionContents[I]) do
-      WriteLineColored('  ' + SectionContents[I][J], White);
+      WriteLine('  ' + SectionContents[I][J], White);
 
     WriteLn;
   end;
@@ -1849,7 +1902,7 @@ begin
     else
       Line := Line + lBoxChars.TopRight
   end;
-  WriteLineColored(Line, DrawColor);
+  WriteLine(Line, DrawColor);
 
   // Headers with color
   Line := '';
@@ -1874,7 +1927,7 @@ begin
     else
       Line := Line + lBoxChars.RightJoin
   end;
-  WriteLineColored(Line, DrawColor);
+  WriteLine(Line, DrawColor);
   // Data rows with color
 
   for I := 0 to High(Data) do
@@ -1903,7 +1956,7 @@ begin
     else
       Line := Line + lBoxChars.BottomRight
   end;
-  WriteLineColored(Line, DrawColor);
+  WriteLine(Line, DrawColor);
 end;
 
 // ============================================================================
@@ -1919,47 +1972,47 @@ begin
   HeaderColor := GetColorOrDefault(HeaderColor, sccHighLightText);
   CharSymbol := GetBoxChars(MVCConsolestyle.BoxStyle).Horizontal;
   Line := StringOfChar(CharSymbol, Width);
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  WriteLine(Line, ConsoleTheme.DrawColor);
 
   if Text <> '' then
   begin
     PaddingSize := (Width - Length(Text) - 2) div 2;
     Line := StringOfChar(' ', PaddingSize) + ' ' + Text + ' ' +
             StringOfChar(' ', Width - PaddingSize - Length(Text) - 2);
-    WriteLineColored(Line, HeaderColor);
+    WriteLine(Line, HeaderColor);
 
     Line := StringOfChar(CharSymbol, Width);
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+    WriteLine(Line, ConsoleTheme.DrawColor);
   end;
 end;
 
 procedure WriteSeparator(Width: Integer; CharSymbol: Char);
 begin
-  WriteLineColored(StringOfChar(CharSymbol, Width), Gray);
+  WriteLine(StringOfChar(CharSymbol, Width), Gray);
 end;
 
 procedure WriteSuccess(const Message: string);
 begin
   WriteColoredText('[SUCCESS] ', Green);
-  WriteLineColored(Message, White);
+  WriteLine(Message, White);
 end;
 
 procedure WriteWarning(const Message: string);
 begin
   WriteColoredText('[WARNING] ', Yellow);
-  WriteLineColored(Message, White);
+  WriteLine(Message, White);
 end;
 
 procedure WriteError(const Message: string);
 begin
   WriteColoredText('[ERROR] ', Red);
-  WriteLineColored(Message, White);
+  WriteLine(Message, White);
 end;
 
 procedure WriteInfo(const Message: string);
 begin
   WriteColoredText('[INFO] ', Cyan);
-  WriteLineColored(Message, White);
+  WriteLine(Message, White);
 end;
 
 // ============================================================================
@@ -2027,16 +2080,16 @@ begin
       // Draw menu
       // Top border
       Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Title
       WriteColoredText('| ', Cyan);
       WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLineColored(' |', Cyan);
+      WriteLine(' |', Cyan);
 
       // Separator
       Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Menu items
       for I := 0 to High(Items) do
@@ -2057,16 +2110,16 @@ begin
           WriteColoredText('  ' + PadRight(Items[I], MaxWidth - 6) + ' ', White);
         end;
 
-        WriteLineColored('|', Cyan);
+        WriteLine('|', Cyan);
       end;
 
       // Bottom border
       Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Hint
       if Hint <> '' then
-        WriteLineColored(Hint, DarkGray);
+        WriteLine(Hint, DarkGray);
 
       // Flush output
 {$IFDEF MSWINDOWS}
@@ -2201,16 +2254,16 @@ begin
       // Draw menu
       // Top border
       Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Title
       WriteColoredText('| ', Cyan);
       WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLineColored(' |', Cyan);
+      WriteLine(' |', Cyan);
 
       // Separator
       Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Menu items
       for I := 0 to High(Items) do
@@ -2238,16 +2291,16 @@ begin
           WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', White);
         end;
 
-        WriteLineColored('|', Cyan);
+        WriteLine('|', Cyan);
       end;
 
       // Bottom border
       Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      WriteLine(Line, Cyan);
 
       // Hint
       if Hint <> '' then
-        WriteLineColored(Hint, DarkGray);
+        WriteLine(Hint, DarkGray);
 
       // Flush output
 {$IFDEF MSWINDOWS}
@@ -2333,8 +2386,8 @@ initialization
   GSavedCursorX := 0;
   GSavedCursorY := 0;
 
-  GForeGround := Ord(MVCConsoleStyle.TextColor);
-  GBackGround := Ord(MVCConsoleStyle.BackgroundColor);
+  GForeGround := Ord(ConsoleTheme.TextColor);
+  GBackGround := Ord(ConsoleTheme.BackgroundColor);
 
 finalization
 {$IFDEF LINUX}
