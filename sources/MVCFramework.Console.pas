@@ -287,6 +287,74 @@ procedure WriteWarning(const Message: string);
 procedure WriteError(const Message: string);
 procedure WriteInfo(const Message: string);
 
+// ============================================================================
+// SIMPLIFIED UNIFIED API (Recommended for new code)
+// ============================================================================
+
+type
+  /// <summary>
+  /// Interface for progress tracking with auto-cleanup via reference counting
+  /// </summary>
+  IProgress = interface
+    ['{8F5E3C2A-1B4D-4E9F-A3C7-9D2E6F1B8A4C}']
+    /// <summary>Updates progress to specific value (0 to MaxValue)</summary>
+    procedure Update(Value: Integer);
+    /// <summary>Increments progress by specified amount</summary>
+    procedure Increment(Amount: Integer = 1);
+    /// <summary>Updates the progress message</summary>
+    procedure SetMessage(const Msg: string);
+    /// <summary>Marks progress as complete</summary>
+    procedure Complete;
+  end;
+
+/// <summary>
+/// Unified interactive menu. Returns selected index (0-based) or -1 if cancelled.
+/// </summary>
+function Menu(const Items: TStringArray): Integer; overload;
+function Menu(const Title: string; const Items: TStringArray): Integer; overload;
+function Menu(const Title: string; const Items: TStringArray; DefaultIndex: Integer): Integer; overload;
+
+/// <summary>
+/// Unified table with auto-sizing columns.
+/// </summary>
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix); overload;
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix; const Title: string); overload;
+
+/// <summary>
+/// Interactive table with row selection (like a menu).
+/// Returns selected row index (0-based) or -1 if cancelled.
+/// Use arrow keys to navigate, Enter to select, ESC to cancel.
+/// </summary>
+function TableMenu(const Headers: TStringArray; const Data: TStringMatrix): Integer; overload;
+function TableMenu(const Title: string; const Headers: TStringArray; const Data: TStringMatrix): Integer; overload;
+function TableMenu(const Title: string; const Headers: TStringArray; const Data: TStringMatrix; DefaultIndex: Integer): Integer; overload;
+
+/// <summary>
+/// Unified box with auto-positioning and optional width.
+/// </summary>
+procedure Box(const Content: TStringArray); overload;
+procedure Box(const Title: string; const Content: TStringArray); overload;
+procedure Box(const Title: string; const Content: TStringArray; Width: Integer); overload;
+
+/// <summary>
+/// Unified progress bar. Returns interface for auto-cleanup.
+/// If MaxValue > 0: determinate progress bar.
+/// If MaxValue = 0: indeterminate spinner.
+/// </summary>
+function Progress(const Title: string; MaxValue: Integer): IProgress; overload;
+function Progress(const Title: string): IProgress; overload; // Indeterminate spinner
+
+/// <summary>
+/// Quick yes/no confirmation prompt. Returns True if user confirms.
+/// </summary>
+function Confirm(const Question: string): Boolean; overload;
+function Confirm(const Question: string; DefaultYes: Boolean): Boolean; overload;
+
+/// <summary>
+/// Quick single-choice prompt. Returns selected index (0-based) or -1 if cancelled.
+/// </summary>
+function Choose(const Question: string; const Options: TStringArray): Integer;
+
 // Utility functions
 function PadRight(const S: string; Len: Integer): string;
 
@@ -1435,16 +1503,16 @@ begin
   for I := 0 to High(Data) do
   begin
     WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
-    Line := '';
     for J := 0 to High(Headers) do
     begin
       if J < Length(Data[I]) then
         Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
       else
         Cell := StringOfChar(' ', ColWidths[J]);
-      Line := Line + Cell + lBoxChars.Vertical;
+      WriteColoredText(Cell, ConsoleTheme.TextColor);  // Cell content with TextColor
+      WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);  // Border with DrawColor
     end;
-    WriteLine(Line);
+    WriteLn;
   end;
 
   // Bottom border
@@ -2379,6 +2447,421 @@ begin
   Result.Text := Text;
   Result.Icon := Icon;
   Result.Enabled := Enabled;
+end;
+
+// ============================================================================
+// SIMPLIFIED UNIFIED API IMPLEMENTATION
+// ============================================================================
+
+type
+  TConsoleProgress = class(TInterfacedObject, IProgress)
+  private
+    FTitle: string;
+    FMaxValue: Integer;
+    FCurrent: Integer;
+    FStartX, FStartY: Integer;
+    FWidth: Integer;
+    FCompleted: Boolean;
+    FSpinnerIndex: Integer;
+    FSpinnerChars: string;
+    procedure DrawDeterminate;
+    procedure DrawIndeterminate;
+  public
+    constructor Create(const ATitle: string; AMaxValue: Integer; AWidth: Integer = 50);
+    destructor Destroy; override;
+    procedure Update(Value: Integer);
+    procedure Increment(Amount: Integer = 1);
+    procedure SetMessage(const Msg: string);
+    procedure Complete;
+  end;
+
+constructor TConsoleProgress.Create(const ATitle: string; AMaxValue: Integer; AWidth: Integer);
+begin
+  inherited Create;
+  FTitle := ATitle;
+  FMaxValue := AMaxValue;
+  FCurrent := 0;
+  FWidth := AWidth;
+  FCompleted := False;
+  FSpinnerIndex := 0;
+  FSpinnerChars := '|/-\';
+
+  // Save position
+  FStartX := GetCursorPosition.X;
+  FStartY := GetCursorPosition.Y;
+
+  // Initial draw
+  WriteLine(FTitle, ConsoleTheme.TextColor);
+  if FMaxValue > 0 then
+    DrawDeterminate
+  else
+    DrawIndeterminate;
+end;
+
+destructor TConsoleProgress.Destroy;
+begin
+  if not FCompleted then
+    Complete;
+  inherited;
+end;
+
+procedure TConsoleProgress.DrawDeterminate;
+var
+  Percent: Integer;
+  FilledWidth: Integer;
+  Bar: string;
+begin
+  if FMaxValue = 0 then Exit;
+
+  Percent := (FCurrent * 100) div FMaxValue;
+  FilledWidth := (FCurrent * FWidth) div FMaxValue;
+
+  Bar := '[' + StringOfChar('=', FilledWidth) + StringOfChar(' ', FWidth - FilledWidth) + ']';
+
+  GotoXY(FStartX, FStartY + 1);
+  WriteColoredText(Bar, ConsoleTheme.TextHighlightColor);
+  Write(Format(' %d%%', [Percent]));
+end;
+
+procedure TConsoleProgress.DrawIndeterminate;
+begin
+  GotoXY(FStartX, FStartY + 1);
+  WriteColoredText('[', ConsoleTheme.DrawColor);
+  WriteColoredText(FSpinnerChars[FSpinnerIndex + 1], ConsoleTheme.TextHighlightColor);
+  WriteColoredText(']', ConsoleTheme.DrawColor);
+  Write(' Processing...');
+  FSpinnerIndex := (FSpinnerIndex + 1) mod Length(FSpinnerChars);
+end;
+
+procedure TConsoleProgress.Update(Value: Integer);
+begin
+  if FCompleted then Exit;
+  FCurrent := Value;
+  if FMaxValue > 0 then
+    DrawDeterminate
+  else
+    DrawIndeterminate;
+end;
+
+procedure TConsoleProgress.Increment(Amount: Integer);
+begin
+  Update(FCurrent + Amount);
+end;
+
+procedure TConsoleProgress.SetMessage(const Msg: string);
+begin
+  GotoXY(FStartX, FStartY);
+  Write(Msg.PadRight(FWidth + 10));
+  FTitle := Msg;
+end;
+
+procedure TConsoleProgress.Complete;
+begin
+  if FCompleted then Exit;
+  FCompleted := True;
+
+  if FMaxValue > 0 then
+  begin
+    FCurrent := FMaxValue;
+    DrawDeterminate;
+  end;
+
+  GotoXY(FStartX, FStartY + 2);
+  WriteLine('Done!', Green);
+end;
+
+// Menu implementations
+function Menu(const Items: TStringArray): Integer;
+begin
+  Result := Menu('', Items, 0);
+end;
+
+function Menu(const Title: string; const Items: TStringArray): Integer;
+begin
+  Result := Menu(Title, Items, 0);
+end;
+
+function Menu(const Title: string; const Items: TStringArray; DefaultIndex: Integer): Integer;
+begin
+  // Use existing ShowInteractiveMenu implementation
+  Result := ShowInteractiveMenu(Title, Items, DefaultIndex, 'Use arrows to navigate, Enter to select, ESC to cancel');
+end;
+
+// Table implementations
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix);
+begin
+  Table(Headers, Data, '');
+end;
+
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix; const Title: string);
+var
+  ColWidths: array of Integer;
+  I, J: Integer;
+  MaxWidth: Integer;
+begin
+  // Auto-calculate column widths
+  SetLength(ColWidths, Length(Headers));
+
+  // Initialize with header widths
+  for I := 0 to High(Headers) do
+    ColWidths[I] := Length(Headers[I]);
+
+  // Check data widths
+  for I := 0 to High(Data) do
+    for J := 0 to High(Data[I]) do
+      if J < Length(ColWidths) then
+        if Length(Data[I][J]) > ColWidths[J] then
+          ColWidths[J] := Length(Data[I][J]);
+
+  // Add padding
+  for I := 0 to High(ColWidths) do
+    ColWidths[I] := ColWidths[I] + 2;
+
+  // Draw table using existing WriteSimpleTable (it handles the drawing)
+  // For now, just call the existing implementation
+  WriteSimpleTable(Headers, Data);
+end;
+
+// Box implementations
+procedure Box(const Content: TStringArray);
+begin
+  Box('', Content, 60);
+end;
+
+procedure Box(const Title: string; const Content: TStringArray);
+begin
+  Box(Title, Content, 60);
+end;
+
+procedure Box(const Title: string; const Content: TStringArray; Width: Integer);
+begin
+  // Use existing DrawSimpleBox implementation
+  DrawSimpleBox(Title, Content, Width);
+end;
+
+// Progress implementations
+function Progress(const Title: string; MaxValue: Integer): IProgress;
+begin
+  Result := TConsoleProgress.Create(Title, MaxValue);
+end;
+
+function Progress(const Title: string): IProgress;
+begin
+  Result := TConsoleProgress.Create(Title, 0);  // 0 = indeterminate
+end;
+
+// Confirm implementations
+function Confirm(const Question: string): Boolean;
+begin
+  Result := Confirm(Question, True);
+end;
+
+function Confirm(const Question: string; DefaultYes: Boolean): Boolean;
+var
+  Response: string;
+  DefaultChar: Char;
+begin
+  if DefaultYes then
+    DefaultChar := 'Y'
+  else
+    DefaultChar := 'N';
+
+  Write(Question + ' [Y/N]');
+  if DefaultYes then
+    Write(' (Y): ')
+  else
+    Write(' (N): ');
+
+  ReadLn(Response);
+  Response := Trim(UpperCase(Response));
+
+  if Response = '' then
+    Result := DefaultYes
+  else
+    Result := (Response = 'Y') or (Response = 'YES');
+end;
+
+// Choose implementation
+function Choose(const Question: string; const Options: TStringArray): Integer;
+var
+  I: Integer;
+  Response: string;
+  Choice: Integer;
+begin
+  WriteLn(Question);
+  for I := 0 to High(Options) do
+    WriteLn(Format('  [%d] %s', [I + 1, Options[I]]));
+
+  Write('Your choice: ');
+  ReadLn(Response);
+
+  if TryStrToInt(Trim(Response), Choice) then
+  begin
+    if (Choice >= 1) and (Choice <= Length(Options)) then
+      Result := Choice - 1
+    else
+      Result := -1;
+  end
+  else
+    Result := -1;
+end;
+
+// TableMenu implementations
+function TableMenu(const Headers: TStringArray; const Data: TStringMatrix): Integer;
+begin
+  Result := TableMenu('', Headers, Data, 0);
+end;
+
+function TableMenu(const Title: string; const Headers: TStringArray; const Data: TStringMatrix): Integer;
+begin
+  Result := TableMenu(Title, Headers, Data, 0);
+end;
+
+function TableMenu(const Title: string; const Headers: TStringArray; const Data: TStringMatrix; DefaultIndex: Integer): Integer;
+var
+  ColWidths: array of Integer;
+  I, J: Integer;
+  Cell: string;
+  lBoxChars: TBoxChars;
+  SelectedIndex: Integer;
+  Key: Integer;
+  StartX, StartY: Integer;
+  TableHeight: Integer;
+
+  procedure DrawTable;
+  var
+    Line: string;
+    I, J: Integer;
+  begin
+    GotoXY(StartX, StartY);
+
+    // Title
+    if Title <> '' then
+    begin
+      WriteLine(Title, ConsoleTheme.TextHighlightColor);
+      WriteLn;
+    end;
+
+    // Top border
+    WriteColoredText(lBoxChars.TopLeft, ConsoleTheme.DrawColor);
+    for I := 0 to High(ColWidths) do
+    begin
+      WriteColoredText(StringOfChar(lBoxChars.Horizontal, ColWidths[I]), ConsoleTheme.DrawColor);
+      if I < High(ColWidths) then
+        WriteColoredText(lBoxChars.TopJoin, ConsoleTheme.DrawColor)
+      else
+        WriteColoredText(lBoxChars.TopRight, ConsoleTheme.DrawColor);
+    end;
+    WriteLn;
+
+    // Headers
+    WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
+    for I := 0 to High(Headers) do
+    begin
+      Cell := ' ' + PadRight(Headers[I], ColWidths[I] - 2) + ' ';
+      WriteColoredText(Cell, ConsoleTheme.TextHighlightColor);
+      WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
+    end;
+    WriteLn;
+
+    // Header separator
+    WriteColoredText(lBoxChars.LeftJoin, ConsoleTheme.DrawColor);
+    for I := 0 to High(ColWidths) do
+    begin
+      WriteColoredText(StringOfChar(lBoxChars.Horizontal, ColWidths[I]), ConsoleTheme.DrawColor);
+      if I < High(ColWidths) then
+        WriteColoredText(lBoxChars.Cross, ConsoleTheme.DrawColor)
+      else
+        WriteColoredText(lBoxChars.RightJoin, ConsoleTheme.DrawColor);
+    end;
+    WriteLn;
+
+    // Data rows
+    for I := 0 to High(Data) do
+    begin
+      WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
+      for J := 0 to High(Headers) do
+      begin
+        if J < Length(Data[I]) then
+          Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
+        else
+          Cell := StringOfChar(' ', ColWidths[J]);
+
+        // Highlight selected row
+        if I = SelectedIndex then
+          WriteColoredText(Cell, ConsoleTheme.TextHighlightColor, ConsoleTheme.BackgroundHighlightColor)
+        else
+          WriteColoredText(Cell, ConsoleTheme.TextColor);
+
+        WriteColoredText(lBoxChars.Vertical, ConsoleTheme.DrawColor);
+      end;
+      WriteLn;
+    end;
+
+    // Bottom border
+    WriteColoredText(lBoxChars.BottomLeft, ConsoleTheme.DrawColor);
+    for I := 0 to High(ColWidths) do
+    begin
+      WriteColoredText(StringOfChar(lBoxChars.Horizontal, ColWidths[I]), ConsoleTheme.DrawColor);
+      if I < High(ColWidths) then
+        WriteColoredText(lBoxChars.BottomJoin, ConsoleTheme.DrawColor)
+      else
+        WriteColoredText(lBoxChars.BottomRight, ConsoleTheme.DrawColor);
+    end;
+    WriteLn;
+
+    // Hint
+    WriteLine('Use arrows to navigate, Enter to select, ESC to cancel', DarkGray);
+  end;
+
+begin
+  if Length(Data) = 0 then Exit(-1);
+  if Length(Headers) = 0 then Exit(-1);
+
+  lBoxChars := GetBoxChars(bsUseDefault);
+
+  // Calculate column widths
+  SetLength(ColWidths, Length(Headers));
+  for I := 0 to High(Headers) do
+  begin
+    ColWidths[I] := Length(Headers[I]);
+    for J := 0 to High(Data) do
+    begin
+      if (I < Length(Data[J])) and (Length(Data[J][I]) > ColWidths[I]) then
+        ColWidths[I] := Length(Data[J][I]);
+    end;
+    Inc(ColWidths[I], 2); // Add padding
+  end;
+
+  // Calculate table height for redrawing
+  TableHeight := 4 + Length(Data) + 2; // Top + Header + Sep + Data + Bottom + Hint
+  if Title <> '' then
+    Inc(TableHeight, 2); // Title + empty line
+
+  // Save start position
+  StartX := GetCursorPosition.X;
+  StartY := GetCursorPosition.Y;
+
+  // Interactive selection
+  SelectedIndex := DefaultIndex;
+  if SelectedIndex < 0 then SelectedIndex := 0;
+  if SelectedIndex > High(Data) then SelectedIndex := High(Data);
+
+  repeat
+    DrawTable;
+
+    Key := GetKey;
+
+    case Key of
+      KEY_UP: if SelectedIndex > 0 then Dec(SelectedIndex);
+      KEY_DOWN: if SelectedIndex < High(Data) then Inc(SelectedIndex);
+      KEY_ENTER: Exit(SelectedIndex);
+      KEY_ESCAPE: Exit(-1);
+    end;
+
+    // Go back to start position for redraw
+    GotoXY(StartX, StartY);
+  until False;
 end;
 
 initialization
