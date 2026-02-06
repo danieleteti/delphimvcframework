@@ -171,35 +171,194 @@ const
   HTML_HEADER = '<!doctype html>' +
   '<html>' +
   '<head>' +
-  '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' +
-  '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">' +
-  '<title>DMVCFramework</title>' +
-  '<style>'+
+  '<meta charset="UTF-8">' +
+  '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+  '<title>DMVCFramework Error</title>' +
+  '<style>' +
+  '* { margin: 0; padding: 0; box-sizing: border-box; }' +
   'body {' +
-  '  background: #fff;'+
-  '  padding: 2rem;' +
-  '  margin: 0 auto;' +
-  '  max-width: 50rem;' +
-  '  font-family: "Segoe UI Light", Tahoma, Arial, ui-sans-serif, sans-serif;' +
+  '  font-family: ''Consolas'', ''Monaco'', ''Courier New'', monospace;' +
+  '  background: #f5f5f5;' +
+  '  color: #2c3e50;' +
+  '  min-height: 100vh;' +
+  '  display: flex;' +
+  '  align-items: center;' +
+  '  justify-content: center;' +
+  '  padding: 1.5rem;' +
+  '  font-size: 14px;' +
+  '  line-height: 1.5;' +
   '}' +
-  '.color1 { color: #C5C5C5; } /* https://color.adobe.com/it/search?q=Primary%20colors&t=term */' +
-  '.color2 { color: #827C78; }' +
-  '.color3 { color: #005195; }' +
-  '.color4 { color: #003A69; }' +
-  '.color5 { color: #000000; }' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  body { background: #1e1e1e; color: #d4d4d4; }' +
+  '}' +
   '.container {' +
-  '  background: #f4f4f4;'+
-  '  border: 2px solid #827C78;' +
-  '  margin-top: 2rem;' +
-  '  margin: auto;' +
-  '  width: fit-content;' +
-  '  min-width: 30rem;' +
+  '  background: #ffffff;' +
+  '  border: 1px solid #d1d5db;' +
+  '  border-radius: 8px;' +
+  '  max-width: 50rem;' +
+  '  width: 100%;' +
+  '  box-shadow: 0 4px 6px rgba(0,0,0,0.1);' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .container {' +
+  '    background: #252526;' +
+  '    border: 1px solid #3e3e42;' +
+  '    box-shadow: 0 8px 16px rgba(0,0,0,0.4);' +
+  '  }' +
+  '}' +
+  '.header {' +
+  '  background: linear-gradient(135deg, #005195 0%, #003A69 100%);' +
+  '  color: white;' +
+  '  padding: 1rem 1.5rem;' +
+  '  display: flex;' +
+  '  align-items: center;' +
+  '  gap: 1rem;' +
+  '  border-bottom: 2px solid #005195;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .header {' +
+  '    background: #2d2d30;' +
+  '    border-bottom: 2px solid #007acc;' +
+  '  }' +
+  '}' +
+  '.status-code {' +
+  '  font-size: 2.5rem;' +
+  '  font-weight: bold;' +
+  '  color: #ffffff;' +
+  '  font-family: ''Consolas'', monospace;' +
+  '  text-shadow: 0 2px 4px rgba(0,0,0,0.2);' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .status-code { color: #f48771; }' +
+  '}' +
+  '.status-info { flex: 1; }' +
+  '.status-text {' +
+  '  font-size: 1.25rem;' +
+  '  color: #e0f2fe;' +
+  '  margin-bottom: 0.25rem;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .status-text { color: #ce9178; }' +
+  '}' +
+  '.server-name {' +
+  '  font-size: 0.875rem;' +
+  '  color: #bae6fd;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .server-name { color: #858585; }' +
+  '}' +
+  '.body { padding: 1.5rem; }' +
+  '.error-line {' +
+  '  display: flex;' +
+  '  gap: 1rem;' +
+  '  margin-bottom: 1rem;' +
+  '  padding: 0.75rem;' +
+  '  background: #eff6ff;' +
+  '  border-left: 3px solid #005195;' +
+  '  border-radius: 4px;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .error-line {' +
+  '    background: #1e1e1e;' +
+  '    border-left: 3px solid #f48771;' +
+  '  }' +
+  '}' +
+  '.error-label {' +
+  '  color: #003A69;' +
+  '  font-weight: bold;' +
+  '  min-width: 80px;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .error-label { color: #569cd6; }' +
+  '}' +
+  '.error-value {' +
+  '  color: #0369a1;' +
+  '  flex: 1;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .error-value { color: #ce9178; }' +
+  '}' +
+  '.details-section {' +
+  '  background: #f8fafc;' +
+  '  border: 1px solid #e0e7ff;' +
+  '  border-radius: 4px;' +
   '  padding: 1rem;' +
-  '  padding-left: 2rem;' +
-  '  padding-right: 2rem;' +
+  '  margin-top: 1rem;' +
   '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .details-section {' +
+  '    background: #1e1e1e;' +
+  '    border: 1px solid #3e3e42;' +
+  '  }' +
   '}' +
-  '</style>'+
+  '.details-title {' +
+  '  color: #005195;' +
+  '  font-weight: bold;' +
+  '  margin-bottom: 0.5rem;' +
+  '  font-size: 0.875rem;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .details-title { color: #4ec9b0; }' +
+  '}' +
+  '.details-content {' +
+  '  color: #475569;' +
+  '  font-size: 0.875rem;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .details-content { color: #9cdcfe; }' +
+  '}' +
+  '.error-items { margin-top: 0.75rem; }' +
+  '.error-items li {' +
+  '  padding: 0.25rem 0;' +
+  '  padding-left: 1.25rem;' +
+  '  position: relative;' +
+  '  color: #0c4a6e;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .error-items li { color: #d7ba7d; }' +
+  '}' +
+  '.error-items li:before {' +
+  '  content: "\25B8";' +
+  '  position: absolute;' +
+  '  left: 0;' +
+  '  color: #005195;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .error-items li:before { color: #007acc; }' +
+  '}' +
+  '.footer {' +
+  '  padding: 0.75rem 1.5rem;' +
+  '  background: #f8fafc;' +
+  '  border-top: 1px solid #e5e7eb;' +
+  '  font-size: 0.75rem;' +
+  '  color: #64748b;' +
+  '  text-align: center;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .footer {' +
+  '    background: #2d2d30;' +
+  '    border-top: 1px solid #3e3e42;' +
+  '    color: #858585;' +
+  '  }' +
+  '}' +
+  '.badge {' +
+  '  display: inline-block;' +
+  '  background: #dbeafe;' +
+  '  color: #1e3a8a;' +
+  '  padding: 0.125rem 0.5rem;' +
+  '  border-radius: 3px;' +
+  '  font-size: 0.75rem;' +
+  '  margin-left: 0.5rem;' +
+  '  border: 1px solid #93c5fd;' +
+  '}' +
+  '@media (prefers-color-scheme: dark) {' +
+  '  .badge {' +
+  '    background: #5a1d1d;' +
+  '    color: #f48771;' +
+  '    border: none;' +
+  '  }' +
+  '}' +
+  '</style>' +
   '</head>' +
   '<body>' +
   '<div class="container">';
@@ -312,20 +471,6 @@ end;
 function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
-  function EmitExceptionClass(const ClazzName, Message: string): string;
-  begin
-      Result := Result + '<h2>' +
-        IfThen(not ClazzName.IsEmpty, HTMLEntitiesEncode(ClazzName) + ': ') + Message + '</h2>';
-  end;
-  function EmitTitle(const HTTPStatusCode: Word): string;
-  begin
-    Result := '<h1><span class="color1">' + HTTPStatusCode.ToString + '</span><span class="color2"> ' + HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</span></h1>';
-    if Assigned(FConfig) then
-    begin
-      Result := Result + '<h3 class="color4">' + FConfig[TMVCConfigKey.ServerName] + '</h3>';
-    end;
-  end;
-
   function GetHTMLBody(
     const HTTPStatusCode: Integer;
     const Message: String;
@@ -335,26 +480,78 @@ function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
     const ErrorItems: TArray<String>): String;
   var
     lErr: String;
+    lServerName: String;
   begin
-    Result :=
-        EmitTitle(HTTPStatusCode) + sLineBreak +
-        EmitExceptionClass(ClazzName, Message) + sLineBreak +
-        '<h3 class="color5">' + HTMLEntitiesEncode(DetailedMessage) + '</h3>' + sLineBreak;
-      Result := Result + '<div>';
+    // Server name
+    if Assigned(FConfig) then
+      lServerName := FConfig[TMVCConfigKey.ServerName]
+    else
+      lServerName := 'DMVCFramework ' + DMVCFRAMEWORK_VERSION;
+
+    // Header with status code
+    Result := '<div class="header">' +
+      '<div class="status-code">' + HTTPStatusCode.ToString + '</div>' +
+      '<div class="status-info">' +
+      '<div class="status-text">' + HTTP_STATUS.ReasonStringFor(HTTPStatusCode) + '</div>' +
+      '<div class="server-name">' + HTMLEntitiesEncode(lServerName) + '</div>' +
+      '</div>' +
+      '</div>';
+
+    // Body
+    Result := Result + '<div class="body">';
+
+    // Exception class
+    if not ClazzName.IsEmpty then
+    begin
+      Result := Result + '<div class="error-line">' +
+        '<div class="error-label">Exception:</div>' +
+        '<div class="error-value">' + HTMLEntitiesEncode(ClazzName) + '</div>' +
+        '</div>';
+    end;
+
+    // Message
+    if not Message.IsEmpty then
+    begin
+      Result := Result + '<div class="error-line">' +
+        '<div class="error-label">Message:</div>' +
+        '<div class="error-value">' + HTMLEntitiesEncode(Message) + '</div>' +
+        '</div>';
+    end;
+
+    // Detailed message
+    if not DetailedMessage.IsEmpty then
+    begin
+      Result := Result + '<div class="details-section">' +
+        '<div class="details-title">DETAILED MESSAGE</div>' +
+        '<div class="details-content">' + HTMLEntitiesEncode(DetailedMessage) + '</div>' +
+        '</div>';
+    end;
+
+    // Error code and items
+    if (AppErrorCode <> 0) or (Assigned(ErrorItems) and (Length(ErrorItems) > 0)) then
+    begin
+      Result := Result + '<div class="details-section">' +
+        '<div class="details-title">ADDITIONAL INFO';
       if AppErrorCode <> 0 then
-      begin
-        Result := Result + '<p>Application Error Code: ' + AppErrorCode.ToString + '</p>';
-      end;
+        Result := Result + ' <span class="badge">Error Code: ' + AppErrorCode.ToString + '</span>';
+      Result := Result + '</div>';
+
       if Assigned(ErrorItems) and (Length(ErrorItems) > 0) then
       begin
-        Result := Result + '<p>Error Items: <ul>' + sLineBreak;
+        Result := Result + '<ul class="error-items" style="list-style:none;padding:0;margin:0;">';
         for lErr in ErrorItems do
         begin
           Result := Result + '<li>' + HTMLEntitiesEncode(lErr) + '</li>';
         end;
-        Result := Result + '</ul></p>';
+        Result := Result + '</ul>';
       end;
       Result := Result + '</div>';
+    end;
+
+    Result := Result + '</div>'; // close body
+
+    // Footer
+    Result := Result + '<div class="footer">Powered by DelphiMVCFramework</div>';
   end;
 var
   lBody: string;
@@ -379,8 +576,13 @@ begin
     else
     begin
       lException := Exception(AObject);
-      lBody := EmitTitle(500) + sLineBreak +
-        EmitExceptionClass(lException.ClassName, lException.Message) + sLineBreak;
+      lBody := GetHTMLBody(
+        500,
+        lException.Message,
+        '',
+        lException.ClassName,
+        0,
+        nil);
     end;
   end;
 

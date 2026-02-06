@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 Not Found - DMVCFramework</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.container {
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  max-width: 50rem;
+  width: 100%;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+}
+.header {
+  background: #2d2d30;
+  border-bottom: 2px solid #007acc;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.status-code {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #f48771;
+  font-family: 'Consolas', monospace;
+}
+.status-info {
+  flex: 1;
+}
+.status-text {
+  font-size: 1.25rem;
+  color: #ce9178;
+  margin-bottom: 0.25rem;
+}
+.server-name {
+  font-size: 0.875rem;
+  color: #858585;
+}
+.body {
+  padding: 1.5rem;
+}
+.error-line {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #1e1e1e;
+  border-left: 3px solid #f48771;
+  border-radius: 4px;
+}
+.error-label {
+  color: #569cd6;
+  font-weight: bold;
+  min-width: 80px;
+}
+.error-value {
+  color: #ce9178;
+  flex: 1;
+}
+.details-section {
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.details-title {
+  color: #4ec9b0;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+.details-content {
+  color: #9cdcfe;
+  font-size: 0.875rem;
+}
+.error-items {
+  margin-top: 0.75rem;
+}
+.error-items li {
+  padding: 0.25rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+  color: #d7ba7d;
+}
+.error-items li:before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: #007acc;
+}
+.footer {
+  padding: 0.75rem 1.5rem;
+  background: #2d2d30;
+  border-top: 1px solid #3e3e42;
+  font-size: 0.75rem;
+  color: #858585;
+  text-align: center;
+}
+.badge {
+  display: inline-block;
+  background: #5a1d1d;
+  color: #f48771;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="status-code">404</div>
+    <div class="status-info">
+      <div class="status-text">Not Found</div>
+      <div class="server-name">DMVCFramework 3.2.2-nitrogen</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="error-line">
+      <div class="error-label">Exception:</div>
+      <div class="error-value">EMVCException</div>
+    </div>
+
+    <div class="error-line">
+      <div class="error-label">Message:</div>
+      <div class="error-value">The requested endpoint '/api/customers/999' does not exist on this server</div>
+    </div>
+
+    <div class="details-section">
+      <div class="details-title">DETAILED MESSAGE</div>
+      <div class="details-content">Route not found. Please check the API documentation for available endpoints.</div>
+    </div>
+
+    <div class="details-section">
+      <div class="details-title">ADDITIONAL INFO <span class="badge">Error Code: 1042</span></div>
+      <div class="error-items">
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li>Available routes start with /api/v1/</li>
+          <li>Check that the resource ID exists</li>
+          <li>Verify you have proper authentication</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Powered by DelphiMVCFramework | 2026-02-06 15:30:42</div>
+</div>
+</body>
+</html>
