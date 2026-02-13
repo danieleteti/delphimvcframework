@@ -73,6 +73,45 @@ begin
       ResetConsole;
       ClrScr;
       GotoXY(0,0);
+
+      // Test new WriteLine API and ConsoleTheme
+      WriteLn;
+      WriteLn('=== Testing New API (WriteLine and ConsoleTheme) ===');
+      WriteLn;
+
+      // Test WriteLine overloads
+      WriteLine('Test 1: Simple WriteLine (no color)');
+      WriteLine('Test 2: WriteLine with one color', Green);
+      WriteLine('Test 3: WriteLine with foreground and background', White, Blue);
+      WriteLn;
+
+      // Test ConsoleTheme - change global theme and show effect
+      WriteLn('Test 4: ConsoleTheme affects global drawing colors');
+      WriteLn('  - Drawing box with default theme (Cyan/White)...');
+      DrawSimpleBox('Default Theme', ['Line 1', 'Line 2'], 40);
+      WriteLn;
+      GetCh;
+
+      WriteLn('  - Changing theme colors to Yellow/Magenta...');
+      ConsoleTheme.TextColor := Yellow;
+      ConsoleTheme.DrawColor := Magenta;
+      ConsoleTheme.BoxStyle := bsDouble;
+      DrawSimpleBox('Custom Theme', ['Line 1', 'Line 2'], 40);
+      WriteLn;
+
+      WriteLine('All new API tests passed!', Green);
+      WriteLn;
+
+      // Reset theme to defaults
+      ConsoleTheme.TextColor := Cyan;
+      ConsoleTheme.DrawColor := White;
+      ConsoleTheme.BoxStyle := bsRounded;
+
+      GetCh;
+
+      ResetConsole;
+      ClrScr;
+      GotoXY(0,0);
     except
       on E: Exception do
         WriteLn(E.ClassName, ': ', E.Message);

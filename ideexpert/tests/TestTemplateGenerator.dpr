@@ -46,6 +46,7 @@ type
     program_ssv_webstencils = 'program.ssv.webstencils';
     program_ssv_mustache = 'program.ssv.mustache';
     program_type = 'program.type';
+    program_server_protocol = 'program.server.protocol';
     program_service_container_generate = 'program.service.container.generate';
     program_service_container_unit_name = 'program.service.container.unit_name';
     mustache_helpers_unit_name = 'mustache.helpers_unit_name';
@@ -95,6 +96,7 @@ type
     HTTP_CONSOLE = 'http.console';
     HTTPS_CONSOLE = 'https.console';
     FASTCGI_CONSOLE = 'fastcgi.console';
+    WINDOWS_SERVICE = 'windows.service';
   end;
 
   TTestCase = record
@@ -358,6 +360,7 @@ begin
   Result.B[TConfigKey.program_ssv_mustache] := False;
   Result.B['program.ssv.any'] := False;  // Will be set to True in specific test cases
   Result.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+  Result.S[TConfigKey.program_server_protocol] := 'http';  // http or https
   Result.B[TConfigKey.program_service_container_generate] := False;
   Result.S[TConfigKey.program_service_container_unit_name] := 'ServicesU';
 
@@ -447,12 +450,35 @@ begin
 
     AConfig.S['dmvc.version'] := 'v3.x';
 
-    // Generate program.dpr
-    // Note: We only generate the .dpr file. Delphi will automatically create
-    // the .dproj file when opening/compiling the project for the first time.
-    LogVerbose('Generating program.dpr...');
-    LSource := TTestTemplateEngine.Render('program.dpr.tpro', AConfig);
-    TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    // Set form references for Delphi (braces conflict with TemplatePro)
+    AConfig.S['webmodule_form_reference'] :=
+      '{' + AConfig.S[TConfigKey.webmodule_classname_short] + ': TWebModule}';
+    AConfig.S['service_form_reference'] :=
+      '{DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService}';
+
+    // Generate program file based on type
+    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      LogVerbose('Generating Windows Service program...');
+      LSource := TTestTemplateEngine.Render('program_service.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+
+      // Generate Service unit
+      LogVerbose('Generating ServiceU.pas...');
+      LSource := TTestTemplateEngine.Render('service.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
+
+      LogVerbose('Generating ServiceU.dfm...');
+      LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
+    end
+    else
+    begin
+      // Console/ISAPI/Apache/FastCGI
+      LogVerbose('Generating program.dpr...');
+      LSource := TTestTemplateEngine.Render('program.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    end;
 
     // Generate controller
     LogVerbose('Generating controller...');
@@ -904,6 +930,85 @@ begin
   LTestCase.Name := 'with_jwt';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // === Windows Service Tests ===
+
+  // Test 21: Windows Service HTTP Minimal
+  LTestCase.Name := 'winservice_http_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '8080';
+  ATestCases.Add(LTestCase);
+
+  // Test 22: Windows Service HTTPS
+  LTestCase.Name := 'winservice_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // Test 23: Windows Service HTTP with CRUD
+  LTestCase.Name := 'winservice_http_crud';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 24: Windows Service HTTPS with all middleware
+  LTestCase.Name := 'winservice_https_all_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_trace] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_etag] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_ratelimit] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 25: Windows Service with Memory Session
+  LTestCase.Name := 'winservice_memory_session';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_session_memory] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 26: Windows Service with ActiveRecord
+  LTestCase.Name := 'winservice_activerecord';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 27: Windows Service Full Featured
+  LTestCase.Name := 'winservice_full_featured';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  LTestCase.Config.B[TConfigKey.program_msheap] := True;
+  LTestCase.Config.B[TConfigKey.program_sqids] := True;
+  LTestCase.Config.B[TConfigKey.program_service_container_generate] := True;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.controller_action_filters_generate] := True;
+  LTestCase.Config.B[TConfigKey.controller_actions_profiling_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_session_memory] := True;
   ATestCases.Add(LTestCase);
 end;
 

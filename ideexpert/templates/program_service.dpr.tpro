@@ -1,0 +1,43 @@
+{{include "_license_header.tpro"}}
+program {{:program_name}};
+
+uses
+  Vcl.SvcMgr,
+  System.SysUtils,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  ServiceU in 'ServiceU.pas' {{:service_form_reference}},
+  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}}{{if controller_unit_name}},
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas'{{endif}}{{if entity_generate}},
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas'{{endif}}{{if jsonrpc_generate}},
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas'{{endif}}{{if program_service_container_generate}},
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas'{{endif}}{{if program_ssv_mustache}},
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_templatepro}},
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_webstencils}},
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas'{{endif}}{{if websocketserver_generate}},
+  {{:websocketserver_unit_name}} in '{{:websocketserver_unit_name}}.pas'{{endif}}{{if webmodule_middleware_activerecord}},
+  MVCFramework.ActiveRecord{{endif}};
+
+{$R *.RES}
+
+begin
+  // Windows 2003 Server requires StartServiceCtrlDispatcher to be
+  // called before CoRegisterClassObject, which can be called indirectly
+  // by Application.Initialize. TServiceApplication.DelayInitialize allows
+  // Application.Initialize to be called from TService.Main (after
+  // StartServiceCtrlDispatcher has been called).
+  //
+  // Delayed initialization of the Application object may affect
+  // events which then occur prior to initialization, such as
+  // TService.OnCreate. It is only recommended if the ServiceApplication
+  // registers a class object with OLE and is intended for use with
+  // Windows 2003 Server.
+  //
+  // Application.DelayInitialize := True;
+  //
+  if not Application.DelayInitialize or Application.Installing then
+    Application.Initialize;
+  Application.CreateForm(TDMVCFrameworkWindowsService, DMVCFrameworkWindowsService);
+  Application.Run;
+end.

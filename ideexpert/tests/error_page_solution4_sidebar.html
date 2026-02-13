@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 Not Found - DMVCFramework</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: #f5f5f5;
+  color: #2c3e50;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.container {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  max-width: 50rem;
+  width: 100%;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  display: flex;
+  overflow: hidden;
+}
+.sidebar {
+  background: linear-gradient(180deg, #005195 0%, #003A69 100%);
+  color: white;
+  padding: 1.5rem;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-right: 3px solid #003A69;
+}
+.status-code {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.status-text {
+  font-size: 1rem;
+  color: #bae6fd;
+  margin-bottom: 1.5rem;
+  font-weight: normal;
+}
+.sidebar-section {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+.sidebar-label {
+  font-size: 0.7rem;
+  color: #93c5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.sidebar-value {
+  font-size: 0.85rem;
+  color: #e0f2fe;
+  margin-bottom: 1rem;
+}
+.main-content {
+  flex: 1;
+  padding: 1.5rem;
+}
+.section {
+  margin-bottom: 1.25rem;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.section-icon {
+  font-size: 1.25rem;
+}
+.section-title {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: bold;
+}
+.section-content {
+  background: #f8fafc;
+  border-left: 3px solid #005195;
+  padding: 0.75rem;
+  border-radius: 0 4px 4px 0;
+}
+.exception-name {
+  color: #003A69;
+  font-weight: bold;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+.message-text {
+  color: #0369a1;
+  line-height: 1.6;
+}
+.details-text {
+  color: #475569;
+  font-size: 0.875rem;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.info-label {
+  color: #64748b;
+  font-weight: bold;
+}
+.info-value {
+  color: #0c4a6e;
+}
+.error-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.error-list li {
+  padding: 0.375rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+  color: #0c4a6e;
+  font-size: 0.875rem;
+}
+.error-list li:before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: #005195;
+  font-weight: bold;
+}
+.badge {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1e3a8a;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 1px solid #93c5fd;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Sidebar con status e metadata -->
+  <div class="sidebar">
+    <div class="status-code">404</div>
+    <div class="status-text">Not Found</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Server</div>
+      <div class="sidebar-value">DMVCFramework<br>3.2.2-nitrogen</div>
+
+      <div class="sidebar-label">Timestamp</div>
+      <div class="sidebar-value">2026-02-06<br>15:30:42</div>
+
+      <div class="sidebar-label">Error Code</div>
+      <div class="sidebar-value"><span class="badge">1042</span></div>
+    </div>
+  </div>
+
+  <!-- Main content area -->
+  <div class="main-content">
+    <!-- Exception -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">⚠️</span>
+        <span class="section-title">Exception</span>
+      </div>
+      <div class="section-content">
+        <div class="exception-name">EMVCException</div>
+      </div>
+    </div>
+
+    <!-- Message -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">💬</span>
+        <span class="section-title">Message</span>
+      </div>
+      <div class="section-content">
+        <div class="message-text">The requested endpoint '/api/customers/999' does not exist on this server</div>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <span class="section-title">Details</span>
+      </div>
+      <div class="section-content">
+        <div class="details-text">Route not found. Please check the API documentation for available endpoints.</div>
+      </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">ℹ️</span>
+        <span class="section-title">Additional Information</span>
+      </div>
+      <div class="section-content">
+        <ul class="error-list">
+          <li>Available routes start with /api/v1/</li>
+          <li>Check that the resource ID exists</li>
+          <li>Verify you have proper authentication</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

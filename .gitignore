@@ -174,3 +174,5 @@ nul
 /ideexpert/build_now.bat
 /ideexpert/build_wizard.bat
 /ideexpert/build_wizard2.bat
+/ideexpert/*.md
+/ideexpert/tests/*.md

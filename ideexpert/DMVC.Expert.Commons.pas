@@ -29,8 +29,7 @@ interface
 uses
   MVCFramework.Commons,
   System.SysUtils,
-  JsonDataObjects,
-  ToolsAPI;
+  JsonDataObjects;
 
 type
   IGenCommand = interface
@@ -122,9 +121,8 @@ type
       FASTCGI_CONSOLE = 'fastcgi.console';
       APACHE = 'apache';
       ISAPI = 'isapi';
+      WINDOWS_SERVICE = 'windows.service';
   end;
-
-procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
 
 implementation
 
@@ -138,20 +136,6 @@ begin
   if (not Model.Contains(Key)) or Model.S[Key].IsEmpty then begin
     raise Exception.CreateFmt('Required key "%s" not found or empty while processing %s', [Key, ClassName]);
   end;
-end;
-
-procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
-var
-  lDirName: string;
-  lFileName: string;
-  lFileExt: string;
-begin
-  lDirName := TPath.GetDirectoryName(IOTA.FileName);
-  lFileName := TPath.GetFileNameWithoutExtension(IOTA.FileName);
-  lFileExt := TPath.GetExtension(IOTA.FileName);
-  lFileName := FileNamePrefix;
-  //  IOTA.FileName := TPath.Combine(lDirName, lFileName + lFileExt);
-  //  IOTA.Refresh(False);
 end;
 
 end.

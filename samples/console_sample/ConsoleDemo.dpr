@@ -1,4 +1,4 @@
-﻿program ConsoleDemo;
+program ConsoleDemo;
 
 {$APPTYPE CONSOLE}
 
@@ -11,11 +11,13 @@ procedure ShowTableExample;
 var
   Headers: TStringArray;
   Data: TStringMatrix;
+  SelectedRow: Integer;
 begin
-  WriteHeader('Tables DEMO');
+  ClrScr;
+  WriteHeader('Tables Demo');
   WriteLn;
 
-  // Esempio tabella sviluppatori
+  // Example developer table
   SetLength(Headers, 4);
   Headers[0] := 'ID';
   Headers[1] := 'Name';
@@ -39,138 +41,188 @@ begin
   SetLength(Data[4], 4);
   Data[4][0] := '005'; Data[4][1] := 'Sara Gialli'; Data[4][2] := 'FastAPI'; Data[4][3] := 'Python';
 
-  WriteSimpleTable(Headers, Data);
-
+  WriteLine('Test 1: Static Table Display', Cyan);
   WriteLn;
-  WriteColoredTable(Headers, Data, Yellow, White);
+
+  // Simple table without title
+  WriteLine('  a) Simple table (no title):', White);
+  WriteLn;
+  Table(Headers, Data);
+  WriteLn;
+
+  // With title
+  WriteLine('  b) Table with title:', White);
+  WriteLn;
+  Table(Headers, Data, 'Development Team');
+  WriteLn;
+
+  WriteLine('Press ENTER to continue to interactive table...', Gray);
+  ReadLn;
+  ClrScr;
+
+  WriteLine('Test 2: Interactive Table (Menu-style selection)', Cyan);
+  WriteLn;
+  WriteLine('Use arrow keys to navigate, ENTER to select, ESC to cancel', Gray);
+  WriteLn;
+
+  // NEW: Interactive table with row selection!
+  SelectedRow := TableMenu('Select a Developer', Headers, Data);
+
+  if SelectedRow >= 0 then
+  begin
+    WriteSuccess(Format('You selected: %s - %s (%s)',
+      [Data[SelectedRow][1], Data[SelectedRow][2], Data[SelectedRow][3]]));
+  end
+  else
+    WriteWarning('Selection cancelled');
 end;
 
 procedure ShowProgressExample;
+var
+  P: IProgress;
+  I: Integer;
 begin
-  WriteHeader('Progress Bar DEMO');
+  ClrScr;
+  WriteHeader('Progress Bar Demo');
   WriteLn;
 
-  WriteInfo('Starting download simulation...');
+  WriteLine('Test 1: Determinate Progress', Cyan);
   WriteLn;
 
-  // Progress bar statico
-  WriteLineColored('Current Progress:', Cyan);
-  ShowSimpleProgressBar('Download', 75, 100, 40);
+  // NEW: Unified Progress API with interface
+  P := Progress('Downloading files', 100);
+  for I := 1 to 100 do
+  begin
+    P.Update(I);
+    Sleep(30);
+  end;
+  P := nil;  // Auto cleanup
   WriteLn;
   WriteLn;
 
-  // Progress animation
-  ShowProgressAnimation('Processing files', 25, 100);
+  WriteLine('Test 2: Indeterminate Spinner', Cyan);
   WriteLn;
 
-  // Loading spinner
-  ShowLoadingSpinner('Initializing system', 15);
-
-  WriteSuccess('All operations completed successfully!');
+  // NEW: Indeterminate progress (spinner)
+  P := Progress('Loading data');
+  for I := 1 to 50 do
+  begin
+    P.Update(I);  // Updates spinner animation
+    Sleep(50);
+  end;
+  P.Complete;
+  P := nil;
 end;
 
 procedure ShowBoxExample;
 var
   Content: TStringArray;
 begin
-  WriteHeader('Box and Layout DEMO');
+  ClrScr;
+  WriteHeader('Box and Layout Demo');
   WriteLn;
 
-  // Simple box
+  // NEW: Unified Box API - auto positioning, auto width
   SetLength(Content, 4);
   Content[0] := 'Server: ONLINE';
   Content[1] := 'Database: CONNECTED';
   Content[2] := 'Memory: 65%';
   Content[3] := 'CPU: 42%';
 
-  DrawSimpleBox('System Status', Content, 40);
+  Box('System Status', Content);
   WriteLn;
 
-  // Warning box
+  // Custom width
   SetLength(Content, 2);
   Content[0] := 'Cache server not responding';
   Content[1] := 'Check network connection';
 
-  DrawSimpleBox('WARNING', Content, 45);
+  Box('WARNING', Content, 50);
 end;
 
 procedure ShowMenuExample;
 var
-  MenuItems: TStringArray;
-  AdvancedItems: TMenuItemsArray;
+  MainMenuItems: TStringArray;
+  FileMenuItems: TStringArray;
   SelectedItem: Integer;
 begin
-  WriteHeader('Menu DEMO');
+  ClrScr;
+  WriteHeader('Menu Demo');
   WriteLn;
 
-  SetLength(MenuItems, 5);
-  MenuItems[0] := 'Start Server';
-  MenuItems[1] := 'Stop Server';
-  MenuItems[2] := 'View Logs';
-  MenuItems[3] := 'Settings';
-  MenuItems[4] := 'Exit';
+  // NEW: Unified Menu API - much simpler!
+  SetLength(MainMenuItems, 5);
+  MainMenuItems[0] := 'Start Server';
+  MainMenuItems[1] := 'Stop Server';
+  MainMenuItems[2] := 'View Logs';
+  MainMenuItems[3] := 'Settings';
+  MainMenuItems[4] := 'Exit';
 
-  // Static menu display
-  WriteLineColored('Static Menu Display:', White);
-  ShowSimpleMenu('Main Menu', MenuItems, 2); // Item 2 selected
+  WriteLine('Interactive Menu (try it!):', White);
   WriteLn;
 
-  // Interactive menu
-  WriteLineColored('Interactive Menu (try it!):', White);
-  SelectedItem := ShowInteractiveMenu('Main Menu', MenuItems, 0);
+  SelectedItem := Menu('Main Menu', MainMenuItems);
 
   if SelectedItem >= 0 then
-    WriteSuccess('You selected: ' + MenuItems[SelectedItem])
+    WriteSuccess('You selected: ' + MainMenuItems[SelectedItem])
   else
     WriteWarning('Menu cancelled');
 
   WriteLn;
+  WriteLn;
 
-  // Advanced menu with icons and disabled items
-  WriteLineColored('Advanced Menu with Icons (try it!):', White);
-  SetLength(AdvancedItems, 6);
+  // Advanced menu with default selection
+  SetLength(FileMenuItems, 4);
+  FileMenuItems[0] := 'New File';
+  FileMenuItems[1] := 'Open File';
+  FileMenuItems[2] := 'Save File';
+  FileMenuItems[3] := 'Exit';
 
-  // Using the helper function
-  AdvancedItems[0] := CreateMenuItem('New File', '+', True);
-  AdvancedItems[1] := CreateMenuItem('Open File', 'O', True);
-  AdvancedItems[2] := CreateMenuItem('Save File', 'S', False); // Disabled
-  AdvancedItems[3] := CreateMenuItem('Print', 'P', False); // Disabled
-  AdvancedItems[4] := CreateMenuItem('Settings', '*', True);
-  AdvancedItems[5] := CreateMenuItem('Exit', 'X', True);
-
-  SelectedItem := ShowAdvancedMenu('File Menu', AdvancedItems, 0, DarkGreen);
+  SelectedItem := Menu('File Menu', FileMenuItems, 2);  // Default to "Save File"
 
   if SelectedItem >= 0 then
-    WriteSuccess('You selected: ' + AdvancedItems[SelectedItem].Text)
+    WriteSuccess('You selected: ' + FileMenuItems[SelectedItem])
   else
     WriteWarning('Menu cancelled');
 end;
 
-procedure ShowListExample;
-var
-  Features: TStringArray;
-  Tasks: TStringArray;
+procedure ShowConfirmExample;
 begin
-  WriteHeader('Lists DEMO');
+  ClrScr;
+  WriteHeader('Confirm and Choose Demo');
   WriteLn;
 
-  // Feature list
-  SetLength(Features, 4);
-  Features[0] := 'Cross-platform console support';
-  Features[1] := 'ASCII-based tables and boxes';
-  Features[2] := 'Progress bars and animations';
-  Features[3] := 'Colorized output';
+  // NEW: Confirm API
+  WriteLine('Test 1: Confirm with default Yes', Cyan);
+  if Confirm('Do you want to continue?') then
+    WriteSuccess('User confirmed!')
+  else
+    WriteWarning('User declined');
 
-  WriteFormattedList('DMVCFramework Console Features:', Features, lsBullet);
   WriteLn;
 
-  // Task list
-  SetLength(Tasks, 3);
-  Tasks[0] := 'Initialize database connection';
-  Tasks[1] := 'Load configuration files';
-  Tasks[2] := 'Start web server';
+  // NEW: Confirm with default No
+  WriteLine('Test 2: Confirm with default No', Cyan);
+  if Confirm('Delete all files?', False) then
+    WriteSuccess('User confirmed deletion')
+  else
+    WriteInfo('Deletion cancelled');
 
-  WriteFormattedList('Startup Tasks:', Tasks, lsNumbered);
+  WriteLn;
+
+  // NEW: Choose API (quick choice without full menu)
+  WriteLine('Test 3: Quick choice', Cyan);
+  var Options: TStringArray;
+  SetLength(Options, 3);
+  Options[0] := 'Fast Mode';
+  Options[1] := 'Normal Mode';
+  Options[2] := 'Safe Mode';
+
+  var Choice := Choose('Select processing mode:', Options);
+  if Choice >= 0 then
+    WriteSuccess('You chose: ' + Options[Choice])
+  else
+    WriteWarning('No choice made');
 end;
 
 procedure ShowDashboardExample;
@@ -180,7 +232,8 @@ var
   MetricNames: TStringArray;
   MetricValues: TIntegerArray;
 begin
-  WriteHeader('Demo Dashboard');
+  ClrScr;
+  WriteHeader('Dashboard Demo');
   WriteLn;
 
   SetLength(ServerStatuses, 4);
@@ -208,85 +261,40 @@ begin
   ShowSystemDashboard('DMVC Server Status', ServerStatuses, ServerColors, MetricNames, MetricValues);
 end;
 
-procedure ShowUtilityExample;
+procedure ShowNewAPIFeatures;
 begin
-  WriteHeader('Demo Utility Functions');
+  ClrScr;
+  WriteHeader('New Simplified API Features');
   WriteLn;
 
-  WriteInfo('System initialization started');
-  WriteSuccess('Configuration loaded successfully');
-  WriteWarning('Cache server response time is high');
-  WriteError('Failed to connect to backup server');
+  WriteLine('The new API provides:', White);
   WriteLn;
 
-  WriteSeparator(50);
+  WriteLine('  1. Menu()     - One function instead of 3 (Simple/Interactive/Advanced)', Green);
+  WriteLine('  2. Table()    - Auto-sizing columns, simpler parameters', Green);
+  WriteLine('  3. Box()      - Auto-positioning, no manual width calculation', Green);
+  WriteLine('  4. Progress() - Interface with auto-cleanup, determinate/indeterminate', Green);
+  WriteLine('  5. Confirm()  - Quick yes/no prompts', Green);
+  WriteLine('  6. Choose()   - Quick single choice without full menu', Green);
+
+  WriteLn;
+  WriteLine('All functions use ConsoleTheme for consistent styling!', Yellow);
   WriteLn;
 
-  WriteAlignedText('Left aligned text', 50, taLeft);
-  WriteAlignedText('Center aligned text', 50, taCenter);
-  WriteAlignedText('Right aligned text', 50, taRight);
+  // Demo ConsoleTheme
+  WriteLine('Demo: Changing ConsoleTheme affects all output', Cyan);
   WriteLn;
 
-  WriteSeparator(50, '=');
-end;
+  ConsoleTheme.TextColor := Yellow;
+  ConsoleTheme.DrawColor := Magenta;
+  ConsoleTheme.BoxStyle := bsDouble;
 
-procedure ShowReportExample;
-var
-  Sections: TStringArray;
-  SectionContents: TStringMatrix;
-begin
-  WriteHeader('Demo Report');
+  Box('Custom Theme', ['This box uses', 'the modified theme!']);
 
-  SetLength(Sections, 3);
-  SetLength(SectionContents, 3);
-
-  Sections[0] := 'Performance Summary';
-  SetLength(SectionContents[0], 3);
-  SectionContents[0][0] := 'Average response time: 245ms';
-  SectionContents[0][1] := 'Total requests processed: 15,432';
-  SectionContents[0][2] := 'Error rate: 0.02%';
-
-  Sections[1] := 'System Resources';
-  SetLength(SectionContents[1], 4);
-  SectionContents[1][0] := 'CPU utilization: 68%';
-  SectionContents[1][1] := 'Memory usage: 4.2GB / 8GB';
-  SectionContents[1][2] := 'Disk space: 125GB / 500GB';
-  SectionContents[1][3] := 'Network throughput: 45 Mbps';
-
-  Sections[2] := 'Recommendations';
-  SetLength(SectionContents[2], 2);
-  SectionContents[2][0] := 'Consider increasing cache size';
-  SectionContents[2][1] := 'Schedule disk cleanup routine';
-
-  WriteReport('Daily System Report', Sections, SectionContents);
-end;
-
-procedure ShowStatusLineExample;
-var
-  Items: TStringArray;
-  Statuses: TStringArray;
-  Colors: TConsoleColorArray;
-begin
-  WriteHeader('Demo Status Line');
-  WriteLn;
-
-  SetLength(Items, 3);
-  SetLength(Statuses, 3);
-  SetLength(Colors, 3);
-
-  Items[0] := 'Web Server';
-  Statuses[0] := 'Running';
-  Colors[0] := Green;
-
-  Items[1] := 'Database';
-  Statuses[1] := 'Connected';
-  Colors[1] := Green;
-
-  Items[2] := 'Cache';
-  Statuses[2] := 'Disconnected';
-  Colors[2] := Red;
-
-  WriteStatusLine(Items, Statuses, Colors);
+  // Reset
+  ConsoleTheme.TextColor := Cyan;
+  ConsoleTheme.DrawColor := White;
+  ConsoleTheme.BoxStyle := bsRounded;
 end;
 
 begin
@@ -294,48 +302,56 @@ begin
     EnableUTF8Console;
     ClrScr;
 
-    WriteHeader('DMVCFramework Console Library Demo', 80);
+    WriteHeader('DMVCFramework Console Library - NEW SIMPLIFIED API', 80);
     WriteLn;
 
-    // Demo delle varie funzioni
+    // Demo all new features
     ShowTableExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
     ShowProgressExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
     ShowBoxExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
     ShowMenuExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
-    ShowListExample;
+    ShowConfirmExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
     ShowDashboardExample;
     WriteLn;
+    WriteLine('Press ENTER to continue...', Gray);
+    ReadLn;
 
-    ShowUtilityExample;
+    ShowNewAPIFeatures;
     WriteLn;
 
-    ShowStatusLineExample;
+    ClrScr;
+    WriteHeader('DEMO COMPLETED', 80);
     WriteLn;
-
-    ShowReportExample;
-
-    WriteHeader('DEMO TERMINATED', 80);
-    WriteLn;
-    WriteLineColored('Press ENTER to EXIT...', Gray);
+    WriteLine('Press ENTER to exit...', Gray);
     ReadLn;
 
   except
     on E: Exception do
     begin
       WriteLn;
-      WriteError('Errore durante l''esecuzione: ' + E.Message);
+      WriteError('Error during execution: ' + E.Message);
       WriteLn;
-      WriteLineColored('Premi INVIO per uscire...', Gray);
+      WriteLine('Press ENTER to exit...', Gray);
       ReadLn;
     end;
   end;
