@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users - OIDC Docker Sample</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0/css/bulma.min.css">
+</head>
+<body>
+  <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item has-text-weight-bold" href="/">OIDC Docker Sample</a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+         data-target="mainNavbar" onclick="document.getElementById('mainNavbar').classList.toggle('is-active');this.classList.toggle('is-active');">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+    <div id="mainNavbar" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/dashboard">Dashboard</a>
+        <a class="navbar-item is-active" href="/users">Users</a>
+      </div>
+      <div class="navbar-end">
+        <div class="navbar-item">
+          <span>{{:display_name}}</span>
+        </div>
+        <div class="navbar-item">
+          <a class="button is-light is-small" href="/auth/logout">Logout</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section">
+    <div class="container">
+      <h1 class="title">Users</h1>
+      <p class="subtitle">All registered users</p>
+
+      {{if users}}
+      <table class="table is-fullwidth is-hoverable is-striped">
+        <thead>
+          <tr>
+            <th>Display Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Last Login</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{for user in users}}
+          <tr>
+            <td>{{:user.displayname}}</td>
+            <td>{{:user.email}}</td>
+            <td>
+              <span class="tag {{if @(user.role = "admin")}}is-success{{else}}is-info{{endif}}">
+                {{:user.role}}
+              </span>
+            </td>
+            <td>{{:user.lastloginat}}</td>
+            <td>{{:user.createdat}}</td>
+          </tr>
+          {{endfor}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="has-text-centered py-6">
+        <p class="has-text-grey">No users found.</p>
+      </div>
+      {{endif}}
+
+      <a class="button" href="/dashboard">Back to Dashboard</a>
+    </div>
+  </section>
+</body>
+</html>

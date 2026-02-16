@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OIDC Middleware Sample</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 80px auto; padding: 0 20px; color: #333; }
+    h1 { margin-bottom: 8px; }
+    p { color: #666; line-height: 1.6; }
+    a.btn { display: inline-block; margin-top: 24px; padding: 12px 24px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; }
+    a.btn:hover { background: #1d4ed8; }
+    .logged-in { margin-top: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; }
+    .logged-in a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>OIDC Middleware Sample</h1>
+  <p>
+    This sample demonstrates the <code>MVCFramework.Middleware.OIDC</code> middleware
+    for OpenID Connect authentication in DMVCFramework applications.
+  </p>
+  <p>
+    Click the button below to log in with your OIDC provider. After authentication
+    you will be redirected to a protected dashboard page showing your identity claims.
+  </p>
+
+  {{if logged_in}}
+  <div class="logged-in">
+    You are already logged in. <a href="/dashboard">Go to Dashboard</a>
+  </div>
+  {{else}}
+  <a class="btn" href="/auth/login">Login with OIDC</a>
+  {{endif}}
+</body>
+</html>

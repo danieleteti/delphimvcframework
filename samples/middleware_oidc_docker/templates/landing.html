@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OIDC Docker Sample</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0/css/bulma.min.css">
+</head>
+<body>
+  <section class="hero is-primary is-fullheight">
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <h1 class="title is-2">OIDC Docker Sample</h1>
+        <p class="subtitle is-4">
+          DMVCFramework OIDC middleware with PostgreSQL user management
+        </p>
+        <p class="block">
+          This sample demonstrates OpenID Connect authentication with automatic
+          user provisioning, role-based access control, and Docker Compose deployment.
+        </p>
+        {{if logged_in}}
+        <a class="button is-light is-large" href="/dashboard">Go to Dashboard</a>
+        {{else}}
+        <a class="button is-light is-large" href="/auth/login">Login with OIDC</a>
+        {{endif}}
+      </div>
+    </div>
+  </section>
+</body>
+</html>
