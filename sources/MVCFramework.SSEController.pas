@@ -46,6 +46,25 @@ type
     /// </summary>
     procedure OnClientDisconnected(const AConnection: TSSEConnection); virtual;
     /// <summary>
+    /// Called periodically while the client is connected.
+    /// Override to check an external data source (database, file, queue, etc.)
+    /// and call AConnection.Send() when something has changed.
+    /// This is the main extension point for "notify on change" scenarios
+    /// where changes originate outside this process.
+    /// ANextIntervalMS: set to change the delay before the next OnInterval call.
+    /// Initialized to the value of Interval before each call, so the default
+    /// behavior is unchanged. Set a shorter value to poll faster when changes
+    /// are expected, or a longer value to back off when idle.
+    /// </summary>
+    procedure OnInterval(const AConnection: TSSEConnection;
+      var ANextIntervalMS: Integer); virtual;
+    /// <summary>
+    /// Default interval in milliseconds between OnInterval calls.
+    /// Default: 1000 (1 second). Override to customize.
+    /// OnInterval can further adjust this per-call via ANextIntervalMS.
+    /// </summary>
+    function Interval: Integer; virtual;
+    /// <summary>
     /// Heartbeat interval in milliseconds. Override to customize.
     /// Default: 15000 (15 seconds).
     /// A comment line ": heartbeat" is sent at this interval to keep
@@ -106,6 +125,18 @@ begin
   // Override in descendants
 end;
 
+procedure TMVCSSEController.OnInterval(const AConnection: TSSEConnection;
+  var ANextIntervalMS: Integer);
+begin
+  // Override in descendants to check external data sources.
+  // Modify ANextIntervalMS to change the delay before the next call.
+end;
+
+function TMVCSSEController.Interval: Integer;
+begin
+  Result := TMVCConstants.SSE_INTERVAL_DEFAULT;
+end;
+
 function TMVCSSEController.HeartbeatInterval: Integer;
 begin
   Result := TMVCConstants.SSE_HEARTBEAT_DEFAULT;
@@ -133,14 +164,52 @@ var
   LConnection: TSSEConnection;
   LChannel: string;
   LEncoding: IIdTextEncoding;
-  LItems: TArray<TSSEQueueItem>;
-  LItem: TSSEQueueItem;
-  LWaitResult: TWaitResult;
   LLastHeartbeat: Cardinal;
   LNow: Cardinal;
-  LDisconnectRequested: Boolean;
-  LDataLines: TArray<string>;
-  LLine: string;
+  LNextInterval: Integer;
+  LWaitResult: TWaitResult;
+
+  procedure FlushQueue;
+  var
+    LItems: TArray<TSSEQueueItem>;
+    LItem: TSSEQueueItem;
+    LDataLines: TArray<string>;
+    LLine: string;
+  begin
+    LItems := LConnection.DequeueAll;
+    if Length(LItems) = 0 then
+      Exit;
+    LIOHandler.WriteBufferOpen;
+    try
+      for LItem in LItems do
+      begin
+        case LItem.Kind of
+          ssMessage:
+          begin
+            if not LItem.Message.Id.IsEmpty then
+            begin
+              LIOHandler.Write('id: ' + LItem.Message.Id + LF, LEncoding);
+              LConnection.LastEventId := LItem.Message.Id;
+            end;
+            if not LItem.Message.Event.IsEmpty then
+              LIOHandler.Write('event: ' + LItem.Message.Event + LF, LEncoding);
+            LDataLines := LItem.Message.Data.Split([#10]);
+            for LLine in LDataLines do
+              LIOHandler.Write('data: ' + LLine + LF, LEncoding);
+            LIOHandler.Write(LF, LEncoding);
+          end;
+          ssComment:
+            LIOHandler.Write(': ' + LItem.Comment + LF + LF, LEncoding);
+          ssDisconnect:
+            LConnection.MarkDisconnected;
+        end;
+      end;
+    finally
+      LIOHandler.WriteBufferClose;
+    end;
+    LLastHeartbeat := TThread.GetTickCount;
+  end;
+
 begin
   inherited;
   if not (Context.Response.RawWebResponse is TIdHTTPAppResponse) then
@@ -152,7 +221,7 @@ begin
   LEncoding := IndyTextEncoding(Charset);
   LChannel := ChannelName;
 
-  // Write HTTP headers (HTTP/1.1 requires CRLF for header lines)
+  // Write HTTP headers
   LIOHandler.WriteBufferOpen;
   try
     LIOHandler.Write('HTTP/1.1 200 OK' + CRLF, LEncoding);
@@ -160,18 +229,14 @@ begin
     LIOHandler.Write('Cache-Control: no-cache' + CRLF, LEncoding);
     LIOHandler.Write('Connection: keep-alive' + CRLF, LEncoding);
     LIOHandler.Write('X-Accel-Buffering: no' + CRLF, LEncoding);
-    LIOHandler.Write(CRLF, LEncoding); // End of headers
+    LIOHandler.Write(CRLF, LEncoding);
   finally
     LIOHandler.WriteBufferClose;
   end;
 
-  // Send retry directive (once)
   LIOHandler.Write('retry: ' + IntToStr(RetryTimeout) + LF + LF, LEncoding);
-
-  // Send initial comment to flush proxy buffers
   LIOHandler.Write(': ok' + LF + LF, LEncoding);
 
-  // Create connection and register with broker
   LConnection := TSSEConnection.Create(TGUID.NewGuid.ToString);
   try
     LConnection.LastEventId := Context.Request.Headers[TMVCConstants.SSE_LAST_EVENT_ID].Trim;
@@ -180,64 +245,35 @@ begin
       OnClientConnected(LConnection);
       try
         LLastHeartbeat := TThread.GetTickCount;
-        LDisconnectRequested := False;
+        LNextInterval := Interval;
 
         while LRawContext.Connection.Connected
           and LConnection.IsConnected
-          and (not IsShuttingDown)
-          and (not LDisconnectRequested) do
+          and (not IsShuttingDown) do
         begin
-          LWaitResult := LConnection.WaitForData(1000);
+          // 1. Wait for broker messages or timeout
+          LWaitResult := LConnection.WaitForData(LNextInterval);
 
-          if LWaitResult = wrSignaled then
+          // 2. Flush any broker-pushed messages
+          FlushQueue;
+
+          // 3. On timeout, call OnInterval and flush its messages
+          if LWaitResult = wrTimeout then
           begin
-            LItems := LConnection.DequeueAll;
-            if Length(LItems) > 0 then
-            begin
-              LIOHandler.WriteBufferOpen;
-              try
-                for LItem in LItems do
-                begin
-                  case LItem.Kind of
-                    ssMessage:
-                    begin
-                      if not LItem.Message.Id.IsEmpty then
-                      begin
-                        LIOHandler.Write('id: ' + LItem.Message.Id + LF, LEncoding);
-                        LConnection.LastEventId := LItem.Message.Id;
-                      end;
-                      if not LItem.Message.Event.IsEmpty then
-                        LIOHandler.Write('event: ' + LItem.Message.Event + LF, LEncoding);
-                      // Handle multiline data: each line gets its own "data: " prefix
-                      LDataLines := LItem.Message.Data.Split([#10]);
-                      for LLine in LDataLines do
-                        LIOHandler.Write('data: ' + LLine + LF, LEncoding);
-                      LIOHandler.Write(LF, LEncoding); // End of message
-                    end;
-                    ssComment:
-                      LIOHandler.Write(': ' + LItem.Comment + LF + LF, LEncoding);
-                    ssDisconnect:
-                      LDisconnectRequested := True;
-                  end;
-                end;
-              finally
-                LIOHandler.WriteBufferClose;
-              end;
-              LLastHeartbeat := TThread.GetTickCount;
-            end;
-          end
-          else
+            LNextInterval := Interval;
+            OnInterval(LConnection, LNextInterval);
+            FlushQueue;
+          end;
+
+          // 4. Heartbeat if needed
+          LNow := TThread.GetTickCount;
+          if (LNow - LLastHeartbeat) >= Cardinal(HeartbeatInterval) then
           begin
-            // Timeout - check if heartbeat is needed
-            LNow := TThread.GetTickCount;
-            if (LNow - LLastHeartbeat) >= Cardinal(HeartbeatInterval) then
-            begin
-              try
-                LIOHandler.Write(': heartbeat' + LF + LF, LEncoding);
-                LLastHeartbeat := LNow;
-              except
-                Break; // Connection lost
-              end;
+            try
+              LIOHandler.Write(': heartbeat' + LF + LF, LEncoding);
+              LLastHeartbeat := LNow;
+            except
+              Break;
             end;
           end;
         end;

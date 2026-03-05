@@ -27,7 +27,6 @@ implementation
 
 uses
   SSEControllerU,
-  StorageU,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
   MVCFramework.Middleware.CORS;
@@ -57,13 +56,10 @@ begin
     'www',
     'index.html'
     ));
-
-  StartStockPriceGenerator;
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
 begin
-  StopStockPriceGenerator;
   FMVC.Free;
 end;
 

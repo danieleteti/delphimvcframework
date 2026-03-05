@@ -118,7 +118,6 @@
             <Form>MyWebModule</Form>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="StorageU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

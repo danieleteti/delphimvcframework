@@ -1,9 +1,9 @@
 unit WebModuleU;
 
-
 interface
 
-uses System.SysUtils,
+uses
+  System.SysUtils,
   System.Classes,
   Web.HTTPApp,
   MVCFramework;
@@ -35,26 +35,21 @@ begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // default content-type
       Config[TMVCConfigKey.DefaultContentType] :=
         TMVCConstants.DEFAULT_CONTENT_TYPE;
-      // default content charset
       Config[TMVCConfigKey.DefaultContentCharset] :=
         TMVCConstants.DEFAULT_CONTENT_CHARSET;
-      // unhandled actions are permitted?
       Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
-      // default view file extension
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
-      // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TStatusController);
+  FMVC.AddController(TStatusSSEController);
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/static', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
+    '/static',
+    ExtractFilePath(GetModuleName(HInstance)) + '\www',
+    'index.html'
     ));
 end;
 
@@ -64,4 +59,3 @@ begin
 end;
 
 end.
-

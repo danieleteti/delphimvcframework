@@ -1,184 +1,765 @@
 <!doctype html>
-<html>
-
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Server Sent Events DelphiMVCFramework Example (INDY Based Web Server) - Stock Tickets</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DMVC Live Ticker — Server Sent Events</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@200;300;400;600;700&display=swap');
 
-    <style media="screen" type="text/css">
+        :root {
+            --bg-deep: #06080c;
+            --bg-card: #0c1017;
+            --bg-card-hover: #111820;
+            --border: #1a2332;
+            --border-glow: #1e3a5f;
+            --text-primary: #e8edf3;
+            --text-secondary: #5a6a7e;
+            --text-muted: #3a4656;
+            --accent-cyan: #00d4ff;
+            --accent-cyan-dim: #00d4ff22;
+            --gain: #00e676;
+            --gain-bg: #00e67612;
+            --gain-glow: #00e67633;
+            --loss: #ff3d71;
+            --loss-bg: #ff3d7112;
+            --loss-glow: #ff3d7133;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --sans: 'Outfit', system-ui, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: "Verdana", Tahoma, serif;
-        }		
+            font-family: var(--sans);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-        H1 {
+        /* === BACKGROUND ATMOSPHERE === */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, #00d4ff08 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, #1a0a3a18 0%, transparent 50%),
+                radial-gradient(ellipse 40% 30% at 10% 60%, #00e67606 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Subtle grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+            mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 70%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 50px 30px 80px;
+        }
+
+        /* === HEADER === */
+        header {
             text-align: center;
-            font-size: 150%;
             margin-bottom: 60px;
+            animation: headerReveal 1s ease-out;
         }
-        
-        H2 {
-            text-align: center;
-            font-size: 125%;
-            margin-bottom: 15px;
+
+        @keyframes headerReveal {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
-        DIV#quotes {
-            margin: 10px auto 80px auto;
-            font-size: 140%;
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            background: var(--bg-card);
         }
-        
-        DIV.quote {
-            margin: 5px auto;
-            width: 250px;
-            font-size: 100%;
+
+        .badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            animation: pulse 2s ease-in-out infinite;
         }
-        
-        DIV.name {
-            display: inline-block;
-            width: 100px;
-            padding: 3px;
+
+        .badge.offline .dot {
+            background: var(--loss);
+            box-shadow: 0 0 8px var(--loss);
         }
-        
-        DIV.price {
-            display: inline-block;
-            width: 100px;
-            padding: 3px;
-            text-align: right;
-            transition: all 0.2s ease-out;
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
-        
-        DIV#log {
-            margin: 10px auto;
-            width: 600px;
-            height: 200px;
-            background: gainsboro;
-            padding: 5px;
-            overflow-y: scroll;
+
+        h1 {
+            font-family: var(--sans);
+            font-size: clamp(36px, 5vw, 52px);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        DIV#notSupported {
+
+        .subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 0.01em;
+        }
+
+        .subtitle strong {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+
+        /* === STOCK CARDS === */
+        .stocks-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .stock-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 26px;
+            transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(16px);
+            animation: cardReveal 0.6s ease-out forwards;
+        }
+
+        .stock-card:nth-child(1) { animation-delay: 0.15s; }
+        .stock-card:nth-child(2) { animation-delay: 0.25s; }
+        .stock-card:nth-child(3) { animation-delay: 0.35s; }
+        .stock-card:nth-child(4) { animation-delay: 0.45s; }
+
+        @keyframes cardReveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stock-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+        }
+
+        /* Flash overlay on update */
+        .stock-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .stock-card.flash-up::after {
+            background: linear-gradient(135deg, var(--gain-bg), transparent 60%);
+            border: 1px solid var(--gain-glow);
+            opacity: 1;
+        }
+
+        .stock-card.flash-down::after {
+            background: linear-gradient(135deg, var(--loss-bg), transparent 60%);
+            border: 1px solid var(--loss-glow);
+            opacity: 1;
+        }
+
+        .stock-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .stock-symbol {
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--text-primary);
+        }
+
+        .stock-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--mono);
+            border: 1px solid var(--border);
+            background: var(--bg-deep);
+            color: var(--accent-cyan);
+        }
+
+        .stock-arrow {
+            font-size: 12px;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .stock-arrow.up { color: var(--gain); opacity: 1; }
+        .stock-arrow.down { color: var(--loss); opacity: 1; }
+
+        .stock-price {
+            font-family: var(--mono);
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+            min-height: 40px;
+        }
+
+        .stock-price.up { color: var(--gain); }
+        .stock-price.down { color: var(--loss); }
+
+        .stock-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Sparkline canvas */
+        .sparkline-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .sparkline-container canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* === CONTROLS === */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 50px;
+            opacity: 0;
+            animation: cardReveal 0.6s ease-out 0.55s forwards;
+        }
+
+        .btn {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 12px 28px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 20px var(--accent-cyan-dim);
+        }
+
+        .btn.active {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: var(--accent-cyan-dim);
+        }
+
+        /* === INFO SECTION === */
+        .info-section {
+            border-top: 1px solid var(--border);
+            padding-top: 40px;
+            opacity: 0;
+            animation: cardReveal 0.6s ease-out 0.65s forwards;
+        }
+
+        .info-section h2 {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .info-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            max-width: 680px;
+        }
+
+        .info-text code {
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 5px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--accent-cyan);
+        }
+
+        .tech-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .tech-pill {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        /* === NOT SUPPORTED === */
+        #notSupported {
             display: none;
-            margin: 10px auto;
             text-align: center;
-            color: red;
-            font-size: 150%;
+            padding: 40px;
+            color: var(--loss);
+            font-size: 16px;
+            border: 1px solid var(--loss-glow);
+            border-radius: 16px;
+            background: var(--loss-bg);
+            margin-bottom: 40px;
         }
-        
-        P.hint {
-            width: 600px;
-            margin: 10px auto;
-            text-align: justify;
-            text-indent: 20px;
-            line-height: 135%;
+
+        #notSupported a {
+            color: var(--accent-cyan);
+        }
+
+        /* === DISCONNECT OVERLAY === */
+        .disconnect-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(6, 8, 12, 0.85);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            animation: overlayIn 0.3s ease-out;
+        }
+
+        .disconnect-overlay.visible {
+            display: flex;
+        }
+
+        @keyframes overlayIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .disconnect-box {
+            text-align: center;
+            padding: 48px 56px;
+            background: var(--bg-card);
+            border: 1px solid var(--loss-glow);
+            border-radius: 20px;
+            box-shadow: 0 0 60px rgba(255, 61, 113, 0.08);
+            animation: boxIn 0.4s cubic-bezier(0.23, 1, 0.32, 1) 0.1s both;
+        }
+
+        @keyframes boxIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .disconnect-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--loss-bg);
+            border: 1px solid var(--loss-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 24px;
+        }
+
+        .disconnect-box h3 {
+            font-family: var(--sans);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .disconnect-box p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .disconnect-box .btn {
+            border-color: var(--loss-glow);
+            color: var(--loss);
+        }
+
+        .disconnect-box .btn:hover {
+            border-color: var(--loss);
+            background: var(--loss-bg);
+            box-shadow: 0 0 20px var(--loss-glow);
+        }
+
+        .reconnect-timer {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .reconnect-timer strong {
+            color: var(--accent-cyan);
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 600px) {
+            .stocks-grid { grid-template-columns: 1fr; }
+            .container { padding: 30px 16px 60px; }
+            .stock-price { font-size: 26px; }
         }
     </style>
-
-    <script type="text/javascript">
-		function start_updates() {
-            if (!!window.EventSource) {
-								//can be also local. We use a global var to allow to be stopped from outside.
-                window.source = new EventSource("/stocks");
-
-                // //this is a listener for a generic "message"
-                // source.addEventListener("message", function(e) {
-                //     console.log(e);
-                //     updateQuote(e.data);
-                //     logMessage(e);
-                // }, false);
-
-                //this is a listener for a specific message named "stockupdate"
-                source.addEventListener("stockupdate", function(e) {
-                    console.log(e);
-                    updateQuote(e.data);
-                }, false);
-
-                source.addEventListener("open", function(e) {
-                    console.log(e);
-                }, false);
-
-                source.addEventListener("error", function(e) {
-                    console.log(e);
-                    if (e.readyState == EventSource.CLOSED) {
-                        logMessage("CLOSED");
-                    }
-                }, false);
-            } else {
-                document.getElementById("notSupported").style.display = "block";
-            }
-        }
-
-        window.onload = start_updates; 
-
-        function updateQuote(data) {
-            var stock_data = JSON.parse(data);
-            var stock_name = stock_data.stock;
-            var stock_value = parseFloat(Math.round(stock_data.value * 100) / 100).toFixed(2);
-            var el = document.getElementById("t_" + stock_name);
-            var old_stock_value = el.innerHTML;
-            el.innerHTML = stock_value;
-            if (parseFloat(old_stock_value) < parseFloat(stock_value)) {
-                el.style.backgroundColor = "lightgreen";
-            } else {
-                el.style.backgroundColor = "tomato";
-            }
-            window.setTimeout(function clearBackground() {
-                el.style.backgroundColor = "white";
-            }, 500);
-        }
-
-				function toggle_updates(){
-					if (source){
-						source.close();
-						source = null;
-					} else {
-						start_updates();
-					}
-				}
-    </script>
-
 </head>
 
 <body>
 
-    <h1>Server Sent Events DelphiMVCFramework Example</h1>
-	<h2>for INDY based servers</h2>
-	<br/>
+<div class="container">
+
+    <header>
+        <div class="badge" id="statusBadge">
+            <span class="dot"></span>
+            <span id="statusText">Live Feed</span>
+        </div>
+        <h1>Stock Ticker</h1>
+        <p class="subtitle">Real-time prices via <strong>Server-Sent Events</strong> &mdash; powered by DelphiMVCFramework</p>
+    </header>
 
     <div id="notSupported">
-        Your browser does not support Server Sent Events. Please use <a href="https://www.mozilla.org/firefox/new/">Firefox</a> or <a href="https://www.google.com/chrome/browser">Google Chrome</a>.
+        Your browser does not support Server-Sent Events.<br/>
+        Please use <a href="https://www.mozilla.org/firefox/new/">Firefox</a> or
+        <a href="https://www.google.com/chrome/browser">Chrome</a>.
     </div>
 
-    <p class="hint">
-        This is a simple Server Sent Events (SSE) example using DelphiMVCFramework that updates stock prices when market moves. Data source is predefined array with titles. These is random delay between 500 msec and 1 sec between each event.
-    </p>
-
-    <h2>Quotes</h2>
-
-    <div id="quotes">
-        <div class="quote">
-            <div class="name">IBM</div>
-            <div class="price" id="t_IBM">0</div>
-        </div>
-        <div class="quote">
-            <div class="name">AAPL</div>
-            <div class="price" id="t_AAPL">0</div>
-        </div>
-        <div class="quote">
-            <div class="name">GOOG</div>
-            <div class="price" id="t_GOOG">0</div>
-        </div>
-        <div class="quote">
-            <div class="name">MSFT</div>
-            <div class="price" id="t_MSFT">0</div>
+    <div class="stocks-grid" id="quotes">
+        <div class="stock-card" id="card_IBM">
+            <div class="stock-header">
+                <div class="stock-icon">I</div>
+                <div>
+                    <span class="stock-symbol">IBM</span>
+                    <span class="stock-arrow" id="arrow_IBM"></span>
+                </div>
+            </div>
+            <div class="stock-price" id="t_IBM">&mdash;</div>
+            <div class="stock-label">Intl Business Machines</div>
+            <div class="sparkline-container"><canvas id="spark_IBM"></canvas></div>
         </div>
 
-        <div class="quote">
-			<button onclick="toggle_updates()">Toggle Updates</button>
+        <div class="stock-card" id="card_AAPL">
+            <div class="stock-header">
+                <div class="stock-icon">A</div>
+                <div>
+                    <span class="stock-symbol">AAPL</span>
+                    <span class="stock-arrow" id="arrow_AAPL"></span>
+                </div>
+            </div>
+            <div class="stock-price" id="t_AAPL">&mdash;</div>
+            <div class="stock-label">Apple Inc.</div>
+            <div class="sparkline-container"><canvas id="spark_AAPL"></canvas></div>
         </div>
-				
+
+        <div class="stock-card" id="card_GOOG">
+            <div class="stock-header">
+                <div class="stock-icon">G</div>
+                <div>
+                    <span class="stock-symbol">GOOG</span>
+                    <span class="stock-arrow" id="arrow_GOOG"></span>
+                </div>
+            </div>
+            <div class="stock-price" id="t_GOOG">&mdash;</div>
+            <div class="stock-label">Alphabet Inc.</div>
+            <div class="sparkline-container"><canvas id="spark_GOOG"></canvas></div>
+        </div>
+
+        <div class="stock-card" id="card_MSFT">
+            <div class="stock-header">
+                <div class="stock-icon">M</div>
+                <div>
+                    <span class="stock-symbol">MSFT</span>
+                    <span class="stock-arrow" id="arrow_MSFT"></span>
+                </div>
+            </div>
+            <div class="stock-price" id="t_MSFT">&mdash;</div>
+            <div class="stock-label">Microsoft Corp.</div>
+            <div class="sparkline-container"><canvas id="spark_MSFT"></canvas></div>
+        </div>
     </div>
 
+    <div class="controls">
+        <button class="btn active" id="toggleBtn" onclick="toggle_updates()">Pause Feed</button>
+    </div>
+
+    <div class="info-section">
+        <h2>How it works</h2>
+        <p class="info-text">
+            This dashboard receives real-time stock price updates through a persistent
+            <code>EventSource</code> connection to the <code>/stocks</code> endpoint.
+            The server uses <code>OnInterval</code> to generate price data at adaptive intervals
+            and push <code>stockupdate</code> events to every connected client.
+            No polling. No WebSockets. Just the SSE standard.
+        </p>
+        <div class="tech-pills">
+            <span class="tech-pill">SSE</span>
+            <span class="tech-pill">DelphiMVCFramework</span>
+            <span class="tech-pill">Indy HTTP</span>
+            <span class="tech-pill">OnInterval</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="disconnect-overlay" id="disconnectOverlay">
+    <div class="disconnect-box">
+        <div class="disconnect-icon">&#x26A0;</div>
+        <h3>Connection Lost</h3>
+        <p>The server closed the SSE stream.<br/>It may have been shut down or restarted.</p>
+        <p class="reconnect-timer" id="reconnectTimer">Reconnecting in <strong id="countdown">5</strong>s...</p>
+    </div>
+</div>
+
+<script>
+    // Sparkline history per stock
+    const history = { IBM: [], AAPL: [], GOOG: [], MSFT: [] };
+    const MAX_POINTS = 40;
+
+    function drawSparkline(symbol) {
+        const canvas = document.getElementById('spark_' + symbol);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const data = history[symbol];
+        if (data.length < 2) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        const w = rect.width, h = rect.height;
+        const min = Math.min(...data) - 1;
+        const max = Math.max(...data) + 1;
+        const range = max - min || 1;
+
+        const isUp = data[data.length - 1] >= data[data.length - 2];
+        const color = isUp ? '#00e676' : '#ff3d71';
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.beginPath();
+        for (let i = 0; i < data.length; i++) {
+            const x = (i / (data.length - 1)) * w;
+            const y = h - ((data[i] - min) / range) * h * 0.85;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Fill under line
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, color + '18');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fill();
+    }
+
+    function start_updates() {
+        if (!!window.EventSource) {
+            window.source = new EventSource("/stocks");
+
+            source.addEventListener("stockupdate", function(e) {
+                updateQuote(e.data);
+            }, false);
+
+            source.addEventListener("open", function(e) {
+                document.getElementById('statusBadge').classList.remove('offline');
+                document.getElementById('statusText').textContent = 'Live Feed';
+                document.getElementById('toggleBtn').textContent = 'Pause Feed';
+                document.getElementById('toggleBtn').classList.add('active');
+            }, false);
+
+            source.addEventListener("error", function(e) {
+                document.getElementById('statusBadge').classList.add('offline');
+                document.getElementById('statusText').textContent = 'Disconnected';
+                source.close();
+                source = null;
+                document.getElementById('toggleBtn').textContent = 'Resume Feed';
+                document.getElementById('toggleBtn').classList.remove('active');
+                showDisconnectOverlay();
+            }, false);
+        } else {
+            document.getElementById("notSupported").style.display = "block";
+        }
+    }
+
+    window.onload = start_updates;
+
+    function updateQuote(data) {
+        var stock_data = JSON.parse(data);
+        var stock_name = stock_data.stock;
+        var stock_value = parseFloat(Math.round(stock_data.value * 100) / 100).toFixed(2);
+        var el = document.getElementById("t_" + stock_name);
+        var card = document.getElementById("card_" + stock_name);
+        var arrow = document.getElementById("arrow_" + stock_name);
+        var old_stock_value = el.getAttribute('data-value') || '0';
+
+        el.setAttribute('data-value', stock_value);
+        el.innerHTML = '$' + stock_value;
+
+        // Track history for sparkline
+        history[stock_name].push(parseFloat(stock_value));
+        if (history[stock_name].length > MAX_POINTS)
+            history[stock_name].shift();
+        drawSparkline(stock_name);
+
+        // Direction
+        var isUp = parseFloat(old_stock_value) < parseFloat(stock_value);
+        var isDown = parseFloat(old_stock_value) > parseFloat(stock_value);
+
+        // Color the price
+        el.classList.remove('up', 'down');
+        if (isUp) el.classList.add('up');
+        else if (isDown) el.classList.add('down');
+
+        // Arrow indicator
+        arrow.classList.remove('up', 'down');
+        if (isUp) { arrow.textContent = '\u25B2'; arrow.classList.add('up'); }
+        else if (isDown) { arrow.textContent = '\u25BC'; arrow.classList.add('down'); }
+
+        // Flash card
+        card.classList.remove('flash-up', 'flash-down');
+        void card.offsetWidth; // force reflow
+        if (isUp) card.classList.add('flash-up');
+        else if (isDown) card.classList.add('flash-down');
+
+        setTimeout(function() {
+            card.classList.remove('flash-up', 'flash-down');
+            el.classList.remove('up', 'down');
+        }, 800);
+    }
+
+    var reconnectTimer = null;
+
+    function showDisconnectOverlay() {
+        document.getElementById('disconnectOverlay').classList.add('visible');
+        scheduleReconnect(5);
+    }
+
+    function hideDisconnectOverlay() {
+        if (reconnectTimer) { clearInterval(reconnectTimer); reconnectTimer = null; }
+        document.getElementById('disconnectOverlay').classList.remove('visible');
+    }
+
+    function scheduleReconnect(seconds) {
+        var remaining = seconds;
+        document.getElementById('countdown').textContent = remaining;
+        if (reconnectTimer) clearInterval(reconnectTimer);
+        reconnectTimer = setInterval(function() {
+            remaining--;
+            document.getElementById('countdown').textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(reconnectTimer);
+                reconnectTimer = null;
+                reconnect();
+            }
+        }, 1000);
+    }
+
+    function reconnect() {
+        hideDisconnectOverlay();
+        start_updates();
+    }
+
+    function toggle_updates() {
+        if (source) {
+            source.close();
+            source = null;
+            document.getElementById('statusBadge').classList.add('offline');
+            document.getElementById('statusText').textContent = 'Paused';
+            document.getElementById('toggleBtn').textContent = 'Resume Feed';
+            document.getElementById('toggleBtn').classList.remove('active');
+        } else {
+            start_updates();
+        }
+    }
+</script>
 
 </body>
-
 </html>

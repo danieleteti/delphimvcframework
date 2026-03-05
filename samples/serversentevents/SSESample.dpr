@@ -18,8 +18,7 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.SSE in '..\..\sources\MVCFramework.SSE.pas',
   SSEControllerU in 'SSEControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
-  StorageU in 'StorageU.pas';
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
 
 {$R *.res}
 

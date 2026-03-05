@@ -16,6 +16,7 @@ uses
   WinAPI.Windows,
   WinAPI.ShellAPI,
 {$ENDIF}
+  MVCFramework.SSE in '..\..\sources\MVCFramework.SSE.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
   SysConstantsU in 'SysConstantsU.pas',
   MainDMU in 'MainDMU.pas' {dmMain: TDataModule} ,

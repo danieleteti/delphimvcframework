@@ -6,7 +6,7 @@
         <Projects Include="SSEClientViewer.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="SSEIndyBasedSample.dproj">
+        <Projects Include="SSEIndyBasedServer.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -26,23 +26,23 @@
     <Target Name="SSEClientViewer:Make">
         <MSBuild Projects="SSEClientViewer.dproj" Targets="Make"/>
     </Target>
-    <Target Name="SSEIndyBasedSample">
-        <MSBuild Projects="SSEIndyBasedSample.dproj"/>
+    <Target Name="SSEIndyBasedServer">
+        <MSBuild Projects="SSEIndyBasedServer.dproj"/>
     </Target>
-    <Target Name="SSEIndyBasedSample:Clean">
-        <MSBuild Projects="SSEIndyBasedSample.dproj" Targets="Clean"/>
+    <Target Name="SSEIndyBasedServer:Clean">
+        <MSBuild Projects="SSEIndyBasedServer.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="SSEIndyBasedSample:Make">
-        <MSBuild Projects="SSEIndyBasedSample.dproj" Targets="Make"/>
+    <Target Name="SSEIndyBasedServer:Make">
+        <MSBuild Projects="SSEIndyBasedServer.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="SSEClientViewer;SSEIndyBasedSample"/>
+        <CallTarget Targets="SSEClientViewer;SSEIndyBasedServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="SSEClientViewer:Clean;SSEIndyBasedSample:Clean"/>
+        <CallTarget Targets="SSEClientViewer:Clean;SSEIndyBasedServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="SSEClientViewer:Make;SSEIndyBasedSample:Make"/>
+        <CallTarget Targets="SSEClientViewer:Make;SSEIndyBasedServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
