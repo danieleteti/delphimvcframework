@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{A46F9185-7605-47B3-B945-E96DD044B12B}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="SSEChatServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SSEChatClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SSEChatServer">
+        <MSBuild Projects="SSEChatServer.dproj"/>
+    </Target>
+    <Target Name="SSEChatServer:Clean">
+        <MSBuild Projects="SSEChatServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSEChatServer:Make">
+        <MSBuild Projects="SSEChatServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SSEChatClient">
+        <MSBuild Projects="SSEChatClient.dproj"/>
+    </Target>
+    <Target Name="SSEChatClient:Clean">
+        <MSBuild Projects="SSEChatClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSEChatClient:Make">
+        <MSBuild Projects="SSEChatClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SSEChatServer;SSEChatClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SSEChatServer:Clean;SSEChatClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SSEChatServer:Make;SSEChatClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

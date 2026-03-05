@@ -4864,10 +4864,10 @@ begin
   GetContext.Response.SetCustomHeader('Cache-Control', 'no-cache');
   GetContext.Response.StatusCode := HTTP_STATUS.OK;
 
-  // render the response using SSE compliant data format
+  // render the response using SSE compliant data format (LF per spec)
 
   // current event id (the client will resend this number at the next request)
-  ResponseStream.Append(Format('id:%s'#13, [EventID]));
+  ResponseStream.Append(Format('id:%s'#10, [EventID]));
 
   // The browser attempts to reconnect to the source roughly 3 seconds after
   // each connection is closed. You can change that timeout by including a line
@@ -4876,16 +4876,16 @@ begin
 
   if Retry > -1 then
   begin
-    ResponseStream.Append(Format('retry:%d'#13, [Retry]));
+    ResponseStream.Append(Format('retry:%d'#10, [Retry]));
   end;
 
   if not EventName.IsEmpty then
   begin
-    ResponseStream.Append(Format('event:%s'#13, [EventName]));
+    ResponseStream.Append(Format('event:%s'#10, [EventName]));
   end;
 
   // actual message
-  ResponseStream.Append('data:' + EventData.Replace(sLineBreak, '', [rfReplaceAll]) + #13#13);
+  ResponseStream.Append('data:' + EventData.Replace(sLineBreak, '', [rfReplaceAll]) + #10#10);
 
   // render all the stuff
   RenderResponseStream;

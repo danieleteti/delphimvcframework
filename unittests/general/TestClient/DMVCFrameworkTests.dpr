@@ -94,7 +94,10 @@ uses
   MVCFramework.Validators in '..\..\..\sources\MVCFramework.Validators.pas',
   MVCFramework.Validators.CrossField in '..\..\..\sources\MVCFramework.Validators.CrossField.pas',
   LoggerTestsU in 'LoggerTestsU.pas',
-  JWTCookieMiddlewareTestsU in 'JWTCookieMiddlewareTestsU.pas';
+  JWTCookieMiddlewareTestsU in 'JWTCookieMiddlewareTestsU.pas',
+  SSETestsU in 'SSETestsU.pas',
+  MVCFramework.SSE in '..\..\..\sources\MVCFramework.SSE.pas',
+  MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas';
 
 {$R *.RES}
 

@@ -2738,7 +2738,6 @@ var
 
   procedure DrawTable;
   var
-    Line: string;
     I, J: Integer;
   begin
     GotoXY(0, StartY);

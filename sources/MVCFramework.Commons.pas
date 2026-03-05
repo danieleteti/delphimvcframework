@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -122,9 +122,10 @@ type
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
-    SSE_RETRY_DEFAULT = 100;
+    SSE_RETRY_DEFAULT = 10000;
+    SSE_HEARTBEAT_DEFAULT = 15000;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
-    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' àèéùòì''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB

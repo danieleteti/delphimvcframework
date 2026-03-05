@@ -2,41 +2,87 @@ unit StorageU;
 
 interface
 
-const
-  TITLES: array [1 .. 4] of string = ('IBM', 'AAPL', 'GOOG', 'MSFT');
+uses
+  System.Classes;
 
-function GetNextDataToSend(const LastID: Integer;
-  out CurrentEventID: Integer): string;
+type
+  TStockPriceGenerator = class(TThread)
+  private
+    FChannel: string;
+    FEventId: Integer;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const AChannel: string);
+  end;
+
+procedure StartStockPriceGenerator(const AChannel: string = '/stocks');
+procedure StopStockPriceGenerator;
 
 implementation
 
 uses
-  System.JSON;
+  System.SysUtils, System.JSON, MVCFramework.SSE;
 
-function GetNextDataToSend(const LastID: Integer;
-  out CurrentEventID: Integer): string;
+const
+  STOCK_NAMES: array[0..3] of string = ('IBM', 'AAPL', 'GOOG', 'MSFT');
+
 var
-  lIndex: Integer;
-  lJOBJ: TJSONObject;
+  GGenerator: TStockPriceGenerator = nil;
+
+procedure StartStockPriceGenerator(const AChannel: string);
 begin
-  // You can get the "next" event reading the LastID or, as in this case,
-  // just send another event
+  if GGenerator = nil then
+    GGenerator := TStockPriceGenerator.Create(AChannel);
+end;
 
-  lIndex := LastID;
-  while lIndex = LastID do
+procedure StopStockPriceGenerator;
+begin
+  if GGenerator <> nil then
   begin
-    lIndex := Random(Length(Titles)) + 1;
+    GGenerator.Terminate;
+    GGenerator.WaitFor;
+    FreeAndNil(GGenerator);
   end;
+end;
 
-  lJOBJ := TJSONObject.Create;
-  try
-    lJOBJ.AddPair('stock', TITLES[lIndex]);
-    lJOBJ.AddPair('value', TJSONNumber.Create((500 + Random(200)) +
-      (Random(50) / 100)));
-    Result := lJOBJ.ToJSON;
-    CurrentEventID := LastID + 1;
-  finally
-    lJOBJ.Free;
+{ TStockPriceGenerator }
+
+constructor TStockPriceGenerator.Create(const AChannel: string);
+begin
+  inherited Create(False);
+  FreeOnTerminate := False;
+  FChannel := AChannel;
+  FEventId := 0;
+end;
+
+procedure TStockPriceGenerator.Execute;
+var
+  LJSON: TJSONObject;
+  LStockIdx: Integer;
+  LMsg: TSSEMessage;
+begin
+  Randomize;
+  while not Terminated do
+  begin
+    if SSEBroker.ConnectionCount(FChannel) > 0 then
+    begin
+      Inc(FEventId);
+      LStockIdx := Random(Length(STOCK_NAMES));
+
+      LJSON := TJSONObject.Create;
+      try
+        LJSON.AddPair('stock', STOCK_NAMES[LStockIdx]);
+        LJSON.AddPair('value', TJSONNumber.Create((500 + Random(200)) + (Random(50) / 100)));
+
+        LMsg := TSSEMessage.Create('stockupdate', LJSON.ToJSON, FEventId.ToString);
+        SSEBroker.Broadcast(FChannel, LMsg);
+      finally
+        LJSON.Free;
+      end;
+    end;
+    // Random delay between 1000 and 1500ms
+    Sleep(1000 + Random(500));
   end;
 end;
 

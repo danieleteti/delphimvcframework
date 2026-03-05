@@ -1,38 +1,35 @@
 unit SSEControllerU;
 
-
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.SSEController;
+  MVCFramework, MVCFramework.Commons, MVCFramework.SSEController, MVCFramework.SSE;
 
 type
   [MVCPath('/stocks')]
   TMySSEController = class(TMVCSSEController)
   protected
-    function GetServerSentEvents(const LastEventID: String): TMVCSSEMessages; override;
+    procedure OnClientConnected(const AConnection: TSSEConnection); override;
+    procedure OnClientDisconnected(const AConnection: TSSEConnection); override;
   end;
 
 implementation
 
 uses
-  MVCFramework.Logger, System.SysUtils, StorageU, System.DateUtils;
+  MVCFramework.Logger, System.SysUtils;
 
 { TMySSEController }
 
-function TMySSEController.GetServerSentEvents(const LastEventID: String): TMVCSSEMessages;
-var
-  lCurrentEventID: Integer;
-  lSSEMessage: TSSEMessage;
+procedure TMySSEController.OnClientConnected(const AConnection: TSSEConnection);
 begin
-  Sleep(1000);
-  lSSEMessage.Event := 'stockupdate';
-  lSSEMessage.Data := GetNextDataToSend(StrToIntDef(LastEventID, 0), lCurrentEventID);
-  lSSEMessage.Id := lCurrentEventID.ToString;
-  Result := [
-    lSSEMessage
-  ];
+  LogI('SSE client connected: %s (channel: %s)',
+    [AConnection.ClientId, ChannelName], 'sse');
+end;
+
+procedure TMySSEController.OnClientDisconnected(const AConnection: TSSEConnection);
+begin
+  LogI('SSE client disconnected: %s (channel: %s)',
+    [AConnection.ClientId, ChannelName], 'sse');
 end;
 
 end.
-

@@ -64,11 +64,11 @@ begin
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
     TextColor(TConsoleColor.Gray);
-    Writeln;
-    WriteLineColored(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
+    WriteLn;
+    WriteLine(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
     HideCursor;
     while GetCh() <> Char(KEY_ENTER) do;
-    WriteLineColored('Server stopped', TConsoleColor.Red);
+    WriteLine('Server stopped', TConsoleColor.Red);
     ResetConsole();
     ShowCursor;
   finally

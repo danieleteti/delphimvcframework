@@ -1,4 +1,4 @@
-// *************************************************************************** }
+// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -30,135 +30,234 @@ uses
   System.SysUtils,
   MVCFramework,
   MVCFramework.Commons,
-  System.Generics.Collections;
+  MVCFramework.SSE;
 
 type
-  TMVCSSEDefaults = class sealed
-    public const
-      /// <summary>
-      /// Charset of SSE messages encoding
-      /// </summary>
-      SSE_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
-
-      /// <summary>
-      /// Force client to reconnect again after specified milliseconds
-      /// </summary>
-      SSE_RETRY_TIMEOUT = 10000;
-  end;
-
-  TSSEMessage = record
-    Event: string;
-    Data: string;
-    Id: String;
-  end;
-
-  TMVCSSEMessages = TArray<TSSEMessage>;
-
   TMVCSSEController = class abstract(TMVCController)
   protected
-    fSSECharset: string;
-    fRetryTimeout: UInt32;
     /// <summary>
-    /// Overwrite this method in inherited class !
+    /// Called when a new client connects to the SSE stream.
+    /// Override to set up groups, custom data, or send an initial message.
     /// </summary>
-    function GetServerSentEvents(const LastEventID: String): TMVCSSEMessages; virtual; abstract;
+    procedure OnClientConnected(const AConnection: TSSEConnection); virtual;
+    /// <summary>
+    /// Called when a client disconnects from the SSE stream.
+    /// Override for cleanup or logging.
+    /// </summary>
+    procedure OnClientDisconnected(const AConnection: TSSEConnection); virtual;
+    /// <summary>
+    /// Heartbeat interval in milliseconds. Override to customize.
+    /// Default: 15000 (15 seconds).
+    /// A comment line ": heartbeat" is sent at this interval to keep
+    /// the connection alive and detect dead clients.
+    /// </summary>
+    function HeartbeatInterval: Integer; virtual;
+    /// <summary>
+    /// Retry timeout in milliseconds sent to the client.
+    /// The browser will wait this long before reconnecting after a disconnect.
+    /// Default: 10000 (10 seconds). Sent once at the beginning of the stream.
+    /// </summary>
+    function RetryTimeout: Integer; virtual;
+    /// <summary>
+    /// Character encoding for the SSE stream.
+    /// Default: 'utf-8'.
+    /// </summary>
+    function Charset: string; virtual;
+    /// <summary>
+    /// Channel name for this SSE endpoint.
+    /// Default: the request path (e.g. '/stocks').
+    /// Override to use a custom channel name.
+    /// </summary>
+    function ChannelName: string; virtual;
   public
-    constructor Create(
-      const ASSECharset: string;
-      const ARetryTimeout: UInt32); reintroduce; overload;
-    constructor Create; overload; override;
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces('text/event-stream')]
-    procedure Index;
+    procedure EventStream;
   end;
 
 implementation
 
 uses
-  IdContext, IdHTTPWebBrokerBridge, IdIOHandler, idGlobal;
+  System.SyncObjs,
+  System.Classes,
+  IdContext,
+  IdHTTPWebBrokerBridge,
+  IdIOHandler,
+  IdGlobal,
+  MVCFramework.Logger;
 
-constructor TMVCSSEController.Create(
-  const ASSECharset: string;
-  const ARetryTimeout: UInt32);
-begin
-  inherited Create;
-  fSSECharset := ASSECharset;
-  fRetryTimeout := ARetryTimeout;
-end;
+const
+  LF = #10;
+  CRLF = #13#10;
 
 type
   TIdHTTPAppResponseAccess = class(TIdHTTPAppResponse);
 
-constructor TMVCSSEController.Create;
+{ TMVCSSEController }
+
+procedure TMVCSSEController.OnClientConnected(const AConnection: TSSEConnection);
 begin
-  Create(TMVCSSEDefaults.SSE_CONTENT_CHARSET, TMVCSSEDefaults.SSE_RETRY_TIMEOUT);
+  // Override in descendants
 end;
 
-procedure TMVCSSEController.Index;
+procedure TMVCSSEController.OnClientDisconnected(const AConnection: TSSEConnection);
+begin
+  // Override in descendants
+end;
+
+function TMVCSSEController.HeartbeatInterval: Integer;
+begin
+  Result := TMVCConstants.SSE_HEARTBEAT_DEFAULT;
+end;
+
+function TMVCSSEController.RetryTimeout: Integer;
+begin
+  Result := TMVCConstants.SSE_RETRY_DEFAULT;
+end;
+
+function TMVCSSEController.Charset: string;
+begin
+  Result := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+end;
+
+function TMVCSSEController.ChannelName: string;
+begin
+  Result := Context.Request.PathInfo;
+end;
+
+procedure TMVCSSEController.EventStream;
 var
-  lRawContext: TIdContext;
-  lDataList: TMVCSSEMessages;
-  lSSEData: TSSEMessage;
-  lLastEventID: String;
-  lIOHandler: TIdIOHandler;
-const
-  EOL = #13#10;
+  LRawContext: TIdContext;
+  LIOHandler: TIdIOHandler;
+  LConnection: TSSEConnection;
+  LChannel: string;
+  LEncoding: IIdTextEncoding;
+  LItems: TArray<TSSEQueueItem>;
+  LItem: TSSEQueueItem;
+  LWaitResult: TWaitResult;
+  LLastHeartbeat: Cardinal;
+  LNow: Cardinal;
+  LDisconnectRequested: Boolean;
+  LDataLines: TArray<string>;
+  LLine: string;
 begin
   inherited;
   if not (Context.Response.RawWebResponse is TIdHTTPAppResponse) then
-  begin
-    raise EMVCException.Create(HTTP_STATUS.InternalServerError, ClassName + ' can only be used with INDY based application server');
+    raise EMVCException.Create(HTTP_STATUS.InternalServerError,
+      ClassName + ' can only be used with INDY based application server');
+
+  LRawContext := TIdHTTPAppResponseAccess(Context.Response.RawWebResponse).FThread;
+  LIOHandler := LRawContext.Connection.IOHandler;
+  LEncoding := IndyTextEncoding(Charset);
+  LChannel := ChannelName;
+
+  // Write HTTP headers (HTTP/1.1 requires CRLF for header lines)
+  LIOHandler.WriteBufferOpen;
+  try
+    LIOHandler.Write('HTTP/1.1 200 OK' + CRLF, LEncoding);
+    LIOHandler.Write('Content-Type: text/event-stream; charset=' + Charset + CRLF, LEncoding);
+    LIOHandler.Write('Cache-Control: no-cache' + CRLF, LEncoding);
+    LIOHandler.Write('Connection: keep-alive' + CRLF, LEncoding);
+    LIOHandler.Write('X-Accel-Buffering: no' + CRLF, LEncoding);
+    LIOHandler.Write(CRLF, LEncoding); // End of headers
+  finally
+    LIOHandler.WriteBufferClose;
   end;
 
-  lRawContext := TIdHTTPAppResponseAccess(Context.Response.RawWebResponse).FThread;
+  // Send retry directive (once)
+  LIOHandler.Write('retry: ' + IntToStr(RetryTimeout) + LF + LF, LEncoding);
 
-  lLastEventID := Context.Request.Headers[TMVCConstants.SSE_LAST_EVENT_ID].Trim;
+  // Send initial comment to flush proxy buffers
+  LIOHandler.Write(': ok' + LF + LF, LEncoding);
 
-  lIOHandler := lRawContext.Connection.IOHandler;
-  lIOHandler.WriteBufferOpen();
-  lIOHandler.WriteLn('HTTP/1.1 200 OK');
-  lIOHandler.WriteLn(Format('Content-Type: text/event-stream; charset=%s', [fSSECharset]));
-  lIOHandler.WriteLn('Cache-Control: no-cache');
-  lIOHandler.WriteLn('Connection: keep-alive');
+  // Create connection and register with broker
+  LConnection := TSSEConnection.Create(TGUID.NewGuid.ToString);
+  try
+    LConnection.LastEventId := Context.Request.Headers[TMVCConstants.SSE_LAST_EVENT_ID].Trim;
+    SSEBroker.RegisterConnection(LChannel, LConnection);
+    try
+      OnClientConnected(LConnection);
+      try
+        LLastHeartbeat := TThread.GetTickCount;
+        LDisconnectRequested := False;
 
-  {TODO -oDanieleT -cSSE : We must handle CORS using constructor parameters}
-  lIOHandler.WriteLn('Access-Control-Allow-Origin: *');
-  lIOHandler.WriteLn('Access-Control-Allow-Methods: POST, PUT, DELETE, GET, OPTIONS');
-  lIOHandler.WriteLn('Access-Control-Request-Method: *');
-  lIOHandler.WriteLn('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-  lIOHandler.WriteLn;
-  lIOHandler.WriteBufferClose;
-
-  while lRawContext.Connection.Connected do
-  begin
-    lDataList := [];
-    // query for next data list
-    lDataList := GetServerSentEvents(lLastEventID);
-
-    if (Length(lDataList) > 0) then
-    begin
-      lIOHandler.WriteBufferOpen;
-      for lSSEData in lDataList do
-      begin
-        if not lSSEData.Id.IsEmpty then
+        while LRawContext.Connection.Connected
+          and LConnection.IsConnected
+          and (not IsShuttingDown)
+          and (not LDisconnectRequested) do
         begin
-          lIOHandler.Write(Format('id: %s' + EOL, [lSSEData.Id]), IndyTextEncoding(fSSECharset));
-          lLastEventID := lSSEData.Id;
+          LWaitResult := LConnection.WaitForData(1000);
+
+          if LWaitResult = wrSignaled then
+          begin
+            LItems := LConnection.DequeueAll;
+            if Length(LItems) > 0 then
+            begin
+              LIOHandler.WriteBufferOpen;
+              try
+                for LItem in LItems do
+                begin
+                  case LItem.Kind of
+                    ssMessage:
+                    begin
+                      if not LItem.Message.Id.IsEmpty then
+                      begin
+                        LIOHandler.Write('id: ' + LItem.Message.Id + LF, LEncoding);
+                        LConnection.LastEventId := LItem.Message.Id;
+                      end;
+                      if not LItem.Message.Event.IsEmpty then
+                        LIOHandler.Write('event: ' + LItem.Message.Event + LF, LEncoding);
+                      // Handle multiline data: each line gets its own "data: " prefix
+                      LDataLines := LItem.Message.Data.Split([#10]);
+                      for LLine in LDataLines do
+                        LIOHandler.Write('data: ' + LLine + LF, LEncoding);
+                      LIOHandler.Write(LF, LEncoding); // End of message
+                    end;
+                    ssComment:
+                      LIOHandler.Write(': ' + LItem.Comment + LF + LF, LEncoding);
+                    ssDisconnect:
+                      LDisconnectRequested := True;
+                  end;
+                end;
+              finally
+                LIOHandler.WriteBufferClose;
+              end;
+              LLastHeartbeat := TThread.GetTickCount;
+            end;
+          end
+          else
+          begin
+            // Timeout - check if heartbeat is needed
+            LNow := TThread.GetTickCount;
+            if (LNow - LLastHeartbeat) >= Cardinal(HeartbeatInterval) then
+            begin
+              try
+                LIOHandler.Write(': heartbeat' + LF + LF, LEncoding);
+                LLastHeartbeat := LNow;
+              except
+                Break; // Connection lost
+              end;
+            end;
+          end;
         end;
-        if not lSSEData.Event.IsEmpty then
-        begin
-          lIOHandler.Write(Format('event: %s' + EOL, [lSSEData.Event]), IndyTextEncoding(fSSECharset));
-        end;
-        lIOHandler.Write(Format('data: %s' + EOL, [lSSEData.Data]), IndyTextEncoding(fSSECharset));
-        lIOHandler.Write(Format('retry: %d' + EOL + EOL { end of message } , [FRetryTimeout]), IndyTextEncoding(fSSECharset));
+      except
+        on E: Exception do
+          LogW('SSE connection error for client %s: %s', [LConnection.ClientId, E.Message], 'sse');
       end;
-      lIOHandler.WriteBufferClose;
+
+      try
+        OnClientDisconnected(LConnection);
+      except
+        on E: Exception do
+          LogW('SSE OnClientDisconnected error for client %s: %s', [LConnection.ClientId, E.Message], 'sse');
+      end;
+    finally
+      SSEBroker.UnregisterConnection(LChannel, LConnection);
     end;
-    Sleep(200); //arbitrary... some better approches?
+  finally
+    LConnection.Free;
   end;
-  lRawContext.Connection.Disconnect;
 end;
 
 end.

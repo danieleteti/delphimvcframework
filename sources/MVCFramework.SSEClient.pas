@@ -1,11 +1,10 @@
-// *************************************************************************** }
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
 // Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
-//           
 //
 // ***************************************************************************
 //
@@ -22,227 +21,449 @@
 // limitations under the License.
 //
 // ***************************************************************************
-// 
-// Original Code has been donated by radek@communicator.pl 
-// (https://github.com/danieleteti/delphimvcframework/issues/613#issuecomment-1368555870)
 //
-// Follows the original comments:
-//           Delphi EventSource Client (SSE)              
-//                                                        
-//                  radek@communicator.pl                 
-//                                                        
-//  With reference to the specification the only "data"   
-//  field of SSE Message if required                      
+// SSE Client - Server-Sent Events client implementation
 //
-//             !!!!!! Please note !!!!!!
-//                                                        
-//  Event OnSSEEvent is raised from the thread
-//  make sure your handler is thread safe !
+// Follows the W3C EventSource specification:
+// - Robust parsing of SSE fields (id, event, data, retry)
+// - Multiline data support (multiple "data:" fields concatenated with LF)
+// - String-based Last-Event-ID (spec-compliant)
+// - Automatic reconnection with configurable retry timeout
+// - Thread-safe termination via TInterlocked
+// - Incremental streaming via OnReceiveData
+// - Clean shutdown: Stop() signals termination via TInterlocked flag,
+//   which is checked by OnReceiveData (sets AAbort := True).
+//   The next server heartbeat triggers the callback and aborts the request.
+//   Stop() is non-blocking — callers should invoke it from a background
+//   thread or call it fire-and-forget if UI responsiveness is needed.
 //
-//  Use OnQueryExtraHeaders to add custom headers such as
-//  cookies (Set-Cookie) or
-//  Authentication: Bearer XXX.YYY.ZZZ
+// Uses THTTPClient directly (no TNetHTTPClient/TNetHTTPRequest components)
+// for a simpler single-object lifecycle.
+//
+// IMPORTANT: OnEvent/OnError callbacks are raised from the background thread.
+// Use TThread.Queue or TThread.Synchronize for UI updates.
 //
 // ***************************************************************************
+
 unit MVCFramework.SSEClient;
 
 interface
 
 uses
-  System.Net.HttpClient, System.Net.HttpClientComponent, System.SysUtils, System.Net.URLClient, System.Classes, System.Threading;
+  System.SysUtils,
+  System.Classes,
+  System.NetConsts,
+  System.Net.HttpClient,
+  System.Net.URLClient,
+  System.SyncObjs;
 
 type
-  TMVCSSEClientDefaults = class sealed
-    public const
-      /// <summary>
-      /// Accept certificate errors i.e. self signed
-      /// </summary>
-      SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS = true;
+  TSSEClientEvent = reference to procedure(const AId, AEvent, AData: string);
+  TSSEClientErrorEvent = reference to procedure(const AError: string);
+  TSSEClientOpenEvent = reference to procedure;
+  TSSEClientHeadersEvent = reference to procedure(var AHeaders: TNetHeaders);
+
+  /// <summary>
+  /// Standalone SSE parser for unit-testing without network.
+  /// Feed raw SSE data via Feed() and collect events via OnEvent.
+  /// Also used internally by TMVCSSEClient for parsing.
+  /// </summary>
+  TSSEClientParser = class
+  private
+    fBuffer: string;
+    fCurrentId: string;
+    fCurrentEvent: string;
+    fCurrentData: TStringList;
+    fLastEventId: string;
+    fReconnectTimeout: Integer;
+    fOnEvent: TSSEClientEvent;
+    procedure ProcessBuffer;
+    procedure DispatchEvent;
+    procedure ResetEventState;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Feed(const AData: string);
+    procedure Reset;
+    property OnEvent: TSSEClientEvent read fOnEvent write fOnEvent;
+    property LastEventId: string read fLastEventId;
+    property ReconnectTimeout: Integer read fReconnectTimeout write fReconnectTimeout;
   end;
 
-  TOnSSEEvent = procedure(Sender: TObject; const MessageID: integer; const event, data: string) of object;
-  TOnQueryExtraHeaders = procedure(Sender: TObject; headers: TURLHeaders) of object;
-
-  TMVCSSEClient = class(TObject)
+  TMVCSSEClient = class
   private
-    fWorkingTask: ITask;
-    fLastEventId: integer;
-    fReconnectTimeout: integer;
-    fEventStream: TStringStream;
-    fSSEClient: TNetHTTPClient;
-    fSSERequest: TNetHTTPRequest;
     fURL: string;
-    fOnSSEEvent: TOnSSEEvent;
-    fOnQueryExtraHeaders: TOnQueryExtraHeaders;
-    fTerminated: boolean;
-    procedure ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var AAbort: Boolean);
-    procedure ValidateServerCertificate(const Sender: TObject; const ARequest: TURLRequest; const Certificate: TCertificate;
+    fTerminated: Int64;
+    fIgnoreCertificateErrors: Boolean;
+    fWorkerThread: TThread;
+    fParser: TSSEClientParser;
+    fOnEvent: TSSEClientEvent;
+    fOnError: TSSEClientErrorEvent;
+    fOnOpen: TSSEClientOpenEvent;
+    fOnQueryHeaders: TSSEClientHeadersEvent;
+    fOpenFired: Boolean;
+    fResponseStream: TMemoryStream;
+    fLastProcessedPos: Int64;
+    fStopEvent: TEvent;
+    function GetLastEventId: string;
+    function GetReconnectTimeout: Integer;
+    procedure SetReconnectTimeout(const Value: Integer);
+    procedure DoReceiveLoop;
+    procedure HandleReceiveData(const Sender: TObject;
+      AContentLength, AReadCount: Int64; var AAbort: Boolean);
+    procedure ValidateServerCertificate(const Sender: TObject;
+      const ARequest: TURLRequest; const Certificate: TCertificate;
       var Accepted: Boolean);
-  protected
-    procedure ExtractMessage(const ASSEMessage: string); virtual;
   public
-    constructor Create(const AURL: string; const AIgnoreCertificateErrors: boolean = TMVCSSEClientDefaults.SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS);
+    constructor Create(const AURL: string;
+      const AIgnoreCertificateErrors: Boolean = True);
     destructor Destroy; override;
-    property OnSSEEvent: TOnSSEEvent read fOnSSEEvent write fOnSSEEvent;
-    property OnQueryExtraHeaders: TOnQueryExtraHeaders read fOnQueryExtraHeaders write fOnQueryExtraHeaders;
     procedure Start;
     procedure Stop;
+    function IsRunning: Boolean;
+    property OnEvent: TSSEClientEvent read fOnEvent write fOnEvent;
+    property OnError: TSSEClientErrorEvent read fOnError write fOnError;
+    property OnOpen: TSSEClientOpenEvent read fOnOpen write fOnOpen;
+    property OnQueryHeaders: TSSEClientHeadersEvent read fOnQueryHeaders write fOnQueryHeaders;
+    property LastEventId: string read GetLastEventId;
+    property ReconnectTimeout: Integer read GetReconnectTimeout write SetReconnectTimeout;
+    property URL: string read fURL write fURL;
   end;
 
 implementation
 
-uses
-  System.DateUtils;
-
 const
-  DefaultReconnectTimeout = 10000;
-  CRLF = #13#10;
+  DEFAULT_RECONNECT_TIMEOUT = 10000;
+  LF = #10;
+  CR = #13;
 
-constructor TMVCSSEClient.Create(const AURL: string; const AIgnoreCertificateErrors: boolean = TMVCSSEClientDefaults.SSE_CLIENT_IGNORE_CERTIFICATE_ERRORS);
+{ ========================================================================= }
+{ SSE Parsing Logic                                                         }
+{ ========================================================================= }
+
+procedure ParseSSEField(const ALine: string; out AFieldName, AFieldValue: string);
+var
+  LColonPos: Integer;
+begin
+  LColonPos := Pos(':', ALine);
+  if LColonPos > 0 then
+  begin
+    AFieldName := Copy(ALine, 1, LColonPos - 1);
+    AFieldValue := Copy(ALine, LColonPos + 1, MaxInt);
+    // Remove single leading space after colon (per spec)
+    if (Length(AFieldValue) > 0) and (AFieldValue[1] = ' ') then
+      Delete(AFieldValue, 1, 1);
+  end
+  else
+  begin
+    // Line with no colon: field name is the whole line, value is empty
+    AFieldName := ALine;
+    AFieldValue := '';
+  end;
+end;
+
+{ ========================================================================= }
+{ TSSEClientParser                                                          }
+{ ========================================================================= }
+
+constructor TSSEClientParser.Create;
 begin
   inherited Create;
-  fTerminated := False;
+  fCurrentData := TStringList.Create;
+  fReconnectTimeout := DEFAULT_RECONNECT_TIMEOUT;
+  fBuffer := '';
+  fLastEventId := '';
+  ResetEventState;
+end;
+
+destructor TSSEClientParser.Destroy;
+begin
+  fCurrentData.Free;
+  inherited;
+end;
+
+procedure TSSEClientParser.ResetEventState;
+begin
+  fCurrentId := '';
+  fCurrentEvent := '';
+  fCurrentData.Clear;
+end;
+
+procedure TSSEClientParser.Reset;
+begin
+  fBuffer := '';
+  ResetEventState;
+end;
+
+procedure TSSEClientParser.DispatchEvent;
+var
+  LData: string;
+begin
+  if fCurrentData.Count = 0 then
+  begin
+    ResetEventState;
+    Exit;
+  end;
+  // Concatenate data parts with LF (per spec: multiple data fields joined with U+000A)
+  LData := string.Join(LF, fCurrentData.ToStringArray);
+  if Assigned(fOnEvent) then
+    fOnEvent(fCurrentId, fCurrentEvent, LData);
+  ResetEventState;
+end;
+
+procedure TSSEClientParser.ProcessBuffer;
+var
+  LLineEnd: Integer;
+  LLine: string;
+  LFieldName, LFieldValue: string;
+  LRetryVal: Integer;
+begin
+  while True do
+  begin
+    // Find next line ending (LF, CRLF, or CR)
+    LLineEnd := 0;
+    for var I := 1 to Length(fBuffer) do
+    begin
+      if (fBuffer[I] = LF) or (fBuffer[I] = CR) then
+      begin
+        LLineEnd := I;
+        Break;
+      end;
+    end;
+
+    if LLineEnd = 0 then
+      Break; // No complete line yet
+
+    LLine := Copy(fBuffer, 1, LLineEnd - 1);
+
+    // Consume the line ending (handle CRLF as single terminator)
+    if (LLineEnd < Length(fBuffer)) and (fBuffer[LLineEnd] = CR) and (fBuffer[LLineEnd + 1] = LF) then
+      Delete(fBuffer, 1, LLineEnd + 1)
+    else
+      Delete(fBuffer, 1, LLineEnd);
+
+    // Empty line = dispatch event
+    if LLine.IsEmpty then
+    begin
+      DispatchEvent;
+      Continue;
+    end;
+
+    // Comment line (starts with ':')
+    if LLine[1] = ':' then
+      Continue;
+
+    // Parse field
+    ParseSSEField(LLine, LFieldName, LFieldValue);
+
+    if SameText(LFieldName, 'data') then
+      fCurrentData.Add(LFieldValue)
+    else if SameText(LFieldName, 'id') then
+    begin
+      fCurrentId := LFieldValue;
+      // Per spec: do not update lastEventId if value contains null char
+      if Pos(#0, LFieldValue) = 0 then
+        fLastEventId := LFieldValue;
+    end
+    else if SameText(LFieldName, 'event') then
+      fCurrentEvent := LFieldValue
+    else if SameText(LFieldName, 'retry') then
+    begin
+      if TryStrToInt(LFieldValue.Trim, LRetryVal) and (LRetryVal >= 0) then
+        fReconnectTimeout := LRetryVal;
+    end;
+    // Unknown fields are ignored per spec
+  end;
+end;
+
+procedure TSSEClientParser.Feed(const AData: string);
+begin
+  fBuffer := fBuffer + AData;
+  ProcessBuffer;
+end;
+
+{ ========================================================================= }
+{ TMVCSSEClient                                                             }
+{ ========================================================================= }
+
+constructor TMVCSSEClient.Create(const AURL: string;
+  const AIgnoreCertificateErrors: Boolean);
+begin
+  inherited Create;
   fURL := AURL;
-  fSSEClient := TNetHTTPClient.Create(nil);
-  fSSERequest := TNetHTTPRequest.Create(nil);
-  fSSERequest.Accept := 'text/event-stream';
-  fSSERequest.OnReceiveData := ReceiveData;
-  fSSERequest.Client := fSSEClient;
-  if AIgnoreCertificateErrors then
-    fSSEClient.OnValidateServerCertificate := ValidateServerCertificate;
-  fEventStream := TStringStream.Create('', TEncoding.UTF8); ;
-  fLastEventId := -1;
+  fIgnoreCertificateErrors := AIgnoreCertificateErrors;
+  TInterlocked.Exchange(fTerminated, 1);
+  fStopEvent := TEvent.Create(nil, True, False, '');
+  fParser := TSSEClientParser.Create;
+  fParser.OnEvent :=
+    procedure(const AId, AEvent, AData: string)
+    begin
+      if Assigned(fOnEvent) then
+        fOnEvent(AId, AEvent, AData);
+    end;
 end;
 
 destructor TMVCSSEClient.Destroy;
 begin
   Stop;
-  fSSERequest.Free;
-  fSSEClient.Free;
-  fEventStream.Free;
+  fParser.Free;
+  fStopEvent.Free;
   inherited;
 end;
 
-procedure TMVCSSEClient.ExtractMessage(const ASSEMessage: string);
-var
-  SSEMessage: TStrings;
-  event, data: string;
+function TMVCSSEClient.GetLastEventId: string;
 begin
-  SSEMessage := TStringList.Create;
-  SSEMessage.NameValueSeparator := ':';
-  try
-    SSEMessage.Text := ASSEMessage;
-
-    if SSEMessage.IndexOfName('id')>-1 then
-      fLastEventId := SSEMessage.Values['id'].Trim.ToInteger;
-    if SSEMessage.IndexOfName('event')>-1 then
-      event := SSEMessage.Values['event'].Trim;
-    if SSEMessage.IndexOfName('data')>-1 then
-      data := SSEMessage.Values['data'].Trim;
-    if SSEMessage.IndexOfName('retry')>-1 then
-      fReconnectTimeout := StrToIntDef(SSEMessage.Values['retry'].Trim, DefaultReconnectTimeout);
-
-    fOnSSEEvent(Self, fLastEventId, event, data);
-  finally
-    SSEMessage.Free;
-  end;
+  Result := fParser.LastEventId;
 end;
 
-procedure TMVCSSEClient.ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var AAbort: Boolean);
-var
-  lData, lSSEItem: string;
-  lSSEItems: TArray<string>;
+function TMVCSSEClient.GetReconnectTimeout: Integer;
 begin
-  AAbort := (fTerminated);
-  if not AAbort then
-  begin
+  Result := fParser.ReconnectTimeout;
+end;
 
-    lData := fEventStream.DataString.Trim;
-    //==============================================================================
-    // PARSE THE FOLLOWING:
-    //
-    //    id: 1
-    //    event: sampleEvent
-    //    data: testData1
-    //    retry: 10000
-    //
-    //
-    //    id: 2
-    //    event: sampleEvent
-    //    data: testData2
-    //    retry: 10000
-    //==============================================================================
+procedure TMVCSSEClient.SetReconnectTimeout(const Value: Integer);
+begin
+  fParser.ReconnectTimeout := Value;
+end;
 
-    lSSEItems := lData.Split([CRLF+CRLF]);
-    for lSSEItem in lSSEItems do
-      ExtractMessage(lSSEItem);
-
-    fEventStream.Clear;
-  end;
+function TMVCSSEClient.IsRunning: Boolean;
+begin
+  Result := TInterlocked.Read(fTerminated) = 0;
 end;
 
 procedure TMVCSSEClient.Start;
-var
-  lNextRetry: TDateTime;
 begin
-  fReconnectTimeout := DefaultReconnectTimeout;
-  if not Assigned(fOnSSEEvent) then
-    raise Exception.Create('No event handler defined for OnSSEEvent');
+  if not Assigned(fOnEvent) then
+    raise Exception.Create('OnEvent handler must be assigned before calling Start');
 
-  if Assigned(fOnQueryExtraHeaders) then
-    fOnQueryExtraHeaders(Self, fSSERequest.CustHeaders);
+  TInterlocked.Exchange(fTerminated, 0);
+  fStopEvent.ResetEvent;
 
-  fTerminated := false;
-
-  fWorkingTask := TTask.Run(
-  procedure
-  begin
-    while (not fTerminated) do
+  fWorkerThread := TThread.CreateAnonymousThread(
+    procedure
     begin
-      try
-        fSSERequest.CustHeaders.Add('Last-Event-ID', fLastEventId.ToString);
-        fSSERequest.Get(FURL, fEventStream);
-      except
-        on E: Exception do
-        begin
-          if not (E is ENetHTTPResponseException) then
-          begin
-            //connection to server lost, use fReconnectTimeout
-            //non blocking Sleep
-            lNextRetry := IncMilliSecond(Now, fReconnectTimeout);
-            while Now < lNextRetry do
-            begin
-              if (fTerminated) then
-                Break;
-              Sleep(100);//prevent from draining processor
-            end;
-          end
-          else
-          begin
-            //request cancelled
-            if (fTerminated) then
-              Break;
-          end;
-        end;
-      end;
-    end;
-  end);
+      DoReceiveLoop;
+    end);
+  fWorkerThread.FreeOnTerminate := False;
+  fWorkerThread.Start;
 end;
 
 procedure TMVCSSEClient.Stop;
 begin
-  fTerminated := True;
-  fSSERequest.Cancel;
-  if Assigned(fWorkingTask) then
+  TInterlocked.Exchange(fTerminated, 1);
+  fStopEvent.SetEvent;
+  // The worker thread will exit when the next OnReceiveData fires
+  // (triggered by server heartbeat) and AAbort is set to True.
+  if Assigned(fWorkerThread) then
   begin
-    TTask.WaitForAll([fWorkingTask]);
+    fWorkerThread.WaitFor;
+    FreeAndNil(fWorkerThread);
   end;
 end;
 
-procedure TMVCSSEClient.ValidateServerCertificate(const Sender: TObject; const ARequest: TURLRequest; const Certificate: TCertificate;
+procedure TMVCSSEClient.ValidateServerCertificate(const Sender: TObject;
+  const ARequest: TURLRequest; const Certificate: TCertificate;
   var Accepted: Boolean);
 begin
-  Accepted := true;
+  Accepted := True;
+end;
+
+procedure TMVCSSEClient.HandleReceiveData(const Sender: TObject;
+  AContentLength, AReadCount: Int64; var AAbort: Boolean);
+var
+  LNewData: string;
+  LBytes: TBytes;
+  LBytesToRead: Int64;
+begin
+  AAbort := TInterlocked.Read(fTerminated) = 1;
+  if AAbort then
+    Exit;
+
+  if fResponseStream = nil then
+    Exit;
+
+  // Fire OnOpen once per connection
+  if not fOpenFired then
+  begin
+    fOpenFired := True;
+    if Assigned(fOnOpen) then
+      fOnOpen();
+  end;
+
+  // Read only the newly arrived data from the response stream
+  LBytesToRead := fResponseStream.Size - fLastProcessedPos;
+  if LBytesToRead <= 0 then
+    Exit;
+
+  SetLength(LBytes, LBytesToRead);
+  fResponseStream.Position := fLastProcessedPos;
+  fResponseStream.ReadBuffer(LBytes[0], LBytesToRead);
+  fLastProcessedPos := fResponseStream.Size;
+
+  LNewData := TEncoding.UTF8.GetString(LBytes);
+  fParser.Feed(LNewData);
+end;
+
+procedure TMVCSSEClient.DoReceiveLoop;
+var
+  LClient: THTTPClient;
+  LResponseStream: TMemoryStream;
+  LHeaders: TNetHeaders;
+begin
+  while TInterlocked.Read(fTerminated) = 0 do
+  begin
+    fParser.Reset;
+    fOpenFired := False;
+    fLastProcessedPos := 0;
+
+    LClient := THTTPClient.Create;
+    try
+      LClient.Accept := 'text/event-stream';
+      LClient.HandleRedirects := True;
+      LClient.ConnectionTimeout := 10000;
+      LClient.OnReceiveData := HandleReceiveData;
+
+      if fIgnoreCertificateErrors then
+        LClient.OnValidateServerCertificate := ValidateServerCertificate;
+
+      LHeaders := [TNetHeader.Create('Cache-Control', 'no-cache')];
+      if not fParser.LastEventId.IsEmpty then
+        LHeaders := LHeaders + [TNetHeader.Create('Last-Event-ID', fParser.LastEventId)];
+
+      if Assigned(fOnQueryHeaders) then
+        fOnQueryHeaders(LHeaders);
+
+      LResponseStream := TMemoryStream.Create;
+      try
+        fResponseStream := LResponseStream;
+        try
+          // Blocks until server closes, error, or AAbort in OnReceiveData
+          LClient.Get(fURL, LResponseStream, LHeaders);
+        except
+          on E: Exception do
+          begin
+            if TInterlocked.Read(fTerminated) = 1 then
+              Break;
+            if Assigned(fOnError) then
+              fOnError(E.Message);
+          end;
+        end;
+      finally
+        fResponseStream := nil;
+        LResponseStream.Free;
+      end;
+    finally
+      LClient.Free;
+    end;
+
+    // Reconnect wait (instantly cancellable by Stop via fStopEvent)
+    if TInterlocked.Read(fTerminated) = 0 then
+    begin
+      if Assigned(fOnError) then
+        fOnError('Connection lost, reconnecting in ' + IntToStr(fParser.ReconnectTimeout) + 'ms');
+      fStopEvent.WaitFor(fParser.ReconnectTimeout);
+    end;
+  end;
 end;
 
 end.
