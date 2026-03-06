@@ -307,11 +307,15 @@ begin
     // which would break Content-Range semantics
     AContext.Response.SetCustomHeader('Content-Encoding', 'identity');
 
+    // Chromium's media resource cache ignores Cache-Control: no-cache for
+    // <video> and <audio> elements, serving stale content without
+    // revalidating. Use no-store to prevent disk caching entirely.
+    // Range requests still work within the same playback session
+    // because the media element buffers data in memory.
+    AContext.Response.SetCustomHeader('Cache-Control', 'no-store');
+
     if LRangeHeader.IsEmpty then
     begin
-      // No Range header: serve the full file.
-      // Do not set Content-Length explicitly; WebBroker derives it from
-      // the stream size. A duplicate header causes connection resets.
       AContext.Response.StatusCode := HTTP_STATUS.OK;
       AContext.Response.SetContentStream(
         TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone),
@@ -321,7 +325,6 @@ begin
 
     if not ParseRangeHeader(LRangeHeader, LFileSize, LRangeStart, LRangeEnd) then
     begin
-      // Unsatisfiable range
       AContext.Response.StatusCode := HTTP_STATUS.RequestedRangeNotSatisfiable;
       AContext.Response.SetCustomHeader('Content-Range',
         'bytes */' + IntToStr(LFileSize));
@@ -339,7 +342,6 @@ begin
     AContext.Response.StatusCode := HTTP_STATUS.PartialContent;
     AContext.Response.SetCustomHeader('Content-Range',
       Format('bytes %d-%d/%d', [LRangeStart, LRangeEnd, LFileSize]));
-    // Let WebBroker derive Content-Length from the stream size
     AContext.Response.SetContentStream(LPartialStream, LContentType);
   finally
     LFileStream.Free;
