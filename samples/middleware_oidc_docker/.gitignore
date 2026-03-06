@@ -1,0 +1,19 @@
+# Environment files with secrets
+.env
+!.env.example
+
+# Delphi build output
+Win32/
+Win64/
+Linux64/
+bin/
+__history/
+__recovery/
+*.dcu
+*.exe
+*.local
+*.identcache
+*.stat
+*.dsk
+*.dres
+*.bak
