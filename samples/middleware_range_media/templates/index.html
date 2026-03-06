@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Range Media Middleware Sample</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           max-width: 800px; margin: 0 auto; padding: 2rem; color: #333; }
+    h1 { margin-bottom: 0.5rem; }
+    p.subtitle { color: #666; margin-bottom: 2rem; }
+    .card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
+            padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+    audio, video { width: 100%; margin-bottom: 0.5rem; }
+    code { background: #e9ecef; padding: 0.15rem 0.4rem; border-radius: 3px;
+           font-size: 0.9em; }
+    .note { color: #666; font-size: 0.9rem; margin-top: 0.5rem; }
+    .files { margin-top: 1rem; }
+    .files li { margin: 0.3rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Range Media Middleware</h1>
+  <p class="subtitle">HTTP Range request support for HTML5 media elements</p>
+
+  <div class="card">
+    <h2>Audio Player</h2>
+    <p>Place an audio file (e.g. <code>sample.mp3</code>) in the <code>media/</code> folder:</p>
+    <audio controls preload="metadata" src="/media/sample.mp3">
+      Your browser does not support the audio element.
+    </audio>
+    <p class="note">The middleware returns <code>206 Partial Content</code> with
+    <code>Content-Range</code> headers, enabling seeking without downloading the
+    entire file.</p>
+  </div>
+
+  <div class="card">
+    <h2>Video Player</h2>
+    <p>Place a video file (e.g. <code>sample.mp4</code>) in the <code>media/</code> folder:</p>
+    <video controls preload="metadata" src="/media/sample.mp4" style="max-height: 400px;">
+      Your browser does not support the video element.
+    </video>
+  </div>
+
+  <div class="card">
+    <h2>How It Works</h2>
+    <p>The <code>TMVCRangeMediaMiddleware</code> intercepts requests matching a
+    URL prefix and serves files with HTTP Range support (RFC 7233):</p>
+    <ul class="files">
+      <li><code>GET /media/sample.mp3</code> without Range header &rarr; <strong>200 OK</strong> (full file)</li>
+      <li><code>GET /media/sample.mp3</code> with <code>Range: bytes=0-65535</code> &rarr; <strong>206 Partial Content</strong></li>
+      <li>Invalid range &rarr; <strong>416 Range Not Satisfiable</strong></li>
+    </ul>
+    <p class="note">Directory traversal is blocked. Only files within the configured
+    document root are accessible.</p>
+  </div>
+
+  <div class="card">
+    <h2>Test with curl</h2>
+    <p>Full file:</p>
+    <code>curl -v http://localhost:8080/media/sample.mp3</code>
+    <p style="margin-top: 0.75rem;">Range request (first 64 KB):</p>
+    <code>curl -v -H "Range: bytes=0-65535" http://localhost:8080/media/sample.mp3</code>
+  </div>
+</body>
+</html>
