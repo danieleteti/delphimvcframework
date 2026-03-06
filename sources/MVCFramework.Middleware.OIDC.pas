@@ -118,6 +118,7 @@ type
     FAuthorizationEndpoint: string;
     FTokenEndpoint: string;
     FUserinfoEndpoint: string;
+    FEndSessionEndpoint: string;
     FEndpointsDiscovered: Boolean;
     FDiscoveryLock: TObject;
     { JWT session }
@@ -140,6 +141,7 @@ type
     FCookieDomain: string;
     { Feature flags }
     FFetchUserInfo: Boolean;
+    FBaseURL: string;
     { Callbacks }
     FOnUserAuthenticated: TMVCOIDCUserAuthenticatedProc;
     FOnAuthRequired: TMVCOIDCAuthRequiredProc;
@@ -217,6 +219,11 @@ type
     /// OnUserAuthenticated will be nil.
     /// </summary>
     function SetFetchUserInfo(AFetch: Boolean): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the application base URL used to construct absolute redirect URIs
+    /// for OIDC provider logout (e.g. 'https://app.example.com').
+    /// </summary>
+    function SetBaseURL(const AURL: string): TMVCOIDCAuthenticationMiddleware;
   end;
 
 /// <summary>
@@ -252,7 +259,7 @@ uses
 
 resourcestring
   SOIDCDiscoveryRequest = 'OIDC: Discovering endpoints from %s';
-  SOIDCDiscoverySuccess = 'OIDC: Discovery complete - authorization=%s, token=%s, userinfo=%s';
+  SOIDCDiscoverySuccess = 'OIDC: Discovery complete - authorization=%s, token=%s, userinfo=%s, end_session=%s';
   SOIDCDiscoveryError = 'OIDC: Discovery failed for %s - %s';
   SOIDCTokenExchangeRequest = 'OIDC: Exchanging authorization code at %s';
   SOIDCTokenExchangeError = 'OIDC: Token exchange failed - %s';
@@ -410,6 +417,13 @@ begin
   Result := Self;
 end;
 
+function TMVCOIDCAuthenticationMiddleware.SetBaseURL(
+  const AURL: string): TMVCOIDCAuthenticationMiddleware;
+begin
+  FBaseURL := AURL;
+  Result := Self;
+end;
+
 { OIDC operations }
 
 procedure TMVCOIDCAuthenticationMiddleware.DiscoverEndpoints;
@@ -441,12 +455,13 @@ begin
       FAuthorizationEndpoint := lJSON.S['authorization_endpoint'];
       FTokenEndpoint := lJSON.S['token_endpoint'];
       FUserinfoEndpoint := lJSON.S['userinfo_endpoint'];
+      FEndSessionEndpoint := lJSON.S['end_session_endpoint'];
     finally
       lJSON.Free;
     end;
     FEndpointsDiscovered := True;
     LogI(Format(SOIDCDiscoverySuccess,
-      [FAuthorizationEndpoint, FTokenEndpoint, FUserinfoEndpoint]));
+      [FAuthorizationEndpoint, FTokenEndpoint, FUserinfoEndpoint, FEndSessionEndpoint]));
   finally
     TMonitor.Exit(FDiscoveryLock);
   end;
@@ -863,11 +878,26 @@ end;
 
 procedure TMVCOIDCAuthenticationMiddleware.HandleLogout(
   AContext: TWebContext; var AHandled: Boolean);
+var
+  lRedirectURL: string;
 begin
   ClearSessionCookie(AContext);
   LogI(SOIDCUserLoggedOut);
-  AContext.Response.StatusCode := HTTP_STATUS.Found;
-  AContext.Response.SetCustomHeader('Location', FPostLogoutRedirectURL);
+  DiscoverEndpoints;
+
+  if not FEndSessionEndpoint.IsEmpty then
+  begin
+    lRedirectURL := FEndSessionEndpoint +
+      '?post_logout_redirect_uri=' + TNetEncoding.URL.Encode(
+        FBaseURL + FPostLogoutRedirectURL);
+    AContext.Response.StatusCode := HTTP_STATUS.Found;
+    AContext.Response.SetCustomHeader('Location', lRedirectURL);
+  end
+  else
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.Found;
+    AContext.Response.SetCustomHeader('Location', FPostLogoutRedirectURL);
+  end;
   AHandled := True;
 end;
 

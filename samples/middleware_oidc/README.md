@@ -7,6 +7,7 @@ using `MVCFramework.Middleware.OIDC`.
 
 - Configuring the OIDC middleware via `UseOIDCAuthentication`
 - Customizing cookie settings with fluent setters (`.SetCookieName`, `.SetCookieSecure`)
+- Proper OIDC logout via `.SetBaseURL` (redirects to provider's end-session endpoint)
 - Implementing `HandleOIDCUser` to extract claims into session data
 - Implementing `HandleAuthRequired` to make specific actions public
 - Accessing session data in controllers via `Context.LoggedUser.CustomData`
@@ -43,7 +44,7 @@ using `MVCFramework.Middleware.OIDC`.
 | `GET /dashboard` | Protected | Shows authenticated user's OIDC claims |
 | `GET /auth/login` | - | Redirects to OIDC provider |
 | `GET /auth/callback` | - | Handles OIDC callback (internal) |
-| `GET /auth/logout` | - | Clears session, redirects to `/` |
+| `GET /auth/logout` | - | Ends session at OIDC provider, then redirects to `/` |
 
 ## Notes
 

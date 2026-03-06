@@ -78,6 +78,7 @@ begin
     )
     .SetCookieName('oidc_sample_session')
     .SetCookieSecure(False)
+    .SetBaseURL(dotEnv.Env('BASE_URL', 'http://localhost:8080'))
   );
 end;
 

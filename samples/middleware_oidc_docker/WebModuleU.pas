@@ -142,6 +142,7 @@ begin
     )
     .SetCookieName('oidc_docker_session')
     .SetCookieSecure(TAppConfig.BaseURL.StartsWith('https'))
+    .SetBaseURL(TAppConfig.BaseURL)
   );
 end;
 

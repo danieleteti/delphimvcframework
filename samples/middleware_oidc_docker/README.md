@@ -77,7 +77,7 @@ OIDC becomes the admin.
 | `GET /health` | Public | Docker health check (JSON) |
 | `GET /auth/login` | - | Redirects to OIDC provider |
 | `GET /auth/callback` | - | Handles OIDC callback (internal) |
-| `GET /auth/logout` | - | Clears session, redirects to `/` |
+| `GET /auth/logout` | - | Ends session at OIDC provider, then redirects to `/` |
 
 ## Project structure
 
