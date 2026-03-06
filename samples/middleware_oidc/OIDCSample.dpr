@@ -53,7 +53,7 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
-    RunServer(dotEnv.Env('dmvc.server.port', 8080));
+    RunServer(dotEnv.Env('DMVC_SERVER_PORT', 8080));
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

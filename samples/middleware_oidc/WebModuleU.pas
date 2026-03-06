@@ -64,7 +64,7 @@ begin
       dotEnv.Env('OIDC_ISSUER', ''),
       dotEnv.Env('OIDC_CLIENT_ID', ''),
       dotEnv.Env('OIDC_CLIENT_SECRET', ''),
-      dotEnv.Env('OIDC_REDIRECT_URI', 'http://localhost:8080/auth/callback'),
+      dotEnv.Env('BASE_URL', 'http://localhost:8080') + '/auth/callback',
       dotEnv.Env('JWT_SECRET', 'oidc-sample-dev-secret-change-me'),
       '/auth/login',
       '/auth/callback',

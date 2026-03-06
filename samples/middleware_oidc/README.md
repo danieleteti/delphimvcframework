@@ -21,7 +21,7 @@ using `MVCFramework.Middleware.OIDC`.
 ## Setup
 
 1. **Register a client** with your OIDC provider:
-   - Redirect URI: `http://localhost:8080/auth/callback`
+   - Redirect URI: `<BASE_URL>/auth/callback` (default: `http://localhost:8080/auth/callback`)
    - Scopes: `openid email profile`
    - Grant type: Authorization Code
 
@@ -30,7 +30,8 @@ using `MVCFramework.Middleware.OIDC`.
    cp .env.example .env
    ```
    Fill in `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and set
-   `JWT_SECRET` to a random string.
+   `JWT_SECRET` to a random string. Set `BASE_URL` if not running on
+   `http://localhost:8080` — the OIDC redirect URI is derived from it.
 
 3. **Build and run** the project in Delphi or from the command line.
 

@@ -35,7 +35,7 @@ type
     class function OIDCClientId: string;
     /// <summary>OIDC client secret (OIDC_CLIENT_SECRET).</summary>
     class function OIDCClientSecret: string;
-    /// <summary>OIDC redirect URI for the callback endpoint (OIDC_REDIRECT_URI).</summary>
+    /// <summary>OIDC redirect URI derived from BASE_URL + /auth/callback.</summary>
     class function OIDCRedirectUri: string;
 
     { JWT }
@@ -104,7 +104,7 @@ end;
 
 class function TAppConfig.OIDCRedirectUri: string;
 begin
-  Result := dotEnv.Env('OIDC_REDIRECT_URI', 'http://localhost:8080/auth/callback');
+  Result := BaseURL + '/auth/callback';
 end;
 
 { TAppConfig -- JWT }
