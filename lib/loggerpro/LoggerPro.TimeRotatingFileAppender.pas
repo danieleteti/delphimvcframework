@@ -36,13 +36,6 @@ uses
   System.Generics.Collections;
 
 type
-  TTimeRotationInterval = (
-    Hourly,     // Rotate every hour: app.2025120312.log
-    Daily,      // Rotate every day: app.20251203.log
-    Weekly,     // Rotate every week: app.2025W49.log
-    Monthly     // Rotate every month: app.202512.log
-  );
-
   { @abstract(File appender that rotates based on time intervals instead of file size)
     Creates a new log file when the time interval changes.
     File naming includes timestamp to allow easy identification and sorting.

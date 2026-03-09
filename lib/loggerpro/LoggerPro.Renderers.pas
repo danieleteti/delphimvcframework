@@ -150,8 +150,12 @@ begin
     else
       lValueStr := lParam.Value.ToString.QuotedString('"');
     end;
-    Result := Result + ' ' + lParam.Key + '=' + lValueStr;
+    if I = 0 then
+      Result := lParam.Key + '=' + lValueStr
+    else
+      Result := Result + ', ' + lParam.Key + '=' + lValueStr;
   end;
+  Result := ' {' + Result + '}';
 end;
 
 function TLogItemRendererDefault.RenderLogItem(const aLogItem: TLogItem): String;
@@ -235,13 +239,6 @@ begin
         ALogItem.LogMessage.QuotedString('"'),
         ALogItem.LogTag
         ]);
-
-  // Use pre-rendered context if available (optimization for fixed context)
-  if ALogItem.PreRenderedContext <> '' then
-  begin
-    Result := Result + ALogItem.PreRenderedContext;
-    Exit;
-  end;
 
   if ALogItem.HasContext then
   begin

@@ -50,6 +50,16 @@ type
   TLogExtendedInfo = (EIUserName, EIComputerName, EIProcessName, EIProcessID, EIDeviceID { mobile });
   TLoggerProExtendedInfo = set of TLogExtendedInfo;
 
+  { @abstract(Time rotation intervals for file appenders)
+    Used by WriteToFile.WithInterval() and WriteToTimeRotatingFile. }
+  TTimeRotationInterval = (
+    None,       // No time-based rotation (size only)
+    Hourly,     // Rotate every hour: app.2025120312.log
+    Daily,      // Rotate every day: app.20251203.log
+    Weekly,     // Rotate every week: app.2025W49.log
+    Monthly     // Rotate every month: app.202512.log
+  );
+
   { @abstract(Represents a key-value pair for structured logging context) }
   LogParam = record
     Key: string;
@@ -1041,8 +1051,10 @@ procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: stri
 var
   lLogItem: TLogItem;
 begin
-  Assert(not FShuttingDown, 'Cannot log: logger is shutting down');
+  // Check FShuttingDown - if shutdown completed, thread is gone, can't log
+  Assert(not FShuttingDown, 'Cannot log: logger has been shut down');
   if FShuttingDown then Exit;
+
   if FEnabled and (aType >= FLogLevel) then
   begin
     lLogItem := TLogItem.Create(aType, aMessage, aTag, aContext);
@@ -1061,12 +1073,14 @@ end;
 
 procedure TCustomLogWriter.EnqueueLogItem(const aLogItem: TLogItem);
 begin
-  Assert(not FShuttingDown, 'Cannot log: logger is shutting down');
+  // Check FShuttingDown - if shutdown completed, thread is gone, can't log
+  Assert(not FShuttingDown, 'Cannot log: logger has been shut down');
   if FShuttingDown then
   begin
     aLogItem.Free;
     Exit;
   end;
+
   if FEnabled and (aLogItem.LogType >= FLogLevel) then
   begin
     if not FLoggerThread.LogWriterQueue.Enqueue(aLogItem) then
@@ -1122,8 +1136,8 @@ begin
   if FShuttingDown then
     Exit;  // Already shut down, idempotent
 
-  FShuttingDown := True;
-  Disable;
+  // Don't disable or set FShuttingDown yet - allow messages to be queued while we wait
+  // The thread will process all queued messages before terminating
 
   if FLoggerThread <> nil then
   begin
@@ -1131,11 +1145,16 @@ begin
     FLoggerThread.LogWriterQueue.SetEvent;  // Wake up thread if blocked
     FLoggerThread.WaitFor;
   end;
+
+  // Now mark as shut down - thread is gone, no more logging allowed
+  FShuttingDown := True;
+  Disable;
 end;
 
 function TCustomLogWriter.FormatExceptionMessage(const E: Exception; const aMessage: string): string;
 var
   lStackTrace: string;
+  lInner: Exception;
 begin
   if aMessage <> '' then
     Result := aMessage + ' - '
@@ -1143,6 +1162,14 @@ begin
     Result := '';
 
   Result := Result + E.ClassName + ': ' + E.Message;
+
+  // Unwind chained exceptions (InnerException chain)
+  lInner := E.InnerException;
+  while lInner <> nil do
+  begin
+    Result := Result + sLineBreak + '  Caused by: ' + lInner.ClassName + ': ' + lInner.Message;
+    lInner := lInner.InnerException;
+  end;
 
   if Assigned(FStackTraceFormatter) then
   begin
@@ -1409,6 +1436,10 @@ begin
           end;
         wrTimeout, wrAbandoned, wrError:
           begin
+            // If we're terminating and there are items in queue, wake up immediately
+            // to process them instead of waiting for next timeout
+            if Terminated and (FQueue.QueueSize > 0) then
+              FQueue.SetEvent;
             // Continue loop; will exit when Terminated and queue is empty
           end;
         wrIOCompletion:
@@ -1809,8 +1840,12 @@ begin
     else
       lValueStr := lParam.Value.ToString.QuotedString('"');
     end;
-    Result := Result + ' ' + lParam.Key + '=' + lValueStr;
+    if I = 0 then
+      Result := lParam.Key + '=' + lValueStr
+    else
+      Result := Result + ', ' + lParam.Key + '=' + lValueStr;
   end;
+  Result := ' {' + Result + '}';
 end;
 
 constructor TLogWriterWithContext.Create(const AInner: ILogWriter; const AContext: LogParams);

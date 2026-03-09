@@ -165,12 +165,14 @@ begin
       end;
     end;
     {$ELSE}
-    lJSON.AddPair('timestamp', DateToISO8601(ALogItem.TimeStamp));
-    lJSON.AddPair('level', ALogItem.LogTypeAsString);
-    lJSON.AddPair('message', ALogItem.LogMessage);
-    lJSON.AddPair('tag', ALogItem.LogTag);
-    lJSON.AddPair('hostname', fHostName);
-    lJSON.AddPair('tid', ALogItem.ThreadID.ToString);
+    // Use explicit TJSONString.Create for Delphi 10.3 Rio compatibility
+    // (AddPair overload for string,string was added in 10.4 Sydney)
+    lJSON.AddPair('timestamp', TJSONString.Create(DateToISO8601(ALogItem.TimeStamp)));
+    lJSON.AddPair('level', TJSONString.Create(ALogItem.LogTypeAsString));
+    lJSON.AddPair('message', TJSONString.Create(ALogItem.LogMessage));
+    lJSON.AddPair('tag', TJSONString.Create(ALogItem.LogTag));
+    lJSON.AddPair('hostname', TJSONString.Create(fHostName));
+    lJSON.AddPair('tid', TJSONString.Create(ALogItem.ThreadID.ToString));
     if ALogItem.HasContext then
     begin
       lContextObj := TJSONObject.Create;
@@ -182,16 +184,16 @@ begin
             lContextObj.AddPair(lParam.Key, TJSONNumber.Create(lParam.Value.AsInt64));
           tkFloat:
             if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
-              lContextObj.AddPair(lParam.Key, DateToISO8601(lParam.Value.AsType<TDateTime>))
+              lContextObj.AddPair(lParam.Key, TJSONString.Create(DateToISO8601(lParam.Value.AsType<TDateTime>)))
             else
               lContextObj.AddPair(lParam.Key, TJSONNumber.Create(lParam.Value.AsExtended));
           tkEnumeration:
             if lParam.Value.TypeInfo = TypeInfo(Boolean) then
               lContextObj.AddPair(lParam.Key, TJSONBool.Create(lParam.Value.AsBoolean))
             else
-              lContextObj.AddPair(lParam.Key, lParam.Value.ToString);
+              lContextObj.AddPair(lParam.Key, TJSONString.Create(lParam.Value.ToString));
         else
-          lContextObj.AddPair(lParam.Key, lParam.Value.ToString);
+          lContextObj.AddPair(lParam.Key, TJSONString.Create(lParam.Value.ToString));
         end;
       end;
       lJSON.AddPair('context', lContextObj);

@@ -51,10 +51,11 @@ type
     FProcID: string;
     FUnixLineBreaks: Boolean;
     FUTF8BOM: Boolean;
+    FUseLocalTime: Boolean;
 
   public
     constructor Create(pIP: string; pPort: Integer; pHostName: string; pUserName: string; pApplication: string;
-      pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean = False); reintroduce;
+      pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean = False; pUseLocalTime: Boolean = False); reintroduce;
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
@@ -67,6 +68,7 @@ type
     property Version: string read FVersion write FVersion;
     property ProcID: string read FProcID write FProcID;
     property UnixLineBreaks: Boolean read FUnixLineBreaks write FUnixLineBreaks;
+    property UseLocalTime: Boolean read FUseLocalTime write FUseLocalTime;
   end;
 
   TLoggerProUDPSyslogPacket = class
@@ -83,10 +85,11 @@ type
     FMessageData: string;
     FUnixLineBreaks: Boolean;
     FUTF8BOM: Boolean;
+    FUseLocalTime: Boolean;
     function GetSyslogData: string;
   public
     constructor Create(pLogItem: TLogItem; pHostName: string; pUserName: string; pApplication: string; pVersion: string;
-      pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean = False);
+      pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean = False; pUseLocalTime: Boolean = False);
     property SyslogData: string read GetSyslogData;
   end;
 
@@ -98,7 +101,7 @@ uses
 { TLoggerProUDPSyslogAppender }
 
 constructor TLoggerProUDPSyslogAppender.Create(pIP: string; pPort: Integer; pHostName: string; pUserName: string;
-  pApplication: string; pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean);
+  pApplication: string; pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean; pUseLocalTime: Boolean);
 begin
   inherited Create;
   FIP := pIP;
@@ -110,6 +113,7 @@ begin
   FProcID := pProcID;
   FUnixLineBreaks := pUnixLineBreaks;
   FUTF8BOM := pUTF8BOM;
+  FUseLocalTime := pUseLocalTime;
 end;
 
 procedure TLoggerProUDPSyslogAppender.Setup;
@@ -130,7 +134,7 @@ var
 begin
   inherited;
   lPacket := TLoggerProUDPSyslogPacket.Create(aLogItem, FHostName, FUserName, FApplication, FVersion, FProcID,
-    FUnixLineBreaks, FUTF8BOM);
+    FUnixLineBreaks, FUTF8BOM, FUseLocalTime);
   try
     FLoggerProSyslogAppenderClient.Broadcast(lPacket.SyslogData, FPort, FIP, IndyTextEncoding_UTF8);
   finally
@@ -146,7 +150,9 @@ begin
 end;
 
 constructor TLoggerProUDPSyslogPacket.Create(pLogItem: TLogItem; pHostName: string; pUserName: string;
-  pApplication: string; pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean);
+  pApplication: string; pVersion: string; pProcID: string; pUnixLineBreaks: Boolean; pUTF8BOM: Boolean; pUseLocalTime: Boolean);
+var
+  lTimestamp: TDateTime;
 begin
   // RFC 5424 Severity mapping
   // 7 = Debug, 6 = Informational, 4 = Warning, 3 = Error, 2 = Critical
@@ -164,7 +170,13 @@ begin
   end;
   FApplication := pApplication;
   FVersion := pVersion;
-  FTimestamp := DateToISO8601(pLogItem.Timestamp);
+
+  // Convert UTC to local time if requested
+  lTimestamp := pLogItem.Timestamp;
+  if pUseLocalTime then
+    lTimestamp := TTimeZone.Local.ToLocalTime(lTimestamp);
+  FTimestamp := DateToISO8601(lTimestamp);
+
   FHostName := pHostName;
   FUserName := pUserName;
   FApplication := pApplication;
@@ -178,6 +190,7 @@ begin
   else
     FMessageData := pLogItem.LogMessage;
   FUTF8BOM := pUTF8BOM;
+  FUseLocalTime := pUseLocalTime;
 end;
 
 function TLoggerProUDPSyslogPacket.GetSyslogData: string;

@@ -27,9 +27,11 @@
 
 unit LoggerPro.WindowsEventLogAppender;
 
-interface
+{$IF NOT Defined(MSWINDOWS)}
+{$MESSAGE FATAL 'This unit only works with Windows'}
+{$ENDIF}
 
-{$IF Defined(MSWINDOWS)}
+interface
 
 uses
   LoggerPro;
@@ -57,11 +59,7 @@ type
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
 
-{$ENDIF}
-
 implementation
-
-{$IF Defined(MSWINDOWS)}
 
 uses
   Winapi.Windows,
@@ -165,7 +163,5 @@ begin
     end;
   end;
 end;
-
-{$ENDIF}
 
 end.

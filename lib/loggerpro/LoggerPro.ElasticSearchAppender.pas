@@ -34,6 +34,7 @@ uses
   System.Classes,
   System.Net.HttpClient,
   System.Net.URLClient,
+  System.NetEncoding,
   System.JSON,
   System.DateUtils;
 
@@ -46,6 +47,9 @@ type
     const aException: Exception;
     var aRetryCount: Integer);
 
+  { ElasticSearch authentication type }
+  TElasticSearchAuthType = (eatNone, eatBasic, eatAPIKey, eatBearer);
+
   { @abstract(Log appender for ElasticSearch 6.4+ endpoints)
     Sends log items to an ElasticSearch index via HTTP POST.
     Author: Daniele Teti and Salvatore Sparacino
@@ -57,8 +61,13 @@ type
     FTimeoutSeconds: Integer;
     FMaxRetryCount: Integer;
     FOnSendError: TOnElasticSearchError;
+    FAuthType: TElasticSearchAuthType;
+    FAuthUsername: string;
+    FAuthPassword: string;
+    FAuthToken: string;
     function LogItemToJSON(const aLogItem: TLogItem): string;
     procedure InternalWriteLog(const aLogItem: TLogItem; const aJSON: string);
+    procedure ConfigureAuthHeaders(var aHeaders: TNetHeaders);
   public
     const DEFAULT_TIMEOUT_SECONDS = 5;
     const DEFAULT_MAX_RETRY_COUNT = 3;
@@ -95,6 +104,15 @@ type
     property MaxRetryCount: Integer read FMaxRetryCount write FMaxRetryCount;
     { Callback for network errors. Use to implement custom retry logic. }
     property OnSendError: TOnElasticSearchError read FOnSendError write FOnSendError;
+
+    { Configure Basic Authentication (username/password) }
+    procedure SetBasicAuth(const aUsername, aPassword: string);
+    { Configure API Key authentication }
+    procedure SetAPIKey(const aAPIKey: string);
+    { Configure Bearer Token authentication }
+    procedure SetBearerToken(const aToken: string);
+    { Clear authentication }
+    procedure ClearAuth;
   end;
 
 implementation
@@ -113,6 +131,7 @@ begin
   FURL := aElasticSearchURL;
   FTimeoutSeconds := aTimeoutSeconds;
   FMaxRetryCount := DEFAULT_MAX_RETRY_COUNT;
+  FAuthType := eatNone;
 end;
 
 constructor TLoggerProElasticSearchAppender.Create(const aElasticHost: string;
@@ -177,6 +196,30 @@ begin
   end;
 end;
 
+procedure TLoggerProElasticSearchAppender.ConfigureAuthHeaders(var aHeaders: TNetHeaders);
+var
+  lAuthValue: string;
+begin
+  case FAuthType of
+    eatBasic:
+      begin
+        lAuthValue := TNetEncoding.Base64.Encode(FAuthUsername + ':' + FAuthPassword);
+        SetLength(aHeaders, Length(aHeaders) + 1);
+        aHeaders[High(aHeaders)] := TNetHeader.Create('Authorization', 'Basic ' + lAuthValue);
+      end;
+    eatAPIKey:
+      begin
+        SetLength(aHeaders, Length(aHeaders) + 1);
+        aHeaders[High(aHeaders)] := TNetHeader.Create('Authorization', 'ApiKey ' + FAuthToken);
+      end;
+    eatBearer:
+      begin
+        SetLength(aHeaders, Length(aHeaders) + 1);
+        aHeaders[High(aHeaders)] := TNetHeader.Create('Authorization', 'Bearer ' + FAuthToken);
+      end;
+  end;
+end;
+
 procedure TLoggerProElasticSearchAppender.InternalWriteLog(const aLogItem: TLogItem;
   const aJSON: string);
 var
@@ -187,6 +230,7 @@ var
 begin
   SetLength(lHeaders, 1);
   lHeaders[0] := TNetHeader.Create('Content-Type', 'application/json; charset=utf-8');
+  ConfigureAuthHeaders(lHeaders);
 
   lRetryCount := 0;
   lStream := TStringStream.Create(aJSON, TEncoding.UTF8);
@@ -234,6 +278,38 @@ var
 begin
   lJSON := LogItemToJSON(aLogItem);
   InternalWriteLog(aLogItem, lJSON);
+end;
+
+procedure TLoggerProElasticSearchAppender.SetBasicAuth(const aUsername, aPassword: string);
+begin
+  FAuthType := eatBasic;
+  FAuthUsername := aUsername;
+  FAuthPassword := aPassword;
+  FAuthToken := '';
+end;
+
+procedure TLoggerProElasticSearchAppender.SetAPIKey(const aAPIKey: string);
+begin
+  FAuthType := eatAPIKey;
+  FAuthUsername := '';
+  FAuthPassword := '';
+  FAuthToken := aAPIKey;
+end;
+
+procedure TLoggerProElasticSearchAppender.SetBearerToken(const aToken: string);
+begin
+  FAuthType := eatBearer;
+  FAuthUsername := '';
+  FAuthPassword := '';
+  FAuthToken := aToken;
+end;
+
+procedure TLoggerProElasticSearchAppender.ClearAuth;
+begin
+  FAuthType := eatNone;
+  FAuthUsername := '';
+  FAuthPassword := '';
+  FAuthToken := '';
 end;
 
 end.

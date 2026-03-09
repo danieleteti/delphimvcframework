@@ -140,7 +140,6 @@
         <DCCReference Include="..\..\LoggerPro.Renderers.pas"/>
         <DCCReference Include="..\..\LoggerPro.TimeRotatingFileAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.UDPSyslogAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.Utils.pas"/>
         <DCCReference Include="..\..\ThreadSafeQueueU.pas"/>
         <DCCReference Include="..\..\LoggerPro.Builder.pas"/>
         <DCCReference Include="..\..\LoggerPro.DBAppender.FireDAC.pas"/>
@@ -148,6 +147,7 @@
         <DCCReference Include="..\..\LoggerPro.VCLListBoxAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.VCLListViewAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.VCLMemoAppender.pas"/>
+        <DCCReference Include="..\..\LoggerPro.StringsAppender.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

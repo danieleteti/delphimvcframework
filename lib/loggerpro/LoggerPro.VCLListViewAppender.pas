@@ -26,8 +26,6 @@ unit LoggerPro.VCLListViewAppender;
 
 interface
 
-{$IF Defined(MSWINDOWS)}
-
 uses
   LoggerPro,
   System.Classes,
@@ -46,11 +44,7 @@ type
     procedure WriteLog(const aLogItem: TLogItem); override;
   end;
 
-{$ENDIF}
-
 implementation
-
-{$IF Defined(MSWINDOWS)}
 
 uses
   System.SysUtils,
@@ -107,7 +101,5 @@ begin
       SendMessage(FLV.Handle, EM_SCROLLCARET, 0, 0);
     end);
 end;
-
-{$ENDIF}
 
 end.
