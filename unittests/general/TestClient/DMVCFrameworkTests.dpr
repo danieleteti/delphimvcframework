@@ -97,7 +97,10 @@ uses
   JWTCookieMiddlewareTestsU in 'JWTCookieMiddlewareTestsU.pas',
   SSETestsU in 'SSETestsU.pas',
   MVCFramework.SSE in '..\..\..\sources\MVCFramework.SSE.pas',
-  MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas';
+  MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas',
+  RangeMediaMiddlewareTestsU in 'RangeMediaMiddlewareTestsU.pas',
+  RangeMediaTestWebModuleU in 'webmodules\RangeMediaTestWebModuleU.pas' {RangeMediaTestWebModule: TWebModule},
+  MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas';
 
 {$R *.RES}
 

@@ -5,61 +5,104 @@ serving audio and video files with seeking capability in HTML5 media elements.
 
 ## What this sample shows
 
-- Configuring the Range Media middleware via `UseRangeMediaMiddleware`
-- Serving media files with `206 Partial Content` responses
-- HTML5 `<audio>` and `<video>` elements with seeking support
+- Configuring `UseRangeMediaMiddleware` with a URL prefix and a document root
+- `206 Partial Content` responses with correct `Content-Range` headers
+- HTML5 `<audio>` and `<video>` with real seeking (not a full-download workaround)
+- An interactive **Range Request Inspector** in the browser UI
 - Directory traversal protection
 
 ## Prerequisites
 
 - Delphi 12+
 - DMVCFramework (latest)
+- curl (built into Windows 10 / 11; available on Linux / macOS by default)
 
 ## Setup
 
-1. **Place media files** in the `media/` folder (e.g. `sample.mp3`, `sample.mp4`).
+### 1. Download sample media files
 
-2. **Build and run** the project in Delphi.
+Run the provided script from the project directory:
 
-3. **Open** `http://localhost:8080` in your browser.
+```bat
+# Windows (curl is built into Windows 10 / 11)
+get_samples.bat
+
+# Linux / macOS
+bash get_samples.sh
+```
+
+The scripts download two files into the `media/` folder using `curl`:
+
+| File | Source | License |
+|------|--------|---------|
+| `media/sample.ogg` | Beethoven — Moonlight Sonata sequenced (Wikimedia Commons) | Public Domain |
+| `media/sample.mp4` | Big Buck Bunny 320x180 — © Blender Foundation | CC BY 3.0 |
+
+### 2. Build and run
+
+Open `RangeMediaSample.dproj` in Delphi, build, and run.
+
+### 3. Open the browser
+
+Navigate to `http://localhost:8080`.
+
+The page includes:
+- Audio player for `sample.ogg`
+- Video player for `sample.mp4`
+- **Range Request Inspector** — fire 200, 206, 416, and 404 requests live
+  and inspect the response headers directly in the browser
 
 ## How it works
 
-The `TMVCRangeMediaMiddleware` intercepts GET requests matching a URL prefix
-(`/media` in this sample) and serves the corresponding files from a document root
-with full HTTP Range support:
+`TMVCRangeMediaMiddleware` intercepts `GET` requests matching a URL prefix
+and serves the corresponding files from a document root with full HTTP Range
+support:
 
-- **No Range header** -> `200 OK` with the complete file
-- **Valid Range header** -> `206 Partial Content` with the requested byte range
-- **Invalid range** -> `416 Range Not Satisfiable`
+| Request | Response |
+|---------|----------|
+| No `Range` header | `200 OK` — full file |
+| `Range: bytes=0-65535` | `206 Partial Content` + `Content-Range` |
+| `Range: bytes=-1024` | `206` — last 1024 bytes (suffix range) |
+| `Range: bytes=5000-` | `206` — from byte 5000 to EOF (open-ended) |
+| Invalid range | `416 Range Not Satisfiable` |
+| File not found | `404 Not Found` |
 
-This is essential for HTML5 `<audio>` and `<video>` elements, which use Range
-requests to enable seeking without downloading the entire file.
+### Middleware registration
+
+```pascal
+FEngine.AddMiddleware(
+  UseRangeMediaMiddleware('/media', 'media')
+  //                      ^         ^
+  //                      URL       folder relative to exe
+  //                      prefix
+);
+```
 
 ## Test with curl
 
 ```bash
 # Full file
-curl -v http://localhost:8080/media/sample.mp3
+curl -I http://localhost:8080/media/sample.ogg
 
-# First 64 KB (partial content)
-curl -v -H "Range: bytes=0-65535" http://localhost:8080/media/sample.mp3
+# First 64 KB
+curl -v -H "Range: bytes=0-65535" http://localhost:8080/media/sample.ogg
 
-# Last 1000 bytes
-curl -v -H "Range: bytes=-1000" http://localhost:8080/media/sample.mp3
+# Last 1 KB (suffix range)
+curl -v -H "Range: bytes=-1024" http://localhost:8080/media/sample.ogg
+
+# Open-ended range (from byte 50000 to EOF)
+curl -v -H "Range: bytes=50000-" http://localhost:8080/media/sample.ogg
+
+# Invalid range -> 416
+curl -v -H "Range: bytes=9999999-" http://localhost:8080/media/sample.ogg
 ```
-
-## Endpoints
-
-| Path | Description |
-|------|-------------|
-| `GET /` | Media player page with audio/video elements |
-| `GET /media/<file>` | Serves media files with Range support |
 
 ## Notes
 
-- Only single-range requests are supported (no multipart ranges).
-- The middleware resolves paths against the document root and blocks directory
-  traversal attempts.
-- Supported MIME types include MP3, MP4, OGG, OPUS, WAV, FLAC, AAC, WebM, MKV,
-  AVI, and MOV. Unknown extensions are served as `application/octet-stream`.
+- Only **single-range** requests are supported (no multipart/byteranges).
+- Directory traversal is blocked — only files inside the configured document
+  root are accessible.
+- Supported MIME types: MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC, WebM,
+  MKV, AVI, MOV. Unknown extensions are served as `application/octet-stream`.
+- `Content-Encoding: identity` is set to prevent compression middleware from
+  breaking `Content-Range` semantics.

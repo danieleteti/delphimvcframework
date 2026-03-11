@@ -149,6 +149,10 @@ begin
   inherited Create;
   FURLPath := AURLPath.TrimRight(['/']);
   FDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
+  // Ensure trailing separator so StartsWith check is unambiguous:
+  // '/app/media' must not match sibling directory '/app/media_evil'
+  if not FDocumentRoot.EndsWith(TPath.DirectorySeparatorChar) then
+    FDocumentRoot := FDocumentRoot + TPath.DirectorySeparatorChar;
   FMediaTypes := TDictionary<string, string>.Create;
   InitMediaTypes;
 end;
@@ -201,7 +205,8 @@ begin
   LFullPath := TPath.Combine(FDocumentRoot, LRelativePath);
   LFullPath := TPath.GetFullPath(LFullPath);
 
-  // Directory traversal protection: resolved path must stay within root
+  // Directory traversal protection: FDocumentRoot has a trailing separator,
+  // so this check is unambiguous (e.g. '/app/media/' does not match '/app/media_evil/...')
   if not LFullPath.StartsWith(FDocumentRoot, True) then
     Exit;
 
@@ -317,9 +322,9 @@ begin
     if LRangeHeader.IsEmpty then
     begin
       AContext.Response.StatusCode := HTTP_STATUS.OK;
-      AContext.Response.SetContentStream(
-        TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone),
-        LContentType);
+      LFileStream.Position := 0;
+      AContext.Response.SetContentStream(LFileStream, LContentType);
+      LFileStream := nil; // SetContentStream takes ownership; prevent double-free in finally
       Exit;
     end;
 
@@ -368,11 +373,17 @@ begin
   if not (AContext.Request.HTTPMethod in [httpGET, httpHEAD]) then
     Exit;
 
+  // Only take ownership of the request if there is a filename component after
+  // the prefix (e.g. '/media/foo.mp3'). A bare '/media' with no filename is
+  // left to the router.
+  if LPathInfo.Substring(FURLPath.Length).TrimLeft(['/']).IsEmpty then
+    Exit;
+
+  AHandled := True;
   if ResolveFilePath(LPathInfo, LFileName) then
-  begin
-    ServeFile(AContext, LFileName);
-    AHandled := True;
-  end;
+    ServeFile(AContext, LFileName)
+  else
+    AContext.Response.StatusCode := HTTP_STATUS.NotFound;
 end;
 
 procedure TMVCRangeMediaMiddleware.OnBeforeControllerAction(

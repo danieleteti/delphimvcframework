@@ -11,6 +11,7 @@ uses
 type
   TRangeMediaWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
   private
     FEngine: TMVCEngine;
   end;
@@ -48,6 +49,11 @@ begin
   FEngine.AddMiddleware(
     UseRangeMediaMiddleware('/media', 'media')
   );
+end;
+
+procedure TRangeMediaWebModule.WebModuleDestroy(Sender: TObject);
+begin
+  FEngine.Free;
 end;
 
 end.

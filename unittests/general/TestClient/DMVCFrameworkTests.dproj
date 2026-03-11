@@ -286,6 +286,12 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.Client.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
+        <DCCReference Include="RangeMediaMiddlewareTestsU.pas"/>
+        <DCCReference Include="webmodules\RangeMediaTestWebModuleU.pas">
+            <Form>RangeMediaTestWebModule</Form>
+            <DesignClass>TWebModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

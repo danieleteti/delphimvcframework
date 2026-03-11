@@ -3,66 +3,609 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Range Media Middleware Sample</title>
+  <title>Range Media Middleware — DMVCFramework</title>
   <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3347;
+      --accent: #6c8fff;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --radius: 10px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-           max-width: 800px; margin: 0 auto; padding: 2rem; color: #333; }
-    h1 { margin-bottom: 0.5rem; }
-    p.subtitle { color: #666; margin-bottom: 2rem; }
-    .card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
-            padding: 1.5rem; margin-bottom: 1.5rem; }
-    .card h2 { font-size: 1.1rem; margin-bottom: 1rem; }
-    audio, video { width: 100%; margin-bottom: 0.5rem; }
-    code { background: #e9ecef; padding: 0.15rem 0.4rem; border-radius: 3px;
-           font-size: 0.9em; }
-    .note { color: #666; font-size: 0.9rem; margin-top: 0.5rem; }
-    .files { margin-top: 1rem; }
-    .files li { margin: 0.3rem 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; flex-shrink: 0;
+    }
+    .header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+    .header p { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    .badge {
+      margin-left: auto;
+      background: rgba(108,143,255,.15);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(108,143,255,.3);
+      letter-spacing: .04em;
+    }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .card-icon {
+      width: 28px; height: 28px;
+      background: var(--surface2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem;
+    }
+    .card-title { font-size: 0.9rem; font-weight: 600; }
+    .card-subtitle { font-size: 0.75rem; color: var(--muted); }
+
+    /* Media elements */
+    audio, video {
+      width: 100%;
+      border-radius: 6px;
+      background: var(--surface2);
+      outline: none;
+    }
+    audio { margin-top: 0.5rem; }
+    video { max-height: 180px; object-fit: contain; }
+
+    .file-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      font-family: var(--mono);
+    }
+    .no-file {
+      background: var(--surface2);
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 2rem 1rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+    .no-file code {
+      display: block;
+      margin-top: 0.4rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+
+    /* Inspector card (full width) */
+    .inspector { margin-top: 1.25rem; }
+    .inspector .card-header { margin-bottom: 0.75rem; }
+    .inspector-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .btn {
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-200 { background: rgba(52,211,153,.15); color: var(--green); border-color: rgba(52,211,153,.3); }
+    .btn-206 { background: rgba(108,143,255,.15); color: var(--accent); border-color: rgba(108,143,255,.3); }
+    .btn-416 { background: rgba(248,113,113,.15); color: var(--red); border-color: rgba(248,113,113,.3); }
+    .btn-404 { background: rgba(251,191,36,.15); color: var(--yellow); border-color: rgba(251,191,36,.3); }
+    .btn-clear { background: var(--surface2); color: var(--muted); border-color: var(--border); }
+
+    /* Request log */
+    .log-area {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      min-height: 220px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+    .log-empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 3rem 1rem;
+      font-family: var(--font);
+      font-size: 0.8rem;
+    }
+    .log-entry { margin-bottom: 1rem; }
+    .log-entry:last-child { margin-bottom: 0; }
+    .log-req { color: var(--muted); }
+    .log-req .method { color: var(--accent2); font-weight: 600; }
+    .log-req .url { color: var(--text); }
+    .log-req .hdr { color: var(--accent); }
+    .log-sep { color: var(--border); margin: 3px 0; user-select: none; }
+    .log-res .status-200 { color: var(--green); font-weight: 700; }
+    .log-res .status-206 { color: var(--accent); font-weight: 700; }
+    .log-res .status-416 { color: var(--red); font-weight: 700; }
+    .log-res .status-404 { color: var(--yellow); font-weight: 700; }
+    .log-res .hdr { color: var(--muted); }
+    .log-res .hdr-val { color: var(--text); }
+    .log-res .body { color: var(--muted); font-style: italic; }
+    .log-spinner { display: inline-block; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* How it works */
+    .how { margin-top: 1.25rem; }
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 120px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      font-size: 0.75rem;
+      position: relative;
+    }
+    .flow-step:first-child { border-radius: 6px 0 0 6px; }
+    .flow-step:last-child  { border-radius: 0 6px 6px 0; }
+    .flow-step + .flow-step { border-left: none; }
+    .flow-label { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px; }
+    .flow-val { font-family: var(--mono); font-size: 0.72rem; }
+    .flow-val.s200 { color: var(--green); }
+    .flow-val.s206 { color: var(--accent); }
+    .flow-val.s416 { color: var(--red); }
+
+    /* Setup */
+    .setup { margin-top: 1.25rem; }
+    .setup-steps { margin-top: 0.75rem; counter-reset: step; }
+    .setup-step {
+      counter-increment: step;
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .setup-step:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700;
+      color: var(--accent);
+    }
+    .step-num::before { content: counter(step); }
+    .setup-step p { color: var(--muted); line-height: 1.5; }
+    .setup-step p strong { color: var(--text); font-weight: 600; }
+    code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.85em;
+      color: var(--accent2);
+    }
+    pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      overflow-x: auto;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      line-height: 1.6;
+    }
+    pre .comment { color: #4a5568; }
+    pre .cmd { color: var(--text); }
+    .footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Setup banner */
+    .setup-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: rgba(251,191,36,.08);
+      border: 1px solid rgba(251,191,36,.3);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .setup-banner.hidden { display: none; }
+    .banner-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+    .banner-title { font-weight: 700; color: var(--yellow); margin-bottom: 0.2rem; }
+    .banner-cmd {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--accent2);
+      padding: 2px 8px;
+      margin-top: 0.3rem;
+    }
   </style>
 </head>
 <body>
-  <h1>Range Media Middleware</h1>
-  <p class="subtitle">HTTP Range request support for HTML5 media elements</p>
+<div class="container">
 
-  <div class="card">
-    <h2>Audio Player</h2>
-    <p>Place an audio file (e.g. <code>sample.mp3</code>) in the <code>media/</code> folder:</p>
-    <audio controls preload="metadata" src="/media/sample.mp3">
-      Your browser does not support the audio element.
-    </audio>
-    <p class="note">The middleware returns <code>206 Partial Content</code> with
-    <code>Content-Range</code> headers, enabling seeking without downloading the
-    entire file.</p>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">🎬</div>
+    <div>
+      <h1>Range Media Middleware</h1>
+      <p>HTTP Range request support (RFC 7233) for HTML5 audio &amp; video</p>
+    </div>
+    <span class="badge">DMVCFramework</span>
+  </header>
+
+  <!-- Setup banner (hidden automatically when media files are found) -->
+  <div class="setup-banner" id="setupBanner">
+    <div class="banner-icon">⚠️</div>
+    <div>
+      <div class="banner-title">Media files not found</div>
+      <div style="color:var(--muted)">
+        Run the setup script to download the sample audio and video files
+        into the <code>media/</code> folder, then restart the server:
+      </div>
+      <div style="margin-top:0.5rem">
+        <span class="banner-cmd">get_samples.bat</span>
+        <span style="color:var(--muted);font-size:0.78rem;margin-left:0.6rem">(Windows)</span>
+      </div>
+      <div style="margin-top:0.3rem">
+        <span class="banner-cmd">bash get_samples.sh</span>
+        <span style="color:var(--muted);font-size:0.78rem;margin-left:0.6rem">(Linux / macOS)</span>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Video Player</h2>
-    <p>Place a video file (e.g. <code>sample.mp4</code>) in the <code>media/</code> folder:</p>
-    <video controls preload="metadata" src="/media/sample.mp4" style="max-height: 400px;">
-      Your browser does not support the video element.
-    </video>
+  <!-- Players -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎵</div>
+        <div>
+          <div class="card-title">Audio Player</div>
+          <div class="card-subtitle">MP3 · WAV · OGG · FLAC · AAC</div>
+        </div>
+      </div>
+      <audio id="audioPlayer" controls preload="metadata" src="/media/sample.ogg">
+        Your browser does not support the audio element.
+      </audio>
+      <div class="file-label">GET /media/sample.ogg</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎥</div>
+        <div>
+          <div class="card-title">Video Player</div>
+          <div class="card-subtitle">MP4 · WebM · OGV · MKV</div>
+        </div>
+      </div>
+      <video id="videoPlayer" controls preload="metadata" src="/media/sample.mp4">
+        Your browser does not support the video element.
+      </video>
+      <div class="file-label">GET /media/sample.mp4</div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>How It Works</h2>
-    <p>The <code>TMVCRangeMediaMiddleware</code> intercepts requests matching a
-    URL prefix and serves files with HTTP Range support (RFC 7233):</p>
-    <ul class="files">
-      <li><code>GET /media/sample.mp3</code> without Range header &rarr; <strong>200 OK</strong> (full file)</li>
-      <li><code>GET /media/sample.mp3</code> with <code>Range: bytes=0-65535</code> &rarr; <strong>206 Partial Content</strong></li>
-      <li>Invalid range &rarr; <strong>416 Range Not Satisfiable</strong></li>
-    </ul>
-    <p class="note">Directory traversal is blocked. Only files within the configured
-    document root are accessible.</p>
+  <!-- Inspector -->
+  <div class="card inspector">
+    <div class="card-header">
+      <div class="card-icon">🔬</div>
+      <div>
+        <div class="card-title">Range Request Inspector</div>
+        <div class="card-subtitle">Fire real HTTP requests and inspect Range/Content-Range headers</div>
+      </div>
+    </div>
+    <div class="inspector-controls">
+      <button class="btn btn-200" onclick="testRequest('200')">200 Full File</button>
+      <button class="btn btn-206" onclick="testRequest('206-first')">206 First 64 KB</button>
+      <button class="btn btn-206" onclick="testRequest('206-suffix')">206 Last 1 KB</button>
+      <button class="btn btn-206" onclick="testRequest('206-open')">206 From 50%</button>
+      <button class="btn btn-416" onclick="testRequest('416')">416 Bad Range</button>
+      <button class="btn btn-404" onclick="testRequest('404')">404 Missing File</button>
+      <button class="btn btn-clear" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-area" id="logArea">
+      <div class="log-empty" id="logEmpty">
+        Click a button above to fire a range request and inspect the response headers.
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Test with curl</h2>
-    <p>Full file:</p>
-    <code>curl -v http://localhost:8080/media/sample.mp3</code>
-    <p style="margin-top: 0.75rem;">Range request (first 64 KB):</p>
-    <code>curl -v -H "Range: bytes=0-65535" http://localhost:8080/media/sample.mp3</code>
+  <!-- How it works -->
+  <div class="card how">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <div>
+        <div class="card-title">How It Works</div>
+        <div class="card-subtitle">RFC 7233 byte-range serving</div>
+      </div>
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-label">No Range header</div>
+        <div class="flow-val s200">200 OK</div>
+        <div style="color:var(--muted);font-size:.7rem;margin-top:4px">Full file</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-label">Range: bytes=0-65535</div>
+        <div class="flow-val s206">206 Partial</div>
+        <div style="color:var(--muted);font-size:.7rem;margin-top:4px">+ Content-Range</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-label">Range: bytes=-1024</div>
+        <div class="flow-val s206">206 Suffix</div>
+        <div style="color:var(--muted);font-size:.7rem;margin-top:4px">Last N bytes</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-label">Invalid range</div>
+        <div class="flow-val s416">416 Error</div>
+        <div style="color:var(--muted);font-size:.7rem;margin-top:4px">+ bytes */SIZE</div>
+      </div>
+    </div>
   </div>
+
+  <!-- Setup instructions -->
+  <div class="card setup">
+    <div class="card-header">
+      <div class="card-icon">📦</div>
+      <div>
+        <div class="card-title">Setup — Adding Sample Media Files</div>
+        <div class="card-subtitle">Download sample files with <code style="font-size:0.72rem">get_samples.bat</code></div>
+      </div>
+    </div>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num"></div>
+        <p>Run <strong>get_samples.bat</strong> (Windows) or <strong>get_samples.sh</strong> (Linux/macOS)
+          in the project folder. The scripts download
+          <code>sample.ogg</code> (Beethoven — Moonlight Sonata, Public Domain)
+          and <code>sample.mp4</code> (Big Buck Bunny, CC BY 3.0 © Blender Foundation)
+          into the <code>media/</code> folder using <code>curl</code>.</p>
+      </div>
+      <div class="setup-step">
+        <div class="step-num"></div>
+        <p>Build and run the project, then open <code>http://localhost:8080</code>.</p>
+      </div>
+      <div class="setup-step">
+        <div class="step-num"></div>
+        <p><strong>Alternatively</strong>, drop any compatible media file into the <code>media/</code> folder
+          and serve it directly at <code>/media/&lt;filename&gt;</code> — no server restart needed.</p>
+      </div>
+      <div class="setup-step">
+        <div class="step-num"></div>
+        <p>Test with <strong>curl</strong>:</p>
+      </div>
+    </div>
+    <pre><span class="comment"># Full file (200 OK)</span>
+<span class="cmd">curl -I http://localhost:8080/media/sample.ogg</span>
+
+<span class="comment"># First 64 KB (206 Partial Content)</span>
+<span class="cmd">curl -v -H "Range: bytes=0-65535" http://localhost:8080/media/sample.ogg</span>
+
+<span class="comment"># Last 1 KB (206 Suffix Range)</span>
+<span class="cmd">curl -v -H "Range: bytes=-1024" http://localhost:8080/media/sample.ogg</span>
+
+<span class="comment"># Invalid range (416 Range Not Satisfiable)</span>
+<span class="cmd">curl -v -H "Range: bytes=9999999-" http://localhost:8080/media/sample.ogg</span></pre>
+  </div>
+
+  <footer class="footer">
+    <span>DMVCFramework · Range Media Middleware · RFC 7233</span>
+    <span style="margin-left:auto;display:flex;gap:1rem;align-items:center">
+      <span>Audio: <a href="https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_Sonata.ogg" target="_blank">Moonlight Sonata</a> — Beethoven, Public Domain</span>
+      <span>·</span>
+      <span>Video: <a href="https://www.bigbuckbunny.org" target="_blank">Big Buck Bunny</a> CC BY 3.0 © Blender Foundation</span>
+      <span>·</span>
+      <a href="https://github.com/danieleteti/delphimvcframework" target="_blank">GitHub ↗</a>
+    </span>
+  </footer>
+</div>
+
+<script>
+  // Check if media files are available and hide the setup banner.
+  // A 1-byte Range request gives a 206 response: this is an end-to-end check
+  // that the middleware is active AND the file is present, rather than just
+  // testing file existence.
+  (async function checkMediaFiles() {
+    try {
+      const resp = await fetch('/media/sample.ogg', {
+        headers: { 'Range': 'bytes=0-0' },
+        cache: 'no-store'
+      });
+      if (resp.status === 206) {
+        document.getElementById('setupBanner').classList.add('hidden');
+      }
+    } catch {
+      // Network error: leave banner visible
+    }
+  })();
+
+  const MEDIA_FILE = '/media/sample.ogg';
+
+  const TESTS = {
+    '200': {
+      label: 'GET (no Range)',
+      url: MEDIA_FILE,
+      range: null
+    },
+    '206-first': {
+      label: 'GET first 64 KB',
+      url: MEDIA_FILE,
+      range: 'bytes=0-65535'
+    },
+    '206-suffix': {
+      label: 'GET last 1 KB',
+      url: MEDIA_FILE,
+      range: 'bytes=-1024'
+    },
+    '206-open': {
+      label: 'GET from 50% onward',
+      url: MEDIA_FILE,
+      range: null,
+      openEndedFrom: 0.5  // resolved after a HEAD request
+    },
+    '416': {
+      label: 'GET invalid range',
+      url: MEDIA_FILE,
+      range: 'bytes=999999999-9999999999'
+    },
+    '404': {
+      label: 'GET missing file',
+      url: '/media/does_not_exist.mp3',
+      range: null
+    }
+  };
+
+  function statusClass(code) {
+    if (code === 200) return 'status-200';
+    if (code === 206) return 'status-206';
+    if (code === 416) return 'status-416';
+    return 'status-404';
+  }
+
+  function appendLog(html) {
+    const area = document.getElementById('logArea');
+    const empty = document.getElementById('logEmpty');
+    if (empty) empty.remove();
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = html;
+    area.appendChild(entry);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function clearLog() {
+    const area = document.getElementById('logArea');
+    area.innerHTML = '<div class="log-empty" id="logEmpty">Click a button above to fire a range request and inspect the response headers.</div>';
+  }
+
+  async function testRequest(key) {
+    const test = TESTS[key];
+    let range = test.range;
+
+    // For open-ended test, determine 50% offset via HEAD first
+    if (test.openEndedFrom !== undefined) {
+      try {
+        const head = await fetch(test.url, { method: 'HEAD' });
+        const len = parseInt(head.headers.get('Content-Length') || '0', 10);
+        const half = Math.floor(len * test.openEndedFrom);
+        range = 'bytes=' + half + '-';
+      } catch {
+        range = 'bytes=5000-';
+      }
+    }
+
+    const headers = range ? { 'Range': range } : {};
+    const reqLine = `<span class="method">GET</span> <span class="url">${test.url}</span>`;
+    const reqHdr  = range ? `<br><span class="hdr">Range:</span> ${range}` : '';
+
+    appendLog(
+      `<div class="log-req">${reqLine}${reqHdr}</div>` +
+      `<div class="log-sep">──────────────────────────</div>` +
+      `<div class="log-res"><span class="log-spinner">⟳</span> waiting…</div>`
+    );
+    const entry = document.querySelector('.log-area .log-entry:last-child');
+
+    try {
+      const resp = await fetch(test.url, { headers, cache: 'no-store' });
+      const ct    = resp.headers.get('Content-Type')    || '—';
+      const cr    = resp.headers.get('Content-Range')   || null;
+      const ar    = resp.headers.get('Accept-Ranges')   || '—';
+      const cl    = resp.headers.get('Content-Length')  || '—';
+      const bytes = await resp.arrayBuffer();
+      const size  = bytes.byteLength;
+
+      let hdrs = `<br><span class="hdr">Content-Type:</span>   <span class="hdr-val">${ct}</span>`;
+      hdrs    += `<br><span class="hdr">Accept-Ranges:</span>  <span class="hdr-val">${ar}</span>`;
+      hdrs    += `<br><span class="hdr">Content-Length:</span> <span class="hdr-val">${cl}</span>`;
+      if (cr)
+        hdrs  += `<br><span class="hdr">Content-Range:</span>  <span class="hdr-val">${cr}</span>`;
+
+      entry.querySelector('.log-res').innerHTML =
+        `<span class="${statusClass(resp.status)}">${resp.status} ${resp.statusText}</span>${hdrs}` +
+        `<br><span class="body">← ${size.toLocaleString()} bytes received</span>`;
+    } catch (err) {
+      entry.querySelector('.log-res').innerHTML =
+        `<span class="status-404">Network error: ${err.message}</span>`;
+    }
+  }
+</script>
 </body>
 </html>
