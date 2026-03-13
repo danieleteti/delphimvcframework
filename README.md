@@ -3,6 +3,7 @@
 **Table of Contents**
 
 - [DelphiMVCFramework](#delphimvcframework)
+  - [Star History](#star-history)
   - [🚀 Quick Links](#-quick-links)
   - [🎯 Key Features](#-key-features)
     - [🏗️ **Architecture & Framework**](#-architecture--framework)
