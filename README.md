@@ -43,6 +43,16 @@
 
 DelphiMVCFramework is a powerful, open-source framework for building RESTful services, JSON-RPC APIs, and web applications with Object Pascal. It provides a complete MVC architecture with built-in ORM, authentication, TLS 1.3 support and extensive middleware support.
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=danieleteti%2Fdelphimvcframework&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=danieleteti/delphimvcframework&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=danieleteti/delphimvcframework&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=danieleteti/delphimvcframework&type=date&legend=top-left" />
+ </picture>
+</a>
+
 ## 🚀 Quick Links
 
 - **[📖 Official Guide](http://www.danieleteti.it/books/)** - Comprehensive documentation and tutorials
