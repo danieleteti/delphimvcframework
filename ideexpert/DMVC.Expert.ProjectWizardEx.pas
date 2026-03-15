@@ -77,6 +77,7 @@ begin
   try
     // Configure wizard mode and setup pages
     WizardForm.SetCustomMode(APreset = ppCustom);
+    WizardForm.SetPresetCaption(PRESET_INFOS[APreset].Caption);
     ApplyPresetToForm(APreset, WizardForm);
     WizardForm.InitWizardPages;
 

@@ -93,6 +93,7 @@ implementation
 procedure ApplyPreset_RESTfulAPI(AForm: TfrmDMVCNewProject);
 begin
   // Controller
+  AForm.edtControllerClassName.Text := 'TAPIController';
   AForm.chkCreateIndexMethod.Checked := False;
   AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
@@ -131,6 +132,7 @@ end;
 procedure ApplyPreset_WebApplication(AForm: TfrmDMVCNewProject);
 begin
   // Controller
+  AForm.edtControllerClassName.Text := 'TWebController';
   AForm.chkCreateIndexMethod.Checked := True;
   AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
@@ -169,6 +171,7 @@ end;
 procedure ApplyPreset_Microservice(AForm: TfrmDMVCNewProject);
 begin
   // Controller
+  AForm.edtControllerClassName.Text := 'TServiceController';
   AForm.chkCreateIndexMethod.Checked := True; // Health check
   AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
@@ -207,6 +210,7 @@ end;
 procedure ApplyPreset_RealTime(AForm: TfrmDMVCNewProject);
 begin
   // Controller
+  AForm.edtControllerClassName.Text := 'TRealTimeController';
   AForm.chkCreateIndexMethod.Checked := True;
   AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
@@ -245,6 +249,7 @@ end;
 procedure ApplyPreset_FullStack(AForm: TfrmDMVCNewProject);
 begin
   // Controller
+  AForm.edtControllerClassName.Text := 'TAppController';
   AForm.chkCreateIndexMethod.Checked := True;
   AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := True;

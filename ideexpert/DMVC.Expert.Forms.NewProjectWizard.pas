@@ -80,6 +80,8 @@ type
     rgServerProtocol: TRadioGroup;
     lblServerPort: TLabel;
     edtServerPort: TEdit;
+    btnTestPort: TButton;
+    lblProtocolDescription: TLabel;
     lblProjectName: TLabel;
     edtProjectName: TEdit;
     lblProjectFolder: TLabel;
@@ -126,6 +128,7 @@ type
     chkMSHeap: TCheckBox;
     chkSqids: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
+    lblSummary: TLabel;
     // Buttons
     btnBack: TButton;
     btnNext: TButton;
@@ -150,10 +153,14 @@ type
     procedure btnNextClick(Sender: TObject);
     procedure btnBrowseFolderClick(Sender: TObject);
     procedure rgApplicationTypeClick(Sender: TObject);
+    procedure rgServerProtocolClick(Sender: TObject);
+    procedure btnTestPortClick(Sender: TObject);
   private
     fModel: TJsonObject;
     fCurrentPage: Integer;
     fIsCustomPreset: Boolean;
+    fPresetCaption: string;
+    procedure UpdateSummary;
     function GetControllerClassName: string;
     function GetWebModuleClassName: string;
     function GetServerPort: Integer;
@@ -173,6 +180,7 @@ type
     property ProjectName: string read GetProjectName;
     property ProjectFolder: string read GetProjectFolder;
     procedure SetCustomMode(AIsCustom: Boolean);
+    procedure SetPresetCaption(const ACaption: string);
     procedure InitWizardPages;
     function GetConfigModel: TJSONObject;
   end;
@@ -186,7 +194,9 @@ uses
   System.IOUtils,
   Vcl.FileCtrl,
   DMVC.Expert.Commons,
-  System.TypInfo;
+  System.TypInfo,
+  IdTCPServer,
+  IdGlobal;
 
 {$R *.dfm}
 
@@ -276,8 +286,16 @@ begin
   lblPageTitle.Caption := PAGE_TITLES[LActualPage];
   lblPageHint.Caption := PAGE_HINTS[LActualPage];
 
-  Caption := Format('DMVCFramework :: New Project Wizard (%d of %d)',
-    [APageIndex + 1, GetPageCount]);
+  if fPresetCaption <> '' then
+    Caption := Format('DMVCFramework :: %s (%d of %d)',
+      [fPresetCaption, APageIndex + 1, GetPageCount])
+  else
+    Caption := Format('DMVCFramework :: New Project Wizard (%d of %d)',
+      [APageIndex + 1, GetPageCount]);
+
+  // Update summary on the last page
+  if LIsLast then
+    UpdateSummary;
 
   btnBack.Enabled := not LIsFirst;
   btnNext.Enabled := not LIsLast;
@@ -299,6 +317,18 @@ begin
   case LActualPage of
     PAGE_SERVER:
     begin
+      // Validate port
+      var lPort: Integer;
+      var lPortText := Trim(edtServerPort.Text);
+      if lPortText.IsEmpty or not TryStrToInt(lPortText, lPort) or (lPort < 1) or (lPort > 65534) then
+      begin
+        ShowMessage('Please enter a valid port number (1-65534).');
+        edtServerPort.SetFocus;
+        Result := False;
+        Exit;
+      end;
+
+      // Validate project name
       lProjectName := Trim(edtProjectName.Text);
       if lProjectName.IsEmpty then
         lProjectName := 'MyDMVCProject';
@@ -632,6 +662,106 @@ const
 begin
   if (rgApplicationType.ItemIndex >= 0) and (rgApplicationType.ItemIndex <= High(APP_TYPE_DESCRIPTIONS)) then
     lblAppTypeDescription.Caption := APP_TYPE_DESCRIPTIONS[rgApplicationType.ItemIndex];
+end;
+
+procedure TfrmDMVCNewProject.rgServerProtocolClick(Sender: TObject);
+const
+  PROTOCOL_DESCRIPTIONS: array[0..2] of string = (
+    'Standard HTTP server. Best choice for development and reverse-proxy deployments (nginx, Apache, IIS).',
+    'HTTPS with TLS encryption. Requires TaurusTLS library. Use for direct client-facing deployments without a reverse proxy.',
+    'FastCGI protocol for integration with web servers (nginx, Apache, IIS). The web server handles HTTP/HTTPS and forwards requests.'
+  );
+begin
+  if (rgServerProtocol.ItemIndex >= 0) and (rgServerProtocol.ItemIndex <= High(PROTOCOL_DESCRIPTIONS)) then
+    lblProtocolDescription.Caption := PROTOCOL_DESCRIPTIONS[rgServerProtocol.ItemIndex];
+end;
+
+procedure TfrmDMVCNewProject.btnTestPortClick(Sender: TObject);
+var
+  LPort: Integer;
+  LTCPServer: TIdTCPServer;
+begin
+  if not TryStrToInt(Trim(edtServerPort.Text), LPort) or (LPort < 1) or (LPort > 65534) then
+  begin
+    ShowMessage('Please enter a valid port number (1-65534).');
+    Exit;
+  end;
+
+  LTCPServer := TIdTCPServer.Create(nil);
+  try
+    LTCPServer.DefaultPort := LPort;
+    try
+      LTCPServer.Active := True;
+      LTCPServer.Active := False;
+      ShowMessage(Format('Port %d is available.', [LPort]));
+    except
+      on E: Exception do
+        ShowMessage(Format('Port %d is NOT available: %s', [LPort, E.Message]));
+    end;
+  finally
+    LTCPServer.Free;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.SetPresetCaption(const ACaption: string);
+begin
+  fPresetCaption := ACaption;
+end;
+
+procedure TfrmDMVCNewProject.UpdateSummary;
+var
+  LSummary: TStringList;
+  LMiddlewares: TStringList;
+begin
+  LSummary := TStringList.Create;
+  try
+    LMiddlewares := TStringList.Create;
+    try
+      LSummary.Add('--- Project Summary ---');
+      LSummary.Add('');
+
+      // Application type
+      if rgApplicationType.ItemIndex = 0 then
+        LSummary.Add('Application: Console (' + rgServerProtocol.Items[rgServerProtocol.ItemIndex] + ')')
+      else
+        LSummary.Add('Application: Windows Service');
+
+      LSummary.Add('Port: ' + edtServerPort.Text);
+      LSummary.Add('Controller: ' + GetControllerClassName);
+      LSummary.Add('WebModule: ' + GetWebModuleClassName);
+
+      // Middlewares
+      if chkCompression.Checked then LMiddlewares.Add('Compression');
+      if chkCORS.Checked then LMiddlewares.Add('CORS');
+      if chkStaticFiles.Checked then LMiddlewares.Add('Static Files');
+      if chkJWT.Checked then LMiddlewares.Add('JWT');
+      if chkActiveRecord.Checked then LMiddlewares.Add('ActiveRecord');
+      if chkETAG.Checked then LMiddlewares.Add('ETag');
+      if chkRateLimit.Checked then LMiddlewares.Add('Rate Limit');
+      if chkAnalyticsMiddleware.Checked then LMiddlewares.Add('Analytics');
+      if chkTrace.Checked then LMiddlewares.Add('Trace');
+      if LMiddlewares.Count > 0 then
+        LSummary.Add('Middleware: ' + LMiddlewares.DelimitedText)
+      else
+        LSummary.Add('Middleware: (none)');
+
+      // Features
+      if cbSSV.ItemIndex > 0 then
+        LSummary.Add('Views: ' + cbSSV.Items[cbSSV.ItemIndex]);
+      if cbSessionType.ItemIndex > 0 then
+        LSummary.Add('Session: ' + cbSessionType.Items[cbSessionType.ItemIndex]);
+      if chkWebSocketServer.Checked then
+        LSummary.Add('WebSocket: Yes');
+      if chkJSONRPC.Checked then
+        LSummary.Add('JSON-RPC: Yes');
+
+      lblSummary.Caption := LSummary.Text;
+    finally
+      LMiddlewares.Free;
+    end;
+  finally
+    LSummary.Free;
+  end;
 end;
 
 { Config model }
