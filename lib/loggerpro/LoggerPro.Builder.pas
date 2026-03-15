@@ -53,12 +53,14 @@ type
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6E}']
     function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
+    function WithUTF8Output: IConsoleAppenderConfigurator;
   end;
 
   { Simple console appender configurator }
   ISimpleConsoleAppenderConfigurator = interface(IAppenderConfigurator)
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6F}']
     function WithLogLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
+    function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
   end;
 
   { File appender configurator }
@@ -327,16 +329,22 @@ type
 
   { Console appender configurator }
   TConsoleAppenderConfigurator = class(TBaseAppenderConfigurator, IConsoleAppenderConfigurator)
+  private
+    FUTF8Output: Boolean;
   public
     function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
+    function WithUTF8Output: IConsoleAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
   { Simple console appender configurator }
   TSimpleConsoleAppenderConfigurator = class(TBaseAppenderConfigurator, ISimpleConsoleAppenderConfigurator)
+  private
+    FUTF8Output: Boolean;
   public
     function WithLogLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
+    function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -960,11 +968,18 @@ begin
   Result := Self;
 end;
 
+function TConsoleAppenderConfigurator.WithUTF8Output: IConsoleAppenderConfigurator;
+begin
+  FUTF8Output := True;
+  Result := Self;
+end;
+
 function TConsoleAppenderConfigurator.Done: ILoggerProBuilder;
 var
   lAppender: ILogAppender;
 begin
   lAppender := TLoggerProConsoleAppender.Create(GetRenderer);
+  (lAppender as TLoggerProConsoleAppender).UTF8Output := FUTF8Output;
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;
@@ -979,11 +994,18 @@ begin
   Result := Self;
 end;
 
+function TSimpleConsoleAppenderConfigurator.WithUTF8Output: ISimpleConsoleAppenderConfigurator;
+begin
+  FUTF8Output := True;
+  Result := Self;
+end;
+
 function TSimpleConsoleAppenderConfigurator.Done: ILoggerProBuilder;
 var
   lAppender: ILogAppender;
 begin
   lAppender := TLoggerProSimpleConsoleAppender.Create;
+  (lAppender as TLoggerProSimpleConsoleAppender).UTF8Output := FUTF8Output;
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;

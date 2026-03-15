@@ -1021,8 +1021,15 @@ begin
   FLoggerThread := TLoggerThread.Create(FLogAppenders);
   FLoggerThread.EventsHandlers := aEventsHandler;
   FLoggerThread.Start;
-  while not FLoggerThread.Started do
-    Sleep(1); // Wait for thread to actually start
+  if not System.IsLibrary then
+  begin
+    while not FLoggerThread.Started do
+      Sleep(1);
+  end;
+  // When running in a DLL, we skip the spin-wait to avoid a deadlock
+  // caused by the Windows Loader Lock. The queue is already created
+  // in TLoggerThread.Create, so log items can be safely enqueued
+  // before the thread begins executing.
 end;
 
 procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: string);

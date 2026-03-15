@@ -51,7 +51,9 @@ type
     class constructor Create;
     class destructor Destroy;
   protected
+    FUTF8Output: Boolean;
 {$IFDEF MSWINDOWS}
+    FSavedOutputCP: Cardinal;
     fColors: array [TLogType.Debug .. TLogType.Fatal] of Integer;
     fSavedColors: Integer;
 {$ELSE}
@@ -60,10 +62,24 @@ type
     procedure SetColor(const aLogType: TLogType);
     procedure ResetColor;
     procedure SetupColorMappings; virtual;
+    /// <summary>
+    /// Writes a line of text as UTF-8 bytes directly to stdout, bypassing Writeln.
+    /// </summary>
+    procedure WriteUTF8Line(const aText: string);
+    /// <summary>
+    /// Writes text as UTF-8 bytes directly to stdout without appending a line break.
+    /// Used for ANSI color escape codes.
+    /// </summary>
+    procedure WriteUTF8Raw(const aText: string);
   public
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
+    /// <summary>
+    /// When True, writes UTF-8 bytes directly to stdout instead of using Writeln.
+    /// Prevents Unicode mangling on Linux (POSIX locale) and Windows (console code page).
+    /// </summary>
+    property UTF8Output: Boolean read FUTF8Output write FUTF8Output;
   end;
 
   TLoggerProConsoleLogFmtAppender = class(TLoggerProConsoleAppender)
@@ -77,10 +93,24 @@ type
   /// Uses plain Writeln, works on all platforms (Windows, Linux, macOS).
   /// </summary>
   TLoggerProSimpleConsoleAppender = class(TLoggerProAppenderBase)
+  strict private
+    FUTF8Output: Boolean;
+{$IFDEF MSWINDOWS}
+    FSavedOutputCP: Cardinal;
+{$ENDIF}
+    /// <summary>
+    /// Writes a line of text as UTF-8 bytes directly to stdout, bypassing Writeln.
+    /// </summary>
+    procedure WriteUTF8Line(const aText: string);
   public
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
+    /// <summary>
+    /// When True, writes UTF-8 bytes directly to stdout instead of using Writeln.
+    /// Prevents Unicode mangling on Linux (POSIX locale) and Windows (console code page).
+    /// </summary>
+    property UTF8Output: Boolean read FUTF8Output write FUTF8Output;
   end;
 
   TLoggerProSimpleConsoleLogFmtAppender = class(TLoggerProSimpleConsoleAppender)
@@ -98,6 +128,9 @@ implementation
 uses
 {$IFDEF MSWINDOWS}
   Winapi.Windows,
+{$ENDIF}
+{$IFDEF POSIX}
+  Posix.Unistd,
 {$ENDIF}
   LoggerPro.Renderers;
 
@@ -137,6 +170,23 @@ const
   ANSI_RED_BRIGHT = #27'[91m';      // Error
   ANSI_MAGENTA_BRIGHT = #27'[95m';  // Fatal
 {$ENDIF}
+
+procedure InternalWriteUTF8(const aText: string);
+var
+  lBytes: TBytes;
+{$IFDEF MSWINDOWS}
+  lBytesWritten: Cardinal;
+{$ENDIF}
+begin
+  lBytes := TEncoding.UTF8.GetBytes(aText);
+  if Length(lBytes) = 0 then
+    Exit;
+{$IFDEF MSWINDOWS}
+  WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), lBytes[0], Length(lBytes), lBytesWritten, nil);
+{$ELSE}
+  __write(STDOUT_FILENO, @lBytes[0], Length(lBytes));
+{$ENDIF}
+end;
 
 { TLoggerProConsoleAppender }
 
@@ -182,6 +232,11 @@ begin
       FLock.Leave;
     end;
   end;
+  if FUTF8Output then
+  begin
+    FSavedOutputCP := GetConsoleOutputCP;
+    SetConsoleOutputCP(CP_UTF8);
+  end;
 {$ENDIF}
 end;
 
@@ -207,7 +262,10 @@ begin
 {$IFDEF MSWINDOWS}
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fColors[aLogType]);
 {$ELSE}
-  Write(fColors[aLogType]);
+  if FUTF8Output then
+    WriteUTF8Raw(fColors[aLogType])
+  else
+    Write(fColors[aLogType]);
 {$ENDIF}
 end;
 
@@ -219,7 +277,10 @@ begin
   else
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
 {$ELSE}
-  Write(ANSI_RESET);
+  if FUTF8Output then
+    WriteUTF8Raw(ANSI_RESET)
+  else
+    Write(ANSI_RESET);
 {$ENDIF}
 end;
 
@@ -230,6 +291,8 @@ begin
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fSavedColors)
   else
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+  if FUTF8Output then
+    SetConsoleOutputCP(FSavedOutputCP);
 {$ENDIF}
 end;
 
@@ -241,11 +304,24 @@ begin
   FLock.Enter;
   try
     SetColor(aLogItem.LogType);
-    Writeln(lText);
+    if FUTF8Output then
+      WriteUTF8Line(lText)
+    else
+      Writeln(lText);
     ResetColor;
   finally
     FLock.Leave;
   end;
+end;
+
+procedure TLoggerProConsoleAppender.WriteUTF8Line(const aText: string);
+begin
+  InternalWriteUTF8(aText + sLineBreak);
+end;
+
+procedure TLoggerProConsoleAppender.WriteUTF8Raw(const aText: string);
+begin
+  InternalWriteUTF8(aText);
 end;
 
 { TLoggerProConsoleLogFmtAppender }
@@ -268,16 +344,34 @@ end;
 procedure TLoggerProSimpleConsoleAppender.Setup;
 begin
   inherited;
+{$IFDEF MSWINDOWS}
+  if FUTF8Output then
+  begin
+    FSavedOutputCP := GetConsoleOutputCP;
+    SetConsoleOutputCP(CP_UTF8);
+  end;
+{$ENDIF}
 end;
 
 procedure TLoggerProSimpleConsoleAppender.TearDown;
 begin
-  // nothing to do
+{$IFDEF MSWINDOWS}
+  if FUTF8Output then
+    SetConsoleOutputCP(FSavedOutputCP);
+{$ENDIF}
 end;
 
 procedure TLoggerProSimpleConsoleAppender.WriteLog(const aLogItem: TLogItem);
 begin
-  Writeln(FormatLog(aLogItem));
+  if FUTF8Output then
+    WriteUTF8Line(FormatLog(aLogItem))
+  else
+    Writeln(FormatLog(aLogItem));
+end;
+
+procedure TLoggerProSimpleConsoleAppender.WriteUTF8Line(const aText: string);
+begin
+  InternalWriteUTF8(aText + sLineBreak);
 end;
 
 { TLoggerProSimpleConsoleLogFmtAppender }
