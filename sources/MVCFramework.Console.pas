@@ -40,7 +40,8 @@ interface
 uses
   System.SysUtils,
   System.SyncObjs,
-  System.Classes
+  System.Classes,
+  System.Character
 {$IFDEF MSWINDOWS}
   ,WinApi.Windows
 {$ENDIF}
@@ -87,6 +88,19 @@ type
   TProgressBarStyle = (pbsSimple, pbsBlocks, pbsArrows, pbsCircles);
 
   TBoxStyle = (bsSingle, bsDouble, bsRounded, bsThick, bsUseDefault);
+
+  TSpinnerStyle = (
+    ssLine,       // - \ | /
+    ssDots,       // ⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏
+    ssBounce,     // ⠁ ⠂ ⠄ ⡀ ⢀ ⠠ ⠐ ⠈
+    ssGrow,       // ▏ ▎ ▍ ▌ ▋ ▊ ▉ █
+    ssArrow,      // ← ↖ ↑ ↗ → ↘ ↓ ↙
+    ssCircle,     // ◐ ◓ ◑ ◒
+    ssClock,      // 🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛
+    ssEarth,      // 🌍🌎🌏
+    ssMoon,       // 🌑🌒🌓🌔🌕🌖🌗🌘
+    ssWeather     // 🌤️ 🌧️ ⛈️ 🌩️ 🌨️ 🌪️
+  );
 
   EMVCConsole = class(Exception)
   end;
@@ -293,6 +307,17 @@ procedure WriteInfo(const Message: string);
 
 type
   /// <summary>
+  /// Interface for a non-blocking background spinner.
+  /// The spinner animates in a background thread. Call Hide or release the
+  /// interface to stop and clean up.
+  /// </summary>
+  ISpinner = interface
+    ['{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}']
+    /// <summary>Stops the spinner animation and erases the spinner character</summary>
+    procedure Hide;
+  end;
+
+  /// <summary>
   /// Interface for progress tracking with auto-cleanup via reference counting
   /// </summary>
   IProgress = interface
@@ -354,6 +379,16 @@ function Confirm(const Question: string; DefaultYes: Boolean): Boolean; overload
 /// Quick single-choice prompt. Returns selected index (0-based) or -1 if cancelled.
 /// </summary>
 function Choose(const Question: string; const Options: TStringArray): Integer;
+
+/// <summary>
+/// Creates a non-blocking background spinner. The spinner animates in a
+/// separate thread. Call Hide or release the interface to stop it.
+/// Default style: ssLine. Default color: DarkGray.
+/// </summary>
+function Spinner(AStyle: TSpinnerStyle = ssLine;
+  AColor: TConsoleColor = DarkGray): ISpinner; overload;
+function Spinner(const AMessage: string; AStyle: TSpinnerStyle = ssLine;
+  AColor: TConsoleColor = DarkGray): ISpinner; overload;
 
 // Utility functions
 function PadRight(const S: string; Len: Integer): string;
@@ -2858,6 +2893,213 @@ begin
       KEY_ESCAPE: Exit(-1);
     end;
   until False;
+end;
+
+// ============================================================================
+// Spinner implementation (non-blocking, thread-based)
+// ============================================================================
+
+type
+  TSpinnerFrames = TArray<string>;
+
+  TConsoleSpinner = class(TInterfacedObject, ISpinner)
+  private
+    FFlag: Integer;
+    FThread: TThread;
+    FFrames: TSpinnerFrames;
+    FColor: TConsoleColor;
+    FMessage: string;
+    FInterval: Integer;
+    FSpinnerX, FSpinnerY: Word; // cursor position where spinner is drawn
+    FMaxDisplayWidth: Integer;  // max display columns used by any frame
+  public
+    constructor Create(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor);
+    destructor Destroy; override;
+    procedure Hide;
+  end;
+
+function GetSpinnerFrames(AStyle: TSpinnerStyle): TSpinnerFrames;
+begin
+  case AStyle of
+    ssLine:
+      Result := TSpinnerFrames.Create('-', '\', '|', '/');
+    ssDots: // Braille dots U+280x
+      Result := TSpinnerFrames.Create(
+        #$280B, #$2819, #$2839, #$2838, #$283C,
+        #$2834, #$2826, #$2827, #$2807, #$280F);
+    ssBounce: // Braille dots U+280x
+      Result := TSpinnerFrames.Create(
+        #$2801, #$2802, #$2804, #$2840,
+        #$2880, #$2820, #$2810, #$2808);
+    ssGrow: // Block elements U+258x
+      Result := TSpinnerFrames.Create(
+        #$258F, #$258E, #$258D, #$258C,
+        #$258B, #$258A, #$2589, #$2588);
+    ssArrow: // Arrows U+219x
+      Result := TSpinnerFrames.Create(
+        #$2190, #$2196, #$2191, #$2197,
+        #$2192, #$2198, #$2193, #$2199);
+    ssCircle: // Circle quarters U+25Dx
+      Result := TSpinnerFrames.Create(#$25D0, #$25D3, #$25D1, #$25D2);
+    ssClock: // Clock faces U+1F550..U+1F55B (surrogate pairs)
+      Result := TSpinnerFrames.Create(
+        #$D83D#$DD50, #$D83D#$DD51, #$D83D#$DD52, #$D83D#$DD53,
+        #$D83D#$DD54, #$D83D#$DD55, #$D83D#$DD56, #$D83D#$DD57,
+        #$D83D#$DD58, #$D83D#$DD59, #$D83D#$DD5A, #$D83D#$DD5B);
+    ssEarth: // Globe U+1F30D..U+1F30F (surrogate pairs)
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF0D, #$D83C#$DF0E, #$D83C#$DF0F);
+    ssMoon: // Moon phases U+1F311..U+1F318 (surrogate pairs)
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF11, #$D83C#$DF12, #$D83C#$DF13, #$D83C#$DF14,
+        #$D83C#$DF15, #$D83C#$DF16, #$D83C#$DF17, #$D83C#$DF18);
+    ssWeather: // Weather emoji (surrogate pairs + BMP)
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF24, #$D83C#$DF27, #$26C8,
+        #$D83C#$DF29, #$D83C#$DF28, #$D83C#$DF2A);
+  else
+    Result := TSpinnerFrames.Create('-', '\', '|', '/');
+  end;
+end;
+
+function GetSpinnerInterval(AStyle: TSpinnerStyle): Integer;
+begin
+  case AStyle of
+    ssClock, ssEarth, ssMoon, ssWeather: Result := 200;
+    ssDots, ssBounce: Result := 80;
+    ssGrow: Result := 120;
+  else
+    Result := 100;
+  end;
+end;
+
+// Returns the display column width of a string (emoji = 2 cols, BMP = 1 col per char)
+function DisplayWidth(const S: string): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  I := 1;
+  while I <= Length(S) do
+  begin
+    if (I < Length(S)) and Char.IsHighSurrogate(S, I - 1) then
+    begin
+      Inc(Result, 2); // Supplementary plane chars (emoji) are typically 2 columns
+      Inc(I, 2);
+    end
+    else
+    begin
+      Inc(Result, 1);
+      Inc(I);
+    end;
+  end;
+end;
+
+constructor TConsoleSpinner.Create(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor);
+var
+  lFrames: TSpinnerFrames;
+  lInterval: Integer;
+  lColor: TConsoleColor;
+  lSpinnerX, lSpinnerY: Word;
+  lMaxWidth: Integer;
+  CurPos: TMVCConsolePoint;
+  lFrame: string;
+begin
+  inherited Create;
+  FFrames := GetSpinnerFrames(AStyle);
+  FColor := AColor;
+  FMessage := AMessage;
+  FInterval := GetSpinnerInterval(AStyle);
+  InterlockedExchange(FFlag, 1);
+
+  // Write message on main thread before starting spinner thread
+  if FMessage <> '' then
+  begin
+    TextColor(FColor);
+    Write(FMessage + ' ');
+  end;
+
+  // Hide cursor to avoid flickering during animation
+  HideCursor;
+
+  // Save cursor position where spinner will be drawn
+  CurPos := GetCursorPosition;
+  FSpinnerX := CurPos.X;
+  FSpinnerY := CurPos.Y;
+
+  // Compute max display width across all frames
+  FMaxDisplayWidth := 0;
+  for lFrame in FFrames do
+  begin
+    lMaxWidth := DisplayWidth(lFrame);
+    if lMaxWidth > FMaxDisplayWidth then
+      FMaxDisplayWidth := lMaxWidth;
+  end;
+
+  // Capture for anonymous method
+  lFrames := FFrames;
+  lInterval := FInterval;
+  lColor := FColor;
+  lSpinnerX := FSpinnerX;
+  lSpinnerY := FSpinnerY;
+  lMaxWidth := FMaxDisplayWidth;
+
+  FThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      I: Integer;
+      Frame: string;
+    begin
+      I := 0;
+      while InterlockedCompareExchange(FFlag, 1, 1) = 1 do
+      begin
+        Frame := lFrames[I mod Length(lFrames)];
+        GotoXY(lSpinnerX, lSpinnerY);
+        TextColor(lColor);
+        Write(Frame + StringOfChar(' ', lMaxWidth - DisplayWidth(Frame)));
+        Flush(Output);
+        Inc(I);
+        Sleep(lInterval);
+      end;
+    end
+  );
+  FThread.FreeOnTerminate := False;
+  FThread.Start;
+end;
+
+destructor TConsoleSpinner.Destroy;
+begin
+  Hide;
+  inherited;
+end;
+
+procedure TConsoleSpinner.Hide;
+begin
+  if InterlockedCompareExchange(FFlag, 0, 1) = 0 then
+    Exit; // Already hidden
+
+  if Assigned(FThread) then
+  begin
+    FThread.WaitFor;
+    FreeAndNil(FThread);
+  end;
+
+  // Erase the spinner area and restore cursor
+  GotoXY(FSpinnerX, FSpinnerY);
+  Write(StringOfChar(' ', FMaxDisplayWidth));
+  GotoXY(FSpinnerX, FSpinnerY);
+  ShowCursor;
+  Flush(Output);
+end;
+
+function Spinner(AStyle: TSpinnerStyle; AColor: TConsoleColor): ISpinner;
+begin
+  Result := TConsoleSpinner.Create('', AStyle, AColor);
+end;
+
+function Spinner(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor): ISpinner;
+begin
+  Result := TConsoleSpinner.Create(AMessage, AStyle, AColor);
 end;
 
 initialization
