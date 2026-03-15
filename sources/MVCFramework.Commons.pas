@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -85,6 +85,11 @@ type
     IMAGE_PNG = 'image/png';
     IMAGE_SVG_XML = 'image/svg+xml';
     IMAGE_GIF = 'image/gif';
+    VIDEO_MP4 = 'video/mp4';
+    VIDEO_MPEG = 'video/mpeg';
+    VIDEO_OGG = 'video/ogg';
+    AUDIO_MPEG = 'audio/mpeg';
+    AUDIO_OGG = 'audio/ogg';
     APPLICATION_PDF = 'application/pdf';
     APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';

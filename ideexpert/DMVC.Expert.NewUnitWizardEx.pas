@@ -58,8 +58,8 @@ uses
   ExpertsRepository, JsonDataObjects;
 
 resourcestring
-  sNewDMVCUnitCaption = 'DelphiMVCFramework Controller';
-  sNewDMVCProjectHint = 'Create New DelphiMVCFramework Controller Unit';
+  sNewDMVCUnitCaption = 'DMVCFramework Controller';
+  sNewDMVCProjectHint = 'Create New DMVCFramework Controller Unit';
 
 class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const APersonality: string);
 begin

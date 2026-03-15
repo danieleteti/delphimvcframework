@@ -56,6 +56,7 @@ contains
   DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas',
   DMVC.Expert.Commons in '..\..\ideexpert\DMVC.Expert.Commons.pas',
   DMVC.Expert.CodeGen.TemplateEngine in '..\..\ideexpert\DMVC.Expert.CodeGen.TemplateEngine.pas',
-  DMVC.Expert.ProjectGenerator in '..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas';
+  DMVC.Expert.ProjectGenerator in '..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas',
+  DMVC.Expert.Presets in '..\..\ideexpert\DMVC.Expert.Presets.pas';
 
 end.

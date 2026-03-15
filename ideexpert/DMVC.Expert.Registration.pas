@@ -54,7 +54,7 @@ procedure Register;
 begin
   ForceDemandLoadState(dlDisable);
   TDMVCNewProjectWizard.RegisterDMVCProjectWizard(sDelphiPersonality);
-  TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(sDelphiPersonality);
+  //TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(sDelphiPersonality);
 end;
 
 // procedure RegisterSplashScreen;

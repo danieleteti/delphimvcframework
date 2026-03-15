@@ -57,73 +57,100 @@ uses
   WinApi.Windows,
   System.SysUtils,
   DMVC.Expert.Forms.NewProjectWizard,
+  DMVC.Expert.Presets,
   ExpertsRepository,
   JsonDataObjects,
   DMVC.Expert.Commons,
   DMVC.Expert.ProjectGenerator;
 
-resourcestring
-  sNewDMVCProjectCaption = 'DelphiMVCFramework Project';
-  sNewDMVCProjectHint = 'Create New DelphiMVCFramework Project with Controller';
-
-class procedure TDMVCNewProjectWizard.RegisterDMVCProjectWizard(const APersonality: string);
+procedure ExecuteWizardForPreset(APreset: TDMVCProjectPreset);
+var
+  WizardForm: TfrmDMVCNewProject;
+  lJSON: TJSONObject;
+  lProjectFolder: string;
+  lProjectName: string;
+  lProjectPath: string;
+  lProject: IOTAProject;
+  lConfig: IOTABuildConfiguration;
 begin
-  RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint, sNewDMVCProjectCaption,
-    'DMVC.Wizard.NewProjectWizard', // do not localize
-    'DelphiMVCFramework', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
-    procedure
-    var
-      WizardForm: TfrmDMVCNewProject;
-      lJSON: TJSONObject;
-      lProjectFolder: string;
-      lProjectName: string;
-      lProjectPath: string;
-      lProject: IOTAProject;
-      lConfig: IOTABuildConfiguration;
+  WizardForm := TfrmDMVCNewProject.Create(Application);
+  try
+    // Configure wizard mode and setup pages
+    WizardForm.SetCustomMode(APreset = ppCustom);
+    ApplyPresetToForm(APreset, WizardForm);
+    WizardForm.InitWizardPages;
+
+    if WizardForm.ShowModal = mrOk then
     begin
-      WizardForm := TfrmDMVCNewProject.Create(Application);
-      try
-        if WizardForm.ShowModal = mrOk then
-        begin
-          // Get project info from wizard
-          lProjectFolder := WizardForm.ProjectFolder;
-          lProjectName := WizardForm.ProjectName;
-          lJSON := WizardForm.GetConfigModel;
+      lProjectFolder := WizardForm.ProjectFolder;
+      lProjectName := WizardForm.ProjectName;
+      lJSON := WizardForm.GetConfigModel;
 
-          // Generate all project files to disk
-          // This approach avoids timing issues - all unit names are known upfront
-          TDMVCProjectGenerator.Generate(lProjectFolder, lProjectName, lJSON);
+      TDMVCProjectGenerator.Generate(lProjectFolder, lProjectName, lJSON);
 
-          // Open the generated project in the IDE
-          lProjectPath := TPath.Combine(lProjectFolder, lProjectName + '.dpr');
-          (BorlandIDEServices as IOTAActionServices).OpenFile(lProjectPath);
+      lProjectPath := TPath.Combine(lProjectFolder, lProjectName + '.dpr');
+      (BorlandIDEServices as IOTAActionServices).OpenFile(lProjectPath);
 
-          // Configure the project
-          lProject := GetActiveProject;
-          if lProject <> nil then
-          begin
-            lConfig := (lProject.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
-            lConfig.SetValue(sUnitSearchPath, '$(DMVC)');
-            lConfig.SetValue(sFramework, 'FMX');
-            // Set output directories
-            // EXE goes to .\bin for easy deployment
-            // DCU goes to standard .\$(Platform)\$(Config) folder
-            lConfig.SetValue(sExeOutput, '.\bin');
-            lConfig.SetValue(sDcuOutput, '.\$(Platform)\$(Config)');
-          end;
-        end;
-      finally
-        WizardForm.Free;
+      lProject := GetActiveProject;
+      if lProject <> nil then
+      begin
+        lConfig := (lProject.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
+        lConfig.SetValue(sUnitSearchPath, '$(DMVC)');
+        lConfig.SetValue(sFramework, 'FMX');
+        lConfig.SetValue(sExeOutput, '.\bin');
+        lConfig.SetValue(sDcuOutput, '.\$(Platform)\$(Config)');
       end;
-    end,
+    end;
+  finally
+    WizardForm.Free;
+  end;
+end;
+
+// Creates a TProc that captures the preset by value (avoids closure-in-loop issue)
+function MakeWizardProc(APreset: TDMVCProjectPreset): TProc;
+begin
+  Result :=
+    procedure
+    begin
+      ExecuteWizardForPreset(APreset);
+    end;
+end;
+
+// Creates an icon loader function that captures the icon resource name by value
+function MakeIconFunc(const AIconResource: string): TFunc<{$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}>;
+var
+  LIconRes: string;
+begin
+  LIconRes := AIconResource;
+  Result :=
     function: {$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}
     begin
-      Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
-    end, TArray<string>.Create(cWin32Platform, cWin64Platform
-    {$IF Defined(TOKYOORBETTER)}
-    , cLinux64Platform
-    {$ENDIF}
-    ), nil));
+      Result := LoadIcon(HInstance, PChar(LIconRes));
+    end;
+end;
+
+class procedure TDMVCNewProjectWizard.RegisterDMVCProjectWizard(const APersonality: string);
+var
+  LPreset: TDMVCProjectPreset;
+begin
+  // Register in reverse order: IDE "Default" sort uses LIFO (last registered = first displayed)
+  for LPreset := High(TDMVCProjectPreset) downto Low(TDMVCProjectPreset) do
+  begin
+    RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(
+      APersonality,
+      PRESET_INFOS[LPreset].Hint,
+      PRESET_INFOS[LPreset].Caption,
+      'DMVC.Wizard.NewProject.' + PRESET_INFOS[LPreset].IDSuffix, // unique ID per preset
+      'DelphiMVCFramework', // page in Object Repository
+      'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework',
+      MakeWizardProc(LPreset),
+      MakeIconFunc(PRESET_INFOS[LPreset].IconResource),
+      TArray<string>.Create(cWin32Platform, cWin64Platform
+      {$IF Defined(TOKYOORBETTER)}
+      , cLinux64Platform
+      {$ENDIF}
+      ), nil));
+  end;
 end;
 
 end.

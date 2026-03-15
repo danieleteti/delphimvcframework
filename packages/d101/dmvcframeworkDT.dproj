@@ -150,6 +150,30 @@
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>
         </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\restful_api.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetRestfulAPI</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\web_app.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetWebApp</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\microservice.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetMicroservice</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\realtime.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetRealTime</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\fullstack.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetFullStack</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\custom.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetCustom</ResourceId>
+        </RcItem>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewUnit.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewUnitIcon</ResourceId>
@@ -194,6 +218,8 @@
     <Target Name="PreBuildEvent" BeforeTargets="Build">
         <Message Text="Compiling template resources..." Importance="high"/>
         <Exec Command="call &quot;$(MSBuildProjectDirectory)\..\..\ideexpert\build_resources.bat&quot;"/>
+        <Message Text="Deleting package .res to force icon resource regeneration..." Importance="high"/>
+        <Delete Files="$(MSBuildProjectDirectory)\dmvcframeworkDT.res" Condition="Exists('$(MSBuildProjectDirectory)\dmvcframeworkDT.res')"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>

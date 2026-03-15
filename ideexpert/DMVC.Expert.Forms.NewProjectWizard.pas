@@ -22,12 +22,12 @@
 //
 // ***************************************************************************
 //
-// This IDE expert is based off of the one included with the DUnitX }
-// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti. }
+// This IDE expert is based off of the one included with the DUnitX
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
-// The DUnitX project is run by Vincent Parrett and can be found at: }
+// The DUnitX project is run by Vincent Parrett and can be found at:
 //
-// https://github.com/VSoftTechnologies/DUnitX }
+// https://github.com/VSoftTechnologies/DUnitX
 // ***************************************************************************
 
 unit DMVC.Expert.Forms.NewProjectWizard;
@@ -50,6 +50,7 @@ uses
   VCL.StdCtrls,
   VCL.Imaging.pngimage,
   VCL.ExtCtrls,
+  VCL.ComCtrls,
   System.Actions,
   Vcl.ActnList,
   Vcl.AppEvnts,
@@ -57,112 +58,122 @@ uses
 
 type
   TfrmDMVCNewProject = class(TForm)
-    btnOK: TButton;
-    btnCancel: TButton;
-    edtWebModuleName: TEdit;
-    lblWbModule: TLabel;
-    edtServerPort: TEdit;
-    lblServerPort: TLabel;
+    Shape1: TShape;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    gbControllerUnitOptions: TGroupBox;
-    lblClassName: TLabel;
-    Label1: TLabel;
-    chkCreateIndexMethod: TCheckBox;
-    edtControllerClassName: TEdit;
-    chkCreateActionFiltersMethods: TCheckBox;
-    chkCreateCRUDMethods: TCheckBox;
-    Shape1: TShape;
-    GroupBox1: TGroupBox;
-    chkAnalyticsMiddleware: TCheckBox;
-    chkCompression: TCheckBox;
-    chkStaticFiles: TCheckBox;
-    chkTrace: TCheckBox;
-    chkCORS: TCheckBox;
-    chkETAG: TCheckBox;
     lblBook: TLabel;
-    chkActiveRecord: TCheckBox;
-    EdtFDConnDefFileName: TEdit;
-    Label4: TLabel;
-    Bevel1: TBevel;
-    Label5: TLabel;
-    EdtConnDefName: TEdit;
-    ApplicationEvents: TApplicationEvents;
     lblCopyRight: TLabel;
-    chkProfileActions: TCheckBox;
-    lblPATREON: TLabel;
-    Image2: TImage;
     Shape2: TShape;
-    rgServerProtocol: TRadioGroup;
+    Image2: TImage;
+    lblPATREON: TLabel;
+    lblPageTitle: TLabel;
+    lblPageHint: TLabel;
+    pcWizard: TPageControl;
+    tsAppType: TTabSheet;
+    tsServer: TTabSheet;
+    tsFeatures: TTabSheet;
+    tsOptions: TTabSheet;
+    // tsAppType controls
     rgApplicationType: TRadioGroup;
-    chkRateLimit: TCheckBox;
-    chkJWT: TCheckBox;
+    lblAppTypeDescription: TLabel;
+    // tsServer controls
+    rgServerProtocol: TRadioGroup;
+    lblServerPort: TLabel;
+    edtServerPort: TEdit;
     lblProjectName: TLabel;
-    lblProjectFolder: TLabel;
     edtProjectName: TEdit;
+    lblProjectFolder: TLabel;
     edtProjectFolder: TEdit;
     btnBrowseFolder: TButton;
-    gbNameCase: TGroupBox;
-    cbNameCase: TComboBox;
-    Label2: TLabel;
-    Label6: TLabel;
+    // tsFeatures controls
+    gbControllerUnitOptions: TGroupBox;
+    chkCreateIndexMethod: TCheckBox;
+    chkCreateActionFiltersMethods: TCheckBox;
+    chkCreateCRUDMethods: TCheckBox;
+    chkProfileActions: TCheckBox;
+    gbAdditionalFeatures: TGroupBox;
+    lblSSV: TLabel;
+    lblSessionType: TLabel;
+    lblJSONRPCClassName: TLabel;
     cbSSV: TComboBox;
-    Label7: TLabel;
     cbSessionType: TComboBox;
     chkJSONRPC: TCheckBox;
-    Label3: TLabel;
     EdtJSONRPCClassName: TEdit;
     chkWebSocketServer: TCheckBox;
     chkServicesContainer: TCheckBox;
-    chkSqids: TCheckBox;
+    GroupBox1: TGroupBox;
+    Label4: TLabel;
+    Bevel1: TBevel;
+    Label5: TLabel;
+    chkCompression: TCheckBox;
+    chkAnalyticsMiddleware: TCheckBox;
+    chkStaticFiles: TCheckBox;
+    chkCORS: TCheckBox;
+    chkTrace: TCheckBox;
+    chkETAG: TCheckBox;
+    chkRateLimit: TCheckBox;
+    chkJWT: TCheckBox;
+    chkActiveRecord: TCheckBox;
+    EdtFDConnDefFileName: TEdit;
+    EdtConnDefName: TEdit;
+    // tsOptions controls
+    lblNameCase: TLabel;
+    lblClassName: TLabel;
+    lblWbModule: TLabel;
+    cbNameCase: TComboBox;
+    edtControllerClassName: TEdit;
+    edtWebModuleName: TEdit;
     chkMSHeap: TCheckBox;
+    chkSqids: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
-    Bevel2: TBevel;
+    // Buttons
+    btnBack: TButton;
+    btnNext: TButton;
+    btnFinish: TButton;
+    btnCancel: TButton;
+    ApplicationEvents: TApplicationEvents;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure Image1Click(Sender: TObject);
+    procedure lblBookClick(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
     procedure lblBookMouseLeave(Sender: TObject);
-    procedure lblBookClick(Sender: TObject);
+    procedure lblFrameworkVersionClick(Sender: TObject);
     procedure lblFrameworkVersionMouseEnter(Sender: TObject);
     procedure lblFrameworkVersionMouseLeave(Sender: TObject);
-    procedure lblFrameworkVersionClick(Sender: TObject);
-    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
-    procedure btnOKClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure lblPATREONClick(Sender: TObject);
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
-    procedure rgSSVClick(Sender: TObject);
+    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure btnFinishClick(Sender: TObject);
+    procedure btnBackClick(Sender: TObject);
+    procedure btnNextClick(Sender: TObject);
     procedure btnBrowseFolderClick(Sender: TObject);
+    procedure rgApplicationTypeClick(Sender: TObject);
   private
-    { Private declarations }
     fModel: TJsonObject;
-    function GetCreateIndexMethod: boolean;
-    function GetCreateControllerUnit: boolean;
+    fCurrentPage: Integer;
+    fIsCustomPreset: Boolean;
     function GetControllerClassName: string;
     function GetWebModuleClassName: string;
-    function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
-    function GetCreateCRUDMethods: boolean;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
     function GetBaseFolder: string;
     function GetProjectName: string;
     function GetProjectFolder: string;
     procedure UpdateProjectNameHint;
+    procedure NavigateToPage(APageIndex: Integer);
+    function GetPageCount: Integer;
+    function MapPageIndex(AVisualIndex: Integer): Integer;
+    function ValidateCurrentPage: Boolean;
   public
-    { Public declarations }
-    // Read Only Properties to extract values without having to know control values.
     property ControllerClassName: string read GetControllerClassName;
-    property CreateControllerUnit: boolean read GetCreateControllerUnit;
-    property JSONRPCClassName: String read GetJSONRPCClassName;
-    property CreateIndexMethod: boolean read GetCreateIndexMethod;
-    property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property CreateActionFiltersMethods: boolean
-      read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
     property ProjectName: string read GetProjectName;
     property ProjectFolder: string read GetProjectFolder;
+    procedure SetCustomMode(AIsCustom: Boolean);
+    procedure InitWizardPages;
     function GetConfigModel: TJSONObject;
   end;
 
@@ -174,9 +185,195 @@ uses
   System.StrUtils,
   System.IOUtils,
   Vcl.FileCtrl,
-  DMVC.Expert.Commons, System.TypInfo;
+  DMVC.Expert.Commons,
+  System.TypInfo;
 
 {$R *.dfm}
+
+const
+  PAGE_APP_TYPE = 0;
+  PAGE_SERVER   = 1;
+  PAGE_FEATURES = 2;
+  PAGE_OPTIONS  = 3;
+
+  PAGE_TITLES: array[0..3] of string = (
+    'Application Type',
+    'Server && Project',
+    'Features',
+    'Project Options'
+  );
+
+  PAGE_HINTS: array[0..3] of string = (
+    'Select the type of application to be created',
+    'Configure the server protocol, port, and project location',
+    'Select controller options, middleware, and features',
+    'Configure naming, class names, and additional options'
+  );
+
+function IsValidDelphiIdentifier(const AName: string): Boolean;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := False;
+  if AName.IsEmpty then
+    Exit;
+  C := AName[1];
+  if not CharInSet(C, ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+  for I := 2 to Length(AName) do
+  begin
+    C := AName[I];
+    if not CharInSet(C, ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+      Exit;
+  end;
+  Result := True;
+end;
+
+{ Navigation }
+
+function TfrmDMVCNewProject.GetPageCount: Integer;
+begin
+  if fIsCustomPreset then
+    Result := 4
+  else
+    Result := 3;
+end;
+
+function TfrmDMVCNewProject.MapPageIndex(AVisualIndex: Integer): Integer;
+begin
+  if fIsCustomPreset then
+    Result := AVisualIndex
+  else
+  begin
+    case AVisualIndex of
+      0: Result := PAGE_APP_TYPE;
+      1: Result := PAGE_SERVER;
+    else
+      Result := PAGE_OPTIONS;
+    end;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.NavigateToPage(APageIndex: Integer);
+var
+  LActualPage: Integer;
+  LIsLast, LIsFirst: Boolean;
+  LPages: array[0..3] of TTabSheet;
+begin
+  LPages[0] := tsAppType;
+  LPages[1] := tsServer;
+  LPages[2] := tsFeatures;
+  LPages[3] := tsOptions;
+
+  fCurrentPage := APageIndex;
+  LActualPage := MapPageIndex(APageIndex);
+  LIsFirst := (APageIndex = 0);
+  LIsLast := (APageIndex = GetPageCount - 1);
+
+  pcWizard.ActivePage := LPages[LActualPage];
+
+  lblPageTitle.Caption := PAGE_TITLES[LActualPage];
+  lblPageHint.Caption := PAGE_HINTS[LActualPage];
+
+  Caption := Format('DMVCFramework :: New Project Wizard (%d of %d)',
+    [APageIndex + 1, GetPageCount]);
+
+  btnBack.Enabled := not LIsFirst;
+  btnNext.Enabled := not LIsLast;
+  btnFinish.Enabled := LIsLast;
+  if LIsLast then
+    btnFinish.Default := True
+  else
+    btnNext.Default := True;
+end;
+
+function TfrmDMVCNewProject.ValidateCurrentPage: Boolean;
+var
+  LActualPage: Integer;
+  lProjectName: string;
+begin
+  Result := True;
+  LActualPage := MapPageIndex(fCurrentPage);
+
+  case LActualPage of
+    PAGE_SERVER:
+    begin
+      lProjectName := Trim(edtProjectName.Text);
+      if lProjectName.IsEmpty then
+        lProjectName := 'MyDMVCProject';
+      if not IsValidDelphiIdentifier(lProjectName) then
+      begin
+        ShowMessage('Project name must be a valid Delphi identifier:' + sLineBreak +
+          '- Start with a letter or underscore' + sLineBreak +
+          '- Contain only letters, digits, and underscores' + sLineBreak +
+          '- No spaces or special characters');
+        edtProjectName.SetFocus;
+        Result := False;
+      end;
+    end;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.btnBackClick(Sender: TObject);
+begin
+  if fCurrentPage > 0 then
+    NavigateToPage(fCurrentPage - 1);
+end;
+
+procedure TfrmDMVCNewProject.btnNextClick(Sender: TObject);
+begin
+  if ValidateCurrentPage then
+    if fCurrentPage < GetPageCount - 1 then
+      NavigateToPage(fCurrentPage + 1);
+end;
+
+procedure TfrmDMVCNewProject.SetCustomMode(AIsCustom: Boolean);
+begin
+  fIsCustomPreset := AIsCustom;
+end;
+
+procedure TfrmDMVCNewProject.InitWizardPages;
+begin
+  NavigateToPage(0);
+end;
+
+{ Form events }
+
+procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
+var
+  lDefaultProjectsFolder: string;
+begin
+  edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
+  edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
+  edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
+  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
+  chkJSONRPC.Checked := False;
+  chkWebSocketServer.Checked := False;
+  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
+  fModel := TJsonObject.Create;
+  fIsCustomPreset := False;
+
+  lDefaultProjectsFolder := TPath.Combine(
+    TPath.GetDocumentsPath,
+    'Embarcadero\Studio\Projects');
+  if not TDirectory.Exists(lDefaultProjectsFolder) then
+    lDefaultProjectsFolder := TPath.GetHomePath;
+  edtProjectFolder.Text := lDefaultProjectsFolder;
+  edtProjectFolder.TextHint := lDefaultProjectsFolder;
+
+  UpdateProjectNameHint;
+
+  {$IF not Defined(FASTCGI)}
+  rgServerProtocol.Items.Delete(rgServerProtocol.Items.Count-1);
+  rgServerProtocol.ItemIndex := 0;
+  {$ENDIF}
+end;
+
+procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
+begin
+  fModel.Free;
+end;
 
 procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
   var Done: Boolean);
@@ -194,57 +391,29 @@ begin
   EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
   chkProfileActions.Enabled := chkCreateIndexMethod.Checked or chkCreateCRUDMethods.Checked;
   if not chkProfileActions.Enabled then
-  begin
     chkProfileActions.Checked := False;
-  end;
   case rgServerProtocol.ItemIndex of
-    0: begin //http
+    0: begin
          lblServerPort.Caption := 'HTTP Server Port';
          SyncServerPort('8080');
        end;
-    1: begin //https
+    1: begin
          lblServerPort.Caption := 'HTTPS Server Port';
          SyncServerPort('443');
        end;
-    2: begin //fastcgi
+    2: begin
          lblServerPort.Caption := 'FastCGI Server Port';
          SyncServerPort('9000');
        end;
   end;
 end;
 
-function IsValidDelphiIdentifier(const AName: string): Boolean;
-var
-  I: Integer;
-  C: Char;
-begin
-  Result := False;
-  if AName.IsEmpty then
-    Exit;
-
-  // First character must be a letter or underscore
-  C := AName[1];
-  if not CharInSet(C, ['A'..'Z', 'a'..'z', '_']) then
-    Exit;
-
-  // Remaining characters must be letters, digits, or underscores
-  for I := 2 to Length(AName) do
-  begin
-    C := AName[I];
-    if not CharInSet(C, ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
-      Exit;
-  end;
-
-  Result := True;
-end;
-
-procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+procedure TfrmDMVCNewProject.btnFinishClick(Sender: TObject);
 var
   lHints: TArray<String>;
   lProjectFolder: string;
   lProjectName: string;
 begin
-  // Validate project name
   lProjectName := Trim(edtProjectName.Text);
   if lProjectName.IsEmpty then
     lProjectName := 'MyDMVCProject';
@@ -260,7 +429,6 @@ begin
     Exit;
   end;
 
-  // Check if project folder already exists and has files
   lProjectFolder := GetProjectFolder;
   if TDirectory.Exists(lProjectFolder) then
   begin
@@ -278,59 +446,39 @@ begin
 
   lHints := [];
   if chkActiveRecord.Checked then
-  begin
     lHints := lHints + ['- Include required FireDAC units in your project'];
-  end;
   if rgServerProtocol.ItemIndex = 1 then
-  begin
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
-  end;
   if Length(lHints) > 0 then
-  begin
     ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
-  end;
 end;
 
-procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
+{ Property getters }
+
+function TfrmDMVCNewProject.GetControllerClassName: string;
+begin
+  if Trim(edtControllerClassName.Text) = '' then
+    Result := TDefaultValues.sDefaultControllerName
+  else
+    Result := Trim(edtControllerClassName.Text);
+end;
+
+function TfrmDMVCNewProject.GetWebModuleClassName: string;
+begin
+  if Trim(edtWebModuleName.Text) = '' then
+    Result := TDefaultValues.sDefaultWebModuleName
+  else
+    Result := Trim(edtWebModuleName.Text);
+end;
+
+function TfrmDMVCNewProject.GetServerPort: Integer;
 var
-  lDefaultProjectsFolder: string;
+  lServerPort: Integer;
 begin
-  edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
-  edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
-  edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
-  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
-  chkJSONRPC.Checked := False;
-  chkWebSocketServer.Checked := False;
-  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
-  fModel := TJsonObject.Create;
-
-  // Set default project folder to Embarcadero\Studio\Projects folder (or home folder if not exists)
-  lDefaultProjectsFolder := TPath.Combine(
-    TPath.GetDocumentsPath,
-    'Embarcadero\Studio\Projects');
-  if not TDirectory.Exists(lDefaultProjectsFolder) then
-    lDefaultProjectsFolder := TPath.GetHomePath;
-  edtProjectFolder.Text := lDefaultProjectsFolder;
-  edtProjectFolder.TextHint := lDefaultProjectsFolder;
-
-  // Set default project name hint (will show next available DMVCFrameworkProjectN)
-  UpdateProjectNameHint;
-
-  {$IF not Defined(FASTCGI)}
-  // FastCGI is only available from Delphi 13 Florence onwards
-  rgServerProtocol.Items.Delete(rgServerProtocol.Items.Count-1);
-  rgServerProtocol.ItemIndex := 0;
-  {$ENDIF}
-end;
-
-procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
-begin
-  fModel.Free;
-end;
-
-function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
-begin
-  Result := chkCreateIndexMethod.Checked;
+  Result := StrToInt(TDefaultValues.sDefaultServerPort);
+  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text, lServerPort) then
+    if (lServerPort > 0) and (lServerPort < 65535) then
+      Result := lServerPort;
 end;
 
 function TfrmDMVCNewProject.GetCreateJSONRPCInterface: boolean;
@@ -344,84 +492,85 @@ begin
   begin
     Result := EdtJSONRPCClassName.Text;
     if Result.IsEmpty then
-    begin
       Result := EdtJSONRPCClassName.TextHint;
-    end;
   end
   else
-  begin
     Result := '';
+end;
+
+function TfrmDMVCNewProject.GetBaseFolder: string;
+begin
+  Result := Trim(edtProjectFolder.Text);
+  if Result.IsEmpty then
+  begin
+    Result := TPath.Combine(TPath.GetDocumentsPath, 'Embarcadero\Studio\Projects');
+    if not TDirectory.Exists(Result) then
+      Result := TPath.GetHomePath;
   end;
 end;
 
-function TfrmDMVCNewProject.GetServerPort: Integer;
+function TfrmDMVCNewProject.GetProjectName: string;
 var
-  lServerPort: Integer;
+  LBaseFolder: string;
+  LCounter: Integer;
 begin
-  Result := StrToInt(TDefaultValues.sDefaultServerPort);
-  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
-    lServerPort) then
+  Result := Trim(edtProjectName.Text);
+  if Result.IsEmpty then
   begin
-    if (lServerPort > 0) and (lServerPort < 65535) then
-      Result := lServerPort;
+    LBaseFolder := GetBaseFolder;
+    LCounter := 1;
+    repeat
+      Result := 'DMVCFrameworkProject' + LCounter.ToString;
+      Inc(LCounter);
+    until not TDirectory.Exists(TPath.Combine(LBaseFolder, Result));
   end;
 end;
 
-function TfrmDMVCNewProject.GetWebModuleClassName: string;
+function TfrmDMVCNewProject.GetProjectFolder: string;
 begin
-  if Trim(edtWebModuleName.Text) = '' then
+  Result := TPath.Combine(GetBaseFolder, GetProjectName);
+end;
+
+procedure TfrmDMVCNewProject.UpdateProjectNameHint;
+var
+  LBaseFolder: string;
+  LCounter: Integer;
+  LSuggestedName: string;
+begin
+  LBaseFolder := GetBaseFolder;
+  LCounter := 1;
+  repeat
+    LSuggestedName := 'DMVCFrameworkProject' + LCounter.ToString;
+    Inc(LCounter);
+  until not TDirectory.Exists(TPath.Combine(LBaseFolder, LSuggestedName));
+  edtProjectName.Text := LSuggestedName;
+  edtProjectName.TextHint := LSuggestedName;
+end;
+
+procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
+var
+  LDir: string;
+begin
+  LDir := edtProjectFolder.Text;
+  if SelectDirectory('Select Project Folder', '', LDir) then
   begin
-    Result := TDefaultValues.sDefaultWebModuleName
-  end
-  else
-  begin
-    Result := Trim(edtWebModuleName.Text);
+    edtProjectFolder.Text := LDir;
+    UpdateProjectNameHint;
   end;
 end;
+
+{ Link handlers }
 
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://github.com/danieleteti/delphimvcframework'),
-    nil, nil, SW_SHOW);
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONClick(Sender: TObject);
-begin
-  ShellExecute(0, PChar('open'),
-    PChar('https://www.patreon.com/delphimvcframework'),
-    nil, nil, SW_SHOW);
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONMouseEnter(Sender: TObject);
-begin
-  lblPATREON.Font.Color := clHighlight;
-  lblPATREON.Font.Style := lblPATREON.Font.Style + [fsUnderline];
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONMouseLeave(Sender: TObject);
-begin
-  lblPATREON.Font.Color := Font.Color;
-  lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
-end;
-
-procedure TfrmDMVCNewProject.rgSSVClick(Sender: TObject);
-begin
-{$if not Defined(WEBSTENCILS)}
-  if SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils') then
-  begin
-    ShowMessage('This Delphi version doesn''t support WebStencils, so DelphiMVCFramework cannot use it.' +
-      sLineBreak + 'Consider to use TemplatePro.');
-    rgSSV.ItemIndex := 1;
-  end;
-{$endif}
+    PChar('https://github.com/danieleteti/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://leanpub.com/delphimvcframework'),
-    nil, nil, SW_SHOW);
+    PChar('https://leanpub.com/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);
@@ -439,8 +588,7 @@ end;
 procedure TfrmDMVCNewProject.lblFrameworkVersionClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'),
-    nil, nil, SW_SHOW);
+    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblFrameworkVersionMouseEnter(Sender: TObject);
@@ -455,20 +603,38 @@ begin
   lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style - [fsUnderline];
 end;
 
-function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;
+procedure TfrmDMVCNewProject.lblPATREONClick(Sender: TObject);
 begin
-  Result := chkCreateActionFiltersMethods.Checked;
+  ShellExecute(0, PChar('open'),
+    PChar('https://www.patreon.com/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
-function TfrmDMVCNewProject.GetCreateControllerUnit: boolean;
+procedure TfrmDMVCNewProject.lblPATREONMouseEnter(Sender: TObject);
 begin
-  Result := True;
+  lblPATREON.Font.Color := clHighlight;
+  lblPATREON.Font.Style := lblPATREON.Font.Style + [fsUnderline];
 end;
 
-function TfrmDMVCNewProject.GetCreateCRUDMethods: boolean;
+procedure TfrmDMVCNewProject.lblPATREONMouseLeave(Sender: TObject);
 begin
-  Result := chkCreateCRUDMethods.Checked;
+  lblPATREON.Font.Color := Font.Color;
+  lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
 end;
+
+procedure TfrmDMVCNewProject.rgApplicationTypeClick(Sender: TObject);
+const
+  APP_TYPE_DESCRIPTIONS: array[0..1] of string = (
+    'Runs in a terminal/console window. Ideal for development, debugging, ' +
+    'and Docker/container deployments. Works on both Windows and Linux.',
+    'Runs as a background Windows service managed by the Service Control Manager (SCM). ' +
+    'Starts automatically with Windows, runs without user login. Ideal for production servers.'
+  );
+begin
+  if (rgApplicationType.ItemIndex >= 0) and (rgApplicationType.ItemIndex <= High(APP_TYPE_DESCRIPTIONS)) then
+    lblAppTypeDescription.Caption := APP_TYPE_DESCRIPTIONS[rgApplicationType.ItemIndex];
+end;
+
+{ Config model }
 
 function TfrmDMVCNewProject.GetConfigModel: TJSONObject;
 begin
@@ -481,7 +647,6 @@ begin
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');
   fModel.B[TConfigKey.program_ssv_webstencils] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'webstencils');
   fModel.B[TConfigKey.program_ssv_mustache] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'mustache');
-  // Set default media type based on SSV selection
   if fModel.B[TConfigKey.program_ssv_templatepro] or
      fModel.B[TConfigKey.program_ssv_webstencils] or
      fModel.B[TConfigKey.program_ssv_mustache] then
@@ -491,157 +656,66 @@ begin
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
-  fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
-  fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;
-  fModel.B[TConfigKey.controller_action_filters_generate] :=  chkCreateActionFiltersMethods.Checked;
-  fModel.B[TConfigKey.controller_crud_methods_generate] :=  chkCreateCRUDMethods.Checked;
-  fModel.B[TConfigKey.controller_actions_profiling_generate] :=  chkProfileActions.Checked;
+  fModel.S[TConfigKey.controller_classname] := GetControllerClassName;
+  fModel.B[TConfigKey.controller_index_methods_generate] := chkCreateIndexMethod.Checked;
+  fModel.B[TConfigKey.controller_action_filters_generate] := chkCreateActionFiltersMethods.Checked;
+  fModel.B[TConfigKey.controller_crud_methods_generate] := chkCreateCRUDMethods.Checked;
+  fModel.B[TConfigKey.controller_actions_profiling_generate] := chkProfileActions.Checked;
   fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
-  fModel.S[TConfigKey.entity_classname] :=  'TPerson';
+  fModel.S[TConfigKey.entity_classname] := 'TPerson';
   fModel.S[TConfigKey.entity_unit_name] := 'TBA';
-  fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
-  fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
+  fModel.B[TConfigKey.jsonrpc_generate] := GetCreateJSONRPCInterface;
+  fModel.S[TConfigKey.jsonrpc_classname] := GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
   fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), cbNameCase.ItemIndex + 1);
   fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
   fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
 
-  // Determine program type based on Server Protocol + Application Type
-  // Store server protocol for all types
   case rgServerProtocol.ItemIndex of
     0: fModel.S['program.server.protocol'] := 'http';
     1: fModel.S['program.server.protocol'] := 'https';
     2: fModel.S['program.server.protocol'] := 'fastcgi';
   end;
 
-  // Determine application type
   case rgApplicationType.ItemIndex of
-    0: begin // Console
+    0: begin // Console (Win/Linux)
          case rgServerProtocol.ItemIndex of
            0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
            1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
            2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
          end;
        end;
-    1: begin // Windows Service
-         fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
-       end;
-    2: begin // Linux Daemon (future)
-         fModel.S[TConfigKey.program_type] := 'linux.daemon';
-       end;
-    else
-      raise Exception.Create('Invalid Application Type');
+    1: fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  else
+    raise Exception.Create('Invalid Application Type');
   end;
 
-  // Helper unit names (defaults, will be updated after units are created)
   fModel.S[TConfigKey.mustache_helpers_unit_name] := 'TBA';
   fModel.S[TConfigKey.templatepro_helpers_unit_name] := 'TBA';
   fModel.S[TConfigKey.webstencils_helpers_unit_name] := 'TBA';
 
-  //webmodule
   fModel.S[TConfigKey.webmodule_unit_name] := 'TBA';
-  fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;
-  fModel.S[TConfigKey.webmodule_classname_short] := GetWebModuleClassName.Substring(1); // TMyWebModule -> MyWebModule
-  fModel.B[TConfigKey.webmodule_middleware_analytics] :=  chkAnalyticsMiddleware.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_staticfiles] :=  chkStaticFiles.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_trace] :=  chkTrace.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_compression] :=  chkCompression.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_etag] :=  chkETAG.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_cors] :=  chkCORS.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_ratelimit] :=  chkRateLimit.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_jwt] :=  chkJWT.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_activerecord] :=  chkActiveRecord.Checked;
-  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  EdtConnDefName.Text;
-  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  EdtFDConnDefFileName.Text;
-  // Extract just the filename for file generation (e.g., "$(AppPath)FDConnectionDefs.ini" -> "FDConnectionDefs.ini")
+  fModel.S[TConfigKey.webmodule_classname] := GetWebModuleClassName;
+  fModel.S[TConfigKey.webmodule_classname_short] := GetWebModuleClassName.Substring(1);
+  fModel.B[TConfigKey.webmodule_middleware_analytics] := chkAnalyticsMiddleware.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_staticfiles] := chkStaticFiles.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_trace] := chkTrace.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_compression] := chkCompression.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_etag] := chkETAG.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_cors] := chkCORS.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_ratelimit] := chkRateLimit.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_jwt] := chkJWT.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_activerecord] := chkActiveRecord.Checked;
+  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] := EdtConnDefName.Text;
+  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] := EdtFDConnDefFileName.Text;
   fModel.S[TConfigKey.con_def_filename] := ExtractFileName(StringReplace(EdtFDConnDefFileName.Text, '$(AppPath)', '', [rfIgnoreCase]));
 
-  // Session middleware
   fModel.B[TConfigKey.webmodule_middleware_session_memory] := cbSessionType.ItemIndex = 1;
   fModel.B[TConfigKey.webmodule_middleware_session_file] := cbSessionType.ItemIndex = 2;
   fModel.B[TConfigKey.webmodule_middleware_session_database] := cbSessionType.ItemIndex = 3;
-  fModel.I[TConfigKey.webmodule_middleware_session_timeout] := 0; // Default timeout
+  fModel.I[TConfigKey.webmodule_middleware_session_timeout] := 0;
 
-  //webmodule - end
   Result := fModel;
-end;
-
-function TfrmDMVCNewProject.GetControllerClassName: string;
-begin
-  if Trim(edtControllerClassName.Text) = '' then
-  begin
-    Result := TDefaultValues.sDefaultControllerName
-  end
-  else
-  begin
-    Result := Trim(edtControllerClassName.Text);
-  end;
-end;
-
-procedure TfrmDMVCNewProject.UpdateProjectNameHint;
-var
-  LBaseFolder: string;
-  LCounter: Integer;
-  LSuggestedName: string;
-begin
-  LBaseFolder := GetBaseFolder;
-  LCounter := 1;
-  repeat
-    LSuggestedName := 'DMVCFrameworkProject' + LCounter.ToString;
-    Inc(LCounter);
-  until not TDirectory.Exists(TPath.Combine(LBaseFolder, LSuggestedName));
-
-  // Set both the Text and TextHint to the suggested name
-  edtProjectName.Text := LSuggestedName;
-  edtProjectName.TextHint := LSuggestedName;
-end;
-
-function TfrmDMVCNewProject.GetBaseFolder: string;
-begin
-  Result := Trim(edtProjectFolder.Text);
-  if Result.IsEmpty then
-  begin
-    Result := TPath.Combine(TPath.GetDocumentsPath, 'Embarcadero\Studio\Projects');
-    // Fallback to user's home directory if Embarcadero folder doesn't exist
-    if not TDirectory.Exists(Result) then
-      Result := TPath.GetHomePath;
-  end;
-end;
-
-function TfrmDMVCNewProject.GetProjectName: string;
-var
-  LBaseFolder: string;
-  LCounter: Integer;
-begin
-  Result := Trim(edtProjectName.Text);
-  if Result.IsEmpty then
-  begin
-    // Generate automatic project name: DMVCFrameworkProject1, DMVCFrameworkProject2, etc.
-    LBaseFolder := GetBaseFolder;
-    LCounter := 1;
-    repeat
-      Result := 'DMVCFrameworkProject' + LCounter.ToString;
-      Inc(LCounter);
-    until not TDirectory.Exists(TPath.Combine(LBaseFolder, Result));
-  end;
-end;
-
-function TfrmDMVCNewProject.GetProjectFolder: string;
-begin
-  // Append project name as subfolder to base folder
-  Result := TPath.Combine(GetBaseFolder, GetProjectName);
-end;
-
-procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
-var
-  LDir: string;
-begin
-  LDir := edtProjectFolder.Text;
-  if SelectDirectory('Select Project Folder', '', LDir) then
-  begin
-    edtProjectFolder.Text := LDir;
-    UpdateProjectNameHint;
-  end;
 end;
 
 end.
