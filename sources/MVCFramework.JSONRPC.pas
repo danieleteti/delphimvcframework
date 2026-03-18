@@ -88,6 +88,27 @@ type
   MVCJSONRPCAllowGET = class(TCustomAttribute)
   end;
 
+  { Marks a published method parameter as optional.
+    If the named param is missing from the JSON-RPC request,
+    the framework passes the type's zero value instead of raising. }
+  MVCJSONRPCOptional = class(TCustomAttribute)
+  end;
+
+  // Marks the last parameter of a JSON-RPC method as a "rest" collector.
+  // The parameter must be of type TJDOJsonArray and must be the last one.
+  // Any extra parameters sent by the client (beyond those declared by the method)
+  // are collected into this array.
+  //
+  // Each collected item is a JSON object with an optional "name" key
+  // and a "value" key holding the parameter value.
+  // Named params include:   "name" (string) + "value" (any)
+  // Positional params include: "value" (any) only
+  //
+  // This is useful for protocols like MCP where clients may send additional
+  // fields (e.g. _meta) that are not part of the method signature.
+  MVCJSONRPCRestParams = class(TCustomAttribute)
+  end;
+
   IMVCJSONRPCMessage = interface
     ['{73B8D463-75E1-404B-8437-EF4B3C950D2F}']
     function AsJSONRPCMessage: string;
@@ -1253,6 +1274,11 @@ var
   lReqID: TValue;
   lMethodName: string;
 begin
+  { JSON-RPC 2.0 Specification (https://www.jsonrpc.org/specification#request_object):
+    "A String specifying the version of the JSON-RPC protocol. MUST be exactly '2.0'." }
+  if JSON.S[JSONRPC_HEADER] <> JSONRPC_VERSION then
+    raise EMVCJSONRPCInvalidRequest.Create(JSONRPC_HEADER + ' must be "2.0"');
+
   if JSON.Types[JSONRPC_ID] = jdtString then
     lReqID := JSON.S[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] in [jdtInt, jdtLong]  then
@@ -1534,6 +1560,7 @@ var
   lJSON: TJDOJsonObject;
   lJSONResp: TJDOJsonObject;
   lBeforeCallHookHasBeenInvoked: Boolean;
+  lBeforeRoutingHookHasBeenInvoked: Boolean;
   lAfterCallHookHasBeenInvoked: Boolean;
   lHTTPVerb: TMVCHTTPMethodType;
   lIsMethodCallableWithGET: Boolean;
@@ -1542,6 +1569,7 @@ var
 begin
   lBeforeCallHookHasBeenInvoked := False;
   lAfterCallHookHasBeenInvoked := False;
+  lBeforeRoutingHookHasBeenInvoked := False;
   lRTTIType := nil;
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
@@ -1568,6 +1596,10 @@ begin
         end;
 
         TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_BEFORE_ROUTING, lJSON);
+        lBeforeRoutingHookHasBeenInvoked := True;
+
+        { Re-read method name after hook (hook may have remapped it) }
+        lMethod := lJSON.S[JSONRPC_METHOD];
 
         if lJSONRPCReq.RequestType = TJSONRPCRequestType.Request then
         begin
@@ -1641,48 +1673,33 @@ begin
     except
       on E: EMVCJSONRPCErrorResponse do
       begin
-        {
-          http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes
-          HTTP Status	code	message
-          500	-32700	Parse error.
-          400	-32600	Invalid Request.
-          404	-32601	Method not found.
-          500	-32602	Invalid params.
-          500	-32603	Internal error.
-          500	-32099..-32000	Server error.
-        }
-        case E.JSONRPCErrorCode of
-          JSONRPC_ERR_PARSE_ERROR:
-            ResponseStatus(500);
-          JSONRPC_ERR_INVALID_REQUEST:
-            ResponseStatus(400);
-          JSONRPC_ERR_METHOD_NOT_FOUND:
-            ResponseStatus(404);
-          JSONRPC_ERR_INVALID_PARAMS:
-            ResponseStatus(500);
-          JSONRPC_ERR_INTERNAL_ERROR:
-            ResponseStatus(500);
-          JSONRPC_ERR_SERVER_ERROR_LOWERBOUND .. JSONRPC_ERR_SERVER_ERROR_UPPERBOUND:
-            ResponseStatus(500);
-        end;
+        { JSON-RPC 2.0 Specification (https://www.jsonrpc.org/specification#response_object):
+          "When a rpc call is made, the Server MUST reply with a Response."
+          The error is conveyed in the JSON body, not via HTTP status codes.
+          The historical mapping (http://www.jsonrpc.org/historical/json-rpc-over-http.html)
+          that used HTTP 404/400/500 for JSON-RPC errors was never adopted as standard
+          and conflicts with modern JSON-RPC-over-HTTP usage (e.g. MCP protocol). }
+        ResponseStatus(200);
         lJSONResp := CreateError(lReqID, E.JSONRPCErrorCode, E.Message, E.JSONRPCErrorData);
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode, E.Message]));
       end;
       on ExDeSer: EMVCDeserializationException do
       begin
-        ResponseStatus(400);
+        ResponseStatus(200);
         lJSONResp := CreateError(lReqID, JSONRPC_ERR_INVALID_REQUEST, ExDeSer.Message, ExDeSer.DetailedMessage);
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [ExDeSer.ClassName, JSONRPC_ERR_INVALID_REQUEST, ExDeSer.Message]));
       end;
       on ExSer: EMVCSerializationException do
       begin
-        ResponseStatus(400);
+        ResponseStatus(200);
         lJSONResp := CreateError(lReqID, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message, ExSer.DetailedMessage);
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [ExSer.ClassName, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message]));
       end;
       on Ex: Exception do // use another name for exception variable, otherwise E is nil!!
       begin
-        ResponseStatus(HTTP_STATUS.InternalServerError);
+        { JSON-RPC 2.0 Specification (https://www.jsonrpc.org/specification#response_object):
+          All errors are conveyed in the JSON response body, not via HTTP status codes. }
+        ResponseStatus(200);
         //lJSONResp := CreateError(lReqID, 0, Ex.Message);
         LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [Ex.ClassName, Ex.Message]));
         if Assigned(fExceptionHandler) then
@@ -1718,7 +1735,10 @@ begin
         end;
       end;
     end; // except
-    if lBeforeCallHookHasBeenInvoked and (not lAfterCallHookHasBeenInvoked) then
+    { Call OnAfterCallHook if either the routing hook or the call hook was invoked.
+      This ensures the hook runs even on errors (e.g. for setting response headers). }
+    if (lBeforeCallHookHasBeenInvoked or lBeforeRoutingHookHasBeenInvoked) and
+       (not lAfterCallHookHasBeenInvoked) then
     begin
       try
         TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_AFTER_CALL, lJSONResp);
@@ -1763,6 +1783,10 @@ var
   lIntf: IInterface;
   lOutIntf: IInterface;
   lInjectedParamsFoundSoFar: Integer;
+  lHasRestParam: Boolean;
+  lRestParamArray: TJDOJsonArray;
+  lRestItem: TJDOJsonObject;
+  J: Integer;
   function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string): TJsonDataValueHelper;
   var
     I: Integer;
@@ -1777,6 +1801,60 @@ var
       end;
     end;
     raise EJsonException.CreateFmt('Cannot find parameter [%s] in params object', [JsonPropName]);
+  end;
+
+  function HasNamedParam(const JSONNamedParams: TJsonObject; const ParamName: string): Boolean; overload;
+  var
+    J: Integer;
+  begin
+    Result := False;
+    if not Assigned(JSONNamedParams) then Exit;
+    for J := 0 to JSONNamedParams.Count - 1 do
+    begin
+      if SameText(JSONNamedParams.Names[J], ParamName) then
+        Exit(True);
+    end;
+  end;
+
+  function HasNamedParam(const JSONNamedParams: TJsonObject;
+    const RTTIParams: TArray<TRttiParameter>;
+    const RestParamIndex: Integer;
+    const JsonParamName: string): Boolean; overload;
+  { Returns True if JsonParamName matches any declared method parameter
+    (excluding injected and the rest-param itself). Used to detect "extra" params. }
+  var
+    K: Integer;
+  begin
+    for K := 0 to RestParamIndex - 1 do
+    begin
+      if TRttiUtils.HasAttribute<MVCInjectAttribute>(RTTIParams[K]) then
+        Continue;
+      if SameText(RTTIParams[K].Name, JsonParamName) then
+        Exit(True);
+    end;
+    Result := False;
+  end;
+
+  function GetOptionalParamDefault(const RTTIParam: TRttiParameter): TValue;
+  begin
+    case RTTIParam.ParamType.TypeKind of
+      tkUString, tkString, tkLString, tkWString:
+        Result := TValue.From<string>('');
+      tkInteger:
+        Result := TValue.From<Integer>(0);
+      tkInt64:
+        Result := TValue.From<Int64>(0);
+      tkFloat:
+        Result := TValue.From<Double>(0.0);
+      tkEnumeration:
+        Result := TValue.From<Boolean>(False);
+      tkClass:
+        Result := TValue.From<TObject>(nil);
+      tkInterface:
+        Result := TValue.Empty;
+    else
+      Result := TValue.Empty;
+    end;
   end;
 
 begin
@@ -1802,6 +1880,10 @@ begin
   lRTTIMethodParams := RTTIMethod.GetParameters;
   lParamsCount := Length(lRTTIMethodParams);
 
+  { Detect [MVCJSONRPCRestParams] on the last parameter }
+  lHasRestParam := (lParamsCount > 0) and
+    TRttiUtils.HasAttribute<MVCJSONRPCRestParams>(lRTTIMethodParams[lParamsCount - 1]);
+
   lParamsCountMinusInjectedOnes := lParamsCount;
   for lRTTIMethodParam in lRTTIMethodParams do
   begin
@@ -1810,15 +1892,19 @@ begin
       Dec(lParamsCountMinusInjectedOnes);
     end;
   end;
+  { The rest param itself does not consume a JSON parameter }
+  if lHasRestParam then
+    Dec(lParamsCountMinusInjectedOnes);
 
   if lUseNamedParams then
   begin
     if (lParamsCountMinusInjectedOnes > 0) and (not Assigned(lJSONNamedParams)) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].', [lParamsCountMinusInjectedOnes, 0]);
 
-    if Assigned(lJSONNamedParams) and (lParamsCountMinusInjectedOnes <> lJSONNamedParams.Count) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
+    if Assigned(lJSONNamedParams) and (not lHasRestParam) and (lJSONNamedParams.Count > lParamsCountMinusInjectedOnes) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Too many parameters. Expected at most [%d] got [%d].',
         [lParamsCountMinusInjectedOnes, lJSONNamedParams.Count]);
+    { Fewer named params than expected is allowed if the missing ones have [MVCJSONRPCOptional] }
   end
   else
   begin
@@ -1826,7 +1912,7 @@ begin
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [lParamsCountMinusInjectedOnes, 0]);
 
-    if Assigned(lJSONParams) and (lParamsCountMinusInjectedOnes <> lJSONParams.Count) then
+    if Assigned(lJSONParams) and (not lHasRestParam) and (lParamsCountMinusInjectedOnes <> lJSONParams.Count) then
       raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [lParamsCountMinusInjectedOnes, lJSONParams.Count]);
   end;
@@ -1859,18 +1945,80 @@ begin
         TValue.Make(@lOutIntf, lRTTIMethodParams[I].ParamType.Handle, lParamsArray[I]);
         Inc(lInjectedParamsFoundSoFar);
       end
+      else if lHasRestParam and (I = lParamsCount - 1) then
+      begin
+        // [MVCJSONRPCRestParams] - collect all unmatched extra params into a TJDOJsonArray.
+        // Each item is a JSON object with optional "name" and "value" keys.
+        lRestParamArray := TJDOJsonArray.Create;
+        if lUseNamedParams then
+        begin
+          if Assigned(lJSONNamedParams) then
+            for J := 0 to lJSONNamedParams.Count - 1 do
+              if not HasNamedParam(lJSONNamedParams, lRTTIMethodParams, I, lJSONNamedParams.Names[J]) then
+              begin
+                lRestItem := lRestParamArray.AddObject;
+                lRestItem.S['name'] := lJSONNamedParams.Names[J];
+                case lJSONNamedParams.Types[lJSONNamedParams.Names[J]] of
+                  jdtString: lRestItem.S['value'] := lJSONNamedParams.S[lJSONNamedParams.Names[J]];
+                  jdtInt:    lRestItem.I['value'] := lJSONNamedParams.I[lJSONNamedParams.Names[J]];
+                  jdtLong:   lRestItem.L['value'] := lJSONNamedParams.L[lJSONNamedParams.Names[J]];
+                  jdtFloat:  lRestItem.F['value'] := lJSONNamedParams.F[lJSONNamedParams.Names[J]];
+                  jdtBool:   lRestItem.B['value'] := lJSONNamedParams.B[lJSONNamedParams.Names[J]];
+                  jdtObject: lRestItem.O['value'] := lJSONNamedParams.O[lJSONNamedParams.Names[J]].Clone as TJDOJsonObject;
+                  jdtArray:  lRestItem.A['value'] := TJDOJsonArray(lJSONNamedParams.A[lJSONNamedParams.Names[J]].Clone);
+                end;
+              end;
+        end
+        else
+        begin
+          { Positional: collect params beyond the declared ones }
+          if Assigned(lJSONParams) then
+            for J := lParamsCountMinusInjectedOnes to lJSONParams.Count - 1 do
+            begin
+              lRestItem := lRestParamArray.AddObject;
+              case lJSONParams.Types[J] of
+                jdtString: lRestItem.S['value'] := lJSONParams.S[J];
+                jdtInt:    lRestItem.I['value'] := lJSONParams.I[J];
+                jdtLong:   lRestItem.L['value'] := lJSONParams.L[J];
+                jdtFloat:  lRestItem.F['value'] := lJSONParams.F[J];
+                jdtBool:   lRestItem.B['value'] := lJSONParams.B[J];
+                jdtObject: lRestItem.O['value'] := lJSONParams.O[J].Clone as TJDOJsonObject;
+                jdtArray:  lRestItem.A['value'] := TJDOJsonArray(lJSONParams.A[J].Clone);
+              end;
+            end;
+        end;
+        lParamsArray[I] := TValue.From<TJDOJsonArray>(lRestParamArray);
+        lParamsIsRecord[I] := False;
+        lRecordsPointer[I] := nil;
+        lParamArrayLength[I] := 0;
+      end
       else
       begin
         if lUseNamedParams then
         begin
-          JSONDataValueToTValueParamEx(
-            fSerializer,
-            GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
-            lRTTIMethodParams[I],
-            lParamsArray[I],
-            lParamsIsRecord[I],
-            lRecordsPointer[I],
-            lParamArrayLength[i]);
+          if HasNamedParam(lJSONNamedParams, lRTTIMethodParams[I].Name) then
+          begin
+            JSONDataValueToTValueParamEx(
+              fSerializer,
+              GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
+              lRTTIMethodParams[I],
+              lParamsArray[I],
+              lParamsIsRecord[I],
+              lRecordsPointer[I],
+              lParamArrayLength[i]);
+          end
+          else if TRttiUtils.HasAttribute<MVCJSONRPCOptional>(lRTTIMethodParams[I]) then
+          begin
+            { Optional param missing from JSON - use type's zero value }
+            lParamsArray[I] := GetOptionalParamDefault(lRTTIMethodParams[I]);
+            lParamsIsRecord[I] := False;
+            lRecordsPointer[I] := nil;
+            lParamArrayLength[I] := 0;
+          end
+          else
+            raise EMVCJSONRPCInvalidParams.CreateFmt(
+              'Required parameter [%s] not found in params object',
+              [lRTTIMethodParams[I].Name]);
         end
         else
         begin
@@ -1888,7 +2036,7 @@ begin
     end;
 
     //do we consumes all parameters (considering the injected ones?)
-    if not lUseNamedParams then
+    if (not lUseNamedParams) and (not lHasRestParam) then
     begin
       if Assigned(lJSONParams) and (lJSONParams.Count + lInjectedParamsFoundSoFar <> lParamsCount) then
         raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
@@ -1898,13 +2046,8 @@ begin
           [lParamsCount - lInjectedParamsFoundSoFar, 0]);
     end;
 
-    if lUseNamedParams then
-    begin
-      if lJSONNamedParams.Count + lInjectedParamsFoundSoFar <> lParamsCount then
-        raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
-          [lParamsCount - lInjectedParamsFoundSoFar, lJSONNamedParams.Count + lInjectedParamsFoundSoFar]);
-    end;
-
+    { Named params: no post-binding count check needed.
+      Missing optional params were handled during binding above. }
 
     TryToCallMethod(RTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, JSON);
     BeforeCallHookHasBeenInvoked := True;
