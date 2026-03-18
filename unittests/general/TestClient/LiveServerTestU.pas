@@ -3264,7 +3264,7 @@ begin
   var
     lNotif: IJSONRPCNotification := TJSONRPCNotification.Create('error_OnBeforeCallHook');
   lResp := FExecutor3.ExecuteNotification(lNotif);
-  Assert.areEqual('', FExecutor3.HTTPResponse.HeaderValue['x-history']);
+  Assert.areEqual('OnBeforeRoutingHook|OnAfterCallHook|error', FExecutor3.HTTPResponse.HeaderValue['x-history']);
   Assert.isTrue(lResp.IsError);
   Assert.WillNotRaise(
     procedure
@@ -3426,7 +3426,7 @@ begin
 
   lRPCResp := FExecutor.ExecuteRequest(lReq);
   Assert.isTrue(lRPCResp.IsError);
-  Assert.Contains(lRPCResp.Error.ErrMessage, 'cannot find parameter', true);
+  Assert.Contains(lRPCResp.Error.ErrMessage, 'not found in params object', true);
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithException;

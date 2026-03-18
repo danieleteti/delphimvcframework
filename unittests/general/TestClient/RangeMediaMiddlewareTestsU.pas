@@ -168,6 +168,14 @@ uses
 
 { Helpers }
 
+function StreamToBytes(AStream: TStream): TBytes;
+begin
+  AStream.Position := 0;
+  SetLength(Result, AStream.Size);
+  if AStream.Size > 0 then
+    AStream.ReadBuffer(Result[0], AStream.Size);
+end;
+
 function TRangeMediaMiddlewareTests.Get(const AURL: string): IHTTPResponse;
 begin
   Result := FClient.Get(AURL);
@@ -374,9 +382,9 @@ begin
   Assert.AreEqual(206, LResp.StatusCode);
   LHeader := LResp.HeaderValue['Content-Range'];
   Assert.IsFalse(LHeader.IsEmpty, 'Content-Range header must be present on 206');
-  Assert.AreEqual(0, ContentRangeStart(LResp), 'Range start must be 0');
-  Assert.AreEqual(99, ContentRangeEnd(LResp), 'Range end must be 99');
-  Assert.AreEqual(TEST_FILE_SIZE, ContentRangeTotal(LResp), 'Total must be file size');
+  Assert.AreEqual(Int64(0), ContentRangeStart(LResp), 'Range start must be 0');
+  Assert.AreEqual(Int64(99), ContentRangeEnd(LResp), 'Range end must be 99');
+  Assert.AreEqual(Int64(TEST_FILE_SIZE), ContentRangeTotal(LResp), 'Total must be file size');
 end;
 
 procedure TRangeMediaMiddlewareTests.Test206_ExplicitRange_ActualBytes;
@@ -388,7 +396,7 @@ begin
   // bytes=10-19 → 10 bytes, expected values 10,11,12,...,19
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=10-19');
   Assert.AreEqual(206, LResp.StatusCode);
-  LContent := LResp.ContentAsBytes();
+  LContent := StreamToBytes(LResp.ContentStream);
   Assert.AreEqual(10, Length(LContent), 'Must return exactly 10 bytes');
   for I := 0 to 9 do
     Assert.AreEqual(Byte(I + 10), LContent[I],
@@ -439,7 +447,7 @@ begin
   // bytes=42-42 → exactly 1 byte, value = 42 mod 256 = 42
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=42-42');
   Assert.AreEqual(206, LResp.StatusCode);
-  LContent := LResp.ContentAsBytes();
+  LContent := StreamToBytes(LResp.ContentStream);
   Assert.AreEqual(1, Length(LContent), 'Single-byte range must return exactly 1 byte');
   Assert.AreEqual(Byte(42), LContent[0], 'Single-byte range must return the correct byte');
 end;
@@ -452,7 +460,7 @@ begin
   // bytes=1023-1023 → last byte of the 1024-byte file, value = 1023 mod 256 = 255
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=1023-1023');
   Assert.AreEqual(206, LResp.StatusCode);
-  LContent := LResp.ContentAsBytes();
+  LContent := StreamToBytes(LResp.ContentStream);
   Assert.AreEqual(1, Length(LContent));
   Assert.AreEqual(Byte(1023 mod 256), LContent[0]);
 end;
