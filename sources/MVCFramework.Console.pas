@@ -34,6 +34,7 @@
 unit MVCFramework.Console;
 
 {$I dmvcframework.inc}
+{$WARN UNIT_PLATFORM OFF}
 
 interface
 
@@ -49,7 +50,10 @@ uses
   ,Posix.Unistd,
   Posix.Termios,
   Posix.SysStat,
-  Posix.Fcntl
+  Posix.Fcntl,
+  Posix.SysSelect,
+  Posix.StrOpts,
+  Posix.Stdlib
 {$ENDIF}
     ;
 
@@ -418,10 +422,31 @@ var
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
-  hConsoleInput: THandle;
   GSavedCursorX, GSavedCursorY: Word;
+{$IFDEF MSWINDOWS}
+  hConsoleInput: THandle;
+{$ENDIF}
 
 {$IFDEF LINUX}
+type
+  TLinuxWinSize = record
+    ws_row: Word;
+    ws_col: Word;
+    ws_xpixel: Word;
+    ws_ypixel: Word;
+  end;
+
+  TLinuxTimeVal = record
+    tv_sec: Int64;
+    tv_usec: Int64;
+  end;
+
+const
+  TIOCGWINSZ = $5413;
+
+function __select(nfds: Integer; readfds, writefds, exceptfds: Pointer;
+  timeout: Pointer): Integer; cdecl; external 'libc.so.6' name 'select';
+
 var
   GOriginalTermios: termios;
   GTerminalSetup: Boolean = False;
@@ -444,7 +469,8 @@ const
     '91',     // Red
     '95',     // Magenta
     '93',     // Yellow
-    '97'      // White
+    '97',     // White
+    '0'       // UseDefault (reset)
   );
 
   ANSI_BG_COLORS: array[TConsoleColor] of string = (
@@ -463,7 +489,8 @@ const
     '101',    // Red
     '105',    // Magenta
     '103',    // Yellow
-    '107'     // White
+    '107',    // White
+    '0'       // UseDefault (reset)
   );
 
 {$ENDIF}
@@ -761,14 +788,14 @@ end;
 function KeyPressed: boolean;
 var
   FDSet: fd_set;
-  TimeVal: timeval;
+  TimeVal: TLinuxTimeVal;
 begin
   SetupTerminal;
   __FD_ZERO(FDSet);
   __FD_SET(STDIN_FILENO, FDSet);
   TimeVal.tv_sec := 0;
   TimeVal.tv_usec := 0;
-  Result := select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
+  Result := __select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
 end;
 
 procedure EnableUTF8Console;
@@ -793,14 +820,19 @@ begin
 end;
 
 procedure WaitForReturn;
+var
+  Ch: Char;
 begin
-  ReadLn;
+  SetupTerminal;
+  repeat
+    Ch := GetCh;
+  until (Ch = #13) or (Ch = #10);
 end;
 
 procedure UpdateMode;
 begin
   Write(ESC + '[' + ANSI_COLORS[TConsoleColor(GForeGround)] + ';' +
-        ANSI_BG_COLORS[TConsoleColor(GBackGround)] + 'm');
+        ANSI_BG_COLORS[TConsoleColor(GBackGround shr 4)] + 'm');
 end;
 
 function GetCh: Char;
@@ -821,7 +853,7 @@ end;
 
 function GetConsoleSize: TMVCConsoleSize;
 var
-  WinSize: winsize;
+  WinSize: TLinuxWinSize;
 begin
   if ioctl(STDOUT_FILENO, TIOCGWINSZ, @WinSize) = 0 then
   begin
@@ -865,7 +897,7 @@ begin
   for I := 1 to Length(Response) do
   begin
     Ch := Response[I];
-    if Ch in ['0'..'9'] then
+    if CharInSet(Ch, ['0'..'9']) then
       CurrentNumber := CurrentNumber + Ch
     else if (Ch = ';') or (Ch = 'R') then
     begin
@@ -894,6 +926,44 @@ procedure ClrScr;
 begin
   Write(ESC + '[2J'); // Clear entire screen
   Write(ESC + '[H');  // Move to home position
+end;
+
+function GetKey: Integer;
+var
+  Buffer: array[0..0] of Char;
+  Ch: Char;
+begin
+  Result := 0;
+  SetupTerminal;
+
+  if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+  begin
+    Ch := Buffer[0];
+    Result := Ord(Ch);
+
+    // Handle Linux escape sequences for arrow keys
+    if Ch = #27 then
+    begin
+      if KeyPressed then
+      begin
+        if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+        begin
+          if Buffer[0] = '[' then
+          begin
+            if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+            begin
+              case Buffer[0] of
+                'A': Result := KEY_UP;    // Up arrow
+                'B': Result := KEY_DOWN;  // Down arrow
+                'C': Result := KEY_RIGHT; // Right arrow
+                'D': Result := KEY_LEFT;  // Left arrow
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 {$ENDIF}
@@ -957,7 +1027,6 @@ begin
 end;
 
 function KeyPressed: boolean;
-{$IFDEF MSWINDOWS}
 var
   InputRecord: INPUT_RECORD;
   NumRead: DWORD;
@@ -974,20 +1043,6 @@ begin
       ReadConsoleInput(GInputHandle, InputRecord, 1, NumRead);
   end;
 end;
-{$ENDIF}
-{$IFDEF LINUX}
-var
-  FDSet: fd_set;
-  TimeVal: timeval;
-begin
-  SetupTerminal;
-  __FD_ZERO(FDSet);
-  __FD_SET(STDIN_FILENO, FDSet);
-  TimeVal.tv_sec := 0;
-  TimeVal.tv_usec := 0;
-  Result := select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
-end;
-{$ENDIF}
 
 procedure InternalShowCursor(const ShowCursor: Boolean);
 var
@@ -1076,7 +1131,6 @@ begin
 end;
 
 function GetKey: Integer;
-{$IFDEF MSWINDOWS}
 var
   InputRecord: INPUT_RECORD;
   NumRead: DWORD;
@@ -1110,45 +1164,6 @@ begin
     end;
   until False;
 end;
-{$ENDIF}
-{$IFDEF LINUX}
-var
-  Buffer: array[0..0] of Char;
-  Ch: Char;
-begin
-  Result := 0;
-  SetupTerminal;
-
-  if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-  begin
-    Ch := Buffer[0];
-    Result := Ord(Ch);
-
-    // Handle Linux escape sequences for arrow keys
-    if Ch = #27 then
-    begin
-      if KeyPressed then
-      begin
-        if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-        begin
-          if Buffer[0] = '[' then
-          begin
-            if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-            begin
-              case Buffer[0] of
-                'A': Result := KEY_UP;    // Up arrow
-                'B': Result := KEY_DOWN;  // Down arrow
-                'C': Result := KEY_RIGHT; // Right arrow
-                'D': Result := KEY_LEFT;  // Left arrow
-              end;
-            end;
-          end;
-        end;
-      end;
-    end;
-  end;
-end;
-{$ENDIF}
 
 function GetConsoleBufferSize: TMVCConsoleSize;
 var
@@ -3010,7 +3025,7 @@ begin
   FColor := AColor;
   FMessage := AMessage;
   FInterval := GetSpinnerInterval(AStyle);
-  InterlockedExchange(FFlag, 1);
+  TInterlocked.Exchange(FFlag, 1);
 
   // Write message on main thread before starting spinner thread
   if FMessage <> '' then
@@ -3051,7 +3066,7 @@ begin
       Frame: string;
     begin
       I := 0;
-      while InterlockedCompareExchange(FFlag, 1, 1) = 1 do
+      while TInterlocked.CompareExchange(FFlag, 1, 1) = 1 do
       begin
         Frame := lFrames[I mod Length(lFrames)];
         GotoXY(lSpinnerX, lSpinnerY);
@@ -3075,7 +3090,7 @@ end;
 
 procedure TConsoleSpinner.Hide;
 begin
-  if InterlockedCompareExchange(FFlag, 0, 1) = 0 then
+  if TInterlocked.CompareExchange(FFlag, 0, 1) = 0 then
     Exit; // Already hidden
 
   if Assigned(FThread) then

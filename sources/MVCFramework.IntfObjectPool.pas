@@ -100,8 +100,7 @@ var
 
 implementation
 
-uses
-  WinAPI.Windows;
+{ no platform-specific uses needed }
 
 
 { TObjectPool<T> }
@@ -234,7 +233,7 @@ begin
       fObjectPool.Lock;
       try
         fObjectPool.ShrinkPoolTo(fObjectPool.fShrinkTargetSize);
-        ZeroMemory(@lAvgSize, SizeOf(lAvgSize));
+        FillChar(lAvgSize, SizeOf(lAvgSize), 0);
       finally
         fObjectPool.UnLock;
       end;
