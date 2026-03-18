@@ -173,7 +173,7 @@ const
   '<head>' +
   '<meta charset="UTF-8">' +
   '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-  '<title>DMVCFramework Error</title>' +
+  '<title>Server Error</title>' +
   '<style>' +
   '* { margin: 0; padding: 0; box-sizing: border-box; }' +
   'body {' +
@@ -486,7 +486,7 @@ function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
     if Assigned(FConfig) then
       lServerName := FConfig[TMVCConfigKey.ServerName]
     else
-      lServerName := 'DMVCFramework ' + DMVCFRAMEWORK_VERSION;
+      lServerName := 'Web Server';
 
     // Header with status code
     Result := '<div class="header">' +
