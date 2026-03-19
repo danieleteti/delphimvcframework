@@ -261,6 +261,8 @@ begin
       end;
 
     Result := LTemplate.Render;
+    // Normalize line endings to CRLF (required by Delphi IDE)
+    Result := Result.Replace(#13#10, #10).Replace(#10, #13#10);
   finally
     LCompiler.Free;
   end;

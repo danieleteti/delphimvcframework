@@ -198,7 +198,7 @@
             <ResourceId>SplashScreen</ResourceId>
         </RcItem>
         <RcCompile Include="..\..\ideexpert\DMVC.Expert.Templates.rc">
-            <Form>DMVC.Expert.Templates.res</Form>
+            <Form>..\..\ideexpert\DMVC.Expert.Templates.res</Form>
         </RcCompile>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
