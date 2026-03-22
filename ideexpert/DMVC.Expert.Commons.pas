@@ -64,6 +64,7 @@ type
       program_msheap = 'program.msheap';
       program_sqids = 'program.sqids';
       program_dotenv = 'program.dotenv';
+      program_htmx = 'program.htmx';
       program_ssv_templatepro = 'program.ssv.templatepro';
       program_ssv_webstencils = 'program.ssv.webstencils';
       program_ssv_mustache = 'program.ssv.mustache';

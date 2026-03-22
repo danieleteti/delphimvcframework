@@ -127,6 +127,7 @@ type
     edtWebModuleName: TEdit;
     chkMSHeap: TCheckBox;
     chkSqids: TCheckBox;
+    chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
     lblSummary: TLabel;
     // Buttons
@@ -774,6 +775,7 @@ begin
   fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
+  fModel.B[TConfigKey.program_htmx] := chkHtmx.Checked;
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');
   fModel.B[TConfigKey.program_ssv_webstencils] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'webstencils');
   fModel.B[TConfigKey.program_ssv_mustache] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'mustache');

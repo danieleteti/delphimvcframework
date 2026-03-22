@@ -13,10 +13,18 @@ type
   [MVCPath('/api')]
 {{endif}}
   {{:controller_classname}} = class(TMVCController)
+{{if program_ssv_any}}
+  protected
+    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;
+{{if controller_action_filters_generate}}
+    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
+{{endif}}
+{{else}}
 {{if controller_action_filters_generate}}
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
+{{endif}}
 {{endif}}
 {{if controller_index_methods_generate}}
   public
@@ -24,11 +32,31 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function Index: String;
+{{if program_ssv_any}}
+
+    [MVCPath('/about')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function About: String;
+
+    // HTML fragment endpoints - return partial HTML snippets (no full page)
+    // Use these for AJAX/HTMX partial updates
+    [MVCPath('/fragment/clock')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetClockFragment: String;
+
+    [MVCPath('/fragment/info')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetInfoFragment: String;
+{{else}}
 
     [MVCPath('/reversedstrings/($Value)')]
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
     function GetReversedString(const Value: String): String;
+{{endif}}
 
 {{endif}}
 {{if controller_crud_methods_generate}}
@@ -62,11 +90,42 @@ type
 {{endif}}
   end;
 
+{{if program_ssv_any}}
+  // Sample API controller - returns JSON data
+  // Demonstrates how a web application can also expose API endpoints
+  [MVCPath('/api')]
+  TAPIController = class(TMVCController)
+  public
+    [MVCPath('/server/info')]
+    [MVCHTTPMethod([httpGET])]
+    function GetServerInfo: IMVCResponse;
+  end;
+{{endif}}
+
 implementation
 
 uses
-  System.StrUtils, System.SysUtils, MVCFramework.Logger;
+  System.StrUtils, System.SysUtils{{if program_ssv_any}}, System.DateUtils{{endif}}, MVCFramework.Logger;
 
+{{if program_ssv_any}}
+procedure {{:controller_classname}}.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);
+begin
+  inherited;
+  // Global ViewData available to all views (used by baselayout.html)
+  ViewData['app_name'] := '{{:program_name}}';
+  ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
+  ViewData['current_year'] := YearOf(Now);
+  ViewData['page_id'] := AActionName.ToLower;
+end;
+{{if controller_action_filters_generate}}
+
+procedure {{:controller_classname}}.OnAfterAction(Context: TWebContext; const AActionName: string);
+begin
+  { Executed after each action }
+  inherited;
+end;
+{{endif}}
+{{else}}
 {{if controller_action_filters_generate}}
 procedure {{:controller_classname}}.OnAfterAction(Context: TWebContext; const AActionName: string);
 begin
@@ -82,6 +141,7 @@ begin
   inherited;
 end;
 {{endif}}
+{{endif}}
 
 {{if controller_index_methods_generate}}
 function {{:controller_classname}}.Index: String;
@@ -92,15 +152,12 @@ begin
 {$ENDIF}
 {{endif}}
 {{if program_ssv_any}}
-  // Pass data to the view using ViewData
-  ViewData['app_name'] := '{{:program_name}}';
+  // Page-specific ViewData (global data is set in OnBeforeAction)
   ViewData['current_date'] := FormatDateTime('dddd, dd mmmm yyyy', Now);
-  ViewData['current_time'] := FormatDateTime('hh:nn:ss', Now);
-  ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
   ViewData['compiler_version'] := Format('Delphi %.1f', [CompilerVersion]);
 
-  // Render the index view with the data
-  Result := RenderView('index');
+  // Render the home/index view (extends baselayout.html)
+  Result := RenderView('home/index');
 {{else}}
   //use Context property to access to the HTTP request and response
   Result := '<p>Hello <strong>DelphiMVCFramework</strong> World</p>' +
@@ -108,6 +165,46 @@ begin
 {{endif}}
 end;
 
+{{if program_ssv_any}}
+function {{:controller_classname}}.About: String;
+begin
+  Result := RenderView('about/index');
+end;
+
+function {{:controller_classname}}.GetClockFragment: String;
+begin
+  // Returns an HTML fragment (not a full page)
+  // Use this pattern for AJAX/HTMX partial updates
+  Result :=
+    '<p>Server time: <strong>' + FormatDateTime('hh:nn:ss', Now) + '</strong></p>' +
+    '<p>Server date: ' + FormatDateTime('dddd, dd mmmm yyyy', Now) + '</p>';
+end;
+
+function {{:controller_classname}}.GetInfoFragment: String;
+begin
+  // Returns an HTML fragment with server information
+  Result :=
+    '<p><strong>Application:</strong> {{:program_name}}</p>' +
+    '<p><strong>DMVC Version:</strong> ' + DMVCFRAMEWORK_VERSION + '</p>' +
+    '<p><strong>Compiler:</strong> ' + Format('Delphi %.1f', [CompilerVersion]) + '</p>' +
+    '<p><strong>Server Time:</strong> ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</p>';
+end;
+
+{ TAPIController }
+
+function TAPIController.GetServerInfo: IMVCResponse;
+begin
+  // Returns JSON data - use this pattern for API endpoints
+  Result := OkResponse(
+    StrDict(
+      ['application', 'dmvcVersion', 'serverTime', 'compilerVersion'],
+      ['{{:program_name}}', DMVCFRAMEWORK_VERSION,
+       FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now),
+       Format('Delphi %.1f', [CompilerVersion])]
+    )
+  );
+end;
+{{else}}
 function {{:controller_classname}}.GetReversedString(const Value: String): String;
 begin
 {{if controller_actions_profiling_generate}}
@@ -117,6 +214,7 @@ begin
 {{endif}}
   Result := System.StrUtils.ReverseString(Value.Trim);
 end;
+{{endif}}
 {{endif}}
 
 {{if controller_crud_methods_generate}}

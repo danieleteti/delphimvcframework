@@ -106,6 +106,7 @@ begin
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
+  AForm.chkHtmx.Checked := False;
   AForm.chkCustomConfigDotEnv.Checked := False;
 
   // Middleware
@@ -145,6 +146,7 @@ begin
   AForm.cbSSV.ItemIndex := 1; // TemplatePro
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
+  AForm.chkHtmx.Checked := True;
   AForm.chkCustomConfigDotEnv.Checked := False;
 
   // Middleware
@@ -184,6 +186,7 @@ begin
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
+  AForm.chkHtmx.Checked := False;
   AForm.chkCustomConfigDotEnv.Checked := False;
 
   // Middleware
@@ -223,6 +226,7 @@ begin
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
+  AForm.chkHtmx.Checked := False;
   AForm.chkCustomConfigDotEnv.Checked := False;
 
   // Middleware
@@ -262,6 +266,7 @@ begin
   AForm.cbSSV.ItemIndex := 1; // TemplatePro
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
+  AForm.chkHtmx.Checked := True;
   AForm.chkCustomConfigDotEnv.Checked := False;
 
   // Middleware

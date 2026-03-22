@@ -412,135 +412,9 @@ begin
     LCssPath := TPath.Combine(LWwwPath, 'css');
     TDirectory.CreateDirectory(LCssPath);
 
-    // Create style.css with the application styles
-    TFile.WriteAllText(
-      TPath.Combine(LCssPath, 'style.css'),
-      '* {' + sLineBreak +
-      '    margin: 0;' + sLineBreak +
-      '    padding: 0;' + sLineBreak +
-      '    box-sizing: border-box;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      'body {' + sLineBreak +
-      '    font-family: -apple-system, BlinkMacSystemFont, ''Segoe UI'', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;' + sLineBreak +
-      '    line-height: 1.6;' + sLineBreak +
-      '    color: #e2e8f0;' + sLineBreak +
-      '    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);' + sLineBreak +
-      '    min-height: 100vh;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.container {' + sLineBreak +
-      '    max-width: 1200px;' + sLineBreak +
-      '    margin: 0 auto;' + sLineBreak +
-      '    padding: 20px;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      'header {' + sLineBreak +
-      '    background: rgba(30, 41, 59, 0.9);' + sLineBreak +
-      '    backdrop-filter: blur(10px);' + sLineBreak +
-      '    padding: 20px 0;' + sLineBreak +
-      '    margin-bottom: 30px;' + sLineBreak +
-      '    border-radius: 10px;' + sLineBreak +
-      '    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);' + sLineBreak +
-      '    border: 1px solid rgba(71, 85, 105, 0.3);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      'header h1 {' + sLineBreak +
-      '    color: #06b6d4;' + sLineBreak +
-      '    font-size: 2em;' + sLineBreak +
-      '    font-weight: 700;' + sLineBreak +
-      '    text-align: center;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      'header p {' + sLineBreak +
-      '    text-align: center;' + sLineBreak +
-      '    color: #94a3b8;' + sLineBreak +
-      '    margin-top: 5px;' + sLineBreak +
-      '    font-size: 0.9em;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.content {' + sLineBreak +
-      '    background: rgba(30, 41, 59, 0.6);' + sLineBreak +
-      '    backdrop-filter: blur(10px);' + sLineBreak +
-      '    padding: 40px;' + sLineBreak +
-      '    border-radius: 10px;' + sLineBreak +
-      '    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);' + sLineBreak +
-      '    min-height: 400px;' + sLineBreak +
-      '    border: 1px solid rgba(71, 85, 105, 0.2);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.hero {' + sLineBreak +
-      '    text-align: center;' + sLineBreak +
-      '    padding: 40px 20px;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.hero h2 {' + sLineBreak +
-      '    font-size: 2.5em;' + sLineBreak +
-      '    color: #f1f5f9;' + sLineBreak +
-      '    margin-bottom: 20px;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.hero p {' + sLineBreak +
-      '    font-size: 1.2em;' + sLineBreak +
-      '    color: #cbd5e1;' + sLineBreak +
-      '    margin-bottom: 30px;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.features {' + sLineBreak +
-      '    display: grid;' + sLineBreak +
-      '    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));' + sLineBreak +
-      '    gap: 30px;' + sLineBreak +
-      '    margin-top: 40px;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.feature-card {' + sLineBreak +
-      '    background: rgba(51, 65, 85, 0.5);' + sLineBreak +
-      '    padding: 30px;' + sLineBreak +
-      '    border-radius: 8px;' + sLineBreak +
-      '    border-left: 4px solid #06b6d4;' + sLineBreak +
-      '    transition: transform 0.3s ease, box-shadow 0.3s ease;' + sLineBreak +
-      '    border: 1px solid rgba(71, 85, 105, 0.3);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.feature-card:hover {' + sLineBreak +
-      '    transform: translateY(-5px);' + sLineBreak +
-      '    box-shadow: 0 5px 15px rgba(6, 182, 212, 0.2);' + sLineBreak +
-      '    background: rgba(51, 65, 85, 0.7);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.feature-card h3 {' + sLineBreak +
-      '    color: #06b6d4;' + sLineBreak +
-      '    margin-bottom: 10px;' + sLineBreak +
-      '    font-size: 1.3em;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.feature-card p {' + sLineBreak +
-      '    color: #cbd5e1;' + sLineBreak +
-      '    line-height: 1.6;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.btn {' + sLineBreak +
-      '    display: inline-block;' + sLineBreak +
-      '    padding: 12px 30px;' + sLineBreak +
-      '    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);' + sLineBreak +
-      '    color: white;' + sLineBreak +
-      '    text-decoration: none;' + sLineBreak +
-      '    border-radius: 5px;' + sLineBreak +
-      '    font-weight: 600;' + sLineBreak +
-      '    transition: transform 0.2s ease, box-shadow 0.2s ease;' + sLineBreak +
-      '    border: none;' + sLineBreak +
-      '    cursor: pointer;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.btn:hover {' + sLineBreak +
-      '    transform: translateY(-2px);' + sLineBreak +
-      '    box-shadow: 0 5px 15px rgba(6, 182, 212, 0.4);' + sLineBreak +
-      '    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.info-box {' + sLineBreak +
-      '    background: rgba(30, 41, 59, 0.8);' + sLineBreak +
-      '    border-left: 4px solid #06b6d4;' + sLineBreak +
-      '    padding: 15px 20px;' + sLineBreak +
-      '    margin: 20px 0;' + sLineBreak +
-      '    border-radius: 4px;' + sLineBreak +
-      '    border: 1px solid rgba(71, 85, 105, 0.3);' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      '.info-box strong {' + sLineBreak +
-      '    color: #06b6d4;' + sLineBreak +
-      '}' + sLineBreak + sLineBreak +
-      'code {' + sLineBreak +
-      '    background: rgba(51, 65, 85, 0.6);' + sLineBreak +
-      '    padding: 2px 6px;' + sLineBreak +
-      '    border-radius: 3px;' + sLineBreak +
-      '    font-family: ''Courier New'', monospace;' + sLineBreak +
-      '    font-size: 0.9em;' + sLineBreak +
-      '    color: #22d3ee;' + sLineBreak +
-      '}' + sLineBreak,
-      TEncoding.UTF8);
+    // Create style.css from template
+    SaveFile('bin' + PathDelim + 'www' + PathDelim + 'css' + PathDelim + 'style.css',
+      LoadTemplate('views\style_css.tpro'));
 
     // Create a sample index.html
     TFile.WriteAllText(
@@ -570,19 +444,59 @@ begin
     // Determine template file extension
     LTemplateExt := AConfig.S['template.extension'];
 
-    // Generate complete index template (includes header and footer inline)
-    // This shows the complete page structure without needing CommonHeaders/Footers
-    TFile.WriteAllText(
-      TPath.Combine(LTemplatesPath, 'index.' + LTemplateExt),
-      RenderTemplate('views\index_complete_view.tpro', AConfig),
-      TEncoding.UTF8);
-
-    // Generate error template for exception handler
     if AConfig.B[TConfigKey.program_ssv_templatepro] then
+    begin
+      // TemplatePro: use template inheritance pattern
+      // These view files contain runtime TemplatePro directives (extends, block)
+      // so they must NOT be processed by TemplatePro at wizard time.
+      // We load them raw and only replace wizard-time placeholders.
+      if AConfig.B[TConfigKey.program_htmx] then
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'baselayout.' + LTemplateExt,
+          LoadTemplate('views\baselayout.tpro')
+            .Replace('{{:program_name}}', AProjectName)
+            .Replace('<!--HTMX_SCRIPT-->',
+              '<script src="https://unpkg.com/htmx.org@2/dist/htmx.min.js"></script>'))
+      else
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'baselayout.' + LTemplateExt,
+          LoadTemplate('views\baselayout.tpro')
+            .Replace('{{:program_name}}', AProjectName)
+            .Replace('  <!--HTMX_SCRIPT-->' + #13#10, '')
+            .Replace('  <!--HTMX_SCRIPT-->' + #10, ''));
+
+      TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'home'));
+      if AConfig.B[TConfigKey.program_htmx] then
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
+          LoadTemplate('views\home_index_htmx.tpro')
+            .Replace('{{:program_name}}', AProjectName)
+            .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT))
+      else
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
+          LoadTemplate('views\home_index.tpro')
+            .Replace('{{:program_name}}', AProjectName)
+            .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT));
+
+      TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'about'));
+      if AConfig.B[TConfigKey.program_htmx] then
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'about' + PathDelim + 'index.' + LTemplateExt,
+          LoadTemplate('views\about_index_htmx.tpro')
+            .Replace('{{:program_name}}', AProjectName))
+      else
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'about' + PathDelim + 'index.' + LTemplateExt,
+          LoadTemplate('views\about_index.tpro')
+            .Replace('{{:program_name}}', AProjectName));
+
+      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.' + LTemplateExt,
+        LoadTemplate('views\error_view.tpro')
+          .Replace('{{:program_name}}', AProjectName));
+    end
+    else
+    begin
+      // Mustache/WebStencils: single-file template (no inheritance support)
       TFile.WriteAllText(
-        TPath.Combine(LTemplatesPath, 'error.' + LTemplateExt),
-        RenderTemplate('views\error_view.tpro', AConfig),
+        TPath.Combine(LTemplatesPath, 'index.' + LTemplateExt),
+        RenderTemplate('views\index_complete_view.tpro', AConfig),
         TEncoding.UTF8);
+    end;
   end;
 
   // Create .gitignore file

@@ -1,0 +1,48 @@
+{{extends "../baselayout.html"}}
+{{block "title"}}About{{endblock}}
+{{block "body"}}
+<div class="hero">
+  <h1>About {{:app_name}}</h1>
+  <p>Learn more about this application and the technologies behind it</p>
+</div>
+
+<p class="section-label">Technology Stack</p>
+<div class="grid">
+  <article>
+    <header>DelphiMVCFramework</header>
+    <p>A powerful RESTful framework for Delphi supporting MVC architecture,
+       JSON-RPC APIs, WebSockets, and server-side rendered web applications.</p>
+    <p><strong>Version:</strong> {{:dmvc_version}}</p>
+    <footer>
+      <small><a href="https://github.com/danieleteti/delphimvcframework" target="_blank">GitHub Repository</a></small>
+    </footer>
+  </article>
+  <article>
+    <header>TemplatePro</header>
+    <p>A fast template engine for Delphi with template inheritance, blocks,
+       loops, conditionals, and filters. Used for all server-side views.</p>
+    <p><strong>Features:</strong> extends, block, for, if/else, filters</p>
+    <footer>
+      <small><a href="https://github.com/nickelsworth/templatepro" target="_blank">Documentation</a></small>
+    </footer>
+  </article>
+</div>
+
+<p class="section-label">Server Info</p>
+<article>
+  <header>Server Details</header>
+  <div id="serverInfo">
+    <p><small>Loading...</small></p>
+  </div>
+</article>
+{{endblock}}
+
+{{block "scripts"}}
+<script>
+  fetch('/web/fragment/info')
+    .then(function(response) { return response.text(); })
+    .then(function(html) {
+      document.getElementById('serverInfo').innerHTML = html;
+    });
+</script>
+{{endblock}}

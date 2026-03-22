@@ -118,6 +118,9 @@ begin
 
   // Controllers
   fMVC.AddController({{:controller_classname}});
+{{if program_ssv_any}}
+  fMVC.AddController(TAPIController);
+{{endif}}
   // Controllers - END
 {{if program_ssv_templatepro}}
 

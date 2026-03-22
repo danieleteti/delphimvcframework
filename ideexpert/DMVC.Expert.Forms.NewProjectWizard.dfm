@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DMVCFramework :: New Project Wizard'
-  ClientHeight = 672
+  ClientHeight = 623
   ClientWidth = 764
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnDestroy = FormDestroy
   DesignSize = (
     764
-    672)
+    623)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
@@ -430,7 +430,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object lblBook: TLabel
     AlignWithMargins = True
     Left = 494
-    Top = 7
+    Top = 6
     Width = 259
     Height = 16
     Cursor = crHandPoint
@@ -449,6 +449,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = lblBookClick
     OnMouseEnter = lblBookMouseEnter
     OnMouseLeave = lblBookMouseLeave
+    ExplicitTop = 7
   end
   object lblCopyRight: TLabel
     Left = 8
@@ -493,10 +494,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnMouseLeave = lblPATREONMouseLeave
   end
   object lblPATREON: TLabel
-    Left = 541
+    Left = 540
     Top = 37
     Width = 205
-    Height = 41
+    Height = 38
     Cursor = crHandPoint
     Alignment = taRightJustify
     Anchors = [akRight, akBottom]
@@ -547,7 +548,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Left = 0
     Top = 175
     Width = 764
-    Height = 455
+    Height = 407
     ActivePage = tsAppType
     Anchors = [akLeft, akTop, akRight, akBottom]
     Style = tsFlatButtons
@@ -1031,19 +1032,27 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Use Sqids'
         TabOrder = 4
       end
+      object chkHtmx: TCheckBox
+        Left = 250
+        Top = 206
+        Width = 167
+        Height = 17
+        Caption = 'Use HTMX (https://htmx.org/)'
+        TabOrder = 5
+      end
       object chkCustomConfigDotEnv: TCheckBox
         Left = 24
         Top = 206
-        Width = 250
+        Width = 220
         Height = 17
         Caption = 'Generate custom .env configuration'
-        TabOrder = 5
+        TabOrder = 6
       end
     end
   end
   object btnBack: TButton
     Left = 430
-    Top = 637
+    Top = 588
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -1053,7 +1062,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnNext: TButton
     Left = 513
-    Top = 637
+    Top = 588
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -1064,7 +1073,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnFinish: TButton
     Left = 596
-    Top = 637
+    Top = 588
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]
@@ -1076,7 +1085,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnCancel: TButton
     Left = 679
-    Top = 637
+    Top = 588
     Width = 77
     Height = 27
     Anchors = [akRight, akBottom]

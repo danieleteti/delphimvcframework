@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{block "title"}}{{:app_name}}{{endblock}} - {{:app_name}}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.cyan.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+  {{block "extra_css"}}{{endblock}}
+  <!--HTMX_SCRIPT-->
+</head>
+<body>
+  <nav class="container">
+    <ul>
+      <li><strong>{{:app_name}}</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/web" {{if page_id|eq,"index"}}aria-current="page"{{endif}}>Home</a></li>
+      <li><a href="/web/about" {{if page_id|eq,"about"}}aria-current="page"{{endif}}>About</a></li>
+      <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank">Docs</a></li>
+    </ul>
+  </nav>
+  <main class="container">
+    {{block "body"}}{{endblock}}
+  </main>
+  <footer class="container">
+    <small>&copy; {{:current_year}} {{:app_name}} &middot; Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}</small>
+  </footer>
+  {{block "scripts"}}{{endblock}}
+  {{block "extra_js"}}{{endblock}}
+</body>
+</html>
