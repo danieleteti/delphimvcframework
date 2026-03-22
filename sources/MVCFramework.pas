@@ -3000,8 +3000,11 @@ begin
               begin
                 lContext.Response.StatusCode := http_status.NotFound;
                 lContext.Response.ReasonString := 'Not Found';
-                SendHTTPStatus(lContext, HTTP_STATUS.NotFound);
                 fOnRouterLog(rlsRouteNotFound, lContext);
+                if not CustomExceptionHandling(nil, nil, lContext) then
+                begin
+                  SendHTTPStatus(lContext, HTTP_STATUS.NotFound);
+                end;
               end
               else
               begin

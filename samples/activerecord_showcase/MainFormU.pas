@@ -662,7 +662,7 @@ procedure TMainForm.btnErrorWith2PKsClick(Sender: TObject);
 var
   lWrongArticle: TWrongArticle;
 begin
-  Log('** Error if entoty defines more than one PK field');
+  Log('** Error if entity defines more than one PK field');
   lWrongArticle := TWrongArticle.Create;
   try
     lWrongArticle.LoadByPK(1);
