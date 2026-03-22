@@ -576,6 +576,13 @@ begin
       TPath.Combine(LTemplatesPath, 'index.' + LTemplateExt),
       RenderTemplate('views\index_complete_view.tpro', AConfig),
       TEncoding.UTF8);
+
+    // Generate error template for exception handler
+    if AConfig.B[TConfigKey.program_ssv_templatepro] then
+      TFile.WriteAllText(
+        TPath.Combine(LTemplatesPath, 'error.' + LTemplateExt),
+        RenderTemplate('views\error_view.tpro', AConfig),
+        TEncoding.UTF8);
   end;
 
   // Create .gitignore file

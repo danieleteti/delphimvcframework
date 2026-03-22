@@ -36,6 +36,9 @@ uses
 {{if webmodule_middleware_jwt}}
   System.DateUtils,
 {{endif}}
+{{if program_ssv_templatepro}}
+  TemplatePro,
+{{endif}}
   MVCFramework.Commons,
   MVCFramework.Logger,
 {{if webmodule_middleware_jwt}}
@@ -251,6 +254,41 @@ begin
   ));
 {{endif}}
   // Middleware - END
+{{if program_ssv_templatepro}}
+
+  // Exception handler for server-side views (browser requests only)
+  // If the client accepts text/html and templates/error.html exists,
+  // renders a user-friendly error page instead of a JSON error response.
+  fMVC.SetExceptionHandler(
+    procedure(E: Exception; SelectedController: TMVCController;
+      WebContext: TWebContext; var ExceptionHandled: Boolean)
+    var
+      lError: String;
+      lTemplateCode: String;
+      lFullTemplatePath, lTemplateCodePath: String;
+    begin
+      ExceptionHandled := False;
+      // Only handle errors for browser requests (Accept: text/html)
+      if not WebContext.Request.ClientPreferHTML then
+        Exit;
+      lFullTemplatePath := TPath.Combine(AppPath, WebContext.Config[TMVCConfigKey.ViewPath]);
+      lTemplateCodePath := TPath.Combine(lFullTemplatePath,
+        'error.' + WebContext.Config[TMVCConfigKey.DefaultViewFileExtension]);
+      if TFile.Exists(lTemplateCodePath) then
+      begin
+        if Assigned(E) then
+          lError := E.Message
+        else
+          lError := HTTP_STATUS.ReasonStringFor(WebContext.Response.StatusCode);
+        WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
+        lTemplateCode := TFile.ReadAllText(lTemplateCodePath, TEncoding.UTF8);
+        WebContext.Response.Content := TTProCompiler.CompileAndRender(
+          lTemplateCode, ['error'], [lError], lFullTemplatePath);
+        ExceptionHandled := True;
+      end;
+    end
+  );
+{{endif}}
 {{if jsonrpc_generate}}
 
   // JSONRPC

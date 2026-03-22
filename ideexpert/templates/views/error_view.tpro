@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - {{:program_name}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{:program_name}}</h1>
+        </header>
+        <div class="content">
+            <div class="hero">
+                <h2>Something went wrong</h2>
+                <div class="info-box">
+                    <strong>Error:</strong> {{:data_error}}
+                </div>
+                <p><a href="/" class="btn">Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
