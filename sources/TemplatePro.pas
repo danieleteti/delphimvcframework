@@ -225,7 +225,8 @@ type
     /// <returns>A compiled template ready for data binding and rendering</returns>
     function CompileFromString(const aTemplateString: string): ITProCompiledTemplate;
     constructor Create(aEncoding: TEncoding = nil); overload;
-    class function CompileAndRender(const aTemplate: string; const VarNames: TArray<String>; const VarValues: TArray<TValue>): String;
+    class function CompileAndRender(const aTemplate: string; const VarNames: TArray<String>;
+      const VarValues: TArray<TValue>; const aFileNameRefPath: String = ''): String;
     /// <summary>
     /// Optional callback for custom template loading.
     /// When set, this callback is invoked for include and extends directives.
@@ -1346,7 +1347,7 @@ begin
 end;
 
 class function TTProCompiler.CompileAndRender(const aTemplate: String; const VarNames: TArray<String>;
-  const VarValues: TArray<TValue>): String;
+  const VarValues: TArray<TValue>; const aFileNameRefPath: String): String;
 var
   lComp: TTProCompiler;
   lCompiledTemplate: ITProCompiledTemplate;
@@ -1354,7 +1355,7 @@ var
 begin
   lComp := TTProCompiler.Create();
   try
-    lCompiledTemplate := lComp.Compile(aTemplate);
+    lCompiledTemplate := lComp.Compile(aTemplate, aFileNameRefPath);
     for I := 0 to Length(VarNames) - 1 do
     begin
       lCompiledTemplate.SetData(VarNames[I], VarValues[I]);
@@ -3389,11 +3390,11 @@ begin
     end
     else if aValue.IsType<Extended> or aValue.IsType<Double> then
     begin
-    Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
-  end
+      Result := FormatFloat(aParameters[0].ParStrText, aValue.AsExtended, fLocaleFormatSettings);
+    end
     else
     begin
-      Error('Invalid type passed to FormatFloat filter');
+      Error('FormatFloat cannot format data of type: ' + String(aValue.TypeInfo.Name));
     end;
   end
   else if SameText(aFunctionName, 'totrue') then

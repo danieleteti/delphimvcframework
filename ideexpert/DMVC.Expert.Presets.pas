@@ -100,7 +100,7 @@ begin
   AForm.chkProfileActions.Checked := False;
 
   // Features
-  AForm.chkServicesContainer.Checked := False;
+  AForm.chkServicesContainer.Checked := True;
   AForm.chkJSONRPC.Checked := False;
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 0; // None
@@ -134,12 +134,12 @@ begin
   // Controller
   AForm.edtControllerClassName.Text := 'TWebController';
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := True;
+  AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
   // Features
-  AForm.chkServicesContainer.Checked := False;
+  AForm.chkServicesContainer.Checked := True;
   AForm.chkJSONRPC.Checked := False;
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 1; // TemplatePro
@@ -217,7 +217,7 @@ begin
   AForm.chkProfileActions.Checked := False;
 
   // Features
-  AForm.chkServicesContainer.Checked := False;
+  AForm.chkServicesContainer.Checked := True;
   AForm.chkJSONRPC.Checked := False;
   AForm.chkWebSocketServer.Checked := True;
   AForm.cbSSV.ItemIndex := 0; // None
