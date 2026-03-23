@@ -2160,6 +2160,7 @@ var
   ConsoleSize: TMVCConsoleSize;
   Line: string;
   MenuHeight: Integer;
+  BoxChars: TBoxChars;
 begin
   Result := -1;  // Default to cancelled
   if Length(Items) = 0 then Exit;
@@ -2205,7 +2206,7 @@ begin
       GotoXY(StartX, StartY);
 
       // Draw menu
-      var BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+      BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
 
       // Top border
       Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
@@ -2322,6 +2323,7 @@ var
   Line: string;
   ItemText: string;
   MenuHeight: Integer;
+  BoxChars: TBoxChars;
 begin
   Result := -1;  // Default to cancelled
   if Length(Items) = 0 then Exit;
@@ -2381,7 +2383,7 @@ begin
       GotoXY(StartX, StartY);
 
       // Draw menu
-      var BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
+      BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
 
       // Top border
       Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;

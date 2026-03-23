@@ -227,6 +227,7 @@ type
 implementation
 
 uses
+  System.Types,
   System.IOUtils,
   System.StrUtils,
   System.Math,
@@ -464,7 +465,7 @@ end;
 
 procedure TLoggerProFileAppenderBase.CleanupOldTimeRotatedFiles(const aTag: string);
 var
-  lFiles: TArray<string>;
+  lFiles: TStringDynArray;
   lPattern: string;
   lModuleName: string;
   I, J: Integer;
