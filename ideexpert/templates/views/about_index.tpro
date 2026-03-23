@@ -23,7 +23,7 @@
        loops, conditionals, and filters. Used for all server-side views.</p>
     <p><strong>Features:</strong> extends, block, for, if/else, filters</p>
     <footer>
-      <small><a href="https://github.com/nickelsworth/templatepro" target="_blank">Documentation</a></small>
+      <small><a href="https://github.com/danieleteti/templatepro" target="_blank">Documentation</a></small>
     </footer>
   </article>
 </div>
@@ -34,6 +34,21 @@
   <div id="serverInfo">
     <p><small>Loading...</small></p>
   </div>
+</article>
+
+<p class="section-label">REST API</p>
+<article>
+  <header>Try the JSON API</header>
+  <p>This application also exposes a REST API alongside the web interface.
+     The same server serves both HTML pages and JSON endpoints.</p>
+  <p>
+    <a href="/api/server/info" target="_blank" role="button" class="outline">
+      Open /api/server/info &rarr;
+    </a>
+  </p>
+  <footer>
+    <small>See <code>{{:controller_unit_name}}.TAPIController.GetServerInfo</code> &mdash; returns <code>application/json</code></small>
+  </footer>
 </article>
 {{endblock}}
 

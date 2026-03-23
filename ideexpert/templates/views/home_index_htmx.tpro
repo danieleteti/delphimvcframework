@@ -49,6 +49,7 @@
     <button hx-get="/web/fragment/info"
             hx-target="#infoResult"
             hx-swap="innerHTML"
+            hx-on::after-request="showToast('Server info loaded', 'success')"
             class="outline">Load Server Info</button>
     <div id="infoResult" style="margin-top:1em;">
       <p><small>Click the button to fetch <code>/web/fragment/info</code></small></p>

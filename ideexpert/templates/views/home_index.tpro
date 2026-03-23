@@ -80,6 +80,7 @@
       })
       .then(function(html) {
         document.getElementById(targetId).innerHTML = html;
+        showToast('Data loaded successfully', 'success');
       })
       .catch(function(err) {
         document.getElementById(targetId).innerHTML = '<p>Error: ' + err.message + '</p>';

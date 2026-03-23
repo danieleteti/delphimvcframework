@@ -1,0 +1,1 @@
+{"name":"{{:program_name}}","short_name":"{{:program_name}}","icons":[{"src":"/static/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/static/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],"theme_color":"#06b6d4","background_color":"#0c1222","display":"standalone"}

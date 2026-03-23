@@ -48,6 +48,7 @@ type
   private
     class function GetScrambledAlphabet: string;
     class function LoadTemplate(const ATemplateName: string): string;
+    class procedure SaveResourceToFile(const AResName, AFilePath: string);
     class function GetDMVCVersion: string;
     class procedure LogToFile(const AMessage: string);
   public
@@ -166,6 +167,24 @@ begin
     on E: EResNotFound do
       raise Exception.CreateFmt('Template "%s" not found in embedded resources (resource name: %s)',
         [ATemplateName, LResName]);
+  end;
+end;
+
+class procedure TDMVCProjectGenerator.SaveResourceToFile(const AResName, AFilePath: string);
+var
+  LResStream: TResourceStream;
+  LFileStream: TFileStream;
+begin
+  LResStream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
+  try
+    LFileStream := TFileStream.Create(AFilePath, fmCreate);
+    try
+      LFileStream.CopyFrom(LResStream, LResStream.Size);
+    finally
+      LFileStream.Free;
+    end;
+  finally
+    LResStream.Free;
   end;
 end;
 
@@ -415,6 +434,19 @@ begin
     // Create style.css from template
     SaveFile('bin' + PathDelim + 'www' + PathDelim + 'css' + PathDelim + 'style.css',
       LoadTemplate('views\style_css.tpro'));
+
+    // Favicon and web app icons
+    SaveResourceToFile('WEBAPP_FAVICON_ICO', TPath.Combine(LWwwPath, 'favicon.ico'));
+    SaveResourceToFile('WEBAPP_FAVICON_16', TPath.Combine(LWwwPath, 'favicon-16x16.png'));
+    SaveResourceToFile('WEBAPP_FAVICON_32', TPath.Combine(LWwwPath, 'favicon-32x32.png'));
+    SaveResourceToFile('WEBAPP_APPLE_TOUCH', TPath.Combine(LWwwPath, 'apple-touch-icon.png'));
+    SaveResourceToFile('WEBAPP_ANDROID_192', TPath.Combine(LWwwPath, 'android-chrome-192x192.png'));
+    SaveResourceToFile('WEBAPP_ANDROID_512', TPath.Combine(LWwwPath, 'android-chrome-512x512.png'));
+
+    // Web app manifest
+    SaveFile('bin' + PathDelim + 'www' + PathDelim + 'site.webmanifest',
+      LoadTemplate('views\site_webmanifest.tpro')
+        .Replace('{{:program_name}}', AProjectName));
 
     // Create a sample index.html
     TFile.WriteAllText(

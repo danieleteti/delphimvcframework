@@ -4,10 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{block "title"}}{{:app_name}}{{endblock}} - {{:app_name}}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.cyan.min.css">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="manifest" href="/static/site.webmanifest">
+  <meta name="theme-color" content="#3b82f6">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.blue.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
   {{block "extra_css"}}{{endblock}}
   <!--HTMX_SCRIPT-->
+  <script>
+    (function() {
+      var t = localStorage.getItem('dmvc-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
 </head>
 <body>
   <nav class="container">
@@ -18,6 +30,7 @@
       <li><a href="/web" {{if page_id|eq,"index"}}aria-current="page"{{endif}}>Home</a></li>
       <li><a href="/web/about" {{if page_id|eq,"about"}}aria-current="page"{{endif}}>About</a></li>
       <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank">Docs</a></li>
+      <li><button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">&#9790;</button></li>
     </ul>
   </nav>
   <main class="container">
@@ -26,7 +39,35 @@
   <footer class="container">
     <small>&copy; {{:current_year}} {{:app_name}} &middot; Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}</small>
   </footer>
+  <div class="toast-container" id="toastContainer"></div>
   {{block "scripts"}}{{endblock}}
   {{block "extra_js"}}{{endblock}}
+  <script>
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      function updateIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        btn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+        btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        var next = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('dmvc-theme', next);
+        updateIcon();
+      });
+    })();
+
+    function showToast(message, type) {
+      var container = document.getElementById('toastContainer');
+      var toast = document.createElement('div');
+      toast.className = 'toast toast-' + (type || 'info');
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3100);
+    }
+  </script>
 </body>
 </html>

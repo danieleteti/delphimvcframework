@@ -126,7 +126,7 @@ begin
   Result :=
     function: {$IFDEF WIN32}Cardinal{$ELSE}UInt64{$ENDIF}
     begin
-      Result := LoadIcon(HInstance, PChar(LIconRes));
+      Result := LoadImage(HInstance, PChar(LIconRes), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);
     end;
 end;
 

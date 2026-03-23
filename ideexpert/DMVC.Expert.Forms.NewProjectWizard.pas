@@ -129,6 +129,7 @@ type
     chkSqids: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
+    chkCreateSubfolder: TCheckBox;
     lblSummary: TLabel;
     // Buttons
     btnBack: TButton;
@@ -156,6 +157,7 @@ type
     procedure rgApplicationTypeClick(Sender: TObject);
     procedure rgServerProtocolClick(Sender: TObject);
     procedure btnTestPortClick(Sender: TObject);
+    procedure chkCreateSubfolderClick(Sender: TObject);
   private
     fModel: TJsonObject;
     fCurrentPage: Integer;
@@ -559,7 +561,10 @@ end;
 
 function TfrmDMVCNewProject.GetProjectFolder: string;
 begin
-  Result := TPath.Combine(GetBaseFolder, GetProjectName);
+  if chkCreateSubfolder.Checked then
+    Result := TPath.Combine(GetBaseFolder, GetProjectName)
+  else
+    Result := GetBaseFolder;
 end;
 
 procedure TfrmDMVCNewProject.UpdateProjectNameHint;
@@ -576,6 +581,14 @@ begin
   until not TDirectory.Exists(TPath.Combine(LBaseFolder, LSuggestedName));
   edtProjectName.Text := LSuggestedName;
   edtProjectName.TextHint := LSuggestedName;
+end;
+
+procedure TfrmDMVCNewProject.chkCreateSubfolderClick(Sender: TObject);
+begin
+  if chkCreateSubfolder.Checked then
+    lblProjectFolder.Caption := 'Base Folder (project created as subfolder)'
+  else
+    lblProjectFolder.Caption := 'Project Folder';
 end;
 
 procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);

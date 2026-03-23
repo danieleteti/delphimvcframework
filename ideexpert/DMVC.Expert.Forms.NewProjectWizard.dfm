@@ -549,7 +549,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Top = 175
     Width = 764
     Height = 407
-    ActivePage = tsAppType
+    ActivePage = tsServer
     Anchors = [akLeft, akTop, akRight, akBottom]
     Style = tsFlatButtons
     TabHeight = 1
@@ -601,14 +601,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Server Port'
       end
       object lblProjectName: TLabel
-        Left = 24
+        Left = 25
         Top = 150
         Width = 64
         Height = 13
         Caption = 'Project Name'
       end
       object lblProjectFolder: TLabel
-        Left = 24
+        Left = 25
         Top = 200
         Width = 203
         Height = 13
@@ -666,7 +666,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       object edtProjectName: TEdit
         Left = 24
         Top = 169
-        Width = 320
+        Width = 401
         Height = 21
         TabOrder = 3
         TextHint = 'DMVCFrameworkProject1'
@@ -674,18 +674,29 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       object edtProjectFolder: TEdit
         Left = 24
         Top = 219
-        Width = 290
+        Width = 369
         Height = 21
         TabOrder = 4
       end
       object btnBrowseFolder: TButton
-        Left = 320
+        Left = 399
         Top = 217
         Width = 26
         Height = 25
         Caption = '...'
         TabOrder = 5
         OnClick = btnBrowseFolderClick
+      end
+      object chkCreateSubfolder: TCheckBox
+        Left = 24
+        Top = 246
+        Width = 280
+        Height = 17
+        Caption = 'Create project subfolder'
+        Checked = True
+        State = cbChecked
+        TabOrder = 6
+        OnClick = chkCreateSubfolderClick
       end
     end
     object tsFeatures: TTabSheet

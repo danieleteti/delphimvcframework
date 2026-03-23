@@ -154,7 +154,13 @@ begin
 {{if program_ssv_any}}
   // Page-specific ViewData (global data is set in OnBeforeAction)
   ViewData['current_date'] := FormatDateTime('dddd, dd mmmm yyyy', Now);
-  ViewData['compiler_version'] := Format('Delphi %.1f', [CompilerVersion]);
+  ViewData['compiler_version'] := {$IF CompilerVersion >= 37}'Delphi 13 Florence'
+    {$ELSEIF CompilerVersion >= 36}'Delphi 12 Athens'
+    {$ELSEIF CompilerVersion >= 35}'Delphi 11 Alexandria'
+    {$ELSEIF CompilerVersion >= 34}'Delphi 10.4 Sydney'
+    {$ELSEIF CompilerVersion >= 33}'Delphi 10.3 Rio'
+    {$ELSEIF CompilerVersion >= 32}'Delphi 10.2 Tokyo'
+    {$ELSE}'Delphi'{$ENDIF};
 
   // Render the home/index view (extends baselayout.html)
   Result := RenderView('home/index');

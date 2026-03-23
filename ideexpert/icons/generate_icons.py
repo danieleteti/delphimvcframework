@@ -55,6 +55,6 @@ if __name__ == '__main__':
         offset = (BASE_SIZE - icon_size) // 2
         bg.paste(svg_icon, (offset, offset), svg_icon)
         ico_path = name + '.ico'
-        bg.save(ico_path, format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (256, 256)])
+        bg.save(ico_path, format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
         print(f'{ico_path}: {os.path.getsize(ico_path)} bytes')
     print('Done!')
