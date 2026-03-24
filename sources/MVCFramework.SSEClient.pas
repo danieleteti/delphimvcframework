@@ -217,12 +217,13 @@ var
   LLine: string;
   LFieldName, LFieldValue: string;
   LRetryVal: Integer;
+  I: Integer;
 begin
   while True do
   begin
     // Find next line ending (LF, CRLF, or CR)
     LLineEnd := 0;
-    for var I := 1 to Length(fBuffer) do
+    for I := 1 to Length(fBuffer) do
     begin
       if (fBuffer[I] = LF) or (fBuffer[I] = CR) then
       begin
