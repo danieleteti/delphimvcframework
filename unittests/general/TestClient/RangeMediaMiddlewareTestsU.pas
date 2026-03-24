@@ -397,7 +397,7 @@ begin
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=10-19');
   Assert.AreEqual(206, LResp.StatusCode);
   LContent := StreamToBytes(LResp.ContentStream);
-  Assert.AreEqual(10, Length(LContent), 'Must return exactly 10 bytes');
+  Assert.AreEqual(10, Integer(Length(LContent)), 'Must return exactly 10 bytes');
   for I := 0 to 9 do
     Assert.AreEqual(Byte(I + 10), LContent[I],
       Format('Byte[%d] should be %d, got %d', [I, I + 10, LContent[I]]));
@@ -448,7 +448,7 @@ begin
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=42-42');
   Assert.AreEqual(206, LResp.StatusCode);
   LContent := StreamToBytes(LResp.ContentStream);
-  Assert.AreEqual(1, Length(LContent), 'Single-byte range must return exactly 1 byte');
+  Assert.AreEqual(1, Integer(Length(LContent)), 'Single-byte range must return exactly 1 byte');
   Assert.AreEqual(Byte(42), LContent[0], 'Single-byte range must return the correct byte');
 end;
 
@@ -461,7 +461,7 @@ begin
   LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN, 'bytes=1023-1023');
   Assert.AreEqual(206, LResp.StatusCode);
   LContent := StreamToBytes(LResp.ContentStream);
-  Assert.AreEqual(1, Length(LContent));
+  Assert.AreEqual(1, Integer(Length(LContent)));
   Assert.AreEqual(Byte(1023 mod 256), LContent[0]);
 end;
 
