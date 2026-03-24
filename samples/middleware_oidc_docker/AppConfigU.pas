@@ -82,7 +82,9 @@ end;
 
 class function TAppConfig.DBPassword: string;
 begin
-  Result := dotEnv.Env('DB_PASSWORD', 'oidc_sample_dev');
+  Result := dotEnv.Env('DB_PASSWORD', '');
+  if Result.IsEmpty then
+    raise Exception.Create('DB_PASSWORD environment variable is required');
 end;
 
 { TAppConfig -- OIDC }

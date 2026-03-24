@@ -15,12 +15,12 @@
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
       </a>
     </div>
     <div id="mainNavbar" class="navbar-menu">
       <div class="navbar-start">
         <a class="navbar-item is-active" href="/dashboard">Dashboard</a>
+        <!-- /users is also protected server-side in UserControllerU -->
         {{if is_admin}}
         <a class="navbar-item" href="/users">Users</a>
         {{endif}}

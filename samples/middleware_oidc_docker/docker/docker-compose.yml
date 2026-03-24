@@ -21,7 +21,7 @@ services:
   postgresql:
     image: postgres:16-alpine
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_DB: ${DB_NAME:-oidc_sample}

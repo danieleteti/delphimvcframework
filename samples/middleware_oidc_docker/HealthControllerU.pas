@@ -38,6 +38,7 @@ begin
   LObj := TJsonObject.Create;
   LObj.S['status'] := 'ok';
   LObj.S['service'] := 'oidc-docker-sample';
+  // Render() takes ownership of LObj and frees it after serialization
   Render(LObj);
 end;
 

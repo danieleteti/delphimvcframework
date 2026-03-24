@@ -12,10 +12,12 @@ type
   public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function Index: string;
 
     [MVCPath('/dashboard')]
     [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function Dashboard: string;
   end;
 

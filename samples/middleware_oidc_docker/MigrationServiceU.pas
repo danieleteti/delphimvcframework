@@ -49,7 +49,7 @@ resourcestring
   SLogApplyingMigration     = 'Applying migration V%d: %s';
   SLogMigrationApplied      = 'Migration V%d applied successfully';
   SLogMigrationFailed       = 'Migration V%d failed: %s';
-  SLogSchemaTableCreated    = 'Created schema_migrations table';
+  SLogSchemaTableCreated    = 'schema_migrations table verified';
 
 /// <summary>
 /// Extract the integer version number from a migration filename.
@@ -146,7 +146,7 @@ begin
   LSorted := TList<string>.Create;
   try
     for LFile in LFiles do
-      if ExtractVersion(LFile) > 0 then
+      if ExtractVersion(LFile) >= 1 then
         LSorted.Add(LFile);
 
     LSorted.Sort(

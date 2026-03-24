@@ -170,34 +170,33 @@ begin
   // Try to find existing user by OIDC subject
   LUser := TMVCActiveRecord.GetFirstByWhere<TUser>(
     'oidc_subject = ?', [AIDTokenClaims.S['sub']], False);
-
-  if Assigned(LUser) then
-  begin
-    LUser.Email := LEmail;
-    LUser.DisplayName := LDisplayName;
-    LUser.LastLoginAt := Now;
-    LUser.Update;
-  end
-  else
-  begin
-    LUser := TUser.Create;
-    LUser.OidcSubject := AIDTokenClaims.S['sub'];
-    LUser.Email := LEmail;
-    LUser.DisplayName := LDisplayName;
-    LUser.LastLoginAt := Now;
-
-    // First user to register becomes admin
-    LUserCount := TMVCActiveRecord.Count<TUser>;
-    if LUserCount = 0 then
-      LUser.Role := 'admin'
-    else
-      LUser.Role := 'viewer';
-
-    LUser.Insert;
-    LogI('New user created: ' + LEmail + ' with role: ' + LUser.Role);
-  end;
-
   try
+    if Assigned(LUser) then
+    begin
+      LUser.Email := LEmail;
+      LUser.DisplayName := LDisplayName;
+      LUser.LastLoginAt := Now;
+      LUser.Update;
+    end
+    else
+    begin
+      LUser := TUser.Create;
+      LUser.OidcSubject := AIDTokenClaims.S['sub'];
+      LUser.Email := LEmail;
+      LUser.DisplayName := LDisplayName;
+      LUser.LastLoginAt := Now;
+
+      // First user to register becomes admin
+      LUserCount := TMVCActiveRecord.Count<TUser>;
+      if LUserCount = 0 then
+        LUser.Role := 'admin'
+      else
+        LUser.Role := 'viewer';
+
+      LUser.Insert;
+      LogI('New user created: ' + LEmail + ' with role: ' + LUser.Role);
+    end;
+
     AUserRoles.Add(LUser.Role);
     ASessionData.AddOrSetValue('user_id', LUser.Id.Value.ToString);
     ASessionData.AddOrSetValue('display_name', LUser.DisplayName.Value);
@@ -217,9 +216,9 @@ procedure TOIDCDockerSampleWebModule.HandleAuthRequired(
 begin
   AAuthenticationRequired := True;
 
-  if AControllerQualifiedClassName.Contains('THealthController') then
+  if SameText(AControllerQualifiedClassName, 'HealthControllerU.THealthController') then
     AAuthenticationRequired := False
-  else if AControllerQualifiedClassName.Contains('THomeController') then
+  else if SameText(AControllerQualifiedClassName, 'HomeControllerU.THomeController') then
     AAuthenticationRequired := False;
 end;
 

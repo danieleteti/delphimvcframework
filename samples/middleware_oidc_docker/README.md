@@ -46,8 +46,9 @@ Edit `docker/.env`:
 | `OIDC_ISSUER` | Your OIDC provider URL (e.g. `https://pocket-id.example.com`) |
 | `OIDC_CLIENT_ID` | Client ID from provider registration |
 | `OIDC_CLIENT_SECRET` | Client secret from provider registration |
-| `OIDC_REDIRECT_URI` | Must match what you registered (`http://localhost:8080/auth/callback`) |
 | `JWT_SECRET` | Random string (64+ chars) for signing session cookies |
+
+> **Note:** The OIDC redirect URI is derived automatically from `BASE_URL` + `/auth/callback`. There is no separate `OIDC_REDIRECT_URI` variable.
 
 ## Run with Docker Compose
 

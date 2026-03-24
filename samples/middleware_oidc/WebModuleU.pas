@@ -13,6 +13,7 @@ uses
 type
   TOIDCSampleWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
   private
     FEngine: TMVCEngine;
     procedure HandleOIDCUser(
@@ -65,14 +66,14 @@ begin
       dotEnv.Env('OIDC_CLIENT_ID', ''),
       dotEnv.Env('OIDC_CLIENT_SECRET', ''),
       dotEnv.Env('BASE_URL', 'http://localhost:8080') + '/auth/callback',
-      dotEnv.Env('JWT_SECRET', 'oidc-sample-dev-secret-change-me'),
+      dotEnv.Env('JWT_SECRET', ''),
       '/auth/login',
       '/auth/callback',
       '/auth/logout',
       '/dashboard',
       '/',
       'openid email profile',
-      dotEnv.Env('JWT_EXPIRATION_MINUTES', 480),
+      dotEnv.Env('JWT_EXPIRATION_HOURS', 8) * 60,
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.IssuedAt],
       300
     )
@@ -116,7 +117,13 @@ procedure TOIDCSampleWebModule.HandleAuthRequired(
   const AActionName: string;
   var AAuthenticationRequired: Boolean);
 begin
-  AAuthenticationRequired := not SameText(AActionName, 'Index');
+  AAuthenticationRequired := not (SameText(AActionName, 'Index') and
+    SameText(AControllerQualifiedClassName, 'HomeControllerU.THomeController'));
+end;
+
+procedure TOIDCSampleWebModule.WebModuleDestroy(Sender: TObject);
+begin
+  FEngine.Free;
 end;
 
 end.

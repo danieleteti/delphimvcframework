@@ -119,7 +119,7 @@ type
     FTokenEndpoint: string;
     FUserinfoEndpoint: string;
     FEndSessionEndpoint: string;
-    FEndpointsDiscovered: Boolean;
+    FEndpointsDiscovered: Integer;  // 0 = not discovered, 1 = discovered (uses TInterlocked for thread safety)
     FDiscoveryLock: TObject;
     { JWT session }
     FJWTSecret: string;
@@ -252,6 +252,7 @@ implementation
 uses
   System.DateUtils,
   System.Math,
+  System.SyncObjs,
   MVCFramework.RESTClient,
   MVCFramework.RESTClient.Intf,
   MVCFramework.Logger,
@@ -333,6 +334,17 @@ constructor TMVCOIDCAuthenticationMiddleware.Create(
   const AHMACAlgorithm: string);
 begin
   inherited Create;
+  // Validate required parameters
+  if AJWTSecret.Trim.IsEmpty then
+    raise EMVCException.Create(
+      'OIDC Middleware: JWT secret must not be empty. ' +
+      'Set JWT_SECRET to a random string of at least 32 characters.');
+  if AOIDCIssuer.Trim.IsEmpty then
+    raise EMVCException.Create(
+      'OIDC Middleware: OIDC issuer URL must not be empty.');
+  if AClientId.Trim.IsEmpty then
+    raise EMVCException.Create(
+      'OIDC Middleware: OIDC client ID must not be empty.');
   FOnUserAuthenticated := AOnUserAuthenticated;
   FOnAuthRequired := AOnAuthRequired;
   FOIDCIssuer := AOIDCIssuer;
@@ -350,7 +362,7 @@ begin
   FClaimsToChecks := AClaimsToCheck;
   FLeewaySeconds := ALeewaySeconds;
   FHMACAlgorithm := AHMACAlgorithm;
-  FEndpointsDiscovered := False;
+  FEndpointsDiscovered := 0;
   FDiscoveryLock := TObject.Create;
   // Secure cookie defaults
   FCookieName := 'dmvc_oidc_session';
@@ -359,10 +371,25 @@ begin
   FCookiePath := '/';
   FCookieDomain := '';
   FFetchUserInfo := True;
+  // One-time startup notice about signature verification
+  LogI('OIDC: ID token signature verification relies on TLS trust to the token endpoint.');
 end;
 
 destructor TMVCOIDCAuthenticationMiddleware.Destroy;
 begin
+  // Zero sensitive secrets before releasing memory
+  if FClientSecret <> '' then
+  begin
+    UniqueString(FClientSecret);
+    FillChar(FClientSecret[1], Length(FClientSecret) * SizeOf(Char), 0);
+    FClientSecret := '';
+  end;
+  if FJWTSecret <> '' then
+  begin
+    UniqueString(FJWTSecret);
+    FillChar(FJWTSecret[1], Length(FJWTSecret) * SizeOf(Char), 0);
+    FJWTSecret := '';
+  end;
   FDiscoveryLock.Free;
   inherited;
 end;
@@ -433,12 +460,12 @@ var
   lJSON: TJsonObject;
   lDiscoveryURL: string;
 begin
-  // Thread-safe double-checked locking
-  if FEndpointsDiscovered then
+  // Thread-safe double-checked locking with memory barriers
+  if TInterlocked.CompareExchange(FEndpointsDiscovered, 0, 0) = 1 then
     Exit;
   TMonitor.Enter(FDiscoveryLock);
   try
-    if FEndpointsDiscovered then
+    if TInterlocked.CompareExchange(FEndpointsDiscovered, 0, 0) = 1 then
       Exit;
     lDiscoveryURL := FOIDCIssuer;
     if not lDiscoveryURL.EndsWith('/') then
@@ -459,7 +486,7 @@ begin
     finally
       lJSON.Free;
     end;
-    FEndpointsDiscovered := True;
+    TInterlocked.Exchange(FEndpointsDiscovered, 1);
     LogI(Format(SOIDCDiscoverySuccess,
       [FAuthorizationEndpoint, FTokenEndpoint, FUserinfoEndpoint, FEndSessionEndpoint]));
   finally
@@ -495,8 +522,12 @@ begin
     .AddBodyFieldURLEncoded('client_secret', FClientSecret);
   lResponse := lClient.Post;
   if not lResponse.Success then
+  begin
+    LogE(Format('OIDC: Token exchange failed - status=%d body=%s',
+      [lResponse.StatusCode, lResponse.Content]));
     raise EMVCException.CreateFmt(SOIDCTokenExchangeError,
-      [lResponse.StatusCode.ToString + ' ' + lResponse.Content]);
+      [lResponse.StatusCode.ToString]);
+  end;
   Result := TJsonObject.Parse(lResponse.Content) as TJsonObject;
 end;
 
@@ -533,14 +564,14 @@ begin
       jdtString:
         begin
           lAudValue := lClaims.S['aud'];
-          lAudFound := SameText(lAudValue, FClientId);
+          lAudFound := (lAudValue = FClientId);  // case-sensitive per OIDC spec
         end;
       jdtArray:
         begin
           lAudArray := lClaims.A['aud'];
           for I := 0 to lAudArray.Count - 1 do
           begin
-            if SameText(lAudArray.S[I], FClientId) then
+            if lAudArray.S[I] = FClientId then  // case-sensitive per OIDC spec
             begin
               lAudFound := True;
               Break;
@@ -558,10 +589,8 @@ begin
     if UnixToDateTime(lExp, False) + (FLeewaySeconds * OneSecond) <= Now then
       raise EMVCException.Create(SOIDCIDTokenExpired);
 
-    // Signature verification is not implemented; we rely on TLS trust
-    // to the token endpoint (the ID token was received directly from the
-    // provider over HTTPS, not via the browser).
-    LogW(SOIDCIDTokenNoSigVerify);
+    // ID token signature verification relies on TLS trust to the token endpoint.
+    // The token was received directly from the provider over HTTPS, not via the browser.
 
     Result := lClaims;
     lClaims := nil; // prevent freeing, caller owns the result
@@ -582,8 +611,12 @@ begin
     .SetBearerAuthorization(AAccessToken);
   lResponse := lClient.Get;
   if not lResponse.Success then
+  begin
+    LogE(Format('OIDC: UserInfo request failed - status=%d body=%s',
+      [lResponse.StatusCode, lResponse.Content]));
     raise EMVCException.CreateFmt(SOIDCUserInfoError,
-      [lResponse.StatusCode.ToString + ' ' + lResponse.Content]);
+      [lResponse.StatusCode.ToString]);
+  end;
   Result := TJsonObject.Parse(lResponse.Content) as TJsonObject;
 end;
 
@@ -723,6 +756,8 @@ begin
   end
   else
   begin
+    // Malformed or missing state cookie — set empty values.
+    // The nonce validation in HandleCallback will reject this.
     AState := lValue;
     ANonce := '';
   end;
@@ -815,12 +850,14 @@ begin
       lIDTokenClaims := ValidateIDToken(lTokenResponse.S['id_token']);
 
       // Validate nonce to prevent replay attacks (OIDC Core 3.1.3.7)
-      if not lExpectedNonce.IsEmpty then
-      begin
-        if lIDTokenClaims.S['nonce'] <> lExpectedNonce then
-          raise EMVCException.CreateFmt(SOIDCCallbackNonceMismatch,
-            [lExpectedNonce, lIDTokenClaims.S['nonce']]);
-      end;
+      // A missing nonce means the state cookie was lost or tampered with
+      if lExpectedNonce.IsEmpty then
+        raise EMVCException.Create(
+          'OIDC: Missing state cookie nonce - cannot verify replay protection. ' +
+          'Possible cookie blocking or replay attack.');
+      if lIDTokenClaims.S['nonce'] <> lExpectedNonce then
+        raise EMVCException.CreateFmt(SOIDCCallbackNonceMismatch,
+          [lExpectedNonce, lIDTokenClaims.S['nonce']]);
 
       // Optionally fetch UserInfo
       lAccessToken := lTokenResponse.S['access_token'];
@@ -883,7 +920,12 @@ var
 begin
   ClearSessionCookie(AContext);
   LogI(SOIDCUserLoggedOut);
-  DiscoverEndpoints;
+  try
+    DiscoverEndpoints;
+  except
+    on E: Exception do
+      LogW('OIDC: Could not discover end_session_endpoint for logout: ' + E.Message);
+  end;
 
   if not FEndSessionEndpoint.IsEmpty then
   begin
@@ -1016,9 +1058,8 @@ begin
     begin
       if NeedsTokenRefresh(lJWTValue) then
       begin
-        lJWTValue.Claims.ExpirationTime :=
-          Max(lJWTValue.Claims.ExpirationTime, Now) +
-          (lJWTValue.LeewaySeconds + lJWTValue.LiveValidityWindowInSeconds) * OneSecond;
+        // Slide the session by the full configured duration
+        lJWTValue.Claims.ExpirationTime := Now + (FJWTExpirationMinutes * OneMinute);
         SetSessionCookie(AContext, lJWTValue.GetToken,
           lJWTValue.Claims.ExpirationTime);
         AContext.Response.SetCustomHeader('X-JWT-Refreshed', 'true');

@@ -49,6 +49,7 @@ end;
 
 begin
   IsMultiThread := True;
+  {$IFDEF DEBUG}ReportMemoryLeaksOnShutdown := True;{$ENDIF}
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

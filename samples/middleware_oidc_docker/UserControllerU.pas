@@ -47,10 +47,14 @@ begin
   end;
 
   LUsers := TMVCActiveRecord.All<TUser>;
-  ViewData['users'] := LUsers;
-  ViewData['display_name'] := Context.LoggedUser.CustomData['display_name'];
-  ViewData['is_admin'] := True;
-  Result := RenderView('users');
+  try
+    ViewData['users'] := LUsers;
+    ViewData['display_name'] := Context.LoggedUser.CustomData['display_name'];
+    ViewData['is_admin'] := True;
+    Result := RenderView('users');
+  finally
+    LUsers.Free;
+  end;
 end;
 
 end.
