@@ -20,6 +20,7 @@
   - [🏁 **Quick Start**](#-quick-start)
   - [📚 **Learning Resources**](#-learning-resources)
     - [📖 **Official Guide**](#-official-guide)
+    - [📘 **Technical Guides & Papers**](#-technical-guides--papers)
     - [🎓 **Training & Support**](#-training--support)
   - [🤝 **Community & Support**](#-community--support)
     - [💬 **Get Help**](#-get-help)
