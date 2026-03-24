@@ -190,6 +190,22 @@ The comprehensive **"DelphiMVCFramework - The Official Guide"** is available in 
 - [🇧🇷 Portuguese](https://leanpub.com/delphimvcframework-br)
 - [🇪🇸 Spanish](https://leanpub.com/delphimvcframework-es)
 
+### 📘 **Technical Guides & Papers**
+Premium guides and video tutorials available at the [DMVCFramework Patreon Shop](https://www.danieleteti.it/patreon-products/):
+- **TemplatePro 1.1 - The Definitive Guide** (EN, IT, ES, DE)
+- **A Practical Guide to Managing Complex Configurations with .env** (EN, IT)
+- **Prompt Engineering - Mastering AI Communication** (EN, IT, ES, DE)
+- **Building a Robust Job Queue System with FirebirdSQL** (EN, IT, ES)
+- **Practical Guide to API and Webhooks with DelphiMVCFramework** (IT, ES)
+- **Understanding JSON-RPC: A Lightweight Remote Procedure Call Protocol** (EN)
+- **CRUD Web API with Delphi, DMVCFramework, and PostgreSQL** (EN)
+- **MVCActiveRecord Series** - Complete ORM guide in 3 parts (EN, IT)
+- **Pagination with RQL in DMVCFramework** (EN)
+- **Using Caddy as Reverse Proxy for DMVCFramework Applications** (EN, IT, ES)
+- **Localization in DMVCFramework Web Applications** (Video)
+- **Sessions in DMVCFramework** (Video)
+- **Bag of Words in Delphi** - NLP guide (EN, IT) — Free for Patreon members
+
 ### 🎓 **Training & Support**
 - **Professional Training**: Available through [bit Time Professionals](https://www.bittimeprofessionals.it) (world wide) and [Delphi Studio ES](https://www.delphistudio.es) (in Spain)
 - **Consultancy Services**: Custom development and technical support available through [bit Time Professionals](https://www.bittimeprofessionals.it) (world wide) and [Delphi Studio ES](https://www.delphistudio.es) (in Spain)
@@ -247,10 +263,10 @@ DelphiMVCFramework is released under the Apache License 2.0. See [LICENSE](LICEN
 | Documentation | Community |
 |---|---|
 | [Quick Start](docs/quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
-| [Installation](INSTALLATION.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
-| [Samples](SAMPLES.md) | [X](https://x.com/danieleteti) |
-| [RQL Guide](RQL.md) | [Blog](https://www.danieleteti.it) |
-| [dotEnv](DOTENV.md) |  |
+| [Installation](docs/installation_guide.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
+| [Samples](docs/samples_guide.md) | [X](https://x.com/danieleteti) |
+| [RQL Guide](docs/rql_guide.md) | [Blog](https://www.danieleteti.it) |
+| [dotEnv](docs/dotenv_guide.md) |  |
 
 ---
 
