@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{F8A1B2C3-D4E5-6789-0ABC-DEF123456789}</ProjectGuid>
-        <ProjectVersion>20.3</ProjectVersion>
+        <ProjectVersion>20.4</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>OIDCSample.dpr</MainSource>
         <Base>True</Base>
