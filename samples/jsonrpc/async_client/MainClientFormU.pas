@@ -784,8 +784,10 @@ var
   lReq: IJSONRPCRequest;
 begin
   FDMemTable1.Active := False;
+
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
+
   fExecutor.ExecuteRequestAsync('/jsonrpc', lReq,
     procedure(Resp: IJSONRPCResponse)
     begin
@@ -800,7 +802,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 const
-  SIMULATE_SLOW_NETWORK = False;
+  SIMULATE_SLOW_NETWORK = True;
 begin
   fExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
 

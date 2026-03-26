@@ -382,6 +382,7 @@ begin
   edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
+  EdtJSONRPCClassName.TextHint := 'TMyJSONRPCService';
   chkWebSocketServer.Checked := False;
   lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
   fModel := TJsonObject.Create;

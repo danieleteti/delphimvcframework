@@ -64,6 +64,8 @@ type
 
   TMVCDataType = (dtObject, dtArray);
 
+  TMVCBodyValidation = (bvValidate, bvDoNotValidate);
+
   TMVCDatasetSerializationType = (dstSingleRecord, dstAllRecords);
 
   TMVCEnumSerializationType = (estEnumName, estEnumOrd, estEnumMappedValues);

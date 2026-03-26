@@ -179,3 +179,6 @@ nul
 
 # Personal notes
 GUIDA_OIDC_DANIELE.md
+
+/tools/bin/Entities*.env
+/tools/bin/Entities*.pas

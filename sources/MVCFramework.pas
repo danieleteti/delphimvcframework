@@ -302,10 +302,16 @@ type
   private
     fRootNode: string;
     fDataType: TMVCDataType;
+    fBodyValidation: TMVCBodyValidation;
   public
-    constructor Create(const RootNode: string = ''; const DataType: TMVCDataType = TMVCDataType.dtObject);
+    constructor Create(const RootNode: string = '';
+      const DataType: TMVCDataType = TMVCDataType.dtObject;
+      const BodyValidation: TMVCBodyValidation = TMVCBodyValidation.bvValidate); overload;
+    constructor Create(
+      const BodyValidation: TMVCBodyValidation); overload;
     function DataType: TMVCDataType;
     function RootNode: String;
+    function BodyValidation: TMVCBodyValidation;
   end;
 
   MVCInjectableParamAttribute = class(MVCBaseAttribute)
@@ -2335,11 +2341,18 @@ end;
 
 { MVCFromBodyAttribute }
 
-constructor MVCFromBodyAttribute.Create(const RootNode: string; const DataType: TMVCDataType);
+constructor MVCFromBodyAttribute.Create(const RootNode: string;
+  const DataType: TMVCDataType; const BodyValidation: TMVCBodyValidation);
 begin
   inherited Create;
-  fRootNode := '';
+  fRootNode := RootNode;
   fDataType := DataType;
+  fBodyValidation := BodyValidation;
+end;
+
+constructor MVCFromBodyAttribute.Create(const BodyValidation: TMVCBodyValidation);
+begin
+  Create('', TMVCDataType.dtObject, BodyValidation);
 end;
 
 function MVCFromBodyAttribute.DataType: TMVCDataType;
@@ -2350,6 +2363,11 @@ end;
 function MVCFromBodyAttribute.RootNode: String;
 begin
   Result := fRootNode;
+end;
+
+function MVCFromBodyAttribute.BodyValidation: TMVCBodyValidation;
+begin
+  Result := fBodyValidation;
 end;
 
 { TMVCErrorResponseItem }
@@ -3262,7 +3280,8 @@ begin
               ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
           end;
           // Automatic validation for objects with validation attributes (OPT-IN)
-          if TMVCValidationEngine.IsValidatableClass(ABodyParameter.ClassType) then
+          if (lFromBodyAttribute.BodyValidation = bvValidate)
+            and TMVCValidationEngine.IsValidatableClass(ABodyParameter.ClassType) then
             TMVCValidationEngine.ValidateAndRaise(ABodyParameter);
           AActualParams[I] := ABodyParameter;
         end

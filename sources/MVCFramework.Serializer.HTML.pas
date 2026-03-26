@@ -30,7 +30,7 @@ unit MVCFramework.Serializer.HTML;
 interface
 
 uses
-	System.SysUtils,
+  System.SysUtils,
   System.Classes,
   System.Rtti,
   System.TypInfo,

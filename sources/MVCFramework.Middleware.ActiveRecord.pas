@@ -37,7 +37,6 @@ uses
   MVCFramework.Serializer.Commons;
 
 type
-
   TMVCActiveRecordMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     fDefaultConnectionDefName: string;

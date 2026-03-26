@@ -215,6 +215,7 @@ type
     procedure DoSelection(const SelectionType: TSelectionType);
     procedure SetProjectFileName(const Value: String);
     function GetProjectFileExists: Boolean;
+    procedure ExportCLIConfig(const AOutputPasFile: string);
   public
     property ProjectFileName: String read fProjectFileName write SetProjectFileName;
     property ProjectFileExists: Boolean read GetProjectFileExists;
@@ -388,10 +389,12 @@ begin
   finally
     lKeyFields.Free;
   end;
-  // mmOutput.Lines.SaveToFile(
-  // mmConnectionParams.Lines.SaveToFile(FHistoryFileName);
-  //ShowMessage('Generation Completed');
-//  TabNextTab1.Execute;
+  try
+    ExportCLIConfig(lOutputFileName);
+  except
+    on E: Exception do
+      Log.Error('Failed to export CLI config: ' + E.Message, LOG_TAG);
+  end;
   Log.Info('Generated %d entities', [lGeneratedEntities],  LOG_TAG);
 end;
 
@@ -1064,6 +1067,105 @@ begin
   dsTablesMapping.First;
 
   EditOutputFileName.Text := fConfig.S[EditOutputFileName.Name];
+end;
+
+procedure TMainForm.ExportCLIConfig(const AOutputPasFile: string);
+var
+  lSL: TStringList;
+  lSelectedTables: TStringList;
+  lFieldNameFormat: string;
+begin
+  lSL := TStringList.Create;
+  try
+    lSL.Add('# ============================================================================');
+    lSL.Add('# DMVCFramework Entity Generator - CLI Configuration');
+    lSL.Add('# Exported from GUI on ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
+    lSL.Add('# ============================================================================');
+    lSL.Add('');
+
+    { Connection }
+    lSL.Add('# --- Database Connection ---------------------------------------------------');
+    if cboConnectionDefs.ItemIndex >= 0 then
+      lSL.Add('CONNECTION_DEF=' + cboConnectionDefs.Text)
+    else
+      lSL.Add('# CONNECTION_DEF=');
+    lSL.Add('');
+
+    { Schema }
+    lSL.Add('# --- Schema ----------------------------------------------------------------');
+    if (lstSchema.ItemIndex > 0) then
+      lSL.Add('SCHEMA=' + lstSchema.Items[lstSchema.ItemIndex])
+    else
+      lSL.Add('SCHEMA=');
+    lSL.Add('');
+
+    { Output }
+    lSL.Add('# --- Output ----------------------------------------------------------------');
+    lSL.Add('OUTPUT_FILE=' + AOutputPasFile);
+    lSL.Add('');
+
+    { Generation options }
+    lSL.Add('# --- Generation Options ----------------------------------------------------');
+    lSL.Add('NAME_CASE=' + rgNameCase.Items[rgNameCase.ItemIndex]);
+
+    if rgFieldNameFormatting.ItemIndex = 1 then
+      lFieldNameFormat := 'PascalCase'
+    else
+      lFieldNameFormat := 'AsIs';
+    lSL.Add('FIELD_NAME_FORMAT=' + lFieldNameFormat);
+    lSL.Add('GENERATE_MAPPING=' + BoolToStr(chkGenerateMapping.Checked, True).ToLower);
+    lSL.Add('CLASS_AS_ABSTRACT=' + BoolToStr(chkClassAsAbstract.Checked, True).ToLower);
+    lSL.Add('');
+
+    { Selected tables }
+    lSL.Add('# --- Table Filtering -------------------------------------------------------');
+    lSelectedTables := TStringList.Create;
+    try
+      dsTablesMapping.DisableControls;
+      try
+        dsTablesMapping.First;
+        while not dsTablesMapping.Eof do
+        begin
+          if dsTablesMappingGENERATE.Value then
+            lSelectedTables.Add(dsTablesMappingTABLE_NAME.AsString);
+          dsTablesMapping.Next;
+        end;
+        dsTablesMapping.First;
+      finally
+        dsTablesMapping.EnableControls;
+      end;
+
+      lSL.Add('TABLES=' + lSelectedTables.CommaText);
+    finally
+      lSelectedTables.Free;
+    end;
+    lSL.Add('EXCLUDE_TABLES=');
+    lSL.Add('');
+
+    { Table -> ClassName mapping }
+    lSL.Add('# --- Class Name Mapping ----------------------------------------------------');
+    lSL.Add('# MAP_<table_name>=<ClassName>');
+    dsTablesMapping.DisableControls;
+    try
+      dsTablesMapping.First;
+      while not dsTablesMapping.Eof do
+      begin
+        if dsTablesMappingGENERATE.Value then
+          lSL.Add('MAP_' + dsTablesMappingTABLE_NAME.AsString + '=' +
+            dsTablesMappingCLASS_NAME.AsString);
+        dsTablesMapping.Next;
+      end;
+      dsTablesMapping.First;
+    finally
+      dsTablesMapping.EnableControls;
+    end;
+
+    { Write file }
+    lSL.SaveToFile(TPath.ChangeExtension(AOutputPasFile, '.env'), TEncoding.UTF8);
+    Log.Info('Exported CLI config to %s', [TPath.ChangeExtension(AOutputPasFile, '.env')], LOG_TAG);
+  finally
+    lSL.Free;
+  end;
 end;
 
 procedure TMainForm.mmConnectionParamsChange(Sender: TObject);

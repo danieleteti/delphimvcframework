@@ -4,7 +4,6 @@ unit {{:webmodule_unit_name}};
 interface
 
 uses
-  System.SysUtils,
   System.Classes,
   Web.HTTPApp,
   MVCFramework;
@@ -28,58 +27,77 @@ uses
   {{:controller_unit_name}},
 {{if jsonrpc_generate}}
   {{:jsonrpc_unit_name}},
+  MVCFramework.JSONRPC,
 {{endif}}
 {{if webmodule_middleware_jwt}}
   {{:authentication_unit_name}},
-{{endif}}
-  System.IOUtils,
-{{if webmodule_middleware_jwt}}
   System.DateUtils,
-{{endif}}
-{{if program_ssv_templatepro}}
-  TemplatePro,
-{{endif}}
-  MVCFramework.Commons,
-  MVCFramework.Logger,
-{{if webmodule_middleware_jwt}}
   MVCFramework.JWT,
 {{endif}}
+  System.IOUtils,
 {{if program_ssv_templatepro}}
-  MVCFramework.Serializer.URLEncoded,
+  TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
 {{endif}}
 {{if program_ssv_webstencils}}
-  MVCFramework.Serializer.URLEncoded,
   MVCFramework.View.Renderers.WebStencils,
 {{endif}}
 {{if program_ssv_mustache}}
-  MVCFramework.Serializer.URLEncoded,
   MVCFramework.View.Renderers.Mustache,
 {{endif}}
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+  MVCFramework.Serializer.URLEncoded,
+{{if webmodule_middleware_activerecord}}
   MVCFramework.Middleware.ActiveRecord,
+{{endif}}
+{{if webmodule_middleware_session_memory}}
   MVCFramework.Middleware.Session,
+{{endif}}
+{{if webmodule_middleware_session_file}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if webmodule_middleware_session_database}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if program_ssv_any}}
   MVCFramework.Middleware.Redirect,
+{{endif}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   MVCFramework.Middleware.StaticFiles,
+{{endif}}
+{{if webmodule_middleware_analytics}}
   MVCFramework.Middleware.Analytics,
+{{endif}}
+{{if webmodule_middleware_trace}}
   MVCFramework.Middleware.Trace,
+{{endif}}
+{{if webmodule_middleware_cors}}
   MVCFramework.Middleware.CORS,
+{{endif}}
+{{if webmodule_middleware_etag}}
   MVCFramework.Middleware.ETag,
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
   MVCFramework.Middleware.RateLimit,
-  MVCFramework.Middleware.JWT,
-  MVCFramework.Middleware.Compression;
+{{endif}}
+{{if webmodule_middleware_compression}}
+  MVCFramework.Middleware.Compression,
+{{endif}}
+  System.SysUtils;
 
 procedure {{:webmodule_classname}}.WebModuleCreate(Sender: TObject);
-{{if webmodule_middleware_ratelimit}}
+{{if @(webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles)}}
 var
+{{if webmodule_middleware_ratelimit}}
   LRateLimitMiddleware: TMVCRateLimitMiddleware;
 {{endif}}
 {{if webmodule_middleware_jwt}}
-var
   LJWTClaimsSetup: TJWTClaimsSetup;
 {{endif}}
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
-var
   LWwwPath: string;
+{{endif}}
 {{endif}}
 begin
   fMVC := TMVCEngine.Create(Self,
@@ -140,24 +158,9 @@ begin
   fMVC.SetViewEngine(TMVCMustacheViewEngine);
   // Server Side View - END
 {{endif}}
-{{if program_ssv_templatepro}}
 
-  // Serializers
+  // URLEncoded serializer - enables [MVCFromContentField] for HTML form data
   fMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));
-  // Serializers - END
-{{endif}}
-{{if program_ssv_webstencils}}
-
-  // Serializers
-  fMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));
-  // Serializers - END
-{{endif}}
-{{if program_ssv_mustache}}
-
-  // Serializers
-  fMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));
-  // Serializers - END
-{{endif}}
 {{if webmodule_middleware_ratelimit}}
 
   LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
@@ -294,13 +297,34 @@ begin
 {{endif}}
 {{if jsonrpc_generate}}
 
-  // JSONRPC
+  // JSON-RPC 2.0 endpoint at /jsonrpc
+  // A new instance of {{:jsonrpc_classname}} is created for each request.
+  // Use /jsonrpc/describe (GET) to see auto-generated method documentation.
   fMVC.PublishObject(
     function : TObject
     begin
       Result := {{:jsonrpc_classname}}.Create;
     end, '/jsonrpc');
-  // JSONRPC - END
+
+  // Uncomment below to add a custom exception handler for JSON-RPC errors.
+  // This allows you to intercept exceptions and return custom error codes/messages.
+  //
+  // fMVC.PublishObject(
+  //   function : TObject
+  //   begin
+  //     Result := {{:jsonrpc_classname}}.Create;
+  //   end, '/jsonrpc',
+  //   procedure(Exc: Exception; WebContext: TWebContext;
+  //     var ErrorInfo: TMVCJSONRPCExceptionErrorInfo;
+  //     var ExceptionHandled: Boolean)
+  //   begin
+  //     if Exc is EDatabaseError then
+  //     begin
+  //       ExceptionHandled := True;
+  //       ErrorInfo.Code := -32050;
+  //       ErrorInfo.Msg := 'Database error: ' + Exc.Message;
+  //     end;
+  //   end);
 {{endif}}
 
 end;

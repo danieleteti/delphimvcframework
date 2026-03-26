@@ -119,7 +119,10 @@ object MainForm: TMainForm
         Width = 1121
         Height = 89
         Align = alTop
+        BevelOuter = bvNone
         TabOrder = 1
+        ExplicitLeft = -72
+        ExplicitTop = -2
         object Label1: TLabel
           AlignWithMargins = True
           Left = 19
@@ -135,10 +138,10 @@ object MainForm: TMainForm
         end
         object Label3: TLabel
           AlignWithMargins = True
-          Left = 557
-          Top = 11
+          Left = 558
+          Top = 10
           Width = 553
-          Height = 67
+          Height = 69
           Margins.Left = 10
           Margins.Top = 10
           Margins.Right = 10
@@ -151,6 +154,8 @@ object MainForm: TMainForm
             'generated from that set of tables.'
           Layout = tlCenter
           WordWrap = True
+          ExplicitLeft = 557
+          ExplicitTop = 11
           ExplicitHeight = 63
         end
         object cboConnectionDefs: TComboBox

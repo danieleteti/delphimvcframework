@@ -33,7 +33,7 @@ type
   TDMVCProjectPreset = (
     ppRESTfulAPI,
     ppWebApplication,
-    ppMicroservice,
+    ppJSONRPC,
     ppRealTime,
     ppFullStack,
     ppCustom
@@ -50,37 +50,37 @@ const
   PRESET_INFOS: array[TDMVCProjectPreset] of TDMVCProjectPresetInfo = (
     ( // ppRESTfulAPI
       Caption: 'RESTful API';
-      Hint: 'JSON API for mobile apps, SPAs, or third-party integrations';
+      Hint: 'REST controller with CRUD methods, CORS, compression, service container. For mobile backends, SPAs, third-party integrations.';
       IDSuffix: '1.RestfulAPI';
       IconResource: 'DMVCPresetRestfulAPI'
     ),
     ( // ppWebApplication
       Caption: 'Web Application';
-      Hint: 'Server-side rendered web app with HTML templates and sessions';
+      Hint: 'TemplatePro views, static files, sessions, compression, HTMX support. For server-rendered web apps with forms and navigation.';
       IDSuffix: '2.WebApp';
       IconResource: 'DMVCPresetWebApp'
     ),
-    ( // ppMicroservice
-      Caption: 'Microservice';
-      Hint: 'Lightweight stateless service for distributed architectures';
-      IDSuffix: '3.Microservice';
-      IconResource: 'DMVCPresetMicroservice'
+    ( // ppJSONRPC
+      Caption: 'JSON-RPC Service';
+      Hint: 'JSON-RPC 2.0 endpoint with sample methods, hooks, error handling, MVCDoc introspection, CORS, compression. For RPC-style APIs and internal services.';
+      IDSuffix: '3.JSONRPC';
+      IconResource: 'DMVCPresetRestfulAPI'
     ),
     ( // ppRealTime
       Caption: 'Real-Time Application';
-      Hint: 'WebSocket server for chat, live dashboards, IoT';
+      Hint: 'WebSocket server with message handlers, static files, sessions, CORS, compression. For chat, live dashboards, IoT, push notifications.';
       IDSuffix: '4.RealTime';
       IconResource: 'DMVCPresetRealTime'
     ),
     ( // ppFullStack
       Caption: 'Full-Stack Application';
-      Hint: 'Complete production app with all features enabled';
+      Hint: 'Everything enabled: REST + TemplatePro + WebSocket + HTMX + JWT + ActiveRecord + ETag + RateLimit + Analytics + HTTPS. For complete production apps.';
       IDSuffix: '5.FullStack';
       IconResource: 'DMVCPresetFullStack'
     ),
     ( // ppCustom
       Caption: 'Custom Project';
-      Hint: 'Full wizard with all configuration options';
+      Hint: 'Full wizard with all configuration options. Choose exactly what you need.';
       IDSuffix: '6.Custom';
       IconResource: 'DMVCPresetCustom'
     )
@@ -170,18 +170,19 @@ begin
   AForm.cbNameCase.ItemIndex := 3; // CamelCase (0=AsIs, 1=UpperCase, 2=LowerCase, 3=CamelCase, 4=PascalCase, 5=SnakeCase)
 end;
 
-procedure ApplyPreset_Microservice(AForm: TfrmDMVCNewProject);
+procedure ApplyPreset_JSONRPC(AForm: TfrmDMVCNewProject);
 begin
-  // Controller
-  AForm.edtControllerClassName.Text := 'TServiceController';
-  AForm.chkCreateIndexMethod.Checked := True; // Health check
+  // Controller - minimal, just for health check
+  AForm.edtControllerClassName.Text := 'THealthController';
+  AForm.chkCreateIndexMethod.Checked := True;
   AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
-  AForm.chkProfileActions.Checked := True;
+  AForm.chkProfileActions.Checked := False;
 
-  // Features
-  AForm.chkServicesContainer.Checked := True;
+  // Features - JSON-RPC is the main feature
+  AForm.chkServicesContainer.Checked := False;
   AForm.chkJSONRPC.Checked := True;
+  AForm.EdtJSONRPCClassName.Text := 'TMyJSONRPCService';
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
@@ -207,7 +208,7 @@ begin
   AForm.edtServerPort.Text := '8080';
 
   // Serializer
-  AForm.cbNameCase.ItemIndex := 3; // CamelCase (0=AsIs, 1=UpperCase, 2=LowerCase, 3=CamelCase, 4=PascalCase, 5=SnakeCase)
+  AForm.cbNameCase.ItemIndex := 3; // CamelCase
 end;
 
 procedure ApplyPreset_RealTime(AForm: TfrmDMVCNewProject);
@@ -295,7 +296,7 @@ begin
   case APreset of
     ppRESTfulAPI:      ApplyPreset_RESTfulAPI(AForm);
     ppWebApplication:  ApplyPreset_WebApplication(AForm);
-    ppMicroservice:    ApplyPreset_Microservice(AForm);
+    ppJSONRPC:         ApplyPreset_JSONRPC(AForm);
     ppRealTime:        ApplyPreset_RealTime(AForm);
     ppFullStack:       ApplyPreset_FullStack(AForm);
     ppCustom:          ; // No changes - use default form state
