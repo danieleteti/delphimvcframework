@@ -50,7 +50,7 @@ USER_NAME=postgres
 PASSWORD=secret
 ```
 
-Supported drivers: `PG` (PostgreSQL), `FB` (Firebird), `MySQL`, `MSSQL`, `IB` (InterBase), `SQLite`, `ODBC`.
+Supported drivers: `PG` (PostgreSQL), `FB` (Firebird), `MySQL`, `MSSQL`, `IB` (InterBase), `SQLite`, `Ora` (Oracle), `ODBC`.
 
 Additional FireDAC parameters can be passed with the `FD_` prefix:
 

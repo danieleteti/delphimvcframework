@@ -83,7 +83,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 
 ### 💾 **Data Access & ORM**
 - **MVCActiveRecord** - Powerful ORM with full CRUD operations
-- **Multi-database support**: PostgreSQL, MySQL, MariaDB, Firebird, InterBase, SQLite, Microsoft SQL Server
+- **Multi-database support**: PostgreSQL, MySQL, MariaDB, Firebird, InterBase, SQLite, Microsoft SQL Server, Oracle
 - **RQL (Resource Query Language)** for flexible querying
 - **Named queries** support for optimized database access
 - **Connection pooling** and transaction management
@@ -142,6 +142,22 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - Windows or Linux FMX Applications
 - Apache Modules (Windows/Linux)
 - IIS ISAPI Extensions (Windows)
+
+### Supported Databases (MVCActiveRecord)
+
+MVCActiveRecord works with any database supported by FireDAC. The RQL (Resource Query Language) compiler and SQL generator are available for the following databases:
+
+| Database | Minimum Version | Notes |
+|----------|----------------|-------|
+| **PostgreSQL** | 9.6+ | RETURNING clause, native UUID. Recommended: 13+ |
+| **Microsoft SQL Server** | 2012+ | OFFSET/FETCH pagination requires 2012. Recommended: 2019+ |
+| **MySQL** | 5.7+ | LAST_INSERT_ID, backtick quoting. MariaDB 10.2+ also supported |
+| **Firebird** | 1.5+ | gen_id sequences, ROWS pagination. RETURNING clause requires 2.0+. Recommended: 3.0+ (IDENTITY columns) |
+| **InterBase** | XE3+ | No RETURNING clause, uses gen_id sequences for auto-generated keys |
+| **SQLite** | 3.8+ | last_insert_rowid, no sequences. Recommended: 3.30+ |
+| **Oracle** | 12c (12.1)+ | OFFSET/FETCH pagination, RETURNING clause, sequences via DUAL |
+
+> **Tip:** Include `MVCFramework.SQLGenerators` in your project's uses clause to register all database backends at once. Alternatively, include only the specific generator you need (e.g. `MVCFramework.SQLGenerators.PostgreSQL`).
 
 ## 🔒 **Security & TLS 1.3 Support**
 
