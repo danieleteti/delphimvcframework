@@ -16,6 +16,7 @@
     - [Delphi Versions](#delphi-versions)
     - [Operating Systems](#operating-systems)
     - [Deployment Targets](#deployment-targets)
+    - [Supported Databases (MVCActiveRecord)](#supported-databases-mvcactiverecord)
   - [🔒 **Security & TLS 1.3 Support**](#-security--tls-13-support)
   - [🏁 **Quick Start**](#-quick-start)
   - [📚 **Learning Resources**](#-learning-resources)
