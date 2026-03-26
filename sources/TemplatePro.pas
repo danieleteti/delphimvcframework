@@ -963,6 +963,7 @@ var
   lFilters: TArray<TFilterInfo>;
 begin
   SetLength(lFilters, 0);
+  MatchSpace;
   if MatchSymbol('|') then
   begin
     MatchFilters(lIdentifier, lFilters);
@@ -1856,6 +1857,7 @@ begin
             begin
               // Variable reference with optional filters
               SetLength(lFilters, 0);
+              MatchSpace;
               if MatchSymbol('|') then
                 MatchFilters(lVarName, lFilters);
               MatchSpace;
@@ -1936,6 +1938,7 @@ begin
             if not MatchVariable(lIdentifier) then
               Error('Expected identifier after "if"');
             SetLength(lFilters, 0);
+            MatchSpace;
             if MatchSymbol('|') then
             begin
               MatchFilters(lIdentifier, lFilters);
@@ -2005,6 +2008,7 @@ begin
             if not MatchVariable(lIdentifier) then
               Error('Expected identifier after "elseif"');
             SetLength(lFilters, 0);
+            MatchSpace;
             if MatchSymbol('|') then
             begin
               MatchFilters(lIdentifier, lFilters);
@@ -5746,17 +5750,18 @@ begin
     fVariables := TTProVariables.Create;
     try
       // Set macro parameters as variables in new scope
+      // Use SetData to properly detect type (object, list, JSON, etc.)
       for I := 0 to High(lMacroDef.Parameters) do
       begin
         if I < Length(lCallParams) then
         begin
-          // Use provided parameter
-          fVariables.Add(lMacroDef.Parameters[I].Name, TVarDataSource.Create(lCallParams[I], [viSimpleType]));
+          // Use provided parameter - SetData handles type detection
+          SetData(lMacroDef.Parameters[I].Name, lCallParams[I]);
         end
         else if lMacroDef.Parameters[I].HasDefault then
         begin
           // Use default value
-          fVariables.Add(lMacroDef.Parameters[I].Name, TVarDataSource.Create(lMacroDef.Parameters[I].DefaultValue, [viSimpleType]));
+          SetData(lMacroDef.Parameters[I].Name, lMacroDef.Parameters[I].DefaultValue);
         end
         else
         begin
