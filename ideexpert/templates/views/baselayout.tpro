@@ -27,8 +27,8 @@
       <li><strong>{{:app_name}}</strong></li>
     </ul>
     <ul>
-      <li><a href="/web" {{if page_id|eq,"index"}}aria-current="page"{{endif}}>Home</a></li>
-      <li><a href="/web/about" {{if page_id|eq,"about"}}aria-current="page"{{endif}}>About</a></li>
+      <li><a href="/web" {{if page_id}}{{if page_id|eq,"index"}}aria-current="page"{{endif}}{{endif}}>Home</a></li>
+      <li><a href="/web/about" {{if page_id}}{{if page_id|eq,"about"}}aria-current="page"{{endif}}{{endif}}>About</a></li>
       <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank">Docs</a></li>
       <li><button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">&#9790;</button></li>
     </ul>

@@ -853,7 +853,8 @@ type
       const ASerializationAction: TMVCSerializationAction = nil;
       const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AStatusCode: Integer; const AObject: IInterface;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render<T: record>(const AStatusCode: Integer; var ARecord: T); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
@@ -4786,10 +4787,11 @@ end;
 procedure TMVCRenderer.Render(
   const AStatusCode: Integer;
   const AObject: IInterface;
-  const ASerializationAction: TMVCSerializationAction);
+  const ASerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList);
 begin
   SetStatusCode(AStatusCode);
-  Render(AObject, ASerializationAction);
+  Render(AObject, ASerializationAction, AIgnoredFields);
 end;
 
 procedure TMVCRenderer.Render(
@@ -4797,7 +4799,6 @@ procedure TMVCRenderer.Render(
   const ASerializationAction: TMVCSerializationAction;
   const AIgnoredFields: TMVCIgnoredList);
 begin
-  {TODO -oDanieleT -cGeneral : Handle StatusCode}
   Render(TObject(AObject), False, ASerializationAction, AIgnoredFields);
 end;
 

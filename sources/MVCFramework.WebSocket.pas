@@ -202,6 +202,8 @@ uses
 
 class function TMVCWebSocketFrame.Create(AOpcode: TMVCWebSocketOpcode;
   const APayload: TBytes; AFin, AMasked: Boolean): TMVCWebSocketFrame;
+var
+  lGuid: TGUID;
 begin
   Result.Fin := AFin;
   Result.Reserved := 0;
@@ -212,13 +214,10 @@ begin
 
   if AMasked then
   begin
-    // Generate cryptographically random masking key (RFC 6455 Section 10.3)
-    // Note: For client-side masking only. Server->Client frames MUST NOT be masked.
-    Result.MaskingKey[0] := Byte(Random(256));
-    Result.MaskingKey[1] := Byte(Random(256));
-    Result.MaskingKey[2] := Byte(Random(256));
-    Result.MaskingKey[3] := Byte(Random(256));
-    // TODO: Use TRandomNumberGenerator for cryptographically secure random
+    // Generate cryptographically secure masking key (RFC 6455 Section 5.3 / 10.3)
+    // Uses CreateGUID which is backed by OS crypto-random (CoCreateGuid on Windows, /dev/urandom on Linux)
+    CreateGUID(lGuid);
+    Move(lGuid, Result.MaskingKey[0], SizeOf(Result.MaskingKey));
   end
   else
   begin

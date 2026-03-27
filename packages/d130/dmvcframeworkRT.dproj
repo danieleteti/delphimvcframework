@@ -205,7 +205,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SSE.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SSEClient.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SSEController.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Session.Internal.pas"/>

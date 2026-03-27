@@ -1313,7 +1313,6 @@ begin
   end;
 
 
-  { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
   if UsePropertyNameIfAttributeDoesntExists then
     Exit(GetFieldNameForSQL(RQLPropertyName))
   else

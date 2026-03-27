@@ -358,7 +358,8 @@ begin
     FunctionError(TRttiEnumerationType.GetName<TComparandType>(aComparandType), 'expected 1 parameter');
   if aValue.IsEmpty then
   begin
-    FunctionError(TRttiEnumerationType.GetName<TComparandType>(aComparandType), 'Null variable for comparand');
+    Result := False;
+    Exit;
   end;
   case aValue.TypeInfo.Kind of
     tkInteger, tkEnumeration, tkInt64:

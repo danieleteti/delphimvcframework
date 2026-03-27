@@ -1343,18 +1343,22 @@ begin
 
       httpPUT:
         begin
-          if (MultiPartFormData.Size <> 0) then { TODO -oDaniele -cGeneral : Rework please!!! }
-            raise ERESTClientException.Create('Only POST can Send Files');
-
           Result.Body.Position := 0;
-
-          if Assigned(ABodyParams) and (ABodyParams.Count > 0) then
+          if (MultiPartFormData.Size <> 0) then
           begin
-            RawBody.Size := 0;
-            RawBody.WriteString(EncodeQueryStringParams(ABodyParams, False));
+            FHTTP.Request.ContentType := MultiPartFormData.RequestContentType;
+            FHTTP.Put(AResource, MultiPartFormData, Result.Body);
+            MultiPartFormData.Clear;
+          end
+          else
+          begin
+            if Assigned(ABodyParams) and (ABodyParams.Count > 0) then
+            begin
+              RawBody.Size := 0;
+              RawBody.WriteString(EncodeQueryStringParams(ABodyParams, False));
+            end;
+            FHTTP.Put(AResource, RawBody, Result.Body);
           end;
-
-          FHTTP.Put(AResource, RawBody, Result.Body);
         end;
 
       httpDELETE:

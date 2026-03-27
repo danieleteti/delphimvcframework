@@ -31,10 +31,10 @@ uses
 {{endif}}
 {{if webmodule_middleware_jwt}}
   {{:authentication_unit_name}},
-  System.DateUtils,
   MVCFramework.JWT,
 {{endif}}
   System.IOUtils,
+  System.DateUtils,
 {{if program_ssv_templatepro}}
   TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
@@ -289,7 +289,10 @@ begin
         WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
         lTemplateCode := TFile.ReadAllText(lTemplateCodePath, TEncoding.UTF8);
         WebContext.Response.Content := TTProCompiler.CompileAndRender(
-          lTemplateCode, ['error'], [lError], lFullTemplatePath);
+          lTemplateCode,
+          ['error', 'app_name', 'dmvc_version', 'current_year'],
+          [lError, '{{:program_name}}', DMVCFRAMEWORK_VERSION, YearOf(Now)],
+          lFullTemplatePath);
         ExceptionHandled := True;
       end;
     end
