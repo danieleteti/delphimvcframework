@@ -117,9 +117,9 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := False;
+  AForm.chkJWT.Checked := True;   // Bearer token (Authorization header) - no SSV = Bearer mode
   AForm.chkActiveRecord.Checked := False;
-  AForm.cbSessionType.ItemIndex := 0; // None
+  AForm.cbSessionType.ItemIndex := 0; // None (stateless - JWT is the session)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
@@ -157,9 +157,9 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := False;
+  AForm.chkJWT.Checked := False;  // Web apps use server-side sessions, not JWT
   AForm.chkActiveRecord.Checked := False;
-  AForm.cbSessionType.ItemIndex := 1; // Memory
+  AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
@@ -278,9 +278,9 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := True;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := True;
-  AForm.chkJWT.Checked := True;
+  AForm.chkJWT.Checked := False;  // Web apps use server-side sessions, not JWT
   AForm.chkActiveRecord.Checked := True;
-  AForm.cbSessionType.ItemIndex := 3; // Database
+  AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 1; // HTTPS

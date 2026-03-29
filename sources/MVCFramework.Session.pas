@@ -719,6 +719,11 @@ begin
     TMVCWebSessionFile(Result).fSessionId := aSessionId;
     TMVCWebSessionFile(Result).LoadFromFile;
     TMVCWebSessionFile(Result).fTimeout := GetTimeout;
+    if Result.IsExpired then
+    begin
+      FreeAndNil(Result);
+      TryDeleteSessionID(aSessionId);
+    end;
   except
     Result.Free;
     raise;

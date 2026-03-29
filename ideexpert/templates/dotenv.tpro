@@ -70,9 +70,24 @@ dmvc.sqids.min_length=6
 # ============================================================================
 # JWT Authentication
 # ============================================================================
+# The JWT token acts as a stateless session: it contains username, roles
+# and custom claims. No server-side session storage is needed.
+# Any node in a cluster can validate the token independently.
+#
+{{if program_ssv_any}}
+# Mode: HTTP-only Cookie (web application)
+# The token is stored in a secure, HTTP-only cookie that browsers send
+# automatically. JavaScript cannot access it (XSS protection).
+{{else}}
+# Mode: Bearer Token (REST API)
+# Clients send the token as: Authorization: Bearer <token>
+# The token is returned in the JSON response body after login.
+{{endif}}
 JWT_SECRET=change-this-secret-in-production-use-strong-key
 JWT_ISSUER={{:program_name}}
+{{if program_ssv_any}}
 JWT_COOKIE_SECURE=false
+{{endif}}
 {{endif}}
 {{if webmodule_middleware_activerecord}}
 

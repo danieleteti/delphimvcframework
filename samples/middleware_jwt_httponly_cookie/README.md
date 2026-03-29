@@ -287,6 +287,33 @@ This sample includes these test credentials:
 3. Open browser to `http://localhost:8080`
 4. Use the web interface to test login/logout and protected endpoints
 
+## Cookie vs Bearer: When to Use What
+
+DMVCFramework provides two JWT authentication modes:
+
+| Mode | Function | Best For |
+|------|----------|----------|
+| **Cookie (HttpOnly)** | `UseJWTCookieAuthentication()` | Web apps, HTMX, server-side views |
+| **Bearer (Header)** | `UseJWTMiddleware()` | REST APIs, mobile apps, SPAs, microservices |
+
+### Cookie Mode (this sample)
+
+The JWT is stored in an HTTP-only cookie. The browser sends it automatically on every request. JavaScript cannot access it (XSS protection). Best for server-rendered web apps where the browser is the client.
+
+### Bearer Mode
+
+The JWT is returned in the JSON response body after login. The client stores it (e.g. in memory) and sends it manually as `Authorization: Bearer <token>`. Best for APIs consumed by mobile apps, SPAs, or other services.
+
+### The JWT IS the Session
+
+In both modes, the JWT token acts as a **stateless session**. It contains username, roles and custom claims directly in the token payload. No server-side session storage is needed - any node in a cluster can validate the token independently using only the shared secret key.
+
+**What goes in the JWT**: identity (username, roles), user preferences, static profile data.
+
+**What does NOT go in the JWT**: frequently changing data (cart contents, wizard step, form state). For mutable session data, use a database or Redis.
+
+The JWT payload is signed but not encrypted. With HttpOnly + Secure + HTTPS, this is secure and compliant with industry standards. Do not store sensitive secrets (passwords, credit card numbers) in JWT claims.
+
 ## Security Considerations
 
 1. **Always use HTTPS in production** - The `Secure` flag should be `True`

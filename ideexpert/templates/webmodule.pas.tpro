@@ -206,9 +206,12 @@ begin
   fMVC.AddMiddleware(LRateLimitMiddleware);
 {{endif}}
 {{if webmodule_middleware_jwt}}
-  // JWT Cookie Authentication
-  // A sample authentication handler ({{:authentication_classname}}) has been generated.
-  // Customize it in {{:authentication_unit_name}}.pas to match your authentication logic.
+{{if program_ssv_any}}
+  // JWT Cookie Authentication (stateless session via HTTP-only cookie)
+  // Recommended for web applications served by this same server.
+  // The JWT token IS the session: it contains username, roles and custom claims.
+  // No server-side session storage needed - any node in a cluster can validate the token.
+  // For mutable session data (cart, wizard state), use a database or Redis instead.
   fMVC.AddMiddleware(
     UseJWTCookieAuthentication(
       {{:authentication_classname}}.Create,
@@ -219,10 +222,26 @@ begin
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
       300  // Leeway seconds (5 minutes)
     )
-    // For local development with HTTP, disable Secure flag
+    // For local development with HTTP, disable Secure flag.
     // In production with HTTPS, remove this line!
     .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', False))
   );
+{{else}}
+  // JWT Bearer Authentication (stateless via Authorization header)
+  // Recommended for REST APIs consumed by mobile apps, SPAs, or other services.
+  // Clients send the token as: Authorization: Bearer <token>
+  // The JWT token contains username, roles and custom claims - no server-side session needed.
+  fMVC.AddMiddleware(
+    UseJWTMiddleware(
+      {{:authentication_classname}}.Create,
+      LJWTClaimsSetup,
+      dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+      '/login',   // Login URL (POST username & password here)
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      300  // Leeway seconds (5 minutes)
+    )
+  );
+{{endif}}
 {{endif}}
 {{if webmodule_middleware_session_memory}}
   fMVC.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}));
