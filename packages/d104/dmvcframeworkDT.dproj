@@ -219,6 +219,15 @@
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>
+    <Target Name="PreBuildEvent">
+        <Message Text="Compiling template resources..." Importance="high"/>
+        <Exec Command="call &quot;$(MSBuildProjectDirectory)\..\..\ideexpert\build_resources.bat&quot;"/>
+        <Message Text="Deleting package .res to force icon resource regeneration..." Importance="high"/>
+        <Delete Files="$(MSBuildProjectDirectory)\dmvcframeworkDT.res" Condition="Exists('$(MSBuildProjectDirectory)\dmvcframeworkDT.res')"/>
+    </Target>
+    <PropertyGroup>
+        <BuildDependsOn>PreBuildEvent;$(BuildDependsOn)</BuildDependsOn>
+    </PropertyGroup>
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
 </Project>
