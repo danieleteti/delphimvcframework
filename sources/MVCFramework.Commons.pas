@@ -982,6 +982,23 @@ begin
     Result := Result + ByteToHex(B);
 end;
 
+function IsTextualApplicationContentType(const aContentMediaType: string): Boolean;
+begin
+  // application/* types that are textual and benefit from charset declaration
+  Result := aContentMediaType.StartsWith('application/') and (
+    aContentMediaType.Contains('json') or
+    aContentMediaType.Contains('xml') or
+    aContentMediaType.Contains('javascript') or
+    aContentMediaType.Contains('ecmascript') or
+    aContentMediaType.Contains('yaml') or
+    aContentMediaType.Contains('urlencoded') or
+    aContentMediaType.Contains('graphql') or
+    aContentMediaType.Contains('csv') or
+    aContentMediaType.Contains('sql') or
+    aContentMediaType.Contains('html')
+  );
+end;
+
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 var
   lContentMediaType: string;
@@ -999,7 +1016,7 @@ begin
       Result := lContentMediaType;
     end
     else
-      if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
+      if lContentMediaType.StartsWith('text/') or IsTextualApplicationContentType(lContentMediaType)
     then
     begin
       Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
