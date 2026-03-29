@@ -47,7 +47,6 @@ uses
 {{endif}}
   MVCFramework.Commons,
   MVCFramework.Logger,
-  MVCFramework.Serializer.URLEncoded,
 {{if webmodule_middleware_activerecord}}
   MVCFramework.Middleware.ActiveRecord,
 {{endif}}
@@ -159,8 +158,6 @@ begin
   // Server Side View - END
 {{endif}}
 
-  // URLEncoded serializer - enables [MVCFromContentField] for HTML form data
-  fMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));
 {{if webmodule_middleware_ratelimit}}
 
   LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(

@@ -1338,6 +1338,7 @@ uses
   MVCFramework.Serializer.Abstract,
   MVCFramework.Utils,
   MVCFramework.Serializer.Text,
+  MVCFramework.Serializer.URLEncoded,
   MVCFramework.Validation;
 
 var
@@ -3747,6 +3748,13 @@ begin
   if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   begin
     FSerializers.Add(lDefaultSerializerContentType, TMVCTextSerializer.Create(Config));
+  end;
+
+  // required for [MVCFromBody] with application/x-www-form-urlencoded (HTML form POST)
+  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_FORM_URLENCODED, '');
+  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+  begin
+    FSerializers.Add(lDefaultSerializerContentType, TMVCURLEncodedSerializer.Create(Config));
   end;
 end;
 

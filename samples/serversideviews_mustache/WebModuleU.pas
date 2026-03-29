@@ -29,8 +29,7 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
-  CustomMustacheHelpersU,
-  MVCFramework.Serializer.URLEncoded;
+  CustomMustacheHelpersU;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -61,8 +60,7 @@ begin
       Config[TMVCConfigKey.ViewCache] := 'false';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCMustacheViewEngine)
-    .AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create);
+    .SetViewEngine(TMVCMustacheViewEngine);
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);
