@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMVC Streaming Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --bg-card: #12131a;
+    --bg-card-hover: #181920;
+    --border: #1e2030;
+    --border-active: #2d3050;
+    --text: #c5c8d4;
+    --text-dim: #5a5e72;
+    --text-bright: #e8eaf0;
+    --accent-sse: #22d3ee;
+    --accent-sse-dim: rgba(34,211,238,0.12);
+    --accent-progress: #a78bfa;
+    --accent-progress-dim: rgba(167,139,250,0.12);
+    --accent-jsonl: #34d399;
+    --accent-jsonl-dim: rgba(52,211,153,0.12);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 56px;
+    animation: fadeUp 0.6s ease-out;
+  }
+
+  header .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-sse);
+    background: var(--accent-sse-dim);
+    padding: 5px 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-family: var(--sans);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  header p {
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  header p code {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent-sse);
+    background: var(--accent-sse-dim);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 28px;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    animation: fadeUp 0.6s ease-out both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.1s; }
+  .card:nth-child(3) { animation-delay: 0.2s; }
+
+  .card:hover { border-color: var(--border-active); background: var(--bg-card-hover); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .card-header .left { display: flex; align-items: center; gap: 12px; }
+
+  .card-header .protocol {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  .card.sse-chat .protocol { color: var(--accent-sse); background: var(--accent-sse-dim); }
+  .card.sse-progress .protocol { color: var(--accent-progress); background: var(--accent-progress-dim); }
+  .card.jsonl .protocol { color: var(--accent-jsonl); background: var(--accent-jsonl-dim); }
+
+  .card-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-bright);
+  }
+
+  .card-header .endpoint {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border: 1px solid;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+    letter-spacing: 0.5px;
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-sse {
+    color: var(--accent-sse);
+    border-color: rgba(34,211,238,0.3);
+  }
+  .btn-sse:hover:not(:disabled) {
+    background: var(--accent-sse-dim);
+    border-color: var(--accent-sse);
+  }
+
+  .btn-progress {
+    color: var(--accent-progress);
+    border-color: rgba(167,139,250,0.3);
+  }
+  .btn-progress:hover:not(:disabled) {
+    background: var(--accent-progress-dim);
+    border-color: var(--accent-progress);
+  }
+
+  .btn-jsonl {
+    color: var(--accent-jsonl);
+    border-color: rgba(52,211,153,0.3);
+  }
+  .btn-jsonl:hover:not(:disabled) {
+    background: var(--accent-jsonl-dim);
+    border-color: var(--accent-jsonl);
+  }
+
+  /* Status indicator */
+  .status {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s;
+  }
+
+  .status.active .dot {
+    background: #22d3ee;
+    box-shadow: 0 0 8px rgba(34,211,238,0.5);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .status.done .dot { background: var(--accent-jsonl); box-shadow: none; animation: none; }
+
+  /* Chat output */
+  .chat-output {
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+    min-height: 80px;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .chat-output .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 16px;
+    background: var(--accent-sse);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  .chat-output .word {
+    display: inline;
+    animation: wordIn 0.15s ease-out;
+  }
+
+  /* Progress bar */
+  .progress-container {
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .progress-info .phase { color: var(--text); }
+  .progress-info .percent { color: var(--accent-progress); font-weight: 600; }
+
+  .progress-track {
+    height: 8px;
+    background: rgba(167,139,250,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-progress), #c4b5fd);
+    border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .progress-step {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* Table */
+  .table-container {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .table-container::-webkit-scrollbar { width: 6px; }
+  .table-container::-webkit-scrollbar-track { background: transparent; }
+  .table-container::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  th {
+    background: rgba(30,32,48,0.95);
+    backdrop-filter: blur(8px);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(30,32,48,0.5);
+    color: var(--text);
+  }
+
+  tr { animation: rowIn 0.25s ease-out; }
+
+  tr:hover td { background: rgba(52,211,153,0.04); }
+
+  td:first-child {
+    color: var(--text-dim);
+    font-size: 12px;
+    width: 60px;
+  }
+
+  td:last-child { color: var(--text-dim); width: 60px; text-align: right; }
+
+  .table-footer {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes wordIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="tag">DMVCFramework</div>
+    <h1>Streaming Lab</h1>
+    <p>
+      Three streaming patterns: <code>SSE</code> for real-time events and
+      <code>JSONL</code> for newline-delimited data. No WebSocket, no polling &mdash; just HTTP.
+    </p>
+  </header>
+
+  <!-- SSE Chat -->
+  <div class="card sse-chat">
+    <div class="card-header">
+      <div class="left">
+        <span class="protocol">SSE</span>
+        <h2>AI Chat Stream</h2>
+      </div>
+      <span class="endpoint">GET /api/chat</span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <button class="btn btn-sse" id="btnChat" onclick="startChat()">Start Chat</button>
+      <div class="status" id="chatStatus"><span class="dot"></span> <span>idle</span></div>
+    </div>
+    <div class="chat-output" id="chatOutput"><span class="cursor" id="chatCursor" style="display:none"></span></div>
+  </div>
+
+  <!-- SSE Progress -->
+  <div class="card sse-progress">
+    <div class="card-header">
+      <div class="left">
+        <span class="protocol">SSE</span>
+        <h2>Progress Stream</h2>
+      </div>
+      <span class="endpoint">GET /api/progress</span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <button class="btn btn-progress" id="btnProgress" onclick="startProgress()">Start Task</button>
+      <div class="status" id="progressStatus"><span class="dot"></span> <span>idle</span></div>
+    </div>
+    <div class="progress-container">
+      <div class="progress-info">
+        <span class="phase" id="progressPhase">&mdash;</span>
+        <span class="percent" id="progressPercent">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-step" id="progressStep">&nbsp;</div>
+    </div>
+  </div>
+
+  <!-- JSONL People -->
+  <div class="card jsonl">
+    <div class="card-header">
+      <div class="left">
+        <span class="protocol">JSONL</span>
+        <h2>People Stream</h2>
+      </div>
+      <span class="endpoint">GET /api/people</span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <button class="btn btn-jsonl" id="btnPeople" onclick="startPeople()">Load People</button>
+      <div class="status" id="peopleStatus"><span class="dot"></span> <span>idle</span></div>
+    </div>
+    <div class="table-container" id="peopleTable" style="display:none;">
+      <table>
+        <thead><tr><th>ID</th><th>First Name</th><th>Last Name</th><th>Age</th></tr></thead>
+        <tbody id="peopleBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="peopleFooter" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+function setStatus(id, state, text) {
+  var el = document.getElementById(id);
+  el.className = 'status' + (state === 'active' ? ' active' : state === 'done' ? ' done' : '');
+  el.querySelector('span:last-child').textContent = text;
+}
+
+// ── SSE Chat Stream ──
+
+function startChat() {
+  var btn = document.getElementById('btnChat');
+  var output = document.getElementById('chatOutput');
+  var cursor = document.getElementById('chatCursor');
+  btn.disabled = true;
+  output.textContent = '';
+  output.appendChild(cursor);
+  cursor.style.display = 'inline-block';
+  setStatus('chatStatus', 'active', 'streaming');
+
+  var count = 0;
+  var source = new EventSource('/api/chat');
+
+  source.addEventListener('token', function(e) {
+    count++;
+    var word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = (count > 1 ? ' ' : '') + e.data;
+    output.insertBefore(word, cursor);
+    output.scrollTop = output.scrollHeight;
+  });
+
+  source.addEventListener('done', function(e) {
+    cursor.style.display = 'none';
+    source.close();
+    var data = JSON.parse(e.data);
+    setStatus('chatStatus', 'done', data.tokens + ' tokens');
+    btn.disabled = false;
+  });
+
+  source.onerror = function() {
+    cursor.style.display = 'none';
+    source.close();
+    setStatus('chatStatus', '', 'disconnected');
+    btn.disabled = false;
+  };
+}
+
+// ── SSE Progress Stream ──
+
+function startProgress() {
+  var btn = document.getElementById('btnProgress');
+  btn.disabled = true;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressPercent').textContent = '0%';
+  document.getElementById('progressPhase').textContent = 'connecting...';
+  document.getElementById('progressStep').innerHTML = '&nbsp;';
+  setStatus('progressStatus', 'active', 'streaming');
+
+  var source = new EventSource('/api/progress');
+
+  source.addEventListener('status', function(e) {
+    var d = JSON.parse(e.data);
+    document.getElementById('progressPhase').textContent = d.phase;
+    document.getElementById('progressPercent').textContent = d.percent + '%';
+    document.getElementById('progressFill').style.width = d.percent + '%';
+  });
+
+  source.addEventListener('progress', function(e) {
+    var d = JSON.parse(e.data);
+    document.getElementById('progressPhase').textContent = d.phase;
+    document.getElementById('progressPercent').textContent = d.percent + '%';
+    document.getElementById('progressFill').style.width = d.percent + '%';
+    document.getElementById('progressStep').textContent = 'Step ' + d.step + ' of 10';
+  });
+
+  source.addEventListener('complete', function(e) {
+    var d = JSON.parse(e.data);
+    document.getElementById('progressPhase').textContent = d.phase;
+    document.getElementById('progressPercent').textContent = '100%';
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressStep').textContent = 'All steps completed';
+    source.close();
+    setStatus('progressStatus', 'done', 'complete');
+    btn.disabled = false;
+  });
+
+  source.onerror = function() {
+    source.close();
+    setStatus('progressStatus', '', 'disconnected');
+    btn.disabled = false;
+  };
+}
+
+// ── JSONL People Stream ──
+
+async function startPeople() {
+  var btn = document.getElementById('btnPeople');
+  var tbody = document.getElementById('peopleBody');
+  var table = document.getElementById('peopleTable');
+  var footer = document.getElementById('peopleFooter');
+  btn.disabled = true;
+  tbody.innerHTML = '';
+  table.style.display = '';
+  footer.style.display = '';
+  footer.textContent = 'Receiving...';
+  setStatus('peopleStatus', 'active', 'streaming');
+
+  try {
+    var response = await fetch('/api/people');
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+    var count = 0;
+
+    while (true) {
+      var result = await reader.read();
+      if (result.done) break;
+
+      buffer += decoder.decode(result.value, { stream: true });
+      var lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete last line
+
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        try {
+          var person = JSON.parse(line);
+          count++;
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + person.id + '</td><td>' + person.firstName +
+            '</td><td>' + person.lastName + '</td><td>' + person.age + '</td>';
+          tbody.appendChild(tr);
+          footer.textContent = count + ' records received';
+          // auto-scroll to bottom
+          var container = document.getElementById('peopleTable');
+          container.scrollTop = container.scrollHeight;
+        } catch(e) {}
+      }
+    }
+
+    // process remaining buffer
+    if (buffer.trim()) {
+      try {
+        var person = JSON.parse(buffer.trim());
+        count++;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + person.id + '</td><td>' + person.firstName +
+          '</td><td>' + person.lastName + '</td><td>' + person.age + '</td>';
+        tbody.appendChild(tr);
+      } catch(e) {}
+    }
+
+    footer.textContent = count + ' records received \u2014 stream complete';
+    setStatus('peopleStatus', 'done', count + ' records');
+  } catch(e) {
+    footer.textContent = 'Error: ' + e.message;
+    setStatus('peopleStatus', '', 'error');
+  }
+
+  btn.disabled = false;
+}
+</script>
+
+</body>
+</html>
