@@ -192,7 +192,7 @@ begin
   Result :=
     '<p><strong>Application:</strong> {{:program_name}}</p>' +
     '<p><strong>DMVC Version:</strong> ' + DMVCFRAMEWORK_VERSION + '</p>' +
-    '<p><strong>Compiler:</strong> ' + Format('Delphi %.1f', [CompilerVersion]) + '</p>' +
+    '<p><strong>Compiler:</strong> ' + Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant) + '</p>' +
     '<p><strong>Server Time:</strong> ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</p>';
 end;
 
@@ -206,7 +206,7 @@ begin
       ['application', 'dmvcVersion', 'serverTime', 'compilerVersion'],
       ['{{:program_name}}', DMVCFRAMEWORK_VERSION,
        FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now),
-       Format('Delphi %.1f', [CompilerVersion])]
+       Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant)]
     )
   );
 end;
