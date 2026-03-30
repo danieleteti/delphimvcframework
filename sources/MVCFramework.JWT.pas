@@ -29,6 +29,7 @@ unit MVCFramework.JWT;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Collections,
   JsonDataObjects,
   MVCFramework,
@@ -39,6 +40,35 @@ type
 {$SCOPEDENUMS ON}
   TJWTCheckableClaim = (ExpirationTime, NotBefore, IssuedAt);
   TJWTCheckableClaims = set of TJWTCheckableClaim;
+
+  /// <summary>
+  /// Abstraction for JWT signing and verification.
+  /// Supports both symmetric (HMAC) and asymmetric (RSA) algorithms.
+  /// For HMAC, Sign and Verify use the same shared secret.
+  /// For RSA, Sign uses a private key and Verify uses a public key.
+  /// </summary>
+  IJWTSigner = interface
+    ['{4F7B3C2A-8D1E-4A5F-B6C9-7E2D3F1A0B5C}']
+    function GetAlgorithm: string;
+    function Sign(const Input: string): TBytes;
+    function Verify(const Input: string; const Signature: TBytes): Boolean;
+  end;
+
+  /// <summary>
+  /// HMAC-based JWT signer. Wraps the existing HMAC() function
+  /// from MVCFramework.HMAC into the IJWTSigner interface.
+  /// Supports HS256, HS384, HS512.
+  /// </summary>
+  THMACJWTSigner = class(TInterfacedObject, IJWTSigner)
+  private
+    FAlgorithm: string;
+    FKey: string;
+  public
+    constructor Create(const AAlgorithm, AKey: string);
+    function GetAlgorithm: string;
+    function Sign(const Input: string): TBytes;
+    function Verify(const Input: string; const Signature: TBytes): Boolean;
+  end;
 
   TJWTRegisteredClaimNames = class sealed
   public
@@ -250,6 +280,7 @@ type
     FRegisteredClaims: TJWTRegisteredClaims;
     FCustomClaims: TJWTCustomClaims;
     FHMACAlgorithm: string;
+    FSigner: IJWTSigner;
     FRegClaimsToChecks: TJWTCheckableClaims;
     FLeewaySeconds: Cardinal;
     FData: TObject; //the jwt middleware will inject TMVCWebRequest here
@@ -262,10 +293,21 @@ type
     function GetLiveValidityWindowInSeconds: Cardinal;
     function IsValidToken(const Token: string; out Header, Payload: TJDOJSONObject; out Error: string): Boolean;
   public
+    /// <summary>
+    /// Creates a JWT instance using HMAC (symmetric) signing.
+    /// This is the standard constructor for HS256/HS384/HS512.
+    /// </summary>
     constructor Create(
       const SecretKey: string;
       const ALeewaySeconds: Cardinal = 300;
-      const HMACAlgorithm: String = HMAC_HS512); virtual;
+      const HMACAlgorithm: String = HMAC_HS512); overload; virtual;
+    /// <summary>
+    /// Creates a JWT instance using a custom signer (e.g., TRSAJWTSigner for RS256/RS384/RS512).
+    /// The signer determines the algorithm and handles signing/verification.
+    /// </summary>
+    constructor Create(
+      const ASigner: IJWTSigner;
+      const ALeewaySeconds: Cardinal = 300); overload;
     destructor Destroy; override;
     function GetToken: string;
     function LoadToken(const Token: string; out Error: string): Boolean;
@@ -287,7 +329,6 @@ type
 implementation
 
 uses
-  System.SysUtils,
   MVCFramework.Commons,
   System.DateUtils,
   IdGlobal;
@@ -510,6 +551,43 @@ begin
   Result := True;
 end;
 
+{ THMACJWTSigner }
+
+constructor THMACJWTSigner.Create(const AAlgorithm, AKey: string);
+begin
+  inherited Create;
+  FAlgorithm := AAlgorithm;
+  FKey := AKey;
+end;
+
+function THMACJWTSigner.GetAlgorithm: string;
+begin
+  Result := FAlgorithm;
+end;
+
+function THMACJWTSigner.Sign(const Input: string): TBytes;
+begin
+  Result := HMAC(FAlgorithm, Input, FKey);
+end;
+
+function THMACJWTSigner.Verify(const Input: string; const Signature: TBytes): Boolean;
+var
+  lComputed: TBytes;
+  I: Integer;
+  lDiff: Byte;
+begin
+  lComputed := Sign(Input);
+  if Length(lComputed) <> Length(Signature) then
+    Exit(False);
+  // Constant-time comparison to prevent timing attacks
+  lDiff := 0;
+  for I := 0 to Length(lComputed) - 1 do
+    lDiff := lDiff or (lComputed[I] xor Signature[I]);
+  Result := lDiff = 0;
+end;
+
+{ TJWT }
+
 constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal; const HMACAlgorithm: String);
 begin
   inherited Create;
@@ -517,6 +595,19 @@ begin
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
   FHMACAlgorithm := HMACAlgorithm;
+  FSigner := THMACJWTSigner.Create(HMACAlgorithm, SecretKey);
+  FLeewaySeconds := ALeewaySeconds;
+  FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+end;
+
+constructor TJWT.Create(const ASigner: IJWTSigner; const ALeewaySeconds: Cardinal);
+begin
+  inherited Create;
+  FSecretKey := '';
+  FRegisteredClaims := TJWTRegisteredClaims.Create;
+  FCustomClaims := TJWTCustomClaims.Create;
+  FHMACAlgorithm := ASigner.GetAlgorithm;
+  FSigner := ASigner;
   FLeewaySeconds := ALeewaySeconds;
   FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
 end;
@@ -568,7 +659,7 @@ begin
       lHeaderEncoded := URLSafeB64encode(lHeader.ToString, False, IndyTextEncoding_UTF8);
       lPayloadEncoded := URLSafeB64encode(lPayload.ToString, False, IndyTextEncoding_UTF8);
       lToken := lHeaderEncoded + '.' + lPayloadEncoded;
-      lBytes := HMAC(HMACAlgorithm, lToken, FSecretKey);
+      lBytes := FSigner.Sign(lToken);
       lHash := URLSafeB64encode(lBytes, False);
       Result := lToken + '.' + lHash;
     finally
@@ -616,8 +707,16 @@ begin
       end;
 
       lAlgName := Header.S['alg'];
-      Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
-        URLSafeB64encode(HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey), False);
+      // Validate that the token's algorithm matches the configured signer.
+      // This prevents algorithm confusion attacks (e.g., HS256 token verified by RS256 signer).
+      if not SameText(lAlgName, FSigner.GetAlgorithm) then
+      begin
+        Error := Error + ' (algorithm mismatch: token=' + lAlgName + ', expected=' + FSigner.GetAlgorithm + ')';
+        Exit(False);
+      end;
+      Result := FSigner.Verify(
+        lPieces[0] + '.' + lPieces[1],
+        URLSafeB64DecodeBytes(lPieces[2]));
 
       // if the token is correctly signed and has not been tampered,
       // let's check it's validity usinf nbf, exp, iat as configured in

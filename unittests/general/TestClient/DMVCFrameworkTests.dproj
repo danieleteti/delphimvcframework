@@ -122,7 +122,7 @@
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <SanitizedProjectName>DMVCFrameworkTests</SanitizedProjectName>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\delphistompclient;..\..\..\lib\dmustache;..\..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\delphistompclient;..\..\..\lib\dmustache;..\..\..\lib\loggerpro;C:\DLib\indy_extras\TaurusTLS\Source;C:\DLib\indy_extras\TaurusTLS\Source\Extra;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_DcuOutput>.\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_E>false</DCC_E>

@@ -97,9 +97,11 @@ type
     FUserNameHeaderName: string;
     FPasswordHeaderName: string;
     FHMACAlgorithm: String;
+    FSigner: IJWTSigner;
     FUseHttpOnly: Boolean;
     FTokenHttpOnlyExpires: TDateTime;
     FLogoffURLSegment: string;
+    function CreateJWT: TJWT;
     procedure SendLogoffRender(AContext: TWebContext);
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
@@ -121,6 +123,16 @@ type
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AHMACAlgorithm: String = HMAC_HS512); overload; virtual;
+    /// <summary>
+    /// Creates JWT authentication middleware using a custom signer (e.g., TRSAJWTSigner).
+    /// Use this for RS256/RS384/RS512 asymmetric JWT authentication.
+    /// </summary>
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASigner: IJWTSigner;
+      ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300); overload; virtual;
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
       AConfigClaims: TJWTClaimsSetup;
       AUseHttpOnly: Boolean;
@@ -189,6 +201,7 @@ type
     FLoginURLSegment: string;
     FLogoutURLSegment: string;
     FHMACAlgorithm: String;
+    FSigner: IJWTSigner;
     // Cookie settings with secure defaults
     FCookieName: string;
     FCookieSecure: Boolean;
@@ -196,6 +209,7 @@ type
     FCookiePath: string;
     FCookieDomain: string;
     FTokenExpires: TDateTime;
+    function CreateJWT: TJWT;
   protected
     procedure SetCookie(AContext: TWebContext; const AToken: string; AExpires: TDateTime);
     procedure InvalidateCookie(AContext: TWebContext);
@@ -223,7 +237,19 @@ type
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AHMACAlgorithm: String = HMAC_HS512
-    ); virtual;
+    ); overload; virtual;
+    /// <summary>
+    /// Creates cookie-based JWT authentication middleware using a custom signer (e.g., TRSAJWTSigner).
+    /// </summary>
+    constructor Create(
+      AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASigner: IJWTSigner;
+      ALoginURLSegment: string = '/login';
+      ALogoutURLSegment: string = '/logout';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300
+    ); overload; virtual;
     /// <summary>
     /// Sets the cookie name (default: 'jwt_token')
     /// </summary>
@@ -256,7 +282,19 @@ type
       aLoginURLSegment: string = '/loginff';
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
-      aHMACAlgorithm: String = HMAC_HS512): IMVCMiddleware;
+      aHMACAlgorithm: String = HMAC_HS512): IMVCMiddleware; overload;
+
+  /// <summary>
+  /// Creates JWT authentication middleware using a custom signer (e.g., TRSAJWTSigner for RS256).
+  /// Requires MVCFramework.JWT.RSA unit and TaurusTLS for asymmetric algorithms.
+  /// </summary>
+  function UseJWTMiddleware(
+      aAuthenticationHandler: IMVCAuthenticationHandler;
+      aConfigClaims: TJWTClaimsSetup;
+      aSigner: IJWTSigner;
+      aLoginURLSegment: string = '/login';
+      aClaimsToCheck: TJWTCheckableClaims = [];
+      aLeewaySeconds: Cardinal = 300): IMVCMiddleware; overload;
 
   function UseJWTMiddlewareWithHTTPOnlyCookie(
       aAuthenticationHandler: IMVCAuthenticationHandler;
@@ -321,6 +359,18 @@ function UseJWTMiddleware(
 begin
   Result := TMVCJWTAuthenticationMiddleware.Create(
     aAuthenticationHandler, aConfigClaims, aSecret, aLoginURLSegment, aClaimsToCheck, aLeewaySeconds, aHMACAlgorithm);
+end;
+
+function UseJWTMiddleware(
+    aAuthenticationHandler: IMVCAuthenticationHandler;
+    aConfigClaims: TJWTClaimsSetup;
+    aSigner: IJWTSigner;
+    aLoginURLSegment: string;
+    aClaimsToCheck: TJWTCheckableClaims;
+    aLeewaySeconds: Cardinal): IMVCMiddleware;
+begin
+  Result := TMVCJWTAuthenticationMiddleware.Create(
+    aAuthenticationHandler, aConfigClaims, aSigner, aLoginURLSegment, aClaimsToCheck, aLeewaySeconds);
 end;
 
 
@@ -404,6 +454,39 @@ begin
   Create(AAuthenticationHandler, AConfigClaims, ASecret, ALoginURLSegment, AClaimsToCheck, ALeewaySeconds, AHMACAlgorithm);
   FUseHttpOnly := AUseHttpOnly;
   FLogoffURLSegment := ALogoffURLSegment;
+end;
+
+constructor TMVCJWTAuthenticationMiddleware.Create(
+  AAuthenticationHandler: IMVCAuthenticationHandler;
+  AConfigClaims: TJWTClaimsSetup;
+  ASigner: IJWTSigner;
+  ALoginURLSegment: string;
+  AClaimsToCheck: TJWTCheckableClaims;
+  ALeewaySeconds: Cardinal);
+begin
+  inherited Create;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FSetupJWTClaims := AConfigClaims;
+  FClaimsToChecks := AClaimsToCheck;
+  FSecret := '';
+  FLoginURLSegment := ALoginURLSegment;
+  FLeewaySeconds := ALeewaySeconds;
+  FAuthorizationHeaderName := TMVCJWTDefaults.AUTHORIZATION_HEADER;
+  FAuthorizationAccessToken := TMVCJWTDefaults.AUTHORIZATION_ACCESS_TOKEN;
+  FUserNameHeaderName := TMVCJWTDefaults.USERNAME_HEADER;
+  FPasswordHeaderName := TMVCJWTDefaults.PASSWORD_HEADER;
+  FHMACAlgorithm := ASigner.GetAlgorithm;
+  FSigner := ASigner;
+  FUseHttpOnly := False;
+  FTokenHttpOnlyExpires := Now;
+end;
+
+function TMVCJWTAuthenticationMiddleware.CreateJWT: TJWT;
+begin
+  if Assigned(FSigner) then
+    Result := TJWT.Create(FSigner, FLeewaySeconds)
+  else
+    Result := TJWT.Create(FSecret, FLeewaySeconds);
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.ExtendExpirationTime(const JWTValue: TJWT);
@@ -527,7 +610,7 @@ begin
       if not AuthHeader.IsEmpty then
       begin
         { load and verify token even for an action that doesn't require it }
-        JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        JWTValue := CreateJWT;
         try
           JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
 
@@ -557,7 +640,7 @@ begin
 
   // Checking token in subsequent requests
   // ***************************************************
-  JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+  JWTValue := CreateJWT;
   try
     JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
     // retrieve the token from the "authentication Bearer" header
@@ -710,7 +793,7 @@ begin
             raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Unauthorized');
         end;
 
-        LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        LJWTValue := CreateJWT;
         try
           // let's user config claims and custom claims
           if not Assigned(FSetupJWTClaims) then
@@ -899,6 +982,41 @@ begin
   FCookiePath := '/';
   FCookieDomain := '';
   FTokenExpires := 0;
+end;
+
+constructor TMVCJWTCookieAuthenticationMiddleware.Create(
+  AAuthenticationHandler: IMVCAuthenticationHandler;
+  AConfigClaims: TJWTClaimsSetup;
+  ASigner: IJWTSigner;
+  ALoginURLSegment: string;
+  ALogoutURLSegment: string;
+  AClaimsToCheck: TJWTCheckableClaims;
+  ALeewaySeconds: Cardinal);
+begin
+  inherited Create;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FSetupJWTClaims := AConfigClaims;
+  FSecret := '';
+  FLoginURLSegment := ALoginURLSegment;
+  FLogoutURLSegment := ALogoutURLSegment;
+  FClaimsToChecks := AClaimsToCheck;
+  FLeewaySeconds := ALeewaySeconds;
+  FHMACAlgorithm := ASigner.GetAlgorithm;
+  FSigner := ASigner;
+  FCookieName := 'jwt_token';
+  FCookieSecure := True;
+  FCookieSameSite := ssStrict;
+  FCookiePath := '/';
+  FCookieDomain := '';
+  FTokenExpires := 0;
+end;
+
+function TMVCJWTCookieAuthenticationMiddleware.CreateJWT: TJWT;
+begin
+  if Assigned(FSigner) then
+    Result := TJWT.Create(FSigner, FLeewaySeconds)
+  else
+    Result := TJWT.Create(FSecret, FLeewaySeconds);
 end;
 
 function TMVCJWTCookieAuthenticationMiddleware.SetCookieName(
@@ -1133,7 +1251,7 @@ begin
             raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Unauthorized');
         end;
 
-        LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        LJWTValue := CreateJWT;
         try
           // let's user config claims and custom claims
           if not Assigned(FSetupJWTClaims) then
@@ -1218,7 +1336,7 @@ begin
       AuthToken := GetTokenFromCookie(AContext);
       if not AuthToken.IsEmpty then
       begin
-        JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        JWTValue := CreateJWT;
         try
           JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
           if JWTValue.LoadToken(AuthToken, ErrorMsg) then
@@ -1237,7 +1355,7 @@ begin
   end;
 
   // Verify token from cookie
-  JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+  JWTValue := CreateJWT;
   try
     JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
     AuthToken := GetTokenFromCookie(AContext);

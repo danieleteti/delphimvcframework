@@ -673,6 +673,7 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
   : string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
+function URLSafeB64DecodeBytes(const Value: string): TBytes;
 
 function URLEncode(const Value: string): string; overload;
 function URLDecode(const Value: string): string;
@@ -1492,6 +1493,20 @@ begin
   else
     raise EExternalException.Create('Illegal base64url length');
   end;
+end;
+
+function URLSafeB64DecodeBytes(const Value: string): TBytes;
+var
+  lPadded: string;
+begin
+  case Length(Value) mod 4 of
+    0: lPadded := Value;
+    2: lPadded := Value + '==';
+    3: lPadded := Value + '=';
+  else
+    raise EExternalException.Create('Illegal base64url length');
+  end;
+  Result := TBytes(TURLSafeDecode.DecodeBytes(lPadded));
 end;
 
 { TMultiReadExclusiveWriteSynchronizerHelper }
