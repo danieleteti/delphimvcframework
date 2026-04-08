@@ -129,6 +129,8 @@ type
     chkSqids: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
+    chkJWTAsymmetric: TCheckBox;
+    lblJWTAsymmetricWarning: TLabel;
     chkCreateSubfolder: TCheckBox;
     lblSummary: TLabel;
     // Buttons
@@ -440,6 +442,13 @@ begin
          SyncServerPort('9000');
        end;
   end;
+
+  // JWT asymmetric signing only available when JWT is enabled
+  chkJWTAsymmetric.Enabled := chkJWT.Checked;
+  lblJWTAsymmetricWarning.Enabled := chkJWT.Checked and chkJWTAsymmetric.Checked;
+  lblJWTAsymmetricWarning.Visible := chkJWTAsymmetric.Visible and chkJWTAsymmetric.Checked;
+  if not chkJWT.Checked then
+    chkJWTAsymmetric.Checked := False;
 end;
 
 procedure TfrmDMVCNewProject.btnFinishClick(Sender: TObject);
@@ -749,7 +758,13 @@ begin
       if chkCompression.Checked then LMiddlewares.Add('Compression');
       if chkCORS.Checked then LMiddlewares.Add('CORS');
       if chkStaticFiles.Checked then LMiddlewares.Add('Static Files');
-      if chkJWT.Checked then LMiddlewares.Add('JWT');
+      if chkJWT.Checked then
+      begin
+        if chkJWTAsymmetric.Checked then
+          LMiddlewares.Add('JWT (RS256 - requires TaurusTLS)')
+        else
+          LMiddlewares.Add('JWT');
+      end;
       if chkActiveRecord.Checked then LMiddlewares.Add('ActiveRecord');
       if chkETAG.Checked then LMiddlewares.Add('ETag');
       if chkRateLimit.Checked then LMiddlewares.Add('Rate Limit');
@@ -851,6 +866,7 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_cors] := chkCORS.Checked;
   fModel.B[TConfigKey.webmodule_middleware_ratelimit] := chkRateLimit.Checked;
   fModel.B[TConfigKey.webmodule_middleware_jwt] := chkJWT.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := chkJWT.Checked and chkJWTAsymmetric.Checked;
   fModel.B[TConfigKey.webmodule_middleware_activerecord] := chkActiveRecord.Checked;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] := EdtConnDefName.Text;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] := EdtFDConnDefFileName.Text;

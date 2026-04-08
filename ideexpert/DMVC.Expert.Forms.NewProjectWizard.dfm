@@ -1059,6 +1059,28 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Generate custom .env configuration'
         TabOrder = 6
       end
+      object chkJWTAsymmetric: TCheckBox
+        Left = 24
+        Top = 232
+        Width = 230
+        Height = 17
+        Caption = 'Use asymmetric JWT signing (RS256)'
+        TabOrder = 7
+      end
+      object lblJWTAsymmetricWarning: TLabel
+        Left = 260
+        Top = 233
+        Width = 460
+        Height = 13
+        AutoSize = False
+        Caption = 'Requires TaurusTLS in search path + OpenSSL DLLs in output directory'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clMaroon
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsItalic]
+        ParentFont = False
+      end
     end
   end
   object btnBack: TButton

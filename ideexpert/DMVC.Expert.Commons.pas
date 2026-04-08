@@ -101,6 +101,7 @@ type
       webmodule_middleware_cors = 'webmodule.middleware.cors';
       webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
       webmodule_middleware_jwt = 'webmodule.middleware.jwt';
+      webmodule_middleware_jwt_asymmetric = 'webmodule.middleware.jwt.asymmetric';
       webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
       webmodule_middleware_activerecord_con_def_name = 'webmodule.middleware.activerecord.con_def_name';
       webmodule_middleware_activerecord_con_def_filename = 'webmodule.middleware.activerecord.con_def_filename';

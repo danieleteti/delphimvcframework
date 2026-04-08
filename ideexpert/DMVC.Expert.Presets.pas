@@ -64,7 +64,7 @@ const
       Caption: 'JSON-RPC Service';
       Hint: 'JSON-RPC 2.0 endpoint with sample methods, hooks, error handling, MVCDoc introspection, CORS, compression. For RPC-style APIs and internal services.';
       IDSuffix: '3.JSONRPC';
-      IconResource: 'DMVCPresetRestfulAPI'
+      IconResource: 'DMVCPresetJSONRPC'
     ),
     ( // ppRealTime
       Caption: 'Real-Time Application';
@@ -107,7 +107,9 @@ begin
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
+  AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.chkJWTAsymmetric.Checked := False;
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -147,7 +149,9 @@ begin
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := True;
+  AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.chkJWTAsymmetric.Checked := False;
 
   // Middleware
   AForm.chkCORS.Checked := False;
@@ -188,7 +192,9 @@ begin
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
+  AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.chkJWTAsymmetric.Checked := False;
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -228,7 +234,9 @@ begin
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
+  AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.chkJWTAsymmetric.Checked := False;
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -268,7 +276,9 @@ begin
   AForm.chkSqids.Checked := False;
   AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := True;
+  AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.chkJWTAsymmetric.Checked := False;
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -299,7 +309,11 @@ begin
     ppJSONRPC:         ApplyPreset_JSONRPC(AForm);
     ppRealTime:        ApplyPreset_RealTime(AForm);
     ppFullStack:       ApplyPreset_FullStack(AForm);
-    ppCustom:          ; // No changes - use default form state
+    ppCustom:
+    begin
+      // Reset visibility that may have been changed by other presets
+      AForm.chkHtmx.Visible := True;
+    end;
   end;
 end;
 

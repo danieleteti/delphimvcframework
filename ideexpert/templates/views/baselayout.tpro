@@ -1,20 +1,44 @@
+<!--
+  BASE LAYOUT - DMVCFramework Web Application
+
+  This is the base layout template. All pages extend this file.
+
+  Available blocks (override in child templates):
+    "title"     - Page title (shown in browser tab)
+    "body"      - Main page content
+    "extra_css" - Additional CSS link or style tags
+    "scripts"   - Page-specific script tags (before body close)
+    "extra_js"  - Additional JavaScript after scripts
+
+  Available variables (set by the controller):
+    app_name         - Application name
+    dmvc_version     - DelphiMVCFramework version string
+    current_year     - Current year (for copyright)
+    page_id          - Current page identifier ("index", "about", etc.)
+
+  How to create a new page:
+    1. Create templates/mypage/index.html
+    2. Start with:  extends "../baselayout.html"
+    3. Override blocks:  block "title" ... endblock
+-->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{block "title"}}{{:app_name}}{{endblock}} - {{:app_name}}</title>
+  <title>{{block "title"}}{{:app_name}}{{endblock}} &mdash; {{:app_name}}</title>
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
   <link rel="manifest" href="/static/site.webmanifest">
-  <meta name="theme-color" content="#3b82f6">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.blue.min.css">
+  <meta name="theme-color" content="#fbbf24">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
   {{block "extra_css"}}{{endblock}}
   <!--HTMX_SCRIPT-->
   <script>
+    // Restore theme preference before first paint (avoids flash)
     (function() {
       var t = localStorage.getItem('dmvc-theme') || 'dark';
       document.documentElement.setAttribute('data-theme', t);
@@ -22,35 +46,58 @@
   </script>
 </head>
 <body>
-  <nav class="container">
-    <ul>
-      <li><strong>{{:app_name}}</strong></li>
-    </ul>
-    <ul>
-      <li><a href="/web" {{if page_id}}{{if page_id|eq,"index"}}aria-current="page"{{endif}}{{endif}}>Home</a></li>
-      <li><a href="/web/about" {{if page_id}}{{if page_id|eq,"about"}}aria-current="page"{{endif}}{{endif}}>About</a></li>
-      <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank">Docs</a></li>
-      <li><button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">&#9790;</button></li>
-    </ul>
+
+  {{# ---- Navigation Bar ---- #}}
+  <nav>
+    <div class="container">
+      <ul>
+        <li><strong>{{:app_name}}</strong></li>
+      </ul>
+      <ul>
+        {{# Active page is highlighted via aria-current="page" #}}
+        <li><a href="/web"       {{if page_id|eq,"index"}}aria-current="page"{{endif}}>Home</a></li>
+        <li><a href="/web/about" {{if page_id|eq,"about"}}aria-current="page"{{endif}}>About</a></li>
+        <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank" rel="noopener">Docs</a></li>
+        <li>
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+        </li>
+      </ul>
+    </div>
   </nav>
+
+  {{# ---- Main Content (overridden by child templates) ---- #}}
   <main class="container">
     {{block "body"}}{{endblock}}
   </main>
+
+  {{# ---- Page Footer ---- #}}
   <footer class="container">
-    <small>&copy; {{:current_year}} {{:app_name}} &middot; Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}</small>
+    <small>
+      &copy; {{:current_year}} {{:app_name}} &middot;
+      Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}
+    </small>
   </footer>
+
+  {{# ---- Toast Notification Container ---- #}}
   <div class="toast-container" id="toastContainer"></div>
+
+  {{# ---- Page Scripts (overridden by child templates) ---- #}}
   {{block "scripts"}}{{endblock}}
   {{block "extra_js"}}{{endblock}}
+
   <script>
+    // Theme toggle button
     (function() {
       var btn = document.getElementById('themeToggle');
+
       function updateIcon() {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         btn.innerHTML = isDark ? '&#9788;' : '&#9790;';
         btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
       }
+
       updateIcon();
+
       btn.addEventListener('click', function() {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         var next = isDark ? 'light' : 'dark';
@@ -60,6 +107,8 @@
       });
     })();
 
+    // Show a toast notification.  Usage: showToast('Saved!', 'success')
+    // Types: 'success', 'error', 'info' (default)
     function showToast(message, type) {
       var container = document.getElementById('toastContainer');
       var toast = document.createElement('div');
@@ -69,5 +118,6 @@
       setTimeout(function() { toast.remove(); }, 3100);
     }
   </script>
+
 </body>
 </html>

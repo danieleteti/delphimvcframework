@@ -32,6 +32,10 @@ uses
 {{if webmodule_middleware_jwt}}
   {{:authentication_unit_name}},
   MVCFramework.JWT,
+  MVCFramework.Middleware.JWT,
+{{if webmodule_middleware_jwt_asymmetric}}
+  MVCFramework.JWT.RSA,
+{{endif}}
 {{endif}}
   System.IOUtils,
   System.DateUtils,
@@ -93,6 +97,9 @@ var
 {{endif}}
 {{if webmodule_middleware_jwt}}
   LJWTClaimsSetup: TJWTClaimsSetup;
+{{if webmodule_middleware_jwt_asymmetric}}
+  LSigner: IJWTSigner;
+{{endif}}
 {{endif}}
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   LWwwPath: string;
@@ -192,6 +199,19 @@ begin
       // Add custom claims as needed:
       // JWT.CustomClaims['app'] := '{{:program_name}}';
     end;
+{{if webmodule_middleware_jwt_asymmetric}}
+
+  // RSA asymmetric JWT signer (RS256)
+  // Requires TaurusTLS in Delphi search path and OpenSSL DLLs in output directory.
+  // Generate keys with:
+  //   openssl genrsa -out jwt-private.pem 2048
+  //   openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
+  LSigner := TRSAJWTSigner.CreateFromFiles(
+    JWT_RS256,
+    dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
+    dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
+  );
+{{endif}}
 {{endif}}
 
   // Middleware
@@ -213,7 +233,11 @@ begin
     UseJWTCookieAuthentication(
       {{:authentication_classname}}.Create,
       LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
       dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+{{endif}}
       '/login',   // Login URL (POST username & password here)
       '/logout',  // Logout URL
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
@@ -232,7 +256,11 @@ begin
     UseJWTMiddleware(
       {{:authentication_classname}}.Create,
       LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
       dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+{{endif}}
       '/login',   // Login URL (POST username & password here)
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
       300  // Leeway seconds (5 minutes)

@@ -183,8 +183,15 @@
             <ResourceType>BITMAP</ResourceType>
             <ResourceId>SplashScreen</ResourceId>
         </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\jsonrpc.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetJSONRPC</ResourceId>
+        </RcItem>
         <RcCompile Include="..\..\ideexpert\DMVC.Expert.Templates.rc">
             <Form>..\..\ideexpert\DMVC.Expert.Templates.res</Form>
+        </RcCompile>
+        <RcCompile Include="..\..\ideexpert\DMVC.Splash.Resources.rc">
+            <Form>..\..\ideexpert\DMVC.Splash.Resources.res</Form>
         </RcCompile>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

@@ -1,7 +1,24 @@
-        </div>
-        <footer style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
-            <p>&copy; {{:current_year}} {{:program_name}} | Built with <a href="https://github.com/danieleteti/delphimvcframework" style="color: white; text-decoration: underline;">DelphiMVCFramework</a></p>
-        </footer>
-    </div>
+  </main>
+  <footer class="container">
+    <small>&copy; {{:current_year}} {{:program_name}} &middot; Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a></small>
+  </footer>
+  <script>
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      function updateIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        btn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        var next = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('dmvc-theme', next);
+        updateIcon();
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -15,6 +15,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 PRESETS = {
     'restful_api':  {'color': (66, 133, 244),   'svg': 'restful_api.svg'},
     'web_app':      {'color': (76, 175, 80),    'svg': 'web_app.svg'},
+    'jsonrpc':      {'color': (0, 150, 136),    'svg': 'jsonrpc.svg'},
     'microservice': {'color': (156, 39, 176),   'svg': 'microservice.svg'},
     'realtime':     {'color': (255, 152, 0),    'svg': 'realtime.svg'},
     'fullstack':    {'color': (211, 47, 47),    'svg': 'fullstack.svg'},

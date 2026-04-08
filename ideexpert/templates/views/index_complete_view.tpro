@@ -1,90 +1,164 @@
+<!--
+  STANDALONE INDEX PAGE (for Mustache / WebStencils)
+
+  This template is processed ONCE at project generation time by
+  TemplatePro to produce the final .html file.
+
+  Two kinds of placeholders are used here:
+
+    :variable         Resolved NOW by the wizard (e.g. program_name, current_year)
+
+    raw/:variable     Outputs literal template syntax so the RUNTIME
+                      template engine can resolve it on each request.
+
+  After generation, the output file contains only runtime
+  placeholders that your chosen template engine will process.
+-->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{:program_name}}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{:program_name}}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    (function() {
+      var t = localStorage.getItem('dmvc-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
 </head>
 <body>
+
+  {{# ---- Navigation ---- #}}
+  <nav>
     <div class="container">
-        <header>
-            <h1>{{:program_name}}</h1>
-            <p>Powered by DelphiMVCFramework {{:dmvc_version}}</p>
-        </header>
+      <ul>
+        <li><strong>{{raw}}{{:app_name}}{{endraw}}</strong></li>
+      </ul>
+      <ul>
+        <li><a href="https://www.danieleteti.it/delphimvcframework/" target="_blank" rel="noopener">Docs</a></li>
+        <li><button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button></li>
+      </ul>
+    </div>
+  </nav>
 
-        <div class="content">
-            <div class="hero">
-                <h2>Welcome to {{:program_name}}! 🚀</h2>
-                <p>Your DelphiMVCFramework application is up and running</p>
-                <p style="color: #06b6d4; font-weight: 600; margin-top: 10px;">⚡ High Performance - Built on Delphi's native compilation</p>
-            </div>
+  {{# ---- Main Content ---- #}}
+  <main class="container">
 
-            <div class="features">
-                <div class="feature-card">
-                    <h3>🎨 Web App</h3>
-                    <p>Complete web applications with TemplatePro, WebStencils and Mustache template engines</p>
-                </div>
+    <div class="hero">
+      <h1>{{raw}}{{:app_name}}{{endraw}}</h1>
+      <p>Your web application is running on DelphiMVCFramework</p>
+      <p>
+        <span class="badge">{{raw}}{{:dmvc_version}}{{endraw}}</span>
+        <span class="badge">{{raw}}{{:compiler_version}}{{endraw}}</span>
+        <span class="badge">{{raw}}{{:current_date}}{{endraw}}</span>
+      </p>
+    </div>
 
-                <div class="feature-card">
-                    <h3>🔧 RESTful API</h3>
-                    <p>Full RESTful services support with automatic content negotiation</p>
-                </div>
+    {{# ---- Feature Cards ---- #}}
+    <p class="section-label">Features</p>
+    <div class="grid">
+      <article>
+        <header>Web Application</header>
+        <p>Complete web applications with server-side template engines
+           for dynamic HTML rendering.</p>
+        <footer><small>TemplatePro, WebStencils, Mustache</small></footer>
+      </article>
+      <article>
+        <header>RESTful API</header>
+        <p>Full RESTful services with automatic content negotiation,
+           serialization, and routing.</p>
+        <footer><small>JSON, XML, custom formats</small></footer>
+      </article>
 {{if controller_crud_methods_generate}}
-
-                <div class="feature-card">
-                    <h3>📊 CRUD Operations</h3>
-                    <p>Complete Create, Read, Update, Delete operations ready to use</p>
-                </div>
+      <article>
+        <header>CRUD Operations</header>
+        <p>Create, Read, Update, and Delete operations
+           ready to use with sample entities.</p>
+        <footer><small>MVCActiveRecord ORM</small></footer>
+      </article>
 {{endif}}
 {{if webmodule_middleware_jwt}}
-
-                <div class="feature-card">
-                    <h3>🔐 JWT Authentication</h3>
-                    <p>Secure authentication with JWT cookie-based middleware</p>
-                </div>
+      <article>
+        <header>JWT Authentication</header>
+        <p>Secure stateless authentication with JSON Web Tokens
+           via cookie or bearer header.</p>
+        <footer><small>HMAC or RSA signing</small></footer>
+      </article>
 {{endif}}
 {{if webmodule_middleware_activerecord}}
-
-                <div class="feature-card">
-                    <h3>💾 ActiveRecord ORM</h3>
-                    <p>Database access with MVCActiveRecord pattern</p>
-                </div>
+      <article>
+        <header>ActiveRecord ORM</header>
+        <p>Database access with the MVCActiveRecord pattern.
+           PostgreSQL, MySQL, SQLite, SQL Server, and more.</p>
+        <footer><small>FireDAC connection pooling</small></footer>
+      </article>
 {{endif}}
-
-                <div class="feature-card">
-                    <h3>🔌 WebSockets</h3>
-                    <p>Real-time bidirectional communication with WebSocket server support</p>
-                </div>
-            </div>
-
-            <div class="info-box" style="margin-top: 40px;">
-                <strong>💡 Quick Start:</strong> This page is rendered from <code>templates/index.{{:template_extension}}</code><br>
-                Edit the template file to customize this page, or check the controller at <code>{{:controller_unit_name}}.pas</code>
-            </div>
-
-            <div class="info-box" style="margin-top: 20px; background: rgba(6, 182, 212, 0.1); border-left-color: #06b6d4;">
-                <strong>📊 ViewData from Controller:</strong><br>
-                <div style="margin-top: 10px; font-family: monospace; font-size: 0.9em;">
-                    <div style="margin: 5px 0;">📱 <strong>App Name:</strong> {{raw}}{{:app_name}}{{endraw}}</div>
-                    <div style="margin: 5px 0;">📅 <strong>Date:</strong> {{raw}}{{:current_date}}{{endraw}}</div>
-                    <div style="margin: 5px 0;">⏰ <strong>Time:</strong> {{raw}}{{:current_time}}{{endraw}}</div>
-                    <div style="margin: 5px 0;">🚀 <strong>DMVC Version:</strong> {{raw}}{{:dmvc_version}}{{endraw}}</div>
-                    <div style="margin: 5px 0;">💻 <strong>Compiler:</strong> {{raw}}{{:compiler_version}}{{endraw}}</div>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="https://www.danieleteti.it/delphimvcframework/" class="btn">📚 View Documentation</a>
-{{if controller_crud_methods_generate}}
-                <a href="/web/people" class="btn" style="margin-left: 10px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">👥 View People API</a>
-{{endif}}
-            </div>
-        </div>
-
-        <footer style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8); margin-top: 20px;">
-            <p>&copy; {{:current_year}} {{:program_name}} | Built with <a href="https://www.danieleteti.it/delphimvcframework/" style="color: white; text-decoration: underline;">DelphiMVCFramework</a></p>
-        </footer>
+      <article>
+        <header>WebSockets</header>
+        <p>Real-time bidirectional communication for live updates,
+           chat, and push notifications.</p>
+        <footer><small>Groups, broadcasting, custom protocols</small></footer>
+      </article>
     </div>
+
+    {{# ---- Quick Start ---- #}}
+    <p class="section-label">Quick Start</p>
+    <article>
+      <header>Next Steps</header>
+      <p>This page is rendered from <code>templates/index.{{:template_extension}}</code>.
+         Edit the template to customize it, or check the controller at
+         <code>{{:controller_unit_name}}.pas</code>.</p>
+      <p>
+        <a href="https://www.danieleteti.it/delphimvcframework/" target="_blank" role="button" class="outline">
+          View Documentation &rarr;
+        </a>
+{{if controller_crud_methods_generate}}
+        <a href="/api/people" target="_blank" role="button" class="outline" style="margin-left: 0.5rem;">
+          Try People API &rarr;
+        </a>
+{{endif}}
+      </p>
+      <footer>
+        <small>
+          ViewData: app_name={{raw}}{{:app_name}}{{endraw}},
+          date={{raw}}{{:current_date}}{{endraw}},
+          time={{raw}}{{:current_time}}{{endraw}},
+          compiler={{raw}}{{:compiler_version}}{{endraw}}
+        </small>
+      </footer>
+    </article>
+
+  </main>
+
+  {{# ---- Page Footer ---- #}}
+  <footer class="container">
+    <small>
+      &copy; {{:current_year}} {{raw}}{{:app_name}}{{endraw}} &middot;
+      Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a>
+    </small>
+  </footer>
+
+  <script>
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      function updateIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        btn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+        btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        var next = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('dmvc-theme', next);
+        updateIcon();
+      });
+    })();
+  </script>
+
 </body>
 </html>

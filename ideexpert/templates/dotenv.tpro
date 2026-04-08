@@ -83,7 +83,16 @@ dmvc.sqids.min_length=6
 # Clients send the token as: Authorization: Bearer <token>
 # The token is returned in the JSON response body after login.
 {{endif}}
+{{if webmodule_middleware_jwt_asymmetric}}
+# Asymmetric signing (RS256) - requires TaurusTLS + OpenSSL
+# Generate keys with:
+#   openssl genrsa -out jwt-private.pem 2048
+#   openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
+JWT_PRIVATE_KEY_FILE=jwt-private.pem
+JWT_PUBLIC_KEY_FILE=jwt-public.pem
+{{else}}
 JWT_SECRET=change-this-secret-in-production-use-strong-key
+{{endif}}
 JWT_ISSUER={{:program_name}}
 {{if program_ssv_any}}
 JWT_COOKIE_SECURE=false

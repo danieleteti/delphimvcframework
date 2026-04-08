@@ -1,64 +1,79 @@
+{{# ================================================================
+   ABOUT PAGE (with HTMX)
+   ================================================================
+   Extends baselayout.html.  Uses HTMX for server info loading.
+
+   Variables available from the controller:
+     app_name, dmvc_version, compiler_version, current_date
+   ================================================================ #}}
 {{extends "../baselayout.html"}}
+
 {{block "title"}}About{{endblock}}
+
 {{block "body"}}
-<div class="hero">
-  <h1>About {{:app_name}}</h1>
-  <p>Learn more about this application and the technologies behind it</p>
-</div>
 
-<p class="section-label">Technology Stack</p>
-<div class="grid">
-  <article>
-    <header>DelphiMVCFramework</header>
-    <p>A powerful RESTful framework for Delphi supporting MVC architecture,
-       JSON-RPC APIs, WebSockets, and server-side rendered web applications.</p>
-    <p><strong>Version:</strong> {{:dmvc_version}}</p>
-    <footer>
-      <small><a href="https://github.com/danieleteti/delphimvcframework" target="_blank">GitHub Repository</a></small>
-    </footer>
-  </article>
-  <article>
-    <header>TemplatePro</header>
-    <p>A fast template engine for Delphi with template inheritance, blocks,
-       loops, conditionals, and filters. Used for all server-side views.</p>
-    <p><strong>Features:</strong> extends, block, for, if/else, filters</p>
-    <footer>
-      <small><a href="https://github.com/danieleteti/templatepro" target="_blank">Documentation</a></small>
-    </footer>
-  </article>
-  <article>
-    <header>HTMX</header>
-    <p>Access modern browser features directly from HTML. No JavaScript framework needed &mdash;
-       just HTML attributes for AJAX, WebSockets, and server-sent events.</p>
-    <p><strong>Used here:</strong> hx-get, hx-target, hx-trigger</p>
-    <footer>
-      <small><a href="https://htmx.org" target="_blank">htmx.org</a></small>
-    </footer>
-  </article>
-</div>
-
-<p class="section-label">Server Info</p>
-<article>
-  <header>Live Server Details</header>
-  <div hx-get="/web/fragment/info"
-       hx-trigger="load"
-       hx-swap="innerHTML">
-    <p aria-busy="true">Loading server info...</p>
+  <div class="hero">
+    <h1>About {{:app_name}}</h1>
+    <p>The technologies and architecture behind this application</p>
   </div>
-</article>
 
-<p class="section-label">REST API</p>
-<article>
-  <header>Try the JSON API</header>
-  <p>This application also exposes a REST API alongside the web interface.
-     The same server serves both HTML pages and JSON endpoints.</p>
-  <p>
-    <a href="/api/server/info" target="_blank" role="button" class="outline">
-      Open /api/server/info &rarr;
-    </a>
-  </p>
-  <footer>
-    <small>See <code>{{:controller_unit_name}}.TAPIController.GetServerInfo</code> &mdash; returns <code>application/json</code></small>
-  </footer>
-</article>
+  {{# ---- Technology Stack ---- #}}
+  <p class="section-label">Technology Stack</p>
+  <div class="grid">
+    <article>
+      <header>DelphiMVCFramework</header>
+      <p>A powerful RESTful framework for Delphi supporting MVC architecture,
+         JSON-RPC APIs, WebSockets, and server-side rendered web applications.</p>
+      <p><strong>Version:</strong> {{:dmvc_version}}</p>
+      <footer>
+        <small><a href="https://github.com/danieleteti/delphimvcframework" target="_blank">GitHub Repository</a></small>
+      </footer>
+    </article>
+    <article>
+      <header>TemplatePro</header>
+      <p>A fast template engine for Delphi with template inheritance, blocks,
+         loops, conditionals, and filters. Used for all server-side views.</p>
+      <p><strong>Features:</strong> extends, block, for, if/else, filters</p>
+      <footer>
+        <small><a href="https://github.com/danieleteti/templatepro" target="_blank">Documentation</a></small>
+      </footer>
+    </article>
+    <article>
+      <header>HTMX</header>
+      <p>Access modern browser features directly from HTML. No JavaScript framework needed &mdash;
+         just HTML attributes for AJAX, WebSockets, and server-sent events.</p>
+      <p><strong>Used here:</strong> hx-get, hx-target, hx-trigger</p>
+      <footer>
+        <small><a href="https://htmx.org" target="_blank">htmx.org</a></small>
+      </footer>
+    </article>
+  </div>
+
+  {{# ---- Server Info (loaded via HTMX on page load) ---- #}}
+  <p class="section-label">Server Info</p>
+  <article>
+    <header>Live Server Details</header>
+    <div hx-get="/web/fragment/info"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+      <p aria-busy="true">Loading server info...</p>
+    </div>
+  </article>
+
+  {{# ---- REST API Link ---- #}}
+  <p class="section-label">REST API</p>
+  <article>
+    <header>Try the JSON API</header>
+    <p>This application exposes a REST API alongside the web interface.
+       The same server serves both HTML pages and JSON endpoints.</p>
+    <p>
+      <a href="/api/server/info" target="_blank" role="button" class="outline">
+        Open /api/server/info &rarr;
+      </a>
+    </p>
+    <footer>
+      <small>See <code>{{:controller_unit_name}}.TAPIController.GetServerInfo</code></small>
+    </footer>
+  </article>
+
 {{endblock}}

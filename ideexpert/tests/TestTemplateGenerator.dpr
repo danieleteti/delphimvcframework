@@ -81,6 +81,7 @@ type
     webmodule_middleware_cors = 'webmodule.middleware.cors';
     webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
     webmodule_middleware_jwt = 'webmodule.middleware.jwt';
+    webmodule_middleware_jwt_asymmetric = 'webmodule.middleware.jwt.asymmetric';
     webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
     webmodule_middleware_activerecord_con_def_name = 'webmodule.middleware.activerecord.con_def_name';
     webmodule_middleware_activerecord_con_def_filename = 'webmodule.middleware.activerecord.con_def_filename';
@@ -408,6 +409,7 @@ begin
   Result.B[TConfigKey.webmodule_middleware_cors] := False;
   Result.B[TConfigKey.webmodule_middleware_ratelimit] := False;
   Result.B[TConfigKey.webmodule_middleware_jwt] := False;
+  Result.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := False;
   Result.B[TConfigKey.webmodule_middleware_activerecord] := False;
   Result.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] := 'MyConnection';
   Result.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] := '$(AppPath)FDConnectionDefs.ini';
@@ -930,6 +932,24 @@ begin
   LTestCase.Name := 'with_jwt';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test: JWT with asymmetric signing (RS256) - Bearer
+  LTestCase.Name := 'with_jwt_asymmetric';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test: JWT with asymmetric signing (RS256) - Cookie (with SSV)
+  LTestCase.Name := 'with_jwt_asymmetric_cookie';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := True;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B['program.ssv.any'] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
   ATestCases.Add(LTestCase);
 
   // === Windows Service Tests ===

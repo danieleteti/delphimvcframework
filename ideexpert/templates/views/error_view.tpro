@@ -1,11 +1,21 @@
+{{# ================================================================
+   ERROR PAGE
+   ================================================================
+   Extends baselayout.html.  Shown when an unhandled exception occurs.
+
+   Variables available:
+     error - The error message
+   ================================================================ #}}
 {{extends "baselayout.html"}}
+
 {{block "title"}}Error{{endblock}}
+
 {{block "body"}}
-<div class="hero">
-  <h1>Something went wrong</h1>
-  <p>{{:error}}</p>
-</div>
-<div style="text-align:center">
-  <a href="/web" role="button" class="outline">Back to Home</a>
-</div>
+  <div class="hero">
+    <h1>Something went wrong</h1>
+    <p>{{:error}}</p>
+  </div>
+  <div style="text-align:center; margin-top: 1rem;">
+    <a href="/web" role="button" class="outline">Back to Home &rarr;</a>
+  </div>
 {{endblock}}
