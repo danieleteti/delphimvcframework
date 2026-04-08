@@ -142,6 +142,8 @@ type
     { Feature flags }
     FFetchUserInfo: Boolean;
     FBaseURL: string;
+    { JWKS signature verification (optional, requires TaurusTLS) }
+    FJWKSProvider: IJWKSProvider;
     { Callbacks }
     FOnUserAuthenticated: TMVCOIDCUserAuthenticatedProc;
     FOnAuthRequired: TMVCOIDCAuthRequiredProc;
@@ -224,6 +226,17 @@ type
     /// for OIDC provider logout (e.g. 'https://app.example.com').
     /// </summary>
     function SetBaseURL(const AURL: string): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
+    /// Sets a JWKS provider for ID token signature verification.
+    /// When set, the middleware verifies the cryptographic signature of ID tokens
+    /// against the provider's public keys (fetched from the JWKS endpoint).
+    /// Without this, the middleware relies on TLS trust to the token endpoint.
+    ///
+    /// Usage (requires MVCFramework.OIDC.JWKS in your uses clause):
+    ///   UseOIDCAuthentication(...)
+    ///     .SetJWKSProvider(TMVCJWKSClient.CreateFromIssuer('https://...'));
+    /// </summary>
+    function SetJWKSProvider(const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
   end;
 
 /// <summary>
@@ -269,7 +282,10 @@ resourcestring
   SOIDCIDTokenIssuerMismatch = 'OIDC: ID token issuer mismatch (expected=%s, got=%s)';
   SOIDCIDTokenAudMismatch = 'OIDC: ID token audience mismatch (expected=%s)';
   SOIDCIDTokenExpired = 'OIDC: ID token has expired';
-  SOIDCIDTokenNoSigVerify = 'OIDC: ID token signature verification not implemented - accepting token based on TLS trust';
+  SOIDCIDTokenNoSigVerify = 'OIDC: ID token signature verification not configured - accepting token based on TLS trust';
+  SOIDCIDTokenSigVerified = 'OIDC: ID token signature verified successfully via JWKS';
+  SOIDCIDTokenSigFailed = 'OIDC: ID token signature verification FAILED - token rejected';
+  SOIDCIDTokenSigNoKey = 'OIDC: No matching key found in JWKS for ID token - token rejected';
   SOIDCUserInfoRequest = 'OIDC: Fetching user info from %s';
   SOIDCUserInfoError = 'OIDC: UserInfo request failed - %s';
   SOIDCCallbackReceived = 'OIDC: Authorization callback received with state=%s';
@@ -372,7 +388,9 @@ begin
   FCookieDomain := '';
   FFetchUserInfo := True;
   // One-time startup notice about signature verification
-  LogI('OIDC: ID token signature verification relies on TLS trust to the token endpoint.');
+  FJWKSProvider := nil;
+  LogI('OIDC: ID token signature verification not configured. ' +
+    'Call SetJWKSProvider() to enable cryptographic verification via JWKS.');
 end;
 
 destructor TMVCOIDCAuthenticationMiddleware.Destroy;
@@ -448,6 +466,17 @@ function TMVCOIDCAuthenticationMiddleware.SetBaseURL(
   const AURL: string): TMVCOIDCAuthenticationMiddleware;
 begin
   FBaseURL := AURL;
+  Result := Self;
+end;
+
+function TMVCOIDCAuthenticationMiddleware.SetJWKSProvider(
+  const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
+begin
+  FJWKSProvider := AProvider;
+  if Assigned(AProvider) then
+    LogI('OIDC: JWKS provider configured - ID token signatures will be verified')
+  else
+    LogI('OIDC: JWKS provider cleared - falling back to TLS trust');
   Result := Self;
 end;
 
@@ -535,7 +564,7 @@ function TMVCOIDCAuthenticationMiddleware.ValidateIDToken(
   const AIDToken: string): TJsonObject;
 var
   lParts: TArray<string>;
-  lPayloadJSON: string;
+  lHeaderJSON, lPayloadJSON: string;
   lClaims: TJsonObject;
   lIssuer: string;
   lExp: Int64;
@@ -543,6 +572,9 @@ var
   lAudArray: TJsonArray;
   lAudFound: Boolean;
   I: Integer;
+  lSigner: IJWTSigner;
+  lDataToVerify: string;
+  lSignatureBytes: TBytes;
 begin
   LogD(SOIDCIDTokenValidating);
   lParts := AIDToken.Split(['.']);
@@ -589,8 +621,25 @@ begin
     if UnixToDateTime(lExp, False) + (FLeewaySeconds * OneSecond) <= Now then
       raise EMVCException.Create(SOIDCIDTokenExpired);
 
-    // ID token signature verification relies on TLS trust to the token endpoint.
-    // The token was received directly from the provider over HTTPS, not via the browser.
+    // ID token signature verification
+    if Assigned(FJWKSProvider) then
+    begin
+      // Decode the header to get kid and alg for key lookup
+      lHeaderJSON := Base64URLDecode(lParts[0]);
+      lSigner := FJWKSProvider.GetSignerForToken(lHeaderJSON);
+      if not Assigned(lSigner) then
+        raise EMVCException.Create(SOIDCIDTokenSigNoKey);
+      // Verify: signature is over "header.payload" (the first two base64url parts)
+      lDataToVerify := lParts[0] + '.' + lParts[1];
+      lSignatureBytes := URLSafeB64DecodeBytes(lParts[2]);
+      if not lSigner.Verify(lDataToVerify, lSignatureBytes) then
+        raise EMVCException.Create(SOIDCIDTokenSigFailed);
+      LogD(SOIDCIDTokenSigVerified);
+    end
+    else
+      // No JWKS provider configured - rely on TLS trust to the token endpoint.
+      // The token was received directly from the provider over HTTPS, not via the browser.
+      LogD(SOIDCIDTokenNoSigVerify);
 
     Result := lClaims;
     lClaims := nil; // prevent freeing, caller owns the result

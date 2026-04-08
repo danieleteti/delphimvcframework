@@ -55,6 +55,23 @@ type
   end;
 
   /// <summary>
+  /// Provides JWT signers by inspecting the token header (kid, alg).
+  /// Used by the OIDC middleware to verify ID token signatures against
+  /// public keys fetched from a JWKS (JSON Web Key Set) endpoint.
+  /// The implementation (e.g., TMVCJWKSClient) lives in a separate unit
+  /// that depends on TaurusTLS; this interface has no crypto dependencies.
+  /// </summary>
+  IJWKSProvider = interface
+    ['{A1C7E9F3-5B2D-4E8A-9F6C-3D7B1A4E2F5C}']
+    /// <summary>
+    /// Returns a signer configured with the public key matching the token header.
+    /// AJWTHeaderJSON is the raw JSON of the JWT header (contains "kid", "alg").
+    /// Returns nil if no matching key is found.
+    /// </summary>
+    function GetSignerForToken(const AJWTHeaderJSON: string): IJWTSigner;
+  end;
+
+  /// <summary>
   /// HMAC-based JWT signer. Wraps the existing HMAC() function
   /// from MVCFramework.HMAC into the IJWTSigner interface.
   /// Supports HS256, HS384, HS512.

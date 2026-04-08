@@ -279,7 +279,7 @@ type
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
       aSecret: string = 'D3lph1MVCFram3w0rk';
-      aLoginURLSegment: string = '/loginff';
+      aLoginURLSegment: string = '/login';
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
       aHMACAlgorithm: String = HMAC_HS512): IMVCMiddleware; overload;
@@ -332,7 +332,21 @@ type
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AHMACAlgorithm: String = HMAC_HS512
-  ): TMVCJWTCookieAuthenticationMiddleware;
+  ): TMVCJWTCookieAuthenticationMiddleware; overload;
+
+  /// <summary>
+  /// Creates JWT cookie authentication middleware using a custom signer (e.g., TRSAJWTSigner for RS256).
+  /// Requires MVCFramework.JWT.RSA unit and TaurusTLS for asymmetric algorithms.
+  /// </summary>
+  function UseJWTCookieAuthentication(
+      AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASigner: IJWTSigner;
+      ALoginURLSegment: string = '/login';
+      ALogoutURLSegment: string = '/logout';
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300
+  ): TMVCJWTCookieAuthenticationMiddleware; overload;
 
   function UseJWTBlackListMiddleware(
       OnAcceptToken: TMVCOnAcceptTokenProc;
@@ -352,7 +366,7 @@ function UseJWTMiddleware(
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
       aSecret: string = 'D3lph1MVCFram3w0rk';
-      aLoginURLSegment: string = '/loginff';
+      aLoginURLSegment: string = '/login';
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
       aHMACAlgorithm: String = HMAC_HS512): IMVCMiddleware;
@@ -417,6 +431,27 @@ begin
     AClaimsToCheck,
     ALeewaySeconds,
     AHMACAlgorithm
+  );
+end;
+
+function UseJWTCookieAuthentication(
+    AAuthenticationHandler: IMVCAuthenticationHandler;
+    AConfigClaims: TJWTClaimsSetup;
+    ASigner: IJWTSigner;
+    ALoginURLSegment: string;
+    ALogoutURLSegment: string;
+    AClaimsToCheck: TJWTCheckableClaims;
+    ALeewaySeconds: Cardinal
+): TMVCJWTCookieAuthenticationMiddleware;
+begin
+  Result := TMVCJWTCookieAuthenticationMiddleware.Create(
+    AAuthenticationHandler,
+    AConfigClaims,
+    ASigner,
+    ALoginURLSegment,
+    ALogoutURLSegment,
+    AClaimsToCheck,
+    ALeewaySeconds
   );
 end;
 
