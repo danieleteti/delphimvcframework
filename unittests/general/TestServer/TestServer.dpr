@@ -41,7 +41,7 @@ const
   ;
 procedure Logo;
 begin
-  DrawSimpleBox('DMVCFramework TEST SERVER',
+  Box('DMVCFramework TEST SERVER',
   [
       'PLATFORM'.PadRight(25) + gPLATFORM,
       'DMVCFRAMEWORK VERSION'.PadRight(25) + DMVCFRAMEWORK_VERSION,

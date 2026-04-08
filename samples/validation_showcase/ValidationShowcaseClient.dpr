@@ -639,12 +639,12 @@ begin
   else
     LContent[4] := 'SOME TESTS FAILED!';
 
-  DrawSimpleBox('Results', LContent, 50);
+  Box('Results', LContent, 50);
 
   WriteLn;
   WriteLn;
 
-  WriteLineColored('Key observations:', White);
+  WriteLine('Key observations:', White);
   WriteLn;
 
   TextColor(Green);

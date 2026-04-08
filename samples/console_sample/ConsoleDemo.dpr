@@ -86,32 +86,35 @@ begin
   WriteHeader('Progress Bar Demo');
   WriteLn;
 
-  WriteLine('Test 1: Determinate Progress', Cyan);
-  WriteLn;
+  HideCursor;
+  try
+    WriteLine('Test 1: Determinate Progress', Cyan);
+    WriteLn;
 
-  // NEW: Unified Progress API with interface
-  P := Progress('Downloading files', 100);
-  for I := 1 to 100 do
-  begin
-    P.Update(I);
-    Sleep(30);
+    P := Progress('Downloading files', 100);
+    for I := 1 to 100 do
+    begin
+      P.Update(I);
+      Sleep(30);
+    end;
+    P := nil;  // Auto cleanup
+    WriteLn;
+    WriteLn;
+
+    WriteLine('Test 2: Indeterminate Spinner', Cyan);
+    WriteLn;
+
+    P := Progress('Loading data');
+    for I := 1 to 50 do
+    begin
+      P.Update(I);
+      Sleep(50);
+    end;
+    P.Complete;
+    P := nil;
+  finally
+    ShowCursor;
   end;
-  P := nil;  // Auto cleanup
-  WriteLn;
-  WriteLn;
-
-  WriteLine('Test 2: Indeterminate Spinner', Cyan);
-  WriteLn;
-
-  // NEW: Indeterminate progress (spinner)
-  P := Progress('Loading data');
-  for I := 1 to 50 do
-  begin
-    P.Update(I);  // Updates spinner animation
-    Sleep(50);
-  end;
-  P.Complete;
-  P := nil;
 end;
 
 procedure ShowBoxExample;
@@ -226,70 +229,46 @@ begin
 end;
 
 procedure ShowDashboardExample;
-var
-  ServerStatuses: TStringArray;
-  ServerColors: TConsoleColorArray;
-  MetricNames: TStringArray;
-  MetricValues: TIntegerArray;
 begin
   ClrScr;
   WriteHeader('Dashboard Demo');
   WriteLn;
 
-  SetLength(ServerStatuses, 4);
-  SetLength(ServerColors, 4);
-  ServerStatuses[0] := 'Web Server: ONLINE';
-  ServerColors[0] := Green;
-  ServerStatuses[1] := 'Database: ONLINE';
-  ServerColors[1] := Green;
-  ServerStatuses[2] := 'Cache: WARNING';
-  ServerColors[2] := Yellow;
-  ServerStatuses[3] := 'Backup: ERROR';
-  ServerColors[3] := Red;
+  Box('DMVC Server Status', [
+    'Web Server: ONLINE',
+    'Database:   ONLINE',
+    'Cache:      WARNING',
+    'Backup:     ERROR'
+  ], 50);
 
-  SetLength(MetricNames, 4);
-  SetLength(MetricValues, 4);
-  MetricNames[0] := 'CPU';
-  MetricValues[0] := 75;
-  MetricNames[1] := 'Memory';
-  MetricValues[1] := 60;
-  MetricNames[2] := 'Disk I/O';
-  MetricValues[2] := 25;
-  MetricNames[3] := 'Network';
-  MetricValues[3] := 95;
-
-  ShowSystemDashboard('DMVC Server Status', ServerStatuses, ServerColors, MetricNames, MetricValues);
+  WriteLn;
+  WriteLine('Server Status:', White);
+  WriteLine('  Web Server: ONLINE', Green);
+  WriteLine('  Database:   ONLINE', Green);
+  WriteLine('  Cache:      WARNING', Yellow);
+  WriteLine('  Backup:     ERROR', Red);
 end;
 
-procedure ShowNewAPIFeatures;
+procedure ShowThemeExample;
 begin
   ClrScr;
-  WriteHeader('New Simplified API Features');
+  WriteHeader('Theme Demo');
   WriteLn;
 
-  WriteLine('The new API provides:', White);
+  WriteLine('ConsoleTheme controls global styling for all widgets.', White);
   WriteLn;
 
-  WriteLine('  1. Menu()     - One function instead of 3 (Simple/Interactive/Advanced)', Green);
-  WriteLine('  2. Table()    - Auto-sizing columns, simpler parameters', Green);
-  WriteLine('  3. Box()      - Auto-positioning, no manual width calculation', Green);
-  WriteLine('  4. Progress() - Interface with auto-cleanup, determinate/indeterminate', Green);
-  WriteLine('  5. Confirm()  - Quick yes/no prompts', Green);
-  WriteLine('  6. Choose()   - Quick single choice without full menu', Green);
-
-  WriteLn;
-  WriteLine('All functions use ConsoleTheme for consistent styling!', Yellow);
+  WriteLine('Default theme:', Cyan);
+  Box('Default', ['This uses the default theme']);
   WriteLn;
 
-  // Demo ConsoleTheme
-  WriteLine('Demo: Changing ConsoleTheme affects all output', Cyan);
-  WriteLn;
-
+  // Change theme
   ConsoleTheme.TextColor := Yellow;
   ConsoleTheme.DrawColor := Magenta;
   ConsoleTheme.BoxStyle := bsDouble;
 
-  Box('Custom Theme', ['This box uses', 'the modified theme!']);
+  WriteLine('Custom theme (Yellow/Magenta/Double):', Cyan);
+  Box('Custom', ['This uses the modified theme!']);
 
   // Reset
   ConsoleTheme.TextColor := Cyan;
@@ -302,7 +281,7 @@ begin
     EnableUTF8Console;
     ClrScr;
 
-    WriteHeader('DMVCFramework Console Library - NEW SIMPLIFIED API', 80);
+    WriteHeader('DMVCFramework Console Library', 80);
     WriteLn;
 
     // Demo all new features
@@ -336,7 +315,7 @@ begin
     WriteLine('Press ENTER to continue...', Gray);
     ReadLn;
 
-    ShowNewAPIFeatures;
+    ShowThemeExample;
     WriteLn;
 
     ClrScr;
