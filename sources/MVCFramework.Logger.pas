@@ -154,6 +154,7 @@ uses
   LoggerPro.ConsoleAppender,
   LoggerPro.CallbackAppender,
   LoggerPro.Renderers,
+  MVCFramework.Logger.ColorConsoleRenderer,
   System.IOUtils,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.DuckTyping;
@@ -581,7 +582,10 @@ begin
 
   if IsConsole and UseConsoleLogger then
   begin
-    lBuilder.WriteToConsole.WithRenderer(TLogItemRendererNoTag.Create).Done;
+    lBuilder.WriteToConsole
+      .WithRenderer(TDMVCColorConsoleRenderer.Create)
+      .WithUTF8Output
+      .Done;
   end;
 
   Result := lBuilder;

@@ -149,6 +149,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Logger.ColorConsoleRenderer.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Analytics.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>

@@ -63,6 +63,7 @@ const
   KEY_RIGHT = 256 + 39;  // VK_RIGHT
   KEY_ESCAPE = 27;
   KEY_ENTER = 13;
+  ESC = #27;
 
 type
   TConsoleColor = (
@@ -126,6 +127,69 @@ type
   TStringArray = array of string;
   TStringMatrix = array of TStringArray;
 
+  /// <summary>
+  /// ANSI foreground color escape sequences.
+  /// Usage: WriteLn(Fore.Red + 'error text' + Style.ResetAll);
+  /// Requires EnableANSIColorConsole on Windows 10+. No-op needed on Linux.
+  /// </summary>
+  Fore = record
+  const
+    Black       = ESC + '[30m';
+    DarkRed     = ESC + '[31m';
+    DarkGreen   = ESC + '[32m';
+    DarkYellow  = ESC + '[33m';
+    DarkBlue    = ESC + '[34m';
+    DarkMagenta = ESC + '[35m';
+    DarkCyan    = ESC + '[36m';
+    Gray        = ESC + '[37m';
+    DarkGray    = ESC + '[90m';
+    Red         = ESC + '[91m';
+    Green       = ESC + '[92m';
+    Yellow      = ESC + '[93m';
+    Blue        = ESC + '[94m';
+    Magenta     = ESC + '[95m';
+    Cyan        = ESC + '[96m';
+    White       = ESC + '[97m';
+    Reset       = ESC + '[39m';
+  end;
+
+  /// <summary>
+  /// ANSI background color escape sequences.
+  /// Usage: WriteLn(Back.Red + 'highlighted' + Style.ResetAll);
+  /// </summary>
+  Back = record
+  const
+    Black       = ESC + '[40m';
+    DarkRed     = ESC + '[41m';
+    DarkGreen   = ESC + '[42m';
+    DarkYellow  = ESC + '[43m';
+    DarkBlue    = ESC + '[44m';
+    DarkMagenta = ESC + '[45m';
+    DarkCyan    = ESC + '[46m';
+    Gray        = ESC + '[47m';
+    DarkGray    = ESC + '[100m';
+    Red         = ESC + '[101m';
+    Green       = ESC + '[102m';
+    Yellow      = ESC + '[103m';
+    Blue        = ESC + '[104m';
+    Magenta     = ESC + '[105m';
+    Cyan        = ESC + '[106m';
+    White       = ESC + '[107m';
+    Reset       = ESC + '[49m';
+  end;
+
+  /// <summary>
+  /// ANSI style escape sequences.
+  /// Style.ResetAll resets foreground, background and style.
+  /// </summary>
+  Style = record
+  const
+    Bright   = ESC + '[1m';
+    Dim      = ESC + '[2m';
+    Normal   = ESC + '[22m';
+    ResetAll = ESC + '[0m';
+  end;
+
 var
   ConsoleTheme: TConsoleColorStyle = (
     TextColor : TConsoleColor.Cyan;
@@ -167,6 +231,21 @@ procedure HideCursor;
 procedure ShowCursor;
 function KeyPressed: Boolean;
 procedure EnableUTF8Console;
+
+/// <summary>
+/// Enables ANSI virtual terminal processing on Windows 10+.
+/// No-op on Linux (ANSI is natively supported).
+/// Idempotent: safe to call multiple times.
+/// Called automatically by DMVC color console renderers.
+/// Call manually only if using Fore/Back/Style directly with WriteLn.
+/// </summary>
+procedure EnableANSIColorConsole;
+
+/// <summary>
+/// Returns True if ANSI escape sequences are supported by the current console.
+/// Always True on Linux. On Windows, True only after a successful EnableANSIColorConsole call.
+/// </summary>
+function IsANSIColorConsoleEnabled: Boolean;
 
 // ============================================================================
 // TEXT OUTPUT
@@ -310,9 +389,6 @@ uses
   System.TypInfo,
   System.Math;
 
-const
-  ESC = Chr(27);
-
 type
   TStyleColorComponent = (sccText, sccBackground, sccHighLightBackground, sccHighLightText, sccDraw, sccSymbol);
   TBoxChars = record
@@ -329,6 +405,8 @@ var
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
   GSavedCursorX, GSavedCursorY: Word;
+  GANSIColorConsoleEnabled: Boolean = False;
+  GANSIColorConsoleChecked: Boolean = False;
 {$IFDEF MSWINDOWS}
   hConsoleInput: THandle;
 {$ENDIF}
@@ -490,6 +568,37 @@ begin
 end;
 
 // ============================================================================
+// ANSI COLOR CONSOLE
+// ============================================================================
+
+function IsANSIColorConsoleEnabled: Boolean;
+begin
+  Result := GANSIColorConsoleEnabled;
+end;
+
+procedure EnableANSIColorConsole;
+{$IFDEF MSWINDOWS}
+var
+  LStdOut: THandle;
+  LMode: DWORD;
+{$ENDIF}
+begin
+  if GANSIColorConsoleChecked then
+    Exit;
+  GANSIColorConsoleChecked := True;
+{$IFDEF MSWINDOWS}
+  LStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  if (LStdOut <> INVALID_HANDLE_VALUE) and GetConsoleMode(LStdOut, LMode) then
+  begin
+    if SetConsoleMode(LStdOut, LMode or $0004 {ENABLE_VIRTUAL_TERMINAL_PROCESSING}) then
+      GANSIColorConsoleEnabled := True;
+  end;
+{$ELSE}
+  GANSIColorConsoleEnabled := True;
+{$ENDIF}
+end;
+
+// ============================================================================
 // UTILITY
 // ============================================================================
 
@@ -508,7 +617,27 @@ end;
 
 function ColorName(const Color: TConsoleColor): String;
 begin
-  Result := GetEnumName(TypeInfo(TConsoleColor), Ord(Color));
+  case Color of
+    TConsoleColor.Black:       Result := 'Black';
+    TConsoleColor.DarkBlue:    Result := 'DarkBlue';
+    TConsoleColor.DarkGreen:   Result := 'DarkGreen';
+    TConsoleColor.DarkCyan:    Result := 'DarkCyan';
+    TConsoleColor.DarkRed:     Result := 'DarkRed';
+    TConsoleColor.DarkMagenta: Result := 'DarkMagenta';
+    TConsoleColor.DarkYellow:  Result := 'DarkYellow';
+    TConsoleColor.Gray:        Result := 'Gray';
+    TConsoleColor.DarkGray:    Result := 'DarkGray';
+    TConsoleColor.Blue:        Result := 'Blue';
+    TConsoleColor.Green:       Result := 'Green';
+    TConsoleColor.Cyan:        Result := 'Cyan';
+    TConsoleColor.Red:         Result := 'Red';
+    TConsoleColor.Magenta:     Result := 'Magenta';
+    TConsoleColor.Yellow:      Result := 'Yellow';
+    TConsoleColor.White:       Result := 'White';
+    TConsoleColor.UseDefault:  Result := 'UseDefault';
+  else
+    Result := 'Unknown';
+  end;
 end;
 
 {$IFDEF LINUX}

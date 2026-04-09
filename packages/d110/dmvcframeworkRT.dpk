@@ -67,6 +67,7 @@ contains
   MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
   MVCFramework.JWT in '..\..\sources\MVCFramework.JWT.pas',
   MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas',
+  MVCFramework.Logger.ColorConsoleRenderer in '..\..\sources\MVCFramework.Logger.ColorConsoleRenderer.pas',
   MVCFramework.Middleware.Analytics in '..\..\sources\MVCFramework.Middleware.Analytics.pas',
   MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler in '..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas',

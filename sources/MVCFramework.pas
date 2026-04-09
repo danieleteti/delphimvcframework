@@ -47,6 +47,7 @@ uses
   System.IOUtils,
   System.SyncObjs,
   System.DateUtils,
+  System.Diagnostics,
   System.Generics.Collections,
   System.Rtti,
   JSONDataObjects,
@@ -2591,34 +2592,40 @@ begin
   Config[TMVCConfigKey.LoadSystemControllers] := 'true';
 
   fOnRouterLog :=
-      procedure(
-        const RouterLogState: TMVCRouterLogState;
-        const Context: TWebContext)
+    procedure(
+      const RouterLogState: TMVCRouterLogState;
+      const Context: TWebContext)
     var
-      lStatusCode: Word;
+      lStatusCode: Integer;
+      lLogType: TLogType;
+      lExtraMsg: string;
     begin
       lStatusCode := Context.Response.StatusCode;
+      lExtraMsg := '';
       case RouterLogState of
         rlsRouteFound:
           begin
             if lStatusCode < HTTP_STATUS.InternalServerError then
-              LogI(Context.Request.HTTPMethodAsString + ':' +
-                Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
-                {Sender.GetQualifiedActionName + ' - ' +} IntToStr(lStatusCode))
+              lLogType := TLogType.Info
             else
-              LogE(Context.Request.HTTPMethodAsString + ':' +
-                Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> ' +
-                {Sender.GetQualifiedActionName + ' - ' +} IntToStr(lStatusCode))
+              lLogType := TLogType.Error;
           end;
         rlsRouteNotFound:
           begin
-            LogW(Context.Request.HTTPMethodAsString + ':' +
-              Context.Request.PathInfo + ' [' + Context.Request.ClientIp + '] -> {ROUTE NOT FOUND} - ' +
-              IntToStr(Context.Response.StatusCode));
+            lLogType := TLogType.Warning;
+            lExtraMsg := 'ROUTE NOT FOUND';
           end;
       else
         raise EMVCException.Create('Invalid RouterLogState');
       end;
+
+      Log.Log(lLogType, lExtraMsg, LOGGERPRO_TAG, [
+        LogParam.S('method', Context.Request.HTTPMethodAsString),
+        LogParam.I('status', lStatusCode),
+        LogParam.S('path', Context.Request.PathInfo),
+        LogParam.S('ip', Context.Request.ClientIp),
+        LogParam.S('duration', Context.Data['__duration'])
+      ]);
     end;
 end;
 
@@ -2780,6 +2787,7 @@ var
   lEValidException: EMVCValidationException;
   lValidationErrorsStr: string;
   lValidationError: TPair<string, string>;
+  lStopWatch: TStopWatch;
 begin
   Result := False;
 
@@ -2801,6 +2809,7 @@ begin
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 {$ENDIF}
+  lStopWatch := TStopWatch.StartNew;
   lParamsTable := TMVCRequestParamsTable.Create;
   try
     lContext := TWebContext.Create(NewServiceContainerResolver, ARequest, AResponse, FConfig, FSerializers);
@@ -3012,6 +3021,7 @@ begin
                 lRouterControllerClazzQualifiedClassName,
                 lRouterMethodToCallName,
                 lHandled);
+              lContext.Data['__duration'] := Format('%dms', [lStopWatch.ElapsedMilliseconds]);
               fOnRouterLog(rlsRouteFound, lContext);
             end
             else // execute-routing
@@ -3020,6 +3030,7 @@ begin
               begin
                 lContext.Response.StatusCode := http_status.NotFound;
                 lContext.Response.ReasonString := 'Not Found';
+                lContext.Data['__duration'] := Format('%dms', [lStopWatch.ElapsedMilliseconds]);
                 fOnRouterLog(rlsRouteNotFound, lContext);
                 if not CustomExceptionHandling(nil, nil, lContext) then
                 begin
@@ -3081,6 +3092,8 @@ begin
                 SendHTTPStatus(lContext, E.HTTPStatusCode, E.Message, E.Classname);
               end;
             end;
+            lContext.Data['__duration'] := Format('%dms', [lStopWatch.ElapsedMilliseconds]);
+            fOnRouterLog(rlsRouteFound, lContext);
           end;
           on Ex: Exception do
           begin
@@ -3115,6 +3128,8 @@ begin
                   Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
               end;
             end;
+            lContext.Data['__duration'] := Format('%dms', [lStopWatch.ElapsedMilliseconds]);
+            fOnRouterLog(rlsRouteFound, lContext);
           end;
         end;
         try

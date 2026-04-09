@@ -104,6 +104,8 @@ implementation
 
 uses
   MVCFramework.Logger,
+  LoggerPro,
+  System.Rtti,
   System.SysUtils,
   System.NetEncoding,
   System.IOUtils,
@@ -364,10 +366,13 @@ begin
     end;
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
-    LogI(AContext.Request.HTTPMethodAsString + ':' +
-      AContext.Request.PathInfo + ' [' + AContext.Request.ClientIp + '] -> ' +
-      ClassName + ' - ' + IntToStr(AContext.Response.StatusCode) + ' ' +
-      AContext.Response.ReasonString);
+    Log.Info('', LOGGERPRO_TAG, [
+      LogParam.S('method', AContext.Request.HTTPMethodAsString),
+      LogParam.I('status', AContext.Response.StatusCode),
+      LogParam.S('path', AContext.Request.PathInfo),
+      LogParam.S('ip', AContext.Request.ClientIp),
+      LogParam.S('duration', AContext.Data['__duration'])
+    ]);
   end;
 end;
 
