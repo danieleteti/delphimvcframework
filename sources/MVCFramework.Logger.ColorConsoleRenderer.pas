@@ -143,12 +143,13 @@ end;
 
 function TDMVCColorConsoleRenderer.LevelColor(const aLogType: TLogType): string;
 begin
+  // Option 3: Distinct colors that don't overlap with HTTP badges
   case aLogType of
-    TLogType.Debug:   Result := Fore.Cyan;
-    TLogType.Info:    Result := Fore.Green;
+    TLogType.Debug:   Result := Fore.DarkGray;
+    TLogType.Info:    Result := Fore.Blue;
     TLogType.Warning: Result := Fore.Yellow;
-    TLogType.Error:   Result := Fore.Red;
-    TLogType.Fatal:   Result := Fore.Magenta;
+    TLogType.Error:   Result := Style.Bright + Fore.Red;
+    TLogType.Fatal:   Result := Fore.White + Back.DarkRed;
   else
     Result := Fore.White;
   end;
