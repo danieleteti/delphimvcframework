@@ -2854,8 +2854,8 @@ begin
               except
                 on Ex: Exception do
                 begin
-                  Log.Error('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
-                    [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
+                  Log.Error('[%s] %s [PathInfo "%s"] - Cannot create controller',
+                    [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest)], LOGGERPRO_TAG);
                   raise EMVCException.Create(http_status.InternalServerError,
                     'Cannot create controller (see log for more info)');
                 end;
@@ -3073,14 +3073,14 @@ begin
                   ], LOGGERPRO_TAG)
               end
               else
-                Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+                Log.Error('[%s] %s [PathInfo "%s"] - %d %s%s',
                   [
                     E.Classname,
                     E.Message,
                     GetRequestShortDescription(ARequest),
                     E.HTTPStatusCode,
                     HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
-                    E.DetailedMessage
+                    IfThen(E.DetailedMessage <> '', ' - ' + E.DetailedMessage)
                   ], LOGGERPRO_TAG);
               if Assigned(lSelectedController) then
               begin
@@ -3108,14 +3108,13 @@ begin
 
             if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
             begin
-              Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+              Log.Error('[%s] %s [PathInfo "%s"] - %d %s - Global Action Exception Handler',
                 [
                   Ex.Classname,
                   Ex.Message,
                   GetRequestShortDescription(ARequest),
                   lRespStatus,
-                  HTTP_STATUS.ReasonStringFor(lRespStatus),
-                  'Global Action Exception Handler'
+                  HTTP_STATUS.ReasonStringFor(lRespStatus)
                 ], LOGGERPRO_TAG);
               if Assigned(lSelectedController) then
               begin
@@ -3140,14 +3139,13 @@ begin
           begin
             if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
             begin
-              Log.Error('[%s] %s [PathInfo "%s"] - %d %s (Custom message: "%s")',
+              Log.Error('[%s] %s [PathInfo "%s"] - %d %s - After Routing Exception Handler',
                 [
                   Ex.Classname,
                   Ex.Message,
                   GetRequestShortDescription(ARequest),
                   HTTP_STATUS.InternalServerError,
-                  HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError),
-                  'After Routing Exception Handler'
+                  HTTP_STATUS.ReasonStringFor(HTTP_STATUS.InternalServerError)
                 ], LOGGERPRO_TAG);
               if Assigned(lSelectedController) then
               begin

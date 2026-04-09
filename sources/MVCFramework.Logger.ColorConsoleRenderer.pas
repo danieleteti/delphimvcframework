@@ -40,7 +40,7 @@ type
   ///   App:   TIME | TID | LEVEL  | MESSAGE
   /// When ANSI is not available, produces plain text (fallback for Win less than 10).
   /// </summary>
-  TDMVCColorConsoleRenderer = class(TLogItemRenderer)
+  TMVCColorConsoleRenderer = class(TLogItemRenderer)
   private
     fFormatSettings: TFormatSettings;
     function GetContextValue(const aLogItem: TLogItem; const aKey: string): string;
@@ -74,20 +74,20 @@ begin
     Result := Result + StringOfChar(' ', Len - Length(Result));
 end;
 
-{ TDMVCColorConsoleRenderer }
+{ TMVCColorConsoleRenderer }
 
-procedure TDMVCColorConsoleRenderer.Setup;
+procedure TMVCColorConsoleRenderer.Setup;
 begin
   EnableANSIColorConsole;
   fFormatSettings := TFormatSettings.Create;
 end;
 
-procedure TDMVCColorConsoleRenderer.TearDown;
+procedure TMVCColorConsoleRenderer.TearDown;
 begin
   // nothing
 end;
 
-function TDMVCColorConsoleRenderer.GetContextValue(const aLogItem: TLogItem; const aKey: string): string;
+function TMVCColorConsoleRenderer.GetContextValue(const aLogItem: TLogItem; const aKey: string): string;
 var
   I: Integer;
 begin
@@ -104,12 +104,12 @@ begin
   end;
 end;
 
-function TDMVCColorConsoleRenderer.IsHTTPLog(const aLogItem: TLogItem): Boolean;
+function TMVCColorConsoleRenderer.IsHTTPLog(const aLogItem: TLogItem): Boolean;
 begin
   Result := GetContextValue(aLogItem, 'status') <> '';
 end;
 
-function TDMVCColorConsoleRenderer.StatusColor(const aStatusCode: Integer): string;
+function TMVCColorConsoleRenderer.StatusColor(const aStatusCode: Integer): string;
 begin
   case aStatusCode div 100 of
     2: Result := Fore.White + Back.DarkGreen;     // Gin: 97;42
@@ -121,7 +121,7 @@ begin
   end;
 end;
 
-function TDMVCColorConsoleRenderer.MethodColor(const aMethod: string): string;
+function TMVCColorConsoleRenderer.MethodColor(const aMethod: string): string;
 begin
   if aMethod = 'GET' then
     Result := Fore.White + Back.DarkBlue          // Gin: 97;44
@@ -141,7 +141,7 @@ begin
     Result := Fore.White + Back.DarkGray;
 end;
 
-function TDMVCColorConsoleRenderer.LevelColor(const aLogType: TLogType): string;
+function TMVCColorConsoleRenderer.LevelColor(const aLogType: TLogType): string;
 begin
   // Option 3: Distinct colors that don't overlap with HTTP badges
   case aLogType of
@@ -155,7 +155,7 @@ begin
   end;
 end;
 
-function TDMVCColorConsoleRenderer.LevelLabel(const aLogType: TLogType): string;
+function TMVCColorConsoleRenderer.LevelLabel(const aLogType: TLogType): string;
 begin
   case aLogType of
     TLogType.Debug:   Result := 'DEBUG';
@@ -168,7 +168,7 @@ begin
   end;
 end;
 
-function TDMVCColorConsoleRenderer.RenderHTTPANSI(const aLogItem: TLogItem): string;
+function TMVCColorConsoleRenderer.RenderHTTPANSI(const aLogItem: TLogItem): string;
 var
   lTime, lStatus, lMethod, lPath, lDuration, lIp, lExtra: string;
   lStatusCode: Integer;
@@ -203,7 +203,7 @@ begin
     lExtra;
 end;
 
-function TDMVCColorConsoleRenderer.RenderAppANSI(const aLogItem: TLogItem): string;
+function TMVCColorConsoleRenderer.RenderAppANSI(const aLogItem: TLogItem): string;
 var
   lTime: string;
 begin
@@ -219,7 +219,7 @@ begin
     ' ' + aLogItem.LogMessage;
 end;
 
-function TDMVCColorConsoleRenderer.RenderPlain(const aLogItem: TLogItem): string;
+function TMVCColorConsoleRenderer.RenderPlain(const aLogItem: TLogItem): string;
 var
   lTime: string;
 begin
@@ -233,7 +233,7 @@ begin
   ]);
 end;
 
-function TDMVCColorConsoleRenderer.RenderLogItem(const aLogItem: TLogItem): string;
+function TMVCColorConsoleRenderer.RenderLogItem(const aLogItem: TLogItem): string;
 begin
   if IsANSIColorConsoleEnabled then
   begin

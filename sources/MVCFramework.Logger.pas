@@ -583,7 +583,7 @@ begin
   if IsConsole and UseConsoleLogger then
   begin
     lBuilder.WriteToConsole
-      .WithRenderer(TDMVCColorConsoleRenderer.Create)
+      .WithRenderer(TMVCColorConsoleRenderer.Create)
       .WithUTF8Output
       .Done;
   end;
