@@ -264,7 +264,9 @@ begin
 
   { Known response headers }
 
-  { Content-Type }
+  { Content-Type - default to text/plain if body exists but no content type set }
+  if (FContentType = '') and ((FContent <> '') or (Assigned(FContentStream) and (FContentStream.Size > 0))) then
+    FContentType := 'text/plain';
   if FContentType <> '' then
   begin
     lContentTypeAnsi := UTF8String(FContentType);
