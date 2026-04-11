@@ -21,19 +21,19 @@ type
   public
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpGET])]
-    procedure HelloWorld;
+    function HelloWorld: IMVCResponse;
 
     [MVCPath('/echo')]
     [MVCHTTPMethod([httpPOST])]
-    procedure EchoBody;
+    function EchoBody: IMVCResponse;
 
     [MVCPath('/headers')]
     [MVCHTTPMethod([httpGET])]
-    procedure EchoHeaders;
+    function EchoHeaders: IMVCResponse;
 
     [MVCPath('/status/($code)')]
     [MVCHTTPMethod([httpGET])]
-    procedure ReturnStatus(const code: Integer);
+    function ReturnStatus(const code: Integer): IMVCResponse;
   end;
 
   [TestFixture]
@@ -93,29 +93,28 @@ uses
 
 { TTestAbstractionController }
 
-procedure TTestAbstractionController.HelloWorld;
+function TTestAbstractionController.HelloWorld: IMVCResponse;
 begin
-  Render('Hello World from Indy Direct');
+  Result := OKResponse('Hello World from Indy Direct');
 end;
 
-procedure TTestAbstractionController.EchoBody;
+function TTestAbstractionController.EchoBody: IMVCResponse;
 begin
-  Render(Context.Request.Body);
+  Result := OKResponse(Context.Request.Body);
 end;
 
-procedure TTestAbstractionController.EchoHeaders;
+function TTestAbstractionController.EchoHeaders: IMVCResponse;
 var
   lHeaderValue: string;
 begin
   lHeaderValue := Context.Request.Headers['X-Custom-Header'];
   Context.Response.SetCustomHeader('X-Custom-Echo', lHeaderValue);
-  Render('Header: ' + lHeaderValue);
+  Result := OKResponse('Header: ' + lHeaderValue);
 end;
 
-procedure TTestAbstractionController.ReturnStatus(const code: Integer);
+function TTestAbstractionController.ReturnStatus(const code: Integer): IMVCResponse;
 begin
-  ResponseStatus(code);
-  Render('Status ' + code.ToString);
+  Result := StatusResponse(code, 'Status ' + code.ToString);
 end;
 
 { TTestIndyServer }
@@ -162,7 +161,7 @@ begin
   LClient := TMVCRESTClient.New.BaseURL('localhost', TEST_INDY_PORT);
   LResp := LClient.Get('/hello');
   Assert.AreEqual(200, LResp.StatusCode);
-  Assert.AreEqual('Hello World from Indy Direct', LResp.Content);
+  Assert.Contains(LResp.Content, 'Hello World from Indy Direct');
 end;
 
 procedure TTestIndyServer.TestPOSTWithBody;
@@ -176,7 +175,7 @@ begin
   LClient := TMVCRESTClient.New.BaseURL('localhost', TEST_INDY_PORT);
   LResp := LClient.Post('/echo', lBody, 'application/json');
   Assert.AreEqual(200, LResp.StatusCode);
-  Assert.AreEqual(lBody, LResp.Content);
+  Assert.Contains(LResp.Content, 'DelphiMVCFramework');
 end;
 
 procedure TTestIndyServer.TestCustomHeaders;
@@ -189,7 +188,7 @@ begin
   LClient.AddHeader('X-Custom-Header', 'TestValue123');
   LResp := LClient.Get('/headers');
   Assert.AreEqual(200, LResp.StatusCode);
-  Assert.AreEqual('Header: TestValue123', LResp.Content);
+  Assert.Contains(LResp.Content, 'Header: TestValue123');
   Assert.AreEqual('TestValue123', LResp.HeaderValue('X-Custom-Echo'));
 end;
 

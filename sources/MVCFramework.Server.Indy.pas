@@ -113,8 +113,6 @@ begin
 end;
 
 procedure TMVCIndyServer.Listen(APort: Integer; const AHost: string);
-var
-  LBinding: TIdSocketHandle;
 begin
   FPort := APort;
   FHost := AHost;

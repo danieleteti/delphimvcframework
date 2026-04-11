@@ -2523,8 +2523,6 @@ var
   lContext: TWebContext;
   lStopWatch: TStopWatch;
 begin
-  Result := False;
-
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
     raise EMVCException.CreateFmt(http_status.RequestEntityTooLarge,
@@ -2565,8 +2563,6 @@ var
   lContext: TWebContext;
   lStopWatch: TStopWatch;
 begin
-  Result := False;
-
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
     raise EMVCException.CreateFmt(http_status.RequestEntityTooLarge,

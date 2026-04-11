@@ -424,7 +424,6 @@ function TMVCIndyDirectRequest.GetQueryParams: TDictionary<string, string>;
 var
   I: Integer;
   lName, lValue: string;
-  lEqPos: Integer;
 begin
   if not Assigned(FQueryParams) then
   begin
