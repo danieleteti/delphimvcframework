@@ -35,6 +35,34 @@ uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Intf;
 
 type
+  TMVCIndyRequestFile = class(TAbstractWebRequestFile)
+  private
+    FFieldName: string;
+    FFileName: string;
+    FStream: TStream;
+    FContentType: string;
+  protected
+    function GetFieldName: string; override;
+    function GetFileName: string; override;
+    function GetStream: TStream; override;
+    function GetContentType: string; override;
+  public
+    constructor Create(const AFieldName, AFileName, AContentType: string; AStream: TStream);
+    destructor Destroy; override;
+  end;
+
+  TMVCIndyRequestFiles = class(TAbstractWebRequestFiles)
+  private
+    FFiles: TObjectList<TMVCIndyRequestFile>;
+  protected
+    function GetCount: Integer; override;
+    function GetItem(AIndex: Integer): TAbstractWebRequestFile; override;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Add(AFile: TMVCIndyRequestFile);
+  end;
+
   TMVCIndyDirectRequest = class(TMVCWebRequest)
   private
     FRequestInfo: TIdHTTPRequestInfo;
@@ -47,10 +75,12 @@ type
     FCachedRawContent: TBytes;
     FCachedRawContentLoaded: Boolean;
     FCachedContentFieldsText: TStringList;
+    FFiles: TMVCIndyRequestFiles;
     procedure ParseCookies;
     procedure EnsureQueryStringParams;
     procedure LoadBody;
     procedure LoadRawContent;
+    procedure ParseMultipartContent;
   protected
     function GetHeader(const AName: string): string; override;
     function GetPathInfo: string; override;
@@ -118,6 +148,7 @@ begin
   FCachedBodyLoaded := False;
   FCachedRawContentLoaded := False;
   FCachedContentFieldsText := nil;
+  FFiles := nil;
   inherited Create(ASerializers);
   DefineContentType;
 end;
@@ -127,6 +158,7 @@ begin
   FQueryStringParams.Free;
   FCookies.Free;
   FCachedContentFieldsText.Free;
+  FFiles.Free;
   inherited;
 end;
 
@@ -278,7 +310,8 @@ end;
 
 function TMVCIndyDirectRequest.GetFiles: TAbstractWebRequestFiles;
 begin
-  Result := nil; // TODO: implement multipart file upload parsing for Indy direct
+  ParseMultipartContent;
+  Result := FFiles;
 end;
 
 function TMVCIndyDirectRequest.GetParamNames: TArray<string>;
@@ -613,6 +646,178 @@ function TMVCIndyDirectRequest.Cookie(const AName: string): string;
 begin
   ParseCookies;
   Result := FCookies.Values[AName];
+end;
+
+procedure TMVCIndyDirectRequest.ParseMultipartContent;
+var
+  lBoundary: string;
+  lContentType: string;
+  lRawStr: string;
+  lParts: TArray<string>;
+  I: Integer;
+  lPart: string;
+  lHeaderSection, lBodySection: string;
+  lSplitPos: Integer;
+  lFileName, lFieldName, lPartContentType: string;
+  lBodyStream: TMemoryStream;
+  lBodyBytes: TBytes;
+  lBoundaryPos: Integer;
+  lFnPos: Integer;
+  lNamePos: Integer;
+begin
+  if Assigned(FFiles) then
+    Exit;
+
+  lContentType := FRequestInfo.ContentType;
+  if not lContentType.ToLower.Contains('multipart/form-data') then
+  begin
+    FFiles := TMVCIndyRequestFiles.Create;
+    Exit;
+  end;
+
+  // Extract boundary from Content-Type header
+  lBoundary := '';
+  lBoundaryPos := Pos('boundary=', LowerCase(lContentType));
+  if lBoundaryPos > 0 then
+  begin
+    lBoundary := Copy(lContentType, lBoundaryPos + 9, MaxInt);
+    // Remove quotes if present
+    if (Length(lBoundary) > 0) and (lBoundary[1] = '"') then
+      lBoundary := AnsiDequotedStr(lBoundary, '"');
+  end;
+
+  if lBoundary = '' then
+  begin
+    FFiles := TMVCIndyRequestFiles.Create;
+    Exit;
+  end;
+
+  FFiles := TMVCIndyRequestFiles.Create;
+
+  // Read raw content
+  LoadRawContent;
+  if Length(FCachedRawContent) = 0 then
+    Exit;
+  lRawStr := TEncoding.UTF8.GetString(FCachedRawContent);
+
+  // Split by boundary
+  lParts := lRawStr.Split(['--' + lBoundary]);
+
+  for I := 1 to Length(lParts) - 1 do // skip first empty part
+  begin
+    lPart := lParts[I];
+    if lPart.StartsWith('--') then
+      Continue; // end boundary marker
+
+    // Split headers from body (separated by double CRLF)
+    lSplitPos := Pos(#13#10#13#10, lPart);
+    if lSplitPos = 0 then
+      Continue;
+
+    lHeaderSection := Trim(Copy(lPart, 1, lSplitPos - 1));
+    lBodySection := Copy(lPart, lSplitPos + 4, MaxInt);
+    // Remove trailing CRLF
+    if lBodySection.EndsWith(#13#10) then
+      lBodySection := Copy(lBodySection, 1, Length(lBodySection) - 2);
+
+    // Parse Content-Disposition for filename and field name
+    lFileName := '';
+    lFieldName := '';
+    lPartContentType := 'application/octet-stream';
+
+    // Extract filename
+    lFnPos := Pos('filename="', lHeaderSection);
+    if lFnPos > 0 then
+    begin
+      lFileName := Copy(lHeaderSection, lFnPos + 10, MaxInt);
+      lFileName := Copy(lFileName, 1, Pos('"', lFileName) - 1);
+    end;
+
+    // Extract field name
+    lNamePos := Pos('name="', lHeaderSection);
+    if lNamePos > 0 then
+    begin
+      lFieldName := Copy(lHeaderSection, lNamePos + 6, MaxInt);
+      lFieldName := Copy(lFieldName, 1, Pos('"', lFieldName) - 1);
+    end;
+
+    // Only add as file if it has a filename
+    if lFileName <> '' then
+    begin
+      lBodyStream := TMemoryStream.Create;
+      lBodyBytes := TEncoding.UTF8.GetBytes(lBodySection);
+      if Length(lBodyBytes) > 0 then
+        lBodyStream.WriteBuffer(lBodyBytes[0], Length(lBodyBytes));
+      lBodyStream.Position := 0;
+      FFiles.Add(TMVCIndyRequestFile.Create(lFieldName, lFileName, lPartContentType, lBodyStream));
+    end;
+  end;
+end;
+
+{ TMVCIndyRequestFile }
+
+constructor TMVCIndyRequestFile.Create(const AFieldName, AFileName, AContentType: string; AStream: TStream);
+begin
+  inherited Create;
+  FFieldName := AFieldName;
+  FFileName := AFileName;
+  FContentType := AContentType;
+  FStream := AStream;
+end;
+
+destructor TMVCIndyRequestFile.Destroy;
+begin
+  FStream.Free;
+  inherited;
+end;
+
+function TMVCIndyRequestFile.GetFieldName: string;
+begin
+  Result := FFieldName;
+end;
+
+function TMVCIndyRequestFile.GetFileName: string;
+begin
+  Result := FFileName;
+end;
+
+function TMVCIndyRequestFile.GetStream: TStream;
+begin
+  Result := FStream;
+end;
+
+function TMVCIndyRequestFile.GetContentType: string;
+begin
+  Result := FContentType;
+end;
+
+{ TMVCIndyRequestFiles }
+
+constructor TMVCIndyRequestFiles.Create;
+begin
+  inherited Create;
+  FFiles := TObjectList<TMVCIndyRequestFile>.Create(True);
+end;
+
+destructor TMVCIndyRequestFiles.Destroy;
+begin
+  FFiles.Free;
+  inherited;
+end;
+
+function TMVCIndyRequestFiles.GetCount: Integer;
+begin
+  Result := FFiles.Count;
+end;
+
+function TMVCIndyRequestFiles.GetItem(AIndex: Integer): TAbstractWebRequestFile;
+begin
+  Result := FFiles[AIndex];
+end;
+
+procedure TMVCIndyRequestFiles.Add(AFile: TMVCIndyRequestFile);
+begin
+  FFiles.Add(AFile);
 end;
 
 end.

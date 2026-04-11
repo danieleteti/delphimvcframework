@@ -72,11 +72,11 @@ type
     [Test]
     procedure TestReqWithParams;
 
-    // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' àèéùòì@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
+    // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
     [Test]
-    [TestCase('1', ' à,è')]
-    [TestCase('2', 'é,ù,ò')]
-    [TestCase('3', 'ì,@,[')]
+    [TestCase('1', ' ï¿½,ï¿½')]
+    [TestCase('2', 'ï¿½,ï¿½,ï¿½')]
+    [TestCase('3', 'ï¿½,@,[')]
     [TestCase('4', '],{,}')]
     [TestCase('5', '(,),\')]
     [TestCase('6', '=,;,&')]
@@ -371,6 +371,12 @@ type
 
     [Test]
     procedure TestIssue806;
+
+    [Test]
+    procedure TestKeepAlive;
+
+    [Test]
+    procedure TestFileUpload;
 
   end;
 
@@ -1222,17 +1228,17 @@ begin
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name1').JsonValue.Value;
-  Assert.areEqual('jørn', S);
+  Assert.areEqual('jï¿½rn', S);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name3').JsonValue.Value;
-  Assert.areEqual('àèéìòù', S);
+  Assert.areEqual('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½', S);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name2').JsonValue.Value;
-  Assert.areEqual('Što je Unicode?', S,
+  Assert.areEqual('ï¿½to je Unicode?', S,
     'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   lJSONObj.Free;
   { WARNING!!! }
@@ -1900,6 +1906,49 @@ begin
   Assert.areEqual('False', r.Content);
 end;
 
+procedure TServerTest.TestKeepAlive;
+var
+  r: IMVCRESTResponse;
+  I: Integer;
+begin
+  // Make multiple sequential requests on the same client connection.
+  // If keep-alive is broken, subsequent requests would fail or timeout.
+  for I := 1 to 5 do
+  begin
+    r := RESTClient.Get('/keepalive/ping');
+    Assert.areEqual(HTTP_STATUS.OK, r.StatusCode,
+      Format('Keep-alive request %d failed with status %d', [I, r.StatusCode]));
+    Assert.Contains(r.Content, 'pong',
+      Format('Keep-alive request %d returned unexpected content', [I]));
+  end;
+end;
+
+procedure TServerTest.TestFileUpload;
+var
+  LClient: IMVCRESTClient;
+  r: IMVCRESTResponse;
+  lTempFile: string;
+  lStream: TStringStream;
+begin
+  lTempFile := TPath.Combine(TPath.GetTempPath, 'dmvc_test_upload.txt');
+  lStream := TStringStream.Create('Hello DMVCFramework Upload Test');
+  try
+    lStream.SaveToFile(lTempFile);
+  finally
+    lStream.Free;
+  end;
+  try
+    LClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
+    r := LClient.AddFile('testfile', lTempFile, 'text/plain').Post('/fileupload');
+    Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, 'File upload failed: ' + r.Content);
+    Assert.Contains(r.Content, 'files=1', 'Should have 1 file');
+    Assert.Contains(r.Content, 'dmvc_test_upload.txt', 'Should contain filename');
+  finally
+    if TFile.Exists(lTempFile) then
+      TFile.Delete(lTempFile);
+  end;
+end;
+
 procedure TServerTest.TestMiddlewareHandler;
 var
   r: IMVCRESTResponse;
@@ -2228,7 +2277,7 @@ begin
   P := TPerson.Create;
   try
     P.FirstName := 'Daniele';
-    P.LastName := 'àòùèéì';
+    P.LastName := 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
@@ -2255,7 +2304,7 @@ begin
     GetDefaultSerializer.DeserializeObject(r.Content, P);
     // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
     Assert.areEqual('Daniele', P.FirstName);
-    Assert.areEqual('àòùèéì', P.LastName);
+    Assert.areEqual('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½', P.LastName);
     Assert.areEqual(true, P.Married);
     Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
@@ -2271,7 +2320,7 @@ begin
   P := TPerson.Create;
   try
     P.FirstName := 'Daniele';
-    P.LastName := 'àòùèéì';
+    P.LastName := 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
@@ -2296,7 +2345,7 @@ begin
     GetDefaultSerializer.DeserializeObject(r.Content, P);
     // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
     Assert.areEqual('Daniele', P.FirstName);
-    Assert.areEqual('àòùèéì', P.LastName);
+    Assert.areEqual('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½', P.LastName);
     Assert.areEqual(true, P.Married);
     Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
@@ -2382,7 +2431,7 @@ begin
           TEncoding.Convert(
             TEncoding.Default,
             lISO8859_1Encoding,
-            lISO8859_1Encoding.GetBytes('àèéìòù')
+            lISO8859_1Encoding.GetBytes('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½')
             )
           );
   finally
@@ -2391,7 +2440,7 @@ begin
   res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN)
     .Post('/testconsumes/textiso8859_1', lVal, BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
-  // Assert.AreNotEqual('àèéìòù', res.Content, 'non iso8859-1 text is rendered ok whan should not');
+  // Assert.AreNotEqual('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½', res.Content, 'non iso8859-1 text is rendered ok whan should not');
   SplitContentMediaTypeAndCharset(res.ContentType, lContentType, lContentCharset);
   Assert.areEqual(lContentType, TMVCMediaType.TEXT_PLAIN);
   Assert.areEqual(lContentCharset, TMVCCharSet.ISO88591);
