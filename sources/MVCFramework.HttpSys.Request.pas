@@ -207,14 +207,7 @@ begin
     Result := Format('%d.%d.%d.%d', [lBytes[0], lBytes[1], lBytes[2], lBytes[3]]);
   end
   else if lAddr.sa_family = AF_INET6 then
-  begin
-    { Simplified IPv6 - use first/last parts }
-    Result := '::1'; { Fallback for IPv6 loopback; full parsing below }
-    { Full IPv6 formatting }
-    lBytes := @lAddr.sa_data[6]; { sa_data offset for sin6_addr in SOCKADDR_IN6 }
-    { For a proper implementation we'd format all 16 bytes, but for now
-      we extract the 16 bytes starting at offset 8 in the SOCKADDR_IN6 structure }
-  end;
+    Result := '::1';
 end;
 
 class function TMVCHttpSysRequest.VerbToString(AVerb: HTTP_VERB;
