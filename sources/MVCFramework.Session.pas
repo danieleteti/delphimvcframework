@@ -67,7 +67,8 @@ type
     destructor Destroy; override;
     procedure MarkAsUsed; virtual;
     procedure ApplyChanges;
-    function SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string; virtual;
+    function SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string; overload; virtual;
+    function SendSessionCookie(const aCookies: TCookieCollection; const aSessionId: string): string; overload; virtual;
     function ToString: string; override;
     function IsExpired: Boolean; virtual;
     function Keys: TArray<String>; virtual;
@@ -314,12 +315,17 @@ begin
 end;
 
 function TMVCWebSession.SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string;
+begin
+  Result := SendSessionCookie(aWebResponse.Cookies, aSessionId);
+end;
+
+function TMVCWebSession.SendSessionCookie(const aCookies: TCookieCollection; const aSessionId: string): string;
 var
   lCookie: TCookie;
   lSessionTimeout: Integer;
 begin
-  ClearSessionCookiesAlreadySet(aWebResponse.Cookies);
-  lCookie := aWebResponse.Cookies.Add;
+  ClearSessionCookiesAlreadySet(aCookies);
+  lCookie := aCookies.Add;
   lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
   lCookie.Value := aSessionId;
   lCookie.HttpOnly := fHttpOnly;

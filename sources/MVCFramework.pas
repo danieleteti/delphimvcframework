@@ -1151,7 +1151,8 @@ type
       const ControllerClass: TMVCControllerClazz;
       const ConstructorMethod: TRttiMethod): TMVCController;
   public
-    class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest; out SessionCookieMustSent: Boolean): string; static;
+    class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest; out SessionCookieMustSent: Boolean): string; overload; static;
+    class function ExtractSessionIdFromRequest(const ARequest: TMVCWebRequest; out SessionCookieMustSent: Boolean): string; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
   public
     constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil); reintroduce; overload; deprecated 'Use TMVCEngine.Create(configAction) with IMVCServer';
@@ -2135,7 +2136,7 @@ var
 begin
   if not Assigned(FWebSession) then
   begin
-    lSessionID := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest, lSessionCookieMustBeSent);
+    lSessionID := TMVCEngine.ExtractSessionIdFromRequest(FRequest, lSessionCookieMustBeSent);
     if lSessionID.IsEmpty then
     begin
       InternalSessionStart(fWebSession);
@@ -2151,7 +2152,7 @@ begin
       begin
         if lSessionCookieMustBeSent then
         begin
-          fWebSession.SendSessionCookie(Self.fResponse.RawWebResponse, fWebSession.SessionId);
+          fWebSession.SendSessionCookie(Self.fResponse.Cookies, fWebSession.SessionId);
         end;
       end;
     end;
@@ -2167,7 +2168,7 @@ begin
     Session := GetSessionFactory.CreateNewSession(GenerateSessionID);
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
-    Session.SendSessionCookie(Self.fResponse.RawWebResponse, Session.SessionId);
+    Session.SendSessionCookie(Self.fResponse.Cookies, Session.SessionId);
   end;
 end;
 
@@ -2182,7 +2183,7 @@ var
 begin
   if Assigned(FWebSession) then
     Exit(FWebSession.SessionId);
-  Result := TMVCEngine.ExtractSessionIdFromWebRequest(fRequest.RawWebRequest, lSessionCookieMustBeSent);
+  Result := TMVCEngine.ExtractSessionIdFromRequest(fRequest, lSessionCookieMustBeSent);
 end;
 
 function TWebContext.SessionMustBeClose: Boolean;
@@ -3021,7 +3022,19 @@ begin
   if Result.IsEmpty then
   begin
     Result := AWebRequest.QueryFields.Values[TMVCConstants.SESSION_TOKEN_NAME];
-    //if session id arrived on URL and not on cookie, we need to resend the session cookie
+    SessionCookieMustSent := not Result.IsEmpty;
+  end;
+  if not Result.IsEmpty then
+    Result := TIdURI.URLDecode(Result);
+end;
+
+class function TMVCEngine.ExtractSessionIdFromRequest(const ARequest: TMVCWebRequest; out SessionCookieMustSent: Boolean): string;
+begin
+  SessionCookieMustSent := False;
+  Result := ARequest.Cookie(TMVCConstants.SESSION_TOKEN_NAME);
+  if Result.IsEmpty then
+  begin
+    Result := ARequest.QueryStringParam(TMVCConstants.SESSION_TOKEN_NAME);
     SessionCookieMustSent := not Result.IsEmpty;
   end;
   if not Result.IsEmpty then

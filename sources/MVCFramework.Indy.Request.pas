@@ -171,13 +171,13 @@ begin
     lEqPos := Pos('=', lPair);
     if lEqPos > 0 then
     begin
-      lName := TIdURI.URLDecode(Copy(lPair, 1, lEqPos - 1));
-      lValue := TIdURI.URLDecode(Copy(lPair, lEqPos + 1, MaxInt));
+      lName := TIdURI.URLDecode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
+      lValue := TIdURI.URLDecode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
       FQueryStringParams.Add(lName + '=' + lValue);
     end
     else
     begin
-      FQueryStringParams.Add(TIdURI.URLDecode(lPair) + '=');
+      FQueryStringParams.Add(TIdURI.URLDecode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
     end;
   end;
 end;

@@ -31,7 +31,7 @@ interface
 uses
   System.Classes, System.SysUtils,
   Web.HTTPApp,
-  IdCustomHTTPServer, IdContext,
+  IdCustomHTTPServer, IdContext, IdCookie,
   MVCFramework;
 
 type
@@ -204,11 +204,20 @@ begin
       Trim(FCustomHeaders.ValueFromIndex[I]);
   end;
 
-  // Sync cookies to response headers
+  // Sync cookies to Indy response via Set-Cookie headers
   for I := 0 to FCookies.Count - 1 do
   begin
     lCookie := FCookies[I];
-    FResponseInfo.RawHeaders.AddValue('Set-Cookie', lCookie.HeaderValue);
+    with FResponseInfo.Cookies.Add do
+    begin
+      CookieName := lCookie.Name;
+      Value := lCookie.Value;
+      Path := lCookie.Path;
+      Domain := lCookie.Domain;
+      Expires := lCookie.Expires;
+      Secure := lCookie.Secure;
+      HttpOnly := lCookie.HttpOnly;
+    end;
   end;
 
   // Indy sends the response automatically when the handler returns

@@ -5,6 +5,7 @@ program TestServerIndyDirect;
 uses
   System.SysUtils,
   System.IOUtils,
+  FireDAC.Stan.StorageJSON,
   MVCFramework.Logger,
   MVCFramework.Commons,
   {$IFNDEF LINUX}
