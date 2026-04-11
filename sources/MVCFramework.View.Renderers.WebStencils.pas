@@ -260,6 +260,7 @@ begin
       lWebStencilsProcessor.OnValue := OnGetValue;
       lWebStencilsProcessor.InputFileName := lViewFileName;
       lWebStencilsProcessor.PathTemplate := Config[TMVCConfigKey.ViewPath];
+      { WebStencils requires TWebRequest specifically - this is a WebBroker-only feature }
       lWebStencilsProcessor.WebRequest := WebContext.Request.RawWebRequest;
       lWebStencilsProcessor.OnFile := OnGetFile;
 

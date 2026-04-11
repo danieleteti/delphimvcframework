@@ -556,7 +556,7 @@ begin
   end;
 
   lContentType := BuildContentType(AMediaType, AContentCharset);
-  AContext.Response.RawWebResponse.ContentType := lContentType;
+  AContext.Response.ContentType := lContentType;
 
   lEncoding := TEncoding.GetEncoding(AContentCharset);
   try
@@ -1168,7 +1168,7 @@ begin
   try
     lJsonObject.S['token'] := AToken;
     lContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET);
-    AContext.Response.RawWebResponse.ContentType := lContentType;
+    AContext.Response.ContentType := lContentType;
 
     lEncoding := TEncoding.GetEncoding(TMVCConstants.DEFAULT_CONTENT_CHARSET);
     try
@@ -1197,7 +1197,7 @@ begin
   InvalidateCookie(AContext);
 
   // Render JSON response
-  AContext.Response.RawWebResponse.ContentType := ContentType;
+  AContext.Response.ContentType := ContentType;
   lEncoding := TEncoding.UTF8;
   AContext.Response.SetContentStream(
     TBytesStream.Create(lEncoding.GetBytes(ReturnMessage)),

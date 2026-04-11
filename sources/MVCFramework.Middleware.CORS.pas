@@ -145,7 +145,7 @@ procedure TMVCCORSMiddleware.FillCommonHeaders(AContext: TWebContext; const AAll
 var
   lCustomHeaders: TStrings;
 begin
-  lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
+  lCustomHeaders := AContext.Response.CustomHeaders;
   lCustomHeaders.Values['Access-Control-Allow-Origin'] := AAllowOrigin;
   lCustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   lCustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
@@ -205,7 +205,7 @@ begin
   if not lAllowOrigin.IsEmpty then
   begin
     FillCommonHeaders(AContext, lAllowOrigin);
-    lCustomHeaders := AContext.Response.RawWebResponse.CustomHeaders;
+    lCustomHeaders := AContext.Response.CustomHeaders;
     lCustomHeaders.Values['Access-Control-Expose-Headers'] := FExposeHeaders; {only for not preflight requests}
   end;
   AHandled := False;

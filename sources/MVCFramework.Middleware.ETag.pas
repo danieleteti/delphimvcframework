@@ -75,13 +75,13 @@ var
   lRequestETag: string;
   lETag: string;
 begin
-  lContentStream := AContext.Response.RawWebResponse.ContentStream;
+  lContentStream := AContext.Response.ContentStream;
   if not Assigned(lContentStream) then
   begin
     Exit;
   end;
 
-  if not AContext.Response.RawWebResponse.GetCustomHeader('ETag').IsEmpty then
+  if not AContext.Response.GetCustomHeader('ETag').IsEmpty then
   begin
     Exit;
   end;
@@ -98,7 +98,7 @@ begin
     AContext.Response.Content := '';
     if lContentStream is TFileStream then
     begin
-      AContext.Response.RawWebResponse.ContentStream := nil;
+      AContext.Response.InternalSetContentStream(nil, False);
     end
     else
     begin

@@ -153,30 +153,28 @@ implementation
 uses
   IdIOHandler,
   IdGlobal,
-  IdContext,
-  IdHTTPWebBrokerBridge;
+  IdContext;
 
 const
   LF = #10;
   CRLF = #13#10;
-
-type
-  TIdHTTPAppResponseAccess = class(TIdHTTPAppResponse);
 
 { TMVCStreamWriter }
 
 constructor TMVCStreamWriter.Create(const AContext: TWebContext;
   const AContentType: string; const ACharset: string);
 var
+  lClientConn: TObject;
   lRawContext: TIdContext;
   lIOHandler: TIdIOHandler;
   lEncoding: IIdTextEncoding;
 begin
   inherited Create;
-  if not (AContext.Response.RawWebResponse is TIdHTTPAppResponse) then
+  lClientConn := AContext.Request.GetClientConnection;
+  if not Assigned(lClientConn) or not (lClientConn is TIdContext) then
     raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-      'Streaming writers require an Indy-based application server');
-  lRawContext := TIdHTTPAppResponseAccess(AContext.Response.RawWebResponse).FThread;
+      'SSE requires an Indy-based server backend');
+  lRawContext := TIdContext(lClientConn);
   lIOHandler := lRawContext.Connection.IOHandler;
   lEncoding := IndyTextEncoding(ACharset);
   FIOHandler := lIOHandler;

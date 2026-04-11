@@ -92,7 +92,7 @@ begin
     begin
       if lPathInfo = fRequestedPathInfos[I] then
       begin
-        Context.Response.RawWebResponse.SendRedirect(fRedirectToURL);
+        Context.Response.SendRedirect(fRedirectToURL);
         LogI(Format('Redirected from [%s] to [%s]', [lPathInfo, fRedirectToURL]));
         Handled := True;
       end;

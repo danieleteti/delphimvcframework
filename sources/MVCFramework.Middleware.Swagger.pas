@@ -555,7 +555,7 @@ begin
   ASwagDoc.Host := fHost;
   if ASwagDoc.Host.IsEmpty then
   begin
-    ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, AContext.Request.RawWebRequest.ServerPort]);
+    ASwagDoc.Host := Format('%s:%d', [AContext.Request.Host, AContext.Request.ServerPort]);
   end;
 
   ASwagDoc.BasePath := fBasePath;
@@ -585,7 +585,7 @@ var
   lContentType: String;
 begin
   lContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8);
-  AContext.Response.RawWebResponse.ContentType := LContentType;
+  AContext.Response.ContentType := LContentType;
   AContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8), lContentType);
 end;
 
