@@ -177,7 +177,7 @@ type
     ErrorPageURL = 'error_page_url';
   end;
 
-  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI, hftIndyDirect, hftCrossSocket, hftHttpSys);
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI, hftIndyDirect, hftHttpSys);
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record

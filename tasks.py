@@ -369,7 +369,7 @@ def clean(ctx, folder=None):
 
 def _run_tests(ctx, platform, server_type="classic"):
     """Internal function to build and execute unit tests for a specific platform and server type.
-    server_type: 'classic' (WebBroker), 'indydirect' (TMVCIndyServer), or 'crosssocket' (TMVCCrossSocketServer)"""
+    server_type: 'classic' (WebBroker), 'indydirect' (TMVCIndyServer), or 'httpsys' (TMVCHttpSysServer)"""
     bin_folder = "bin32" if platform == "Win32" else "bin64"
     testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
 
@@ -378,11 +378,6 @@ def _run_tests(ctx, platform, server_type="classic"):
         server_exe = r"unittests\general\TestServer\bin\TestServerIndyDirect.exe"
         server_process_name = "TestServerIndyDirect.exe"
         server_label = "Indy Direct"
-    elif server_type == "crosssocket":
-        testserver = r"unittests\general\TestServer\TestServerCrossSocket.dproj"
-        server_exe = r"unittests\general\TestServer\bin\TestServerCrossSocket.exe"
-        server_process_name = "TestServerCrossSocket.exe"
-        server_label = "CrossSocket"
     elif server_type == "httpsys":
         testserver = r"unittests\general\TestServer\TestServerHttpSys.dproj"
         server_exe = r"unittests\general\TestServer\bin\TestServerHttpSys.exe"
@@ -458,24 +453,6 @@ def tests64_indydirect(ctx):
 @task(pre=[tests32_indydirect, tests64_indydirect])
 def tests_indydirect(ctx):
     """Builds and execute all unit tests (Win32 and Win64) with Indy Direct server"""
-    pass
-
-
-@task()
-def tests32_crosssocket(ctx):
-    """Builds and execute the unit tests (Win32) with CrossSocket server"""
-    _run_tests(ctx, "Win32", "crosssocket")
-
-
-@task()
-def tests64_crosssocket(ctx):
-    """Builds and execute the unit tests (Win64) with CrossSocket server"""
-    _run_tests(ctx, "Win64", "crosssocket")
-
-
-@task(pre=[tests32_crosssocket, tests64_crosssocket])
-def tests_crosssocket(ctx):
-    """Builds and execute all unit tests (Win32 and Win64) with CrossSocket server"""
     pass
 
 
