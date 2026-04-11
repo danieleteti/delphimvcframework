@@ -70,14 +70,11 @@ type
     FRequest: ICrossHttpRequest;
     FConnection: ICrossHttpConnection;
     FQueryStringParams: TStringList;
-    FCachedBody: string;
-    FCachedBodyLoaded: Boolean;
     FCachedRawContent: TBytes;
     FCachedRawContentLoaded: Boolean;
     FCachedContentFieldsText: TStringList;
     FFiles: TMVCCrossSocketRequestFiles;
     procedure EnsureQueryStringParams;
-    procedure LoadBody;
     procedure LoadRawContent;
     procedure ParseFiles;
   protected
@@ -110,8 +107,8 @@ type
     function GetAuthorization: string; override;
     function GetQueryFieldsDelimitedText: string; override;
     function GetRawContent: TBytes; override;
-    function GetClientConnection: TObject; override;
   public
+    function GetClientConnection: TObject; override;
     constructor Create(const AConnection: ICrossHttpConnection;
       const ARequest: ICrossHttpRequest;
       const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -210,7 +207,6 @@ begin
   FRequest := ARequest;
   FConnection := AConnection;
   FQueryStringParams := nil;
-  FCachedBodyLoaded := False;
   FCachedRawContentLoaded := False;
   FCachedContentFieldsText := nil;
   FFiles := nil;
@@ -444,23 +440,6 @@ begin
     end;
   else
     FCachedRawContent := TEncoding.UTF8.GetBytes(DoGetContent);
-  end;
-end;
-
-procedure TMVCCrossSocketRequest.LoadBody;
-begin
-  if FCachedBodyLoaded then Exit;
-  FCachedBodyLoaded := True;
-  case FRequest.BodyType of
-    btBinary:
-    begin
-      LoadRawContent;
-      FCachedBody := TEncoding.UTF8.GetString(FCachedRawContent);
-    end;
-    btUrlEncoded:
-      FCachedBody := '';
-  else
-    FCachedBody := '';
   end;
 end;
 

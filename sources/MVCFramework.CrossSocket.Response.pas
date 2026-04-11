@@ -65,12 +65,12 @@ type
     procedure SetContent(const AValue: string); override;
     procedure SetContentEncoding(const Value: string); override;
     function GetContentStream: TStream; override;
-    procedure InternalSetContentStream(const AStream: TStream; const AOwns: Boolean); override;
     function GetContentLength: Int64; override;
     procedure SetDate(const AValue: TDateTime); override;
-    function GetCustomHeader(const AName: string): string; override;
     function GetRawWebResponse: TWebResponse; override;
   public
+    procedure InternalSetContentStream(const AStream: TStream; const AOwns: Boolean); override;
+    function GetCustomHeader(const AName: string): string; override;
     constructor Create(const AConnection: ICrossHttpConnection;
       const AResponse: ICrossHttpResponse);
     destructor Destroy; override;
@@ -247,7 +247,6 @@ procedure TMVCCrossSocketResponse.Flush;
 var
   I: Integer;
   lCookie: TCookie;
-  lBodyBytes: TBytes;
 begin
   if FSent then Exit;
   FSent := True;
