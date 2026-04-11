@@ -8,22 +8,21 @@ uses
 type
 
   [MVCPath('/api')]
-  TMyController = class(TMVCController) 
+  TMyController = class(TMVCController)
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure Index;
+    function Index: IMVCResponse;
   end;
 
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils;
+  System.SysUtils;
 
-procedure TMyController.Index;
+function TMyController.Index: IMVCResponse;
 begin
-  //use Context property to access to the HTTP request and response
-  Render('X');
+  Result := OKResponse('X');
 end;
 
 end.
