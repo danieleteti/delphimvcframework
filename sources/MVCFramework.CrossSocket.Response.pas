@@ -271,13 +271,11 @@ begin
   for I := 0 to FCookies.Count - 1 do
   begin
     lCookie := FCookies[I];
-    with FResponse.Cookies.Add(lCookie.Name, lCookie.Value, lCookie.Expires) do
-    begin
-      Path := lCookie.Path;
-      Domain := lCookie.Domain;
-      HttpOnly := lCookie.HttpOnly;
-      Secure := lCookie.Secure;
-    end;
+    FResponse.Cookies.AddOrSet(
+      lCookie.Name, lCookie.Value,
+      Round((lCookie.Expires - Now) * SecsPerDay),
+      lCookie.Path, lCookie.Domain,
+      lCookie.HttpOnly, lCookie.Secure);
   end;
 
   // Send body
