@@ -212,8 +212,7 @@ begin
   lClientConn := Context.Request.GetClientConnection;
   if not Assigned(lClientConn) or not (lClientConn is TIdContext) then
     raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-      'SSE requires an Indy-based server backend');
-
+      'SSE requires an Indy-based server backend (use TMVCIndyServer)');
   LRawContext := TIdContext(lClientConn);
   LIOHandler := LRawContext.Connection.IOHandler;
   LEncoding := IndyTextEncoding(Charset);

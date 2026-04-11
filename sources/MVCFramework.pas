@@ -416,6 +416,7 @@ type
     function ContentParam(const AName: string): string; virtual; abstract;
     function Cookie(const AName: string): string; virtual; abstract;
     procedure ReadTotalContent;
+    function GetClientConnection: TObject; virtual;
     { Non-virtual public methods - use base class state or call virtual methods }
     function ClientPrefer(const AMediaType: string): Boolean;
     function ClientPreferHTML: Boolean;
@@ -1800,6 +1801,11 @@ begin
 end;
 
 function TMVCWebRequest.GetRawWebRequest: TWebRequest;
+begin
+  Result := nil;
+end;
+
+function TMVCWebRequest.GetClientConnection: TObject;
 begin
   Result := nil;
 end;

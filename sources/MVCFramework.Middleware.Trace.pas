@@ -136,7 +136,7 @@ begin
         lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
         lContentType.StartsWith('text/') then
       begin
-        lContentStream.WriteString(EncodingGetString(lContentType,
+        lContentStream.WriteString(TEncoding.UTF8.GetString(
           Context.Request.RawContent).Substring(0, fMaxBodySize));
       end
       else
