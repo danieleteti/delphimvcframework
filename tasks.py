@@ -367,24 +367,35 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
 
-def _run_tests(ctx, platform):
-    """Internal function to build and execute unit tests for a specific platform"""
+def _run_tests(ctx, platform, server_type="classic"):
+    """Internal function to build and execute unit tests for a specific platform and server type.
+    server_type: 'classic' (WebBroker) or 'indydirect' (TMVCIndyServer)"""
     bin_folder = "bin32" if platform == "Win32" else "bin64"
     testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
-    testserver = r"unittests\general\TestServer\TestServer.dproj"
+
+    if server_type == "indydirect":
+        testserver = r"unittests\general\TestServer\TestServerIndyDirect.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServerIndyDirect.exe"
+        server_process_name = "TestServerIndyDirect.exe"
+        server_label = "Indy Direct"
+    else:
+        testserver = r"unittests\general\TestServer\TestServer.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServer.exe"
+        server_process_name = "TestServer.exe"
+        server_label = "Classic (WebBroker)"
 
     print(f"\n{'='*60}")
-    print(f"Running {platform} tests")
+    print(f"Running {platform} tests with {server_label} server")
     print(f"{'='*60}")
 
     print("\nBuilding Unit Test client")
     build_delphi_project(ctx, testclient, config="CI", platform=platform)
-    print("\nBuilding Test Server")
+    print(f"\nBuilding Test Server ({server_label})")
     build_delphi_project(ctx, testserver, config="CI", platform=platform)
 
-    print("\nExecuting tests...")
+    print(f"\nExecuting tests against {server_label} server...")
     server_proc = subprocess.Popen(
-        [r"unittests\general\TestServer\bin\TestServer.exe"],
+        [server_exe],
         shell=True
     )
     time.sleep(1)
@@ -396,29 +407,53 @@ def _run_tests(ctx, platform):
         if r.returncode != 0:
             raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
     finally:
-        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"],
+        subprocess.run(["taskkill", "/f", "/im", server_process_name],
                       capture_output=True)
     if r.returncode > 0:
         print(r)
-        print(f"Unit Tests Failed ({platform})")
-        raise Exit(f"Unit tests failed ({platform})")
+        print(f"Unit Tests Failed ({platform}, {server_label})")
+        raise Exit(f"Unit tests failed ({platform}, {server_label})")
 
 
 @task()
 def tests32(ctx):
-    """Builds and execute the unit tests (Win32)"""
+    """Builds and execute the unit tests (Win32) with classic server"""
     _run_tests(ctx, "Win32")
 
 
 @task()
 def tests64(ctx):
-    """Builds and execute the unit tests (Win64)"""
+    """Builds and execute the unit tests (Win64) with classic server"""
     _run_tests(ctx, "Win64")
 
 
 @task(pre=[tests32, tests64])
 def tests(ctx):
-    """Builds and execute all unit tests (Win32 and Win64)"""
+    """Builds and execute all unit tests (Win32 and Win64) with classic server"""
+    pass
+
+
+@task()
+def tests32_indydirect(ctx):
+    """Builds and execute the unit tests (Win32) with Indy Direct server"""
+    _run_tests(ctx, "Win32", "indydirect")
+
+
+@task()
+def tests64_indydirect(ctx):
+    """Builds and execute the unit tests (Win64) with Indy Direct server"""
+    _run_tests(ctx, "Win64", "indydirect")
+
+
+@task(pre=[tests32_indydirect, tests64_indydirect])
+def tests_indydirect(ctx):
+    """Builds and execute all unit tests (Win32 and Win64) with Indy Direct server"""
+    pass
+
+
+@task(pre=[tests, tests_indydirect])
+def tests_all(ctx):
+    """Builds and execute all unit tests with both Classic and Indy Direct servers"""
     pass
 
 
