@@ -383,6 +383,11 @@ def _run_tests(ctx, platform, server_type="classic"):
         server_exe = r"unittests\general\TestServer\bin\TestServerCrossSocket.exe"
         server_process_name = "TestServerCrossSocket.exe"
         server_label = "CrossSocket"
+    elif server_type == "httpsys":
+        testserver = r"unittests\general\TestServer\TestServerHttpSys.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServerHttpSys.exe"
+        server_process_name = "TestServerHttpSys.exe"
+        server_label = "HTTP.sys"
     else:
         testserver = r"unittests\general\TestServer\TestServer.dproj"
         server_exe = r"unittests\general\TestServer\bin\TestServer.exe"
@@ -474,9 +479,27 @@ def tests_crosssocket(ctx):
     pass
 
 
-@task(pre=[tests, tests_indydirect, tests_crosssocket])
+@task()
+def tests32_httpsys(ctx):
+    """Builds and execute the unit tests (Win32) with HTTP.sys server"""
+    _run_tests(ctx, "Win32", "httpsys")
+
+
+@task()
+def tests64_httpsys(ctx):
+    """Builds and execute the unit tests (Win64) with HTTP.sys server"""
+    _run_tests(ctx, "Win64", "httpsys")
+
+
+@task(pre=[tests32_httpsys, tests64_httpsys])
+def tests_httpsys(ctx):
+    """Builds and execute all unit tests (Win32 and Win64) with HTTP.sys server"""
+    pass
+
+
+@task(pre=[tests, tests_indydirect, tests_httpsys])
 def tests_all(ctx):
-    """Builds and execute all unit tests with Classic, Indy Direct, and CrossSocket servers"""
+    """Builds and execute all unit tests with Classic, Indy Direct, and HTTP.sys servers"""
     pass
 
 
