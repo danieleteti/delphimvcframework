@@ -741,7 +741,7 @@ end;
 
 function TMVCHttpSysRequest.GetRawPathInfo: string;
 begin
-  Result := FRawUrl;
+  Result := FPathInfo;
 end;
 
 function TMVCHttpSysRequest.GetContentLength: Int64;
