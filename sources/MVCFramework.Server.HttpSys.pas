@@ -38,6 +38,10 @@ unit MVCFramework.Server.HttpSys;
 
 {$I dmvcframework.inc}
 
+{$IFNDEF MSWINDOWS}
+{$MESSAGE FATAL 'MVCFramework.Server.HttpSys is only available on Windows (HTTP.sys is a Windows kernel-mode component).'}
+{$ENDIF}
+
 interface
 
 {$IFDEF MSWINDOWS}
@@ -61,6 +65,12 @@ type
     FMaxConnections: Integer;
     FKeepAlive: Boolean;
     FListenQueue: Integer;
+    FUseHTTPS: Boolean;
+    FCertFile: string;
+    FKeyFile: string;
+    FRootCertFile: string;
+    FCertPassword: string;
+    FHTTPSConfigurator: TMVCHTTPSConfigurator;
     FHttpApiInitialized: Boolean;
     FUrlRegistered: Boolean;
     procedure HandleRequest(ARequest: PHTTP_REQUEST; const ABodyBytes: TBytes);
@@ -77,6 +87,18 @@ type
     function GetKeepAlive: Boolean;
     procedure SetListenQueue(AValue: Integer);
     function GetListenQueue: Integer;
+    procedure SetUseHTTPS(AValue: Boolean);
+    function GetUseHTTPS: Boolean;
+    procedure SetCertFile(const AValue: string);
+    function GetCertFile: string;
+    procedure SetKeyFile(const AValue: string);
+    function GetKeyFile: string;
+    procedure SetRootCertFile(const AValue: string);
+    function GetRootCertFile: string;
+    procedure SetCertPassword(const AValue: string);
+    function GetCertPassword: string;
+    procedure SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+    function GetHTTPSConfigurator: TMVCHTTPSConfigurator;
   public
     constructor Create; overload;
     constructor Create(AEngine: TMVCEngine); overload;
@@ -117,6 +139,7 @@ begin
   FMaxConnections := 4096;
   FKeepAlive := True;
   FListenQueue := 200;
+  FUseHTTPS := False;
   FHttpApiInitialized := False;
   FUrlRegistered := False;
 end;
@@ -213,8 +236,11 @@ begin
   { Create request queue }
   CheckError(HttpCreateHttpHandle(FReqQueueHandle, 0), 'HttpCreateHttpHandle');
 
-  { Register URL prefix }
-  lUrl := Format('http://%s:%d/', [AHost, APort]);
+  { Register URL prefix - https requires sslcert binding via netsh }
+  if FUseHTTPS then
+    lUrl := Format('https://%s:%d/', [AHost, APort])
+  else
+    lUrl := Format('http://%s:%d/', [AHost, APort]);
   FUrl := lUrl;
   CheckError(HttpAddUrl(FReqQueueHandle, PWideChar(WideString(lUrl)), nil), 'HttpAddUrl');
   FUrlRegistered := True;
@@ -423,6 +449,71 @@ end;
 function TMVCHttpSysServer.GetListenQueue: Integer;
 begin
   Result := FListenQueue;
+end;
+
+procedure TMVCHttpSysServer.SetUseHTTPS(AValue: Boolean);
+begin
+  FUseHTTPS := AValue;
+end;
+
+function TMVCHttpSysServer.GetUseHTTPS: Boolean;
+begin
+  Result := FUseHTTPS;
+end;
+
+// HTTP.sys delegates SSL to the Windows kernel: cert is bound to the port
+// externally via "netsh http add sslcert ipport=... certhash=... appid={...}".
+// Cert properties are accepted to satisfy IMVCServer but ignored at runtime.
+procedure TMVCHttpSysServer.SetCertFile(const AValue: string);
+begin
+  FCertFile := AValue;
+end;
+
+function TMVCHttpSysServer.GetCertFile: string;
+begin
+  Result := FCertFile;
+end;
+
+procedure TMVCHttpSysServer.SetKeyFile(const AValue: string);
+begin
+  FKeyFile := AValue;
+end;
+
+function TMVCHttpSysServer.GetKeyFile: string;
+begin
+  Result := FKeyFile;
+end;
+
+procedure TMVCHttpSysServer.SetRootCertFile(const AValue: string);
+begin
+  FRootCertFile := AValue;
+end;
+
+function TMVCHttpSysServer.GetRootCertFile: string;
+begin
+  Result := FRootCertFile;
+end;
+
+procedure TMVCHttpSysServer.SetCertPassword(const AValue: string);
+begin
+  FCertPassword := AValue;
+end;
+
+function TMVCHttpSysServer.GetCertPassword: string;
+begin
+  Result := FCertPassword;
+end;
+
+// HTTP.sys handles SSL in the kernel; HTTPSConfigurator is accepted for
+// IMVCServer conformance but never invoked.
+procedure TMVCHttpSysServer.SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+begin
+  FHTTPSConfigurator := AValue;
+end;
+
+function TMVCHttpSysServer.GetHTTPSConfigurator: TMVCHTTPSConfigurator;
+begin
+  Result := FHTTPSConfigurator;
 end;
 
 {$ENDIF}

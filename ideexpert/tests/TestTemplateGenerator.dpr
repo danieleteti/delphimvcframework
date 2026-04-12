@@ -467,12 +467,29 @@ begin
     if AConfig.S[TConfigKey.program_server_engine] = '' then
       AConfig.S[TConfigKey.program_server_engine] := 'webbroker';
 
-    // Generate program file based on server engine first, then program type
+    // Generate program file based on server engine + program type combinations
     if AConfig.S[TConfigKey.program_server_engine] = 'indydirect' then
     begin
-      LogVerbose('Generating Indy Direct program...');
-      LSource := TTestTemplateEngine.Render('program_indydirect.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+      begin
+        LogVerbose('Generating Indy Direct Service program...');
+        LSource := TTestTemplateEngine.Render('program_service_indydirect.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+
+        LogVerbose('Generating ServiceU.pas (Indy Direct)...');
+        LSource := TTestTemplateEngine.Render('service_indydirect.pas.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
+
+        LogVerbose('Generating ServiceU.dfm...');
+        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
+      end
+      else
+      begin
+        LogVerbose('Generating Indy Direct program...');
+        LSource := TTestTemplateEngine.Render('program_indydirect.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      end;
 
       LogVerbose('Generating EngineConfigU.pas...');
       LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
@@ -480,9 +497,26 @@ begin
     end
     else if AConfig.S[TConfigKey.program_server_engine] = 'httpsys' then
     begin
-      LogVerbose('Generating HTTP.sys program...');
-      LSource := TTestTemplateEngine.Render('program_httpsys.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+      begin
+        LogVerbose('Generating HTTP.sys Service program...');
+        LSource := TTestTemplateEngine.Render('program_service_httpsys.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+
+        LogVerbose('Generating ServiceU.pas (HTTP.sys)...');
+        LSource := TTestTemplateEngine.Render('service_httpsys.pas.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
+
+        LogVerbose('Generating ServiceU.dfm...');
+        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
+      end
+      else
+      begin
+        LogVerbose('Generating HTTP.sys program...');
+        LSource := TTestTemplateEngine.Render('program_httpsys.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      end;
 
       LogVerbose('Generating EngineConfigU.pas...');
       LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
@@ -490,7 +524,7 @@ begin
     end
     else if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
     begin
-      LogVerbose('Generating Windows Service program...');
+      LogVerbose('Generating Windows Service program (WebBroker)...');
       LSource := TTestTemplateEngine.Render('program_service.dpr.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
 
@@ -1159,6 +1193,89 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // === Indy Direct + Windows Service Tests ===
+
+  // Test 37: Indy Direct as Windows Service (HTTP)
+  LTestCase.Name := 'winservice_indydirect_http';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  ATestCases.Add(LTestCase);
+
+  // Test 38: Indy Direct Service with CRUD + middleware
+  LTestCase.Name := 'winservice_indydirect_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 39: Indy Direct as Windows Service (HTTPS via TaurusTLS)
+  LTestCase.Name := 'winservice_indydirect_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === HTTP.sys + Windows Service Tests ===
+
+  // Test 40: HTTP.sys as Windows Service (HTTP)
+  LTestCase.Name := 'winservice_httpsys_http';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  ATestCases.Add(LTestCase);
+
+  // Test 41: HTTP.sys Service with CRUD + middleware
+  LTestCase.Name := 'winservice_httpsys_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 42: HTTP.sys as Windows Service (HTTPS - kernel SSL)
+  LTestCase.Name := 'winservice_httpsys_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === Console + HTTPS Tests for new engines ===
+
+  // Test 43: Indy Direct console HTTPS
+  LTestCase.Name := 'indydirect_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // Test 44: HTTP.sys console HTTPS
+  LTestCase.Name := 'httpsys_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
   ATestCases.Add(LTestCase);
 end;
 

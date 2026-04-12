@@ -51,9 +51,16 @@ type
     FMaxConnections: Integer;
     FKeepAlive: Boolean;
     FListenQueue: Integer;
+    FUseHTTPS: Boolean;
+    FCertFile: string;
+    FKeyFile: string;
+    FRootCertFile: string;
+    FCertPassword: string;
+    FHTTPSConfigurator: TMVCHTTPSConfigurator;
     procedure OnParseAuthentication(AContext: TIdContext;
       const AAuthType, AAuthData: String;
       var VUsername, VPassword: String; var VHandled: Boolean);
+    procedure ConfigureHTTPS;
   protected
     procedure SetEngine(AEngine: TMVCEngine);
     function GetEngine: TMVCEngine;
@@ -65,12 +72,30 @@ type
     function GetKeepAlive: Boolean;
     procedure SetListenQueue(AValue: Integer);
     function GetListenQueue: Integer;
+    procedure SetUseHTTPS(AValue: Boolean);
+    function GetUseHTTPS: Boolean;
+    procedure SetCertFile(const AValue: string);
+    function GetCertFile: string;
+    procedure SetKeyFile(const AValue: string);
+    function GetKeyFile: string;
+    procedure SetRootCertFile(const AValue: string);
+    function GetRootCertFile: string;
+    procedure SetCertPassword(const AValue: string);
+    function GetCertPassword: string;
+    procedure SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+    function GetHTTPSConfigurator: TMVCHTTPSConfigurator;
   public
     constructor Create(AEngineConfigProc: TMVCEngineConfigProc); overload;
     destructor Destroy; override;
     procedure Listen(APort: Integer = 8080; const AHost: string = '0.0.0.0');
     procedure Stop;
     function IsRunning: Boolean;
+    /// <summary>
+    /// Underlying TIdHTTPWebBrokerBridge. Exposed for HTTPS providers
+    /// (HTTPSConfigurator callbacks) — application code should not touch
+    /// it directly.
+    /// </summary>
+    property Bridge: TIdHTTPWebBrokerBridge read FBridge;
   end;
 
 implementation
@@ -117,6 +142,7 @@ begin
   FMaxConnections := 4096;
   FKeepAlive := True;
   FListenQueue := 200;
+  FUseHTTPS := False;
 end;
 
 destructor TMVCWebBrokerServer.Destroy;
@@ -126,6 +152,22 @@ begin
   FBridge.Free;
   _EngineConfigProc := nil;
   inherited;
+end;
+
+procedure TMVCWebBrokerServer.ConfigureHTTPS;
+begin
+  if not FUseHTTPS then
+    Exit;
+  if (FCertFile = '') or (FKeyFile = '') then
+    raise EMVCException.Create(
+      'TMVCWebBrokerServer: HTTPS enabled but CertFile/KeyFile not set');
+  if not Assigned(FHTTPSConfigurator) then
+    raise EMVCException.Create(
+      'TMVCWebBrokerServer: HTTPS requested but HTTPSConfigurator not assigned. ' +
+      'Use a provider unit, e.g.:' + sLineBreak +
+      '  uses MVCFramework.Server.HTTPS.TaurusTLS;' + sLineBreak +
+      '  LServer.HTTPSConfigurator := TaurusTLSWebBrokerConfigurator;');
+  FHTTPSConfigurator(Self);
 end;
 
 procedure TMVCWebBrokerServer.Listen(APort: Integer; const AHost: string);
@@ -144,6 +186,8 @@ begin
   FBridge.DefaultPort := FPort;
   FBridge.MaxConnections := FMaxConnections;
   FBridge.ListenQueue := FListenQueue;
+
+  ConfigureHTTPS;
 
   FBridge.Active := True;
 end;
@@ -213,6 +257,66 @@ end;
 function TMVCWebBrokerServer.GetListenQueue: Integer;
 begin
   Result := FListenQueue;
+end;
+
+procedure TMVCWebBrokerServer.SetUseHTTPS(AValue: Boolean);
+begin
+  FUseHTTPS := AValue;
+end;
+
+function TMVCWebBrokerServer.GetUseHTTPS: Boolean;
+begin
+  Result := FUseHTTPS;
+end;
+
+procedure TMVCWebBrokerServer.SetCertFile(const AValue: string);
+begin
+  FCertFile := AValue;
+end;
+
+function TMVCWebBrokerServer.GetCertFile: string;
+begin
+  Result := FCertFile;
+end;
+
+procedure TMVCWebBrokerServer.SetKeyFile(const AValue: string);
+begin
+  FKeyFile := AValue;
+end;
+
+function TMVCWebBrokerServer.GetKeyFile: string;
+begin
+  Result := FKeyFile;
+end;
+
+procedure TMVCWebBrokerServer.SetRootCertFile(const AValue: string);
+begin
+  FRootCertFile := AValue;
+end;
+
+function TMVCWebBrokerServer.GetRootCertFile: string;
+begin
+  Result := FRootCertFile;
+end;
+
+procedure TMVCWebBrokerServer.SetCertPassword(const AValue: string);
+begin
+  FCertPassword := AValue;
+end;
+
+function TMVCWebBrokerServer.GetCertPassword: string;
+begin
+  Result := FCertPassword;
+end;
+
+procedure TMVCWebBrokerServer.SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+begin
+  FHTTPSConfigurator := AValue;
+end;
+
+function TMVCWebBrokerServer.GetHTTPSConfigurator: TMVCHTTPSConfigurator;
+begin
+  Result := FHTTPSConfigurator;
 end;
 
 end.

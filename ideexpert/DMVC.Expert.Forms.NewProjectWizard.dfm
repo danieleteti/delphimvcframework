@@ -602,14 +602,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object lblProjectName: TLabel
         Left = 25
-        Top = 150
+        Top = 158
         Width = 64
         Height = 13
         Caption = 'Project Name'
       end
       object lblProjectFolder: TLabel
         Left = 25
-        Top = 200
+        Top = 208
         Width = 203
         Height = 13
         Caption = 'Base Folder (project created as subfolder)'
@@ -620,9 +620,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Width = 460
         Height = 50
         AutoSize = False
-        Caption = 
-          'Standard HTTP server. Best choice for development and reverse-pr' +
-          'oxy deployments.'
+        Caption = 'Standard HTTP server.'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clGray
         Font.Height = -11
@@ -635,15 +633,35 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Left = 24
         Top = 24
         Width = 220
-        Height = 105
+        Height = 80
         Caption = 'Server Protocol'
         ItemIndex = 0
         Items.Strings = (
           'HTTP'
-          'HTTPS (requires TaurusTLS)'
+          'HTTPS'
           'FastCGI')
         TabOrder = 0
         OnClick = rgServerProtocolClick
+      end
+      object lblServerEngine: TLabel
+        Left = 24
+        Top = 110
+        Width = 64
+        Height = 13
+        Caption = 'Server Engine'
+      end
+      object cbServerEngine: TComboBox
+        Left = 24
+        Top = 126
+        Width = 220
+        Height = 21
+        Style = csDropDownList
+        ItemIndex = 1
+        TabOrder = 7
+        Items.Strings = (
+          'WebBroker (Indy bridge)'
+          'Indy Direct'
+          'HTTP.sys (kernel-mode, Windows)')
       end
       object edtServerPort: TEdit
         Left = 260
@@ -665,7 +683,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object edtProjectName: TEdit
         Left = 24
-        Top = 169
+        Top = 177
         Width = 401
         Height = 21
         TabOrder = 3
@@ -673,14 +691,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object edtProjectFolder: TEdit
         Left = 24
-        Top = 219
+        Top = 227
         Width = 369
         Height = 21
         TabOrder = 4
       end
       object btnBrowseFolder: TButton
         Left = 399
-        Top = 217
+        Top = 225
         Width = 26
         Height = 25
         Caption = '...'
@@ -689,7 +707,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object chkCreateSubfolder: TCheckBox
         Left = 24
-        Top = 246
+        Top = 254
         Width = 280
         Height = 17
         Caption = 'Create project subfolder'
@@ -920,14 +938,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Caption = 'Rate Limit'
           TabOrder = 6
         end
-        object chkJWT: TCheckBox
-          Left = 310
-          Top = 50
-          Width = 130
-          Height = 17
-          Caption = 'JWT (Cookie)'
-          TabOrder = 7
-        end
         object chkActiveRecord: TCheckBox
           Left = 28
           Top = 121
@@ -984,9 +994,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object lblSummary: TLabel
         Left = 24
-        Top = 250
+        Top = 360
         Width = 710
-        Height = 160
+        Height = 200
         AutoSize = False
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clGray
@@ -1059,21 +1069,26 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Generate custom .env configuration'
         TabOrder = 6
       end
-      object chkJWTAsymmetric: TCheckBox
+      object rgJWTAlgorithm: TRadioGroup
         Left = 24
         Top = 232
-        Width = 230
-        Height = 17
-        Caption = 'Use asymmetric JWT signing (RS256)'
+        Width = 400
+        Height = 90
+        Caption = 'JWT Authentication'
+        ItemIndex = 0
+        Items.Strings = (
+          'None (no JWT middleware)'
+          'HS256 (HMAC, shared secret)'
+          'RS256 (RSA, asymmetric public/private keys)')
         TabOrder = 7
       end
       object lblJWTAsymmetricWarning: TLabel
-        Left = 260
-        Top = 233
-        Width = 460
+        Left = 24
+        Top = 328
+        Width = 700
         Height = 13
         AutoSize = False
-        Caption = 'Requires TaurusTLS in search path + OpenSSL DLLs in output directory'
+        Caption = 'RS256 requires TaurusTLS in search path + OpenSSL DLLs in output directory'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clMaroon
         Font.Height = -11

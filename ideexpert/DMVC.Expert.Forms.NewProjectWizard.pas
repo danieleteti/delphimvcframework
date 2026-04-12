@@ -82,6 +82,8 @@ type
     edtServerPort: TEdit;
     btnTestPort: TButton;
     lblProtocolDescription: TLabel;
+    lblServerEngine: TLabel;
+    cbServerEngine: TComboBox;
     lblProjectName: TLabel;
     edtProjectName: TEdit;
     lblProjectFolder: TLabel;
@@ -114,7 +116,6 @@ type
     chkTrace: TCheckBox;
     chkETAG: TCheckBox;
     chkRateLimit: TCheckBox;
-    chkJWT: TCheckBox;
     chkActiveRecord: TCheckBox;
     EdtFDConnDefFileName: TEdit;
     EdtConnDefName: TEdit;
@@ -129,7 +130,7 @@ type
     chkSqids: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
-    chkJWTAsymmetric: TCheckBox;
+    rgJWTAlgorithm: TRadioGroup;
     lblJWTAsymmetricWarning: TLabel;
     chkCreateSubfolder: TCheckBox;
     lblSummary: TLabel;
@@ -443,12 +444,58 @@ begin
        end;
   end;
 
-  // JWT asymmetric signing only available when JWT is enabled
-  chkJWTAsymmetric.Enabled := chkJWT.Checked;
-  lblJWTAsymmetricWarning.Enabled := chkJWT.Checked and chkJWTAsymmetric.Checked;
-  lblJWTAsymmetricWarning.Visible := chkJWTAsymmetric.Visible and chkJWTAsymmetric.Checked;
-  if not chkJWT.Checked then
-    chkJWTAsymmetric.Checked := False;
+  // Mutual exclusion: FastCGI requires WebBroker (forces engine + disables combo)
+  if rgServerProtocol.ItemIndex = 2 then
+  begin
+    cbServerEngine.ItemIndex := 0; // WebBroker
+    cbServerEngine.Enabled := False;
+    lblServerEngine.Enabled := False;
+    chkWebSocketServer.Enabled := True;
+    lblProtocolDescription.Caption :=
+      'FastCGI deployment behind a web server. Requires WebBroker engine.';
+  end
+  else
+  begin
+    cbServerEngine.Enabled := True;
+    lblServerEngine.Enabled := True;
+    case cbServerEngine.ItemIndex of
+      1: begin // Indy Direct: HTTPS uses TaurusTLS
+           if rgServerProtocol.ItemIndex = 1 then
+             lblProtocolDescription.Caption :=
+               'Indy Direct. HTTPS requires TaurusTLS (OpenSSL 1.1.1+) and certificate files.'
+           else
+             lblProtocolDescription.Caption :=
+               'Indy Direct: standalone Indy server, no WebBroker.';
+           chkWebSocketServer.Enabled := True;
+         end;
+      2: begin // HTTP.sys: no WebSocket, Windows-only; HTTPS via kernel
+           chkWebSocketServer.Checked := False;
+           chkWebSocketServer.Enabled := False;
+           if rgServerProtocol.ItemIndex = 1 then
+             lblProtocolDescription.Caption :=
+               'HTTP.sys kernel-mode (IOCP). HTTPS handled by Windows kernel via ' +
+               'netsh http add sslcert. WebSocket not supported.'
+           else
+             lblProtocolDescription.Caption :=
+               'HTTP.sys: Windows kernel-mode HTTP server (IOCP). WebSocket not supported.';
+         end;
+    else
+      // WebBroker: all features enabled; HTTPS uses TaurusTLS
+      chkWebSocketServer.Enabled := True;
+      case rgServerProtocol.ItemIndex of
+        0: lblProtocolDescription.Caption :=
+             'WebBroker (Indy bridge). Standard HTTP server.';
+        1: lblProtocolDescription.Caption :=
+             'WebBroker (Indy bridge). HTTPS requires TaurusTLS (OpenSSL 1.1.1+) ' +
+             'and certificate files.';
+      end;
+    end;
+  end;
+
+  // RS256 (asymmetric) requires extra runtime deps — show the warning
+  // only when that algorithm is selected.
+  lblJWTAsymmetricWarning.Visible := rgJWTAlgorithm.ItemIndex = 2;
+  lblJWTAsymmetricWarning.Enabled := rgJWTAlgorithm.ItemIndex = 2;
 end;
 
 procedure TfrmDMVCNewProject.btnFinishClick(Sender: TObject);
@@ -490,8 +537,12 @@ begin
   lHints := [];
   if chkActiveRecord.Checked then
     lHints := lHints + ['- Include required FireDAC units in your project'];
-  if rgServerProtocol.ItemIndex = 1 then
+  // TaurusTLS only needed for HTTPS with WebBroker or Indy Direct
+  // HTTP.sys delegates TLS to the Windows kernel (netsh http add sslcert)
+  if (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex <> 2) then
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
+  if (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex = 2) then
+    lHints := lHints + ['- HTTP.sys HTTPS: bind certificate to port via "netsh http add sslcert ipport=0.0.0.0:PORT certhash=THUMBPRINT appid={GUID}"'];
   if Length(lHints) > 0 then
     ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
 end;
@@ -758,12 +809,9 @@ begin
       if chkCompression.Checked then LMiddlewares.Add('Compression');
       if chkCORS.Checked then LMiddlewares.Add('CORS');
       if chkStaticFiles.Checked then LMiddlewares.Add('Static Files');
-      if chkJWT.Checked then
-      begin
-        if chkJWTAsymmetric.Checked then
-          LMiddlewares.Add('JWT (RS256 - requires TaurusTLS)')
-        else
-          LMiddlewares.Add('JWT');
+      case rgJWTAlgorithm.ItemIndex of
+        1: LMiddlewares.Add('JWT (HS256)');
+        2: LMiddlewares.Add('JWT (RS256 - requires TaurusTLS)');
       end;
       if chkActiveRecord.Checked then LMiddlewares.Add('ActiveRecord');
       if chkETAG.Checked then LMiddlewares.Add('ETag');
@@ -838,12 +886,26 @@ begin
     2: fModel.S['program.server.protocol'] := 'fastcgi';
   end;
 
+  case cbServerEngine.ItemIndex of
+    0: fModel.S[TConfigKey.program_server_engine] := 'webbroker';
+    1: fModel.S[TConfigKey.program_server_engine] := 'indydirect';
+    2: fModel.S[TConfigKey.program_server_engine] := 'httpsys';
+  else
+    fModel.S[TConfigKey.program_server_engine] := 'indydirect';
+  end;
+
   case rgApplicationType.ItemIndex of
     0: begin // Console (Win/Linux)
-         case rgServerProtocol.ItemIndex of
-           0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
-           1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
-           2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+         case cbServerEngine.ItemIndex of
+           1: fModel.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+           2: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+         else
+           // WebBroker console: program_type derives from protocol
+           case rgServerProtocol.ItemIndex of
+             0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+             1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
+             2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+           end;
          end;
        end;
     1: fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
@@ -865,8 +927,9 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_etag] := chkETAG.Checked;
   fModel.B[TConfigKey.webmodule_middleware_cors] := chkCORS.Checked;
   fModel.B[TConfigKey.webmodule_middleware_ratelimit] := chkRateLimit.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_jwt] := chkJWT.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := chkJWT.Checked and chkJWTAsymmetric.Checked;
+  // rgJWTAlgorithm: 0=None, 1=HS256, 2=RS256
+  fModel.B[TConfigKey.webmodule_middleware_jwt] := rgJWTAlgorithm.ItemIndex > 0;
+  fModel.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := rgJWTAlgorithm.ItemIndex = 2;
   fModel.B[TConfigKey.webmodule_middleware_activerecord] := chkActiveRecord.Checked;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] := EdtConnDefName.Text;
   fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] := EdtFDConnDefFileName.Text;

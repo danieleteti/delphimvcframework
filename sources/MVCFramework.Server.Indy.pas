@@ -43,6 +43,12 @@ type
     FMaxConnections: Integer;
     FKeepAlive: Boolean;
     FListenQueue: Integer;
+    FUseHTTPS: Boolean;
+    FCertFile: string;
+    FKeyFile: string;
+    FRootCertFile: string;
+    FCertPassword: string;
+    FHTTPSConfigurator: TMVCHTTPSConfigurator;
     procedure OnCommandGet(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo;
       AResponseInfo: TIdHTTPResponseInfo);
@@ -55,6 +61,7 @@ type
     procedure OnParseAuthentication(AContext: TIdContext;
       const AAuthType, AAuthData: String;
       var VUsername, VPassword: String; var VHandled: Boolean);
+    procedure ConfigureHTTPS;
   protected
     procedure SetEngine(AEngine: TMVCEngine);
     function GetEngine: TMVCEngine;
@@ -66,6 +73,18 @@ type
     function GetKeepAlive: Boolean;
     procedure SetListenQueue(AValue: Integer);
     function GetListenQueue: Integer;
+    procedure SetUseHTTPS(AValue: Boolean);
+    function GetUseHTTPS: Boolean;
+    procedure SetCertFile(const AValue: string);
+    function GetCertFile: string;
+    procedure SetKeyFile(const AValue: string);
+    function GetKeyFile: string;
+    procedure SetRootCertFile(const AValue: string);
+    function GetRootCertFile: string;
+    procedure SetCertPassword(const AValue: string);
+    function GetCertPassword: string;
+    procedure SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+    function GetHTTPSConfigurator: TMVCHTTPSConfigurator;
   public
     constructor Create; overload;
     constructor Create(AEngine: TMVCEngine); overload;
@@ -73,6 +92,12 @@ type
     procedure Listen(APort: Integer = 8080; const AHost: string = '0.0.0.0');
     procedure Stop;
     function IsRunning: Boolean;
+    /// <summary>
+    /// Exposes the underlying TIdHTTPServer for advanced Indy-specific
+    /// configuration. HTTPS callers should NOT use this — set UseHTTPS
+    /// + cert properties on the IMVCServer interface instead.
+    /// </summary>
+    property HTTPServer: TIdHTTPServer read FHTTPServer;
   end;
 
 implementation
@@ -96,6 +121,7 @@ begin
   FMaxConnections := 4096;
   FKeepAlive := True;
   FListenQueue := 200;
+  FUseHTTPS := False;
 end;
 
 constructor TMVCIndyServer.Create(AEngine: TMVCEngine);
@@ -112,6 +138,22 @@ begin
   inherited;
 end;
 
+procedure TMVCIndyServer.ConfigureHTTPS;
+begin
+  if not FUseHTTPS then
+    Exit;
+  if (FCertFile = '') or (FKeyFile = '') then
+    raise EMVCException.Create(
+      'TMVCIndyServer: HTTPS enabled but CertFile/KeyFile not set');
+  if not Assigned(FHTTPSConfigurator) then
+    raise EMVCException.Create(
+      'TMVCIndyServer: HTTPS requested but HTTPSConfigurator not assigned. ' +
+      'Use a provider unit, e.g.:' + sLineBreak +
+      '  uses MVCFramework.Server.HTTPS.TaurusTLS;' + sLineBreak +
+      '  LServer.HTTPSConfigurator := TaurusTLSIndyConfigurator;');
+  FHTTPSConfigurator(Self);
+end;
+
 procedure TMVCIndyServer.Listen(APort: Integer; const AHost: string);
 begin
   FPort := APort;
@@ -121,6 +163,8 @@ begin
   FHTTPServer.MaxConnections := FMaxConnections;
   FHTTPServer.KeepAlive := FKeepAlive;
   FHTTPServer.ListenQueue := FListenQueue;
+
+  ConfigureHTTPS;
 
   FHTTPServer.Active := True;
 end;
@@ -229,6 +273,66 @@ end;
 function TMVCIndyServer.GetListenQueue: Integer;
 begin
   Result := FListenQueue;
+end;
+
+procedure TMVCIndyServer.SetUseHTTPS(AValue: Boolean);
+begin
+  FUseHTTPS := AValue;
+end;
+
+function TMVCIndyServer.GetUseHTTPS: Boolean;
+begin
+  Result := FUseHTTPS;
+end;
+
+procedure TMVCIndyServer.SetCertFile(const AValue: string);
+begin
+  FCertFile := AValue;
+end;
+
+function TMVCIndyServer.GetCertFile: string;
+begin
+  Result := FCertFile;
+end;
+
+procedure TMVCIndyServer.SetKeyFile(const AValue: string);
+begin
+  FKeyFile := AValue;
+end;
+
+function TMVCIndyServer.GetKeyFile: string;
+begin
+  Result := FKeyFile;
+end;
+
+procedure TMVCIndyServer.SetRootCertFile(const AValue: string);
+begin
+  FRootCertFile := AValue;
+end;
+
+function TMVCIndyServer.GetRootCertFile: string;
+begin
+  Result := FRootCertFile;
+end;
+
+procedure TMVCIndyServer.SetCertPassword(const AValue: string);
+begin
+  FCertPassword := AValue;
+end;
+
+function TMVCIndyServer.GetCertPassword: string;
+begin
+  Result := FCertPassword;
+end;
+
+procedure TMVCIndyServer.SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+begin
+  FHTTPSConfigurator := AValue;
+end;
+
+function TMVCIndyServer.GetHTTPSConfigurator: TMVCHTTPSConfigurator;
+begin
+  Result := FHTTPSConfigurator;
 end;
 
 end.

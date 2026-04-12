@@ -372,22 +372,36 @@ begin
   if AConfig.S[TConfigKey.program_server_engine] = '' then
     AConfig.S[TConfigKey.program_server_engine] := 'webbroker';
 
-  // Project files - branching on server engine first, then program type
+  // Project files - branching on server engine + program type combinations
   if AConfig.S[TConfigKey.program_server_engine] = 'indydirect' then
   begin
     // Indy Direct: no WebBroker, no WebModule - uses EngineConfigU instead
-    SaveFile(AProjectName + '.dpr', RenderTemplate('program_indydirect.dpr.tpro', AConfig));
+    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_service_indydirect.dpr.tpro', AConfig));
+      SaveFile('ServiceU.pas', RenderTemplate('service_indydirect.pas.tpro', AConfig));
+      SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
+    end
+    else
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_indydirect.dpr.tpro', AConfig));
     SaveFile('EngineConfigU.pas', RenderTemplate('engineconfig.pas.tpro', AConfig));
   end
   else if AConfig.S[TConfigKey.program_server_engine] = 'httpsys' then
   begin
     // HTTP.sys: no WebBroker, no WebModule - uses EngineConfigU instead
-    SaveFile(AProjectName + '.dpr', RenderTemplate('program_httpsys.dpr.tpro', AConfig));
+    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_service_httpsys.dpr.tpro', AConfig));
+      SaveFile('ServiceU.pas', RenderTemplate('service_httpsys.pas.tpro', AConfig));
+      SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
+    end
+    else
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_httpsys.dpr.tpro', AConfig));
     SaveFile('EngineConfigU.pas', RenderTemplate('engineconfig.pas.tpro', AConfig));
   end
   else if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
   begin
-    // Windows Service uses different program template and adds ServiceU unit
+    // Windows Service (WebBroker) uses different program template and adds ServiceU unit
     SaveFile(AProjectName + '.dpr', RenderTemplate('program_service.dpr.tpro', AConfig));
     SaveFile('ServiceU.pas', RenderTemplate('service.pas.tpro', AConfig));
     SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));

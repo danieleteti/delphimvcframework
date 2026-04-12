@@ -1155,8 +1155,28 @@ type
     class function ExtractSessionIdFromRequest(const ARequest: TMVCWebRequest; out SessionCookieMustSent: Boolean): string; static;
     class procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection); static;
   public
-    constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil); reintroduce; overload; deprecated 'Use TMVCEngine.Create(configAction) with IMVCServer';
+    constructor Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig> = nil); reintroduce; overload;
     constructor Create(const AConfigAction: TProc<TMVCConfig> = nil); reintroduce; overload;
+    /// <summary>
+    /// Engine wired to a TWebModule (WebBroker mode). Lifecycle managed by
+    /// the WebModule (engine becomes a child component).
+    /// Class function (not constructor) to avoid C++ binding ambiguity
+    /// with the underlying Create overloads — same call-site syntax.
+    /// </summary>
+    class function CreateForWebBroker(const AWebModule: TWebModule;
+      const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
+    /// <summary>
+    /// Standalone engine for use with TMVCIndyServer. No WebModule is
+    /// created; HandleRequest is driven by the Indy server adapter.
+    /// </summary>
+    class function CreateForIndyDirect(
+      const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
+    /// <summary>
+    /// Standalone engine for use with TMVCHttpSysServer. No WebModule is
+    /// created; HandleRequest is driven by the HTTP.sys server adapter.
+    /// </summary>
+    class function CreateForHttpSys(
+      const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
     destructor Destroy; override;
 
     { webcontext events}
@@ -2381,6 +2401,24 @@ begin
   SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;
+end;
+
+class function TMVCEngine.CreateForWebBroker(const AWebModule: TWebModule;
+  const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
+begin
+  Result := TMVCEngine.Create(AWebModule, AConfigAction);
+end;
+
+class function TMVCEngine.CreateForIndyDirect(
+  const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
+begin
+  Result := TMVCEngine.Create(AConfigAction);
+end;
+
+class function TMVCEngine.CreateForHttpSys(
+  const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
+begin
+  Result := TMVCEngine.Create(AConfigAction);
 end;
 
 constructor TMVCEngine.Create(const AConfigAction: TProc<TMVCConfig>);
