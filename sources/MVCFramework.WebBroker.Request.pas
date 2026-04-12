@@ -308,7 +308,14 @@ end;
 
 function TMVCWebBrokerRequest.GetPathInfo: string;
 begin
-  Result := FWebRequest.PathInfo;
+  // Apache (Web.HTTPD24Impl) splits the URI CGI-style: the first segment
+  // lands in ScriptName and the rest in PathInfo (often empty). Classic
+  // Indy bridge (IdHTTPWebBrokerBridge) keeps the full path in PathInfo
+  // with ScriptName empty. Concatenating the two yields the full URI in
+  // both environments.
+  Result := FWebRequest.ScriptName + FWebRequest.PathInfo;
+  if Result = '' then
+    Result := FWebRequest.PathInfo;
 end;
 
 function TMVCWebBrokerRequest.GetQueryParams: TDictionary<string, string>;
@@ -370,7 +377,12 @@ end;
 
 function TMVCWebBrokerRequest.GetRawPathInfo: string;
 begin
-  Result := FWebRequest.RawPathInfo;
+  // See comment on GetPathInfo for why ScriptName+PathInfo is used.
+  // RawPathInfo in TWebRequest falls back to PathInfo (same source under
+  // Apache), so the same reconstruction applies.
+  Result := FWebRequest.ScriptName + FWebRequest.PathInfo;
+  if Result = '' then
+    Result := FWebRequest.RawPathInfo;
 end;
 
 function TMVCWebBrokerRequest.GetContentLength: Int64;

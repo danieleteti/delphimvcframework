@@ -182,3 +182,10 @@ GUIDA_OIDC_DANIELE.md
 
 /tools/bin/Entities*.env
 /tools/bin/Entities*.pas
+
+# Apache portable for ISAPI/Apache integration tests (downloaded by tasks.py)
+/unittests/apache/Apache24/
+/unittests/apache/httpd24.zip
+/unittests/apache/ReadMe.txt
+/unittests/apache/logs/
+/unittests/apache/conf/httpd-test.conf
