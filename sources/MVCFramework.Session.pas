@@ -331,7 +331,13 @@ begin
   lCookie.HttpOnly := fHttpOnly;
   lSessionTimeout := GetSessionFactory.GetTimeout;
   if lSessionTimeout = 0 then
-    lCookie.Expires := 0 // session cookie
+    // Pure "session cookie" semantics (browser deletes on close) cannot be
+    // expressed uniformly across WebBroker hosts: Web.HTTPD24Impl serializes
+    // Expires=0 as the literal 1899-12-30 zero date, so clients hosted by
+    // Apache drop the cookie as already-expired. A far-future Expires
+    // reaches the client on every host; server-side session lifetime is
+    // still controlled by the session store.
+    lCookie.Expires := EncodeDate(2099, 12, 31)
   else
     lCookie.Expires := Now + OneMinute * lSessionTimeout;
 

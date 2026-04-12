@@ -593,6 +593,37 @@ def _run_apache_tests(ctx, platform: str):
     apache_modules = os.path.join(APACHE_HOME, "modules")
     shutil.copy2(built_dll, os.path.join(apache_modules, "mod_dmvctest.dll"))
 
+    # DMVC's AppPath resolves to the DLL folder when hosted by Apache.
+    # Copy the test fixtures that classic runs find next to TestServer.exe
+    # (customers.json, sample.png, www/, logs/ ...) so file-backed tests
+    # (static files, image serving, directory traversal) work in module mode.
+    testserver_bin = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin"
+    )
+    for name in ("customers.json", "sample.png"):
+        src = os.path.join(testserver_bin, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(apache_modules, name))
+    for folder in ("www",):
+        src = os.path.join(testserver_bin, folder)
+        dst = os.path.join(apache_modules, folder)
+        if os.path.isdir(src):
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+
+    # The WebModule config uses ViewPath = AppPath + "..\templates", which
+    # resolves to Apache24/templates/ under the module. Place the template
+    # fixtures there.
+    testserver_root = os.path.dirname(testserver_bin)
+    src_templates = os.path.join(testserver_root, "templates")
+    if os.path.isdir(src_templates):
+        dst_templates = os.path.join(APACHE_HOME, "templates")
+        if os.path.isdir(dst_templates):
+            shutil.rmtree(dst_templates)
+        shutil.copytree(src_templates, dst_templates)
+
     conf_path = os.path.join(APACHE_DIR, "conf", "httpd-test.conf")
     _generate_apache_conf(APACHE_HOME, apache_modules, conf_path)
 

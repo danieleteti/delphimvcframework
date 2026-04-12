@@ -307,13 +307,21 @@ begin
 end;
 
 function TMVCWebBrokerRequest.GetPathInfo: string;
+var
+  LQueryPos: Integer;
 begin
-  // Apache (Web.HTTPD24Impl) splits the URI CGI-style: the first segment
-  // lands in ScriptName and the rest in PathInfo (often empty). Classic
-  // Indy bridge (IdHTTPWebBrokerBridge) keeps the full path in PathInfo
-  // with ScriptName empty. Concatenating the two yields the full URI in
-  // both environments.
-  Result := FWebRequest.ScriptName + FWebRequest.PathInfo;
+  // Apache (Web.HTTPD24Impl) splits the URI CGI-style — the first
+  // matching segment goes to ScriptName and the rest into PathInfo, and
+  // the split point is not always on a '/' boundary (colons, dots and
+  // other characters can confuse it). ScriptName+PathInfo is therefore
+  // not safe to concatenate.
+  // TWebRequest.URL maps to Apache's unparsed_uri (and to the full URL
+  // under the Indy bridge), so stripping the query string yields the
+  // same original path in every WebBroker host.
+  Result := FWebRequest.URL;
+  LQueryPos := Pos('?', Result);
+  if LQueryPos > 0 then
+    Result := Copy(Result, 1, LQueryPos - 1);
   if Result = '' then
     Result := FWebRequest.PathInfo;
 end;
@@ -377,12 +385,9 @@ end;
 
 function TMVCWebBrokerRequest.GetRawPathInfo: string;
 begin
-  // See comment on GetPathInfo for why ScriptName+PathInfo is used.
-  // RawPathInfo in TWebRequest falls back to PathInfo (same source under
-  // Apache), so the same reconstruction applies.
-  Result := FWebRequest.ScriptName + FWebRequest.PathInfo;
-  if Result = '' then
-    Result := FWebRequest.RawPathInfo;
+  // See comment on GetPathInfo: TWebRequest.URL is the only field that
+  // carries the full original path intact under every WebBroker host.
+  Result := GetPathInfo;
 end;
 
 function TMVCWebBrokerRequest.GetContentLength: Int64;
