@@ -167,6 +167,8 @@ type
     fIsCustomPreset: Boolean;
     fPresetCaption: string;
     procedure UpdateSummary;
+    procedure ShowNextStepsDialog(const AProjectName: string;
+      const AHints: TArray<string>);
     function GetControllerClassName: string;
     function GetWebModuleClassName: string;
     function GetServerPort: Integer;
@@ -444,18 +446,49 @@ begin
        end;
   end;
 
-  // Mutual exclusion: FastCGI requires WebBroker (forces engine + disables combo)
-  if rgServerProtocol.ItemIndex = 2 then
+  // ISAPI/Apache: library hosted by IIS or Apache. Force WebBroker, no protocol/port,
+  // no listening socket → no WebSocket. Web server fronts everything.
+  if (rgApplicationType.ItemIndex = 2) or (rgApplicationType.ItemIndex = 3) then
   begin
     cbServerEngine.ItemIndex := 0; // WebBroker
     cbServerEngine.Enabled := False;
     lblServerEngine.Enabled := False;
+    rgServerProtocol.Enabled := False;
+    edtServerPort.Enabled := False;
+    btnTestPort.Enabled := False;
+    lblServerPort.Enabled := False;
+    chkWebSocketServer.Checked := False;
+    chkWebSocketServer.Enabled := False;
+    if rgApplicationType.ItemIndex = 2 then
+      lblProtocolDescription.Caption :=
+        'ISAPI library (.dll) hosted by IIS. Web server handles transport, ' +
+        'TLS and connections. WebSocket not supported.'
+    else
+      lblProtocolDescription.Caption :=
+        'Apache 2.4 module (.dll on Windows, .so on Linux) loaded via ' +
+        'LoadModule + SetHandler. Apache 2.2 and earlier are NOT supported. ' +
+        'Web server handles transport, TLS and connections. WebSocket not supported.';
+  end
+  // FastCGI requires WebBroker (forces engine + disables combo)
+  else if rgServerProtocol.ItemIndex = 2 then
+  begin
+    cbServerEngine.ItemIndex := 0; // WebBroker
+    cbServerEngine.Enabled := False;
+    lblServerEngine.Enabled := False;
+    rgServerProtocol.Enabled := True;
+    edtServerPort.Enabled := True;
+    btnTestPort.Enabled := True;
+    lblServerPort.Enabled := True;
     chkWebSocketServer.Enabled := True;
     lblProtocolDescription.Caption :=
       'FastCGI deployment behind a web server. Requires WebBroker engine.';
   end
   else
   begin
+    rgServerProtocol.Enabled := True;
+    edtServerPort.Enabled := True;
+    btnTestPort.Enabled := True;
+    lblServerPort.Enabled := True;
     cbServerEngine.Enabled := True;
     lblServerEngine.Enabled := True;
     case cbServerEngine.ItemIndex of
@@ -539,12 +572,128 @@ begin
     lHints := lHints + ['- Include required FireDAC units in your project'];
   // TaurusTLS only needed for HTTPS with WebBroker or Indy Direct
   // HTTP.sys delegates TLS to the Windows kernel (netsh http add sslcert)
-  if (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex <> 2) then
+  // ISAPI/Apache: TLS is handled by the front-end web server
+  if (rgApplicationType.ItemIndex < 2)
+    and (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex <> 2) then
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
-  if (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex = 2) then
+  if (rgApplicationType.ItemIndex < 2)
+    and (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex = 2) then
     lHints := lHints + ['- HTTP.sys HTTPS: bind certificate to port via "netsh http add sslcert ipport=0.0.0.0:PORT certhash=THUMBPRINT appid={GUID}"'];
+  if rgApplicationType.ItemIndex = 2 then
+    lHints := lHints + [
+      '- Deploy the .dll into IIS as an ISAPI extension',
+      '- Set Application Pool to "No Managed Code", Enable 32-bit Apps if Win32 build',
+      '- Allow ISAPI extension in IIS Handler Mappings'];
+  if rgApplicationType.ItemIndex = 3 then
+    lHints := lHints + [
+      '- Apache 2.4 only (Apache 2.2 and earlier are NOT supported)',
+      '- Builds for Windows (.dll) and Linux (.so)',
+      '- Copy the binary into Apache modules folder',
+      '- Add to httpd.conf:    LoadModule dmvc_module modules/<your.dll/.so>',
+      '- Add a <Location ...>  SetHandler mod_dmvc-handler  </Location> block'];
   if Length(lHints) > 0 then
-    ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
+    ShowNextStepsDialog(lProjectName, lHints);
+end;
+
+procedure TfrmDMVCNewProject.ShowNextStepsDialog(const AProjectName: string;
+  const AHints: TArray<string>);
+var
+  LDlg: TForm;
+  LHeaderPanel: TPanel;
+  LIcon: TImage;
+  LTitle: TLabel;
+  LSubtitle: TLabel;
+  LMemo: TMemo;
+  LBtnOK: TButton;
+  LSeparator: TBevel;
+  I: Integer;
+  LLine: string;
+begin
+  LDlg := TForm.Create(nil);
+  try
+    LDlg.Caption := 'DelphiMVCFramework Wizard';
+    LDlg.BorderStyle := bsDialog;
+    LDlg.Position := poScreenCenter;
+    LDlg.ClientWidth := 620;
+    LDlg.ClientHeight := 420;
+    LDlg.Color := clWindow;
+    LDlg.Font.Name := 'Segoe UI';
+    LDlg.Font.Size := 9;
+
+    LHeaderPanel := TPanel.Create(LDlg);
+    LHeaderPanel.Parent := LDlg;
+    LHeaderPanel.Align := alTop;
+    LHeaderPanel.Height := 70;
+    LHeaderPanel.BevelOuter := bvNone;
+    LHeaderPanel.Color := $00FAFAFA;
+    LHeaderPanel.ParentBackground := False;
+
+    LIcon := TImage.Create(LDlg);
+    LIcon.Parent := LHeaderPanel;
+    LIcon.SetBounds(20, 14, 40, 40);
+    LIcon.Picture.Icon.Handle := LoadIcon(0, IDI_INFORMATION);
+    LIcon.Stretch := True;
+    LIcon.Proportional := True;
+
+    LTitle := TLabel.Create(LDlg);
+    LTitle.Parent := LHeaderPanel;
+    LTitle.SetBounds(76, 14, 520, 22);
+    LTitle.Caption := 'Project ''' + AProjectName + ''' created';
+    LTitle.Font.Style := [fsBold];
+    LTitle.Font.Size := 12;
+    LTitle.Font.Color := $00333333;
+
+    LSubtitle := TLabel.Create(LDlg);
+    LSubtitle.Parent := LHeaderPanel;
+    LSubtitle.SetBounds(76, 40, 520, 18);
+    LSubtitle.Caption := 'Before deploying remember to:';
+    LSubtitle.Font.Color := $00666666;
+
+    LSeparator := TBevel.Create(LDlg);
+    LSeparator.Parent := LDlg;
+    LSeparator.SetBounds(0, 70, LDlg.ClientWidth, 1);
+    LSeparator.Shape := bsTopLine;
+
+    LMemo := TMemo.Create(LDlg);
+    LMemo.Parent := LDlg;
+    LMemo.SetBounds(20, 90, LDlg.ClientWidth - 40, 280);
+    LMemo.ReadOnly := True;
+    LMemo.BorderStyle := bsNone;
+    LMemo.Color := clWindow;
+    LMemo.ScrollBars := ssVertical;
+    LMemo.Font.Name := 'Segoe UI';
+    LMemo.Font.Size := 10;
+    LMemo.Font.Color := $00333333;
+    LMemo.WordWrap := True;
+    LMemo.Lines.BeginUpdate;
+    try
+      for I := 0 to High(AHints) do
+      begin
+        LLine := AHints[I];
+        if LLine.StartsWith('- ') then
+          LLine := '  ' + #$2022 + ' ' + LLine.Substring(2)
+        else
+          LLine := '  ' + LLine;
+        LMemo.Lines.Add(LLine);
+        LMemo.Lines.Add('');
+      end;
+    finally
+      LMemo.Lines.EndUpdate;
+    end;
+
+    LBtnOK := TButton.Create(LDlg);
+    LBtnOK.Parent := LDlg;
+    LBtnOK.SetBounds(LDlg.ClientWidth - 110, LDlg.ClientHeight - 38, 90, 28);
+    LBtnOK.Caption := 'OK';
+    LBtnOK.Default := True;
+    LBtnOK.Cancel := True;
+    LBtnOK.ModalResult := mrOk;
+
+    LDlg.ActiveControl := LBtnOK;
+    LDlg.ShowModal;
+  finally
+    LDlg.Free;
+  end;
 end;
 
 { Property getters }
@@ -728,11 +877,17 @@ end;
 
 procedure TfrmDMVCNewProject.rgApplicationTypeClick(Sender: TObject);
 const
-  APP_TYPE_DESCRIPTIONS: array[0..1] of string = (
+  APP_TYPE_DESCRIPTIONS: array[0..3] of string = (
     'Runs in a terminal/console window. Ideal for development, debugging, ' +
     'and Docker/container deployments. Works on both Windows and Linux.',
     'Runs as a background Windows service managed by the Service Control Manager (SCM). ' +
-    'Starts automatically with Windows, runs without user login. Ideal for production servers.'
+    'Starts automatically with Windows, runs without user login. Ideal for production servers.',
+    'ISAPI extension (.dll) hosted by IIS. The web server fronts the application: ' +
+    'TLS, connection pooling and lifecycle are handled by IIS. WebSocket and ' +
+    'stand-alone listening sockets are not available in this mode.',
+    'Apache 2.4 module loaded via LoadModule + SetHandler. Builds as .dll on ' +
+    'Windows and .so on Linux. Apache 2.2 and earlier are NOT supported. ' +
+    'TLS and connection lifecycle are handled by Apache. WebSocket not supported.'
   );
 begin
   if (rgApplicationType.ItemIndex >= 0) and (rgApplicationType.ItemIndex <= High(APP_TYPE_DESCRIPTIONS)) then
@@ -796,12 +951,15 @@ begin
       LSummary.Add('');
 
       // Application type
-      if rgApplicationType.ItemIndex = 0 then
-        LSummary.Add('Application: Console (' + rgServerProtocol.Items[rgServerProtocol.ItemIndex] + ')')
-      else
-        LSummary.Add('Application: Windows Service');
+      case rgApplicationType.ItemIndex of
+        0: LSummary.Add('Application: Console (' + rgServerProtocol.Items[rgServerProtocol.ItemIndex] + ')');
+        1: LSummary.Add('Application: Windows Service');
+        2: LSummary.Add('Application: ISAPI module (.dll for IIS)');
+        3: LSummary.Add('Application: Apache 2.4 module (.dll Win / .so Linux)');
+      end;
 
-      LSummary.Add('Port: ' + edtServerPort.Text);
+      if rgApplicationType.ItemIndex < 2 then
+        LSummary.Add('Port: ' + edtServerPort.Text);
       LSummary.Add('Controller: ' + GetControllerClassName);
       LSummary.Add('WebModule: ' + GetWebModuleClassName);
 
@@ -909,6 +1067,8 @@ begin
          end;
        end;
     1: fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+    2: fModel.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+    3: fModel.S[TConfigKey.program_type] := TProgramTypes.APACHE;
   else
     raise Exception.Create('Invalid Application Type');
   end;

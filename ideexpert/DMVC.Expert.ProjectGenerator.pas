@@ -406,9 +406,15 @@ begin
     SaveFile('ServiceU.pas', RenderTemplate('service.pas.tpro', AConfig));
     SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
   end
+  else if AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI then
+    // ISAPI library (WebBroker, no main loop)
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program_isapi.dpr.tpro', AConfig))
+  else if AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE then
+    // Apache module library (WebBroker)
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program_apache.dpr.tpro', AConfig))
   else
   begin
-    // Console/FastCGI/Apache/ISAPI use standard program template
+    // Console/FastCGI use standard program template
     SaveFile(AProjectName + '.dpr', RenderTemplate('program.dpr.tpro', AConfig));
   end;
 

@@ -560,7 +560,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabVisible = False
       object lblAppTypeDescription: TLabel
         Left = 24
-        Top = 120
+        Top = 170
         Width = 700
         Height = 80
         AutoSize = False
@@ -580,12 +580,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Left = 24
         Top = 24
         Width = 400
-        Height = 80
+        Height = 130
         Caption = 'Application Type'
         ItemIndex = 0
         Items.Strings = (
           'Console Application (Windows and Linux)'
-          'Windows Service')
+          'Windows Service'
+          'ISAPI Module (IIS, library .dll)'
+          'Apache Module 2.4 (library .dll on Windows, .so on Linux)')
         TabOrder = 0
         OnClick = rgApplicationTypeClick
       end

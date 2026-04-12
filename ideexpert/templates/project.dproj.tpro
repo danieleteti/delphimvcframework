@@ -5,7 +5,11 @@
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
+{{if @(program_type|eq,"isapi" or program_type|eq,"apache")}}
+        <AppType>Library</AppType>
+{{else}}
         <AppType>Console</AppType>
+{{endif}}
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>

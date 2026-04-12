@@ -102,6 +102,8 @@ type
     WINDOWS_SERVICE = 'windows.service';
     INDY_DIRECT = 'indy.direct';
     HTTPSYS = 'httpsys';
+    ISAPI = 'isapi';
+    APACHE = 'apache';
   end;
 
   TTestCase = record
@@ -537,9 +539,21 @@ begin
       LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
     end
+    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI then
+    begin
+      LogVerbose('Generating ISAPI library...');
+      LSource := TTestTemplateEngine.Render('program_isapi.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    end
+    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE then
+    begin
+      LogVerbose('Generating Apache module...');
+      LSource := TTestTemplateEngine.Render('program_apache.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    end
     else
     begin
-      // Console/ISAPI/Apache/FastCGI
+      // Console/FastCGI
       LogVerbose('Generating program.dpr...');
       LSource := TTestTemplateEngine.Render('program.dpr.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
@@ -1276,6 +1290,47 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
   LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === ISAPI tests ===
+
+  // Test 45: ISAPI minimal
+  LTestCase.Name := 'isapi_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  ATestCases.Add(LTestCase);
+
+  // Test 46: ISAPI with CRUD + middleware
+  LTestCase.Name := 'isapi_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // === Apache module tests ===
+
+  // Test 47: Apache minimal
+  LTestCase.Name := 'apache_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  ATestCases.Add(LTestCase);
+
+  // Test 48: Apache with CRUD + middleware
+  LTestCase.Name := 'apache_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
   ATestCases.Add(LTestCase);
 end;
 

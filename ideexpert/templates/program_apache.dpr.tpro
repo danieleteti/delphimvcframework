@@ -1,0 +1,92 @@
+{{include "_license_header.tpro"}}
+//
+// Apache HTTP Server 2.4 module (Web.HTTPD24Impl).
+// Builds on both Windows (.dll) and Linux (.so).
+// Apache 2.2 and earlier are NOT supported (different module ABI).
+//
+library {{:program_name}};
+
+uses
+  Winapi.ActiveX,
+  Winapi.Windows,
+  System.Win.ComObj,
+  System.Classes,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+  MVCFramework.Serializer.Commons,
+  Web.WebBroker,
+  Web.ApacheApp,
+  Web.HTTPDMethods,
+  Web.HTTPD24Impl,
+  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}}{{if controller_unit_name}},
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas'{{endif}}{{if entity_generate}},
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas'{{endif}}{{if jsonrpc_generate}},
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas'{{endif}}{{if program_service_container_generate}},
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas'{{endif}}{{if program_ssv_mustache}},
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_templatepro}},
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_webstencils}},
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas'{{endif}}{{if webmodule_middleware_jwt}},
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas'{{endif}}{{if webmodule_middleware_activerecord}},
+  MVCFramework.ActiveRecord{{endif}};
+
+{$R *.res}
+
+// Apache HTTP Server 2.4 only (Web.HTTPD24Impl). Apache 2.2 / 2.0 are NOT
+// supported (incompatible module ABI).
+//
+// Builds:
+//   - Windows: {{:program_name}}.dll  -> drop in apache/modules
+//   - Linux:   {{:program_name}}.so   -> drop in apache/modules
+//
+// httpd.conf entries (assuming module compiled into apache/modules folder):
+//
+//   LoadModule dmvc_module modules/{{:program_name}}.dll      (Windows)
+//   LoadModule dmvc_module modules/{{:program_name}}.so       (Linux)
+//   <Location /api>
+//     SetHandler mod_dmvc-handler
+//   </Location>
+//
+// Adjust if module name, location path, or output folder differ.
+
+var
+  GModuleData: TApacheModuleData;
+
+exports
+  GModuleData name 'dmvc_module';
+
+begin
+  CoInitFlags := COINIT_MULTITHREADED;
+
+  // DMVCFramework Specific Configurations
+  MVCSerializeNulls := True;
+  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
+
+{{if program_dotenv}}
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                 .UseProfile('test')
+                 .UseProfile('prod')
+                 .UseLogger(procedure(LogItem: String)
+                            begin
+                              LogW('dotEnv: ' + LogItem);
+                            end)
+                 .Build();
+    end);
+{{endif}}
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+
+  Web.ApacheApp.InitApplication(@GModuleData);
+  Application.Initialize;
+  Application.WebModuleClass := WebModuleClass;
+  Application.Run;
+end.
