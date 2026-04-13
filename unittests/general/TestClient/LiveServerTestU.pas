@@ -82,6 +82,9 @@ type
     [TestCase('6', '=,;,&')]
     [TestCase('7', '#,.,_')]
     [TestCase('8', '%, , ')]
+    // Apache rejects URIs containing "%25%20%20" with 403 AH10244 before the
+    // request reaches any module, so .8 cannot run under the Apache host.
+    [Category('NotOnApache')]
     procedure TestReqWithURLMappedParams(const par1, par2, par3: string);
     [Test]
     procedure TestPOSTWithParamsAndJSONBody;
@@ -128,6 +131,9 @@ type
     [Test]
     procedure TestRenderActionInCollections;
     [Test]
+    // Apache and IIS negotiate / strip Content-Encoding independently of
+    // the application, so deflate is not echoed back to the client.
+    [Category('NotOnApache,NotOnIIS')]
     procedure TestRenderWrappedListWithCompression;
     [Test]
     procedure TestRenderStreamAndFreeWithOwnerFalse;
@@ -281,18 +287,26 @@ type
 
     // test responses objects
     [Test]
+    // Apache rewrites the status line reason phrase to the HTTP-standard
+    // text, so the custom "thisisthereason" phrase cannot be asserted.
+    [Category('NotOnApache')]
     procedure TestResponseCreated;
     [Test]
     procedure TestResponseNoContent;
     [Test]
+    // Same Apache reason-phrase normalization as TestResponseCreated.
+    [Category('NotOnApache')]
     procedure TestResponseAccepted;
 
     // test web server
     [Test]
-    [Category('staticfiles')]
+    // Apache URL validator returns 400 for "/static/..\..\Windows\win.ini"
+    // before the request reaches the middleware that is supposed to return
+    // 404/403 for directory traversal attempts.
+    [Category('staticfiles,NotOnApache')]
     procedure TestDirectoryTraversal1;
     [Test]
-    [Category('staticfiles')]
+    [Category('staticfiles,NotOnApache')]
     procedure TestDirectoryTraversal2;
     [Test]
     [Category('staticfiles')]
@@ -301,7 +315,9 @@ type
     [Category('staticfiles')]
     procedure TestFileWithFolderName;
     [Test]
-    [Category('staticfiles')]
+    // Apache normalizes the path and returns 200 before the SPA fallback
+    // middleware can respond with the expected 404/403.
+    [Category('staticfiles,NotOnApache')]
     procedure TestSPASupport;
 
     [Test]

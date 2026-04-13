@@ -640,8 +640,13 @@ def _run_apache_tests(ctx, platform: str):
     r = None
     try:
         print(f"\nExecuting tests against Apache 2.4 module...")
+        # Skip tests tagged [Category('NotOnApache')] — they describe
+        # behaviors where Apache's request pipeline (URL validator, reason-
+        # phrase normalization, content-encoding negotiation) diverges from
+        # the DMVC expectation and cannot be emulated at framework level.
         r = subprocess.run(
-            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe"]
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe",
+             "--exclude:NotOnApache"]
         )
         if r.returncode != 0:
             raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
@@ -833,8 +838,11 @@ def _run_isapi_tests(ctx, platform: str):
     r = None
     try:
         print(f"\nExecuting tests against ISAPI (IIS Express)...")
+        # Skip tests tagged [Category('NotOnIIS')] — behaviors managed by
+        # IIS itself (content-encoding negotiation) rather than the module.
         r = subprocess.run(
-            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe"]
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe",
+             "--exclude:NotOnIIS"]
         )
         if r.returncode != 0:
             raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
