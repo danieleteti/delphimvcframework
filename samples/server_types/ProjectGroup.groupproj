@@ -1,0 +1,96 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{2B36E40F-A2E9-48D1-89A6-4FDAC206CF76}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="indy_direct\IndyDirectServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="apache_module\mod_dmvc_sample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="isapi\ISAPIServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="webbroker_standalone\WebBrokerServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="webbroker_via_imvcserver\WebBrokerIMVCServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="httpsys\HttpSysServer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="IndyDirectServer">
+        <MSBuild Projects="indy_direct\IndyDirectServer.dproj"/>
+    </Target>
+    <Target Name="IndyDirectServer:Clean">
+        <MSBuild Projects="indy_direct\IndyDirectServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="IndyDirectServer:Make">
+        <MSBuild Projects="indy_direct\IndyDirectServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="mod_dmvc_sample">
+        <MSBuild Projects="apache_module\mod_dmvc_sample.dproj"/>
+    </Target>
+    <Target Name="mod_dmvc_sample:Clean">
+        <MSBuild Projects="apache_module\mod_dmvc_sample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="mod_dmvc_sample:Make">
+        <MSBuild Projects="apache_module\mod_dmvc_sample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ISAPIServer">
+        <MSBuild Projects="isapi\ISAPIServer.dproj"/>
+    </Target>
+    <Target Name="ISAPIServer:Clean">
+        <MSBuild Projects="isapi\ISAPIServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ISAPIServer:Make">
+        <MSBuild Projects="isapi\ISAPIServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WebBrokerServer">
+        <MSBuild Projects="webbroker_standalone\WebBrokerServer.dproj"/>
+    </Target>
+    <Target Name="WebBrokerServer:Clean">
+        <MSBuild Projects="webbroker_standalone\WebBrokerServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WebBrokerServer:Make">
+        <MSBuild Projects="webbroker_standalone\WebBrokerServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WebBrokerIMVCServer">
+        <MSBuild Projects="webbroker_via_imvcserver\WebBrokerIMVCServer.dproj"/>
+    </Target>
+    <Target Name="WebBrokerIMVCServer:Clean">
+        <MSBuild Projects="webbroker_via_imvcserver\WebBrokerIMVCServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WebBrokerIMVCServer:Make">
+        <MSBuild Projects="webbroker_via_imvcserver\WebBrokerIMVCServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="HttpSysServer">
+        <MSBuild Projects="httpsys\HttpSysServer.dproj"/>
+    </Target>
+    <Target Name="HttpSysServer:Clean">
+        <MSBuild Projects="httpsys\HttpSysServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="HttpSysServer:Make">
+        <MSBuild Projects="httpsys\HttpSysServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="IndyDirectServer;mod_dmvc_sample;ISAPIServer;WebBrokerServer;WebBrokerIMVCServer;HttpSysServer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="IndyDirectServer:Clean;mod_dmvc_sample:Clean;ISAPIServer:Clean;WebBrokerServer:Clean;WebBrokerIMVCServer:Clean;HttpSysServer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="IndyDirectServer:Make;mod_dmvc_sample:Make;ISAPIServer:Make;WebBrokerServer:Make;WebBrokerIMVCServer:Make;HttpSysServer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
