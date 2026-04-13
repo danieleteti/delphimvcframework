@@ -673,6 +673,206 @@ def tests_apache(ctx):
     pass
 
 
+# ---------------------------------------------------------------------------
+# ISAPI integration tests (Layer 3)
+# ---------------------------------------------------------------------------
+# Uses IIS Express (already installed with Visual Studio / RAD Studio) as
+# the host. The TestServerISAPI project builds as TestServerISAPI.dll and
+# is wired via a wildcard script-map handler in a generated
+# applicationhost.config; IIS Express is started in foreground, TestClient
+# runs against http://localhost:8888, then IIS Express is killed.
+
+IIS_EXPRESS_64 = r"C:\Program Files\IIS Express\iisexpress.exe"
+IIS_TEST_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "unittests", "iis"
+)
+
+
+def _ensure_iis_express():
+    """Fail fast with a helpful message if IIS Express is not available."""
+    if not os.path.isfile(IIS_EXPRESS_64):
+        raise Exit(
+            "IIS Express not found at " + IIS_EXPRESS_64 + ".\n"
+            "Install IIS Express (ships with Visual Studio / RAD Studio) or "
+            "download it from https://www.microsoft.com/en-us/download/details.aspx?id=48264")
+
+
+def _generate_iis_applicationhost_conf(isapi_dll_path: str,
+                                        conf_path: str, port: int = 8888,
+                                        site_root: str = None) -> None:
+    """Start from IIS Express's shipped applicationhost.config (so every
+    required configSection is already declared) and patch only the site
+    binding + wildcard ISAPI handler.
+
+    A single site listens on localhost:PORT and maps every request
+    (path="*", verb="*") to TestServerISAPI.dll via IsapiModule.
+    """
+    import re
+    shipped = os.path.join(os.path.dirname(IIS_EXPRESS_64),
+                           "AppServer", "applicationhost.config")
+    if not os.path.isfile(shipped):
+        raise Exit(f"Shipped applicationhost.config not found at {shipped}")
+
+    site_root = site_root or os.path.dirname(isapi_dll_path)
+    content = open(shipped, encoding="utf-8").read()
+
+    # Replace the default site with ours. Match the whole <site> block
+    # including its nested elements.
+    site_re = re.compile(
+        r'<site name="Development Web Site".*?</site>', re.DOTALL)
+    new_site = (
+        f'<site name="DMVCTest" id="1" serverAutoStart="true">\n'
+        f'                <application path="/" applicationPool="UnmanagedClassicAppPool">\n'
+        f'                    <virtualDirectory path="/" physicalPath="{site_root}" />\n'
+        f'                </application>\n'
+        f'                <bindings>\n'
+        f'                    <binding protocol="http" bindingInformation=":{port}:localhost" />\n'
+        f'                    <binding protocol="http" bindingInformation=":{port}:127.0.0.1" />\n'
+        f'                </bindings>\n'
+        f'            </site>'
+    )
+    if not site_re.search(content):
+        raise Exit("Cannot find default site in shipped applicationhost.config")
+    # Use a lambda so backslashes in site_root are not interpreted as
+    # re backreferences (Python re.sub treats \d etc. in the template).
+    content = site_re.sub(lambda _m: new_site, content)
+
+    # Inject our wildcard handler as the first rule under <handlers>.
+    handler = (
+        f'<add name="DMVCISAPI" path="*" verb="*" modules="IsapiModule" '
+        f'scriptProcessor="{isapi_dll_path}" '
+        f'resourceType="Unspecified" requireAccess="None" '
+        f'preCondition="bitness64" />'
+    )
+    content = content.replace(
+        '<handlers accessPolicy="Read, Script">',
+        '<handlers accessPolicy="Read, Execute, Script">\n                ' + handler
+    )
+
+    # Allow double-escaped URLs and every file extension so test paths
+    # like "/req/with/params/%25/%20/%20" are not rejected by IIS before
+    # reaching the module. Relax body size while we are at it.
+    content = content.replace(
+        '<requestFiltering>',
+        '<requestFiltering allowDoubleEscaping="true">'
+    )
+
+    os.makedirs(os.path.dirname(conf_path), exist_ok=True)
+    with open(conf_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _run_isapi_tests(ctx, platform: str):
+    """Build TestServerISAPI (.dll), wire IIS Express, run TestClient."""
+    _ensure_iis_express()
+
+    bin_folder = "bin32" if platform == "Win32" else "bin64"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
+    testserver = r"unittests\general\TestServer\TestServerISAPI.dproj"
+    built_dll = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin", "TestServerISAPI.dll"
+    )
+
+    print(f"\n{'='*60}")
+    print(f"Running {platform} tests hosted by IIS Express (ISAPI)")
+    print(f"{'='*60}")
+
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", platform=platform)
+    print("\nBuilding TestServerISAPI")
+    # IIS Express x64 only loads 64-bit ISAPI when the app pool has
+    # enable32BitAppOnWin64=false (the default above).
+    build_delphi_project(ctx, testserver, config="CI", platform="Win64")
+
+    if not os.path.isfile(built_dll):
+        raise Exit(f"ISAPI module not built at {built_dll}")
+
+    # Deploy the ISAPI DLL + fixtures into the IIS site root so paths
+    # resolve the same way they do next to TestServer.exe in classic runs.
+    site_root = os.path.join(IIS_TEST_DIR, "site")
+    os.makedirs(site_root, exist_ok=True)
+    shutil.copy2(built_dll, os.path.join(site_root, "TestServerISAPI.dll"))
+    testserver_bin = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin"
+    )
+    for name in ("customers.json", "sample.png"):
+        src = os.path.join(testserver_bin, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(site_root, name))
+    for folder in ("www",):
+        src = os.path.join(testserver_bin, folder)
+        dst = os.path.join(site_root, folder)
+        if os.path.isdir(src):
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+    # ViewPath = AppPath + "..\templates" → Apache/IIS site parent
+    testserver_root = os.path.dirname(testserver_bin)
+    src_templates = os.path.join(testserver_root, "templates")
+    if os.path.isdir(src_templates):
+        dst_templates = os.path.join(IIS_TEST_DIR, "templates")
+        if os.path.isdir(dst_templates):
+            shutil.rmtree(dst_templates)
+        shutil.copytree(src_templates, dst_templates)
+
+    conf_path = os.path.join(IIS_TEST_DIR, "config", "applicationhost.config")
+    deployed_dll = os.path.join(site_root, "TestServerISAPI.dll")
+    _generate_iis_applicationhost_conf(deployed_dll, conf_path, site_root=site_root)
+
+    print(f"\nStarting IIS Express: {IIS_EXPRESS_64} /config:{conf_path} /site:DMVCTest")
+    iis_proc = subprocess.Popen(
+        [IIS_EXPRESS_64, f"/config:{conf_path}", "/site:DMVCTest", "/trace:error"],
+        cwd=os.path.dirname(IIS_EXPRESS_64),
+    )
+    time.sleep(2)
+    if iis_proc.poll() is not None:
+        raise Exit(f"IIS Express failed to start (exit code {iis_proc.returncode})")
+
+    r = None
+    try:
+        print(f"\nExecuting tests against ISAPI (IIS Express)...")
+        r = subprocess.run(
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe"]
+        )
+        if r.returncode != 0:
+            raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
+    finally:
+        print("Stopping IIS Express...")
+        iis_proc.terminate()
+        try:
+            iis_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            iis_proc.kill()
+        subprocess.run(["taskkill", "/f", "/im", "iisexpress.exe"],
+                      capture_output=True)
+
+    if r.returncode > 0:
+        print(r)
+        raise Exit(f"Unit Tests Failed ({platform}, ISAPI)")
+
+
+@task()
+def tests64_isapi(ctx):
+    """Builds and execute the unit tests (Win64) hosted by IIS Express ISAPI"""
+    _run_isapi_tests(ctx, "Win64")
+
+
+@task(pre=[tests64_isapi])
+def tests_isapi(ctx):
+    """Builds and execute all unit tests hosted by IIS Express ISAPI (Win64 only)"""
+    pass
+
+
+@task(pre=[tests, tests_indydirect, tests_httpsys, tests_apache, tests_isapi])
+def tests_all_hosts(ctx):
+    """Run the full unit test matrix against every supported host: Classic
+    (WebBroker+Indy bridge), Indy Direct, HTTP.sys, Apache 2.4 module,
+    ISAPI (IIS Express)."""
+    pass
+
+
 def get_version_from_file():
     with open(r".\sources\dmvcframeworkbuildconsts.inc") as f:
         lines = f.readlines()
