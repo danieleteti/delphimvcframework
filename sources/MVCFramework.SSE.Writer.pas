@@ -173,7 +173,8 @@ begin
   lClientConn := AContext.Request.GetClientConnection;
   if not Assigned(lClientConn) or not (lClientConn is TIdContext) then
     raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-      'SSE requires an Indy-based server backend (use TMVCIndyServer)');
+      'SSE requires an Indy-based server backend (TMVCIndyServer or ' +
+      'WebBroker hosted by TIdHTTPWebBrokerBridge)');
   lRawContext := TIdContext(lClientConn);
   lIOHandler := lRawContext.Connection.IOHandler;
   lEncoding := IndyTextEncoding(ACharset);

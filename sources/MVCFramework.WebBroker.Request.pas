@@ -84,12 +84,14 @@ type
     function Accept: string; override;
     function ContentParam(const AName: string): string; override;
     function Cookie(const AName: string): string; override;
+    function GetClientConnection: TObject; override;
     property WebRequest: TWebRequest read FWebRequest;
   end;
 
 implementation
 
 uses
+  System.Rtti,
   MVCFramework.Router;
 
 { TMVCWebBrokerRequest }
@@ -388,6 +390,45 @@ begin
   // See comment on GetPathInfo: TWebRequest.URL is the only field that
   // carries the full original path intact under every WebBroker host.
   Result := GetPathInfo;
+end;
+
+function TMVCWebBrokerRequest.GetClientConnection: TObject;
+
+  function IsOrInheritsFromTIdHTTPAppRequest(AClass: TClass): Boolean;
+  begin
+    while AClass <> nil do
+    begin
+      if AClass.ClassName = 'TIdHTTPAppRequest' then
+        Exit(True);
+      AClass := AClass.ClassParent;
+    end;
+    Result := False;
+  end;
+
+var
+  LCtx: TRttiContext;
+  LField: TRttiField;
+begin
+  // TIdHTTPAppRequest (IdHTTPWebBrokerBridge) holds the TIdContext in its
+  // FThread field. Reach it via RTTI so SSE and other streaming features
+  // work under WebBroker backed by Indy, without adding a compile-time
+  // dependency on IdHTTPWebBrokerBridge here. Subclasses are supported
+  // by walking the class hierarchy instead of matching ClassName exactly.
+  // Under ISAPI/Apache (TISAPIRequest / TApacheRequest) the check fails
+  // and the caller (SSE writer) correctly falls back to "not supported".
+  Result := nil;
+  if FWebRequest = nil then
+    Exit;
+  if not IsOrInheritsFromTIdHTTPAppRequest(FWebRequest.ClassType) then
+    Exit;
+  LCtx := TRttiContext.Create;
+  try
+    LField := LCtx.GetType(FWebRequest.ClassType).GetField('FThread');
+    if Assigned(LField) then
+      Result := LField.GetValue(FWebRequest).AsObject;
+  finally
+    LCtx.Free;
+  end;
 end;
 
 function TMVCWebBrokerRequest.GetContentLength: Int64;
