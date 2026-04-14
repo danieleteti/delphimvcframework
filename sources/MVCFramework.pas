@@ -1106,6 +1106,12 @@ type
     fSerializers: TDictionary<string, IMVCSerializer>;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
+    { [PERF] Engine-owned route table. Declared as TObject so the class
+      definition stays in MVCFramework.pas interface (MVCFramework.Router
+      would otherwise be needed here and introduce a cyclic interface
+      dependency). Cast to TMVCRouteTable at every use site in the
+      implementation. }
+    fRouteTable: TObject;
     fSavedOnBeforeDispatch: THTTPMethodEvent;
     fOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
@@ -2282,6 +2288,9 @@ function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz;
   const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string): TMVCEngine;
 begin
   FControllers.Add(TMVCControllerDelegate.Create(AControllerClazz, ACreateAction, AURLSegment));
+  { [PERF] The route table is keyed on the current controllers list; a new
+    controller invalidates it. Rebuilt lazily on the next request. }
+  FreeAndNil(fRouteTable);
   Result := Self;
 end;
 
@@ -2532,6 +2541,7 @@ end;
 
 destructor TMVCEngine.Destroy;
 begin
+  fRouteTable.Free;
   fConfig.Free;
   fSerializers.Free;
   fMiddlewares.Free;
@@ -2651,7 +2661,8 @@ begin
       ExecuteBeforeRoutingMiddleware(AContext, lHandled);
       if not lHandled then
       begin
-        if TMVCRouter.ExecuteRouting(
+        var lLocalTable: TMVCRouteTable := TMVCRouteTable(fRouteTable);
+        var lMatched: Boolean := TMVCRouter.ExecuteRouting(
           AContext.Request.RawPathInfo,
           AContext.Request.GetOverwrittenHTTPMethod,
           AContext.Request.ContentType,
@@ -2661,7 +2672,15 @@ begin
           FConfigCache_DefaultContentCharset,
           FConfigCache_PathPrefix,
           AParamsTable,
-          lRouterResult) then
+          lRouterResult,
+          lLocalTable);
+        { [PERF] Save the table the callee may have just built. Passing
+          TMVCRouteTable(fRouteTable) directly as a var parameter would
+          silently orphan every new table because the typecast is not a
+          writable L-value on the caller side - so we use an explicit
+          local var and assign back here. }
+        fRouteTable := lLocalTable;
+        if lMatched then
         begin
           try
             if lRouterResult.ControllerCreateAction <> nil then
