@@ -30,8 +30,8 @@ begin
   lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     lServer.DefaultPort := APort;
-    lServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
-    lServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
+    lServer.MaxConnections := 0;
+    lServer.ListenQueue := -1;
     lServer.Active := True;
     WriteLn('CTRL+C to shutdown the server');
     WaitForTerminationSignal;
@@ -59,8 +59,8 @@ begin
           .Build();           //uses the executable folder to look for .env* files
       end);
 
-    WebRequestHandlerProc.MaxConnections := dotEnv.Env('dmvc.handler.max_connections', 1024);
-    RunServer(dotEnv.Env('dmvc.server.port', 9999));
+    WebRequestHandlerProc.MaxConnections := 1024*4;
+    RunServer(9999);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

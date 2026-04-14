@@ -62,7 +62,7 @@ begin
           .UseProfile('prod')
           .Build();
       end);
-    RunServer(dotEnv.Env('dmvc.server.port', 9999));
+    RunServer(9999);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
