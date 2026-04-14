@@ -47,7 +47,7 @@ interface
 {$IFDEF MSWINDOWS}
 
 uses
-  System.SysUtils, System.Classes, System.SyncObjs,
+  System.SysUtils, System.Classes, System.SyncObjs, System.Threading,
   Winapi.Windows,
   MVCFramework, MVCFramework.Server.Intf, MVCFramework.Commons,
   MVCFramework.HttpSysApi;
@@ -76,6 +76,11 @@ type
     procedure HandleRequest(ARequest: PHTTP_REQUEST; const ABodyBytes: TBytes);
     procedure CheckError(AResult: ULONG; const AContext: string);
     function ReadFullBody(ARequest: PHTTP_REQUEST; AInitialBodyBytes: TBytes): TBytes;
+    { [FIX-HS-ASYNC] Dispatch body drain + pipeline to the default task pool
+      so the listener thread never blocks on a single request. ARequestBuffer
+      and AInitialBody are managed TBytes; the anonymous method keeps them
+      alive via refcount for as long as the task runs. }
+    procedure DispatchAsync(ARequestBuffer, AInitialBody: TBytes);
   protected
     procedure SetEngine(AEngine: TMVCEngine);
     function GetEngine: TMVCEngine;
@@ -256,16 +261,21 @@ begin
       lRequest: PHTTP_REQUEST;
       lBytesReceived: ULONG;
       lResult: ULONG;
-      lBodyBytes: TBytes;
+      lChunkBytes: TBytes;
       lInitialBodyBytes: TBytes;
       I: Integer;
     begin
-      SetLength(lRequestBuffer, INITIAL_REQUEST_BUFFER_SIZE);
-
       while lServerRef.FActive do
       begin
+        { [FIX-HS-ASYNC] Fresh buffer every iteration.
+          PHTTP_REQUEST points INTO this buffer (pUnknownVerb, CookedUrl,
+          Headers.pUnknownHeaders, etc.), so once we dispatch the request
+          to a worker thread, the listener must NOT reuse the same bytes.
+          Managed TBytes keeps the buffer alive via refcount until the
+          worker task finishes. }
+        lRequestBuffer := nil;
+        SetLength(lRequestBuffer, INITIAL_REQUEST_BUFFER_SIZE);
         lRequest := PHTTP_REQUEST(@lRequestBuffer[0]);
-        FillChar(lRequestBuffer[0], Length(lRequestBuffer), 0);
         lBytesReceived := 0;
 
         lResult := HttpReceiveHttpRequest(lServerRef.FReqQueueHandle, 0,
@@ -277,7 +287,9 @@ begin
 
         if lResult = NO_ERROR then
         begin
-          { Extract initial body data from entity chunks }
+          { Extract initial body chunks that came with the request.
+            Cheap and stays on listener: just a few memcpys. The heavier
+            ReadFullBody + full pipeline runs on the worker in DispatchAsync. }
           SetLength(lInitialBodyBytes, 0);
           if lRequest.EntityChunkCount > 0 then
           begin
@@ -286,37 +298,23 @@ begin
               if PHTTP_DATA_CHUNK(NativeUInt(lRequest.pEntityChunks) +
                  NativeUInt(I) * SizeOf(HTTP_DATA_CHUNK))^.DataChunkType = HttpDataChunkFromMemory then
               begin
-                { Append chunk data }
-                SetLength(lBodyBytes,
+                SetLength(lChunkBytes,
                   PHTTP_DATA_CHUNK(NativeUInt(lRequest.pEntityChunks) +
                   NativeUInt(I) * SizeOf(HTTP_DATA_CHUNK))^.FromMemory.BufferLength);
-                if Length(lBodyBytes) > 0 then
+                if Length(lChunkBytes) > 0 then
                 begin
                   Move(
                     PHTTP_DATA_CHUNK(NativeUInt(lRequest.pEntityChunks) +
                     NativeUInt(I) * SizeOf(HTTP_DATA_CHUNK))^.FromMemory.pBuffer^,
-                    lBodyBytes[0], Length(lBodyBytes));
-                  lInitialBodyBytes := lInitialBodyBytes + lBodyBytes;
+                    lChunkBytes[0], Length(lChunkBytes));
+                  lInitialBodyBytes := lInitialBodyBytes + lChunkBytes;
                 end;
               end;
             end;
           end;
 
-          { Read remaining body if Content-Length indicates more data }
-          lBodyBytes := lServerRef.ReadFullBody(lRequest, lInitialBodyBytes);
-
-          try
-            lServerRef.HandleRequest(lRequest, lBodyBytes);
-          except
-            on E: Exception do
-            begin
-              try
-                LogE('HTTP.sys HandleRequest error: ' + E.Message);
-              except
-                { Swallow logging errors in listener thread }
-              end;
-            end;
-          end;
+          { [FIX-HS-ASYNC] Off-load everything else to the task pool. }
+          lServerRef.DispatchAsync(lRequestBuffer, lInitialBodyBytes);
         end
         else if lResult = ERROR_MORE_DATA then
         begin
@@ -361,6 +359,35 @@ begin
   finally
     LRequest.Free;
   end;
+end;
+
+{ [FIX-HS-ASYNC] Off-load body read + full pipeline to the default task pool.
+  ARequestBuffer and AInitialBody are managed TBytes captured by refcount,
+  so the listener's buffer survives until the task finishes.
+  HTTP.sys allows HttpReceiveRequestEntityBody + HttpSendHttpResponse from
+  any thread given the queue handle + RequestId, which is exactly what the
+  kernel IOCP model is designed for. }
+procedure TMVCHttpSysServer.DispatchAsync(ARequestBuffer, AInitialBody: TBytes);
+begin
+  TTask.Run(
+    procedure
+    var
+      LFullBody: TBytes;
+      LReq: PHTTP_REQUEST;
+    begin
+      try
+        LReq := PHTTP_REQUEST(@ARequestBuffer[0]);
+        LFullBody := ReadFullBody(LReq, AInitialBody);
+        HandleRequest(LReq, LFullBody);
+      except
+        on E: Exception do
+          try
+            LogE('HTTP.sys async handler error: ' + E.ClassName + ': ' + E.Message);
+          except
+            { Swallow logging errors on worker thread }
+          end;
+      end;
+    end);
 end;
 
 procedure TMVCHttpSysServer.Stop;
