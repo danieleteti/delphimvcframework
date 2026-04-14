@@ -4064,7 +4064,45 @@ end;
 
 class procedure TMVCRenderer.InternalRenderMVCResponse(
   const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
-begin
+
+  { [PERF] Fast-path match for the common OKResponse(TJsonBaseObject) shape:
+    an exact TMVCResponse (no subclass) whose only set body field is Data,
+    pointing to a TJsonBaseObject. Emitted as an object literal with a
+    single "data" key directly to the response stream, skipping the
+    serializer's string-tree construction and the UTF-16 to UTF-8
+    re-encode, which dominate CPU on JSON-heavy APIs. }
+  function TryFastJsonBaseObjectPath: Boolean;
+  const
+    PREFIX: AnsiString = '{"data":';
+    SUFFIX: AnsiString = '}';
+  var
+    LStream: TMemoryStream;
+    LData: TObject;
+  begin
+    Result := False;
+    if MVCResponse.ClassType <> TMVCResponse then Exit;       // no subclasses (errors etc.)
+    if MVCResponse.Message <> '' then Exit;
+    if Assigned(MVCResponse.ObjectDictionary) then Exit;
+    LData := MVCResponse.Data;
+    if not (LData is TJsonBaseObject) then Exit;
+    if not (SameText(TMVCCharSet.UTF_8, Controller.FContentCharset) or
+            SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, Controller.FContentCharset) or
+            Controller.FContentCharset.IsEmpty) then Exit;
+
+    LStream := TMemoryStream.Create;
+    try
+      LStream.WriteBuffer(PREFIX[1], Length(PREFIX));
+      TJsonBaseObject(LData).SaveToStream(LStream, True, nil, True);
+      LStream.WriteBuffer(SUFFIX[1], Length(SUFFIX));
+      LStream.Position := 0;
+    except
+      LStream.Free;
+      raise;
+    end;
+    Controller.FContext.Response.SetContentStream(LStream, Controller.GetContentType);
+    Result := True;
+  end;
+
 begin
   if MVCResponse.HasHeaders then
   begin
@@ -4072,6 +4110,9 @@ begin
   end;
   if MVCResponse.HasBody then
   begin
+    Controller.ResponseStatus(MVCResponse.StatusCode);
+    if TryFastJsonBaseObjectPath then
+      Exit;
     Controller.Render(MVCResponse.StatusCode, MVCResponse, False, nil, MVCResponse.GetIgnoredList);
   end
   else
@@ -4086,8 +4127,6 @@ begin
     Controller.Render(''); {required}
     Controller.ResponseStatus(MVCResponse.StatusCode);
   end;
-end;
-
 end;
 
 function TMVCRenderer.RedirectResponse(Location: String; Permanent: Boolean = False; PreserveMethod: Boolean = False): IMVCResponse;
@@ -4549,8 +4588,34 @@ procedure TMVCRenderer.Render(
 var
   lObjList: IMVCList;
   lSerializer: IMVCSerializer;
+  lJsonStream: TMemoryStream;
 begin
   try
+    { [PERF] Fast path for TJsonBaseObject: write UTF-8 JSON directly into
+      the response stream via TJsonBaseObject.SaveToStream, skipping the
+      UTF-16 string intermediate produced by ToJSON and the subsequent
+      UTF-8 re-encode inside Render(AContent: string). On typical REST
+      handlers that build a JsonDataObjects tree and return it, this
+      saves ~2x the payload size in allocations and one encoding pass
+      per request. }
+    if Assigned(AObject) and
+       AObject.InheritsFrom(TJsonBaseObject) and
+       (SameText(TMVCCharSet.UTF_8, FContentCharset) or
+        SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) or
+        FContentCharset.IsEmpty) then
+    begin
+      lJsonStream := TMemoryStream.Create;
+      try
+        TJsonBaseObject(AObject).SaveToStream(lJsonStream, True, nil, True);
+        lJsonStream.Position := 0;
+      except
+        lJsonStream.Free;
+        raise;
+      end;
+      GetContext.Response.SetContentStream(lJsonStream, GetContentType);
+      Exit;
+    end;
+
     lSerializer := Serializer(GetContentType);
     { If object can be wrapped as list (duck typing) AND no custom type serializer
       is registered for this specific type, use collection serialization.
