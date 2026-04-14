@@ -169,55 +169,102 @@ begin
       [AContext, AResult, SysErrorMessage(AResult)]);
 end;
 
+{ [PERF] Read the full request body.
+  Fast path: the client declared Content-Length, so the exact body size is
+  known up front. Allocate the final TBytes once and stream
+  HttpReceiveRequestEntityBody directly into it - no intermediate
+  TMemoryStream, no growing allocations, no final memcpy. For a 1 MB upload
+  this turns ~3 MB of memory traffic into a single 1 MB allocation.
+  Fallback path: no Content-Length (chunked transfer or raw TCP upload).
+  Grow a TBytes adaptively. Rare on modern clients; kept for compatibility. }
 function TMVCHttpSysServer.ReadFullBody(ARequest: PHTTP_REQUEST;
   AInitialBodyBytes: TBytes): TBytes;
+const
+  GROW_CHUNK = 65536;
 var
-  lBodyStream: TMemoryStream;
-  lBuffer: array[0..ENTITY_BODY_BUFFER_SIZE - 1] of Byte;
-  lBytesReceived: ULONG;
-  lResult: ULONG;
+  LCLStr: string;
+  LContentLength: Int64;
+  LWritten: Int64;
+  LBytesReceived: ULONG;
+  LResult: ULONG;
+  LRoom: ULONG;
+  LInitialLen: Integer;
+  LCLHeader: HTTP_KNOWN_HEADER;
 begin
-  lBodyStream := TMemoryStream.Create;
-  try
-    { Write any body data already received in the initial request buffer }
-    if Length(AInitialBodyBytes) > 0 then
-      lBodyStream.WriteBuffer(AInitialBodyBytes[0], Length(AInitialBodyBytes));
+  { Read Content-Length inline from the known-header table. Avoids taking
+    a dependency on a private helper in another unit. }
+  LCLHeader := ARequest.Headers.KnownHeaders[Ord(HttpHeaderContentLength)];
+  if LCLHeader.RawValueLength > 0 then
+  begin
+    SetString(LCLStr, LCLHeader.pRawValue, LCLHeader.RawValueLength);
+    LContentLength := StrToInt64Def(LCLStr, -1);
+  end
+  else
+    LContentLength := -1;
+  LInitialLen := Length(AInitialBodyBytes);
 
-    { Read remaining body data using HttpReceiveRequestEntityBody }
-    while True do
+  if LContentLength >= 0 then
+  begin
+    SetLength(Result, LContentLength);
+    LWritten := 0;
+    if LInitialLen > 0 then
     begin
-      lBytesReceived := 0;
-      lResult := HttpReceiveRequestEntityBody(FReqQueueHandle, ARequest.RequestId, 0,
-        @lBuffer[0], SizeOf(lBuffer), lBytesReceived, nil);
-
-      if lResult = NO_ERROR then
+      if LInitialLen > LContentLength then
+        LInitialLen := LContentLength;
+      Move(AInitialBodyBytes[0], Result[0], LInitialLen);
+      LWritten := LInitialLen;
+    end;
+    while LWritten < LContentLength do
+    begin
+      LBytesReceived := 0;
+      if (LContentLength - LWritten) > High(ULONG) then
+        LRoom := High(ULONG)
+      else
+        LRoom := ULONG(LContentLength - LWritten);
+      LResult := HttpReceiveRequestEntityBody(FReqQueueHandle,
+        ARequest.RequestId, 0, @Result[LWritten], LRoom, LBytesReceived, nil);
+      if LResult = NO_ERROR then
+        Inc(LWritten, LBytesReceived)
+      else if LResult = ERROR_HANDLE_EOF then
       begin
-        if lBytesReceived > 0 then
-          lBodyStream.WriteBuffer(lBuffer[0], lBytesReceived);
-      end
-      else if lResult = ERROR_HANDLE_EOF then
-      begin
-        { End of entity body }
-        if lBytesReceived > 0 then
-          lBodyStream.WriteBuffer(lBuffer[0], lBytesReceived);
+        Inc(LWritten, LBytesReceived);
         Break;
       end
       else
-      begin
-        { Error reading body - use what we have }
         Break;
-      end;
     end;
-
-    SetLength(Result, lBodyStream.Size);
-    if lBodyStream.Size > 0 then
-    begin
-      lBodyStream.Position := 0;
-      lBodyStream.ReadBuffer(Result[0], lBodyStream.Size);
-    end;
-  finally
-    lBodyStream.Free;
+    if LWritten < LContentLength then
+      SetLength(Result, LWritten);
+    Exit;
   end;
+
+  { Unknown length fallback. }
+  SetLength(Result, LInitialLen + GROW_CHUNK);
+  LWritten := 0;
+  if LInitialLen > 0 then
+  begin
+    Move(AInitialBodyBytes[0], Result[0], LInitialLen);
+    LWritten := LInitialLen;
+  end;
+  while True do
+  begin
+    if Length(Result) - LWritten < GROW_CHUNK then
+      SetLength(Result, Length(Result) + GROW_CHUNK);
+    LBytesReceived := 0;
+    LResult := HttpReceiveRequestEntityBody(FReqQueueHandle,
+      ARequest.RequestId, 0, @Result[LWritten],
+      ULONG(Length(Result) - LWritten), LBytesReceived, nil);
+    if LResult = NO_ERROR then
+      Inc(LWritten, LBytesReceived)
+    else if LResult = ERROR_HANDLE_EOF then
+    begin
+      Inc(LWritten, LBytesReceived);
+      Break;
+    end
+    else
+      Break;
+  end;
+  SetLength(Result, LWritten);
 end;
 
 procedure TMVCHttpSysServer.Listen(APort: Integer; const AHost: string);
