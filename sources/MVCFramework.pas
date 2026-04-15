@@ -1379,6 +1379,7 @@ uses
   System.SysConst,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Streaming,
   MVCFramework.JSONRPC,
   MVCFramework.Router,
   MVCFramework.Rtti.Utils,
@@ -2650,6 +2651,8 @@ var
   lEValidException: EMVCValidationException;
   lValidationErrorsStr: string;
   lValidationError: TPair<string, string>;
+  lLocalTable: TMVCRouteTable;
+  lMatched: Boolean;
 begin
   Result := False;
   DefineDefaultResponseHeaders(AContext);
@@ -2661,8 +2664,8 @@ begin
       ExecuteBeforeRoutingMiddleware(AContext, lHandled);
       if not lHandled then
       begin
-        var lLocalTable: TMVCRouteTable := TMVCRouteTable(fRouteTable);
-        var lMatched: Boolean := TMVCRouter.ExecuteRouting(
+        lLocalTable := TMVCRouteTable(fRouteTable);
+        lMatched := TMVCRouter.ExecuteRouting(
           AContext.Request.RawPathInfo,
           AContext.Request.GetOverwrittenHTTPMethod,
           AContext.Request.ContentType,
@@ -4122,6 +4125,61 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
     Result := True;
   end;
 
+  { [PERF] Streaming fast path for OKResponse(TObject) / OKResponse(TObjectList).
+    When Data is a plain class whose public/published properties are all
+    primitives (or a list of such), TMVCStreamingJsonSerializer writes the
+    inner JSON straight to the response stream via System.JSON.Writers.
+    No intermediate TJDOJsonObject tree, no UTF-16 string. Falls back to
+    the legacy path if the shape is not supported (nested objects, records,
+    datasets, custom type serializers, etc.). }
+  function TryFastStreamingPath: Boolean;
+  const
+    PREFIX: AnsiString = '{"data":';
+    SUFFIX: AnsiString = '}';
+  var
+    LStream: TMemoryStream;
+    LData: TObject;
+    LOK: Boolean;
+    LMark: Int64;
+  begin
+    Result := False;
+    if MVCResponse.ClassType <> TMVCResponse then Exit;
+    if MVCResponse.Message <> '' then Exit;
+    if Assigned(MVCResponse.ObjectDictionary) then Exit;
+    LData := MVCResponse.Data;
+    if LData = nil then Exit;
+    if LData is TJsonBaseObject then Exit;   // handled by TryFastJsonBaseObjectPath
+    if not (SameText(TMVCCharSet.UTF_8, Controller.FContentCharset) or
+            SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, Controller.FContentCharset) or
+            Controller.FContentCharset.IsEmpty) then Exit;
+
+    LStream := TMemoryStream.Create;
+    try
+      LStream.WriteBuffer(PREFIX[1], Length(PREFIX));
+      LMark := LStream.Position;
+      { Prefer list path when the object exposes a Count + indexed Items. }
+      LOK := TMVCStreamingJsonSerializer.TryWriteList(LData, LStream);
+      if not LOK then
+      begin
+        LStream.Position := LMark;
+        LStream.Size := LMark;
+        LOK := TMVCStreamingJsonSerializer.TryWriteObject(LData, LStream);
+      end;
+      if not LOK then
+      begin
+        LStream.Free;
+        Exit;
+      end;
+      LStream.WriteBuffer(SUFFIX[1], Length(SUFFIX));
+      LStream.Position := 0;
+    except
+      LStream.Free;
+      raise;
+    end;
+    Controller.FContext.Response.SetContentStream(LStream, Controller.GetContentType);
+    Result := True;
+  end;
+
 begin
   if MVCResponse.HasHeaders then
   begin
@@ -4131,6 +4189,8 @@ begin
   begin
     Controller.ResponseStatus(MVCResponse.StatusCode);
     if TryFastJsonBaseObjectPath then
+      Exit;
+    if TryFastStreamingPath then
       Exit;
     Controller.Render(MVCResponse.StatusCode, MVCResponse, False, nil, MVCResponse.GetIgnoredList);
   end
