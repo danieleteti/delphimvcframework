@@ -42,12 +42,9 @@ unit MVCFramework.Serializer.Streaming;
 
 interface
 
-{ System.JSON.Writers.TJsonTextWriter was added in Delphi 10.3 Rio.
-  On 10.1 / 10.2 the streaming path compiles as a stub that always
-  returns False, so callers fall back to the legacy serializer. }
-{$IF Defined(RIOORBETTER)}
-  {$DEFINE MVC_HAS_STREAMING_JSON}
-{$IFEND}
+{ MVC_HAS_STREAMING_JSON is defined in dmvcframework.inc for 10.3 Rio+.
+  On older compilers the streaming path compiles as a stub returning
+  False, so callers fall back to the legacy serializer. }
 
 uses
   System.SysUtils, System.Classes, System.Rtti, System.TypInfo,
