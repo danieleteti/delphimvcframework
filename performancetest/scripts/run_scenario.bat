@@ -44,6 +44,8 @@ if /I "%SCENARIO%"=="health"     set URL=%HOST%/bench/health
 if /I "%SCENARIO%"=="json_small" set URL=%HOST%/bench/json/small
 if /I "%SCENARIO%"=="json_large" set URL=%HOST%/bench/json/large
 if /I "%SCENARIO%"=="heavy"      set URL=%HOST%/bench/heavy
+if /I "%SCENARIO%"=="pods_small" set URL=%HOST%/bench/pods/small
+if /I "%SCENARIO%"=="pods_large" set URL=%HOST%/bench/pods/large
 if /I "%SCENARIO%"=="upload" (
   set URL=%HOST%/bench/upload
   set METHOD=POST
