@@ -1347,8 +1347,8 @@ begin
   lRes := RESTClient.Get('/issue552');
   lJOBJ := StrToJSONObject(lRes.Content);
   try
-    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
-    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
+    Assert.AreEqual('75ade43e-f8c1-4f66-b714-d04726fd2c21', lJOBJ.S['guid']);
+    Assert.AreEqual('7b17f2dd-6ed5-40a4-a334-8ed877a6803e', lJOBJ.S['nullableguid']);
     Assert.IsTrue(lJOBJ.IsNull('nullableguid2'));
   finally
     lJOBJ.Free;
@@ -1369,8 +1369,8 @@ begin
   Assert.IsTrue(lRes.Success);
   lJOBJ := StrToJSONObject(lRes.Content);
   try
-    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
-    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
+    Assert.AreEqual('75ade43e-f8c1-4f66-b714-d04726fd2c21', lJOBJ.S['guid']);
+    Assert.AreEqual('7b17f2dd-6ed5-40a4-a334-8ed877a6803e', lJOBJ.S['nullableguid']);
     Assert.IsTrue(lJOBJ.IsNull('nullableguid2'));
   finally
     lJOBJ.Free;
@@ -1384,9 +1384,9 @@ begin
   Assert.IsTrue(lRes.Success);
   lJOBJ := StrToJSONObject(lRes.Content);
   try
-    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
-    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
-    Assert.AreEqual('{D6DC2A99-CFFE-43C8-A4DC-0492786AB303}', lJOBJ.S['nullableguid2']);
+    Assert.AreEqual('75ade43e-f8c1-4f66-b714-d04726fd2c21', lJOBJ.S['guid']);
+    Assert.AreEqual('7b17f2dd-6ed5-40a4-a334-8ed877a6803e', lJOBJ.S['nullableguid']);
+    Assert.AreEqual('d6dc2a99-cffe-43c8-a4dc-0492786ab303', lJOBJ.S['nullableguid2']);
   finally
     lJOBJ.Free;
   end;
