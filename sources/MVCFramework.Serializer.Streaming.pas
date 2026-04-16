@@ -180,6 +180,11 @@ end;
   breaks it the streaming path still functions since the Flush + the
   internal byte buffer are re-initialised per use. }
 type
+  { The fields after FStream are unused by us: they are there only to
+    reproduce the exact layout of TStreamWriter so that the
+    FStream / FBufferIndex slots we do read land at the correct byte
+    offsets. Silence H2219 for this block. }
+  {$HINTS OFF}
   TStreamWriterLayout = class(TTextWriter)
   private
     FStream: TStream;
@@ -190,6 +195,7 @@ type
     FBufferIndex: Integer;
     FBuffer: TBytes;
   end;
+  {$HINTS ON}
 
   { [PERF/PARITY] UTF-8 without BOM. TEncoding.UTF8.GetPreamble returns
     EF BB BF which TStreamWriter emits on the first write to an empty

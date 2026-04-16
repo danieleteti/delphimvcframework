@@ -71,8 +71,11 @@ type
 
     ActionAttributes is the same TArray<TCustomAttribute> that
     TRttiMethod.GetAttributes would return - cached here so
-    IsHTTPMethodCompatible / IsHTTPAcceptCompatible / IsHTTPContentTypeCompatible
-    do not re-allocate it per request. }
+    IsHTTPAcceptCompatible / IsHTTPContentTypeCompatible do not
+    re-allocate it per request. The per-method check is not needed
+    at this stage because the route table is already indexed by
+    HTTP method; any route reaching the match routine has already
+    passed the method gate. }
   TMVCCompiledRoute = class
   public
     ControllerClazz: TMVCControllerClazz;
@@ -123,10 +126,6 @@ type
     class function IsHTTPAcceptCompatible(
       const ARequestMethodType: TMVCHTTPMethodType;
       var AAccept: string;
-      const AAttributes: TArray<TCustomAttribute>): Boolean; static;
-
-    class function IsHTTPMethodCompatible(
-      const AMethodType: TMVCHTTPMethodType;
       const AAttributes: TArray<TCustomAttribute>): Boolean; static;
 
     class function IsCompatiblePath(
@@ -738,28 +737,6 @@ begin
     end;
 
   Result := (not FoundOneAttConsumes) or (FoundOneAttConsumes and Result);
-end;
-
-class function TMVCRouter.IsHTTPMethodCompatible(
-  const AMethodType: TMVCHTTPMethodType;
-  const AAttributes: TArray<TCustomAttribute>): Boolean;
-var
-  I: Integer;
-  MustBeCompatible: Boolean;
-  CompatibleMethods: TMVCHTTPMethods;
-begin
-  Result := False;
-
-  MustBeCompatible := False;
-  for I := 0 to high(AAttributes) do
-    if AAttributes[I] is MVCHTTPMethodAttribute then
-    begin
-      MustBeCompatible := True;
-      CompatibleMethods := MVCHTTPMethodAttribute(AAttributes[I]).MVCHTTPMethods;
-      Result := (AMethodType in CompatibleMethods);
-    end;
-
-  Result := (not MustBeCompatible) or (MustBeCompatible and Result);
 end;
 
 class function TMVCRouter.StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;
