@@ -5,6 +5,194 @@ All notable changes to DelphiMVCFramework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0-silicon] - Unreleased
+
+### ⚠ BREAKING CHANGES
+
+Two serialisation defaults have been flipped. Both affect the JSON
+output of `OKResponse(TObject)` and are one-line overrides to restore
+the pre-3.5 behaviour if needed.
+
+**1. TGUID default format: braces + dashes → dashes only (RFC 4122)**
+
+Before:
+```json
+{ "id": "{550E8400-E29B-41D4-A716-446655440000}" }
+```
+After:
+```json
+{ "id": "550e8400-e29b-41d4-a716-446655440000" }
+```
+
+The new default matches what JavaScript, Java, Python, .NET and
+database clients expect. Delphi callers that parse the JSON response
+with a strict braced-GUID regex will need to either update the parser
+or restore the old default at program startup:
+```pascal
+uses MVCFramework.Serializer.Commons;
+...
+MVCGuidSerializationTypeDefault := gstBraces;
+```
+Alternatively, decorate individual fields with
+`[MVCGuidSerialization(gstBraces)]`.
+
+**2. `TDate` / `TDateTime` / `TTime` with value 0 serialises as the
+1899-12-30 epoch, not as JSON `null`**
+
+Before: a zero `TDateTime` emitted `null` on the wire. The framework
+treated zero as a "not set" sentinel because `NullableDateTime` did
+not yet exist.
+
+After: zero is a valid calendar instant and is serialised as such:
+```json
+{ "when": "1899-12-30T00:00:00.000+00:00" }
+```
+
+If your API relied on the null-for-zero behaviour, migrate the
+affected fields to `NullableTDateTime` (which preserves
+`HasValue=False` → `null` correctly), or keep the zero check on the
+client side. There is no runtime flag to restore the old behaviour -
+the sentinel was lossy and breaks round-trips, so a real nullable
+type is the only correct alternative going forward.
+
+### Added
+
+- **Pluggable HTTP server backends** behind a new `IMVCServer` interface
+  (`MVCFramework.Server.Intf`). Three concrete backends ship out of the
+  box:
+  - `TMVCWebBrokerServer` - the classic WebBroker + `TIdHTTPWebBrokerBridge`
+    pipeline (now one option among several, not the only path).
+  - `TMVCIndyServer` - a direct `TIdHTTPServer` backend that skips
+    WebBroker entirely. Smaller request pipeline, faster dispatch for
+    small payloads.
+  - `TMVCHttpSysServer` - Windows kernel-mode `http.sys` backend with
+    async dispatch to the default task pool. Request body is streamed
+    straight into a pre-sized `TBytes` when `Content-Length` is known,
+    avoiding the legacy `TMemoryStream` + final `SetLength/Move`
+    round trip.
+
+  Speaking class constructors on `TMVCEngine` select the backend that
+  the engine targets: `TMVCEngine.CreateForWebBroker(AWebModule)`,
+  `TMVCEngine.CreateForIndyDirect(AConfigAction)`,
+  `TMVCEngine.CreateForHttpSys(AConfigAction)`. The pre-3.5 one-arg
+  `TMVCEngine.Create(AWebModule)` constructor is preserved but
+  deprecated; existing code compiles unchanged with a deprecated
+  warning until you migrate at your convenience.
+
+  Built-in HTTPS: each backend accepts a `HTTPSConfigurator` (wired up
+  by adding `uses MVCFramework.Server.HTTPS.TaurusTLS`) so TLS setup is
+  inside the server, not in the caller.
+
+- **Streaming JSON serializer fast path** (`MVCFramework.Serializer.Streaming`)
+  for `OKResponse(TObject)` / `OKResponse(TObjectList<T>)`. Writes JSON
+  directly to the response stream via `System.JSON.Writers.TJsonTextWriter`
+  with a per-class cached emission plan - no intermediate `TJDOJsonObject`
+  tree, no UTF-16 string. Benchmarked gain on HTTP.sys at c=100 (median
+  of 3 x 30 s): `pods/small` +18.6% (2641 -> 3132 rps),
+  `pods/large` +74.6% (251 -> 438 rps). Requires Delphi 10.3 Rio+; on
+  older compilers the new path is a stub and the legacy serializer is
+  used unchanged.
+
+  **Full feature parity with the legacy serializer** - byte-identical
+  output across all supported shapes, verified via a 50-scenario parity
+  harness (`performancetest/parity/ParityCheck.exe`):
+
+  - Primitive properties: `Integer`, `Int64`, `Single`, `Double`,
+    `Extended`, `Currency`, `String`, `Boolean`, `TDate`, `TTime`,
+    `TDateTime`, `TGUID`, non-`Boolean` enums.
+  - All `NullableXxx` record types - `NullableString`, `NullableInt8`..`Int64`,
+    `NullableUInt8`..`UInt64`, `NullableByte`, `NullableSingle`/`Double`/`Extended`/`Float32`/`Float64`,
+    `NullableCurrency`, `NullableBoolean`, `NullableTDate`/`TTime`/`TDateTime`,
+    `NullableTGUID`, `NullableAnsiString`, `NullableInteger`. Honours
+    `MVCSerializeNulls`.
+  - Nested `TObject` properties (recursively validated at plan-build
+    time with placeholder-based cycle detection).
+  - `TObjectList<T>` / `TList<T>` properties (polymorphic items: plan
+    is resolved per runtime `ClassType`).
+  - `TArray<T>` properties - primitives, `TObject` subclasses, `Nullable*`
+    records.
+  - `TStream` / `TMemoryStream` / `TStringStream` properties - base64
+    encoded, matching `TMVCStreamSerializerJsonDataObject` output.
+  - `TDataSet` properties - delegates to the legacy
+    `SerializeDataSet(TMVCNameCase.ncUseDefault)` so `ApplyNameCase`,
+    ignored fields, nested datasets, blob base64, `ftGuid` / `ftFMTBcd`
+    handling and field attributes all come across untouched.
+  - Attributes honoured: `MVCNameAs`, `MVCNameCase` (class-level and
+    `MVCNameCaseDefault` global), `MVCDoNotSerialize`.
+  - Classes marked `[MVCSerialize(stFields)]` and properties whose type
+    has a custom `IMVCTypeSerializer` registered (that the streaming
+    path does not recognise natively) transparently fall back to the
+    legacy serializer - output is byte-identical in both cases.
+
+  If a runtime class or polymorphic list item turns out to be
+  unsupported mid-emission, the streaming path raises an internal
+  fallback exception, rewinds the output stream to the pre-write
+  mark, discards the thread-local writer state and returns `False`
+  so the caller engages the legacy path with no partial bytes on
+  the wire.
+- **HTTP.sys async dispatch** - the kernel-mode backend now offloads
+  every request body read + pipeline execution to the default task pool
+  instead of serialising everything on the listener thread. Upload 1 MB
+  went from 95 to 534 rps on the bench machine.
+- **HTTP.sys zero-copy body read** - when `Content-Length` is known up
+  front the request body is written straight into a pre-sized `TBytes`,
+  eliminating the previous `TMemoryStream` + final `SetLength/Move`
+  round trip.
+- **Per-engine route table** (`TMVCRouteTable`) computed once at
+  `AddController` time and indexed first by HTTP method then by path,
+  replacing the per-request RTTI scan that used to run on every
+  dispatch. Static routes hit a string dictionary in O(1); parametric
+  routes are a short per-method list using the already-cached regex
+  from `gMVCGlobalActionParamsCache`.
+- **Render fast path for `OKResponse(TJsonBaseObject)`** - the JsonObject
+  is written to the response stream via `TJsonBaseObject.SaveToStream`,
+  skipping the UTF-16 Delphi string that `ToJSON(True)` would allocate
+  and the subsequent UTF-8 re-encode inside `Render(AContent: string)`.
+
+### Changed
+
+- Default `TGUID` serialisation format is now dashes-only (RFC 4122)
+  instead of `{braces}`. See **BREAKING CHANGES** above for migration.
+- `TDate` / `TDateTime` / `TTime` zero no longer serialises as JSON
+  `null`. See **BREAKING CHANGES** above for migration.
+
+### Fixed
+
+- **`Single` properties no longer leak the imprecise Extended tail on
+  the wire.** Both the legacy and the streaming serializers now
+  round-trip `Single` values through their lossless 7-digit decimal
+  form before emitting, so `Single(1e-10)` serialises as `1E-10`
+  instead of `1.00000001335143E-10`. `Double` / `Extended` properties
+  still use 15 significant digits as before.
+- **Server-abstraction test fixtures leaked their `TMVCEngine`**
+  (~2.5 MB per test run). `[SetUp]` / `[TearDown]` methods were
+  declared under `protected` visibility, and DUnitX only invokes
+  fixture lifecycle methods that live in `public`. Tests passed but
+  FastMM4 reported an "Unexpected Memory Leak" block at process
+  shutdown. Visibility fixed; `tests32` / `tests64` now report a clean
+  shutdown. Users of the framework were never affected - the leak
+  only showed up during CI test runs, never at runtime.
+
+### Performance
+
+All numbers below are median of 3 x 30 s runs at c=100 on a loopback
+HTTP.sys bench (i9-13980HX, Win 11, Release Win64). See
+`performancetest/results/BASELINE_AFTER.md` for the full matrix and
+the cross-backend comparison.
+
+| Scenario        | Before | After  | Delta  |
+|-----------------|-------:|-------:|-------:|
+| health          | 2354   | 3380   | +44%   |
+| json/small      | 2099   | 2858   | +36%   |
+| json/large      |  735   |  889   | +21%   |
+| heavy chain     | 1874   | 3131   | +67%   |
+| upload 1 MB     |   95   |  892   | +839%  |
+| pods/small (\*) |  new   | 3132   | +18.6% over legacy |
+| pods/large (\*) |  new   |  438   | +74.6% over legacy |
+
+`(*)` new benchmark scenarios introduced in 3.5.x exercising the
+streaming serializer.
+
 ## [3.4.3-aluminium] - Current Stable
 
 > 👉 A deep analysis of what's new in DelphiMVCFramework-3.4.3-aluminium is available on [Daniele Teti Blog](https://www.danieleteti.it/post/released-dmvcframework-3-4-3-aluminium/)
