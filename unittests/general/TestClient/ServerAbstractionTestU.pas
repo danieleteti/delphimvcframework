@@ -42,12 +42,11 @@ type
     FEngine: TMVCEngine;
     FServer: IMVCServer;
     procedure StartServer;
-  protected
-    [Setup]
+  public
+    [SetUp]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  public
     [Test]
     procedure TestStartStop;
     [Test]
@@ -68,12 +67,11 @@ type
 
   [TestFixture]
   TTestWebBrokerBackwardCompat = class(TObject)
-  protected
-    [Setup]
+  public
+    [SetUp]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  public
     [Test]
     procedure TestOldListenerStillWorks;
     [Test]
