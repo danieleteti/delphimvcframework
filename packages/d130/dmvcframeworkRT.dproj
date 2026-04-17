@@ -236,6 +236,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Validators.CrossField.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Request.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Response.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

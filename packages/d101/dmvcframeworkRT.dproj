@@ -218,6 +218,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
+        <DCCReference Include="....sourcesMVCFramework.Serializer.Streaming.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
