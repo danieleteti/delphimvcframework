@@ -1281,6 +1281,20 @@ function TMVCJsonDataObjectsSerializer.JsonArrayToArray(
 type
   TSetOfTypeElement = (xString, xByte, xInt, xLong, xFloat, xBool);
   TSetOfType = set of TSetOfTypeElement;
+  // Compare the element TypeInfo of a dynamic-array TypeInfo against a
+  // known target element TypeInfo. elType2 is the PPTypeInfo of the
+  // element, always set (independent of cleanup). Using this instead of
+  // comparing the dyn-array TypeInfo itself for identity is what makes
+  // the routing survive a cross-module PTypeInfo mismatch (issue #889).
+  function DynArrayElementIs(ADynArrayTI, AElementTI: PTypeInfo): Boolean;
+  var
+    lTD: PTypeData;
+  begin
+    if (ADynArrayTI = nil) or (ADynArrayTI.Kind <> tkDynArray) then
+      Exit(False);
+    lTD := GetTypeData(ADynArrayTI);
+    Result := (lTD^.elType2 <> nil) and (lTD^.elType2^ = AElementTI);
+  end;
 var
   I: Integer;
   lStrArr: TArray<string>;
@@ -1304,13 +1318,13 @@ begin
         end;
       jdtInt, jdtLong:
         begin
-          if ATypeInfo = TypeInfo(TArray<Int64>) then
+          if DynArrayElementIs(ATypeInfo, TypeInfo(Int64)) then
           begin
             Include(lSetOfType, xLong);
             lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
           end
           else
-          if ATypeInfo = TypeInfo(TArray<Byte>) then
+          if DynArrayElementIs(ATypeInfo, TypeInfo(Byte)) then
           begin
             Include(lSetOfType, xByte);
             lByteArr := lByteArr + [AJsonArray.Items[I].IntValue];
@@ -1345,18 +1359,38 @@ begin
   end;
 
   if Length(lStrArr) > 0 then
-    Exit(TValue.From < TArray < string >> (lStrArr));
-  if Length(lByteArr) > 0 then
-    Exit(TValue.From < TArray < Byte >> (lByteArr));
-  if Length(lIntArr) > 0 then
-    Exit(TValue.From < TArray < Integer >> (lIntArr));
-  if Length(lLongArr) > 0 then
-    Exit(TValue.From < TArray < Int64 >> (lLongArr));
-  if Length(lBoolArr) > 0 then
-    Exit(TValue.From < TArray < Boolean >> (lBoolArr));
-  if Length(lDoubleArr) > 0 then
-    Exit(TValue.From < TArray < Double >> (lDoubleArr));
-  Result := TValue.From < TArray < String >> ([]);
+    Result := TValue.From < TArray < string >> (lStrArr)
+  else if Length(lByteArr) > 0 then
+    Result := TValue.From < TArray < Byte >> (lByteArr)
+  else if Length(lIntArr) > 0 then
+    Result := TValue.From < TArray < Integer >> (lIntArr)
+  else if Length(lLongArr) > 0 then
+    Result := TValue.From < TArray < Int64 >> (lLongArr)
+  else if Length(lBoolArr) > 0 then
+    Result := TValue.From < TArray < Boolean >> (lBoolArr)
+  else if Length(lDoubleArr) > 0 then
+    Result := TValue.From < TArray < Double >> (lDoubleArr)
+  else
+    Result := TValue.From < TArray < String >> ([]);
+
+  // Issue #889: when the target property is a dynamic-array type with a
+  // PTypeInfo distinct from the serializer's TArray<T> (BPL boundary or
+  // a named alias such as `TMyInts = array of Integer`), TRttiProperty.SetValue
+  // compares TypeInfo pointers for identity and raises EInvalidCast even
+  // though the memory layout is byte-identical. Retarget the TValue to the
+  // caller's TypeInfo so SetValue succeeds. elType2 is the PPTypeInfo of
+  // the element type (always set, independent of cleanup); comparing its
+  // dereference confirms the element kind truly matches, guarding against
+  // same-size-different-semantics cases like `array of Integer` vs
+  // `array of Single` on Win32.
+  if (ATypeInfo <> nil) and (Result.TypeInfo <> ATypeInfo) and
+    (ATypeInfo.Kind = tkDynArray) and (Result.TypeInfo.Kind = tkDynArray) and
+    (GetTypeData(ATypeInfo)^.elType2 <> nil) and
+    (GetTypeData(Result.TypeInfo)^.elType2 <> nil) and
+    (GetTypeData(ATypeInfo)^.elType2^ = GetTypeData(Result.TypeInfo)^.elType2^) then
+  begin
+    TValueData(Result).FTypeInfo := ATypeInfo;
+  end;
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;

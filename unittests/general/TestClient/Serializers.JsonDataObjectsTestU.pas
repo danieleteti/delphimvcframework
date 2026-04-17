@@ -114,6 +114,8 @@ type
     [Test]
     // [Category('this')]
     procedure TestDeserializeEntityWithArray;
+    [Test]
+    procedure TestDeserializeEntityWithNamedArrayAlias_Issue889;
     { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
@@ -663,6 +665,67 @@ begin
     O.Free;
   end;
   MVCNameCaseDefault := lSavedMVCNameCase;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithNamedArrayAlias_Issue889;
+// Regression for issue #889: in a modular project the model type
+// (e.g. TArray<Integer>) lives in a different BPL/package than
+// dmvcframework, so its PTypeInfo is distinct even though the memory
+// layout is identical. TRttiProperty.SetValue raises EInvalidCast
+// because it compares TypeInfo pointers for identity. We reproduce
+// the same mismatch locally - without a separate BPL - by declaring
+// named array aliases in the test DTO: each named alias has its own
+// TypeInfo, distinct from the serializer's TArray<Xxx>.
+const
+  JSON_WITH_NAMED_ARRAYS =
+    '{' +
+    '"Integers":[1,2,3],' +
+    '"Longs":[10000000000,20000000000],' +
+    '"Bytes":[10,20,30],' +
+    '"Names":["alpha","beta"],' +
+    '"Flags":[true,false,true],' +
+    '"Reals":[1.5,2.5]' +
+    '}';
+var
+  lSavedCase: TMVCNameCase;
+  O: TEntityWithNamedArray;
+begin
+  lSavedCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+  try
+    O := TEntityWithNamedArray.Create;
+    try
+      fSerializer.DeserializeObject(JSON_WITH_NAMED_ARRAYS, O);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Integers));
+      Assert.AreEqual<Integer>(1, O.Integers[0]);
+      Assert.AreEqual<Integer>(3, O.Integers[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Longs));
+      Assert.AreEqual<Int64>(10000000000, O.Longs[0]);
+      Assert.AreEqual<Int64>(20000000000, O.Longs[1]);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Bytes));
+      Assert.AreEqual<Byte>(30, O.Bytes[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Names));
+      Assert.AreEqual('alpha', O.Names[0]);
+      Assert.AreEqual('beta', O.Names[1]);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Flags));
+      Assert.IsTrue(O.Flags[0]);
+      Assert.IsFalse(O.Flags[1]);
+      Assert.IsTrue(O.Flags[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Reals));
+      Assert.AreEqual<Double>(1.5, O.Reals[0]);
+      Assert.AreEqual<Double>(2.5, O.Reals[1]);
+    finally
+      O.Free;
+    end;
+  finally
+    MVCNameCaseDefault := lSavedCase;
+  end;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists;

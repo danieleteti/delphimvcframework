@@ -363,6 +363,35 @@ type
     property Booleans: TArray<Boolean> read FBooleans write FBooleans;
   end;
 
+  // Named array aliases - each is a distinct PTypeInfo even though the
+  // memory layout matches TArray<Xxx>. Used to reproduce the cross-module
+  // TypeInfo mismatch reported in issue #889 (modular/BPL setups where a
+  // model type has a different PTypeInfo than the one instantiated inside
+  // the serializer package).
+  TNamedIntArray = array of Integer;
+  TNamedInt64Array = array of Int64;
+  TNamedByteArray = array of Byte;
+  TNamedStringArray = array of String;
+  TNamedBooleanArray = array of Boolean;
+  TNamedDoubleArray = array of Double;
+
+  TEntityWithNamedArray = class
+  private
+    FIntegers: TNamedIntArray;
+    FLongs: TNamedInt64Array;
+    FBytes: TNamedByteArray;
+    FNames: TNamedStringArray;
+    FFlags: TNamedBooleanArray;
+    FReals: TNamedDoubleArray;
+  public
+    property Integers: TNamedIntArray read FIntegers write FIntegers;
+    property Longs: TNamedInt64Array read FLongs write FLongs;
+    property Bytes: TNamedByteArray read FBytes write FBytes;
+    property Names: TNamedStringArray read FNames write FNames;
+    property Flags: TNamedBooleanArray read FFlags write FFlags;
+    property Reals: TNamedDoubleArray read FReals write FReals;
+  end;
+
   IChildEntity = interface
   ['{4A4CF508-D64F-4205-9783-E91B888A8987}']
     function GetCode: Integer;
