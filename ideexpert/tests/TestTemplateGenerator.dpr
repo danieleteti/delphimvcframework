@@ -1375,6 +1375,52 @@ begin
     ExitCode := 0;
 end;
 
+function RunDProjAppTypeTest(const AProgramType, AExpectedAppType: string): Boolean;
+var
+  LConfig: TJSONObject;
+  LSource: string;
+  LExpectedTag: string;
+  LUnexpectedTag: string;
+begin
+  LConfig := CreateBaseConfig;
+  try
+    LConfig.S[TConfigKey.program_type] := AProgramType;
+    LSource := TTestTemplateEngine.Render('project.dproj.tpro', LConfig);
+
+    LExpectedTag := '<AppType>' + AExpectedAppType + '</AppType>';
+    if AExpectedAppType = 'Console' then
+      LUnexpectedTag := '<AppType>Library</AppType>'
+    else
+      LUnexpectedTag := '<AppType>Console</AppType>';
+
+    Result := LSource.Contains(LExpectedTag) and not LSource.Contains(LUnexpectedTag);
+    if Result then
+      Log(Format('  [PASS] program_type="%s" -> AppType=%s', [AProgramType, AExpectedAppType]))
+    else
+      Log(Format('  [FAIL] program_type="%s" -> expected AppType=%s, got: %s',
+        [AProgramType, AExpectedAppType,
+         Copy(LSource, Pos('<AppType>', LSource),
+              Pos('</AppType>', LSource) + Length('</AppType>') - Pos('<AppType>', LSource))]));
+  finally
+    LConfig.Free;
+  end;
+end;
+
+function RunAllDProjAppTypeTests: Boolean;
+begin
+  Log('');
+  Log('=== project.dproj.tpro AppType tests ===');
+  Result := True;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTP_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTPS_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.FASTCGI_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.WINDOWS_SERVICE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.INDY_DIRECT, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTPSYS, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.ISAPI, 'Library') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.APACHE, 'Library') and Result;
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -1451,6 +1497,14 @@ begin
     GTestResults := TList<TTestResult>.Create;
     LTestCases := TList<TTestCase>.Create;
     try
+      if not RunAllDProjAppTypeTests then
+      begin
+        Log('');
+        Log('FAIL: project.dproj.tpro AppType tests did not pass.');
+        ExitCode := 1;
+        Exit;
+      end;
+
       CreateTestCases(LTestCases);
 
       for LTestCase in LTestCases do

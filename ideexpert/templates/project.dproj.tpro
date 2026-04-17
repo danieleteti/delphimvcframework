@@ -5,7 +5,7 @@
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
-{{if @(program_type|eq,"isapi" or program_type|eq,"apache")}}
+{{if @(program_type = "isapi" or program_type = "apache")}}
         <AppType>Library</AppType>
 {{else}}
         <AppType>Console</AppType>
