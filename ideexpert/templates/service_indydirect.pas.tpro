@@ -152,7 +152,7 @@ begin
   try
     LPort := StrToIntDef(dotEnv.Env('dmvc.server.port', '{{:program_default_server_port}}'), {{:program_default_server_port}});
 
-    fEngine := TMVCEngine.CreateForIndyDirect(
+    fEngine := TMVCEngine.Create(
       procedure(Config: TMVCConfig)
       begin
         Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});

@@ -65,7 +65,7 @@ var
   LWSServer: TMVCWebSocketServer;
 {{endif}}
 begin
-  LEngine := TMVCEngine.CreateForIndyDirect(
+  LEngine := TMVCEngine.Create(
     procedure(Config: TMVCConfig)
     begin
       //default content-type

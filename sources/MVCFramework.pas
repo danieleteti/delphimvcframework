@@ -1172,17 +1172,12 @@ type
     class function CreateForWebBroker(const AWebModule: TWebModule;
       const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
     /// <summary>
-    /// Standalone engine for use with TMVCIndyServer. No WebModule is
-    /// created; HandleRequest is driven by the Indy server adapter.
+    /// For TMVCIndyServer and TMVCHttpSysServer use the standalone
+    /// Create(AConfigAction) constructor directly. No TWebModule is
+    /// involved: HandleRequest is driven by the server adapter. The
+    /// transport choice is expressed at the server side via
+    /// TMVCServerFactory.CreateIndyDirect / CreateHttpSys.
     /// </summary>
-    class function CreateForIndyDirect(
-      const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
-    /// <summary>
-    /// Standalone engine for use with TMVCHttpSysServer. No WebModule is
-    /// created; HandleRequest is driven by the HTTP.sys server adapter.
-    /// </summary>
-    class function CreateForHttpSys(
-      const AConfigAction: TProc<TMVCConfig> = nil): TMVCEngine; static;
     destructor Destroy; override;
 
     { webcontext events}
@@ -2417,18 +2412,6 @@ class function TMVCEngine.CreateForWebBroker(const AWebModule: TWebModule;
   const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
 begin
   Result := TMVCEngine.Create(AWebModule, AConfigAction);
-end;
-
-class function TMVCEngine.CreateForIndyDirect(
-  const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
-begin
-  Result := TMVCEngine.Create(AConfigAction);
-end;
-
-class function TMVCEngine.CreateForHttpSys(
-  const AConfigAction: TProc<TMVCConfig>): TMVCEngine;
-begin
-  Result := TMVCEngine.Create(AConfigAction);
 end;
 
 constructor TMVCEngine.Create(const AConfigAction: TProc<TMVCConfig>);

@@ -63,7 +63,7 @@ const
   SCHEME = 'http';
 {{endif}}
 begin
-  LEngine := TMVCEngine.CreateForHttpSys(
+  LEngine := TMVCEngine.Create(
     procedure(Config: TMVCConfig)
     begin
       //default content-type
