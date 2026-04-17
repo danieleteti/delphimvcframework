@@ -3,9 +3,6 @@ program {{:program_name}};
 
 uses
   Vcl.SvcMgr,
-{{if program_msheap}}
-  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
-{{endif}}
   System.SysUtils,
 {{if program_dotenv}}
   MVCFramework.DotEnv,

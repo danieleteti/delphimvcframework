@@ -4,9 +4,6 @@ program {{:program_name}};
 {$APPTYPE CONSOLE}
 
 uses
-{{if program_msheap}}
-  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
-{{endif}}
   System.SysUtils,
   Web.ReqMulti,
   Web.WebReq,

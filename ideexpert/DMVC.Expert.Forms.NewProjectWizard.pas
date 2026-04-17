@@ -126,7 +126,6 @@ type
     cbNameCase: TComboBox;
     edtControllerClassName: TEdit;
     edtWebModuleName: TEdit;
-    chkMSHeap: TCheckBox;
     chkSqids: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
@@ -1008,7 +1007,9 @@ begin
   fModel.Clear;
   fModel.S[TConfigKey.program_name] := GetProjectName;
   fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
-  fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
+  // MSHeap option removed in 3.6.x: measured 60-82% regression vs FastMM on
+  // HTTP workloads. Keep the config key False so templates still render.
+  fModel.B[TConfigKey.program_msheap] := False;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_htmx] := chkHtmx.Checked;

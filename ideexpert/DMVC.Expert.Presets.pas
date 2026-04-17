@@ -105,7 +105,6 @@ begin
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
-  AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
@@ -147,7 +146,6 @@ begin
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 1; // TemplatePro
   AForm.chkSqids.Checked := False;
-  AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;
@@ -190,7 +188,6 @@ begin
   AForm.chkWebSocketServer.Checked := False;
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
-  AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
@@ -232,7 +229,6 @@ begin
   AForm.chkWebSocketServer.Checked := True;
   AForm.cbSSV.ItemIndex := 0; // None
   AForm.chkSqids.Checked := False;
-  AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
@@ -274,7 +270,6 @@ begin
   AForm.chkWebSocketServer.Checked := True;
   AForm.cbSSV.ItemIndex := 1; // TemplatePro
   AForm.chkSqids.Checked := False;
-  AForm.chkMSHeap.Checked := False;
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;

@@ -1039,14 +1039,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Height = 21
         TabOrder = 2
       end
-      object chkMSHeap: TCheckBox
-        Left = 24
-        Top = 180
-        Width = 200
-        Height = 17
-        Caption = 'Use MSHeap on MS Windows'
-        TabOrder = 3
-      end
       object chkSqids: TCheckBox
         Left = 250
         Top = 180

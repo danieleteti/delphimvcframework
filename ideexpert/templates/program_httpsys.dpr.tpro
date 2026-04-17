@@ -8,9 +8,6 @@ program {{:program_name}};
 // here.
 
 uses
-{{if program_msheap}}
-  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
-{{endif}}
   System.SysUtils,
   System.IOUtils,
   MVCFramework,
