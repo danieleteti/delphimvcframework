@@ -1590,6 +1590,16 @@ begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
 
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Patch;
+    Exit;
+  end;
+
   Result := Patch(aResource, SerializeObject(aBody));
 
   if aOwnsBody then
@@ -1611,6 +1621,20 @@ function TMVCRESTClient.Post(const aResource: string; aBody: TObject; const aOwn
 begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // Callers commonly pass a TStringStream / TMemoryStream here meaning
+    // "this is the raw request body". Without this branch they would run
+    // through the stream type serializer and be wrapped as
+    // { "data": "<base64>" }, which is almost never what they want. The
+    // DTO serialization path is preserved for every other TObject.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Post;
+    Exit;
+  end;
 
   Result := Post(aResource, SerializeObject(aBody));
 
@@ -1698,6 +1722,16 @@ function TMVCRESTClient.Put(const aResource: string; aBody: TObject; const aOwns
 begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Put;
+    Exit;
+  end;
 
   Result := Put(aResource, SerializeObject(aBody));
 

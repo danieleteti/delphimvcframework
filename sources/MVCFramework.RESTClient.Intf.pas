@@ -383,11 +383,35 @@ type
     /// <summary>
     /// Execute a Post request. The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
     /// </summary>
+    /// <remarks>
+    /// The body is serialised through <b>two different paths</b> depending on the runtime
+    /// type of <c>aBody</c>:
+    /// <list type="bullet">
+    /// <item><description>
+    /// <b>DTOs</b> (any <c>TObject</c> that is not a <c>TStream</c>, including
+    /// <c>TObjectList&lt;T&gt;</c>) go through the configured <see cref="IMVCSerializer" />
+    /// and are sent as JSON with content-type <c>application/json</c>.
+    /// </description></item>
+    /// <item><description>
+    /// <b>Streams</b> (<c>TStream</c> descendants such as <c>TStringStream</c>,
+    /// <c>TMemoryStream</c>, <c>TFileStream</c>) <b>bypass the serializer entirely</b>.
+    /// The stream is rewound, its raw bytes are copied into the request body, and
+    /// content-type defaults to <c>application/json</c>. If the serializer path were
+    /// used instead, the stream type serializer would wrap the contents as
+    /// <c>{ "data": "&lt;base64&gt;" }</c>, which is almost never the intent when the
+    /// caller constructs a stream from a JSON string.
+    /// </description></item>
+    /// </list>
+    /// For a content-type other than <c>application/json</c> with a stream body, call
+    /// <see cref="AddBody" /> with the desired content-type first, then <c>Post</c> without
+    /// a body argument. For a non-JSON textual body use the
+    /// <c>Post(string, string, string)</c> overload.
+    /// </remarks>
     /// <param name="aResource">
     /// Resource path
     /// </param>
     /// <param name="aBody">
-    /// Object to be serialized. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
+    /// DTO to serialise (object, <c>TObjectList&lt;T&gt;</c>) or <c>TStream</c> with the raw body.
     /// </param>
     /// <param name="aOwnsBody">
     /// If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
@@ -415,6 +439,13 @@ type
     /// <summary>
     /// Execute a Patch request. The PATCH method is used to apply partial modifications to a resource.
     /// </summary>
+    /// <remarks>
+    /// <c>aBody</c> is routed through two different paths based on its runtime type:
+    /// non-stream <c>TObject</c> instances are serialised through the configured
+    /// <see cref="IMVCSerializer" /> as JSON; <c>TStream</c> descendants bypass the
+    /// serializer and their raw bytes are sent as the request body with content-type
+    /// <c>application/json</c>. See <see cref="Post" /> for the full rationale.
+    /// </remarks>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     /// <summary>
@@ -430,6 +461,13 @@ type
     /// <summary>
     /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.
     /// </summary>
+    /// <remarks>
+    /// <c>aBody</c> is routed through two different paths based on its runtime type:
+    /// non-stream <c>TObject</c> instances are serialised through the configured
+    /// <see cref="IMVCSerializer" /> as JSON; <c>TStream</c> descendants bypass the
+    /// serializer and their raw bytes are sent as the request body with content-type
+    /// <c>application/json</c>. See <see cref="Post" /> for the full rationale.
+    /// </remarks>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     /// <summary>
     /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.

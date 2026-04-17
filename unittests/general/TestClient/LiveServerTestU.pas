@@ -91,6 +91,8 @@ type
     [Test]
     procedure TestPOSTWithObjectJSONBody;
     [Test]
+    procedure TestPOSTWithStreamBody;
+    [Test]
     procedure TestCustomerEcho;
     [Test]
     procedure TestCustomerEchoWithRootNode;
@@ -2366,6 +2368,31 @@ begin
     Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
     P.Free;
+  end;
+end;
+
+procedure TServerTest.TestPOSTWithStreamBody;
+var
+  r: IMVCRESTResponse;
+  lEchoed: System.JSON.TJSONObject;
+begin
+  // Regression for issue #890: passing a TStringStream (TStream descendant)
+  // to .Post must send the raw bytes as the request body, not wrap them as
+  // { "data": "<base64>" } via the stream type serializer. The echo endpoint
+  // parses the body as JSON, adds "echo":"from server", and sends it back.
+  r := RESTClient
+    .AddPathParam('par1', 1).AddPathParam('par2', 2).AddPathParam('par3', 3)
+    .Post('/echo/($par1)/($par2)/($par3)',
+      TStringStream.Create('{"client":"clientdata"}', TEncoding.UTF8));
+  lEchoed := TSystemJSON.StringAsJSONObject(r.Content);
+  try
+    Assert.IsNotNull(lEchoed.Get('client'), 'server did not echo "client" field');
+    Assert.AreEqual('clientdata', lEchoed.Get('client').JsonValue.Value);
+    Assert.AreEqual('from server', lEchoed.Get('echo').JsonValue.Value);
+    Assert.IsNull(lEchoed.Get('data'),
+      'body was wrapped as { "data": "<base64>" } instead of sent raw');
+  finally
+    lEchoed.Free;
   end;
 end;
 
