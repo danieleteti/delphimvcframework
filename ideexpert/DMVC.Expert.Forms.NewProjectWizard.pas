@@ -318,6 +318,8 @@ function TfrmDMVCNewProject.ValidateCurrentPage: Boolean;
 var
   LActualPage: Integer;
   lProjectName: string;
+  lPort: Integer;
+  lPortText: string;
 begin
   Result := True;
   LActualPage := MapPageIndex(fCurrentPage);
@@ -326,8 +328,7 @@ begin
     PAGE_SERVER:
     begin
       // Validate port
-      var lPort: Integer;
-      var lPortText := Trim(edtServerPort.Text);
+      lPortText := Trim(edtServerPort.Text);
       if lPortText.IsEmpty or not TryStrToInt(lPortText, lPort) or (lPort < 1) or (lPort > 65534) then
       begin
         ShowMessage('Please enter a valid port number (1-65534).');
