@@ -278,6 +278,24 @@ uses
   MVCFramework.Nullables,
   MVCFramework.JSONRPC;
 
+var
+  gSingleFormatSettings: TFormatSettings;
+
+{ [PARITY] Round a Single's Extended representation down to its
+  lossless 7-digit decimal form and return it as a Double. Used to
+  suppress the spurious 15-digit tail JsonDataObjects otherwise
+  emits when formatting a Single whose IEEE 754 representation isn't
+  exactly expressible (e.g. 1e-10). The local gSingleFormatSettings
+  is initialised to en-US-like semantics with '.' decimal separator
+  because JsonDataObjects expects that in its serialisation config. }
+function RoundSingleTo7DigitDouble(const AValue: Extended): Double;
+var
+  LStr: string;
+begin
+  LStr := FloatToStrF(AValue, ffGeneral, 7, 0, gSingleFormatSettings);
+  Result := StrToFloat(LStr, gSingleFormatSettings);
+end;
+
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
   if RootNode.IsEmpty then
@@ -410,30 +428,27 @@ begin
     tkFloat:
       begin
         if (AValue.TypeInfo = System.TypeInfo(TDate)) then
-        begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := DateToISODate(AValue.AsExtended);
-        end
+          AJSONObject.S[AName] := DateToISODate(AValue.AsExtended)
         else if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
-        begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsExtended);
-        end
+          AJSONObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsExtended)
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
+          AJSONObject.S[AName] := TimeToISOTime(AValue.AsExtended)
+        else if AValue.TypeInfo = System.TypeInfo(Single) then
         begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := TimeToISOTime(AValue.AsExtended);
+          { [PARITY] Store the Single as the 7-digit-rounded Double value
+            produced by round-tripping through a '.' separated decimal
+            string. JsonDataObjects's 15-digit formatter would otherwise
+            expose the imprecise Extended tail (e.g. Single(1e-10)
+            printing as 1.00000001335143E-10). 7 digits is Single's
+            lossless round-trip precision.
+            Uses the local 'single_round' helper which holds its own
+            en-US TFormatSettings - avoids taking a dependency on
+            TFormatSettings.Invariant (Delphi 10.3+) since this unit
+            must remain 10.1 compatible. }
+          AJSONObject.F[AName] := RoundSingleTo7DigitDouble(AValue.AsExtended);
         end
         else
-        begin
           AJSONObject.F[AName] := AValue.AsExtended;
-        end;
       end;
 
     tkVariant:
@@ -4227,5 +4242,10 @@ begin
   end;
 end;
 
+initialization
+
+gSingleFormatSettings := FormatSettings;
+gSingleFormatSettings.DecimalSeparator := '.';
+gSingleFormatSettings.ThousandSeparator := #0;
 
 end.

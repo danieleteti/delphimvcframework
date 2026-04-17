@@ -1,0 +1,217 @@
+{{include "_license_header.tpro"}}
+program {{:program_name}};
+
+{$APPTYPE CONSOLE}
+
+uses
+{{if program_msheap}}
+  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
+{{endif}}
+  System.SysUtils,
+  System.IOUtils,
+  MVCFramework,
+  MVCFramework.Logger,
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Signal,
+  MVCFramework.Server.Intf,
+  MVCFramework.Server.Factory,
+{{if program_server_protocol|eq,"https"}}
+  MVCFramework.Server.HTTPS.TaurusTLS,
+{{endif}}
+{{if websocketserver_generate}}
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server,
+{{endif}}
+{{if program_ssv_mustache}}
+  MVCFramework.View.Renderers.Mustache,
+  mormot.core.mustache,
+{{endif}}
+{{if program_service_container_generate}}
+  MVCFramework.Container,
+{{endif}}
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{if entity_generate}}
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
+{{endif}}
+{{if program_service_container_generate}}
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas',
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas',
+{{endif}}
+{{if websocketserver_generate}}
+  {{:websocketserver_unit_name}} in '{{:websocketserver_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_mustache}}
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_templatepro}}
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_webstencils}}
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
+{{endif}}
+  EngineConfigU in 'EngineConfigU.pas';
+
+{$R *.res}
+
+procedure RunServer(aPort: Integer);
+var
+  LEngine: TMVCEngine;
+  LServer: IMVCServer;
+{{if websocketserver_generate}}
+  LWSServer: TMVCWebSocketServer;
+{{endif}}
+begin
+  LEngine := TMVCEngine.CreateForIndyDirect(
+    procedure(Config: TMVCConfig)
+    begin
+      //default content-type
+      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+      //default content charset
+      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+      //unhandled actions are permitted?
+      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+      //enables or not system controllers loading (available only from localhost requests)
+      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+      //default view file extension
+      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+      //view path
+      Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+{{if program_ssv_templatepro}}
+      //use cache for server side views
+      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+{{endif}}
+      //Max Record Count for automatic Entities CRUD
+      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+      //Enable Server Signature in response
+      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      //Enable X-Powered-By Header in response
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'true');
+      // Max request size in bytes
+      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+    end);
+  try
+    ConfigureEngine(LEngine);
+    LServer := TMVCServerFactory.CreateIndyDirect(LEngine);
+{{if program_server_protocol|eq,"https"}}
+    // -----------------------------------------------------------------
+    // HTTPS via TaurusTLS (OpenSSL 1.1.1+).
+    // The TaurusTLSIndyConfigurator function comes from the unit
+    // MVCFramework.Server.HTTPS.TaurusTLS (see uses clause above).
+    // To switch TLS stack, replace that unit + this configurator only.
+    // -----------------------------------------------------------------
+    LServer.HTTPSConfigurator := TaurusTLSIndyConfigurator();
+    LServer.UseHTTPS := True;
+    LServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+    LServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+    LServer.CertPassword := dotEnv.Env('https.cert.password', '');
+    LServer.Listen(APort);
+    LogI('Listening on https://localhost:' + APort.ToString);
+    LogI('Server type: Indy Direct + TaurusTLS (HTTPS)');
+{{else}}
+    LServer.Listen(APort);
+    LogI('Listening on http://localhost:' + APort.ToString);
+    LogI('Server type: Indy Direct');
+{{endif}}
+{{if websocketserver_generate}}
+    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    try
+      LWSServer.Active := True;
+      LogI('Listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+      LogI('Application started. Press Ctrl+C to shut down.');
+      WaitForTerminationSignal;
+      EnterInShutdownState;
+    finally
+      LWSServer.Free;
+    end;
+{{else}}
+    LogI('Application started. Press Ctrl+C to shut down.');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
+{{endif}}
+    LServer.Stop;
+    LServer := nil;
+  finally
+    LEngine.Free;
+  end;
+end;
+
+begin
+  { Enable ReportMemoryLeaksOnShutdown during debug }
+  // ReportMemoryLeaksOnShutdown := True;
+  IsMultiThread := True;
+
+  // DMVCFramework Specific Configurations
+  MVCSerializeNulls := True;
+  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
+  UseConsoleLogger := True;
+  UseLoggerVerbosityLevel := TLogLevel.levNormal;
+
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+{{if program_dotenv}}
+
+    dotEnvConfigure(
+      function: IMVCDotEnv
+      begin
+        Result := NewDotEnv
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                 .UseProfile('test')
+                 .UseProfile('prod')
+                 .UseLogger(procedure(LogItem: String)
+                            begin
+                              LogD('dotEnv: ' + LogItem);
+                            end)
+                 .Build();
+      end);
+{{endif}}
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+
+  try
+
+{$IF CompilerVersion >= 34} //SYDNEY+
+    if dotEnv.Env('dmvc.profiler.enabled', {{:controller_actions_profiling_generate}}) then
+    begin
+      Profiler.ProfileLogger := Log;
+      Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 1000);
+      Profiler.LogsOnlyIfOverThreshold := dotEnv.Env('dmvc.profiler.logs_only_over_threshold', True);
+    end;
+{$ENDIF}
+{{if program_ssv_templatepro}}
+
+    TemplateProContextConfigure;
+{{endif}}
+{{if program_ssv_webstencils}}
+
+    WebStencilsProcessorConfigure;
+{{endif}}
+{{if program_ssv_mustache}}
+
+  // Project specific Mustache helpers
+  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+  begin
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+  end;
+{{endif}}
+{{if program_service_container_generate}}
+
+    RegisterServices(DefaultMVCServiceContainer);
+    DefaultMVCServiceContainer.Build;
+{{endif}}
+
+    RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
+  except
+    on E: Exception do
+      LogF(E.ClassName + ': ' + E.Message);
+  end;
+end.

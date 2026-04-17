@@ -177,7 +177,7 @@ type
     ErrorPageURL = 'error_page_url';
   end;
 
-  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI, hftIndyDirect, hftHttpSys);
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record
@@ -2072,6 +2072,12 @@ TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable,
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
 GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HInstance)));
+// IIS loads ISAPI DLLs with the "\\?\" Win32 extended-length prefix. That
+// prefix disables path normalization, so any downstream TPath.Combine with
+// "..\foo" leaves the literal ".." in the path and breaks DirectoryExists
+// / FileExists checks. Strip it here so AppPath is always a normal path.
+if GlobalAppPath.StartsWith('\\?\') then
+  GlobalAppPath := Copy(GlobalAppPath, 5, MaxInt);
 
 finalization
 

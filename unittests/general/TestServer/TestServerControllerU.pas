@@ -392,6 +392,16 @@ type
     [MVCPath('/wrongconverter/($id:blablabla)')]
     function TestInvalidConverter(id: Int64): Int64;
 
+    {file upload}
+    [MVCPath('/fileupload')]
+    [MVCHTTPMethod([httpPOST])]
+    function TestFileUpload: IMVCResponse;
+
+    {keep-alive}
+    [MVCPath('/keepalive/ping')]
+    [MVCHTTPMethod([httpGET])]
+    function KeepAlivePing: IMVCResponse;
+
   end;
 
   [MVCPath('/private')]
@@ -947,9 +957,9 @@ begin
   ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   Obj := TJDOJSONObject.Create;
   try
-    Obj.s['name1'] := 'jørn';
-    Obj.s['name2'] := 'Što je Unicode?';
-    Obj.s['name3'] := 'àèéìòù';
+    Obj.s['name1'] := 'jï¿½rn';
+    Obj.s['name2'] := 'ï¿½to je Unicode?';
+    Obj.s['name3'] := 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
     Render(Obj, false);
   finally
     Obj.Free;
@@ -1624,6 +1634,27 @@ begin
   Result.FirstName := 'Daniele';
   Result.LastName := 'Teti';
   Result.Age := 99;
+end;
+
+function TTestServerController.TestFileUpload: IMVCResponse;
+var
+  lFilesCount: Integer;
+  lFileName: string;
+  lFileSize: Int64;
+begin
+  if Context.Request.Files = nil then
+    Exit(BadRequestResponse('Files not supported on this server backend'));
+  lFilesCount := Context.Request.Files.Count;
+  if lFilesCount = 0 then
+    Exit(BadRequestResponse('No files uploaded'));
+  lFileName := Context.Request.Files[0].FileName;
+  lFileSize := Context.Request.Files[0].Stream.Size;
+  Result := OKResponse(Format('files=%d;name=%s;size=%d', [lFilesCount, lFileName, lFileSize]));
+end;
+
+function TTestServerController.KeepAlivePing: IMVCResponse;
+begin
+  Result := OKResponse('pong');
 end;
 
 end.

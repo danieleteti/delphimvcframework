@@ -56,7 +56,7 @@ uses
   System.ZLib,
   System.Classes,
   MVCFramework.Rtti.Utils,
-  Web.HTTPApp, System.Math;
+  System.Math;
 
 constructor TMVCTraceMiddleware.Create(const MaxBodySizeInTrace: UInt64 = 1024);
 begin
@@ -79,15 +79,15 @@ begin
 
   lContentStream := TStringStream.Create;
   try
-    if Assigned(AContext.Response.RawWebResponse.ContentStream) then
+    if Assigned(AContext.Response.ContentStream) then
     begin
-      lContentStream.CopyFrom(AContext.Response.RawWebResponse.ContentStream,
-        Min(AContext.Response.RawWebResponse.ContentStream.Size, fMaxBodySize));
-      AContext.Response.RawWebResponse.ContentStream.Position := 0;
+      lContentStream.CopyFrom(AContext.Response.ContentStream,
+        Min(AContext.Response.ContentStream.Size, fMaxBodySize));
+      AContext.Response.ContentStream.Position := 0;
     end
     else
     begin
-      lContentStream.WriteString(AContext.Response.RawWebResponse.Content.Substring(0, fMaxBodySize));
+      lContentStream.WriteString(AContext.Response.Content.Substring(0, fMaxBodySize));
     end;
     Log.Debug('[AFTER ACTION][RESPONSE][BODY] ' + lContentStream.DataString, 'trace');
   finally
@@ -115,17 +115,17 @@ var
 begin
   lContentStream := TStringStream.Create;
   try
-    Context.Request.RawWebRequest.ReadTotalContent;
+    Context.Request.ReadTotalContent;
     lReq := Context.Request;
     Log.Debug('[BEFORE ROUTING][%s][IP: %s][URL: %s][QUERYSTRING: %s][LENGTH: %d][ACCEPT: %s][USER-AGENT: %s][AUTHORIZATION: %s]', [
       lReq.HTTPMethodAsString,
       lReq.ClientIp,
-      lReq.RawWebRequest.PathInfo,
-      lReq.RawWebRequest.QueryFields.DelimitedText,
-      lReq.RawWebRequest.ContentLength,
-      lReq.RawWebRequest.Accept,
-      lReq.RawWebRequest.UserAgent,
-      lReq.RawWebRequest.Authorization
+      lReq.PathInfo,
+      lReq.QueryFieldsDelimitedText,
+      lReq.ContentLength,
+      lReq.Accept,
+      lReq.UserAgent,
+      lReq.Authorization
 
       ],'trace');
     if Context.Request.HTTPMethod in [httpPOST, httpPUT] then
@@ -136,8 +136,8 @@ begin
         lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
         lContentType.StartsWith('text/') then
       begin
-        lContentStream.WriteString(EncodingGetString(lContentType,
-          Context.Request.RawWebRequest.RawContent).Substring(0, fMaxBodySize));
+        lContentStream.WriteString(TEncoding.UTF8.GetString(
+          Context.Request.RawContent).Substring(0, fMaxBodySize));
       end
       else
       begin

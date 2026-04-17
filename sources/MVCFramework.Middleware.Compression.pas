@@ -92,7 +92,7 @@ begin
   begin
     Exit;
   end;
-  lContentStream := AContext.Response.RawWebResponse.ContentStream;
+  lContentStream := AContext.Response.ContentStream;
   if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold)
   then
     Exit;
@@ -167,12 +167,12 @@ begin
     raise;
   end;
   lMemStream.Position := 0;
-  AContext.Response.RawWebResponse.ContentStream := lMemStream;
+  AContext.Response.InternalSetContentStream(lMemStream, True);
 {$IF Defined(SeattleOrBetter)}
-  AContext.Response.RawWebResponse.ContentEncoding :=
+  AContext.Response.ContentEncoding :=
     MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
 {$ELSE}
-  AContext.Response.RawWebResponse.ContentEncoding :=
+  AContext.Response.ContentEncoding :=
     AnsiString(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
 {$ENDIF}
   // end;

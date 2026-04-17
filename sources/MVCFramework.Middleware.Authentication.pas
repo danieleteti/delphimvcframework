@@ -149,13 +149,13 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
     if AContext.Request.ClientPreferHTML then
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED, AContext.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-      AContext.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + AContext.Config
+      AContext.Response.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + AContext.Config
         [TMVCConfigKey.ServerName];
     end;
     AContext.Response.StatusCode := HTTP_STATUS.Unauthorized;
@@ -170,19 +170,19 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
     if AContext.Request.ClientPreferHTML then
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN, AContext.Config[TMVCConfigKey.ServerName]]);
     end
     else if AContext.Request.ContentMediaType.StartsWith(TMVCMediaType.APPLICATION_JSON) then
     begin
       AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         '{"status":"error", "message":"' + CONTENT_403_FORBIDDEN.Replace('"', '\"') + '"}';
     end
     else
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-      AContext.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN + sLineBreak + AContext.Config
+      AContext.Response.Content := CONTENT_403_FORBIDDEN + sLineBreak + AContext.Config
         [TMVCConfigKey.ServerName];
     end;
     AContext.Response.StatusCode := HTTP_STATUS.Forbidden;
@@ -303,7 +303,7 @@ begin
     AHandled := True;
     AContext.Response.StatusCode := HTTP_STATUS.BadRequest;
     AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.RawWebResponse.Content :=
+    AContext.Response.Content :=
       '{"status":"error", "message":"username and password are mandatory in the body request as json object"}';
     Exit;
   end;
@@ -357,7 +357,7 @@ begin
         AContext.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
         AContext.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
         AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-        AContext.Response.RawWebResponse.Content := '{"status":"OK"}';
+        AContext.Response.Content := '{"status":"OK"}';
 
         AHandled := True;
       finally
@@ -459,7 +459,7 @@ begin
   if AContext.Request.ClientPreferHTML then
   begin
     AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-    AContext.Response.RawWebResponse.Content :=
+    AContext.Response.Content :=
       Format(CONTENT_HTML_FORMAT, [IntToStr(AHttpStatus), AContext.Config[TMVCConfigKey.ServerName]]);
   end
   else
@@ -467,7 +467,7 @@ begin
     IsPositive := (AHttpStatus div 100) = 2;
     Msg := IfThen(IsPositive, 'OK', 'KO');
     AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.RawWebResponse.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
+    AContext.Response.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
   end;
   AHandled := True;
 end;

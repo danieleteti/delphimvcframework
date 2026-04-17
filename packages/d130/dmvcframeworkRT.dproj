@@ -113,6 +113,11 @@
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_GenerateStackFrames>false</DCC_GenerateStackFrames>
+        <DCC_Assertions>false</DCC_Assertions>
+        <DCC_IntegerOverflowCheck>false</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>false</DCC_RangeChecking>
+        <DCC_Optimize>true</DCC_Optimize>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
@@ -184,6 +189,9 @@
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Oracle.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2Oracle.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.HTML.pas"/>
@@ -226,6 +234,9 @@
         <DCCReference Include="..\..\sources\MVCFramework.ValidationEngine.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Validators.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Validators.CrossField.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Request.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Response.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -269,6 +280,12 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\37.0\Bpl\dmvcframeworkRT130.bpl" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

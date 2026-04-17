@@ -451,7 +451,14 @@ var
 
 var
   MVCNameCaseDefault: TMVCNameCase = TMVCNameCase.ncLowerCase;
-  MVCGuidSerializationTypeDefault: TMVCGuidSerializationType = TMVCGuidSerializationType.gstBraces;
+  { Default changed in 3.5.x from gstBraces to gstDashes so GUID fields
+    serialize as the RFC 4122 canonical form (e.g.
+    "550e8400-e29b-41d4-a716-446655440000") instead of the Delphi
+    GUIDToString braced form. JavaScript clients and most REST tooling
+    expect the canonical form. Set this back to gstBraces at program
+    startup to restore the pre-3.5 behaviour, or decorate individual
+    fields with MVCGuidSerializationBracesAttribute. }
+  MVCGuidSerializationTypeDefault: TMVCGuidSerializationType = TMVCGuidSerializationType.gstDashes;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;

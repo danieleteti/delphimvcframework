@@ -67,7 +67,8 @@ type
     destructor Destroy; override;
     procedure MarkAsUsed; virtual;
     procedure ApplyChanges;
-    function SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string; virtual;
+    function SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string; overload; virtual;
+    function SendSessionCookie(const aCookies: TCookieCollection; const aSessionId: string): string; overload; virtual;
     function ToString: string; override;
     function IsExpired: Boolean; virtual;
     function Keys: TArray<String>; virtual;
@@ -314,18 +315,29 @@ begin
 end;
 
 function TMVCWebSession.SendSessionCookie(const aWebResponse: TWebResponse; const aSessionId: string): string;
+begin
+  Result := SendSessionCookie(aWebResponse.Cookies, aSessionId);
+end;
+
+function TMVCWebSession.SendSessionCookie(const aCookies: TCookieCollection; const aSessionId: string): string;
 var
   lCookie: TCookie;
   lSessionTimeout: Integer;
 begin
-  ClearSessionCookiesAlreadySet(aWebResponse.Cookies);
-  lCookie := aWebResponse.Cookies.Add;
+  ClearSessionCookiesAlreadySet(aCookies);
+  lCookie := aCookies.Add;
   lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
   lCookie.Value := aSessionId;
   lCookie.HttpOnly := fHttpOnly;
   lSessionTimeout := GetSessionFactory.GetTimeout;
   if lSessionTimeout = 0 then
-    lCookie.Expires := 0 // session cookie
+    // Pure "session cookie" semantics (browser deletes on close) cannot be
+    // expressed uniformly across WebBroker hosts: Web.HTTPD24Impl serializes
+    // Expires=0 as the literal 1899-12-30 zero date, so clients hosted by
+    // Apache drop the cookie as already-expired. A far-future Expires
+    // reaches the client on every host; server-side session lifetime is
+    // still controlled by the session store.
+    lCookie.Expires := EncodeDate(2099, 12, 31)
   else
     lCookie.Expires := Now + OneMinute * lSessionTimeout;
 

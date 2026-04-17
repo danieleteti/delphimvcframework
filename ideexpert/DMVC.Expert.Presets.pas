@@ -109,7 +109,7 @@ begin
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.chkJWTAsymmetric.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 1;  // HS256 (REST APIs commonly use bearer JWT)
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -119,13 +119,13 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := True;   // Bearer token (Authorization header) - no SSV = Bearer mode
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None (stateless - JWT is the session)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
   AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1;    // Indy Direct (default for new projects)
   AForm.edtServerPort.Text := '8080';
 
   // Serializer
@@ -151,7 +151,7 @@ begin
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.chkJWTAsymmetric.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 0;  // None — web apps use server-side sessions
 
   // Middleware
   AForm.chkCORS.Checked := False;
@@ -161,13 +161,13 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := False;  // Web apps use server-side sessions, not JWT
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
   AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1;    // Indy Direct (default for new projects)
   AForm.edtServerPort.Text := '8080';
 
   // Serializer
@@ -194,7 +194,7 @@ begin
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.chkJWTAsymmetric.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 1;  // HS256 — JSON-RPC services typically need auth
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -204,13 +204,13 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := False;
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None (stateless)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
   AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1;    // Indy Direct (default for new projects)
   AForm.edtServerPort.Text := '8080';
 
   // Serializer
@@ -236,7 +236,7 @@ begin
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;  // HTMX only relevant with server-side views
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.chkJWTAsymmetric.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 0;  // None
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -246,13 +246,13 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkJWT.Checked := False;
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 1; // Memory
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
   AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1;    // Indy Direct (supports WebSocket; HTTP.sys does not)
   AForm.edtServerPort.Text := '8080';
 
   // Serializer
@@ -278,7 +278,7 @@ begin
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;  // Restore visibility (may have been hidden by another preset)
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.chkJWTAsymmetric.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 0;  // None — Full-Stack uses session-based auth
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -288,13 +288,13 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := True;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := True;
-  AForm.chkJWT.Checked := False;  // Web apps use server-side sessions, not JWT
   AForm.chkActiveRecord.Checked := True;
   AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 1; // HTTPS
   AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1;    // Indy Direct (supports WebSocket + HTTPS via TaurusTLS)
   AForm.edtServerPort.Text := '443';
 
   // Serializer
@@ -313,6 +313,7 @@ begin
     begin
       // Reset visibility that may have been changed by other presets
       AForm.chkHtmx.Visible := True;
+      AForm.cbServerEngine.ItemIndex := 1; // Default Indy Direct for Custom
     end;
   end;
 end;

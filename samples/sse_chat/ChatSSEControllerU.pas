@@ -38,6 +38,7 @@ begin
   if LUsername.IsEmpty then
     LUsername := 'Anonymous';
   ChatRoomU.TChatRoom.Instance.AddUser(LUsername, AConnection.ClientId);
+
   LogI('Chat user connected: %s (clientId: %s)', [LUsername, AConnection.ClientId], 'chat');
   SSEBroker.Broadcast('/chat',
     TSSEMessage.Create('system', '"' + LUsername + ' has joined the chat"'));

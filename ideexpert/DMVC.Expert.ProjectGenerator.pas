@@ -318,6 +318,7 @@ begin
 
   // Log key configuration values for debugging
   LogToFile('--- Configuration ---');
+  LogToFile('program.server_engine: ' + AConfig.S[TConfigKey.program_server_engine]);
   LogToFile('program.type: ' + AConfig.S[TConfigKey.program_type]);
   if AConfig.Contains('program.server.protocol') then
     LogToFile('program.server.protocol: ' + AConfig.S['program.server.protocol']);
@@ -367,26 +368,69 @@ begin
 
   // Generate all files (all names already set!)
 
-  // Project files
-  if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+  // Determine server engine (default to 'webbroker' if not specified)
+  if AConfig.S[TConfigKey.program_server_engine] = '' then
+    AConfig.S[TConfigKey.program_server_engine] := 'webbroker';
+
+  // Project files - branching on server engine + program type combinations
+  if AConfig.S[TConfigKey.program_server_engine] = 'indydirect' then
   begin
-    // Windows Service uses different program template and adds ServiceU unit
+    // Indy Direct: no WebBroker, no WebModule - uses EngineConfigU instead
+    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_service_indydirect.dpr.tpro', AConfig));
+      SaveFile('ServiceU.pas', RenderTemplate('service_indydirect.pas.tpro', AConfig));
+      SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
+    end
+    else
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_indydirect.dpr.tpro', AConfig));
+    SaveFile('EngineConfigU.pas', RenderTemplate('engineconfig.pas.tpro', AConfig));
+  end
+  else if AConfig.S[TConfigKey.program_server_engine] = 'httpsys' then
+  begin
+    // HTTP.sys: no WebBroker, no WebModule - uses EngineConfigU instead
+    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_service_httpsys.dpr.tpro', AConfig));
+      SaveFile('ServiceU.pas', RenderTemplate('service_httpsys.pas.tpro', AConfig));
+      SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
+    end
+    else
+      SaveFile(AProjectName + '.dpr', RenderTemplate('program_httpsys.dpr.tpro', AConfig));
+    SaveFile('EngineConfigU.pas', RenderTemplate('engineconfig.pas.tpro', AConfig));
+  end
+  else if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+  begin
+    // Windows Service (WebBroker) uses different program template and adds ServiceU unit
     SaveFile(AProjectName + '.dpr', RenderTemplate('program_service.dpr.tpro', AConfig));
     SaveFile('ServiceU.pas', RenderTemplate('service.pas.tpro', AConfig));
     SaveFile('ServiceU.dfm', RenderTemplate('service.dfm.tpro', AConfig));
   end
+  else if AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI then
+    // ISAPI library (WebBroker, no main loop)
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program_isapi.dpr.tpro', AConfig))
+  else if AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE then
+    // Apache module library (WebBroker)
+    SaveFile(AProjectName + '.dpr', RenderTemplate('program_apache.dpr.tpro', AConfig))
   else
   begin
-    // Console/FastCGI/Apache/ISAPI use standard program template
+    // Console/FastCGI use standard program template
     SaveFile(AProjectName + '.dpr', RenderTemplate('program.dpr.tpro', AConfig));
   end;
+
   // Generate .dproj with correct output paths (exe -> .\bin, dcu -> .\$(Platform)\$(Config))
   SaveFile(AProjectName + '.dproj', RenderTemplate('project.dproj.tpro', AConfig));
 
   // Required units
   SaveFile(CONTROLLER_UNIT + '.pas', RenderTemplate('controller.pas.tpro', AConfig));
-  SaveFile(WEBMODULE_UNIT + '.pas', RenderTemplate('webmodule.pas.tpro', AConfig));
-  SaveFile(WEBMODULE_UNIT + '.dfm', RenderTemplate('webmodule.dfm.tpro', AConfig));
+
+  // WebModule is only generated for WebBroker server engine
+  if (AConfig.S[TConfigKey.program_server_engine] = 'webbroker') or
+     (AConfig.S[TConfigKey.program_server_engine] = '') then
+  begin
+    SaveFile(WEBMODULE_UNIT + '.pas', RenderTemplate('webmodule.pas.tpro', AConfig));
+    SaveFile(WEBMODULE_UNIT + '.dfm', RenderTemplate('webmodule.dfm.tpro', AConfig));
+  end;
 
   // Optional units
   if AConfig.B[TConfigKey.entity_generate] then

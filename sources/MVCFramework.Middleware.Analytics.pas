@@ -124,12 +124,12 @@ begin
   lWebResp := AContext.Response;
   fLogWriter.Log(LOG_LEVEL[AContext.Response.StatusCode div 100],
     lWebReq.ClientIp + ';' +
-    lWebReq.RawWebRequest.Method + ';' +
-    lWebReq.RawWebRequest.PathInfo + ';' +
+    lWebReq.Method + ';' +
+    lWebReq.PathInfo + ';' +
     lWebResp.StatusCode.ToString + ';' +
     AContext.Data.Items['fqaction'] + ';' +
-    lWebResp.RawWebResponse.ContentLength.ToString + ';' +
-    lWebReq.RawWebRequest.Host,
+    lWebResp.ContentLength.ToString + ';' +
+    lWebReq.Host,
     ANALYTICS_TAG);
 end;
 

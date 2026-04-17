@@ -1,0 +1,72 @@
+{{include "_license_header.tpro"}}
+library {{:program_name}};
+
+uses
+  Winapi.ActiveX,
+  Winapi.Windows,
+  System.Win.ComObj,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+  MVCFramework.Serializer.Commons,
+  Web.WebBroker,
+  Web.Win.ISAPIApp,
+  Web.Win.ISAPIThreadPool,
+  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}}{{if controller_unit_name}},
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas'{{endif}}{{if entity_generate}},
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas'{{endif}}{{if jsonrpc_generate}},
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas'{{endif}}{{if program_service_container_generate}},
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas'{{endif}}{{if program_ssv_mustache}},
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_templatepro}},
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas'{{endif}}{{if program_ssv_webstencils}},
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas'{{endif}}{{if webmodule_middleware_jwt}},
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas'{{endif}}{{if webmodule_middleware_activerecord}},
+  MVCFramework.ActiveRecord{{endif}};
+
+{$R *.res}
+
+function TerminateExtension(dwFlags: DWORD): BOOL; stdcall;
+begin
+  ReleaseGlobalLogger;
+  Result := Web.Win.ISAPIThreadPool.TerminateExtension(dwFlags);
+end;
+
+exports
+  GetExtensionVersion,
+  HttpExtensionProc,
+  TerminateExtension;
+
+begin
+  CoInitFlags := COINIT_MULTITHREADED;
+
+  // DMVCFramework Specific Configurations
+  MVCSerializeNulls := True;
+  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
+
+{{if program_dotenv}}
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                 .UseProfile('test')
+                 .UseProfile('prod')
+                 .UseLogger(procedure(LogItem: String)
+                            begin
+                              LogW('dotEnv: ' + LogItem);
+                            end)
+                 .Build();
+    end);
+{{endif}}
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+
+  Application.Initialize;
+  Application.WebModuleClass := WebModuleClass;
+  Application.Run;
+end.

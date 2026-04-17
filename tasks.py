@@ -367,24 +367,40 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
 
-def _run_tests(ctx, platform):
-    """Internal function to build and execute unit tests for a specific platform"""
+def _run_tests(ctx, platform, server_type="classic"):
+    """Internal function to build and execute unit tests for a specific platform and server type.
+    server_type: 'classic' (WebBroker), 'indydirect' (TMVCIndyServer), or 'httpsys' (TMVCHttpSysServer)"""
     bin_folder = "bin32" if platform == "Win32" else "bin64"
     testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
-    testserver = r"unittests\general\TestServer\TestServer.dproj"
+
+    if server_type == "indydirect":
+        testserver = r"unittests\general\TestServer\TestServerIndyDirect.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServerIndyDirect.exe"
+        server_process_name = "TestServerIndyDirect.exe"
+        server_label = "Indy Direct"
+    elif server_type == "httpsys":
+        testserver = r"unittests\general\TestServer\TestServerHttpSys.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServerHttpSys.exe"
+        server_process_name = "TestServerHttpSys.exe"
+        server_label = "HTTP.sys"
+    else:
+        testserver = r"unittests\general\TestServer\TestServer.dproj"
+        server_exe = r"unittests\general\TestServer\bin\TestServer.exe"
+        server_process_name = "TestServer.exe"
+        server_label = "Classic (WebBroker)"
 
     print(f"\n{'='*60}")
-    print(f"Running {platform} tests")
+    print(f"Running {platform} tests with {server_label} server")
     print(f"{'='*60}")
 
     print("\nBuilding Unit Test client")
     build_delphi_project(ctx, testclient, config="CI", platform=platform)
-    print("\nBuilding Test Server")
+    print(f"\nBuilding Test Server ({server_label})")
     build_delphi_project(ctx, testserver, config="CI", platform=platform)
 
-    print("\nExecuting tests...")
+    print(f"\nExecuting tests against {server_label} server...")
     server_proc = subprocess.Popen(
-        [r"unittests\general\TestServer\bin\TestServer.exe"],
+        [server_exe],
         shell=True
     )
     time.sleep(1)
@@ -396,29 +412,472 @@ def _run_tests(ctx, platform):
         if r.returncode != 0:
             raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
     finally:
-        subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"],
+        subprocess.run(["taskkill", "/f", "/im", server_process_name],
                       capture_output=True)
     if r.returncode > 0:
         print(r)
-        print(f"Unit Tests Failed ({platform})")
-        raise Exit(f"Unit tests failed ({platform})")
+        print(f"Unit Tests Failed ({platform}, {server_label})")
+        raise Exit(f"Unit tests failed ({platform}, {server_label})")
 
 
 @task()
 def tests32(ctx):
-    """Builds and execute the unit tests (Win32)"""
+    """Builds and execute the unit tests (Win32) with classic server"""
     _run_tests(ctx, "Win32")
 
 
 @task()
 def tests64(ctx):
-    """Builds and execute the unit tests (Win64)"""
+    """Builds and execute the unit tests (Win64) with classic server"""
     _run_tests(ctx, "Win64")
 
 
 @task(pre=[tests32, tests64])
 def tests(ctx):
-    """Builds and execute all unit tests (Win32 and Win64)"""
+    """Builds and execute all unit tests (Win32 and Win64) with classic server"""
+    pass
+
+
+@task()
+def tests32_indydirect(ctx):
+    """Builds and execute the unit tests (Win32) with Indy Direct server"""
+    _run_tests(ctx, "Win32", "indydirect")
+
+
+@task()
+def tests64_indydirect(ctx):
+    """Builds and execute the unit tests (Win64) with Indy Direct server"""
+    _run_tests(ctx, "Win64", "indydirect")
+
+
+@task(pre=[tests32_indydirect, tests64_indydirect])
+def tests_indydirect(ctx):
+    """Builds and execute all unit tests (Win32 and Win64) with Indy Direct server"""
+    pass
+
+
+@task()
+def tests32_httpsys(ctx):
+    """Builds and execute the unit tests (Win32) with HTTP.sys server"""
+    _run_tests(ctx, "Win32", "httpsys")
+
+
+@task()
+def tests64_httpsys(ctx):
+    """Builds and execute the unit tests (Win64) with HTTP.sys server"""
+    _run_tests(ctx, "Win64", "httpsys")
+
+
+@task(pre=[tests32_httpsys, tests64_httpsys])
+def tests_httpsys(ctx):
+    """Builds and execute all unit tests (Win32 and Win64) with HTTP.sys server"""
+    pass
+
+
+@task(pre=[tests, tests_indydirect, tests_httpsys])
+def tests_all(ctx):
+    """Builds and execute all unit tests with Classic, Indy Direct, and HTTP.sys servers"""
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Apache 2.4 integration tests (Layer 3)
+# ---------------------------------------------------------------------------
+# Uses Apache Lounge portable httpd 2.4 as host. Downloaded on first run,
+# cached under unittests/apache/Apache24/. The TestServerApache project
+# builds as mod_dmvctest.dll (Apache module) and is dropped into Apache's
+# modules folder; Apache is started in foreground, TestClient runs against
+# http://localhost:8888, then Apache is killed.
+
+APACHE_LOUNGE_URL = (
+    "https://www.apachelounge.com/download/VS17/binaries/"
+    "httpd-2.4.66-251206-Win64-VS17.zip"
+)
+APACHE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "unittests", "apache"
+)
+APACHE_HOME = os.path.join(APACHE_DIR, "Apache24")
+
+
+def _ensure_apache():
+    """Download and extract Apache Lounge if not already present."""
+    if os.path.isdir(os.path.join(APACHE_HOME, "bin")):
+        return
+    print(f"Downloading Apache Lounge from {APACHE_LOUNGE_URL}")
+    os.makedirs(APACHE_DIR, exist_ok=True)
+    zip_path = os.path.join(APACHE_DIR, "httpd24.zip")
+    import urllib.request, zipfile
+    urllib.request.urlretrieve(APACHE_LOUNGE_URL, zip_path)
+    print(f"Extracting {zip_path}")
+    with zipfile.ZipFile(zip_path) as z:
+        z.extractall(APACHE_DIR)
+    os.remove(zip_path)
+    print(f"Apache ready at {APACHE_HOME}")
+
+
+def _generate_apache_conf(server_root: str, modules_dir: str,
+                          conf_path: str, port: int = 8888) -> None:
+    """Generate a minimal httpd.conf wired to mod_dmvctest."""
+    server_root_fwd = server_root.replace("\\", "/")
+    modules_fwd = modules_dir.replace("\\", "/")
+    conf = f"""# Auto-generated by tasks.py — do not edit manually.
+ServerRoot "{server_root_fwd}"
+Listen 127.0.0.1:{port}
+ServerName localhost
+
+# Required modules
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule reqtimeout_module modules/mod_reqtimeout.so
+LoadModule rewrite_module modules/mod_rewrite.so
+
+# DMVCFramework test module
+LoadModule dmvc_module "{modules_fwd}/mod_dmvctest.dll"
+
+PidFile "{server_root_fwd}/logs/httpd-test.pid"
+ErrorLog "{server_root_fwd}/logs/error-test.log"
+LogLevel warn
+
+# A dummy DocumentRoot is required even though it is never used — Apache
+# rejects requests in the URL-to-file translation phase (AH00127) before
+# any handler runs if the root cannot be mapped.
+DocumentRoot "{server_root_fwd}/htdocs"
+
+<Directory />
+  AllowOverride None
+  Require all granted
+</Directory>
+
+# Web.ApacheApp generates the handler name from the DLL name:
+#   lowercase(ChangeFileExt(dll_name, '-handler'))
+# For mod_dmvctest.dll this yields "mod_dmvctest-handler".
+# RewriteRule with [H=...] fires in the Fixup phase and wins over the
+# default file-based dispatcher (catches "/", encoded chars, any path).
+RewriteEngine On
+RewriteRule .* - [H=mod_dmvctest-handler,L]
+"""
+    os.makedirs(os.path.dirname(conf_path), exist_ok=True)
+    with open(conf_path, "w", encoding="utf-8") as f:
+        f.write(conf)
+
+
+def _run_apache_tests(ctx, platform: str):
+    """Build TestServerApache (.dll), wire Apache, run TestClient."""
+    bin_folder = "bin32" if platform == "Win32" else "bin64"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
+    testserver = r"unittests\general\TestServer\TestServerApache.dproj"
+    # Built filename matches Delphi project name; renamed at deploy time
+    # so Apache's LoadModule line stays stable.
+    built_dll = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin", "TestServerApache.dll"
+    )
+
+    print(f"\n{'='*60}")
+    print(f"Running {platform} tests with Apache 2.4 module")
+    print(f"{'='*60}")
+
+    _ensure_apache()
+
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", platform=platform)
+    print("\nBuilding TestServerApache (mod_dmvctest.dll)")
+    # Apache 2.4 Win64 binaries are 64-bit only — force Win64 for the module
+    build_delphi_project(ctx, testserver, config="CI", platform="Win64")
+
+    if not os.path.isfile(built_dll):
+        raise Exit(f"Apache module not built at {built_dll}")
+
+    apache_modules = os.path.join(APACHE_HOME, "modules")
+    shutil.copy2(built_dll, os.path.join(apache_modules, "mod_dmvctest.dll"))
+
+    # DMVC's AppPath resolves to the DLL folder when hosted by Apache.
+    # Copy the test fixtures that classic runs find next to TestServer.exe
+    # (customers.json, sample.png, www/, logs/ ...) so file-backed tests
+    # (static files, image serving, directory traversal) work in module mode.
+    testserver_bin = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin"
+    )
+    for name in ("customers.json", "sample.png"):
+        src = os.path.join(testserver_bin, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(apache_modules, name))
+    for folder in ("www",):
+        src = os.path.join(testserver_bin, folder)
+        dst = os.path.join(apache_modules, folder)
+        if os.path.isdir(src):
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+
+    # The WebModule config uses ViewPath = AppPath + "..\templates", which
+    # resolves to Apache24/templates/ under the module. Place the template
+    # fixtures there.
+    testserver_root = os.path.dirname(testserver_bin)
+    src_templates = os.path.join(testserver_root, "templates")
+    if os.path.isdir(src_templates):
+        dst_templates = os.path.join(APACHE_HOME, "templates")
+        if os.path.isdir(dst_templates):
+            shutil.rmtree(dst_templates)
+        shutil.copytree(src_templates, dst_templates)
+
+    conf_path = os.path.join(APACHE_DIR, "conf", "httpd-test.conf")
+    _generate_apache_conf(APACHE_HOME, apache_modules, conf_path)
+
+    httpd_exe = os.path.join(APACHE_HOME, "bin", "httpd.exe")
+    print(f"\nStarting Apache: {httpd_exe} -f {conf_path}")
+    apache_proc = subprocess.Popen(
+        [httpd_exe, "-f", conf_path, "-X"],
+        cwd=os.path.join(APACHE_HOME, "bin"),
+    )
+    time.sleep(2)
+    if apache_proc.poll() is not None:
+        raise Exit(f"Apache failed to start (exit code {apache_proc.returncode})")
+
+    r = None
+    try:
+        print(f"\nExecuting tests against Apache 2.4 module...")
+        # Skip tests tagged [Category('NotOnApache')] — they describe
+        # behaviors where Apache's request pipeline (URL validator, reason-
+        # phrase normalization, content-encoding negotiation) diverges from
+        # the DMVC expectation and cannot be emulated at framework level.
+        r = subprocess.run(
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe",
+             "--exclude:NotOnApache"]
+        )
+        if r.returncode != 0:
+            raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
+    finally:
+        print("Stopping Apache...")
+        apache_proc.terminate()
+        try:
+            apache_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            apache_proc.kill()
+        # Belt-and-suspenders: kill any leftover httpd.exe spawned by the test
+        subprocess.run(["taskkill", "/f", "/im", "httpd.exe"],
+                      capture_output=True)
+
+    if r.returncode > 0:
+        print(r)
+        raise Exit(f"Unit Tests Failed ({platform}, Apache 2.4)")
+
+
+@task()
+def tests64_apache(ctx):
+    """Builds and execute the unit tests (Win64) hosted by Apache 2.4 module"""
+    _run_apache_tests(ctx, "Win64")
+
+
+@task(pre=[tests64_apache])
+def tests_apache(ctx):
+    """Builds and execute all unit tests hosted by Apache 2.4 module (Win64 only)"""
+    pass
+
+
+# ---------------------------------------------------------------------------
+# ISAPI integration tests (Layer 3)
+# ---------------------------------------------------------------------------
+# Uses IIS Express (already installed with Visual Studio / RAD Studio) as
+# the host. The TestServerISAPI project builds as TestServerISAPI.dll and
+# is wired via a wildcard script-map handler in a generated
+# applicationhost.config; IIS Express is started in foreground, TestClient
+# runs against http://localhost:8888, then IIS Express is killed.
+
+IIS_EXPRESS_64 = r"C:\Program Files\IIS Express\iisexpress.exe"
+IIS_TEST_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "unittests", "iis"
+)
+
+
+def _ensure_iis_express():
+    """Fail fast with a helpful message if IIS Express is not available."""
+    if not os.path.isfile(IIS_EXPRESS_64):
+        raise Exit(
+            "IIS Express not found at " + IIS_EXPRESS_64 + ".\n"
+            "Install IIS Express (ships with Visual Studio / RAD Studio) or "
+            "download it from https://www.microsoft.com/en-us/download/details.aspx?id=48264")
+
+
+def _generate_iis_applicationhost_conf(isapi_dll_path: str,
+                                        conf_path: str, port: int = 8888,
+                                        site_root: str = None) -> None:
+    """Start from IIS Express's shipped applicationhost.config (so every
+    required configSection is already declared) and patch only the site
+    binding + wildcard ISAPI handler.
+
+    A single site listens on localhost:PORT and maps every request
+    (path="*", verb="*") to TestServerISAPI.dll via IsapiModule.
+    """
+    import re
+    shipped = os.path.join(os.path.dirname(IIS_EXPRESS_64),
+                           "AppServer", "applicationhost.config")
+    if not os.path.isfile(shipped):
+        raise Exit(f"Shipped applicationhost.config not found at {shipped}")
+
+    site_root = site_root or os.path.dirname(isapi_dll_path)
+    content = open(shipped, encoding="utf-8").read()
+
+    # Replace the default site with ours. Match the whole <site> block
+    # including its nested elements.
+    site_re = re.compile(
+        r'<site name="Development Web Site".*?</site>', re.DOTALL)
+    new_site = (
+        f'<site name="DMVCTest" id="1" serverAutoStart="true">\n'
+        f'                <application path="/" applicationPool="UnmanagedClassicAppPool">\n'
+        f'                    <virtualDirectory path="/" physicalPath="{site_root}" />\n'
+        f'                </application>\n'
+        f'                <bindings>\n'
+        f'                    <binding protocol="http" bindingInformation=":{port}:localhost" />\n'
+        f'                    <binding protocol="http" bindingInformation=":{port}:127.0.0.1" />\n'
+        f'                </bindings>\n'
+        f'            </site>'
+    )
+    if not site_re.search(content):
+        raise Exit("Cannot find default site in shipped applicationhost.config")
+    # Use a lambda so backslashes in site_root are not interpreted as
+    # re backreferences (Python re.sub treats \d etc. in the template).
+    content = site_re.sub(lambda _m: new_site, content)
+
+    # Inject our wildcard handler as the first rule under <handlers>.
+    handler = (
+        f'<add name="DMVCISAPI" path="*" verb="*" modules="IsapiModule" '
+        f'scriptProcessor="{isapi_dll_path}" '
+        f'resourceType="Unspecified" requireAccess="None" '
+        f'preCondition="bitness64" />'
+    )
+    content = content.replace(
+        '<handlers accessPolicy="Read, Script">',
+        '<handlers accessPolicy="Read, Execute, Script">\n                ' + handler
+    )
+
+    # Allow double-escaped URLs and every file extension so test paths
+    # like "/req/with/params/%25/%20/%20" are not rejected by IIS before
+    # reaching the module. Relax body size while we are at it.
+    content = content.replace(
+        '<requestFiltering>',
+        '<requestFiltering allowDoubleEscaping="true">'
+    )
+
+    os.makedirs(os.path.dirname(conf_path), exist_ok=True)
+    with open(conf_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _run_isapi_tests(ctx, platform: str):
+    """Build TestServerISAPI (.dll), wire IIS Express, run TestClient."""
+    _ensure_iis_express()
+
+    bin_folder = "bin32" if platform == "Win32" else "bin64"
+    testclient = r"unittests\general\TestClient\DMVCFrameworkTests.dproj"
+    testserver = r"unittests\general\TestServer\TestServerISAPI.dproj"
+    built_dll = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin", "TestServerISAPI.dll"
+    )
+
+    print(f"\n{'='*60}")
+    print(f"Running {platform} tests hosted by IIS Express (ISAPI)")
+    print(f"{'='*60}")
+
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", platform=platform)
+    print("\nBuilding TestServerISAPI")
+    # IIS Express x64 only loads 64-bit ISAPI when the app pool has
+    # enable32BitAppOnWin64=false (the default above).
+    build_delphi_project(ctx, testserver, config="CI", platform="Win64")
+
+    if not os.path.isfile(built_dll):
+        raise Exit(f"ISAPI module not built at {built_dll}")
+
+    # Deploy the ISAPI DLL + fixtures into the IIS site root so paths
+    # resolve the same way they do next to TestServer.exe in classic runs.
+    site_root = os.path.join(IIS_TEST_DIR, "site")
+    os.makedirs(site_root, exist_ok=True)
+    shutil.copy2(built_dll, os.path.join(site_root, "TestServerISAPI.dll"))
+    testserver_bin = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "unittests", "general", "TestServer", "bin"
+    )
+    for name in ("customers.json", "sample.png"):
+        src = os.path.join(testserver_bin, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(site_root, name))
+    for folder in ("www",):
+        src = os.path.join(testserver_bin, folder)
+        dst = os.path.join(site_root, folder)
+        if os.path.isdir(src):
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+    # ViewPath = AppPath + "..\templates" → Apache/IIS site parent
+    testserver_root = os.path.dirname(testserver_bin)
+    src_templates = os.path.join(testserver_root, "templates")
+    if os.path.isdir(src_templates):
+        dst_templates = os.path.join(IIS_TEST_DIR, "templates")
+        if os.path.isdir(dst_templates):
+            shutil.rmtree(dst_templates)
+        shutil.copytree(src_templates, dst_templates)
+
+    conf_path = os.path.join(IIS_TEST_DIR, "config", "applicationhost.config")
+    deployed_dll = os.path.join(site_root, "TestServerISAPI.dll")
+    _generate_iis_applicationhost_conf(deployed_dll, conf_path, site_root=site_root)
+
+    print(f"\nStarting IIS Express: {IIS_EXPRESS_64} /config:{conf_path} /site:DMVCTest")
+    iis_proc = subprocess.Popen(
+        [IIS_EXPRESS_64, f"/config:{conf_path}", "/site:DMVCTest", "/trace:error"],
+        cwd=os.path.dirname(IIS_EXPRESS_64),
+    )
+    time.sleep(2)
+    if iis_proc.poll() is not None:
+        raise Exit(f"IIS Express failed to start (exit code {iis_proc.returncode})")
+
+    r = None
+    try:
+        print(f"\nExecuting tests against ISAPI (IIS Express)...")
+        # Skip tests tagged [Category('NotOnIIS')] — behaviors managed by
+        # IIS itself (content-encoding negotiation) rather than the module.
+        r = subprocess.run(
+            [rf"unittests\general\TestClient\{bin_folder}\DMVCFrameworkTests.exe",
+             "--exclude:NotOnIIS"]
+        )
+        if r.returncode != 0:
+            raise Exit(f"Cannot run unit test client ({platform}): \n" + str(r.stdout))
+    finally:
+        print("Stopping IIS Express...")
+        iis_proc.terminate()
+        try:
+            iis_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            iis_proc.kill()
+        subprocess.run(["taskkill", "/f", "/im", "iisexpress.exe"],
+                      capture_output=True)
+
+    if r.returncode > 0:
+        print(r)
+        raise Exit(f"Unit Tests Failed ({platform}, ISAPI)")
+
+
+@task()
+def tests64_isapi(ctx):
+    """Builds and execute the unit tests (Win64) hosted by IIS Express ISAPI"""
+    _run_isapi_tests(ctx, "Win64")
+
+
+@task(pre=[tests64_isapi])
+def tests_isapi(ctx):
+    """Builds and execute all unit tests hosted by IIS Express ISAPI (Win64 only)"""
+    pass
+
+
+@task(pre=[tests, tests_indydirect, tests_httpsys, tests_apache, tests_isapi])
+def tests_all_hosts(ctx):
+    """Run the full unit test matrix against every supported host: Classic
+    (WebBroker+Indy bridge), Indy Direct, HTTP.sys, Apache 2.4 module,
+    ISAPI (IIS Express)."""
     pass
 
 

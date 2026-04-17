@@ -111,3 +111,12 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$IF Defined(FLORENCEORBETTER)}
 {$DEFINE FASTCGI}
 {$ENDIF}
+
+{ Streaming JSON serializer depends on System.JSON.Writers which was added
+  in 10.3 Rio. On older compilers the streaming path compiles as a stub
+  that returns False, making the framework fall back to the legacy
+  SerializeObject flow. }
+{$UNDEF MVC_HAS_STREAMING_JSON}
+{$IF Defined(RIOORBETTER)}
+{$DEFINE MVC_HAS_STREAMING_JSON}
+{$IFEND}

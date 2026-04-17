@@ -1,0 +1,242 @@
+{{include "_license_header.tpro"}}
+unit ServiceU;
+
+interface
+
+uses
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.SvcMgr,
+  Vcl.Dialogs,
+  MVCFramework,
+  MVCFramework.Server.Intf;
+
+type
+  TDMVCFrameworkWindowsService = class(TService)
+    procedure ServiceCreate(Sender: TObject);
+    procedure ServiceStart(Sender: TService; var Started: Boolean);
+    procedure ServiceStop(Sender: TService; var Stopped: Boolean);
+    procedure ServiceExecute(Sender: TService);
+  private
+    fEngine: TMVCEngine;
+    fServer: IMVCServer;
+{{if websocketserver_generate}}
+    fWSServer: TObject;
+{{endif}}
+  public
+    function GetServiceController: TServiceController; override;
+  end;
+
+var
+  DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService;
+
+implementation
+
+{$R *.dfm}
+
+uses
+  System.IOUtils,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  MVCFramework.Logger,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Server.Factory,
+{{if program_server_protocol|eq,"https"}}
+  MVCFramework.Server.HTTPS.TaurusTLS,
+{{endif}}
+{{if websocketserver_generate}}
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server,
+  {{:websocketserver_unit_name}},
+{{endif}}
+{{if program_ssv_templatepro}}
+  TemplatePro,
+  {{:templatepro_helpers_unit_name}},
+{{endif}}
+{{if program_ssv_webstencils}}
+  {{:webstencils_helpers_unit_name}},
+{{endif}}
+{{if program_ssv_mustache}}
+  mormot.core.mustache,
+  MVCFramework.View.Renderers.Mustache,
+  {{:mustache_helpers_unit_name}},
+{{endif}}
+{{if program_service_container_generate}}
+  MVCFramework.Container,
+  {{:program_service_container_unit_name}},
+{{endif}}
+  EngineConfigU;
+
+procedure ServiceController(CtrlCode: DWord); stdcall;
+begin
+  DMVCFrameworkWindowsService.Controller(CtrlCode);
+end;
+
+function TDMVCFrameworkWindowsService.GetServiceController: TServiceController;
+begin
+  Result := ServiceController;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceCreate(Sender: TObject);
+begin
+  // DMVCFramework Specific Configurations
+  MVCSerializeNulls := True;
+  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
+
+{{if program_dotenv}}
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+        .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+        .UseProfile('test')
+        .UseProfile('prod')
+        .UseLogger(procedure(LogItem: String)
+          begin
+            LogW('dotEnv: ' + LogItem);
+          end)
+        .Build();
+    end);
+{{endif}}
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+{{if program_ssv_templatepro}}
+
+  TemplateProContextConfigure;
+{{endif}}
+{{if program_ssv_webstencils}}
+
+  WebStencilsProcessorConfigure;
+{{endif}}
+{{if program_ssv_mustache}}
+
+  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+  begin
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+  end;
+{{endif}}
+{{if program_service_container_generate}}
+
+  RegisterServices(DefaultMVCServiceContainer);
+  DefaultMVCServiceContainer.Build;
+{{endif}}
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceExecute(Sender: TService);
+begin
+  while not Terminated do
+  begin
+    ServiceThread.ProcessRequests(True);
+    Sleep(1000);
+  end;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceStart(Sender: TService; var Started: Boolean);
+var
+  LPort: Integer;
+{{if websocketserver_generate}}
+  LWSServer: TMVCWebSocketServer;
+{{endif}}
+begin
+  LogI('Starting {{:program_name}} Service (Indy Direct)...');
+  try
+    LPort := StrToIntDef(dotEnv.Env('dmvc.server.port', '{{:program_default_server_port}}'), {{:program_default_server_port}});
+
+    fEngine := TMVCEngine.CreateForIndyDirect(
+      procedure(Config: TMVCConfig)
+      begin
+        Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+        Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+        Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+        Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+        Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+        Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+{{if program_ssv_templatepro}}
+        Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+{{endif}}
+        Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+        Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+        Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'true');
+        Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+      end);
+    ConfigureEngine(fEngine);
+
+    fServer := TMVCServerFactory.CreateIndyDirect(fEngine);
+{{if program_server_protocol|eq,"https"}}
+    // -----------------------------------------------------------------
+    // HTTPS via TaurusTLS (OpenSSL 1.1.1+).
+    // The TaurusTLSIndyConfigurator function comes from the unit
+    // MVCFramework.Server.HTTPS.TaurusTLS (see uses clause above).
+    // To switch TLS stack, replace that unit + this configurator only.
+    // -----------------------------------------------------------------
+    fServer.HTTPSConfigurator := TaurusTLSIndyConfigurator();
+    fServer.UseHTTPS := True;
+    fServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+    fServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+    fServer.CertPassword := dotEnv.Env('https.cert.password', '');
+    fServer.Listen(LPort);
+    LogI('Service started on port ' + LPort.ToString + ' (Indy Direct + TaurusTLS HTTPS)');
+{{else}}
+    fServer.Listen(LPort);
+    LogI('Service started on port ' + LPort.ToString + ' (Indy Direct)');
+{{endif}}
+{{if websocketserver_generate}}
+
+    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    fWSServer := LWSServer;
+    LWSServer.Active := True;
+    LogI('WebSocket listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+{{endif}}
+    Started := True;
+  except
+    on E: Exception do
+    begin
+      LogE('Cannot start service: ' + E.ClassName + ': ' + E.Message);
+      fServer := nil;
+      FreeAndNil(fEngine);
+      Started := False;
+      raise;
+    end;
+  end;
+end;
+
+procedure TDMVCFrameworkWindowsService.ServiceStop(Sender: TService; var Stopped: Boolean);
+begin
+  LogI('Stopping {{:program_name}} Service...');
+  try
+{{if websocketserver_generate}}
+    if Assigned(fWSServer) then
+    begin
+      TMVCWebSocketServer(fWSServer).Active := False;
+      fWSServer.Free;
+      fWSServer := nil;
+    end;
+{{endif}}
+    if Assigned(fServer) then
+    begin
+      fServer.Stop;
+      fServer := nil;
+    end;
+    FreeAndNil(fEngine);
+    LogI('Service stopped');
+    Stopped := True;
+  except
+    on E: Exception do
+    begin
+      LogE('Service stop error: ' + E.ClassName + ': ' + E.Message);
+      Stopped := False;
+    end;
+  end;
+end;
+
+end.

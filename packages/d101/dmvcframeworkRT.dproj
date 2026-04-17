@@ -113,6 +113,11 @@
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_GenerateStackFrames>false</DCC_GenerateStackFrames>
+        <DCC_Assertions>false</DCC_Assertions>
+        <DCC_IntegerOverflowCheck>false</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>false</DCC_RangeChecking>
+        <DCC_Optimize>true</DCC_Optimize>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
@@ -213,6 +218,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <DCCReference Include="..\..\sources\ExprEvaluator.pas"/>
+        <DCCReference Include="....sourcesMVCFramework.Serializer.Streaming.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -101,7 +101,6 @@ uses
   System.SyncObjs,
   System.Classes,
   IdContext,
-  IdHTTPWebBrokerBridge,
   IdIOHandler,
   IdGlobal,
   MVCFramework.Logger;
@@ -109,9 +108,6 @@ uses
 const
   LF = #10;
   CRLF = #13#10;
-
-type
-  TIdHTTPAppResponseAccess = class(TIdHTTPAppResponse);
 
 { TMVCSSEController }
 
@@ -159,6 +155,7 @@ end;
 
 procedure TMVCSSEController.EventStream;
 var
+  lClientConn: TObject;
   LRawContext: TIdContext;
   LIOHandler: TIdIOHandler;
   LConnection: TSSEConnection;
@@ -212,11 +209,12 @@ var
 
 begin
   inherited;
-  if not (Context.Response.RawWebResponse is TIdHTTPAppResponse) then
+  lClientConn := Context.Request.GetClientConnection;
+  if not Assigned(lClientConn) or not (lClientConn is TIdContext) then
     raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-      ClassName + ' can only be used with INDY based application server');
-
-  LRawContext := TIdHTTPAppResponseAccess(Context.Response.RawWebResponse).FThread;
+      'SSE requires an Indy-based server backend (TMVCIndyServer or ' +
+      'WebBroker hosted by TIdHTTPWebBrokerBridge)');
+  LRawContext := TIdContext(lClientConn);
   LIOHandler := LRawContext.Connection.IOHandler;
   LEncoding := IndyTextEncoding(Charset);
   LChannel := ChannelName;

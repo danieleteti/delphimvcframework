@@ -1,0 +1,51 @@
+{{include "_license_header.tpro"}}
+program {{:program_name}};
+
+uses
+  Vcl.SvcMgr,
+{{if program_msheap}}
+  {$IF Defined(MSWINDOWS)}MSHeap,{$ENDIF}
+{{endif}}
+  System.SysUtils,
+{{if program_dotenv}}
+  MVCFramework.DotEnv,
+{{endif}}
+  ServiceU in 'ServiceU.pas' {{:service_form_reference}},
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{if entity_generate}}
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
+{{endif}}
+{{if program_service_container_generate}}
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas',
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas',
+{{endif}}
+{{if websocketserver_generate}}
+  {{:websocketserver_unit_name}} in '{{:websocketserver_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_mustache}}
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_templatepro}}
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_webstencils}}
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
+{{endif}}
+  EngineConfigU in 'EngineConfigU.pas';
+
+{$R *.RES}
+
+begin
+  // Windows 2003 Server requires StartServiceCtrlDispatcher to be
+  // called before CoRegisterClassObject, which can be called indirectly
+  // by Application.Initialize.
+  if not Application.DelayInitialize or Application.Installing then
+    Application.Initialize;
+  Application.CreateForm(TDMVCFrameworkWindowsService, DMVCFrameworkWindowsService);
+  Application.Run;
+end.

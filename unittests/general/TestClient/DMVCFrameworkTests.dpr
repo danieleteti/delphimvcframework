@@ -101,7 +101,14 @@ uses
   MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas',
   RangeMediaMiddlewareTestsU in 'RangeMediaMiddlewareTestsU.pas',
   RangeMediaTestWebModuleU in 'webmodules\RangeMediaTestWebModuleU.pas' {RangeMediaTestWebModule: TWebModule},
-  MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas';
+  MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas',
+  MVCFramework.Server.Intf in '..\..\..\sources\MVCFramework.Server.Intf.pas',
+  MVCFramework.Server.Indy in '..\..\..\sources\MVCFramework.Server.Indy.pas',
+  MVCFramework.Indy.Request in '..\..\..\sources\MVCFramework.Indy.Request.pas',
+  MVCFramework.Indy.Response in '..\..\..\sources\MVCFramework.Indy.Response.pas',
+  MVCFramework.WebBroker.Request in '..\..\..\sources\MVCFramework.WebBroker.Request.pas',
+  MVCFramework.WebBroker.Response in '..\..\..\sources\MVCFramework.WebBroker.Response.pas',
+  ServerAbstractionTestU in 'ServerAbstractionTestU.pas';
 
 {$R *.RES}
 

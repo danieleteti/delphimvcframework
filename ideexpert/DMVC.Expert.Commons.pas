@@ -114,6 +114,8 @@ type
       // Computed values for templates
       webmodule_classname_short = 'webmodule.classname_short'; // TMyWebModule -> MyWebModule
       default_media_type = 'default_media_type';
+      // Server engine type
+      program_server_engine = 'program.server_engine'; // 'webbroker', 'indydirect', 'httpsys'
   end;
 
   TProgramTypes = record
@@ -124,6 +126,8 @@ type
       APACHE = 'apache';
       ISAPI = 'isapi';
       WINDOWS_SERVICE = 'windows.service';
+      INDY_DIRECT = 'indy.direct';
+      HTTPSYS = 'httpsys';
   end;
 
 implementation

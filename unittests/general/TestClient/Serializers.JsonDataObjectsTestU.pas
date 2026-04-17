@@ -274,7 +274,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' +
-    '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -386,7 +386,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17 16:37:50",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
-    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -1133,7 +1133,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
-    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -1320,7 +1320,7 @@ const
     '"FAppreciationAs":"Yes",' + '"FAppreciation":{' + '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
   JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100.0,' +
-    '"Birthday":null,' + '"AccessDateTime":null,' + '"AccessTime":null,' + '"Active":true,' + '"Role":"roGuest",' +
+    '"Birthday":"1899-12-30",' + '"AccessDateTime":"1899-12-30T00:00:00.000+01:00",' + '"AccessTime":"00:00:00",' + '"Active":true,' + '"Role":"roGuest",' +
     '"Temporization":63623032670000,' + '"Department":{' + '"Id":1,' + '"Name":"Development",' + '"Notes":[' + '{' +
     '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' + '"DepartmentNull":null,' +
     '"Notes":[' + '{' + '"Description":"EntNote1"' + '},' + '{' + '"Description":"EntNote2"' + '}' + '],' +
@@ -1840,9 +1840,9 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
 const
-  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
+  JSON = '{' + '"GuidValue":"aeed1a0f-9061-40f0-9fda-d69ae7f20222",' +
     '"GuidValue2":"ca09dc98-85ba-46e8-aba2-117c2fa8ef25",' +
-    '"NullableGuid":"{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}",' +
+    '"NullableGuid":"eaba9b61-6812-4f0a-9469-d247eb2da8f4",' +
     '"NullableGuid2":"fa51caa7-7d48-46ba-bfde-34c1f740e066",' +
     '"Id":1,' + '"Code":2,' +
     '"Name":"João Antônio"' + '}';
@@ -1924,6 +1924,7 @@ begin
   lSavedNameCaseDefault := MVCNameCaseDefault;
   try
     MVCNameCaseDefault := ncAsIs;
+    MVCGuidSerializationTypeDefault := gstBraces;  // pre-3.5 default; restored explicitly for this block
 
     LEntity := TEntityCustomWithGuid2.Create;
     try

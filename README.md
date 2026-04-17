@@ -114,7 +114,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - **IDE Wizard** for project creation
 - **Comprehensive logging** with LoggerPro integration
 - **Built-in profiler** for performance monitoring
-- **Unit testing framework** (250+ tests)
+- **Unit testing framework** — 872 tests running against 5 server hosts (Classic / Indy Direct / HTTP.sys / Apache 2.4 / ISAPI). See [docs/unit_tests.md](docs/unit_tests.md) for how to run them and the prerequisites.
 - **dotEnv configuration** support
 - **Multiple deployment options**: Standalone, Apache module, IIS ISAPI, Linux daemon
 

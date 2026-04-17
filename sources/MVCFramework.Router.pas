@@ -64,6 +64,54 @@ type
     function GetQualifiedActionName: string;
   end;
 
+  { [PERF] Pre-compiled route descriptor. One TMVCCompiledRoute per
+    (controller, controller-url-segment, action-method, action-path)
+    combination. Built once at AddController time by TMVCRouteTable;
+    read-only from the request hot path.
+
+    ActionAttributes is the same TArray<TCustomAttribute> that
+    TRttiMethod.GetAttributes would return - cached here so
+    IsHTTPAcceptCompatible / IsHTTPContentTypeCompatible do not
+    re-allocate it per request. The per-method check is not needed
+    at this stage because the route table is already indexed by
+    HTTP method; any route reaching the match routine has already
+    passed the method gate. }
+  TMVCCompiledRoute = class
+  public
+    ControllerClazz: TMVCControllerClazz;
+    CreateAction: TMVCControllerCreateAction;
+    InjectableConstructor: TRttiMethod;
+    ActionMethod: TRttiMethod;
+    ActionAttributes: TArray<TCustomAttribute>;
+    FullPath: string;               // APathPrefix + URLSegment + MVCPath.Path
+    IsParametric: Boolean;          // contains "(" -> needs regex match
+    ProducesMediaType: string;      // resolved at build time
+    ProducesCharset: string;
+  end;
+
+  { [PERF] Route table indexed the way the request searches:
+    first by HTTP method, then by path. Static paths hit a string
+    dictionary in O(1); parametric paths fall into a short per-method
+    list filtered via the already-cached gMVCGlobalActionParamsCache
+    regexes. Routes that declare multiple HTTP verbs (e.g. GET+HEAD)
+    are registered under each verb so no per-request verb filter runs.
+    Built once per engine at first request, cached thereafter. }
+  TMVCRouteTable = class
+  private
+    FRoutes: TObjectList<TMVCCompiledRoute>;     // owns all route instances
+    FStaticByMethod: array[TMVCHTTPMethodType] of TDictionary<string, TList<TMVCCompiledRoute>>;
+    FParametricByMethod: array[TMVCHTTPMethodType] of TList<TMVCCompiledRoute>;
+    procedure AddRoute(ARoute: TMVCCompiledRoute; const AMethods: TMVCHTTPMethods);
+    procedure BuildFrom(
+      const AControllers: TObjectList<TMVCControllerDelegate>;
+      const APathPrefix, ADefaultContentType, ADefaultContentCharset: string);
+  public
+    constructor Create(
+      const AControllers: TObjectList<TMVCControllerDelegate>;
+      const APathPrefix, ADefaultContentType, ADefaultContentCharset: string);
+    destructor Destroy; override;
+  end;
+
   TMVCRouter = class(TMVCCustomRouter)
   private
     class function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T; static;
@@ -80,10 +128,6 @@ type
       var AAccept: string;
       const AAttributes: TArray<TCustomAttribute>): Boolean; static;
 
-    class function IsHTTPMethodCompatible(
-      const AMethodType: TMVCHTTPMethodType;
-      const AAttributes: TArray<TCustomAttribute>): Boolean; static;
-
     class function IsCompatiblePath(
       const AMVCPath: string;
       const APath: string;
@@ -98,6 +142,9 @@ type
       const aControllerMappedPaths: TStringList); static;
   public
     class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
+    { [PERF] Fast overload used by TMVCEngine. The engine owns ARouteTable
+      across its lifetime and invalidates it when AddController is called,
+      so the table is built once and reused. }
     class function ExecuteRouting(const ARequestPathInfo: string;
       const ARequestMethodType: TMVCHTTPMethodType;
       const ARequestContentType, ARequestAccept: string;
@@ -106,7 +153,20 @@ type
       const ADefaultContentCharset: string;
       const APathPrefix: string;
       var ARequestParams: TMVCRequestParamsTable;
-      out ARouterResult: TMVCRouterResult): Boolean; static;
+      out ARouterResult: TMVCRouterResult;
+      var ARouteTable: TMVCRouteTable): Boolean; overload; static;
+    { Back-compat overload: builds and frees a throw-away route table
+      per call. Used by unit tests and any external caller that does not
+      own a TMVCRouteTable instance. }
+    class function ExecuteRouting(const ARequestPathInfo: string;
+      const ARequestMethodType: TMVCHTTPMethodType;
+      const ARequestContentType, ARequestAccept: string;
+      const AControllers: TObjectList<TMVCControllerDelegate>;
+      const ADefaultContentType: string;
+      const ADefaultContentCharset: string;
+      const APathPrefix: string;
+      var ARequestParams: TMVCRequestParamsTable;
+      out ARouterResult: TMVCRouterResult): Boolean; overload; static;
   end;
 
 implementation
@@ -120,7 +180,303 @@ var
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gRttiCtx: TRttiContext;
 
+{ TMVCCompiledRoute / TMVCRouteTable - forward utilities }
+
+function IsParametricPath(const APath: string): Boolean; inline;
+begin
+  { Any MVCPath that needs regex interpretation at request time goes in
+    the parametric bucket. Parameter markers are written "($name)" and
+    literal regex metacharacters are typically escaped with a backslash
+    (e.g. '/patient/\$match' for a literal '$'), so checking for either
+    marker catches both cases. Pure literal paths hit the O(1) static
+    dictionary. }
+  Result := (Pos('($', APath) > 0) or (Pos('\', APath) > 0);
+end;
+
+function AllowedMethods(const AAttributes: TArray<TCustomAttribute>): TMVCHTTPMethods;
+var
+  I: Integer;
+  LFound: Boolean;
+begin
+  LFound := False;
+  Result := [];
+  for I := 0 to High(AAttributes) do
+    if AAttributes[I] is MVCHTTPMethodAttribute then
+    begin
+      Result := Result + MVCHTTPMethodAttribute(AAttributes[I]).MVCHTTPMethods;
+      LFound := True;
+    end;
+  if not LFound then
+    Result := [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE];
+end;
+
+{ TMVCRouteTable }
+
+constructor TMVCRouteTable.Create(
+  const AControllers: TObjectList<TMVCControllerDelegate>;
+  const APathPrefix, ADefaultContentType, ADefaultContentCharset: string);
+var
+  M: TMVCHTTPMethodType;
+begin
+  inherited Create;
+  FRoutes := TObjectList<TMVCCompiledRoute>.Create(True);
+  for M := Low(TMVCHTTPMethodType) to High(TMVCHTTPMethodType) do
+  begin
+    FStaticByMethod[M] := TDictionary<string, TList<TMVCCompiledRoute>>.Create;
+    FParametricByMethod[M] := TList<TMVCCompiledRoute>.Create;
+  end;
+  BuildFrom(AControllers, APathPrefix, ADefaultContentType, ADefaultContentCharset);
+end;
+
+destructor TMVCRouteTable.Destroy;
+var
+  M: TMVCHTTPMethodType;
+  LBucket: TList<TMVCCompiledRoute>;
+begin
+  for M := Low(TMVCHTTPMethodType) to High(TMVCHTTPMethodType) do
+  begin
+    if Assigned(FStaticByMethod[M]) then
+    begin
+      for LBucket in FStaticByMethod[M].Values do
+        LBucket.Free;
+      FStaticByMethod[M].Free;
+    end;
+    FParametricByMethod[M].Free;
+  end;
+  FRoutes.Free;
+  inherited;
+end;
+
+procedure TMVCRouteTable.AddRoute(ARoute: TMVCCompiledRoute;
+  const AMethods: TMVCHTTPMethods);
+var
+  M: TMVCHTTPMethodType;
+  LKey: string;
+  LBucket: TList<TMVCCompiledRoute>;
+begin
+  FRoutes.Add(ARoute);
+  LKey := LowerCase(ARoute.FullPath);
+  for M := Low(TMVCHTTPMethodType) to High(TMVCHTTPMethodType) do
+  begin
+    if not (M in AMethods) then
+      Continue;
+    if ARoute.IsParametric then
+    begin
+      FParametricByMethod[M].Add(ARoute);
+    end
+    else
+    begin
+      if not FStaticByMethod[M].TryGetValue(LKey, LBucket) then
+      begin
+        LBucket := TList<TMVCCompiledRoute>.Create;
+        FStaticByMethod[M].Add(LKey, LBucket);
+      end;
+      LBucket.Add(ARoute);
+    end;
+  end;
+end;
+
+procedure TMVCRouteTable.BuildFrom(
+  const AControllers: TObjectList<TMVCControllerDelegate>;
+  const APathPrefix, ADefaultContentType, ADefaultContentCharset: string);
+var
+  LControllerDelegate: TMVCControllerDelegate;
+  LRttiType: TRttiType;
+  LClassAttributes: TArray<TCustomAttribute>;
+  LMappedPaths: TStringList;
+  LMethods: TArray<TRttiMethod>;
+  LMethod: TRttiMethod;
+  LMethodAttrs: TArray<TCustomAttribute>;
+  LAtt: TCustomAttribute;
+  LURLSegment: string;
+  LControllerMappedPath: string;
+  LMethodPath: string;
+  LProduces: MVCProducesAttribute;
+  LRoute: TMVCCompiledRoute;
+  LItem: string;
+  LFullPath: string;
+begin
+  LMappedPaths := TStringList.Create;
+  try
+    for LControllerDelegate in AControllers do
+    begin
+      LMappedPaths.Clear;
+      LRttiType := gRttiCtx.GetType(LControllerDelegate.Clazz.ClassInfo);
+      if not Assigned(LRttiType) then
+        Continue;
+
+      LURLSegment := LControllerDelegate.URLSegment;
+      if LURLSegment.IsEmpty then
+      begin
+        LClassAttributes := LRttiType.GetAttributes;
+        if Length(LClassAttributes) = 0 then
+          Continue;
+        TMVCRouter.FillControllerMappedPaths(LRttiType.Name, LClassAttributes, LMappedPaths);
+      end
+      else
+      begin
+        LMappedPaths.Add(LURLSegment);
+      end;
+
+      LMethods := LRttiType.GetMethods;
+      for LMethod in LMethods do
+      begin
+        if LMethod.Visibility <> mvPublic then
+          Continue;
+        if not (LMethod.MethodKind in [mkProcedure, mkFunction]) then
+          Continue;
+        LMethodAttrs := LMethod.GetAttributes;
+        if Length(LMethodAttrs) = 0 then
+          Continue;
+
+        for LAtt in LMethodAttrs do
+        begin
+          if LAtt is MVCPathAttribute then
+          begin
+            LMethodPath := MVCPathAttribute(LAtt).Path;
+            for LItem in LMappedPaths do
+            begin
+              LControllerMappedPath := LItem;
+              if LControllerMappedPath = '/' then
+                LControllerMappedPath := '';
+              LFullPath := APathPrefix + LControllerMappedPath + LMethodPath;
+
+              LRoute := TMVCCompiledRoute.Create;
+              LRoute.ControllerClazz := LControllerDelegate.Clazz;
+              LRoute.CreateAction := LControllerDelegate.CreateAction;
+              LRoute.ActionMethod := LMethod;
+              LRoute.ActionAttributes := LMethodAttrs;
+              { Normalise an empty full path to "/" so a request to "/"
+                matches the dictionary key directly. IsCompatiblePath has
+                a special case for ('/', '') that we sidestep by making
+                the registered key match the request. }
+              if LFullPath = '' then
+                LFullPath := '/';
+              LRoute.FullPath := LFullPath;
+              LRoute.IsParametric := IsParametricPath(LFullPath);
+
+              { Leave ProducesMediaType empty when the action has no
+                MVCProduces attribute; TryMatchRoute substitutes the
+                per-call defaults. Keeping defaults out of the cached
+                route lets the same table serve engines configured with
+                different DefaultContentType / DefaultContentCharset. }
+              LProduces := TMVCRouter.GetAttribute<MVCProducesAttribute>(LMethodAttrs);
+              if Assigned(LProduces) then
+              begin
+                LRoute.ProducesMediaType := LProduces.Value;
+                LRoute.ProducesCharset := LProduces.Charset;
+              end;
+
+              if not Assigned(LRoute.CreateAction) then
+                LRoute.InjectableConstructor :=
+                  TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
+
+              AddRoute(LRoute, AllowedMethods(LMethodAttrs));
+            end;
+          end;
+        end;
+      end;
+    end;
+  finally
+    LMappedPaths.Free;
+  end;
+end;
+
 { TMVCRouter }
+
+function TryMatchRoute(
+  const ARoute: TMVCCompiledRoute;
+  const ARequestMethodType: TMVCHTTPMethodType;
+  var ARequestContentType, ARequestAccept: string;
+  const ARequestPathInfo: string;
+  const ACheckPath: Boolean;
+  const ADefaultContentType, ADefaultContentCharset: string;
+  var ARequestParams: TMVCRequestParamsTable;
+  out ARouterResult: TMVCRouterResult): Boolean;
+begin
+  { Method was already matched by the route-table index; remaining checks
+    are content-type, accept, and (for parametric routes only) path regex. }
+  Result := False;
+  if not TMVCRouter.IsHTTPContentTypeCompatible(ARequestMethodType, ARequestContentType, ARoute.ActionAttributes) then
+    Exit;
+  if not TMVCRouter.IsHTTPAcceptCompatible(ARequestMethodType, ARequestAccept, ARoute.ActionAttributes) then
+    Exit;
+  if ACheckPath and
+     not TMVCRouter.IsCompatiblePath(ARoute.FullPath, ARequestPathInfo, ARequestParams) then
+    Exit;
+
+  ARouterResult.MethodToCall := ARoute.ActionMethod;
+  ARouterResult.ControllerClazz := ARoute.ControllerClazz;
+  ARouterResult.ControllerCreateAction := ARoute.CreateAction;
+  ARouterResult.ControllerInjectableConstructor := ARoute.InjectableConstructor;
+  if ARoute.ProducesMediaType <> '' then
+  begin
+    ARouterResult.ResponseContentMediaType := ARoute.ProducesMediaType;
+    ARouterResult.ResponseContentCharset := ARoute.ProducesCharset;
+  end
+  else
+  begin
+    ARouterResult.ResponseContentMediaType := ADefaultContentType;
+    ARouterResult.ResponseContentCharset := ADefaultContentCharset;
+  end;
+  Result := True;
+end;
+
+class function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
+  const ARequestMethodType: TMVCHTTPMethodType;
+  const ARequestContentType, ARequestAccept: string;
+  const AControllers: TObjectList<TMVCControllerDelegate>;
+  const ADefaultContentType: string;
+  const ADefaultContentCharset: string;
+  const APathPrefix: string;
+  var ARequestParams: TMVCRequestParamsTable;
+  out ARouterResult: TMVCRouterResult;
+  var ARouteTable: TMVCRouteTable): Boolean;
+var
+  LRequestPathInfo: string;
+  LRequestAccept: string;
+  LRequestContentType: string;
+  LBucket: TList<TMVCCompiledRoute>;
+  I: Integer;
+begin
+  Result := False;
+
+  LRequestAccept := ARequestAccept;
+  LRequestContentType := ARequestContentType;
+  LRequestPathInfo := ARequestPathInfo;
+  if (Trim(LRequestPathInfo) = EmptyStr) then
+    LRequestPathInfo := '/'
+  else if not LRequestPathInfo.StartsWith('/') then
+    LRequestPathInfo := '/' + LRequestPathInfo;
+  LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
+
+  { Build the table on first call; engine owns subsequent reuse. }
+  if ARouteTable = nil then
+    ARouteTable := TMVCRouteTable.Create(AControllers, APathPrefix,
+      ADefaultContentType, ADefaultContentCharset);
+
+  // 1. Static: dictionary keyed by the request's method + path.
+  if ARouteTable.FStaticByMethod[ARequestMethodType].TryGetValue(LowerCase(LRequestPathInfo), LBucket) then
+  begin
+    for I := 0 to LBucket.Count - 1 do
+      if TryMatchRoute(LBucket[I], ARequestMethodType,
+                        LRequestContentType, LRequestAccept,
+                        LRequestPathInfo, False,
+                        ADefaultContentType, ADefaultContentCharset,
+                        ARequestParams, ARouterResult) then
+        Exit(True);
+  end;
+
+  // 2. Parametric fallback: iterate the candidates for this verb only.
+  LBucket := ARouteTable.FParametricByMethod[ARequestMethodType];
+  for I := 0 to LBucket.Count - 1 do
+    if TryMatchRoute(LBucket[I], ARequestMethodType,
+                      LRequestContentType, LRequestAccept,
+                      LRequestPathInfo, True,
+                      ADefaultContentType, ADefaultContentCharset,
+                      ARequestParams, ARouterResult) then
+      Exit(True);
+end;
 
 class function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
   const ARequestMethodType: TMVCHTTPMethodType;
@@ -132,147 +488,16 @@ class function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
   var ARequestParams: TMVCRequestParamsTable;
   out ARouterResult: TMVCRouterResult): Boolean;
 var
-  LRequestPathInfo: string;
-  LRequestAccept: string;
-  LRequestContentType: string;
-  LControllerMappedPath: string;
-  LControllerMappedPaths: TStringList;
-  LControllerDelegate: TMVCControllerDelegate;
-  LAttributes: TArray<TCustomAttribute>;
-  LAtt: TCustomAttribute;
-  LRttiType: TRttiType;
-  LMethods: TArray<TRttiMethod>;
-  LMethod: TRttiMethod;
-  LMethodPath: string;
-  LProduceAttribute: MVCProducesAttribute;
-  lURLSegment: string;
-  LItem: String;
+  LTable: TMVCRouteTable;
 begin
-  Result := False;
-
-  LRequestAccept := ARequestAccept;
-  LRequestContentType := ARequestContentType;
-  LRequestPathInfo := ARequestPathInfo;
-  if (Trim(LRequestPathInfo) = EmptyStr) then
-    LRequestPathInfo := '/'
-  else
-  begin
-    if not LRequestPathInfo.StartsWith('/') then
-    begin
-      LRequestPathInfo := '/' + LRequestPathInfo;
-    end;
-  end;
-  LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
-
-  LControllerMappedPaths := TStringList.Create;
+  LTable := nil;
   try
-    for LControllerDelegate in AControllers do
-    begin
-      LControllerMappedPaths.Clear;
-      SetLength(LAttributes, 0);
-      LRttiType := gRttiCtx.GetType(LControllerDelegate.Clazz.ClassInfo);
-
-      lURLSegment := LControllerDelegate.URLSegment;
-      if lURLSegment.IsEmpty then
-      begin
-        LAttributes := LRttiType.GetAttributes;
-        if (LAttributes = nil) then
-          Continue;
-        FillControllerMappedPaths(LRttiType.Name, LAttributes, LControllerMappedPaths);
-      end
-      else
-      begin
-        LControllerMappedPaths.Add(lURLSegment);
-      end;
-
-      for LItem in LControllerMappedPaths do
-      begin
-        LControllerMappedPath := LItem;
-        if (LControllerMappedPath = '/') then
-        begin
-          LControllerMappedPath := '';
-        end;
-
-  {$IF defined(TOKYOORBETTER)}
-        if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
-  {$ELSE}
-        if not TMVCStringHelper.StartsWith(APathPrefix + LControllerMappedPath, LRequestPathInfo, True) then
-  {$ENDIF}
-        begin
-          Continue;
-        end;
-        LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
-        for LMethod in LMethods do
-        begin
-          if LMethod.Visibility <> mvPublic then // 2020-08-08
-            Continue;
-          if not (LMethod.MethodKind in [mkProcedure, mkFunction]) then
-            Continue;
-
-          LAttributes := LMethod.GetAttributes;
-          if Length(LAttributes) = 0 then
-            Continue;
-
-          for LAtt in LAttributes do
-          begin
-            if LAtt is MVCPathAttribute then
-            begin
-              // THIS BLOCK IS HERE JUST FOR DEBUG
-              // if LMethod.Name.Contains('GetProject') then
-              // begin
-              // lMethodCompatible := True; //debug here
-              // end;
-              // lMethodCompatible := IsHTTPMethodCompatible(ARequestMethodType, LAttributes);
-              // lContentTypeCompatible := IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes);
-              // lAcceptCompatible :=  IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes);
-
-              if IsHTTPMethodCompatible(ARequestMethodType, LAttributes) and
-                IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes) and
-                IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
-              begin
-                LMethodPath := MVCPathAttribute(LAtt).Path;
-                if IsCompatiblePath(APathPrefix + LControllerMappedPath + LMethodPath,
-                  LRequestPathInfo, ARequestParams) then
-                begin
-                  ARouterResult.MethodToCall := LMethod;
-//                    FMethodToCall := LMethod;
-                  ARouterResult.ControllerClazz := LControllerDelegate.Clazz;
-                  //FControllerClazz := LControllerDelegate.Clazz;
-
-                  ARouterResult.ControllerCreateAction := LControllerDelegate.CreateAction;
-                  //FControllerCreateAction := LControllerDelegate.CreateAction;
-
-                  ARouterResult.ControllerInjectableConstructor := nil;
-                  //FControllerInjectableConstructor := nil;
-
-                  // select the constructor with the most mumber of parameters
-                  if not Assigned(ARouterResult.ControllerCreateAction) then
-                  begin
-                    ARouterResult.ControllerInjectableConstructor := TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
-                  end;
-                  // end - select the constructor with the most mumber of parameters
-
-                  LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
-                  if LProduceAttribute <> nil then
-                  begin
-                    aRouterResult.ResponseContentMediaType := LProduceAttribute.Value;
-                    aRouterResult.ResponseContentCharset := LProduceAttribute.Charset;
-                  end
-                  else
-                  begin
-                    aRouterResult.ResponseContentMediaType := ADefaultContentType;
-                    aRouterResult.ResponseContentCharset := ADefaultContentCharset;
-                  end;
-                  Exit(True);
-                end;
-              end;
-            end; // if MVCPathAttribute
-          end; // for in Attributes
-        end; // for in Methods
-      end;
-    end; // for in Controllers
+    Result := ExecuteRouting(ARequestPathInfo, ARequestMethodType,
+      ARequestContentType, ARequestAccept, AControllers,
+      ADefaultContentType, ADefaultContentCharset, APathPrefix,
+      ARequestParams, ARouterResult, LTable);
   finally
-    LControllerMappedPaths.Free;
+    LTable.Free;
   end;
 end;
 
@@ -512,28 +737,6 @@ begin
     end;
 
   Result := (not FoundOneAttConsumes) or (FoundOneAttConsumes and Result);
-end;
-
-class function TMVCRouter.IsHTTPMethodCompatible(
-  const AMethodType: TMVCHTTPMethodType;
-  const AAttributes: TArray<TCustomAttribute>): Boolean;
-var
-  I: Integer;
-  MustBeCompatible: Boolean;
-  CompatibleMethods: TMVCHTTPMethods;
-begin
-  Result := False;
-
-  MustBeCompatible := False;
-  for I := 0 to high(AAttributes) do
-    if AAttributes[I] is MVCHTTPMethodAttribute then
-    begin
-      MustBeCompatible := True;
-      CompatibleMethods := MVCHTTPMethodAttribute(AAttributes[I]).MVCHTTPMethods;
-      Result := (AMethodType in CompatibleMethods);
-    end;
-
-  Result := (not MustBeCompatible) or (MustBeCompatible and Result);
 end;
 
 class function TMVCRouter.StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;

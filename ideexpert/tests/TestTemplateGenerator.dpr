@@ -90,6 +90,8 @@ type
     webmodule_middleware_session_file = 'webmodule.middleware.session.file';
     webmodule_middleware_session_database = 'webmodule.middleware.session.database';
     webmodule_middleware_session_timeout = 'webmodule.middleware.session.timeout';
+    // Server engine type
+    program_server_engine = 'program.server_engine';
   end;
 
   TProgramTypes = record
@@ -98,6 +100,10 @@ type
     HTTPS_CONSOLE = 'https.console';
     FASTCGI_CONSOLE = 'fastcgi.console';
     WINDOWS_SERVICE = 'windows.service';
+    INDY_DIRECT = 'indy.direct';
+    HTTPSYS = 'httpsys';
+    ISAPI = 'isapi';
+    APACHE = 'apache';
   end;
 
   TTestCase = record
@@ -361,6 +367,7 @@ begin
   Result.B[TConfigKey.program_ssv_mustache] := False;
   Result.B['program.ssv.any'] := False;  // Will be set to True in specific test cases
   Result.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+  Result.S[TConfigKey.program_server_engine] := 'webbroker';
   Result.S[TConfigKey.program_server_protocol] := 'http';  // http or https
   Result.B[TConfigKey.program_service_container_generate] := False;
   Result.S[TConfigKey.program_service_container_unit_name] := 'ServicesU';
@@ -458,10 +465,68 @@ begin
     AConfig.S['service_form_reference'] :=
       '{DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService}';
 
-    // Generate program file based on type
-    if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    // Determine server engine (default to 'webbroker' if not specified)
+    if AConfig.S[TConfigKey.program_server_engine] = '' then
+      AConfig.S[TConfigKey.program_server_engine] := 'webbroker';
+
+    // Generate program file based on server engine + program type combinations
+    if AConfig.S[TConfigKey.program_server_engine] = 'indydirect' then
     begin
-      LogVerbose('Generating Windows Service program...');
+      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+      begin
+        LogVerbose('Generating Indy Direct Service program...');
+        LSource := TTestTemplateEngine.Render('program_service_indydirect.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+
+        LogVerbose('Generating ServiceU.pas (Indy Direct)...');
+        LSource := TTestTemplateEngine.Render('service_indydirect.pas.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
+
+        LogVerbose('Generating ServiceU.dfm...');
+        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
+      end
+      else
+      begin
+        LogVerbose('Generating Indy Direct program...');
+        LSource := TTestTemplateEngine.Render('program_indydirect.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      end;
+
+      LogVerbose('Generating EngineConfigU.pas...');
+      LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'EngineConfigU.pas'), LSource);
+    end
+    else if AConfig.S[TConfigKey.program_server_engine] = 'httpsys' then
+    begin
+      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+      begin
+        LogVerbose('Generating HTTP.sys Service program...');
+        LSource := TTestTemplateEngine.Render('program_service_httpsys.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+
+        LogVerbose('Generating ServiceU.pas (HTTP.sys)...');
+        LSource := TTestTemplateEngine.Render('service_httpsys.pas.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
+
+        LogVerbose('Generating ServiceU.dfm...');
+        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
+      end
+      else
+      begin
+        LogVerbose('Generating HTTP.sys program...');
+        LSource := TTestTemplateEngine.Render('program_httpsys.dpr.tpro', AConfig);
+        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+      end;
+
+      LogVerbose('Generating EngineConfigU.pas...');
+      LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'EngineConfigU.pas'), LSource);
+    end
+    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
+    begin
+      LogVerbose('Generating Windows Service program (WebBroker)...');
       LSource := TTestTemplateEngine.Render('program_service.dpr.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
 
@@ -474,9 +539,21 @@ begin
       LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
     end
+    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI then
+    begin
+      LogVerbose('Generating ISAPI library...');
+      LSource := TTestTemplateEngine.Render('program_isapi.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    end
+    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE then
+    begin
+      LogVerbose('Generating Apache module...');
+      LSource := TTestTemplateEngine.Render('program_apache.dpr.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
+    end
     else
     begin
-      // Console/ISAPI/Apache/FastCGI
+      // Console/FastCGI
       LogVerbose('Generating program.dpr...');
       LSource := TTestTemplateEngine.Render('program.dpr.tpro', AConfig);
       TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
@@ -487,14 +564,19 @@ begin
     LSource := TTestTemplateEngine.Render('controller.pas.tpro', AConfig);
     TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.controller_unit_name] + '.pas'), LSource);
 
-    // Generate webmodule
-    LogVerbose('Generating webmodule...');
-    LSource := TTestTemplateEngine.Render('webmodule.pas.tpro', AConfig);
-    TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.pas'), LSource);
+    // WebModule is only generated for WebBroker server engine
+    if (AConfig.S[TConfigKey.program_server_engine] = 'webbroker') or
+       (AConfig.S[TConfigKey.program_server_engine] = '') then
+    begin
+      // Generate webmodule
+      LogVerbose('Generating webmodule...');
+      LSource := TTestTemplateEngine.Render('webmodule.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.pas'), LSource);
 
-    LogVerbose('Generating webmodule.dfm...');
-    LSource := TTestTemplateEngine.Render('webmodule.dfm.tpro', AConfig);
-    TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.dfm'), LSource);
+      LogVerbose('Generating webmodule.dfm...');
+      LSource := TTestTemplateEngine.Render('webmodule.dfm.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.dfm'), LSource);
+    end;
 
     // Generate optional units
     if AConfig.B[TConfigKey.entity_generate] then
@@ -1030,6 +1112,226 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_session_memory] := True;
   ATestCases.Add(LTestCase);
+
+  // === Indy Direct Tests ===
+
+  // Test 28: Indy Direct minimal
+  LTestCase.Name := 'indydirect_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  ATestCases.Add(LTestCase);
+
+  // Test 29: Indy Direct with CRUD
+  LTestCase.Name := 'indydirect_with_crud';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 30: Indy Direct with all middleware
+  LTestCase.Name := 'indydirect_all_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_etag] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_trace] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_ratelimit] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 31: Indy Direct with JSON-RPC
+  LTestCase.Name := 'indydirect_jsonrpc';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 32: Indy Direct with session (memory)
+  LTestCase.Name := 'indydirect_session';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_session_memory] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 33: Indy Direct full featured
+  LTestCase.Name := 'indydirect_full_featured';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_sqids] := True;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  ATestCases.Add(LTestCase);
+
+  // === HTTP.sys Tests ===
+
+  // Test 34: HTTP.sys minimal
+  LTestCase.Name := 'httpsys_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  ATestCases.Add(LTestCase);
+
+  // Test 35: HTTP.sys with CRUD and middleware
+  LTestCase.Name := 'httpsys_with_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 36: HTTP.sys full featured (no websocket - incompatible)
+  LTestCase.Name := 'httpsys_full_featured';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  LTestCase.Config.B[TConfigKey.program_sqids] := True;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // === Indy Direct + Windows Service Tests ===
+
+  // Test 37: Indy Direct as Windows Service (HTTP)
+  LTestCase.Name := 'winservice_indydirect_http';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  ATestCases.Add(LTestCase);
+
+  // Test 38: Indy Direct Service with CRUD + middleware
+  LTestCase.Name := 'winservice_indydirect_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 39: Indy Direct as Windows Service (HTTPS via TaurusTLS)
+  LTestCase.Name := 'winservice_indydirect_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === HTTP.sys + Windows Service Tests ===
+
+  // Test 40: HTTP.sys as Windows Service (HTTP)
+  LTestCase.Name := 'winservice_httpsys_http';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  ATestCases.Add(LTestCase);
+
+  // Test 41: HTTP.sys Service with CRUD + middleware
+  LTestCase.Name := 'winservice_httpsys_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  ATestCases.Add(LTestCase);
+
+  // Test 42: HTTP.sys as Windows Service (HTTPS - kernel SSL)
+  LTestCase.Name := 'winservice_httpsys_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === Console + HTTPS Tests for new engines ===
+
+  // Test 43: Indy Direct console HTTPS
+  LTestCase.Name := 'indydirect_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // Test 44: HTTP.sys console HTTPS
+  LTestCase.Name := 'httpsys_https';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  ATestCases.Add(LTestCase);
+
+  // === ISAPI tests ===
+
+  // Test 45: ISAPI minimal
+  LTestCase.Name := 'isapi_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  ATestCases.Add(LTestCase);
+
+  // Test 46: ISAPI with CRUD + middleware
+  LTestCase.Name := 'isapi_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  ATestCases.Add(LTestCase);
+
+  // === Apache module tests ===
+
+  // Test 47: Apache minimal
+  LTestCase.Name := 'apache_minimal';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  ATestCases.Add(LTestCase);
+
+  // Test 48: Apache with CRUD + middleware
+  LTestCase.Name := 'apache_crud_middleware';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  ATestCases.Add(LTestCase);
 end;
 
 procedure PrintSummary;
@@ -1071,6 +1373,52 @@ begin
     ExitCode := 1
   else
     ExitCode := 0;
+end;
+
+function RunDProjAppTypeTest(const AProgramType, AExpectedAppType: string): Boolean;
+var
+  LConfig: TJSONObject;
+  LSource: string;
+  LExpectedTag: string;
+  LUnexpectedTag: string;
+begin
+  LConfig := CreateBaseConfig;
+  try
+    LConfig.S[TConfigKey.program_type] := AProgramType;
+    LSource := TTestTemplateEngine.Render('project.dproj.tpro', LConfig);
+
+    LExpectedTag := '<AppType>' + AExpectedAppType + '</AppType>';
+    if AExpectedAppType = 'Console' then
+      LUnexpectedTag := '<AppType>Library</AppType>'
+    else
+      LUnexpectedTag := '<AppType>Console</AppType>';
+
+    Result := LSource.Contains(LExpectedTag) and not LSource.Contains(LUnexpectedTag);
+    if Result then
+      Log(Format('  [PASS] program_type="%s" -> AppType=%s', [AProgramType, AExpectedAppType]))
+    else
+      Log(Format('  [FAIL] program_type="%s" -> expected AppType=%s, got: %s',
+        [AProgramType, AExpectedAppType,
+         Copy(LSource, Pos('<AppType>', LSource),
+              Pos('</AppType>', LSource) + Length('</AppType>') - Pos('<AppType>', LSource))]));
+  finally
+    LConfig.Free;
+  end;
+end;
+
+function RunAllDProjAppTypeTests: Boolean;
+begin
+  Log('');
+  Log('=== project.dproj.tpro AppType tests ===');
+  Result := True;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTP_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTPS_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.FASTCGI_CONSOLE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.WINDOWS_SERVICE, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.INDY_DIRECT, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.HTTPSYS, 'Console') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.ISAPI, 'Library') and Result;
+  Result := RunDProjAppTypeTest(TProgramTypes.APACHE, 'Library') and Result;
 end;
 
 procedure ParseCommandLine;
@@ -1149,6 +1497,14 @@ begin
     GTestResults := TList<TTestResult>.Create;
     LTestCases := TList<TTestCase>.Create;
     try
+      if not RunAllDProjAppTypeTests then
+      begin
+        Log('');
+        Log('FAIL: project.dproj.tpro AppType tests did not pass.');
+        ExitCode := 1;
+        Exit;
+      end;
+
       CreateTestCases(LTestCases);
 
       for LTestCase in LTestCases do
