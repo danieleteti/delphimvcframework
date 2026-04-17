@@ -192,3 +192,5 @@ GUIDA_OIDC_DANIELE.md
 
 # IIS Express runtime directory for ISAPI integration tests
 /unittests/iis/
+/performancetest/results_c30_10s_postopt/*.json
+/performancetest/results_c30_10s_preopt/*.json
