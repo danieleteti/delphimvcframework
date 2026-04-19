@@ -549,7 +549,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Top = 175
     Width = 764
     Height = 407
-    ActivePage = tsServer
+    ActivePage = tsOptions
     Anchors = [akLeft, akTop, akRight, akBottom]
     Style = tsFlatButtons
     TabHeight = 1
@@ -631,6 +631,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         ParentFont = False
         WordWrap = True
       end
+      object lblServerEngine: TLabel
+        Left = 24
+        Top = 110
+        Width = 67
+        Height = 13
+        Caption = 'Server Engine'
+      end
       object rgServerProtocol: TRadioGroup
         Left = 24
         Top = 24
@@ -645,13 +652,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         TabOrder = 0
         OnClick = rgServerProtocolClick
       end
-      object lblServerEngine: TLabel
-        Left = 24
-        Top = 110
-        Width = 64
-        Height = 13
-        Caption = 'Server Engine'
-      end
       object cbServerEngine: TComboBox
         Left = 24
         Top = 126
@@ -660,6 +660,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Style = csDropDownList
         ItemIndex = 1
         TabOrder = 7
+        Text = 'Indy Direct'
         Items.Strings = (
           'WebBroker (Indy bridge)'
           'Indy Direct'
@@ -946,7 +947,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Width = 135
           Height = 17
           Caption = 'ActiveRecord'
-          TabOrder = 8
+          TabOrder = 7
         end
         object EdtFDConnDefFileName: TEdit
           Left = 31
@@ -962,7 +963,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Top = 164
           Width = 180
           Height = 21
-          TabOrder = 10
+          TabOrder = 8
           Text = 'MyConnDef'
           TextHint = 'MyConnDef'
         end
@@ -1008,6 +1009,22 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         ParentFont = False
         WordWrap = True
       end
+      object lblJWTAsymmetricWarning: TLabel
+        Left = 24
+        Top = 328
+        Width = 700
+        Height = 13
+        AutoSize = False
+        Caption = 
+          'RS256 requires TaurusTLS in search path + OpenSSL DLLs in output' +
+          ' directory'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clMaroon
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsItalic]
+        ParentFont = False
+      end
       object cbNameCase: TComboBox
         Left = 24
         Top = 35
@@ -1040,12 +1057,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         TabOrder = 2
       end
       object chkSqids: TCheckBox
-        Left = 250
-        Top = 180
+        Left = 24
+        Top = 185
         Width = 200
         Height = 17
         Caption = 'Use Sqids'
-        TabOrder = 4
+        TabOrder = 3
       end
       object chkHtmx: TCheckBox
         Left = 250
@@ -1053,7 +1070,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Width = 167
         Height = 17
         Caption = 'Use HTMX (https://htmx.org/)'
-        TabOrder = 5
+        TabOrder = 4
       end
       object chkCustomConfigDotEnv: TCheckBox
         Left = 24
@@ -1074,21 +1091,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           'None (no JWT middleware)'
           'HS256 (HMAC, shared secret)'
           'RS256 (RSA, asymmetric public/private keys)')
-        TabOrder = 7
-      end
-      object lblJWTAsymmetricWarning: TLabel
-        Left = 24
-        Top = 328
-        Width = 700
-        Height = 13
-        AutoSize = False
-        Caption = 'RS256 requires TaurusTLS in search path + OpenSSL DLLs in output directory'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clMaroon
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = [fsItalic]
-        ParentFont = False
+        TabOrder = 5
       end
     end
   end
