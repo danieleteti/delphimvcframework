@@ -59,8 +59,8 @@ function GetAnalyticsDefaultLogger: ILogWriter;
 implementation
 
 uses
-  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, MVCFramework.Commons,
-  System.IOUtils;
+  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, LoggerPro.Builder,
+  MVCFramework.Commons, System.IOUtils;
 
 var
   GLogWriter: ILogWriter = nil;
@@ -88,7 +88,7 @@ begin
               LogItem.LogTypeAsString,
               LogItem.LogMessage]);
           end;
-        GLogWriter := BuildLogWriter([lLog]);
+        GLogWriter := LoggerProBuilder.WriteToAppender(lLog).Build;
       end;
     finally
       TMonitor.Exit(GLock);
