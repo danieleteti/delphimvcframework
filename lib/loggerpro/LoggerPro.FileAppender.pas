@@ -37,14 +37,6 @@ uses
   System.SysUtils;
 
 type
-  { @abstract(Callback type invoked after a log file is rotated.)
-    The callback receives the full path of the rotated file.
-    @bold(Important:) This callback runs on the logger thread.
-    Do not perform long-running operations directly; instead,
-    kick off async work (e.g., compress, upload, archive).
-  }
-  TFileRotateCallback = reference to procedure(const aRotatedFileName: string);
-
   {
     @abstract(Logs to file using one different file for each different TAG used.)
     @author(Daniele Teti - d.teti@bittime.it)
@@ -146,8 +138,19 @@ type
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); overload; override;
+    { Returns the current log file name for the given tag, or '' if no log
+      has yet been written under that tag. The file may not exist on disk
+      until the first WriteLog for that tag. }
     function GetCurrentLogFileName(const aLogTag: string): string;
+    { Returns every log file name currently being written to (one per tag
+      encountered so far). Useful for uploading / rotating / emailing the
+      complete set. }
     function GetAllCurrentLogFileNames: TArray<string>;
+    { Scan aLog's appenders and return the first TLoggerProFileAppender
+      found, or nil. Handy when the Builder's WriteToFile created the
+      appender internally and the caller needs access to the file-name
+      helpers above. }
+    class function FromLog(const aLog: ICustomLogWriter): TLoggerProFileAppender; static;
   end;
 
   { @abstract(File appender with multiple tags)
@@ -159,10 +162,13 @@ type
   }
   TLoggerProSimpleFileAppender = class(TLoggerProFileAppenderBase)
   private
-    fFileWriter: TStreamWriter;
     fCurrentLogFileName: string;
     procedure RotateLog;
   protected
+    { Exposed to descendants so structured-output appenders (HTML, XML, ...)
+      can write custom open/close markers in Setup / TearDown / EmitStart /
+      EmitEnd overrides. Still not meant for external access. }
+    fFileWriter: TStreamWriter;
     procedure CheckLogFileNameFormat(const LogFileNameFormat: String); override;
   public
   const
@@ -227,7 +233,6 @@ type
 implementation
 
 uses
-  System.Types,
   System.IOUtils,
   System.StrUtils,
   System.Math,
@@ -465,7 +470,7 @@ end;
 
 procedure TLoggerProFileAppenderBase.CleanupOldTimeRotatedFiles(const aTag: string);
 var
-  lFiles: TStringDynArray;
+  lFiles: TArray<string>;
   lPattern: string;
   lModuleName: string;
   I, J: Integer;
@@ -674,6 +679,22 @@ end;
 function TLoggerProFileAppender.GetAllCurrentLogFileNames: TArray<string>;
 begin
   Result := fFileNamesDictionary.Values.ToArray;
+end;
+
+class function TLoggerProFileAppender.FromLog(const aLog: ICustomLogWriter): TLoggerProFileAppender;
+var
+  i: Integer;
+  lObj: TObject;
+begin
+  Result := nil;
+  if aLog = nil then
+    Exit;
+  for i := 0 to aLog.AppendersCount - 1 do
+  begin
+    lObj := aLog.Appenders[i] as TObject;
+    if lObj is TLoggerProFileAppender then
+      Exit(TLoggerProFileAppender(lObj));
+  end;
 end;
 
 { TLoggerProSimpleFileAppender }

@@ -30,260 +30,9 @@ interface
 
 uses
   LoggerPro,
-  LoggerPro.CallbackAppender,
-  LoggerPro.FileAppender,
-  LoggerPro.TimeRotatingFileAppender,
-  LoggerPro.HTTPAppender,
-  LoggerPro.Proxy,
   System.SysUtils,
   System.Classes,
   System.Generics.Collections;
-
-type
-  ILoggerProBuilder = interface;
-
-  { Base interface for all appender configurators }
-  IAppenderConfigurator = interface
-    ['{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}']
-    function Done: ILoggerProBuilder;
-  end;
-
-  { Console appender configurator }
-  IConsoleAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6E}']
-    function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
-    function WithUTF8Output: IConsoleAppenderConfigurator;
-  end;
-
-  { Simple console appender configurator }
-  ISimpleConsoleAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6F}']
-    function WithLogLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
-    function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
-  end;
-
-  { File appender configurator }
-  IFileAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{C3D4E5F6-A7B8-6C7D-0E1F-2A3B4C5D6E7F}']
-    function WithLogsFolder(const aLogsFolder: string): IFileAppenderConfigurator;
-    function WithFileBaseName(const aFileBaseName: string): IFileAppenderConfigurator;
-    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IFileAppenderConfigurator;
-    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IFileAppenderConfigurator;
-    function WithInterval(aInterval: TTimeRotationInterval): IFileAppenderConfigurator;
-    function WithFileFormat(const aFileFormat: string): IFileAppenderConfigurator;
-    function WithMaxRetainedFiles(aMaxFiles: Integer): IFileAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IFileAppenderConfigurator;
-    function WithEncoding(aEncoding: TEncoding): IFileAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IFileAppenderConfigurator;
-    function WithOnAfterRotate(aCallback: TFileRotateCallback): IFileAppenderConfigurator;
-  end;
-
-  { JSONL file appender configurator }
-  IJSONLFileAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{D4E5F6A7-B8C9-7D8E-1F2A-3B4C5D6E7F8A}']
-    function WithLogsFolder(const aLogsFolder: string): IJSONLFileAppenderConfigurator;
-    function WithFileBaseName(const aFileBaseName: string): IJSONLFileAppenderConfigurator;
-    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IJSONLFileAppenderConfigurator;
-    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IJSONLFileAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IJSONLFileAppenderConfigurator;
-  end;
-
-  { Time rotating file appender configurator }
-  ITimeRotatingFileAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{E5F6A7B8-C9D0-8E9F-2A3B-4C5D6E7F8A9B}']
-    function WithInterval(aInterval: TTimeRotationInterval): ITimeRotatingFileAppenderConfigurator;
-    function WithMaxBackupFiles(aMaxBackupFiles: Integer): ITimeRotatingFileAppenderConfigurator;
-    function WithLogsFolder(const aLogsFolder: string): ITimeRotatingFileAppenderConfigurator;
-    function WithFileBaseName(const aFileBaseName: string): ITimeRotatingFileAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): ITimeRotatingFileAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): ITimeRotatingFileAppenderConfigurator;
-  end;
-
-  { HTTP appender configurator }
-  IHTTPAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{F6A7B8C9-D0E1-9F0A-3B4C-5D6E7F8A9B0C}']
-    function WithURL(const aURL: string): IHTTPAppenderConfigurator;
-    function WithContentType(aContentType: THTTPContentType): IHTTPAppenderConfigurator;
-    function WithTimeout(aTimeoutSeconds: Integer): IHTTPAppenderConfigurator;
-    function WithRetryCount(aRetryCount: Integer): IHTTPAppenderConfigurator;
-    function WithHeader(const aName, aValue: string): IHTTPAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IHTTPAppenderConfigurator;
-  end;
-
-  { ElasticSearch appender configurator }
-  IElasticSearchAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{A7B8C9D0-E1F2-0A1B-4C5D-6E7F8A9B0C1D}']
-    function WithURL(const aURL: string): IElasticSearchAppenderConfigurator;
-    function WithHost(const aHost: string): IElasticSearchAppenderConfigurator;
-    function WithPort(aPort: Integer): IElasticSearchAppenderConfigurator;
-    function WithIndex(const aIndex: string): IElasticSearchAppenderConfigurator;
-    function WithTimeout(aTimeoutSeconds: Integer): IElasticSearchAppenderConfigurator;
-    function WithBasicAuth(const aUsername, aPassword: string): IElasticSearchAppenderConfigurator;
-    function WithAPIKey(const aAPIKey: string): IElasticSearchAppenderConfigurator;
-    function WithBearerToken(const aToken: string): IElasticSearchAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IElasticSearchAppenderConfigurator;
-  end;
-
-  { Memory appender configurator }
-  IMemoryAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{B8C9D0E1-F2A3-1B2C-5D6E-7F8A9B0C1D2E}']
-    function WithMaxSize(aMaxSize: Integer): IMemoryAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IMemoryAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IMemoryAppenderConfigurator;
-  end;
-
-  { Callback appender configurator }
-  ICallbackAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{C9D0E1F2-A3B4-2C3D-6E7F-8A9B0C1D2E3F}']
-    function WithCallback(aCallback: TLogItemCallback): ICallbackAppenderConfigurator;
-    function WithSynchronizeToMainThread(aValue: Boolean): ICallbackAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): ICallbackAppenderConfigurator;
-  end;
-
-  { Simple callback appender configurator (message only) }
-  ISimpleCallbackAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{D0E1F2A3-B4C5-3D4E-7F8A-9B0C1D2E3F4A}']
-    function WithCallback(aCallback: TLogMessageCallback): ISimpleCallbackAppenderConfigurator;
-    function WithSynchronizeToMainThread(aValue: Boolean): ISimpleCallbackAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): ISimpleCallbackAppenderConfigurator;
-  end;
-
-  { Strings appender configurator (cross-platform, works with any TStrings).
-    Default: MaxLogLines = 100, ClearOnStartup = False.
-    The TStrings instance is NOT owned by the appender. The caller is
-    responsible for its lifetime and must ensure it outlives the ILogWriter. }
-  IStringsAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{A3B4C5D6-E7F8-9A0B-1C2D-3E4F5A6B7C8D}']
-    { Sets the maximum number of lines retained. Oldest lines are removed first.
-      Must be > 0. Default: 100. }
-    function WithMaxLogLines(aMaxLogLines: Word): IStringsAppenderConfigurator;
-    { If True, the TStrings instance is cleared when the logger starts. Default: False. }
-    function WithClearOnStartup(aValue: Boolean): IStringsAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IStringsAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IStringsAppenderConfigurator;
-  end;
-
-  { OutputDebugString appender configurator }
-  IOutputDebugStringAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{E1F2A3B4-C5D6-4E5F-8A9B-0C1D2E3F4A5B}']
-    function WithLogLevel(aLogLevel: TLogType): IOutputDebugStringAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IOutputDebugStringAppenderConfigurator;
-  end;
-
-  { UDP Syslog appender configurator }
-  IUDPSyslogAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{F2A3B4C5-D6E7-5F6A-9B0C-1D2E3F4A5B6C}']
-    function WithHost(const aHost: string): IUDPSyslogAppenderConfigurator;
-    function WithPort(aPort: Integer): IUDPSyslogAppenderConfigurator;
-    function WithHostName(const aHostName: string): IUDPSyslogAppenderConfigurator;
-    function WithUserName(const aUserName: string): IUDPSyslogAppenderConfigurator;
-    function WithApplication(const aApplication: string): IUDPSyslogAppenderConfigurator;
-    function WithVersion(const aVersion: string): IUDPSyslogAppenderConfigurator;
-    function WithProcID(const aProcID: string): IUDPSyslogAppenderConfigurator;
-    function WithUseLocalTime(aUseLocalTime: Boolean): IUDPSyslogAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IUDPSyslogAppenderConfigurator;
-  end;
-
-
-{$IF Defined(MSWINDOWS)}
-  { VCL Memo appender configurator (requires VCL, Windows only) }
-  IVCLMemoAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{B4C5D6E7-F8A9-7B8C-1D2E-3F4A5B6C7D8E}']
-    function WithMaxLogLines(aMaxLogLines: Word): IVCLMemoAppenderConfigurator;
-    function WithClearOnStartup(aValue: Boolean): IVCLMemoAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLMemoAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLMemoAppenderConfigurator;
-  end;
-
-  { VCL ListBox appender configurator (requires VCL, Windows only) }
-  IVCLListBoxAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{C5D6E7F8-A9B0-8C9D-2E3F-4A5B6C7D8E9F}']
-    function WithMaxLogLines(aMaxLogLines: Word): IVCLListBoxAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLListBoxAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListBoxAppenderConfigurator;
-  end;
-
-  { VCL ListView appender configurator (requires VCL, Windows only) }
-  IVCLListViewAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{D6E7F8A9-B0C1-9D0E-3F4A-5B6C7D8E9F0A}']
-    function WithMaxLogLines(aMaxLogLines: Word): IVCLListViewAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator;
-  end;
-
-  { Windows Event Log appender configurator (Windows only) }
-  IWindowsEventLogAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6}']
-    function WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
-    function WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
-  end;
-{$ENDIF}
-
-  { FireDAC DB appender configurator (cross-platform) }
-  IFireDACAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{E7F8A9B0-C1D2-0E1F-4A5B-6C7D8E9F0A1B}']
-    function WithConnectionDefName(const aConnectionDefName: string): IFireDACAppenderConfigurator;
-    function WithStoredProcName(const aStoredProcName: string): IFireDACAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IFireDACAppenderConfigurator;
-  end;
-
-  { Filter appender configurator - wraps another appender with a filter }
-  TLogItemFilterFunc = TFunc<TLogItem, Boolean>;
-
-  { Filtered appender configurator - generic filter that wraps any appender }
-  IFilteredAppenderConfigurator = interface(IAppenderConfigurator)
-    ['{F8A9B0C1-D2E3-1F2A-5B6C-7D8E9F0A1B2C}']
-    function WithFilter(aFilter: TLogItemFilterFunc): IFilteredAppenderConfigurator;
-  end;
-
-  { Main builder interface }
-  ILoggerProBuilder = interface
-    ['{1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}']
-    // WriteTo appender methods - all return configurators
-    function WriteToConsole: IConsoleAppenderConfigurator;
-    function WriteToSimpleConsole: ISimpleConsoleAppenderConfigurator;
-    function WriteToFile: IFileAppenderConfigurator;
-    function WriteToJSONLFile: IJSONLFileAppenderConfigurator;
-    function WriteToTimeRotatingFile: ITimeRotatingFileAppenderConfigurator;
-    function WriteToHTTP: IHTTPAppenderConfigurator;
-    function WriteToElasticSearch: IElasticSearchAppenderConfigurator;
-    function WriteToMemory: IMemoryAppenderConfigurator;
-    function WriteToCallback: ICallbackAppenderConfigurator;
-    function WriteToSimpleCallback: ISimpleCallbackAppenderConfigurator;
-    function WriteToOutputDebugString: IOutputDebugStringAppenderConfigurator;
-    function WriteToUDPSyslog: IUDPSyslogAppenderConfigurator;
-    { Strings appender - logs to any TStrings instance (cross-platform) }
-    function WriteToStrings(aStrings: TStrings): IStringsAppenderConfigurator;
-{$IF Defined(MSWINDOWS)}
-    { VCL appenders - require VCL units (Windows only) }
-    function WriteToVCLMemo(aMemo: TObject): IVCLMemoAppenderConfigurator;
-    function WriteToVCLListBox(aListBox: TObject): IVCLListBoxAppenderConfigurator;
-    function WriteToVCLListView(aListView: TObject): IVCLListViewAppenderConfigurator;
-    { Windows Event Log appender }
-    function WriteToWindowsEventLog: IWindowsEventLogAppenderConfigurator;
-    { Windows Event Log appender for Windows Services (uses TService.LogMessage) }
-    function WriteToWindowsEventLogForService(aService: TObject): IWindowsEventLogAppenderConfigurator;
-{$ENDIF}
-    { FireDAC appender (cross-platform) }
-    function WriteToFireDAC: IFireDACAppenderConfigurator;
-
-    { Filter appender - wraps another appender with a filter function }
-    function WriteToFilteredAppender(aAppender: ILogAppender): IFilteredAppenderConfigurator;
-
-    { Generic method for adding pre-configured appenders }
-    function WriteToAppender(aAppender: ILogAppender): ILoggerProBuilder;
-
-    // Global configuration
-    function WithDefaultLogLevel(aLogLevel: TLogType): ILoggerProBuilder;
-    function WithMinimumLevel(aLevel: TLogType): ILoggerProBuilder;
-    function WithDefaultRenderer(aRenderer: ILogItemRenderer): ILoggerProBuilder;
-    function WithDefaultTag(const aTag: string): ILoggerProBuilder;
-    function WithStackTraceFormatter(aFormatter: TStackTraceFormatter): ILoggerProBuilder;
-
-    // Build the logger
-    function Build: ILogWriter;
-  end;
 
 { Helper function for fluent builder creation }
 function LoggerProBuilder: ILoggerProBuilder;
@@ -291,13 +40,22 @@ function LoggerProBuilder: ILoggerProBuilder;
 implementation
 
 uses
+  LoggerPro.AnsiColors,
+  LoggerPro.CallbackAppender,
+  LoggerPro.FileAppender,
+  LoggerPro.TimeRotatingFileAppender,
+  LoggerPro.WebhookAppender,
+  LoggerPro.Proxy,
   LoggerPro.ConsoleAppender,
+  LoggerPro.Renderers,
   LoggerPro.JSONLFileAppender,
   LoggerPro.ElasticSearchAppender,
   LoggerPro.MemoryAppender,
   LoggerPro.OutputDebugStringAppender,
   LoggerPro.UDPSyslogAppender,
   LoggerPro.StringsAppender,
+  LoggerPro.FileBySourceAppender,
+  LoggerPro.HTMLFileAppender,
   LoggerPro.DBAppender.FireDAC
 {$IF Defined(MSWINDOWS)}
   , LoggerPro.VCLMemoAppender
@@ -331,10 +89,16 @@ type
   TConsoleAppenderConfigurator = class(TBaseAppenderConfigurator, IConsoleAppenderConfigurator)
   private
     FUTF8Output: Boolean;
+    FUseColors: Boolean;
+    FColorScheme: TLogColorScheme;
+    FPrefix: string;
   public
     function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
     function WithUTF8Output: IConsoleAppenderConfigurator;
+    function WithColors: IConsoleAppenderConfigurator;
+    function WithColorScheme(const aScheme: TLogColorScheme): IConsoleAppenderConfigurator;
+    function WithPrefix(const aPrefix: string): IConsoleAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -412,22 +176,29 @@ type
   end;
 
   { HTTP appender configurator }
-  THTTPAppenderConfigurator = class(TBaseAppenderConfigurator, IHTTPAppenderConfigurator)
+  TWebhookAppenderConfigurator = class(TBaseAppenderConfigurator, IWebhookAppenderConfigurator)
   private
     FURL: string;
-    FContentType: THTTPContentType;
+    FContentType: TWebhookContentType;
     FTimeoutSeconds: Integer;
     FRetryCount: Integer;
     FHeaders: TDictionary<string, string>;
+    FAPIKey: string;
+    FAPIKeyName: string;
+    FAPIKeyLocation: TWebhookAPIKeyLocation;
+    FAPIKeySet: Boolean;
   public
     constructor Create(aBuilder: TLoggerProBuilder);
     destructor Destroy; override;
-    function WithURL(const aURL: string): IHTTPAppenderConfigurator;
-    function WithContentType(aContentType: THTTPContentType): IHTTPAppenderConfigurator;
-    function WithTimeout(aTimeoutSeconds: Integer): IHTTPAppenderConfigurator;
-    function WithRetryCount(aRetryCount: Integer): IHTTPAppenderConfigurator;
-    function WithHeader(const aName, aValue: string): IHTTPAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IHTTPAppenderConfigurator;
+    function WithURL(const aURL: string): IWebhookAppenderConfigurator;
+    function WithContentType(aContentType: TWebhookContentType): IWebhookAppenderConfigurator;
+    function WithTimeout(aTimeoutSeconds: Integer): IWebhookAppenderConfigurator;
+    function WithRetryCount(aRetryCount: Integer): IWebhookAppenderConfigurator;
+    function WithHeader(const aName, aValue: string): IWebhookAppenderConfigurator;
+    function WithAPIKey(const aValue: string;
+      aLocation: TWebhookAPIKeyLocation = TWebhookAPIKeyLocation.Header;
+      const aName: string = ''): IWebhookAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IWebhookAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -483,18 +254,6 @@ type
     function WithCallback(aCallback: TLogItemCallback): ICallbackAppenderConfigurator;
     function WithSynchronizeToMainThread(aValue: Boolean): ICallbackAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): ICallbackAppenderConfigurator;
-    function Done: ILoggerProBuilder;
-  end;
-
-  { Simple callback appender configurator }
-  TSimpleCallbackAppenderConfigurator = class(TBaseAppenderConfigurator, ISimpleCallbackAppenderConfigurator)
-  private
-    FCallback: TLogMessageCallback;
-    FSynchronizeToMainThread: Boolean;
-  public
-    function WithCallback(aCallback: TLogMessageCallback): ISimpleCallbackAppenderConfigurator;
-    function WithSynchronizeToMainThread(aValue: Boolean): ISimpleCallbackAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): ISimpleCallbackAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -616,6 +375,46 @@ type
     function Done: ILoggerProBuilder;
   end;
 
+  { File-by-source appender configurator }
+  TFileBySourceAppenderConfigurator = class(TBaseAppenderConfigurator, IFileBySourceAppenderConfigurator)
+  private
+    FLogsFolder: string;
+    FMaxFileSizeInKB: Integer;
+    FRetainDays: Integer;
+    FDefaultSource: string;
+  public
+    constructor Create(aBuilder: TLoggerProBuilder);
+    function WithLogsFolder(const aLogsFolder: string): IFileBySourceAppenderConfigurator;
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IFileBySourceAppenderConfigurator;
+    function WithRetainDays(aRetainDays: Integer): IFileBySourceAppenderConfigurator;
+    function WithDefaultSource(const aDefaultSource: string): IFileBySourceAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator;
+    function Done: ILoggerProBuilder;
+  end;
+
+  THTMLFileAppenderConfigurator = class(TBaseAppenderConfigurator, IHTMLFileAppenderConfigurator)
+  private
+    FLogsFolder: string;
+    FFileBaseName: string;
+    FTitle: string;
+    FMaxBackupFiles: Integer;
+    FMaxFileSizeInKB: Integer;
+    FInterval: TTimeRotationInterval;
+    FMaxRetainedFiles: Integer;
+  public
+    constructor Create(aBuilder: TLoggerProBuilder);
+    function WithLogsFolder(const aLogsFolder: string): IHTMLFileAppenderConfigurator;
+    function WithFileBaseName(const aFileBaseName: string): IHTMLFileAppenderConfigurator;
+    function WithTitle(const aTitle: string): IHTMLFileAppenderConfigurator;
+    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IHTMLFileAppenderConfigurator;
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IHTMLFileAppenderConfigurator;
+    function WithInterval(aInterval: TTimeRotationInterval): IHTMLFileAppenderConfigurator;
+    function WithMaxRetainedFiles(aMaxFiles: Integer): IHTMLFileAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IHTMLFileAppenderConfigurator;
+    function Done: ILoggerProBuilder;
+  end;
+
   { Filtered appender configurator - generic filter for any appender }
   TFilteredAppenderConfigurator = class(TBaseAppenderConfigurator, IFilteredAppenderConfigurator)
   private
@@ -648,11 +447,10 @@ type
     function WriteToFile: IFileAppenderConfigurator;
     function WriteToJSONLFile: IJSONLFileAppenderConfigurator;
     function WriteToTimeRotatingFile: ITimeRotatingFileAppenderConfigurator;
-    function WriteToHTTP: IHTTPAppenderConfigurator;
+    function WriteToWebhook: IWebhookAppenderConfigurator;
     function WriteToElasticSearch: IElasticSearchAppenderConfigurator;
     function WriteToMemory: IMemoryAppenderConfigurator;
     function WriteToCallback: ICallbackAppenderConfigurator;
-    function WriteToSimpleCallback: ISimpleCallbackAppenderConfigurator;
     function WriteToOutputDebugString: IOutputDebugStringAppenderConfigurator;
     function WriteToUDPSyslog: IUDPSyslogAppenderConfigurator;
     function WriteToStrings(aStrings: TStrings): IStringsAppenderConfigurator;
@@ -669,6 +467,10 @@ type
     function WriteToFireDAC: IFireDACAppenderConfigurator;
     // Filtered appender - wraps any appender with a filter
     function WriteToFilteredAppender(aAppender: ILogAppender): IFilteredAppenderConfigurator;
+    // File-by-source appender
+    function WriteToFileBySource: IFileBySourceAppenderConfigurator;
+    // Self-contained HTML file appender
+    function WriteToHTMLFile: IHTMLFileAppenderConfigurator;
     // Generic method for adding pre-configured appenders
     function WriteToAppender(aAppender: ILogAppender): ILoggerProBuilder;
     // Global configuration
@@ -684,6 +486,10 @@ type
     function GetDefaultRenderer: ILogItemRenderer;
     procedure SetPendingConfigurator(const aName: string);
     procedure ClearPendingConfigurator;
+    // Exposed so TBaseAppenderConfigurator.ApplyLogLevel can read the
+    // builder-wide fallback (set via WithDefaultLogLevel / the JSON
+    // "defaultLogLevel" root field).
+    property DefaultLogLevel: TLogType read FDefaultLogLevel;
   end;
 
 { TBaseAppenderConfigurator }
@@ -699,7 +505,12 @@ end;
 procedure TBaseAppenderConfigurator.ApplyLogLevel(aAppender: ILogAppender);
 begin
   if FLogLevelSet then
-    aAppender.SetLogLevel(FLogLevel);
+    // explicit .WithLogLevel(...) wins
+    aAppender.SetLogLevel(FLogLevel)
+  else if Assigned(FBuilder) then
+    // fall back to the builder-wide default (set via WithDefaultLogLevel
+    // or the JSON "defaultLogLevel" root field)
+    aAppender.SetLogLevel(FBuilder.DefaultLogLevel);
 end;
 
 function TBaseAppenderConfigurator.GetRenderer: ILogItemRenderer;
@@ -783,10 +594,10 @@ begin
   Result := TTimeRotatingFileAppenderConfigurator.Create(Self);
 end;
 
-function TLoggerProBuilder.WriteToHTTP: IHTTPAppenderConfigurator;
+function TLoggerProBuilder.WriteToWebhook: IWebhookAppenderConfigurator;
 begin
-  SetPendingConfigurator('WriteToHTTP');
-  Result := THTTPAppenderConfigurator.Create(Self);
+  SetPendingConfigurator('WriteToWebhook');
+  Result := TWebhookAppenderConfigurator.Create(Self);
 end;
 
 function TLoggerProBuilder.WriteToElasticSearch: IElasticSearchAppenderConfigurator;
@@ -805,12 +616,6 @@ function TLoggerProBuilder.WriteToCallback: ICallbackAppenderConfigurator;
 begin
   SetPendingConfigurator('WriteToCallback');
   Result := TCallbackAppenderConfigurator.Create(Self);
-end;
-
-function TLoggerProBuilder.WriteToSimpleCallback: ISimpleCallbackAppenderConfigurator;
-begin
-  SetPendingConfigurator('WriteToSimpleCallback');
-  Result := TSimpleCallbackAppenderConfigurator.Create(Self);
 end;
 
 function TLoggerProBuilder.WriteToOutputDebugString: IOutputDebugStringAppenderConfigurator;
@@ -878,6 +683,18 @@ begin
   Result := TFireDACAppenderConfigurator.Create(Self);
 end;
 
+function TLoggerProBuilder.WriteToFileBySource: IFileBySourceAppenderConfigurator;
+begin
+  SetPendingConfigurator('WriteToFileBySource');
+  Result := TFileBySourceAppenderConfigurator.Create(Self);
+end;
+
+function TLoggerProBuilder.WriteToHTMLFile: IHTMLFileAppenderConfigurator;
+begin
+  SetPendingConfigurator('WriteToHTMLFile');
+  Result := THTMLFileAppenderConfigurator.Create(Self);
+end;
+
 function TLoggerProBuilder.WriteToFilteredAppender(aAppender: ILogAppender): IFilteredAppenderConfigurator;
 begin
   SetPendingConfigurator('WriteToFilteredAppender');
@@ -923,6 +740,7 @@ end;
 function TLoggerProBuilder.Build: ILogWriter;
 var
   lAppendersArray: TArray<ILogAppender>;
+  lLogLevelsArray: TArray<TLogType>;
   lLogWriter: TCustomLogWriter;
   I: Integer;
 begin
@@ -933,11 +751,21 @@ begin
   if FAppenders.Count = 0 then
     raise ELoggerPro.Create('No appenders configured. Add at least one appender before calling Build.');
 
+  // Collect the log levels the configurators already set on each appender.
+  // BuildLogWriter(aAppenders) defaults every per-appender level to Debug,
+  // which would clobber the levels we honored in ApplyLogLevel (and every
+  // "logLevel" field in a JSON config). Pass the levels through explicitly.
   SetLength(lAppendersArray, FAppenders.Count);
+  SetLength(lLogLevelsArray, FAppenders.Count);
   for I := 0 to FAppenders.Count - 1 do
+  begin
     lAppendersArray[I] := FAppenders[I];
+    lLogLevelsArray[I] := FAppenders[I].GetLogLevel;
+  end;
 
-  Result := BuildLogWriter(lAppendersArray);
+  {$WARN SYMBOL_DEPRECATED OFF}
+  Result := BuildLogWriter(lAppendersArray, nil, lLogLevelsArray);
+  {$WARN SYMBOL_DEPRECATED ON}
   lLogWriter := Result as TCustomLogWriter;
 
   // Set minimum log level if configured
@@ -974,11 +802,50 @@ begin
   Result := Self;
 end;
 
+function TConsoleAppenderConfigurator.WithColors: IConsoleAppenderConfigurator;
+begin
+  FUseColors := True;
+  FColorScheme := LogColorSchemes.Default;
+  Result := Self;
+end;
+
+function TConsoleAppenderConfigurator.WithColorScheme(
+  const aScheme: TLogColorScheme): IConsoleAppenderConfigurator;
+begin
+  FUseColors := True;
+  FColorScheme := aScheme;
+  Result := Self;
+end;
+
+function TConsoleAppenderConfigurator.WithPrefix(
+  const aPrefix: string): IConsoleAppenderConfigurator;
+begin
+  FPrefix := aPrefix;
+  Result := Self;
+end;
+
 function TConsoleAppenderConfigurator.Done: ILoggerProBuilder;
 var
   lAppender: ILogAppender;
+  lScheme: TLogColorScheme;
+  lGinRenderer: TLogItemRendererGinStyle;
 begin
-  lAppender := TLoggerProConsoleAppender.Create(GetRenderer);
+  if FUseColors then
+  begin
+    // Auto-degrade to plain when stdout is piped/redirected - avoids
+    // polluting log files with ANSI escape codes.
+    if IsStdoutTerminal then
+      lScheme := FColorScheme
+    else
+      lScheme := LogColorSchemes.Monochrome;
+    lGinRenderer := TLogItemRendererGinStyle.Create(lScheme, FPrefix);
+    lAppender := TLoggerProConsoleAppender.Create(lGinRenderer);
+    (lAppender as TLoggerProConsoleAppender).RendererHandlesColors := True;
+  end
+  else
+  begin
+    lAppender := TLoggerProConsoleAppender.Create(GetRenderer);
+  end;
   (lAppender as TLoggerProConsoleAppender).UTF8Output := FUTF8Output;
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
@@ -1267,73 +1134,93 @@ begin
   Result := FBuilder;
 end;
 
-{ THTTPAppenderConfigurator }
+{ TWebhookAppenderConfigurator }
 
-constructor THTTPAppenderConfigurator.Create(aBuilder: TLoggerProBuilder);
+constructor TWebhookAppenderConfigurator.Create(aBuilder: TLoggerProBuilder);
 begin
   inherited Create(aBuilder);
   FURL := '';
-  FContentType := THTTPContentType.JSON;
-  FTimeoutSeconds := TLoggerProHTTPAppender.DEFAULT_TIMEOUT_SECONDS;
-  FRetryCount := TLoggerProHTTPAppender.DEFAULT_MAX_RETRY_COUNT;
+  FContentType := TWebhookContentType.JSON;
+  FTimeoutSeconds := TLoggerProWebhookAppender.DEFAULT_TIMEOUT_SECONDS;
+  FRetryCount := TLoggerProWebhookAppender.DEFAULT_MAX_RETRY_COUNT;
   FHeaders := TDictionary<string, string>.Create;
 end;
 
-destructor THTTPAppenderConfigurator.Destroy;
+destructor TWebhookAppenderConfigurator.Destroy;
 begin
   FHeaders.Free;
   inherited;
 end;
 
-function THTTPAppenderConfigurator.WithURL(const aURL: string): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithURL(const aURL: string): IWebhookAppenderConfigurator;
 begin
   FURL := aURL;
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.WithContentType(aContentType: THTTPContentType): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithContentType(aContentType: TWebhookContentType): IWebhookAppenderConfigurator;
 begin
   FContentType := aContentType;
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.WithTimeout(aTimeoutSeconds: Integer): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithTimeout(aTimeoutSeconds: Integer): IWebhookAppenderConfigurator;
 begin
   FTimeoutSeconds := aTimeoutSeconds;
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.WithRetryCount(aRetryCount: Integer): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithRetryCount(aRetryCount: Integer): IWebhookAppenderConfigurator;
 begin
   FRetryCount := aRetryCount;
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.WithHeader(const aName, aValue: string): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithHeader(const aName, aValue: string): IWebhookAppenderConfigurator;
 begin
   FHeaders.AddOrSetValue(aName, aValue);
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.WithLogLevel(aLogLevel: TLogType): IHTTPAppenderConfigurator;
+function TWebhookAppenderConfigurator.WithAPIKey(const aValue: string;
+  aLocation: TWebhookAPIKeyLocation; const aName: string): IWebhookAppenderConfigurator;
+begin
+  FAPIKey := aValue;
+  FAPIKeyLocation := aLocation;
+  FAPIKeyName := aName;
+  FAPIKeySet := True;
+  Result := Self;
+end;
+
+function TWebhookAppenderConfigurator.WithLogLevel(aLogLevel: TLogType): IWebhookAppenderConfigurator;
 begin
   FLogLevel := aLogLevel;
   FLogLevelSet := True;
   Result := Self;
 end;
 
-function THTTPAppenderConfigurator.Done: ILoggerProBuilder;
+function TWebhookAppenderConfigurator.Done: ILoggerProBuilder;
 var
-  lAppender: TLoggerProHTTPAppender;
+  lAppender: ILogAppender;  // interface ref pins refcount at >=1 through config
+  lConcrete: TLoggerProWebhookAppender;
   lPair: TPair<string, string>;
 begin
   if FURL.Trim.IsEmpty then
-    raise ELoggerPro.Create('HTTP appender requires a URL. Use WithURL to set it.');
+    raise ELoggerPro.Create('Webhook appender requires a URL. Use WithURL to set it.');
 
-  lAppender := TLoggerProHTTPAppender.Create(FURL, FContentType, FTimeoutSeconds);
-  lAppender.MaxRetryCount := FRetryCount;
+  // Assigning the freshly-created object into an ILogAppender var bumps
+  // the refcount from 0 to 1 immediately. Without this pin, the first
+  // implicit class->interface conversion inside ApplyLogLevel would create
+  // the ONLY interface reference; when that call's temporary is released
+  // at the end of the statement, refcount would drop to 0 and the object
+  // would be destroyed mid-configuration.
+  lAppender := TLoggerProWebhookAppender.Create(FURL, FContentType, FTimeoutSeconds);
+  lConcrete := lAppender as TLoggerProWebhookAppender;
+  lConcrete.MaxRetryCount := FRetryCount;
   for lPair in FHeaders do
-    lAppender.AddHeader(lPair.Key, lPair.Value);
+    lConcrete.AddHeader(lPair.Key, lPair.Value);
+  if FAPIKeySet then
+    lConcrete.SetAPIKey(FAPIKey, FAPIKeyLocation, FAPIKeyName);
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;
@@ -1526,38 +1413,6 @@ begin
   Result := FBuilder;
 end;
 
-{ TSimpleCallbackAppenderConfigurator }
-
-function TSimpleCallbackAppenderConfigurator.WithCallback(aCallback: TLogMessageCallback): ISimpleCallbackAppenderConfigurator;
-begin
-  FCallback := aCallback;
-  Result := Self;
-end;
-
-function TSimpleCallbackAppenderConfigurator.WithSynchronizeToMainThread(aValue: Boolean): ISimpleCallbackAppenderConfigurator;
-begin
-  FSynchronizeToMainThread := aValue;
-  Result := Self;
-end;
-
-function TSimpleCallbackAppenderConfigurator.WithLogLevel(aLogLevel: TLogType): ISimpleCallbackAppenderConfigurator;
-begin
-  FLogLevel := aLogLevel;
-  FLogLevelSet := True;
-  Result := Self;
-end;
-
-function TSimpleCallbackAppenderConfigurator.Done: ILoggerProBuilder;
-var
-  lAppender: ILogAppender;
-begin
-  if not Assigned(FCallback) then
-    raise ELoggerPro.Create('Simple callback appender requires a callback. Use WithCallback to set it.');
-  lAppender := TLoggerProCallbackAppender.Create(FCallback, FSynchronizeToMainThread);
-  ApplyLogLevel(lAppender);
-  FBuilder.InternalAddAppender(lAppender);
-  Result := FBuilder;
-end;
 
 { TOutputDebugStringAppenderConfigurator }
 
@@ -1911,6 +1766,152 @@ begin
     raise ELoggerPro.Create('FireDAC appender requires a StoredProcName. Use WithStoredProcName to set it.');
 
   lAppender := TLoggerProDBAppenderFireDAC.Create(FConnectionDefName, FStoredProcName, nil);
+  ApplyLogLevel(lAppender);
+  FBuilder.InternalAddAppender(lAppender);
+  Result := FBuilder;
+end;
+
+{ TFileBySourceAppenderConfigurator }
+
+constructor TFileBySourceAppenderConfigurator.Create(aBuilder: TLoggerProBuilder);
+begin
+  inherited Create(aBuilder);
+  FLogsFolder := '';
+  FMaxFileSizeInKB := TLoggerProFileBySourceAppender.DEFAULT_MAX_FILE_SIZE_KB;
+  FRetainDays := TLoggerProFileBySourceAppender.DEFAULT_RETAIN_DAYS;
+  FDefaultSource := TLoggerProFileBySourceAppender.DEFAULT_SOURCE;
+end;
+
+function TFileBySourceAppenderConfigurator.WithLogsFolder(
+  const aLogsFolder: string): IFileBySourceAppenderConfigurator;
+begin
+  FLogsFolder := aLogsFolder;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.WithMaxFileSizeInKB(
+  aMaxFileSizeInKB: Integer): IFileBySourceAppenderConfigurator;
+begin
+  FMaxFileSizeInKB := aMaxFileSizeInKB;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.WithRetainDays(
+  aRetainDays: Integer): IFileBySourceAppenderConfigurator;
+begin
+  FRetainDays := aRetainDays;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.WithDefaultSource(
+  const aDefaultSource: string): IFileBySourceAppenderConfigurator;
+begin
+  FDefaultSource := aDefaultSource;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.WithLogLevel(
+  aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
+begin
+  FLogLevel := aLogLevel;
+  FLogLevelSet := True;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.WithRenderer(
+  aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator;
+begin
+  FRenderer := aRenderer;
+  Result := Self;
+end;
+
+function TFileBySourceAppenderConfigurator.Done: ILoggerProBuilder;
+var
+  lAppender: ILogAppender;
+begin
+  lAppender := TLoggerProFileBySourceAppender.Create(
+    FLogsFolder, FMaxFileSizeInKB, FRetainDays, FDefaultSource,
+    GetRenderer);
+  ApplyLogLevel(lAppender);
+  FBuilder.InternalAddAppender(lAppender);
+  Result := FBuilder;
+end;
+
+{ THTMLFileAppenderConfigurator }
+
+constructor THTMLFileAppenderConfigurator.Create(aBuilder: TLoggerProBuilder);
+begin
+  inherited Create(aBuilder);
+  FLogsFolder := '';
+  FFileBaseName := '';
+  FTitle := 'LoggerPro';
+  FMaxBackupFiles := TLoggerProFileAppenderBase.DEFAULT_MAX_BACKUP_FILE_COUNT;
+  FMaxFileSizeInKB := TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
+  FInterval := TTimeRotationInterval.None;
+  FMaxRetainedFiles := 0;
+end;
+
+function THTMLFileAppenderConfigurator.WithLogsFolder(const aLogsFolder: string): IHTMLFileAppenderConfigurator;
+begin
+  FLogsFolder := aLogsFolder;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithFileBaseName(const aFileBaseName: string): IHTMLFileAppenderConfigurator;
+begin
+  FFileBaseName := aFileBaseName;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithTitle(const aTitle: string): IHTMLFileAppenderConfigurator;
+begin
+  FTitle := aTitle;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithMaxBackupFiles(aMaxBackupFiles: Integer): IHTMLFileAppenderConfigurator;
+begin
+  FMaxBackupFiles := aMaxBackupFiles;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IHTMLFileAppenderConfigurator;
+begin
+  FMaxFileSizeInKB := aMaxFileSizeInKB;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithInterval(aInterval: TTimeRotationInterval): IHTMLFileAppenderConfigurator;
+begin
+  FInterval := aInterval;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithMaxRetainedFiles(aMaxFiles: Integer): IHTMLFileAppenderConfigurator;
+begin
+  FMaxRetainedFiles := aMaxFiles;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.WithLogLevel(aLogLevel: TLogType): IHTMLFileAppenderConfigurator;
+begin
+  FLogLevel := aLogLevel;
+  FLogLevelSet := True;
+  Result := Self;
+end;
+
+function THTMLFileAppenderConfigurator.Done: ILoggerProBuilder;
+var
+  lAppender: ILogAppender;
+  lFormat: string;
+begin
+  if FFileBaseName.IsEmpty then
+    lFormat := TLoggerProHTMLFileAppender.DEFAULT_FILENAME_FORMAT
+  else
+    lFormat := FFileBaseName + '.{number}.html';
+  lAppender := TLoggerProHTMLFileAppender.Create(
+    FTitle, FMaxBackupFiles, FMaxFileSizeInKB,
+    FLogsFolder, lFormat, FInterval, FMaxRetainedFiles);
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;

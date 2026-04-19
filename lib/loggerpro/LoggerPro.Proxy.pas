@@ -26,7 +26,7 @@ unit LoggerPro.Proxy;
 
 interface
 
-uses Classes, System.SysUtils, System.Rtti, LoggerPro;
+uses System.Classes, System.SysUtils, System.Rtti, LoggerPro;
 
 type
   ILogAppenderProxy=interface
@@ -93,6 +93,13 @@ type
     function WithDefaultTag(const aTag: string): ILogWriter;
     function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
 
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
+
     procedure Disable;
     procedure Enable;
     procedure Shutdown;
@@ -105,6 +112,8 @@ type
     procedure DelAppender(const aAppender: ILogAppender);
     function AppendersCount(): Integer;
     procedure EnqueueLogItem(const aLogItem: TLogItem);
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
 
 
     ///
@@ -194,6 +203,16 @@ begin
   Result := fDecoratedLogWriter.AppendersCount;
 end;
 
+function TLogWriterDecorator.GetMinimumLevel: TLogType;
+begin
+  Result := fDecoratedLogWriter.GetMinimumLevel;
+end;
+
+procedure TLogWriterDecorator.SetMinimumLevel(const aLevel: TLogType);
+begin
+  fDecoratedLogWriter.SetMinimumLevel(aLevel);
+end;
+
 procedure TLogWriterDecorator.EnqueueLogItem(const aLogItem: TLogItem);
 begin
   fDecoratedLogWriter.EnqueueLogItem(aLogItem);
@@ -245,6 +264,17 @@ procedure TLogWriterDecorator.Shutdown;
 begin
   fDecoratedLogWriter.Shutdown;
 end;
+
+function TLogWriterDecorator.IsEnabled(aLevel: TLogType): Boolean;
+begin
+  Result := fDecoratedLogWriter.IsEnabled(aLevel);
+end;
+
+function TLogWriterDecorator.IsDebugEnabled: Boolean;   begin Result := fDecoratedLogWriter.IsDebugEnabled;   end;
+function TLogWriterDecorator.IsInfoEnabled: Boolean;    begin Result := fDecoratedLogWriter.IsInfoEnabled;    end;
+function TLogWriterDecorator.IsWarningEnabled: Boolean; begin Result := fDecoratedLogWriter.IsWarningEnabled; end;
+function TLogWriterDecorator.IsErrorEnabled: Boolean;   begin Result := fDecoratedLogWriter.IsErrorEnabled;   end;
+function TLogWriterDecorator.IsFatalEnabled: Boolean;   begin Result := fDecoratedLogWriter.IsFatalEnabled;   end;
 
 procedure TLogWriterDecorator.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 begin

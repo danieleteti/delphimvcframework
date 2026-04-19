@@ -64,7 +64,10 @@ implementation
 uses
   Winapi.Windows,
   System.SysUtils,
-  Vcl.SvcMgr;
+  System.JSON,
+  Vcl.SvcMgr,
+  LoggerPro.Builder,
+  LoggerPro.Config;
 
 function LogTypeToEventType(aLogType: TLogType): Word;
 begin
@@ -163,5 +166,37 @@ begin
     end;
   end;
 end;
+
+{ JSON config factory. Self-registers below so just adding this unit to
+  a project's `uses` clause makes the "WindowsEventLog" type available
+  in loggerpro.json. The TService overload is intentionally NOT exposed
+  through JSON: it requires a runtime TService instance. }
+procedure WindowsEventLogConfigFactory(const aBuilder: ILoggerProBuilder; const aConfig: TJSONObject);
+var
+  lCfg: IWindowsEventLogAppenderConfigurator;
+  lValue: TJSONValue;
+  lLogLevel: TLogType;
+begin
+  lCfg := aBuilder.WriteToWindowsEventLog;
+
+  lValue := aConfig.GetValue('sourceName');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithSourceName(TJSONString(lValue).Value);
+
+  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'logLevel', lLogLevel) then
+    lCfg := lCfg.WithLogLevel(lLogLevel);
+
+  lCfg.Done;
+end;
+
+initialization
+  // Auto-register the JSON factory on unit load. Including
+  // LoggerPro.WindowsEventLogAppender in the program enables the
+  // "WindowsEventLog" appender type in config JSON files - no extra
+  // registration call required from user code.
+  TLoggerProConfig.RegisterAppenderType(
+    'WindowsEventLog',
+    WindowsEventLogConfigFactory,
+    ['logLevel', 'sourceName']);
 
 end.

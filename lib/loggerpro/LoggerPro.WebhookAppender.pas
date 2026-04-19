@@ -1,4 +1,4 @@
-// *************************************************************************** }
+// ***************************************************************************
 //
 // LoggerPro
 //
@@ -14,17 +14,25 @@
 //
 // http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
 // ***************************************************************************
 
-unit LoggerPro.HTTPAppender;
+unit LoggerPro.WebhookAppender;
 
-{ Cross-platform HTTP appender using System.Net.HttpClient }
+{ Webhook appender - POST each log item to a configured URL.
+
+  This is the low-friction "send my logs somewhere via HTTP" appender.
+  It is intentionally simple: one POST per log item, JSON or plain text
+  body, optional API key, optional custom headers. Use it for generic
+  webhook endpoints, Logstash-style collectors, in-house log gateways,
+  Slack/Teams incoming-webhooks, n8n/Zapier triggers, etc.
+
+  It is NOT meant to replace a real APM/observability SDK like ExeWatch.
+  Features deliberately absent here (breadcrumbs, timing spans, user
+  identity, periodic gauges, crash capture, ...) belong to dedicated
+  platforms - use their native appender alongside this one if you need
+  those capabilities.
+
+  Cross-platform via System.Net.HttpClient. }
 
 interface
 
@@ -39,14 +47,12 @@ uses
   System.DateUtils;
 
 type
-  THTTPContentType = (JSON, PlainText);
-
-  TLoggerProHTTPAppender = class;
+  TLoggerProWebhookAppender = class;
 
   { Callback for customizing request data.
     Set aData to your custom stream; caller will free it. }
-  TOnCreateHTTPData = reference to procedure(
-    const Sender: TLoggerProHTTPAppender;
+  TOnCreateWebhookData = reference to procedure(
+    const Sender: TLoggerProWebhookAppender;
     const aLogItem: TLogItem;
     const aExtendedInfo: TLoggerProExtendedInfo;
     var aData: TStream;
@@ -54,21 +60,16 @@ type
 
   { Callback for handling network errors.
     Set aRetryCount to control retries (0 = no more retries). }
-  TOnHTTPSendError = reference to procedure(
-    const Sender: TLoggerProHTTPAppender;
+  TOnWebhookSendError = reference to procedure(
+    const Sender: TLoggerProWebhookAppender;
     const aLogItem: TLogItem;
     const aException: Exception;
     var aRetryCount: Integer);
 
-  { @abstract(HTTP POST appender for sending logs to REST endpoints)
-    Cross-platform appender that sends log items via HTTP POST.
-    Supports JSON and plain text content types.
-    Use cases: Logstash, custom log collectors, webhooks, cloud logging services.
-  }
-  TLoggerProHTTPAppender = class(TLoggerProAppenderBase)
+  TLoggerProWebhookAppender = class(TLoggerProAppenderBase)
   private
     FURL: string;
-    FContentType: THTTPContentType;
+    FContentType: TWebhookContentType;
     FHTTPClient: THTTPClient;
     FCustomHeaders: TDictionary<string, string>;
     FExtendedInfo: TLoggerProExtendedInfo;
@@ -76,8 +77,11 @@ type
     FTimeoutSeconds: Integer;
     FMaxRetryCount: Integer;
     FAppendTagAndLevelToURL: Boolean;
-    FOnCreateData: TOnCreateHTTPData;
-    FOnSendError: TOnHTTPSendError;
+    FAPIKey: string;
+    FAPIKeyName: string;
+    FAPIKeyLocation: TWebhookAPIKeyLocation;
+    FOnCreateData: TOnCreateWebhookData;
+    FOnSendError: TOnWebhookSendError;
     procedure LoadExtendedInfo;
     function LogItemToJSON(const aLogItem: TLogItem): string;
     function BuildURL(const aLogItem: TLogItem): string;
@@ -90,9 +94,11 @@ type
     const DEFAULT_MAX_RETRY_COUNT = 3;
     const DEFAULT_EXTENDED_INFO = [TLogExtendedInfo.EIUserName, TLogExtendedInfo.EIComputerName,
       TLogExtendedInfo.EIProcessName, TLogExtendedInfo.EIProcessID];
+    const DEFAULT_API_KEY_HEADER_NAME = 'X-API-Key';
+    const DEFAULT_API_KEY_QUERY_PARAM = 'api_key';
 
     constructor Create(const aURL: string;
-      aContentType: THTTPContentType = THTTPContentType.JSON;
+      aContentType: TWebhookContentType = TWebhookContentType.JSON;
       aTimeoutSeconds: Integer = DEFAULT_TIMEOUT_SECONDS;
       aExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO;
       aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
@@ -105,18 +111,35 @@ type
     { Add a custom header to be sent with each request }
     procedure AddHeader(const aName, aValue: string);
 
+    /// <summary>Configure an API key to send on every POST. The key travels
+    /// either as an HTTP header or as a URL query-string parameter.
+    /// <para>
+    /// <c>aValue</c> is the secret. <c>aName</c> is the header name (for
+    /// Header) or the query-param name (for QueryString). When
+    /// <c>aName = ''</c> the appropriate default is used
+    /// (<c>X-API-Key</c> or <c>api_key</c>).
+    /// </para>
+    /// </summary>
+    procedure SetAPIKey(const aValue: string;
+      aLocation: TWebhookAPIKeyLocation = TWebhookAPIKeyLocation.Header;
+      const aName: string = '');
+
     property URL: string read FURL write FURL;
-    property ContentType: THTTPContentType read FContentType write FContentType;
+    property ContentType: TWebhookContentType read FContentType write FContentType;
     property TimeoutSeconds: Integer read FTimeoutSeconds write FTimeoutSeconds;
     property MaxRetryCount: Integer read FMaxRetryCount write FMaxRetryCount;
     { If True, appends /tag/level to URL (REST style). Default False. }
     property AppendTagAndLevelToURL: Boolean read FAppendTagAndLevelToURL write FAppendTagAndLevelToURL;
     property ExtendedInfo: TLoggerProExtendedInfo read FExtendedInfo;
+    { Read-only view of the API key configuration. Use SetAPIKey to modify. }
+    property APIKey: string read FAPIKey;
+    property APIKeyName: string read FAPIKeyName;
+    property APIKeyLocation: TWebhookAPIKeyLocation read FAPIKeyLocation;
 
     { Callback to customize the data sent. If set, overrides default behavior. }
-    property OnCreateData: TOnCreateHTTPData read FOnCreateData write FOnCreateData;
+    property OnCreateData: TOnCreateWebhookData read FOnCreateData write FOnCreateData;
     { Callback for network errors. Use to implement custom retry logic. }
-    property OnSendError: TOnHTTPSendError read FOnSendError write FOnSendError;
+    property OnSendError: TOnWebhookSendError read FOnSendError write FOnSendError;
   end;
 
 implementation
@@ -134,10 +157,10 @@ uses
 {$ENDIF}
   ;
 
-{ TLoggerProHTTPAppender }
+{ TLoggerProWebhookAppender }
 
-constructor TLoggerProHTTPAppender.Create(const aURL: string;
-  aContentType: THTTPContentType;
+constructor TLoggerProWebhookAppender.Create(const aURL: string;
+  aContentType: TWebhookContentType;
   aTimeoutSeconds: Integer;
   aExtendedInfo: TLoggerProExtendedInfo;
   aLogItemRenderer: ILogItemRenderer);
@@ -156,13 +179,13 @@ begin
   FCustomHeaders := TDictionary<string, string>.Create;
 end;
 
-destructor TLoggerProHTTPAppender.Destroy;
+destructor TLoggerProWebhookAppender.Destroy;
 begin
   FCustomHeaders.Free;
   inherited;
 end;
 
-procedure TLoggerProHTTPAppender.LoadExtendedInfo;
+procedure TLoggerProWebhookAppender.LoadExtendedInfo;
 {$IF Defined(MSWINDOWS)}
 var
   lBufferSize: Cardinal;
@@ -191,21 +214,15 @@ begin
   end;
 
   if TLogExtendedInfo.EIProcessName in FExtendedInfo then
-  begin
     FExtendedInfoData[TLogExtendedInfo.EIProcessName] := TPath.GetFileName(GetModuleName(HInstance));
-  end;
 
   if TLogExtendedInfo.EIProcessID in FExtendedInfo then
-  begin
     FExtendedInfoData[TLogExtendedInfo.EIProcessID] := IntToStr(GetCurrentProcessId);
-  end;
 {$ENDIF}
 
 {$IF Defined(Android)}
   if TLogExtendedInfo.EIProcessName in FExtendedInfo then
-  begin
     FExtendedInfoData[TLogExtendedInfo.EIProcessName] := TAndroidHelper.ApplicationTitle;
-  end;
 {$ENDIF}
 
 {$IF Defined(POSIX) and not Defined(Android)}
@@ -218,7 +235,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TLoggerProHTTPAppender.Setup;
+procedure TLoggerProWebhookAppender.Setup;
 begin
   inherited;
   LoadExtendedInfo;
@@ -227,19 +244,33 @@ begin
   FHTTPClient.ResponseTimeout := FTimeoutSeconds * 1000;
 end;
 
-procedure TLoggerProHTTPAppender.TearDown;
+procedure TLoggerProWebhookAppender.TearDown;
 begin
   FHTTPClient.Free;
   FHTTPClient := nil;
   inherited;
 end;
 
-procedure TLoggerProHTTPAppender.AddHeader(const aName, aValue: string);
+procedure TLoggerProWebhookAppender.AddHeader(const aName, aValue: string);
 begin
   FCustomHeaders.AddOrSetValue(aName, aValue);
 end;
 
-function TLoggerProHTTPAppender.LogItemToJSON(const aLogItem: TLogItem): string;
+procedure TLoggerProWebhookAppender.SetAPIKey(const aValue: string;
+  aLocation: TWebhookAPIKeyLocation; const aName: string);
+begin
+  FAPIKey := aValue;
+  FAPIKeyLocation := aLocation;
+  if aName <> '' then
+    FAPIKeyName := aName
+  else
+    case aLocation of
+      TWebhookAPIKeyLocation.Header:      FAPIKeyName := DEFAULT_API_KEY_HEADER_NAME;
+      TWebhookAPIKeyLocation.QueryString: FAPIKeyName := DEFAULT_API_KEY_QUERY_PARAM;
+    end;
+end;
+
+function TLoggerProWebhookAppender.LogItemToJSON(const aLogItem: TLogItem): string;
 var
   lJSON: TJSONObject;
 begin
@@ -251,7 +282,6 @@ begin
     lJSON.AddPair('tag', aLogItem.LogTag);
     lJSON.AddPair('tid', TJSONNumber.Create(aLogItem.ThreadID));
 
-    // Add extended info
     if TLogExtendedInfo.EIComputerName in FExtendedInfo then
       lJSON.AddPair('hostname', FExtendedInfoData[TLogExtendedInfo.EIComputerName]);
     if TLogExtendedInfo.EIUserName in FExtendedInfo then
@@ -267,36 +297,40 @@ begin
   end;
 end;
 
-function TLoggerProHTTPAppender.BuildURL(const aLogItem: TLogItem): string;
+function TLoggerProWebhookAppender.BuildURL(const aLogItem: TLogItem): string;
 begin
   Result := FURL;
   if FAppendTagAndLevelToURL then
-  begin
     Result := Result + '/' + TNetEncoding.URL.Encode(aLogItem.LogTag.Trim) +
       '/' + TNetEncoding.URL.Encode(aLogItem.LogTypeAsString);
+  // API key as query parameter: respect any existing '?' in the URL.
+  if (FAPIKey <> '') and (FAPIKeyLocation = TWebhookAPIKeyLocation.QueryString) then
+  begin
+    if Pos('?', Result) > 0 then
+      Result := Result + '&'
+    else
+      Result := Result + '?';
+    Result := Result + TNetEncoding.URL.Encode(FAPIKeyName) + '=' +
+      TNetEncoding.URL.Encode(FAPIKey);
   end;
 end;
 
-function TLoggerProHTTPAppender.CreateData(const aLogItem: TLogItem;
+function TLoggerProWebhookAppender.CreateData(const aLogItem: TLogItem;
   out aContentType: string): TStream;
 begin
   Result := nil;
-
-  // If custom handler is set, use it
   if Assigned(FOnCreateData) then
   begin
     FOnCreateData(Self, aLogItem, FExtendedInfo, Result, aContentType);
     Exit;
   end;
-
-  // Default behavior
   case FContentType of
-    THTTPContentType.JSON:
+    TWebhookContentType.JSON:
       begin
         Result := TStringStream.Create(LogItemToJSON(aLogItem), TEncoding.UTF8);
         aContentType := 'application/json; charset=utf-8';
       end;
-    THTTPContentType.PlainText:
+    TWebhookContentType.PlainText:
       begin
         Result := TStringStream.Create(FormatLog(aLogItem), TEncoding.UTF8);
         aContentType := 'text/plain; charset=utf-8';
@@ -307,17 +341,21 @@ begin
   end;
 end;
 
-procedure TLoggerProHTTPAppender.InternalWriteLog(const aURL: string;
+procedure TLoggerProWebhookAppender.InternalWriteLog(const aURL: string;
   const aLogItem: TLogItem; const aData: TStream; const aContentTypeStr: string);
 var
   lHeaders: TNetHeaders;
   lHeaderPair: TPair<string, string>;
   lRetryCount: Integer;
   lResp: IHTTPResponse;
+  lHeaderCount: Integer;
   I: Integer;
 begin
-  // Build headers array
-  SetLength(lHeaders, FCustomHeaders.Count + 1);
+  // Build headers array (Content-Type + custom + optional API key header)
+  lHeaderCount := 1 + FCustomHeaders.Count;
+  if (FAPIKey <> '') and (FAPIKeyLocation = TWebhookAPIKeyLocation.Header) then
+    Inc(lHeaderCount);
+  SetLength(lHeaders, lHeaderCount);
   lHeaders[0] := TNetHeader.Create('Content-Type', aContentTypeStr);
   I := 1;
   for lHeaderPair in FCustomHeaders do
@@ -325,6 +363,8 @@ begin
     lHeaders[I] := TNetHeader.Create(lHeaderPair.Key, lHeaderPair.Value);
     Inc(I);
   end;
+  if (FAPIKey <> '') and (FAPIKeyLocation = TWebhookAPIKeyLocation.Header) then
+    lHeaders[I] := TNetHeader.Create(FAPIKeyName, FAPIKey);
 
   lRetryCount := 0;
   repeat
@@ -332,36 +372,25 @@ begin
       aData.Position := 0;
       lResp := FHTTPClient.Post(aURL, aData, nil, lHeaders);
       if not (lResp.StatusCode in [200, 201, 202, 204]) then
-      begin
         raise ELoggerPro.CreateFmt('HTTP Error %d: %s', [lResp.StatusCode, lResp.StatusText]);
-      end;
-      Break; // Success, exit loop
+      Break;
     except
       on E: Exception do
       begin
         Inc(lRetryCount);
-
-        // If custom error handler is set, let it decide
         if Assigned(FOnSendError) then
         begin
           FOnSendError(Self, aLogItem, E, lRetryCount);
-          // If handler set lRetryCount to 0, stop retrying
-          if lRetryCount = 0 then
-            Break;
+          if lRetryCount = 0 then Break;
         end;
-
-        // Check if we've exceeded max retries
-        if lRetryCount >= FMaxRetryCount then
-          Break;
-
-        // Wait a bit before retrying
+        if lRetryCount >= FMaxRetryCount then Break;
         Sleep(100 * lRetryCount);
       end;
     end;
   until False;
 end;
 
-procedure TLoggerProHTTPAppender.WriteLog(const aLogItem: TLogItem);
+procedure TLoggerProWebhookAppender.WriteLog(const aLogItem: TLogItem);
 var
   lURL: string;
   lData: TStream;

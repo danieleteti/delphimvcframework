@@ -32,6 +32,7 @@ uses
   System.Generics.Collections,
   System.Classes,
   System.Rtti,
+  System.SyncObjs,
   ThreadSafeQueueU, System.SysUtils;
 
 const
@@ -64,11 +65,17 @@ type
   LogParam = record
     Key: string;
     Value: TValue;
-    class function S(const AKey: string; const AValue: string): LogParam; static; inline;
-    class function I(const AKey: string; const AValue: Integer): LogParam; static; inline;
-    class function B(const AKey: string; const AValue: Boolean): LogParam; static; inline;
-    class function F(const AKey: string; const AValue: Double): LogParam; static; inline;
-    class function D(const AKey: string; const AValue: TDateTime): LogParam; static; inline;
+    // NOT inline on purpose: inline-expanding these at the call site would
+    // require every caller (sample projects, user applications, DMVC, etc.)
+    // to add System.Rtti to their own uses clause - just because TValue is
+    // declared there. Keeping them as regular class functions shields users
+    // from that implementation leak. The cost (one extra call) is noise
+    // compared to the TValue construction happening inside.
+    class function S(const AKey: string; const AValue: string): LogParam; static;
+    class function I(const AKey: string; const AValue: Integer): LogParam; static;
+    class function B(const AKey: string; const AValue: Boolean): LogParam; static;
+    class function F(const AKey: string; const AValue: Double): LogParam; static;
+    class function D(const AKey: string; const AValue: TDateTime): LogParam; static;
     class function FmtS(const AKey: string; const AFormat: string; const AArgs: array of const): LogParam; static;
     class function V(const AKey: string; const AValue: TValue): LogParam; static;
   end;
@@ -192,6 +199,12 @@ type
 
   end;
 
+  /// <summary>Raised by the JSON config facade (LoggerProFromJSONFile,
+  /// LoggerProFromJSONString and the underlying TLoggerProConfig).
+  /// Declared here so callers using only `uses LoggerPro;` can catch
+  /// it without pulling in LoggerPro.Config.</summary>
+  ELoggerProConfigError = class(ELoggerPro);
+
   TAppenderQueue = class(TThreadSafeQueue<TLogItem>)
   end;
 
@@ -208,6 +221,14 @@ type
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     // Enqueue a pre-built log item (for internal use with pre-rendered context)
     procedure EnqueueLogItem(const aLogItem: TLogItem);
+
+    // Global gate level. Reading: lowest level that will pass the gate.
+    // Writing: changes the gate at runtime - useful for bridges (e.g. the
+    // DMVC MVCFramework.Logger.UseLoggerVerbosityLevel setter) that need
+    // to honor a verbosity change without rebuilding the writer.
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
+    property MinimumLevel: TLogType read GetMinimumLevel write SetMinimumLevel;
   end;
 
   ILogWriter = interface(ICustomLogWriter)
@@ -267,6 +288,23 @@ type
     procedure Disable;
     procedure Enable;
 
+    { @abstract(Returns True if a message at this level would actually be
+      dispatched. Useful to guard expensive log-argument construction:
+      @longcode(#
+      if Log.IsDebugEnabled then
+        Log.Debug('Trace: %s', [ExpensiveToString]);
+      #)
+      Returns False while shutting down, while disabled, or when the level
+      is below the configured minimum. All wrapper writers (WithProperty,
+      WithDefaultTag, WithDefaultContext) delegate to the root writer so
+      the result reflects the true dispatch decision.) }
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
+
     { @abstract(Forces flush and shutdown of the logger thread, regardless of reference count.
       After calling Shutdown, any logging attempt will be silently ignored (Release) or Assert (Debug).
       Use this in finalization to ensure all logs are written before the application exits.) }
@@ -280,6 +318,7 @@ type
     FLogAppender: ILogAppender;
     FAppenderQueue: TAppenderQueue;
     FFailing: Boolean;
+    FReadyEvent: TEvent;
     procedure SetFailing(const Value: Boolean);
   protected
     procedure Execute; override;
@@ -288,6 +327,13 @@ type
       TAppenderStatus = (BeforeSetup, Running, WaitAfterFail, ToRestart, BeforeTearDown);
   public
     constructor Create(aLogAppender: ILogAppender; aAppenderQueue: TAppenderQueue);
+    destructor Destroy; override;
+    { Wait until the thread has attempted its first Setup. Guarantees that
+      when the caller proceeds, the appender is either Running (Setup OK)
+      or in WaitAfterFail (Setup failed repeatedly). Either way the thread
+      is scheduled and observing its queue - no log item enqueued after
+      this point can be lost to "thread not scheduled yet" races. }
+    function WaitUntilReady(aTimeoutMs: Cardinal): Boolean;
     property Failing: Boolean read FFailing write SetFailing;
   end;
 
@@ -307,6 +353,8 @@ type
         property FailsCount: Cardinal read FFailsCount;
         function GetLogLevel: TLogType;
         procedure Terminate;
+        procedure SignalTerminate;
+        procedure WaitForExit;
       end;
 
       TAppenderAdapterList = class(TObjectList<TAppenderAdapter>)
@@ -346,13 +394,13 @@ type
     FLoggerThread: TLoggerThread;
     FLogAppenders: TLogAppenderList;
     FFreeAllowed: Boolean;
-    FLogLevel: TLogType;
     FLock: TObject;
-    FShuttingDown: Boolean;
     FStackTraceFormatter: TStackTraceFormatter;
     function GetAppendersClassNames: TArray<string>;
   protected
     FEnabled: Boolean;
+    FLogLevel: TLogType;
+    FShuttingDown: Boolean;
     procedure Initialize(const aEventsHandler: TLoggerProEventsHandler);
     function FormatExceptionMessage(const E: Exception; const aMessage: string): string;
   public
@@ -373,8 +421,11 @@ type
     procedure Enable; virtual;
     procedure Shutdown; virtual;
 
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
+
     property StackTraceFormatter: TStackTraceFormatter read FStackTraceFormatter write FStackTraceFormatter;
-    property MinimumLevel: TLogType read FLogLevel write FLogLevel;
+    property MinimumLevel: TLogType read GetMinimumLevel write SetMinimumLevel;
   end;
 
   TLogWriter = class(TCustomLogWriter, ILogWriter)
@@ -424,6 +475,13 @@ type
 
     function WithDefaultTag(const aTag: string): ILogWriter;
     function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
+
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
   end;
 
   { @abstract(Wrapper for ILogWriter with bound context) }
@@ -445,6 +503,8 @@ type
     function AppendersCount(): Integer;
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure EnqueueLogItem(const aLogItem: TLogItem);
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
 
     // ILogWriter - without tag (uses DEFAULT_LOG_TAG)
     procedure Debug(const aMessage: string); overload;
@@ -492,6 +552,13 @@ type
     function WithDefaultTag(const aTag: string): ILogWriter;
     function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
 
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
+
     procedure Disable;
     procedure Enable;
     procedure Shutdown;
@@ -513,6 +580,8 @@ type
     function AppendersCount(): Integer;
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure EnqueueLogItem(const aLogItem: TLogItem);
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
 
     // ILogWriter - without tag (uses FDefaultTag)
     procedure Debug(const aMessage: string); overload;
@@ -560,6 +629,13 @@ type
     function WithDefaultTag(const aTag: string): ILogWriter;
     function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
 
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
+
     procedure Disable;
     procedure Enable;
     procedure Shutdown;
@@ -582,6 +658,8 @@ type
     function AppendersCount(): Integer;
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure EnqueueLogItem(const aLogItem: TLogItem);
+    function GetMinimumLevel: TLogType;
+    procedure SetMinimumLevel(const aLevel: TLogType);
 
     // Senza tag (usa tag predefinito 'main')
     procedure Debug(const aMessage: string); overload;
@@ -628,6 +706,13 @@ type
 
     function WithDefaultTag(const aTag: string): ILogWriter;
     function WithDefaultContext(const aContext: array of LogParam): ILogWriter;
+
+    function IsEnabled(aLevel: TLogType): Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarningEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
 
     procedure Disable;
     procedure Enable;
@@ -721,14 +806,498 @@ type
   end;
   TLogItemRendererClass = class of TLogItemRenderer;
 
+  { @abstract(Callback type invoked after a log file is rotated.)
+    The callback receives the full path of the rotated file.
+    @bold(Important:) This callback runs on the logger thread.
+    Do not perform long-running operations directly; instead,
+    kick off async work (e.g., compress, upload, archive).
+  }
+  TFileRotateCallback = reference to procedure(const aRotatedFileName: string);
+
+  { Callback signature for receiving log items }
+  TLogItemCallback = reference to procedure(const aLogItem: TLogItem; const aFormattedMessage: string);
+
+  { Webhook appender body content type }
+  TWebhookContentType = (JSON, PlainText);
+
+  /// <summary>Where the API key value is carried on every POST.</summary>
+  TWebhookAPIKeyLocation = (
+    /// <summary>As an HTTP request header (default; header name configurable,
+    /// defaults to <c>X-API-Key</c>). Works with API Gateway / Azure APIM /
+    /// Kong / custom REST endpoints that read keys from headers.</summary>
+    Header,
+    /// <summary>As a query-string parameter (parameter name configurable,
+    /// defaults to <c>api_key</c>). Useful for services that accept auth
+    /// via URL (some cloud logging webhooks, legacy endpoints).</summary>
+    QueryString);
+
+  { Per-element color / style scheme (colorama-style: only colors, no
+    suffixes; the renderer auto-appends STYLE_RESETALL after every colored
+    token and at end of line, so color bleed is impossible).
+    Each field holds a ready-made ANSI prefix string - bright, dim,
+    background, 256-color, true color, or empty for no effect. }
+  TLogColorScheme = record
+    PrefixColor: string;
+    SeparatorColor: string;
+    TimestampColor: string;
+    ThreadIDColor: string;
+    TagColor: string;
+    MessageColor: string;
+    LevelColor: array [TLogType] of string;
+    ContextKeyColor: string;
+    ContextValueColor: string;
+  end;
+
+  /// <summary>
+  /// Built-in color-scheme presets for the Gin-style console renderer.
+  /// Namespaced like Fore / Back / Style - use LogColorSchemes.GinBadge,
+  /// LogColorSchemes.Monochrome, etc. Pass to .WithColorScheme(LogColorSchemes.X) in the
+  /// Builder.
+  /// </summary>
+  LogColorSchemes = record
+  public
+    /// <summary>Gin-inspired classic: foreground-only level colors,
+    /// gray timestamp, cyan tag. Default when .WithColors is used.</summary>
+    class function Default: TLogColorScheme; static;
+    /// <summary>All fields empty - renders pure plain text, no ANSI.
+    /// Used automatically when stdout is piped / redirected.</summary>
+    class function Monochrome: TLogColorScheme; static;
+    /// <summary>Colored-background level badges (INFO=green bg,
+    /// ERROR=red bg, etc.) - looks like Gin's HTTP status-code badges.</summary>
+    class function GinBadge: TLogColorScheme; static;
+    /// <summary>All metadata dim gray, only the level word retains
+    /// color. Best signal-to-noise ratio for busy production logs.</summary>
+    class function GinMinimal: TLogColorScheme; static;
+    /// <summary>Saturated rainbow - one loud color per field. For demos
+    /// or screenshots; not recommended for long reading sessions.</summary>
+    class function GinVibrant: TLogColorScheme; static;
+    /// <summary>Midnight dark palette: purple prefix, magenta tag, green
+    /// context, muted gray metadata. Easy on the eyes for long sessions on
+    /// a dark terminal.</summary>
+    class function Midnight: TLogColorScheme; static;
+    /// <summary>Nord theme: cool arctic blues and cyans, muted warnings.
+    /// Low-contrast, calm; good for ambient logging on a dark background.</summary>
+    class function Nord: TLogColorScheme; static;
+    /// <summary>The Matrix: every field bright green, levels distinguished
+    /// by background badges. Pure nostalgia / ASCII-art demos.</summary>
+    class function Matrix: TLogColorScheme; static;
+    /// <summary>Amber CRT: warm 80s terminal - orange/yellow metadata,
+    /// red errors. Looks great on a true black terminal background.</summary>
+    class function Amber: TLogColorScheme; static;
+    /// <summary>Ocean: layered blues and cyans, teal tag, bright cyan
+    /// values. Cool and high-contrast without being loud.</summary>
+    class function Ocean: TLogColorScheme; static;
+    /// <summary>Cyberpunk neon: hot magenta prefix, cyan tag, yellow values,
+    /// level badges on vivid backgrounds. Loud, saturated, nightlife.</summary>
+    class function Cyberpunk: TLogColorScheme; static;
+  end;
+
+  { ============ Builder interfaces ============ }
+
+  ILoggerProBuilder = interface;
+
+  { Base interface for all appender configurators }
+  IAppenderConfigurator = interface
+    ['{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}']
+    function Done: ILoggerProBuilder;
+  end;
+
+  { Console appender configurator }
+  IConsoleAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6E}']
+    function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
+    function WithUTF8Output: IConsoleAppenderConfigurator;
+    /// <summary>Enable per-field rich coloring (dim timestamp / thread ID,
+    /// level in level-specific color, cyan tag, green/yellow key=value).
+    /// Replaces the appender's whole-line coloring with the renderer's
+    /// in-line ANSI codes. Auto-degrades to monochrome when stdout is
+    /// redirected to a file or pipe.</summary>
+    function WithColors: IConsoleAppenderConfigurator;
+    /// <summary>Like WithColors but with a user-supplied scheme. Useful to
+    /// customize per-level colors, tag color, key/value colors, or
+    /// background highlights.</summary>
+    function WithColorScheme(const aScheme: TLogColorScheme): IConsoleAppenderConfigurator;
+    /// <summary>Prepend a bracketed source marker to every colored log
+    /// line (Gin-style [GIN] pattern): [MYAPP] 2026/04/18 - 17:33:42 | ...
+    /// Default is empty string = no prefix (line starts at the date).
+    /// Useful when multiple processes or modules aggregate into the same
+    /// console/pipe stream and you need to distinguish them visually.</summary>
+    function WithPrefix(const aPrefix: string): IConsoleAppenderConfigurator;
+  end;
+
+  { Simple console appender configurator }
+  ISimpleConsoleAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6F}']
+    function WithLogLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
+    function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
+  end;
+
+  { File appender configurator }
+  IFileAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{C3D4E5F6-A7B8-6C7D-0E1F-2A3B4C5D6E7F}']
+    function WithLogsFolder(const aLogsFolder: string): IFileAppenderConfigurator;
+    function WithFileBaseName(const aFileBaseName: string): IFileAppenderConfigurator;
+    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IFileAppenderConfigurator;
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IFileAppenderConfigurator;
+    function WithInterval(aInterval: TTimeRotationInterval): IFileAppenderConfigurator;
+    function WithFileFormat(const aFileFormat: string): IFileAppenderConfigurator;
+    function WithMaxRetainedFiles(aMaxFiles: Integer): IFileAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IFileAppenderConfigurator;
+    function WithEncoding(aEncoding: TEncoding): IFileAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IFileAppenderConfigurator;
+    function WithOnAfterRotate(aCallback: TFileRotateCallback): IFileAppenderConfigurator;
+  end;
+
+  { JSONL file appender configurator }
+  IJSONLFileAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{D4E5F6A7-B8C9-7D8E-1F2A-3B4C5D6E7F8A}']
+    function WithLogsFolder(const aLogsFolder: string): IJSONLFileAppenderConfigurator;
+    function WithFileBaseName(const aFileBaseName: string): IJSONLFileAppenderConfigurator;
+    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IJSONLFileAppenderConfigurator;
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IJSONLFileAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IJSONLFileAppenderConfigurator;
+  end;
+
+  /// <summary>
+  /// Configurator for the time-rotating file appender.
+  /// Creates a new log file each time the configured time interval rolls over
+  /// (e.g. every hour, day, week, or month).
+  /// <code>
+  /// Log := LoggerProBuilder
+  ///   .WriteToTimeRotatingFile
+  ///     .WithInterval(TTimeRotationInterval.Hourly)
+  ///     .WithLogsFolder('logs')
+  ///     .WithFileBaseName('myapp')
+  ///     .WithMaxBackupFiles(48)
+  ///     .Done
+  ///   .Build;
+  /// </code>
+  /// </summary>
+  ITimeRotatingFileAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{E5F6A7B8-C9D0-8E9F-2A3B-4C5D6E7F8A9B}']
+    /// <summary>Sets the rotation interval. Determines how often a new log file
+    /// is created. Values: Hourly, Daily (default), Weekly, Monthly.
+    /// File name includes a timestamp suffix matching the interval:
+    ///   Hourly  -> myapp.2026032614.log
+    ///   Daily   -> myapp.20260326.log
+    ///   Weekly  -> myapp.2026W13.log
+    ///   Monthly -> myapp.202603.log</summary>
+    function WithInterval(aInterval: TTimeRotationInterval): ITimeRotatingFileAppenderConfigurator;
+    /// <summary>Maximum number of old rotated log files to keep.
+    /// When exceeded, the oldest file is deleted. Default: 30.</summary>
+    function WithMaxBackupFiles(aMaxBackupFiles: Integer): ITimeRotatingFileAppenderConfigurator;
+    /// <summary>Folder where log files are written.
+    /// Default: application directory.</summary>
+    function WithLogsFolder(const aLogsFolder: string): ITimeRotatingFileAppenderConfigurator;
+    /// <summary>Base name for the log file (without extension or timestamp).
+    /// Default: application executable name without extension.</summary>
+    function WithFileBaseName(const aFileBaseName: string): ITimeRotatingFileAppenderConfigurator;
+    /// <summary>Sets the minimum log level for this appender.
+    /// Messages below this level are ignored by this appender.</summary>
+    function WithLogLevel(aLogLevel: TLogType): ITimeRotatingFileAppenderConfigurator;
+    /// <summary>Sets a custom renderer for formatting log entries.
+    /// Default: standard text renderer.</summary>
+    function WithRenderer(aRenderer: ILogItemRenderer): ITimeRotatingFileAppenderConfigurator;
+  end;
+
+  { HTTP appender configurator }
+  IWebhookAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{F6A7B8C9-D0E1-9F0A-3B4C-5D6E7F8A9B0C}']
+    function WithURL(const aURL: string): IWebhookAppenderConfigurator;
+    function WithContentType(aContentType: TWebhookContentType): IWebhookAppenderConfigurator;
+    function WithTimeout(aTimeoutSeconds: Integer): IWebhookAppenderConfigurator;
+    function WithRetryCount(aRetryCount: Integer): IWebhookAppenderConfigurator;
+    function WithHeader(const aName, aValue: string): IWebhookAppenderConfigurator;
+    /// <summary>Send an API key on every request. <c>aLocation</c> picks
+    /// header (default) or query-string; <c>aName</c> overrides the
+    /// standard name (<c>X-API-Key</c> for header, <c>api_key</c> for
+    /// query string) - pass empty string to use the default.</summary>
+    function WithAPIKey(const aValue: string;
+      aLocation: TWebhookAPIKeyLocation = TWebhookAPIKeyLocation.Header;
+      const aName: string = ''): IWebhookAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IWebhookAppenderConfigurator;
+  end;
+
+  { ElasticSearch appender configurator }
+  IElasticSearchAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{A7B8C9D0-E1F2-0A1B-4C5D-6E7F8A9B0C1D}']
+    function WithURL(const aURL: string): IElasticSearchAppenderConfigurator;
+    function WithHost(const aHost: string): IElasticSearchAppenderConfigurator;
+    function WithPort(aPort: Integer): IElasticSearchAppenderConfigurator;
+    function WithIndex(const aIndex: string): IElasticSearchAppenderConfigurator;
+    function WithTimeout(aTimeoutSeconds: Integer): IElasticSearchAppenderConfigurator;
+    function WithBasicAuth(const aUsername, aPassword: string): IElasticSearchAppenderConfigurator;
+    function WithAPIKey(const aAPIKey: string): IElasticSearchAppenderConfigurator;
+    function WithBearerToken(const aToken: string): IElasticSearchAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IElasticSearchAppenderConfigurator;
+  end;
+
+  { Memory appender configurator }
+  IMemoryAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{B8C9D0E1-F2A3-1B2C-5D6E-7F8A9B0C1D2E}']
+    function WithMaxSize(aMaxSize: Integer): IMemoryAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IMemoryAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IMemoryAppenderConfigurator;
+  end;
+
+  { Callback appender configurator }
+  ICallbackAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{C9D0E1F2-A3B4-2C3D-6E7F-8A9B0C1D2E3F}']
+    function WithCallback(aCallback: TLogItemCallback): ICallbackAppenderConfigurator;
+    function WithSynchronizeToMainThread(aValue: Boolean): ICallbackAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): ICallbackAppenderConfigurator;
+  end;
+
+  { Strings appender configurator (cross-platform, works with any TStrings).
+    Default: MaxLogLines = 100, ClearOnStartup = False.
+    The TStrings instance is NOT owned by the appender. The caller is
+    responsible for its lifetime and must ensure it outlives the ILogWriter. }
+  IStringsAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{A3B4C5D6-E7F8-9A0B-1C2D-3E4F5A6B7C8D}']
+    { Sets the maximum number of lines retained. Oldest lines are removed first.
+      Must be > 0. Default: 100. }
+    function WithMaxLogLines(aMaxLogLines: Word): IStringsAppenderConfigurator;
+    { If True, the TStrings instance is cleared when the logger starts. Default: False. }
+    function WithClearOnStartup(aValue: Boolean): IStringsAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IStringsAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IStringsAppenderConfigurator;
+  end;
+
+  { OutputDebugString appender configurator }
+  IOutputDebugStringAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{E1F2A3B4-C5D6-4E5F-8A9B-0C1D2E3F4A5B}']
+    function WithLogLevel(aLogLevel: TLogType): IOutputDebugStringAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IOutputDebugStringAppenderConfigurator;
+  end;
+
+  { UDP Syslog appender configurator }
+  IUDPSyslogAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{F2A3B4C5-D6E7-5F6A-9B0C-1D2E3F4A5B6C}']
+    function WithHost(const aHost: string): IUDPSyslogAppenderConfigurator;
+    function WithPort(aPort: Integer): IUDPSyslogAppenderConfigurator;
+    function WithHostName(const aHostName: string): IUDPSyslogAppenderConfigurator;
+    function WithUserName(const aUserName: string): IUDPSyslogAppenderConfigurator;
+    function WithApplication(const aApplication: string): IUDPSyslogAppenderConfigurator;
+    function WithVersion(const aVersion: string): IUDPSyslogAppenderConfigurator;
+    function WithProcID(const aProcID: string): IUDPSyslogAppenderConfigurator;
+    function WithUseLocalTime(aUseLocalTime: Boolean): IUDPSyslogAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IUDPSyslogAppenderConfigurator;
+  end;
+
+
+{$IF Defined(MSWINDOWS)}
+  { VCL Memo appender configurator (requires VCL, Windows only) }
+  IVCLMemoAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{B4C5D6E7-F8A9-7B8C-1D2E-3F4A5B6C7D8E}']
+    function WithMaxLogLines(aMaxLogLines: Word): IVCLMemoAppenderConfigurator;
+    function WithClearOnStartup(aValue: Boolean): IVCLMemoAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IVCLMemoAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLMemoAppenderConfigurator;
+  end;
+
+  { VCL ListBox appender configurator (requires VCL, Windows only) }
+  IVCLListBoxAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{C5D6E7F8-A9B0-8C9D-2E3F-4A5B6C7D8E9F}']
+    function WithMaxLogLines(aMaxLogLines: Word): IVCLListBoxAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IVCLListBoxAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListBoxAppenderConfigurator;
+  end;
+
+  { VCL ListView appender configurator (requires VCL, Windows only) }
+  IVCLListViewAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{D6E7F8A9-B0C1-9D0E-3F4A-5B6C7D8E9F0A}']
+    function WithMaxLogLines(aMaxLogLines: Word): IVCLListViewAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator;
+  end;
+
+  { Windows Event Log appender configurator (Windows only) }
+  IWindowsEventLogAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6}']
+    function WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
+    function WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
+  end;
+{$ENDIF}
+
+  { FireDAC DB appender configurator (cross-platform) }
+  IFireDACAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{E7F8A9B0-C1D2-0E1F-4A5B-6C7D8E9F0A1B}']
+    function WithConnectionDefName(const aConnectionDefName: string): IFireDACAppenderConfigurator;
+    function WithStoredProcName(const aStoredProcName: string): IFireDACAppenderConfigurator;
+    function WithLogLevel(aLogLevel: TLogType): IFireDACAppenderConfigurator;
+  end;
+
+  { Filter appender configurator - wraps another appender with a filter }
+  TLogItemFilterFunc = TFunc<TLogItem, Boolean>;
+
+  { Filtered appender configurator - generic filter that wraps any appender }
+  IFilteredAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{F8A9B0C1-D2E3-1F2A-5B6C-7D8E9F0A1B2C}']
+    function WithFilter(aFilter: TLogItemFilterFunc): IFilteredAppenderConfigurator;
+  end;
+
+  /// <summary>
+  /// Configurator for the file-by-source appender.
+  /// Organizes logs into per-source subfolders. The source is extracted from
+  /// the log context using LogParam.S('source', 'ClientA') or set via
+  /// WithDefaultContext. Files are named Source.Tag.YYYYMMDD.NN.log with
+  /// day-change and size-based rotation. Retention is by number of days.
+  /// <code>
+  /// Log := LoggerProBuilder
+  ///   .WriteToFileBySource
+  ///     .WithLogsFolder('logs')
+  ///     .WithMaxFileSizeInKB(5000)
+  ///     .WithRetainDays(30)
+  ///     .Done
+  ///   .Build;
+  /// </code>
+  /// </summary>
+  /// <summary>
+  /// Configurator for <c>WriteToHTMLFile</c>. Produces a self-contained
+  /// .html file with inline CSS + JS (sticky filter bar, level-based row
+  /// coloring, client-side text search). Open the file in any browser to
+  /// analyze logs - no HTTP server, no external assets.
+  ///
+  /// Example:
+  /// <code>
+  ///   .WriteToHTMLFile
+  ///     .WithFile('logs/app.html')
+  ///     .WithTitle('My Application')
+  ///     .WithLogLevel(TLogType.Info)
+  ///     .Done
+  /// </code>
+  /// </summary>
+  IHTMLFileAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{E4F5A6B7-C8D9-40EA-B1C2-D3E4F5A6B7C8}']
+    /// <summary>Folder where HTML files are written. Created if missing.
+    /// Default: application directory.</summary>
+    function WithLogsFolder(const aLogsFolder: string): IHTMLFileAppenderConfigurator;
+    /// <summary>Base name for the log file. Extension and {number} suffix
+    /// are added by the format. Default: executable name.</summary>
+    function WithFileBaseName(const aFileBaseName: string): IHTMLFileAppenderConfigurator;
+    /// <summary>Page title shown in browser tab and H1 header.</summary>
+    function WithTitle(const aTitle: string): IHTMLFileAppenderConfigurator;
+    /// <summary>Maximum backup file count kept on disk. Default: 5.</summary>
+    function WithMaxBackupFiles(aMaxBackupFiles: Integer): IHTMLFileAppenderConfigurator;
+    /// <summary>Rotate when the active file exceeds this many KB. Default: 1000.</summary>
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IHTMLFileAppenderConfigurator;
+    /// <summary>Time-based rotation interval. Default: None.</summary>
+    function WithInterval(aInterval: TTimeRotationInterval): IHTMLFileAppenderConfigurator;
+    /// <summary>Number of days to keep rotated files. 0 = unlimited.</summary>
+    function WithMaxRetainedFiles(aMaxFiles: Integer): IHTMLFileAppenderConfigurator;
+    /// <summary>Minimum log level for this appender.</summary>
+    function WithLogLevel(aLogLevel: TLogType): IHTMLFileAppenderConfigurator;
+  end;
+
+  IFileBySourceAppenderConfigurator = interface(IAppenderConfigurator)
+    ['{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}']
+    /// <summary>Folder where source subfolders are created.
+    /// Default: application directory.</summary>
+    function WithLogsFolder(const aLogsFolder: string): IFileBySourceAppenderConfigurator;
+    /// <summary>Maximum file size in KB before rotating to a new sequence.
+    /// Default: 1000 (1 MB).</summary>
+    function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IFileBySourceAppenderConfigurator;
+    /// <summary>Number of days to retain log files. Files older than this
+    /// are deleted on startup and on each day change. Default: 30.</summary>
+    function WithRetainDays(aRetainDays: Integer): IFileBySourceAppenderConfigurator;
+    /// <summary>Source name used when no 'source' key is found in the log
+    /// context. Default: 'default'.</summary>
+    function WithDefaultSource(const aDefaultSource: string): IFileBySourceAppenderConfigurator;
+    /// <summary>Sets the minimum log level for this appender.</summary>
+    function WithLogLevel(aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
+    /// <summary>Sets a custom renderer for formatting log entries.</summary>
+    function WithRenderer(aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator;
+  end;
+
+  { Main builder interface }
+  ILoggerProBuilder = interface
+    ['{1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}']
+    // WriteTo appender methods - all return configurators
+    function WriteToConsole: IConsoleAppenderConfigurator;
+    function WriteToSimpleConsole: ISimpleConsoleAppenderConfigurator;
+    function WriteToFile: IFileAppenderConfigurator;
+    function WriteToJSONLFile: IJSONLFileAppenderConfigurator;
+    function WriteToTimeRotatingFile: ITimeRotatingFileAppenderConfigurator;
+    function WriteToWebhook: IWebhookAppenderConfigurator;
+    function WriteToElasticSearch: IElasticSearchAppenderConfigurator;
+    function WriteToMemory: IMemoryAppenderConfigurator;
+    function WriteToCallback: ICallbackAppenderConfigurator;
+    function WriteToOutputDebugString: IOutputDebugStringAppenderConfigurator;
+    function WriteToUDPSyslog: IUDPSyslogAppenderConfigurator;
+    { Strings appender - logs to any TStrings instance (cross-platform) }
+    function WriteToStrings(aStrings: TStrings): IStringsAppenderConfigurator;
+{$IF Defined(MSWINDOWS)}
+    { VCL appenders - require VCL units (Windows only) }
+    function WriteToVCLMemo(aMemo: TObject): IVCLMemoAppenderConfigurator;
+    function WriteToVCLListBox(aListBox: TObject): IVCLListBoxAppenderConfigurator;
+    function WriteToVCLListView(aListView: TObject): IVCLListViewAppenderConfigurator;
+    { Windows Event Log appender }
+    function WriteToWindowsEventLog: IWindowsEventLogAppenderConfigurator;
+    { Windows Event Log appender for Windows Services (uses TService.LogMessage) }
+    function WriteToWindowsEventLogForService(aService: TObject): IWindowsEventLogAppenderConfigurator;
+{$ENDIF}
+    { FireDAC appender (cross-platform) }
+    function WriteToFireDAC: IFireDACAppenderConfigurator;
+
+    { Filter appender - wraps another appender with a filter function }
+    function WriteToFilteredAppender(aAppender: ILogAppender): IFilteredAppenderConfigurator;
+
+    { File-by-source appender - per-source folders with date+size rotation }
+    function WriteToFileBySource: IFileBySourceAppenderConfigurator;
+
+    { Standalone HTML file appender - produces a self-contained browsable
+      .html with filter bar and level coloring. }
+    function WriteToHTMLFile: IHTMLFileAppenderConfigurator;
+
+    { Generic method for adding pre-configured appenders }
+    function WriteToAppender(aAppender: ILogAppender): ILoggerProBuilder;
+
+    // Global configuration
+    function WithDefaultLogLevel(aLogLevel: TLogType): ILoggerProBuilder;
+    function WithMinimumLevel(aLevel: TLogType): ILoggerProBuilder;
+    function WithDefaultRenderer(aRenderer: ILogItemRenderer): ILoggerProBuilder;
+    function WithDefaultTag(const aTag: string): ILoggerProBuilder;
+    function WithStackTraceFormatter(aFormatter: TStackTraceFormatter): ILoggerProBuilder;
+
+    // Build the logger
+    function Build: ILogWriter;
+  end;
+
 
 function GetDefaultFormatSettings: TFormatSettings;
 function StringToLogType(const aLogType: string): TLogType;
+/// <summary>Legacy factory - prefer <c>LoggerProBuilder</c> (the fluent
+/// Builder API) or <c>LoggerProFromJSONFile</c> / <c>LoggerProFromJSONString</c>
+/// (file-driven config). Kept for backward compatibility only.</summary>
 function BuildLogWriter(aAppenders: array of ILogAppender; aEventsHandlers: TLoggerProEventsHandler = nil;
-  aLogLevel: TLogType = TLogType.Debug): ILogWriter; overload;
+  aLogLevel: TLogType = TLogType.Debug): ILogWriter; overload; deprecated 'Use LoggerProBuilder or LoggerProFromJSONFile';
 function BuildLogWriter(aAppenders: array of ILogAppender; aEventsHandlers: TLoggerProEventsHandler;
-  aLogLevels: TArray<TLogType>): ILogWriter; overload;
+  aLogLevels: TArray<TLogType>): ILogWriter; overload; deprecated 'Use LoggerProBuilder or LoggerProFromJSONFile';
 function LogLayoutByPlaceHoldersToLogLayoutByIndexes(const LogLayoutByPlaceHolders: String; const UseZeroBasedIncrementalIndexes: Boolean): String;
+
+/// <summary>Builds an ILogWriter from a JSON configuration file.
+/// Convenience facade over TLoggerProConfig.FromJSONFile so callers can
+/// stay on a single `uses LoggerPro;` clause. See LoggerPro.Config for
+/// the full schema and TLoggerProConfig.RegisterAppenderType to plug in
+/// custom appender types.</summary>
+function LoggerProFromJSONFile(const aFileName: string): ILogWriter;
+
+/// <summary>Builds an ILogWriter from an in-memory JSON string. Same
+/// facade as LoggerProFromJSONFile, useful for embedded config or tests.</summary>
+function LoggerProFromJSONString(const aJSON: string): ILogWriter;
+
+/// <summary>Read JSON config file and return the underlying ILoggerProBuilder
+/// without finalizing (no .Build called). Use to chain extra appenders that
+/// cannot be expressed in JSON (Callback, Strings, VCL components, any
+/// pre-existing ILogAppender) on top of a file-driven config. Caller is
+/// responsible for calling .Build.</summary>
+function LoggerProBuilderFromJSONFile(const aFileName: string): ILoggerProBuilder;
+
+/// <summary>Parse an in-memory JSON string and return the underlying
+/// ILoggerProBuilder without finalizing. See <c>LoggerProBuilderFromJSONFile</c>
+/// for usage.</summary>
+function LoggerProBuilderFromJSONString(const aJSON: string): ILoggerProBuilder;
 
 implementation
 
@@ -736,10 +1305,14 @@ uses
   System.Types,
   System.TypInfo,
   LoggerPro.FileAppender,
-  System.SyncObjs,
   System.DateUtils,
   System.IOUtils,
-  LoggerPro.Renderers;
+  LoggerPro.AnsiColors,
+  LoggerPro.Renderers,
+  // Pulled in only by the implementation: LoggerPro.Config uses LoggerPro
+  // back, so listing it here avoids the interface-section circular ref
+  // while still letting the JSON facade live on `uses LoggerPro;`.
+  LoggerPro.Config;
 
 function GetDefaultFormatSettings: TFormatSettings;
 begin
@@ -913,6 +1486,230 @@ begin
   end;
   Result := TLogWriter.Create(lLogAppenders, lLowestLogLevel);
   TLogWriter(Result).Initialize(aEventsHandlers);
+end;
+
+function LoggerProFromJSONFile(const aFileName: string): ILogWriter;
+begin
+  Result := TLoggerProConfig.FromJSONFile(aFileName);
+end;
+
+function LoggerProFromJSONString(const aJSON: string): ILogWriter;
+begin
+  Result := TLoggerProConfig.FromJSONString(aJSON);
+end;
+
+function LoggerProBuilderFromJSONFile(const aFileName: string): ILoggerProBuilder;
+begin
+  Result := TLoggerProConfig.BuilderFromJSONFile(aFileName);
+end;
+
+function LoggerProBuilderFromJSONString(const aJSON: string): ILoggerProBuilder;
+begin
+  Result := TLoggerProConfig.BuilderFromJSONString(aJSON);
+end;
+
+{ LogColorSchemes }
+
+class function LogColorSchemes.Default: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+
+  // Gin-inspired palette. [LPRO] prefix bright green + bold (matches
+  // Gin's signature [GIN] prefix). Pipe separators dim gray so they
+  // recede. Date dim, level colored per-severity, tag cyan.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_GREEN;
+  Result.SeparatorColor := STYLE_DIM + FORE_GRAY;
+
+  Result.TimestampColor := STYLE_DIM + FORE_GRAY;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_GRAY;
+
+  Result.TagColor := FORE_CYAN;
+
+  Result.MessageColor := '';
+
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_GREEN;
+  Result.LevelColor[TLogType.Info]    := FORE_WHITE;
+  Result.LevelColor[TLogType.Warning] := FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_MAGENTA;
+
+  Result.ContextKeyColor   := STYLE_DIM + FORE_GREEN;
+  Result.ContextValueColor := FORE_YELLOW;
+end;
+
+class function LogColorSchemes.Monochrome: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // All color strings stay empty -> Colorize emits plain text.
+end;
+
+class function LogColorSchemes.GinBadge: TLogColorScheme;
+begin
+  Result := LogColorSchemes.Default;
+  // Replace foreground-only level colors with colored-background "badges"
+  // - the level looks like a status-code badge from Gin's access log.
+  Result.LevelColor[TLogType.Debug]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKBLUE;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_WHITE + BACK_DARKGREEN;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_BLACK + BACK_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKRED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_WHITE + BACK_MAGENTA;
+end;
+
+class function LogColorSchemes.GinMinimal: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // All metadata dim gray. Only the level retains identity.
+  Result.PrefixColor    := STYLE_DIM + FORE_GRAY;
+  Result.SeparatorColor := STYLE_DIM + FORE_GRAY;
+  Result.TimestampColor := STYLE_DIM + FORE_GRAY;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_GRAY;
+  Result.TagColor       := STYLE_DIM + FORE_GRAY;
+  Result.MessageColor   := '';
+  Result.ContextKeyColor   := STYLE_DIM + FORE_GRAY;
+  Result.ContextValueColor := STYLE_DIM + FORE_GRAY;
+  Result.LevelColor[TLogType.Debug]   := FORE_GRAY;
+  Result.LevelColor[TLogType.Info]    := FORE_WHITE;
+  Result.LevelColor[TLogType.Warning] := FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_MAGENTA;
+end;
+
+class function LogColorSchemes.GinVibrant: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Saturated rainbow - every field a distinct loud color.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_GREEN;
+  Result.SeparatorColor := FORE_BLUE;
+  Result.TimestampColor := FORE_CYAN;
+  Result.ThreadIDColor  := FORE_MAGENTA;
+  Result.TagColor       := STYLE_BRIGHT + FORE_CYAN;
+  Result.MessageColor   := FORE_WHITE;
+  Result.ContextKeyColor   := FORE_GREEN;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Debug]   := STYLE_BRIGHT + FORE_BLUE;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_WHITE;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_WHITE + BACK_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_WHITE + BACK_MAGENTA;
+end;
+
+class function LogColorSchemes.Midnight: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Midnight palette: purple/magenta prefix and tag, green context keys,
+  // bright cyan values, muted gray metadata. Dark-terminal friendly,
+  // high-contrast but not loud.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_MAGENTA;
+  Result.SeparatorColor := STYLE_DIM + FORE_GRAY;
+  Result.TimestampColor := STYLE_DIM + FORE_GRAY;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_DARKMAGENTA;
+  Result.TagColor       := STYLE_BRIGHT + FORE_MAGENTA;
+  Result.MessageColor   := '';
+  Result.ContextKeyColor   := FORE_GREEN;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_CYAN;
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_CYAN;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_GREEN;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_WHITE + BACK_MAGENTA;
+end;
+
+class function LogColorSchemes.Nord: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Nord theme (nordtheme.com): frost blues/cyans with restrained warmth.
+  // nord7 cyan / nord8 bright cyan / nord9 blue / nord13 yellow / nord11 red.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_CYAN;
+  Result.SeparatorColor := STYLE_DIM + FORE_GRAY;
+  Result.TimestampColor := STYLE_DIM + FORE_BLUE;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_GRAY;
+  Result.TagColor       := FORE_CYAN;
+  Result.MessageColor   := '';
+  Result.ContextKeyColor   := STYLE_DIM + FORE_CYAN;
+  Result.ContextValueColor := FORE_WHITE;
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_CYAN;
+  Result.LevelColor[TLogType.Info]    := FORE_BLUE;
+  Result.LevelColor[TLogType.Warning] := FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKRED;
+end;
+
+class function LogColorSchemes.Matrix: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Everything in the green family. Levels become background badges so
+  // they remain distinguishable while keeping the all-green aesthetic.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_GREEN;
+  Result.SeparatorColor := STYLE_DIM + FORE_DARKGREEN;
+  Result.TimestampColor := STYLE_DIM + FORE_GREEN;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_DARKGREEN;
+  Result.TagColor       := FORE_GREEN;
+  Result.MessageColor   := FORE_DARKGREEN;
+  Result.ContextKeyColor   := STYLE_DIM + FORE_GREEN;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_GREEN;
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_GREEN;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_GREEN;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_BLACK + BACK_GREEN;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_GREEN + BACK_DARKRED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_GREEN + BACK_BLACK;
+end;
+
+class function LogColorSchemes.Amber: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // 80s amber CRT monitor. Yellow/orange family; red only for errors.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_YELLOW;
+  Result.SeparatorColor := STYLE_DIM + FORE_DARKYELLOW;
+  Result.TimestampColor := STYLE_DIM + FORE_DARKYELLOW;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_DARKYELLOW;
+  Result.TagColor       := FORE_YELLOW;
+  Result.MessageColor   := FORE_DARKYELLOW;
+  Result.ContextKeyColor   := STYLE_DIM + FORE_YELLOW;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_YELLOW;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_WHITE + BACK_DARKYELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKRED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_YELLOW + BACK_DARKRED;
+end;
+
+class function LogColorSchemes.Ocean: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Layered blues and cyans. Calm, cool, readable on dark terminals.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_BLUE;
+  Result.SeparatorColor := STYLE_DIM + FORE_DARKBLUE;
+  Result.TimestampColor := STYLE_DIM + FORE_CYAN;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_BLUE;
+  Result.TagColor       := FORE_CYAN;
+  Result.MessageColor   := '';
+  Result.ContextKeyColor   := STYLE_DIM + FORE_CYAN;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_CYAN;
+  Result.LevelColor[TLogType.Debug]   := STYLE_DIM + FORE_BLUE;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_CYAN;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKBLUE;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_WHITE + BACK_DARKRED;
+end;
+
+class function LogColorSchemes.Cyberpunk: TLogColorScheme;
+begin
+  Result := System.Default(TLogColorScheme);
+  // Neon magenta + cyan, saturated badges. Built for demos and
+  // screenshots that need to POP. Loud on purpose.
+  Result.PrefixColor    := STYLE_BRIGHT + FORE_MAGENTA;
+  Result.SeparatorColor := STYLE_DIM + FORE_MAGENTA;
+  Result.TimestampColor := STYLE_DIM + FORE_CYAN;
+  Result.ThreadIDColor  := STYLE_DIM + FORE_MAGENTA;
+  Result.TagColor       := STYLE_BRIGHT + FORE_CYAN;
+  Result.MessageColor   := FORE_WHITE;
+  Result.ContextKeyColor   := STYLE_BRIGHT + FORE_MAGENTA;
+  Result.ContextValueColor := STYLE_BRIGHT + FORE_YELLOW;
+  Result.LevelColor[TLogType.Debug]   := STYLE_BRIGHT + FORE_BLACK + BACK_CYAN;
+  Result.LevelColor[TLogType.Info]    := STYLE_BRIGHT + FORE_BLACK + BACK_MAGENTA;
+  Result.LevelColor[TLogType.Warning] := STYLE_BRIGHT + FORE_BLACK + BACK_YELLOW;
+  Result.LevelColor[TLogType.Error]   := STYLE_BRIGHT + FORE_WHITE + BACK_RED;
+  Result.LevelColor[TLogType.Fatal]   := STYLE_BRIGHT + FORE_YELLOW + BACK_MAGENTA;
 end;
 
 { TLogger.TCustomLogWriter }
@@ -1123,6 +1920,21 @@ begin
   fEnabled := False;
 end;
 
+function TCustomLogWriter.GetMinimumLevel: TLogType;
+begin
+  // Full-fence read for ARM / weakly-ordered platforms. FLogLevel is a
+  // 1-byte enum (TLogType) so x86 already gets an atomic load for free;
+  // the memory barrier here guarantees the same contract on ARM.
+  MemoryBarrier;
+  Result := FLogLevel;
+end;
+
+procedure TCustomLogWriter.SetMinimumLevel(const aLevel: TLogType);
+begin
+  FLogLevel := aLevel;
+  MemoryBarrier;
+end;
+
 procedure TLogWriter.Error(const aMessage: string);
 begin
   Error(aMessage, DEFAULT_LOG_TAG);
@@ -1143,8 +1955,12 @@ begin
   if FShuttingDown then
     Exit;  // Already shut down, idempotent
 
-  // Don't disable or set FShuttingDown yet - allow messages to be queued while we wait
-  // The thread will process all queued messages before terminating
+  // Close the faucet first: set FShuttingDown so EnqueueLogItem rejects
+  // any further log attempts from other threads. Only then signal the
+  // logger thread to drain. Without this ordering, a concurrent Log.Info
+  // could slip an item into the queue AFTER the thread sees "queue empty
+  // and Terminated" and exits - that item would be silently lost.
+  FShuttingDown := True;
 
   if FLoggerThread <> nil then
   begin
@@ -1153,8 +1969,6 @@ begin
     FLoggerThread.WaitFor;
   end;
 
-  // Now mark as shut down - thread is gone, no more logging allowed
-  FShuttingDown := True;
   Disable;
 end;
 
@@ -1338,6 +2152,36 @@ begin
   Result := TLogWriterWithDefaultContext.Create(Self, aContext);
 end;
 
+function TLogWriter.IsEnabled(aLevel: TLogType): Boolean;
+begin
+  Result := FEnabled and (not FShuttingDown) and (aLevel >= FLogLevel);
+end;
+
+function TLogWriter.IsDebugEnabled: Boolean;
+begin
+  Result := IsEnabled(TLogType.Debug);
+end;
+
+function TLogWriter.IsInfoEnabled: Boolean;
+begin
+  Result := IsEnabled(TLogType.Info);
+end;
+
+function TLogWriter.IsWarningEnabled: Boolean;
+begin
+  Result := IsEnabled(TLogType.Warning);
+end;
+
+function TLogWriter.IsErrorEnabled: Boolean;
+begin
+  Result := IsEnabled(TLogType.Error);
+end;
+
+function TLogWriter.IsFatalEnabled: Boolean;
+begin
+  Result := IsEnabled(TLogType.Fatal);
+end;
+
 { TLogger.TLogItem }
 
 function TLogItem.Clone: TLogItem;
@@ -1417,6 +2261,9 @@ begin
   end;
 end;
 
+var
+  gAdapterLifecycleLock: TCriticalSection = nil;
+
 procedure TLoggerThread.Execute;
 var
   lQSize: UInt64;
@@ -1424,7 +2271,21 @@ var
   I: Integer;
   lWaitResult: TWaitResult;
 begin
-  FAppendersDecorators := BuildAppenderAdapters;
+  // Serialize adapter lifecycle across ALL TLoggerThread instances in the
+  // process. Without this CS, rapid create-tear-down-create sequences
+  // (e.g. several loggers built back-to-back) let a new logger start
+  // building its adapters before the previous one's adapter threads have
+  // fully released OS-level resources. Under the IDE debugger the race
+  // is visible as entire missing sections of log output: the new adapter
+  // thread never gets scheduled for Setup. Holding the lock only around
+  // the creation + destruction phases keeps normal runtime concurrency
+  // intact.
+  gAdapterLifecycleLock.Enter;
+  try
+    FAppendersDecorators := BuildAppenderAdapters;
+  finally
+    gAdapterLifecycleLock.Leave;
+  end;
   try
     while (not Terminated) or (FQueue.QueueSize > 0) do
     begin
@@ -1455,13 +2316,26 @@ begin
           end;
       end;
     end;
-    // Terminate all appenders (they will flush their own queues)
+    // Deterministic shutdown in two phases:
+    //   1) broadcast the Terminate signal to ALL appender threads so they
+    //      all start draining their queues in parallel;
+    //   2) wait for EACH to actually finish (which includes TearDown
+    //      releasing stdout / file handles / etc.).
+    // The previous one-by-one Terminate+WaitFor serialised the drains -
+    // a slow appender (e.g. console under debugger) delayed every later
+    // appender. That caused handle-release races when the next section
+    // re-opened the same resources before the previous one had let go.
     for I := 0 to FAppendersDecorators.Count - 1 do
-    begin
-      FAppendersDecorators[I].Terminate;
-    end;
+      FAppendersDecorators[I].SignalTerminate;
+    for I := 0 to FAppendersDecorators.Count - 1 do
+      FAppendersDecorators[I].WaitForExit;
   finally
-    FAppendersDecorators.Free;
+    gAdapterLifecycleLock.Enter;
+    try
+      FAppendersDecorators.Free;
+    finally
+      gAdapterLifecycleLock.Leave;
+    end;
   end;
 end;
 
@@ -1529,12 +2403,21 @@ end;
 { TLoggerThread.TAppenderDecorator }
 
 constructor TLoggerThread.TAppenderAdapter.Create(aAppender: ILogAppender);
+const
+  READY_TIMEOUT_MS = 15000; // plenty even under an attached debugger
 begin
   inherited Create;
   FFailsCount := 0;
   FLogAppender := aAppender;
   FAppenderQueue := TAppenderQueue.Create(DefaultLoggerProAppenderQueueSize, 10);
   FAppenderThread := TAppenderThread.Create(FLogAppender, FAppenderQueue);
+  { Block until the appender thread has reached a known state (Running or
+    WaitAfterFail after the first Setup attempt). This closes the race
+    where the caller returns from Create, the main TLoggerThread starts
+    dispatching items to this adapter, but the OS has not yet scheduled
+    the appender thread - amplified under the IDE debugger where thread
+    creation is gated on the debugger processing CREATE_THREAD events. }
+  FAppenderThread.WaitUntilReady(READY_TIMEOUT_MS);
 end;
 
 destructor TLoggerThread.TAppenderAdapter.Destroy;
@@ -1555,6 +2438,24 @@ begin
   begin
     FAppenderThread.Terminate;
     FAppenderQueue.SetEvent; // Wake up the thread if it's waiting in Dequeue
+    FAppenderThread.WaitFor;
+    FreeAndNil(FAppenderThread);
+  end;
+end;
+
+procedure TLoggerThread.TAppenderAdapter.SignalTerminate;
+begin
+  if FAppenderThread <> nil then
+  begin
+    FAppenderThread.Terminate;
+    FAppenderQueue.SetEvent; // Wake up the thread if it's waiting in Dequeue
+  end;
+end;
+
+procedure TLoggerThread.TAppenderAdapter.WaitForExit;
+begin
+  if FAppenderThread <> nil then
+  begin
     FAppenderThread.WaitFor;
     FreeAndNil(FAppenderThread);
   end;
@@ -1663,28 +2564,46 @@ constructor TAppenderThread.Create(aLogAppender: ILogAppender; aAppenderQueue: T
 begin
   FLogAppender := aLogAppender;
   FAppenderQueue := aAppenderQueue;
+  FReadyEvent := TEvent.Create(nil, True, False, '');
   inherited Create(False);
 end;
 
+destructor TAppenderThread.Destroy;
+begin
+  FReadyEvent.Free;
+  inherited;
+end;
+
+function TAppenderThread.WaitUntilReady(aTimeoutMs: Cardinal): Boolean;
+begin
+  Result := FReadyEvent.WaitFor(aTimeoutMs) = TWaitResult.wrSignaled;
+end;
+
 procedure TAppenderThread.Execute;
+const
+  // Cap on the WaitAfterFail<->ToRestart bounce while shutting down.
+  // Each iteration is one TryToRestart call (no Sleep on shutdown), so
+  // 5 attempts is plenty for an appender that legitimately recovers.
+  MAX_SHUTDOWN_RESTART_ATTEMPTS = 5;
 var
   lLogItem: TLogItem;
   lRestarted: Boolean;
   lStatus: TAppenderStatus;
   lSetupFailCount: Integer;
+  lReadySignaled: Boolean;
+  lShutdownRestartAttempts: Integer;
 begin
   lSetupFailCount := 0;
   lStatus := TAppenderStatus.BeforeSetup;
+  lReadySignaled := False;
+  lShutdownRestartAttempts := 0;
   try
-    { the appender tries to log all the messages before terminate... }
-    //dt
+    { Drain until the queue is empty. When Terminated is set we still
+      MUST flush every pending item before exiting, otherwise a failed
+      WriteLog that flips the state to WaitAfterFail would silently
+      discard the rest of the queue. }
     while (not Terminated) or (FAppenderQueue.QueueSize > 0) do
     begin
-      { ...but if the thread should be terminated, and the appender is failing,
-        its messages will be lost }
-      if Terminated and (lStatus = TAppenderStatus.WaitAfterFail) then
-        Break;
-
       try
         { this state machine handles the status of the appender }
         case lStatus of
@@ -1706,8 +2625,25 @@ begin
                 else
                 begin
                   Inc(lSetupFailCount);
-                  Sleep(1000); // wait before next setup call
+                  // During shutdown we cannot afford the 1s retry wait -
+                  // items are already in the queue and TLoggerThread is
+                  // blocked waiting for us. Skip the sleep so the next
+                  // Setup retry happens immediately.
+                  if not Terminated then
+                    Sleep(1000);
                 end;
+              end;
+              { Signal "ready" after the first Setup attempt, success OR
+                final failure. The caller (TAppenderAdapter.Create) may
+                be blocked waiting for this signal to guarantee that the
+                appender thread is actually scheduled and observing its
+                queue before any log item is dispatched to it. }
+              if not lReadySignaled and
+                 ((lStatus = TAppenderStatus.Running) or
+                  (lStatus = TAppenderStatus.WaitAfterFail)) then
+              begin
+                FReadyEvent.SetEvent;
+                lReadySignaled := True;
               end;
             end;
 
@@ -1735,9 +2671,36 @@ begin
 
           TAppenderStatus.WaitAfterFail:
             begin
-              Sleep(500);
-              if SecondsBetween(now, FLogAppender.LastErrorTimeStamp) >= 5 then
+              // On shutdown, force immediate restart attempt so we can
+              // flush the remaining queue. Otherwise back off the normal
+              // 500ms and reconsider every 5s.
+              if Terminated then
+              begin
+                // Bound the shutdown retry loop. Default TryToRestart
+                // returns False forever, so without this guard we'd
+                // burn a CPU spinning between WaitAfterFail and
+                // ToRestart while still holding queued items - and
+                // TLoggerThread.Shutdown's WaitFor would hang.
+                Inc(lShutdownRestartAttempts);
+                if lShutdownRestartAttempts > MAX_SHUTDOWN_RESTART_ATTEMPTS then
+                begin
+                  // Give up on this appender. Drop the rest of its
+                  // queue so the outer drain loop can exit. Drain
+                  // by result (not QueueSize) so we bail on the first
+                  // wrTimeout / wrAbandoned instead of spinning on a
+                  // size check that races the dequeue.
+                  while FAppenderQueue.Dequeue(lLogItem) = TWaitResult.wrSignaled do
+                    lLogItem.Free;
+                  Break;
+                end;
                 lStatus := TAppenderStatus.ToRestart;
+              end
+              else
+              begin
+                Sleep(500);
+                if SecondsBetween(now, FLogAppender.LastErrorTimeStamp) >= 5 then
+                  lStatus := TAppenderStatus.ToRestart;
+              end;
             end;
 
           TAppenderStatus.Running:
@@ -1768,6 +2731,10 @@ begin
       end;
     end;
   finally
+    { Release anyone still blocked on WaitUntilReady, even if we never
+      reached a Setup outcome (e.g. immediate Terminate on an empty queue). }
+    if not lReadySignaled then
+      FReadyEvent.SetEvent;
     FLogAppender.TearDown;
   end;
 end;
@@ -1897,6 +2864,16 @@ end;
 function TLogWriterWithContext.AppendersCount: Integer;
 begin
   Result := FInner.AppendersCount;
+end;
+
+function TLogWriterWithContext.GetMinimumLevel: TLogType;
+begin
+  Result := FInner.GetMinimumLevel;
+end;
+
+procedure TLogWriterWithContext.SetMinimumLevel(const aLevel: TLogType);
+begin
+  FInner.SetMinimumLevel(aLevel);
 end;
 
 procedure TLogWriterWithContext.EnqueueLogItem(const aLogItem: TLogItem);
@@ -2100,6 +3077,17 @@ begin
   FInner.Shutdown;
 end;
 
+function TLogWriterWithContext.IsEnabled(aLevel: TLogType): Boolean;
+begin
+  Result := FInner.IsEnabled(aLevel);
+end;
+
+function TLogWriterWithContext.IsDebugEnabled: Boolean;   begin Result := FInner.IsDebugEnabled;   end;
+function TLogWriterWithContext.IsInfoEnabled: Boolean;    begin Result := FInner.IsInfoEnabled;    end;
+function TLogWriterWithContext.IsWarningEnabled: Boolean; begin Result := FInner.IsWarningEnabled; end;
+function TLogWriterWithContext.IsErrorEnabled: Boolean;   begin Result := FInner.IsErrorEnabled;   end;
+function TLogWriterWithContext.IsFatalEnabled: Boolean;   begin Result := FInner.IsFatalEnabled;   end;
+
 { TLogWriterWithDefaultTag }
 
 constructor TLogWriterWithDefaultTag.Create(const AInner: ILogWriter; const ADefaultTag: string);
@@ -2132,6 +3120,16 @@ end;
 function TLogWriterWithDefaultTag.AppendersCount: Integer;
 begin
   Result := FInner.AppendersCount;
+end;
+
+function TLogWriterWithDefaultTag.GetMinimumLevel: TLogType;
+begin
+  Result := FInner.GetMinimumLevel;
+end;
+
+procedure TLogWriterWithDefaultTag.SetMinimumLevel(const aLevel: TLogType);
+begin
+  FInner.SetMinimumLevel(aLevel);
 end;
 
 procedure TLogWriterWithDefaultTag.EnqueueLogItem(const aLogItem: TLogItem);
@@ -2329,6 +3327,17 @@ begin
   FInner.Shutdown;
 end;
 
+function TLogWriterWithDefaultTag.IsEnabled(aLevel: TLogType): Boolean;
+begin
+  Result := FInner.IsEnabled(aLevel);
+end;
+
+function TLogWriterWithDefaultTag.IsDebugEnabled: Boolean;   begin Result := FInner.IsDebugEnabled;   end;
+function TLogWriterWithDefaultTag.IsInfoEnabled: Boolean;    begin Result := FInner.IsInfoEnabled;    end;
+function TLogWriterWithDefaultTag.IsWarningEnabled: Boolean; begin Result := FInner.IsWarningEnabled; end;
+function TLogWriterWithDefaultTag.IsErrorEnabled: Boolean;   begin Result := FInner.IsErrorEnabled;   end;
+function TLogWriterWithDefaultTag.IsFatalEnabled: Boolean;   begin Result := FInner.IsFatalEnabled;   end;
+
 { TLogWriterWithDefaultContext }
 
 constructor TLogWriterWithDefaultContext.Create(const AInner: ILogWriter; const ADefaultContext: array of LogParam);
@@ -2376,6 +3385,16 @@ end;
 function TLogWriterWithDefaultContext.AppendersCount: Integer;
 begin
   Result := FInner.AppendersCount;
+end;
+
+function TLogWriterWithDefaultContext.GetMinimumLevel: TLogType;
+begin
+  Result := FInner.GetMinimumLevel;
+end;
+
+procedure TLogWriterWithDefaultContext.SetMinimumLevel(const aLevel: TLogType);
+begin
+  FInner.SetMinimumLevel(aLevel);
 end;
 
 procedure TLogWriterWithDefaultContext.EnqueueLogItem(const aLogItem: TLogItem);
@@ -2572,6 +3591,23 @@ procedure TLogWriterWithDefaultContext.Shutdown;
 begin
   FInner.Shutdown;
 end;
+
+function TLogWriterWithDefaultContext.IsEnabled(aLevel: TLogType): Boolean;
+begin
+  Result := FInner.IsEnabled(aLevel);
+end;
+
+function TLogWriterWithDefaultContext.IsDebugEnabled: Boolean;   begin Result := FInner.IsDebugEnabled;   end;
+function TLogWriterWithDefaultContext.IsInfoEnabled: Boolean;    begin Result := FInner.IsInfoEnabled;    end;
+function TLogWriterWithDefaultContext.IsWarningEnabled: Boolean; begin Result := FInner.IsWarningEnabled; end;
+function TLogWriterWithDefaultContext.IsErrorEnabled: Boolean;   begin Result := FInner.IsErrorEnabled;   end;
+function TLogWriterWithDefaultContext.IsFatalEnabled: Boolean;   begin Result := FInner.IsFatalEnabled;   end;
+
+initialization
+  gAdapterLifecycleLock := TCriticalSection.Create;
+
+finalization
+  FreeAndNil(gAdapterLifecycleLock);
 
 end.
 

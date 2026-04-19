@@ -27,7 +27,7 @@ unit LoggerPro.Renderers;
 interface
 
 uses
-  LoggerPro, System.SysUtils;
+  LoggerPro, LoggerPro.AnsiColors, System.SysUtils;
 
 type
   TLogItemRendererDefault = class(TLogItemRenderer)
@@ -72,6 +72,57 @@ type
     procedure Setup; override;
     procedure TearDown; override;
     function RenderLogItem(const aLogItem: TLogItem): String; override;
+  end;
+
+  // Rich-colored renderer for console output.
+  // Fixed layout: <timestamp> [TID <threadid>] <level> <message> [<tag>] <context>.
+  // Every field is wrapped in the scheme's escape codes so a single WriteLn
+  // lands a multi-color log line in the terminal. On pipe/redirect, pass
+  // LogColorSchemes.Monochrome at construction time to emit plain text.
+  TLogItemRendererRichColored = class(TLogItemRenderer)
+  private
+    fFormatSettings: TFormatSettings;
+    fScheme: TLogColorScheme;
+  protected
+    procedure Setup; override;
+    procedure TearDown; override;
+    function RenderLogItem(const aLogItem: TLogItem): String; override;
+    function RenderColoredContext(const aLogItem: TLogItem): string;
+  public
+    constructor Create; overload;
+    constructor Create(const aScheme: TLogColorScheme); overload;
+    property Scheme: TLogColorScheme read fScheme write fScheme;
+  end;
+
+  // Gin-inspired renderer. Layout mimics Gin's access log aesthetic:
+  //
+  //   [LPRO] 2026/04/18 - 17:33:42 | INFO  | connection established | DB | key=val
+  //
+  // Bracketed prefix, slash-separated date with an em-dash before time,
+  // pipe separators between fields, padded level word (badge-friendly),
+  // and inline key=val context. Pairs well with LogColorSchemes.GinBadge for
+  // colored-background level badges that match Gin's status-code look.
+  TLogItemRendererGinStyle = class(TLogItemRenderer)
+  private
+    fFormatSettings: TFormatSettings;
+    fScheme: TLogColorScheme;
+    fPrefix: string;
+  protected
+    procedure Setup; override;
+    procedure TearDown; override;
+    function RenderLogItem(const aLogItem: TLogItem): String; override;
+    function RenderContext(const aLogItem: TLogItem): string;
+  public
+    { Default is empty - no prefix is emitted and the line starts with the
+      date. Set to a short app/module name ("MYAPP", "BILLING") when the
+      same stream aggregates logs from multiple processes and you need a
+      visual source marker (Gin's [GIN] pattern). }
+    const DEFAULT_PREFIX = '';
+    constructor Create; overload;
+    constructor Create(const aScheme: TLogColorScheme); overload;
+    constructor Create(const aScheme: TLogColorScheme; const aPrefix: string); overload;
+    property Scheme: TLogColorScheme read fScheme write fScheme;
+    property Prefix: string read fPrefix write fPrefix;
   end;
 
 
@@ -223,61 +274,377 @@ end;
 
 { TLogItemRendererLogFmt }
 
+// LogFmt spec (Brandur/Heroku): key=value pairs separated by single spaces.
+// Keys: [a-zA-Z0-9_.-]. Values: bare if no space/quote/= and not empty,
+// otherwise "..." with \" and \\ escapes; control chars become \n \r \t.
+function LogFmtSanitizeKey(const aKey: string): string;
+var
+  I: Integer;
+  C: Char;
+begin
+  if aKey = '' then
+    Exit('_');
+  SetLength(Result, Length(aKey));
+  for I := 1 to Length(aKey) do
+  begin
+    C := aKey[I];
+    if CharInSet(C, ['a'..'z', 'A'..'Z', '0'..'9', '_', '.', '-']) then
+      Result[I] := C
+    else
+      Result[I] := '_';
+  end;
+end;
+
+function LogFmtNeedsQuoting(const aValue: string): Boolean;
+var
+  I: Integer;
+  C: Char;
+begin
+  if aValue = '' then
+    Exit(True);
+  for I := 1 to Length(aValue) do
+  begin
+    C := aValue[I];
+    if (C = ' ') or (C = '"') or (C = '=') or (C = '\') or (Ord(C) < 32) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+function LogFmtEscapeValue(const aValue: string): string;
+var
+  I: Integer;
+  C: Char;
+  lSB: TStringBuilder;
+begin
+  if not LogFmtNeedsQuoting(aValue) then
+    Exit(aValue);
+  lSB := TStringBuilder.Create(Length(aValue) + 8);
+  try
+    lSB.Append('"');
+    for I := 1 to Length(aValue) do
+    begin
+      C := aValue[I];
+      case C of
+        '"': lSB.Append('\"');
+        '\': lSB.Append('\\');
+        #10: lSB.Append('\n');
+        #13: lSB.Append('\r');
+        #9:  lSB.Append('\t');
+      else
+        if Ord(C) < 32 then
+          lSB.Append('\u').Append(IntToHex(Ord(C), 4))
+        else
+          lSB.Append(C);
+      end;
+    end;
+    lSB.Append('"');
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
+end;
+
+function LogFmtRenderValue(const aValue: TValue;
+  const aFormatSettings: TFormatSettings): string;
+begin
+  case aValue.Kind of
+    tkInteger, tkInt64:
+      Result := aValue.AsInt64.ToString;
+    tkFloat:
+      if aValue.TypeInfo = TypeInfo(TDateTime) then
+        Result := DateToISO8601(aValue.AsType<TDateTime>, False)
+      else
+        Result := FloatToStr(aValue.AsExtended, aFormatSettings);
+    tkEnumeration:
+      if aValue.TypeInfo = TypeInfo(Boolean) then
+        Result := BoolToStr(aValue.AsBoolean, True).ToLower
+      else
+        Result := LogFmtEscapeValue(aValue.ToString);
+  else
+    Result := LogFmtEscapeValue(aValue.ToString);
+  end;
+end;
+
 function TLogItemRendererLogFmt.RenderLogItem(const aLogItem: TLogItem): String;
 var
-  lContextStr: string;
   I: Integer;
   lParam: LogParam;
-  lValueStr: string;
+  lSB: TStringBuilder;
 begin
-  Result :=
-    Format('time=%s threadid=%d type=%s msg=%s tag=%s',
-      [
-        DateToISO8601(ALogItem.TimeStamp, False),
-        ALogItem.ThreadID,
-        ALogItem.LogTypeAsString,
-        ALogItem.LogMessage.QuotedString('"'),
-        ALogItem.LogTag
-        ]);
+  lSB := TStringBuilder.Create;
+  try
+    lSB.Append('time=').Append(DateToISO8601(aLogItem.TimeStamp, False));
+    lSB.Append(' threadid=').Append(aLogItem.ThreadID);
+    lSB.Append(' type=').Append(aLogItem.LogTypeAsString);
+    lSB.Append(' msg=').Append(LogFmtEscapeValue(aLogItem.LogMessage));
+    lSB.Append(' tag=').Append(LogFmtEscapeValue(aLogItem.LogTag));
 
-  if ALogItem.HasContext then
-  begin
-    lContextStr := '';
-    for I := 0 to High(ALogItem.Context) do
+    if aLogItem.HasContext then
     begin
-      lParam := ALogItem.Context[I];
-      case lParam.Value.Kind of
-        tkInteger, tkInt64:
-          lValueStr := lParam.Value.AsInt64.ToString;
-        tkFloat:
-          if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
-            lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
-          else
-            lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
-        tkEnumeration:
-          if lParam.Value.TypeInfo = TypeInfo(Boolean) then
-            lValueStr := BoolToStr(lParam.Value.AsBoolean, True).ToLower
-          else
-            lValueStr := lParam.Value.ToString;
-      else
-        lValueStr := lParam.Value.ToString.QuotedString('"');
+      for I := 0 to High(aLogItem.Context) do
+      begin
+        lParam := aLogItem.Context[I];
+        lSB.Append(' ');
+        lSB.Append(LogFmtSanitizeKey(lParam.Key));
+        lSB.Append('=');
+        lSB.Append(LogFmtRenderValue(lParam.Value, fFormatSettings));
       end;
-      lContextStr := lContextStr + ' ' + lParam.Key + '=' + lValueStr;
     end;
-    Result := Result + lContextStr;
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
   end;
 end;
 
 procedure TLogItemRendererLogFmt.Setup;
 begin
   inherited;
-  fFormatSettings := GetDefaultFormatSettings;
+  // Use invariant settings so floats always render with '.' decimal separator,
+  // independent of OS locale. This is required by the logfmt contract.
+  fFormatSettings := TFormatSettings.Invariant;
 end;
 
 procedure TLogItemRendererLogFmt.TearDown;
 begin
   inherited;
 
+end;
+
+{ TLogItemRendererRichColored }
+
+constructor TLogItemRendererRichColored.Create;
+begin
+  inherited Create;
+  fScheme := LogColorSchemes.Default;
+end;
+
+constructor TLogItemRendererRichColored.Create(const aScheme: TLogColorScheme);
+begin
+  inherited Create;
+  fScheme := aScheme;
+end;
+
+procedure TLogItemRendererRichColored.Setup;
+begin
+  inherited;
+  fFormatSettings := GetDefaultFormatSettings;
+end;
+
+procedure TLogItemRendererRichColored.TearDown;
+begin
+  inherited;
+end;
+
+function TLogItemRendererRichColored.RenderColoredContext(const aLogItem: TLogItem): string;
+var
+  I: Integer;
+  lParam: LogParam;
+  lValueStr: string;
+  lPairs: string;
+begin
+  Result := '';
+  if not aLogItem.HasContext then
+  begin
+    if aLogItem.PreRenderedContext <> '' then
+      Result := ' ' + aLogItem.PreRenderedContext;
+    Exit;
+  end;
+
+  lPairs := '';
+  for I := 0 to High(aLogItem.Context) do
+  begin
+    lParam := aLogItem.Context[I];
+    case lParam.Value.Kind of
+      tkInteger, tkInt64:
+        lValueStr := lParam.Value.AsInt64.ToString;
+      tkFloat:
+        if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+        else
+          lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
+      tkEnumeration:
+        if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+          lValueStr := BoolToStr(lParam.Value.AsBoolean, True).ToLower
+        else
+          lValueStr := lParam.Value.ToString;
+    else
+      lValueStr := lParam.Value.ToString;
+    end;
+
+    if I > 0 then
+      lPairs := lPairs + ', ';
+    lPairs := lPairs +
+      Colorize(lParam.Key, fScheme.ContextKeyColor) +
+      '=' +
+      Colorize(lValueStr, fScheme.ContextValueColor);
+  end;
+  Result := ' {' + lPairs + '}';
+end;
+
+function TLogItemRendererRichColored.RenderLogItem(const aLogItem: TLogItem): String;
+var
+  lTimestamp, lThreadID, lLevel, lMessage, lTag, lEndGuard: string;
+begin
+  lTimestamp := Colorize(
+    FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', aLogItem.TimeStamp, fFormatSettings),
+    fScheme.TimestampColor);
+
+  lThreadID := Colorize('[TID ' + aLogItem.ThreadID.ToString + ']', fScheme.ThreadIDColor);
+
+  lLevel := Colorize(Format('%-7s', [aLogItem.LogTypeAsString]),
+    fScheme.LevelColor[aLogItem.LogType]);
+
+  lMessage := Colorize(aLogItem.LogMessage, fScheme.MessageColor);
+
+  if aLogItem.LogTag <> '' then
+    lTag := ' ' + Colorize('[' + aLogItem.LogTag + ']', fScheme.TagColor)
+  else
+    lTag := '';
+
+  // Colorama-style end-of-line autoreset: even if any individual field's
+  // color string ended up open, this guarantees the terminal returns to
+  // default state before the next log line (or any subsequent Writeln).
+  // Skipped when the scheme is monochrome to keep piped output ANSI-free.
+  if (fScheme.TimestampColor <> '') or (fScheme.ThreadIDColor <> '') or
+     (fScheme.TagColor <> '') or (fScheme.MessageColor <> '') or
+     (fScheme.ContextKeyColor <> '') or (fScheme.ContextValueColor <> '') or
+     (fScheme.LevelColor[aLogItem.LogType] <> '') then
+    lEndGuard := STYLE_RESETALL
+  else
+    lEndGuard := '';
+
+  Result := lTimestamp + ' ' + lThreadID + ' ' + lLevel + ' ' + lMessage + lTag +
+    RenderColoredContext(aLogItem) + lEndGuard;
+end;
+
+{ TLogItemRendererGinStyle }
+
+constructor TLogItemRendererGinStyle.Create;
+begin
+  inherited Create;
+  fScheme := LogColorSchemes.Default;
+  fPrefix := DEFAULT_PREFIX;
+end;
+
+constructor TLogItemRendererGinStyle.Create(const aScheme: TLogColorScheme);
+begin
+  inherited Create;
+  fScheme := aScheme;
+  fPrefix := DEFAULT_PREFIX;
+end;
+
+constructor TLogItemRendererGinStyle.Create(const aScheme: TLogColorScheme;
+  const aPrefix: string);
+begin
+  inherited Create;
+  fScheme := aScheme;
+  // aPrefix = '' means "no prefix" (line starts with the date).
+  fPrefix := aPrefix;
+end;
+
+procedure TLogItemRendererGinStyle.Setup;
+begin
+  inherited;
+  fFormatSettings := GetDefaultFormatSettings;
+  // Gin uses a slash-separated date regardless of OS locale. Force it so
+  // the output looks consistent across Windows/Linux/Italian/English
+  // systems where the OS default date separator may be '-' or '.'.
+  fFormatSettings.DateSeparator := '/';
+end;
+
+procedure TLogItemRendererGinStyle.TearDown;
+begin
+  inherited;
+end;
+
+function TLogItemRendererGinStyle.RenderContext(const aLogItem: TLogItem): string;
+var
+  I: Integer;
+  lParam: LogParam;
+  lValueStr: string;
+  lPairs: string;
+begin
+  Result := '';
+  if not aLogItem.HasContext then
+    Exit;
+
+  lPairs := '';
+  for I := 0 to High(aLogItem.Context) do
+  begin
+    lParam := aLogItem.Context[I];
+    case lParam.Value.Kind of
+      tkInteger, tkInt64:
+        lValueStr := lParam.Value.AsInt64.ToString;
+      tkFloat:
+        if lParam.Value.TypeInfo = TypeInfo(TDateTime) then
+          lValueStr := DateToISO8601(lParam.Value.AsType<TDateTime>, False)
+        else
+          lValueStr := FloatToStr(lParam.Value.AsExtended, fFormatSettings);
+      tkEnumeration:
+        if lParam.Value.TypeInfo = TypeInfo(Boolean) then
+          lValueStr := BoolToStr(lParam.Value.AsBoolean, True).ToLower
+        else
+          lValueStr := lParam.Value.ToString;
+    else
+      lValueStr := lParam.Value.ToString;
+    end;
+    if I > 0 then
+      lPairs := lPairs + ' ';
+    lPairs := lPairs +
+      Colorize(lParam.Key, fScheme.ContextKeyColor) +
+      '=' +
+      Colorize(lValueStr, fScheme.ContextValueColor);
+  end;
+  Result := lPairs;
+end;
+
+function TLogItemRendererGinStyle.RenderLogItem(const aLogItem: TLogItem): String;
+var
+  lPrefix, lDate, lSep, lLevel, lMessage, lTag, lContext, lEndGuard: string;
+begin
+  // Empty prefix -> line starts with the date. Keeps common layout
+  // compact and avoids redundant [LPRO] on every row.
+  if fPrefix <> '' then
+    lPrefix := Colorize('[' + fPrefix + ']', fScheme.PrefixColor) + ' '
+  else
+    lPrefix := '';
+
+  lDate := Colorize(
+    FormatDateTime('yyyy/mm/dd - hh:nn:ss', aLogItem.TimeStamp, fFormatSettings),
+    fScheme.TimestampColor);
+
+  lSep := Colorize('|', fScheme.SeparatorColor);
+
+  // Pad with spaces on both sides so the level slot becomes a fixed-width
+  // badge - gives colored-background schemes a proper "pill" look.
+  lLevel := Colorize(' ' + Format('%-7s', [aLogItem.LogTypeAsString]) + ' ',
+    fScheme.LevelColor[aLogItem.LogType]);
+
+  lMessage := Colorize(aLogItem.LogMessage, fScheme.MessageColor);
+
+  if aLogItem.LogTag <> '' then
+    lTag := ' ' + lSep + ' ' + Colorize(aLogItem.LogTag, fScheme.TagColor)
+  else
+    lTag := '';
+
+  lContext := RenderContext(aLogItem);
+  if lContext <> '' then
+    lContext := ' ' + lSep + ' ' + lContext;
+
+  // Colorama-style line-end autoreset. Skipped when the scheme is
+  // monochrome so piped output remains ANSI-free.
+  if (fScheme.PrefixColor <> '') or (fScheme.TimestampColor <> '') or
+     (fScheme.ThreadIDColor <> '') or (fScheme.TagColor <> '') or
+     (fScheme.MessageColor <> '') or (fScheme.SeparatorColor <> '') or
+     (fScheme.ContextKeyColor <> '') or (fScheme.ContextValueColor <> '') or
+     (fScheme.LevelColor[aLogItem.LogType] <> '') then
+    lEndGuard := STYLE_RESETALL
+  else
+    lEndGuard := '';
+
+  Result := lPrefix + lDate + ' ' + lSep + lLevel + lSep + ' ' +
+            lMessage + lTag + lContext + lEndGuard;
 end;
 
 

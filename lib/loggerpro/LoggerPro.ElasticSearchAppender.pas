@@ -117,6 +117,10 @@ type
 
 implementation
 
+uses
+  LoggerPro.Builder,
+  LoggerPro.Config;
+
 { TLoggerProElasticSearchAppender }
 
 constructor TLoggerProElasticSearchAppender.Create(const aElasticSearchURL: string;
@@ -311,5 +315,72 @@ begin
   FAuthPassword := '';
   FAuthToken := '';
 end;
+
+{ JSON config factory. Self-registers below so just adding this unit to
+  a project's `uses` clause makes the "ElasticSearch" appender type
+  available in loggerpro.json. }
+procedure ElasticSearchConfigFactory(const aBuilder: ILoggerProBuilder; const aConfig: TJSONObject);
+var
+  lCfg: IElasticSearchAppenderConfigurator;
+  lValue: TJSONValue;
+  lLogLevel: TLogType;
+  lUser, lPwd: string;
+  lUserVal, lPwdVal: TJSONValue;
+begin
+  lCfg := aBuilder.WriteToElasticSearch;
+
+  lValue := aConfig.GetValue('url');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithURL(TJSONString(lValue).Value);
+
+  lValue := aConfig.GetValue('host');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithHost(TJSONString(lValue).Value);
+
+  lValue := aConfig.GetValue('port');
+  if lValue is TJSONNumber then
+    lCfg := lCfg.WithPort(TJSONNumber(lValue).AsInt);
+
+  lValue := aConfig.GetValue('index');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithIndex(TJSONString(lValue).Value);
+
+  lValue := aConfig.GetValue('timeout');
+  if lValue is TJSONNumber then
+    lCfg := lCfg.WithTimeout(TJSONNumber(lValue).AsInt);
+
+  lValue := aConfig.GetValue('apiKey');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithAPIKey(TJSONString(lValue).Value);
+
+  lValue := aConfig.GetValue('bearerToken');
+  if lValue is TJSONString then
+    lCfg := lCfg.WithBearerToken(TJSONString(lValue).Value);
+
+  lUserVal := aConfig.GetValue('username');
+  lPwdVal  := aConfig.GetValue('password');
+  if (lUserVal is TJSONString) and (lPwdVal is TJSONString) then
+  begin
+    lUser := TJSONString(lUserVal).Value;
+    lPwd  := TJSONString(lPwdVal).Value;
+    lCfg := lCfg.WithBasicAuth(lUser, lPwd);
+  end;
+
+  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'logLevel', lLogLevel) then
+    lCfg := lCfg.WithLogLevel(lLogLevel);
+
+  lCfg.Done;
+end;
+
+initialization
+  // Auto-register the JSON factory on unit load. Including
+  // LoggerPro.ElasticSearchAppender in the program enables the
+  // "ElasticSearch" appender type in config JSON files - no extra
+  // registration call required from user code.
+  TLoggerProConfig.RegisterAppenderType(
+    'ElasticSearch',
+    ElasticSearchConfigFactory,
+    ['logLevel', 'url', 'host', 'port', 'index', 'timeout',
+     'apiKey', 'bearerToken', 'username', 'password']);
 
 end.

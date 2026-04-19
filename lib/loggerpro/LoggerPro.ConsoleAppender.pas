@@ -34,7 +34,7 @@ uses
   System.Classes,
   System.SysUtils,
   LoggerPro,
-  SyncObjs;
+  System.SyncObjs;
 
 type
   /// <summary>
@@ -52,6 +52,7 @@ type
     class destructor Destroy;
   protected
     FUTF8Output: Boolean;
+    FRendererHandlesColors: Boolean;
 {$IFDEF MSWINDOWS}
     FSavedOutputCP: Cardinal;
     fColors: array [TLogType.Debug .. TLogType.Fatal] of Integer;
@@ -80,6 +81,12 @@ type
     /// Prevents Unicode mangling on Linux (POSIX locale) and Windows (console code page).
     /// </summary>
     property UTF8Output: Boolean read FUTF8Output write FUTF8Output;
+    /// <summary>
+    /// When True, the renderer emits its own ANSI color codes. The appender
+    /// skips its per-line SetColor/ResetColor so the terminal sees the
+    /// renderer's multi-color output. Set by WithColors / WithColorScheme.
+    /// </summary>
+    property RendererHandlesColors: Boolean read FRendererHandlesColors write FRendererHandlesColors;
   end;
 
   TLoggerProConsoleLogFmtAppender = class(TLoggerProConsoleAppender)
@@ -132,7 +139,8 @@ uses
 {$IFDEF POSIX}
   Posix.Unistd,
 {$ENDIF}
-  LoggerPro.Renderers;
+  LoggerPro.Renderers,
+  LoggerPro.AnsiColors;
 
 {$IFDEF MSWINDOWS}
 const
@@ -140,17 +148,8 @@ const
 
 function AttachConsole; external kernel32 name 'AttachConsole';
 
-const
-  { FOREGROUND COLORS - CAN BE COMBINED }
-  FOREGROUND_BLUE = 1;
-  FOREGROUND_GREEN = 2;
-  FOREGROUND_RED = 4;
-  FOREGROUND_INTENSITY = 8;
-  { BACKGROUND COLORS - CAN BE COMBINED }
-  BACKGROUND_BLUE = $10;
-  BACKGROUND_GREEN = $20;
-  BACKGROUND_RED = $40;
-  BACKGROUND_INTENSITY = $80;
+// FOREGROUND_*, BACKGROUND_*, FOREGROUND_INTENSITY, BACKGROUND_INTENSITY
+// come from Winapi.Windows - no need to redeclare.
 
 function GetCurrentColors: Integer;
 var
@@ -160,29 +159,43 @@ begin
   if GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), info) then
     Result := info.wAttributes;
 end;
-{$ELSE}
-const
-  { ANSI escape codes for colors }
-  ANSI_RESET = #27'[0m';
-  ANSI_GREEN = #27'[32m';           // Debug
-  ANSI_WHITE_BRIGHT = #27'[97m';    // Info
-  ANSI_YELLOW = #27'[33m';          // Warning (dark yellow)
-  ANSI_RED_BRIGHT = #27'[91m';      // Error
-  ANSI_MAGENTA_BRIGHT = #27'[95m';  // Fatal
 {$ENDIF}
+// POSIX color codes come from LoggerPro.AnsiColors (FORE_*, STYLE_*).
 
 procedure InternalWriteUTF8(const aText: string);
 var
   lBytes: TBytes;
 {$IFDEF MSWINDOWS}
+  hOut: THandle;
   lBytesWritten: Cardinal;
+  lRemaining, lOffset: Integer;
 {$ENDIF}
 begin
+  if aText = '' then
+    Exit;
   lBytes := TEncoding.UTF8.GetBytes(aText);
   if Length(lBytes) = 0 then
     Exit;
 {$IFDEF MSWINDOWS}
-  WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), lBytes[0], Length(lBytes), lBytesWritten, nil);
+  hOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  if hOut = INVALID_HANDLE_VALUE then
+    Exit;
+  // Raw byte write through WriteFile. Works for both consoles (Windows 10+
+  // with VT enabled interprets the ANSI escape codes in the stream) and
+  // redirected pipes/files. Looped to drain partial writes that WriteFile
+  // can perform under load.
+  lOffset := 0;
+  lRemaining := Length(lBytes);
+  while lRemaining > 0 do
+  begin
+    lBytesWritten := 0;
+    if not WriteFile(hOut, lBytes[lOffset], lRemaining, lBytesWritten, nil) then
+      Exit;
+    if lBytesWritten = 0 then
+      Exit;
+    Inc(lOffset, lBytesWritten);
+    Dec(lRemaining, lBytesWritten);
+  end;
 {$ELSE}
   __write(STDOUT_FILENO, @lBytes[0], Length(lBytes));
 {$ENDIF}
@@ -213,6 +226,11 @@ begin
   inherited;
   SetupColorMappings;
 {$IFDEF MSWINDOWS}
+  // Default: this appender did not save the console state. Only the FIRST
+  // appender that enters the class-level guard block actually saves colors.
+  // Subsequent appenders must NOT overwrite console attributes in TearDown
+  // (otherwise their zero-value fSavedColors would set black on black).
+  fSavedColors := -1;
   if TInterlocked.Read(FConsoleAllocated) < 2 then
   begin
     FLock.Enter;
@@ -238,6 +256,8 @@ begin
     SetConsoleOutputCP(CP_UTF8);
   end;
 {$ENDIF}
+  if FRendererHandlesColors then
+    EnableANSIColorConsole;
 end;
 
 procedure TLoggerProConsoleAppender.SetupColorMappings;
@@ -249,11 +269,11 @@ begin
   fColors[TLogType.Error] := FOREGROUND_RED or FOREGROUND_INTENSITY;
   fColors[TLogType.Fatal] := FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_INTENSITY;
 {$ELSE}
-  fColors[TLogType.Debug] := ANSI_GREEN;
-  fColors[TLogType.Info] := ANSI_WHITE_BRIGHT;
-  fColors[TLogType.Warning] := ANSI_YELLOW;
-  fColors[TLogType.Error] := ANSI_RED_BRIGHT;
-  fColors[TLogType.Fatal] := ANSI_MAGENTA_BRIGHT;
+  fColors[TLogType.Debug]   := FORE_DARKGREEN;
+  fColors[TLogType.Info]    := FORE_WHITE;
+  fColors[TLogType.Warning] := FORE_DARKYELLOW;
+  fColors[TLogType.Error]   := FORE_RED;
+  fColors[TLogType.Fatal]   := FORE_MAGENTA;
 {$ENDIF}
 end;
 
@@ -278,19 +298,25 @@ begin
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
 {$ELSE}
   if FUTF8Output then
-    WriteUTF8Raw(ANSI_RESET)
+    WriteUTF8Raw(STYLE_RESETALL)
   else
-    Write(ANSI_RESET);
+    Write(STYLE_RESETALL);
 {$ENDIF}
 end;
 
 procedure TLoggerProConsoleAppender.TearDown;
 begin
 {$IFDEF MSWINDOWS}
-  if fSavedColors > -1 then
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fSavedColors)
-  else
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+  // When the renderer handles colors via ANSI VT codes, DO NOT touch
+  // Win32 SetConsoleTextAttribute here. Mixing the two color APIs
+  // leaves Windows Terminal / cmd in an inconsistent state.
+  if not FRendererHandlesColors then
+  begin
+    if fSavedColors > -1 then
+      SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fSavedColors)
+    else
+      SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED);
+  end;
   if FUTF8Output then
     SetConsoleOutputCP(FSavedOutputCP);
 {$ENDIF}
@@ -303,12 +329,11 @@ begin
   lText := FormatLog(aLogItem);
   FLock.Enter;
   try
-    SetColor(aLogItem.LogType);
-    if FUTF8Output then
-      WriteUTF8Line(lText)
-    else
-      Writeln(lText);
-    ResetColor;
+    if not FRendererHandlesColors then
+      SetColor(aLogItem.LogType);
+    WriteUTF8Line(lText);
+    if not FRendererHandlesColors then
+      ResetColor;
   finally
     FLock.Leave;
   end;

@@ -62,7 +62,9 @@ begin
     try
       if _Logger = nil then
       begin
+        {$WARN SYMBOL_DEPRECATED OFF}
         _Logger := BuildLogWriter([TLoggerProFileAppender.Create]);
+        {$WARN SYMBOL_DEPRECATED ON}
       end;
     finally
       TMonitor.Exit(_Lock);

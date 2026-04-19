@@ -32,12 +32,6 @@ uses
   System.Classes;
 
 type
-  { Callback signature for receiving log items }
-  TLogItemCallback = reference to procedure(const aLogItem: TLogItem; const aFormattedMessage: string);
-
-  { Callback signature for receiving only formatted message }
-  TLogMessageCallback = reference to procedure(const aFormattedMessage: string);
-
   { @abstract(Appender that invokes a callback for each log item)
     Useful for:
     - Updating UI components (ListView, Memo, etc.) via TThread.Queue
@@ -56,15 +50,7 @@ type
       @param aLogItemRenderer Optional custom renderer }
     constructor Create(aCallback: TLogItemCallback;
       aSynchronizeToMainThread: Boolean = False;
-      aLogItemRenderer: ILogItemRenderer = nil); reintroduce; overload;
-
-    { Creates a callback appender with a simple message-only callback.
-      @param aCallback The callback to invoke with formatted message
-      @param aSynchronizeToMainThread If true, callback is executed via TThread.Queue (safe for UI updates)
-      @param aLogItemRenderer Optional custom renderer }
-    constructor Create(aCallback: TLogMessageCallback;
-      aSynchronizeToMainThread: Boolean = False;
-      aLogItemRenderer: ILogItemRenderer = nil); reintroduce; overload;
+      aLogItemRenderer: ILogItemRenderer = nil); reintroduce;
 
     procedure Setup; override;
     procedure TearDown; override;
@@ -83,19 +69,6 @@ constructor TLoggerProCallbackAppender.Create(aCallback: TLogItemCallback;
 begin
   inherited Create(aLogItemRenderer);
   FCallback := aCallback;
-  FSynchronizeToMainThread := aSynchronizeToMainThread;
-end;
-
-constructor TLoggerProCallbackAppender.Create(aCallback: TLogMessageCallback;
-  aSynchronizeToMainThread: Boolean;
-  aLogItemRenderer: ILogItemRenderer);
-begin
-  inherited Create(aLogItemRenderer);
-  // Wrap simple callback into full callback
-  FCallback := procedure(const aLogItem: TLogItem; const aFormattedMessage: string)
-    begin
-      aCallback(aFormattedMessage);
-    end;
   FSynchronizeToMainThread := aSynchronizeToMainThread;
 end;
 
@@ -121,13 +94,21 @@ begin
 
   if FSynchronizeToMainThread then
   begin
-    // Clone the item since original will be freed after WriteLog returns
+    // Clone the item since original will be freed after WriteLog returns.
+    // Swallow callback exceptions: a buggy callback must not turn the
+    // appender into "Failing" state, because our default TryToRestart
+    // returns False forever - which would spin the appender thread on
+    // Terminated and hang Shutdown indefinitely.
     lClonedItem := aLogItem.Clone;
     TThread.Queue(nil,
       procedure
       begin
         try
-          FCallback(lClonedItem, lFormattedMessage);
+          try
+            FCallback(lClonedItem, lFormattedMessage);
+          except
+            // user-supplied callback exception is not our problem
+          end;
         finally
           lClonedItem.Free;
         end;
@@ -135,7 +116,11 @@ begin
   end
   else
   begin
-    FCallback(aLogItem, lFormattedMessage);
+    try
+      FCallback(aLogItem, lFormattedMessage);
+    except
+      // see comment above - callback bugs must not poison the appender
+    end;
   end;
 end;
 
