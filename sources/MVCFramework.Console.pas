@@ -41,7 +41,8 @@ uses
   System.SysUtils,
   System.SyncObjs,
   System.Classes,
-  System.Character
+  System.Character,
+  LoggerPro.AnsiColors
 {$IFDEF MSWINDOWS}
   ,WinApi.Windows
 {$ENDIF}
@@ -128,67 +129,14 @@ type
   TStringMatrix = array of TStringArray;
 
   /// <summary>
-  /// ANSI foreground color escape sequences.
-  /// Usage: WriteLn(Fore.Red + 'error text' + Style.ResetAll);
-  /// Requires EnableANSIColorConsole on Windows 10+. No-op needed on Linux.
+  /// ANSI foreground, background and style escape sequences.
+  /// Pure type aliases to the canonical records in LoggerPro.AnsiColors.
+  /// No structure or values duplicated. User-facing API
+  /// (Fore.Red, Back.Red, Style.ResetAll, ...) unchanged.
   /// </summary>
-  Fore = record
-  const
-    Black       = ESC + '[30m';
-    DarkRed     = ESC + '[31m';
-    DarkGreen   = ESC + '[32m';
-    DarkYellow  = ESC + '[33m';
-    DarkBlue    = ESC + '[34m';
-    DarkMagenta = ESC + '[35m';
-    DarkCyan    = ESC + '[36m';
-    Gray        = ESC + '[37m';
-    DarkGray    = ESC + '[90m';
-    Red         = ESC + '[91m';
-    Green       = ESC + '[92m';
-    Yellow      = ESC + '[93m';
-    Blue        = ESC + '[94m';
-    Magenta     = ESC + '[95m';
-    Cyan        = ESC + '[96m';
-    White       = ESC + '[97m';
-    Reset       = ESC + '[39m';
-  end;
-
-  /// <summary>
-  /// ANSI background color escape sequences.
-  /// Usage: WriteLn(Back.Red + 'highlighted' + Style.ResetAll);
-  /// </summary>
-  Back = record
-  const
-    Black       = ESC + '[40m';
-    DarkRed     = ESC + '[41m';
-    DarkGreen   = ESC + '[42m';
-    DarkYellow  = ESC + '[43m';
-    DarkBlue    = ESC + '[44m';
-    DarkMagenta = ESC + '[45m';
-    DarkCyan    = ESC + '[46m';
-    Gray        = ESC + '[47m';
-    DarkGray    = ESC + '[100m';
-    Red         = ESC + '[101m';
-    Green       = ESC + '[102m';
-    Yellow      = ESC + '[103m';
-    Blue        = ESC + '[104m';
-    Magenta     = ESC + '[105m';
-    Cyan        = ESC + '[106m';
-    White       = ESC + '[107m';
-    Reset       = ESC + '[49m';
-  end;
-
-  /// <summary>
-  /// ANSI style escape sequences.
-  /// Style.ResetAll resets foreground, background and style.
-  /// </summary>
-  Style = record
-  const
-    Bright   = ESC + '[1m';
-    Dim      = ESC + '[2m';
-    Normal   = ESC + '[22m';
-    ResetAll = ESC + '[0m';
-  end;
+  Fore  = LoggerPro.AnsiColors.Fore;
+  Back  = LoggerPro.AnsiColors.Back;
+  Style = LoggerPro.AnsiColors.Style;
 
 var
   ConsoleTheme: TConsoleColorStyle = (
@@ -405,8 +353,9 @@ var
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
   GSavedCursorX, GSavedCursorY: Word;
-  GANSIColorConsoleEnabled: Boolean = False;
-  GANSIColorConsoleChecked: Boolean = False;
+  // ANSI VT-processing state moved to LoggerPro.AnsiColors (single source
+  // of truth). EnableANSIColorConsole / IsANSIColorConsoleEnabled below
+  // delegate to that unit to avoid duplicated logic and divergent state.
 {$IFDEF MSWINDOWS}
   hConsoleInput: THandle;
 {$ENDIF}
@@ -573,29 +522,17 @@ end;
 
 function IsANSIColorConsoleEnabled: Boolean;
 begin
-  Result := GANSIColorConsoleEnabled;
+  // Delegated to LoggerPro.AnsiColors - single source of truth, no
+  // duplicated state. Public API of this unit is unchanged.
+  Result := LoggerPro.AnsiColors.IsANSIColorConsoleEnabled;
 end;
 
 procedure EnableANSIColorConsole;
-{$IFDEF MSWINDOWS}
-var
-  LStdOut: THandle;
-  LMode: DWORD;
-{$ENDIF}
 begin
-  if GANSIColorConsoleChecked then
-    Exit;
-  GANSIColorConsoleChecked := True;
-{$IFDEF MSWINDOWS}
-  LStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
-  if (LStdOut <> INVALID_HANDLE_VALUE) and GetConsoleMode(LStdOut, LMode) then
-  begin
-    if SetConsoleMode(LStdOut, LMode or $0004 {ENABLE_VIRTUAL_TERMINAL_PROCESSING}) then
-      GANSIColorConsoleEnabled := True;
-  end;
-{$ELSE}
-  GANSIColorConsoleEnabled := True;
-{$ENDIF}
+  // Delegated to LoggerPro.AnsiColors - single source of truth. The
+  // underlying implementation is idempotent (safe to call multiple times)
+  // and enables Windows 10+ virtual terminal processing, no-op on Unix.
+  LoggerPro.AnsiColors.EnableANSIColorConsole;
 end;
 
 // ============================================================================

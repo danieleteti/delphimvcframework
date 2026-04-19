@@ -41,6 +41,17 @@ const
   LOGGERPRO_TAG = 'dmvcframework';
 
 type
+  /// <summary>
+  /// DMVC log level. Maps 1:1 to <see cref="LoggerPro.TLogType"/> except for
+  /// <c>levException</c>, which collapses to <c>TLogType.Error</c>.
+  /// <para>
+  /// <c>levException</c> is a pre-LoggerPro-2.0 legacy. Prefer
+  /// <c>LogException(E)</c> (or <c>Log.LogException(E)</c>) for exception
+  /// logging - it routes through the pluggable stack-trace formatter set via
+  /// <c>LoggerProBuilder.WithStackTraceFormatter</c>. Retained for backward
+  /// compatibility; do not use in new code.
+  /// </para>
+  /// </summary>
   TLogLevel = (levDebug = 0, levNormal = 1, levWarning = 2, levError = 3, levException = 4, levFatal = 5);
 
 {$IF Defined(SYDNEYORBETTER)}
@@ -122,11 +133,18 @@ procedure LogException(const E: Exception; const AMessage: String); overload;
 procedure LogEnterMethod(const AMethodName: string);
 procedure LogExitMethod(const AMethodName: string);
 
-// Log level check helpers - useful to avoid expensive message construction
-function IsDebugEnabled: Boolean; inline;
-function IsInfoEnabled: Boolean; inline;
-function IsWarningEnabled: Boolean; inline;
-function IsErrorEnabled: Boolean; inline;
+// Log level check helpers - useful to avoid expensive message construction.
+// When the default logger exists these delegate to ILogWriter.IsXxxEnabled
+// (the true dispatch gate of the underlying LoggerPro writer); before the
+// logger is created they fall back to UseLoggerVerbosityLevel, preserving
+// the pre-existing behavior. No breaking changes.
+// (Not inlined: the implementation reads gDefaultLogger, a unit-local
+//  symbol that inline-from-interface-section forbids.)
+function IsDebugEnabled: Boolean;
+function IsInfoEnabled: Boolean;
+function IsWarningEnabled: Boolean;
+function IsErrorEnabled: Boolean;
+function IsFatalEnabled: Boolean;
 
 // direct access to loggerpro logger
 function Log: ILogWriter; overload;
@@ -261,6 +279,11 @@ begin
   end;
 end;
 
+{ Early-exit guards: skip Format() / ObjectToJSON() entirely when the level
+  is filtered out. LoggerPro's gate would have dropped the item anyway, but
+  Format and (especially) JSON serialization of complex objects are NOT free.
+  No behavior change for non-filtered calls. }
+
 procedure LogW(AMessage: string);
 begin
   Log.Warn(AMessage, LOGGERPRO_TAG);
@@ -322,6 +345,7 @@ end;
 
 procedure Log(AObject: TObject); overload;
 begin
+  if not IsInfoEnabled then Exit;
   Log(ObjectToJSON(AObject));
 end;
 
@@ -337,16 +361,19 @@ end;
 
 procedure LogD(AMessage: TObject); overload;
 begin
+  if not IsDebugEnabled then Exit;
   LogD(ObjectToJSON(AMessage));
 end;
 
 procedure LogI(AObject: TObject); overload;
 begin
+  if not IsInfoEnabled then Exit;
   LogI(ObjectToJSON(AObject));
 end;
 
 procedure LogW(AObject: TObject); overload;
 begin
+  if not IsWarningEnabled then Exit;
   LogW(ObjectToJSON(AObject));
 end;
 
@@ -375,30 +402,35 @@ begin
   Log.Fatal(AMessage, LOGGERPRO_TAG, AContext);
 end;
 
-{ Format String overloads }
+{ Format String overloads - guarded to skip Format() cost when filtered }
 
 procedure LogD(const AMessage: string; const Args: array of const);
 begin
+  if not IsDebugEnabled then Exit;
   Log.Debug(Format(AMessage, Args), LOGGERPRO_TAG);
 end;
 
 procedure LogI(const AMessage: string; const Args: array of const);
 begin
+  if not IsInfoEnabled then Exit;
   Log.Info(Format(AMessage, Args), LOGGERPRO_TAG);
 end;
 
 procedure LogW(const AMessage: string; const Args: array of const);
 begin
+  if not IsWarningEnabled then Exit;
   Log.Warn(Format(AMessage, Args), LOGGERPRO_TAG);
 end;
 
 procedure LogE(const AMessage: string; const Args: array of const);
 begin
+  if not IsErrorEnabled then Exit;
   Log.Error(Format(AMessage, Args), LOGGERPRO_TAG);
 end;
 
 procedure LogF(const AMessage: string; const Args: array of const);
 begin
+  if not IsFatalEnabled then Exit;
   Log.Fatal(Format(AMessage, Args), LOGGERPRO_TAG);
 end;
 
@@ -429,57 +461,69 @@ begin
   Log.Fatal(AMessage, ATag);
 end;
 
-{ Format String + Tag overloads }
+{ Format String + Tag overloads - guarded to skip Format() cost when filtered }
 
 procedure LogD(const AMessage: string; const Args: array of const; const ATag: string);
 begin
+  if not IsDebugEnabled then Exit;
   Log.Debug(Format(AMessage, Args), ATag);
 end;
 
 procedure LogI(const AMessage: string; const Args: array of const; const ATag: string);
 begin
+  if not IsInfoEnabled then Exit;
   Log.Info(Format(AMessage, Args), ATag);
 end;
 
 procedure LogW(const AMessage: string; const Args: array of const; const ATag: string);
 begin
+  if not IsWarningEnabled then Exit;
   Log.Warn(Format(AMessage, Args), ATag);
 end;
 
 procedure LogE(const AMessage: string; const Args: array of const; const ATag: string);
 begin
+  if not IsErrorEnabled then Exit;
   Log.Error(Format(AMessage, Args), ATag);
 end;
 
 procedure LogF(const AMessage: string; const Args: array of const; const ATag: string);
 begin
+  if not IsFatalEnabled then Exit;
   Log.Fatal(Format(AMessage, Args), ATag);
 end;
 
-{ Message + Object overloads }
+{ Message + Object overloads - guarded to skip ObjectToJSON() cost when filtered.
+  JSON serialization via TMVCJsonDataObjectsSerializer is non-trivial on complex
+  graphs; guarding here eliminates the cost on filtered-out entries. }
 
 procedure LogD(const AMessage: string; AObject: TObject);
 begin
+  if not IsDebugEnabled then Exit;
   Log.Debug(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
 end;
 
 procedure LogI(const AMessage: string; AObject: TObject);
 begin
+  if not IsInfoEnabled then Exit;
   Log.Info(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
 end;
 
 procedure LogW(const AMessage: string; AObject: TObject);
 begin
+  if not IsWarningEnabled then Exit;
   Log.Warn(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
 end;
 
 procedure LogE(const AMessage: string; AObject: TObject);
 begin
+  if not IsErrorEnabled then Exit;
   Log.Error(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
 end;
 
 procedure LogF(const AMessage: string; AObject: TObject);
 begin
+  if not IsFatalEnabled then Exit;
   Log.Fatal(AMessage + ' ' + ObjectToJSON(AObject), LOGGERPRO_TAG);
 end;
 
@@ -495,26 +539,51 @@ begin
   LogException(E, AMessage);
 end;
 
-{ Log level check helpers }
+{ Log level check helpers - UseLoggerVerbosityLevel is the source of truth.
+  Reading these functions must NOT force default-logger creation, and must
+  honor live changes to UseLoggerVerbosityLevel even after gDefaultLogger
+  has been initialized.
+
+  Side effect: when gDefaultLogger exists, we sync its MinimumLevel to the
+  current verbosity so the logger thread's own gate stays consistent with
+  the early-exit checks in Log/LogD/LogE/etc. Without this sync, an
+  expensive ObjectToJSON could be skipped here while the logger thread
+  would still process a higher-priority entry under an outdated gate. }
+
+procedure SyncDefaultLoggerLevel; inline;
+begin
+  if gDefaultLogger <> nil then
+    gDefaultLogger.SetMinimumLevel(gLevelsMap[UseLoggerVerbosityLevel]);
+end;
 
 function IsDebugEnabled: Boolean;
 begin
+  SyncDefaultLoggerLevel;
   Result := UseLoggerVerbosityLevel <= TLogLevel.levDebug;
 end;
 
 function IsInfoEnabled: Boolean;
 begin
+  SyncDefaultLoggerLevel;
   Result := UseLoggerVerbosityLevel <= TLogLevel.levNormal;
 end;
 
 function IsWarningEnabled: Boolean;
 begin
+  SyncDefaultLoggerLevel;
   Result := UseLoggerVerbosityLevel <= TLogLevel.levWarning;
 end;
 
 function IsErrorEnabled: Boolean;
 begin
+  SyncDefaultLoggerLevel;
   Result := UseLoggerVerbosityLevel <= TLogLevel.levError;
+end;
+
+function IsFatalEnabled: Boolean;
+begin
+  SyncDefaultLoggerLevel;
+  Result := UseLoggerVerbosityLevel <= TLogLevel.levFatal;
 end;
 
 procedure InitializeDefaultLogger;
