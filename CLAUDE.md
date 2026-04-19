@@ -2,7 +2,7 @@
 
 ## Overview
 
-DelphiMVCFramework is a RESTful framework for Delphi (Object Pascal) supporting REST services, JSON-RPC APIs, and web applications. MVC architecture with ORM (MVCActiveRecord), authentication (JWT, Basic Auth), middleware system, WebSocket support, and serialization.
+DelphiMVCFramework - RESTful framework for Delphi (Object Pascal). REST services, JSON-RPC APIs, web apps. MVC architecture, ORM (MVCActiveRecord), auth (JWT, Basic), middleware, WebSocket, serialization.
 
 **Language**: Object Pascal / Delphi
 **Version**: `sources/dmvcframeworkbuildconsts.inc` (DMVCFRAMEWORK_VERSION)
@@ -48,15 +48,15 @@ ideexpert/            - IDE wizard for project creation
 
 | Area | Files | Key Classes |
 |------|-------|-------------|
-| Core | `MVCFramework.pas`, `Router.pas`, `Commons.pas` | `TMVCEngine`, `TMVCController` |
-| ORM | `ActiveRecord.pas`, `ActiveRecordController.pas` | `TMVCActiveRecord` |
+| Core | `MVCFramework.pas`, `MVCFramework.Router.pas`, `MVCFramework.Commons.pas` | `TMVCEngine`, `TMVCController` |
+| ORM | `MVCFramework.ActiveRecord.pas`, `MVCFramework.ActiveRecordController.pas` | `TMVCActiveRecord` |
 | Middleware | `Middleware.{JWT,CORS,Compression,StaticFiles,RateLimit,ETag,Swagger,Analytics,ActiveRecord}.pas` | `IMVCMiddleware` |
 | Serialization | `Serializer.JsonDataObjects.pas` | JSON with naming conventions |
 | WebSocket | `WebSocket.{Server,Client,pas}` | `TMVCWebSocketServer` |
-| Auth | `JWT.pas`, `HMAC.pas` | `TJWT` |
+| Auth | `MVCFramework.{JWT,JWT.RSA,HMAC}.pas` | `TJWT` |
 | Other | `RESTClient.pas`, `DotEnv.pas`, `Cache.pas`, `RQL.Parser.pas`, `Nullables.pas` | |
 
-Middleware executes in order added via `AddMiddleware()`. Controllers are stateless (created per request).
+Middleware executes in order added via `AddMiddleware()`. Controllers stateless (created per request).
 
 ## Delphi Versions
 
@@ -64,9 +64,11 @@ Middleware executes in order added via `AddMiddleware()`. Controllers are statel
 
 Each version folder: `dmvcframeworkRT.dpk` (runtime), `dmvcframeworkDT.dpk` (design-time + IDE expert), `loggerproRT.dpk`, `SwagDoc.dpk`.
 
+The whole codebase *MUST* be compatible with Delphi version 10 Seattle or better. Do not use in-line declarations and other syntax added after Delphi 10 Seattle.
+
 ## Testing
 
-TestServer (background HTTP server) + TestClient (requests + assertions). Both Win32/Win64.
+TestServer (background HTTP server) + TestClient (requests + assertions). Win32/Win64.
 - `unittests/general/TestServer/bin/` - server executable
 - `unittests/general/TestClient/bin32/` and `bin64/` - test executables
 
@@ -99,37 +101,37 @@ Indy (HTTP/TCP/WebSocket), FireDAC (DB for ActiveRecord), JsonDataObjects (JSON)
 | **JSON-RPC** | No | Optional | No | No | Yes | Compression, JWT |
 | **Microservice** | Custom only | Optional | No | No | Optional | CORS, JWT, RateLimit |
 
-**Wizard approach**: Configurable wizard with smart defaults per type (Approccio 2). Each type creates a preset that populates the same wizard form. User can accept defaults (OK) or customize.
+**Wizard**: Configurable with smart defaults per type. Each type = preset populating same wizard form. User accept defaults (OK) or customize.
 
 ## IDE Expert - Template System (TemplatePro)
 
-Code generation uses TemplatePro `.tpro` templates (migrazione completata, nessun file legacy).
+Code gen uses TemplatePro `.tpro` templates (migration complete, no legacy files).
 
 **Key files:**
 - `DMVC.Expert.ProjectGenerator.pas` - Main generator
 - `DMVC.Expert.CodeGen.TemplateEngine.pas` - Template engine wrapper
-- `DMVC.Expert.Presets.pas` - Preset configurations per project type
+- `DMVC.Expert.Presets.pas` - Preset configs per project type
 - `DMVC.Expert.Templates.rc` / `.res` - Embedded resources
 
 **Template loading (dual-mode):**
-1. File esterni: `C:\Users\Public\Documents\delphimvcframework_wizard_templates\` (priorita')
-2. Risorse embedded nel BPL (fallback)
+1. External files: `C:\Users\Public\Documents\delphimvcframework_wizard_templates\` (priority)
+2. Embedded resources in BPL (fallback)
 
-Template con prefisso `_` (es. `_license_header.tpro`) usano sempre la versione embedded.
+Templates with `_` prefix (e.g. `_license_header.tpro`) always use embedded version.
 
 **Templates (18):** `_license_header`, `program.dpr`, `program_service.dpr`, `service.pas`, `service.dfm`, `controller.pas`, `entity.pas`, `webmodule.pas`, `webmodule.dfm`, `jsonrpc.pas`, `services.pas`, `authentication.pas`, `helpers_{mustache,templatepro,webstencils}.pas`, `websocketserver.pas`, `project.dproj`, `project.rc`, `views/index_complete_view`.
 
-**Config Keys -> Template Variables:** chiavi JSON con punti diventano underscore (`webmodule.middleware.session.memory` -> `webmodule_middleware_session_memory`).
+**Config Keys -> Template Variables:** JSON keys with dots become underscores (`webmodule.middleware.session.memory` -> `webmodule_middleware_session_memory`).
 
 **TemplatePro syntax:**
 - Variabili: `{{:var}}`, `{{:obj.prop}}`
 - Condizionali: `{{if cond}}...{{elseif}}...{{else}}...{{endif}}`
 - Loop: `{{for item in list}}...{{endfor}}`
 - Include: `{{include "file.tpro"}}`
-- Filtri confronto: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `contains`
+- Filtri: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `contains`
 - Ref: https://www.danieleteti.it/templatepro/
 
-**Comandi operativi:**
+**Build commands:**
 ```bash
 # Build wizard BPL (richiede IDE chiuso)
 C:\DEV\dmvcframework\ideexpert\build_wizard2.bat

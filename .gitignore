@@ -195,3 +195,7 @@ GUIDA_OIDC_DANIELE.md
 /performancetest/results_c30_10s_postopt/*.json
 /performancetest/results_c30_10s_preopt/*.json
 /performancetest/results_msheap/*
+
+# Release report per Patreon — mai committare
+/docs/release_report_3.5.0-silicon.md
+/docs/release_report_3.5.0-silicon_en.md
