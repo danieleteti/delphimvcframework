@@ -62,7 +62,7 @@ implementation
 
 uses
   System.Rtti,
-  MVCFramework.Console,
+  LoggerPro.AnsiColors,
   LoggerPro.RendererRegistry;
 
 const

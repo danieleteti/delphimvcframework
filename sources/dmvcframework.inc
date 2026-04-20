@@ -119,4 +119,4 @@ DelphiMVCFramework is compatible with Delphi 10.0 or better
 {$UNDEF MVC_HAS_STREAMING_JSON}
 {$IF Defined(RIOORBETTER)}
 {$DEFINE MVC_HAS_STREAMING_JSON}
-{$IFEND}
+{$ENDIF}
