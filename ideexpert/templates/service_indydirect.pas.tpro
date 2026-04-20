@@ -40,9 +40,7 @@ implementation
 
 uses
   System.IOUtils,
-{{if program_dotenv}}
   MVCFramework.DotEnv,
-{{endif}}
   MVCFramework.Logger,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
@@ -71,6 +69,7 @@ uses
   MVCFramework.Container,
   {{:program_service_container_unit_name}},
 {{endif}}
+  BootConfigU,
   EngineConfigU;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
@@ -87,31 +86,13 @@ procedure TDMVCFrameworkWindowsService.ServiceCreate(Sender: TObject);
 begin
   // DMVCFramework Specific Configurations
   MVCSerializeNulls := True;
-  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
 
-{{if program_dotenv}}
-  dotEnvConfigure(
-    function: IMVCDotEnv
-    begin
-      Result := NewDotEnv
-        .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-        .UseProfile('test')
-        .UseProfile('prod')
-        .UseLogger(procedure(LogItem: String)
-          begin
-            LogW('dotEnv: ' + LogItem);
-          end)
-        .Build();
-    end);
-{{endif}}
+  // BootConfigU.Boot: dotEnv + logger + profiler. Must run before LogI.
+  Boot;
 {{if program_sqids}}
 
   TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
   TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
-{{endif}}
-{{if program_ssv_templatepro}}
-
-  TemplateProContextConfigure;
 {{endif}}
 {{if program_ssv_webstencils}}
 

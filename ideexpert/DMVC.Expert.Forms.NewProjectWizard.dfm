@@ -969,6 +969,149 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         end
       end
     end
+    object tsLogging: TTabSheet
+      Caption = 'Logging'
+      TabVisible = False
+      object lblLoggingProfile: TLabel
+        Left = 24
+        Top = 16
+        Width = 500
+        Height = 13
+        Caption =
+          'How LoggerPro (the underlying logging library) is wired into the' +
+          ' generated project'
+      end
+      object rgLoggingProfile: TRadioGroup
+        Left = 24
+        Top = 35
+        Width = 710
+        Height = 85
+        Caption = ' Logger configuration profile '
+        ItemIndex = 0
+        Items.Strings = (
+          'Fluent (in code) - builder chain inside BootConfigU.pas'
+          'JSON config - loggerpro.json next to the executable, filename via dotEnv'
+          'Disabled - install a null logger that drops every message (no I/O)')
+        TabOrder = 0
+        OnClick = rgLoggingProfileClick
+      end
+      object gbLoggingAppenders: TGroupBox
+        Left = 24
+        Top = 130
+        Width = 710
+        Height = 185
+        Caption = ' Built-in appenders '
+        TabOrder = 1
+        object lblAppenderHint: TLabel
+          Left = 14
+          Top = 20
+          Width = 680
+          Height = 13
+          Caption =
+            'Select which LoggerPro appenders the generated LoggerConfig unit' +
+            ' should wire (Fluent profile) or include in loggerpro.json (JSON' +
+            ' profile).'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clGrayText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object chkLogConsole: TCheckBox
+          Left = 14
+          Top = 44
+          Width = 340
+          Height = 17
+          Caption = 'Console (ANSI colors, UTF-8)'
+          Checked = True
+          State = cbChecked
+          TabOrder = 0
+        end
+        object chkLogFile: TCheckBox
+          Left = 14
+          Top = 67
+          Width = 340
+          Height = 17
+          Caption = 'File (rotating, configurable max size and backups)'
+          Checked = True
+          State = cbChecked
+          TabOrder = 1
+        end
+        object chkLogJSONL: TCheckBox
+          Left = 14
+          Top = 90
+          Width = 340
+          Height = 17
+          Caption = 'JSONL file (structured, one JSON object per line)'
+          TabOrder = 2
+        end
+        object chkLogHTML: TCheckBox
+          Left = 14
+          Top = 113
+          Width = 340
+          Height = 17
+          Caption = 'HTML file (styled browser-friendly log)'
+          TabOrder = 3
+        end
+        object chkLogODBG: TCheckBox
+          Left = 360
+          Top = 44
+          Width = 340
+          Height = 17
+          Caption = 'OutputDebugString (IDE debugger / DebugView)'
+          TabOrder = 4
+        end
+        object chkLogEventLog: TCheckBox
+          Left = 360
+          Top = 67
+          Width = 340
+          Height = 17
+          Caption = 'Windows Event Log (services / system admins)'
+          TabOrder = 5
+        end
+        object chkLogSyslog: TCheckBox
+          Left = 360
+          Top = 90
+          Width = 340
+          Height = 17
+          Caption = 'UDP Syslog (RFC 5424, centralized collectors)'
+          TabOrder = 6
+        end
+      end
+      object gbLoggingExeWatch: TGroupBox
+        Left = 24
+        Top = 325
+        Width = 710
+        Height = 75
+        Caption = ' Cloud observability '
+        TabOrder = 2
+        object chkLogExeWatch: TCheckBox
+          Left = 14
+          Top = 24
+          Width = 680
+          Height = 17
+          Caption = 'Add ExeWatch appender (orthogonal to profile - layers on top)'
+          TabOrder = 0
+          OnClick = chkLogExeWatchClick
+        end
+        object lblExeWatchHint: TLabel
+          Left = 32
+          Top = 44
+          Width = 660
+          Height = 13
+          Caption =
+            'Credentials read from dotEnv keys exewatch.apikey, exewatch.cust' +
+            'omerid, exewatch.appversion. Sign up at https://exewatch.com'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clGrayText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+      end
+    end
     object tsOptions: TTabSheet
       Caption = 'Options'
       TabVisible = False

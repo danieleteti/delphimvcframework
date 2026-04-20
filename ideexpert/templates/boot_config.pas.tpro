@@ -1,0 +1,201 @@
+{{include "_license_header.tpro"}}
+unit BootConfigU;
+
+interface
+
+/// Runs all startup configuration for the generated project: dotEnv,
+/// LoggerPro logger, DMVC profiler and (when present) the TemplatePro
+/// context. Call this once, as the first statement of the .dpr begin..end
+/// block, before any LogI/LogW/LogE call.
+procedure Boot;
+
+implementation
+
+uses
+  System.SysUtils,
+{{if logging_profile_json}}
+  System.JSON,
+  LoggerPro.Config,
+{{endif}}
+  LoggerPro,
+  LoggerPro.Builder,
+{{if logging_appender_console}}
+  LoggerPro.ConsoleAppender,
+{{endif}}
+{{if logging_appender_file}}
+  LoggerPro.FileAppender,
+{{endif}}
+{{if logging_appender_jsonl}}
+  LoggerPro.JSONLFileAppender,
+{{endif}}
+{{if logging_appender_html}}
+  LoggerPro.HTMLFileAppender,
+{{endif}}
+{{if logging_appender_odbg}}
+  LoggerPro.OutputDebugStringAppender,
+{{endif}}
+{{if logging_appender_eventlog}}
+  LoggerPro.WindowsEventLogAppender,
+{{endif}}
+{{if logging_appender_syslog}}
+  LoggerPro.UDPSyslogAppender,
+{{endif}}
+{{if logging_exewatch}}
+  LoggerPro.ExeWatchAppender,
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_console)}}
+  MVCFramework.Logger.ColorConsoleRenderer,
+{{endif}}
+{{if logging_profile_json}}
+  MVCFramework.Logger.ColorConsoleRenderer,
+{{endif}}
+{{if program_ssv_templatepro}}
+  {{:templatepro_helpers_unit_name}},
+{{endif}}
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  MVCFramework.Logger;
+
+{ --- private ---------------------------------------------------------------- }
+
+procedure ConfigDotEnv;
+begin
+  // Register the dotEnv delegate before the logger reads from it. The
+  // .UseLogger hook is intentionally omitted: DMVC's default dotEnv fallback
+  // calls LogI during bootstrap, which would force a default logger to be
+  // created BEFORE ConfigLogger installs the configured one.
+  dotEnvConfigure(
+    function: IMVCDotEnv
+    begin
+      Result := NewDotEnv
+                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
+                                       //if available, by default, loads default environment (.env)
+                 .UseProfile('test') //if available loads the test environment (.env.test)
+                 .UseProfile('prod') //if available loads the prod environment (.env.prod)
+                 .Build();             //uses the executable folder to look for .env* files
+    end);
+end;
+
+procedure ConfigLogger;
+var
+  lBuilder: ILoggerProBuilder;
+begin
+{{if logging_profile_fluent}}
+  lBuilder := LoggerProBuilder
+{{if logging_appender_console}}
+    .WriteToConsole
+      .WithUTF8Output
+      .WithRenderer(TMVCColorConsoleRenderer.Create)
+      .Done
+{{endif}}
+{{if logging_appender_file}}
+    .WriteToFile
+      .WithLogsFolder(dotEnv.Env('logger.file.folder', 'logs'))
+      .WithFileBaseName(dotEnv.Env('logger.file.basename', '{{:program_name}}'))
+      .WithMaxFileSizeInKB(dotEnv.Env('logger.file.max_kb', 10000))
+      .WithMaxBackupFiles(dotEnv.Env('logger.file.max_backups', 5))
+      .Done
+{{endif}}
+{{if logging_appender_jsonl}}
+    .WriteToJSONLFile
+      .WithLogsFolder(dotEnv.Env('logger.jsonl.folder', 'logs'))
+      .WithFileBaseName(dotEnv.Env('logger.jsonl.basename', '{{:program_name}}'))
+      .WithMaxFileSizeInKB(dotEnv.Env('logger.jsonl.max_kb', 10000))
+      .WithMaxBackupFiles(dotEnv.Env('logger.jsonl.max_backups', 5))
+      .Done
+{{endif}}
+{{if logging_appender_html}}
+    .WriteToHTMLFile
+      .WithLogsFolder(dotEnv.Env('logger.html.folder', 'logs'))
+      .WithFileBaseName(dotEnv.Env('logger.html.basename', '{{:program_name}}'))
+      .WithTitle(dotEnv.Env('logger.html.title', '{{:program_name}}'))
+      .WithMaxFileSizeInKB(dotEnv.Env('logger.html.max_kb', 10000))
+      .WithMaxBackupFiles(dotEnv.Env('logger.html.max_backups', 5))
+      .Done
+{{endif}}
+{{if logging_appender_odbg}}
+    .WriteToOutputDebugString
+      .Done
+{{endif}}
+{{if logging_appender_eventlog}}
+    .WriteToWindowsEventLog
+      .WithSourceName(dotEnv.Env('logger.eventlog.source', '{{:program_name}}'))
+      .Done
+{{endif}}
+{{if logging_appender_syslog}}
+    .WriteToUDPSyslog
+      .WithHost(dotEnv.Env('logger.syslog.host', '127.0.0.1'))
+      .WithPort(dotEnv.Env('logger.syslog.port', 514))
+      .WithApplication(dotEnv.Env('logger.syslog.application', '{{:program_name}}'))
+      .WithUseLocalTime(dotEnv.Env('logger.syslog.use_localtime', False))
+      .Done
+{{endif}}
+    ;
+
+{{if logging_exewatch}}
+  lBuilder := WithExeWatch(lBuilder)
+    .WithAPIKey(dotEnv.Env('exewatch.apikey', ''))
+    .WithCustomerId(dotEnv.Env('exewatch.customerid', ''))
+    .WithAppVersion(dotEnv.Env('exewatch.appversion', ''))
+    .Done;
+{{endif}}
+{{endif}}
+{{if logging_profile_json}}
+  // Logger configuration is loaded from a JSON file. The filename comes from
+  // dotEnv (key 'logger.config.file'), so per-environment .env files can point
+  // at different configs (loggerpro.dev.json, loggerpro.prod.json, ...).
+  //
+  // Renderer selection: the Console entry in loggerpro.json supports a
+  // "renderer" field resolved against LoggerPro's process-wide registry
+  // (LoggerPro.RendererRegistry). Built-in names include "Default", "NoTag",
+  // "LogFmt", "GinStyle"; DMVCFramework registers "DMVCColorConsole" from
+  // MVCFramework.Logger.ColorConsoleRenderer's initialization section.
+  //
+  // When ExeWatch is enabled, its config lives inside the JSON itself; adding
+  // LoggerPro.ExeWatchAppender to the uses clause registers the factory.
+  lBuilder := TLoggerProConfig.BuilderFromJSONFile(
+    dotEnv.Env('logger.config.file', 'loggerpro.json'));
+{{endif}}
+{{if logging_profile_disabled}}
+  // Null logger: the callback appender is wired with a no-op procedure so every
+  // log entry is discarded with zero I/O. This keeps every LogI/LogW/LogE call
+  // site in the application valid while producing no output. To re-enable
+  // logging later, replace this branch with a real builder (WriteToConsole,
+  // WriteToFile, ...) and rebuild.
+  lBuilder := LoggerProBuilder
+    .WriteToCallback
+      .WithCallback(
+        procedure(const aLogItem: TLogItem; const aFormattedMessage: string)
+        begin
+        end)
+      .Done;
+{{endif}}
+
+  SetDefaultLogger(lBuilder.Build);
+end;
+
+procedure ConfigProfiler;
+begin
+{$IF CompilerVersion >= 34} //SYDNEY+
+  if dotEnv.Env('dmvc.profiler.enabled', {{:controller_actions_profiling_generate}}) then
+  begin
+    Profiler.ProfileLogger := Log;
+    Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 1000);
+    Profiler.LogsOnlyIfOverThreshold := dotEnv.Env('dmvc.profiler.logs_only_over_threshold', True);
+  end;
+{$ENDIF}
+end;
+
+{ --- public ----------------------------------------------------------------- }
+
+procedure Boot;
+begin
+  ConfigDotEnv;
+  ConfigLogger;
+  ConfigProfiler;
+{{if program_ssv_templatepro}}
+  TemplateProContextConfigure;
+{{endif}}
+end;
+
+end.

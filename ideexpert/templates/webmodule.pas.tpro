@@ -24,7 +24,15 @@ implementation
 {$R *.dfm}
 
 uses
+{{if controller_main_generate}}
   {{:controller_unit_name}},
+{{endif}}
+{{if program_ssv_any}}
+  Controllers.APIU,
+{{endif}}
+{{if controller_crud_methods_generate}}
+  Controllers.PeopleU,
+{{endif}}
 {{if jsonrpc_generate}}
   {{:jsonrpc_unit_name}},
   MVCFramework.JSONRPC,
@@ -141,7 +149,12 @@ begin
 {{endif}}
 
   // Controllers
+{{if controller_main_generate}}
   fMVC.AddController({{:controller_classname}});
+{{endif}}
+{{if controller_crud_methods_generate}}
+  fMVC.AddController(TPeopleController);
+{{endif}}
 {{if program_ssv_any}}
   fMVC.AddController(TAPIController);
 {{endif}}

@@ -1,0 +1,70 @@
+{
+  "configVersion": 1,
+  "minimumLevel": "Info",
+  "defaultTag": "{{:program_name}}",
+  "appenders": [
+{{if logging_appender_console}}
+    {
+      "type": "Console",
+      "renderer": "DMVCColorConsole",
+      "utf8Output": true
+    }{{if @(logging_appender_file or logging_appender_jsonl or logging_appender_html or logging_appender_odbg or logging_appender_eventlog or logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_file}}
+    {
+      "type": "File",
+      "logsFolder": "logs",
+      "fileBaseName": "{{:program_name}}",
+      "maxBackupFiles": 5,
+      "maxFileSizeInKB": 10000
+    }{{if @(logging_appender_jsonl or logging_appender_html or logging_appender_odbg or logging_appender_eventlog or logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_jsonl}}
+    {
+      "type": "JSONLFile",
+      "logsFolder": "logs",
+      "fileBaseName": "{{:program_name}}",
+      "maxBackupFiles": 5,
+      "maxFileSizeInKB": 10000
+    }{{if @(logging_appender_html or logging_appender_odbg or logging_appender_eventlog or logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_html}}
+    {
+      "type": "HTMLFile",
+      "logsFolder": "logs",
+      "fileBaseName": "{{:program_name}}",
+      "title": "{{:program_name}}",
+      "maxBackupFiles": 5,
+      "maxFileSizeInKB": 10000
+    }{{if @(logging_appender_odbg or logging_appender_eventlog or logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_odbg}}
+    {
+      "type": "OutputDebugString"
+    }{{if @(logging_appender_eventlog or logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_eventlog}}
+    {
+      "type": "WindowsEventLog",
+      "sourceName": "{{:program_name}}"
+    }{{if @(logging_appender_syslog or logging_exewatch)}},{{endif}}
+{{endif}}
+{{if logging_appender_syslog}}
+    {
+      "type": "UDPSyslog",
+      "host": "127.0.0.1",
+      "port": 514,
+      "application": "{{:program_name}}",
+      "useLocalTime": false
+    }{{if logging_exewatch}},{{endif}}
+{{endif}}
+{{if logging_exewatch}}
+    {
+      "type": "ExeWatch",
+      "apiKey": "REPLACE_WITH_YOUR_EXEWATCH_API_KEY",
+      "customerId": "",
+      "appVersion": ""
+    }
+{{endif}}
+  ]
+}

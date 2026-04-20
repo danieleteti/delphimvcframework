@@ -36,7 +36,15 @@
             <Form>{{:webmodule_classname_short}}</Form>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
+{{if controller_main_generate}}
         <DCCReference Include="{{:controller_unit_name}}.pas"/>
+{{endif}}
+{{if program_ssv_any}}
+        <DCCReference Include="Controllers.APIU.pas"/>
+{{endif}}
+{{if controller_crud_methods_generate}}
+        <DCCReference Include="Controllers.PeopleU.pas"/>
+{{endif}}
 {{if entity_generate}}
         <DCCReference Include="{{:entity_unit_name}}.pas"/>
 {{endif}}
@@ -58,6 +66,7 @@
 {{if program_ssv_webstencils}}
         <DCCReference Include="{{:webstencils_helpers_unit_name}}.pas"/>
 {{endif}}
+        <DCCReference Include="BootConfigU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

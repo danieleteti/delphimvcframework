@@ -4,11 +4,17 @@ program {{:program_name}};
 uses
   Vcl.SvcMgr,
   System.SysUtils,
-{{if program_dotenv}}
   MVCFramework.DotEnv,
-{{endif}}
   ServiceU in 'ServiceU.pas' {{:service_form_reference}},
+{{if controller_main_generate}}
   {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_any}}
+  Controllers.APIU in 'Controllers.APIU.pas',
+{{endif}}
+{{if controller_crud_methods_generate}}
+  Controllers.PeopleU in 'Controllers.PeopleU.pas',
+{{endif}}
 {{if entity_generate}}
   {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
 {{endif}}
@@ -33,6 +39,7 @@ uses
 {{if program_ssv_webstencils}}
   {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
 {{endif}}
+  BootConfigU in 'BootConfigU.pas',
   EngineConfigU in 'EngineConfigU.pas';
 
 {$R *.RES}

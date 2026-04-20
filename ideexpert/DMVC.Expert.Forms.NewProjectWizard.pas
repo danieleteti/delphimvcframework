@@ -72,7 +72,23 @@ type
     tsAppType: TTabSheet;
     tsServer: TTabSheet;
     tsFeatures: TTabSheet;
+    tsLogging: TTabSheet;
     tsOptions: TTabSheet;
+    // tsLogging controls
+    lblLoggingProfile: TLabel;
+    rgLoggingProfile: TRadioGroup;
+    gbLoggingAppenders: TGroupBox;
+    lblAppenderHint: TLabel;
+    chkLogConsole: TCheckBox;
+    chkLogFile: TCheckBox;
+    chkLogJSONL: TCheckBox;
+    chkLogHTML: TCheckBox;
+    chkLogODBG: TCheckBox;
+    chkLogEventLog: TCheckBox;
+    chkLogSyslog: TCheckBox;
+    gbLoggingExeWatch: TGroupBox;
+    chkLogExeWatch: TCheckBox;
+    lblExeWatchHint: TLabel;
     // tsAppType controls
     rgApplicationType: TRadioGroup;
     lblAppTypeDescription: TLabel;
@@ -160,6 +176,8 @@ type
     procedure rgServerProtocolClick(Sender: TObject);
     procedure btnTestPortClick(Sender: TObject);
     procedure chkCreateSubfolderClick(Sender: TObject);
+    procedure rgLoggingProfileClick(Sender: TObject);
+    procedure chkLogExeWatchClick(Sender: TObject);
   private
     fModel: TJsonObject;
     fCurrentPage: Integer;
@@ -211,19 +229,22 @@ const
   PAGE_APP_TYPE = 0;
   PAGE_SERVER   = 1;
   PAGE_FEATURES = 2;
-  PAGE_OPTIONS  = 3;
+  PAGE_LOGGING  = 3;
+  PAGE_OPTIONS  = 4;
 
-  PAGE_TITLES: array[0..3] of string = (
+  PAGE_TITLES: array[0..4] of string = (
     'Application Type',
     'Server && Project',
     'Features',
+    'Logging',
     'Project Options'
   );
 
-  PAGE_HINTS: array[0..3] of string = (
+  PAGE_HINTS: array[0..4] of string = (
     'Select the type of application to be created',
     'Configure the server protocol, port, and project location',
     'Select controller options, middleware, and features',
+    'Choose how LoggerPro is wired and which appenders are enabled',
     'Configure naming, class names, and additional options'
   );
 
@@ -252,9 +273,9 @@ end;
 function TfrmDMVCNewProject.GetPageCount: Integer;
 begin
   if fIsCustomPreset then
-    Result := 4
+    Result := 5
   else
-    Result := 3;
+    Result := 4;
 end;
 
 function TfrmDMVCNewProject.MapPageIndex(AVisualIndex: Integer): Integer;
@@ -266,6 +287,7 @@ begin
     case AVisualIndex of
       0: Result := PAGE_APP_TYPE;
       1: Result := PAGE_SERVER;
+      2: Result := PAGE_LOGGING;
     else
       Result := PAGE_OPTIONS;
     end;
@@ -276,12 +298,13 @@ procedure TfrmDMVCNewProject.NavigateToPage(APageIndex: Integer);
 var
   LActualPage: Integer;
   LIsLast, LIsFirst: Boolean;
-  LPages: array[0..3] of TTabSheet;
+  LPages: array[0..4] of TTabSheet;
 begin
   LPages[0] := tsAppType;
   LPages[1] := tsServer;
   LPages[2] := tsFeatures;
-  LPages[3] := tsOptions;
+  LPages[3] := tsLogging;
+  LPages[4] := tsOptions;
 
   fCurrentPage := APageIndex;
   LActualPage := MapPageIndex(APageIndex);
@@ -319,6 +342,7 @@ var
   lProjectName: string;
   lPort: Integer;
   lPortText: string;
+  lHasAppender: Boolean;
 begin
   Result := True;
   LActualPage := MapPageIndex(fCurrentPage);
@@ -348,6 +372,28 @@ begin
           '- No spaces or special characters');
         edtProjectName.SetFocus;
         Result := False;
+      end;
+    end;
+
+    PAGE_LOGGING:
+    begin
+      // Disabled profile doesn't need appenders. Fluent and JSON profiles need
+      // at least one: LoggerPro.Build raises ELoggerPro otherwise. ExeWatch is
+      // itself an appender (wired via WithExeWatch), so it counts toward the
+      // minimum on its own.
+      if rgLoggingProfile.ItemIndex <> 2 then
+      begin
+        lHasAppender := chkLogConsole.Checked or chkLogFile.Checked or
+          chkLogJSONL.Checked or chkLogHTML.Checked or chkLogODBG.Checked or
+          chkLogEventLog.Checked or chkLogSyslog.Checked or
+          chkLogExeWatch.Checked;
+        if not lHasAppender then
+        begin
+          ShowMessage('Select at least one appender (ExeWatch counts), or ' +
+            'switch the profile to "Disabled" if you want the generated ' +
+            'project to produce no log output.');
+          Result := False;
+        end;
       end;
     end;
   end;
@@ -598,99 +644,34 @@ end;
 procedure TfrmDMVCNewProject.ShowNextStepsDialog(const AProjectName: string;
   const AHints: TArray<string>);
 var
-  LDlg: TForm;
-  LHeaderPanel: TPanel;
-  LIcon: TImage;
-  LTitle: TLabel;
-  LSubtitle: TLabel;
-  LMemo: TMemo;
-  LBtnOK: TButton;
-  LSeparator: TBevel;
+  LDlg: TTaskDialog;
   I: Integer;
+  LContent: string;
   LLine: string;
 begin
-  LDlg := TForm.Create(nil);
+  // Uses VCL's native TTaskDialog: DPI-safe, system-styled, and avoids the
+  // layout fragility of a hand-rolled form (label auto-sizing at HiDPI was
+  // pushing the title over the subtitle on the custom dialog).
+  LDlg := TTaskDialog.Create(nil);
   try
     LDlg.Caption := 'DelphiMVCFramework Wizard';
-    LDlg.BorderStyle := bsDialog;
-    LDlg.Position := poScreenCenter;
-    LDlg.ClientWidth := 620;
-    LDlg.ClientHeight := 420;
-    LDlg.Color := clWindow;
-    LDlg.Font.Name := 'Segoe UI';
-    LDlg.Font.Size := 9;
+    LDlg.Title := Format('Project "%s" created', [AProjectName]);
+    LDlg.MainIcon := tdiInformation;
+    LDlg.CommonButtons := [tcbOk];
+    LDlg.DefaultButton := tcbOk;
+    LDlg.Flags := [tfAllowDialogCancellation, tfSizeToContent];
 
-    LHeaderPanel := TPanel.Create(LDlg);
-    LHeaderPanel.Parent := LDlg;
-    LHeaderPanel.Align := alTop;
-    LHeaderPanel.Height := 70;
-    LHeaderPanel.BevelOuter := bvNone;
-    LHeaderPanel.Color := $00FAFAFA;
-    LHeaderPanel.ParentBackground := False;
-
-    LIcon := TImage.Create(LDlg);
-    LIcon.Parent := LHeaderPanel;
-    LIcon.SetBounds(20, 14, 40, 40);
-    LIcon.Picture.Icon.Handle := LoadIcon(0, IDI_INFORMATION);
-    LIcon.Stretch := True;
-    LIcon.Proportional := True;
-
-    LTitle := TLabel.Create(LDlg);
-    LTitle.Parent := LHeaderPanel;
-    LTitle.SetBounds(76, 14, 520, 22);
-    LTitle.Caption := 'Project ''' + AProjectName + ''' created';
-    LTitle.Font.Style := [fsBold];
-    LTitle.Font.Size := 12;
-    LTitle.Font.Color := $00333333;
-
-    LSubtitle := TLabel.Create(LDlg);
-    LSubtitle.Parent := LHeaderPanel;
-    LSubtitle.SetBounds(76, 40, 520, 18);
-    LSubtitle.Caption := 'Before deploying remember to:';
-    LSubtitle.Font.Color := $00666666;
-
-    LSeparator := TBevel.Create(LDlg);
-    LSeparator.Parent := LDlg;
-    LSeparator.SetBounds(0, 70, LDlg.ClientWidth, 1);
-    LSeparator.Shape := bsTopLine;
-
-    LMemo := TMemo.Create(LDlg);
-    LMemo.Parent := LDlg;
-    LMemo.SetBounds(20, 90, LDlg.ClientWidth - 40, 280);
-    LMemo.ReadOnly := True;
-    LMemo.BorderStyle := bsNone;
-    LMemo.Color := clWindow;
-    LMemo.ScrollBars := ssVertical;
-    LMemo.Font.Name := 'Segoe UI';
-    LMemo.Font.Size := 10;
-    LMemo.Font.Color := $00333333;
-    LMemo.WordWrap := True;
-    LMemo.Lines.BeginUpdate;
-    try
-      for I := 0 to High(AHints) do
-      begin
-        LLine := AHints[I];
-        if LLine.StartsWith('- ') then
-          LLine := '  ' + #$2022 + ' ' + LLine.Substring(2)
-        else
-          LLine := '  ' + LLine;
-        LMemo.Lines.Add(LLine);
-        LMemo.Lines.Add('');
-      end;
-    finally
-      LMemo.Lines.EndUpdate;
+    LContent := 'Before deploying remember to:';
+    for I := 0 to High(AHints) do
+    begin
+      LLine := AHints[I];
+      if LLine.StartsWith('- ') then
+        LLine := #$2022 + ' ' + LLine.Substring(2);
+      LContent := LContent + sLineBreak + sLineBreak + LLine;
     end;
+    LDlg.Text := LContent;
 
-    LBtnOK := TButton.Create(LDlg);
-    LBtnOK.Parent := LDlg;
-    LBtnOK.SetBounds(LDlg.ClientWidth - 110, LDlg.ClientHeight - 38, 90, 28);
-    LBtnOK.Caption := 'OK';
-    LBtnOK.Default := True;
-    LBtnOK.Cancel := True;
-    LBtnOK.ModalResult := mrOk;
-
-    LDlg.ActiveControl := LBtnOK;
-    LDlg.ShowModal;
+    LDlg.Execute;
   finally
     LDlg.Free;
   end;
@@ -799,6 +780,55 @@ begin
     lblProjectFolder.Caption := 'Base Folder (project created as subfolder)'
   else
     lblProjectFolder.Caption := 'Project Folder';
+end;
+
+procedure TfrmDMVCNewProject.rgLoggingProfileClick(Sender: TObject);
+var
+  lEnableAppenders: Boolean;
+begin
+  // Profile index 2 = Disabled (null logger). Disable appender selection to
+  // make it obvious that the generated project produces no log output.
+  lEnableAppenders := rgLoggingProfile.ItemIndex <> 2;
+  gbLoggingAppenders.Enabled := lEnableAppenders;
+  chkLogConsole.Enabled := lEnableAppenders;
+  chkLogFile.Enabled := lEnableAppenders;
+  chkLogJSONL.Enabled := lEnableAppenders;
+  chkLogHTML.Enabled := lEnableAppenders;
+  chkLogODBG.Enabled := lEnableAppenders;
+  chkLogEventLog.Enabled := lEnableAppenders;
+  chkLogSyslog.Enabled := lEnableAppenders;
+  gbLoggingExeWatch.Enabled := lEnableAppenders;
+  chkLogExeWatch.Enabled := lEnableAppenders;
+end;
+
+procedure TfrmDMVCNewProject.chkLogExeWatchClick(Sender: TObject);
+var
+  LDlg: TTaskDialog;
+begin
+  if not chkLogExeWatch.Checked then
+    Exit;
+
+  LDlg := TTaskDialog.Create(nil);
+  try
+    LDlg.Caption := 'DelphiMVCFramework Wizard';
+    LDlg.Title := 'ExeWatch prerequisites';
+    LDlg.MainIcon := tdiInformation;
+    LDlg.CommonButtons := [tcbOk];
+    LDlg.DefaultButton := tcbOk;
+    LDlg.Flags := [tfAllowDialogCancellation, tfSizeToContent];
+    LDlg.Text :=
+      'Before building a project that uses the ExeWatch appender, make sure:' + sLineBreak + sLineBreak +
+      #$2022 + ' The ExeWatch SDK for Delphi is downloaded from https://exewatch.com ' +
+      'and its source folder is on the project / IDE library path.' + sLineBreak + sLineBreak +
+      #$2022 + ' Your API key is configured:' + sLineBreak +
+      '    Fluent profile -> .env keys exewatch.apikey, exewatch.customerid, exewatch.appversion' + sLineBreak +
+      '    JSON profile   -> "apiKey", "customerId", "appVersion" inside the ExeWatch block of loggerpro.json' + sLineBreak + sLineBreak +
+      #$2022 + ' The generated project will not compile until LoggerPro.ExeWatchAppender ' +
+      'and its dependencies are reachable from the uses clause.';
+    LDlg.Execute;
+  finally
+    LDlg.Free;
+  end;
 end;
 
 procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
@@ -1101,6 +1131,40 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_session_file] := cbSessionType.ItemIndex = 2;
   fModel.B[TConfigKey.webmodule_middleware_session_database] := cbSessionType.ItemIndex = 3;
   fModel.I[TConfigKey.webmodule_middleware_session_timeout] := 0;
+
+  // Logging tab
+  case rgLoggingProfile.ItemIndex of
+    0: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.FLUENT;
+    1: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.JSON_CONFIG;
+    2: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.DISABLED;
+  else
+    fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.FLUENT;
+  end;
+  // When logging is disabled the appender checkboxes are meaningless, force
+  // them to False so the generated BootConfigU contains only the null-logger
+  // branch and no dead uses of appender units.
+  if rgLoggingProfile.ItemIndex = 2 then
+  begin
+    fModel.B[TConfigKey.logging_appender_console] := False;
+    fModel.B[TConfigKey.logging_appender_file] := False;
+    fModel.B[TConfigKey.logging_appender_jsonl] := False;
+    fModel.B[TConfigKey.logging_appender_html] := False;
+    fModel.B[TConfigKey.logging_appender_odbg] := False;
+    fModel.B[TConfigKey.logging_appender_eventlog] := False;
+    fModel.B[TConfigKey.logging_appender_syslog] := False;
+    fModel.B[TConfigKey.logging_exewatch] := False;
+  end
+  else
+  begin
+    fModel.B[TConfigKey.logging_appender_console] := chkLogConsole.Checked;
+    fModel.B[TConfigKey.logging_appender_file] := chkLogFile.Checked;
+    fModel.B[TConfigKey.logging_appender_jsonl] := chkLogJSONL.Checked;
+    fModel.B[TConfigKey.logging_appender_html] := chkLogHTML.Checked;
+    fModel.B[TConfigKey.logging_appender_odbg] := chkLogODBG.Checked;
+    fModel.B[TConfigKey.logging_appender_eventlog] := chkLogEventLog.Checked;
+    fModel.B[TConfigKey.logging_appender_syslog] := chkLogSyslog.Checked;
+    fModel.B[TConfigKey.logging_exewatch] := chkLogExeWatch.Checked;
+  end;
 
   Result := fModel;
 end;

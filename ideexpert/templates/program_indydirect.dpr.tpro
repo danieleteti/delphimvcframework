@@ -28,7 +28,15 @@ uses
 {{if program_service_container_generate}}
   MVCFramework.Container,
 {{endif}}
+{{if controller_main_generate}}
   {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_any}}
+  Controllers.APIU in 'Controllers.APIU.pas',
+{{endif}}
+{{if controller_crud_methods_generate}}
+  Controllers.PeopleU in 'Controllers.PeopleU.pas',
+{{endif}}
 {{if entity_generate}}
   {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
 {{endif}}
@@ -53,6 +61,7 @@ uses
 {{if program_ssv_webstencils}}
   {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
 {{endif}}
+  BootConfigU in 'BootConfigU.pas',
   EngineConfigU in 'EngineConfigU.pas';
 
 {$R *.res}
@@ -146,27 +155,12 @@ begin
 
   // DMVCFramework Specific Configurations
   MVCSerializeNulls := True;
-  MVCNameCaseDefault := TMVCNameCase.{{:serializer_name_case}};
-  UseConsoleLogger := True;
-  UseLoggerVerbosityLevel := TLogLevel.levNormal;
+
+  // BootConfigU.Boot: dotEnv + logger + profiler (+ TemplatePro context if any).
+  // Must run before the first LogI. Edit BootConfigU to tune anything.
+  Boot;
 
   LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
-{{if program_dotenv}}
-
-    dotEnvConfigure(
-      function: IMVCDotEnv
-      begin
-        Result := NewDotEnv
-                 .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                 .UseProfile('test')
-                 .UseProfile('prod')
-                 .UseLogger(procedure(LogItem: String)
-                            begin
-                              LogD('dotEnv: ' + LogItem);
-                            end)
-                 .Build();
-      end);
-{{endif}}
 {{if program_sqids}}
 
   TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
@@ -175,18 +169,6 @@ begin
 
   try
 
-{$IF CompilerVersion >= 34} //SYDNEY+
-    if dotEnv.Env('dmvc.profiler.enabled', {{:controller_actions_profiling_generate}}) then
-    begin
-      Profiler.ProfileLogger := Log;
-      Profiler.WarningThreshold := dotEnv.Env('dmvc.profiler.warning_threshold', 1000);
-      Profiler.LogsOnlyIfOverThreshold := dotEnv.Env('dmvc.profiler.logs_only_over_threshold', True);
-    end;
-{$ENDIF}
-{{if program_ssv_templatepro}}
-
-    TemplateProContextConfigure;
-{{endif}}
 {{if program_ssv_webstencils}}
 
     WebStencilsProcessorConfigure;

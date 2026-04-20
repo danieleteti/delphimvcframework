@@ -127,7 +127,7 @@ begin
   if TFile.Exists(LBuildConstsPath) then
   begin
     LFileContent := TFile.ReadAllText(LBuildConstsPath, TEncoding.UTF8);
-    // Extract version from: DMVCFRAMEWORK_VERSION = '3.5.0-silicon-beta';
+    // Extract version from: DMVCFRAMEWORK_VERSION = '3.5.0-silicon-rc2';
     LStartPos := Pos('''', LFileContent);
     if LStartPos > 0 then
     begin
@@ -295,7 +295,9 @@ class procedure TDMVCProjectGenerator.Generate(const AProjectFolder, AProjectNam
   end;
 
 const
-  CONTROLLER_UNIT = 'ControllerU';
+  CONTROLLER_UNIT = 'Controllers.HomeU';
+  CONTROLLER_API_UNIT = 'Controllers.APIU';
+  CONTROLLER_PEOPLE_UNIT = 'Controllers.PeopleU';
   WEBMODULE_UNIT = 'WebModuleU';
   ENTITY_UNIT = 'EntitiesU';
   SERVICES_UNIT = 'ServicesU';
@@ -305,6 +307,7 @@ const
   MUSTACHE_HELPERS_UNIT = 'MustacheHelpersU';
   TEMPLATEPRO_HELPERS_UNIT = 'TemplateProHelpersU';
   WEBSTENCILS_HELPERS_UNIT = 'WebStencilsHelpersU';
+  BOOT_CONFIG_UNIT = 'BootConfigU';
 var
   LBinPath: string;
   LWwwPath: string;
@@ -353,6 +356,26 @@ begin
   AConfig.B['program.ssv.any'] := AConfig.B[TConfigKey.program_ssv_mustache] or
                                    AConfig.B[TConfigKey.program_ssv_templatepro] or
                                    AConfig.B[TConfigKey.program_ssv_webstencils];
+
+  // Pre-computed logging profile booleans: TemplatePro's @(a and b) compound
+  // expressions only accept boolean variables, not |eq,"..." filter
+  // expressions, so we materialize the profile checks into plain booleans.
+  AConfig.B['logging.profile.fluent'] :=
+    SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.FLUENT) or
+    (AConfig.S[TConfigKey.logging_profile] = '');
+  AConfig.B['logging.profile.json'] :=
+    SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.JSON_CONFIG);
+  AConfig.B['logging.profile.disabled'] :=
+    SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.DISABLED);
+
+  // Main ControllerU.pas is worth generating only when it will contain at
+  // least one method. With the CRUD sample now living in Controllers.PeopleU,
+  // a RESTful preset (no index methods, no SSV) would otherwise leave an
+  // empty TXxxController = class(TMVCController) end; in ControllerU.
+  AConfig.B['controller.main.generate'] :=
+    AConfig.B[TConfigKey.controller_index_methods_generate] or
+    AConfig.B[TConfigKey.controller_action_filters_generate] or
+    AConfig.B['program.ssv.any'];
 
   // Always use .html extension for better editor support
   AConfig.S['template.extension'] := 'html';
@@ -421,8 +444,26 @@ begin
   // Generate .dproj with correct output paths (exe -> .\bin, dcu -> .\$(Platform)\$(Config))
   SaveFile(AProjectName + '.dproj', RenderTemplate('project.dproj.tpro', AConfig));
 
-  // Required units
-  SaveFile(CONTROLLER_UNIT + '.pas', RenderTemplate('controller.pas.tpro', AConfig));
+  // Main Controllers.HomeU is generated only when it would contain at least
+  // one method (index samples, action filters override, or SSV OnBeforeAction).
+  // Pure REST projects with only CRUD skip this unit - the sample code lives
+  // in Controllers.PeopleU and an empty THomeController = class(TMVCController)
+  // end; would just be noise.
+  if AConfig.B['controller.main.generate'] then
+    SaveFile(CONTROLLER_UNIT + '.pas', RenderTemplate('controller.pas.tpro', AConfig));
+
+  // JSON sidecar for SSV projects. Exposes /api/server/info alongside the
+  // view-rendering THomeController so AJAX / HTMX partials have a content-
+  // type-correct endpoint.
+  if AConfig.B['program.ssv.any'] then
+    SaveFile(CONTROLLER_API_UNIT + '.pas',
+      RenderTemplate('controller_api.pas.tpro', AConfig));
+
+  // Dedicated People controller (split out of the main controller unit so CRUD
+  // samples follow the idiomatic "one controller per resource" pattern).
+  if AConfig.B[TConfigKey.controller_crud_methods_generate] then
+    SaveFile(CONTROLLER_PEOPLE_UNIT + '.pas',
+      RenderTemplate('controller_people.pas.tpro', AConfig));
 
   // WebModule is only generated for WebBroker server engine
   if (AConfig.S[TConfigKey.program_server_engine] = 'webbroker') or
@@ -460,6 +501,14 @@ begin
 
   if AConfig.B[TConfigKey.program_ssv_webstencils] then
     SaveFile(WEBSTENCILS_HELPERS_UNIT + '.pas', RenderTemplate('helpers_webstencils.pas.tpro', AConfig));
+
+  // Boot configuration unit - always generated so that LoggerPro setup,
+  // dotEnv wiring, profiler and (optionally) TemplatePro context are all
+  // explicit and user-visible in the project. Profile ('fluent' | 'json' |
+  // 'disabled') and appender selection are driven by TConfigKey.logging_*
+  // entries populated by the wizard.
+  SaveFile(BOOT_CONFIG_UNIT + '.pas',
+    RenderTemplate('boot_config.pas.tpro', AConfig));
 
   // Create bin folder for deployment (exe + all support files go here)
   LBinPath := TPath.Combine(AProjectFolder, 'bin');
@@ -616,6 +665,13 @@ begin
 
   // Create .env file in bin/ with all default values
   SaveFile('bin' + PathDelim + '.env', RenderTemplate('dotenv.tpro', AConfig));
+
+  // When the logger profile is JSON, emit a loggerpro.json next to the
+  // executable. The file path is resolved at runtime via dotEnv key
+  // 'logger.config.file' (defaulted in dotenv.tpro).
+  if SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.JSON_CONFIG) then
+    SaveFile('bin' + PathDelim + 'loggerpro.json',
+      RenderTemplate('loggerpro.json.tpro', AConfig));
 
   // Create sample FDConnectionDefs.ini when ActiveRecord middleware is enabled (inside bin)
   if AConfig.B[TConfigKey.webmodule_middleware_activerecord] then

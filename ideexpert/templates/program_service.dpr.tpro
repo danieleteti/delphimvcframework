@@ -4,12 +4,13 @@ program {{:program_name}};
 uses
   Vcl.SvcMgr,
   System.SysUtils,
-{{if program_dotenv}}
   MVCFramework.DotEnv,
-{{endif}}
   ServiceU in 'ServiceU.pas' {{:service_form_reference}},
-  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}}{{if controller_unit_name}},
-  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas'{{endif}}{{if entity_generate}},
+  BootConfigU in 'BootConfigU.pas',
+  {{:webmodule_unit_name}} in '{{:webmodule_unit_name}}.pas' {{:webmodule_form_reference}}{{if controller_main_generate}},
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas'{{endif}}{{if program_ssv_any}},
+  Controllers.APIU in 'Controllers.APIU.pas'{{endif}}{{if controller_crud_methods_generate}},
+  Controllers.PeopleU in 'Controllers.PeopleU.pas'{{endif}}{{if entity_generate}},
   {{:entity_unit_name}} in '{{:entity_unit_name}}.pas'{{endif}}{{if jsonrpc_generate}},
   {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas'{{endif}}{{if program_service_container_generate}},
   {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas'{{endif}}{{if program_ssv_mustache}},

@@ -373,12 +373,15 @@ begin
   Result.S[TConfigKey.program_service_container_unit_name] := 'ServicesU';
 
   // Controller defaults
-  Result.S[TConfigKey.controller_unit_name] := 'MainControllerU';
-  Result.S[TConfigKey.controller_classname] := 'TMainController';
+  Result.S[TConfigKey.controller_unit_name] := 'Controllers.HomeU';
+  Result.S[TConfigKey.controller_classname] := 'THomeController';
   Result.B[TConfigKey.controller_index_methods_generate] := True;
   Result.B[TConfigKey.controller_action_filters_generate] := False;
   Result.B[TConfigKey.controller_crud_methods_generate] := False;
   Result.B[TConfigKey.controller_actions_profiling_generate] := False;
+  // Derived flag mirrored by GenerateProject; declared here too so templates
+  // rendered directly (RunDProjAppTypeTest) don't trip the strict engine.
+  Result.B['controller.main.generate'] := True;
 
   // Entity defaults
   Result.B[TConfigKey.entity_generate] := False;
@@ -446,6 +449,39 @@ begin
     AConfig.B['program.ssv.any'] := AConfig.B[TConfigKey.program_ssv_mustache] or
                                      AConfig.B[TConfigKey.program_ssv_templatepro] or
                                      AConfig.B[TConfigKey.program_ssv_webstencils];
+
+    // Logging profile: default to fluent when tests don't override, and
+    // pre-compute the derived booleans the templates consume (the real
+    // DMVC.Expert.ProjectGenerator does the same).
+    if (not AConfig.Contains('logging.profile')) or AConfig.S['logging.profile'].IsEmpty then
+    begin
+      AConfig.S['logging.profile'] := 'fluent';
+      AConfig.B['logging.appender.console'] := True;
+      AConfig.B['logging.appender.file'] := True;
+    end;
+    AConfig.B['logging.profile.fluent'] :=
+      SameText(AConfig.S['logging.profile'], 'fluent');
+    AConfig.B['logging.profile.json'] :=
+      SameText(AConfig.S['logging.profile'], 'json');
+    AConfig.B['logging.profile.disabled'] :=
+      SameText(AConfig.S['logging.profile'], 'disabled');
+    // Ensure every appender flag exists so the strict test template engine
+    // doesn't throw on undefined variables. Defaults to False for any flag
+    // not set by the test case.
+    if not AConfig.Contains('logging.appender.console')  then AConfig.B['logging.appender.console']  := False;
+    if not AConfig.Contains('logging.appender.file')     then AConfig.B['logging.appender.file']     := False;
+    if not AConfig.Contains('logging.appender.jsonl')    then AConfig.B['logging.appender.jsonl']    := False;
+    if not AConfig.Contains('logging.appender.html')     then AConfig.B['logging.appender.html']     := False;
+    if not AConfig.Contains('logging.appender.odbg')     then AConfig.B['logging.appender.odbg']     := False;
+    if not AConfig.Contains('logging.appender.eventlog') then AConfig.B['logging.appender.eventlog'] := False;
+    if not AConfig.Contains('logging.appender.syslog')   then AConfig.B['logging.appender.syslog']   := False;
+    if not AConfig.Contains('logging.exewatch')          then AConfig.B['logging.exewatch']          := False;
+
+    // Main controller emission gate (mirror of DMVC.Expert.ProjectGenerator).
+    AConfig.B['controller.main.generate'] :=
+      AConfig.B[TConfigKey.controller_index_methods_generate] or
+      AConfig.B[TConfigKey.controller_action_filters_generate] or
+      AConfig.B['program.ssv.any'];
 
     // Always use .html extension for better editor support
     AConfig.S['template.extension'] := 'html';
@@ -559,10 +595,34 @@ begin
       TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
     end;
 
-    // Generate controller
-    LogVerbose('Generating controller...');
-    LSource := TTestTemplateEngine.Render('controller.pas.tpro', AConfig);
-    TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.controller_unit_name] + '.pas'), LSource);
+    // Main Controllers.HomeU - only when it would contain at least one method
+    if AConfig.B['controller.main.generate'] then
+    begin
+      LogVerbose('Generating Controllers.HomeU...');
+      LSource := TTestTemplateEngine.Render('controller.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.controller_unit_name] + '.pas'), LSource);
+    end;
+
+    // JSON sidecar for SSV presets
+    if AConfig.B['program.ssv.any'] then
+    begin
+      LogVerbose('Generating Controllers.APIU...');
+      LSource := TTestTemplateEngine.Render('controller_api.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'Controllers.APIU.pas'), LSource);
+    end;
+
+    // Generate BootConfigU (always)
+    LogVerbose('Generating BootConfigU...');
+    LSource := TTestTemplateEngine.Render('boot_config.pas.tpro', AConfig);
+    TFile.WriteAllText(TPath.Combine(AOutputDir, 'BootConfigU.pas'), LSource);
+
+    // Generate dedicated People controller when CRUD is enabled
+    if AConfig.B[TConfigKey.controller_crud_methods_generate] then
+    begin
+      LogVerbose('Generating Controllers.PeopleU...');
+      LSource := TTestTemplateEngine.Render('controller_people.pas.tpro', AConfig);
+      TFile.WriteAllText(TPath.Combine(AOutputDir, 'Controllers.PeopleU.pas'), LSource);
+    end;
 
     // WebModule is only generated for WebBroker server engine
     if (AConfig.S[TConfigKey.program_server_engine] = 'webbroker') or

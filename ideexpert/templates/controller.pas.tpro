@@ -4,7 +4,7 @@ unit {{:controller_unit_name}};
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, {{if entity_generate}}MVCFramework.Nullables, {{:entity_unit_name}}, {{endif}}{{if program_service_container_generate}}{{:program_service_container_unit_name}}, {{endif}}MVCFramework.Serializer.Commons, System.Generics.Collections;
+  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons, System.Generics.Collections;
 
 type
 {{if program_ssv_any}}
@@ -59,48 +59,7 @@ type
 {{endif}}
 
 {{endif}}
-{{if controller_crud_methods_generate}}
-{{if !controller_index_methods_generate}}
-  public
-{{endif}}
-    //Sample CRUD Actions for a "People" entity
-    [MVCPath('/people')]
-    [MVCHTTPMethod([httpGET])]
-{{if program_service_container_generate}}
-    function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;
-{{else}}
-    function GetPeople: IMVCResponse;
-{{endif}}
-
-    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
-    [MVCHTTPMethod([httpGET])]
-    function GetPerson(ID: Integer): TPerson;
-
-    [MVCPath('/people')]
-    [MVCHTTPMethod([httpPOST])]
-    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
-
-    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
-    [MVCHTTPMethod([httpPUT])]
-    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
-
-    [MVCPath('/people/($ID{{if program_sqids}}:sqids{{endif}})')]
-    [MVCHTTPMethod([httpDELETE])]
-    function DeletePerson(ID: Integer): IMVCResponse;
-{{endif}}
   end;
-
-{{if program_ssv_any}}
-  // Sample API controller - returns JSON data
-  // Demonstrates how a web application can also expose API endpoints
-  [MVCPath('/api')]
-  TAPIController = class(TMVCController)
-  public
-    [MVCPath('/server/info')]
-    [MVCHTTPMethod([httpGET])]
-    function GetServerInfo: IMVCResponse;
-  end;
-{{endif}}
 
 implementation
 
@@ -196,20 +155,6 @@ begin
     '<p><strong>Server Time:</strong> ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</p>';
 end;
 
-{ TAPIController }
-
-function TAPIController.GetServerInfo: IMVCResponse;
-begin
-  // Returns JSON data - use this pattern for API endpoints
-  Result := OkResponse(
-    StrDict(
-      ['application', 'dmvcVersion', 'serverTime', 'compilerVersion'],
-      ['{{:program_name}}', DMVCFRAMEWORK_VERSION,
-       FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now),
-       Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant)]
-    )
-  );
-end;
 {{else}}
 function {{:controller_classname}}.GetReversedString(const Value: String): String;
 begin
@@ -221,86 +166,6 @@ begin
   Result := System.StrUtils.ReverseString(Value.Trim);
 end;
 {{endif}}
-{{endif}}
-
-{{if controller_crud_methods_generate}}
-{{if program_service_container_generate}}
-//Sample CRUD Actions for a "People" entity (with service injection)
-function {{:controller_classname}}.GetPeople(PeopleService: IPeopleService): IMVCResponse;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  Result := OkResponse(PeopleService.GetAll);
-end;
-{{else}}
-//Sample CRUD Actions for a "People" entity (no service injection)
-function {{:controller_classname}}.GetPeople: IMVCResponse;
-var
-  lPeople: TObjectList<TPerson>;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  lPeople := TObjectList<TPerson>.Create(True);
-  try
-    lPeople.Add(TPerson.Create(1, 'Peter','Parker', EncodeDate(1965, 10, 4)));
-    lPeople.Add(TPerson.Create(2, 'Bruce','Banner', EncodeDate(1945, 9, 6)));
-    lPeople.Add(TPerson.Create(3, 'Reed','Richards', EncodeDate(1955, 3, 7)));
-    Result := OkResponse(lPeople);
-  except
-    lPeople.Free;
-    raise;
-  end;
-end;
-{{endif}}
-
-function {{:controller_classname}}.GetPerson(ID: Integer): TPerson;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  Result := TPerson.Create(ID, 'Daniele', 'Teti', EncodeDate(1979, 11, 4));
-end;
-
-function {{:controller_classname}}.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
-  Result := CreatedResponse('', 'Person created');
-end;
-
-function {{:controller_classname}}.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  LogI('Updated ' + Person.FirstName + ' ' + Person.LastName);
-  Result := NoContentResponse();
-end;
-
-function {{:controller_classname}}.DeletePerson(ID: Integer): IMVCResponse;
-begin
-{{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
-  var lProf := Profiler.Start(Context.ActionQualifiedName);
-{$ENDIF}
-{{endif}}
-  LogI('Deleted person with id ' + ID.ToString);
-  Result := NoContentResponse();
-end;
 {{endif}}
 
 end.

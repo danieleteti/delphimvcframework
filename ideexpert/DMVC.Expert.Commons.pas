@@ -49,7 +49,7 @@ type
   TDefaultValues = class sealed
   public
     const
-      sDefaultControllerName = 'TMyController';
+      sDefaultControllerName = 'THomeController';
     const
       sDefaultWebModuleName = 'TMyWebModule';
     const
@@ -116,6 +116,23 @@ type
       default_media_type = 'default_media_type';
       // Server engine type
       program_server_engine = 'program.server_engine'; // 'webbroker', 'indydirect', 'httpsys'
+      // Logging configuration
+      logging_profile = 'logging.profile'; // 'fluent' | 'json'
+      logging_appender_console = 'logging.appender.console';
+      logging_appender_file = 'logging.appender.file';
+      logging_appender_jsonl = 'logging.appender.jsonl';
+      logging_appender_html = 'logging.appender.html';
+      logging_appender_odbg = 'logging.appender.odbg';
+      logging_appender_eventlog = 'logging.appender.eventlog';
+      logging_appender_syslog = 'logging.appender.syslog';
+      logging_exewatch = 'logging.exewatch';
+  end;
+
+  TLoggingProfiles = record
+    const
+      FLUENT = 'fluent';
+      JSON_CONFIG = 'json';
+      DISABLED = 'disabled';
   end;
 
   TProgramTypes = record

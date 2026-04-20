@@ -92,9 +92,11 @@ implementation
 
 procedure ApplyPreset_RESTfulAPI(AForm: TfrmDMVCNewProject);
 begin
-  // Controller
-  AForm.edtControllerClassName.Text := 'TAPIController';
-  AForm.chkCreateIndexMethod.Checked := False;
+  // Controller. RESTful preset always emits both sample areas:
+  // - Controllers.HomeU with an "index" endpoint that sanity-checks the server
+  // - Controllers.PeopleU with the CRUD sample
+  AForm.edtControllerClassName.Text := 'THomeController';
+  AForm.chkCreateIndexMethod.Checked := True;
   AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;

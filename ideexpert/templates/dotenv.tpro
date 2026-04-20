@@ -106,3 +106,70 @@ JWT_COOKIE_SECURE=false
 firedac.connection_definition_name={{:webmodule_middleware_activerecord_con_def_name}}
 firedac.connection_definitions_filename={{:con_def_filename}}
 {{endif}}
+{{if logging_profile_json}}
+
+# ============================================================================
+# Logging - JSON config
+# ============================================================================
+# Path to the LoggerPro JSON config file, resolved relative to the executable.
+# Change per environment (e.g. loggerpro.prod.json, loggerpro.dev.json).
+logger.config.file=loggerpro.json
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_file)}}
+
+# ============================================================================
+# Logging - File appender
+# ============================================================================
+logger.file.folder=logs
+logger.file.basename={{:program_name}}
+logger.file.max_kb=10000
+logger.file.max_backups=5
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_jsonl)}}
+
+# ============================================================================
+# Logging - JSONL file appender (structured logging)
+# ============================================================================
+logger.jsonl.folder=logs
+logger.jsonl.basename={{:program_name}}
+logger.jsonl.max_kb=10000
+logger.jsonl.max_backups=5
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_html)}}
+
+# ============================================================================
+# Logging - HTML file appender
+# ============================================================================
+logger.html.folder=logs
+logger.html.basename={{:program_name}}
+logger.html.title={{:program_name}}
+logger.html.max_kb=10000
+logger.html.max_backups=5
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_eventlog)}}
+
+# ============================================================================
+# Logging - Windows Event Log appender
+# ============================================================================
+logger.eventlog.source={{:program_name}}
+{{endif}}
+{{if @(logging_profile_fluent and logging_appender_syslog)}}
+
+# ============================================================================
+# Logging - UDP Syslog appender
+# ============================================================================
+logger.syslog.host=127.0.0.1
+logger.syslog.port=514
+logger.syslog.application={{:program_name}}
+logger.syslog.use_localtime=false
+{{endif}}
+{{if logging_exewatch}}
+
+# ============================================================================
+# Logging - ExeWatch cloud observability
+# ============================================================================
+# Sign up and get your API key at https://exewatch.com
+exewatch.apikey=REPLACE_WITH_YOUR_EXEWATCH_API_KEY
+exewatch.customerid=
+exewatch.appversion=
+{{endif}}

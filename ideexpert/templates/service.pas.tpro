@@ -40,11 +40,10 @@ implementation
 
 uses
   Web.WebReq,
-{{if program_dotenv}}
   MVCFramework.DotEnv,
-{{endif}}
   MVCFramework.Logger,
   MVCFramework.Commons,
+  BootConfigU,
   {{:webmodule_unit_name}};
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
@@ -59,20 +58,8 @@ end;
 
 procedure TDMVCFrameworkWindowsService.ServiceCreate(Sender: TObject);
 begin
-{{if program_dotenv}}
-  dotEnvConfigure(
-    function: IMVCDotEnv
-    begin
-      Result := NewDotEnv
-        .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-        .UseProfile('development')
-        .UseLogger(procedure(LogItem: String)
-          begin
-            LogW('dotEnv: ' + LogItem);
-          end)
-        .Build();
-    end);
-{{endif}}
+  // BootConfigU.Boot: dotEnv + logger + profiler. Must run before LogI.
+  Boot;
   if WebRequestHandler <> nil then
     WebRequestHandler.WebModuleClass := WebModuleClass;
   WebRequestHandlerProc.MaxConnections := 1024;

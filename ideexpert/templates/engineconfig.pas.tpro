@@ -11,7 +11,15 @@ procedure ConfigureEngine(AEngine: TMVCEngine);
 implementation
 
 uses
+{{if controller_main_generate}}
   {{:controller_unit_name}},
+{{endif}}
+{{if program_ssv_any}}
+  Controllers.APIU,
+{{endif}}
+{{if controller_crud_methods_generate}}
+  Controllers.PeopleU,
+{{endif}}
 {{if jsonrpc_generate}}
   {{:jsonrpc_unit_name}},
   MVCFramework.JSONRPC,
@@ -100,9 +108,14 @@ begin
 {{endif}}
 
   // Controllers
+{{if controller_main_generate}}
   AEngine.AddController({{:controller_classname}});
+{{endif}}
 {{if program_ssv_any}}
   AEngine.AddController(TAPIController);
+{{endif}}
+{{if controller_crud_methods_generate}}
+  AEngine.AddController(TPeopleController);
 {{endif}}
   // Controllers - END
 {{if program_ssv_templatepro}}

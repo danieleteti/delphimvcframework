@@ -1,0 +1,131 @@
+{{include "_license_header.tpro"}}
+unit Controllers.PeopleU;
+
+interface
+
+uses
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.Nullables,
+  MVCFramework.Serializer.Commons,
+  System.Generics.Collections,
+  {{:entity_unit_name}}{{if program_service_container_generate}},
+  {{:program_service_container_unit_name}}{{endif}};
+
+type
+  [MVCPath('/api/people')]
+  TPeopleController = class(TMVCController)
+  public
+    // GET /api/people
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+{{if program_service_container_generate}}
+    function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;
+{{else}}
+    function GetPeople: IMVCResponse;
+{{endif}}
+
+    // GET /api/people/(ID)
+    [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpGET])]
+    function GetPerson(ID: Integer): TPerson;
+
+    // POST /api/people
+    [MVCPath]
+    [MVCHTTPMethod([httpPOST])]
+    function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+
+    // PUT /api/people/(ID)
+    [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpPUT])]
+    function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
+
+    // DELETE /api/people/(ID)
+    [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
+    [MVCHTTPMethod([httpDELETE])]
+    function DeletePerson(ID: Integer): IMVCResponse;
+  end;
+
+implementation
+
+uses
+  System.SysUtils,
+  MVCFramework.Logger;
+
+{{if program_service_container_generate}}
+function TPeopleController.GetPeople(PeopleService: IPeopleService): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  Result := OkResponse(PeopleService.GetAll);
+end;
+{{else}}
+function TPeopleController.GetPeople: IMVCResponse;
+var
+  lPeople: TObjectList<TPerson>;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  lPeople := TObjectList<TPerson>.Create(True);
+  try
+    lPeople.Add(TPerson.Create(1, 'Peter',  'Parker',   EncodeDate(1965, 10, 4)));
+    lPeople.Add(TPerson.Create(2, 'Bruce',  'Banner',   EncodeDate(1945,  9, 6)));
+    lPeople.Add(TPerson.Create(3, 'Reed',   'Richards', EncodeDate(1955,  3, 7)));
+    Result := OkResponse(lPeople);
+  except
+    lPeople.Free;
+    raise;
+  end;
+end;
+{{endif}}
+
+function TPeopleController.GetPerson(ID: Integer): TPerson;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  Result := TPerson.Create(ID, 'Daniele', 'Teti', EncodeDate(1979, 11, 4));
+end;
+
+function TPeopleController.CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
+  Result := CreatedResponse('', 'Person created');
+end;
+
+function TPeopleController.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Updated ' + Person.FirstName + ' ' + Person.LastName);
+  Result := NoContentResponse();
+end;
+
+function TPeopleController.DeletePerson(ID: Integer): IMVCResponse;
+begin
+{{if controller_actions_profiling_generate}}
+{$IF CompilerVersion >= 34} //SYDNEY+
+  var lProf := Profiler.Start(Context.ActionQualifiedName);
+{$ENDIF}
+{{endif}}
+  LogI('Deleted person with id ' + ID.ToString);
+  Result := NoContentResponse();
+end;
+
+end.
