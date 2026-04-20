@@ -143,7 +143,13 @@ contains
   MVCFramework.WebSocket.Server in '..\..\sources\MVCFramework.WebSocket.Server.pas',
   MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas',
   TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas',
-  MVCFramework.Serializer.Streaming in '..\..\sources\MVCFramework.Serializer.Streaming.pas';
+  MVCFramework.Serializer.Streaming in '..\..\sources\MVCFramework.Serializer.Streaming.pas',
+  MVCFramework.WebBroker.Response in '..\..\sources\MVCFramework.WebBroker.Response.pas',
+  MVCFramework.WebBroker.Request in '..\..\sources\MVCFramework.WebBroker.Request.pas',
+  MVCFramework.Validators.CrossField in '..\..\sources\MVCFramework.Validators.CrossField.pas',
+  MVCFramework.Validators in '..\..\sources\MVCFramework.Validators.pas',
+  MVCFramework.ValidationEngine in '..\..\sources\MVCFramework.ValidationEngine.pas',
+  MVCFramework.Validation in '..\..\sources\MVCFramework.Validation.pas';
 
 end.
 
