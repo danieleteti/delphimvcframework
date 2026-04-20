@@ -34,7 +34,7 @@ uses
   MVCFramework, MVCFramework.Server.Intf, MVCFramework.Commons;
 
 type
-  TMVCIndyServer = class(TInterfacedObject, IMVCServer)
+  TMVCIndyServer = class(TInterfacedObject, IMVCServer, IMVCIndyServer)
   private
     FHTTPServer: TIdHTTPServer;
     FEngine: TMVCEngine;
@@ -49,6 +49,7 @@ type
     FRootCertFile: string;
     FCertPassword: string;
     FHTTPSConfigurator: TMVCHTTPSConfigurator;
+    FSingleFlushResponse: Boolean;
     procedure OnCommandGet(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo;
       AResponseInfo: TIdHTTPResponseInfo);
@@ -85,6 +86,8 @@ type
     function GetCertPassword: string;
     procedure SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
     function GetHTTPSConfigurator: TMVCHTTPSConfigurator;
+    procedure SetSingleFlushResponse(AValue: Boolean);
+    function GetSingleFlushResponse: Boolean;
   public
     constructor Create; overload;
     constructor Create(AEngine: TMVCEngine); overload;
@@ -122,6 +125,7 @@ begin
   FKeepAlive := True;
   FListenQueue := 200;
   FUseHTTPS := False;
+  FSingleFlushResponse := False;
 end;
 
 constructor TMVCIndyServer.Create(AEngine: TMVCEngine);
@@ -213,7 +217,7 @@ begin
 
   LRequest := TMVCIndyDirectRequest.Create(AContext, ARequestInfo, FEngine.Serializers);
   try
-    LResponse := TMVCIndyDirectResponse.Create(AContext, AResponseInfo);
+    LResponse := TMVCIndyDirectResponse.Create(AContext, AResponseInfo, FSingleFlushResponse);
     try
       FEngine.HandleRequest(LRequest, LResponse);
       LResponse.Flush;
@@ -333,6 +337,16 @@ end;
 function TMVCIndyServer.GetHTTPSConfigurator: TMVCHTTPSConfigurator;
 begin
   Result := FHTTPSConfigurator;
+end;
+
+procedure TMVCIndyServer.SetSingleFlushResponse(AValue: Boolean);
+begin
+  FSingleFlushResponse := AValue;
+end;
+
+function TMVCIndyServer.GetSingleFlushResponse: Boolean;
+begin
+  Result := FSingleFlushResponse;
 end;
 
 end.

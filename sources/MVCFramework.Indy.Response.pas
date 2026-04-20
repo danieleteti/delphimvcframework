@@ -31,7 +31,7 @@ interface
 uses
   System.Classes, System.SysUtils,
   Web.HTTPApp,
-  IdCustomHTTPServer, IdContext, IdCookie,
+  IdCustomHTTPServer, IdContext, IdCookie, IdIOHandler,
   MVCFramework;
 
 type
@@ -42,6 +42,7 @@ type
     FCookies: TCookieCollection;
     FCustomHeaders: TStringList;
     FHeadersSent: Boolean;
+    FSingleFlushResponse: Boolean;
   protected
     function GetCustomHeaders: TStrings; override;
     function GetReasonString: string; override;
@@ -63,7 +64,8 @@ type
     function GetRawWebResponse: TWebResponse; override;
   public
     constructor Create(const AContext: TIdContext;
-      const AResponseInfo: TIdHTTPResponseInfo);
+      const AResponseInfo: TIdHTTPResponseInfo;
+      const ASingleFlushResponse: Boolean = False);
     destructor Destroy; override;
     procedure Flush; override;
     procedure SetCustomHeader(const AName, AValue: string); override;
@@ -82,7 +84,8 @@ uses
 { TMVCIndyDirectResponse }
 
 constructor TMVCIndyDirectResponse.Create(const AContext: TIdContext;
-  const AResponseInfo: TIdHTTPResponseInfo);
+  const AResponseInfo: TIdHTTPResponseInfo;
+  const ASingleFlushResponse: Boolean);
 begin
   inherited Create;
   FResponseInfo := AResponseInfo;
@@ -90,6 +93,7 @@ begin
   FCookies := TCookieCollection.Create(TWebResponse(nil), TCookie);
   FCustomHeaders := TStringList.Create;
   FHeadersSent := False;
+  FSingleFlushResponse := ASingleFlushResponse;
 end;
 
 destructor TMVCIndyDirectResponse.Destroy;
@@ -193,6 +197,7 @@ procedure TMVCIndyDirectResponse.Flush;
 var
   I: Integer;
   lCookie: TCookie;
+  lIO: TIdIOHandler;
 begin
   if FHeadersSent then Exit;
   FHeadersSent := True;
@@ -220,7 +225,24 @@ begin
     end;
   end;
 
-  // Indy sends the response automatically when the handler returns
+  if FSingleFlushResponse then
+  begin
+    // Opt-in: buffer headers+body and send in one IOHandler write.
+    // Required for embedded/non-conforming HTTP clients that do not
+    // reassemble a response split across separate TCP segments.
+    // Body is materialized in memory: not suitable for large streams.
+    lIO := FContext.Connection.IOHandler;
+    lIO.WriteBufferOpen;
+    try
+      FResponseInfo.WriteHeader;
+      FResponseInfo.WriteContent;
+    finally
+      lIO.WriteBufferFlush;
+      lIO.WriteBufferClose;
+    end;
+  end;
+  // Default path: Indy emits the response automatically after the
+  // handler returns (WriteHeader + WriteContent on its own schedule).
 end;
 
 procedure TMVCIndyDirectResponse.SetCustomHeader(const AName, AValue: string);

@@ -33,6 +33,7 @@ uses
 
 type
   IMVCServer = interface;
+  IMVCIndyServer = interface;
 
   /// <summary>
   /// Per-server callback that wires a TLS IOHandler/binding into the
@@ -89,6 +90,28 @@ type
     property CertPassword: string read GetCertPassword write SetCertPassword;
     property HTTPSConfigurator: TMVCHTTPSConfigurator
       read GetHTTPSConfigurator write SetHTTPSConfigurator;
+  end;
+
+  /// <summary>
+  /// Indy-specific extension. When SingleFlushResponse is True, each
+  /// response is emitted via IOHandler.WriteBufferOpen/Flush/Close so
+  /// that headers and body land in a single send() call (typically a
+  /// single TCP segment for payloads below the MSS). Intended for
+  /// embedded/non-conforming HTTP clients that do not correctly
+  /// reassemble a response split across separate header/body segments.
+  ///
+  /// Trade-off: the full response body is buffered in memory before
+  /// being sent. Do not enable for streamed/large downloads.
+  ///
+  /// Default is False (standard Indy emission, fully backward
+  /// compatible).
+  /// </summary>
+  IMVCIndyServer = interface(IMVCServer)
+    ['{B7F4E6A2-3D8C-4E1A-9B5F-7A2D4C6E8F1B}']
+    procedure SetSingleFlushResponse(AValue: Boolean);
+    function GetSingleFlushResponse: Boolean;
+    property SingleFlushResponse: Boolean
+      read GetSingleFlushResponse write SetSingleFlushResponse;
   end;
 
 implementation

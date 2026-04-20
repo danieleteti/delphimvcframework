@@ -49,8 +49,11 @@ type
   public
     /// <summary>
     /// Build an Indy Direct server bound to an already-configured engine.
+    /// Returns IMVCIndyServer so callers can opt into Indy-specific knobs
+    /// (e.g. SingleFlushResponse). The result is also assignable to a
+    /// plain IMVCServer variable, preserving backward compatibility.
     /// </summary>
-    class function CreateIndyDirect(AEngine: TMVCEngine): IMVCServer;
+    class function CreateIndyDirect(AEngine: TMVCEngine): IMVCIndyServer;
 
     /// <summary>
     /// Build a HTTP.sys (Windows kernel-mode) server bound to an
@@ -73,7 +76,7 @@ uses
   MVCFramework.Server.HttpSys,
   MVCFramework.Server.WebBroker;
 
-class function TMVCServerFactory.CreateIndyDirect(AEngine: TMVCEngine): IMVCServer;
+class function TMVCServerFactory.CreateIndyDirect(AEngine: TMVCEngine): IMVCIndyServer;
 begin
   Result := TMVCIndyServer.Create(AEngine);
 end;
