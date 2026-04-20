@@ -164,7 +164,8 @@ uses
   LoggerPro.UDPSyslogAppender,
   LoggerPro.OutputDebugStringAppender,
   LoggerPro.MemoryAppender,
-  LoggerPro.FileBySourceAppender;
+  LoggerPro.FileBySourceAppender,
+  LoggerPro.RendererRegistry;
 
 type
   TAppenderTypeInfo = record
@@ -378,10 +379,28 @@ var
   lColorsEnabled: Boolean;
   lSchemeName: string;
   lHasSchemeField: Boolean;
+  lRendererName: string;
+  lRenderer: ILogItemRenderer;
 begin
   lCfg := aBuilder.WriteToConsole;
   if TryGetLogLevel(aConfig, 'logLevel', lLogLevel) then
     lCfg := lCfg.WithLogLevel(lLogLevel);
+
+  // Optional "renderer" field: resolved against the process-wide renderer
+  // registry. When set, the named renderer replaces the Console appender's
+  // built-in rendering pipeline - color/scheme/prefix fields below are still
+  // applied on top but the chosen renderer is what formats each TLogItem.
+  // Unknown names raise: silent fallback would mask typos in config files.
+  if TryGetString(aConfig, 'renderer', lRendererName) and (lRendererName <> '') then
+  begin
+    if not TryCreateRenderer(lRendererName, lRenderer) then
+      raise ELoggerProConfigError.CreateFmt(
+        'Unknown renderer "%s". Registered renderers: %s. ' +
+        'Register custom renderers with LoggerPro.RendererRegistry.RegisterRenderer ' +
+        'from a unit that is reachable from the program''s uses clause.',
+        [lRendererName, JoinStrings(RegisteredRendererNames, ', ')]);
+    lCfg := lCfg.WithRenderer(lRenderer);
+  end;
 
   // Resolve the color story. Rules:
   //   - colors ON by default (the "Midnight" scheme); the renderer
@@ -702,7 +721,7 @@ end;
 procedure RegisterBuiltInFactories;
 begin
   TLoggerProConfig.RegisterAppenderType('Console', ConsoleFactory,
-    ['logLevel', 'colors', 'colorScheme', 'prefix', 'utf8Output']);
+    ['logLevel', 'colors', 'colorScheme', 'prefix', 'utf8Output', 'renderer']);
 
   TLoggerProConfig.RegisterAppenderType('SimpleConsole', SimpleConsoleFactory,
     ['logLevel', 'utf8Output']);

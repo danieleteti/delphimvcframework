@@ -126,6 +126,8 @@
         <DCCReference Include="FireDAC.dcp"/>
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="..\..\LoggerPro.pas"/>
+        <DCCReference Include="..\..\LoggerPro.Config.pas"/>
+        <DCCReference Include="..\..\LoggerPro.RendererRegistry.pas"/>
         <DCCReference Include="..\..\LoggerPro.CallbackAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.ConsoleAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.ElasticSearchAppender.pas"/>

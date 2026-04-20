@@ -136,7 +136,8 @@ implementation
 uses
   System.DateUtils,
   System.Rtti,
-  System.TypInfo;
+  System.TypInfo,
+  LoggerPro.RendererRegistry;
 
 function GetDefaultLogItemRenderer: ILogItemRenderer;
 begin
@@ -647,5 +648,17 @@ begin
             lMessage + lTag + lContext + lEndGuard;
 end;
 
+initialization
+  // Self-register the built-in renderers so they can be selected from JSON
+  // configuration files via the "renderer" field on the Console appender.
+  // Applications or libraries shipping additional renderers follow the same
+  // pattern in their own unit's initialization section.
+  RegisterRenderer('Default',         TLogItemRendererDefault);
+  RegisterRenderer('NoTag',           TLogItemRendererNoTag);
+  RegisterRenderer('NoThreadID',      TLogItemRendererNoThreadID);
+  RegisterRenderer('NoTagNoThreadID', TLogItemRendererNoTagNoThreadID);
+  RegisterRenderer('LogFmt',          TLogItemRendererLogFmt);
+  RegisterRenderer('RichColored',     TLogItemRendererRichColored);
+  RegisterRenderer('GinStyle',        TLogItemRendererGinStyle);
 
 end.

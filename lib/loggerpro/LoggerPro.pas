@@ -906,7 +906,8 @@ type
   IConsoleAppenderConfigurator = interface(IAppenderConfigurator)
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6E}']
     function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IConsoleAppenderConfigurator; overload;
     function WithUTF8Output: IConsoleAppenderConfigurator;
     /// <summary>Enable per-field rich coloring (dim timestamp / thread ID,
     /// level in level-specific color, cyan tag, green/yellow key=value).
@@ -945,7 +946,8 @@ type
     function WithMaxRetainedFiles(aMaxFiles: Integer): IFileAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IFileAppenderConfigurator;
     function WithEncoding(aEncoding: TEncoding): IFileAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IFileAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IFileAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IFileAppenderConfigurator; overload;
     function WithOnAfterRotate(aCallback: TFileRotateCallback): IFileAppenderConfigurator;
   end;
 
@@ -998,7 +1000,8 @@ type
     function WithLogLevel(aLogLevel: TLogType): ITimeRotatingFileAppenderConfigurator;
     /// <summary>Sets a custom renderer for formatting log entries.
     /// Default: standard text renderer.</summary>
-    function WithRenderer(aRenderer: ILogItemRenderer): ITimeRotatingFileAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): ITimeRotatingFileAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): ITimeRotatingFileAppenderConfigurator; overload;
   end;
 
   { HTTP appender configurator }
@@ -1038,7 +1041,8 @@ type
     ['{B8C9D0E1-F2A3-1B2C-5D6E-7F8A9B0C1D2E}']
     function WithMaxSize(aMaxSize: Integer): IMemoryAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IMemoryAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IMemoryAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IMemoryAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IMemoryAppenderConfigurator; overload;
   end;
 
   { Callback appender configurator }
@@ -1061,14 +1065,16 @@ type
     { If True, the TStrings instance is cleared when the logger starts. Default: False. }
     function WithClearOnStartup(aValue: Boolean): IStringsAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IStringsAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IStringsAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IStringsAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IStringsAppenderConfigurator; overload;
   end;
 
   { OutputDebugString appender configurator }
   IOutputDebugStringAppenderConfigurator = interface(IAppenderConfigurator)
     ['{E1F2A3B4-C5D6-4E5F-8A9B-0C1D2E3F4A5B}']
     function WithLogLevel(aLogLevel: TLogType): IOutputDebugStringAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IOutputDebugStringAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IOutputDebugStringAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IOutputDebugStringAppenderConfigurator; overload;
   end;
 
   { UDP Syslog appender configurator }
@@ -1093,7 +1099,8 @@ type
     function WithMaxLogLines(aMaxLogLines: Word): IVCLMemoAppenderConfigurator;
     function WithClearOnStartup(aValue: Boolean): IVCLMemoAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IVCLMemoAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLMemoAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLMemoAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IVCLMemoAppenderConfigurator; overload;
   end;
 
   { VCL ListBox appender configurator (requires VCL, Windows only) }
@@ -1101,7 +1108,8 @@ type
     ['{C5D6E7F8-A9B0-8C9D-2E3F-4A5B6C7D8E9F}']
     function WithMaxLogLines(aMaxLogLines: Word): IVCLListBoxAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IVCLListBoxAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListBoxAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListBoxAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IVCLListBoxAppenderConfigurator; overload;
   end;
 
   { VCL ListView appender configurator (requires VCL, Windows only) }
@@ -1109,7 +1117,8 @@ type
     ['{D6E7F8A9-B0C1-9D0E-3F4A-5B6C7D8E9F0A}']
     function WithMaxLogLines(aMaxLogLines: Word): IVCLListViewAppenderConfigurator;
     function WithLogLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
-    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IVCLListViewAppenderConfigurator; overload;
   end;
 
   { Windows Event Log appender configurator (Windows only) }
@@ -1207,7 +1216,8 @@ type
     /// <summary>Sets the minimum log level for this appender.</summary>
     function WithLogLevel(aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
     /// <summary>Sets a custom renderer for formatting log entries.</summary>
-    function WithRenderer(aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator;
+    function WithRenderer(aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator; overload;
+    function WithRenderer(const aRendererName: string): IFileBySourceAppenderConfigurator; overload;
   end;
 
   { Main builder interface }

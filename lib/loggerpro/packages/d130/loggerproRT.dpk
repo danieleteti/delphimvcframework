@@ -25,7 +25,7 @@ package loggerproRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggerPro - CopyRight 2025 Daniele Teti'}
+{$DESCRIPTION 'LoggerPro - CopyRight 2026 Daniele Teti'}
 {$LIBSUFFIX '130'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -59,6 +59,7 @@ contains
   LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
   LoggerPro.Proxy in '..\..\LoggerPro.Proxy.pas',
   LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
+  LoggerPro.RendererRegistry in '..\..\LoggerPro.RendererRegistry.pas',
   LoggerPro.StringsAppender in '..\..\LoggerPro.StringsAppender.pas',
   LoggerPro.TimeRotatingFileAppender in '..\..\LoggerPro.TimeRotatingFileAppender.pas',
   LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
