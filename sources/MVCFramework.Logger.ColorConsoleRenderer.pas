@@ -62,7 +62,8 @@ implementation
 
 uses
   System.Rtti,
-  MVCFramework.Console;
+  MVCFramework.Console,
+  LoggerPro.RendererRegistry;
 
 const
   DIM_SEP = Fore.DarkGray + ' | ' + Style.ResetAll;
@@ -245,5 +246,12 @@ begin
   else
     Result := RenderPlain(aLogItem);
 end;
+
+initialization
+  // Self-register with LoggerPro's renderer registry so loggerpro.json can
+  // pick this renderer by name:
+  //   { "type": "Console", "renderer": "DMVCColorConsole" }
+  // No effect on projects that only use the class directly via .WithRenderer.
+  RegisterRenderer('DMVCColorConsole', TMVCColorConsoleRenderer);
 
 end.
