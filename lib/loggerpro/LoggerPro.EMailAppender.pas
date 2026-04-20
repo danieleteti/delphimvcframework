@@ -67,7 +67,7 @@ begin
   FFromAddresses := aFromAddresses;
   FToAddresses := aToAddresses;
   { by default, email appender sends only errors }
-  SetLogLevel(TLogType.Error);
+  SetMinimumLevel(TLogType.Error);
 end;
 
 procedure TLoggerProEMailAppender.PrepareMessage(const aLogItem: TLogItem;

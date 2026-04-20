@@ -132,7 +132,7 @@ type
     function WithCustomerId(const aCustomerId: string): IExeWatchConfigurator;
     function WithAppVersion(const aAppVersion: string): IExeWatchConfigurator;
     function WithAnonymizeDeviceId(aValue: Boolean): IExeWatchConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IExeWatchConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IExeWatchConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -171,7 +171,7 @@ type
     function WithCustomerId(const aCustomerId: string): IExeWatchConfigurator;
     function WithAppVersion(const aAppVersion: string): IExeWatchConfigurator;
     function WithAnonymizeDeviceId(aValue: Boolean): IExeWatchConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IExeWatchConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IExeWatchConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -269,7 +269,7 @@ begin
   Result := Self;
 end;
 
-function TExeWatchConfigurator.WithLogLevel(aLogLevel: TLogType): IExeWatchConfigurator;
+function TExeWatchConfigurator.WithMinimumLevel(aLogLevel: TLogType): IExeWatchConfigurator;
 begin
   FLogLevel := aLogLevel;
   FLogLevelSet := True;
@@ -283,7 +283,7 @@ begin
   lAppender := TLoggerProExeWatchAppender.Create(
     FAPIKey, FCustomerId, FAppVersion, FAnonymizeDeviceId);
   if FLogLevelSet then
-    lAppender.SetLogLevel(FLogLevel);
+    lAppender.SetMinimumLevel(FLogLevel);
   FBuilder.WriteToAppender(lAppender);
   Result := FBuilder;
 end;
@@ -326,8 +326,8 @@ begin
   if lValue is TJSONBool then
     lCfg := lCfg.WithAnonymizeDeviceId(TJSONBool(lValue).AsBoolean);
 
-  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'logLevel', lLogLevel) then
-    lCfg := lCfg.WithLogLevel(lLogLevel);
+  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'minimumLevel', lLogLevel) then
+    lCfg := lCfg.WithMinimumLevel(lLogLevel);
 
   lCfg.Done;
 end;
@@ -340,6 +340,6 @@ initialization
   TLoggerProConfig.RegisterAppenderType(
     'ExeWatch',
     ExeWatchConfigFactory,
-    ['apiKey', 'customerId', 'appVersion', 'anonymizeDeviceId', 'logLevel']);
+    ['apiKey', 'customerId', 'appVersion', 'anonymizeDeviceId', 'minimumLevel']);
 
 end.

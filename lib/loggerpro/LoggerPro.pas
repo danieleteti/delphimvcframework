@@ -180,10 +180,14 @@ type
     procedure SetEnabled(const Value: Boolean);
     { @abstract(Returns if the logappender is currently enabled or not) }
     function IsEnabled: Boolean;
-    { @abstract(Set a custom log level for this appender. This value must be lower than the global LogWriter log level. }
-    procedure SetLogLevel(const Value: TLogType);
-    { @abstract(Get the loglevel for the appender. }
-    function GetLogLevel: TLogType;
+    { @abstract(Set the minimum severity level this appender will emit.
+      Messages whose severity is below this threshold are dropped at this
+      appender (but may still reach other appenders). Setting a value
+      below the global LogWriter <c>MinimumLevel</c> is a no-op, because
+      the global gate filters messages before they reach any appender. }
+    procedure SetMinimumLevel(const Value: TLogType);
+    { @abstract(Get the minimum severity level this appender emits. }
+    function GetMinimumLevel: TLogType;
     { @abstract(If the appender is disabled, this method is called at each new
       logitem. This method should not raise exceptions and should try to restart the appender
       at specified time and only if some appropriate seconds/miutes are elapsed between the
@@ -351,7 +355,7 @@ type
         function EnqueueLog(const aLogItem: TLogItem): Boolean;
         property Queue: TAppenderQueue read FAppenderQueue;
         property FailsCount: Cardinal read FFailsCount;
-        function GetLogLevel: TLogType;
+        function GetMinimumLevel: TLogType;
         procedure Terminate;
         procedure SignalTerminate;
         procedure WaitForExit;
@@ -740,13 +744,13 @@ type
     procedure WriteLog(const aLogItem: TLogItem); virtual; abstract;
     procedure TearDown; virtual;
     procedure TryToRestart(var Restarted: Boolean); virtual;
-    procedure SetLogLevel(const Value: TLogType);
-    function GetLogLevel: TLogType; inline;
+    procedure SetMinimumLevel(const Value: TLogType);
+    function GetMinimumLevel: TLogType; inline;
     procedure SetLastErrorTimeStamp(const Value: TDateTime);
     function GetLastErrorTimeStamp: TDateTime;
     procedure SetEnabled(const Value: Boolean);
     function IsEnabled: Boolean;
-    property LogLevel: TLogType read GetLogLevel write SetLogLevel;
+    property MinimumLevel: TLogType read GetMinimumLevel write SetMinimumLevel;
     property Enabled: Boolean read IsEnabled write SetEnabled;
     property OnLogRow: TOnAppenderLogRow read FOnLogRow write FOnLogRow;
   end;
@@ -905,7 +909,7 @@ type
   { Console appender configurator }
   IConsoleAppenderConfigurator = interface(IAppenderConfigurator)
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6E}']
-    function WithLogLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IConsoleAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IConsoleAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IConsoleAppenderConfigurator; overload;
     function WithUTF8Output: IConsoleAppenderConfigurator;
@@ -930,7 +934,7 @@ type
   { Simple console appender configurator }
   ISimpleConsoleAppenderConfigurator = interface(IAppenderConfigurator)
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6F}']
-    function WithLogLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
     function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
   end;
 
@@ -944,7 +948,7 @@ type
     function WithInterval(aInterval: TTimeRotationInterval): IFileAppenderConfigurator;
     function WithFileFormat(const aFileFormat: string): IFileAppenderConfigurator;
     function WithMaxRetainedFiles(aMaxFiles: Integer): IFileAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IFileAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IFileAppenderConfigurator;
     function WithEncoding(aEncoding: TEncoding): IFileAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IFileAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IFileAppenderConfigurator; overload;
@@ -958,7 +962,7 @@ type
     function WithFileBaseName(const aFileBaseName: string): IJSONLFileAppenderConfigurator;
     function WithMaxBackupFiles(aMaxBackupFiles: Integer): IJSONLFileAppenderConfigurator;
     function WithMaxFileSizeInKB(aMaxFileSizeInKB: Integer): IJSONLFileAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IJSONLFileAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IJSONLFileAppenderConfigurator;
   end;
 
   /// <summary>
@@ -997,7 +1001,7 @@ type
     function WithFileBaseName(const aFileBaseName: string): ITimeRotatingFileAppenderConfigurator;
     /// <summary>Sets the minimum log level for this appender.
     /// Messages below this level are ignored by this appender.</summary>
-    function WithLogLevel(aLogLevel: TLogType): ITimeRotatingFileAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): ITimeRotatingFileAppenderConfigurator;
     /// <summary>Sets a custom renderer for formatting log entries.
     /// Default: standard text renderer.</summary>
     function WithRenderer(aRenderer: ILogItemRenderer): ITimeRotatingFileAppenderConfigurator; overload;
@@ -1019,7 +1023,7 @@ type
     function WithAPIKey(const aValue: string;
       aLocation: TWebhookAPIKeyLocation = TWebhookAPIKeyLocation.Header;
       const aName: string = ''): IWebhookAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IWebhookAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IWebhookAppenderConfigurator;
   end;
 
   { ElasticSearch appender configurator }
@@ -1033,14 +1037,14 @@ type
     function WithBasicAuth(const aUsername, aPassword: string): IElasticSearchAppenderConfigurator;
     function WithAPIKey(const aAPIKey: string): IElasticSearchAppenderConfigurator;
     function WithBearerToken(const aToken: string): IElasticSearchAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IElasticSearchAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IElasticSearchAppenderConfigurator;
   end;
 
   { Memory appender configurator }
   IMemoryAppenderConfigurator = interface(IAppenderConfigurator)
     ['{B8C9D0E1-F2A3-1B2C-5D6E-7F8A9B0C1D2E}']
     function WithMaxSize(aMaxSize: Integer): IMemoryAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IMemoryAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IMemoryAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IMemoryAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IMemoryAppenderConfigurator; overload;
   end;
@@ -1050,7 +1054,7 @@ type
     ['{C9D0E1F2-A3B4-2C3D-6E7F-8A9B0C1D2E3F}']
     function WithCallback(aCallback: TLogItemCallback): ICallbackAppenderConfigurator;
     function WithSynchronizeToMainThread(aValue: Boolean): ICallbackAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): ICallbackAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): ICallbackAppenderConfigurator;
   end;
 
   { Strings appender configurator (cross-platform, works with any TStrings).
@@ -1064,7 +1068,7 @@ type
     function WithMaxLogLines(aMaxLogLines: Word): IStringsAppenderConfigurator;
     { If True, the TStrings instance is cleared when the logger starts. Default: False. }
     function WithClearOnStartup(aValue: Boolean): IStringsAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IStringsAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IStringsAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IStringsAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IStringsAppenderConfigurator; overload;
   end;
@@ -1072,7 +1076,7 @@ type
   { OutputDebugString appender configurator }
   IOutputDebugStringAppenderConfigurator = interface(IAppenderConfigurator)
     ['{E1F2A3B4-C5D6-4E5F-8A9B-0C1D2E3F4A5B}']
-    function WithLogLevel(aLogLevel: TLogType): IOutputDebugStringAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IOutputDebugStringAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IOutputDebugStringAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IOutputDebugStringAppenderConfigurator; overload;
   end;
@@ -1088,7 +1092,7 @@ type
     function WithVersion(const aVersion: string): IUDPSyslogAppenderConfigurator;
     function WithProcID(const aProcID: string): IUDPSyslogAppenderConfigurator;
     function WithUseLocalTime(aUseLocalTime: Boolean): IUDPSyslogAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IUDPSyslogAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IUDPSyslogAppenderConfigurator;
   end;
 
 
@@ -1098,7 +1102,7 @@ type
     ['{B4C5D6E7-F8A9-7B8C-1D2E-3F4A5B6C7D8E}']
     function WithMaxLogLines(aMaxLogLines: Word): IVCLMemoAppenderConfigurator;
     function WithClearOnStartup(aValue: Boolean): IVCLMemoAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLMemoAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IVCLMemoAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IVCLMemoAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IVCLMemoAppenderConfigurator; overload;
   end;
@@ -1107,7 +1111,7 @@ type
   IVCLListBoxAppenderConfigurator = interface(IAppenderConfigurator)
     ['{C5D6E7F8-A9B0-8C9D-2E3F-4A5B6C7D8E9F}']
     function WithMaxLogLines(aMaxLogLines: Word): IVCLListBoxAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLListBoxAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IVCLListBoxAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IVCLListBoxAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IVCLListBoxAppenderConfigurator; overload;
   end;
@@ -1116,7 +1120,7 @@ type
   IVCLListViewAppenderConfigurator = interface(IAppenderConfigurator)
     ['{D6E7F8A9-B0C1-9D0E-3F4A-5B6C7D8E9F0A}']
     function WithMaxLogLines(aMaxLogLines: Word): IVCLListViewAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IVCLListViewAppenderConfigurator;
     function WithRenderer(aRenderer: ILogItemRenderer): IVCLListViewAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IVCLListViewAppenderConfigurator; overload;
   end;
@@ -1124,7 +1128,7 @@ type
   { Windows Event Log appender configurator (Windows only) }
   IWindowsEventLogAppenderConfigurator = interface(IAppenderConfigurator)
     ['{A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6}']
-    function WithLogLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IWindowsEventLogAppenderConfigurator;
     function WithSourceName(const aSourceName: string): IWindowsEventLogAppenderConfigurator;
   end;
 {$ENDIF}
@@ -1134,7 +1138,7 @@ type
     ['{E7F8A9B0-C1D2-0E1F-4A5B-6C7D8E9F0A1B}']
     function WithConnectionDefName(const aConnectionDefName: string): IFireDACAppenderConfigurator;
     function WithStoredProcName(const aStoredProcName: string): IFireDACAppenderConfigurator;
-    function WithLogLevel(aLogLevel: TLogType): IFireDACAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IFireDACAppenderConfigurator;
   end;
 
   { Filter appender configurator - wraps another appender with a filter }
@@ -1173,7 +1177,7 @@ type
   ///   .WriteToHTMLFile
   ///     .WithFile('logs/app.html')
   ///     .WithTitle('My Application')
-  ///     .WithLogLevel(TLogType.Info)
+  ///     .WithMinimumLevel(TLogType.Info)
   ///     .Done
   /// </code>
   /// </summary>
@@ -1196,7 +1200,7 @@ type
     /// <summary>Number of days to keep rotated files. 0 = unlimited.</summary>
     function WithMaxRetainedFiles(aMaxFiles: Integer): IHTMLFileAppenderConfigurator;
     /// <summary>Minimum log level for this appender.</summary>
-    function WithLogLevel(aLogLevel: TLogType): IHTMLFileAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IHTMLFileAppenderConfigurator;
   end;
 
   IFileBySourceAppenderConfigurator = interface(IAppenderConfigurator)
@@ -1214,7 +1218,7 @@ type
     /// context. Default: 'default'.</summary>
     function WithDefaultSource(const aDefaultSource: string): IFileBySourceAppenderConfigurator;
     /// <summary>Sets the minimum log level for this appender.</summary>
-    function WithLogLevel(aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
+    function WithMinimumLevel(aLogLevel: TLogType): IFileBySourceAppenderConfigurator;
     /// <summary>Sets a custom renderer for formatting log entries.</summary>
     function WithRenderer(aRenderer: ILogItemRenderer): IFileBySourceAppenderConfigurator; overload;
     function WithRenderer(const aRendererName: string): IFileBySourceAppenderConfigurator; overload;
@@ -1264,7 +1268,7 @@ type
     function WriteToAppender(aAppender: ILogAppender): ILoggerProBuilder;
 
     // Global configuration
-    function WithDefaultLogLevel(aLogLevel: TLogType): ILoggerProBuilder;
+    function WithDefaultMinimumLevel(aLogLevel: TLogType): ILoggerProBuilder;
     function WithMinimumLevel(aLevel: TLogType): ILoggerProBuilder;
     function WithDefaultRenderer(aRenderer: ILogItemRenderer): ILoggerProBuilder;
     function WithDefaultTag(const aTag: string): ILoggerProBuilder;
@@ -1488,7 +1492,7 @@ begin
   for I := 0 to Length(aAppenders) - 1 do
   begin
     lLogAppenders.Add(aAppenders[I]);
-    aAppenders[I].SetLogLevel(aLogLevels[I]);
+    aAppenders[I].SetMinimumLevel(aLogLevels[I]);
     if aLogLevels[I] < lLowestLogLevel then
     begin
       lLowestLogLevel := aLogLevels[I];
@@ -2248,7 +2252,7 @@ var
 begin
   for I := 0 to FAppendersDecorators.Count - 1 do
   begin
-    if aLogItem.LogType >= FAppendersDecorators[I].GetLogLevel then
+    if aLogItem.LogType >= FAppendersDecorators[I].GetMinimumLevel then
     begin
       if not FAppendersDecorators[I].EnqueueLog(aLogItem) then
       begin
@@ -2437,9 +2441,9 @@ begin
   inherited;
 end;
 
-function TLoggerThread.TAppenderAdapter.GetLogLevel: TLogType;
+function TLoggerThread.TAppenderAdapter.GetMinimumLevel: TLogType;
 begin
-  Result := FLogAppender.GetLogLevel;
+  Result := FLogAppender.GetMinimumLevel;
 end;
 
 procedure TLoggerThread.TAppenderAdapter.Terminate;
@@ -2526,7 +2530,7 @@ begin
   Result := FLastErrorTimeStamp;
 end;
 
-function TLoggerProAppenderBase.GetLogLevel: TLogType;
+function TLoggerProAppenderBase.GetMinimumLevel: TLogType;
 begin
   Result := FLogLevel;
 end;
@@ -2536,7 +2540,7 @@ begin
   FLastErrorTimeStamp := Value;
 end;
 
-procedure TLoggerProAppenderBase.SetLogLevel(const Value: TLogType);
+procedure TLoggerProAppenderBase.SetMinimumLevel(const Value: TLogType);
 begin
   FLogLevel := Value;
 end;

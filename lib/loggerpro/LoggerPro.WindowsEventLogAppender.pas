@@ -183,8 +183,8 @@ begin
   if lValue is TJSONString then
     lCfg := lCfg.WithSourceName(TJSONString(lValue).Value);
 
-  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'logLevel', lLogLevel) then
-    lCfg := lCfg.WithLogLevel(lLogLevel);
+  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'minimumLevel', lLogLevel) then
+    lCfg := lCfg.WithMinimumLevel(lLogLevel);
 
   lCfg.Done;
 end;
@@ -197,6 +197,6 @@ initialization
   TLoggerProConfig.RegisterAppenderType(
     'WindowsEventLog',
     WindowsEventLogConfigFactory,
-    ['logLevel', 'sourceName']);
+    ['minimumLevel', 'sourceName']);
 
 end.

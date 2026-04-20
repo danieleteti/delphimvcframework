@@ -366,8 +366,8 @@ begin
     lCfg := lCfg.WithBasicAuth(lUser, lPwd);
   end;
 
-  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'logLevel', lLogLevel) then
-    lCfg := lCfg.WithLogLevel(lLogLevel);
+  if TLoggerProConfig.TryGetJSONLogLevel(aConfig, 'minimumLevel', lLogLevel) then
+    lCfg := lCfg.WithMinimumLevel(lLogLevel);
 
   lCfg.Done;
 end;
@@ -380,7 +380,7 @@ initialization
   TLoggerProConfig.RegisterAppenderType(
     'ElasticSearch',
     ElasticSearchConfigFactory,
-    ['logLevel', 'url', 'host', 'port', 'index', 'timeout',
+    ['minimumLevel', 'url', 'host', 'port', 'index', 'timeout',
      'apiKey', 'bearerToken', 'username', 'password']);
 
 end.
