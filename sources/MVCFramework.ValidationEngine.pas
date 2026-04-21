@@ -54,13 +54,15 @@ type
     /// </summary>
     function HasErrors: Boolean;
     /// <summary>
-    /// Returns the internal dictionary (nil if no errors). Caller takes ownership.
-    /// </summary>
-    function ExtractErrors: TDictionary<string, string>;
-    /// <summary>
     /// Clears and frees the internal dictionary if allocated.
     /// </summary>
     procedure Clear;
+    /// <summary>
+    /// Read-only access to the internal dictionary (nil until the first Add
+    /// call). The record retains ownership: consumers that need a persistent
+    /// copy must allocate their own dictionary and copy the entries.
+    /// </summary>
+    property Errors: TDictionary<string, string> read FErrors;
   end;
 
   /// <summary>
@@ -183,12 +185,6 @@ end;
 function TMVCValidationErrors.HasErrors: Boolean;
 begin
   Result := (FErrors <> nil) and (FErrors.Count > 0);
-end;
-
-function TMVCValidationErrors.ExtractErrors: TDictionary<string, string>;
-begin
-  Result := FErrors;
-  FErrors := nil;  // Transfer ownership to caller
 end;
 
 procedure TMVCValidationErrors.Clear;
@@ -442,17 +438,14 @@ begin
       LOnValidateProc(@LOnValidateErrors);
       // Merge any errors from OnValidate into main errors dictionary
       if LOnValidateErrors.HasErrors then
-      begin
+      try
         if AErrors = nil then
-          AErrors := LOnValidateErrors.ExtractErrors
-        else
-        begin
-          // Merge errors
-          for LPair in LOnValidateErrors.FErrors do
-            if not AErrors.ContainsKey(LPair.Key) then
-              AErrors.Add(LPair.Key, LPair.Value);
-          LOnValidateErrors.Clear;
-        end;
+          AErrors := TDictionary<string, string>.Create;
+        for LPair in LOnValidateErrors.FErrors do
+          if not AErrors.ContainsKey(LPair.Key) then
+            AErrors.Add(LPair.Key, LPair.Value);
+      finally
+        LOnValidateErrors.Clear;
       end;
     end;
   finally

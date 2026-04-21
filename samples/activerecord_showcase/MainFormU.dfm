@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 698
+  ClientHeight = 738
   ClientWidth = 1094
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     1094
-    698)
+    738)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 8
     Width = 806
-    Height = 682
+    Height = 722
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -347,5 +347,25 @@ object MainForm: TMainForm
     TabOrder = 34
     WordWrap = True
     OnClick = btnErrorWith2PKsClick
+  end
+  object btnAttrValidation: TButton
+    Left = 8
+    Top = 683
+    Width = 121
+    Height = 34
+    Caption = 'Validation (Attrs)'
+    TabOrder = 35
+    WordWrap = True
+    OnClick = btnAttrValidationClick
+  end
+  object btnAuditColumns: TButton
+    Left = 144
+    Top = 683
+    Width = 121
+    Height = 34
+    Caption = 'Audit + CurrentUser'
+    TabOrder = 36
+    WordWrap = True
+    OnClick = btnAuditColumnsClick
   end
 end

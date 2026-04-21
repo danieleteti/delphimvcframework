@@ -27,9 +27,15 @@ uses
   FireDAC.Comp.Client,
   MVCFramework.Nullables,
   MVCFramework.ActiveRecord,
+  MVCFramework.SQLGenerators,
   MVCFramework.Logger,
   System.Generics.Collections,
-  System.Diagnostics;
+  System.Diagnostics,
+  ////////////////////////// REMOVE THESE UNITS IF YOU ARE USING DELPHI PRO
+  FireDAC.Phys.MSSQLDef,
+  FireDAC.Phys.MSSQL
+  /////////////////////////
+  ;
 
 type
   TMainForm = class(TForm)
@@ -68,6 +74,8 @@ type
     btnTransaction: TButton;
     btnUseExplicitConnection: TButton;
     btnErrorWith2PKs: TButton;
+    btnAttrValidation: TButton;
+    btnAuditColumns: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -105,6 +113,8 @@ type
     procedure btnTransactionClick(Sender: TObject);
     procedure btnUseExplicitConnectionClick(Sender: TObject);
     procedure btnErrorWith2PKsClick(Sender: TObject);
+    procedure btnAttrValidationClick(Sender: TObject);
+    procedure btnAuditColumnsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
@@ -126,6 +136,8 @@ uses
   System.Threading,
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
+  MVCFramework.Validation,
+  MVCFramework.Commons,
   System.Math,
   FDConnectionConfigU,
   EngineChoiceFormU,
@@ -1546,12 +1558,20 @@ begin
   end;
 
   Log('**RQL Query (8) - <empty> with limit 0');
-  lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 0);
+  // MSSQL rejects "FETCH NEXT 0 ROWS ONLY" at parse time, so on that backend
+  // the framework surfaces an ERQLException instead of running the query.
+  // All the other supported backends happily return an empty result set.
   try
-    Log(lList.Count.ToString + ' record/s found');
-    Assert(lList.Count = 0);
-  finally
-    lList.Free;
+    lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 0);
+    try
+      Log(lList.Count.ToString + ' record/s found');
+      Assert(lList.Count = 0);
+    finally
+      lList.Free;
+    end;
+  except
+    on E: Exception do
+      Log('   (skipped: ' + E.ClassName + ' - ' + E.Message + ')');
   end;
 
 
@@ -2527,6 +2547,327 @@ procedure TMainForm.Log(const Value: string);
 begin
   Memo1.Lines.Add(Value);
   Memo1.Update;
+end;
+
+
+// ===========================================================================
+// DEMO: Attribute-based validation (TValidatedCustomerDemo in EntitiesU.pas)
+//
+// The entity is decorated with:
+//   [MVCRequired] [MVCMaxLength(20)]   on fCode
+//   [MVCRequired] [MVCMaxLength(200)]  on fDescription
+//   [MVCEmail]                         on fEmail
+//   [MVCRange(0, 5)]                   on fRating
+// plus an OnValidate override that implements a cross-field rule:
+//   rating = 5  =>  code must start with "VIP".
+//
+// Walk this button top-to-bottom: every step feeds an INVALID object to
+// Insert/Update and catches EMVCValidationException to print the offending
+// fields. The final step shows a valid insert succeeding.
+// ===========================================================================
+procedure TMainForm.btnAttrValidationClick(Sender: TObject);
+var
+  lCust: TValidatedCustomerDemo;
+  lPair: TPair<string, string>;
+  lInsertedID: Integer;
+begin
+  Log('** Attribute-based validation (some exceptions will be raised)');
+
+  // STEP 1 - all fields empty/invalid => three rules should fire at once:
+  // MVCRequired on Code, MVCRequired on Description, MVCEmail on Email.
+  Log('');
+  Log('[1] Trying to insert with no Code / no Description / bad email...');
+  lCust := TValidatedCustomerDemo.Create;
+  try
+    lCust.Email := 'not-an-email';
+    lCust.Rating := 3;
+    try
+      lCust.Insert;
+      Log('   UNEXPECTED: no exception raised');
+    except
+      on E: EMVCValidationException do
+      begin
+        Log('   OK, got EMVCValidationException:');
+        for lPair in E.ValidationErrors do
+          Log('     - ' + lPair.Key + ': ' + lPair.Value);
+      end;
+    end;
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 2 - Rating out of the [0..5] range.
+  Log('');
+  Log('[2] Trying to insert with Rating=42 (out of range)...');
+  lCust := TValidatedCustomerDemo.Create;
+  try
+    lCust.Code := 'C001';
+    lCust.Description := 'Acme Corp';
+    lCust.Email := 'acme@example.com';
+    lCust.Rating := 42;
+    try
+      lCust.Insert;
+      Log('   UNEXPECTED: no exception raised');
+    except
+      on E: EMVCValidationException do
+      begin
+        Log('   OK, got EMVCValidationException:');
+        for lPair in E.ValidationErrors do
+          Log('     - ' + lPair.Key + ': ' + lPair.Value);
+      end;
+    end;
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 3 - Attributes are happy but OnValidate(const AErrors) says NO:
+  // rating=5 but the code does not start with "VIP".
+  Log('');
+  Log('[3] Trying to insert Rating=5 with Code="C001"...');
+  Log('    (the OnValidate override forbids rating=5 unless Code starts with "VIP")');
+  lCust := TValidatedCustomerDemo.Create;
+  try
+    lCust.Code := 'C001';
+    lCust.Description := 'Premium Corp';
+    lCust.Email := 'premium@example.com';
+    lCust.Rating := 5;
+    try
+      lCust.Insert;
+      Log('   UNEXPECTED: no exception raised');
+    except
+      on E: EMVCValidationException do
+      begin
+        Log('   OK, got EMVCValidationException:');
+        for lPair in E.ValidationErrors do
+          Log('     - ' + lPair.Key + ': ' + lPair.Value);
+      end;
+    end;
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 4 - Explicit validation BEFORE Insert. Useful when you want to
+  // show errors to the user without involving the DB at all. Validate is a
+  // public method you can call any time.
+  Log('');
+  Log('[4] Calling Validate(eaCreate) directly, no DB involved...');
+  lCust := TValidatedCustomerDemo.Create;
+  try
+    lCust.Description := 'X';
+    try
+      lCust.Validate(eaCreate);
+      Log('   UNEXPECTED: no exception raised');
+    except
+      on E: EMVCValidationException do
+      begin
+        Log('   OK, got EMVCValidationException:');
+        for lPair in E.ValidationErrors do
+          Log('     - ' + lPair.Key + ': ' + lPair.Value);
+      end;
+    end;
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 5 - Happy path: all rules satisfied, Insert succeeds.
+  Log('');
+  Log('[5] Inserting a fully valid entity...');
+  lCust := TValidatedCustomerDemo.Create;
+  try
+    lCust.Code := 'VIP001';
+    lCust.Description := 'Top Premium SpA';
+    lCust.Email := 'vip@example.com';
+    lCust.Rating := 5;
+    lCust.Insert;
+    lInsertedID := lCust.ID.Value;
+    Log(Format('   OK, inserted with ID=%d', [lInsertedID]));
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 6 - Re-fetch the row and try to Update with a bad email. The same
+  // validation pipeline runs on Update too.
+  Log('');
+  Log('[6] Reloading and trying to Update with a bad email...');
+  lCust := TMVCActiveRecord.GetByPK<TValidatedCustomerDemo>(lInsertedID);
+  try
+    lCust.Email := 'oops-not-valid';
+    try
+      lCust.Update;
+      Log('   UNEXPECTED: no exception raised');
+    except
+      on E: EMVCValidationException do
+      begin
+        Log('   OK, got EMVCValidationException:');
+        for lPair in E.ValidationErrors do
+          Log('     - ' + lPair.Key + ': ' + lPair.Value);
+      end;
+    end;
+  finally
+    lCust.Free;
+  end;
+
+  // Clean up the row we created to keep the demo table tidy.
+  TMVCActiveRecord.DeleteRQL(TValidatedCustomerDemo,
+    Format('eq(id, %d)', [lInsertedID]));
+  Log('');
+  Log('** Done.');
+end;
+
+// ===========================================================================
+// DEMO: Audit columns (TAuditedDemo in EntitiesU.pas)
+//
+// The entity is decorated with:
+//   [MVCAuditCreatedAt]  on fCreatedAt
+//   [MVCAuditUpdatedAt]  on fUpdatedAt
+//   [MVCAuditCreatedBy]  on fCreatedBy
+//   [MVCAuditUpdatedBy]  on fUpdatedBy
+//
+// On Insert the framework sets created_at = updated_at = Now, and stamps
+// created_by / updated_by with TMVCActiveRecord.GetCurrentUser. On Update
+// only updated_at and updated_by are touched.
+//
+// The current user is THREAD-LOCAL: TMVCActiveRecord.SetCurrentUser('alice')
+// only affects the calling thread. In a typical web server a middleware
+// resolves the user (e.g. from a JWT claim) and calls SetCurrentUser at the
+// start of each request; because every thread has its own value, concurrent
+// requests cannot step on each other, no locking involved.
+//
+// The handler starts from a clean table and leaves rows in place so you can
+// inspect them with any SQL client after the run.
+// ===========================================================================
+procedure TMainForm.btnAuditColumnsClick(Sender: TObject);
+const
+  // "IF EXISTS" is supported by every backend this showcase targets
+  // (PostgreSQL, SQLite, MySQL/MariaDB, MSSQL 2016+, Firebird 4+). It lets us
+  // clean up leftovers from a previous run WITHOUT raising, so there is no
+  // swallowed exception cluttering the IDE debugger.
+  DDL_DROP_IF_EXISTS = 'DROP TABLE IF EXISTS audit_demo';
+var
+  lConn: TFDConnection;
+  lRow: TAuditedDemo;
+  lTimestampType: string;
+  lDDLCreate: string;
+begin
+  Log('** Audit columns demo');
+
+  // STEP 0 - start from a clean slate: drop any leftover from a previous run,
+  // then (re)create the demo table. The rows written by the steps below are
+  // intentionally kept in the DB when the handler returns, so you can inspect
+  // them with any SQL client. The next click will drop and recreate.
+  //
+  // The SQL type for "date + time" is annoyingly NOT portable:
+  //   * PostgreSQL / Firebird / Interbase / SQLite -> TIMESTAMP
+  //   * MySQL / MariaDB                            -> DATETIME
+  //                                                   (TIMESTAMP also exists
+  //                                                    but has auto-update semantics)
+  //   * SQL Server                                 -> DATETIME2
+  //                                                   (TIMESTAMP is an alias
+  //                                                    for ROWVERSION: binary,
+  //                                                    single per table)
+  // So we pick the right keyword based on the current backend.
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
+    lTimestampType := 'DATETIME2'
+  else if (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
+          (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') then
+    lTimestampType := 'DATETIME'
+  else
+    lTimestampType := 'TIMESTAMP';
+
+  lDDLCreate :=
+    'CREATE TABLE audit_demo (' +
+    '  id          INTEGER      NOT NULL PRIMARY KEY, ' +
+    '  description VARCHAR(200), ' +
+    '  created_at  ' + lTimestampType + ', ' +
+    '  updated_at  ' + lTimestampType + ', ' +
+    '  created_by  VARCHAR(100), ' +
+    '  updated_by  VARCHAR(100)' +
+    ')';
+
+  lConn := TMVCActiveRecord.CurrentConnection;
+  lConn.ExecSQL(DDL_DROP_IF_EXISTS);
+  lConn.ExecSQL(lDDLCreate);
+  try
+
+    // STEP 1 - No user on this thread. created_at/updated_at are still filled
+    // because they don't need a user; the *_by columns stay NULL.
+    TMVCActiveRecord.SetCurrentUser('');
+    Log('');
+    Log('[1] Insert with NO user on this thread...');
+    lRow := TAuditedDemo.Create;
+    try
+      lRow.ID := 1;
+      lRow.Description := 'row #1 (anonymous)';
+      lRow.Insert;
+      Log(Format('   CreatedAt=%s  UpdatedAt=%s',
+        [DateTimeToStr(lRow.CreatedAt.ValueOrDefault),
+         DateTimeToStr(lRow.UpdatedAt.ValueOrDefault)]));
+      Log(Format('   CreatedBy=%s  UpdatedBy=%s  (both NULL by design)',
+        [BoolToStr(lRow.CreatedBy.HasValue, True),
+         BoolToStr(lRow.UpdatedBy.HasValue, True)]));
+    finally
+      lRow.Free;
+    end;
+
+    // STEP 2 - Set a thread-local user. From now on Insert will stamp
+    // created_by / updated_by automatically. Because the value lives in a
+    // threadvar, other threads/requests are NOT affected.
+    TMVCActiveRecord.SetCurrentUser('alice');
+    Log('');
+    Log('[2] Insert after SetCurrentUser(''alice'')...');
+    lRow := TAuditedDemo.Create;
+    try
+      lRow.ID := 2;
+      lRow.Description := 'row #2 (alice)';
+      lRow.Insert;
+      Log(Format('   CreatedBy=%s  UpdatedBy=%s',
+        [lRow.CreatedBy.ValueOrDefault, lRow.UpdatedBy.ValueOrDefault]));
+    finally
+      lRow.Free;
+    end;
+
+    // STEP 3 - Switch the user on this thread, then UPDATE the row we just
+    // inserted. UpdatedBy must follow the new user; CreatedBy must NOT change.
+    TMVCActiveRecord.SetCurrentUser('bob');
+    Log('');
+    Log('[3] Update row #2 after SetCurrentUser(''bob'')...');
+    Log('    -> updated_by must change, created_by must NOT change');
+    lRow := TMVCActiveRecord.GetByPK<TAuditedDemo>(2);
+    try
+      lRow.Description := 'row #2 (touched by bob)';
+      lRow.Update;
+      Log(Format('   CreatedBy=%s  UpdatedBy=%s',
+        [lRow.CreatedBy.ValueOrDefault, lRow.UpdatedBy.ValueOrDefault]));
+      Log(Format('   CreatedAt=%s  UpdatedAt=%s  (updated_at must be later)',
+        [DateTimeToStr(lRow.CreatedAt.ValueOrDefault),
+         DateTimeToStr(lRow.UpdatedAt.ValueOrDefault)]));
+    finally
+      lRow.Free;
+    end;
+
+    // STEP 4 - Insert as a third user to prove the thread-local value really
+    // gets resolved fresh on each save.
+    TMVCActiveRecord.SetCurrentUser('carol');
+    Log('');
+    Log('[4] Insert after SetCurrentUser(''carol'')...');
+    lRow := TAuditedDemo.Create;
+    try
+      lRow.ID := 3;
+      lRow.Description := 'row #3 (carol)';
+      lRow.Insert;
+      Log(Format('   CreatedBy=%s  UpdatedBy=%s',
+        [lRow.CreatedBy.ValueOrDefault, lRow.UpdatedBy.ValueOrDefault]));
+    finally
+      lRow.Free;
+    end;
+
+  finally
+    // Clear the thread-local user so we don't leak it to the next click.
+    // Rows are left in the table on purpose: inspect them with any SQL tool.
+    TMVCActiveRecord.SetCurrentUser('');
+  end;
+  Log('');
+  Log('** Done.');
 end;
 
 

@@ -111,22 +111,31 @@ constructor EMVCValidationException.Create(const AErrors: TDictionary<string, st
 var
   LKey: string;
   LErrorItems: TArray<string>;
+  LFieldNames: TArray<string>;
   LIndex: Integer;
+  LMessage: string;
 begin
   FValidationErrors := TDictionary<string, string>.Create;
 
-  // Copy errors and build ErrorItems array for EMVCException compatibility
+  // Copy errors, build ErrorItems array for EMVCException compatibility, and
+  // collect field names for the top-level exception message.
   SetLength(LErrorItems, AErrors.Count);
+  SetLength(LFieldNames, AErrors.Count);
   LIndex := 0;
   for LKey in AErrors.Keys do
   begin
     FValidationErrors.Add(LKey, AErrors[LKey]);
     LErrorItems[LIndex] := Format('%s: %s', [LKey, AErrors[LKey]]);
+    LFieldNames[LIndex] := LKey;
     Inc(LIndex);
   end;
 
-  // Call inherited constructor with 422 status and error items
-  inherited Create('Validation failed', '', 0, HTTP_STATUS.UnprocessableEntity, LErrorItems);
+  if Length(LFieldNames) = 0 then
+    LMessage := 'Validation failed'
+  else
+    LMessage := 'Validation failed for fields: ' + string.Join(', ', LFieldNames);
+
+  inherited Create(LMessage, '', 0, HTTP_STATUS.UnprocessableEntity, LErrorItems);
 end;
 
 constructor EMVCValidationException.Create(const AFieldName, AErrorMessage: string);

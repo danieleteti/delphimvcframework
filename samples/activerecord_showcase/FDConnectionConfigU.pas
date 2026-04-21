@@ -1,4 +1,4 @@
-unit FDConnectionConfigU;
+﻿unit FDConnectionConfigU;
 
 interface
 
@@ -78,11 +78,22 @@ begin
 
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=activerecorddb');
-    LParams.Add('OSAuthent=No');
     LParams.Add('Server=localhost');
+    LParams.Add('Database=activerecorddb');
     LParams.Add('User_Name=sa');
-    LParams.Add('Password=Daniele123!');
+    LParams.Add('Password=8v0lant3');
+    LParams.Add('MetaDefSchema=dbo');
+    LParams.Add('ExtendedMetadata=True');
+    LParams.Add('OSAuthent=No');
+    // "ODBC Driver 18 for SQL Server" defaults to Encrypt=Yes with strict
+    // certificate validation. A typical dev/container SQL Server uses a
+    // self-signed cert that is not in the Windows trust store, which makes
+    // the handshake fail with:
+    //   "Provider SSL: Catena di certificati emessa da una Autorità ... "
+    // Passing TrustServerCertificate=yes through ODBCAdvanced keeps the
+    // connection encrypted but skips cert-chain validation. Remove this
+    // line if you target a server with a CA-signed certificate.
+    LParams.Add('ODBCAdvanced=TrustServerCertificate=yes');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{F8576ED6-649F-4E28-B364-1F60687C75F2}</ProjectGuid>
-        <ProjectVersion>20.3</ProjectVersion>
+        <ProjectVersion>20.4</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>activerecord_showcase.dpr</MainSource>
         <Base>True</Base>
@@ -826,6 +826,9 @@
                     <Platform Name="Win64x">
                         <Operation>1</Operation>
                     </Platform>
+                    <Platform Name="WinARM64EC">
+                        <Operation>1</Operation>
+                    </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectiOSDeviceDebug">
                     <Platform Name="iOSDevice32">
@@ -896,6 +899,10 @@
                         <RemoteDir>Assets</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
+                    <Platform Name="WinARM64EC">
+                        <RemoteDir>Assets</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
                 </DeployClass>
                 <DeployClass Name="UWP_DelphiLogo44">
                     <Platform Name="Win32">
@@ -903,6 +910,10 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="Win64">
+                        <RemoteDir>Assets</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="WinARM64EC">
                         <RemoteDir>Assets</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
@@ -1121,6 +1132,7 @@
                 <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Win64x" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="WinARM64EC" Name="$(PROJECTNAME)"/>
             </Deployment>
             <Platforms>
                 <Platform value="Win32">True</Platform>

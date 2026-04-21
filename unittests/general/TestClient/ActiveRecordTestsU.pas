@@ -141,6 +141,48 @@ type
     procedure TestPartitioningDelete;
     [Test]
     procedure TestPartitioningGetByPK;
+    { validation - attribute based }
+    [Test]
+    procedure TestValidation_InsertFailsWhenDescriptionEmpty;
+    [Test]
+    procedure TestValidation_InsertFailsWhenDescriptionTooLong;
+    [Test]
+    procedure TestValidation_InsertFailsWhenEmailInvalid;
+    [Test]
+    procedure TestValidation_InsertFailsWhenRatingOutOfRange;
+    [Test]
+    procedure TestValidation_ExceptionMessageListsFailingFields;
+    [Test]
+    procedure TestValidation_InsertSucceedsWhenAllValid;
+    [Test]
+    procedure TestValidation_UpdateFailsWhenInvalid;
+    [Test]
+    procedure TestValidation_ValidateMethodCanBeCalledDirectly;
+    [Test]
+    procedure TestValidation_PKRequiredSkippedOnInsert;
+    [Test]
+    procedure TestValidation_OnValidateMethodIsInvoked;
+    { audit columns }
+    [Test]
+    procedure TestAudit_CreatedAtFilledOnInsert;
+    [Test]
+    procedure TestAudit_UpdatedAtMatchesCreatedAtOnInsert;
+    [Test]
+    procedure TestAudit_UpdatedAtChangesOnUpdate;
+    [Test]
+    procedure TestAudit_CreatedAtUnchangedOnUpdate;
+    [Test]
+    procedure TestAudit_CreatedByFromThreadLocal;
+    [Test]
+    procedure TestAudit_UpdatedByFollowsThreadUser;
+    [Test]
+    procedure TestAudit_NoUserLeavesFieldsNull;
+    [Test]
+    procedure TestAudit_WrongDateTimeFieldTypeFailsFast;
+    [Test]
+    procedure TestAudit_WrongStringFieldTypeFailsFast;
+    [Test]
+    procedure TestAudit_CurrentUserIsThreadIsolated;
   end;
 
   [TestFixture]
@@ -185,8 +227,9 @@ implementation
 uses
   System.Classes, System.IOUtils, BOs, MVCFramework.ActiveRecord,
   System.SysUtils, System.Threading, System.Generics.Collections, Data.DB,
+  System.DateUtils, System.SyncObjs,
   FireDAC.Stan.Intf, ShellAPI, Winapi.Windows, MVCFramework.Logger,
-  MVCFramework.Nullables;
+  MVCFramework.Nullables, MVCFramework.Validation;
 
 const
   _CON_DEF_NAME_SQLITE = 'SQLITECONNECTION';
@@ -2291,6 +2334,472 @@ begin
   FDManager.CloseConnectionDef(_CON_DEF_NAME_POSTGRESQL);
   fPGUtil.StopPG;
   GPGIsInitialized := False;
+end;
+
+// ===========================================================================
+// Validation / Audit tests
+//
+// These tests exercise the attribute-based validators and the MVCAudit*
+// attributes added on top of TMVCActiveRecord. They are declared on the
+// shared base class so they run across SQLite, Firebird and PostgreSQL.
+// ===========================================================================
+
+function BuildValidValidatedCustomer: TValidatedCustomer;
+begin
+  Result := TValidatedCustomer.Create;
+  Result.Description := 'Test';
+  Result.Email := 'user@example.com';
+  Result.Rating := 3;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_InsertFailsWhenDescriptionEmpty;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := TValidatedCustomer.Create;
+  try
+    // Description left null on purpose: MVCRequired must report it as missing
+    lCust.Email := 'user@example.com';
+    lCust.Rating := 3;
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Insert;
+      end,
+      EMVCValidationException);
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_InsertFailsWhenDescriptionTooLong;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Description := 'this string is definitely longer than ten chars';
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Insert;
+      end,
+      EMVCValidationException);
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_InsertFailsWhenEmailInvalid;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Email := 'not-an-email';
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Insert;
+      end,
+      EMVCValidationException);
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_InsertFailsWhenRatingOutOfRange;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Rating := 99;
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Insert;
+      end,
+      EMVCValidationException);
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_ExceptionMessageListsFailingFields;
+var
+  lCust: TValidatedCustomer;
+  lCaught: Boolean;
+begin
+  // A single glance at e.Message should reveal WHICH fields failed, without
+  // forcing the caller to iterate ValidationErrors. We set two invalid
+  // fields (Email and Rating) on an otherwise valid entity and look at the
+  // resulting exception text.
+  lCaught := False;
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Email := 'not-an-email';
+    lCust.Rating := 99;
+    try
+      lCust.Validate(eaCreate);
+    except
+      on E: EMVCValidationException do
+      begin
+        lCaught := True;
+        Assert.Contains(E.Message, 'Email',
+          'Exception message should mention the failing "Email" field');
+        Assert.Contains(E.Message, 'Rating',
+          'Exception message should mention the failing "Rating" field');
+      end;
+    end;
+    Assert.IsTrue(lCaught, 'EMVCValidationException was expected but was not raised');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_InsertSucceedsWhenAllValid;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Insert;
+    Assert.IsTrue(lCust.ID.HasValue, 'Expected autogenerated ID to be set after Insert');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_UpdateFailsWhenInvalid;
+var
+  lCust: TValidatedCustomer;
+  lId: Integer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Insert;
+    lId := lCust.ID.Value;
+  finally
+    lCust.Free;
+  end;
+
+  lCust := TMVCActiveRecord.GetByPK<TValidatedCustomer>(lId);
+  try
+    lCust.Email := 'still-not-an-email';
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Update;
+      end,
+      EMVCValidationException);
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_ValidateMethodCanBeCalledDirectly;
+var
+  lCust: TValidatedCustomer;
+begin
+  lCust := BuildValidValidatedCustomer;
+  try
+    lCust.Email := 'invalid';
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Validate(eaCreate);
+      end,
+      EMVCValidationException,
+      'Direct call to Validate should raise with bad email');
+
+    lCust.Email := 'ok@example.com';
+    lCust.Validate(eaCreate); // must not raise
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_PKRequiredSkippedOnInsert;
+var
+  lCust: TValidatedCustomer;
+begin
+  // The PK "fID" carries MVCRequired intentionally. On INSERT with foAutoGenerated
+  // the validator MUST be skipped; on UPDATE it would still fail if ID is null,
+  // but we only assert the insert-path here.
+  lCust := BuildValidValidatedCustomer;
+  try
+    Assert.IsFalse(lCust.ID.HasValue, 'ID must be null before Insert');
+    lCust.Insert;
+    Assert.IsTrue(lCust.ID.HasValue,
+      'Insert must succeed and autogenerate ID even though MVCRequired decorates the PK');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestValidation_OnValidateMethodIsInvoked;
+var
+  lCust: TValidatedCustomerWithOnValidate;
+begin
+  lCust := TValidatedCustomerWithOnValidate.Create;
+  try
+    lCust.Description := 'FORBIDDEN';
+    lCust.Email := 'user@example.com';
+    Assert.WillRaise(
+      procedure
+      begin
+        lCust.Validate(eaCreate);
+      end,
+      EMVCValidationException,
+      'OnValidate override must emit an error for the forbidden value');
+
+    lCust.Description := 'OK';
+    lCust.Validate(eaCreate); // must not raise - OnValidate produces no error
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_CreatedAtFilledOnInsert;
+var
+  lCust: TAuditedCustomer;
+  lBefore, lAfter: TDateTime;
+begin
+  lCust := TAuditedCustomer.Create;
+  try
+    lCust.Description := 'Some description';
+    lBefore := Now - (1 / 86400);
+    lCust.Insert;
+    lAfter := Now + (1 / 86400);
+    Assert.IsTrue(lCust.CreatedAt.HasValue, 'CreatedAt must be set after Insert');
+    Assert.IsTrue((lCust.CreatedAt.Value >= lBefore) and (lCust.CreatedAt.Value <= lAfter),
+      'CreatedAt must be within the insert window');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_UpdatedAtMatchesCreatedAtOnInsert;
+var
+  lCust: TAuditedCustomer;
+begin
+  lCust := TAuditedCustomer.Create;
+  try
+    lCust.Description := 'Some description';
+    lCust.Insert;
+    Assert.IsTrue(lCust.UpdatedAt.HasValue, 'UpdatedAt must be set after Insert');
+    Assert.IsTrue(SameDateTime(lCust.CreatedAt.Value, lCust.UpdatedAt.Value),
+      'UpdatedAt must equal CreatedAt on Insert');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_UpdatedAtChangesOnUpdate;
+var
+  lCust: TAuditedCustomer;
+  lId: Integer;
+  lInsertedAt: TDateTime;
+begin
+  lCust := TAuditedCustomer.Create;
+  try
+    lCust.Description := 'Some description';
+    lCust.Insert;
+    lId := lCust.ID.Value;
+    lInsertedAt := lCust.UpdatedAt.Value;
+  finally
+    lCust.Free;
+  end;
+
+  Sleep(1100); // ensure the clock has advanced past one-second TIMESTAMP granularity
+
+  lCust := TMVCActiveRecord.GetByPK<TAuditedCustomer>(lId);
+  try
+    lCust.Description := 'Changed';
+    lCust.Update;
+    Assert.IsTrue(lCust.UpdatedAt.Value > lInsertedAt,
+      'UpdatedAt must be refreshed on Update');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_CreatedAtUnchangedOnUpdate;
+var
+  lCust: TAuditedCustomer;
+  lId: Integer;
+  lOriginalCreatedAt: TDateTime;
+begin
+  lCust := TAuditedCustomer.Create;
+  try
+    lCust.Description := 'Some description';
+    lCust.Insert;
+    lId := lCust.ID.Value;
+    lOriginalCreatedAt := lCust.CreatedAt.Value;
+  finally
+    lCust.Free;
+  end;
+
+  Sleep(1100);
+
+  lCust := TMVCActiveRecord.GetByPK<TAuditedCustomer>(lId);
+  try
+    lCust.Description := 'Changed';
+    lCust.Update;
+    Assert.IsTrue(SameDateTime(lCust.CreatedAt.Value, lOriginalCreatedAt),
+      'CreatedAt must NOT change on Update');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_CreatedByFromThreadLocal;
+var
+  lCust: TAuditedCustomer;
+begin
+  TMVCActiveRecord.SetCurrentUser('alice');
+  try
+    lCust := TAuditedCustomer.Create;
+    try
+      lCust.Description := 'with user';
+      lCust.Insert;
+      Assert.AreEqual('alice', String(lCust.CreatedBy),
+        'CreatedBy must come from the per-thread user');
+      Assert.AreEqual('alice', String(lCust.UpdatedBy),
+        'UpdatedBy must also be set on Insert');
+    finally
+      lCust.Free;
+    end;
+  finally
+    TMVCActiveRecord.SetCurrentUser('');
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_UpdatedByFollowsThreadUser;
+var
+  lCust: TAuditedCustomer;
+  lId: Integer;
+begin
+  // First Insert under user "bob", then Update under user "carol": UpdatedBy
+  // must reflect the user active on the THREAD AT THE MOMENT of the save,
+  // while CreatedBy must remain the one captured at Insert time.
+  TMVCActiveRecord.SetCurrentUser('bob');
+  try
+    lCust := TAuditedCustomer.Create;
+    try
+      lCust.Description := 'created by bob';
+      lCust.Insert;
+      lId := lCust.ID.Value;
+      Assert.AreEqual('bob', String(lCust.CreatedBy));
+      Assert.AreEqual('bob', String(lCust.UpdatedBy));
+    finally
+      lCust.Free;
+    end;
+
+    TMVCActiveRecord.SetCurrentUser('carol');
+    lCust := TMVCActiveRecord.GetByPK<TAuditedCustomer>(lId);
+    try
+      lCust.Description := 'touched by carol';
+      lCust.Update;
+      Assert.AreEqual('bob', String(lCust.CreatedBy),
+        'CreatedBy must NOT change on Update');
+      Assert.AreEqual('carol', String(lCust.UpdatedBy),
+        'UpdatedBy must follow the thread-local user at Update time');
+    finally
+      lCust.Free;
+    end;
+  finally
+    TMVCActiveRecord.SetCurrentUser('');
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_NoUserLeavesFieldsNull;
+var
+  lCust: TAuditedCustomer;
+begin
+  TMVCActiveRecord.SetCurrentUser('');
+  lCust := TAuditedCustomer.Create;
+  try
+    lCust.Description := 'no user';
+    lCust.Insert;
+    Assert.IsFalse(lCust.CreatedBy.HasValue,
+      'When no user is set on this thread, *_by columns must remain null');
+    Assert.IsFalse(lCust.UpdatedBy.HasValue,
+      'When no user is set on this thread, *_by columns must remain null');
+    // Dates are still filled (they don't need a user)
+    Assert.IsTrue(lCust.CreatedAt.HasValue, 'CreatedAt must still be filled');
+  finally
+    lCust.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestAudit_WrongDateTimeFieldTypeFailsFast;
+begin
+  // The failure must happen the first time the entity is instantiated
+  // (inside the constructor's InitTableInfo), NOT later on Insert/Update.
+  Assert.WillRaise(
+    procedure
+    var
+      lBad: TBadAuditTimeType;
+    begin
+      lBad := TBadAuditTimeType.Create;
+      lBad.Free;
+    end,
+    EMVCActiveRecord,
+    'MVCAuditCreatedAt on a NullableTTime field must raise at InitTableInfo time');
+end;
+
+procedure TTestActiveRecordBase.TestAudit_WrongStringFieldTypeFailsFast;
+begin
+  Assert.WillRaise(
+    procedure
+    var
+      lBad: TBadAuditByType;
+    begin
+      lBad := TBadAuditByType.Create;
+      lBad.Free;
+    end,
+    EMVCActiveRecord,
+    'MVCAuditCreatedBy on an Integer field must raise at InitTableInfo time');
+end;
+
+procedure TTestActiveRecordBase.TestAudit_CurrentUserIsThreadIsolated;
+var
+  lMain: string;
+  lWorker: string;
+  lEvent: TEvent;
+  lTask: ITask;
+begin
+  // Thread MAIN sets user "pippo", thread WORKER sets user "pluto" at the
+  // same time. After the worker has set its value, MAIN re-reads its own:
+  // it must still be "pippo". No lock, no global, no bleed-through.
+  TMVCActiveRecord.SetCurrentUser('');
+  lEvent := TEvent.Create(nil, True, False, '');
+  try
+    TMVCActiveRecord.SetCurrentUser('pippo');
+
+    lTask := TTask.Run(
+      procedure
+      begin
+        TMVCActiveRecord.SetCurrentUser('pluto');
+        lWorker := TMVCActiveRecord.GetCurrentUser;
+        lEvent.SetEvent;
+      end);
+    lEvent.WaitFor(INFINITE);
+
+    lMain := TMVCActiveRecord.GetCurrentUser;
+
+    Assert.AreEqual('pippo', lMain,
+      'Main thread must keep its own user after the worker changed its own');
+    Assert.AreEqual('pluto', lWorker,
+      'Worker thread must see the user it set, independent of the main thread');
+
+    lTask.Wait;
+  finally
+    lEvent.Free;
+    TMVCActiveRecord.SetCurrentUser('');
+  end;
 end;
 
 initialization
