@@ -287,9 +287,16 @@ begin
       if TFile.Exists(lTemplateCodePath) then
       begin
         if Assigned(E) then
-          lError := E.Message
+        begin
+          lError := E.Message;
+          LogException(E);
+        end
         else
-          lError := HTTP_STATUS.ReasonStringFor(WebContext.Response.StatusCode);
+        begin
+          lError := IntToStr(WebContext.Response.StatusCode) + ' ' +
+            HTTP_STATUS.ReasonStringFor(WebContext.Response.StatusCode);
+          LogE(lError);
+        end;
         WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
         lTemplateCode := TFile.ReadAllText(lTemplateCodePath, TEncoding.UTF8);
         WebContext.Response.Content := TTProCompiler.CompileAndRender(

@@ -518,7 +518,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblPageTitle: TLabel
     Left = 24
-    Top = 126
+    Top = 127
     Width = 148
     Height = 22
     Anchors = [akLeft, akTop, akRight]
@@ -532,7 +532,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblPageHint: TLabel
     Left = 24
-    Top = 152
+    Top = 153
     Width = 208
     Height = 13
     Anchors = [akLeft, akTop, akRight]
@@ -549,7 +549,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Top = 175
     Width = 764
     Height = 407
-    ActivePage = tsOptions
+    ActivePage = tsLogging
     Anchors = [akLeft, akTop, akRight, akBottom]
     Style = tsFlatButtons
     TabHeight = 1
@@ -559,9 +559,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'AppType'
       TabVisible = False
       object lblAppTypeDescription: TLabel
-        Left = 24
-        Top = 170
-        Width = 700
+        Left = 399
+        Top = 10
+        Width = 345
         Height = 80
         AutoSize = False
         Caption = 
@@ -577,9 +577,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         WordWrap = True
       end
       object rgApplicationType: TRadioGroup
-        Left = 24
-        Top = 24
-        Width = 400
+        Left = 20
+        Top = 3
+        Width = 373
         Height = 130
         Caption = 'Application Type'
         ItemIndex = 0
@@ -596,29 +596,29 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'Server'
       TabVisible = False
       object lblServerPort: TLabel
-        Left = 260
-        Top = 24
+        Left = 256
+        Top = 7
         Width = 55
         Height = 13
         Caption = 'Server Port'
       end
       object lblProjectName: TLabel
-        Left = 25
-        Top = 158
+        Left = 21
+        Top = 141
         Width = 64
         Height = 13
         Caption = 'Project Name'
       end
       object lblProjectFolder: TLabel
-        Left = 25
-        Top = 208
+        Left = 21
+        Top = 191
         Width = 203
         Height = 13
         Caption = 'Base Folder (project created as subfolder)'
       end
       object lblProtocolDescription: TLabel
-        Left = 260
-        Top = 80
+        Left = 256
+        Top = 63
         Width = 460
         Height = 50
         AutoSize = False
@@ -632,15 +632,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         WordWrap = True
       end
       object lblServerEngine: TLabel
-        Left = 24
-        Top = 110
+        Left = 20
+        Top = 93
         Width = 67
         Height = 13
         Caption = 'Server Engine'
       end
       object rgServerProtocol: TRadioGroup
-        Left = 24
-        Top = 24
+        Left = 20
+        Top = 7
         Width = 220
         Height = 80
         Caption = 'Server Protocol'
@@ -653,8 +653,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         OnClick = rgServerProtocolClick
       end
       object cbServerEngine: TComboBox
-        Left = 24
-        Top = 126
+        Left = 20
+        Top = 109
         Width = 220
         Height = 21
         Style = csDropDownList
@@ -667,8 +667,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           'HTTP.sys (kernel-mode, Windows)')
       end
       object edtServerPort: TEdit
-        Left = 260
-        Top = 43
+        Left = 256
+        Top = 26
         Width = 80
         Height = 21
         TabOrder = 1
@@ -676,8 +676,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         TextHint = '8080'
       end
       object btnTestPort: TButton
-        Left = 350
-        Top = 41
+        Left = 346
+        Top = 24
         Width = 75
         Height = 25
         Caption = 'Test Port'
@@ -685,23 +685,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         OnClick = btnTestPortClick
       end
       object edtProjectName: TEdit
-        Left = 24
-        Top = 177
+        Left = 20
+        Top = 160
         Width = 401
         Height = 21
         TabOrder = 3
         TextHint = 'DMVCFrameworkProject1'
       end
       object edtProjectFolder: TEdit
-        Left = 24
-        Top = 227
+        Left = 20
+        Top = 210
         Width = 369
         Height = 21
         TabOrder = 4
       end
       object btnBrowseFolder: TButton
-        Left = 399
-        Top = 225
+        Left = 395
+        Top = 208
         Width = 26
         Height = 25
         Caption = '...'
@@ -709,8 +709,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         OnClick = btnBrowseFolderClick
       end
       object chkCreateSubfolder: TCheckBox
-        Left = 24
-        Top = 254
+        Left = 20
+        Top = 237
         Width = 280
         Height = 17
         Caption = 'Create project subfolder'
@@ -974,40 +974,44 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabVisible = False
       object lblLoggingProfile: TLabel
         Left = 24
-        Top = 16
-        Width = 500
+        Top = 5
+        Width = 392
         Height = 13
-        Caption =
+        Caption = 
           'How LoggerPro (the underlying logging library) is wired into the' +
           ' generated project'
       end
       object rgLoggingProfile: TRadioGroup
         Left = 24
-        Top = 35
+        Top = 27
         Width = 710
-        Height = 85
+        Height = 87
         Caption = ' Logger configuration profile '
         ItemIndex = 0
         Items.Strings = (
-          'Fluent (in code) - builder chain inside BootConfigU.pas'
-          'JSON config - loggerpro.json next to the executable, filename via dotEnv'
-          'Disabled - install a null logger that drops every message (no I/O)')
+          'Code - builder chain inside BootConfigU.pas'
+          
+            'JSON config file - json file next to the executable, filename vi' +
+            'a dotEnv'
+          
+            'Disabled - install a null logger that drops every message (no I/' +
+            'O)')
         TabOrder = 0
         OnClick = rgLoggingProfileClick
       end
       object gbLoggingAppenders: TGroupBox
         Left = 24
-        Top = 130
+        Top = 125
         Width = 710
-        Height = 185
+        Height = 183
         Caption = ' Built-in appenders '
         TabOrder = 1
         object lblAppenderHint: TLabel
           Left = 14
           Top = 20
-          Width = 680
+          Width = 663
           Height = 13
-          Caption =
+          Caption = 
             'Select which LoggerPro appenders the generated LoggerConfig unit' +
             ' should wire (Fluent profile) or include in loggerpro.json (JSON' +
             ' profile).'
@@ -1081,26 +1085,17 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object gbLoggingExeWatch: TGroupBox
         Left = 24
-        Top = 325
+        Top = 317
         Width = 710
-        Height = 75
+        Height = 71
         Caption = ' Cloud observability '
         TabOrder = 2
-        object chkLogExeWatch: TCheckBox
-          Left = 14
-          Top = 24
-          Width = 680
-          Height = 17
-          Caption = 'Add ExeWatch appender (orthogonal to profile - layers on top)'
-          TabOrder = 0
-          OnClick = chkLogExeWatchClick
-        end
         object lblExeWatchHint: TLabel
           Left = 32
           Top = 44
-          Width = 660
+          Width = 637
           Height = 13
-          Caption =
+          Caption = 
             'Credentials read from dotEnv keys exewatch.apikey, exewatch.cust' +
             'omerid, exewatch.appversion. Sign up at https://exewatch.com'
           Font.Charset = DEFAULT_CHARSET
@@ -1109,6 +1104,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
+        end
+        object chkLogExeWatch: TCheckBox
+          Left = 14
+          Top = 24
+          Width = 680
+          Height = 17
+          Caption = 'Add ExeWatch appender (orthogonal to profile - layers on top)'
+          TabOrder = 0
+          OnClick = chkLogExeWatchClick
         end
       end
     end
