@@ -12,6 +12,7 @@ performancetest/
 ├── bench_server/       One benchmark server, three .dpr variants (one per backend)
 ├── scripts/            wrk Lua scripts + run_all.bat driver + Python aggregator
 ├── tools/              Release-config audit script (catch wrong compiler flags)
+├── runners/            Build/run .bat wrappers — crystallised test invocations
 └── results/            Output logs + CSV summary
 ```
 
