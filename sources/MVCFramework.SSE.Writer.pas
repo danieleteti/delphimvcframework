@@ -61,6 +61,7 @@ type
     FIOHandler: TObject;   // TIdIOHandler
     FEncodingIntf: IInterface; // IIdTextEncoding
     FConnected: Boolean;
+    FConnection: TObject;  // TIdContext.Connection - kept to close the socket
   protected
     procedure WriteRaw(const AText: string);
     procedure BeginBuffer;
@@ -69,6 +70,7 @@ type
     constructor Create(const AContext: TWebContext;
       const AContentType: string;
       const ACharset: string = 'utf-8');
+    destructor Destroy; override;
     function Connected: Boolean;
   end;
 
@@ -148,12 +150,74 @@ type
     procedure Send(const AJSONLine: string);
   end;
 
+  /// <summary>
+  /// JSON Array streaming writer. Emits a well-formed JSON array
+  /// (application/json) one element at a time, directly to the socket.
+  ///
+  /// The "["  is written by the constructor, the "]" is written by the
+  /// destructor (or by an explicit call to Close). Between calls only
+  /// the running element and a separator comma live in memory: server
+  /// RAM stays flat regardless of how many elements are emitted. The
+  /// client, by contrast, receives a single valid JSON array and can
+  /// parse it like any other JSON response.
+  ///
+  /// Typical use: streaming a TDataSet with 100k+ rows to the client
+  /// without ever materialising the full result in the server.
+  ///
+  /// Usage:
+  ///   procedure TMyController.StreamPeople;
+  ///   var
+  ///     lW: TMVCJSONArrayWriter;
+  ///   begin
+  ///     lW := TMVCJSONArrayWriter.Create(Context);
+  ///     try
+  ///       while not ds.Eof do
+  ///       begin
+  ///         if not lW.Connected then Break;
+  ///         lW.Send(Serializer.SerializeDataSetRecord(ds));
+  ///         ds.Next;
+  ///       end;
+  ///     finally
+  ///       lW.Free;  // emits the closing "]"
+  ///     end;
+  ///   end;
+  ///
+  /// Like the other writers in this unit, this class requires an Indy-
+  /// based backend (Indy Direct or WebBroker on TIdHTTPWebBrokerBridge).
+  /// </summary>
+  TMVCJSONArrayWriter = class(TMVCStreamWriter)
+  private
+    fFirstItem: Boolean;
+    fClosed: Boolean;
+  public
+    constructor Create(const AContext: TWebContext;
+      const ACharset: string = 'utf-8');
+    destructor Destroy; override;
+
+    /// <summary>
+    /// Emits one element into the array. The argument must be a complete
+    /// JSON value (object, array, primitive). A separator comma is
+    /// prepended automatically starting from the second call. Writes
+    /// directly to the socket; no intermediate buffer keeps past items.
+    /// </summary>
+    procedure Send(const AJSONValue: string);
+
+    /// <summary>
+    /// Writes the closing "]" and terminates the array. Called
+    /// automatically by the destructor; invoke manually only if you
+    /// need the client to see the complete array before this object
+    /// goes out of scope.
+    /// </summary>
+    procedure Close;
+  end;
+
 implementation
 
 uses
   IdIOHandler,
   IdGlobal,
-  IdContext;
+  IdContext,
+  IdTCPConnection;
 
 const
   LF = #10;
@@ -173,22 +237,34 @@ begin
   lClientConn := AContext.Request.GetClientConnection;
   if not Assigned(lClientConn) or not (lClientConn is TIdContext) then
     raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-      'SSE requires an Indy-based server backend (TMVCIndyServer or ' +
-      'WebBroker hosted by TIdHTTPWebBrokerBridge)');
+      'Streaming writer requires an Indy-based server backend ' +
+      '(TMVCIndyServer or WebBroker hosted by TIdHTTPWebBrokerBridge)');
   lRawContext := TIdContext(lClientConn);
   lIOHandler := lRawContext.Connection.IOHandler;
   lEncoding := IndyTextEncoding(ACharset);
   FIOHandler := lIOHandler;
+  FConnection := lRawContext.Connection;
   FEncodingIntf := lEncoding;
   FConnected := True;
 
-  // Write HTTP headers directly to the socket
-  lIOHandler.WriteBufferOpen;
+  // Let the framework know the response is already being produced on
+  // the socket. The engine skips the function-return rendering path
+  // after the action returns and Response.Flush becomes a no-op, so
+  // no second HTTP response is spliced on top of ours.
+  AContext.Response.StreamingHandled := True;
+
+  // Without a Content-Length header (we can't know the final size in
+  // advance) nor chunked encoding, the client must rely on connection
+  // close as the end-of-body signal. Ask the server to close the
+  // connection after this response so the client stops reading at the
+  // right moment and plain HTTP clients (curl, browser fetch) work
+  // without hanging.
+  lRawContext.Connection.IOHandler.WriteBufferOpen;
   try
     lIOHandler.Write('HTTP/1.1 200 OK' + CRLF, lEncoding);
     lIOHandler.Write('Content-Type: ' + AContentType + '; charset=' + ACharset + CRLF, lEncoding);
     lIOHandler.Write('Cache-Control: no-cache' + CRLF, lEncoding);
-    lIOHandler.Write('Connection: keep-alive' + CRLF, lEncoding);
+    lIOHandler.Write('Connection: close' + CRLF, lEncoding);
     lIOHandler.Write('X-Accel-Buffering: no' + CRLF, lEncoding);
     lIOHandler.Write(CRLF, lEncoding);
   finally
@@ -226,6 +302,31 @@ end;
 function TMVCStreamWriter.Connected: Boolean;
 begin
   Result := FConnected;
+end;
+
+destructor TMVCStreamWriter.Destroy;
+begin
+  // Close the TCP connection now that the full streamed response has
+  // been written. Required because:
+  //   - the response has no Content-Length (the writer doesn't know
+  //     the total size up-front and uses neither chunked encoding)
+  //   - without EOF, an HTTP/1.1 client would wait forever on the
+  //     keep-alive socket
+  //   - TIdHTTPServer would otherwise append an empty default response
+  //     on top of ours after the action returns
+  // Closing the socket from here gives the client a clean EOF and
+  // prevents Indy from re-using the connection for a second (unwanted)
+  // response inside the same handler cycle.
+  if Assigned(FConnection) and (FConnection is TIdTCPConnection) then
+  begin
+    try
+      TIdTCPConnection(FConnection).Disconnect;
+    except
+      // best effort
+    end;
+  end;
+  FConnected := False;
+  inherited;
 end;
 
 { TMVCSSEWriter }
@@ -285,6 +386,43 @@ end;
 procedure TMVCJSONLWriter.Send(const AJSONLine: string);
 begin
   WriteRaw(AJSONLine + LF);
+end;
+
+{ TMVCJSONArrayWriter }
+
+constructor TMVCJSONArrayWriter.Create(const AContext: TWebContext;
+  const ACharset: string);
+begin
+  inherited Create(AContext, 'application/json', ACharset);
+  fFirstItem := True;
+  fClosed := False;
+  WriteRaw('[');
+end;
+
+destructor TMVCJSONArrayWriter.Destroy;
+begin
+  Close;
+  inherited;
+end;
+
+procedure TMVCJSONArrayWriter.Send(const AJSONValue: string);
+begin
+  if fClosed then
+    Exit;
+  if fFirstItem then
+    fFirstItem := False
+  else
+    WriteRaw(',');
+  WriteRaw(AJSONValue);
+end;
+
+procedure TMVCJSONArrayWriter.Close;
+begin
+  if fClosed then
+    Exit;
+  fClosed := True;
+  if Connected then
+    WriteRaw(']');
 end;
 
 end.

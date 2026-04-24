@@ -200,6 +200,19 @@ var
   lIO: TIdIOHandler;
 begin
   if FHeadersSent then Exit;
+  // A streaming writer (SSE, JSONL, JSONArray) has already emitted the
+  // full HTTP response (status + headers + body) directly on the socket.
+  // Nothing left for the framework to send; writing anything here would
+  // corrupt the already-committed response. Also ask Indy to close the
+  // TCP connection at the end of the request so the client sees EOF
+  // and stops reading (streaming writers can't announce a Content-Length
+  // upfront and don't use chunked encoding).
+  if StreamingHandled then
+  begin
+    FHeadersSent := True;
+    FResponseInfo.CloseConnection := True;
+    Exit;
+  end;
   FHeadersSent := True;
 
   // Sync custom headers to Indy response

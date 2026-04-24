@@ -112,6 +112,7 @@ type
     function GetQueryFieldsDelimitedText: string; override;
     function GetRawContent: TBytes; override;
   public
+    function GetClientConnection: TObject; override;
     constructor Create(const AContext: TIdContext;
       const ARequestInfo: TIdHTTPRequestInfo;
       const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -578,6 +579,15 @@ end;
 function TMVCIndyDirectRequest.GetRawContent: TBytes;
 begin
   Result := DoGetRawContent;
+end;
+
+function TMVCIndyDirectRequest.GetClientConnection: TObject;
+begin
+  // Expose the TIdContext so streaming writers (TMVCSSEWriter,
+  // TMVCJSONLWriter, TMVCJSONArrayWriter) can grab the raw Indy socket
+  // IOHandler and emit chunked output without buffering in the
+  // framework response.
+  Result := FContext;
 end;
 
 function TMVCIndyDirectRequest.ClientIp: string;
