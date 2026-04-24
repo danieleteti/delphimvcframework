@@ -33,17 +33,51 @@ implementation
 uses
   System.SysUtils, System.Classes, System.IOUtils,
   System.Generics.Collections, System.Generics.Defaults,
+  {$IFDEF MSWINDOWS}Winapi.Windows,{$ENDIF}
   FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async,
   FireDAC.Phys, FireDAC.DApt, FireDAC.Comp.Client,
+  LoggerPro, LoggerPro.Builder,
+  MVCFramework.Console,
   EntGen.Core;
 
-const
-  APP_VERSION = '1.1.0';
+function IsInteractiveConsole: Boolean;
+{$IFDEF MSWINDOWS}
+var
+  lHandle: THandle;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  lHandle := GetStdHandle(STD_OUTPUT_HANDLE);
+  Result := (lHandle <> 0) and (lHandle <> INVALID_HANDLE_VALUE) and
+    (GetFileType(lHandle) = FILE_TYPE_CHAR);
+{$ELSE}
+  Result := IsTerminalCapable;
+{$ENDIF}
+end;
 
-  CONNECTION_PARAM_KEYS: array[0..7] of string = (
-    'DRIVER_ID', 'SERVER', 'PORT', 'DATABASE',
-    'USER_NAME', 'PASSWORD', 'CHARACTERSET', 'OSAUTHENTIC'
+procedure FlushStdout;
+begin
+  try
+    Flush(Output);
+  except
+    { Output might be closed or not a file (e.g. service) - ignore. }
+  end;
+end;
+
+const
+  APP_VERSION = '1.2.0';
+
+  { Maps env-file keys (UPPER_SNAKE_CASE) to FireDAC canonical parameter names. }
+  CONNECTION_PARAM_MAP: array[0..7, 0..1] of string = (
+    ('DRIVER_ID',    'DriverID'),
+    ('SERVER',       'Server'),
+    ('PORT',         'Port'),
+    ('DATABASE',     'Database'),
+    ('USER_NAME',    'User_Name'),
+    ('PASSWORD',     'Password'),
+    ('CHARACTERSET', 'CharacterSet'),
+    ('OSAUTHENTIC',  'OSAuthent')
   );
 
 type
@@ -51,47 +85,67 @@ type
 
 procedure PrintBanner;
 begin
-  WriteLn('DMVCFramework Entity Generator CLI v' + APP_VERSION);
-  WriteLn('Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team');
-  WriteLn('');
+  MVCFramework.Console.WriteLine('');
+  MVCFramework.Console.WriteHeader(
+    Format(' DMVCFramework Entity Generator CLI  v%s ', [APP_VERSION]),
+    80, TConsoleColor.Cyan);
+  MVCFramework.Console.WriteLine(
+    'Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine('');
+end;
+
+procedure PrintKeyValue(const AKey, AValue: string);
+begin
+  MVCFramework.Console.WriteColoredText('  ' + AKey + ': ', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine(AValue, TConsoleColor.Cyan);
 end;
 
 procedure PrintUsage;
 begin
   PrintBanner;
-  WriteLn('Usage:');
-  WriteLn('  mvcentgen --config <file.env> [--connection <name>] [--output <file.pas>]');
-  WriteLn('');
-  WriteLn('Options:');
-  WriteLn('  --config <file>        Path to .env configuration file (required)');
-  WriteLn('  --connection <name>    FireDAC connection definition name (overrides config)');
-  WriteLn('  --output <file>        Output .pas file path (overrides config)');
-  WriteLn('  --help                 Show this help message');
-  WriteLn('');
-  WriteLn('Config file format (.env):');
-  WriteLn('  # Connection - use CONNECTION_DEF for a named FireDAC connection,');
-  WriteLn('  # or specify parameters directly');
-  WriteLn('  CONNECTION_DEF=MyConnection');
-  WriteLn('  # DRIVER_ID=PG');
-  WriteLn('  # SERVER=localhost');
-  WriteLn('  # PORT=5432');
-  WriteLn('  # DATABASE=mydb');
-  WriteLn('  # USER_NAME=postgres');
-  WriteLn('  # PASSWORD=secret');
-  WriteLn('');
-  WriteLn('  SCHEMA=public');
-  WriteLn('  OUTPUT_FILE=EntitiesU.pas');
-  WriteLn('');
-  WriteLn('  # NAME_CASE: LowerCase, UpperCase, CamelCase, PascalCase, SnakeCase, AsIs');
-  WriteLn('  NAME_CASE=LowerCase');
-  WriteLn('  # FIELD_NAME_FORMAT: AsIs, PascalCase');
-  WriteLn('  FIELD_NAME_FORMAT=AsIs');
-  WriteLn('  GENERATE_MAPPING=true');
-  WriteLn('  CLASS_AS_ABSTRACT=false');
-  WriteLn('');
-  WriteLn('  # Tables: exact name, wildcard (TBL_*), or regex (/^pattern$/)');
-  WriteLn('  TABLES=');
-  WriteLn('  EXCLUDE_TABLES=');
+  MVCFramework.Console.WriteLine('Usage:', TConsoleColor.White);
+  MVCFramework.Console.WriteLine(
+    '  mvcentgen --config <file.env> [--connection <name>] [--output <file.pas>] [--log <file>]',
+    TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('');
+  MVCFramework.Console.WriteLine('Options:', TConsoleColor.White);
+  MVCFramework.Console.WriteLine('  --config <file>        Path to .env configuration file (required)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --connection <name>    FireDAC connection definition name (overrides config)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --output <file>        Output .pas file path (overrides config)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --log <file>           Also write structured log to file', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --verbose              Include Debug-level messages (e.g. skipped tables)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --no-color             Disable ANSI colored console output', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --help                 Show this help message', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('');
+  MVCFramework.Console.WriteLine('Config file format (.env):', TConsoleColor.White);
+  MVCFramework.Console.WriteLine(
+    '  CONNECTION_DEF=MyConnection     # or set DRIVER_ID + SERVER + DATABASE + ...',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  SCHEMA=public                   # optional',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  OUTPUT_FILE=EntitiesU.pas',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  NAME_CASE=LowerCase             # LowerCase|UpperCase|CamelCase|PascalCase|SnakeCase|AsIs',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  FIELD_NAME_FORMAT=AsIs          # AsIs|PascalCase',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  GENERATE_MAPPING=true',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  CLASS_AS_ABSTRACT=false',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  TABLES=                         # optional: exact name, wildcard (TBL_*), regex (/^pattern$/)',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  EXCLUDE_TABLES=',
+    TConsoleColor.DarkGray);
 end;
 
 function ParseEnvFile(const AFileName: string): TEnvConfig;
@@ -116,7 +170,7 @@ begin
       Continue;
     lKey := lLine.Substring(0, lEqPos).Trim.ToUpper;
     lValue := lLine.Substring(lEqPos + 1).Trim;
-    // Strip surrounding quotes if present
+    { Strip surrounding quotes if present }
     if (lValue.Length >= 2) and
        ((lValue.StartsWith('"') and lValue.EndsWith('"')) or
         (lValue.StartsWith('''') and lValue.EndsWith(''''))) then
@@ -224,7 +278,7 @@ end;
 procedure ConfigureConnection(AConnection: TFDConnection; const AEnv: TEnvConfig;
   const AConnectionOverride: string);
 var
-  lConnDef, lKey, lValue: string;
+  lConnDef, lEnvKey, lFdKey, lValue: string;
   lPair: TPair<string, string>;
   I: Integer;
 begin
@@ -241,18 +295,18 @@ begin
   else
   begin
     { Build connection from individual params }
-    lValue := GetEnvValue(AEnv, 'DRIVER_ID');
-    if lValue.IsEmpty then
+    if GetEnvValue(AEnv, 'DRIVER_ID').IsEmpty then
       raise Exception.Create('Either CONNECTION_DEF or DRIVER_ID must be specified in config');
     AConnection.Params.Clear;
-    for I := Low(CONNECTION_PARAM_KEYS) to High(CONNECTION_PARAM_KEYS) do
+    for I := Low(CONNECTION_PARAM_MAP) to High(CONNECTION_PARAM_MAP) do
     begin
-      lKey := CONNECTION_PARAM_KEYS[I];
-      lValue := GetEnvValue(AEnv, lKey);
+      lEnvKey := CONNECTION_PARAM_MAP[I, 0];
+      lFdKey := CONNECTION_PARAM_MAP[I, 1];
+      lValue := GetEnvValue(AEnv, lEnvKey);
       if not lValue.IsEmpty then
-        AConnection.Params.AddPair(lKey, lValue);
+        AConnection.Params.AddPair(lFdKey, lValue);
     end;
-    { Pass any additional FireDAC params (FD_*) }
+    { Pass any additional FireDAC params (FD_*) verbatim after the prefix. }
     for lPair in AEnv do
     begin
       if lPair.Key.StartsWith('FD_') and (not lPair.Value.IsEmpty) then
@@ -262,14 +316,74 @@ begin
   AConnection.Params.AddPair('ExtendedMetadata', 'True');
 end;
 
+function BuildLogger(const ALogFile: string; AVerbose, AUseColors: Boolean): ILogWriter;
+var
+  lBuilder: ILoggerProBuilder;
+  lDefaultLevel: TLogType;
+begin
+  if AVerbose then
+    lDefaultLevel := TLogType.Debug
+  else
+    lDefaultLevel := TLogType.Info;
+
+  lBuilder := LoggerProBuilder.WithDefaultMinimumLevel(lDefaultLevel);
+
+  if AUseColors then
+    lBuilder := lBuilder
+      .WriteToConsole
+        .WithColors
+        .WithUTF8Output
+        .Done
+  else
+    lBuilder := lBuilder
+      .WriteToSimpleConsole
+        .WithUTF8Output
+        .Done;
+
+  if not ALogFile.IsEmpty then
+    lBuilder := lBuilder
+      .WriteToFile
+        .WithLogsFolder(TPath.GetDirectoryName(TPath.GetFullPath(ALogFile)))
+        .WithFileBaseName(TPath.GetFileNameWithoutExtension(ALogFile))
+        .WithMaxBackupFiles(5)
+        .WithMaxFileSizeInKB(5120)
+        .Done;
+
+  Result := lBuilder.Build;
+end;
+
+procedure PrintResultBanner(const AResult: TEntGenResult; const AOutputFile: string);
+begin
+  MVCFramework.Console.WriteLine('');
+  MVCFramework.Console.WriteColoredText('Entities generated: ', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine(IntToStr(AResult.GeneratedCount), TConsoleColor.Yellow);
+  MVCFramework.Console.WriteColoredText('Tables skipped:     ', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine(IntToStr(AResult.SkippedCount), TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteColoredText('Output file:        ', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine(AOutputFile, TConsoleColor.Cyan);
+  MVCFramework.Console.WriteLine('');
+  MVCFramework.Console.WriteSuccess('Done!');
+end;
+
 procedure RunCLI;
 var
-  lConfigFile, lConnectionOverride, lOutputFile: string;
+  lConfigFile, lConnectionOverride, lOutputFile, lLogFile: string;
   lEnv: TEnvConfig;
   lConnection: TFDConnection;
   lGenerator: TMVCEntityGenerator;
   lConfig: TEntGenConfig;
+  lLogger: ILogWriter;
+  lUseColors, lVerbose: Boolean;
+  lSpinner: ISpinner;
+  lGeneratedOk: Boolean;
+  lResult: TEntGenResult;
 begin
+  lUseColors := (not HasCmdSwitch('no-color')) and IsInteractiveConsole;
+  lVerbose := HasCmdSwitch('verbose') or HasCmdSwitch('v');
+
+  if lUseColors then
+    MVCFramework.Console.EnableANSIColorConsole;
+
   if HasCmdSwitch('help') or HasCmdSwitch('h') or (ParamCount = 0) then
   begin
     PrintUsage;
@@ -280,19 +394,33 @@ begin
 
   if not GetCmdSwitch('config', lConfigFile) then
   begin
-    WriteLn('ERROR: --config parameter is required');
-    WriteLn('');
+    MVCFramework.Console.WriteError('--config parameter is required');
+    MVCFramework.Console.WriteLine('');
     PrintUsage;
     ExitCode := 1;
     Exit;
   end;
 
+  if not GetCmdSwitch('log', lLogFile) then
+    lLogFile := '';
+
   { Resolve relative path based on current directory }
   if not TPath.IsPathRooted(lConfigFile) then
     lConfigFile := TPath.Combine(GetCurrentDir, lConfigFile);
 
-  WriteLn('Loading config from: ' + lConfigFile);
-  lEnv := ParseEnvFile(lConfigFile);
+  PrintKeyValue('Config file', lConfigFile);
+  try
+    lEnv := ParseEnvFile(lConfigFile);
+  except
+    on E: Exception do
+    begin
+      MVCFramework.Console.WriteError(E.Message);
+      ExitCode := 1;
+      Exit;
+    end;
+  end;
+
+  lGeneratedOk := False;
   try
     if not GetCmdSwitch('connection', lConnectionOverride) then
       lConnectionOverride := '';
@@ -311,40 +439,91 @@ begin
     lConfig.ClassAsAbstract := GetEnvBool(lEnv, 'CLASS_AS_ABSTRACT', False);
     lConfig.Tables := SplitCSV(GetEnvValue(lEnv, 'TABLES'));
     lConfig.ExcludeTables := SplitCSV(GetEnvValue(lEnv, 'EXCLUDE_TABLES'));
-
-    { Load TABLE -> ClassName mapping (MAP_tablename=ClassName) }
     lConfig.TableClassMap := BuildTableClassMap(lEnv);
 
-    WriteLn('Output file: ' + lOutputFile);
+    PrintKeyValue('Output file', lOutputFile);
     if lConfig.Schema <> '' then
-      WriteLn('Schema: ' + lConfig.Schema);
+      PrintKeyValue('Schema', lConfig.Schema);
     if Length(lConfig.Tables) > 0 then
-      WriteLn('Tables filter: ' + string.Join(', ', lConfig.Tables));
+      PrintKeyValue('Tables filter', string.Join(', ', lConfig.Tables));
+    if Length(lConfig.ExcludeTables) > 0 then
+      PrintKeyValue('Exclude filter', string.Join(', ', lConfig.ExcludeTables));
+    MVCFramework.Console.WriteLine('');
 
     lConnection := TFDConnection.Create(nil);
     try
       lConnection.LoginPrompt := False;
-      ConfigureConnection(lConnection, lEnv, lConnectionOverride);
-
-      WriteLn('Connecting to database...');
-      lConnection.Connected := True;
-      WriteLn('Connected successfully');
-      WriteLn('');
-
-      lGenerator := TMVCEntityGenerator.Create(lConnection);
       try
-        lGenerator.OnLog :=
-          procedure(const AMessage: string)
-          begin
-            WriteLn(AMessage);
-          end;
-        lGenerator.GenerateToFile(lConfig, lOutputFile);
-      finally
-        lGenerator.Free;
+        ConfigureConnection(lConnection, lEnv, lConnectionOverride);
+      except
+        on E: Exception do
+        begin
+          MVCFramework.Console.WriteError('Config error: ' + E.Message);
+          ExitCode := 1;
+          Exit;
+        end;
       end;
 
-      WriteLn('');
-      WriteLn('Done!');
+      if lUseColors then
+        lSpinner := MVCFramework.Console.Spinner(
+          '  Connecting to database...',
+          TSpinnerStyle.ssDots,
+          TConsoleColor.DarkCyan)
+      else
+      begin
+        MVCFramework.Console.WriteInfo('Connecting to database...');
+        lSpinner := nil;
+      end;
+      try
+        try
+          lConnection.Connected := True;
+        finally
+          if Assigned(lSpinner) then
+            lSpinner.Hide;
+          lSpinner := nil;
+        end;
+      except
+        on E: Exception do
+        begin
+          MVCFramework.Console.WriteError('Connection failed: ' + E.Message);
+          ExitCode := 1;
+          Exit;
+        end;
+      end;
+      MVCFramework.Console.WriteSuccess('Connected to database');
+      MVCFramework.Console.WriteLine('');
+
+      { Flush main-thread buffered writes before handing the console to the
+        logger's async appender - without this, pipe-redirected stdout can
+        interleave main-thread bytes with logger-thread bytes. }
+      FlushStdout;
+
+      { From here LoggerPro owns the console: no direct Console.Write calls
+        until logger is released, or interleaving may occur. }
+      lLogger := BuildLogger(lLogFile, lVerbose, lUseColors);
+      lResult := Default(TEntGenResult);
+      lGenerator := TMVCEntityGenerator.Create(lConnection);
+      try
+        lGenerator.Logger := lLogger;
+        try
+          lGenerator.GenerateToFile(lConfig, lOutputFile);
+          lResult := lGenerator.LastResult;
+          lGeneratedOk := True;
+        except
+          on E: Exception do
+            lLogger.LogException(E, 'Generation failed', 'entgen');
+        end;
+      finally
+        lGenerator.Free;
+        { Release logger so appenders flush before we resume Console output. }
+        lLogger := nil;
+      end;
+
+      if lGeneratedOk then
+      begin
+        PrintResultBanner(lResult, lOutputFile);
+        FlushStdout;
+      end;
     finally
       lConnection.Free;
     end;
@@ -352,6 +531,9 @@ begin
     lConfig.TableClassMap.Free;
     lEnv.Free;
   end;
+
+  if not lGeneratedOk then
+    ExitCode := 1;
 end;
 
 end.

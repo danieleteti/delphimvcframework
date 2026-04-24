@@ -28,7 +28,8 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Generics.Collections,
-  FireDAC.Stan.Intf, FireDAC.Comp.Client, FireDAC.Phys.Intf;
+  FireDAC.Stan.Intf, FireDAC.Comp.Client, FireDAC.Phys.Intf,
+  LoggerPro;
 
 type
   TEntGenNameCase = (ncLowerCase, ncUpperCase, ncCamelCase, ncPascalCase, ncSnakeCase, ncAsIs);
@@ -48,20 +49,30 @@ type
     TableClassMap: TEntGenTableClassMap; // optional, nil = auto naming
   end;
 
-  TEntGenLogProc = reference to procedure(const AMessage: string);
+  TEntGenResult = record
+    GeneratedCount: Integer;
+    SkippedCount: Integer;
+    DiscoveredCount: Integer;
+    OutputSource: string;
+    OutputFile: string;
+  end;
 
   TMVCEntityGenerator = class
   private
     const INDENT = '  ';
+    const LOG_TAG = 'entgen';
   private
     fIntfBuff: TStringBuilder;
     fImplBuff: TStringBuilder;
     fInitBuff: TStringBuilder;
     fConnection: TFDConnection;
     fConfig: TEntGenConfig;
-    fOnLog: TEntGenLogProc;
-    procedure Log(const AMsg: string); overload;
-    procedure Log(const AFmt: string; const AArgs: array of const); overload;
+    fLogger: ILogWriter;
+    fLastResult: TEntGenResult;
+    procedure LogInfo(const AFmt: string; const AArgs: array of const); overload;
+    procedure LogInfo(const AMsg: string); overload;
+    procedure LogDebug(const AFmt: string; const AArgs: array of const);
+    procedure LogWarn(const AFmt: string; const AArgs: array of const);
 
     { Naming }
     class function GetDelphiClassName(const ATableName: string): string;
@@ -97,13 +108,16 @@ type
     class function MatchesAnyPattern(const ATableName: string;
       const APatterns: TArray<string>): Boolean;
     function ShouldGenerateTable(const ATableName: string): Boolean;
+    function GetMetaCatalogName: string;
     procedure GenerateEntity(const ATableName: string);
+    procedure RunGeneration(const AConfig: TEntGenConfig; const AUnitName: string);
   public
     constructor Create(AConnection: TFDConnection);
     destructor Destroy; override;
     function Generate(const AConfig: TEntGenConfig): string;
     procedure GenerateToFile(const AConfig: TEntGenConfig; const AOutputFile: string);
-    property OnLog: TEntGenLogProc read fOnLog write fOnLog;
+    property Logger: ILogWriter read fLogger write fLogger;
+    property LastResult: TEntGenResult read fLastResult;
   end;
 
 implementation
@@ -148,15 +162,27 @@ begin
   inherited;
 end;
 
-procedure TMVCEntityGenerator.Log(const AMsg: string);
+procedure TMVCEntityGenerator.LogInfo(const AMsg: string);
 begin
-  if Assigned(fOnLog) then
-    fOnLog(AMsg);
+  if Assigned(fLogger) then
+    fLogger.Info(AMsg, LOG_TAG);
 end;
 
-procedure TMVCEntityGenerator.Log(const AFmt: string; const AArgs: array of const);
+procedure TMVCEntityGenerator.LogInfo(const AFmt: string; const AArgs: array of const);
 begin
-  Log(Format(AFmt, AArgs));
+  LogInfo(Format(AFmt, AArgs));
+end;
+
+procedure TMVCEntityGenerator.LogDebug(const AFmt: string; const AArgs: array of const);
+begin
+  if Assigned(fLogger) then
+    fLogger.Debug(Format(AFmt, AArgs), LOG_TAG);
+end;
+
+procedure TMVCEntityGenerator.LogWarn(const AFmt: string; const AArgs: array of const);
+begin
+  if Assigned(fLogger) then
+    fLogger.Warn(Format(AFmt, AArgs), LOG_TAG);
 end;
 
 { --- Naming helpers --- }
@@ -448,6 +474,8 @@ begin
 
   if GetDelphiType(AFieldDataType, AColumnAttribs).ToUpper.Contains('UNSUPPORTED TYPE') then
   begin
+    LogWarn('Unsupported column type for field [%s] (%s) - emitting as comment',
+      [ADatabaseFieldName, AColumnTypeName]);
     lRTTIAttrib := '//' + lRTTIAttrib;
     lField := '//' + lField;
   end
@@ -487,6 +515,26 @@ begin
     lProp := '  ' + lProp;
 
   fIntfBuff.AppendLine(INDENT + lProp);
+end;
+
+{ --- Metadata helpers --- }
+
+function TMVCEntityGenerator.GetMetaCatalogName: string;
+var
+  lDriver: string;
+begin
+  { For drivers whose DATABASE param is a file path (SQLite, Firebird/IB
+    embedded, MSAccess) the path contains characters like ":" and "\" that
+    FireDAC would try to use inside its metadata queries - with SQLite the ":"
+    is parsed as a bind-parameter prefix and the query fails. Pass an empty
+    catalog in that case; FireDAC falls back to the connection's default
+    catalog, which is what we want. }
+  lDriver := fConnection.Params.Values['DriverID'].ToUpper;
+  if (lDriver = 'SQLITE') or (lDriver = 'FB') or (lDriver = 'IB') or
+     (lDriver = 'MSACC') or (lDriver = 'ADS') then
+    Result := ''
+  else
+    Result := fConnection.Params.Database;
 end;
 
 { --- Table filtering --- }
@@ -563,7 +611,7 @@ begin
   if fConfig.ClassAsAbstract then
     lClassName := lClassName.Chars[0] + 'Custom' + lClassName.Substring(1);
 
-  Log('  Generating [%s] for table [%s]', [lClassName, ATableName]);
+  LogInfo('Generating [%s] for table [%s]', [lClassName, ATableName]);
 
   EmitClassHeader(ATableName, lClassName, fConfig.NameCase, fConfig.ClassAsAbstract);
 
@@ -572,7 +620,7 @@ begin
   try
     lQryMeta.Connection := fConnection;
     fConnection.GetKeyFieldNames(
-      fConnection.Params.Database,
+      GetMetaCatalogName,
       fConfig.Schema,
       ATableName, '', lKeyFields);
     { Fallback: if GetKeyFieldNames returns nothing, query PK metadata directly }
@@ -600,7 +648,7 @@ begin
     lQryMeta.MetaInfoKind := mkTableFields;
     lQryMeta.ObjectName := ATableName;
     lQryMeta.SchemaName := fConfig.Schema;
-    lQryMeta.CatalogName := fConnection.Params.Database;
+    lQryMeta.CatalogName := GetMetaCatalogName;
     lQryMeta.Open;
     lQryMeta.FetchAll;
     lQryMeta.First;
@@ -687,16 +735,17 @@ end;
 
 { --- Main generation --- }
 
-function TMVCEntityGenerator.Generate(const AConfig: TEntGenConfig): string;
+procedure TMVCEntityGenerator.RunGeneration(const AConfig: TEntGenConfig; const AUnitName: string);
 var
   lTables: TStringList;
   lTable: string;
-  lGeneratedCount: Integer;
+  lGeneratedCount, lSkippedCount: Integer;
 begin
   fConfig := AConfig;
   fIntfBuff.Clear;
   fImplBuff.Clear;
   fInitBuff.Clear;
+  fLastResult := Default(TEntGenResult);
 
   lTables := TStringList.Create;
   try
@@ -704,21 +753,22 @@ begin
       fConnection.Connected := True;
 
     fConnection.GetTableNames(
-      fConnection.Params.Database,
+      GetMetaCatalogName,
       AConfig.Schema, '', lTables);
 
-    Log('Found %d tables in database', [lTables.Count]);
+    LogInfo('Found %d tables in database', [lTables.Count]);
 
     EmitLicenseHeader;
-    { Unit name placeholder - caller should set the real name via GenerateToFile }
-    EmitUnitHeader('EntitiesU');
+    EmitUnitHeader(AUnitName);
 
     lGeneratedCount := 0;
+    lSkippedCount := 0;
     for lTable in lTables do
     begin
       if not ShouldGenerateTable(lTable) then
       begin
-        Log('  Skipping table [%s]', [lTable]);
+        LogDebug('Skipping table [%s]', [lTable]);
+        Inc(lSkippedCount);
         Continue;
       end;
       GenerateEntity(lTable);
@@ -726,63 +776,34 @@ begin
     end;
     EmitUnitFooter;
 
-    Log('Generated %d entities', [lGeneratedCount]);
-    Result := fIntfBuff.ToString + fImplBuff.ToString + fInitBuff.ToString;
+    fLastResult.GeneratedCount := lGeneratedCount;
+    fLastResult.SkippedCount := lSkippedCount;
+    fLastResult.DiscoveredCount := lTables.Count;
   finally
     lTables.Free;
   end;
 end;
 
+function TMVCEntityGenerator.Generate(const AConfig: TEntGenConfig): string;
+begin
+  { Unit name placeholder - caller should set the real name via GenerateToFile }
+  RunGeneration(AConfig, 'EntitiesU');
+  Result := fIntfBuff.ToString + fImplBuff.ToString + fInitBuff.ToString;
+  fLastResult.OutputSource := Result;
+  LogInfo('Generated %d entities', [fLastResult.GeneratedCount]);
+end;
+
 procedure TMVCEntityGenerator.GenerateToFile(const AConfig: TEntGenConfig;
   const AOutputFile: string);
 var
-  lTables: TStringList;
-  lTable: string;
-  lGeneratedCount: Integer;
-  lUnitName: string;
+  lSource: string;
 begin
-  fConfig := AConfig;
-  fIntfBuff.Clear;
-  fImplBuff.Clear;
-  fInitBuff.Clear;
-
-  lUnitName := TPath.GetFileNameWithoutExtension(AOutputFile);
-
-  lTables := TStringList.Create;
-  try
-    if not fConnection.Connected then
-      fConnection.Connected := True;
-
-    fConnection.GetTableNames(
-      fConnection.Params.Database,
-      AConfig.Schema, '', lTables);
-
-    Log('Found %d tables in database', [lTables.Count]);
-
-    EmitLicenseHeader;
-    EmitUnitHeader(lUnitName);
-
-    lGeneratedCount := 0;
-    for lTable in lTables do
-    begin
-      if not ShouldGenerateTable(lTable) then
-      begin
-        Log('  Skipping table [%s]', [lTable]);
-        Continue;
-      end;
-      GenerateEntity(lTable);
-      Inc(lGeneratedCount);
-    end;
-    EmitUnitFooter;
-
-    TFile.WriteAllText(AOutputFile,
-      fIntfBuff.ToString + fImplBuff.ToString + fInitBuff.ToString,
-      TEncoding.UTF8);
-
-    Log('Generated %d entities to %s', [lGeneratedCount, AOutputFile]);
-  finally
-    lTables.Free;
-  end;
+  RunGeneration(AConfig, TPath.GetFileNameWithoutExtension(AOutputFile));
+  lSource := fIntfBuff.ToString + fImplBuff.ToString + fInitBuff.ToString;
+  TFile.WriteAllText(AOutputFile, lSource, TEncoding.UTF8);
+  fLastResult.OutputSource := lSource;
+  fLastResult.OutputFile := AOutputFile;
+  LogInfo('Generated %d entities to %s', [fLastResult.GeneratedCount, AOutputFile]);
 end;
 
 end.

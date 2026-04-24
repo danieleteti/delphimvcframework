@@ -38,6 +38,9 @@ uses
   FireDAC.Phys.SQLite,
   FireDAC.Phys.ODBC,
   FireDAC.ConsoleUI.Wait,
+  LoggerPro in '..\..\lib\loggerpro\LoggerPro.pas',
+  LoggerPro.Builder in '..\..\lib\loggerpro\LoggerPro.Builder.pas',
+  MVCFramework.Console in '..\..\sources\MVCFramework.Console.pas',
   EntGen.Core in 'EntGen.Core.pas',
   EntGen.CLIMain in 'EntGen.CLIMain.pas',
   MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas';
@@ -48,7 +51,7 @@ begin
   except
     on E: Exception do
     begin
-      WriteLn('ERROR: ' + E.Message);
+      WriteLn('FATAL: ' + E.Message);
       ExitCode := 1;
     end;
   end;

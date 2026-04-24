@@ -40,6 +40,7 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>..\bin</DCC_ExeOutput>
+        <DCC_UnitSearchPath>..\..\sources;..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_E>false</DCC_E>
         <DCC_N>false</DCC_N>
         <DCC_S>false</DCC_S>
@@ -82,6 +83,9 @@
         <DCCReference Include="EntGen.Core.pas"/>
         <DCCReference Include="EntGen.CLIMain.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Console.pas"/>
+        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.pas"/>
+        <DCCReference Include="..\..\lib\loggerpro\LoggerPro.Builder.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
