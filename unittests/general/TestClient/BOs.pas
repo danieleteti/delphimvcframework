@@ -777,7 +777,8 @@ type
     [MVCTableField('rating')]
     fRating: NullableInt32;
   protected
-    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
+    procedure OnStorageValidate(const AErrors: PMVCValidationErrors;
+      const EntityAction: TMVCEntityAction); override;
   public
     property ID: NullableInt32 read fID write fID;
     property Description: NullableString read fDescription write fDescription;
@@ -1668,7 +1669,8 @@ end;
 
 { TValidatedCustomerWithOnValidate }
 
-procedure TValidatedCustomerWithOnValidate.OnValidate(const AErrors: PMVCValidationErrors);
+procedure TValidatedCustomerWithOnValidate.OnStorageValidate(
+  const AErrors: PMVCValidationErrors; const EntityAction: TMVCEntityAction);
 begin
   if fDescription.ValueOrDefault = 'FORBIDDEN' then
     AErrors.Add('Description', 'value "FORBIDDEN" is not allowed');

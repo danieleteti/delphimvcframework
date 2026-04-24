@@ -36,6 +36,49 @@ uses
 
 type
   /// <summary>
+  /// Record for collecting validation errors with lazy dictionary creation.
+  /// The dictionary is only allocated when Add is called.
+  /// </summary>
+  TMVCValidationErrors = record
+  private
+    FErrors: TDictionary<string, string>;
+  public
+    /// <summary>
+    /// Adds a validation error. Creates the internal dictionary on first call.
+    /// </summary>
+    procedure Add(const AFieldPath, AMessage: string);
+    /// <summary>
+    /// Returns True if any errors were added.
+    /// </summary>
+    function HasErrors: Boolean;
+    /// <summary>
+    /// Clears and frees the internal dictionary if allocated.
+    /// </summary>
+    procedure Clear;
+    /// <summary>
+    /// Read-only access to the internal dictionary (nil until the first Add
+    /// call). The record retains ownership: consumers that need a persistent
+    /// copy must allocate their own dictionary and copy the entries.
+    /// </summary>
+    property Errors: TDictionary<string, string> read FErrors;
+  end;
+
+  PMVCValidationErrors = ^TMVCValidationErrors;
+
+  /// <summary>
+  /// Base class for every object that can be validated at the framework
+  /// boundary (DTO, command, request model, ...). Override OnValidate to
+  /// collect cross-field / business rule errors on top of the declarative
+  /// attribute-based validators. TMVCActiveRecord itself inherits from this
+  /// class, so an entity can be used directly as a request DTO and will be
+  /// validated along the same pipeline without extra code.
+  /// </summary>
+  TMVCValidatable = class
+  public
+    procedure OnValidate(const AErrors: PMVCValidationErrors); virtual;
+  end;
+
+  /// <summary>
   /// Abstract base class for all validators.
   /// Each validator must inherit from this class and implement the Validate method.
   /// </summary>
@@ -94,7 +137,42 @@ type
     property ValidationErrors: TDictionary<string, string> read FValidationErrors;
   end;
 
+  /// <summary>
+  /// Exception raised when storage-side validation fails (TMVCActiveRecord.Validate).
+  /// Inherits from EMVCValidationException so existing handlers keep working;
+  /// the distinct type lets callers discriminate input-layer vs storage-layer
+  /// errors by exception class.
+  /// </summary>
+  EMVCStorageValidationException = class(EMVCValidationException);
+
 implementation
+
+{ TMVCValidationErrors }
+
+procedure TMVCValidationErrors.Add(const AFieldPath, AMessage: string);
+begin
+  if FErrors = nil then
+    FErrors := TDictionary<string, string>.Create;
+  if not FErrors.ContainsKey(AFieldPath) then
+    FErrors.Add(AFieldPath, AMessage);
+end;
+
+function TMVCValidationErrors.HasErrors: Boolean;
+begin
+  Result := (FErrors <> nil) and (FErrors.Count > 0);
+end;
+
+procedure TMVCValidationErrors.Clear;
+begin
+  FreeAndNil(FErrors);
+end;
+
+{ TMVCValidatable }
+
+procedure TMVCValidatable.OnValidate(const AErrors: PMVCValidationErrors);
+begin
+  // no-op: override in descendants to add business / cross-field errors.
+end;
 
 { TMVCValidatorBase }
 

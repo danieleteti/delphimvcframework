@@ -12,6 +12,7 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   MVCFramework.Serializer.Commons,
+  MVCFramework.Validation,
   MVCFramework.Validators,
   MVCFramework.Validators.CrossField,
   MVCFramework.ValidationEngine;
@@ -231,7 +232,7 @@ type
   /// This approach is useful for complex business rules that involve multiple fields.
   /// </summary>
   [MVCNameCase(ncCamelCase)]
-  TEventBooking = class
+  TEventBooking = class(TMVCValidatable)
   private
     FEventName: string;
     FStartDate: TDate;
@@ -267,7 +268,7 @@ type
     /// Object-level validation for complex cross-field rules.
     /// Called automatically after property validators.
     /// </summary>
-    procedure OnValidate(const AErrors: PMVCValidationErrors);
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
   end;
 
 implementation

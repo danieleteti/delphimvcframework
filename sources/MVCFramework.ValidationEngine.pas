@@ -34,58 +34,44 @@ uses
   System.TypInfo,
   System.Generics.Collections,
   System.SyncObjs,
+  MVCFramework.Commons,
   MVCFramework.Validation;
 
 type
   /// <summary>
-  /// Record for collecting validation errors with lazy dictionary creation.
-  /// Used by OnValidate method. The dictionary is only allocated when Add is called.
+  /// Per-property metadata cached for a single validation pass: the
+  /// TRttiProperty reference (stable because we keep a TRttiContext
+  /// alive), the already-filtered validator attribute list, and the
+  /// property name used as field-path segment. Computed once per class.
   /// </summary>
-  TMVCValidationErrors = record
-  private
-    FErrors: TDictionary<string, string>;
-  public
-    /// <summary>
-    /// Adds a validation error. Creates the internal dictionary on first call.
-    /// </summary>
-    procedure Add(const AFieldPath, AMessage: string);
-    /// <summary>
-    /// Returns True if any errors were added.
-    /// </summary>
-    function HasErrors: Boolean;
-    /// <summary>
-    /// Clears and frees the internal dictionary if allocated.
-    /// </summary>
-    procedure Clear;
-    /// <summary>
-    /// Read-only access to the internal dictionary (nil until the first Add
-    /// call). The record retains ownership: consumers that need a persistent
-    /// copy must allocate their own dictionary and copy the entries.
-    /// </summary>
-    property Errors: TDictionary<string, string> read FErrors;
+  TMVCValidationPropertyInfo = record
+    RttiProp: TRttiProperty;
+    Name: string;
+    Validators: TArray<TMVCValidatorBase>;
   end;
 
   /// <summary>
-  /// Pointer to TMVCValidationErrors record.
-  /// </summary>
-  PMVCValidationErrors = ^TMVCValidationErrors;
-
-  /// <summary>
-  /// Method signature for custom object-level validation.
-  /// The method receives a pointer to the validation errors record.
-  /// </summary>
-  TOnValidateProc = procedure(const AErrors: PMVCValidationErrors) of object;
-
-  /// <summary>
   /// Cache entry for validation metadata per class.
+  /// Populated once per class by BuildCacheEntry; read concurrently by
+  /// InternalValidate / IsValidatableClass without RTTI scans in the
+  /// hot path.
   /// </summary>
   TValidationCacheEntry = record
-    /// <summary>True if the class has any validation attributes on properties</summary>
+    /// <summary>Properties that have at least one validator attribute,
+    /// with validators already filtered. Iterating this list is the only
+    /// work InternalValidate needs for the property-level step.</summary>
+    PropertiesToValidate: TArray<TMVCValidationPropertyInfo>;
+    /// <summary>Class-typed properties that need runtime recursion
+    /// (nested DTO, collection). Only the RTTI ref is stored; the
+    /// nested object's actual class may differ, so collection detection
+    /// stays dynamic inside InternalValidate.</summary>
+    PropertiesToRecurse: TArray<TRttiProperty>;
+    /// <summary>True if at least one property in the class (or in a
+    /// nested class) has validators. Used to OPT-IN validation.</summary>
     HasValidators: Boolean;
-    /// <summary>True if the class has an OnValidate method</summary>
-    HasOnValidate: Boolean;
-    /// <summary>Code address of the OnValidate method (for direct call)</summary>
-    OnValidateCodeAddress: Pointer;
+    /// <summary>True if the class derives from TMVCValidatable (so its
+    /// OnValidate hook is called).</summary>
+    IsValidatable: Boolean;
   end;
 
   /// <summary>
@@ -95,7 +81,21 @@ type
   TMVCValidationEngine = class
   private
     class var FValidationCache: TDictionary<TClass, TValidationCacheEntry>;
-    class var FCacheLock: TCriticalSection;
+    /// <summary>
+    /// Multiple-reader / single-writer sync: the cache is written once
+    /// per class (first lookup) and read on every subsequent call, so
+    /// serialising readers on a mutex would create contention on every
+    /// validation. MREW lets N readers proceed concurrently and only
+    /// the rare writer is exclusive.
+    /// </summary>
+    class var FCacheLock: TMultiReadExclusiveWriteSynchronizer;
+    /// <summary>
+    /// Persistent RTTI context that keeps the RTTI pool alive for the
+    /// lifetime of the engine. TRttiProperty references stored inside
+    /// the cache are stable only as long as the pool isn't torn down,
+    /// which in practice happens only at process shutdown.
+    /// </summary>
+    class var FRttiContext: TRttiContext;
     class constructor Create;
     class destructor Destroy;
 
@@ -104,6 +104,14 @@ type
     /// Checks for validation attributes and OnValidate method.
     /// </summary>
     class function BuildCacheEntry(AClass: TClass): TValidationCacheEntry;
+
+    /// <summary>
+    /// Thread-safe cache lookup with double-checked insertion. Returns
+    /// the cached entry, building and inserting one if needed. Never
+    /// holds the write lock across the (potentially expensive)
+    /// BuildCacheEntry call.
+    /// </summary>
+    class function GetOrBuildCacheEntry(AClass: TClass): TValidationCacheEntry;
 
     /// <summary>
     /// Internal recursive validation method.
@@ -161,97 +169,126 @@ implementation
 class constructor TMVCValidationEngine.Create;
 begin
   FValidationCache := TDictionary<TClass, TValidationCacheEntry>.Create;
-  FCacheLock := TCriticalSection.Create;
+  FCacheLock := TMultiReadExclusiveWriteSynchronizer.Create;
+  FRttiContext := TRttiContext.Create;
 end;
 
 class destructor TMVCValidationEngine.Destroy;
 begin
+  FRttiContext.Free;
   FValidationCache.Free;
   FCacheLock.Free;
 end;
 
-{ TMVCValidationErrors }
-
-procedure TMVCValidationErrors.Add(const AFieldPath, AMessage: string);
-begin
-  // Lazy creation of errors dictionary
-  if FErrors = nil then
-    FErrors := TDictionary<string, string>.Create;
-  // Add only first error per field
-  if not FErrors.ContainsKey(AFieldPath) then
-    FErrors.Add(AFieldPath, AMessage);
-end;
-
-function TMVCValidationErrors.HasErrors: Boolean;
-begin
-  Result := (FErrors <> nil) and (FErrors.Count > 0);
-end;
-
-procedure TMVCValidationErrors.Clear;
-begin
-  FreeAndNil(FErrors);
-end;
-
 class function TMVCValidationEngine.BuildCacheEntry(AClass: TClass): TValidationCacheEntry;
 var
-  LCtx: TRttiContext;
   LType: TRttiType;
   LProp: TRttiProperty;
   LAttr: TCustomAttribute;
   LMethod: TRttiMethod;
-  LParams: TArray<TRttiParameter>;
+  LValidators: TList<TMVCValidatorBase>;
+  LToValidate: TList<TMVCValidationPropertyInfo>;
+  LToRecurse: TList<TRttiProperty>;
+  LPropInfo: TMVCValidationPropertyInfo;
 begin
+  Result.PropertiesToValidate := nil;
+  Result.PropertiesToRecurse := nil;
   Result.HasValidators := False;
-  Result.HasOnValidate := False;
-  Result.OnValidateCodeAddress := nil;
+  Result.IsValidatable := AClass.InheritsFrom(TMVCValidatable);
 
-  LCtx := TRttiContext.Create;
+  // Uses the class-level FRttiContext: all TRttiProperty refs returned
+  // here stay valid for the life of the engine.
+  LType := FRttiContext.GetType(AClass);
+  if LType = nil then
+    Exit;
+
+  LToValidate := TList<TMVCValidationPropertyInfo>.Create;
+  LToRecurse := TList<TRttiProperty>.Create;
+  LValidators := TList<TMVCValidatorBase>.Create;
   try
-    LType := LCtx.GetType(AClass);
-    if LType = nil then
-      Exit;
-
-    // Check if at least one property has a validator attribute
     for LProp in LType.GetProperties do
     begin
+      if not LProp.IsReadable then
+        Continue;
+
+      // Collect validator attributes on this property - done once here
+      // so InternalValidate never touches GetAttributes at runtime.
+      LValidators.Clear;
       for LAttr in LProp.GetAttributes do
-      begin
         if LAttr is TMVCValidatorBase then
-        begin
-          Result.HasValidators := True;
-          Break;
-        end;
+          LValidators.Add(TMVCValidatorBase(LAttr));
+
+      if LValidators.Count > 0 then
+      begin
+        LPropInfo.RttiProp := LProp;
+        LPropInfo.Name := LProp.Name;
+        LPropInfo.Validators := LValidators.ToArray;
+        LToValidate.Add(LPropInfo);
+        Result.HasValidators := True;
       end;
-      if Result.HasValidators then
-        Break;
+
+      // Class-typed properties are potential recursion targets (nested
+      // DTO or collection). The nested object's actual class may differ
+      // from the declared type, so the Count/Items detection stays at
+      // runtime - we only pre-pick which properties are candidates.
+      if (LProp.PropertyType <> nil) and
+         (LProp.PropertyType.TypeKind = tkClass) then
+        LToRecurse.Add(LProp);
     end;
 
-    // Check for OnValidate method with correct signature:
-    // procedure OnValidate(const AErrors: PMVCValidationErrors)
-    LMethod := LType.GetMethod('OnValidate');
-    if LMethod <> nil then
+    Result.PropertiesToValidate := LToValidate.ToArray;
+    Result.PropertiesToRecurse := LToRecurse.ToArray;
+
+    // Fail-fast: a class that declares its own OnValidate method but does NOT
+    // inherit from TMVCValidatable will NOT be called (we use virtual dispatch
+    // now). Raise an explicit exception instead of silently skipping it.
+    if not Result.IsValidatable then
     begin
-      // Must be a procedure (no return type)
-      if LMethod.ReturnType <> nil then
-        Exit;
-
-      LParams := LMethod.GetParameters;
-      // Must have exactly 1 parameter
-      if Length(LParams) <> 1 then
-        Exit;
-
-      // Parameter must be PMVCValidationErrors
-      if (LParams[0].ParamType = nil) then
-        Exit;
-
-      if LParams[0].ParamType.Handle <> TypeInfo(PMVCValidationErrors) then
-        Exit;
-
-      Result.HasOnValidate := True;
-      Result.OnValidateCodeAddress := LMethod.CodeAddress;
+      LMethod := LType.GetMethod('OnValidate');
+      if (LMethod <> nil) and (LMethod.Parent <> nil) and
+         (LMethod.Parent.Handle = AClass.ClassInfo) then
+        raise EMVCException.CreateFmt(
+          'Class "%s" declares an OnValidate method but does not inherit from ' +
+          'TMVCValidatable. Declare the class as "class(TMVCValidatable)" so ' +
+          'the framework can invoke OnValidate via virtual dispatch.',
+          [AClass.ClassName]);
     end;
   finally
-    LCtx.Free;
+    LValidators.Free;
+    LToRecurse.Free;
+    LToValidate.Free;
+  end;
+end;
+
+class function TMVCValidationEngine.GetOrBuildCacheEntry(
+  AClass: TClass): TValidationCacheEntry;
+var
+  LBuilt: TValidationCacheEntry;
+begin
+  // Read-only fast path: multiple threads can run this concurrently.
+  FCacheLock.BeginRead;
+  try
+    if FValidationCache.TryGetValue(AClass, Result) then
+      Exit;
+  finally
+    FCacheLock.EndRead;
+  end;
+
+  // Miss: build OUTSIDE the lock. RTTI introspection may allocate and
+  // must not block other readers.
+  LBuilt := BuildCacheEntry(AClass);
+
+  // Double-check: another thread may have inserted meanwhile. Prefer
+  // the winner entry to avoid duplicate storage.
+  FCacheLock.BeginWrite;
+  try
+    if not FValidationCache.TryGetValue(AClass, Result) then
+    begin
+      FValidationCache.Add(AClass, LBuilt);
+      Result := LBuilt;
+    end;
+  finally
+    FCacheLock.EndWrite;
   end;
 end;
 
@@ -261,29 +298,8 @@ var
 begin
   if AClass = nil then
     Exit(False);
-
-  // Check cache first (thread-safe read)
-  FCacheLock.Enter;
-  try
-    if FValidationCache.TryGetValue(AClass, LCacheEntry) then
-      Exit(LCacheEntry.HasValidators or LCacheEntry.HasOnValidate);
-  finally
-    FCacheLock.Leave;
-  end;
-
-  // Not in cache, build entry via RTTI (outside lock for performance)
-  LCacheEntry := BuildCacheEntry(AClass);
-
-  // Add to cache (thread-safe write)
-  FCacheLock.Enter;
-  try
-    if not FValidationCache.ContainsKey(AClass) then
-      FValidationCache.Add(AClass, LCacheEntry);
-  finally
-    FCacheLock.Leave;
-  end;
-
-  Result := LCacheEntry.HasValidators or LCacheEntry.HasOnValidate;
+  LCacheEntry := GetOrBuildCacheEntry(AClass);
+  Result := LCacheEntry.HasValidators or LCacheEntry.IsValidatable;
 end;
 
 class procedure TMVCValidationEngine.InternalValidate(
@@ -302,14 +318,20 @@ class procedure TMVCValidationEngine.InternalValidate(
       AErrors.Add(AFieldPath, AMessage);
   end;
 
+  function BuildFieldPath(const ASegment: string): string;
+  begin
+    if APath.IsEmpty then
+      Result := ASegment
+    else
+      Result := APath + '.' + ASegment;
+  end;
+
 var
-  LCtx: TRttiContext;
-  LType: TRttiType;
-  LProp: TRttiProperty;
-  LAttr: TCustomAttribute;
+  LPropInfo: TMVCValidationPropertyInfo;
   LValue: TValue;
   LValidator: TMVCValidatorBase;
   LFieldPath: string;
+  LProp: TRttiProperty;
   LNestedObj: TObject;
   LNestedType: TRttiType;
   LCountProp: TRttiProperty;
@@ -319,8 +341,6 @@ var
   LItemValue: TValue;
   I: Integer;
   LCacheEntry: TValidationCacheEntry;
-  LOnValidateMethod: TMethod;
-  LOnValidateProc: TOnValidateProc;
   LOnValidateErrors: TMVCValidationErrors;
   LPair: TPair<string, string>;
 begin
@@ -332,124 +352,87 @@ begin
     Exit;
   AVisited.Add(AObject);
 
-  // Get cache entry for this class
-  FCacheLock.Enter;
-  try
-    if not FValidationCache.TryGetValue(AObject.ClassType, LCacheEntry) then
+  // Get cache entry (cheap: read-locked lookup on warm cache).
+  LCacheEntry := GetOrBuildCacheEntry(AObject.ClassType);
+
+  // 1. Apply attribute validators - flat loop over the already-filtered
+  //    per-property list built once by BuildCacheEntry. No RTTI scan,
+  //    no GetAttributes call in the hot path.
+  for LPropInfo in LCacheEntry.PropertiesToValidate do
+  begin
+    LValue := LPropInfo.RttiProp.GetValue(AObject);
+    LFieldPath := BuildFieldPath(LPropInfo.Name);
+    for LValidator in LPropInfo.Validators do
     begin
-      // Build and cache entry if not found
-      LCacheEntry := BuildCacheEntry(AObject.ClassType);
-      FValidationCache.Add(AObject.ClassType, LCacheEntry);
+      if not LValidator.Validate(LValue, AObject) then
+        AddError(LFieldPath, LValidator.GetErrorMessage);
     end;
-  finally
-    FCacheLock.Leave;
   end;
 
-  LCtx := TRttiContext.Create;
-  try
-    LType := LCtx.GetType(AObject.ClassType);
-    if LType = nil then
-      Exit;
+  // 2. Recurse into nested objects / collections. Only the RTTI refs of
+  //    class-typed properties are pre-cached; the actual nested type may
+  //    differ from the declared one (inheritance), so collection
+  //    detection stays dynamic.
+  for LProp in LCacheEntry.PropertiesToRecurse do
+  begin
+    LValue := LProp.GetValue(AObject);
+    if (LValue.Kind <> tkClass) or LValue.IsEmpty then
+      Continue;
 
-    // 1. Validate each property (attribute-based validation)
-    for LProp in LType.GetProperties do
+    LNestedObj := LValue.AsObject;
+    if LNestedObj = nil then
+      Continue;
+
+    LFieldPath := BuildFieldPath(LProp.Name);
+
+    // Collection detection via Count + Items indexed property. Uses the
+    // shared FRttiContext pool so the lookup is cached across calls.
+    LNestedType := FRttiContext.GetType(LNestedObj.ClassType);
+    if LNestedType = nil then
+      Continue;
+
+    LCountProp := LNestedType.GetProperty('Count');
+    LItemsProp := LNestedType.GetIndexedProperty('Items');
+
+    if Assigned(LCountProp) and Assigned(LItemsProp) then
     begin
-      // Skip non-readable properties
-      if not LProp.IsReadable then
-        Continue;
-
-      // Build field path
-      if APath.IsEmpty then
-        LFieldPath := LProp.Name
-      else
-        LFieldPath := APath + '.' + LProp.Name;
-
-      LValue := LProp.GetValue(AObject);
-
-      // Execute validators on this property
-      for LAttr in LProp.GetAttributes do
+      LListCount := LCountProp.GetValue(LNestedObj).AsInteger;
+      for I := 0 to LListCount - 1 do
       begin
-        if LAttr is TMVCValidatorBase then
+        LItemValue := LItemsProp.GetValue(LNestedObj, [I]);
+        if (LItemValue.Kind = tkClass) and not LItemValue.IsEmpty then
         begin
-          LValidator := TMVCValidatorBase(LAttr);
-          if not LValidator.Validate(LValue, AObject) then
-          begin
-            AddError(LFieldPath, LValidator.GetErrorMessage);
-          end;
+          LListItem := LItemValue.AsObject;
+          if LListItem <> nil then
+            InternalValidate(LListItem, AErrors,
+              Format('%s[%d]', [LFieldPath, I]), AVisited);
         end;
       end;
-
-      // 2. RECURSIVE VALIDATION for nested objects
-      if (LValue.Kind = tkClass) and not LValue.IsEmpty then
-      begin
-        LNestedObj := LValue.AsObject;
-
-        if LNestedObj <> nil then
-        begin
-          LNestedType := LCtx.GetType(LNestedObj.ClassType);
-          if LNestedType = nil then
-            Continue;
-
-          // Try to detect if it's a collection (TObjectList, TList, etc.)
-          LCountProp := LNestedType.GetProperty('Count');
-          LItemsProp := LNestedType.GetIndexedProperty('Items');
-
-          if Assigned(LCountProp) and Assigned(LItemsProp) then
-          begin
-            // It's a collection - validate each item
-            LListCount := LCountProp.GetValue(LNestedObj).AsInteger;
-
-            for I := 0 to LListCount - 1 do
-            begin
-              // Get item at index I using indexed property
-              LItemValue := LItemsProp.GetValue(LNestedObj, [I]);
-
-              if (LItemValue.Kind = tkClass) and not LItemValue.IsEmpty then
-              begin
-                LListItem := LItemValue.AsObject;
-                if LListItem <> nil then
-                begin
-                  // Recursively validate the list item
-                  InternalValidate(LListItem, AErrors,
-                    Format('%s[%d]', [LFieldPath, I]), AVisited);
-                end;
-              end;
-            end;
-          end
-          else
-          begin
-            // It's a single nested object - validate recursively
-            InternalValidate(LNestedObj, AErrors, LFieldPath, AVisited);
-          end;
-        end;
-      end;
+    end
+    else
+    begin
+      InternalValidate(LNestedObj, AErrors, LFieldPath, AVisited);
     end;
+  end;
 
-    // 3. Call OnValidate method if it exists (object-level validation)
-    // Only call for root object (empty path) to avoid duplicate calls on nested objects
-    if APath.IsEmpty and LCacheEntry.HasOnValidate then
-    begin
-      LOnValidateMethod.Code := LCacheEntry.OnValidateCodeAddress;
-      LOnValidateMethod.Data := AObject;
-      LOnValidateProc := TOnValidateProc(LOnValidateMethod);
-      // Initialize record on stack (zero allocation)
-      FillChar(LOnValidateErrors, SizeOf(LOnValidateErrors), 0);
-      // Call OnValidate with pointer to stack record
-      LOnValidateProc(@LOnValidateErrors);
-      // Merge any errors from OnValidate into main errors dictionary
+  // 3. Call OnValidate method via virtual dispatch. Only for the root
+  //    object (empty path) to avoid duplicate calls on nested objects.
+  if APath.IsEmpty and LCacheEntry.IsValidatable then
+  begin
+    FillChar(LOnValidateErrors, SizeOf(LOnValidateErrors), 0);
+    try
+      TMVCValidatable(AObject).OnValidate(@LOnValidateErrors);
       if LOnValidateErrors.HasErrors then
-      try
+      begin
         if AErrors = nil then
           AErrors := TDictionary<string, string>.Create;
-        for LPair in LOnValidateErrors.FErrors do
+        for LPair in LOnValidateErrors.Errors do
           if not AErrors.ContainsKey(LPair.Key) then
             AErrors.Add(LPair.Key, LPair.Value);
-      finally
-        LOnValidateErrors.Clear;
       end;
+    finally
+      LOnValidateErrors.Clear;
     end;
-  finally
-    LCtx.Free;
   end;
 end;
 
@@ -495,11 +478,11 @@ end;
 
 class procedure TMVCValidationEngine.ClearCache;
 begin
-  FCacheLock.Enter;
+  FCacheLock.BeginWrite;
   try
     FValidationCache.Clear;
   finally
-    FCacheLock.Leave;
+    FCacheLock.EndWrite;
   end;
 end;
 

@@ -208,21 +208,21 @@ type
   /// Model with ONLY OnValidate, no property validators.
   /// Tests that OnValidate alone makes a class validatable.
   /// </summary>
-  TOnValidateOnlyModel = class
+  TOnValidateOnlyModel = class(TMVCValidatable)
   private
     FStartDate: TDate;
     FEndDate: TDate;
   public
     property StartDate: TDate read FStartDate write FStartDate;
     property EndDate: TDate read FEndDate write FEndDate;
-    procedure OnValidate(const AErrors: PMVCValidationErrors);
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
   end;
 
   /// <summary>
   /// Model with BOTH property validators AND OnValidate.
   /// Tests that both run and errors are accumulated.
   /// </summary>
-  TOnValidateCombinedModel = class
+  TOnValidateCombinedModel = class(TMVCValidatable)
   private
     FName: string;
     FEmail: string;
@@ -238,13 +238,13 @@ type
     property MinAmount: Currency read FMinAmount write FMinAmount;
     property MaxAmount: Currency read FMaxAmount write FMaxAmount;
 
-    procedure OnValidate(const AErrors: PMVCValidationErrors);
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
   end;
 
   /// <summary>
   /// Model with multiple cross-field validations in OnValidate.
   /// </summary>
-  TOnValidateMultipleErrorsModel = class
+  TOnValidateMultipleErrorsModel = class(TMVCValidatable)
   private
     FPassword: string;
     FConfirmPassword: string;
@@ -255,7 +255,7 @@ type
     property ConfirmPassword: string read FConfirmPassword write FConfirmPassword;
     property Age: Integer read FAge write FAge;
     property RetirementAge: Integer read FRetirementAge write FRetirementAge;
-    procedure OnValidate(const AErrors: PMVCValidationErrors);
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
   end;
 
   [TestFixture]
