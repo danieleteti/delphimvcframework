@@ -202,3 +202,7 @@ GUIDA_OIDC_DANIELE.md
 /unittests/general/TestClient/pgsql/testdatadir/*
 /docs/itdevcon*.md
 /docs/superpowers/*
+
+# Sample runtime SQLite DB files (seeded at first run, not source)
+samples/**/people.db
+samples/**/people.db-journal
