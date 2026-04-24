@@ -2562,7 +2562,7 @@ end;
 //   rating = 5  =>  code must start with "VIP".
 //
 // Walk this button top-to-bottom: every step feeds an INVALID object to
-// Insert/Update and catches EMVCValidationException to print the offending
+// Insert/Update and catches EMVCStorageValidationException to print the offending
 // fields. The final step shows a valid insert succeeding.
 // ===========================================================================
 procedure TMainForm.btnAttrValidationClick(Sender: TObject);
@@ -2585,9 +2585,9 @@ begin
       lCust.Insert;
       Log('   UNEXPECTED: no exception raised');
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
-        Log('   OK, got EMVCValidationException:');
+        Log('   OK, got EMVCStorageValidationException:');
         for lPair in E.ValidationErrors do
           Log('     - ' + lPair.Key + ': ' + lPair.Value);
       end;
@@ -2609,9 +2609,9 @@ begin
       lCust.Insert;
       Log('   UNEXPECTED: no exception raised');
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
-        Log('   OK, got EMVCValidationException:');
+        Log('   OK, got EMVCStorageValidationException:');
         for lPair in E.ValidationErrors do
           Log('     - ' + lPair.Key + ': ' + lPair.Value);
       end;
@@ -2635,9 +2635,9 @@ begin
       lCust.Insert;
       Log('   UNEXPECTED: no exception raised');
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
-        Log('   OK, got EMVCValidationException:');
+        Log('   OK, got EMVCStorageValidationException:');
         for lPair in E.ValidationErrors do
           Log('     - ' + lPair.Key + ': ' + lPair.Value);
       end;
@@ -2658,9 +2658,9 @@ begin
       lCust.Validate(eaCreate);
       Log('   UNEXPECTED: no exception raised');
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
-        Log('   OK, got EMVCValidationException:');
+        Log('   OK, got EMVCStorageValidationException:');
         for lPair in E.ValidationErrors do
           Log('     - ' + lPair.Key + ': ' + lPair.Value);
       end;
@@ -2696,9 +2696,9 @@ begin
       lCust.Update;
       Log('   UNEXPECTED: no exception raised');
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
-        Log('   OK, got EMVCValidationException:');
+        Log('   OK, got EMVCStorageValidationException:');
         for lPair in E.ValidationErrors do
           Log('     - ' + lPair.Key + ': ' + lPair.Value);
       end;

@@ -782,9 +782,9 @@ type
   //  This entity is mapped on the standard `customers` table, so no extra
   //  schema is required. All the validation rules come from attributes.
   //  When Insert/Update runs, TMVCActiveRecord.Validate is called first and
-  //  raises EMVCValidationException if anything fails; each offending field
-  //  is reported via the ValidationErrors dictionary. The OnValidate override
-  //  allows custom cross-field / business rules.
+  //  raises EMVCStorageValidationException if anything fails; each offending
+  //  field is reported via the ValidationErrors dictionary. The
+  //  OnStorageValidate override allows custom cross-field / business rules.
   // ======================================================================
   [MVCTable('customers')]
   TValidatedCustomerDemo = class(TMVCActiveRecord)
@@ -808,9 +808,11 @@ type
     [MVCRange(0, 5)]
     fRating: NullableInt32;
   protected
-    // Optional cross-field rule; its errors are merged with attribute-based
-    // ones and surfaced in the same EMVCValidationException.
-    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
+    // Optional cross-field rule; runs at save time (not at HTTP boundary).
+    // Errors are merged with attribute-based ones and surfaced in the same
+    // EMVCStorageValidationException. EntityAction distinguishes Insert/Update.
+    procedure OnStorageValidate(const AErrors: PMVCValidationErrors;
+      const EntityAction: TMVCEntityAction); override;
   public
     property ID: NullableInt32 read fID write fID;
     property Code: NullableString read fCode write fCode;
@@ -1102,11 +1104,12 @@ end;
 
 { TValidatedCustomerDemo }
 
-procedure TValidatedCustomerDemo.OnValidate(const AErrors: PMVCValidationErrors);
+procedure TValidatedCustomerDemo.OnStorageValidate(
+  const AErrors: PMVCValidationErrors; const EntityAction: TMVCEntityAction);
 begin
   // Cross-field / business rule: a rating of 5 is reserved for "premium"
   // customers, whose Code must start with 'VIP'. Any error added here is
-  // merged with attribute-based ones into the same EMVCValidationException.
+  // merged with attribute-based ones into the same EMVCStorageValidationException.
   if (fRating.ValueOrDefault = 5)
     and (not fCode.ValueOrDefault.StartsWith('VIP', True)) then
   begin
