@@ -52,6 +52,7 @@ uses
   {$IFDEF MVC_HAS_STREAMING_JSON}
   System.JSON.Writers, System.JSON.Types,
   {$ENDIF}
+  Data.DB,
   MVCFramework.Serializer.Commons, MVCFramework.Rtti.Utils,
   MVCFramework.Nullables;
 
@@ -81,12 +82,9 @@ type
                         base64 into a plain JSON string, matching what
                         TMVCStreamSerializerJsonDataObject emits. }
     ekDataSet         { Property is a TDataSet descendant. Emitted as
-                        an array of objects by delegating to the legacy
-                        TMVCJsonDataObjectsSerializer.SerializeDataSet
-                        and writing the resulting JSON raw into the
-                        stream - complete name-case / ignored-field /
-                        blob base64 / nested-dataset handling comes
-                        across transparently. }
+                        an array of objects via EmitDataSetRows —
+                        full field-type parity with the legacy path,
+                        no DOM allocation. }
   );
 
   { Concrete Nullable* record flavours. Pre-resolved at plan-build time
@@ -134,6 +132,8 @@ type
     { Returns True on success. On False the caller should fall back. }
     class function TryWriteObject(const AObject: TObject; const AStream: TStream): Boolean;
     class function TryWriteList(const AList: TObject; const AStream: TStream): Boolean;
+    class function TryWriteDataSet(const ADataSet: TDataSet; const AStream: TStream;
+      const ANameCase: TMVCNameCase = ncUseDefault): Boolean;
   end;
 
 implementation
@@ -141,7 +141,7 @@ implementation
 {$IFDEF MVC_HAS_STREAMING_JSON}
 
 uses
-  System.Generics.Defaults, Data.DB,
+  System.Generics.Defaults, Data.SqlTimSt, Data.FmtBcd,
   MVCFramework.Commons, MVCFramework.Serializer.JsonDataObjects;
 
 type
@@ -333,10 +333,17 @@ var
 begin
   Result := False;
   AItemClass := nil;
+  AGetItem := nil;
   ACountProp := AListType.GetProperty('Count');
   if ACountProp = nil then Exit;
   AGetItem := AListType.GetMethod('GetItem');
-  if AGetItem = nil then
+  { For generic TObjectList<T> instantiations GetMethod('GetItem') may return
+    a method whose ReturnType is the unbound generic parameter rather than
+    the concrete class. Fall through to the Items indexed property in that
+    case, which resolves the concrete instantiation type. }
+  if (AGetItem = nil) or
+     (AGetItem.ReturnType = nil) or
+     (AGetItem.ReturnType.TypeKind <> tkClass) then
   begin
     LItemsIdx := AListType.GetIndexedProperty('Items');
     if LItemsIdx = nil then Exit;
@@ -353,13 +360,20 @@ procedure EnsureInit;
 begin
   if GPlanCache = nil then
   begin
-    GLock := TCriticalSection.Create;
-    GPlanCache := TDictionary<TClass, TMVCStreamingPlan>.Create;
-    GCtx := TRttiContext.Create;
-    GUtf8NoBom := TUtf8NoBomEncoding.Create;
-    GJsonFloatFS := FormatSettings;
-    GJsonFloatFS.DecimalSeparator := '.';
-    GJsonFloatFS.ThousandSeparator := #0;
+    GLock.Enter;
+    try
+      if GPlanCache = nil then
+      begin
+        GPlanCache := TDictionary<TClass, TMVCStreamingPlan>.Create;
+        GCtx := TRttiContext.Create;
+        GUtf8NoBom := TUtf8NoBomEncoding.Create;
+        GJsonFloatFS := FormatSettings;
+        GJsonFloatFS.DecimalSeparator := '.';
+        GJsonFloatFS.ThousandSeparator := #0;
+      end;
+    finally
+      GLock.Leave;
+    end;
   end;
 end;
 
@@ -917,6 +931,10 @@ end;
 procedure WriteObjectCore(const AObject: TObject; const AWriter: TJsonTextWriter;
   const APlan: TMVCStreamingPlan); forward;
 
+procedure EmitDataSetRows(const ADataSet: TDataSet;
+  const AWriter: TJsonTextWriter;
+  const ANameCase: TMVCNameCase = ncUseDefault); forward;
+
 { [PARITY] Emit a single array element as a bare JSON value (no property
   name). Handles the same primitive kinds as the top-level object walk,
   plus embedded Nullable records and nested classes. Raises
@@ -1091,25 +1109,29 @@ begin
           end;
         end;
       ekDataSet:
-        { [PARITY] Delegate to the legacy SerializeDataSet so the full
-          feature set (ApplyNameCase, ignored fields, nested datasets,
-          blob base64, ftGuid/ftFMTBcd etc.) comes across untouched.
-          The streaming perf gain on dataset payloads is marginal
-          compared to the serialisation cost of the rows themselves,
-          so deferring to the proven legacy path is the pragmatic
-          choice here. }
+        { [PERF] Emit dataset rows directly via the shared EmitDataSetRows
+          helper - no DOM build, no string intermediary. Bookmark save/
+          restore keeps the caller's cursor position stable. }
         begin
           var LDataSet := LValue.AsObject as TDataSet;
           if LDataSet = nil then
             AWriter.WriteNull
           else
           begin
-            var LLegacy := TMVCJsonDataObjectsSerializer.Create;
+            var LBmk := LDataSet.BookMark;
             try
-              AWriter.WriteRawValue(LLegacy.SerializeDataSet(
-                LDataSet, [], TMVCNameCase.ncUseDefault, nil));
+              AWriter.WriteStartArray;
+              try
+                LDataSet.First;
+                EmitDataSetRows(LDataSet, AWriter);
+              except
+                raise EMVCStreamingFallback.Create('Error serializing nested TDataSet');
+              end;
+              AWriter.WriteEndArray;
             finally
-              LLegacy.Free;
+              if LDataSet.BookmarkValid(LBmk) then
+                LDataSet.GotoBookmark(LBmk);
+              LDataSet.FreeBookmark(LBmk);
             end;
           end;
         end;
@@ -1178,6 +1200,139 @@ begin
   end;
   FreeAndNil(GJsonWriter);
   FreeAndNil(GStreamWriter);
+end;
+
+procedure EmitDataSetRows(const ADataSet: TDataSet; const AWriter: TJsonTextWriter;
+  const ANameCase: TMVCNameCase = ncUseDefault);
+var
+  I: Integer;
+  LNames: TArray<string>;
+  LNestedDS: TDataSet;
+  LMS: TMemoryStream;
+  LSS: TStringStream;
+begin
+  SetLength(LNames, ADataSet.FieldCount);
+  for I := 0 to ADataSet.FieldCount - 1 do
+    LNames[I] := TMVCSerializerHelper.ApplyNameCase(ANameCase, ADataSet.Fields[I].FieldName);
+
+  while not ADataSet.EOF do
+  begin
+    AWriter.WriteStartObject;
+    for I := 0 to ADataSet.FieldCount - 1 do
+    begin
+      AWriter.WritePropertyName(LNames[I]);
+      if ADataSet.Fields[I].IsNull then
+        AWriter.WriteNull
+      else
+      begin
+        case ADataSet.Fields[I].DataType of
+          ftBoolean:
+            AWriter.WriteValue(ADataSet.Fields[I].AsBoolean);
+          ftInteger, ftSmallint, ftShortint, ftByte, ftWord:
+            AWriter.WriteValue(ADataSet.Fields[I].AsInteger);
+          ftLargeint, ftAutoInc, ftLongword:
+            AWriter.WriteValue(ADataSet.Fields[I].AsLargeInt);
+          ftSingle, ftFloat:
+            AWriter.WriteRawValue(JsonFloat(ADataSet.Fields[I].AsFloat, 15));
+          ftCurrency:
+            AWriter.WriteRawValue(JsonFloat(ADataSet.Fields[I].AsCurrency, 15));
+          ftFMTBcd, ftBCD:
+            AWriter.WriteRawValue(JsonFloat(BcdToDouble(ADataSet.Fields[I].AsBcd), 15));
+          ftString, ftMemo:
+            AWriter.WriteValue(ADataSet.Fields[I].AsString);
+          ftWideString, ftWideMemo:
+            AWriter.WriteValue(ADataSet.Fields[I].AsWideString);
+          ftDate:
+            AWriter.WriteValue(DateToISODate(ADataSet.Fields[I].AsDateTime));
+          ftDateTime:
+            AWriter.WriteValue(DateTimeToISOTimeStamp(ADataSet.Fields[I].AsDateTime));
+          ftTime:
+            AWriter.WriteValue(SQLTimeStampToStr('hh:nn:ss',
+              ADataSet.Fields[I].AsSQLTimeStamp));
+          ftTimeStamp:
+            AWriter.WriteValue(DateTimeToISOTimeStamp(
+              SQLTimeStampToDateTime(ADataSet.Fields[I].AsSQLTimeStamp)));
+          ftTimeStampOffset:
+            AWriter.WriteValue(DateTimeToISOTimeStamp(
+              SQLTimeStampOffsetToDateTime(ADataSet.Fields[I].AsSQLTimeStampOffset)));
+{$IFDEF TOKYOORBETTER}
+          ftGuid:
+            AWriter.WriteValue(TMVCSerializerHelper.ApplyGuidSerialization(
+              gstUseDefault, ADataSet.Fields[I].AsGuid));
+{$ENDIF}
+          ftGraphic, ftBlob, ftStream, ftOraBlob:
+            begin
+              LMS := TMemoryStream.Create;
+              try
+                TBlobField(ADataSet.Fields[I]).SaveToStream(LMS);
+                LMS.Position := 0;
+                LSS := TStringStream.Create;
+                try
+                  TMVCSerializerHelper.EncodeStream(LMS, LSS);
+                  AWriter.WriteValue(LSS.DataString);
+                finally
+                  LSS.Free;
+                end;
+              finally
+                LMS.Free;
+              end;
+            end;
+          ftDataSet:
+            begin
+              LNestedDS := TDataSetField(ADataSet.Fields[I]).NestedDataSet;
+              AWriter.WriteStartArray;
+              if LNestedDS <> nil then
+              begin
+                LNestedDS.First;
+                EmitDataSetRows(LNestedDS, AWriter, ANameCase);
+              end;
+              AWriter.WriteEndArray;
+            end;
+        else
+          raise EMVCSerializationException.CreateFmt(
+            'Cannot find type for field "%s" - TFieldType = %s',
+            [ADataSet.Fields[I].FieldName,
+             GetEnumName(TypeInfo(TFieldType), Ord(ADataSet.Fields[I].DataType))]);
+        end;
+      end;
+    end;
+    AWriter.WriteEndObject;
+    ADataSet.Next;
+  end;
+end;
+
+class function TMVCStreamingJsonSerializer.TryWriteDataSet(
+  const ADataSet: TDataSet; const AStream: TStream;
+  const ANameCase: TMVCNameCase = ncUseDefault): Boolean;
+var
+  LMark: Int64;
+  LJsonWriter: TJsonTextWriter;
+  LBookmark: TBookmark;
+begin
+  Result := False;
+  if ADataSet = nil then Exit;
+  EnsureInit;
+  LMark := AStream.Position;
+  LBookmark := ADataSet.BookMark;
+  LJsonWriter := AcquireJsonWriter(AStream);
+  try
+    ADataSet.First;
+    LJsonWriter.WriteStartArray;
+    try
+      EmitDataSetRows(ADataSet, LJsonWriter, ANameCase);
+    except
+      DiscardWriterState(AStream, LMark);
+      raise;
+    end;
+    LJsonWriter.WriteEndArray;
+    LJsonWriter.Flush;
+    GStreamWriter.Flush;
+    Result := True;
+  finally
+    if ADataSet.BookmarkValid(LBookmark) then
+      ADataSet.GotoBookmark(LBookmark);
+    ADataSet.FreeBookmark(LBookmark);
+  end;
 end;
 
 class function TMVCStreamingJsonSerializer.TryWriteObject(
@@ -1300,6 +1455,18 @@ begin
   Result := False;
 end;
 
+class function TMVCStreamingJsonSerializer.TryWriteDataSet(
+  const ADataSet: TDataSet; const AStream: TStream;
+  const ANameCase: TMVCNameCase = ncUseDefault): Boolean;
+begin
+  Result := False;
+end;
+
+{$ENDIF}
+
+initialization
+{$IFDEF MVC_HAS_STREAMING_JSON}
+  GLock := TCriticalSection.Create;
 {$ENDIF}
 
 end.

@@ -31,6 +31,9 @@ uses
   MVCFramework,
   System.SysUtils,
   MVCFramework.Commons,
+  MVCFramework.Validation,
+  MVCFramework.Validators,
+  MVCFramework.ValidationEngine,
   FireDAC.Comp.Client,
   System.Generics.Collections,
   Data.DB,
@@ -38,6 +41,49 @@ uses
   System.UITypes, JsonDataObjects;
 
 type
+
+  /// <summary>
+  /// Instrumented DTO used by the double-free regression test. Each
+  /// instance increments LiveCount on construction and decrements it on
+  /// destruction. A single request MUST leave LiveCount unchanged.
+  /// </summary>
+  TFromBodyEchoObj = class
+  private
+    FName: string;
+    class var FLiveCount: Integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    class function LiveCount: Integer; static;
+    property Name: string read FName write FName;
+  end;
+
+  /// <summary>
+  /// DTO used by the validation-engine concurrency stress test. Mixes
+  /// property validators with an OnValidate cross-field rule so the
+  /// cached metadata (PropertiesToValidate + IsValidatable flag) gets
+  /// fully exercised on every request.
+  /// </summary>
+  [MVCNameCase(ncCamelCase)]
+  TStressValidationDTO = class(TMVCValidatable)
+  private
+    FName: string;
+    FEmail: string;
+    FAge: Integer;
+  public
+    [MVCRequired('name is required')]
+    [MVCMinLength(3, 'name must be at least 3 chars')]
+    property Name: string read FName write FName;
+
+    [MVCRequired('email is required')]
+    [MVCEmail('email must be a valid address')]
+    property Email: string read FEmail write FEmail;
+
+    [MVCRange(0, 150, 'age out of range')]
+    property Age: Integer read FAge write FAge;
+
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
+  end;
 
   [MVCPath]
   [MVCPath('/donotusethis')]
@@ -378,6 +424,24 @@ type
     [MVCPath('/issues/806')]
     function TestIssue806(const [MVCFromBody] Entity: TTestCasingAsIs): Boolean;
 
+    { FromBody aliased as function Result - regression test for the
+      double-free that used to happen when Result and the framework-owned
+      [MVCFromBody] parameter pointed to the same instance. }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/frombody/echoref')]
+    function FromBodyEchoRef(const [MVCFromBody] Obj: TFromBodyEchoObj): TFromBodyEchoObj;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/frombody/echoref/livecount')]
+    function FromBodyEchoRefLiveCount: Int64;
+
+    { Stress endpoint - exercises the validation cache under concurrent
+      load. Returns 200 with the echoed payload on success; the framework
+      emits 422 EMVCValidationException on validation failure. }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/stress/validate')]
+    function StressValidate(const [MVCFromBody] DTO: TStressValidationDTO): TStressValidationDTO;
+
     {sqids}
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/sqids/stoi/($id:sqids)')]
@@ -498,6 +562,14 @@ type
     [MVCHTTPMethod([httpGET])]
     function GetPeople: TObjectList<TPerson>;
 
+    [MVCPath('/list/streaming')]
+    [MVCHTTPMethod([httpGET])]
+    function GetOKResponseList: IMVCResponse;
+
+    [MVCPath('/dataset/streaming')]
+    [MVCHTTPMethod([httpGET])]
+    function GetOKResponseDataSet: IMVCResponse;
+
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
     function GetPerson(id: Integer): IPerson;
@@ -576,6 +648,7 @@ implementation
 
 uses
   System.JSON,
+  System.SyncObjs,
   Web.HTTPApp,
   Generics.Collections,
   MVCFramework.Serializer.Defaults,
@@ -1124,6 +1197,58 @@ begin
   Result := Entity.myProp = 'hello world';
 end;
 
+function TTestServerController.FromBodyEchoRef(
+  const Obj: TFromBodyEchoObj): TFromBodyEchoObj;
+begin
+  // This is the exact "CRUD returns the persisted entity" pattern that
+  // previously caused a silent double-free: both the function Result and
+  // the framework-owned [MVCFromBody] parameter point to the same object.
+  Result := Obj;
+end;
+
+function TTestServerController.FromBodyEchoRefLiveCount: Int64;
+begin
+  Result := TFromBodyEchoObj.LiveCount;
+end;
+
+function TTestServerController.StressValidate(
+  const DTO: TStressValidationDTO): TStressValidationDTO;
+begin
+  // Framework has already run the property validators + OnValidate hook
+  // before this point (or thrown 422). Echo back the accepted DTO.
+  Result := DTO;
+end;
+
+{ TStressValidationDTO }
+
+procedure TStressValidationDTO.OnValidate(
+  const AErrors: PMVCValidationErrors);
+begin
+  // Cross-field rule: if age is 0, name must start with 'MINOR_'. Keeps
+  // the OnValidate path exercised even on valid "shape" payloads.
+  if (FAge = 0) and (not FName.StartsWith('MINOR_')) then
+    AErrors.Add('Name', 'age=0 requires name to start with MINOR_');
+end;
+
+{ TFromBodyEchoObj }
+
+constructor TFromBodyEchoObj.Create;
+begin
+  inherited;
+  TInterlocked.Increment(FLiveCount);
+end;
+
+destructor TFromBodyEchoObj.Destroy;
+begin
+  TInterlocked.Decrement(FLiveCount);
+  inherited;
+end;
+
+class function TFromBodyEchoObj.LiveCount: Integer;
+begin
+  Result := FLiveCount;
+end;
+
 procedure TTestServerController.TestJSONArrayAsObjectList;
 var
   lUsers: TObjectList<TCustomer>;
@@ -1479,6 +1604,16 @@ end;
 function TTestActionResultController.GetPeople: TObjectList<TPerson>;
 begin
   Result := TPerson.GetList();
+end;
+
+function TTestActionResultController.GetOKResponseList: IMVCResponse;
+begin
+  Result := OKResponse(TPerson.GetList(3));
+end;
+
+function TTestActionResultController.GetOKResponseDataSet: IMVCResponse;
+begin
+  Result := OKResponse(TTestServerController.GetDataSet);
 end;
 
 function TTestActionResultController.GetPerson(id: Integer): IPerson;

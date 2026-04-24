@@ -49,6 +49,7 @@ uses
   System.DateUtils,
   System.Diagnostics,
   System.Generics.Collections,
+  System.StrUtils,
   System.Rtti,
   JSONDataObjects,
   Data.DB,
@@ -299,6 +300,22 @@ type
     property Values: string read fValues write fValues;
   end;
 
+  /// <summary>
+  /// Marks an action parameter as the HTTP request body. The framework
+  /// deserializes the body into the parameter and owns the instance for
+  /// the lifetime of the action. The parameter is freed automatically
+  /// after the action returns.
+  ///
+  /// Ownership with object-returning actions:
+  /// - Returning the body parameter itself as the function Result (e.g.
+  ///   `Result := APerson;`) is supported. The framework detects the
+  ///   aliasing and frees the instance exactly once.
+  /// - Returning a sub-object that the body owns, or returning a
+  ///   container that takes ownership of the body, is NOT supported:
+  ///   both Frees would end up hitting the same instance indirectly.
+  ///   In those cases clone the data or transfer ownership (Extract,
+  ///   OwnsObjects := False) before returning.
+  /// </summary>
   MVCFromBodyAttribute = class(MVCBaseAttribute)
   private
     fRootNode: string;
@@ -471,6 +488,7 @@ type
   TMVCWebResponse = class
   private
     FFlushOnDestroy: Boolean;
+    FStreamingHandled: Boolean;
   protected
     function GetCustomHeaders: TStrings; virtual; abstract;
     function GetReasonString: string; virtual; abstract;
@@ -515,6 +533,18 @@ type
     property RawWebResponse: TWebResponse read GetRawWebResponse;
     property Content: string read GetContent write SetContent;
     property FlushOnDestroy: Boolean read FFlushOnDestroy write FFlushOnDestroy;
+    /// <summary>
+    /// Set by streaming writers (TMVCSSEWriter, TMVCJSONLWriter,
+    /// TMVCJSONArrayWriter) when they take over the socket and emit
+    /// HTTP status/headers/body themselves. The engine checks this
+    /// flag after the action returns: if True, the function-return
+    /// rendering path is skipped and Flush becomes a no-op, so a
+    /// streaming action can remain a `function` returning any type
+    /// (e.g. `function: TObject; Result := nil;`) without the
+    /// framework appending a second response on top of the streamed
+    /// one.
+    /// </summary>
+    property StreamingHandled: Boolean read FStreamingHandled write FStreamingHandled;
   end;
 
   TUser = class
@@ -1369,7 +1399,6 @@ implementation
 uses
   IdURI,
   IdStack,
-  System.StrUtils,
   sqids,
   System.SysConst,
   MVCFramework.SysControllers,
@@ -2740,6 +2769,19 @@ begin
                   else
                   begin
                     lInvokeResult := lRouterResult.MethodToCall.Invoke(lSelectedController, lActualParams);
+                    // If a streaming writer has already taken over the
+                    // response (SSE, JSONL, JSONArray), skip the
+                    // function-return rendering path entirely: the
+                    // writer has already produced the complete HTTP
+                    // response on the socket. Freeing any Result object
+                    // is still required to avoid leaks.
+                    if AContext.Response.StreamingHandled then
+                    begin
+                      if (lInvokeResult.Kind = tkClass) and
+                         (lInvokeResult.AsObject <> nil) then
+                        lInvokeResult.AsObject.Free;
+                      lInvokeResult := TValue.Empty;
+                    end;
                     case lInvokeResult.Kind of
                       tkInterface:
                       begin
@@ -2785,6 +2827,14 @@ begin
                             lSelectedController.Render(TObject(nil));
                           end;
                         finally
+                          // If the action returned the [MVCFromBody] parameter
+                          // itself (typical CRUD pattern: `Result := APerson`),
+                          // both lResponseObject and lBodyParameter point to
+                          // the same instance. Free it exactly once here and
+                          // disarm the outer body-parameter Free to avoid a
+                          // double-free.
+                          if lResponseObject = lBodyParameter then
+                            lBodyParameter := nil;
                           lResponseObject.Free;
                         end
                       end;
@@ -4140,13 +4190,21 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
     try
       LStream.WriteBuffer(PREFIX[1], Length(PREFIX));
       LMark := LStream.Position;
-      { Prefer list path when the object exposes a Count + indexed Items. }
-      LOK := TMVCStreamingJsonSerializer.TryWriteList(LData, LStream);
-      if not LOK then
+      if LData is TDataSet then
       begin
-        LStream.Position := LMark;
-        LStream.Size := LMark;
-        LOK := TMVCStreamingJsonSerializer.TryWriteObject(LData, LStream);
+        { Dataset path: write rows directly — never fall through to object path. }
+        LOK := TMVCStreamingJsonSerializer.TryWriteDataSet(TDataSet(LData), LStream);
+      end
+      else
+      begin
+        { Prefer list path when the object exposes a Count + indexed Items. }
+        LOK := TMVCStreamingJsonSerializer.TryWriteList(LData, LStream);
+        if not LOK then
+        begin
+          LStream.Position := LMark;
+          LStream.Size := LMark;
+          LOK := TMVCStreamingJsonSerializer.TryWriteObject(LData, LStream);
+        end;
       end;
       if not LOK then
       begin
@@ -4734,6 +4792,9 @@ procedure TMVCRenderer.Render(
   const ANameCase: TMVCNameCase;
   const ASerializationType: TMVCDatasetSerializationType;
   const ASerializationAction: TMVCDatasetSerializationAction);
+var
+  LStream: TMemoryStream;
+  LOK: Boolean;
 begin
   if Assigned(ADataSet) then
   begin
@@ -4743,12 +4804,34 @@ begin
           begin
             Render(Serializer(GetContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields,
               ANameCase, ASerializationAction))
-
           end;
         dstAllRecords:
           begin
-            Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase,
-              ASerializationAction))
+            LOK := False;
+{$IFDEF MVC_HAS_STREAMING_JSON}
+            if (Length(AIgnoredFields) = 0) and (not Assigned(ASerializationAction)) and
+               (Pos(TMVCMediaType.APPLICATION_JSON, GetContentType) = 1) and
+               (SameText(TMVCCharSet.UTF_8, FContentCharset) or
+                SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) or
+                (FContentCharset = '')) then
+            begin
+              LStream := TMemoryStream.Create;
+              try
+                LOK := TMVCStreamingJsonSerializer.TryWriteDataSet(ADataSet, LStream, ANameCase);
+                if LOK then
+                begin
+                  LStream.Position := 0;
+                  FContext.Response.SetContentStream(LStream, GetContentType);
+                  LStream := nil;
+                end;
+              finally
+                LStream.Free;
+              end;
+            end;
+{$ENDIF}
+            if not LOK then
+              Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields,
+                ANameCase, ASerializationAction));
           end
       else
         begin

@@ -374,6 +374,12 @@ type
     procedure TestGetMVCResponseWithObjectList;
 
     [Test]
+    procedure TestStreamingListViaOKResponse;
+
+    [Test]
+    procedure TestStreamingDataSetViaOKResponse;
+
+    [Test]
     procedure TestGetMVCResponseWithDataAndMessage;
 
     [Test]
@@ -389,6 +395,12 @@ type
 
     [Test]
     procedure TestIssue806;
+
+    [Test]
+    procedure TestFromBodyReturnedAsResult_NoDoubleFree;
+
+    [Test]
+    procedure TestValidationCacheUnderConcurrentLoad;
 
     [Test]
     procedure TestKeepAlive;
@@ -503,6 +515,7 @@ uses
   System.TypInfo,
   System.Math,
   System.JSON,
+  System.Threading,
   MVCFramework.Serializer.Defaults,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
@@ -1801,6 +1814,40 @@ begin
   end;
 end;
 
+procedure TServerTest.TestStreamingListViaOKResponse;
+var
+  lRes: IMVCRESTResponse;
+  lJSON: TJDOJsonObject;
+begin
+  lRes := RESTClient.Get('/api/v1/actionresult/list/streaming');
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  lJSON := lRes.ToJSONObject;
+  try
+    Assert.IsTrue(lJSON.Contains('data'), 'Missing data key');
+    Assert.areEqual<Integer>(3, lJSON.A['data'].Count, 'Expected 3 persons');
+    Assert.areEqual<Integer>(6, lJSON.A['data'][0].ObjectValue.Count, 'Expected 6 fields');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestStreamingDataSetViaOKResponse;
+var
+  lRes: IMVCRESTResponse;
+  lJSON: TJDOJsonObject;
+begin
+  lRes := RESTClient.Get('/api/v1/actionresult/dataset/streaming');
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  lJSON := lRes.ToJSONObject;
+  try
+    Assert.IsTrue(lJSON.Contains('data'), 'Missing data key');
+    Assert.areEqual<Integer>(15, lJSON.A['data'].Count, 'Expected 15 records');
+    Assert.areEqual<Integer>(12, lJSON.A['data'][0].ObjectValue.Count, 'Expected 12 fields per record');
+  finally
+    lJSON.Free;
+  end;
+end;
+
 procedure TServerTest.TestInvalidateSession;
 var
   c1: IMVCRESTClient;
@@ -1922,6 +1969,139 @@ begin
 
   r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/issues/806', '{"myprop":"hello world"}');
   Assert.areEqual('False', r.Content);
+end;
+
+procedure TServerTest.TestFromBodyReturnedAsResult_NoDoubleFree;
+var
+  lRes: IMVCRESTResponse;
+  lCountBefore, lCountAfter: Int64;
+  I: Integer;
+const
+  REQUESTS = 10;
+begin
+  // Regression test for the silent double-free that used to occur when
+  // a controller action returned its [MVCFromBody] parameter as the
+  // function Result. Both the function-return branch and the outer body
+  // cleanup called Free on the same pointer; the outer one was wrapped
+  // in try/except and merely logged the error, so no client-visible
+  // symptom. The fix nils out the body parameter when it aliases the
+  // Result, so the destructor runs exactly once per request.
+  //
+  // The server-side TFromBodyEchoObj instruments its own Create/Destroy
+  // with an atomic LiveCount. A balanced counter across REQUESTS calls
+  // is the assertion: a double-free would decrement twice per request,
+  // leaving LiveCount below its starting value.
+
+  lRes := RESTClient.Get('/frombody/echoref/livecount');
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode);
+  lCountBefore := StrToInt64(Trim(lRes.Content));
+
+  for I := 1 to REQUESTS do
+  begin
+    lRes := RESTClient
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/frombody/echoref', '{"name":"obj' + I.ToString + '"}');
+    Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode,
+      Format('Iteration %d: unexpected status %d', [I, lRes.StatusCode]));
+    Assert.Contains(lRes.Content, '"name":"obj' + I.ToString + '"',
+      Format('Iteration %d: response did not echo submitted name', [I]));
+  end;
+
+  lRes := RESTClient.Get('/frombody/echoref/livecount');
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode);
+  lCountAfter := StrToInt64(Trim(lRes.Content));
+
+  Assert.areEqual(lCountBefore, lCountAfter,
+    Format('LiveCount drifted by %d across %d requests - a body object ' +
+      'was destroyed more than once per request (double-free on ' +
+      'Result := [MVCFromBody] Param).',
+      [lCountAfter - lCountBefore, REQUESTS]));
+end;
+
+procedure TServerTest.TestValidationCacheUnderConcurrentLoad;
+const
+  WORKERS     = 32;
+  REQS_EACH   = 100;  // 32 * 100 = 3200 requests
+  TOTAL_OK    = WORKERS * (REQS_EACH div 2);
+  TOTAL_FAIL  = WORKERS * (REQS_EACH - (REQS_EACH div 2));
+var
+  lOk200, lOk422, lUnexpected: Int64;
+  lTasks: TArray<ITask>;
+  I: Integer;
+begin
+  // Stress the validation cache (TValidationCacheEntry.PropertiesToValidate
+  // + PropertiesToRecurse + IsValidatable flag) under concurrent load.
+  //
+  // N worker threads each fire M POSTs against /stress/validate,
+  // alternating valid payloads (expected 200) with invalid ones
+  // (expected 422). Every request forces the server to:
+  //   1. Deserialize a TStressValidationDTO instance.
+  //   2. Look up the cached validator list for that class.
+  //   3. Apply MVCRequired / MVCMinLength / MVCEmail / MVCRange on the
+  //      right properties.
+  //   4. Invoke the OnValidate hook via virtual dispatch.
+  //
+  // With the MREW lock + double-checked build, the cache entry is
+  // written once then read concurrently by every worker. A race, a
+  // corrupted entry, or a missed update would show up as an unexpected
+  // status code or an exception on the server.
+  lOk200 := 0;
+  lOk422 := 0;
+  lUnexpected := 0;
+  SetLength(lTasks, WORKERS);
+  for I := 0 to WORKERS - 1 do
+  begin
+    lTasks[I] := TTask.Run(
+      procedure
+      var
+        LClient: IMVCRESTClient;
+        LRes: IMVCRESTResponse;
+        J: Integer;
+        LBody: string;
+        LExpectValid: Boolean;
+      begin
+        LClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
+        for J := 1 to REQS_EACH do
+        begin
+          LExpectValid := (J mod 2 = 0);
+          if LExpectValid then
+            LBody :=
+              '{"name":"Alice","email":"alice@example.com","age":30}'
+          else
+            // Invalid: name too short AND bad email AND age out of range
+            LBody := '{"name":"X","email":"not-an-email","age":999}';
+
+          LRes := LClient
+            .Accept(TMVCMediaType.APPLICATION_JSON)
+            .Post('/stress/validate', LBody);
+
+          if LExpectValid then
+          begin
+            if LRes.StatusCode = 200 then
+              TInterlocked.Increment(lOk200)
+            else
+              TInterlocked.Increment(lUnexpected);
+          end
+          else
+          begin
+            if (LRes.StatusCode = 422) and
+               LRes.Content.Contains('EMVCValidationException') then
+              TInterlocked.Increment(lOk422)
+            else
+              TInterlocked.Increment(lUnexpected);
+          end;
+        end;
+      end);
+  end;
+  TTask.WaitForAll(lTasks);
+
+  Assert.AreEqual(Int64(0), lUnexpected,
+    Format('Unexpected responses: %d (race or cache corruption in ' +
+      'concurrent validation)', [lUnexpected]));
+  Assert.AreEqual(Int64(TOTAL_OK), lOk200,
+    'Valid payloads must all return 200');
+  Assert.AreEqual(Int64(TOTAL_FAIL), lOk422,
+    'Invalid payloads must all return 422 EMVCValidationException');
 end;
 
 procedure TServerTest.TestKeepAlive;

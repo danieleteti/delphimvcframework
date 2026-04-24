@@ -183,6 +183,9 @@ type
     procedure TestAudit_WrongStringFieldTypeFailsFast;
     [Test]
     procedure TestAudit_CurrentUserIsThreadIsolated;
+    { SelectUnidirectionalDataSet — signature tripwire }
+    [Test]
+    procedure TestSelectUnidirectionalDataSetSignature;
   end;
 
   [TestFixture]
@@ -2366,7 +2369,7 @@ begin
       begin
         lCust.Insert;
       end,
-      EMVCValidationException);
+      EMVCStorageValidationException);
   finally
     lCust.Free;
   end;
@@ -2384,7 +2387,7 @@ begin
       begin
         lCust.Insert;
       end,
-      EMVCValidationException);
+      EMVCStorageValidationException);
   finally
     lCust.Free;
   end;
@@ -2402,7 +2405,7 @@ begin
       begin
         lCust.Insert;
       end,
-      EMVCValidationException);
+      EMVCStorageValidationException);
   finally
     lCust.Free;
   end;
@@ -2420,7 +2423,7 @@ begin
       begin
         lCust.Insert;
       end,
-      EMVCValidationException);
+      EMVCStorageValidationException);
   finally
     lCust.Free;
   end;
@@ -2443,7 +2446,7 @@ begin
     try
       lCust.Validate(eaCreate);
     except
-      on E: EMVCValidationException do
+      on E: EMVCStorageValidationException do
       begin
         lCaught := True;
         Assert.Contains(E.Message, 'Email',
@@ -2452,7 +2455,7 @@ begin
           'Exception message should mention the failing "Rating" field');
       end;
     end;
-    Assert.IsTrue(lCaught, 'EMVCValidationException was expected but was not raised');
+    Assert.IsTrue(lCaught, 'EMVCStorageValidationException was expected but was not raised');
   finally
     lCust.Free;
   end;
@@ -2492,7 +2495,7 @@ begin
       begin
         lCust.Update;
       end,
-      EMVCValidationException);
+      EMVCStorageValidationException);
   finally
     lCust.Free;
   end;
@@ -2510,7 +2513,7 @@ begin
       begin
         lCust.Validate(eaCreate);
       end,
-      EMVCValidationException,
+      EMVCStorageValidationException,
       'Direct call to Validate should raise with bad email');
 
     lCust.Email := 'ok@example.com';
@@ -2551,7 +2554,7 @@ begin
       begin
         lCust.Validate(eaCreate);
       end,
-      EMVCValidationException,
+      EMVCStorageValidationException,
       'OnValidate override must emit an error for the forbidden value');
 
     lCust.Description := 'OK';
@@ -2799,6 +2802,64 @@ begin
   finally
     lEvent.Free;
     TMVCActiveRecord.SetCurrentUser('');
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestSelectUnidirectionalDataSetSignature;
+
+  procedure AssertBackwardScrollIsForbidden(const ADS: TDataSet; const AMsg: string);
+  var
+    lRaised: Boolean;
+  begin
+    { A truly unidirectional dataset cannot scroll backwards: once the
+      cursor has advanced, calling Prior must raise. Prior is used here
+      instead of First because FireDAC silently tolerates First on a
+      unidirectional cursor (no-op), while Prior unambiguously requires
+      backward scrolling and is rejected. }
+    ADS.Next;
+    lRaised := False;
+    try
+      ADS.Prior;
+    except
+      lRaised := True;
+    end;
+    Assert.IsTrue(lRaised, AMsg);
+  end;
+
+var
+  lDS: TDataSet;
+begin
+  { Signature tripwire for SelectUnidirectionalDataSet. Exercises both
+    overloads, checks IsUniDirectional, and proves the dataset is really
+    forward-only by showing that First raises after scrolling. }
+
+  { Seed a few rows so the cursor can actually advance. }
+  CreateACustomer('UT-Unidirectional-1', 1);
+  CreateACustomer('UT-Unidirectional-2', 2);
+  CreateACustomer('UT-Unidirectional-3', 3);
+
+  { Overload 1: SQL + Params }
+  lDS := TMVCActiveRecord.SelectUnidirectionalDataSet(
+    'SELECT id FROM customers ORDER BY id', []);
+  try
+    Assert.IsTrue(lDS.IsUniDirectional,
+      'Overload 1 must return an unidirectional dataset');
+    AssertBackwardScrollIsForbidden(lDS,
+      'Overload 1: Prior must raise on a unidirectional dataset after scrolling');
+  finally
+    lDS.Free;
+  end;
+
+  { Overload 2: SQL + Params + ParamTypes }
+  lDS := TMVCActiveRecord.SelectUnidirectionalDataSet(
+    'SELECT id FROM customers WHERE rating >= ? ORDER BY id', [1], [ftInteger]);
+  try
+    Assert.IsTrue(lDS.IsUniDirectional,
+      'Overload 2 must return an unidirectional dataset');
+    AssertBackwardScrollIsForbidden(lDS,
+      'Overload 2: Prior must raise on a unidirectional dataset after scrolling');
+  finally
+    lDS.Free;
   end;
 end;
 
