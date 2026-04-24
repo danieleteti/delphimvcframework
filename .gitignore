@@ -199,3 +199,6 @@ GUIDA_OIDC_DANIELE.md
 # Release report per Patreon — mai committare
 /docs/release_report_3.5.0-silicon.md
 /docs/release_report_3.5.0-silicon_en.md
+/unittests/general/TestClient/pgsql/testdatadir/*
+/docs/itdevcon*.md
+/docs/superpowers/*
