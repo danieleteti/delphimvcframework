@@ -66,6 +66,13 @@ begin
     Exit;
   if aRQLAST.TreeContainsToken(tkSort, lSortToken) then
     Exit;
+  // No field mapping = no way to resolve the primary-key name. Skip the
+  // injection: the generated SQL will be syntactically invalid on real
+  // MSSQL, but at least the compiler itself does not crash. This happens
+  // only in isolated compile-only scenarios (tests, fixtures); real AR
+  // usage always provides a mapping.
+  if not HasMapping then
+    Exit;
   lLimitIndex := aRQLAST.IndexOf(lLimit);
   lSort := TRQLSort.Create;
   lSort.Token := tkSort;

@@ -95,6 +95,10 @@ type
     function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual; abstract;
     procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); virtual;
+    /// <summary>True if a non-empty field mapping is available to the
+    /// compiler. Descendants may need this to decide whether to emit
+    /// metadata that depends on the mapping (e.g. a sort-by-PK).</summary>
+    function HasMapping: Boolean;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
@@ -1339,7 +1343,17 @@ end;
 
 function TRQLCompiler.GetPKFieldName: String;
 begin
+  if Length(fMapping) = 0 then
+    raise ERQLException.Create(
+      'RQL compiler has no field mapping; cannot resolve primary-key ' +
+      'field name. Pass a non-empty TMVCFieldsMapping to the compiler ' +
+      'constructor (or override AdjustAST in the compiler).');
   Result := fMapping[0].InstanceFieldName;
+end;
+
+function TRQLCompiler.HasMapping: Boolean;
+begin
+  Result := Length(fMapping) > 0;
 end;
 
 function TRQLCompiler.GetTableNameForSQL(const TableName: string): string;
