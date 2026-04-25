@@ -291,9 +291,6 @@ TMVCActiveRecord.RestoreRQL<TCustomer>('eq(name, "Alice")');
 
 ### Known limitations
 
-- `SelectRQL<T>` does NOT currently auto-filter soft-deleted rows.
-  Use `Where<T>` or `All<T>` for soft-delete-aware filtering, or add an
-  explicit RQL clause like `eq(deleted_at, null)`.
 - `Select<T>(SQL, params)` and `SelectOne<T>(SQL, params)` accept
   literal SQL — the framework cannot inject the auto-filter. Add the
   `WHERE deleted_at IS NULL` clause manually if needed.
@@ -301,6 +298,24 @@ TMVCActiveRecord.RestoreRQL<TCustomer>('eq(name, "Alice")');
   dependent children) is **not implemented**. It depends on
   relationship metadata which is part of the Lazy Loading quick win
   (deferred to a future round).
+
+### How RQL auto-filtering works
+
+`SelectRQL<T>`, `SelectOneByRQL<T>`, and `Count(RQL)` all auto-inject
+the soft-delete predicate by wrapping the user RQL with an `and()`:
+
+```pascal
+// User writes:
+TMVCActiveRecord.SelectRQL<TCustomer>('eq(active,true);limit(0,50)', 100);
+
+// Framework rewrites internally to:
+//   and(eq(deleted_at,null), eq(active,true)); limit(0,50)
+```
+
+Modifiers (`limit`, `sort`) are preserved unchanged — only the filter
+portion before the first `;` is wrapped. Empty RQL becomes the
+soft-delete predicate alone. Inside an `IncludeSoftDeleted(True)`
+scope, the wrapping is skipped entirely.
 
 ## Interactions matrix
 
