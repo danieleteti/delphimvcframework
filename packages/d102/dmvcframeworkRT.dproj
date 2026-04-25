@@ -187,6 +187,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MariaDB.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
