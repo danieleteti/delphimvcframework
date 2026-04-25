@@ -306,6 +306,26 @@ type
   /// </summary>
   MVCAuditUpdatedByAttribute = class(MVCActiveRecordCustomAttribute);
 
+  /// <summary>Class-level attribute. Enables hash-based dirty tracking
+  /// for instances of this class. UPDATE statements include only the
+  /// fields whose CRC32 differs from the snapshot taken at Load /
+  /// Insert / Update. Memory cost: 4 bytes per tracked field per
+  /// instance. CRC32 collisions on individual field values are
+  /// negligible for business data (effectively 1 in 4 billion per
+  /// field).</summary>
+  MVCDirtyTrackingAttribute = class(MVCActiveRecordCustomAttribute);
+
+  /// <summary>
+  /// Per-field entry used by the dirty-tracking snapshot machinery.
+  /// Holds both the RTTI field reference (for GetValue) and the
+  /// mapped column name (for IsDirty(FieldName) lookups).
+  /// Entries are non-owning — RTTIField lifetime is managed by RTTI context.
+  /// </summary>
+  TDirtyTrackingEntry = record
+    RTTIField: TRttiField;
+    FieldName: string;
+  end;
+
   /// <summary>
   /// Cached per-field validator metadata, built once during InitTableInfo.
   /// </summary>
@@ -320,6 +340,8 @@ type
     fVersionRTTIField: TRttiField;
     fVersionFieldName: String;
     fRefreshFields: TList<TFieldInfo>; // non-owning; entries are owned by fMap
+    fIsDirtyTracked: Boolean;
+    fDirtyTrackedFields: TList<TDirtyTrackingEntry>; // non-owning RTTIField refs; owned by RTTI context
   public
     fPartitionInfoInternal: TPartitionInfo;
     fEntityAllowedActions: TMVCEntityActions;
@@ -353,9 +375,14 @@ type
     destructor Destroy; override;
     function VersionValueAsInt64For(AR: TMVCActiveRecord): Int64; //inline;
     property RefreshFields: TList<TFieldInfo> read fRefreshFields;
+    property IsDirtyTracked: Boolean read fIsDirtyTracked;
+    property DirtyTrackedFields: TList<TDirtyTrackingEntry> read fDirtyTrackedFields;
   end;
 
   TMVCActiveRecord = class(TMVCValidatable)
+  strict private
+    fHashSnapshot: TArray<Cardinal>; // CRC32 per dirty-tracked field; nil for non-tracked classes
+    procedure RebuildHashSnapshot;
   private
     fChildren: TObjectList<TObject>;
     fConn: TFDConnection;
@@ -598,6 +625,28 @@ type
     /// string if SetCurrentUser was never called on this thread.
     /// </summary>
     class function GetCurrentUser: string;
+
+    /// <summary>
+    /// Returns True if any tracked field's current value differs from the
+    /// snapshot taken at the last Load / Insert / Update.
+    /// Always returns False for classes not decorated with [MVCDirtyTracking]
+    /// or when no snapshot has been built yet.
+    /// </summary>
+    function IsDirty: Boolean; overload;
+
+    /// <summary>
+    /// Returns True if the specified column (by mapped field name) has a
+    /// value different from the snapshot. Returns False for unknown names
+    /// or non-tracked classes.
+    /// </summary>
+    function IsDirty(const FieldName: string): Boolean; overload;
+
+    /// <summary>
+    /// Returns the mapped column names of all fields whose current value
+    /// differs from the snapshot. Returns an empty array if nothing is dirty
+    /// or the class is not tracked.
+    /// </summary>
+    function GetDirtyFields: TArray<string>;
   end;
 
   IMVCUnitOfWork<T: TMVCActiveRecord> = interface
@@ -1126,7 +1175,8 @@ uses
   FireDAC.Stan.Option,
   Data.FmtBcd,
   System.Variants,
-  System.Math;
+  System.Math,
+  System.ZLib;
 
 var
   gCtx: TRttiContext;
@@ -1862,6 +1912,8 @@ var
   lNamedSQLQueryCount: Integer;
   lNamedRQLQueryCount: Integer;
   lNeedsTableName: Boolean;
+  lPair: TPair<TRTTIField, TFieldInfo>;
+  lDirtyEntry: TDirtyTrackingEntry;
 begin
   if ActiveRecordTableMapRegistry.TryGetValue(Self, aTableName, fTableMap) then
   begin
@@ -1920,6 +1972,11 @@ begin
           SetLength(lTableMap.fNamedRQLQueries, lNamedRQLQueryCount);
           lTableMap.fNamedRQLQueries[lNamedRQLQueryCount - 1].Name := MVCNamedRQLQueryAttribute(lAttribute).Name;
           lTableMap.fNamedRQLQueries[lNamedRQLQueryCount - 1].RQLText := MVCNamedRQLQueryAttribute(lAttribute).RQLQuery;
+          Continue;
+        end;
+        if lAttribute is MVCDirtyTrackingAttribute then
+        begin
+          lTableMap.fIsDirtyTracked := True;
           Continue;
         end;
       end;
@@ -2026,6 +2083,22 @@ begin
         end;
       end;
 
+      // Build dirty-tracking field list ONCE per class
+      if lTableMap.fIsDirtyTracked then
+      begin
+        for lPair in lTableMap.fMap do
+        begin
+          if lPair.Value.Updatable and
+             (not (foPrimaryKey in lPair.Value.FieldOptions)) and
+             (not (foVersion in lPair.Value.FieldOptions)) then
+          begin
+            lDirtyEntry.RTTIField := lPair.Key;
+            lDirtyEntry.FieldName := lPair.Value.FieldName;
+            lTableMap.fDirtyTrackedFields.Add(lDirtyEntry);
+          end;
+        end;
+      end;
+
       // Build validator/audit metadata ONCE per class (zero runtime RTTI on hot path)
       BuildValidatorAndAuditCache(lTableMap);
     except
@@ -2094,6 +2167,7 @@ begin
      (fTableMap.RefreshFields.Count > 0) then
     RefreshFromDB;
   OnAfterInsert;
+  RebuildHashSnapshot;
   OnAfterInsertOrUpdate;
 end;
 
@@ -2123,6 +2197,105 @@ begin
   lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, false, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
+end;
+
+function ComputeFieldHash(const ARTTIField: TRttiField; const AInstance: TObject): Cardinal;
+var
+  lValue: TValue;
+  lBytes: TBytes;
+  lStr: string;
+begin
+  lValue := ARTTIField.GetValue(AInstance);
+  lStr := lValue.ToString;
+  if lStr = '' then
+    Result := 0
+  else
+  begin
+    lBytes := TEncoding.UTF8.GetBytes(lStr);
+    Result := crc32(0, @lBytes[0], Length(lBytes));
+  end;
+end;
+
+procedure TMVCActiveRecord.RebuildHashSnapshot;
+var
+  i: Integer;
+  lEntry: TDirtyTrackingEntry;
+begin
+  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+  begin
+    fHashSnapshot := nil;
+    Exit;
+  end;
+  SetLength(fHashSnapshot, fTableMap.DirtyTrackedFields.Count);
+  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  begin
+    lEntry := fTableMap.DirtyTrackedFields[i];
+    fHashSnapshot[i] := ComputeFieldHash(lEntry.RTTIField, Self);
+  end;
+end;
+
+function TMVCActiveRecord.IsDirty: Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+    Exit;
+  if Length(fHashSnapshot) <> fTableMap.DirtyTrackedFields.Count then
+    Exit;  // no snapshot yet — be conservative
+  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  begin
+    if ComputeFieldHash(fTableMap.DirtyTrackedFields[i].RTTIField, Self)
+       <> fHashSnapshot[i] then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function TMVCActiveRecord.IsDirty(const FieldName: string): Boolean;
+var
+  i: Integer;
+  lEntry: TDirtyTrackingEntry;
+begin
+  Result := False;
+  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+    Exit;
+  if Length(fHashSnapshot) <> fTableMap.DirtyTrackedFields.Count then
+    Exit;
+  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  begin
+    lEntry := fTableMap.DirtyTrackedFields[i];
+    if SameText(lEntry.FieldName, FieldName) then
+    begin
+      Result := ComputeFieldHash(lEntry.RTTIField, Self) <> fHashSnapshot[i];
+      Exit;
+    end;
+  end;
+end;
+
+function TMVCActiveRecord.GetDirtyFields: TArray<string>;
+var
+  i: Integer;
+  lResult: TList<string>;
+begin
+  lResult := TList<string>.Create;
+  try
+    if (fTableMap <> nil) and fTableMap.IsDirtyTracked and
+       (Length(fHashSnapshot) = fTableMap.DirtyTrackedFields.Count) then
+    begin
+      for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+      begin
+        if ComputeFieldHash(fTableMap.DirtyTrackedFields[i].RTTIField, Self)
+           <> fHashSnapshot[i] then
+          lResult.Add(fTableMap.DirtyTrackedFields[i].FieldName);
+      end;
+    end;
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
 end;
 
 constructor TMVCActiveRecord.Create(aLazyLoadConnection: Boolean);
@@ -3235,6 +3408,7 @@ begin
     end;
   end;
   OnAfterLoad;
+  RebuildHashSnapshot;
 end;
 
 function TMVCActiveRecord.LoadByPK(const id: string; const aFieldType: TFieldType): Boolean;
@@ -4236,6 +4410,7 @@ begin
      (fTableMap.RefreshFields.Count > 0) then
     RefreshFromDB;
   OnAfterUpdate;
+  RebuildHashSnapshot;
   OnAfterInsertOrUpdate;
 end;
 
@@ -5410,6 +5585,8 @@ begin
   inherited;
   fMap := TFieldsMap.Create;
   fRefreshFields := TList<TFieldInfo>.Create;
+  fIsDirtyTracked := False;
+  fDirtyTrackedFields := TList<TDirtyTrackingEntry>.Create;
   fIsVersioned := False;
   fVersionFieldName := '';
 end;
@@ -5418,6 +5595,7 @@ destructor TMVCTableMap.Destroy;
 begin
   fMap.Free;
   fRefreshFields.Free;
+  fDirtyTrackedFields.Free;
   inherited;
 end;
 

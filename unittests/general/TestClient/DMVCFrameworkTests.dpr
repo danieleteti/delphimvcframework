@@ -51,6 +51,7 @@ uses
   MVCFramework.ActiveRecordController in '..\..\..\sources\MVCFramework.ActiveRecordController.pas',
   ActiveRecordControllerTestU in 'ActiveRecordControllerTestU.pas',
   ActiveRecordControllerWebModuleU in 'webmodules\ActiveRecordControllerWebModuleU.pas' {ActiveRecordControllerWebModule: TWebModule},
+  ActiveRecordQuickWinsTestsU in 'ActiveRecordQuickWinsTestsU.pas',
   FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
   StandaloneServerTestU in 'StandaloneServerTestU.pas',
   StandAloneServerWebModuleTest in 'webmodules\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
