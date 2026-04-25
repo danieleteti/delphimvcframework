@@ -645,6 +645,19 @@ type
     class function GetCurrentUser: string;
 
     /// <summary>
+    /// When set to True on the calling thread, SELECT queries against
+    /// soft-delete-enabled classes will include soft-deleted rows.
+    /// Reset to False (the default) to restore auto-filter behaviour.
+    /// </summary>
+    class procedure IncludeSoftDeleted(const Value: Boolean); static;
+
+    /// <summary>
+    /// Returns the IncludeSoftDeleted thread-flag for the calling thread.
+    /// False = auto-filter active (soft-deleted rows excluded).
+    /// </summary>
+    class function GetIncludeSoftDeleted: Boolean; static;
+
+    /// <summary>
     /// Returns True if any tracked field's current value differs from the
     /// snapshot taken at the last Load / Insert / Update.
     /// Always returns False for classes not decorated with [MVCDirtyTracking]
@@ -1051,7 +1064,12 @@ type
   protected
     fPartitionInfo: TPartitionInfo;
     function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = false)
-      : String; // inline;
+      : String; overload; // inline;
+    /// <summary>Same as GetDefaultSQLFilter but also appends the soft-delete
+    /// WHERE condition for classes decorated with [MVCSoftDeleted] when the
+    /// IncludeSoftDeleted thread-flag is False.</summary>
+    function GetDefaultSQLFilter(const IncludeWhereClause: Boolean;
+      const TableMap: TMVCTableMap): String; overload;
     function MergeDefaultRQLFilter(const RQL: String): String; // inline;
     function MergeSQLFilter(const PartitionSQL, FilteringSQL: String): String;
     function GetRQLParser: TRQL2SQL;
@@ -1063,6 +1081,11 @@ type
     /// engine should return after INSERT/UPDATE: the auto-generated PK (if
     /// any) plus all foRefresh fields. Empty string if neither apply.</summary>
     function BuildReturningColumnList(const TableMap: TMVCTableMap): string; virtual;
+    /// <summary>Returns " AND &lt;col&gt; IS NULL" or " AND &lt;col&gt; = FALSE"
+    /// when the table has soft-delete enabled and the IncludeSoftDeleted
+    /// thread-flag is False.  Empty string otherwise.
+    /// Override in MSSQL to use "= 0" instead of "= FALSE".</summary>
+    function BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string; virtual;
   public
     constructor Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string;
       const PartitionInfo: TPartitionInfo); virtual;
@@ -1227,6 +1250,10 @@ var
 var
   gCurrentUsersByThread: TDictionary<TThreadID, string>;
   gCurrentUsersLock: TMultiReadExclusiveWriteSynchronizer;
+
+threadvar
+  GIncludeSoftDeleted: Boolean;
+  GInSoftDeleteDispatch: Boolean;
 
 function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
@@ -2659,7 +2686,7 @@ var
 begin
   lAR := T.Create;
   try
-    lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True);
+    lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True, lAR.fTableMap);
     if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or SQLWhere.Trim.StartsWith('/*sort*/') then
     begin
       Result := Select<T>(lAR.GenerateSelectSQL + lFilter + SQLWhere, Params, ParamTypes, [], OutList);
@@ -2923,6 +2950,16 @@ begin
   end;
 end;
 
+class procedure TMVCActiveRecord.IncludeSoftDeleted(const Value: Boolean);
+begin
+  GIncludeSoftDeleted := Value;
+end;
+
+class function TMVCActiveRecord.GetIncludeSoftDeleted: Boolean;
+begin
+  Result := GIncludeSoftDeleted;
+end;
+
 function TMVCActiveRecord.GetCustomTableName: String;
 begin
   Result := '';
@@ -2938,21 +2975,51 @@ begin
   OnBeforeDelete;
   if not Assigned(fTableMap.fPrimaryKey) then
     raise EMVCActiveRecord.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
-  SQL := SQLGenerator.CreateDeleteSQL(fTableMap, Self);
-  lAffectedRows := ExecNonQuery(SQL, false);
-  if (lAffectedRows = 0) and RaiseExceptionIfNotFound then
+
+  if fTableMap.IsSoftDeleteEnabled then
   begin
-    if fTableMap.fIsVersioned then
+    // Soft-delete: mark the sentinel field and route through the Update path
+    // so audit hooks (updated_at) fire, but suppress user-visible
+    // OnBeforeUpdate/OnAfterUpdate (only Delete hooks fire to the caller).
+    case fTableMap.SoftDeleteMode of
+      sdmTimestamp:
+        begin
+          // The field may be TDateTime or NullableTDateTime; set appropriately.
+          if SameText(fTableMap.fSoftDeleteRTTIField.FieldType.Name, 'NullableTDateTime') then
+            fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<NullableTDateTime>(Now))
+          else
+            fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<TDateTime>(Now));
+        end;
+      sdmFlag:
+        fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<Boolean>(True));
+    end;
+    GInSoftDeleteDispatch := True;
+    try
+      Update(RaiseExceptionIfNotFound);
+    finally
+      GInSoftDeleteDispatch := False;
+    end;
+  end
+  else
+  begin
+    // Physical delete
+    SQL := SQLGenerator.CreateDeleteSQL(fTableMap, Self);
+    lAffectedRows := ExecNonQuery(SQL, false);
+    if (lAffectedRows = 0) and RaiseExceptionIfNotFound then
     begin
-      raise EMVCActiveRecordVersionedItemNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s][Version: %d] - record or version not found',
-        [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.VersionValueAsInt64For(Self)]);
-    end
-    else
-    begin
-      raise EMVCActiveRecordNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s]',
-        [ClassName, fTableMap.fPrimaryKeyFieldName]);
+      if fTableMap.fIsVersioned then
+      begin
+        raise EMVCActiveRecordVersionedItemNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s][Version: %d] - record or version not found',
+          [ClassName, fTableMap.fPrimaryKeyFieldName, fTableMap.VersionValueAsInt64For(Self)]);
+      end
+      else
+      begin
+        raise EMVCActiveRecordNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s]',
+          [ClassName, fTableMap.fPrimaryKeyFieldName]);
+      end;
     end;
   end;
+
   OnAfterDelete;
 end;
 
@@ -3485,7 +3552,8 @@ var
 begin
   CheckAction(TMVCEntityAction.eaRetrieve);
   lSQL := SQLGenerator.CreateSelectByPKSQL(TableName, fTableMap.fMap,
-    fTableMap.fPrimaryKeyFieldName, fTableMap.fPrimaryKeyOptions);
+    fTableMap.fPrimaryKeyFieldName, fTableMap.fPrimaryKeyOptions) +
+    SQLGenerator.BuildSoftDeleteWhereSuffix(fTableMap);
   OnBeforeExecuteSQL(lSQL);
   lDataSet := ExecQuery(lSQL, [id], [aFieldType], GetConnection, True, False);
   try
@@ -4447,7 +4515,10 @@ begin
   Validate(TMVCEntityAction.eaUpdate);
   OnValidation(TMVCEntityAction.eaUpdate);
   FillAuditFields(TMVCEntityAction.eaUpdate);
-  OnBeforeUpdate;
+  // When dispatched from Delete for soft-delete, suppress the user-visible
+  // Update hooks so only the Delete hooks fire to the caller.
+  if not GInSoftDeleteDispatch then
+    OnBeforeUpdate;
   OnBeforeInsertOrUpdate;
   if fTableMap.fMap.WritableFieldsCount = 0 then
   begin
@@ -4483,7 +4554,8 @@ begin
   if (not SQLGenerator.HandlesRefreshNatively) and
      (fTableMap.RefreshFields.Count > 0) then
     RefreshFromDB;
-  OnAfterUpdate;
+  if not GInSoftDeleteDispatch then
+    OnAfterUpdate;
   RebuildHashSnapshot;
   OnAfterInsertOrUpdate;
 end;
@@ -4521,7 +4593,7 @@ begin
   lAR := aClass.Create;
   try
     Result := Select(aClass,
-      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True, lAR.fTableMap), []);
   finally
     lAR.Free;
   end;
@@ -4548,7 +4620,7 @@ begin
   lAR := CreateMVCActiveRecord<TMVCActiveRecord>(aQualifiedClassName, []);
   try
     Result := Select(TMVCActiveRecordClass(lAR.ClassType),
-      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True, lAR.fTableMap), []);
   finally
     lAr.Free;
   end;
@@ -4561,7 +4633,7 @@ begin
   lAR := T.Create;
   try
     Result := Select<T>(
-      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True), []);
+      lAR.GenerateSelectSQL + lAR.SQLGenerator.GetDefaultSQLFilter(True, lAR.fTableMap), []);
   finally
     lAR.Free;
   end;
@@ -5011,6 +5083,55 @@ begin
       if IncludeAndClauseBeforeFilter then
         Result := ' and ' + Result;
     end;
+  end;
+end;
+
+function TMVCSQLGenerator.GetDefaultSQLFilter(const IncludeWhereClause: Boolean;
+  const TableMap: TMVCTableMap): String;
+var
+  lSDSuffix: string;
+begin
+  // Merge partition + RQL default filter (same as the other overload)
+  Result := MergeSQLFilter(fPartitionInfo.SQLFilter, fDefaultSQLFilter);
+  lSDSuffix := BuildSoftDeleteWhereSuffix(TableMap);
+  if Result.IsEmpty then
+  begin
+    // No partition/RQL filter — soft-delete condition (if any) becomes the only WHERE filter
+    if not lSDSuffix.IsEmpty then
+    begin
+      // lSDSuffix starts with " AND " — strip it to get the bare condition
+      Result := Copy(lSDSuffix, 6, MaxInt); // skip leading ' AND '
+      if IncludeWhereClause then
+        Result := ' WHERE ' + Result
+      else
+        Result := ' and ' + Result;
+    end;
+    // else both empty — return ''
+  end
+  else
+  begin
+    // Base filter present — append soft-delete condition with AND then wrap
+    Result := Result + lSDSuffix;
+    if IncludeWhereClause then
+      Result := ' WHERE ' + Result
+    else
+      Result := ' and ' + Result;
+  end;
+end;
+
+function TMVCSQLGenerator.BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string;
+var
+  lCol: string;
+begin
+  Result := '';
+  if (TableMap = nil) or
+     (not TableMap.IsSoftDeleteEnabled) or
+     TMVCActiveRecord.GetIncludeSoftDeleted then
+    Exit;
+  lCol := GetFieldNameForSQL(TableMap.SoftDeleteField.FieldName);
+  case TableMap.SoftDeleteMode of
+    sdmTimestamp: Result := ' AND ' + lCol + ' IS NULL';
+    sdmFlag:      Result := ' AND ' + lCol + ' = FALSE';
   end;
 end;
 

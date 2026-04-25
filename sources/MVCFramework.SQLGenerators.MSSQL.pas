@@ -44,6 +44,7 @@ type
     function GetCompilerClass: TRQLCompilerClass; override;
     function BuildOutputClause(const TableMap: TMVCTableMap;
       const ARefreshFieldsOnly: Boolean): string;
+    function BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string; override;
   public
     function CreateInsertSQL(
       const TableMap: TMVCTableMap;
@@ -221,6 +222,13 @@ begin
   lWherePos := Pos(' WHERE ', UpperCase(Result));
   if lWherePos > 0 then
     Insert(lOutput, Result, lWherePos);
+end;
+
+function TMVCSQLGeneratorMSSQL.BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string;
+begin
+  Result := inherited BuildSoftDeleteWhereSuffix(TableMap);
+  // MSSQL has no FALSE keyword in default contexts; use 0 for BIT comparison.
+  Result := StringReplace(Result, ' = FALSE', ' = 0', [rfIgnoreCase]);
 end;
 
 function TMVCSQLGeneratorMSSQL.GetCompilerClass: TRQLCompilerClass;
