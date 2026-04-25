@@ -12,9 +12,10 @@ procedure Boot;
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils,  
 {{if logging_profile_json}}
   System.JSON,
+  System.IOUtils,
   LoggerPro.Config,
 {{endif}}
   LoggerPro,
@@ -69,16 +70,19 @@ begin
     begin
       Result := NewDotEnv
                  .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                                       //if available, by default, loads default environment (.env)
+                                     //if available, by default, loads default environment (.env)
                  .UseProfile('test') //if available loads the test environment (.env.test)
                  .UseProfile('prod') //if available loads the prod environment (.env.prod)
-                 .Build();             //uses the executable folder to look for .env* files
+                 .Build(AppPath);    //uses the executable folder to look for .env* files
     end);
 end;
 
 procedure ConfigLogger;
 var
   lBuilder: ILoggerProBuilder;
+{{if logging_profile_json}}
+  lConfigFile: String;
+{{endif}}  
 begin
 {{if logging_profile_fluent}}
   lBuilder := LoggerProBuilder
@@ -153,8 +157,10 @@ begin
   //
   // When ExeWatch is enabled, its config lives inside the JSON itself; adding
   // LoggerPro.ExeWatchAppender to the uses clause registers the factory.
-  lBuilder := TLoggerProConfig.BuilderFromJSONFile(
-    dotEnv.Env('logger.config.file', 'loggerpro.json'));
+  lConfigFile := dotEnv.Env('logger.config.file', 'loggerpro.json');
+  if not TPath.IsPathRooted(lConfigFile) then
+    lConfigFile := TPath.Combine(AppPath, lConfigFile);
+  lBuilder := TLoggerProConfig.BuilderFromJSONFile(lConfigFile); 
 {{endif}}
 {{if logging_profile_disabled}}
   // Null logger: the callback appender is wired with a no-op procedure so every

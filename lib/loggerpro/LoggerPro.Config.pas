@@ -471,6 +471,8 @@ begin
     lCfg := lCfg.WithMinimumLevel(lLogLevel);
   if TryGetBool(aConfig, 'utf8Output', lBool) and lBool then
     lCfg := lCfg.WithUTF8Output;
+  if TryGetBool(aConfig, 'useStdErr', lBool) and lBool then
+    lCfg := lCfg.WithStdErr;
   lCfg.Done;
 end;
 
@@ -724,7 +726,7 @@ begin
     ['minimumLevel', 'colors', 'colorScheme', 'prefix', 'utf8Output', 'renderer']);
 
   TLoggerProConfig.RegisterAppenderType('SimpleConsole', SimpleConsoleFactory,
-    ['minimumLevel', 'utf8Output']);
+    ['minimumLevel', 'utf8Output', 'useStdErr']);
 
   TLoggerProConfig.RegisterAppenderType('File', FileFactory,
     ['minimumLevel', 'logsFolder', 'fileBaseName', 'fileFormat',

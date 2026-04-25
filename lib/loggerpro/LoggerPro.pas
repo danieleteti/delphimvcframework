@@ -936,6 +936,10 @@ type
     ['{B2C3D4E5-F6A7-5B6C-9D0E-1F2A3B4C5D6F}']
     function WithMinimumLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
     function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
+    /// <summary>Write log lines to stderr instead of stdout. Typical use
+    /// case: MCP servers and Unix daemons where stdout carries protocol or
+    /// data and diagnostic output belongs on stderr.</summary>
+    function WithStdErr: ISimpleConsoleAppenderConfigurator;
   end;
 
   { File appender configurator }

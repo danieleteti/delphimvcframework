@@ -102,11 +102,13 @@ type
   TLoggerProSimpleConsoleAppender = class(TLoggerProAppenderBase)
   strict private
     FUTF8Output: Boolean;
+    FUseStdErr: Boolean;
 {$IFDEF MSWINDOWS}
     FSavedOutputCP: Cardinal;
 {$ENDIF}
     /// <summary>
-    /// Writes a line of text as UTF-8 bytes directly to stdout, bypassing Writeln.
+    /// Writes a line of text as UTF-8 bytes directly to the selected stream,
+    /// bypassing Writeln.
     /// </summary>
     procedure WriteUTF8Line(const aText: string);
   public
@@ -114,10 +116,17 @@ type
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
     /// <summary>
-    /// When True, writes UTF-8 bytes directly to stdout instead of using Writeln.
+    /// When True, writes UTF-8 bytes directly instead of using Writeln.
     /// Prevents Unicode mangling on Linux (POSIX locale) and Windows (console code page).
     /// </summary>
     property UTF8Output: Boolean read FUTF8Output write FUTF8Output;
+    /// <summary>
+    /// When True, log lines are written to stderr instead of stdout.
+    /// Default: False. Typical use case: MCP servers and Unix daemons where
+    /// stdout is reserved for protocol/data and diagnostic output belongs on
+    /// stderr. No colors are emitted regardless of the target stream.
+    /// </summary>
+    property UseStdErr: Boolean read FUseStdErr write FUseStdErr;
   end;
 
   TLoggerProSimpleConsoleLogFmtAppender = class(TLoggerProSimpleConsoleAppender)
@@ -162,7 +171,7 @@ end;
 {$ENDIF}
 // POSIX color codes come from LoggerPro.AnsiColors (FORE_*, STYLE_*).
 
-procedure InternalWriteUTF8(const aText: string);
+procedure InternalWriteUTF8(const aText: string; const aUseStdErr: Boolean = False);
 var
   lBytes: TBytes;
 {$IFDEF MSWINDOWS}
@@ -177,7 +186,10 @@ begin
   if Length(lBytes) = 0 then
     Exit;
 {$IFDEF MSWINDOWS}
-  hOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  if aUseStdErr then
+    hOut := GetStdHandle(STD_ERROR_HANDLE)
+  else
+    hOut := GetStdHandle(STD_OUTPUT_HANDLE);
   if hOut = INVALID_HANDLE_VALUE then
     Exit;
   // Raw byte write through WriteFile. Works for both consoles (Windows 10+
@@ -197,7 +209,10 @@ begin
     Dec(lRemaining, lBytesWritten);
   end;
 {$ELSE}
-  __write(STDOUT_FILENO, @lBytes[0], Length(lBytes));
+  if aUseStdErr then
+    __write(STDERR_FILENO, @lBytes[0], Length(lBytes))
+  else
+    __write(STDOUT_FILENO, @lBytes[0], Length(lBytes));
 {$ENDIF}
 end;
 
@@ -390,13 +405,15 @@ procedure TLoggerProSimpleConsoleAppender.WriteLog(const aLogItem: TLogItem);
 begin
   if FUTF8Output then
     WriteUTF8Line(FormatLog(aLogItem))
+  else if FUseStdErr then
+    Writeln(ErrOutput, FormatLog(aLogItem))
   else
     Writeln(FormatLog(aLogItem));
 end;
 
 procedure TLoggerProSimpleConsoleAppender.WriteUTF8Line(const aText: string);
 begin
-  InternalWriteUTF8(aText + sLineBreak);
+  InternalWriteUTF8(aText + sLineBreak, FUseStdErr);
 end;
 
 { TLoggerProSimpleConsoleLogFmtAppender }

@@ -108,9 +108,11 @@ type
   TSimpleConsoleAppenderConfigurator = class(TBaseAppenderConfigurator, ISimpleConsoleAppenderConfigurator)
   private
     FUTF8Output: Boolean;
+    FUseStdErr: Boolean;
   public
     function WithMinimumLevel(aLogLevel: TLogType): ISimpleConsoleAppenderConfigurator;
     function WithUTF8Output: ISimpleConsoleAppenderConfigurator;
+    function WithStdErr: ISimpleConsoleAppenderConfigurator;
     function Done: ILoggerProBuilder;
   end;
 
@@ -891,12 +893,21 @@ begin
   Result := Self;
 end;
 
+function TSimpleConsoleAppenderConfigurator.WithStdErr: ISimpleConsoleAppenderConfigurator;
+begin
+  FUseStdErr := True;
+  Result := Self;
+end;
+
 function TSimpleConsoleAppenderConfigurator.Done: ILoggerProBuilder;
 var
   lAppender: ILogAppender;
+  lSimple: TLoggerProSimpleConsoleAppender;
 begin
-  lAppender := TLoggerProSimpleConsoleAppender.Create;
-  (lAppender as TLoggerProSimpleConsoleAppender).UTF8Output := FUTF8Output;
+  lSimple := TLoggerProSimpleConsoleAppender.Create;
+  lSimple.UTF8Output := FUTF8Output;
+  lSimple.UseStdErr := FUseStdErr;
+  lAppender := lSimple;
   ApplyLogLevel(lAppender);
   FBuilder.InternalAddAppender(lAppender);
   Result := FBuilder;
