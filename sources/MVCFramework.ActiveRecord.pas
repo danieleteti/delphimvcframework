@@ -319,7 +319,7 @@ type
   private
     fVersionRTTIField: TRttiField;
     fVersionFieldName: String;
-    fRefreshFields: TList<TFieldInfo>;
+    fRefreshFields: TList<TFieldInfo>; // non-owning; entries are owned by fMap
   public
     fPartitionInfoInternal: TPartitionInfo;
     fEntityAllowedActions: TMVCEntityActions;
