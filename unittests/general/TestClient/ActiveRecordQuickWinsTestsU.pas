@@ -118,6 +118,10 @@ type
     [Test]     procedure TestHardDeleteRQLBulk;
     [Test]     procedure TestRestoreRQLBulk;
     [Test]     procedure TestDeleteRQLDispatchesSoftDelete;
+    [Test]     procedure TestSelectRQLAutoFiltersDeleted;
+    [Test]     procedure TestSelectRQLWithLimitAutoFiltersDeleted;
+    [Test]     procedure TestSelectRQLEmptyAutoFilter;
+    [Test]     procedure TestSelectRQLBypassedByIncludeSoftDeleted;
   end;
 
   [TestFixture]
@@ -724,6 +728,141 @@ begin
       'deleted_at must be populated after DeleteRQL soft-delete dispatch');
   finally
     lQry.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestSelectRQLAutoFiltersDeleted;
+var
+  lC: TCustomerSDTimestamp;
+  lList: TObjectList<TCustomerSDTimestamp>;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'Alive';
+    lC.Insert;
+  finally
+    lC.Free;
+  end;
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'Dead';
+    lC.Insert;
+    lC.Delete;
+  finally
+    lC.Free;
+  end;
+  lList := TMVCActiveRecord.SelectRQL<TCustomerSDTimestamp>('eq(name,"Alive")', 100);
+  try
+    Assert.AreEqual<NativeInt>(1, lList.Count);
+    Assert.AreEqual('Alive', lList[0].Name);
+  finally
+    lList.Free;
+  end;
+  lList := TMVCActiveRecord.SelectRQL<TCustomerSDTimestamp>('eq(name,"Dead")', 100);
+  try
+    Assert.AreEqual<NativeInt>(0, lList.Count, 'Dead must be filtered out');
+  finally
+    lList.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestSelectRQLWithLimitAutoFiltersDeleted;
+var
+  lC: TCustomerSDTimestamp;
+  lI: Integer;
+  lList: TObjectList<TCustomerSDTimestamp>;
+begin
+  for lI := 1 to 5 do
+  begin
+    lC := TCustomerSDTimestamp.Create;
+    try
+      lC.Name := 'Alive' + IntToStr(lI);
+      lC.Insert;
+    finally
+      lC.Free;
+    end;
+  end;
+  for lI := 1 to 5 do
+  begin
+    lC := TCustomerSDTimestamp.Create;
+    try
+      lC.Name := 'Dead' + IntToStr(lI);
+      lC.Insert;
+      lC.Delete;
+    finally
+      lC.Free;
+    end;
+  end;
+  lList := TMVCActiveRecord.SelectRQL<TCustomerSDTimestamp>(
+    'eq(name,"Alive1");limit(0,10)', 100);
+  try
+    Assert.AreEqual<NativeInt>(1, lList.Count);
+    Assert.AreEqual('Alive1', lList[0].Name);
+  finally
+    lList.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestSelectRQLEmptyAutoFilter;
+var
+  lC: TCustomerSDTimestamp;
+  lList: TObjectList<TCustomerSDTimestamp>;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'A';
+    lC.Insert;
+  finally
+    lC.Free;
+  end;
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'B';
+    lC.Insert;
+    lC.Delete;
+  finally
+    lC.Free;
+  end;
+  lList := TMVCActiveRecord.SelectRQL<TCustomerSDTimestamp>('', 100);
+  try
+    Assert.AreEqual<NativeInt>(1, lList.Count);
+    Assert.AreEqual('A', lList[0].Name);
+  finally
+    lList.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestSelectRQLBypassedByIncludeSoftDeleted;
+var
+  lC: TCustomerSDTimestamp;
+  lList: TObjectList<TCustomerSDTimestamp>;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'X';
+    lC.Insert;
+  finally
+    lC.Free;
+  end;
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'Y';
+    lC.Insert;
+    lC.Delete;
+  finally
+    lC.Free;
+  end;
+  TMVCActiveRecord.IncludeSoftDeleted(True);
+  try
+    lList := TMVCActiveRecord.SelectRQL<TCustomerSDTimestamp>('', 100);
+    try
+      Assert.AreEqual<NativeInt>(2, lList.Count,
+        'IncludeSoftDeleted scope must bypass auto-filter');
+    finally
+      lList.Free;
+    end;
+  finally
+    TMVCActiveRecord.IncludeSoftDeleted(False);
   end;
 end;
 

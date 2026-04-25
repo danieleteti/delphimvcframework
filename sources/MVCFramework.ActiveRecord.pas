@@ -419,6 +419,8 @@ type
     function GetTableName: string;
     procedure AdvanceVersioning(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord);
     procedure SetInitialObjVersion(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord);
+    class function WrapRQLWithSoftDelete(const ATableMap: TMVCTableMap;
+      const ARQL: string): string; static;
   protected
     fBackendDriver: string;
     fTableMap: TMVCTableMap;
@@ -2299,12 +2301,57 @@ begin
   OnAfterInsertOrUpdate;
 end;
 
+class function TMVCActiveRecord.WrapRQLWithSoftDelete(
+  const ATableMap: TMVCTableMap; const ARQL: string): string;
+var
+  lSoftFilter: string;
+  lTrimmed: string;
+  lSemicolonPos: Integer;
+  lFilterPart: string;
+  lModifierPart: string;
+begin
+  Result := ARQL;
+  if (ATableMap = nil) or
+     (not ATableMap.IsSoftDeleteEnabled) or
+     GetIncludeSoftDeleted then
+    Exit;
+
+  case ATableMap.SoftDeleteMode of
+    sdmTimestamp: lSoftFilter := 'eq(' + ATableMap.SoftDeleteField.FieldName + ',null)';
+    sdmFlag:      lSoftFilter := 'eq(' + ATableMap.SoftDeleteField.FieldName + ',false)';
+  else
+    Exit;
+  end;
+
+  lTrimmed := Trim(ARQL);
+  if lTrimmed = '' then
+  begin
+    Result := lSoftFilter;
+    Exit;
+  end;
+
+  lSemicolonPos := Pos(';', lTrimmed);
+  if lSemicolonPos = 0 then
+  begin
+    Result := 'and(' + lSoftFilter + ',' + lTrimmed + ')';
+  end
+  else
+  begin
+    lFilterPart := Trim(Copy(lTrimmed, 1, lSemicolonPos - 1));
+    lModifierPart := Copy(lTrimmed, lSemicolonPos, MaxInt);
+    if lFilterPart = '' then
+      Result := lSoftFilter + lModifierPart
+    else
+      Result := 'and(' + lSoftFilter + ',' + lFilterPart + ')' + lModifierPart;
+  end;
+end;
+
 function TMVCActiveRecord.InternalCount(const RQL: string): int64;
 var
   lSQL: string;
 begin
   lSQL := Self.SQLGenerator.CreateSelectCount(TableName);
-  lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false, True);
+  lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(WrapRQLWithSoftDelete(fTableMap, RQL), GetMapping, false, True);
   Result := GetScalar(lSQL, []);
 end;
 
@@ -2313,7 +2360,7 @@ function TMVCActiveRecord.InternalSelectRQL(const RQL: string;
 var
   lSQL: string;
 begin
-  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, false, MaxRecordCount);
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(WrapRQLWithSoftDelete(fTableMap, RQL), GetMapping, True, false, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, [], nil, OutList);
 end;
@@ -2322,7 +2369,7 @@ function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCo
 var
   lSQL: string;
 begin
-  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, false, MaxRecordCount);
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(WrapRQLWithSoftDelete(fTableMap, RQL), GetMapping, True, false, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
@@ -2652,7 +2699,8 @@ var
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(
+      TMVCActiveRecord.WrapRQLWithSoftDelete(lAR.fTableMap, RQL), lAR.GetMapping).Trim;
     lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := GetFirstByWhere<T>(lSQL, [], RaiseExceptionIfNotFound);
     if Result = nil then
@@ -2673,7 +2721,9 @@ var
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(
+      TMVCActiveRecord.WrapRQLWithSoftDelete(lAR.fTableMap, RQL),
+      lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
     lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := Where<T>(lSQL, [], [], OutList);
   finally
@@ -4262,7 +4312,9 @@ var
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(
+      TMVCActiveRecord.WrapRQLWithSoftDelete(lAR.fTableMap, RQL),
+      lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
     lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := Where<T>(lSQL, []);
   finally
