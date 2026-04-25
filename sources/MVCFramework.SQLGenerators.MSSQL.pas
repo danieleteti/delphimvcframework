@@ -45,6 +45,8 @@ type
     function BuildOutputClause(const TableMap: TMVCTableMap;
       const ARefreshFieldsOnly: Boolean): string;
     function BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string; override;
+    function BuildSoftDeleteSetDeleted(const TableMap: TMVCTableMap): string; override;
+    function BuildSoftDeleteSetRestored(const TableMap: TMVCTableMap): string; override;
   public
     function CreateInsertSQL(
       const TableMap: TMVCTableMap;
@@ -228,6 +230,20 @@ function TMVCSQLGeneratorMSSQL.BuildSoftDeleteWhereSuffix(const TableMap: TMVCTa
 begin
   Result := inherited BuildSoftDeleteWhereSuffix(TableMap);
   // MSSQL has no FALSE keyword in default contexts; use 0 for BIT comparison.
+  Result := StringReplace(Result, ' = FALSE', ' = 0', [rfIgnoreCase]);
+end;
+
+function TMVCSQLGeneratorMSSQL.BuildSoftDeleteSetDeleted(const TableMap: TMVCTableMap): string;
+begin
+  Result := inherited BuildSoftDeleteSetDeleted(TableMap);
+  // MSSQL BIT columns: TRUE -> 1
+  Result := StringReplace(Result, ' = TRUE', ' = 1', [rfIgnoreCase]);
+end;
+
+function TMVCSQLGeneratorMSSQL.BuildSoftDeleteSetRestored(const TableMap: TMVCTableMap): string;
+begin
+  Result := inherited BuildSoftDeleteSetRestored(TableMap);
+  // MSSQL BIT columns: FALSE -> 0
   Result := StringReplace(Result, ' = FALSE', ' = 0', [rfIgnoreCase]);
 end;
 

@@ -109,6 +109,15 @@ type
     [Test]     procedure TestSoftDeleteFlagSetsField;
     [Test]     procedure TestSelectAutoFiltersDeleted;
     [Test]     procedure TestIncludeSoftDeletedScopeReturnsAll;
+    [Test]     procedure TestIsDeletedTimestamp;
+    [Test]     procedure TestIsDeletedFlag;
+    [Test]     procedure TestRestore;
+    [Test]     procedure TestRestoreOnNonSoftRaises;
+    [Test]     procedure TestRestoreOnAliveRaises;
+    [Test]     procedure TestHardDeleteBypassesSoftDelete;
+    [Test]     procedure TestHardDeleteRQLBulk;
+    [Test]     procedure TestRestoreRQLBulk;
+    [Test]     procedure TestDeleteRQLDispatchesSoftDelete;
   end;
 
   [TestFixture]
@@ -471,6 +480,250 @@ begin
     end;
   finally
     TMVCActiveRecord.IncludeSoftDeleted(False);
+  end;
+end;
+
+procedure TTestSoftDelete.TestIsDeletedTimestamp;
+var
+  lC: TCustomerSDTimestamp;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'TestIsDeleted';
+    lC.Insert;
+    Assert.IsFalse(lC.IsDeleted, 'Just-inserted record must not be deleted');
+    lC.Delete;
+    Assert.IsTrue(lC.IsDeleted, 'After Delete: IsDeleted must be True');
+  finally
+    lC.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestIsDeletedFlag;
+var
+  lO: TOrderSDFlag;
+begin
+  lO := TOrderSDFlag.Create;
+  try
+    lO.Description := 'FlagTest';
+    lO.Insert;
+    Assert.IsFalse(lO.IsDeleted, 'Just-inserted record must not be deleted');
+    lO.Delete;
+    Assert.IsTrue(lO.IsDeleted, 'After Delete: IsDeleted must be True');
+  finally
+    lO.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestRestore;
+var
+  lC: TCustomerSDTimestamp;
+  lID: Int64;
+  lReloaded: TCustomerSDTimestamp;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'ToRestore';
+    lC.Insert;
+    lID := lC.ID;
+    lC.Delete;
+    Assert.IsTrue(lC.IsDeleted, 'After Delete: must be deleted');
+    lC.Restore;
+    Assert.IsFalse(lC.IsDeleted, 'After Restore: must not be deleted');
+  finally
+    lC.Free;
+  end;
+  // Reload and confirm the row is visible in normal scope
+  lReloaded := TMVCActiveRecord.GetByPK<TCustomerSDTimestamp>(lID);
+  try
+    Assert.IsFalse(lReloaded.IsDeleted, 'Reload: row must be visible after Restore');
+  finally
+    lReloaded.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestRestoreOnNonSoftRaises;
+begin
+  Assert.WillRaise(
+    procedure
+    var
+      lO: TOrderDT;
+    begin
+      lO := TOrderDT.Create;
+      try
+        lO.Restore;
+      finally
+        lO.Free;
+      end;
+    end,
+    EMVCActiveRecord);
+end;
+
+procedure TTestSoftDelete.TestRestoreOnAliveRaises;
+var
+  lC: TCustomerSDTimestamp;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'NeverDeleted';
+    lC.Insert;
+    Assert.WillRaise(
+      procedure
+      begin
+        lC.Restore;
+      end,
+      EMVCActiveRecord,
+      'Restore on a live record must raise EMVCActiveRecord');
+  finally
+    lC.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestHardDeleteBypassesSoftDelete;
+var
+  lC: TCustomerSDTimestamp;
+  lID: Int64;
+  lQry: TFDQuery;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'HardDel';
+    lC.Insert;
+    lID := lC.ID;
+    lC.HardDelete;
+  finally
+    lC.Free;
+  end;
+  lQry := TFDQuery.Create(nil);
+  try
+    lQry.Connection := FConn;
+    lQry.SQL.Text := 'SELECT COUNT(*) AS n FROM customers_sd WHERE id = :id';
+    lQry.ParamByName('id').AsLargeInt := lID;
+    lQry.Open;
+    Assert.AreEqual(0, lQry.FieldByName('n').AsInteger,
+      'HardDelete must remove the row physically');
+  finally
+    lQry.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestHardDeleteRQLBulk;
+var
+  lC: TCustomerSDTimestamp;
+  lIDSoft: Int64;
+  lIDHard: Int64;
+  lQry: TFDQuery;
+begin
+  // Insert two rows; soft-delete one of them first
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'BulkHardA';
+    lC.Insert;
+    lIDSoft := lC.ID;
+    lC.Delete; // soft-delete
+  finally
+    lC.Free;
+  end;
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'BulkHardB';
+    lC.Insert;
+    lIDHard := lC.ID;
+  finally
+    lC.Free;
+  end;
+  // Hard-delete both via bulk RQL (match both names)
+  TMVCActiveRecord.HardDeleteRQL<TCustomerSDTimestamp>(
+    'in(Name,["BulkHardA","BulkHardB"])');
+  lQry := TFDQuery.Create(nil);
+  try
+    lQry.Connection := FConn;
+    lQry.SQL.Text :=
+      'SELECT COUNT(*) AS n FROM customers_sd WHERE id IN (:id1, :id2)';
+    lQry.ParamByName('id1').AsLargeInt := lIDSoft;
+    lQry.ParamByName('id2').AsLargeInt := lIDHard;
+    lQry.Open;
+    Assert.AreEqual(0, lQry.FieldByName('n').AsInteger,
+      'HardDeleteRQL must physically remove all matching rows');
+  finally
+    lQry.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestRestoreRQLBulk;
+var
+  lC: TCustomerSDTimestamp;
+  lID1: Int64;
+  lID2: Int64;
+  lList: TObjectList<TCustomerSDTimestamp>;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'BulkRestoreA';
+    lC.Insert;
+    lID1 := lC.ID;
+    lC.Delete;
+  finally
+    lC.Free;
+  end;
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'BulkRestoreB';
+    lC.Insert;
+    lID2 := lC.ID;
+    lC.Delete;
+  finally
+    lC.Free;
+  end;
+  // Both are soft-deleted; restore them via bulk RQL
+  TMVCActiveRecord.RestoreRQL<TCustomerSDTimestamp>(
+    'in(Name,["BulkRestoreA","BulkRestoreB"])');
+  // Now they should be visible in normal scope
+  lList := TMVCActiveRecord.Where<TCustomerSDTimestamp>(
+    'id IN (:id1, :id2)', [lID1, lID2]);
+  try
+    Assert.AreEqual<NativeInt>(2, lList.Count,
+      'RestoreRQL must make both rows visible in normal scope');
+  finally
+    lList.Free;
+  end;
+end;
+
+procedure TTestSoftDelete.TestDeleteRQLDispatchesSoftDelete;
+var
+  lC: TCustomerSDTimestamp;
+  lID: Int64;
+  lQry: TFDQuery;
+begin
+  lC := TCustomerSDTimestamp.Create;
+  try
+    lC.Name := 'RQLDispatch';
+    lC.Insert;
+    lID := lC.ID;
+  finally
+    lC.Free;
+  end;
+  // DeleteRQL on a soft-delete class must do a soft-delete (UPDATE), not a physical DELETE
+  TMVCActiveRecord.DeleteRQL<TCustomerSDTimestamp>('eq(Name,"RQLDispatch")');
+  // Row must still exist physically
+  lQry := TFDQuery.Create(nil);
+  try
+    lQry.Connection := FConn;
+    lQry.SQL.Text := 'SELECT COUNT(*) AS n FROM customers_sd WHERE id = :id';
+    lQry.ParamByName('id').AsLargeInt := lID;
+    lQry.Open;
+    Assert.AreEqual(1, lQry.FieldByName('n').AsInteger,
+      'DeleteRQL on a soft-delete class must keep the row (UPDATE not DELETE)');
+    // And the sentinel must be set
+    lQry.Close;
+    lQry.SQL.Text :=
+      'SELECT deleted_at FROM customers_sd WHERE id = :id';
+    lQry.ParamByName('id').AsLargeInt := lID;
+    lQry.Open;
+    Assert.IsFalse(lQry.FieldByName('deleted_at').IsNull,
+      'deleted_at must be populated after DeleteRQL soft-delete dispatch');
+  finally
+    lQry.Free;
   end;
 end;
 

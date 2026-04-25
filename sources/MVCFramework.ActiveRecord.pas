@@ -686,6 +686,28 @@ type
     /// [MVCDirtyTracking].
     /// </summary>
     procedure UpdateIfDirty;
+
+    /// <summary>
+    /// Returns True if the record has been soft-deleted (i.e. the
+    /// [MVCSoftDeleted] sentinel column is set).  Always returns False for
+    /// classes that are not decorated with [MVCSoftDeleted].
+    /// </summary>
+    function IsDeleted: Boolean;
+
+    /// <summary>
+    /// Performs a physical (hard) DELETE regardless of whether the class is
+    /// decorated with [MVCSoftDeleted].  Use this when you need to permanently
+    /// remove a row that would normally only be soft-deleted.
+    /// </summary>
+    procedure HardDelete;
+
+    /// <summary>
+    /// Clears the soft-delete sentinel field and persists the change via
+    /// Update so that the record becomes visible again in normal queries.
+    /// Raises EMVCActiveRecord if the class has no [MVCSoftDeleted] attribute,
+    /// or if the record is not currently soft-deleted.
+    /// </summary>
+    procedure Restore;
   end;
 
   IMVCUnitOfWork<T: TMVCActiveRecord> = interface
@@ -822,6 +844,19 @@ type
     { Misc }
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function DeleteRQL<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
+    /// <summary>
+    /// Always performs a physical (hard) DELETE matching the RQL filter,
+    /// even when the target class is decorated with [MVCSoftDeleted].
+    /// When RQL is empty, all rows are hard-deleted.
+    /// </summary>
+    class function HardDeleteRQL<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
+    /// <summary>
+    /// Bulk-restores soft-deleted rows matching the RQL filter by clearing
+    /// the soft-delete sentinel column.  Raises EMVCActiveRecord if the target
+    /// class is not decorated with [MVCSoftDeleted].
+    /// When RQL is empty, all soft-deleted rows are restored.
+    /// </summary>
+    class function RestoreRQL<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): Int64; overload;
 {$IF Defined(CUSTOM_MANAGED_RECORDS)}
     class function UseTransactionContext: TMVCTransactionContext;
@@ -1086,6 +1121,14 @@ type
     /// thread-flag is False.  Empty string otherwise.
     /// Override in MSSQL to use "= 0" instead of "= FALSE".</summary>
     function BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string; virtual;
+    /// <summary>Returns a SET fragment that marks a row as soft-deleted, e.g.
+    /// "col = CURRENT_TIMESTAMP" (timestamp mode) or "col = TRUE" (flag mode).
+    /// Override in MSSQL to emit "= 1" instead of "= TRUE".</summary>
+    function BuildSoftDeleteSetDeleted(const TableMap: TMVCTableMap): string; virtual;
+    /// <summary>Returns a SET fragment that clears the soft-delete marker, e.g.
+    /// "col = NULL" (timestamp mode) or "col = FALSE" (flag mode).
+    /// Override in MSSQL to emit "= 0" instead of "= FALSE".</summary>
+    function BuildSoftDeleteSetRestored(const TableMap: TMVCTableMap): string; virtual;
   public
     constructor Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string;
       const PartitionInfo: TPartitionInfo); virtual;
@@ -1254,6 +1297,7 @@ var
 threadvar
   GIncludeSoftDeleted: Boolean;
   GInSoftDeleteDispatch: Boolean;
+  GBypassSoftDelete: Boolean;
 
 function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
@@ -2960,6 +3004,74 @@ begin
   Result := GIncludeSoftDeleted;
 end;
 
+function TMVCActiveRecord.IsDeleted: Boolean;
+var
+  lValue: TValue;
+  lNDT: NullableTDateTime;
+begin
+  Result := False;
+  if (fTableMap = nil) or (not fTableMap.IsSoftDeleteEnabled) then
+    Exit;
+  lValue := fTableMap.fSoftDeleteRTTIField.GetValue(Self);
+  case fTableMap.SoftDeleteMode of
+    sdmTimestamp:
+      begin
+        if SameText(fTableMap.fSoftDeleteRTTIField.FieldType.Name, 'NullableTDateTime') then
+        begin
+          lNDT := lValue.AsType<NullableTDateTime>;
+          Result := lNDT.HasValue;
+        end
+        else
+        begin
+          // Plain TDateTime: non-zero means deleted
+          Result := lValue.AsExtended <> 0;
+        end;
+      end;
+    sdmFlag:
+      Result := lValue.AsBoolean;
+  end;
+end;
+
+procedure TMVCActiveRecord.HardDelete;
+begin
+  GBypassSoftDelete := True;
+  try
+    Delete;
+  finally
+    GBypassSoftDelete := False;
+  end;
+end;
+
+procedure TMVCActiveRecord.Restore;
+var
+  lNullDT: NullableTDateTime;
+begin
+  if (fTableMap = nil) or (not fTableMap.IsSoftDeleteEnabled) then
+    raise EMVCActiveRecord.Create(
+      'Restore requires the class to be decorated with [MVCSoftDeleted]');
+  if not IsDeleted then
+    raise EMVCActiveRecord.Create('Cannot restore a record that is not soft-deleted');
+  case fTableMap.SoftDeleteMode of
+    sdmTimestamp:
+      begin
+        if SameText(fTableMap.fSoftDeleteRTTIField.FieldType.Name, 'NullableTDateTime') then
+        begin
+          lNullDT := nil; // uses Implicit(Pointer) operator to produce a null NullableTDateTime
+          fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<NullableTDateTime>(lNullDT));
+        end
+        else
+        begin
+          fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<TDateTime>(0));
+        end;
+      end;
+    sdmFlag:
+      fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<Boolean>(False));
+  end;
+  // Persist via the normal Update path; the sentinel column is now dirty so
+  // the dirty-aware UPDATE will include it.
+  Update;
+end;
+
 function TMVCActiveRecord.GetCustomTableName: String;
 begin
   Result := '';
@@ -2976,7 +3088,7 @@ begin
   if not Assigned(fTableMap.fPrimaryKey) then
     raise EMVCActiveRecord.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
 
-  if fTableMap.IsSoftDeleteEnabled then
+  if fTableMap.IsSoftDeleteEnabled and (not GBypassSoftDelete) then
   begin
     // Soft-delete: mark the sentinel field and route through the Update path
     // so audit hooks (updated_at) fire, but suppress user-visible
@@ -3040,11 +3152,78 @@ end;
 class function TMVCActiveRecordHelper.DeleteRQL(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
 var
   lAR: TMVCActiveRecord;
+  lSQL: string;
 begin
   lAR := aClass.Create(True);
   try
-    Result := lAR.ExecNonQuery(lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableMap.fTableName) +
-      lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, false));
+    if lAR.fTableMap.IsSoftDeleteEnabled then
+    begin
+      // Soft-delete class: emit bulk UPDATE to set the sentinel column.
+      // CreateSQLWhereByRQL returns ' WHERE ...' (with keyword) or '' for no filter.
+      lSQL := 'UPDATE ' + lAR.SQLGenerator.GetTableNameForSQL(lAR.fTableMap.fTableName) +
+              ' SET ' + lAR.SQLGenerator.BuildSoftDeleteSetDeleted(lAR.fTableMap) +
+              lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, false);
+    end
+    else
+    begin
+      // Normal class: physical DELETE
+      lSQL := lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableMap.fTableName) +
+              lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, false);
+    end;
+    Result := lAR.ExecNonQuery(lSQL);
+  finally
+    lAR.Free;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.HardDeleteRQL<T>(const RQL: string): Int64;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+  lOldInclude: Boolean;
+begin
+  // Always physical DELETE; operate in include-soft-deleted scope so that
+  // soft-deleted rows are not hidden from the WHERE predicate.
+  lOldInclude := TMVCActiveRecord.GetIncludeSoftDeleted;
+  TMVCActiveRecord.IncludeSoftDeleted(True);
+  try
+    lAR := TMVCActiveRecordClass(T).Create(True);
+    try
+      lSQL := lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableMap.fTableName) +
+              lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, false);
+      Result := lAR.ExecNonQuery(lSQL);
+    finally
+      lAR.Free;
+    end;
+  finally
+    TMVCActiveRecord.IncludeSoftDeleted(lOldInclude);
+  end;
+end;
+
+class function TMVCActiveRecordHelper.RestoreRQL<T>(const RQL: string): Int64;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+  lOldInclude: Boolean;
+begin
+  lAR := TMVCActiveRecordClass(T).Create(True);
+  try
+    if not lAR.fTableMap.IsSoftDeleteEnabled then
+      raise EMVCActiveRecord.Create(
+        'RestoreRQL requires the class to be decorated with [MVCSoftDeleted]');
+    // Build WHERE in include-soft-deleted scope so the predicate is not
+    // restricted to already-visible (non-deleted) rows.
+    // CreateSQLWhereByRQL returns ' WHERE ...' (with keyword) or '' for no filter.
+    lOldInclude := TMVCActiveRecord.GetIncludeSoftDeleted;
+    TMVCActiveRecord.IncludeSoftDeleted(True);
+    try
+      lSQL := 'UPDATE ' + lAR.SQLGenerator.GetTableNameForSQL(lAR.fTableMap.fTableName) +
+              ' SET ' + lAR.SQLGenerator.BuildSoftDeleteSetRestored(lAR.fTableMap) +
+              lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, false);
+    finally
+      TMVCActiveRecord.IncludeSoftDeleted(lOldInclude);
+    end;
+    Result := lAR.ExecNonQuery(lSQL);
   finally
     lAR.Free;
   end;
@@ -5132,6 +5311,32 @@ begin
   case TableMap.SoftDeleteMode of
     sdmTimestamp: Result := ' AND ' + lCol + ' IS NULL';
     sdmFlag:      Result := ' AND ' + lCol + ' = FALSE';
+  end;
+end;
+
+function TMVCSQLGenerator.BuildSoftDeleteSetDeleted(const TableMap: TMVCTableMap): string;
+var
+  lCol: string;
+begin
+  lCol := GetFieldNameForSQL(TableMap.SoftDeleteField.FieldName);
+  case TableMap.SoftDeleteMode of
+    sdmTimestamp: Result := lCol + ' = CURRENT_TIMESTAMP';
+    sdmFlag:      Result := lCol + ' = TRUE';
+  else
+    Result := '';
+  end;
+end;
+
+function TMVCSQLGenerator.BuildSoftDeleteSetRestored(const TableMap: TMVCTableMap): string;
+var
+  lCol: string;
+begin
+  lCol := GetFieldNameForSQL(TableMap.SoftDeleteField.FieldName);
+  case TableMap.SoftDeleteMode of
+    sdmTimestamp: Result := lCol + ' = NULL';
+    sdmFlag:      Result := lCol + ' = FALSE';
+  else
+    Result := '';
   end;
 end;
 
