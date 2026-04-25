@@ -53,7 +53,10 @@ type
       const ARInstance: TMVCActiveRecord): string; override;
     function CreateUpdateSQL(
       const TableMap: TMVCTableMap;
-      const ARInstance: TMVCActiveRecord): string; override;
+      const ARInstance: TMVCActiveRecord): string; overload; override;
+    function CreateUpdateSQL(const TableMap: TMVCTableMap;
+      const ARInstance: TMVCActiveRecord;
+      const ADirtyFields: TArray<string>): string; overload; override;
     function GetSequenceValueSQL(const PKFieldName: string;
       const SequenceName: string;
       const Step: Integer = 1): string; override;
@@ -191,6 +194,38 @@ var
   lFirst: Boolean;
 begin
   Result := inherited CreateUpdateSQL(TableMap, ARInstance);
+  // For UPDATE we only need foRefresh columns back (PK is already known)
+  lColsPart := '';
+  lParamsPart := '';
+  lFirst := True;
+  for lFieldInfo in TableMap.RefreshFields do
+  begin
+    if lFirst then
+    begin
+      lColsPart := GetFieldNameForSQL(lFieldInfo.FieldName);
+      lParamsPart := ':' + GetParamNameForSQL(lFieldInfo.FieldName) + '_out';
+      lFirst := False;
+    end
+    else
+    begin
+      lColsPart := lColsPart + ', ' + GetFieldNameForSQL(lFieldInfo.FieldName);
+      lParamsPart := lParamsPart + ', :' + GetParamNameForSQL(lFieldInfo.FieldName) + '_out';
+    end;
+  end;
+  if lColsPart <> '' then
+    Result := Result + ' RETURNING ' + lColsPart + ' INTO ' + lParamsPart;
+end;
+
+function TMVCSQLGeneratorOracle.CreateUpdateSQL(const TableMap: TMVCTableMap;
+  const ARInstance: TMVCActiveRecord;
+  const ADirtyFields: TArray<string>): string;
+var
+  lFieldInfo: TFieldInfo;
+  lColsPart: string;
+  lParamsPart: string;
+  lFirst: Boolean;
+begin
+  Result := inherited CreateUpdateSQL(TableMap, ARInstance, ADirtyFields);
   // For UPDATE we only need foRefresh columns back (PK is already known)
   lColsPart := '';
   lParamsPart := '';

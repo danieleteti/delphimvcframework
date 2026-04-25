@@ -43,7 +43,10 @@ type
       const ARInstance: TMVCActiveRecord): string; override;
     function CreateUpdateSQL(
       const TableMap: TMVCTableMap;
-      const ARInstance: TMVCActiveRecord): string; override;
+      const ARInstance: TMVCActiveRecord): string; overload; override;
+    function CreateUpdateSQL(const TableMap: TMVCTableMap;
+      const ARInstance: TMVCActiveRecord;
+      const ADirtyFields: TArray<string>): string; overload; override;
     function HasSequences: Boolean; override;
   end;
 
@@ -148,6 +151,34 @@ var
   lFirst: Boolean;
 begin
   Result := inherited CreateUpdateSQL(TableMap, ARInstance);
+  if TableMap.RefreshFields.Count = 0 then
+    Exit;
+  lReturningCols := '';
+  lFirst := True;
+  for lFieldInfo in TableMap.RefreshFields do
+  begin
+    if lFirst then
+    begin
+      lReturningCols := GetFieldNameForSQL(lFieldInfo.FieldName);
+      lFirst := False;
+    end
+    else
+      lReturningCols := lReturningCols + ', ' + GetFieldNameForSQL(lFieldInfo.FieldName);
+  end;
+  if lReturningCols <> '' then
+    Result := Result + ' RETURNING ' + lReturningCols;
+end;
+
+function TMVCSQLGeneratorSQLite.CreateUpdateSQL(
+  const TableMap: TMVCTableMap;
+  const ARInstance: TMVCActiveRecord;
+  const ADirtyFields: TArray<string>): string;
+var
+  lFieldInfo: TFieldInfo;
+  lReturningCols: string;
+  lFirst: Boolean;
+begin
+  Result := inherited CreateUpdateSQL(TableMap, ARInstance, ADirtyFields);
   if TableMap.RefreshFields.Count = 0 then
     Exit;
   lReturningCols := '';

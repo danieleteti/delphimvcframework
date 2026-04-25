@@ -46,7 +46,10 @@ type
       const ARInstance: TMVCActiveRecord): string; override;
     function CreateUpdateSQL(
       const TableMap: TMVCTableMap;
-      const ARInstance: TMVCActiveRecord): string; override;
+      const ARInstance: TMVCActiveRecord): string; overload; override;
+    function CreateUpdateSQL(const TableMap: TMVCTableMap;
+      const ARInstance: TMVCActiveRecord;
+      const ADirtyFields: TArray<string>): string; overload; override;
     function GetSequenceValueSQL(const PKFieldName: string;
       const SequenceName: string;
       const Step: Integer = 1): string; override;
@@ -138,6 +141,32 @@ var
   lFirst: Boolean;
 begin
   Result := inherited CreateUpdateSQL(TableMap, ARInstance);
+  // For UPDATE we only need foRefresh columns back (PK is already known)
+  lReturningCols := '';
+  lFirst := True;
+  for lFieldInfo in TableMap.RefreshFields do
+  begin
+    if lFirst then
+    begin
+      lReturningCols := GetFieldNameForSQL(lFieldInfo.FieldName);
+      lFirst := False;
+    end
+    else
+      lReturningCols := lReturningCols + ', ' + GetFieldNameForSQL(lFieldInfo.FieldName);
+  end;
+  if lReturningCols <> '' then
+    Result := Result + ' RETURNING ' + lReturningCols;
+end;
+
+function TMVCSQLGeneratorFirebird.CreateUpdateSQL(const TableMap: TMVCTableMap;
+  const ARInstance: TMVCActiveRecord;
+  const ADirtyFields: TArray<string>): string;
+var
+  lFieldInfo: TFieldInfo;
+  lReturningCols: string;
+  lFirst: Boolean;
+begin
+  Result := inherited CreateUpdateSQL(TableMap, ARInstance, ADirtyFields);
   // For UPDATE we only need foRefresh columns back (PK is already known)
   lReturningCols := '';
   lFirst := True;

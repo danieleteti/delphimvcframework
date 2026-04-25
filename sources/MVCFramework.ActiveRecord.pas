@@ -647,6 +647,14 @@ type
     /// or the class is not tracked.
     /// </summary>
     function GetDirtyFields: TArray<string>;
+
+    /// <summary>
+    /// Calls Update only when at least one tracked field has changed since the
+    /// last snapshot. If nothing is dirty, returns immediately without issuing
+    /// any SQL. Raises EMVCActiveRecord if the class is not decorated with
+    /// [MVCDirtyTracking].
+    /// </summary>
+    procedure UpdateIfDirty;
   end;
 
   IMVCUnitOfWork<T: TMVCActiveRecord> = interface
@@ -1066,7 +1074,14 @@ type
     function CreateDeleteSQL(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord): string; virtual;
     function CreateDeleteAllSQL(const TableName: string): string; virtual;
     function CreateSelectCount(const TableName: string): string; virtual;
-    function CreateUpdateSQL(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord): string; virtual;
+    function CreateUpdateSQL(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord): string; overload; virtual;
+    /// <summary>UPDATE SQL with SET clause restricted to ADirtyFields.
+    /// Always includes audit columns (touched by OnBeforeUpdate hooks) and
+    /// the version column. If nothing would be emitted, falls back to
+    /// SET pk = pk to keep the statement syntactically valid.</summary>
+    function CreateUpdateSQL(const TableMap: TMVCTableMap;
+      const ARInstance: TMVCActiveRecord;
+      const ADirtyFields: TArray<string>): string; overload; virtual;
     function GetSequenceValueSQL(const PKFieldName: string; const SequenceName: string; const Step: Integer = 1)
       : string; virtual;
 
@@ -2296,6 +2311,16 @@ begin
   finally
     lResult.Free;
   end;
+end;
+
+procedure TMVCActiveRecord.UpdateIfDirty;
+begin
+  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+    raise EMVCActiveRecord.Create(
+      'UpdateIfDirty requires the class to be marked with [MVCDirtyTracking]');
+  if not IsDirty then
+    Exit;
+  Update;
 end;
 
 constructor TMVCActiveRecord.Create(aLazyLoadConnection: Boolean);
@@ -4374,6 +4399,7 @@ procedure TMVCActiveRecord.Update(const RaiseExceptionIfNotFound: Boolean = True
 var
   SQL: string;
   lAffectedRows: int64;
+  lDirtyFields: TArray<string>;
 begin
   CheckAction(TMVCEntityAction.eaUpdate);
   Validate(TMVCEntityAction.eaUpdate);
@@ -4386,7 +4412,13 @@ begin
     raise EMVCActiveRecord.CreateFmt
       ('Cannot update an entity if no fields are writeable. Class [%s] mapped on table [%s]', [ClassName, TableName]);
   end;
-  SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self);
+  if fTableMap.IsDirtyTracked then
+  begin
+    lDirtyFields := GetDirtyFields;
+    SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self, lDirtyFields);
+  end
+  else
+    SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self);
   lAffectedRows := ExecNonQuery(SQL, false);
   if (lAffectedRows = 0) and RaiseExceptionIfNotFound then
   begin
@@ -4834,6 +4866,75 @@ begin
   else
   begin
     raise EMVCActiveRecord.Create('Cannot perform an update without an entity primary key');
+  end;
+end;
+
+function TMVCSQLGenerator.CreateUpdateSQL(const TableMap: TMVCTableMap;
+  const ARInstance: TMVCActiveRecord;
+  const ADirtyFields: TArray<string>): string;
+var
+  lPair: TPair<TRTTIField, TFieldInfo>;
+  lDirtyMap: TDictionary<string, Boolean>;
+  lFieldName: string;
+  lAnyEmitted: Boolean;
+  lIsAuditField: Boolean;
+begin
+  lDirtyMap := TDictionary<string, Boolean>.Create;
+  try
+    for lFieldName in ADirtyFields do
+      lDirtyMap.AddOrSetValue(LowerCase(lFieldName), True);
+
+    Result := 'UPDATE ' + GetTableNameForSQL(TableMap.fTableName) + ' SET ';
+    lAnyEmitted := False;
+    for lPair in TableMap.fMap do
+    begin
+      if lPair.Value.IsVersion then
+      begin
+        Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = ' +
+          GetParamNameForSQL(lPair.Value.FieldName) + ' + 1,';
+        lAnyEmitted := True;
+      end
+      else if lPair.Value.Updatable then
+      begin
+        // Detect audit fields: always include them since they were just
+        // written by FillAuditFields/OnBeforeUpdate before we get here.
+        lIsAuditField :=
+          (lPair.Key = TableMap.fAuditCreatedAtField) or
+          (lPair.Key = TableMap.fAuditUpdatedAtField) or
+          (lPair.Key = TableMap.fAuditCreatedByField) or
+          (lPair.Key = TableMap.fAuditUpdatedByField);
+        if lIsAuditField or lDirtyMap.ContainsKey(LowerCase(lPair.Value.FieldName)) then
+        begin
+          Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = :' +
+            GetParamNameForSQL(lPair.Value.FieldName) + ',';
+          lAnyEmitted := True;
+        end;
+      end;
+    end;
+
+    if not lAnyEmitted then
+    begin
+      // No-op data change: pk = pk keeps the statement syntactically valid
+      // so triggers, version checks and hooks still fire.
+      Result := Result + GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + ' = ' +
+        GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + ',';
+    end;
+
+    Result[Length(Result)] := ' ';
+
+    if not TableMap.fPrimaryKeyFieldName.IsEmpty then
+    begin
+      Result := Result + ' where ' +
+        GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + '= :' +
+        GetParamNameForSQL(TableMap.fPrimaryKeyFieldName);
+      if TableMap.fIsVersioned then
+        Result := Result + ' and ' + GetFieldNameForSQL(TableMap.fVersionFieldName) +
+          ' = ' + TableMap.VersionValueAsInt64For(ARInstance).ToString;
+    end
+    else
+      raise EMVCActiveRecord.Create('Cannot perform an update without an entity primary key');
+  finally
+    lDirtyMap.Free;
   end;
 end;
 
