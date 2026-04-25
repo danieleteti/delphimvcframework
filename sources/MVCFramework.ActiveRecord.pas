@@ -503,6 +503,12 @@ type
 
     function GenerateSelectSQL: string;
 
+    /// <summary>Refetches the values of all foRefresh fields from the
+    /// database for the current instance. Used by SQL generators that do
+    /// not support RETURNING/OUTPUT (MySQL/MariaDB). No-op if
+    /// fTableMap.RefreshFields is empty.</summary>
+    procedure RefreshFromDB;
+
     function SQLGenerator: TMVCSQLGenerator;
     function InternalCount(const RQL: string): Int64;
     function InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer)
@@ -990,6 +996,11 @@ type
     function HasSequences: Boolean; virtual;
     function HasReturning: Boolean; virtual;
     function HasNativeUUID: Boolean; virtual;
+    /// <summary>True when this generator handles foRefresh natively via
+    /// RETURNING/OUTPUT in the same statement. False if a separate SELECT
+    /// is required after execute. Default: True. Override and return False
+    /// for engines without RETURNING (currently MySQL).</summary>
+    function HandlesRefreshNatively: Boolean; virtual;
     // end-capabilities
 
     // abstract SQL generator methods
@@ -1617,6 +1628,61 @@ begin
   end;
 end;
 
+procedure TMVCActiveRecord.RefreshFromDB;
+var
+  lSQL: string;
+  lDS: TDataSet;
+  lFieldInfo: TFieldInfo;
+  lPKValue: Variant;
+  lPair: TPair<TRttiField, TFieldInfo>;
+  lFirst: Boolean;
+begin
+  if (fTableMap = nil) or (fTableMap.RefreshFields.Count = 0) then
+    Exit;
+
+  // Build SELECT col1, col2, ... FROM table WHERE pk = :pk
+  lSQL := 'SELECT ';
+  lFirst := True;
+  for lFieldInfo in fTableMap.RefreshFields do
+  begin
+    if not lFirst then
+      lSQL := lSQL + ', ';
+    lSQL := lSQL + SQLGenerator.GetFieldNameForSQL(lFieldInfo.FieldName);
+    lFirst := False;
+  end;
+  lSQL := lSQL +
+    ' FROM ' + SQLGenerator.GetTableNameForSQL(fTableMap.fTableName) +
+    ' WHERE ' + SQLGenerator.GetFieldNameForSQL(fTableMap.fPrimaryKeyFieldName) +
+    ' = :' + SQLGenerator.GetParamNameForSQL(fTableMap.fPrimaryKeyFieldName);
+
+  // Get PK value as Variant
+  lPKValue := fTableMap.fPrimaryKey.GetValue(Self).AsVariant;
+
+  // Execute and map results back into the instance
+  lDS := ExecQuery(lSQL, [lPKValue], GetConnection, True, False);
+  try
+    if not lDS.Eof then
+    begin
+      for lFieldInfo in fTableMap.RefreshFields do
+      begin
+        for lPair in fTableMap.fMap do
+        begin
+          if SameText(lPair.Value.FieldName, lFieldInfo.FieldName) then
+          begin
+            MapDataSetFieldToRTTIField(
+              lDS.FieldByName(lFieldInfo.FieldName),
+              lPair.Key,
+              Self);
+            Break;
+          end;
+        end;
+      end;
+    end;
+  finally
+    lDS.Free;
+  end;
+end;
+
 function TMVCActiveRecord.FindRQLQueryByName(const QueryName: String;
   out NamedRQLQuery: TRQLQueryWithName): Boolean;
 var
@@ -2023,6 +2089,10 @@ begin
     { in case of INSERT version is defined by constants }
     SetInitialObjVersion(fTableMap, Self);
   end;
+  // For engines without native foRefresh handling (e.g. MySQL), run the fallback SELECT
+  if (not SQLGenerator.HandlesRefreshNatively) and
+     (fTableMap.RefreshFields.Count > 0) then
+    RefreshFromDB;
   OnAfterInsert;
   OnAfterInsertOrUpdate;
 end;
@@ -4161,6 +4231,10 @@ begin
   begin
     AdvanceVersioning(fTableMap, Self);
   end;
+  // For engines without native foRefresh handling (e.g. MySQL), run the fallback SELECT
+  if (not SQLGenerator.HandlesRefreshNatively) and
+     (fTableMap.RefreshFields.Count > 0) then
+    RefreshFromDB;
   OnAfterUpdate;
   OnAfterInsertOrUpdate;
 end;
@@ -4676,6 +4750,11 @@ begin
 end;
 
 function TMVCSQLGenerator.HasReturning: Boolean;
+begin
+  Result := True;
+end;
+
+function TMVCSQLGenerator.HandlesRefreshNatively: Boolean;
 begin
   Result := True;
 end;

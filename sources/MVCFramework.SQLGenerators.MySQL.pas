@@ -44,6 +44,7 @@ type
       const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord
       ): string; override;
+    function HandlesRefreshNatively: Boolean; override;
   end;
 
 implementation
@@ -122,6 +123,11 @@ begin
   finally
     lSB.Free;
   end;
+end;
+
+function TMVCSQLGeneratorMySQL.HandlesRefreshNatively: Boolean;
+begin
+  Result := False;
 end;
 
 function TMVCSQLGeneratorMySQL.GetCompilerClass: TRQLCompilerClass;
