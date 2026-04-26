@@ -379,10 +379,14 @@ end;
 
 class destructor TMVCStreamingJsonSerializer.ClassDestroy;
 begin
-  GPlanCache.Free;
-  GLock.Free;
-  GUtf8NoBom.Free;
-  GTypeSerializerProbe.Free;
+  // Best-effort cleanup; the unit's finalization section also runs through
+  // these globals as a safety net in case the linker / RTL skips this class
+  // destructor (some edge cases where the class is only reached through
+  // smart-linked indirect calls).
+  FreeAndNil(GPlanCache);
+  FreeAndNil(GLock);
+  FreeAndNil(GUtf8NoBom);
+  FreeAndNil(GTypeSerializerProbe);
 end;
 
 function GetOrBuildPlan(AClass: TClass): TMVCStreamingPlan;
@@ -1467,6 +1471,18 @@ end;
 initialization
 {$IFDEF MVC_HAS_STREAMING_JSON}
   GLock := TCriticalSection.Create;
+{$ENDIF}
+
+finalization
+{$IFDEF MVC_HAS_STREAMING_JSON}
+  // Authoritative cleanup. The class destructor of TMVCStreamingJsonSerializer
+  // also tries to release these (FreeAndNil-guarded), but a unit-level
+  // finalization is the only thing guaranteed to run regardless of how the
+  // linker treats the class.
+  FreeAndNil(GPlanCache);
+  FreeAndNil(GLock);
+  FreeAndNil(GUtf8NoBom);
+  FreeAndNil(GTypeSerializerProbe);
 {$ENDIF}
 
 end.
