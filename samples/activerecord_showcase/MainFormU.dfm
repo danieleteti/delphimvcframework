@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 738
+  ClientHeight = 810
   ClientWidth = 1094
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     1094
-    738)
+    810)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 8
     Width = 806
-    Height = 722
+    Height = 794
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -367,5 +367,35 @@ object MainForm: TMainForm
     TabOrder = 36
     WordWrap = True
     OnClick = btnAuditColumnsClick
+  end
+  object btnChangeTracking: TButton
+    Left = 8
+    Top = 723
+    Width = 121
+    Height = 34
+    Caption = 'Change Tracking'
+    TabOrder = 37
+    WordWrap = True
+    OnClick = btnChangeTrackingClick
+  end
+  object btnFoRefresh: TButton
+    Left = 144
+    Top = 723
+    Width = 121
+    Height = 34
+    Caption = 'foRefresh (DB defaults)'
+    TabOrder = 38
+    WordWrap = True
+    OnClick = btnFoRefreshClick
+  end
+  object btnSoftDelete: TButton
+    Left = 8
+    Top = 763
+    Width = 257
+    Height = 34
+    Caption = 'Soft Delete + Restore + HardDelete'
+    TabOrder = 39
+    WordWrap = True
+    OnClick = btnSoftDeleteClick
   end
 end

@@ -76,6 +76,9 @@ type
     btnErrorWith2PKs: TButton;
     btnAttrValidation: TButton;
     btnAuditColumns: TButton;
+    btnChangeTracking: TButton;
+    btnFoRefresh: TButton;
+    btnSoftDelete: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -115,10 +118,22 @@ type
     procedure btnErrorWith2PKsClick(Sender: TObject);
     procedure btnAttrValidationClick(Sender: TObject);
     procedure btnAuditColumnsClick(Sender: TObject);
+    procedure btnChangeTrackingClick(Sender: TObject);
+    procedure btnFoRefreshClick(Sender: TObject);
+    procedure btnSoftDeleteClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers(const HowManyCustomers: Integer = 50);
     procedure ExecutedInTransaction;
+    // DDL helpers for the demos that need a dedicated table. Each one drops
+    // any leftover and recreates the schema, picking dialect-specific
+    // keywords (TIMESTAMP / DATETIME / DATETIME2; AUTO_INCREMENT / SERIAL /
+    // GENERATED ALWAYS AS …; computed-column syntax) from the current
+    // backend. Keeps the click handlers focused on the actual feature
+    // they're demonstrating.
+    procedure SetupAuditDemoTable;
+    procedure SetupSoftDeleteDemoTable;
+    function  SetupRefreshDemoTable: Boolean;
   public
     { Public declarations }
   end;
@@ -2737,56 +2752,11 @@ end;
 // inspect them with any SQL client after the run.
 // ===========================================================================
 procedure TMainForm.btnAuditColumnsClick(Sender: TObject);
-const
-  // "IF EXISTS" is supported by every backend this showcase targets
-  // (PostgreSQL, SQLite, MySQL/MariaDB, MSSQL 2016+, Firebird 4+). It lets us
-  // clean up leftovers from a previous run WITHOUT raising, so there is no
-  // swallowed exception cluttering the IDE debugger.
-  DDL_DROP_IF_EXISTS = 'DROP TABLE IF EXISTS audit_demo';
 var
-  lConn: TFDConnection;
   lRow: TAuditedDemo;
-  lTimestampType: string;
-  lDDLCreate: string;
 begin
   Log('** Audit columns demo');
-
-  // STEP 0 - start from a clean slate: drop any leftover from a previous run,
-  // then (re)create the demo table. The rows written by the steps below are
-  // intentionally kept in the DB when the handler returns, so you can inspect
-  // them with any SQL client. The next click will drop and recreate.
-  //
-  // The SQL type for "date + time" is annoyingly NOT portable:
-  //   * PostgreSQL / Firebird / Interbase / SQLite -> TIMESTAMP
-  //   * MySQL / MariaDB                            -> DATETIME
-  //                                                   (TIMESTAMP also exists
-  //                                                    but has auto-update semantics)
-  //   * SQL Server                                 -> DATETIME2
-  //                                                   (TIMESTAMP is an alias
-  //                                                    for ROWVERSION: binary,
-  //                                                    single per table)
-  // So we pick the right keyword based on the current backend.
-  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
-    lTimestampType := 'DATETIME2'
-  else if (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
-          (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') then
-    lTimestampType := 'DATETIME'
-  else
-    lTimestampType := 'TIMESTAMP';
-
-  lDDLCreate :=
-    'CREATE TABLE audit_demo (' +
-    '  id          INTEGER      NOT NULL PRIMARY KEY, ' +
-    '  description VARCHAR(200), ' +
-    '  created_at  ' + lTimestampType + ', ' +
-    '  updated_at  ' + lTimestampType + ', ' +
-    '  created_by  VARCHAR(100), ' +
-    '  updated_by  VARCHAR(100)' +
-    ')';
-
-  lConn := TMVCActiveRecord.CurrentConnection;
-  lConn.ExecSQL(DDL_DROP_IF_EXISTS);
-  lConn.ExecSQL(lDDLCreate);
+  SetupAuditDemoTable;
   try
 
     // STEP 1 - No user on this thread. created_at/updated_at are still filled
@@ -2868,6 +2838,467 @@ begin
   end;
   Log('');
   Log('** Done.');
+end;
+
+
+// ===========================================================================
+// DEMO: Change Tracking ([MVCChangeTracking])  -- TTrackedCustomer in EntitiesU
+//
+// On a class decorated with [MVCChangeTracking] the framework keeps a CRC32
+// hash of each updatable field at load time. On Update only the columns
+// whose hash changed end up in the SET clause, cutting bytes on the wire,
+// reducing trigger noise and contention with concurrent writers.
+//
+// API surface used here:
+//   * IsChanged                -> true if any tracked field changed
+//   * IsChanged(<fieldname>)   -> per-field check by mapped column name
+//                                 (case-insensitive, uses SameText)
+//   * GetChangedFields         -> enumeration of changed column names
+//   * UpdateIfChanged          -> no-op (no SQL) if nothing changed;
+//                               plain Update on a clean row still emits a
+//                               "lock-touch" UPDATE on purpose.
+//
+// The demo runs against the standard `customers` table — no extra DDL.
+// ===========================================================================
+procedure TMainForm.btnChangeTrackingClick(Sender: TObject);
+var
+  lCust: TTrackedCustomer;
+  lID: Int64;
+  lChanged: TArray<string>;
+  lChangedCol: string;
+begin
+  Log('** Change Tracking ([MVCChangeTracking])');
+
+  // STEP 0 - prepare a row to play with. Insert a freshly-created instance:
+  // immediately after Insert the snapshot is set so the row is "clean".
+  lCust := TTrackedCustomer.Create;
+  try
+    lCust.Code := 'CT001';
+    lCust.CompanyName := 'Change Tracking SpA';
+    lCust.City := 'ROME';
+    lCust.Rating := 3;
+    lCust.Note := 'initial';
+    lCust.Insert;
+    lID := lCust.ID.Value;
+    Log(Format('   Inserted ID=%d', [lID]));
+    Assert(not lCust.IsChanged, 'just-inserted row must be clean');
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 1 - reload, change ONE field, observe per-field IsChanged.
+  Log('');
+  Log('[1] Reload, change City only -> only "city" should be flagged changed');
+  lCust := TMVCActiveRecord.GetByPK<TTrackedCustomer>(lID);
+  try
+    Assert(not lCust.IsChanged, 'just-loaded row must be clean');
+    lCust.City := 'PARIS';
+    Assert(lCust.IsChanged,         'IsChanged must be True');
+    Assert(lCust.IsChanged('city'), 'IsChanged(''city'') must be True');
+    Assert(not lCust.IsChanged('description'),
+      'IsChanged(''description'') must be False');
+    lChanged := lCust.GetChangedFields;
+    Log(Format('   GetChangedFields -> [%s]', [String.Join(',', lChanged)]));
+    lCust.Update;
+    // After Update the snapshot is rehashed in-memory; the row is clean again.
+    Assert(not lCust.IsChanged, 'after Update IsChanged must be False');
+    Log('   Update emitted (only the changed column was sent)');
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 2 - UpdateIfChanged on a row with ZERO changes: no SQL is sent.
+  // (Plain Update on a clean row would still emit a "lock-touch" UPDATE.)
+  Log('');
+  Log('[2] UpdateIfChanged on a clean row -> SHOULD skip SQL entirely');
+  lCust := TMVCActiveRecord.GetByPK<TTrackedCustomer>(lID);
+  try
+    lCust.UpdateIfChanged;
+    Log('   no-op as expected');
+  finally
+    lCust.Free;
+  end;
+
+  // STEP 3 - touch two fields, list changed columns, then Update.
+  Log('');
+  Log('[3] Change Note + Rating -> two changed columns');
+  lCust := TMVCActiveRecord.GetByPK<TTrackedCustomer>(lID);
+  try
+    lCust.Note := 'edited via change tracking';
+    lCust.Rating := 5;
+    for lChangedCol in lCust.GetChangedFields do
+      Log('     - changed: ' + lChangedCol);
+    lCust.UpdateIfChanged;
+    Assert(not lCust.IsChanged);
+  finally
+    lCust.Free;
+  end;
+
+  // Cleanup so the demo can be run repeatedly.
+  TMVCActiveRecord.DeleteRQL(TTrackedCustomer, Format('eq(id, %d)', [lID]));
+  Log('');
+  Log('** Done.');
+end;
+
+
+// ===========================================================================
+// DEMO: foRefresh field option  -- TRefreshDemo in EntitiesU
+//
+// foRefresh declares: "after Insert / Update, re-fetch this column from the
+// DB so any server-side derivation (computed column, identity-style
+// rewrite, BEFORE-trigger that mutates NEW, etc.) is reflected in the
+// in-memory instance — through RETURNING / OUTPUT, in the same round-trip
+// as the write."
+//
+// The framework keeps the field writable unless [foReadOnly] is also
+// declared (as on a computed column, where the user cannot write the
+// value). foRefresh does NOT replace [MVCAuditCreatedAt] /
+// [MVCAuditUpdatedAt] for timestamps — those are framework-driven; see
+// the Audit demo.
+//
+// This handler creates a one-off `refresh_demo` table where `upper_name`
+// is a computed column = UPPER(name). Inserting name='alice' makes the
+// DB compute upper_name='ALICE'; the framework reads it back through
+// RETURNING (PG / Firebird / SQLite / Oracle) or OUTPUT (MSSQL) without
+// a second round-trip. MySQL and MariaDB UPDATE go through the
+// fallback SELECT (no UPDATE RETURNING on those engines).
+// ===========================================================================
+procedure TMainForm.btnFoRefreshClick(Sender: TObject);
+var
+  lRow: TRefreshDemo;
+  lInsertedID: Int64;
+begin
+  Log('** foRefresh field option (computed-column variant)');
+  if not SetupRefreshDemoTable then
+    Exit;
+
+  // STEP 1 — Insert. The DB computes upper_name = UPPER(name); foRefresh
+  // surfaces the value through the same RETURNING / OUTPUT clause that
+  // already brings back the auto-generated PK. No second round-trip.
+  Log('');
+  Log('[1] Insert name=''alice'' -> DB computes upper_name=''ALICE''');
+  lRow := TRefreshDemo.Create;
+  try
+    lRow.Name := 'alice';
+    Assert(not lRow.UpperName.HasValue, 'UpperName must be NULL before Insert');
+    lRow.Insert;
+    Assert(lRow.UpperName.HasValue, 'foRefresh must populate UpperName');
+    Assert(lRow.UpperName.Value = 'ALICE',
+      'DB must have uppercased the inserted name');
+    lInsertedID := lRow.ID.Value;
+    Log(Format('   ID=%d  UpperName=%s', [lInsertedID, lRow.UpperName.Value]));
+  finally
+    lRow.Free;
+  end;
+
+  // STEP 2 — Reload + Update. Same story: the DB recomputes upper_name,
+  // foRefresh surfaces the new value through UPDATE ... RETURNING /
+  // OUTPUT (or via the fallback SELECT on engines that lack UPDATE
+  // RETURNING — MySQL / MariaDB).
+  Log('');
+  Log('[2] Reload + Update name=''bob'' -> DB recomputes upper_name=''BOB''');
+  lRow := TMVCActiveRecord.GetByPK<TRefreshDemo>(lInsertedID);
+  try
+    lRow.Name := 'bob';
+    lRow.Update;
+    Log(Format('   UpperName after Update=%s', [lRow.UpperName.ValueOrDefault]));
+    Assert(lRow.UpperName.Value = 'BOB',
+      'DB must have uppercased the updated name');
+  finally
+    lRow.Free;
+  end;
+
+  // Leave the table in place so curious users can inspect it from any SQL
+  // client; the next click starts with DROP IF EXISTS.
+  Log('');
+  Log('** Done.');
+end;
+
+
+// ===========================================================================
+// DEMO: Soft Delete  -- TSoftDeletableNote in EntitiesU
+//
+// Field decorated with [MVCSoftDeleted] turns Delete into:
+//      UPDATE soft_delete_demo SET deleted_at = Now() WHERE id = ?
+// and every SELECT against the class auto-injects:
+//      WHERE deleted_at IS NULL
+// unless TMVCActiveRecord.IncludeSoftDeleted(True) is in scope.
+//
+// Other entry points exercised here:
+//   * Restore             -> UPDATE ... SET deleted_at = NULL
+//   * HardDelete          -> physical DELETE, bypasses the marker
+//   * IsDeleted           -> inspect soft-delete state
+//   * IncludeSoftDeleted  -> thread-local opt-in to see deleted rows
+//   * DeleteRQL / HardDeleteRQL / RestoreRQL -> bulk operations
+// ===========================================================================
+procedure TMainForm.btnSoftDeleteClick(Sender: TObject);
+var
+  lRow: TSoftDeletableNote;
+  lAlive: TObjectList<TSoftDeletableNote>;
+  lAll: TObjectList<TSoftDeletableNote>;
+  lAffected: Int64;
+begin
+  Log('** Soft Delete + Restore + HardDelete');
+  SetupSoftDeleteDemoTable;
+
+  // STEP 1 - seed three live rows.
+  Log('');
+  Log('[1] Seed three rows (all alive)...');
+  for var I := 1 to 3 do
+  begin
+    lRow := TSoftDeletableNote.Create;
+    try
+      lRow.ID := I;
+      lRow.Description := 'row #' + I.ToString;
+      lRow.Insert;
+    finally
+      lRow.Free;
+    end;
+  end;
+  Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 3);
+
+  // STEP 2 - soft-delete row #2. Plain Delete dispatches to UPDATE.
+  Log('');
+  Log('[2] Delete row #2 -> SET deleted_at = Now()');
+  lRow := TMVCActiveRecord.GetByPK<TSoftDeletableNote>(2);
+  try
+    Assert(not lRow.IsDeleted);
+    lRow.Delete;
+    Assert(lRow.IsDeleted, 'IsDeleted must reflect the marker after Delete');
+    Log('   IsDeleted=True, DeletedAt=' +
+      DateTimeToStr(lRow.DeletedAt.ValueOrDefault));
+  finally
+    lRow.Free;
+  end;
+
+  // STEP 3 - default SELECT auto-filters soft-deleted rows.
+  Log('');
+  Log('[3] All<T> auto-filters soft-deleted rows...');
+  lAlive := TMVCActiveRecord.All<TSoftDeletableNote>;
+  try
+    Log(Format('   Alive rows: %d (expected 2)', [lAlive.Count]));
+    Assert(lAlive.Count = 2);
+  finally
+    lAlive.Free;
+  end;
+
+  // STEP 4 - opt into soft-deleted visibility (audit/restore screens).
+  // The flag is THREAD-LOCAL: in a real server, every request is on its
+  // own thread so concurrent code is unaffected. Always wrap in try/finally.
+  Log('');
+  Log('[4] IncludeSoftDeleted(True) -> All<T> returns every row');
+  TMVCActiveRecord.IncludeSoftDeleted(True);
+  try
+    lAll := TMVCActiveRecord.All<TSoftDeletableNote>;
+    try
+      Log(Format('   Total rows: %d (expected 3)', [lAll.Count]));
+      Assert(lAll.Count = 3);
+    finally
+      lAll.Free;
+    end;
+  finally
+    TMVCActiveRecord.IncludeSoftDeleted(False);
+  end;
+
+  // STEP 5 - bring row #2 back to life. Restore raises if the class lacks
+  // [MVCSoftDeleted] or if the row is already alive.
+  Log('');
+  Log('[5] Restore row #2 -> SET deleted_at = NULL');
+  TMVCActiveRecord.IncludeSoftDeleted(True);
+  try
+    lRow := TMVCActiveRecord.GetByPK<TSoftDeletableNote>(2);
+    try
+      lRow.Restore;
+      Assert(not lRow.IsDeleted);
+      Log('   IsDeleted=False after Restore');
+    finally
+      lRow.Free;
+    end;
+  finally
+    TMVCActiveRecord.IncludeSoftDeleted(False);
+  end;
+  Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 3);
+
+  // STEP 6 - HardDelete bypasses the marker entirely.
+  Log('');
+  Log('[6] HardDelete row #1 -> physical DELETE');
+  lRow := TMVCActiveRecord.GetByPK<TSoftDeletableNote>(1);
+  try
+    lRow.HardDelete;
+  finally
+    lRow.Free;
+  end;
+  Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 2);
+
+  // STEP 7 - bulk DeleteRQL. For [MVCSoftDeleted] classes this dispatches
+  // to a bulk UPDATE; for normal classes it stays a physical DELETE.
+  Log('');
+  Log('[7] DeleteRQL("ge(id,2)") -> bulk soft-delete');
+  lAffected := TMVCActiveRecord.DeleteRQL<TSoftDeletableNote>('ge(id, 2)');
+  Log(Format('   rows soft-deleted: %d', [lAffected]));
+  Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 0,
+    'all rows should be filtered out by the auto-filter');
+
+  // STEP 8 - bulk RestoreRQL.
+  Log('');
+  Log('[8] RestoreRQL("ge(id,2)") -> bulk un-delete');
+  lAffected := TMVCActiveRecord.RestoreRQL<TSoftDeletableNote>('ge(id, 2)');
+  Log(Format('   rows restored: %d', [lAffected]));
+  Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 2);
+
+  // STEP 9 - bulk HardDeleteRQL: always physical, bypasses the marker.
+  Log('');
+  Log('[9] HardDeleteRQL("ge(id,0)") -> bulk physical DELETE');
+  lAffected := TMVCActiveRecord.HardDeleteRQL<TSoftDeletableNote>('ge(id, 0)');
+  Log(Format('   rows physically deleted: %d', [lAffected]));
+  // Verify the table is now empty regardless of the soft-delete auto-filter:
+  // wrap the count in IncludeSoftDeleted(True) so we are not fooled by it.
+  TMVCActiveRecord.IncludeSoftDeleted(True);
+  try
+    Assert(TMVCActiveRecord.Count<TSoftDeletableNote>() = 0,
+      'after HardDeleteRQL the table must be physically empty');
+  finally
+    TMVCActiveRecord.IncludeSoftDeleted(False);
+  end;
+
+  Log('');
+  Log('** Done.');
+end;
+
+
+// ===========================================================================
+// DDL helpers — keep the click handlers focused on the feature being
+// demonstrated, not on per-engine schema boilerplate.
+// ===========================================================================
+
+procedure TMainForm.SetupAuditDemoTable;
+const
+  // "IF EXISTS" is supported by every backend this showcase targets
+  // (PostgreSQL, SQLite, MySQL/MariaDB, MSSQL 2016+, Firebird 4+). Lets us
+  // clean up leftovers from a previous run WITHOUT raising, so there is no
+  // swallowed exception cluttering the IDE debugger.
+  DDL_DROP_IF_EXISTS = 'DROP TABLE IF EXISTS audit_demo';
+var
+  lConn: TFDConnection;
+  lTimestampType: string;
+  lDDLCreate: string;
+begin
+  // The SQL type for "date + time" is annoyingly NOT portable:
+  //   * PostgreSQL / Firebird / Interbase / SQLite -> TIMESTAMP
+  //   * MySQL / MariaDB                            -> DATETIME
+  //                                                   (TIMESTAMP also exists
+  //                                                    but has auto-update semantics)
+  //   * SQL Server                                 -> DATETIME2
+  //                                                   (TIMESTAMP is an alias
+  //                                                    for ROWVERSION: binary,
+  //                                                    single per table)
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
+    lTimestampType := 'DATETIME2'
+  else if (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
+          (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') then
+    lTimestampType := 'DATETIME'
+  else
+    lTimestampType := 'TIMESTAMP';
+
+  lDDLCreate :=
+    'CREATE TABLE audit_demo (' +
+    '  id          INTEGER      NOT NULL PRIMARY KEY, ' +
+    '  description VARCHAR(200), ' +
+    '  created_at  ' + lTimestampType + ', ' +
+    '  updated_at  ' + lTimestampType + ', ' +
+    '  created_by  VARCHAR(100), ' +
+    '  updated_by  VARCHAR(100)' +
+    ')';
+
+  lConn := TMVCActiveRecord.CurrentConnection;
+  lConn.ExecSQL(DDL_DROP_IF_EXISTS);
+  lConn.ExecSQL(lDDLCreate);
+end;
+
+procedure TMainForm.SetupSoftDeleteDemoTable;
+const
+  DDL_DROP_IF_EXISTS = 'DROP TABLE IF EXISTS soft_delete_demo';
+var
+  lTimestampType: string;
+  lDDLCreate: string;
+begin
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
+    lTimestampType := 'DATETIME2'
+  else if (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql') or
+          (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mariadb') then
+    lTimestampType := 'DATETIME'
+  else
+    lTimestampType := 'TIMESTAMP';
+
+  lDDLCreate :=
+    'CREATE TABLE soft_delete_demo (' +
+    '  id          INTEGER      NOT NULL PRIMARY KEY, ' +
+    '  description VARCHAR(200), ' +
+    '  deleted_at  ' + lTimestampType +
+    ')';
+
+  TMVCActiveRecord.CurrentConnection.ExecSQL(DDL_DROP_IF_EXISTS);
+  TMVCActiveRecord.CurrentConnection.ExecSQL(lDDLCreate);
+end;
+
+function TMainForm.SetupRefreshDemoTable: Boolean;
+const
+  DDL_DROP_IF_EXISTS = 'DROP TABLE IF EXISTS refresh_demo';
+var
+  lAutoPK: string;
+  lComputedCol: string;
+  lDDLCreate: string;
+  lBackend: string;
+begin
+  // The auto-increment + computed-column syntaxes differ widely across
+  // engines. Returns False (and logs a skip notice) on backends not
+  // covered here — the caller bails out cleanly.
+  lBackend := ActiveRecordConnectionsRegistry.GetCurrentBackend;
+  if lBackend = 'mssql' then
+  begin
+    lAutoPK := 'INT IDENTITY(1,1) NOT NULL PRIMARY KEY';
+    lComputedCol := 'upper_name AS (UPPER(name)) PERSISTED';
+  end
+  else if (lBackend = 'mysql') or (lBackend = 'mariadb') then
+  begin
+    lAutoPK := 'BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY';
+    lComputedCol := 'upper_name VARCHAR(200) GENERATED ALWAYS AS (UPPER(name)) STORED';
+  end
+  else if lBackend = 'sqlite' then
+  begin
+    lAutoPK := 'INTEGER PRIMARY KEY AUTOINCREMENT';
+    lComputedCol := 'upper_name TEXT GENERATED ALWAYS AS (UPPER(name)) STORED';
+  end
+  else if lBackend = 'postgresql' then
+  begin
+    lAutoPK := 'BIGSERIAL PRIMARY KEY';
+    lComputedCol := 'upper_name VARCHAR(200) GENERATED ALWAYS AS (UPPER(name)) STORED';
+  end
+  else if lBackend = 'firebird' then
+  begin
+    lAutoPK := 'BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY';
+    lComputedCol := 'upper_name COMPUTED BY (UPPER(name))';
+  end
+  else
+  begin
+    Log(Format(
+      '   Skipping demo for backend "%s": this handler does not own the ' +
+      'auto-PK / computed-column DDL for that engine. foRefresh itself is ' +
+      'fully supported — see docs/guides/activerecord_quickwins_guide.md.',
+      [lBackend]));
+    Exit(False);
+  end;
+
+  lDDLCreate :=
+    'CREATE TABLE refresh_demo (' +
+    '  id         ' + lAutoPK + ', ' +
+    '  name       VARCHAR(200), ' +
+    '  ' + lComputedCol +
+    ')';
+
+  TMVCActiveRecord.CurrentConnection.ExecSQL(DDL_DROP_IF_EXISTS);
+  TMVCActiveRecord.CurrentConnection.ExecSQL(lDDLCreate);
+  Result := True;
 end;
 
 
