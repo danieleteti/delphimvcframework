@@ -306,14 +306,14 @@ type
   /// </summary>
   MVCAuditUpdatedByAttribute = class(MVCActiveRecordCustomAttribute);
 
-  /// <summary>Class-level attribute. Enables hash-based dirty tracking
+  /// <summary>Class-level attribute. Enables hash-based change tracking
   /// for instances of this class. UPDATE statements include only the
   /// fields whose CRC32 differs from the snapshot taken at Load /
   /// Insert / Update. Memory cost: 4 bytes per tracked field per
   /// instance. CRC32 collisions on individual field values are
   /// negligible for business data (effectively 1 in 4 billion per
   /// field).</summary>
-  MVCDirtyTrackingAttribute = class(MVCActiveRecordCustomAttribute);
+  MVCChangeTrackingAttribute = class(MVCActiveRecordCustomAttribute);
 
   /// <summary>Field-level attribute. Marks the column used for soft-delete
   /// tracking. Field type drives the mode:
@@ -325,12 +325,12 @@ type
   MVCSoftDeletedAttribute = class(MVCActiveRecordCustomAttribute);
 
   /// <summary>
-  /// Per-field entry used by the dirty-tracking snapshot machinery.
+  /// Per-field entry used by the change-tracking snapshot machinery.
   /// Holds both the RTTI field reference (for GetValue) and the
-  /// mapped column name (for IsDirty(FieldName) lookups).
+  /// mapped column name (for IsChanged(FieldName) lookups).
   /// Entries are non-owning — RTTIField lifetime is managed by RTTI context.
   /// </summary>
-  TDirtyTrackingEntry = record
+  TChangeTrackingEntry = record
     RTTIField: TRttiField;
     FieldName: string;
   end;
@@ -351,8 +351,8 @@ type
     fVersionRTTIField: TRttiField;
     fVersionFieldName: String;
     fRefreshFields: TList<TFieldInfo>; // non-owning; entries are owned by fMap
-    fIsDirtyTracked: Boolean;
-    fDirtyTrackedFields: TList<TDirtyTrackingEntry>; // non-owning RTTIField refs; owned by RTTI context
+    fIsChangeTracked: Boolean;
+    fChangeTrackedFields: TList<TChangeTrackingEntry>; // non-owning RTTIField refs; owned by RTTI context
     fSoftDeleteField: TFieldInfo;
     fSoftDeleteRTTIField: TRttiField;
     fSoftDeleteMode: TMVCSoftDeleteMode;
@@ -389,8 +389,8 @@ type
     destructor Destroy; override;
     function VersionValueAsInt64For(AR: TMVCActiveRecord): Int64; //inline;
     property RefreshFields: TList<TFieldInfo> read fRefreshFields;
-    property IsDirtyTracked: Boolean read fIsDirtyTracked;
-    property DirtyTrackedFields: TList<TDirtyTrackingEntry> read fDirtyTrackedFields;
+    property IsChangeTracked: Boolean read fIsChangeTracked;
+    property ChangeTrackedFields: TList<TChangeTrackingEntry> read fChangeTrackedFields;
     property SoftDeleteField: TFieldInfo read fSoftDeleteField;
     property SoftDeleteRTTIField: TRttiField read fSoftDeleteRTTIField;
     property SoftDeleteMode: TMVCSoftDeleteMode read fSoftDeleteMode;
@@ -399,7 +399,7 @@ type
 
   TMVCActiveRecord = class(TMVCValidatable)
   strict private
-    fHashSnapshot: TArray<Cardinal>; // CRC32 per dirty-tracked field; nil for non-tracked classes
+    fHashSnapshot: TArray<Cardinal>; // CRC32 per change-tracked field; nil for non-tracked classes
     procedure RebuildHashSnapshot;
   private
     fChildren: TObjectList<TObject>;
@@ -606,6 +606,17 @@ type
     function TryGetPKValue(var Value: TValue; out IsNullableType: Boolean): Boolean;
     function PKIsNullable(out PKValue: TValue): Boolean;
     function PKIsNull: Boolean;
+    /// <summary>
+    /// True when the primary key is unset, signalling an in-memory record
+    /// not yet persisted. Works with both nullable PKs (no value) and plain
+    /// PKs (default-constructed: 0 / empty string / empty GUID). Safe on
+    /// classes that have no PK declared (returns True). Use it to write the
+    /// canonical Insert-or-Update branch:
+    ///   if AR.IsNew then AR.Insert else AR.Update;  // or just AR.Store;
+    /// </summary>
+    function IsNew: Boolean;
+    /// <summary>Negation of IsNew, kept for readability at the call site.</summary>
+    function IsPersisted: Boolean;
     procedure AddChildren(const ChildObject: TObject);
     procedure RemoveChildren(const ChildObject: TObject);
     function GetPrimaryKeyFieldType: TFieldType;
@@ -662,32 +673,32 @@ type
     /// <summary>
     /// Returns True if any tracked field's current value differs from the
     /// snapshot taken at the last Load / Insert / Update.
-    /// Always returns False for classes not decorated with [MVCDirtyTracking]
+    /// Always returns False for classes not decorated with [MVCChangeTracking]
     /// or when no snapshot has been built yet.
     /// </summary>
-    function IsDirty: Boolean; overload;
+    function IsChanged: Boolean; overload;
 
     /// <summary>
     /// Returns True if the specified column (by mapped field name) has a
     /// value different from the snapshot. Returns False for unknown names
     /// or non-tracked classes.
     /// </summary>
-    function IsDirty(const FieldName: string): Boolean; overload;
+    function IsChanged(const FieldName: string): Boolean; overload;
 
     /// <summary>
     /// Returns the mapped column names of all fields whose current value
-    /// differs from the snapshot. Returns an empty array if nothing is dirty
-    /// or the class is not tracked.
+    /// differs from the snapshot. Returns an empty array if nothing has
+    /// changed or the class is not tracked.
     /// </summary>
-    function GetDirtyFields: TArray<string>;
+    function GetChangedFields: TArray<string>;
 
     /// <summary>
     /// Calls Update only when at least one tracked field has changed since the
-    /// last snapshot. If nothing is dirty, returns immediately without issuing
+    /// last snapshot. If nothing has changed, returns immediately without issuing
     /// any SQL. Raises EMVCActiveRecord if the class is not decorated with
-    /// [MVCDirtyTracking].
+    /// [MVCChangeTracking].
     /// </summary>
-    procedure UpdateIfDirty;
+    procedure UpdateIfChanged;
 
     /// <summary>
     /// Returns True if the record has been soft-deleted (i.e. the
@@ -1161,13 +1172,13 @@ type
     function CreateDeleteAllSQL(const TableName: string): string; virtual;
     function CreateSelectCount(const TableName: string): string; virtual;
     function CreateUpdateSQL(const TableMap: TMVCTableMap; const ARInstance: TMVCActiveRecord): string; overload; virtual;
-    /// <summary>UPDATE SQL with SET clause restricted to ADirtyFields.
+    /// <summary>UPDATE SQL with SET clause restricted to AChangedFields.
     /// Always includes audit columns (touched by OnBeforeUpdate hooks) and
     /// the version column. If nothing would be emitted, falls back to
     /// SET pk = pk to keep the statement syntactically valid.</summary>
     function CreateUpdateSQL(const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord;
-      const ADirtyFields: TArray<string>): string; overload; virtual;
+      const AChangedFields: TArray<string>): string; overload; virtual;
     function GetSequenceValueSQL(const PKFieldName: string; const SequenceName: string; const Step: Integer = 1)
       : string; virtual;
 
@@ -1677,6 +1688,10 @@ var
   lSQL: string;
   lHandled: Boolean;
   I: Integer;
+  lShouldRefreshPK: Boolean;
+  lShouldRefreshFields: Boolean;
+  lFieldInfo: TFieldInfo;
+  lDSField: TField;
 begin
   { TODO -oDanieleT -cGeneral : Why not a TFDCommand? }
   lQry := CreateQuery(True, True);
@@ -1730,21 +1745,62 @@ begin
       end;
     end;
 
-    if RefreshAutoGenerated and (TMVCActiveRecordFieldOption.foAutoGenerated in fTableMap.fPrimaryKeyOptions) and
-      fTableMap.fPrimaryKeySequenceName.IsEmpty then
-    begin
-      lValue := fTableMap.fPrimaryKey.GetValue(Self);
-      lQry.Open;
+    // Decide whether the statement returns a result set we must consume:
+    //   * Insert with autogen-PK without sequence -> RETURNING / OUTPUT
+    //     emits the PK (and possibly foRefresh fields too).
+    //   * Any operation on a class with foRefresh fields, on an engine
+    //     that handles refresh natively -> RETURNING / OUTPUT emits the
+    //     foRefresh columns.
+    // In either case we Open the query and map the result columns back
+    // onto the in-memory instance.
+    lShouldRefreshPK := RefreshAutoGenerated and
+      (TMVCActiveRecordFieldOption.foAutoGenerated in fTableMap.fPrimaryKeyOptions) and
+      fTableMap.fPrimaryKeySequenceName.IsEmpty;
+    lShouldRefreshFields := SQLGenerator.HandlesRefreshNatively and
+      (fTableMap.RefreshFields.Count > 0);
 
-      if (lValue.Kind = tkRecord) then
+    if lShouldRefreshPK or lShouldRefreshFields then
+    begin
+      lQry.Open;
+      if not lQry.Eof then
       begin
-        MapDataSetFieldToNullableRTTIField(lValue, lQry.Fields[0], fTableMap.fPrimaryKey, Self);
-      end
-      else
-      begin
-        lValue := lQry.FieldByName(fTableMap.fPrimaryKeyFieldName).AsInteger;
-        fTableMap.fPrimaryKey.SetValue(Self, lValue);
+        // PK from Fields[0] when applicable. BuildReturningColumnList
+        // emits the PK first, so Fields[0] is the PK column.
+        if lShouldRefreshPK then
+        begin
+          lValue := fTableMap.fPrimaryKey.GetValue(Self);
+          if (lValue.Kind = tkRecord) then
+            MapDataSetFieldToNullableRTTIField(lValue, lQry.Fields[0], fTableMap.fPrimaryKey, Self)
+          else
+          begin
+            lValue := lQry.FieldByName(fTableMap.fPrimaryKeyFieldName).AsInteger;
+            fTableMap.fPrimaryKey.SetValue(Self, lValue);
+          end;
+        end;
+
+        // Map every foRefresh column by NAME so we are robust to column
+        // ordering inside the RETURNING / OUTPUT clause.
+        if lShouldRefreshFields then
+        begin
+          for lFieldInfo in fTableMap.RefreshFields do
+          begin
+            lDSField := lQry.FindField(lFieldInfo.FieldName);
+            if lDSField = nil then
+              Continue;
+            for lPair in fTableMap.fMap do
+            begin
+              if SameText(lPair.Value.FieldName, lFieldInfo.FieldName) then
+              begin
+                MapDataSetFieldToRTTIField(lDSField, lPair.Key, Self);
+                Break;
+              end;
+            end;
+          end;
+        end;
       end;
+      // The outer try/finally Frees lQry: TFDQuery's destructor closes
+      // the dataset and releases FireDAC-side resources. No explicit
+      // Close needed here.
     end
     else
     begin
@@ -1811,8 +1867,11 @@ begin
     ' WHERE ' + SQLGenerator.GetFieldNameForSQL(fTableMap.fPrimaryKeyFieldName) +
     ' = :' + SQLGenerator.GetParamNameForSQL(fTableMap.fPrimaryKeyFieldName);
 
-  // Get PK value as Variant
-  lPKValue := fTableMap.fPrimaryKey.GetValue(Self).AsVariant;
+  // Get PK value as Variant. Use GetPK so nullable PKs (NullableInt64 etc.)
+  // are unwrapped to their inner int / string before being shipped as a
+  // FireDAC parameter — passing a record-shaped TValue would result in an
+  // Unassigned variant and a WHERE clause that matches no rows.
+  lPKValue := GetPK.AsVariant;
 
   // Execute and map results back into the instance
   lDS := ExecQuery(lSQL, [lPKValue], GetConnection, True, False);
@@ -2043,7 +2102,7 @@ var
   lNamedRQLQueryCount: Integer;
   lNeedsTableName: Boolean;
   lPair: TPair<TRTTIField, TFieldInfo>;
-  lDirtyEntry: TDirtyTrackingEntry;
+  lChangeEntry: TChangeTrackingEntry;
 begin
   if ActiveRecordTableMapRegistry.TryGetValue(Self, aTableName, fTableMap) then
   begin
@@ -2104,9 +2163,9 @@ begin
           lTableMap.fNamedRQLQueries[lNamedRQLQueryCount - 1].RQLText := MVCNamedRQLQueryAttribute(lAttribute).RQLQuery;
           Continue;
         end;
-        if lAttribute is MVCDirtyTrackingAttribute then
+        if lAttribute is MVCChangeTrackingAttribute then
         begin
-          lTableMap.fIsDirtyTracked := True;
+          lTableMap.fIsChangeTracked := True;
           Continue;
         end;
       end;
@@ -2213,8 +2272,8 @@ begin
         end;
       end;
 
-      // Build dirty-tracking field list ONCE per class
-      if lTableMap.fIsDirtyTracked then
+      // Build change-tracking field list ONCE per class
+      if lTableMap.fIsChangeTracked then
       begin
         for lPair in lTableMap.fMap do
         begin
@@ -2222,9 +2281,9 @@ begin
              (not (foPrimaryKey in lPair.Value.FieldOptions)) and
              (not (foVersion in lPair.Value.FieldOptions)) then
           begin
-            lDirtyEntry.RTTIField := lPair.Key;
-            lDirtyEntry.FieldName := lPair.Value.FieldName;
-            lTableMap.fDirtyTrackedFields.Add(lDirtyEntry);
+            lChangeEntry.RTTIField := lPair.Key;
+            lChangeEntry.FieldName := lPair.Value.FieldName;
+            lTableMap.fChangeTrackedFields.Add(lChangeEntry);
           end;
         end;
       end;
@@ -2292,7 +2351,10 @@ begin
     { in case of INSERT version is defined by constants }
     SetInitialObjVersion(fTableMap, Self);
   end;
-  // For engines without native foRefresh handling (e.g. MySQL), run the fallback SELECT
+  // foRefresh: engines that handle it natively (PG, Firebird, SQLite, MSSQL,
+  // Oracle) populate the columns through the RETURNING / OUTPUT clause that
+  // ExecNonQuery already consumed; nothing more to do. Engines without
+  // native support (MySQL, MariaDB UPDATE) need a separate SELECT.
   if (not SQLGenerator.HandlesRefreshNatively) and
      (fTableMap.RefreshFields.Count > 0) then
     RefreshFromDB;
@@ -2394,33 +2456,33 @@ end;
 procedure TMVCActiveRecord.RebuildHashSnapshot;
 var
   i: Integer;
-  lEntry: TDirtyTrackingEntry;
+  lEntry: TChangeTrackingEntry;
 begin
-  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+  if (fTableMap = nil) or (not fTableMap.IsChangeTracked) then
   begin
     fHashSnapshot := nil;
     Exit;
   end;
-  SetLength(fHashSnapshot, fTableMap.DirtyTrackedFields.Count);
-  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  SetLength(fHashSnapshot, fTableMap.ChangeTrackedFields.Count);
+  for i := 0 to fTableMap.ChangeTrackedFields.Count - 1 do
   begin
-    lEntry := fTableMap.DirtyTrackedFields[i];
+    lEntry := fTableMap.ChangeTrackedFields[i];
     fHashSnapshot[i] := ComputeFieldHash(lEntry.RTTIField, Self);
   end;
 end;
 
-function TMVCActiveRecord.IsDirty: Boolean;
+function TMVCActiveRecord.IsChanged: Boolean;
 var
   i: Integer;
 begin
   Result := False;
-  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+  if (fTableMap = nil) or (not fTableMap.IsChangeTracked) then
     Exit;
-  if Length(fHashSnapshot) <> fTableMap.DirtyTrackedFields.Count then
+  if Length(fHashSnapshot) <> fTableMap.ChangeTrackedFields.Count then
     Exit;  // no snapshot yet — be conservative
-  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  for i := 0 to fTableMap.ChangeTrackedFields.Count - 1 do
   begin
-    if ComputeFieldHash(fTableMap.DirtyTrackedFields[i].RTTIField, Self)
+    if ComputeFieldHash(fTableMap.ChangeTrackedFields[i].RTTIField, Self)
        <> fHashSnapshot[i] then
     begin
       Result := True;
@@ -2429,19 +2491,19 @@ begin
   end;
 end;
 
-function TMVCActiveRecord.IsDirty(const FieldName: string): Boolean;
+function TMVCActiveRecord.IsChanged(const FieldName: string): Boolean;
 var
   i: Integer;
-  lEntry: TDirtyTrackingEntry;
+  lEntry: TChangeTrackingEntry;
 begin
   Result := False;
-  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+  if (fTableMap = nil) or (not fTableMap.IsChangeTracked) then
     Exit;
-  if Length(fHashSnapshot) <> fTableMap.DirtyTrackedFields.Count then
+  if Length(fHashSnapshot) <> fTableMap.ChangeTrackedFields.Count then
     Exit;
-  for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+  for i := 0 to fTableMap.ChangeTrackedFields.Count - 1 do
   begin
-    lEntry := fTableMap.DirtyTrackedFields[i];
+    lEntry := fTableMap.ChangeTrackedFields[i];
     if SameText(lEntry.FieldName, FieldName) then
     begin
       Result := ComputeFieldHash(lEntry.RTTIField, Self) <> fHashSnapshot[i];
@@ -2450,21 +2512,21 @@ begin
   end;
 end;
 
-function TMVCActiveRecord.GetDirtyFields: TArray<string>;
+function TMVCActiveRecord.GetChangedFields: TArray<string>;
 var
   i: Integer;
   lResult: TList<string>;
 begin
   lResult := TList<string>.Create;
   try
-    if (fTableMap <> nil) and fTableMap.IsDirtyTracked and
-       (Length(fHashSnapshot) = fTableMap.DirtyTrackedFields.Count) then
+    if (fTableMap <> nil) and fTableMap.IsChangeTracked and
+       (Length(fHashSnapshot) = fTableMap.ChangeTrackedFields.Count) then
     begin
-      for i := 0 to fTableMap.DirtyTrackedFields.Count - 1 do
+      for i := 0 to fTableMap.ChangeTrackedFields.Count - 1 do
       begin
-        if ComputeFieldHash(fTableMap.DirtyTrackedFields[i].RTTIField, Self)
+        if ComputeFieldHash(fTableMap.ChangeTrackedFields[i].RTTIField, Self)
            <> fHashSnapshot[i] then
-          lResult.Add(fTableMap.DirtyTrackedFields[i].FieldName);
+          lResult.Add(fTableMap.ChangeTrackedFields[i].FieldName);
       end;
     end;
     Result := lResult.ToArray;
@@ -2473,12 +2535,12 @@ begin
   end;
 end;
 
-procedure TMVCActiveRecord.UpdateIfDirty;
+procedure TMVCActiveRecord.UpdateIfChanged;
 begin
-  if (fTableMap = nil) or (not fTableMap.IsDirtyTracked) then
+  if (fTableMap = nil) or (not fTableMap.IsChangeTracked) then
     raise EMVCActiveRecord.Create(
-      'UpdateIfDirty requires the class to be marked with [MVCDirtyTracking]');
-  if not IsDirty then
+      'UpdateIfChanged requires the class to be marked with [MVCChangeTracking]');
+  if not IsChanged then
     Exit;
   Update;
 end;
@@ -2845,6 +2907,51 @@ begin
   PKValue := TryGetPKValue(lValue, Result);
 end;
 
+function TMVCActiveRecord.IsNew: Boolean;
+var
+  lValue: TValue;
+  lIsNullableType: Boolean;
+  lHasValue: Boolean;
+const
+  EMPTY_GUID: TGUID = '{00000000-0000-0000-0000-000000000000}';
+begin
+  // No PK defined or no metadata yet: treat as new (caller is mid-construction).
+  if (fTableMap = nil) or fTableMap.fPrimaryKeyFieldName.IsEmpty then
+    Exit(True);
+
+  lHasValue := TryGetPKValue(lValue, lIsNullableType);
+
+  // Nullable PK: TryGetPKValue already returned the right answer
+  // (HasValue=False means PK is unset).
+  if lIsNullableType then
+    Exit(not lHasValue);
+
+  // Plain PK: TValue.IsEmpty is True only for tkUnknown, so for tkInt64=0 etc.
+  // we have to inspect the value explicitly. Default-constructed values
+  // (0, '', empty GUID) all map to "new".
+  case lValue.Kind of
+    tkInteger, tkInt64:
+      Result := lValue.AsInt64 = 0;
+    tkString, tkLString, tkWString, tkUString:
+      Result := lValue.AsString = '';
+    tkRecord:
+      // Plain TGUID: compare against the all-zeros GUID. Any other record
+      // shape is not a known PK type, so treat the row as persisted to avoid
+      // surprising side effects.
+      if lValue.IsType<TGUID>() then
+        Result := IsEqualGUID(lValue.AsType<TGUID>(), EMPTY_GUID)
+      else
+        Result := False;
+  else
+    Result := False;
+  end;
+end;
+
+function TMVCActiveRecord.IsPersisted: Boolean;
+begin
+  Result := not IsNew;
+end;
+
 function TMVCActiveRecord.GetPrimaryKeyFieldType: TFieldType;
 begin
   Result := fTableMap.fPrimaryKeyFieldType;
@@ -3117,8 +3224,8 @@ begin
     sdmFlag:
       fTableMap.fSoftDeleteRTTIField.SetValue(Self, TValue.From<Boolean>(False));
   end;
-  // Persist via the normal Update path; the sentinel column is now dirty so
-  // the dirty-aware UPDATE will include it.
+  // Persist via the normal Update path; the sentinel column is now flagged as
+  // changed so the change-aware UPDATE will include it.
   Update;
 end;
 
@@ -4740,7 +4847,7 @@ procedure TMVCActiveRecord.Update(const RaiseExceptionIfNotFound: Boolean = True
 var
   SQL: string;
   lAffectedRows: int64;
-  lDirtyFields: TArray<string>;
+  lChangedFields: TArray<string>;
 begin
   CheckAction(TMVCEntityAction.eaUpdate);
   Validate(TMVCEntityAction.eaUpdate);
@@ -4756,10 +4863,10 @@ begin
     raise EMVCActiveRecord.CreateFmt
       ('Cannot update an entity if no fields are writeable. Class [%s] mapped on table [%s]', [ClassName, TableName]);
   end;
-  if fTableMap.IsDirtyTracked then
+  if fTableMap.IsChangeTracked then
   begin
-    lDirtyFields := GetDirtyFields;
-    SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self, lDirtyFields);
+    lChangedFields := GetChangedFields;
+    SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self, lChangedFields);
   end
   else
     SQL := SQLGenerator.CreateUpdateSQL(fTableMap, Self);
@@ -4781,7 +4888,8 @@ begin
   begin
     AdvanceVersioning(fTableMap, Self);
   end;
-  // For engines without native foRefresh handling (e.g. MySQL), run the fallback SELECT
+  // foRefresh fallback: same logic as Insert. Native engines already
+  // surfaced the columns through RETURNING / OUTPUT inside ExecNonQuery.
   if (not SQLGenerator.HandlesRefreshNatively) and
      (fTableMap.RefreshFields.Count > 0) then
     RefreshFromDB;
@@ -5216,18 +5324,18 @@ end;
 
 function TMVCSQLGenerator.CreateUpdateSQL(const TableMap: TMVCTableMap;
   const ARInstance: TMVCActiveRecord;
-  const ADirtyFields: TArray<string>): string;
+  const AChangedFields: TArray<string>): string;
 var
   lPair: TPair<TRTTIField, TFieldInfo>;
-  lDirtyMap: TDictionary<string, Boolean>;
+  lChangedMap: TDictionary<string, Boolean>;
   lFieldName: string;
   lAnyEmitted: Boolean;
   lIsAuditField: Boolean;
 begin
-  lDirtyMap := TDictionary<string, Boolean>.Create;
+  lChangedMap := TDictionary<string, Boolean>.Create;
   try
-    for lFieldName in ADirtyFields do
-      lDirtyMap.AddOrSetValue(LowerCase(lFieldName), True);
+    for lFieldName in AChangedFields do
+      lChangedMap.AddOrSetValue(LowerCase(lFieldName), True);
 
     Result := 'UPDATE ' + GetTableNameForSQL(TableMap.fTableName) + ' SET ';
     lAnyEmitted := False;
@@ -5248,7 +5356,7 @@ begin
           (lPair.Key = TableMap.fAuditUpdatedAtField) or
           (lPair.Key = TableMap.fAuditCreatedByField) or
           (lPair.Key = TableMap.fAuditUpdatedByField);
-        if lIsAuditField or lDirtyMap.ContainsKey(LowerCase(lPair.Value.FieldName)) then
+        if lIsAuditField or lChangedMap.ContainsKey(LowerCase(lPair.Value.FieldName)) then
         begin
           Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = :' +
             GetParamNameForSQL(lPair.Value.FieldName) + ',';
@@ -5279,7 +5387,7 @@ begin
     else
       raise EMVCActiveRecord.Create('Cannot perform an update without an entity primary key');
   finally
-    lDirtyMap.Free;
+    lChangedMap.Free;
   end;
 end;
 
@@ -5696,6 +5804,11 @@ begin
   else
   begin
     Selectable := not (foDoNotSelect in FieldOptions);
+    // foRefresh does NOT affect Insertable / Updatable: the field is still
+    // written when the caller assigned a value. foRefresh just instructs the
+    // framework to SELECT the column back after the write, so any server-side
+    // transformation (trigger uppercasing the value, computed expression,
+    // etc.) is reflected in the in-memory instance.
     Insertable := [foDoNotInsert, foAutoGenerated] * FieldOptions = [];
     Updatable := [foDoNotUpdate, foAutoGenerated] * FieldOptions = [];
     if foReadOnly in FieldOptions then
@@ -6106,8 +6219,8 @@ begin
   inherited;
   fMap := TFieldsMap.Create;
   fRefreshFields := TList<TFieldInfo>.Create;
-  fIsDirtyTracked := False;
-  fDirtyTrackedFields := TList<TDirtyTrackingEntry>.Create;
+  fIsChangeTracked := False;
+  fChangeTrackedFields := TList<TChangeTrackingEntry>.Create;
   fIsVersioned := False;
   fVersionFieldName := '';
   fSoftDeleteField := nil;
@@ -6119,7 +6232,7 @@ destructor TMVCTableMap.Destroy;
 begin
   fMap.Free;
   fRefreshFields.Free;
-  fDirtyTrackedFields.Free;
+  fChangeTrackedFields.Free;
   inherited;
 end;
 

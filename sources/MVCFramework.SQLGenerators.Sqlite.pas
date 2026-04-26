@@ -46,7 +46,7 @@ type
       const ARInstance: TMVCActiveRecord): string; overload; override;
     function CreateUpdateSQL(const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord;
-      const ADirtyFields: TArray<string>): string; overload; override;
+      const AChangedFields: TArray<string>): string; overload; override;
     function HasSequences: Boolean; override;
   end;
 
@@ -172,13 +172,13 @@ end;
 function TMVCSQLGeneratorSQLite.CreateUpdateSQL(
   const TableMap: TMVCTableMap;
   const ARInstance: TMVCActiveRecord;
-  const ADirtyFields: TArray<string>): string;
+  const AChangedFields: TArray<string>): string;
 var
   lFieldInfo: TFieldInfo;
   lReturningCols: string;
   lFirst: Boolean;
 begin
-  Result := inherited CreateUpdateSQL(TableMap, ARInstance, ADirtyFields);
+  Result := inherited CreateUpdateSQL(TableMap, ARInstance, AChangedFields);
   if TableMap.RefreshFields.Count = 0 then
     Exit;
   lReturningCols := '';

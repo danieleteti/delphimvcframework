@@ -56,7 +56,7 @@ type
       const ARInstance: TMVCActiveRecord): string; overload; override;
     function CreateUpdateSQL(const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord;
-      const ADirtyFields: TArray<string>): string; overload; override;
+      const AChangedFields: TArray<string>): string; overload; override;
   end;
 
 implementation
@@ -191,13 +191,10 @@ begin
   Result := inherited CreateUpdateSQL(TableMap, ARInstance);
   if TableMap.RefreshFields.Count = 0 then
     Exit;
-
-  // RefreshFields-only for UPDATE (PK is already known, including it causes ExecSQL errors)
+  // RefreshFields-only for UPDATE (PK is already known).
   lOutput := BuildOutputClause(TableMap, True);
   if lOutput = '' then
     Exit;
-
-  // Inject OUTPUT before " where " — the base class uses lowercase " where "
   lWherePos := Pos(' WHERE ', UpperCase(Result));
   if lWherePos > 0 then
     Insert(lOutput, Result, lWherePos);
@@ -206,21 +203,17 @@ end;
 function TMVCSQLGeneratorMSSQL.CreateUpdateSQL(
   const TableMap: TMVCTableMap;
   const ARInstance: TMVCActiveRecord;
-  const ADirtyFields: TArray<string>): string;
+  const AChangedFields: TArray<string>): string;
 var
   lOutput: string;
   lWherePos: Integer;
 begin
-  Result := inherited CreateUpdateSQL(TableMap, ARInstance, ADirtyFields);
+  Result := inherited CreateUpdateSQL(TableMap, ARInstance, AChangedFields);
   if TableMap.RefreshFields.Count = 0 then
     Exit;
-
-  // RefreshFields-only for UPDATE (PK is already known, including it causes ExecSQL errors)
   lOutput := BuildOutputClause(TableMap, True);
   if lOutput = '' then
     Exit;
-
-  // Inject OUTPUT before " where " — the base class uses lowercase " where "
   lWherePos := Pos(' WHERE ', UpperCase(Result));
   if lWherePos > 0 then
     Insert(lOutput, Result, lWherePos);
