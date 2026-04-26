@@ -116,6 +116,10 @@ begin
   MVCFramework.Console.WriteLine('  --log <file>           Also write structured log to file', TConsoleColor.Gray);
   MVCFramework.Console.WriteLine('  --verbose              Include Debug-level messages (e.g. skipped tables)', TConsoleColor.Gray);
   MVCFramework.Console.WriteLine('  --no-color             Disable ANSI colored console output', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --no-auto-required           Skip [MVCRequired] on NOT NULL non-PK columns (default: emit)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --no-auto-maxlength          Skip [MVCMaxLength(N)] on bounded VARCHAR columns (default: emit)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --no-auto-audit              Skip [MVCAudit*] on convention-named audit columns (default: emit)', TConsoleColor.Gray);
+  MVCFramework.Console.WriteLine('  --no-auto-soft-delete        Skip [MVCSoftDeleted] on convention-named columns (default: emit)', TConsoleColor.Gray);
   MVCFramework.Console.WriteLine('  --help                 Show this help message', TConsoleColor.Gray);
   MVCFramework.Console.WriteLine('');
   MVCFramework.Console.WriteLine('Config file format (.env):', TConsoleColor.White);
@@ -145,6 +149,42 @@ begin
     TConsoleColor.DarkGray);
   MVCFramework.Console.WriteLine(
     '  EXCLUDE_TABLES=',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUTO_REQUIRED=true              # default: emit [MVCRequired] on NOT NULL non-PK columns',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUTO_MAXLENGTH=true             # default: emit [MVCMaxLength(N)] on bounded VARCHAR columns',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  READONLY_COLUMNS=tbl.col,tbl.col2  # CSV of table.column pairs to emit with foReadOnly',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  REFRESH_COLUMNS=tbl.col,tbl.col2   # CSV of table.column pairs to emit with foRefresh',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUTO_AUDIT=true                    # default: emit [MVCAudit*] on convention-named columns',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUDIT_CREATED_AT_NAME=created_at   # column name to recognize as MVCAuditCreatedAt',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUDIT_UPDATED_AT_NAME=updated_at   # column name to recognize as MVCAuditUpdatedAt',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUDIT_CREATED_BY_NAME=created_by   # column name to recognize as MVCAuditCreatedBy',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUDIT_UPDATED_BY_NAME=updated_by   # column name to recognize as MVCAuditUpdatedBy',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  AUTO_SOFT_DELETE=true              # default: emit [MVCSoftDeleted] on convention-named columns',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  SOFT_DELETE_TIMESTAMP_NAME=deleted_at  # CSV; column type must be NullableTDateTime',
+    TConsoleColor.DarkGray);
+  MVCFramework.Console.WriteLine(
+    '  SOFT_DELETE_FLAG_NAME=is_deleted,deleted  # CSV; column type must be Boolean',
     TConsoleColor.DarkGray);
 end;
 
@@ -440,6 +480,44 @@ begin
     lConfig.Tables := SplitCSV(GetEnvValue(lEnv, 'TABLES'));
     lConfig.ExcludeTables := SplitCSV(GetEnvValue(lEnv, 'EXCLUDE_TABLES'));
     lConfig.TableClassMap := BuildTableClassMap(lEnv);
+    // Auto-validation (Tier 1): ON by default — the generator infers
+    // [MVCRequired] / [MVCMaxLength] from FireDAC schema metadata. Users can
+    // opt out per-flag via --no-auto-required / --no-auto-maxlength on the
+    // command line, or via AUTO_REQUIRED=false / AUTO_MAXLENGTH=false in the
+    // env file. Precedence: CLI --no-* wins, then env var, then default (True).
+    lConfig.AutoRequired := GetEnvBool(lEnv, 'AUTO_REQUIRED', True);
+    if HasCmdSwitch('no-auto-required') then
+      lConfig.AutoRequired := False;
+    lConfig.AutoMaxLength := GetEnvBool(lEnv, 'AUTO_MAXLENGTH', True);
+    if HasCmdSwitch('no-auto-maxlength') then
+      lConfig.AutoMaxLength := False;
+    // READONLY_COLUMNS / REFRESH_COLUMNS — CSV of "table.column" pairs.
+    // Each entry on READONLY_COLUMNS adds foReadOnly to that field; each
+    // on REFRESH_COLUMNS adds foRefresh. A column may appear in both.
+    lConfig.ReadOnlyColumns := SplitCSV(GetEnvValue(lEnv, 'READONLY_COLUMNS'));
+    lConfig.RefreshColumns  := SplitCSV(GetEnvValue(lEnv, 'REFRESH_COLUMNS'));
+
+    // Audit-column auto-detection (Tier 2 — by NAME). Default ON; the
+    // canonical column names are the .env / CLI-overridable defaults
+    // below. Opt out per-feature with --no-auto-audit.
+    lConfig.AutoAudit := GetEnvBool(lEnv, 'AUTO_AUDIT', True);
+    if HasCmdSwitch('no-auto-audit') then
+      lConfig.AutoAudit := False;
+    lConfig.AuditCreatedAtName := GetEnvValue(lEnv, 'AUDIT_CREATED_AT_NAME', 'created_at');
+    lConfig.AuditUpdatedAtName := GetEnvValue(lEnv, 'AUDIT_UPDATED_AT_NAME', 'updated_at');
+    lConfig.AuditCreatedByName := GetEnvValue(lEnv, 'AUDIT_CREATED_BY_NAME', 'created_by');
+    lConfig.AuditUpdatedByName := GetEnvValue(lEnv, 'AUDIT_UPDATED_BY_NAME', 'updated_by');
+
+    // Soft-delete auto-detection (Tier 2 — by NAME). Default ON. Two
+    // CSV lists for the two storage modes; type validation enforces the
+    // expected Delphi types. Override per-name with --no-auto-soft-delete.
+    lConfig.AutoSoftDelete := GetEnvBool(lEnv, 'AUTO_SOFT_DELETE', True);
+    if HasCmdSwitch('no-auto-soft-delete') then
+      lConfig.AutoSoftDelete := False;
+    lConfig.SoftDeleteTimestampNames := SplitCSV(
+      GetEnvValue(lEnv, 'SOFT_DELETE_TIMESTAMP_NAME', 'deleted_at'));
+    lConfig.SoftDeleteFlagNames := SplitCSV(
+      GetEnvValue(lEnv, 'SOFT_DELETE_FLAG_NAME', 'is_deleted,deleted'));
 
     PrintKeyValue('Output file', lOutputFile);
     if lConfig.Schema <> '' then

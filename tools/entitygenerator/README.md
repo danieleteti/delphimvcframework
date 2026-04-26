@@ -3,10 +3,8 @@
 Generates `TMVCActiveRecord` entity classes from a database schema.
 
 Available in two versions:
-- **MVCAREntitiesGenerator** - GUI application (VCL)
-- **MVCEntGen** - Command-line tool
-
-Both share the same core engine (`EntGen.Core.pas`).
+- **MVCEntGen** - Command-line tool (recommended; built on `EntGen.Core.pas`).
+- **MVCAREntitiesGenerator** - legacy VCL GUI. Predates `EntGen.Core.pas` and uses its own emission code; new options like `AUTO_REQUIRED` / `AUTO_MAXLENGTH` are CLI-only.
 
 ## MVCEntGen (CLI)
 
@@ -23,6 +21,10 @@ mvcentgen --config myproject.env --output EntitiesU.pas
 | `--config <file>` | Path to `.env` configuration file (**required**) |
 | `--connection <name>` | FireDAC connection definition name (overrides config) |
 | `--output <file>` | Output `.pas` file path (overrides config) |
+| `--no-auto-required` | Skip `[MVCRequired]` on NOT NULL non-PK columns (default: emit) |
+| `--no-auto-maxlength` | Skip `[MVCMaxLength(N)]` on bounded VARCHAR columns (default: emit) |
+| `--no-auto-audit` | Skip `[MVCAudit*]` on convention-named audit columns (default: emit) |
+| `--no-auto-soft-delete` | Skip `[MVCSoftDeleted]` on convention-named columns (default: emit) |
 | `--help` | Show help message |
 
 Both `--option` and `-option` syntax are supported.
@@ -91,6 +93,85 @@ GENERATE_MAPPING=true
 CLASS_AS_ABSTRACT=false
 ```
 
+#### Auto Validation Attributes
+
+The generator infers validation attributes from the database schema. Both flags are **ON by default** in 3.5.0-silicon and later:
+
+| Flag | Default | Effect |
+|---|---|---|
+| `AUTO_REQUIRED` | `true` | Emit `[MVCRequired]` on every NOT NULL column except auto-generated primary keys. |
+| `AUTO_MAXLENGTH` | `true` | Emit `[MVCMaxLength(N)]` on bounded `VARCHAR` / `NVARCHAR` columns. `TEXT` / `CLOB` are skipped. |
+
+Disable per-flag in the config (`AUTO_REQUIRED=false`) or on the command line (`--no-auto-required`, `--no-auto-maxlength`).
+
+When `AUTO_REQUIRED` or `AUTO_MAXLENGTH` is active, the generated unit also imports `MVCFramework.Validators` automatically.
+
+#### Auto-audit columns
+
+When `AUTO_AUDIT` is on (default), columns whose name matches one of four canonical names get the corresponding `[MVCAudit*]` attribute and are excluded from `[MVCRequired]` and `[MVCMaxLength]` — the framework populates these fields in `OnBeforeInsert` / `OnBeforeUpdate`, so the user never writes the value.
+
+| Default name | Attribute emitted | Required Delphi type |
+|---|---|---|
+| `created_at` | `[MVCAuditCreatedAt]` | `TDateTime` / `NullableTDateTime` |
+| `updated_at` | `[MVCAuditUpdatedAt]` | `TDateTime` / `NullableTDateTime` |
+| `created_by` | `[MVCAuditCreatedBy]` | `String` / `NullableString` |
+| `updated_by` | `[MVCAuditUpdatedBy]` | `String` / `NullableString` |
+
+Override the names if your schema follows a different convention:
+
+```env
+AUDIT_CREATED_AT_NAME=row_created
+AUDIT_UPDATED_AT_NAME=row_updated
+AUDIT_CREATED_BY_NAME=row_created_by
+AUDIT_UPDATED_BY_NAME=row_updated_by
+```
+
+Disable the whole feature with `--no-auto-audit` or `AUTO_AUDIT=false`.
+
+If a column matches by name but its Delphi type is not the expected one, the audit attribute is **skipped with a warning** — the generator does not emit a wrong attribute for a column that just happens to share the convention name.
+
+#### Auto-soft-delete columns
+
+When `AUTO_SOFT_DELETE` is on (default), columns matching the configured names get `[MVCSoftDeleted]`. Two storage modes:
+
+| Mode | Default names | Required Delphi type |
+|---|---|---|
+| Timestamp | `deleted_at` | `NullableTDateTime` (the column MUST be NULL-able) |
+| Flag | `is_deleted`, `deleted` | `Boolean` |
+
+Both options are CSV lists, override per environment:
+
+```env
+SOFT_DELETE_TIMESTAMP_NAME=deleted_at,archived_at
+SOFT_DELETE_FLAG_NAME=is_deleted,deleted,is_archived
+```
+
+If a table has **both** a timestamp-mode and a flag-mode candidate, the **timestamp wins** (more expressive: also captures *when* the row was soft-deleted) and a warning is logged.
+
+Mismatched types are skipped with a warning. In particular, the framework's timestamp mode requires `NullableTDateTime` — a plain `TDateTime` defaults to `1899-12-30`, which never matches the auto-filter `WHERE deleted_at IS NULL` and would silently break the feature.
+
+The soft-delete column is excluded from `[MVCRequired]` and `[MVCMaxLength]` — the user never writes it directly (use `Delete` / `Restore` / `HardDelete`).
+
+Disable with `--no-auto-soft-delete` or `AUTO_SOFT_DELETE=false`.
+
+#### Read-only and refresh columns
+
+Two comma-separated lists of `table.column` pairs map directly onto the field options emitted next to `[MVCTableField]`:
+
+| Config key | Effect |
+|---|---|
+| `READONLY_COLUMNS` | Add `foReadOnly`. Use for computed / `GENERATED ALWAYS` / `ROWVERSION` / audit-by-trigger columns the user must not write. `[MVCRequired]` and `[MVCMaxLength]` are also skipped on these fields. |
+| `REFRESH_COLUMNS` | Add `foRefresh`. Use for columns whose value should be re-fetched from the DB after `INSERT` / `UPDATE` (e.g. a `BEFORE` trigger normalises the input). |
+
+A column may appear in both lists; the resulting attribute is `[foReadOnly, foRefresh]`. Match is case-insensitive.
+
+```env
+READONLY_COLUMNS=customers.full_name,customers.row_ver,products.upper_sku
+REFRESH_COLUMNS=orders.normalised_email
+```
+
+There is intentionally **no auto-detection**. FireDAC's metadata flags (`caCalculated` / `caReadOnly`) are inconsistently set across drivers — PostgreSQL in particular leaves them unset on `GENERATED ALWAYS` columns — so the generator relies on these explicit lists.
+
 #### Table Filtering
 
 `TABLES` and `EXCLUDE_TABLES` accept a comma-separated list of patterns. Each pattern can be:
@@ -141,7 +222,7 @@ For each selected table, the tool generates:
 ## Project Structure
 
 ```
-EntGen.Core.pas                  Core engine (shared between GUI and CLI)
+EntGen.Core.pas                  Core engine (CLI; the GUI predates it)
 EntGen.CLIMain.pas               CLI logic (.env parsing, argument handling)
 MVCEntGen.dpr                    CLI program
 MVCEntGen.dproj                  CLI project file
