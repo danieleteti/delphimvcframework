@@ -245,38 +245,49 @@ begin
               if not Assigned(lSwagPath) then
               begin
                 lSwagPath := TSwagPath.Create;
-                lSwagPath.Uri := lPathUri;
-                ASwagDoc.Paths.Add(lSwagPath);
+                try
+                  lSwagPath.Uri := lPathUri;
+                  ASwagDoc.Paths.Add(lSwagPath);
+                except
+                  lSwagPath.Free;
+                  raise;
+                end;
               end;
 
               for I in lMVCHttpMethods do
               begin
                 lSwagPathOp := TSwagPathOperation.Create;
-                TMVCSwagger.FillOperationSummary(
-                  lSwagPathOp,
-                  lMethod,
-                  ASwagDoc.Definitions,
-                  I,
-                  lControllerDefaultModelClass,
-                  lControllerDefaultModelSingularName,
-                  lControllerDefaultModelPluralName,
-                  lControllerDefaultSummaryTags);
-                if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
-                begin
-                  lSwagPathOp.Security.Add(lAuthTypeName);
-                end;
-                lSwagPathOp.Parameters.AddRange(
-                  TMVCSwagger.GetParamsFromMethod(
-                    lSwagPath.Uri,
+                try
+                  TMVCSwagger.FillOperationSummary(
+                    lSwagPathOp,
                     lMethod,
                     ASwagDoc.Definitions,
                     I,
                     lControllerDefaultModelClass,
                     lControllerDefaultModelSingularName,
-                    lControllerDefaultModelPluralName)
-                  );
-                lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
-                lSwagPath.Operations.Add(lSwagPathOp);
+                    lControllerDefaultModelPluralName,
+                    lControllerDefaultSummaryTags);
+                  if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
+                  begin
+                    lSwagPathOp.Security.Add(lAuthTypeName);
+                  end;
+                  lSwagPathOp.Parameters.AddRange(
+                    TMVCSwagger.GetParamsFromMethod(
+                      lSwagPath.Uri,
+                      lMethod,
+                      ASwagDoc.Definitions,
+                      I,
+                      lControllerDefaultModelClass,
+                      lControllerDefaultModelSingularName,
+                      lControllerDefaultModelPluralName)
+                    );
+                  lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+                  lSwagPath.Operations.Add(lSwagPathOp);
+                  lSwagPathOp := nil; // ownership transferred to lSwagPath.Operations
+                except
+                  lSwagPathOp.Free;
+                  raise;
+                end;
               end;
             end;
           end;
@@ -425,38 +436,49 @@ begin
             if not Assigned(lSwagPath) then
             begin
               lSwagPath := TSwagPath.Create;
-              lSwagPath.Uri := lPathUri;
-              ASwagDoc.Paths.Add(lSwagPath);
+              try
+                lSwagPath.Uri := lPathUri;
+                ASwagDoc.Paths.Add(lSwagPath);
+              except
+                lSwagPath.Free;
+                raise;
+              end;
             end;
 
             for I in lMVCHttpMethods do
             begin
               lSwagPathOp := TSwagPathOperation.Create;
-              TMVCSwagger.FillOperationSummary(
-                lSwagPathOp,
-                lMethod,
-                ASwagDoc.Definitions,
-                I,
-                lControllerDefaultModelClass,
-                lControllerDefaultModelSingularName,
-                lControllerDefaultModelPluralName,
-                lControllerDefaultSummaryTags);
-              if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
-              begin
-                lSwagPathOp.Security.Add(lAuthTypeName);
-              end;
-              lSwagPathOp.Parameters.AddRange(
-                TMVCSwagger.GetParamsFromMethod(
-                  lSwagPath.Uri,
+              try
+                TMVCSwagger.FillOperationSummary(
+                  lSwagPathOp,
                   lMethod,
                   ASwagDoc.Definitions,
                   I,
                   lControllerDefaultModelClass,
                   lControllerDefaultModelSingularName,
-                  lControllerDefaultModelPluralName)
-                );
-              lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
-              lSwagPath.Operations.Add(lSwagPathOp);
+                  lControllerDefaultModelPluralName,
+                  lControllerDefaultSummaryTags);
+                if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
+                begin
+                  lSwagPathOp.Security.Add(lAuthTypeName);
+                end;
+                lSwagPathOp.Parameters.AddRange(
+                  TMVCSwagger.GetParamsFromMethod(
+                    lSwagPath.Uri,
+                    lMethod,
+                    ASwagDoc.Definitions,
+                    I,
+                    lControllerDefaultModelClass,
+                    lControllerDefaultModelSingularName,
+                    lControllerDefaultModelPluralName)
+                  );
+                lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+                lSwagPath.Operations.Add(lSwagPathOp);
+                lSwagPathOp := nil; // ownership transferred to lSwagPath.Operations
+              except
+                lSwagPathOp.Free;
+                raise;
+              end;
             end;
           end;
         end;
@@ -507,9 +529,14 @@ begin
   if Assigned(lJWTMiddleware) or fEnableBasicAuthentication then
   begin
     lSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
-    lSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
-    lSecurityDefsBasic.Description := 'Send username and password for authentication';
-    ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBasic);
+    try
+      lSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
+      lSecurityDefsBasic.Description := 'Send username and password for authentication';
+      ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBasic);
+    except
+      lSecurityDefsBasic.Free;
+      raise;
+    end;
   end;
 
   if Assigned(lJWTMiddleware) then
@@ -540,11 +567,16 @@ begin
    (Assigned(lJWTMiddleware) and Assigned(lJwtUrlField)) then
   begin
     lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
-    lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
-    lSecurityDefsBearer.InLocation := kilHeader;
-    lSecurityDefsBearer.Name := 'Authorization';
-    lSecurityDefsBearer.Description := fJWTDescription;
-    ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
+    try
+      lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
+      lSecurityDefsBearer.InLocation := kilHeader;
+      lSecurityDefsBearer.Name := 'Authorization';
+      lSecurityDefsBearer.Description := fJWTDescription;
+      ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
+    except
+      lSecurityDefsBearer.Free;
+      raise;
+    end;
   end;
 end;
 

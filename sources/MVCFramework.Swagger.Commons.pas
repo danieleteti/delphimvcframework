@@ -427,18 +427,24 @@ begin
     if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, aComparer) then
     begin
       lSwagDefinition := TSwagDefinition.Create;
-      lSwagDefinition.Name := lClassName;
-      if Assigned(aRecordType) then
-        lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(
-          aRecordType.QualifiedName,
-          aHTTPMethod, False,
-          aMVCSwagParamType = ptArray)
-      else
-        lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
-          aParamSchemaClass,
-          aHTTPMethod, False,
-          aMVCSwagParamType = ptArray);
-      aSwagDefinitions.Add(lSwagDefinition);
+      try
+        lSwagDefinition.Name := lClassName;
+        if Assigned(aRecordType) then
+          lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(
+            aRecordType.QualifiedName,
+            aHTTPMethod, False,
+            aMVCSwagParamType = ptArray)
+        else
+          lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
+            aParamSchemaClass,
+            aHTTPMethod, False,
+            aMVCSwagParamType = ptArray);
+        aSwagDefinitions.Add(lSwagDefinition);
+        lSwagDefinition := nil; // ownership transferred to aSwagDefinitions
+      except
+        lSwagDefinition.Free;
+        raise;
+      end;
     end;
   finally
     lSwagDef.Free;
@@ -603,96 +609,115 @@ begin
       Continue;
 
     lJsonField := lJsonFieldClass.Create;
-
-    if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lProp.PropertyType)) then
-    begin
-      ExtractJsonSchemaFromClass((lJsonField as TJsonFieldObject), lProp.PropertyType.AsInstance.MetaClassType, aHTTPMethod, aIsResponseSchema);
-    end;
-
-    if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lProp.PropertyType) then
-    begin
-      lAbstractSer := TMVCAbstractSerializer.Create;
-      try
-        if lAbstractSer.GetObjectTypeOfGenericList(lProp.PropertyType.Handle, lJsonFieldType) then
-        begin
-          if lJsonFieldType.IsInstance then
-          begin
-            lClass := lJsonFieldType.AsInstance.MetaclassType;
-            lJsonFieldObject := TJsonFieldObject.Create;
-            ExtractJsonSchemaFromClass(lJsonFieldObject, lClass, aHTTPMethod, aIsResponseSchema);
-            TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
-          end
-          else
-          begin
-            lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
-            if Assigned(lJsonFieldClass) then
-              TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
-          end;
-        end;
-      finally
-        lAbstractSer.Free;
-      end;
-    end
-    else if (lJsonField is TJsonFieldArray) and (lProp.PropertyType is TRttiDynamicArrayType) then
-    begin
-      lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
-        TRttiDynamicArrayType(lProp.PropertyType).ElementType));
-
-      if Assigned(lJsonFieldClass) then
+    try
+      if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lProp.PropertyType)) then
       begin
-        if lJsonFieldClass.InheritsFrom(TJsonFieldObject) then
-        begin
-          lClass := TRttiDynamicArrayType(lProp.PropertyType).ElementType.AsInstance.MetaclassType;
-          lJsonFieldObject := TJsonFieldObject.Create;
-          ExtractJsonSchemaFromClass(lJsonFieldObject, lClass, aHTTPMethod, aIsResponseSchema);
-          TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
-        end
-        else
-          TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+        ExtractJsonSchemaFromClass((lJsonField as TJsonFieldObject), lProp.PropertyType.AsInstance.MetaClassType, aHTTPMethod, aIsResponseSchema);
       end;
-    end
-    else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
-    begin
-      lEnumSerType := estEnumName;
-      lEnumMappedValues := nil;
-      if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lProp, lEnumAttr) then
-      begin
-        lEnumSerType := lEnumAttr.SerializationType;
-        lEnumMappedValues := lEnumAttr.MappedValues;
-      end;
-      case lEnumSerType of
-        estEnumName, estEnumOrd :
-          begin
-            if lEnumSerType = estEnumName then
-              TJsonFieldEnum(lJsonField).EnumType := etString
-            else
-              TJsonFieldEnum(lJsonField).EnumType := etNumber;
 
-            for I := lProp.PropertyType.AsOrdinal.MinValue to lProp.PropertyType.AsOrdinal.MaxValue do
+      if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lProp.PropertyType) then
+      begin
+        lAbstractSer := TMVCAbstractSerializer.Create;
+        try
+          if lAbstractSer.GetObjectTypeOfGenericList(lProp.PropertyType.Handle, lJsonFieldType) then
+          begin
+            if lJsonFieldType.IsInstance then
             begin
-              TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lProp.PropertyType.Handle, I));
+              lClass := lJsonFieldType.AsInstance.MetaclassType;
+              // FIX-LEAK: protect inner TJsonFieldObject as well
+              lJsonFieldObject := TJsonFieldObject.Create;
+              try
+                ExtractJsonSchemaFromClass(lJsonFieldObject, lClass, aHTTPMethod, aIsResponseSchema);
+                TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+                lJsonFieldObject := nil; // ownership transferred to lJsonField
+              except
+                lJsonFieldObject.Free;
+                raise;
+              end;
+            end
+            else
+            begin
+              lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
+              if Assigned(lJsonFieldClass) then
+                TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
             end;
           end;
-        estEnumMappedValues:
+        finally
+          lAbstractSer.Free;
+        end;
+      end
+      else if (lJsonField is TJsonFieldArray) and (lProp.PropertyType is TRttiDynamicArrayType) then
+      begin
+        lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
+          TRttiDynamicArrayType(lProp.PropertyType).ElementType));
+
+        if Assigned(lJsonFieldClass) then
+        begin
+          if lJsonFieldClass.InheritsFrom(TJsonFieldObject) then
           begin
-            TJsonFieldEnum(lJsonField).EnumType := etString;
-            TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
-          end;
+            lClass := TRttiDynamicArrayType(lProp.PropertyType).ElementType.AsInstance.MetaclassType;
+            // FIX-LEAK: protect inner TJsonFieldObject as well
+            lJsonFieldObject := TJsonFieldObject.Create;
+            try
+              ExtractJsonSchemaFromClass(lJsonFieldObject, lClass, aHTTPMethod, aIsResponseSchema);
+              TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+              lJsonFieldObject := nil;
+            except
+              lJsonFieldObject.Free;
+              raise;
+            end;
+          end
+          else
+            TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+        end;
+      end
+      else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
+      begin
+        lEnumSerType := estEnumName;
+        lEnumMappedValues := nil;
+        if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lProp, lEnumAttr) then
+        begin
+          lEnumSerType := lEnumAttr.SerializationType;
+          lEnumMappedValues := lEnumAttr.MappedValues;
+        end;
+        case lEnumSerType of
+          estEnumName, estEnumOrd :
+            begin
+              if lEnumSerType = estEnumName then
+                TJsonFieldEnum(lJsonField).EnumType := etString
+              else
+                TJsonFieldEnum(lJsonField).EnumType := etNumber;
+
+              for I := lProp.PropertyType.AsOrdinal.MinValue to lProp.PropertyType.AsOrdinal.MaxValue do
+              begin
+                TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lProp.PropertyType.Handle, I));
+              end;
+            end;
+          estEnumMappedValues:
+            begin
+              TJsonFieldEnum(lJsonField).EnumType := etString;
+              TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
+            end;
+        end;
+      end
+      else if lJsonField is TJsonFieldString then
+      begin
+        TJsonFieldString(lJsonField).MinLength := lFieldSchemaDef.MinLength;
+        TJsonFieldString(lJsonField).MaxLength := lFieldSchemaDef.MaxLength;
       end;
-    end
-    else if lJsonField is TJsonFieldString then
-    begin
-      TJsonFieldString(lJsonField).MinLength := lFieldSchemaDef.MinLength;
-      TJsonFieldString(lJsonField).MaxLength := lFieldSchemaDef.MaxLength;
+
+      lJsonField.Name := lFieldSchemaDef.FieldName;
+      lJsonField.Required := lFieldSchemaDef.Required;
+      lJsonField.Nullable := lFieldSchemaDef.Nullable;
+      if not lFieldSchemaDef.Description.IsEmpty then
+        TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
+
+      aJsonFieldRoot.AddField(lJsonField);
+      lJsonField := nil; // ownership transferred to aJsonFieldRoot
+    except
+      lJsonField.Free;
+      raise;
     end;
-
-    lJsonField.Name := lFieldSchemaDef.FieldName;
-    lJsonField.Required := lFieldSchemaDef.Required;
-    lJsonField.Nullable := lFieldSchemaDef.Nullable;
-    if not lFieldSchemaDef.Description.IsEmpty then
-      TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
-
-    aJsonFieldRoot.AddField(lJsonField);
   end;
 end;
 
@@ -838,89 +863,101 @@ begin
     lJsonFieldClass := GetJsonFieldClass(lFieldSchemaDef.SchemaFieldType);
     if not Assigned(lJsonFieldClass) then
       Continue;
-
+    
     lJsonField := lJsonFieldClass.Create;
-
-    if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lField.FieldType)) then
-    begin
-      ExtractJsonSchemaFromRecord(lField.FieldType, (lJsonField as TJsonFieldObject), aHTTPMethod, aIsResponseSchema);
-    end;
-
-    if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lField.FieldType) then
-    begin
-      lAbstractSer := TMVCAbstractSerializer.Create;
-      try
-        if lAbstractSer.GetObjectTypeOfGenericList(lField.FieldType.Handle, lJsonFieldType) then
-        begin
-          if lJsonFieldType.IsInstance then
-          begin
-            lClassType := lJsonFieldType;
-            lJsonFieldObject := TJsonFieldObject.Create;
-            ExtractJsonSchemaFromClass(lJsonFieldObject, lClassType.ClassType, aHTTPMethod, aIsResponseSchema);
-            TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
-          end
-          else
-          begin
-            lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
-            if Assigned(lJsonFieldClass) then
-              TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
-          end;
-        end;
-      finally
-        lAbstractSer.Free;
-      end;
-    end
-    else if (lJsonField is TJsonFieldArray) and (lField.FieldType is TRttiDynamicArrayType) then
-    begin
-      lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
-        TRttiDynamicArrayType(lField.FieldType).ElementType));
-      if Assigned(lJsonFieldClass) then
-        TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
-    end
-    else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
-    begin
-      lEnumSerType := estEnumName;
-      lEnumMappedValues := nil;
-      if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lField, lEnumAttr) then
+    try
+      if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lField.FieldType)) then
       begin
-        lEnumSerType := lEnumAttr.SerializationType;
-        lEnumMappedValues := lEnumAttr.MappedValues;
+        ExtractJsonSchemaFromRecord(lField.FieldType, (lJsonField as TJsonFieldObject), aHTTPMethod, aIsResponseSchema);
       end;
-      case lEnumSerType of
-        estEnumName, estEnumOrd :
-          begin
-            if lEnumSerType = estEnumName then
-              TJsonFieldEnum(lJsonField).EnumType := etString
-            else
-              TJsonFieldEnum(lJsonField).EnumType := etNumber;
 
-            for I := lField.FieldType.AsOrdinal.MinValue to lField.FieldType.AsOrdinal.MaxValue do
+      if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lField.FieldType) then
+      begin
+        lAbstractSer := TMVCAbstractSerializer.Create;
+        try
+          if lAbstractSer.GetObjectTypeOfGenericList(lField.FieldType.Handle, lJsonFieldType) then
+          begin
+            if lJsonFieldType.IsInstance then
             begin
-              TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lField.FieldType.Handle, I));
+              lClassType := lJsonFieldType;
+              
+              lJsonFieldObject := TJsonFieldObject.Create;
+              try
+                ExtractJsonSchemaFromClass(lJsonFieldObject, lClassType.ClassType, aHTTPMethod, aIsResponseSchema);
+                TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+                lJsonFieldObject := nil;
+              except
+                lJsonFieldObject.Free;
+                raise;
+              end;
+            end
+            else
+            begin
+              lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
+              if Assigned(lJsonFieldClass) then
+                TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
             end;
           end;
-        estEnumMappedValues:
-          begin
-            TJsonFieldEnum(lJsonField).EnumType := etString;
-            TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
-          end;
+        finally
+          lAbstractSer.Free;
+        end;
+      end
+      else if (lJsonField is TJsonFieldArray) and (lField.FieldType is TRttiDynamicArrayType) then
+      begin
+        lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
+          TRttiDynamicArrayType(lField.FieldType).ElementType));
+        if Assigned(lJsonFieldClass) then
+          TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+      end
+      else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
+      begin
+        lEnumSerType := estEnumName;
+        lEnumMappedValues := nil;
+        if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lField, lEnumAttr) then
+        begin
+          lEnumSerType := lEnumAttr.SerializationType;
+          lEnumMappedValues := lEnumAttr.MappedValues;
+        end;
+        case lEnumSerType of
+          estEnumName, estEnumOrd :
+            begin
+              if lEnumSerType = estEnumName then
+                TJsonFieldEnum(lJsonField).EnumType := etString
+              else
+                TJsonFieldEnum(lJsonField).EnumType := etNumber;
+
+              for I := lField.FieldType.AsOrdinal.MinValue to lField.FieldType.AsOrdinal.MaxValue do
+              begin
+                TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lField.FieldType.Handle, I));
+              end;
+            end;
+          estEnumMappedValues:
+            begin
+              TJsonFieldEnum(lJsonField).EnumType := etString;
+              TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
+            end;
+        end;
+      end
+      else if lJsonField is TJsonFieldString then
+      begin
+        TJsonFieldString(lJsonField).MinLength := lFieldSchemaDef.MinLength;
+        TJsonFieldString(lJsonField).MaxLength := lFieldSchemaDef.MaxLength;
       end;
-    end
-    else if lJsonField is TJsonFieldString then
-    begin
-      TJsonFieldString(lJsonField).MinLength := lFieldSchemaDef.MinLength;
-      TJsonFieldString(lJsonField).MaxLength := lFieldSchemaDef.MaxLength;
-    end;
 
-    lJsonField.Name := lFieldSchemaDef.FieldName;
-    lJsonField.Required := lFieldSchemaDef.Required;
-    lJsonField.Nullable := lFieldSchemaDef.Nullable;
-    if not lFieldSchemaDef.Description.IsEmpty then
-    begin
-      TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
-    end;
+      lJsonField.Name := lFieldSchemaDef.FieldName;
+      lJsonField.Required := lFieldSchemaDef.Required;
+      lJsonField.Nullable := lFieldSchemaDef.Nullable;
+      if not lFieldSchemaDef.Description.IsEmpty then
+      begin
+        TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
+      end;
 
-    aJsonFieldRoot.AddField(lJsonField);
+      aJsonFieldRoot.AddField(lJsonField);
+      lJsonField := nil; // ownership transferred to aJsonFieldRoot
+    except
+      lJsonField.Free;
+      raise;
+    end;
   end;
 end;
 
@@ -995,81 +1032,93 @@ begin
       lSwagResponsesAttr := MVCSwagResponsesAttribute(lAttr);
 
       lSwagResponse := TSwagResponse.Create;
-      lSwagResponse.StatusCode := lSwagResponsesAttr.StatusCode.ToString;
-      //lSwagResponse.Description := lSwagResponsesAttr.Description;
-      lSwagResponse.Description := ApplyModelName(
-                                      lSwagResponsesAttr.Description,
-                                      aControllerDefaultModelSingularName,
-                                      aControllerDefaultModelPluralName);
-      if not lSwagResponsesAttr.JsonSchema.IsEmpty then
-      begin
-        lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(lSwagResponsesAttr.JsonSchema) as TJSONObject
-      end
-      else if ((Assigned(lSwagResponsesAttr.JsonSchemaClass)) or (Assigned(lSwagResponsesAttr.RecordType))) then
-      begin
-        lComparer := TDelegatedComparer<TSwagDefinition>.Create(
-          function(const Left, Right: TSwagDefinition): Integer
-          begin
-            Result := CompareText(Left.Name, Right.Name);
-          end);
-
-        if lSwagResponsesAttr.JsonSchemaClass = SWAGUseDefaultControllerModel then
+      try
+        lSwagResponse.StatusCode := lSwagResponsesAttr.StatusCode.ToString;
+        //lSwagResponse.Description := lSwagResponsesAttr.Description;
+        lSwagResponse.Description := ApplyModelName(
+                                        lSwagResponsesAttr.Description,
+                                        aControllerDefaultModelSingularName,
+                                        aControllerDefaultModelPluralName);
+        if not lSwagResponsesAttr.JsonSchema.IsEmpty then
         begin
-          if not Assigned(aControllerDefaultModel) then
-          begin
-            raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
-              Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
-                [aMethod.ToString, aMethod.Parent.ToString]));
-          end;
-          lModelClass := aControllerDefaultModel;
+          lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(lSwagResponsesAttr.JsonSchema) as TJSONObject
         end
-        else
+        else if ((Assigned(lSwagResponsesAttr.JsonSchemaClass)) or (Assigned(lSwagResponsesAttr.RecordType))) then
         begin
-          lModelClass := lSwagResponsesAttr.JsonSchemaClass;
-        end;
+          lComparer := TDelegatedComparer<TSwagDefinition>.Create(
+            function(const Left, Right: TSwagDefinition): Integer
+            begin
+              Result := CompareText(Left.Name, Right.Name);
+            end);
 
-        if Assigned(lSwagResponsesAttr.RecordType) then
-          lClassName := lSwagResponsesAttr.RecordType.Name
-        else
-          lClassName := lModelClass.ClassName;
-        if lClassName.ToUpper.StartsWith('T') then
-          lClassName := lClassName.Remove(0, 1);
-        lClassName := lClassName + SchemaObjectDefinitionNameSuffixForResponse;
-        aSwagDefinitions.Sort(lComparer);
-        lSwagDef := TSwagDefinition.Create;
-        try
-          lSwagDef.Name := lClassName;
-          if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
+          if lSwagResponsesAttr.JsonSchemaClass = SWAGUseDefaultControllerModel then
           begin
-            lSwagDefinition := TSwagDefinition.Create;
-            lSwagDefinition.Name := lClassName;
-            if Assigned(lSwagResponsesAttr.RecordType) then
-              lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(lSwagResponsesAttr.RecordType.QualifiedName, aHTTPMethod, True, False)
-            else
-              lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, aHTTPMethod, True, False);
-            aSwagDefinitions.Add(lSwagDefinition);
+            if not Assigned(aControllerDefaultModel) then
+            begin
+              raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+                Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
+                  [aMethod.ToString, aMethod.Parent.ToString]));
+            end;
+            lModelClass := aControllerDefaultModel;
+          end
+          else
+          begin
+            lModelClass := lSwagResponsesAttr.JsonSchemaClass;
           end;
-        finally
-          lSwagDef.Free;
-        end;
-        if lSwagResponsesAttr.IsArray then
-        begin
-          lJsonSchema := TJsonFieldArray.Create;
+
+          if Assigned(lSwagResponsesAttr.RecordType) then
+            lClassName := lSwagResponsesAttr.RecordType.Name
+          else
+            lClassName := lModelClass.ClassName;
+          if lClassName.ToUpper.StartsWith('T') then
+            lClassName := lClassName.Remove(0, 1);
+          lClassName := lClassName + SchemaObjectDefinitionNameSuffixForResponse;
+          aSwagDefinitions.Sort(lComparer);
+          lSwagDef := TSwagDefinition.Create;
           try
-            lJsonSchema.Name := 'items';
-            lJsonSchema.ItemFieldType := TJsonFieldObject.Create;
-            TJsonFieldObject(lJsonSchema.ItemFieldType).Ref := lClassName;
-            lSwagResponse.Schema.JsonSchema := lJsonSchema.ToJsonSchema;
+            lSwagDef.Name := lClassName;
+            if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
+            begin              
+              lSwagDefinition := TSwagDefinition.Create;
+              try
+                lSwagDefinition.Name := lClassName;
+                if Assigned(lSwagResponsesAttr.RecordType) then
+                  lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(lSwagResponsesAttr.RecordType.QualifiedName, aHTTPMethod, True, False)
+                else
+                  lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, aHTTPMethod, True, False);
+                aSwagDefinitions.Add(lSwagDefinition);
+                lSwagDefinition := nil; // ownership transferred to aSwagDefinitions
+              except
+                lSwagDefinition.Free;
+                raise;
+              end;
+            end;
           finally
-            lJsonSchema.Free;
+            lSwagDef.Free;
           end;
-        end
-        else
-        begin
-          lSwagResponse.Schema.Name := lClassName;
+          if lSwagResponsesAttr.IsArray then
+          begin
+            lJsonSchema := TJsonFieldArray.Create;
+            try
+              lJsonSchema.Name := 'items';
+              lJsonSchema.ItemFieldType := TJsonFieldObject.Create;
+              TJsonFieldObject(lJsonSchema.ItemFieldType).Ref := lClassName;
+              lSwagResponse.Schema.JsonSchema := lJsonSchema.ToJsonSchema;
+            finally
+              lJsonSchema.Free;
+            end;
+          end
+          else
+          begin
+            lSwagResponse.Schema.Name := lClassName;
+          end;
         end;
+        aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+        lSwagResponse := nil; // ownership transferred to aSwagPathOperation.Responses
+      except
+        lSwagResponse.Free;
+        raise;
       end;
-      aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
     end;
   end;
 
@@ -1080,16 +1129,28 @@ begin
     aSwagPathOperation.Produces.Add(TMVCMediaType.APPLICATION_JSON);
 
   if aSwagPathOperation.Responses.Count <= 0 then
-  begin {add default responses}
+  begin {add default responses}    
     lSwagResponse := TSwagResponse.Create;
-    lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
-    lSwagResponse.Description := 'OK';
-    aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+    try
+      lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
+      lSwagResponse.Description := 'OK';
+      aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+      lSwagResponse := nil;
+    except
+      lSwagResponse.Free;
+      raise;
+    end;
 
     lSwagResponse := TSwagResponse.Create;
-    lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.InternalServerError);
-    lSwagResponse.Description := 'Internal server error';
-    aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+    try
+      lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.InternalServerError);
+      lSwagResponse.Description := 'Internal server error';
+      aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+      lSwagResponse := nil;
+    except
+      lSwagResponse.Free;
+      raise;
+    end;
   end;
 end;
 
@@ -1235,53 +1296,73 @@ class function TMVCSwagger.GetJWTAuthenticationPath(const aJWTUrlSegment: string
   aUserNameHeaderName, aPasswordHeaderName: string): TSwagPath;
 var
   lSwagPathOp: TSwagPathOperation;
-  lSwagResponse: TSwagResponse;
-  lSwagParam: TSwagRequestParameter;
-begin
+
+  procedure AddParam(const AName: string);
+  var
+    lParam: TSwagRequestParameter;
+  begin
+    lParam := TSwagRequestParameter.Create;
+    try
+      lParam.Name := AName;
+      lParam.TypeParameter := stpString;
+      lParam.Required := False;
+      lParam.InLocation := rpiHeader;
+      lSwagPathOp.Parameters.Add(lParam);
+    except
+      lParam.Free;
+      raise;
+    end;
+  end;
+
+  procedure AddResponse(const AStatusCode: Integer; const ADescription: string;
+    const ASchemaJson: string = '');
+  var
+    lResp: TSwagResponse;
+  begin
+    lResp := TSwagResponse.Create;
+    try
+      lResp.StatusCode := IntToStr(AStatusCode);
+      lResp.Description := ADescription;
+      if ASchemaJson <> '' then
+        lResp.Schema.JsonSchema := TJSONObject.ParseJSONValue(ASchemaJson) as TJSONObject;
+      lSwagPathOp.Responses.Add(lResp.StatusCode, lResp);
+    except
+      lResp.Free;
+      raise;
+    end;
+  end;
+
+begin  
+  Result := nil;
   lSwagPathOp := TSwagPathOperation.Create;
-  lSwagPathOp.Tags.Add(JWT_AUTHENTICATION_TAG);
-  lSwagPathOp.Operation := ohvPost;
-  lSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
-  lSwagPathOp.Description := 'Create JSON Web Token';
-  lSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
-  lSwagParam := TSwagRequestParameter.Create;
-  lSwagParam.Name := aUserNameHeaderName;
-  lSwagParam.TypeParameter := stpString;
-  lSwagParam.Required := False;
-  lSwagParam.InLocation := rpiHeader;
-  lSwagPathOp.Parameters.Add(lSwagParam);
+  try
+    lSwagPathOp.Tags.Add(JWT_AUTHENTICATION_TAG);
+    lSwagPathOp.Operation := ohvPost;
+    lSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
+    lSwagPathOp.Description := 'Create JSON Web Token';
+    lSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
 
-  lSwagParam := TSwagRequestParameter.Create;
-  lSwagParam.Name := aPasswordHeaderName;
-  lSwagParam.TypeParameter := stpString;
-  lSwagParam.Required := False;
-  lSwagParam.InLocation := rpiHeader;
-  lSwagPathOp.Parameters.Add(lSwagParam);
+    AddParam(aUserNameHeaderName);
+    AddParam(aPasswordHeaderName);
 
-  lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.Unauthorized);
-  lSwagResponse.Description := 'Invalid authorization type';
-  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
+    AddResponse(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
+    AddResponse(HTTP_STATUS.Forbidden, 'Forbidden');
+    AddResponse(HTTP_STATUS.InternalServerError, 'Internal server error');
+    AddResponse(HTTP_STATUS.OK, 'OK', JWT_JSON_SCHEMA);
 
-  lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.Forbidden);
-  lSwagResponse.Description := 'Forbidden';
-  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
-
-  lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.InternalServerError);
-  lSwagResponse.Description := 'Internal server error';
-  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
-
-  lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
-  lSwagResponse.Description := 'OK';
-  lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(JWT_JSON_SCHEMA) as TJSONObject;
-  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
-
-  Result := TSwagPath.Create;
-  Result.Uri := aJWTUrlSegment;
-  Result.Operations.Add(lSwagPathOp);
+    Result := TSwagPath.Create;
+    try
+      Result.Uri := aJWTUrlSegment;
+      Result.Operations.Add(lSwagPathOp);
+      lSwagPathOp := nil; // ownership transferred to Result.Operations
+    except
+      FreeAndNil(Result);
+      raise;
+    end;
+  except
+    lSwagPathOp.Free;
+    raise;
+  end;
 end;
 
 class function TMVCSwagger.GetMVCSwagParamsFromMethod(const aMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
@@ -1334,6 +1415,7 @@ var
   I: Integer;
   lComparer: IComparer<TSwagDefinition>;
   lParamSchemaClass: TClass;
+  lCleanupIdx: Integer;
 begin
   lComparer := TDelegatedComparer<TSwagDefinition>.Create(
     function(const Left, Right: TSwagDefinition): Integer
@@ -1347,102 +1429,120 @@ begin
     SetLength(Result, 0); //just for breakpoint
   end;
   SetLength(Result, 0);
-
-  // Path parameters
-  lMatches := TRegEx.Matches(aResourcePath, '({)([\w_]+)(})', [roIgnoreCase, roMultiLine]);
-  for lMatch in lMatches do
-  begin
-    lParamName := lMatch.Groups[2].Value;
-    for lMethodParam in aMethod.GetParameters do
+  
+  try
+    // Path parameters
+    lMatches := TRegEx.Matches(aResourcePath, '({)([\w_]+)(})', [roIgnoreCase, roMultiLine]);
+    for lMatch in lMatches do
     begin
-      if SameText(lMethodParam.Name, lParamName) then
+      lParamName := lMatch.Groups[2].Value;
+      for lMethodParam in aMethod.GetParameters do
       begin
-        lSwagReqParam := TSwagRequestParameter.Create;
+        if SameText(lMethodParam.Name, lParamName) then
+        begin          
+          lSwagReqParam := TSwagRequestParameter.Create;
+          try
+            if TryGetMVCPathParamByName(lMVCSwagParams, lParamName, lMVCParam, lIndex) then
+            begin
+              lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+              lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
+              lSwagReqParam.Required := lMVCParam.Required;
+              lSwagReqParam.Default := lMVCParam.DefaultValue;
+              lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
+              lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
+              lSwagReqParam.Description := ApplyModelName(lMVCParam.ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+              if not lMVCParam.JsonSchema.IsEmpty then
+              begin
+                lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
+              end
+              else if Assigned(lMVCParam.JsonSchemaClass) then
+              begin
+                AddRequestModelDefinition(
+                  lSwagReqParam,
+                  lMVCParam.JsonSchemaClass,
+                  aSwagDefinitions,
+                  aHTTPMethod,
+                  lComparer,
+                  lMVCParam.ParamType,
+                  lMVCParam.RecordType);
+              end;
 
-        if TryGetMVCPathParamByName(lMVCSwagParams, lParamName, lMVCParam, lIndex) then
-        begin
-          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
-          lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
-          lSwagReqParam.Required := lMVCParam.Required;
-          lSwagReqParam.Default := lMVCParam.DefaultValue;
-          lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
-          lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
-          lSwagReqParam.Description := ApplyModelName(lMVCParam.ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
-          if not lMVCParam.JsonSchema.IsEmpty then
-          begin
-            lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
-          end
-          else if Assigned(lMVCParam.JsonSchemaClass) then
-          begin
-            AddRequestModelDefinition(
-              lSwagReqParam,
-              lMVCParam.JsonSchemaClass,
-              aSwagDefinitions,
-              aHTTPMethod,
-              lComparer,
-              lMVCParam.ParamType,
-              lMVCParam.RecordType);
+              Delete(lMVCSwagParams, lIndex, 1);
+            end
+            else
+            begin
+              lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+              lSwagReqParam.InLocation := rpiPath;
+              lSwagReqParam.Required := True;
+              lSwagReqParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
+            end;
+            Insert([lSwagReqParam], Result, High(Result));
+            lSwagReqParam := nil; // ownership transferred to Result; outer try/except now responsible
+          except
+            lSwagReqParam.Free;
+            raise;
           end;
+        end;
+      end;
+    end;
 
-          Delete(lMVCSwagParams, lIndex, 1);
-        end
-        else
+    // Other parameters
+    for I := Low(lMVCSwagParams) to High(lMVCSwagParams) do
+    begin      
+      lSwagReqParam := TSwagRequestParameter.Create;
+      try
+        lSwagReqParam.Name := {lMVCSwagParams[I].ParamName} ApplyModelName(lMVCSwagParams[I].ParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+        lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
+        lSwagReqParam.Required := lMVCSwagParams[I].Required;
+        lSwagReqParam.Default := lMVCSwagParams[I].DefaultValue;
+        lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
+        lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
+        lSwagReqParam.Description := ApplyModelName(lMVCSwagParams[I].ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+        if not lMVCSwagParams[I].JsonSchema.IsEmpty then
         begin
-          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
-          lSwagReqParam.InLocation := rpiPath;
-          lSwagReqParam.Required := True;
-          lSwagReqParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
+          lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
+        end
+        else if Assigned(lMVCSwagParams[I].JsonSchemaClass) or Assigned(lMVCSwagParams[I].RecordType) then
+        begin
+          if lMVCSwagParams[I].JsonSchemaClass = SWAGUseDefaultControllerModel then
+          begin
+            if not Assigned(aControllerDefaultModelClass) then
+            begin
+              raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+                Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
+                  [aMethod.ToString, aMethod.Parent.ToString]));
+            end;
+            lParamSchemaClass := aControllerDefaultModelClass;
+  //        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(aControllerDefaultModelClass, aHTTPMethod, False,
+  //          lMVCSwagParams[I].ParamType = ptArray);
+          end
+          else
+          begin
+            lParamSchemaClass := lMVCSwagParams[I].JsonSchemaClass;
+  //        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass, aHTTPMethod, False,
+  //          lMVCSwagParams[I].ParamType = ptArray);
+          end;
+          AddRequestModelDefinition(
+            lSwagReqParam,
+            lParamSchemaClass,
+            aSwagDefinitions,
+            aHTTPMethod,
+            lComparer,
+            lMVCSwagParams[I].ParamType,
+            lMVCSwagParams[i].RecordType);
         end;
         Insert([lSwagReqParam], Result, High(Result));
+        lSwagReqParam := nil; // ownership transferred to Result
+      except
+        lSwagReqParam.Free;
+        raise;
       end;
     end;
-  end;
-
-  // Other parameters
-  for I := Low(lMVCSwagParams) to High(lMVCSwagParams) do
-  begin
-    lSwagReqParam := TSwagRequestParameter.Create;
-    lSwagReqParam.Name := {lMVCSwagParams[I].ParamName} ApplyModelName(lMVCSwagParams[I].ParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
-    lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
-    lSwagReqParam.Required := lMVCSwagParams[I].Required;
-    lSwagReqParam.Default := lMVCSwagParams[I].DefaultValue;
-    lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
-    lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
-    lSwagReqParam.Description := ApplyModelName(lMVCSwagParams[I].ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
-    if not lMVCSwagParams[I].JsonSchema.IsEmpty then
-    begin
-      lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
-    end
-    else if Assigned(lMVCSwagParams[I].JsonSchemaClass) or Assigned(lMVCSwagParams[I].RecordType) then
-    begin
-      if lMVCSwagParams[I].JsonSchemaClass = SWAGUseDefaultControllerModel then
-      begin
-        if not Assigned(aControllerDefaultModelClass) then
-        begin
-          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
-            Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
-              [aMethod.ToString, aMethod.Parent.ToString]));
-        end;
-        lParamSchemaClass := aControllerDefaultModelClass;
-//        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(aControllerDefaultModelClass, aHTTPMethod, False,
-//          lMVCSwagParams[I].ParamType = ptArray);
-      end
-      else
-      begin
-        lParamSchemaClass := lMVCSwagParams[I].JsonSchemaClass;
-//        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass, aHTTPMethod, False,
-//          lMVCSwagParams[I].ParamType = ptArray);
-      end;
-      AddRequestModelDefinition(
-        lSwagReqParam,
-        lParamSchemaClass,
-        aSwagDefinitions,
-        aHTTPMethod,
-        lComparer,
-        lMVCSwagParams[I].ParamType,
-        lMVCSwagParams[i].RecordType);
-    end;
-    Insert([lSwagReqParam], Result, High(Result));
+  except    
+    for lCleanupIdx := 0 to High(Result) do
+      Result[lCleanupIdx].Free;
+    SetLength(Result, 0);
+    raise;
   end;
 end;
 
