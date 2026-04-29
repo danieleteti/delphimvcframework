@@ -1469,4 +1469,10 @@ initialization
   GLock := TCriticalSection.Create;
 {$ENDIF}
 
+finalization
+{$IFDEF MVC_HAS_STREAMING_JSON}
+  GLock.Free;
+{$ENDIF}
+
+
 end.
