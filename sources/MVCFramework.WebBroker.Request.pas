@@ -443,14 +443,23 @@ function TMVCWebBrokerRequest.GetPathInfo: string;
 var
   LQueryPos: Integer;
 begin
-  // Apache (Web.HTTPD24Impl) splits the URI CGI-style — the first
-  // matching segment goes to ScriptName and the rest into PathInfo, and
-  // the split point is not always on a '/' boundary (colons, dots and
-  // other characters can confuse it). ScriptName+PathInfo is therefore
-  // not safe to concatenate.
-  // TWebRequest.URL maps to Apache's unparsed_uri (and to the full URL
-  // under the Indy bridge), so stripping the query string yields the
-  // same original path in every WebBroker host.
+  // ISAPI/IIS: PathInfo already holds the path relative to the extension
+  // (the .dll), which is exactly what the router expects - bare requests to
+  // the .dll yield '' and route to '/'. URL and ScriptName, in contrast,
+  // still carry the '/api/MyServerISAPI.dll' prefix and would make every
+  // route 404. ScriptName ending in '.dll' is the reliable "hosted as an
+  // ISAPI extension" signal, so there we keep the original PathInfo
+  // behaviour. (Apache fills ScriptName with a route segment without '.dll';
+  // the Indy bridge leaves it empty - both fall through to the URL path.)
+  if FWebRequest.ScriptName.ToLower.EndsWith('.dll') then
+    Exit(FWebRequest.PathInfo);
+  // Apache (Web.HTTPD24Impl) splits the URI CGI-style — the first matching
+  // segment goes to ScriptName and the rest into PathInfo, and the split
+  // point is not always on a '/' boundary (colons, dots and other characters
+  // can confuse it). ScriptName+PathInfo is therefore not safe to concatenate.
+  // TWebRequest.URL maps to Apache's unparsed_uri (and to the full URL under
+  // the Indy bridge), so stripping the query string yields the same original
+  // path in every non-ISAPI WebBroker host.
   Result := FWebRequest.URL;
   LQueryPos := Pos('?', Result);
   if LQueryPos > 0 then
