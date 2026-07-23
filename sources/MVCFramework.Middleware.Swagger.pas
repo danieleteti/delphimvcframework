@@ -105,6 +105,27 @@ uses
   Json.Common.Helpers,
   MVCFramework.ActiveRecord;
 
+{ An action inherited by more controllers mapped on the same MVCPath produces the
+  same URI more than once (the router serves the first one only). Documenting it
+  twice would emit a duplicated operation key (e.g. two "get") under the same path. }
+function SwagPathHasOperation(const ASwagPath: TSwagPath; const AOperation: TSwagPathTypeOperation;
+  const AControllerName, AMethodName: string): Boolean;
+var
+  lSwagPathOp: TSwagPathOperation;
+begin
+  Result := False;
+  for lSwagPathOp in ASwagPath.Operations do
+  begin
+    if lSwagPathOp.Operation = AOperation then
+    begin
+      LogW(Format('Swagger: "%s %s" is documented more than once - %s.%s has been skipped. ' +
+        'Check for controllers sharing the same MVCPath',
+        [UpperCase(lSwagPathOp.OperationToString), ASwagPath.Uri, AControllerName, AMethodName]));
+      Exit(True);
+    end;
+  end;
+end;
+
 { TMVCSwaggerMiddleware }
 
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
@@ -256,6 +277,11 @@ begin
 
               for I in lMVCHttpMethods do
               begin
+                if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
+                  lObjType.Name, lMethod.Name) then
+                begin
+                  Continue;
+                end;
                 lSwagPathOp := TSwagPathOperation.Create;
                 try
                   TMVCSwagger.FillOperationSummary(
@@ -447,6 +473,11 @@ begin
 
             for I in lMVCHttpMethods do
             begin
+              if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
+                lObjType.Name, lMethod.Name) then
+              begin
+                Continue;
+              end;
               lSwagPathOp := TSwagPathOperation.Create;
               try
                 TMVCSwagger.FillOperationSummary(
