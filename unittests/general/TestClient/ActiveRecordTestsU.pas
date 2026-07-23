@@ -99,6 +99,9 @@ type
     procedure TestMultiThreading;
     [Test]
     procedure TestNullables;
+    // https://github.com/danieleteti/delphimvcframework/issues/909
+    [Test]
+    procedure TestNullablesRefreshResetsToNull;
     [Test]
     procedure TestMergeWhenNewRecords;
     [Test]
@@ -1728,6 +1731,50 @@ begin
   finally
     lTest.Free;
   end;
+end;
+
+procedure TTestActiveRecordBase.TestNullablesRefreshResetsToNull;
+var
+  lTest: TNullablesTest;
+begin
+  TMVCActiveRecord.DeleteAll(TNullablesTest);
+
+  lTest := TNullablesTest.Create;
+  try
+    lTest.f_int2 := 2; // just the PK, all the other columns stay NULL on the row
+    lTest.Insert;
+  finally
+    lTest.Free;
+  end;
+
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
+  try
+    // dirty the in-memory copy, then discard the edits: a NULL column must
+    // clear the nullable, not leave the previous value in place (issue #909)
+    lTest.f_int4 := 4;
+    lTest.f_int8 := 8;
+    lTest.f_string := 'dirty';
+    lTest.f_bool := True;
+    lTest.f_date := EncodeDate(2020, 02, 01);
+    lTest.f_time := EncodeTime(12, 24, 36, 0);
+    lTest.f_datetime := Now;
+    lTest.f_float4 := 1234.5678;
+    lTest.f_float8 := 12345678901234567890.0123456789;
+    lTest.Refresh;
+    Assert.IsFalse(lTest.f_int4.HasValue, 'f_int4 not cleared by Refresh');
+    Assert.IsFalse(lTest.f_int8.HasValue, 'f_int8 not cleared by Refresh');
+    Assert.IsFalse(lTest.f_string.HasValue, 'f_string not cleared by Refresh');
+    Assert.IsFalse(lTest.f_bool.HasValue, 'f_bool not cleared by Refresh');
+    Assert.IsFalse(lTest.f_date.HasValue, 'f_date not cleared by Refresh');
+    Assert.IsFalse(lTest.f_time.HasValue, 'f_time not cleared by Refresh');
+    Assert.IsFalse(lTest.f_datetime.HasValue, 'f_datetime not cleared by Refresh');
+    Assert.IsFalse(lTest.f_float4.HasValue, 'f_float4 not cleared by Refresh');
+    Assert.IsFalse(lTest.f_float8.HasValue, 'f_float8 not cleared by Refresh');
+  finally
+    lTest.Free;
+  end;
+
+  TMVCActiveRecord.DeleteAll(TNullablesTest);
 end;
 
 procedure TTestActiveRecordBase.TestPartitioningCount;

@@ -1623,7 +1623,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableInt32>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableInt32>(nil));
     end
     else
     begin
@@ -1635,7 +1635,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableUInt32>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableUInt32>(nil));
     end
     else
     begin
@@ -1647,7 +1647,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableInt64>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableInt64>(nil));
     end
     else
     begin
@@ -1659,7 +1659,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableUInt64>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableUInt64>(nil));
     end
     else
     begin
@@ -1671,7 +1671,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableInt16>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableInt16>(nil));
     end
     else
     begin
@@ -1683,7 +1683,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableUInt16>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableUInt16>(nil));
     end
     else
     begin
@@ -1695,7 +1695,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableTDate>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(nil));
     end
     else
     begin
@@ -1716,7 +1716,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableTDateTime>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(nil));
     end
     else
     begin
@@ -1737,7 +1737,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableTTime>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(nil));
     end
     else
     begin
@@ -1758,7 +1758,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableBoolean>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableBoolean>(nil));
     end
     else
     begin
@@ -1770,7 +1770,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableDouble>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableDouble>(nil));
     end
     else
     begin
@@ -1782,7 +1782,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableSingle>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableSingle>(nil));
     end
     else
     begin
@@ -1794,7 +1794,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableExtended>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableExtended>(nil));
     end
     else
     begin
@@ -1806,7 +1806,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableCurrency>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableCurrency>(nil));
     end
     else
     begin
@@ -1818,7 +1818,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIField.GetValue(AObject).AsType<NullableTGUID>().Clear;
+      aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(nil));
     end
     else
     begin
@@ -1842,7 +1842,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableString>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableString>(nil));
     end
     else
     begin
@@ -1854,7 +1854,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableInt32>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableInt32>(nil));
     end
     else
     begin
@@ -1866,7 +1866,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableUInt32>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableUInt32>(nil));
     end
     else
     begin
@@ -1878,7 +1878,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableInt64>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableInt64>(nil));
     end
     else
     begin
@@ -1890,7 +1890,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableUInt64>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableUInt64>(nil));
     end
     else
     begin
@@ -1902,7 +1902,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableInt16>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableInt16>(nil));
     end
     else
     begin
@@ -1914,7 +1914,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableUInt16>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableUInt16>(nil));
     end
     else
     begin
@@ -1926,7 +1926,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableTDate>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableTDate>(nil));
     end
     else
     begin
@@ -1938,7 +1938,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableTDateTime>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableTDateTime>(nil));
     end
     else
     begin
@@ -1950,7 +1950,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableTTime>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableTTime>(nil));
     end
     else
     begin
@@ -1962,7 +1962,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableBoolean>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableBoolean>(nil));
     end
     else
     begin
@@ -1974,7 +1974,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableDouble>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableDouble>(nil));
     end
     else
     begin
@@ -1986,7 +1986,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableSingle>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableSingle>(nil));
     end
     else
     begin
@@ -1998,7 +1998,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableExtended>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableExtended>(nil));
     end
     else
     begin
@@ -2010,7 +2010,7 @@ begin
   begin
     if AField.IsNull then
     begin
-      aRTTIProp.GetValue(AObject).AsType<NullableCurrency>().Clear;
+      aRTTIProp.SetValue(AObject, TValue.From<NullableCurrency>(nil));
     end
     else
     begin

@@ -5072,7 +5072,7 @@ begin
         end
         else
         begin
-          lPKValue.AsType<NullableInt64>().Clear;
+          lPKValue := TValue.From<NullableInt64>(nil);
         end;
       end
       else if aValue.TypeInfo = TypeInfo(Integer) then
@@ -5101,7 +5101,7 @@ begin
       end
       else
       begin
-        lPKValue.AsType<NullableString>().Clear;
+        lPKValue := TValue.From<NullableString>(nil);
       end;
     end
     else if lPKValue.IsType<NullableUInt32> and aValue.IsType<NullableUInt32>() then
@@ -5112,7 +5112,7 @@ begin
       end
       else
       begin
-        lPKValue.AsType<NullableUInt32>().Clear;
+        lPKValue := TValue.From<NullableUInt32>(nil);
       end;
     end
     else if lPKValue.IsType<NullableUInt64> then
@@ -5125,7 +5125,7 @@ begin
         end
         else
         begin
-          lPKValue.AsType<NullableUInt64>().Clear;
+          lPKValue := TValue.From<NullableUInt64>(nil);
         end
       end
       else if aValue.TypeInfo = TypeInfo(Integer) then
