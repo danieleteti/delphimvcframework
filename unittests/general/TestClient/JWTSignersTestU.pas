@@ -159,6 +159,12 @@ type
     procedure EmptySecretIsRejected;
     [Test]
     procedure OwnSecretIsAccepted;
+    // The middleware and the endpoint filter must refuse the secret while they
+    // are being built (server startup), not on the first request they serve.
+    [Test]
+    procedure MiddlewareConstructorRejectsShippedDefaultSecret;
+    [Test]
+    procedure EndpointFilterFactoryRejectsShippedDefaultSecret;
   end;
 
 implementation
@@ -167,9 +173,13 @@ uses
   System.SysUtils,
   System.IOUtils,
   System.DateUtils,
+  MVCFramework,
   MVCFramework.Commons,
   MVCFramework.HMAC,
-  MVCFramework.JWT.RSA;
+  MVCFramework.JWT.RSA,
+  MVCFramework.MinimalAPI,
+  MVCFramework.Middleware.JWT,
+  MVCFramework.Filters;
 
 // ============================================================
 // Helper
@@ -819,6 +829,48 @@ begin
   finally
     LJWT.Free;
   end;
+end;
+
+procedure TTestJWTInsecureSecret.MiddlewareConstructorRejectsShippedDefaultSecret;
+begin
+  Assert.WillRaise(
+    procedure
+    var
+      LMiddleware: IMVCMiddleware;
+    begin
+      LMiddleware := TMVCJWTAuthenticationMiddleware.Create(
+        nil, nil, MVC_JWT_INSECURE_DEFAULT_SECRET);
+    end, EMVCJWTException);
+  // Control: the raise above must come from the secret, not from the nil
+  // handler/claims-setup passed to keep the test small.
+  Assert.WillNotRaiseAny(
+    procedure
+    var
+      LMiddleware: IMVCMiddleware;
+    begin
+      LMiddleware := TMVCJWTAuthenticationMiddleware.Create(
+        nil, nil, 'a_secret_of_my_own_2f47');
+    end);
+end;
+
+procedure TTestJWTInsecureSecret.EndpointFilterFactoryRejectsShippedDefaultSecret;
+begin
+  Assert.WillRaise(
+    procedure
+    var
+      LFilter: TMVCEndpointFilter;
+    begin
+      LFilter := MVCFramework.Filters.JWT(
+        nil, nil, MVC_JWT_INSECURE_DEFAULT_SECRET);
+    end, EMVCJWTException);
+  Assert.WillNotRaiseAny(
+    procedure
+    var
+      LFilter: TMVCEndpointFilter;
+    begin
+      LFilter := MVCFramework.Filters.JWT(
+        nil, nil, 'a_secret_of_my_own_2f47');
+    end);
 end;
 
 initialization
