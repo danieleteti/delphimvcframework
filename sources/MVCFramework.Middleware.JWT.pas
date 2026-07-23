@@ -120,7 +120,7 @@ type
   public
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
       AConfigClaims: TJWTClaimsSetup;
-      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ASecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
       ALoginURLSegment: string = '/login';
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
@@ -139,7 +139,7 @@ type
       AConfigClaims: TJWTClaimsSetup;
       AUseHttpOnly: Boolean;
       ALogoffURLSegment: string = '/logoff';
-      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ASecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
       ALoginURLSegment: string = '/login';
       AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
@@ -280,7 +280,7 @@ type
   function UseJWTMiddleware(
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
-      aSecret: string = 'D3lph1MVCFram3w0rk';
+      aSecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
       aLoginURLSegment: string = '/login';
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
@@ -301,7 +301,7 @@ type
   function UseJWTMiddlewareWithHTTPOnlyCookie(
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
-      aSecret: string = 'D3lph1MVCFram3w0rk';
+      aSecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
       aLoginURLSegment: string = '/login';
       aLogoutURLSegment: string = '/logoff';
       aClaimsToCheck: TJWTCheckableClaims = [];
@@ -367,7 +367,7 @@ uses
 function UseJWTMiddleware(
       aAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
-      aSecret: string = 'D3lph1MVCFram3w0rk';
+      aSecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
       aLoginURLSegment: string = '/login';
       aClaimsToCheck: TJWTCheckableClaims = [];
       aLeewaySeconds: Cardinal = 300;
@@ -393,7 +393,7 @@ end;
 function UseJWTMiddlewareWithHTTPOnlyCookie(
     aAuthenticationHandler: IMVCAuthenticationHandler;
     aConfigClaims: TJWTClaimsSetup;
-    aSecret: string = 'D3lph1MVCFram3w0rk';
+    aSecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
     aLoginURLSegment: string = '/login';
     aLogoutURLSegment: string = '/logoff';
     aClaimsToCheck: TJWTCheckableClaims = [];
@@ -473,12 +473,10 @@ begin
   FAuthenticationHandler := AAuthenticationHandler;
   FSetupJWTClaims := AConfigClaims;
   FClaimsToChecks := AClaimsToCheck;
+  // Fail at startup rather than accepting forged tokens: the shipped demo secret
+  // is public, so any client could sign its own token (GHSA-hgv7-ch4w-2f47).
+  CheckJWTSecret(ASecret);
   FSecret := ASecret;
-  // Insecure default: the well-known shipped secret signs/verifies tokens with a
-  // publicly-known key, allowing token forgery. Warn loudly when it is left in
-  // place. (Removing the default outright is an API break, deferred to v4.)
-  if ASecret = 'D3lph1MVCFram3w0rk' then
-    LogW('JWT middleware is using the built-in default secret. Set a strong, unique secret in production: tokens signed with the shipped default can be forged.');
   // Insecure default: an empty claims-to-check set means exp/nbf/iat are NOT
   // validated, so expired tokens are accepted indefinitely. Warn loudly.
   // (Enforcing by default would reject tokens issued without these claims, an
@@ -1026,6 +1024,7 @@ begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
   FSetupJWTClaims := AConfigClaims;
+  CheckJWTSecret(ASecret);
   FSecret := ASecret;
   FLoginURLSegment := ALoginURLSegment;
   FLogoutURLSegment := ALogoutURLSegment;

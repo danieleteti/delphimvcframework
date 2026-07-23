@@ -147,6 +147,20 @@ type
     procedure RS256SingleByteSignatureCorruptionIsRejected;
   end;
 
+  // GHSA-hgv7-ch4w-2f47: the demo secret shipped as default parameter value of
+  // the JWT middleware/filter constructors is public, so tokens signed with it
+  // can be forged by anyone. It must be rejected instead of used.
+  [TestFixture]
+  TTestJWTInsecureSecret = class
+  public
+    [Test]
+    procedure ShippedDefaultSecretIsRejected;
+    [Test]
+    procedure EmptySecretIsRejected;
+    [Test]
+    procedure OwnSecretIsAccepted;
+  end;
+
 implementation
 
 uses
@@ -775,6 +789,38 @@ begin
     'a token with one corrupted signature byte must be rejected');
 end;
 
+{ TTestJWTInsecureSecret }
+
+procedure TTestJWTInsecureSecret.ShippedDefaultSecretIsRejected;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      TJWT.Create(MVC_JWT_INSECURE_DEFAULT_SECRET, 0).Free;
+    end, EMVCJWTException);
+end;
+
+procedure TTestJWTInsecureSecret.EmptySecretIsRejected;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      TJWT.Create('', 0).Free;
+    end, EMVCJWTException);
+end;
+
+procedure TTestJWTInsecureSecret.OwnSecretIsAccepted;
+var
+  LJWT: TJWT;
+begin
+  LJWT := TJWT.Create('a_secret_of_my_own_2f47', 0);
+  try
+    Assert.IsNotEmpty(LJWT.GetToken);
+  finally
+    LJWT.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestHMACSigners);
   TDUnitX.RegisterTestFixture(TTestRSASigners);
@@ -783,5 +829,6 @@ initialization
   TDUnitX.RegisterTestFixture(TTestEdDSASigner);
   TDUnitX.RegisterTestFixture(TTestJWTSignerSecurity);
   TDUnitX.RegisterTestFixture(TTestJWTSignatureTamper);
+  TDUnitX.RegisterTestFixture(TTestJWTInsecureSecret);
 
 end.

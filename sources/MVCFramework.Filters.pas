@@ -116,7 +116,7 @@ function CORS(
 function JWT(
   const AAuthenticationHandler: IMVCAuthenticationHandler;
   const AClaimsSetup: TJWTClaimsSetup;
-  const ASecret: string = 'D3lph1MVCFram3w0rk';
+  const ASecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
   const ALoginURLSegment: string = '/login';
   const AClaimsToCheck: TJWTCheckableClaims = [];
   const ALeewaySeconds: Cardinal = 300;
@@ -1181,6 +1181,9 @@ const
   cUserNameHeader  = 'jwtusername';
   cPasswordHeader  = 'jwtpassword';
 begin
+  // Fail while building the filter, not on the first forged request
+  // (GHSA-hgv7-ch4w-2f47).
+  CheckJWTSecret(ASecret);
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse

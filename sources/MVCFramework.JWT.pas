@@ -351,12 +351,49 @@ type
       write SetLiveValidityWindowInSeconds;
   end;
 
+const
+  /// <summary>
+  /// The demo secret that DMVCFramework used to ship as the default value of the
+  /// ASecret parameter of the JWT middleware and filter constructors. It is
+  /// published in the framework sources, so a token signed with it can be forged
+  /// by anyone. It is kept here only to be detected and rejected
+  /// (see GHSA-hgv7-ch4w-2f47).
+  /// </summary>
+  MVC_JWT_INSECURE_DEFAULT_SECRET = 'D3lph1MVCFram3w0rk';
+
+/// <summary>
+/// Raises EMVCJWTException if ASecret is the well-known secret shipped with the
+/// framework, or is empty. Called by TJWT and by
+/// every JWT middleware/filter constructor so that a misconfigured server fails
+/// at startup instead of accepting forged tokens.
+/// </summary>
+procedure CheckJWTSecret(const ASecret: string);
+
 implementation
 
 uses
   MVCFramework.Commons,
   System.DateUtils,
   IdGlobal;
+
+procedure CheckJWTSecret(const ASecret: string);
+begin
+  if ASecret = MVC_JWT_INSECURE_DEFAULT_SECRET then
+    raise EMVCJWTException.Create(
+      'Refusing to use the built-in demo JWT secret "' + MVC_JWT_INSECURE_DEFAULT_SECRET + '". ' +
+      'This value is published in the DelphiMVCFramework sources, so anyone can sign a token ' +
+      'with it, put any "username" and "roles" claims inside, and be authenticated by this ' +
+      'server as any user (see advisory GHSA-hgv7-ch4w-2f47). ' +
+      'Pass your own secret to the JWT middleware/filter: a long random string, unique per ' +
+      'application, kept out of the source code (e.g. dotEnv("jwt.secret") or an environment ' +
+      'variable), and shared by all the instances that must accept each other tokens.');
+  if ASecret = '' then
+    raise EMVCJWTException.Create(
+      'Refusing to use an empty JWT secret: HMAC signatures computed with an empty key can be ' +
+      'reproduced by anyone, so tokens could be forged. Pass a long random secret, unique per ' +
+      'application, kept out of the source code. ' +
+      'To use asymmetric signatures instead, pass an IJWTSigner (e.g. TRSAJWTSigner).');
+end;
 
 { TJWTRegisteredClaims }
 
@@ -616,6 +653,7 @@ end;
 constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal; const HMACAlgorithm: String);
 begin
   inherited Create;
+  CheckJWTSecret(SecretKey);
   FSecretKey := SecretKey;
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
