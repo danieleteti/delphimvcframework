@@ -5,7 +5,7 @@
 DelphiMVCFramework - RESTful framework for Delphi (Object Pascal). REST services, JSON-RPC APIs, web apps. MVC architecture, ORM (MVCActiveRecord), auth (JWT, Basic), middleware, WebSocket, serialization.
 
 **Language**: Object Pascal / Delphi
-**Version**: `sources/dmvcframeworkbuildconsts.inc` (DMVCFRAMEWORK_VERSION) — currently `3.5.0-silicon-rc4`
+**Version**: `sources/dmvcframeworkbuildconsts.inc` (DMVCFRAMEWORK_VERSION) — currently `3.5.0-silicon-rc5`
 **License**: Apache License 2.0
 
 ## Build Commands
