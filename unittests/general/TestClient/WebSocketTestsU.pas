@@ -79,11 +79,24 @@ type
     procedure TestConnectionRateLimiter;
   end;
 
+  [TestFixture]
+  TTestWebSocketHandshakeHeaders = class
+  public
+    [Test]
+    procedure TestHeadersAreExposedAsNameValuePairs;
+    [Test]
+    procedure TestRealClientIPIgnoresForwardedByDefault;
+    [Test]
+    procedure TestRealClientIPHonoursForwardedWhenTrusted;
+  end;
+
 implementation
 
 uses
   System.NetEncoding,
-  System.DateUtils;
+  System.DateUtils,
+  MVCFramework.Commons,
+  MVCFramework.WebSocket.Server;
 
 { TTestWebSocketFrame }
 
@@ -382,9 +395,82 @@ begin
   end;
 end;
 
+{ TTestWebSocketHandshakeHeaders }
+
+// Builds a client without a connection: RealClientIP then falls back to an empty
+// peer IP, which is enough to tell "forwarded honoured" from "forwarded ignored".
+function NewClientWithHeaders(const AHeaders: array of string): TWebSocketClient;
+var
+  lHeaders: TStringList;
+  I: Integer;
+begin
+  lHeaders := TStringList.Create;
+  try
+    lHeaders.NameValueSeparator := ':';
+    for I := Low(AHeaders) to High(AHeaders) do
+      lHeaders.Add(AHeaders[I]);
+  except
+    lHeaders.Free;
+    raise;
+  end;
+  Result := TWebSocketClient.Create(nil, 'chat-john', nil, True, lHeaders);
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestHeadersAreExposedAsNameValuePairs;
+var
+  lClient: TWebSocketClient;
+begin
+  lClient := NewClientWithHeaders(['Origin: https://example.com', 'Cookie: a=1']);
+  try
+    Assert.AreEqual('https://example.com', Trim(lClient.HandshakeHeaders.Values['Origin']));
+    Assert.AreEqual('a=1', Trim(lClient.HandshakeHeaders.Values['cookie']), 'lookup must be case insensitive');
+  finally
+    lClient.Free;
+  end;
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestRealClientIPIgnoresForwardedByDefault;
+var
+  lClient: TWebSocketClient;
+  lSaved: Boolean;
+begin
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := False;
+  try
+    lClient := NewClientWithHeaders(['X-Forwarded-For: 203.0.113.7, 10.0.0.1']);
+    try
+      Assert.AreNotEqual('203.0.113.7', lClient.RealClientIP, 'a forged X-Forwarded-For must not be trusted');
+    finally
+      lClient.Free;
+    end;
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
+  end;
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestRealClientIPHonoursForwardedWhenTrusted;
+var
+  lClient: TWebSocketClient;
+  lSaved: Boolean;
+begin
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := True;
+  try
+    lClient := NewClientWithHeaders(['X-Forwarded-For: 203.0.113.7, 10.0.0.1']);
+    try
+      Assert.AreEqual('203.0.113.7', lClient.RealClientIP, 'first hop of X-Forwarded-For');
+    finally
+      lClient.Free;
+    end;
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestWebSocketFrame);
   TDUnitX.RegisterTestFixture(TTestWebSocketHandshake);
   TDUnitX.RegisterTestFixture(TTestWebSocketRateLimiter);
+  TDUnitX.RegisterTestFixture(TTestWebSocketHandshakeHeaders);
 
 end.
