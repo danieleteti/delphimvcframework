@@ -141,6 +141,7 @@ type
     FCookieDomain: string;
     { Feature flags }
     FFetchUserInfo: Boolean;
+    FUsePKCE: Boolean;
     FBaseURL: string;
     { JWKS signature verification (optional, requires TaurusTLS) }
     FJWKSProvider: IJWKSProvider;
@@ -149,11 +150,14 @@ type
     FOnAuthRequired: TMVCOIDCAuthRequiredProc;
     { OIDC operations }
     procedure DiscoverEndpoints;
-    function BuildAuthorizationURL(const AState, ANonce: string): string;
-    function ExchangeCodeForTokens(const ACode: string): TJsonObject;
+    function BuildAuthorizationURL(const AState, ANonce, ACodeVerifier: string): string;
+    function ExchangeCodeForTokens(const ACode, ACodeVerifier: string): TJsonObject;
     function ValidateIDToken(const AIDToken: string): TJsonObject;
     function GetUserInfo(const AAccessToken: string): TJsonObject;
     function Base64URLDecode(const AInput: string): string;
+    { PKCE (RFC 7636) }
+    function GenerateCodeVerifier: string;
+    function ComputeS256Challenge(const ACodeVerifier: string): string;
     { JWT session operations }
     function CreateSessionJWT(const ARoles: TList<string>;
       const ASessionData: TDictionary<string, string>): string;
@@ -163,9 +167,10 @@ type
     function GetTokenFromCookie(AContext: TWebContext): string;
     function NeedsTokenRefresh(const AJWT: TJWT): Boolean;
     { State cookie — stores state|nonce for CSRF and replay protection }
-    procedure SetStateCookie(AContext: TWebContext; const AState, ANonce: string);
+    procedure SetStateCookie(AContext: TWebContext;
+      const AState, ANonce, ACodeVerifier: string);
     procedure GetAndClearStateCookie(AContext: TWebContext;
-      out AState, ANonce: string);
+      out AState, ANonce, ACodeVerifier: string);
     { Handlers }
     procedure HandleLogin(AContext: TWebContext; var AHandled: Boolean);
     procedure HandleCallback(AContext: TWebContext; var AHandled: Boolean);
@@ -222,6 +227,12 @@ type
     /// </summary>
     function SetFetchUserInfo(AFetch: Boolean): TMVCOIDCAuthenticationMiddleware;
     /// <summary>
+    /// Enables or disables PKCE (RFC 7636, S256) on the authorization code
+    /// flow. Default: True. A provider that does not support PKCE ignores the
+    /// extra parameters, so there is normally no reason to turn this off.
+    /// </summary>
+    function SetPKCE(AUse: Boolean): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
     /// Sets the application base URL used to construct absolute redirect URIs
     /// for OIDC provider logout (e.g. 'https://app.example.com').
     /// </summary>
@@ -264,6 +275,7 @@ implementation
 
 uses
   System.DateUtils,
+  System.Hash,
   System.Math,
   System.SyncObjs,
   MVCFramework.RESTClient,
@@ -281,6 +293,7 @@ resourcestring
   SOIDCIDTokenInvalidFormat = 'OIDC: ID token has invalid format (expected 3 dot-separated parts)';
   SOIDCIDTokenIssuerMismatch = 'OIDC: ID token issuer mismatch (expected=%s, got=%s)';
   SOIDCIDTokenAudMismatch = 'OIDC: ID token audience mismatch (expected=%s)';
+  SOIDCIDTokenAzpMismatch = 'OIDC: ID token azp mismatch (expected=%s, got=%s)';
   SOIDCIDTokenExpired = 'OIDC: ID token has expired';
   SOIDCIDTokenNoSigVerify = 'OIDC: ID token signature verification not configured - accepting token based on TLS trust';
   SOIDCIDTokenSigVerified = 'OIDC: ID token signature verified successfully via JWKS';
@@ -389,6 +402,7 @@ begin
   FCookiePath := '/';
   FCookieDomain := '';
   FFetchUserInfo := True;
+  FUsePKCE := True;
   // One-time startup notice about signature verification
   FJWKSProvider := nil;
   LogI('OIDC: ID token signature verification not configured. ' +
@@ -464,6 +478,13 @@ begin
   Result := Self;
 end;
 
+function TMVCOIDCAuthenticationMiddleware.SetPKCE(
+  AUse: Boolean): TMVCOIDCAuthenticationMiddleware;
+begin
+  FUsePKCE := AUse;
+  Result := Self;
+end;
+
 function TMVCOIDCAuthenticationMiddleware.SetBaseURL(
   const AURL: string): TMVCOIDCAuthenticationMiddleware;
 begin
@@ -526,7 +547,7 @@ begin
 end;
 
 function TMVCOIDCAuthenticationMiddleware.BuildAuthorizationURL(
-  const AState, ANonce: string): string;
+  const AState, ANonce, ACodeVerifier: string): string;
 begin
   Result := FAuthorizationEndpoint +
     '?response_type=code' +
@@ -535,10 +556,16 @@ begin
     '&scope=' + TNetEncoding.URL.Encode(FScopes) +
     '&state=' + TNetEncoding.URL.Encode(AState) +
     '&nonce=' + TNetEncoding.URL.Encode(ANonce);
+  // RFC 7636: bind this authorization request to a secret only this client
+  // knows, so a stolen authorization code cannot be redeemed by anyone else.
+  if FUsePKCE and (not ACodeVerifier.IsEmpty) then
+    Result := Result +
+      '&code_challenge=' + ComputeS256Challenge(ACodeVerifier) +
+      '&code_challenge_method=S256';
 end;
 
 function TMVCOIDCAuthenticationMiddleware.ExchangeCodeForTokens(
-  const ACode: string): TJsonObject;
+  const ACode, ACodeVerifier: string): TJsonObject;
 var
   lClient: IMVCRESTClient;
   lResponse: IMVCRESTResponse;
@@ -551,6 +578,8 @@ begin
     .AddBodyFieldURLEncoded('redirect_uri', FRedirectUri)
     .AddBodyFieldURLEncoded('client_id', FClientId)
     .AddBodyFieldURLEncoded('client_secret', FClientSecret);
+  if FUsePKCE and (not ACodeVerifier.IsEmpty) then
+    lClient.AddBodyFieldURLEncoded('code_verifier', ACodeVerifier);
   lResponse := lClient.Post;
   if not lResponse.Success then
   begin
@@ -616,6 +645,14 @@ begin
     end;
     if not lAudFound then
       raise EMVCException.CreateFmt(SOIDCIDTokenAudMismatch, [FClientId]);
+
+    // OIDC Core 3.1.3.7 steps 4 and 5: when an azp (authorized party) claim
+    // is present, it must be this client. It identifies the party the token
+    // was issued to, which for a multi-audience token is the only claim that
+    // says the token was meant for us and not merely readable by us.
+    if lClaims.Contains('azp') and (lClaims.S['azp'] <> FClientId) then
+      raise EMVCException.CreateFmt(SOIDCIDTokenAzpMismatch,
+        [FClientId, lClaims.S['azp']]);
 
     // Validate expiration (required claim per OIDC Core spec)
     if not lClaims.Contains('exp') then
@@ -687,6 +724,33 @@ begin
       [lResponse.StatusCode.ToString]);
   end;
   Result := TJsonObject.Parse(lResponse.Content) as TJsonObject;
+end;
+
+function TMVCOIDCAuthenticationMiddleware.GenerateCodeVerifier: string;
+var
+  lBytes: TBytes;
+  lGuid: TGUID;
+begin
+  // RFC 7636 section 4.1 recommends 32 octets from a suitable random number
+  // generator. Two GUIDs are exactly 32 bytes and come from the OS CSPRNG.
+  // Base64url without padding keeps the result inside the unreserved set and
+  // 43 characters long, which is the minimum the ABNF allows.
+  SetLength(lBytes, 32);
+  lGuid := TGUID.NewGuid;
+  Move(lGuid, lBytes[0], 16);
+  lGuid := TGUID.NewGuid;
+  Move(lGuid, lBytes[16], 16);
+  Result := URLSafeB64encode(lBytes, False);
+end;
+
+function TMVCOIDCAuthenticationMiddleware.ComputeS256Challenge(
+  const ACodeVerifier: string): string;
+begin
+  // RFC 7636 section 4.2: BASE64URL-ENCODE(SHA256(ASCII(code_verifier))).
+  // The verifier is base64url text, so its UTF-8 and ASCII octets coincide.
+  Result := URLSafeB64encode(
+    THashSHA2.GetHashBytes(ACodeVerifier, THashSHA2.TSHA2Version.SHA256),
+    False);
 end;
 
 function TMVCOIDCAuthenticationMiddleware.Base64URLDecode(
@@ -792,13 +856,13 @@ end;
 { State cookie for CSRF protection }
 
 procedure TMVCOIDCAuthenticationMiddleware.SetStateCookie(
-  AContext: TWebContext; const AState, ANonce: string);
+  AContext: TWebContext; const AState, ANonce, ACodeVerifier: string);
 var
   lCookie: TCookie;
 begin
   lCookie := AContext.Response.Cookies.Add;
   lCookie.Name := FCookieName + '_state';
-  lCookie.Value := AState + '|' + ANonce;
+  lCookie.Value := AState + '|' + ANonce + '|' + ACodeVerifier;
   lCookie.Path := FCookiePath;
   lCookie.Expires := Now + (10 * OneMinute);
   lCookie.HttpOnly := True;
@@ -809,7 +873,7 @@ begin
 end;
 
 procedure TMVCOIDCAuthenticationMiddleware.GetAndClearStateCookie(
-  AContext: TWebContext; out AState, ANonce: string);
+  AContext: TWebContext; out AState, ANonce, ACodeVerifier: string);
 var
   lCookie: TCookie;
   lValue: string;
@@ -818,15 +882,18 @@ begin
   lValue := Trim(TNetEncoding.URL.Decode(
     AContext.Request.Cookie(FCookieName + '_state')));
   lParts := lValue.Split(['|']);
-  if Length(lParts) = 2 then
+  ACodeVerifier := '';
+  if Length(lParts) >= 2 then
   begin
     AState := lParts[0];
     ANonce := lParts[1];
+    if Length(lParts) >= 3 then
+      ACodeVerifier := lParts[2];
   end
   else
   begin
-    // Malformed or missing state cookie — set empty values.
-    // The nonce validation in HandleCallback will reject this.
+    // Malformed or missing state cookie: set empty values. The nonce
+    // validation in HandleCallback will reject this.
     AState := lValue;
     ANonce := '';
   end;
@@ -850,14 +917,19 @@ procedure TMVCOIDCAuthenticationMiddleware.HandleLogin(
 var
   lState: string;
   lNonce: string;
+  lCodeVerifier: string;
   lAuthURL: string;
 begin
   DiscoverEndpoints;
   // Generate CSRF state and nonce as stripped GUIDs
   lState := TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
   lNonce := TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
-  SetStateCookie(AContext, lState, lNonce);
-  lAuthURL := BuildAuthorizationURL(lState, lNonce);
+  if FUsePKCE then
+    lCodeVerifier := GenerateCodeVerifier
+  else
+    lCodeVerifier := '';
+  SetStateCookie(AContext, lState, lNonce, lCodeVerifier);
+  lAuthURL := BuildAuthorizationURL(lState, lNonce, lCodeVerifier);
   AContext.Response.StatusCode := HTTP_STATUS.Found;
   AContext.Response.SetCustomHeader('Location', lAuthURL);
   AHandled := True;
@@ -870,6 +942,7 @@ var
   lState: string;
   lExpectedState: string;
   lExpectedNonce: string;
+  lCodeVerifier: string;
   lTokenResponse: TJsonObject;
   lIDTokenClaims: TJsonObject;
   lUserInfo: TJsonObject;
@@ -894,7 +967,8 @@ begin
   end;
 
   // Verify CSRF state and extract stored nonce
-  GetAndClearStateCookie(AContext, lExpectedState, lExpectedNonce);
+  GetAndClearStateCookie(AContext, lExpectedState, lExpectedNonce,
+    lCodeVerifier);
   if not SameText(lState, lExpectedState) then
   begin
     LogW(Format(SOIDCCallbackStateMismatch, [lExpectedState, lState]));
@@ -913,7 +987,7 @@ begin
     try
       // Exchange authorization code for tokens
       DiscoverEndpoints;
-      lTokenResponse := ExchangeCodeForTokens(lCode);
+      lTokenResponse := ExchangeCodeForTokens(lCode, lCodeVerifier);
 
       // Validate the ID token
       lIDTokenClaims := ValidateIDToken(lTokenResponse.S['id_token']);

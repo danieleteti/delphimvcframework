@@ -95,11 +95,13 @@ type
   TMVCJWKSClient = class(TInterfacedObject, IJWKSProvider)
   private
     FJWKSURI: string;
+    FIssuerURL: string;
     FKeys: TObjectDictionary<string, TJWKKey>;
     FCacheTTLSeconds: Integer;
     FLastFetchTime: TDateTime;
     FLock: TObject;
     procedure FetchKeys;
+    procedure ResolveJWKSURI;
     procedure ParseJWKS(const AJWKSJSON: string);
     function ParseJWK(const AJWK: TJsonObject): TJWKKey;
     function JWKRSAToPEM(const AJWK: TJsonObject): string;
@@ -114,7 +116,8 @@ type
     /// </summary>
     /// <param name="AJWKSURI">Full URL to the JWKS endpoint (e.g., https://.../.well-known/jwks.json)</param>
     /// <param name="ACacheTTLSeconds">How long to cache keys before refetching (default: 1 hour)</param>
-    constructor Create(const AJWKSURI: string; ACacheTTLSeconds: Integer = 3600);
+    constructor Create(const AJWKSURI: string; ACacheTTLSeconds: Integer = 3600;
+      const AIssuerURL: string = '');
     /// <summary>
     /// Creates a JWKS client by discovering the jwks_uri from an OIDC issuer.
     /// Fetches .well-known/openid-configuration and extracts the jwks_uri field.
@@ -538,6 +541,7 @@ var
   lClient: IMVCRESTClient;
   lResponse: IMVCRESTResponse;
 begin
+  ResolveJWKSURI;
   LogI('JWKS: Fetching keys from ' + FJWKSURI);
   lClient := TMVCRESTClient.New.BaseURL(FJWKSURI);
   lResponse := lClient.Get;
@@ -627,12 +631,13 @@ end;
 // ============================================================
 
 constructor TMVCJWKSClient.Create(const AJWKSURI: string;
-  ACacheTTLSeconds: Integer);
+  ACacheTTLSeconds: Integer; const AIssuerURL: string);
 begin
   inherited Create;
-  if AJWKSURI.Trim.IsEmpty then
+  if AJWKSURI.Trim.IsEmpty and AIssuerURL.Trim.IsEmpty then
     raise EMVCJWKSException.Create('JWKS URI must not be empty');
   FJWKSURI := AJWKSURI;
+  FIssuerURL := AIssuerURL;
   FCacheTTLSeconds := ACacheTTLSeconds;
   FLastFetchTime := 0;
   FKeys := TObjectDictionary<string, TJWKKey>.Create([doOwnsValues]);
@@ -641,14 +646,25 @@ end;
 
 class function TMVCJWKSClient.CreateFromIssuer(const AIssuerURL: string;
   ACacheTTLSeconds: Integer): TMVCJWKSClient;
+begin
+  // Deliberately does NOT contact the issuer here. This runs while the
+  // application is wiring its engine, and a provider that happens to be down
+  // at that moment must not stop the server from starting: it would only be
+  // able to boot when the identity provider is up, which is a needlessly
+  // brittle dependency. The jwks_uri is resolved on first use instead.
+  Result := TMVCJWKSClient.Create('', ACacheTTLSeconds, AIssuerURL);
+end;
+
+procedure TMVCJWKSClient.ResolveJWKSURI;
 var
   lDiscoveryURL: string;
   lClient: IMVCRESTClient;
   lResponse: IMVCRESTResponse;
   lJSON: TJsonObject;
-  lJWKSURI: string;
 begin
-  lDiscoveryURL := AIssuerURL;
+  if not FJWKSURI.IsEmpty then
+    Exit;
+  lDiscoveryURL := FIssuerURL;
   if not lDiscoveryURL.EndsWith('/') then
     lDiscoveryURL := lDiscoveryURL + '/';
   lDiscoveryURL := lDiscoveryURL + '.well-known/openid-configuration';
@@ -663,16 +679,14 @@ begin
 
   lJSON := TJsonObject.Parse(lResponse.Content) as TJsonObject;
   try
-    lJWKSURI := lJSON.S['jwks_uri'];
-    if lJWKSURI.IsEmpty then
+    FJWKSURI := lJSON.S['jwks_uri'];
+    if FJWKSURI.IsEmpty then
       raise EMVCJWKSException.Create(
         'JWKS: OIDC discovery response does not contain jwks_uri');
-    LogI('JWKS: Discovered jwks_uri = ' + lJWKSURI);
+    LogI('JWKS: Discovered jwks_uri = ' + FJWKSURI);
   finally
     lJSON.Free;
   end;
-
-  Result := TMVCJWKSClient.Create(lJWKSURI, ACacheTTLSeconds);
 end;
 
 destructor TMVCJWKSClient.Destroy;
