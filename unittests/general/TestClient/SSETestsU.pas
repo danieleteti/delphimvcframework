@@ -158,6 +158,27 @@ type
     procedure TestMultipleSpacesAfterColon;
   end;
 
+  { Tests for DecodeUTF8Incremental: a socket read can end in the middle of a
+    multi-byte character, and the decoder must survive it }
+  [TestFixture]
+  TTestSSEIncrementalDecode = class
+  public
+    [Test]
+    procedure TestPlainASCIIPassesThrough;
+    [Test]
+    procedure TestTwoByteCharSplitAcrossChunks;
+    [Test]
+    procedure TestFourByteCharSplitEveryWhichWay;
+    [Test]
+    procedure TestOneBytePerChunk;
+    [Test]
+    procedure TestCompleteCharIsNotHeldBack;
+    [Test]
+    procedure TestInvalidByteIsNotBufferedForever;
+    [Test]
+    procedure TestEmptyChunkKeepsPendingBytes;
+  end;
+
   { Integration test: Broker + Connection push flow }
   [TestFixture]
   TTestSSEIntegration = class
@@ -1535,11 +1556,133 @@ begin
   end;
 end;
 
+{ ========================================================================= }
+{ TTestSSEIncrementalDecode                                                  }
+{ ========================================================================= }
+
+procedure TTestSSEIncrementalDecode.TestPlainASCIIPassesThrough;
+var
+  LPending: TBytes;
+  LText: string;
+begin
+  SetLength(LPending, 0);
+  LText := DecodeUTF8Incremental(LPending, TEncoding.UTF8.GetBytes('data: hello'));
+  Assert.AreEqual('data: hello', LText);
+  Assert.AreEqual<Integer>(0, Length(LPending), 'nothing to hold back on pure ASCII');
+end;
+
+procedure TTestSSEIncrementalDecode.TestTwoByteCharSplitAcrossChunks;
+var
+  LPending, LAll: TBytes;
+  LText: string;
+begin
+  // 'e' with grave accent is C3 A8: cut between the two bytes.
+  LAll := TEncoding.UTF8.GetBytes('Perch' + #$00E8 + 'e');
+  SetLength(LPending, 0);
+
+  LText := DecodeUTF8Incremental(LPending, Copy(LAll, 0, 6));
+  Assert.AreEqual('Perch', LText, 'the half character must not be emitted');
+  Assert.AreEqual<Integer>(1, Length(LPending), 'its lead byte is held back');
+
+  LText := LText + DecodeUTF8Incremental(LPending, Copy(LAll, 6, Length(LAll) - 6));
+  Assert.AreEqual('Perch' + #$00E8 + 'e', LText);
+  Assert.AreEqual<Integer>(0, Length(LPending));
+end;
+
+procedure TTestSSEIncrementalDecode.TestFourByteCharSplitEveryWhichWay;
+var
+  LPending, LAll: TBytes;
+  LText: string;
+  LSplit: Integer;
+begin
+  // U+1F600 GRINNING FACE encodes as four bytes: try every cut inside it.
+  LAll := TEncoding.UTF8.GetBytes('ok ' + #$D83D + #$DE00 + ' end');
+  for LSplit := 1 to Length(LAll) - 1 do
+  begin
+    SetLength(LPending, 0);
+    LText := DecodeUTF8Incremental(LPending, Copy(LAll, 0, LSplit));
+    LText := LText + DecodeUTF8Incremental(LPending, Copy(LAll, LSplit, Length(LAll) - LSplit));
+    Assert.AreEqual('ok ' + #$D83D + #$DE00 + ' end', LText,
+      'round trip broken when split at byte ' + LSplit.ToString);
+    Assert.AreEqual<Integer>(0, Length(LPending), 'nothing left over at split ' + LSplit.ToString);
+  end;
+end;
+
+procedure TTestSSEIncrementalDecode.TestOneBytePerChunk;
+var
+  LPending, LAll: TBytes;
+  LText: string;
+  I: Integer;
+begin
+  // The pathological case: the socket hands over a single byte at a time.
+  LAll := TEncoding.UTF8.GetBytes('a' + #$00E8 + #$20AC + 'z');
+  SetLength(LPending, 0);
+  LText := '';
+  for I := 0 to Length(LAll) - 1 do
+    LText := LText + DecodeUTF8Incremental(LPending, Copy(LAll, I, 1));
+
+  Assert.AreEqual('a' + #$00E8 + #$20AC + 'z', LText);
+  Assert.AreEqual<Integer>(0, Length(LPending));
+end;
+
+procedure TTestSSEIncrementalDecode.TestCompleteCharIsNotHeldBack;
+var
+  LPending: TBytes;
+  LText: string;
+begin
+  // A chunk ending exactly on a character boundary must be emitted whole,
+  // not deferred waiting for a continuation that will never come.
+  SetLength(LPending, 0);
+  LText := DecodeUTF8Incremental(LPending, TEncoding.UTF8.GetBytes('caff' + #$00E8));
+  Assert.AreEqual('caff' + #$00E8, LText);
+  Assert.AreEqual<Integer>(0, Length(LPending));
+end;
+
+procedure TTestSSEIncrementalDecode.TestInvalidByteIsNotBufferedForever;
+var
+  LPending: TBytes;
+  LRaised: Boolean;
+begin
+  // $FF cannot start a sequence. It must reach the decoder (which rejects
+  // it) instead of sitting in the pending buffer stalling the stream.
+  SetLength(LPending, 0);
+  LRaised := False;
+  try
+    DecodeUTF8Incremental(LPending, TBytes.Create($41, $FF));
+  except
+    on E: Exception do
+      LRaised := True;
+  end;
+  Assert.IsTrue(LRaised or (Length(LPending) = 0),
+    'invalid input must surface, not accumulate');
+end;
+
+procedure TTestSSEIncrementalDecode.TestEmptyChunkKeepsPendingBytes;
+var
+  LPending, LAll: TBytes;
+  LText: string;
+begin
+  LAll := TEncoding.UTF8.GetBytes(#$00E8);
+  SetLength(LPending, 0);
+
+  DecodeUTF8Incremental(LPending, Copy(LAll, 0, 1));
+  Assert.AreEqual<Integer>(1, Length(LPending));
+
+  // An empty read must not throw the half character away.
+  LText := DecodeUTF8Incremental(LPending, nil);
+  Assert.AreEqual('', LText);
+  Assert.AreEqual<Integer>(1, Length(LPending), 'pending byte survives an empty chunk');
+
+  LText := DecodeUTF8Incremental(LPending, Copy(LAll, 1, 1));
+  Assert.AreEqual(string(#$00E8), LText);
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestSSEMessage);
   TDUnitX.RegisterTestFixture(TTestSSEConnection);
   TDUnitX.RegisterTestFixture(TTestSSEBroker);
   TDUnitX.RegisterTestFixture(TTestSSEClientParser);
+  TDUnitX.RegisterTestFixture(TTestSSEIncrementalDecode);
   TDUnitX.RegisterTestFixture(TTestSSEIntegration);
 
 end.

@@ -104,6 +104,7 @@ type
     fOpenFired: Boolean;
     fResponseStream: TMemoryStream;
     fLastProcessedPos: Int64;
+    fPendingBytes: TBytes;   // trailing incomplete UTF-8 sequence, if any
     fStopEvent: TEvent;
     function GetLastEventId: string;
     function GetReconnectTimeout: Integer;
@@ -130,12 +131,97 @@ type
     property URL: string read fURL write fURL;
   end;
 
+/// <summary>
+/// Decodes the longest complete UTF-8 prefix of APending + ANewData, keeping
+/// any trailing incomplete sequence in APending for the next call.
+/// </summary>
+/// <remarks>
+/// The stream is UTF-8 by specification, but nothing aligns a socket read to
+/// a character boundary: an accented letter, an emoji or a CJK ideogram can
+/// have its bytes split across two reads. TEncoding.UTF8.GetString is
+/// stateless and raises EEncodingError on the truncated half, so an event
+/// stream has to be decoded incrementally — which is what the WHATWG spec
+/// prescribes. Exposed at unit level so it can be tested without a network.
+/// </remarks>
+function DecodeUTF8Incremental(var APending: TBytes; const ANewData: TBytes): string;
+
 implementation
 
 const
   DEFAULT_RECONNECT_TIMEOUT = 10000;
   LF = #10;
   CR = #13;
+
+{ ========================================================================= }
+{ Incremental UTF-8 decoding                                                 }
+{ ========================================================================= }
+
+// Number of bytes in the sequence started by ALeadByte. Returns 1 for a byte
+// that cannot start one, so invalid input is passed through to the decoder
+// rather than buffered forever.
+function UTF8SequenceLength(ALeadByte: Byte): Integer;
+begin
+  if ALeadByte < $80 then
+    Result := 1
+  else if (ALeadByte and $E0) = $C0 then
+    Result := 2
+  else if (ALeadByte and $F0) = $E0 then
+    Result := 3
+  else if (ALeadByte and $F8) = $F0 then
+    Result := 4
+  else
+    Result := 1;
+end;
+
+function DecodeUTF8Incremental(var APending: TBytes; const ANewData: TBytes): string;
+var
+  LAll: TBytes;
+  LCut, I, LSteps, LNeeded: Integer;
+begin
+  if Length(APending) = 0 then
+    LAll := ANewData
+  else
+    LAll := APending + ANewData;
+
+  if Length(LAll) = 0 then
+  begin
+    SetLength(APending, 0);
+    Exit('');
+  end;
+
+  // Walk back over at most three continuation bytes looking for the lead
+  // byte of the last sequence. A sequence is at most four bytes long, so
+  // anything further back is already complete.
+  LCut := Length(LAll);
+  I := Length(LAll) - 1;
+  LSteps := 0;
+  while (I >= 0) and (LSteps < 4) do
+  begin
+    if (LAll[I] and $C0) = $80 then
+    begin
+      // Continuation byte: the lead byte is further back.
+      Dec(I);
+      Inc(LSteps);
+      Continue;
+    end;
+
+    LNeeded := UTF8SequenceLength(LAll[I]);
+    if Length(LAll) - I < LNeeded then
+      LCut := I;   // truncated: hold these bytes back for the next chunk
+    Break;
+  end;
+
+  if LCut = Length(LAll) then
+  begin
+    SetLength(APending, 0);
+    Result := TEncoding.UTF8.GetString(LAll);
+  end
+  else
+  begin
+    APending := Copy(LAll, LCut, Length(LAll) - LCut);
+    Result := TEncoding.UTF8.GetString(Copy(LAll, 0, LCut));
+  end;
+end;
 
 { ========================================================================= }
 { SSE Parsing Logic                                                         }
@@ -401,8 +487,12 @@ begin
   fResponseStream.ReadBuffer(LBytes[0], LBytesToRead);
   fLastProcessedPos := fResponseStream.Size;
 
-  LNewData := TEncoding.UTF8.GetString(LBytes);
-  fParser.Feed(LNewData);
+  // Decode incrementally: a read boundary can fall inside a multi-byte
+  // character, and decoding the raw chunk would raise EEncodingError on the
+  // truncated half, dropping the connection.
+  LNewData := DecodeUTF8Incremental(fPendingBytes, LBytes);
+  if LNewData <> '' then
+    fParser.Feed(LNewData);
 end;
 
 procedure TMVCSSEClient.DoReceiveLoop;
@@ -416,6 +506,7 @@ begin
     fParser.Reset;
     fOpenFired := False;
     fLastProcessedPos := 0;
+    SetLength(fPendingBytes, 0);   // a reconnect starts a fresh byte stream
 
     LClient := THTTPClient.Create;
     try
