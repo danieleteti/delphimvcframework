@@ -195,7 +195,6 @@ nul
 /tools/certificatesgenerator/*.csr
 /tools/certificatesgenerator/*.key
 /tools/certificatesgenerator/*.crt
-/samples/tls13/bin/certificates/*
 /CLAUDE.md
 /build_tests.bat
 /output/*

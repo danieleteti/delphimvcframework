@@ -164,9 +164,9 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 
 | Sample | Description |
 |--------|-------------|
-| `ssl_server` | SSL/TLS server |
+| `tls13` | HTTPS on Indy Direct + TaurusTLS, pinned to TLS 1.3 |
+| `ssl_server` | SSL/TLS server (WebBroker + Indy OpenSSL, TLS 1.2 max) |
 | `ssl_client` | SSL/TLS client |
-| `tls13` | TLS 1.3 configuration |
 
 ## Validation
 
