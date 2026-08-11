@@ -179,6 +179,19 @@ type
     procedure TestEmptyChunkKeepsPendingBytes;
   end;
 
+  { End-to-end: a real TMVCSSEClient against a socket server that decides where
+    the read boundaries fall. TTestSSEIncrementalDecode covers the decoding
+    function in isolation; only these tests exercise HandleReceiveData and the
+    pending-buffer reset on reconnect, which is where the bug actually bit. }
+  [TestFixture]
+  TTestSSEClientOverSocket = class
+  public
+    [Test]
+    procedure TestMultiByteCharSplitAcrossSocketReads;
+    [Test]
+    procedure TestPendingBytesDoNotLeakAcrossReconnect;
+  end;
+
   { Integration test: Broker + Connection push flow }
   [TestFixture]
   TTestSSEIntegration = class
@@ -199,6 +212,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.SyncObjs, System.Generics.Collections,
+  IdContext, IdTCPServer, IdGlobal,
   MVCFramework.SSE, MVCFramework.SSEClient;
 
 { ========================================================================= }
@@ -1698,12 +1712,254 @@ begin
   Assert.AreEqual(string(#$00E8), LText);
 end;
 
+{ ========================================================================= }
+{ TTestSSEClientOverSocket                                                   }
+{ ========================================================================= }
+
+type
+  // What a connection puts on the wire, given its 1-based index.
+  TSSEWireScript = reference to procedure(AConnectionIndex: Integer;
+    const AWrite: TProc<TBytes>);
+
+  // Speaks just enough HTTP to be an SSE endpoint. The point is not fidelity,
+  // it is control over WHERE a read boundary falls: every AWrite is a separate
+  // send and the script pauses between them, so the two halves of a character
+  // cannot arrive in the same read.
+  TSSEWireServer = class
+  private
+    fServer: TIdTCPServer;
+    fScript: TSSEWireScript;
+    fConnections: Integer;
+    procedure DoExecute(AContext: TIdContext);
+  public
+    constructor Create(APort: Integer; const AScript: TSSEWireScript);
+    destructor Destroy; override;
+  end;
+
+  // Collects events off the client's worker thread.
+  TSSESink = class
+  private
+    fLock: TCriticalSection;
+    fEvents: TStringList;
+    fSignal: TEvent;
+    fExpected: Integer;
+  public
+    constructor Create(AExpected: Integer);
+    destructor Destroy; override;
+    procedure Add(const AData: string);
+    function WaitForAll(ATimeoutMS: Cardinal): Boolean;
+    function Join: string;
+  end;
+
+constructor TSSEWireServer.Create(APort: Integer; const AScript: TSSEWireScript);
+begin
+  inherited Create;
+  fScript := AScript;
+  fConnections := 0;
+  fServer := TIdTCPServer.Create(nil);
+  fServer.DefaultPort := APort;
+  fServer.OnExecute := DoExecute;
+  fServer.Active := True;
+end;
+
+destructor TSSEWireServer.Destroy;
+begin
+  fServer.Active := False;
+  fServer.Free;
+  inherited;
+end;
+
+procedure TSSEWireServer.DoExecute(AContext: TIdContext);
+var
+  LLine: string;
+  LIndex: Integer;
+begin
+  // Swallow the request line and headers.
+  repeat
+    LLine := AContext.Connection.IOHandler.ReadLn;
+  until (LLine = '') or (not AContext.Connection.Connected);
+
+  LIndex := TInterlocked.Increment(fConnections);
+
+  AContext.Connection.IOHandler.Write(
+    'HTTP/1.1 200 OK'#13#10 +
+    'Content-Type: text/event-stream'#13#10 +
+    'Cache-Control: no-cache'#13#10 +
+    'Connection: close'#13#10 +
+    #13#10);
+
+  fScript(LIndex,
+    procedure(ABytes: TBytes)
+    begin
+      AContext.Connection.IOHandler.Write(TIdBytes(ABytes));
+    end);
+
+  AContext.Connection.Disconnect;
+end;
+
+constructor TSSESink.Create(AExpected: Integer);
+begin
+  inherited Create;
+  fExpected := AExpected;
+  fLock := TCriticalSection.Create;
+  fEvents := TStringList.Create;
+  fSignal := TEvent.Create(nil, True, False, '');
+end;
+
+destructor TSSESink.Destroy;
+begin
+  fSignal.Free;
+  fEvents.Free;
+  fLock.Free;
+  inherited;
+end;
+
+procedure TSSESink.Add(const AData: string);
+begin
+  fLock.Enter;
+  try
+    fEvents.Add(AData);
+    if fEvents.Count >= fExpected then
+      fSignal.SetEvent;
+  finally
+    fLock.Leave;
+  end;
+end;
+
+function TSSESink.WaitForAll(ATimeoutMS: Cardinal): Boolean;
+begin
+  Result := fSignal.WaitFor(ATimeoutMS) = wrSignaled;
+end;
+
+function TSSESink.Join: string;
+begin
+  fLock.Enter;
+  try
+    Result := string.Join('|', fEvents.ToStringArray);
+  finally
+    fLock.Leave;
+  end;
+end;
+
+procedure TTestSSEClientOverSocket.TestMultiByteCharSplitAcrossSocketReads;
+const
+  PORT = 8991;
+var
+  LServer: TSSEWireServer;
+  LClient: TMVCSSEClient;
+  LSink: TSSESink;
+  LArrived: Boolean;
+begin
+  LSink := TSSESink.Create(1);
+  try
+    // 'Perche' with a grave accent. The two bytes of the accented letter
+    // (C3 A8) go out in different sends, so the client only sees a whole
+    // character if it decodes across the read boundary.
+    LServer := TSSEWireServer.Create(PORT,
+      procedure(AConnectionIndex: Integer; const AWrite: TProc<TBytes>)
+      begin
+        if AConnectionIndex = 1 then
+        begin
+          AWrite(TEncoding.UTF8.GetBytes('data: Perch') + TBytes.Create($C3));
+          Sleep(400);
+          AWrite(TBytes.Create($A8, $0A, $0A));
+          Sleep(200);
+        end
+        else
+          Sleep(200);
+      end);
+    try
+      LClient := TMVCSSEClient.Create('http://localhost:' + PORT.ToString + '/events');
+      try
+        LClient.ReconnectTimeout := 250;
+        LClient.OnEvent :=
+          procedure(const AId, AEvent, AData: string)
+          begin
+            LSink.Add(AData);
+          end;
+        LClient.Start;
+        LArrived := LSink.WaitForAll(15000);
+        LClient.Stop;
+      finally
+        LClient.Free;
+      end;
+    finally
+      LServer.Free;
+    end;
+    Assert.IsTrue(LArrived, 'no event arrived within the timeout');
+    Assert.AreEqual('Perch' + #$00E8, LSink.Join,
+      'a character split across two socket reads must arrive intact');
+  finally
+    LSink.Free;
+  end;
+end;
+
+procedure TTestSSEClientOverSocket.TestPendingBytesDoNotLeakAcrossReconnect;
+const
+  PORT = 8992;
+var
+  LServer: TSSEWireServer;
+  LClient: TMVCSSEClient;
+  LSink: TSSESink;
+  LArrived: Boolean;
+begin
+  LSink := TSSESink.Create(2);
+  try
+    LServer := TSSEWireServer.Create(PORT,
+      procedure(AConnectionIndex: Integer; const AWrite: TProc<TBytes>)
+      begin
+        if AConnectionIndex = 1 then
+        begin
+          AWrite(TEncoding.UTF8.GetBytes('data: first'#10#10));
+          Sleep(300);
+          // A half character left dangling, then the connection dies. Held
+          // across the reconnect it would be glued to the next connection's
+          // first byte, and $C3 followed by 'd' is not valid UTF-8: the
+          // decoder would raise and the second event would never arrive.
+          AWrite(TEncoding.UTF8.GetBytes('data: ') + TBytes.Create($C3));
+          Sleep(200);
+        end
+        else if AConnectionIndex = 2 then
+        begin
+          AWrite(TEncoding.UTF8.GetBytes('data: second'#10#10));
+          Sleep(300);
+        end
+        else
+          Sleep(300);
+      end);
+    try
+      LClient := TMVCSSEClient.Create('http://localhost:' + PORT.ToString + '/events');
+      try
+        LClient.ReconnectTimeout := 250;
+        LClient.OnEvent :=
+          procedure(const AId, AEvent, AData: string)
+          begin
+            LSink.Add(AData);
+          end;
+        LClient.Start;
+        LArrived := LSink.WaitForAll(20000);
+        LClient.Stop;
+      finally
+        LClient.Free;
+      end;
+    finally
+      LServer.Free;
+    end;
+    Assert.IsTrue(LArrived, 'the second connection never delivered its event');
+    Assert.AreEqual('first|second', LSink.Join,
+      'a dangling half character must not survive into the next connection');
+  finally
+    LSink.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestSSEMessage);
   TDUnitX.RegisterTestFixture(TTestSSEConnection);
   TDUnitX.RegisterTestFixture(TTestSSEBroker);
   TDUnitX.RegisterTestFixture(TTestSSEClientParser);
   TDUnitX.RegisterTestFixture(TTestSSEIncrementalDecode);
+  TDUnitX.RegisterTestFixture(TTestSSEClientOverSocket);
   TDUnitX.RegisterTestFixture(TTestSSEIntegration);
 
 end.
