@@ -45,9 +45,21 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `middleware_basicauthentication` | HTTP Basic Authentication |
 | `middleware_oidc` | OpenID Connect (Keycloak, Entra ID, Auth0, Google...) |
 | `middleware_oidc_docker` | OIDC with Docker Compose, PostgreSQL, user provisioning |
+| `middleware_oidc_jwks` | OIDC with cryptographic ID-token signature verification via JWKS |
+| `jsonwebtoken_refreshtoken` | Access token + refresh token rotation |
+| `jwt_asymmetric_auth` | Asymmetric JWT (RS256 via TaurusTLS): private key signs, public key verifies. Includes a test suite over all 16 supported algorithms |
 | `custom_auth` | Custom authentication (client + server) |
 | `custom_role_auth` | Custom role-based authorization (client + server) |
 | `hmac` | HMAC request signing |
+
+## Minimal API
+
+| Sample | Description |
+|--------|-------------|
+| `minimal_api` | Lambda routes with no controller class - every parameter-binding mode, bound by declared type |
+| `minimal_api_auth` | The full `TMVCRouteGroup` hook chain: request logging, timing, auth |
+| `minimal_api_webapp` | Server-rendered web app (TemplatePro + HTMX) built entirely from lambdas |
+| `wizard_showcase` | Two self-documenting tutorials, REST and web - formerly wizard presets |
 
 ## Middleware
 
@@ -83,6 +95,13 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `sse2` | Advanced SSE with separate sender and viewer apps |
 | `sse_chat` | Real-time chat using SSE (client + server) |
 | `sse_indy_servers` | SSE for Indy-based servers |
+
+## Streaming & Incremental Responses
+
+| Sample | Description |
+|--------|-------------|
+| `http_streaming` | SSE, JSON Lines and CSV writers driving a browser UI |
+| `streamed_array_writer` | Every incremental streaming mechanism in one project: nine endpoints over a 200k-row table |
 
 ## Server-Side Views & Templating
 
@@ -166,11 +185,13 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | Sample | Description |
 |--------|-------------|
 | `validation_showcase` | Input validation and error reporting (client + server) |
+| `validation_vs_storage_demo` | The two validation layers - DTO and storage - on a single POST endpoint |
 
 ## Deployment
 
 | Sample | Description |
 |--------|-------------|
+| `server_types` | The same controller and `ConfigureEngine` on every host - Indy Direct, HTTP.sys, WebBroker standalone, WebBroker via `IMVCServer`, ISAPI, Apache. Only the `.dpr` differs. No `.dproj`: open a `.dpr` in the IDE to generate one |
 | `apache_module` | DMVCFramework as Apache module (mod_dmvc) |
 | `isapi` | ISAPI extension for IIS |
 | `server_in_dll` | Server packaged as a DLL |
@@ -201,11 +222,18 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `profiling` | Performance profiling |
 | `profiling_showcase` | Detailed profiling metrics |
 | `concurrency_speed_test` | Concurrent request performance benchmarks |
+| `staticfiles_test` | Verification harness for the HTTP filters: StaticFiles, Compression, ETag, IPBlock, RateLimit, CORS, BasicAuth, sessions. Exits non-zero on failure |
+| `error_page_test` | Verification harness for `UseExceptionHandler`: HTML error pages for browsers, JSON left untouched for APIs |
 
 ## Data Structures & Utilities
 
 | Sample | Description |
 |--------|-------------|
+| `console_colors_basics` | The essential foreground colors and simple composition |
+| `console_colors_composition` | Combining `Fore`, `Back` and `Style` |
+| `console_colors_badges` | Badge patterns for test results, HTTP status and log levels |
+| `console_colors` | The full ANSI palette, foreground and background |
+| `console_themes_demo` | Console themes |
 | `bloom_filter` | Bloom filter data structure |
 | `objectpool` | Object pool pattern |
 | `sqids_showcase` | Short unique ID generation (Sqids) |
