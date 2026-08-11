@@ -450,6 +450,7 @@ var
   LConn: TSSEConnection;
   LObj: TStringList;
 begin
+  LObj := nil;   // the finally frees it; an assertion may raise before it is assigned
   LConn := TSSEConnection.Create('c1');
   try
     Assert.IsNull(LConn.CustomData);
@@ -1641,20 +1642,40 @@ end;
 procedure TTestSSEIncrementalDecode.TestInvalidByteIsNotBufferedForever;
 var
   LPending: TBytes;
-  LRaised: Boolean;
+  LReachedDecoder: Boolean;
+  I: Integer;
 begin
-  // $FF cannot start a sequence. It must reach the decoder (which rejects
-  // it) instead of sitting in the pending buffer stalling the stream.
+  // $FF cannot start a sequence, so it must be handed straight to the decoder
+  // instead of being held as a maybe-incomplete character. TEncoding.UTF8
+  // rejects it - verified empirically on this RTL, GetString raises
+  // EEncodingError on every malformed sequence rather than substituting
+  // U+FFFD - and that rejection is the observable proof the byte got there.
+  //
+  // Both assertions discriminate: an implementation that mistook $FF for a
+  // lead byte would neither raise nor leave the pending buffer empty.
   SetLength(LPending, 0);
-  LRaised := False;
+  LReachedDecoder := False;
   try
     DecodeUTF8Incremental(LPending, TBytes.Create($41, $FF));
   except
-    on E: Exception do
-      LRaised := True;
+    on EEncodingError do
+      LReachedDecoder := True;
   end;
-  Assert.IsTrue(LRaised or (Length(LPending) = 0),
-    'invalid input must surface, not accumulate');
+  Assert.IsTrue(LReachedDecoder, 'the unusable byte must reach the decoder');
+  Assert.AreEqual<Integer>(0, Length(LPending), 'and must not be held back');
+
+  // "Forever" is the part the name promises: a stream of them must not
+  // accumulate one byte per read.
+  for I := 1 to 10 do
+  begin
+    try
+      DecodeUTF8Incremental(LPending, TBytes.Create($FF));
+    except
+      on EEncodingError do ;
+    end;
+    Assert.AreEqual<Integer>(0, Length(LPending),
+      'pending buffer grew at iteration ' + I.ToString);
+  end;
 end;
 
 procedure TTestSSEIncrementalDecode.TestEmptyChunkKeepsPendingBytes;

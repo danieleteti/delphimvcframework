@@ -183,15 +183,11 @@ begin
   else
     LAll := APending + ANewData;
 
-  if Length(LAll) = 0 then
-  begin
-    SetLength(APending, 0);
-    Exit('');
-  end;
-
-  // Walk back over at most three continuation bytes looking for the lead
-  // byte of the last sequence. A sequence is at most four bytes long, so
-  // anything further back is already complete.
+  // Walk back looking for the lead byte of the last sequence. A sequence is
+  // at most four bytes long, so a lead byte further back than that is already
+  // complete and there is nothing to hold. The step cap is what keeps this
+  // O(1): without it a chunk made of nothing but continuation bytes — which a
+  // hostile server can send — would be walked end to end on every read.
   LCut := Length(LAll);
   I := Length(LAll) - 1;
   LSteps := 0;
@@ -219,7 +215,8 @@ begin
   else
   begin
     APending := Copy(LAll, LCut, Length(LAll) - LCut);
-    Result := TEncoding.UTF8.GetString(Copy(LAll, 0, LCut));
+    // Ranged overload: decodes in place, no temporary copy of the prefix.
+    Result := TEncoding.UTF8.GetString(LAll, 0, LCut);
   end;
 end;
 
