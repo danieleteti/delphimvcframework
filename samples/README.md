@@ -79,10 +79,10 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 
 | Sample | Description |
 |--------|-------------|
-| `serversentevents` | Basic SSE implementation |
-| `serversentevents2` | Advanced SSE with separate sender and viewer apps |
-| `serversentevent_chat` | Real-time chat using SSE (client + server) |
-| `serversentevent_for_indy_based_servers` | SSE for Indy-based servers |
+| `sse` | Basic SSE implementation |
+| `sse2` | Advanced SSE with separate sender and viewer apps |
+| `sse_chat` | Real-time chat using SSE (client + server) |
+| `sse_indy_servers` | SSE for Indy-based servers |
 
 ## Server-Side Views & Templating
 
@@ -102,13 +102,6 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `htmx_website_with_templatepro` | Full website with HTMX and TemplatePro |
 | `htmx_website_with_webstencils` | Full website with HTMX and WebStencils |
 | `instant_search_with_htmx_and_templatepro` | Live instant-search with HTMX |
-
-## Frontend Frameworks
-
-| Sample | Description |
-|--------|-------------|
-| `angular` | Angular.js frontend with REST backend |
-| `react` | React.js frontend with REST backend |
 
 ## JSON-RPC
 
