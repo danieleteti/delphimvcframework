@@ -319,6 +319,8 @@ procedure ConfigureConnection(AConnection: TFDConnection; const AEnv: TEnvConfig
   const AConnectionOverride: string);
 var
   lConnDef, lEnvKey, lFdKey, lValue: string;
+  lVendorLib, lBaseDriver: string;
+  lDriverDef: IFDStanDefinition;
   lPair: TPair<string, string>;
   I: Integer;
 begin
@@ -351,6 +353,26 @@ begin
     begin
       if lPair.Key.StartsWith('FD_') and (not lPair.Value.IsEmpty) then
         AConnection.Params.AddPair(lPair.Key.Substring(3), lPair.Value);
+    end;
+    { VENDOR_LIB is a property of the DRIVER, not of the connection: passing it
+      among the connection params (as FD_VendorLib) has no effect, and the driver
+      then fails to find its client library. MySQL/MariaDB need it almost always
+      (libmariadb.dll), Firebird and InterBase whenever the client is not on the
+      PATH. So define a private driver definition on the fly and connect through
+      that instead. }
+    lVendorLib := GetEnvValue(AEnv, 'VENDOR_LIB');
+    if not lVendorLib.IsEmpty then
+    begin
+      lBaseDriver := GetEnvValue(AEnv, 'DRIVER_ID');
+      lDriverDef := FDManager.DriverDefs.FindDefinition(lBaseDriver);
+      if not Assigned(lDriverDef) then
+      begin
+        lDriverDef := FDManager.DriverDefs.Add;
+        lDriverDef.Name := lBaseDriver;
+        lDriverDef.AsString['BaseDriverID'] := lBaseDriver;
+      end;
+      lDriverDef.AsString['VendorLib'] := lVendorLib;
+      lDriverDef.Apply;
     end;
   end;
   AConnection.Params.AddPair('ExtendedMetadata', 'True');

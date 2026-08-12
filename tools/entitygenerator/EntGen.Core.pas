@@ -860,6 +860,18 @@ begin
     is parsed as a bind-parameter prefix and the query fails. Pass an empty
     catalog in that case; FireDAC falls back to the connection's default
     catalog, which is what we want. }
+  { The DriverID alone is not enough: a custom driver definition carries its own
+    name (BaseDriverID=FB, DriverID=FBEMBEDDED is the usual embedded-Firebird
+    setup, and it is what DMVCFramework's own test suite uses), so the string
+    comparison below would not recognise it, the file path would be passed as a
+    catalog, and every metadata lookup that takes a catalog - including the
+    primary-key one - would come back empty. Ask FireDAC which RDBMS is actually
+    on the other end first. }
+  case fConnection.RDBMSKind of
+    TFDRDBMSKinds.Firebird, TFDRDBMSKinds.Interbase, TFDRDBMSKinds.SQLite,
+    TFDRDBMSKinds.MSAccess, TFDRDBMSKinds.Advantage:
+      Exit('');
+  end;
   lDriver := fConnection.Params.Values['DriverID'].ToUpper;
   if (lDriver = 'SQLITE') or (lDriver = 'FB') or (lDriver = 'IB') or
      (lDriver = 'MSACC') or (lDriver = 'ADS') then
@@ -983,6 +995,10 @@ begin
         lPKQuery.Free;
       end;
     end;
+    if lKeyFields.Count = 0 then
+      LogWarn('No primary key detected for table [%s]: the generated entity will have no foPrimaryKey field, ' +
+        'so GetByPK/GetByPKs, Update and Delete on the instance will not work. Check that the table really has a ' +
+        'PRIMARY KEY constraint', [ATableName]);
     lQryMeta.MetaInfoKind := mkTableFields;
     lQryMeta.ObjectName := ATableName;
     lQryMeta.SchemaName := fConfig.Schema;
