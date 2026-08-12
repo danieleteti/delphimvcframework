@@ -678,6 +678,8 @@ type
     /// classes that have no PK declared (returns True). Use it to write the
     /// canonical Insert-or-Update branch:
     ///   if AR.IsNew then AR.Insert else AR.Update;  // or just AR.Store;
+    /// Raises on entities with a composite primary key: there the question
+    /// "is the key assigned?" says nothing about the row, use Load(False).
     /// </summary>
     function IsNew: Boolean;
     /// <summary>Negation of IsNew, kept for readability at the call site.</summary>
@@ -3090,6 +3092,13 @@ begin
   if (fTableMap = nil) or fTableMap.fPrimaryKeyFieldName.IsEmpty then
     Exit(True);
 
+  // A composite PK carries no "assigned or not" signal: the caller filled all
+  // the key columns, so inspecting the first one would answer a different
+  // question than the one being asked.
+  if fTableMap.IsCompositePK then
+    raise EMVCActiveRecord.Create(
+      'Entity has a composite primary key; IsNew/IsPersisted cannot tell whether the row exists, use Load(False) instead');
+
   lHasValue := TryGetPKValue(lValue, lIsNullableType);
 
   // Nullable PK: TryGetPKValue already returned the right answer
@@ -5263,6 +5272,12 @@ var
   lRes: Boolean;
   lIsNullableType: Boolean;
 begin
+  // On a composite PK, Insert-or-Update cannot be decided from the key values:
+  // they are always all set. Deciding it here would also mean a read followed
+  // by a write, which is a race condition the caller has to handle explicitly.
+  if fTableMap.IsCompositePK then
+    raise EMVCActiveRecord.Create(
+      'Entity has a composite primary key; Store cannot choose between Insert and Update, use Load(False) plus Insert/Update');
   lRes := TryGetPKValue(lValue, lIsNullableType);
   if not lIsNullableType then
   begin

@@ -4099,6 +4099,15 @@ begin
       'single-value LoadByPK must raise on a composite key');
     Assert.WillRaise(procedure begin lE.LoadByPKs([1]) end, EMVCActiveRecord,
       'LoadByPKs must raise when the value count does not match the PK column count');
+    // Store/IsNew answer "is the key assigned?", which on a natural composite key
+    // is always yes and says nothing about the row: deciding Insert-or-Update from
+    // it would also hide a read-then-write race.
+    Assert.WillRaise(procedure begin lE.IsNew end, EMVCActiveRecord,
+      'IsNew must raise on a composite key');
+    Assert.WillRaise(procedure begin lE.IsPersisted end, EMVCActiveRecord,
+      'IsPersisted must raise on a composite key');
+    Assert.WillRaise(procedure begin lE.Store end, EMVCActiveRecord,
+      'Store must raise on a composite key');
   finally
     lE.Free;
   end;
