@@ -34,6 +34,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # DelphiMVCFramework
+  - [Star History](#star-history)
 [![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)](https://github.com/danieleteti/delphimvcframework/releases)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danieleteti/delphimvcframework)
 [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/sindresorhus/awesome)
@@ -44,6 +45,16 @@
 **The most popular Delphi RESTful framework on GitHub**
 
 DelphiMVCFramework is a powerful, open-source framework for building RESTful services, JSON-RPC APIs, and web applications with Object Pascal. It provides a complete MVC architecture with built-in ORM, authentication, TLS 1.3 support and extensive middleware support.
+
+## Star History
+
+<a href="https://star-history.dera.page/#danieleteti/delphimvcframework&type=date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/image?repos=danieleteti/delphimvcframework&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/image?repos=danieleteti/delphimvcframework&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/image?repos=danieleteti/delphimvcframework&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## 🚀 Quick Links
 
