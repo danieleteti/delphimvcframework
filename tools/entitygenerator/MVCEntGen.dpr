@@ -35,6 +35,7 @@ uses
   FireDAC.Phys.MySQL,
   FireDAC.Phys.MSSQL,
   FireDAC.Phys.IB,
+  FireDAC.Phys.Oracle,
   FireDAC.Phys.SQLite,
   FireDAC.Phys.ODBC,
   FireDAC.ConsoleUI.Wait,

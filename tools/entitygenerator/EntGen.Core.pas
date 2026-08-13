@@ -28,6 +28,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Generics.Collections,
+  Data.DB,
   FireDAC.Stan.Intf, FireDAC.Comp.Client, FireDAC.Phys.Intf,
   LoggerPro;
 
@@ -136,6 +137,7 @@ type
       const AColumnAttribs: TFDDataAttributes;
       const AForceNullable: Boolean = False): string;
     class function GetColumnAttributes(AMetaDS: TFDMetaInfoQuery): TFDDataAttributes;
+    class function GetColumnDataType(AMetaDS: TFDMetaInfoQuery): TFDDataType;
     class function NameCaseToStr(ANameCase: TEntGenNameCase): string;
     class function IsAutoIncField(const AColumnAttribs: TFDDataAttributes;
       const AColumnTypeName: string): Boolean;
@@ -202,6 +204,8 @@ const
   META_F_COLUMN_TYPENAME = 'COLUMN_TYPENAME';
   META_F_COLUMN_ATTRIBUTES = 'COLUMN_ATTRIBUTES';
   META_F_COLUMN_LENGTH = 'COLUMN_LENGTH';
+  META_F_COLUMN_PRECISION = 'COLUMN_PRECISION';
+  META_F_COLUMN_SCALE = 'COLUMN_SCALE';
 
 { TMVCEntityGenerator }
 
@@ -284,6 +288,39 @@ var
 begin
   I := AMetaDS.FieldByName(META_F_COLUMN_ATTRIBUTES).AsInteger;
   Result := TFDDataAttributes(Pointer(@I)^);
+end;
+
+class function TMVCEntityGenerator.GetColumnDataType(AMetaDS: TFDMetaInfoQuery): TFDDataType;
+var
+  lPrecision, lScale: Integer;
+  lField: TField;
+begin
+  Result := TFDDataType(AMetaDS.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+  { A decimal with no fractional digits is an integer, and on Oracle that is the
+    only way to declare one: every NUMBER(p) column comes back as BCD, which
+    GetDelphiType would map to Currency - a type TMVCActiveRecord refuses as a
+    primary key ("Allowed primary key types are..."), so the whole generated unit
+    would be unusable. Narrow it down to the smallest integer that holds it. }
+  if not (Result in [dtBCD, dtFmtBCD]) then
+    Exit;
+  lField := AMetaDS.FindField(META_F_COLUMN_SCALE);
+  if not Assigned(lField) then
+    Exit;
+  lScale := lField.AsInteger;
+  lField := AMetaDS.FindField(META_F_COLUMN_PRECISION);
+  if not Assigned(lField) then
+    Exit;
+  lPrecision := lField.AsInteger;
+  { An unconstrained Oracle NUMBER reports no precision at all and can hold 38
+    digits: it has to stay a decimal. }
+  if (lScale <> 0) or (lPrecision <= 0) then
+    Exit;
+  if lPrecision <= 4 then
+    Result := dtInt16
+  else if lPrecision <= 9 then
+    Result := dtInt32
+  else if lPrecision <= 18 then
+    Result := dtInt64;
 end;
 
 class function TMVCEntityGenerator.GetDelphiType(
@@ -555,7 +592,7 @@ begin
   while not AMetaQry.Eof do
   begin
     lColName := AMetaQry.FieldByName(META_F_COLUMN_NAME).AsString;
-    lFieldDataType := TFDDataType(AMetaQry.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+    lFieldDataType := GetColumnDataType(AMetaQry);
     lColAttrib := GetColumnAttributes(AMetaQry);
     lDelphiType := GetDelphiType(lFieldDataType, lColAttrib);
 
@@ -867,14 +904,18 @@ begin
     catalog, and every metadata lookup that takes a catalog - including the
     primary-key one - would come back empty. Ask FireDAC which RDBMS is actually
     on the other end first. }
+  { Oracle is in the same list for a different reason: it has no catalogs at all
+    (a schema IS the user), and its DATABASE param holds the TNS name or an
+    EZConnect string like "host:port/service", which as a catalog name breaks
+    every metadata lookup - primary keys included. }
   case fConnection.RDBMSKind of
     TFDRDBMSKinds.Firebird, TFDRDBMSKinds.Interbase, TFDRDBMSKinds.SQLite,
-    TFDRDBMSKinds.MSAccess, TFDRDBMSKinds.Advantage:
+    TFDRDBMSKinds.MSAccess, TFDRDBMSKinds.Advantage, TFDRDBMSKinds.Oracle:
       Exit('');
   end;
   lDriver := fConnection.Params.Values['DriverID'].ToUpper;
   if (lDriver = 'SQLITE') or (lDriver = 'FB') or (lDriver = 'IB') or
-     (lDriver = 'MSACC') or (lDriver = 'ADS') then
+     (lDriver = 'MSACC') or (lDriver = 'ADS') or (lDriver = 'ORA') then
     Result := ''
   else
     Result := fConnection.Params.Database;
@@ -1023,7 +1064,7 @@ begin
     while not lQryMeta.Eof do
     begin
       lColAttrib := GetColumnAttributes(lQryMeta);
-      lFieldDataType := TFDDataType(lQryMeta.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+      lFieldDataType := GetColumnDataType(lQryMeta);
       lFieldName := lQryMeta.FieldByName(META_F_COLUMN_NAME).AsString;
       lColumnTypeName := lQryMeta.FieldByName(META_F_COLUMN_TYPENAME).AsString;
 
@@ -1075,7 +1116,7 @@ begin
     lQryMeta.First;
     while not lQryMeta.Eof do
     begin
-      lFieldDataType := TFDDataType(lQryMeta.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+      lFieldDataType := GetColumnDataType(lQryMeta);
       lColAttrib := GetColumnAttributes(lQryMeta);
       EmitProperty(
         lUniqueFieldNames[I],
