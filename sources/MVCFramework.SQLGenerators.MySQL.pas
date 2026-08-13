@@ -109,8 +109,12 @@ begin
 
     if TableMap.fAutoGenPKIndex >= 0 then
     begin
+      { The alias has to be quoted like any other identifier: written raw, a key
+        column named "id with spaces" produced "... as id with spaces" and the
+        server rejected the whole INSERT. Any name needing quotes - spaces, or a
+        reserved word - did the same. }
       lSB.Append(';SELECT LAST_INSERT_ID() as ' +
-        TableMap.fPrimaryKeys[TableMap.fAutoGenPKIndex].FieldName);
+        GetFieldNameForSQL(TableMap.fPrimaryKeys[TableMap.fAutoGenPKIndex].FieldName));
     end;
     Result := lSB.ToString;
   finally
