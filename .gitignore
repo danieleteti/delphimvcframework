@@ -238,3 +238,11 @@ samples/**/people.db
 samples/**/people.db-journal
 samples/**/people_feed.csv
 /**/run.xml
+
+# MariaDB bundled for the ActiveRecord tests: the binaries are versioned, the
+# data directory is created and destroyed by every run.
+/unittests/general/TestClient/mariadb/testdatadir/
+/unittests/general/TestClient/mariadb/testdatadir/**
+!/unittests/general/TestClient/mariadb/bin/**
+!/unittests/general/TestClient/mariadb/lib/**
+!/unittests/general/TestClient/mariadb/share/**

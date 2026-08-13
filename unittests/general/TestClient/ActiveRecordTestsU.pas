@@ -28,10 +28,13 @@ interface
 
 uses
   DUnitX.TestFramework, FireDAC.Comp.Client, FireDAC.ConsoleUI.Wait, FireDAC.VCLUI.Wait,
-  PGUtilsU;
+  PGUtilsU, MariaDBUtilsU;
 
 const
   PG_PORT = 5555;
+  MARIADB_PORT = 3399;
+  ORACLE_PORT = 1523;
+  MSSQL_PORT = 1433;
 
 type
   TTestActiveRecordBase = class(TObject)
@@ -313,6 +316,70 @@ type
     [Test]
     procedure TestStreamedDataSetChunked_EndToEnd;
   end;
+
+  // MariaDB runs from the copy bundled under TestClient\mariadb, started on its
+  // own port with its own data directory, exactly like the PostgreSQL fixture
+  // above. It never touches a MariaDB or MySQL installed on the machine.
+  [TestFixture]
+  TTestActiveRecordMariaDB = class(TTestActiveRecordBase)
+  private
+    fMariaDBUtil: TMariaDBUtil;
+  protected
+    procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+    procedure InternalSetupFixture; override;
+  public
+    [TearDownFixture]
+    procedure TearDownFixture;
+    [Setup]
+    procedure Setup;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+{$IF Defined(TEST_ORACLE)}
+  // Oracle needs a server this repository cannot bundle, so the fixture is
+  // compiled only when TEST_ORACLE is defined. Start the container it expects
+  // with:
+  //
+  //   docker run -d --name dmvc-oracle -p 1523:1521 -e ORACLE_PASSWORD=masterkey
+  //     -e APP_USER=guida -e APP_USER_PASSWORD=guida gvenzl/oracle-free:slim
+  //
+  // It is ready when the log line "DATABASE IS READY TO USE!" appears. The
+  // Oracle Instant Client must also be reachable: put its folder on the PATH,
+  // since oci.dll loads its own dependencies from the executable's directory.
+  [TestFixture]
+  TTestActiveRecordOracle = class(TTestActiveRecordBase)
+  protected
+    procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+  public
+    [Setup]
+    procedure Setup;
+  end;
+{$ENDIF}
+
+{$IF Defined(TEST_MSSQL)}
+  // Same reasoning as Oracle above: compiled only when TEST_MSSQL is defined.
+  // Start the container it expects with:
+  //
+  //   docker run -d --name dmvc-mssql -p 1433:1433 -e ACCEPT_EULA=Y
+  //     -e "MSSQL_SA_PASSWORD=Masterkey!2026" -e MSSQL_PID=Developer
+  //     mcr.microsoft.com/mssql/server:2022-latest
+  //
+  // It is ready when the log says "SQL Server is now ready for client
+  // connections". Microsoft's ODBC driver 17 or 18 must be installed; version
+  // 18 encrypts by default, hence TrustServerCertificate in the connection.
+  [TestFixture]
+  TTestActiveRecordMSSQL = class(TTestActiveRecordBase)
+  protected
+    procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+  public
+    [Setup]
+    procedure Setup;
+  end;
+{$ENDIF}
 
 implementation
 
@@ -647,12 +714,16 @@ const
   _CON_DEF_NAME_SQLITE = 'SQLITECONNECTION';
   _CON_DEF_NAME_FIREBIRD = 'FIREBIRDCONNECTION';
   _CON_DEF_NAME_POSTGRESQL = 'POSTGRESQLCONNECTION';
+  _CON_DEF_NAME_MARIADB = 'MARIADBCONNECTION';
+  _CON_DEF_NAME_ORACLE = 'ORACLECONNECTION';
+  _CON_DEF_NAME_MSSQL = 'MSSQLCONNECTION';
 
 var
   GDBFileName: string = '';
   SQLiteFileName: string = 'sqlitetest.db';
   GDBTemplateFileName: string = '';
   GPGIsInitialized: boolean = False;
+  GMariaDBIsInitialized: boolean = False;
 
 procedure TTestUnitOfWorkMerge.RegisterUpdateDoesNotTruncateInt64PK;
 var
@@ -2837,6 +2908,267 @@ begin
   GPGIsInitialized := False;
 end;
 
+{ TTestActiveRecordMariaDB }
+
+constructor TTestActiveRecordMariaDB.Create;
+var
+  lHome, lDataDir: String;
+begin
+  inherited;
+  lHome := TPath.Combine(TPath.GetDirectoryName(TPath.GetDirectoryName(ParamStr(0))), 'mariadb');
+  lDataDir := TPath.Combine(lHome, 'testdatadir');
+  fMariaDBUtil := TMariaDBUtil.Create(lHome, lDataDir, MARIADB_PORT);
+end;
+
+destructor TTestActiveRecordMariaDB.Destroy;
+begin
+  try
+    fMariaDBUtil.StopDB;
+  except
+    // do nothing
+  end;
+  fMariaDBUtil.Free;
+  inherited;
+end;
+
+procedure TTestActiveRecordMariaDB.AfterDataLoad;
+begin
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers auto_increment = 1');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers2 auto_increment = 1');
+end;
+
+procedure TTestActiveRecordMariaDB.CreatePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+  lDriver: IFDStanDefinition;
+begin
+  { VendorLib points at the bundled client library on purpose: without it
+    FireDAC would load whatever libmariadb.dll happens to be on the PATH, and
+    the tests would stop being independent from the machine they run on. }
+  lDriver := FDManager.DriverDefs.FindDefinition('MySQL');
+  if not Assigned(lDriver) then
+  begin
+    lDriver := FDManager.DriverDefs.Add;
+    lDriver.Name := 'MySQL';
+    lDriver.AsString['BaseDriverID'] := 'MySQL';
+  end;
+  lDriver.AsString['VendorLib'] := fMariaDBUtil.ClientLib;
+  lDriver.Apply;
+
+  LParams := TStringList.Create;
+  try
+    LParams.Add('Server=127.0.0.1');
+    LParams.Add('Port=' + MARIADB_PORT.ToString);
+    LParams.Add('Database=activerecordtest');
+    LParams.Add('User_Name=root');
+    LParams.Add('CharacterSet=utf8mb4');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'MySQL', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+procedure TTestActiveRecordMariaDB.InternalSetupFixture;
+begin
+  fMariaDBUtil.RemoveDataDir;
+  fMariaDBUtil.InitDB;
+  fMariaDBUtil.StartDB;
+  fMariaDBUtil.CreateDatabase('activerecordtest');
+end;
+
+procedure TTestActiveRecordMariaDB.Setup;
+var
+  lInitDBStructure: boolean;
+begin
+  LogI('** Setup Test: ' + ClassName);
+  lInitDBStructure := False;
+
+  fConDefName := _CON_DEF_NAME_MARIADB;
+  if not GMariaDBIsInitialized then
+  begin
+    FDManager.CloseConnectionDef(_CON_DEF_NAME_MARIADB);
+    lInitDBStructure := True;
+    InternalSetupFixture;
+    GMariaDBIsInitialized := True;
+  end;
+
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
+  begin
+    CreatePrivateConnDef(True);
+  end;
+
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+  fConnection.Open;
+  if lInitDBStructure then
+  begin
+    for var lSQL in SQLs_MARIADB do
+    begin
+      fConnection.ExecSQL(lSQL);
+    end;
+  end;
+
+  fConnection.Close;
+  fConnection.Open;
+
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from customers2');
+  AfterDataLoad;
+end;
+
+procedure TTestActiveRecordMariaDB.TearDownFixture;
+begin
+  FDManager.CloseConnectionDef(_CON_DEF_NAME_MARIADB);
+  fMariaDBUtil.StopDB;
+  GMariaDBIsInitialized := False;
+end;
+
+{$IF Defined(TEST_ORACLE)}
+
+{ TTestActiveRecordOracle }
+
+procedure TTestActiveRecordOracle.AfterDataLoad;
+begin
+  // nothing to reset: the identity columns are recreated with the schema
+end;
+
+procedure TTestActiveRecordOracle.CreatePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+begin
+  LParams := TStringList.Create;
+  try
+    { EZConnect goes in Database: the Oracle driver has no Server/Port of its
+      own. The service name is the one the container publishes. }
+    LParams.Add('DriverID=Ora');
+    LParams.Add('Database=localhost:' + ORACLE_PORT.ToString + '/FREEPDB1');
+    LParams.Add('User_Name=guida');
+    LParams.Add('Password=guida');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'Ora', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+procedure TTestActiveRecordOracle.Setup;
+var
+  lSQL: string;
+begin
+  LogI('** Setup Test: ' + ClassName);
+  fConDefName := _CON_DEF_NAME_ORACLE;
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
+  begin
+    CreatePrivateConnDef(True);
+  end;
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+  fConnection.Open;
+  { Oracle has no DROP TABLE IF EXISTS, so every drop is attempted and ignored. }
+  for lSQL in ['customers', 'customers2', 'customers_with_code', 'nullables_test',
+    '"customers with spaces"', 'booltest', 'customers_with_guid',
+    'validated_customers', 'audited_customers'] do
+  begin
+    try
+      fConnection.ExecSQL('drop table ' + lSQL + ' cascade constraints purge');
+    except
+      // the table was not there
+    end;
+  end;
+  for lSQL in SQLs_ORACLE do
+  begin
+    fConnection.ExecSQL(lSQL);
+  end;
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
+  AfterDataLoad;
+end;
+{$ENDIF}
+
+{$IF Defined(TEST_MSSQL)}
+
+{ TTestActiveRecordMSSQL }
+
+procedure TTestActiveRecordMSSQL.AfterDataLoad;
+begin
+  // nothing to reset: the identity columns are recreated with the schema
+end;
+
+procedure TTestActiveRecordMSSQL.CreatePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+begin
+  LParams := TStringList.Create;
+  try
+    LParams.Add('DriverID=MSSQL');
+    LParams.Add('Server=localhost');
+    LParams.Add('Port=' + MSSQL_PORT.ToString);
+    LParams.Add('Database=guida');
+    LParams.Add('User_Name=sa');
+    LParams.Add('Password=Masterkey!2026');
+    { ODBC Driver 18 encrypts by default and the container serves a
+      self-signed certificate. }
+    LParams.Add('ODBCAdvanced=TrustServerCertificate=yes');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'MSSQL', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+procedure TTestActiveRecordMSSQL.Setup;
+var
+  lSQL: string;
+begin
+  LogI('** Setup Test: ' + ClassName);
+  fConDefName := _CON_DEF_NAME_MSSQL;
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
+  begin
+    CreatePrivateConnDef(True);
+  end;
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+  fConnection.Open;
+  for lSQL in ['customers', 'customers2', 'customers_with_code', 'nullables_test',
+    '"customers with spaces"', 'booltest', 'customers_with_guid',
+    'validated_customers', 'audited_customers'] do
+  begin
+    fConnection.ExecSQL('drop table if exists ' + lSQL);
+  end;
+  for lSQL in SQLs_MSSQL do
+  begin
+    fConnection.ExecSQL(lSQL);
+  end;
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
+  AfterDataLoad;
+end;
+{$ENDIF}
+
 // ===========================================================================
 // Validation / Audit tests
 //
@@ -4616,6 +4948,13 @@ initialization
 TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite);
 TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird);
 TDUnitX.RegisterTestFixture(TTestActiveRecordPostgreSQL);
+TDUnitX.RegisterTestFixture(TTestActiveRecordMariaDB);
+{$IF Defined(TEST_ORACLE)}
+TDUnitX.RegisterTestFixture(TTestActiveRecordOracle);
+{$ENDIF}
+{$IF Defined(TEST_MSSQL)}
+TDUnitX.RegisterTestFixture(TTestActiveRecordMSSQL);
+{$ENDIF}
 TDUnitX.RegisterTestFixture(TTestUnitOfWorkMerge);
 
 finalization
