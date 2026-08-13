@@ -1442,7 +1442,14 @@ begin
       end;
     ftFMTBcd:
       begin
-        aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
+        { Oracle has no integer type: every NUMBER(p,0) column, primary keys
+          included, arrives here as BCD. Forcing it through Currency would blow
+          up with "Invalid class typecast" on an Integer or Int64 field, so read
+          it as an integer when that is what the entity declares. }
+        if aRTTIField.FieldType.TypeKind in [tkInteger, tkInt64] then
+          aRTTIField.SetValue(AObject, AField.AsLargeInt)
+        else
+          aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
       end;
     ftDate:
       begin
@@ -1536,7 +1543,11 @@ begin
       end;
     ftBCD:
       begin
-        aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
+        { Same as ftFMTBcd above: a scale-0 decimal is an integer. }
+        if aRTTIField.FieldType.TypeKind in [tkInteger, tkInt64] then
+          aRTTIField.SetValue(AObject, AField.AsLargeInt)
+        else
+          aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
       end;
     ftFloat, ftSingle:
       begin

@@ -60,6 +60,7 @@ type
     function GetSequenceValueSQL(const PKFieldName: string;
       const SequenceName: string;
       const Step: Integer = 1): string; override;
+    function UsesReturningIntoParams: Boolean; override;
   end;
 
 implementation
@@ -251,6 +252,12 @@ begin
   // Oracle uses sequences via DUAL pseudo-table
   Result := Format('SELECT %s.NEXTVAL AS %s FROM DUAL',
     [GetFieldNameForSQL(SequenceName), GetFieldNameForSQL(PKFieldName)]);
+end;
+
+function TMVCSQLGeneratorOracle.UsesReturningIntoParams: Boolean;
+begin
+  // BuildOracleReturningClause emits "RETURNING col INTO :col_out"
+  Result := True;
 end;
 
 initialization

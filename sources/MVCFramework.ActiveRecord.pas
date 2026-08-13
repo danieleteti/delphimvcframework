@@ -1244,6 +1244,12 @@ type
     /// is required after execute. Default: True. Override and return False
     /// for engines without RETURNING (currently MySQL).</summary>
     function HandlesRefreshNatively: Boolean; virtual;
+    /// <summary>True when the RETURNING clause writes into bind parameters
+    /// (Oracle's RETURNING ... INTO :p_out) instead of producing a result set.
+    /// Such a statement must be executed, not opened, and the generated values
+    /// are read back from the parameters. Default: False (PG, Firebird, SQLite
+    /// and MSSQL all return a row).</summary>
+    function UsesReturningIntoParams: Boolean; virtual;
     // end-capabilities
 
     // abstract SQL generator methods
@@ -1789,6 +1795,9 @@ var
   lDSField: TField;
   lPKIdx: Integer;
   lAutoGenPK: TMVCPKInfo;
+  lVarRec: TVarRec;
+  lPKAsString: string;
+  lOutPar: TFDParam;
 begin
   // TFDQuery is used instead of TFDCommand because we may need to Open it
   // as a TDataSet to fetch generated keys or refreshed fields (RETURNING/OUTPUT).
@@ -1865,7 +1874,35 @@ begin
     lShouldRefreshFields := SQLGenerator.HandlesRefreshNatively and
       (fTableMap.RefreshFields.Count > 0);
 
-    if lShouldRefreshPK or lShouldRefreshFields then
+    if (lShouldRefreshPK or lShouldRefreshFields) and SQLGenerator.UsesReturningIntoParams then
+    begin
+      { Oracle: "RETURNING col INTO :col_out" hands the value back through a bind
+        parameter, so the statement must be executed and not opened, and FireDAC
+        refuses to prepare it until the output parameter is typed. }
+      lOutPar := nil;
+      if lShouldRefreshPK then
+      begin
+        lAutoGenPK := fTableMap.fPrimaryKeys[fTableMap.fAutoGenPKIndex];
+        lOutPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(lAutoGenPK.FieldName) + '_out');
+        if lOutPar <> nil then
+        begin
+          lOutPar.ParamType := ptOutput;
+          lOutPar.DataType := lAutoGenPK.FieldType;
+        end;
+      end;
+      lQry.ExecSQL;
+      if lOutPar <> nil then
+      begin
+        { Route the value through the same converter SetPKs uses, so a nullable
+          PK column is wrapped instead of being assigned raw. }
+        lVarRec.VType := System.vtUnicodeString;
+        lPKAsString := lOutPar.AsString;
+        lVarRec.VUnicodeString := Pointer(lPKAsString);
+        SetPKField(lAutoGenPK.RTTIField,
+          VarRecToTValueForPK(lAutoGenPK.RTTIField, lVarRec, lAutoGenPK.FieldType));
+      end;
+    end
+    else if lShouldRefreshPK or lShouldRefreshFields then
     begin
       lQry.Open;
       if not lQry.Eof then
@@ -6089,6 +6126,11 @@ end;
 function TMVCSQLGenerator.HandlesRefreshNatively: Boolean;
 begin
   Result := True;
+end;
+
+function TMVCSQLGenerator.UsesReturningIntoParams: Boolean;
+begin
+  Result := False;
 end;
 
 function TMVCSQLGenerator.HasSequences: Boolean;
