@@ -61,6 +61,7 @@ type
       const SequenceName: string;
       const Step: Integer = 1): string; override;
     function UsesReturningIntoParams: Boolean; override;
+    function HandlesRefreshNatively: Boolean; override;
   end;
 
 implementation
@@ -76,7 +77,6 @@ function TMVCSQLGeneratorOracle.BuildOracleReturningClause(
 var
   lCols: TStringList;
   lParams: TStringList;
-  lFieldInfo: TFieldInfo;
   lColsPart: string;
   lParamsPart: string;
   i: Integer;
@@ -89,11 +89,12 @@ begin
       lCols.Add(AutoGenPKFieldName(TableMap));
       lParams.Add(':' + GetParamNameForSQL(TableMap.fPrimaryKeys[TableMap.fAutoGenPKIndex].FieldName) + '_out');
     end;
-    for lFieldInfo in TableMap.RefreshFields do
-    begin
-      lCols.Add(GetFieldNameForSQL(lFieldInfo.FieldName));
-      lParams.Add(':' + GetParamNameForSQL(lFieldInfo.FieldName) + '_out');
-    end;
+    { foRefresh columns deliberately stay OUT of this clause. RETURNING ... INTO
+      writes into bind parameters, and FireDAC refuses to prepare a statement
+      whose output parameter has no type: the auto-generated primary key has a
+      declared TFieldType to give it, an arbitrary foRefresh column does not.
+      HandlesRefreshNatively is False for Oracle, so those columns are read back
+      by the separate SELECT in RefreshFromDB, the same way MySQL does it. }
     if lCols.Count = 0 then
     begin
       Result := '';
@@ -258,6 +259,13 @@ function TMVCSQLGeneratorOracle.UsesReturningIntoParams: Boolean;
 begin
   // BuildOracleReturningClause emits "RETURNING col INTO :col_out"
   Result := True;
+end;
+
+function TMVCSQLGeneratorOracle.HandlesRefreshNatively: Boolean;
+begin
+  // See the comment in BuildOracleReturningClause: foRefresh columns are read
+  // back by a separate SELECT, not through RETURNING ... INTO.
+  Result := False;
 end;
 
 initialization

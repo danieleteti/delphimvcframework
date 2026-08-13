@@ -1999,9 +1999,11 @@ var
   lSQL: string;
   lDS: TDataSet;
   lFieldInfo: TFieldInfo;
-  lPKValue: Variant;
   lPair: TPair<TRttiField, TFieldInfo>;
   lFirst: Boolean;
+  lParams: array of Variant;
+  lParamTypes: array of TFieldType;
+  I: Integer;
 begin
   if (fTableMap = nil) or (fTableMap.RefreshFields.Count = 0) then
     Exit;
@@ -2016,19 +2018,31 @@ begin
     lSQL := lSQL + SQLGenerator.GetFieldNameForSQL(lFieldInfo.FieldName);
     lFirst := False;
   end;
-  lSQL := lSQL +
-    ' FROM ' + SQLGenerator.GetTableNameForSQL(fTableMap.fTableName) +
-    ' WHERE ' + SQLGenerator.GetFieldNameForSQL(fTableMap.fPrimaryKeyFieldName) +
-    ' = :' + SQLGenerator.GetParamNameForSQL(fTableMap.fPrimaryKeyFieldName);
+  // WHERE over EVERY primary-key column. Filtering on the first one alone would
+  // refresh from an arbitrary row of the group on a composite key, and GetPK
+  // (used here before) raises outright on one. Single-PK: one term, as before.
+  lSQL := lSQL + ' FROM ' + SQLGenerator.GetTableNameForSQL(fTableMap.fTableName) + ' WHERE ';
+  for I := 0 to High(fTableMap.fPrimaryKeys) do
+  begin
+    if I > 0 then
+      lSQL := lSQL + ' AND ';
+    lSQL := lSQL + SQLGenerator.GetFieldNameForSQL(fTableMap.fPrimaryKeys[I].FieldName) +
+      ' = :' + SQLGenerator.GetParamNameForSQL(fTableMap.fPrimaryKeys[I].FieldName);
+  end;
 
-  // Get PK value as Variant. Use GetPK so nullable PKs (NullableInt64 etc.)
-  // are unwrapped to their inner int / string before being shipped as a
-  // FireDAC parameter — passing a record-shaped TValue would result in an
-  // Unassigned variant and a WHERE clause that matches no rows.
-  lPKValue := GetPK.AsVariant;
+  // Same param shape used by Refresh/Load: the value as a string plus its
+  // declared field type, so nullable PK columns are unwrapped by the shared
+  // converter instead of shipping a record-shaped TValue.
+  SetLength(lParams, Length(fTableMap.fPrimaryKeys));
+  SetLength(lParamTypes, Length(fTableMap.fPrimaryKeys));
+  for I := 0 to High(fTableMap.fPrimaryKeys) do
+  begin
+    lParams[I] := PKColumnValueAsString(I);
+    lParamTypes[I] := fTableMap.fPrimaryKeys[I].FieldType;
+  end;
 
   // Execute and map results back into the instance
-  lDS := ExecQuery(lSQL, [lPKValue], GetConnection, True, False);
+  lDS := ExecQuery(lSQL, lParams, lParamTypes, GetConnection, True, False);
   try
     if not lDS.Eof then
     begin
