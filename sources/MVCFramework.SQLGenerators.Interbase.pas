@@ -43,6 +43,7 @@ type
       const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord): string; override;
     function HasReturning: Boolean; override;
+    function HandlesRefreshNatively: Boolean; override;
   end;
 
 implementation
@@ -120,6 +121,17 @@ end;
 
 function TMVCSQLGeneratorInterbase.HasReturning: Boolean;
 begin
+  Result := False;
+end;
+
+function TMVCSQLGeneratorInterbase.HandlesRefreshNatively: Boolean;
+begin
+  { Inherited from the Firebird generator this answered True, which claims the
+    INSERT surfaces foRefresh columns through a RETURNING clause. Interbase has
+    no RETURNING and CreateInsertSQL above emits none, so the framework opened a
+    statement that returns no result set and the insert died with "Cannot open /
+    define command, which does not return result sets". Those columns are read
+    back by the separate SELECT in RefreshFromDB instead. }
   Result := False;
 end;
 
