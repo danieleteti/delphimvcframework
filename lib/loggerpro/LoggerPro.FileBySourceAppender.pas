@@ -107,6 +107,7 @@ type
 implementation
 
 uses
+  System.Types,
   System.IOUtils,
   System.DateUtils,
   System.StrUtils,
@@ -239,7 +240,7 @@ function TLoggerProFileBySourceAppender.FindCurrentSequence(
   const aSource, aTag, aDateStr: string): Integer;
 var
   lFolder, lPattern: string;
-  lFiles: TArray<string>;
+  lFiles: TStringDynArray;
   lFileName, lSeqStr: string;
   lSeq: Integer;
   lParts: TArray<string>;
@@ -390,7 +391,7 @@ end;
 
 procedure TLoggerProFileBySourceAppender.CleanupOldFiles;
 var
-  lDirs: TArray<string>;
+  lDirs: TStringDynArray;
   lDir: string;
 begin
   if FRetainDays <= 0 then
@@ -413,7 +414,7 @@ end;
 procedure TLoggerProFileBySourceAppender.CleanupSourceFolder(
   const aSourceFolder: string);
 var
-  lFiles: TArray<string>;
+  lFiles: TStringDynArray;
   lFile, lDateStr: string;
   lFileDate: TDateTime;
   lCutoffDate: TDateTime;
