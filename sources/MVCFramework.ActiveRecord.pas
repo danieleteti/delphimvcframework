@@ -2578,6 +2578,20 @@ end;
 
 class function TMVCActiveRecord.WrapRQLWithSoftDelete(
   const ATableMap: TMVCTableMap; const ARQL: string): string;
+
+  function StartsWithModifier(const AValue: string): Boolean;
+  var
+    lHead: string;
+  begin
+    // An RQL string is <filter>;<modifier>;<modifier>, and the modifiers
+    // always come last, so a string whose FIRST token is one carries no
+    // filter at all. The soft-delete condition then has to be prefixed as
+    // the filter: wrapping it instead would emit and(eq(deleted_at,null),
+    // sort(+name)), which is not valid RQL and fails to parse.
+    lHead := TrimLeft(AValue).ToLower;
+    Result := lHead.StartsWith('sort(') or lHead.StartsWith('limit(');
+  end;
+
 var
   lSoftFilter: string;
   lTrimmed: string;
@@ -2608,7 +2622,10 @@ begin
   lSemicolonPos := Pos(';', lTrimmed);
   if lSemicolonPos = 0 then
   begin
-    Result := 'and(' + lSoftFilter + ',' + lTrimmed + ')';
+    if StartsWithModifier(lTrimmed) then
+      Result := lSoftFilter + ';' + lTrimmed
+    else
+      Result := 'and(' + lSoftFilter + ',' + lTrimmed + ')';
   end
   else
   begin
@@ -2616,6 +2633,8 @@ begin
     lModifierPart := Copy(lTrimmed, lSemicolonPos, MaxInt);
     if lFilterPart = '' then
       Result := lSoftFilter + lModifierPart
+    else if StartsWithModifier(lFilterPart) then
+      Result := lSoftFilter + ';' + lTrimmed
     else
       Result := 'and(' + lSoftFilter + ',' + lFilterPart + ')' + lModifierPart;
   end;
@@ -2649,21 +2668,44 @@ begin
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
 
-function ComputeFieldHash(const ARTTIField: TRttiField; const AInstance: TObject): Cardinal;
+function HashStringInto(const AStr: string; const ASeed: Cardinal): Cardinal;
 var
-  lValue: TValue;
   lBytes: TBytes;
-  lStr: string;
 begin
-  lValue := ARTTIField.GetValue(AInstance);
-  lStr := lValue.ToString;
-  if lStr = '' then
-    Result := 0
-  else
+  if AStr = '' then
+    Exit(ASeed);
+  lBytes := TEncoding.UTF8.GetBytes(AStr);
+  Result := crc32(ASeed, @lBytes[0], Length(lBytes));
+end;
+
+function ComputeValueHash(const AValue: TValue; const ASeed: Cardinal): Cardinal;
+var
+  lField: TRttiField;
+  lRaw: Pointer;
+begin
+  // TValue.ToString on a record returns a type placeholder rather than the
+  // content, so hashing it directly would give every record-typed field the
+  // same hash forever. That silently disabled change tracking for every
+  // Nullable column: the edit stayed in memory, GetChangedFields did not
+  // report it, and the UPDATE left it out. Records are therefore hashed
+  // field by field, which reaches fValue and fHasValue of the Nullable
+  // types, and recursively for a record nested in a record.
+  Result := ASeed;
+  if AValue.Kind = tkRecord then
   begin
-    lBytes := TEncoding.UTF8.GetBytes(lStr);
-    Result := crc32(0, @lBytes[0], Length(lBytes));
-  end;
+    lRaw := AValue.GetReferenceToRawData;
+    if lRaw = nil then
+      Exit;
+    for lField in gCtx.GetType(AValue.TypeInfo).GetFields do
+      Result := ComputeValueHash(lField.GetValue(lRaw), Result);
+  end
+  else
+    Result := HashStringInto(AValue.ToString, Result);
+end;
+
+function ComputeFieldHash(const ARTTIField: TRttiField; const AInstance: TObject): Cardinal;
+begin
+  Result := ComputeValueHash(ARTTIField.GetValue(AInstance), 0);
 end;
 
 procedure TMVCActiveRecord.RebuildHashSnapshot;
