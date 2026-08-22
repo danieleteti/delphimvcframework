@@ -148,7 +148,13 @@ constructor TMVCRangeMediaMiddleware.Create(
 begin
   inherited Create;
   FURLPath := AURLPath.TrimRight(['/']);
-  FDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
+  // Normalise the root the same way ResolveFilePath normalises the candidate
+  // path. Without this, a document root written with URL separators (say
+  // 'www/media', which is what anyone copying the usage comment above will
+  // type) stays half '/' and half '', while GetFullPath returns an
+  // all-backslash path. The StartsWith traversal check then fails for every
+  // file and the middleware answers 404 for a folder that is right there.
+  FDocumentRoot := TPath.GetFullPath(TPath.Combine(AppPath, ADocumentRoot));
   // Ensure trailing separator so StartsWith check is unambiguous:
   // '/app/media' must not match sibling directory '/app/media_evil'
   if not FDocumentRoot.EndsWith(TPath.DirectorySeparatorChar) then
