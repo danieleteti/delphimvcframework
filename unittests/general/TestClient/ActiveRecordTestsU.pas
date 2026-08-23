@@ -2699,6 +2699,15 @@ end;
 
 procedure TTestActiveRecordBase.Teardown;
 begin
+  { RemoveDefaultConnection raises when the connection is missing, and DUnitX
+    attributes a Teardown error to the test that just passed: the report then
+    blames a healthy test with a message about a connection. Seen for real on
+    2026-08-23, never reproduced since. Leave this behind so the next
+    occurrence carries the thread it happened on instead of just a message. }
+  if ActiveRecordConnectionsRegistry.GetCurrent(False) = nil then
+    LogE(Format('%s.Teardown: no default connection on TID=%d (current name is [%s])',
+      [ClassName, TThread.CurrentThread.ThreadID,
+       ActiveRecordConnectionsRegistry.GetCurrentConnectionName(False)]));
   ActiveRecordConnectionsRegistry.RemoveDefaultConnection();
   fConnection.Close;
   FreeAndNil(fConnection);
