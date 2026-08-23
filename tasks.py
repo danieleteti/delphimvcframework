@@ -158,7 +158,6 @@ def copy_sources():
     ensure_dir_exists("packages", "Packages")
     ensure_dir_exists("tools\\entitygenerator", "Entity Generator tool")
     ensure_dir_exists("tools\\certificatesgenerator", "Certificates Generator tool")
-    ensure_dir_exists("tools\\sample_env_file", "Sample env file tool")
 
     os.makedirs(config.output_folder + "\\sources", exist_ok=True)
     os.makedirs(config.output_folder + "\\ideexpert", exist_ok=True)
@@ -180,7 +179,6 @@ def copy_sources():
         config.output_folder + "\\tools\\certificatesgenerator",
         ignore=ignore_patterns,
     )
-    copytree("tools\\sample_env_file", config.output_folder + "\\tools\\sample_env_file", ignore=ignore_patterns)
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")
