@@ -355,6 +355,12 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCSwagSummary('Streams', 'Streams the events', 'streamEvents')]
     procedure DescribedAction;
+    [MVCPath('/multiverb')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCHTTPMethod([httpPOST, httpPUT])]
+    procedure MultiVerbAction;
+    [MVCPath('/noverb')]
+    procedure NoVerbAction;
   end;
 
   [MVCSWAGDefaultSummaryTags('Events')]
@@ -373,6 +379,10 @@ type
     procedure InheritedActionWithoutDefaultTagsKeepsTheOldFallback;
     [Test]
     procedure SummaryIsFilledNotOnlyDescription;
+    [Test]
+    procedure AllowedMethodsUnionsEveryAttribute;
+    [Test]
+    procedure AllowedMethodsDefaultsToEveryVerb;
   end;
 
 implementation
@@ -2823,6 +2833,16 @@ begin
   // never called: this controller only exists to carry attributes
 end;
 
+procedure TSwagBaseController.MultiVerbAction;
+begin
+  // never called: this controller only exists to carry attributes
+end;
+
+procedure TSwagBaseController.NoVerbAction;
+begin
+  // never called: this controller only exists to carry attributes
+end;
+
 { TTestSwaggerMetadata }
 
 function TTestSwaggerMetadata.OperationFor(const AMethodName: string;
@@ -2861,7 +2881,7 @@ var
 begin
   lOperation := OperationFor('InheritedAction', ['Events']);
   try
-    Assert.AreEqual(1, lOperation.Tags.Count);
+    Assert.AreEqual<Integer>(1, lOperation.Tags.Count);
     {Before the fix this was the *declaring* class, so every controller
      inheriting the action ended up sharing one meaningless tag}
     Assert.AreEqual('Events', lOperation.Tags[0]);
@@ -2878,7 +2898,7 @@ begin
   SetLength(lNoTags, 0);
   lOperation := OperationFor('InheritedAction', lNoTags);
   try
-    Assert.AreEqual(1, lOperation.Tags.Count);
+    Assert.AreEqual<Integer>(1, lOperation.Tags.Count);
     Assert.AreEqual(TSwagBaseController.QualifiedClassName, lOperation.Tags[0]);
   finally
     lOperation.Free;
@@ -2901,6 +2921,38 @@ begin
     Assert.AreEqual('streamEvents', lOperation.OperationID);
   finally
     lOperation.Free;
+  end;
+end;
+
+procedure TTestSwaggerMetadata.AllowedMethodsUnionsEveryAttribute;
+var
+  lCtx: TRttiContext;
+begin
+  lCtx := TRttiContext.Create;
+  try
+    {Two [MVCHTTPMethod] on one action: the router unions them, and the doc
+     emitters ask the router, so they cannot disagree}
+    Assert.IsTrue(
+      TMVCRouter.AllowedMethods(
+        lCtx.GetType(TSwagDerivedController).GetMethod('MultiVerbAction').GetAttributes)
+      = [httpGET, httpPOST, httpPUT]);
+  finally
+    lCtx.Free;
+  end;
+end;
+
+procedure TTestSwaggerMetadata.AllowedMethodsDefaultsToEveryVerb;
+var
+  lCtx: TRttiContext;
+begin
+  lCtx := TRttiContext.Create;
+  try
+    Assert.IsTrue(
+      TMVCRouter.AllowedMethods(
+        lCtx.GetType(TSwagDerivedController).GetMethod('NoVerbAction').GetAttributes)
+      = [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE]);
+  finally
+    lCtx.Free;
   end;
 end;
 

@@ -142,6 +142,10 @@ type
       const aControllerMappedPaths: TStringList); static;
   public
     class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
+    { The verbs an action answers: the union of its [MVCHTTPMethod] attributes,
+      or every verb when it declares none. The Swagger and OpenAPI emitters call
+      this too, so what is documented cannot drift from what is routed. }
+    class function AllowedMethods(const AAttributes: TArray<TCustomAttribute>): TMVCHTTPMethods; static;
     { [PERF] Fast overload used by TMVCEngine. The engine owns ARouteTable
       across its lifetime and invalidates it when AddController is called,
       so the table is built once and reused. }
@@ -193,7 +197,7 @@ begin
   Result := (Pos('($', APath) > 0) or (Pos('\', APath) > 0);
 end;
 
-function AllowedMethods(const AAttributes: TArray<TCustomAttribute>): TMVCHTTPMethods;
+class function TMVCRouter.AllowedMethods(const AAttributes: TArray<TCustomAttribute>): TMVCHTTPMethods;
 var
   I: Integer;
   LFound: Boolean;
@@ -371,7 +375,7 @@ begin
                 LRoute.InjectableConstructor :=
                   TRttiUtils.GetConstructorWithAttribute<MVCInjectAttribute>(LRttiType);
 
-              AddRoute(LRoute, AllowedMethods(LMethodAttrs));
+              AddRoute(LRoute, TMVCRouter.AllowedMethods(LMethodAttrs));
             end;
           end;
         end;

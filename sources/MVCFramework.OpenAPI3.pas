@@ -232,6 +232,7 @@ uses
   System.Classes,
   System.StrUtils,
   System.SyncObjs,
+  MVCFramework.Router,
   MVCFramework.Swagger.Commons;
 
 function IsNullableTypeInfo_External(ATypeInfo: PTypeInfo): Boolean;
@@ -615,6 +616,7 @@ begin
     httpPATCH:   Result := 'patch';
     httpHEAD:    Result := 'head';
     httpOPTIONS: Result := 'options';
+    httpTRACE:   Result := 'trace';
   else
     Result := '';
   end;
@@ -1027,6 +1029,7 @@ begin
     httpPATCH:   Result := 'patch';
     httpHEAD:    Result := 'head';
     httpOPTIONS: Result := 'options';
+    httpTRACE:   Result := 'trace';
   else
     Result := '';
   end;
@@ -1441,7 +1444,6 @@ begin
 
       lActionPathFound := False;
       lActionPath := '';
-      lActionVerbs := [];
       for lAttr in lMethod.GetAttributes do
       begin
         if lAttr is MVCPathAttribute then
@@ -1449,9 +1451,10 @@ begin
           lActionPath := MVCPathAttribute(lAttr).Path;
           lActionPathFound := True;
         end;
-        if lAttr is MVCHTTPMethodsAttribute then
-          lActionVerbs := MVCHTTPMethodsAttribute(lAttr).MVCHTTPMethods;
       end;
+      {Same answer the router gives: the union of every [MVCHTTPMethod],
+       or all the verbs when the action declares none}
+      lActionVerbs := TMVCRouter.AllowedMethods(lMethod.GetAttributes);
 
       if not lActionPathFound then Continue;
       if lActionVerbs = [] then Continue;

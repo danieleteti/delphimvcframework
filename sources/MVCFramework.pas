@@ -1467,6 +1467,8 @@ type
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
+{Renders a verb set the way MVCHTTPMethodsAsString does: 'httpGET,httpPOST', or 'any' when empty}
+function MVCHTTPMethodsToString(const AMVCHTTPMethods: TMVCHTTPMethods): string;
 function GetErrorPageHandler(const ErrorPageURL: String): TMVCExceptionHandlerProc;
 
 type
@@ -1686,13 +1688,18 @@ begin
 end;
 
 function MVCHTTPMethodsAttribute.GetMVCHTTPMethodsAsString: string;
+begin
+  Result := MVCHTTPMethodsToString(FMVCHTTPMethods);
+end;
+
+function MVCHTTPMethodsToString(const AMVCHTTPMethods: TMVCHTTPMethods): string;
 var
   I: TMVCHTTPMethodType;
 begin
   Result := '';
 
   for I := low(TMVCHTTPMethodType) to high(TMVCHTTPMethodType) do
-    if I in FMVCHTTPMethods then
+    if I in AMVCHTTPMethods then
       Result := Result + ',' + GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(I));
 
   if Result <> EmptyStr then

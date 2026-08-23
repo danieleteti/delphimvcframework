@@ -101,7 +101,7 @@ type
 implementation
 
 uses
-  JsonDataObjects, MVCFramework.ActiveRecord;
+  JsonDataObjects, MVCFramework.ActiveRecord, MVCFramework.Router;
 
 function MSecToTime(mSec: Int64): string;
 const
@@ -203,7 +203,9 @@ begin
           LStrConsumes := '';
           LStrProduces := '';
           LStrDoc := '';
-          LStrHTTPMethods := 'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
+          {Same answer the router gives, verbatim}
+          LStrHTTPMethods := MVCHTTPMethodsToString(
+            TMVCRouter.AllowedMethods(LMethod.GetAttributes));
           for LAttribute in LMethod.GetAttributes do
           begin
             if LAttribute is MVCDocAttribute then
@@ -218,7 +220,6 @@ begin
             end;
             if LAttribute is MVCHTTPMethodAttribute then
             begin
-              LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethodsAsString;
               LFoundAttrib := true;
             end;
             if LAttribute is MVCConsumesAttribute then

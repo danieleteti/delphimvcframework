@@ -1619,6 +1619,8 @@ begin
       Result := ohvOptions;
     httpPATCH:
       Result := ohvPatch;
+    httpTRACE:
+      Result := ohvTrace;
   else
     Result := ohvNotDefined;
   end;

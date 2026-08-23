@@ -89,6 +89,7 @@ uses
   System.Classes,
   JsonDataObjects,
   System.Rtti,
+  MVCFramework.Router,
   Swag.Doc.Path,
   Swag.Doc.Path.Operation,
   Swag.Doc.Path.Operation.Response,
@@ -233,11 +234,10 @@ begin
                 lMethodPath := lMethodPath.Replace('($entityname)', lEntityMapping.Key, [rfReplaceAll]);
                 lFoundAttr := True;
               end;
-              if lAttr is MVCHTTPMethodsAttribute then
-              begin
-                lMVCHttpMethods := MVCHTTPMethodsAttribute(lAttr).MVCHTTPMethods;
-              end;
             end;
+            {Same answer the router gives: the union of every [MVCHTTPMethod],
+             or all the verbs when the action declares none}
+            lMVCHttpMethods := TMVCRouter.AllowedMethods(lMethod.GetAttributes);
 
             if (not lIsIgnoredPath) and lFoundAttr then
             begin
@@ -277,6 +277,11 @@ begin
 
               for I in lMVCHttpMethods do
               begin
+                {OpenAPI 2 has no slot for TRACE: emitting it would write an empty key}
+                if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
+                begin
+                  Continue;
+                end;
                 if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
                   lObjType.Name, lMethod.Name) then
                 begin
@@ -429,11 +434,10 @@ begin
               lMethodPath := MVCPathAttribute(lAttr).Path;
               lFoundAttr := True;
             end;
-            if lAttr is MVCHTTPMethodsAttribute then
-            begin
-              lMVCHttpMethods := MVCHTTPMethodsAttribute(lAttr).MVCHTTPMethods;
-            end;
           end;
+          {Same answer the router gives: the union of every [MVCHTTPMethod],
+           or all the verbs when the action declares none}
+          lMVCHttpMethods := TMVCRouter.AllowedMethods(lMethod.GetAttributes);
 
           if (not lIsIgnoredPath) and lFoundAttr then
           begin
@@ -473,6 +477,11 @@ begin
 
             for I in lMVCHttpMethods do
             begin
+              {OpenAPI 2 has no slot for TRACE: emitting it would write an empty key}
+              if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
+              begin
+                Continue;
+              end;
               if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
                 lObjType.Name, lMethod.Name) then
               begin
