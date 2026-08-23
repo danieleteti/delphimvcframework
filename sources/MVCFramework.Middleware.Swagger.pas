@@ -504,6 +504,13 @@ begin
                     lControllerDefaultModelPluralName)
                   );
                 lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+                if lSwagPathOp.OperationID.IsEmpty then
+                begin
+                  {Named after the concrete controller, not after the class declaring the
+                   method: two controllers inheriting the same action need distinct ids.}
+                  lSwagPathOp.OperationID := lObjType.Name + '_' + lMethod.Name + '_' +
+                    lSwagPathOp.OperationToString;
+                end;
                 lSwagPath.Operations.Add(lSwagPathOp);
                 lSwagPathOp := nil; // ownership transferred to lSwagPath.Operations
               except

@@ -34,7 +34,8 @@ uses
   MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
   MVCFramework.Serializer.Intf, MVCFramework.Serializer.Defaults,
   MVCFramework.MultiMap, MVCFramework.Commons, MVCFramework.Serializer.Commons,
-  MVCFramework.Crypt.Utils, MVCFramework.Filters, MVCFramework.MinimalAPI;
+  MVCFramework.Crypt.Utils, MVCFramework.Filters, MVCFramework.MinimalAPI,
+  MVCFramework.Swagger.Commons, Swag.Doc.Path.Operation, Swag.Doc.Definition;
 
 type
 
@@ -344,6 +345,36 @@ type
   end;
 
 
+  {An action declared only in the base class - the shape of TMVCSSEController.EventStream}
+  TSwagBaseController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    procedure InheritedAction;
+    [MVCPath('/described')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary('Streams', 'Streams the events', 'streamEvents')]
+    procedure DescribedAction;
+  end;
+
+  [MVCSWAGDefaultSummaryTags('Events')]
+  TSwagDerivedController = class(TSwagBaseController)
+  end;
+
+  [TestFixture]
+  TTestSwaggerMetadata = class(TObject)
+  private
+    function OperationFor(const AMethodName: string;
+      const ADefaultTags: TArray<String>): TSwagPathOperation;
+  public
+    [Test]
+    procedure InheritedActionUsesTheControllerDefaultTags;
+    [Test]
+    procedure InheritedActionWithoutDefaultTagsKeepsTheOldFallback;
+    [Test]
+    procedure SummaryIsFilledNotOnlyDescription;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -368,7 +399,7 @@ uses
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
-  MVCFramework.DotEnv.Parser, MVCFramework.Nullables;
+  MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -2780,6 +2811,99 @@ begin
   Assert.IsFalse(lNullInt.HasValue);
 end;
 
+{ TSwagBaseController }
+
+procedure TSwagBaseController.DescribedAction;
+begin
+  // never called: this controller only exists to carry attributes
+end;
+
+procedure TSwagBaseController.InheritedAction;
+begin
+  // never called: this controller only exists to carry attributes
+end;
+
+{ TTestSwaggerMetadata }
+
+function TTestSwaggerMetadata.OperationFor(const AMethodName: string;
+  const ADefaultTags: TArray<String>): TSwagPathOperation;
+var
+  lCtx: TRttiContext;
+  lDefinitions: TObjectList<TSwagDefinition>;
+begin
+  lCtx := TRttiContext.Create;
+  lDefinitions := TObjectList<TSwagDefinition>.Create(True);
+  try
+    Result := TSwagPathOperation.Create;
+    try
+      TMVCSwagger.FillOperationSummary(
+        Result,
+        lCtx.GetType(TSwagDerivedController).GetMethod(AMethodName),
+        lDefinitions,
+        httpGET,
+        nil,
+        '',
+        '',
+        ADefaultTags);
+    except
+      Result.Free;
+      raise;
+    end;
+  finally
+    lDefinitions.Free;
+    lCtx.Free;
+  end;
+end;
+
+procedure TTestSwaggerMetadata.InheritedActionUsesTheControllerDefaultTags;
+var
+  lOperation: TSwagPathOperation;
+begin
+  lOperation := OperationFor('InheritedAction', ['Events']);
+  try
+    Assert.AreEqual(1, lOperation.Tags.Count);
+    {Before the fix this was the *declaring* class, so every controller
+     inheriting the action ended up sharing one meaningless tag}
+    Assert.AreEqual('Events', lOperation.Tags[0]);
+  finally
+    lOperation.Free;
+  end;
+end;
+
+procedure TTestSwaggerMetadata.InheritedActionWithoutDefaultTagsKeepsTheOldFallback;
+var
+  lOperation: TSwagPathOperation;
+  lNoTags: TArray<String>;
+begin
+  SetLength(lNoTags, 0);
+  lOperation := OperationFor('InheritedAction', lNoTags);
+  try
+    Assert.AreEqual(1, lOperation.Tags.Count);
+    Assert.AreEqual(TSwagBaseController.QualifiedClassName, lOperation.Tags[0]);
+  finally
+    lOperation.Free;
+  end;
+end;
+
+procedure TTestSwaggerMetadata.SummaryIsFilledNotOnlyDescription;
+var
+  lOperation: TSwagPathOperation;
+  lNoTags: TArray<String>;
+begin
+  SetLength(lNoTags, 0);
+  lOperation := OperationFor('DescribedAction', lNoTags);
+  try
+    {Swagger UI titles the operation row with the summary: leaving it empty
+     is what made a documented endpoint look undocumented}
+    Assert.AreEqual('Streams the events', lOperation.Summary);
+    Assert.AreEqual('Streams the events', lOperation.Description);
+    Assert.AreEqual('Streams', lOperation.Tags[0]);
+    Assert.AreEqual('streamEvents', lOperation.OperationID);
+  finally
+    lOperation.Free;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -2796,6 +2920,7 @@ TDUnitX.RegisterTestFixture(TTestRQLCompiler);
 TDUnitX.RegisterTestFixture(TTestGenericNullables);
 TDUnitX.RegisterTestFixture(TTestStaticFilesTraversal);
 TDUnitX.RegisterTestFixture(TTestSecurityHelpers);
+TDUnitX.RegisterTestFixture(TTestSwaggerMetadata);
 
 finalization
 

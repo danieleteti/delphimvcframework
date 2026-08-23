@@ -1004,6 +1004,8 @@ begin
           MVCSwagSummaryAttribute(lAttr).Description,
           aControllerDefaultModelSingularName,
           aControllerDefaultModelPluralName);
+      {Swagger UI labels the operation row with "summary", not "description"}
+      aSwagPathOperation.Summary := aSwagPathOperation.Description;
       aSwagPathOperation.OperationID :=
           //GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) + '.' +
           ApplyModelName(
@@ -1123,7 +1125,14 @@ begin
   end;
 
   if aSwagPathOperation.Tags.Count = 0 then
-    aSwagPathOperation.Tags.Add(aMethod.Parent.QualifiedName);
+  begin
+    {An action inherited from a base controller carries no attribute of its own:
+     the tags declared on the concrete controller are the only ones available.}
+    if Length(aControllerDefaultSummaryTags) > 0 then
+      aSwagPathOperation.Tags.AddRange(aControllerDefaultSummaryTags)
+    else
+      aSwagPathOperation.Tags.Add(aMethod.Parent.QualifiedName);
+  end;
 
   if aSwagPathOperation.Produces.Count <= 0 then
     aSwagPathOperation.Produces.Add(TMVCMediaType.APPLICATION_JSON);
