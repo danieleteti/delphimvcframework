@@ -337,6 +337,10 @@ begin
       lCookieStr := lCookieStr + '; Secure';
     if lCookie.HttpOnly then
       lCookieStr := lCookieStr + '; HttpOnly';
+    {$IF CompilerVersion >= 35.0}  // TCookie.SameSite exists since 10.4.2, but CompilerVersion is 34.0 for the whole 10.4 line: gate at 11
+    if lCookie.SameSite <> '' then
+      lCookieStr := lCookieStr + '; SameSite=' + lCookie.SameSite;
+    {$ENDIF}
 
     lUnknownHeaderNames[lUnknownCount] := 'Set-Cookie';
     lUnknownHeaderValues[lUnknownCount] := UTF8String(lCookieStr);

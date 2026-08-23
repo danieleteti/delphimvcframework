@@ -565,7 +565,7 @@ begin
     lCookie.Value := AJSONOb.S['token'];
     lCookie.HttpOnly := True;
     lCookie.Secure := True;
-    {$IF CompilerVersion >= 35.0}  // TCookie.SameSite added in Delphi 11 Alexandria
+    {$IF CompilerVersion >= 35.0}  // TCookie.SameSite exists since 10.4.2, but CompilerVersion is 34.0 for the whole 10.4 line: gate at 11
     lCookie.SameSite := 'Strict';
     {$ENDIF}
   end;
@@ -599,7 +599,7 @@ begin
   Cookie.Path := '/';
   Cookie.HttpOnly := True;
   Cookie.Secure := True;
-  {$IF CompilerVersion >= 35.0}  // TCookie.SameSite added in Delphi 11 Alexandria
+  {$IF CompilerVersion >= 35.0}  // TCookie.SameSite exists since 10.4.2, but CompilerVersion is 34.0 for the whole 10.4 line: gate at 11
   Cookie.SameSite := 'Strict';
   {$ENDIF}
 
@@ -1140,7 +1140,7 @@ begin
     ssLax: lSameSite := 'Lax';
     ssNone: lSameSite := 'None';
   end;
-  {$IF CompilerVersion >= 35.0}  // TCookie.SameSite added in Delphi 11 Alexandria
+  {$IF CompilerVersion >= 35.0}  // TCookie.SameSite exists since 10.4.2, but CompilerVersion is 34.0 for the whole 10.4 line: gate at 11
   lCookie.SameSite := lSameSite;
   {$ENDIF}
 end;

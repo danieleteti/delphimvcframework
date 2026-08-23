@@ -833,6 +833,7 @@ procedure TServerTest.TestCookies;
 var
   res: IMVCRESTResponse;
   I: Integer;
+  lHTTP: TIdHTTP;
 begin
   res := RESTClient.Get('/lotofcookies');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
@@ -843,6 +844,18 @@ begin
     Assert.areEqual('usersettings' + IntToStr(I + 1) + '-value', res.Cookies[I].Value);
     Assert.areEqual('/usersettings' + IntToStr(I + 1) + '/', res.Cookies[I].Path);
   end;
+  {$IF CompilerVersion >= 35.0}
+  // neither THTTPClient's Headers nor its TCookie expose SameSite: read the
+  // raw Set-Cookie lines off the wire
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    lHTTP.Get(GetServer + '/lotofcookies');
+    Assert.Contains(lHTTP.Response.RawHeaders.Text, 'SameSite=Strict', True,
+      'SameSite dropped by the response adapter');
+  finally
+    lHTTP.Free;
+  end;
+  {$ENDIF}
 
 end;
 

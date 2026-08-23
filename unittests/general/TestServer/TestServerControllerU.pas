@@ -786,24 +786,36 @@ begin
   c.value := 'usersettings1-value';
   c.Path := '/usersettings1';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings2';
   c.value := 'usersettings2-value';
   c.Path := '/usersettings2';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings3';
   c.value := 'usersettings3-value';
   c.Path := '/usersettings3';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings4';
   c.value := 'usersettings4-value';
   c.Path := '/usersettings4';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
 end;
 

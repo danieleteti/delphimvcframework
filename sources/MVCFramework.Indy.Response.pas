@@ -240,6 +240,9 @@ begin
       Expires := lCookie.Expires;
       Secure := lCookie.Secure;
       HttpOnly := lCookie.HttpOnly;
+      {$IF CompilerVersion >= 35.0}  // TCookie.SameSite exists since 10.4.2, but CompilerVersion is 34.0 for the whole 10.4 line: gate at 11
+      SameSite := lCookie.SameSite;
+      {$ENDIF}
     end;
   end;
 
