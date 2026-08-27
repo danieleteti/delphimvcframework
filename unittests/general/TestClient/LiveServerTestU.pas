@@ -104,6 +104,14 @@ type
     [Test]
     procedure TestPatchIsRoutedAsPatch;
     [Test]
+    procedure TestQueryEchoesBody;
+    [Test]
+    procedure TestQueryOnGetOnlyRouteIsNotFound;
+    [Test]
+    procedure TestQueryRespectsConsumes;
+    [Test]
+    procedure TestGetOnQueryRouteIsNotFound;
+    [Test]
     procedure TestCustomerEchoBodyFor;
     [Test]
     procedure TestPOSTWithoutContentType;
@@ -828,6 +836,51 @@ begin
     '{"firstname":"Daniele","lastname":"Teti","dob":"1979-11-04","married":true}');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
   Assert.Contains(lRes.Content, 'Daniele');
+end;
+
+procedure TServerTest.TestQueryEchoesBody;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Query('/query/echo', '{"q":"pippo"}');
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.areEqual('{"q":"pippo"}', lRes.Content, 'QUERY body was not delivered verbatim');
+end;
+
+procedure TServerTest.TestQueryOnGetOnlyRouteIsNotFound;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Query('/query/getonly', '{"q":"pippo"}');
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, lRes.StatusCode,
+    'QUERY behaved as a wildcard verb on a GET-only route');
+end;
+
+procedure TServerTest.TestQueryRespectsConsumes;
+var
+  lRes: IMVCRESTResponse;
+begin
+  {A Consumes mismatch makes the route not match at all, so the framework
+   answers 404 - the same it does for POST/PUT/PATCH. The point here is that
+   QUERY is treated as a verb WITH content, so Consumes is evaluated at all.}
+  lRes := RESTClient.Query('/query/consumes', '{"q":1}', TMVCMediaType.APPLICATION_JSON);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.areEqual('{"q":1}', lRes.Content);
+
+  lRes := RESTClient.Query('/query/consumes', 'plain text', TMVCMediaType.TEXT_PLAIN);
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, lRes.StatusCode,
+    'MVCConsumes was not applied to a QUERY route');
+end;
+
+procedure TServerTest.TestGetOnQueryRouteIsNotFound;
+var
+  lRes: IMVCRESTResponse;
+begin
+  {Guards the HTTP.sys request adapter, which used to answer "httpGET" for every
+   verb it could not map: a GET reaching a QUERY-only route would then be a 200.}
+  lRes := RESTClient.Get('/query/echo');
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, lRes.StatusCode,
+    'GET was routed to a QUERY-only action');
 end;
 
 procedure TServerTest.TestControllerWithExceptionInCreate(const URLSegment: string);

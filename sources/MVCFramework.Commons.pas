@@ -52,7 +52,9 @@ uses
 
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE);
+  { httpQUERY is appended on purpose: the ordinal of every other member must not move. }
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE,
+    httpQUERY);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
@@ -732,7 +734,7 @@ function SnakeCase(const Value: string): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
-  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
+  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH, httpQUERY];
 
 const
   MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');

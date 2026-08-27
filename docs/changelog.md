@@ -94,6 +94,56 @@ TMVCListener.Create(TMVCListenerProperties.New
 
 ### Added
 
+- **The `QUERY` HTTP method (RFC 10008).** `QUERY` is safe and idempotent
+  like `GET`, but it carries a request body: the query travels in the
+  payload instead of the URL, so it is not URL-length limited and does not
+  end up in access logs, proxy caches or browser history. It was the one
+  combination `TMVCHTTPMethodType` could not express.
+
+  ```pascal
+  [MVCPath('/search')]
+  [MVCHTTPMethod([httpQUERY])]
+  function Search: IMVCResponse;
+  ```
+
+  It works the same way in the Minimal API - `MapMethods` already takes a
+  set of verbs, so there is no `MapQuery`:
+
+  ```pascal
+  lEngine.Root.MapMethods('/search', [httpQUERY],
+    function(const AFilter: TSearchFilter): IMVCResponse
+    begin
+      Result := OKResponse(DoSearch(AFilter));
+    end);
+  ```
+
+  `IMVCRESTClient` gains `Query` in the same three overloads as `Patch`.
+  `MVCConsumes` applies to a `QUERY` route exactly as it does to `POST`.
+
+  Caveats worth knowing before you deploy one:
+
+  - **Cross-origin:** the default `Access-Control-Allow-Methods` of the CORS
+    filter and middleware does **not** include `QUERY`, and is deliberately
+    left unchanged. Pass the whole list explicitly (it is the fifth argument)
+    if a browser on another origin must call the endpoint:
+
+    ```pascal
+    CORS('*', False, '', 'Content-Type,Authorization',
+      'GET,POST,PUT,DELETE,PATCH,OPTIONS,QUERY')
+    ```
+  - **CSRF:** treat `QUERY` like `POST`, not like `GET`. It is safe by the
+    specification, but it carries a body and a same-origin `QUERY` is not
+    preflighted, so a `QUERY`-only endpoint needs the same token check a
+    `POST` one does.
+  - **Documentation:** `QUERY` does not appear in the generated Swagger or
+    OpenAPI output. The `query` path-item slot only exists in OpenAPI 3.2;
+    SwagDoc emits OpenAPI 2 and the native emitter targets 3.1. Both skip
+    the verb rather than writing an invalid document. This lands with the
+    OpenAPI 3.2 emitter in 4.0.
+  - **Hosts:** verified end to end on Indy Direct, HTTP.sys, WebBroker,
+    Apache 2.4 and IIS Express ISAPI. None of them filters the verb before
+    it reaches the framework.
+
 - **Pluggable HTTP server backends** behind a new `IMVCServer` interface
   (`MVCFramework.Server.Intf`). Three concrete backends ship out of the
   box:
@@ -200,6 +250,18 @@ TMVCListener.Create(TMVCListenerProperties.New
 
 ### Changed
 
+- **`TMVCHTTPMethodType` has a ninth member, `httpQUERY`.** It is appended
+  at the end of the enumeration, so no existing ordinal moved and no
+  persisted value changed meaning. Two consequences:
+  - Third-party code with a `case` over `TMVCHTTPMethodType` and **no `else`
+    branch** now falls through silently when handed `httpQUERY`. Add the
+    branch, or an `else`.
+  - An action declaring `[MVCPath]` and **no** `[MVCHTTPMethod]` answers
+    every verb. That set now has nine members instead of eight, so such an
+    action also answers `QUERY`. It already answered `DELETE`, `PUT` and
+    `TRACE`; `QUERY` opens no surface that was not already open. Declare
+    `[MVCHTTPMethod([...])]` if you want the route narrowed.
+
 - Default `TGUID` serialisation format is now dashes-only (RFC 4122)
   instead of `{braces}`. See **BREAKING CHANGES** above for migration.
 - `TDate` / `TDateTime` / `TTime` zero no longer serialises as JSON
@@ -217,6 +279,17 @@ TMVCListener.Create(TMVCListenerProperties.New
   compiling with a deprecation warning until you migrate.
 
 ### Fixed
+
+- **HTTP.sys dispatched `SEARCH` - and a dozen other verbs - as `GET`.**
+  The HTTP.sys request adapter mapped the kernel's `HTTP_VERB` enumeration
+  to `TMVCHTTPMethodType` with a `case` that covered seven verbs and
+  answered `httpGET` for everything else, while its guard let the whole
+  `OPTIONS..SEARCH` range through. `SEARCH`, `CONNECT`, `TRACK`, `MOVE`,
+  `COPY`, `PROPFIND`, `PROPPATCH`, `MKCOL`, `LOCK` and `UNLOCK` therefore
+  reached the router as `GET` requests, silently: a `GET`-only action could
+  be invoked with any of them. The adapter now parses the verb string it
+  had already computed, which is what the Indy and WebBroker adapters have
+  always done. Only the HTTP.sys host was affected.
 
 - **`Single` properties no longer leak the imprecise Extended tail on
   the wire.** Both the legacy and the streaming serializers now

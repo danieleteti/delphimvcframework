@@ -238,6 +238,21 @@ type
     [MVCProduces('application/json')]
     procedure TestWithAllVerbs;
 
+    {QUERY (RFC 10008): safe, idempotent, and it carries a body. Echo the body
+     verbatim - rendering a constant here would pass even if the body were dropped.}
+    [MVCPath('/query/echo')]
+    [MVCHTTPMethod([httpQUERY])]
+    procedure TestQueryEchoBody;
+
+    [MVCPath('/query/getonly')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestQueryGetOnly;
+
+    [MVCPath('/query/consumes')]
+    [MVCHTTPMethod([httpQUERY])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    procedure TestQueryConsumes;
+
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
     procedure TestHelloWorld;
@@ -1697,6 +1712,24 @@ var
 begin
   lPerson := Context.Request.BodyAs<TPerson>();
   Render(lPerson, True);
+end;
+
+procedure TTestServerController.TestQueryEchoBody;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Context.Request.Body);
+end;
+
+procedure TTestServerController.TestQueryGetOnly;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render('get-only');
+end;
+
+procedure TTestServerController.TestQueryConsumes;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Context.Request.Body);
 end;
 
 procedure TTestServerController.Tmpl_ListOfDataUsingDatasets;

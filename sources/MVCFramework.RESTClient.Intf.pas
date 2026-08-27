@@ -459,6 +459,32 @@ type
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Execute a Query request. The QUERY method (RFC 10008) is a safe, idempotent
+    /// request that carries a body: the query itself travels in the payload instead
+    /// of the URL, so it is not length-limited and not logged as part of the URL.
+    /// </summary>
+    /// <remarks>
+    /// <c>aBody</c> is routed through two different paths based on its runtime type:
+    /// non-stream <c>TObject</c> instances are serialised through the configured
+    /// <see cref="IMVCSerializer" /> as JSON; <c>TStream</c> descendants bypass the
+    /// serializer and their raw bytes are sent as the request body with content-type
+    /// <c>application/json</c>. See <see cref="Post" /> for the full rationale.
+    /// </remarks>
+    function Query(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Query request. The QUERY method (RFC 10008) is a safe, idempotent
+    /// request that carries a body.
+    /// </summary>
+    function Query(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Query request. The QUERY method (RFC 10008) is a safe, idempotent
+    /// request that carries a body.
+    /// </summary>
+    function Query: IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.
     /// </summary>
     /// <remarks>

@@ -1624,7 +1624,7 @@ end;
 class function TMVCMinimalArgResolver.IsHTTPMethodWithBody(
   const AMethod: TMVCHTTPMethodType): Boolean;
 begin
-  Result := AMethod in [httpPOST, httpPUT, httpPATCH];
+  Result := AMethod in [httpPOST, httpPUT, httpPATCH, httpQUERY];
 end;
 
 { -------------------------------------------------------------------------- }

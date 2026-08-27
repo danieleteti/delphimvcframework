@@ -474,6 +474,15 @@ type
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Execute a Query request (RFC 10008).
+    /// </summary>
+    function Query(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Query(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    function Query: IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Execute a Put request.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
@@ -1443,6 +1452,8 @@ begin
       Result := 'PATCH';
     httpTRACE:
       Result := 'TRACE';
+    httpQUERY:
+      Result := 'QUERY';
   end;
 end;
 
@@ -1601,6 +1612,44 @@ begin
   end;
 
   Result := Patch(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TMVCRESTClient.Query(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+
+  Result := Query;
+end;
+
+function TMVCRESTClient.Query: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpQUERY);
+end;
+
+function TMVCRESTClient.Query(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
+begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Query;
+    Exit;
+  end;
+
+  Result := Query(aResource, SerializeObject(aBody));
 
   if aOwnsBody then
     aBody.Free;

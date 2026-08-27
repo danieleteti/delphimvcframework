@@ -35,7 +35,8 @@ uses
   MVCFramework.Serializer.Intf, MVCFramework.Serializer.Defaults,
   MVCFramework.MultiMap, MVCFramework.Commons, MVCFramework.Serializer.Commons,
   MVCFramework.Crypt.Utils, MVCFramework.Filters, MVCFramework.MinimalAPI,
-  MVCFramework.Swagger.Commons, Swag.Doc.Path.Operation, Swag.Doc.Definition;
+  MVCFramework.Swagger.Commons, Swag.Doc.Path.Operation, Swag.Doc.Definition,
+  Swag.Common.Types, Swag.Common.Consts;
 
 type
 
@@ -60,6 +61,10 @@ type
     procedure TestPathWithParameters;
     [Test]
     procedure TestWithMethodTypes;
+    [Test]
+    procedure TestStringMethodToHTTPMetodKnowsQUERY;
+    [Test]
+    procedure TestStringMethodToHTTPMetodRejectsUnknownVerbs;
     [Test]
     procedure TestComplexRoutings;
     [Test]
@@ -383,6 +388,8 @@ type
     procedure AllowedMethodsUnionsEveryAttribute;
     [Test]
     procedure AllowedMethodsDefaultsToEveryVerb;
+    [Test]
+    procedure VerbsOpenAPI2CannotExpressAreSkipped;
   end;
 
 implementation
@@ -465,6 +472,22 @@ begin
   FControllers.Free;
   FMVCActionParamsCache.Free;
   FConfig.Free;
+end;
+
+procedure TTestRouting.TestStringMethodToHTTPMetodKnowsQUERY;
+begin
+  Assert.IsTrue(TMVCRouter.StringMethodToHTTPMetod('QUERY') = httpQUERY);
+end;
+
+procedure TTestRouting.TestStringMethodToHTTPMetodRejectsUnknownVerbs;
+begin
+  {Guardrail: an unmapped verb must still fail loudly. A permissive fallback
+   here would silently dispatch it as some other verb.}
+  Assert.WillRaise(
+    procedure
+    begin
+      TMVCRouter.StringMethodToHTTPMetod('FROB');
+    end, EMVCException);
 end;
 
 procedure TTestRouting.TestComplexRoutings;
@@ -2950,10 +2973,20 @@ begin
     Assert.IsTrue(
       TMVCRouter.AllowedMethods(
         lCtx.GetType(TSwagDerivedController).GetMethod('NoVerbAction').GetAttributes)
-      = [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE]);
+      = [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE,
+        httpQUERY]);
   finally
     lCtx.Free;
   end;
+end;
+
+procedure TTestSwaggerMetadata.VerbsOpenAPI2CannotExpressAreSkipped;
+begin
+  {OpenAPI 2 has no "query" path item. The mapper answers ohvNotDefined, whose
+   verb string is empty - both Swagger walkers must Continue on it, or the
+   emitted swagger.json carries an empty key and is malformed.}
+  Assert.IsTrue(TMVCSwagger.MVCHttpMethodToSwagPathOperation(httpQUERY) = ohvNotDefined);
+  Assert.areEqual('', c_SwagPathOperationHttpVerbs[ohvNotDefined]);
 end;
 
 initialization

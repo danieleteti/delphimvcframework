@@ -211,7 +211,8 @@ begin
       LFound := True;
     end;
   if not LFound then
-    Result := [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE];
+    Result := [httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE,
+      httpQUERY];
 end;
 
 { TMVCRouteTable }
@@ -761,6 +762,8 @@ begin
     Exit(httpPATCH);
   if aValue = 'TRACE' then
     Exit(httpTRACE);
+  if aValue = 'QUERY' then
+    Exit(httpQUERY);
   raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
 end;
 
