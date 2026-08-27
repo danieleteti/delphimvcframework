@@ -102,6 +102,8 @@ type
     [Test]
     procedure TestEchoWithAllVerbs;
     [Test]
+    procedure TestPatchIsRoutedAsPatch;
+    [Test]
     procedure TestCustomerEchoBodyFor;
     [Test]
     procedure TestPOSTWithoutContentType;
@@ -813,6 +815,19 @@ begin
   lRes := RESTClient.Get('/private/role1session');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
   Assert.areEqual('johndoe', lRes.Content);
+end;
+
+procedure TServerTest.TestPatchIsRoutedAsPatch;
+var
+  lRes: IMVCRESTResponse;
+begin
+  {PATCH is not one of the verbs HTTP.sys parses itself, so it arrives as
+   HttpVerbUnknown and the host has to read the verb string out of the kernel
+   buffer. That path was broken and no live test covered it.}
+  lRes := RESTClient.Patch('/echowithallverbs',
+    '{"firstname":"Daniele","lastname":"Teti","dob":"1979-11-04","married":true}');
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.Contains(lRes.Content, 'Daniele');
 end;
 
 procedure TServerTest.TestControllerWithExceptionInCreate(const URLSegment: string);

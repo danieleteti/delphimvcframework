@@ -391,7 +391,24 @@ var
   LRequest: TMVCHttpSysRequest;
   LResponse: TMVCHttpSysResponse;
 begin
-  LRequest := TMVCHttpSysRequest.Create(ARequest, ABodyBytes, FPort, FEngine.Serializers);
+  try
+    LRequest := TMVCHttpSysRequest.Create(ARequest, ABodyBytes, FPort, FEngine.Serializers);
+  except
+    on EMVCException do
+    begin
+      { The verb is parsed here, before the engine has a request to hand to its
+        own exception handling: without this the connection would just be
+        dropped. Answer 501, which is what an unknown method deserves. }
+      LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
+      try
+        LResponse.StatusCode := HTTP_STATUS.NotImplemented;
+        LResponse.Flush;
+      finally
+        LResponse.Free;
+      end;
+      Exit;
+    end;
+  end;
   try
     LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
     try

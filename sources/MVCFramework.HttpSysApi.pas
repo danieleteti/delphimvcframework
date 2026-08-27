@@ -39,6 +39,11 @@ interface
 uses
   Winapi.Windows, Winapi.WinSock;
 
+{ Every enumeration below mirrors a C enum, which the Windows headers lay out
+  as a 4-byte int. Delphi's default is the smallest type that fits (1 byte
+  here), which silently shifts every record field declared after one. }
+{$MINENUMSIZE 4}
+
 const
   HTTPAPI_DLL = 'httpapi.dll';
   HTTP_INITIALIZE_SERVER = 1;
