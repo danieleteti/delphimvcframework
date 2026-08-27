@@ -107,7 +107,6 @@ type
     class function GetKnownHeader(const AHeaders: HTTP_REQUEST_HEADERS; AId: HTTP_HEADER_ID): string; static;
     class function ExtractClientIp(const AAddress: HTTP_TRANSPORT_ADDRESS): string; static;
     class function VerbToString(AVerb: HTTP_VERB; pUnknownVerb: PAnsiChar; UnknownVerbLength: USHORT): string; static;
-    class function VerbToHTTPMethod(AVerb: HTTP_VERB): TMVCHTTPMethodType; static;
   protected
     function GetHeader(const AName: string): string; override;
     function GetPathInfo: string; override;
@@ -233,22 +232,6 @@ begin
     Result := 'UNKNOWN';
 end;
 
-class function TMVCHttpSysRequest.VerbToHTTPMethod(AVerb: HTTP_VERB): TMVCHTTPMethodType;
-begin
-  case AVerb of
-    HttpVerbGET:     Result := httpGET;
-    HttpVerbPOST:    Result := httpPOST;
-    HttpVerbPUT:     Result := httpPUT;
-    HttpVerbDELETE:  Result := httpDELETE;
-    HttpVerbHEAD:    Result := httpHEAD;
-    HttpVerbOPTIONS: Result := httpOPTIONS;
-    HttpVerbTRACE:   Result := httpTRACE;
-  else
-    { For PATCH and others, fall through to string-based parsing }
-    Result := httpGET;
-  end;
-end;
-
 constructor TMVCHttpSysRequest.Create(const ARequest: PHTTP_REQUEST;
   const ABodyBytes: TBytes;
   AServerPort: Integer;
@@ -263,10 +246,7 @@ begin
 
   { HTTP method }
   FHTTPMethodStr := VerbToString(ARequest.Verb, ARequest.pUnknownVerb, ARequest.UnknownVerbLength);
-  if (ARequest.Verb >= HttpVerbOPTIONS) and (ARequest.Verb <= HttpVerbSEARCH) then
-    FHTTPMethod := VerbToHTTPMethod(ARequest.Verb)
-  else
-    FHTTPMethod := TMVCRouter.StringMethodToHTTPMetod(FHTTPMethodStr);
+  FHTTPMethod := TMVCRouter.StringMethodToHTTPMetod(FHTTPMethodStr);
 
   { URL: raw URL is PAnsiChar }
   if (ARequest.pRawUrl <> nil) and (ARequest.RawUrlLength > 0) then
