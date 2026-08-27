@@ -392,6 +392,31 @@ type
     procedure VerbsOpenAPI2CannotExpressAreSkipped;
   end;
 
+  // Guards the JsonMaxNestingDepth patch carried on top of the vendored
+  // JsonDataObjects.pas. Upstream (ahausladen/JsonDataObjects) has no nesting
+  // limit: its recursive-descent parser spends one stack frame per '{' or '[',
+  // so ~8500 levels -- 34 KB of perfectly valid JSON, well under the 5 MiB
+  // DEFAULT_MAX_REQUEST_SIZE -- kill a Win64 process outright, with no
+  // exception to catch. If a future re-sync with upstream drops the patch this
+  // fixture must fail, and it is written to fail loudly: merely referencing
+  // JsonMaxNestingDepth means the unit stops compiling without it.
+  [TestFixture]
+  TTestJSONNestingDepth = class(TObject)
+  private
+    function NestedJSON(const ADepth: Integer; const AArrays: Boolean): string;
+  public
+    [Test]
+    procedure TheLimitIsInPlaceAndSane;
+    [Test]
+    procedure AtTheLimitItParses;
+    [Test]
+    procedure PastTheLimitItRaisesInsteadOfCrashing;
+    [Test]
+    procedure StrToJSONObjectSurvivesADeeplyNestedBody;
+    [Test]
+    procedure TheDepthCounterDoesNotLeakAcrossParses;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -416,7 +441,8 @@ uses
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
-  MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti;
+  MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti,
+  JsonDataObjects;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -2989,6 +3015,134 @@ begin
   Assert.areEqual('', c_SwagPathOperationHttpVerbs[ohvNotDefined]);
 end;
 
+{ TTestJSONNestingDepth }
+
+function TTestJSONNestingDepth.NestedJSON(const ADepth: Integer;
+  const AArrays: Boolean): string;
+var
+  I: Integer;
+  lSB: TStringBuilder;
+  lOpen, lClose: string;
+begin
+  if AArrays then
+  begin
+    lOpen := '[';
+    lClose := ']';
+  end
+  else
+  begin
+    lOpen := '{"a":';
+    lClose := '}';
+  end;
+  lSB := TStringBuilder.Create;
+  try
+    for I := 1 to ADepth do
+      lSB.Append(lOpen);
+    lSB.Append('1');
+    for I := 1 to ADepth do
+      lSB.Append(lClose);
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
+end;
+
+procedure TTestJSONNestingDepth.TheLimitIsInPlaceAndSane;
+begin
+  Assert.IsTrue(JsonMaxNestingDepth > 0,
+    'JsonMaxNestingDepth is disabled: the vendored JsonDataObjects.pas is ' +
+    'unprotected against stack exhaustion from nested JSON. Was the depth ' +
+    'patch lost in a re-sync with upstream?');
+  Assert.IsTrue(JsonMaxNestingDepth <= 4096,
+    'JsonMaxNestingDepth is too high to keep the parser inside the stack');
+end;
+
+procedure TTestJSONNestingDepth.AtTheLimitItParses;
+var
+  lJSON: TJsonBaseObject;
+begin
+  // The limit must not be so tight that legitimate documents break.
+  lJSON := TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth, False));
+  try
+    Assert.IsNotNull(lJSON, 'a document at exactly the limit must parse');
+  finally
+    lJSON.Free;
+  end;
+
+  lJSON := TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth, True));
+  try
+    Assert.IsNotNull(lJSON, 'a document at exactly the limit must parse');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TTestJSONNestingDepth.PastTheLimitItRaisesInsteadOfCrashing;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth + 1, False)).Free;
+    end, EJsonParserException);
+
+  Assert.WillRaise(
+    procedure
+    begin
+      TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth + 1, True)).Free;
+    end, EJsonParserException);
+
+  Assert.WillRaise(
+    procedure
+    begin
+      TJsonBaseObject.ParseUtf8(UTF8Encode(NestedJSON(JsonMaxNestingDepth + 1, False))).Free;
+    end, EJsonParserException);
+
+  // IsValidJSON() swallows parser exceptions and answers False. Without the
+  // limit it does not answer at all: it takes the process with it.
+  Assert.IsFalse(IsValidJSON(NestedJSON(JsonMaxNestingDepth + 1, False)),
+    'IsValidJSON accepted a document nested past the limit');
+end;
+
+procedure TTestJSONNestingDepth.StrToJSONObjectSurvivesADeeplyNestedBody;
+var
+  lDeep: string;
+begin
+  // This is the path a request body actually travels.
+  lDeep := NestedJSON(JsonMaxNestingDepth + 1, False);
+
+  Assert.IsNull(StrToJSONObject(lDeep),
+    'StrToJSONObject must answer nil on a body nested past the limit');
+
+  Assert.WillRaise(
+    procedure
+    begin
+      StrToJSONObject(lDeep, True).Free;
+    end, EMVCDeserializationException);
+end;
+
+procedure TTestJSONNestingDepth.TheDepthCounterDoesNotLeakAcrossParses;
+var
+  I: Integer;
+  lJSON: TJsonBaseObject;
+begin
+  // Every aborted parse leaves its reader with FDepth > 0. If the counter were
+  // not reset per parse, the Nth valid document would start out already "deep".
+  for I := 1 to 3 do
+    try
+      TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth + 1, False)).Free;
+    except
+      on EJsonParserException do
+        ; // expected
+    end;
+
+  lJSON := TJsonBaseObject.Parse(NestedJSON(JsonMaxNestingDepth, False));
+  try
+    Assert.IsNotNull(lJSON, 'the depth counter leaked across parses');
+  finally
+    lJSON.Free;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -3006,6 +3160,7 @@ TDUnitX.RegisterTestFixture(TTestGenericNullables);
 TDUnitX.RegisterTestFixture(TTestStaticFilesTraversal);
 TDUnitX.RegisterTestFixture(TTestSecurityHelpers);
 TDUnitX.RegisterTestFixture(TTestSwaggerMetadata);
+TDUnitX.RegisterTestFixture(TTestJSONNestingDepth);
 
 finalization
 
