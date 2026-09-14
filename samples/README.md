@@ -213,7 +213,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `services_injection` | Dependency injection and service container |
 | `functional_actions_showcase` | Function-based actions (no controller class needed) |
 | `strongly_typed_actions` | Actions with strongly typed parameters |
-| `routing` | URL routing patterns and parameter extraction |
+| `routing` | URL routing patterns and parameter extraction, incl. the QUERY method |
 | `custom_exception_handling` | Custom exception handling and error responses |
 | `custom_exception_handling_using_controller` | Exception handling through a dedicated controller |
 | `webcontextevents` | Web context lifecycle events |
