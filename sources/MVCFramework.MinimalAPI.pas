@@ -1151,8 +1151,15 @@ begin
 end;
 
 procedure TMVCMinimalRegistry.AddHTTPFilter(const AFilter: TMVCHTTPFilter);
+var
+  lLen: Integer;
 begin
-  fHTTPFilters := fHTTPFilters + [AFilter];
+  // Cannot use `arr + [AFilter]` here: the compiler interprets the
+  // open-array constructor over a procedure reference as an INVOCATION.
+  // Explicit SetLength append works.
+  lLen := Length(fHTTPFilters);
+  SetLength(fHTTPFilters, lLen + 1);
+  fHTTPFilters[lLen] := AFilter;
 end;
 
 // Apply a route constraint to a captured segment value. Returns False if the

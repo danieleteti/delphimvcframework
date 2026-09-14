@@ -730,7 +730,7 @@ begin
     LDlg.MainIcon := tdiInformation;
     LDlg.CommonButtons := [tcbOk];
     LDlg.DefaultButton := tcbOk;
-    LDlg.Flags := [tfAllowDialogCancellation, tfSizeToContent];
+    LDlg.Flags := [tfAllowDialogCancellation]; // no tfSizeToContent: missing in 10.2 Tokyo
 
     LContent := 'Before deploying remember to:';
     for I := 0 to High(AHints) do
@@ -903,7 +903,7 @@ begin
     LDlg.MainIcon := tdiInformation;
     LDlg.CommonButtons := [tcbOk];
     LDlg.DefaultButton := tcbOk;
-    LDlg.Flags := [tfAllowDialogCancellation, tfSizeToContent];
+    LDlg.Flags := [tfAllowDialogCancellation]; // no tfSizeToContent: missing in 10.2 Tokyo
     LDlg.Text :=
       'Before building a project that uses the ExeWatch appender, make sure:' + sLineBreak + sLineBreak +
       #$2022 + ' The ExeWatch SDK for Delphi is downloaded from https://exewatch.com ' +
