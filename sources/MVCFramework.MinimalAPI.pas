@@ -545,6 +545,20 @@ type
     function MapPatch<T1, T2, T3, T4>(const APath: string;
       const AHandler: TMVCMinimalFunc<T1, T2, T3, T4>): TMVCRouteHandle; overload;
 
+    // QUERY (RFC 10008). Safe and idempotent like GET, but with a request
+    // body, so the typed overloads bind a criteria object the same way the
+    // POST/PUT ones do.
+    function MapQuery(const APath: string;
+      const AHandler: TMVCMinimalFunc): TMVCRouteHandle; overload;
+    function MapQuery<T1>(const APath: string;
+      const AHandler: TMVCMinimalFunc<T1>): TMVCRouteHandle; overload;
+    function MapQuery<T1, T2>(const APath: string;
+      const AHandler: TMVCMinimalFunc<T1, T2>): TMVCRouteHandle; overload;
+    function MapQuery<T1, T2, T3>(const APath: string;
+      const AHandler: TMVCMinimalFunc<T1, T2, T3>): TMVCRouteHandle; overload;
+    function MapQuery<T1, T2, T3, T4>(const APath: string;
+      const AHandler: TMVCMinimalFunc<T1, T2, T3, T4>): TMVCRouteHandle; overload;
+
     // Multi-verb shortcut. Registers the same handler against every verb
     // in the array. The arity overloads mirror the single-verb Map* set.
     function MapMethods(const AVerbs: array of TMVCHTTPMethodType;
@@ -2513,6 +2527,38 @@ function TMVCRouteGroup<T>.MapPatch<T1, T2, T3, T4>(const APath: string;
   const AHandler: TMVCMinimalFunc<T1, T2, T3, T4>): TMVCRouteHandle;
 begin
   Result := TMVCRouteHandle.Create(RegisterRoute(httpPATCH, APath, TMVCThunkFactory.Make4<T1, T2, T3, T4>(AHandler), [TypeInfo(T1), TypeInfo(T2), TypeInfo(T3), TypeInfo(T4)]));
+end;
+
+// MapQuery
+
+function TMVCRouteGroup<T>.MapQuery(const APath: string;
+  const AHandler: TMVCMinimalFunc): TMVCRouteHandle;
+begin
+  Result := TMVCRouteHandle.Create(RegisterRoute(httpQUERY, APath, TMVCThunkFactory.Make0(AHandler), nil));
+end;
+
+function TMVCRouteGroup<T>.MapQuery<T1>(const APath: string;
+  const AHandler: TMVCMinimalFunc<T1>): TMVCRouteHandle;
+begin
+  Result := TMVCRouteHandle.Create(RegisterRoute(httpQUERY, APath, TMVCThunkFactory.Make1<T1>(AHandler), [TypeInfo(T1)]));
+end;
+
+function TMVCRouteGroup<T>.MapQuery<T1, T2>(const APath: string;
+  const AHandler: TMVCMinimalFunc<T1, T2>): TMVCRouteHandle;
+begin
+  Result := TMVCRouteHandle.Create(RegisterRoute(httpQUERY, APath, TMVCThunkFactory.Make2<T1, T2>(AHandler), [TypeInfo(T1), TypeInfo(T2)]));
+end;
+
+function TMVCRouteGroup<T>.MapQuery<T1, T2, T3>(const APath: string;
+  const AHandler: TMVCMinimalFunc<T1, T2, T3>): TMVCRouteHandle;
+begin
+  Result := TMVCRouteHandle.Create(RegisterRoute(httpQUERY, APath, TMVCThunkFactory.Make3<T1, T2, T3>(AHandler), [TypeInfo(T1), TypeInfo(T2), TypeInfo(T3)]));
+end;
+
+function TMVCRouteGroup<T>.MapQuery<T1, T2, T3, T4>(const APath: string;
+  const AHandler: TMVCMinimalFunc<T1, T2, T3, T4>): TMVCRouteHandle;
+begin
+  Result := TMVCRouteHandle.Create(RegisterRoute(httpQUERY, APath, TMVCThunkFactory.Make4<T1, T2, T3, T4>(AHandler), [TypeInfo(T1), TypeInfo(T2), TypeInfo(T3), TypeInfo(T4)]));
 end;
 
 // MapMethods (multi-verb)

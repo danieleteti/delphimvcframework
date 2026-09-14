@@ -31,6 +31,20 @@ uses
   MVCFramework.Commons,
   MVCFramework.MinimalAPI;
 
+type
+  // QUERY: a class argument binds the JSON body. Declared here in the interface
+  // section on purpose - the minimal dispatcher instantiates a bound class by
+  // its qualified name, which RTTI only resolves for interface-section types.
+  // The criteria carry an array, the shape that made QUERY worth having.
+  TQuerySearch = class
+  private
+    FText: string;
+    FCities: TArray<string>;
+  public
+    property Text: string read FText write FText;
+    property Cities: TArray<string> read FCities write FCities;
+  end;
+
 procedure RegisterMinimalAPIWebRoutes(AEngine: TMVCEngine);
 
 implementation
@@ -221,6 +235,16 @@ begin
       else
         lFileName := F.Doc.FileName;
       Result := Ok(Format('title=%s file=%s', [F.Title, lFileName]));
+    end);
+
+  // QUERY via the dedicated MapQuery helper: proves the verb reaches the
+  // minimal dispatcher AND that the body is bound (httpQUERY has to be in
+  // IsHTTPMethodWithBody for the class argument to be filled).
+  AEngine.Root.MapQuery<TQuerySearch>('/minimal-feat/search',
+    function (Q: TQuerySearch): IMVCResponse
+    begin
+      Result := Ok(Format('text=%s cities=%d first=%s',
+        [Q.Text, Length(Q.Cities), Q.Cities[0]]));
     end);
 
   // #4 typed array binding from repeated query-string keys

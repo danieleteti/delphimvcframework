@@ -68,6 +68,10 @@ type
     [Test]
     procedure Test_QueryString_array_binding_string_and_int;
     [Test]
+    procedure Test_MapQuery_binds_the_json_body;
+    [Test]
+    procedure Test_MapQuery_route_does_not_answer_GET;
+    [Test]
     procedure Test_Wildcard_segment_captures_rest_of_path;
     [Test]
     procedure Test_Wildcard_segment_matches_empty_tail;
@@ -358,6 +362,31 @@ begin
   Assert.Contains(lResp.Content, 'tags=3');
   Assert.Contains(lResp.Content, 'first=red');
   Assert.Contains(lResp.Content, 'idsum=7'); // 1+2+4
+end;
+
+procedure TTestMinimalWebApi.Test_MapQuery_binds_the_json_body;
+var
+  lResp: IMVCRESTResponse;
+begin
+  { QUERY carries a body, so the class argument must be filled from it. If
+    httpQUERY were missing from IsHTTPMethodWithBody the handler would receive
+    an empty object and the array access would fail. }
+  lResp := RESTClient
+    .AddHeader('Content-Type', TMVCMediaType.APPLICATION_JSON)
+    .Query('/minimal-feat/search', '{"text":"rossi","cities":["rome","milan"]}');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode);
+  Assert.Contains(lResp.Content, 'text=rossi');
+  Assert.Contains(lResp.Content, 'cities=2');
+  Assert.Contains(lResp.Content, 'first=rome');
+end;
+
+procedure TTestMinimalWebApi.Test_MapQuery_route_does_not_answer_GET;
+var
+  lResp: IMVCRESTResponse;
+begin
+  { MapQuery registers QUERY only - the verb is not a wildcard. }
+  lResp := RESTClient.Get('/minimal-feat/search');
+  Assert.AreEqual<Integer>(404, lResp.StatusCode);
 end;
 
 procedure TTestMinimalWebApi.Test_Wildcard_segment_captures_rest_of_path;

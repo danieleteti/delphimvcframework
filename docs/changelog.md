@@ -106,16 +106,19 @@ TMVCListener.Create(TMVCListenerProperties.New
   function Search: IMVCResponse;
   ```
 
-  It works the same way in the Minimal API - `MapMethods` already takes a
-  set of verbs, so there is no `MapQuery`:
+  It works the same way in the Minimal API through `MapQuery`, which has the
+  same five arities as `MapPatch`. A class argument binds the request body:
 
   ```pascal
-  lEngine.Root.MapMethods('/search', [httpQUERY],
-    function(const AFilter: TSearchFilter): IMVCResponse
+  lEngine.Root.MapQuery<TSearchFilter>('/search',
+    function(AFilter: TSearchFilter): IMVCResponse
     begin
-      Result := OKResponse(DoSearch(AFilter));
+      Result := Ok(DoSearch(AFilter));
     end);
   ```
+
+  `MapMethods([httpQUERY], '/search', ...)` is equivalent - verbs first, then
+  the path.
 
   `IMVCRESTClient` gains `Query` in the same three overloads as `Patch`.
   `MVCConsumes` applies to a `QUERY` route exactly as it does to `POST`.
