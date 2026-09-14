@@ -225,7 +225,6 @@ uses
   MVCFramework.Serializer.Commons,
   System.StrUtils,
   System.IOUtils,
-  Vcl.FileCtrl,
   DMVC.Expert.Commons,
   System.TypInfo,
   Winapi.Winsock2;
@@ -921,13 +920,23 @@ end;
 
 procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
 var
-  LDir: string;
+  LDlg: TFileOpenDialog;
 begin
-  LDir := edtProjectFolder.Text;
-  if SelectDirectory('Select Project Folder', '', LDir) then
-  begin
-    edtProjectFolder.Text := LDir;
-    UpdateProjectNameHint;
+  // TFileOpenDialog, not SelectDirectory: the Vista+ picker has an address bar,
+  // so the path can be typed or pasted instead of hunted down in a tree.
+  LDlg := TFileOpenDialog.Create(nil);
+  try
+    LDlg.Title := 'Select Project Folder';
+    LDlg.Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem];
+    LDlg.DefaultFolder := edtProjectFolder.Text;
+    LDlg.FileName := edtProjectFolder.Text;
+    if LDlg.Execute then
+    begin
+      edtProjectFolder.Text := LDlg.FileName;
+      UpdateProjectNameHint;
+    end;
+  finally
+    LDlg.Free;
   end;
 end;
 
