@@ -102,6 +102,7 @@ uses
   MVCFramework.SSE in '..\..\..\sources\MVCFramework.SSE.pas',
   MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas',
   RangeMediaMiddlewareTestsU in 'RangeMediaMiddlewareTestsU.pas',
+  SecuritySwitchesTestsU in 'SecuritySwitchesTestsU.pas',
   MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas',
   MVCFramework.Server.Intf in '..\..\..\sources\MVCFramework.Server.Intf.pas',
   MVCFramework.Server.Indy in '..\..\..\sources\MVCFramework.Server.Indy.pas',

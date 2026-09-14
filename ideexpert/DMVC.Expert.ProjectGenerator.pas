@@ -53,6 +53,14 @@ type
     class procedure LogToFile(const AMessage: string);
   public
     /// <summary>
+    /// Where templates are read from. Empty (the default, and what the IDE
+    /// wizard uses) means the copies embedded in the BPL. Set it to a folder to
+    /// render the .tpro files on disk instead - that is how the template test
+    /// suite drives this class, and it also means "not running inside the IDE":
+    /// a template error is raised, not shown in a modal nobody can close.
+    /// </summary>
+    class var TemplateFolder: string;
+    /// <summary>
     /// Generates a complete project to the specified folder
     /// </summary>
     class procedure Generate(const AProjectFolder, AProjectName: string; AConfig: TJSONObject);
@@ -149,7 +157,16 @@ var
   LResName: string;
   LResStream: TResourceStream;
   LBytes: TBytes;
+  LFileName: string;
 begin
+  if TemplateFolder <> '' then
+  begin
+    LFileName := TPath.Combine(TemplateFolder, ATemplateName);
+    if not TFile.Exists(LFileName) then
+      raise Exception.CreateFmt('Template "%s" not found in %s',
+        [ATemplateName, TemplateFolder]);
+    Exit(TFile.ReadAllText(LFileName, TEncoding.UTF8));
+  end;
   // Load template from embedded resources only
   // Convert template path to resource name: "views\index.tpro" -> "VIEWS_INDEX"
   // ToUpperInvariant: resource names are ASCII; locale-aware ToUpper breaks on
@@ -176,7 +193,20 @@ class procedure TDMVCProjectGenerator.SaveResourceToFile(const AResName, AFilePa
 var
   LResStream: TResourceStream;
   LFileStream: TFileStream;
+  LSource: string;
 begin
+  { Disk mode: the six binary assets all come from the same folder and keep their
+    name, which is what the .rc says too. Reading them from there instead of the
+    embedded copy keeps this class working outside the BPL. }
+  if TemplateFolder <> '' then
+  begin
+    LSource := TPath.Combine(TPath.Combine(TemplateFolder, 'views' + PathDelim +
+      'webapp_icons'), TPath.GetFileName(AFilePath));
+    if not TFile.Exists(LSource) then
+      raise Exception.CreateFmt('Asset "%s" not found at %s', [AResName, LSource]);
+    TFile.Copy(LSource, AFilePath, True);
+    Exit;
+  end;
   LResStream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
   try
     LFileStream := TFileStream.Create(AFilePath, fmCreate);
@@ -221,7 +251,8 @@ begin
         LErrorMsg := Format('Template compilation error in "%s":'#13#10'%s'#13#10#13#10 +
           'Log file: %s\dmvc_wizard.log', [ATemplateName, E.Message, TPath.GetHomePath]);
         LogToFile('ERROR: ' + E.Message);
-        ShowMessage(LErrorMsg);
+        if TemplateFolder = '' then
+          ShowMessage(LErrorMsg); // inside the IDE; a test harness gets the exception
         raise Exception.Create(LErrorMsg);
       end;
     end;
@@ -376,6 +407,27 @@ begin
     SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.JSON_CONFIG);
   AConfig.B['logging.profile.disabled'] :=
     SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.DISABLED);
+
+  // An appender the caller did not mention is off. The templates read every one
+  // of these and the template engine refuses an undefined variable, so leaving
+  // them to whoever filled the config means the generator works from the wizard
+  // form and blows up from anywhere else.
+  if not AConfig.Contains(TConfigKey.logging_appender_console) then
+    AConfig.B[TConfigKey.logging_appender_console] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_file) then
+    AConfig.B[TConfigKey.logging_appender_file] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_jsonl) then
+    AConfig.B[TConfigKey.logging_appender_jsonl] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_html) then
+    AConfig.B[TConfigKey.logging_appender_html] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_odbg) then
+    AConfig.B[TConfigKey.logging_appender_odbg] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_eventlog) then
+    AConfig.B[TConfigKey.logging_appender_eventlog] := False;
+  if not AConfig.Contains(TConfigKey.logging_appender_syslog) then
+    AConfig.B[TConfigKey.logging_appender_syslog] := False;
+  if not AConfig.Contains(TConfigKey.logging_exewatch) then
+    AConfig.B[TConfigKey.logging_exewatch] := False;
 
   // Main ControllerU.pas is worth generating only when it will contain at
   // least one method. With the CRUD sample now living in Controllers.PeopleU,

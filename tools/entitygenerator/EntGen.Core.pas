@@ -880,7 +880,15 @@ begin
   if GetDelphiType(AFieldDataType, AColumnAttribs).ToUpper.Contains('UNSUPPORTED TYPE') then
     lProp := '  //' + lProp
   else
+  begin
+    { An auto-generated PK belongs to the database. Deserializable, it arrives from
+      the request body, and on an update that is the caller choosing which row to
+      overwrite. Remove the attribute if you feed deserialized lists to
+      TMVCActiveRecord.Merge, which matches existing rows by PK. }
+    if AIsPK and IsAutoIncField(AColumnAttribs, AColumnTypeName) then
+      fIntfBuff.AppendLine(INDENT + '  [MVCDoNotDeserialize]');
     lProp := '  ' + lProp;
+  end;
 
   fIntfBuff.AppendLine(INDENT + lProp);
 end;

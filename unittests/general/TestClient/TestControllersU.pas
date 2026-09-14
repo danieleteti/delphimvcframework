@@ -50,6 +50,20 @@ type
     [MVCPath('/patient/\$match/($par1)/($par2)')]
     procedure GetOrderIssue513WithPars(par1: string; par2: string);
 
+    { Two GET actions on the SAME parametric path, separated only by MVCProduces -
+      the ordinary content-negotiation shape, and the one that makes the router
+      evaluate a second candidate after the first has already filled part of the
+      shared parameters table. See TTestRouting.TestARefusedCandidateLeavesNoParametersBehind. }
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/negotiated/($folder)/($name)')]
+    [MVCProduces('application/json')]
+    procedure NegotiatedJSON(folder: string; name: string);
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/negotiated/($folder)/($name)')]
+    [MVCProduces('text/plain')]
+    procedure NegotiatedText(folder: string; name: string);
+
     property CalledActions: TStringList read FCalledActions; // only for tests
   end;
 
@@ -75,6 +89,16 @@ end;
 procedure TSimpleController.GetOrderIssue513WithPars(par1, par2: string);
 begin
   AddCall('GetOrderIssue513WithPars');
+end;
+
+procedure TSimpleController.NegotiatedJSON(folder, name: string);
+begin
+  AddCall('NegotiatedJSON');
+end;
+
+procedure TSimpleController.NegotiatedText(folder, name: string);
+begin
+  AddCall('NegotiatedText');
 end;
 
 procedure TSimpleController.Index(Context: TWebContext);

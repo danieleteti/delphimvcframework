@@ -48,7 +48,7 @@ var
   lAdmin: TMVCRouteGroup<TObject>;
 begin
   // Public surface; MemorySession is inherited by nested groups.
-  lWeb := ARoot.AsWeb.Use(MemorySession(30));
+  lWeb := ARoot.AsWeb.Use(MemorySession(30, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 
   lWeb.MapGet<TWebContext>('/',
     function (Ctx: TWebContext): IMVCResponse

@@ -207,14 +207,15 @@ begin
 {{if webmodule_middleware_jwt_asymmetric}}
       LSigner,
 {{else}}
-      dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
       '/login',   // Login URL (POST username & password here)
       '/logout',  // Logout URL
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
       300  // Leeway seconds (5 minutes)
     )
-    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', False))
+    // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
+    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', True))
   );
 {{else}}
   // JWT Bearer auth (Authorization header, for API clients)
@@ -225,7 +226,7 @@ begin
 {{if webmodule_middleware_jwt_asymmetric}}
       LSigner,
 {{else}}
-      dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
       '/login',   // Login URL (POST username & password here)
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
@@ -235,14 +236,14 @@ begin
 {{endif}}
 {{endif}}
 {{if webmodule_middleware_session_memory}}
-  AEngine.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}));
+  AEngine.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_session_file}}
-  AEngine.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, False, TPath.Combine(AppPath, 'sessions')));
+  AEngine.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, TPath.Combine(AppPath, 'sessions'), dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_session_database}}
   // Database session: requires ActiveRecord middleware + dmvc_sessions table
-  AEngine.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}));
+  AEngine.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_analytics}}
   AEngine.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));

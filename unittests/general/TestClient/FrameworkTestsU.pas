@@ -35,6 +35,7 @@ uses
   MVCFramework.Serializer.Intf, MVCFramework.Serializer.Defaults,
   MVCFramework.MultiMap, MVCFramework.Commons, MVCFramework.Serializer.Commons,
   MVCFramework.Crypt.Utils, MVCFramework.Filters, MVCFramework.MinimalAPI,
+  MVCFramework.Middleware.JWT,
   MVCFramework.Swagger.Commons, Swag.Doc.Path.Operation, Swag.Doc.Definition,
   Swag.Common.Types, Swag.Common.Consts;
 
@@ -67,6 +68,8 @@ type
     procedure TestStringMethodToHTTPMetodRejectsUnknownVerbs;
     [Test]
     procedure TestComplexRoutings;
+    [Test]
+    procedure TestARefusedCandidateLeavesNoParametersBehind;
     [Test]
     [Category('issues')]
     procedure Test_ISSUE_338;
@@ -117,6 +120,8 @@ type
     procedure TestIssuedAt;
     [Test]
     procedure TestDefaults;
+    [Test]
+    procedure TheURLAccessTokenParamCanBeTurnedOff;
   end;
 
   { This is the base test case for all the serunser testcases,
@@ -316,6 +321,8 @@ type
     procedure TestFileFixtures;
     [Test]
     procedure Test_MySQL_EscapesBackslash_PreventsSQLInjection;
+    [Test]
+    procedure UnmappedFieldsCanBeRefused;
   end;
 
   [TestFixture]
@@ -326,6 +333,90 @@ type
   end;
 
   [TestFixture]
+  // The session id reaches the engine from a cookie or a query-string
+  // parameter and is then used as a file name by the file store and inside a
+  // query by the database store. It must never be anything but the shape
+  // GenerateSessionID produces.
+  // Security regression fixtures. Each one names the finding it guards so that
+  // a future refactor that deletes the guard fails with a message that says
+  // what was lost, not just "expected True".
+  [TestFixture]
+  TTestWizardSecurityDefaults = class(TObject)
+  private
+    function TemplatesDir: string;
+  public
+    [Test]
+    procedure GeneratedProjectsSetTheJWTCookieSecure;
+    [Test]
+    procedure GeneratedProjectsSetTheSessionCookieSecure;
+  end;
+
+  [TestFixture]
+  TTestClientSafeExceptionMessage = class(TObject)
+  public
+    [Test]
+    procedure FrameworkExceptionsKeepTheirMessage;
+    [Test]
+    procedure ForeignExceptionsAreGenericOutsideDebug;
+  end;
+
+  [TestFixture]
+  TTestStaticFileWindowsNames = class(TObject)
+  public
+    [Test]
+    procedure AlternateDataStreamIsRefused;
+    [Test]
+    procedure TrailingDotOrSpaceIsRefused;
+    [Test]
+    procedure WildcardsAreRefused;
+    [Test]
+    procedure OrdinaryNamesStillPass;
+  end;
+
+  [TestFixture]
+  TTestFormFileSaveToFile = class(TObject)
+  public
+    [Test]
+    procedure SaveToFileCannotLeaveTheChosenDirectory;
+    [Test]
+    procedure SaveToFileRefusesARootedClientName;
+    [Test]
+    procedure SaveToFileAcceptsARelativeApplicationDirectory;
+    [Test]
+    procedure SaveToFileKeepsAnOrdinaryName;
+  end;
+
+  [TestFixture]
+  TTestRateLimitStoreCeiling = class(TObject)
+  public
+    [Test]
+    procedure StoreDoesNotGrowWithoutBound;
+  end;
+
+  [TestFixture]
+  TTestPathDotSegments = class(TObject)
+  public
+    [Test]
+    procedure DotSegmentsAreDetected;
+    [Test]
+    procedure DotsInsideNamesAreNotSegments;
+  end;
+
+  [TestFixture]
+  TTestSessionIDValidation = class(TObject)
+  public
+    [Test]
+    procedure GeneratedIDsAreAccepted;
+    [Test]
+    procedure TraversalShapesAreRejected;
+    [Test]
+    procedure RootedAndUNCShapesAreRejected;
+    [Test]
+    procedure EmptyAndOverlongAreRejected;
+    [Test]
+    procedure SeparatorsAndDotsAreRejected;
+  end;
+
   TTestStaticFilesTraversal = class(TObject)
   public
     [Test]
@@ -341,6 +432,8 @@ type
     procedure MVCStripCRLF_RemovesCRandLF;
     [Test]
     procedure MVCMatchCORSOrigin_ReflectsOnlyMatchingOrigin;
+    [Test]
+    procedure MVCCORSAllowsCredentials_NeverOnAWildcardOrigin;
     [Test]
     procedure TMVCFormFile_SafeFileName_StripsPathComponents;
     [Test]
@@ -415,6 +508,8 @@ type
     procedure StrToJSONObjectSurvivesADeeplyNestedBody;
     [Test]
     procedure TheDepthCounterDoesNotLeakAcrossParses;
+    [Test]
+    procedure ClearingTheLimitDoesNotDisableIt;
   end;
 
 implementation
@@ -442,7 +537,7 @@ uses
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
   MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti,
-  JsonDataObjects;
+  MVCFramework.Session, MVCFramework.Middleware.RateLimit, JsonDataObjects;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -514,6 +609,40 @@ begin
     begin
       TMVCRouter.StringMethodToHTTPMetod('FROB');
     end, EMVCException);
+end;
+
+procedure TTestRouting.TestARefusedCandidateLeavesNoParametersBehind;
+var
+  Params: TMVCRequestParamsTable;
+  lRouterResult: TMVCRouterResult;
+  lMatched: Boolean;
+begin
+  { A route parameter whose DECODED value carries a dot segment makes the router
+    refuse the candidate - the regex matched one segment and the action would
+    have received three. The refusal happens in the middle of the loop that fills
+    the parameters table, and that table is shared by every candidate: two GET
+    actions on the same path (content negotiation) mean the second candidate then
+    calls Add on a key the first one left behind, and TMVCRequestParamsTable is a
+    TDictionary, so that raises EListError - a 500 where the request should
+    simply not match. The refusing candidate has to put the table back. }
+  Params := TMVCRequestParamsTable.Create;
+  try
+    lMatched := True;
+    Assert.WillNotRaise(
+      procedure
+      begin
+        lMatched := TMVCRouter.ExecuteRouting('/negotiated/docs/%2E%2E', httpGET,
+          'text/plain', 'application/json', FControllers, 'text/plain',
+          TMVCMediaType.TEXT_PLAIN, '', Params, lRouterResult);
+      end, EListError,
+      'the second candidate must not trip over the parameters the first one left');
+    Assert.isFalse(lMatched, 'a dot segment inside a path parameter must not match');
+    Assert.IsTrue(Params.Count = 0,
+      'a candidate that refused the path must leave the parameters table as it found it, ' +
+      'but it left ' + Params.Count.ToString + ' behind');
+  finally
+    Params.Free;
+  end;
 end;
 
 procedure TTestRouting.TestComplexRoutings;
@@ -1607,6 +1736,61 @@ begin
 end;
 
 { TTestJWT }
+
+type
+  // Minimal handler: the middleware needs one to be built, these tests never
+  // reach an authentication decision.
+  TNullAuthenticationHandler = class(TInterfacedObject, IMVCAuthenticationHandler)
+  protected
+    procedure OnRequest(const AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AAuthenticationRequired: Boolean);
+    procedure OnAuthentication(const AContext: TWebContext; const AUserName: string;
+      const APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
+      const ASessionData: TSessionData);
+    procedure OnAuthorization(const AContext: TWebContext; AUserRoles: TList<string>;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      var AIsAuthorized: Boolean);
+  end;
+
+procedure TNullAuthenticationHandler.OnRequest(const AContext: TWebContext;
+  const AControllerQualifiedClassName: string; const AActionName: string;
+  var AAuthenticationRequired: Boolean);
+begin
+  AAuthenticationRequired := True;
+end;
+
+procedure TNullAuthenticationHandler.OnAuthentication(const AContext: TWebContext;
+  const AUserName: string; const APassword: string; AUserRoles: TList<string>;
+  var AIsValid: Boolean; const ASessionData: TSessionData);
+begin
+  AIsValid := False;
+end;
+
+procedure TNullAuthenticationHandler.OnAuthorization(const AContext: TWebContext;
+  AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
+  const AActionName: string; var AIsAuthorized: Boolean);
+begin
+  AIsAuthorized := False;
+end;
+
+procedure TTestJWT.TheURLAccessTokenParamCanBeTurnedOff;
+var
+  lMiddleware: TMVCJWTAuthenticationMiddleware;
+  lMiddlewareRef: IMVCMiddleware;
+begin
+  { A token in the URL ends up in proxy logs, browser history and Referer headers.
+    It is still read by default - SSE, <img> and download links have no way to send
+    a header - but an API that does not need it must be able to say so, and until
+    now the parameter name was a private field nobody could reach. }
+  lMiddleware := TMVCJWTAuthenticationMiddleware.Create(
+    TNullAuthenticationHandler.Create, nil, 'a-secret-long-enough-to-be-accepted-here');
+  lMiddlewareRef := lMiddleware;
+  Assert.AreEqual('access_token', lMiddleware.AuthorizationAccessTokenParamName,
+    'the 3.4 default must survive the upgrade');
+  lMiddleware.AuthorizationAccessTokenParamName := '';
+  Assert.AreEqual('', lMiddleware.AuthorizationAccessTokenParamName,
+    'an empty name means: only the Authorization header is accepted');
+end;
 
 procedure TTestJWT.SetUp;
 begin
@@ -2706,6 +2890,53 @@ begin
   end;
 end;
 
+procedure TTestRQLCompiler.UnmappedFieldsCanBeRefused;
+var
+  lParser: TRQL2SQL;
+  lComp: TRQLCompiler;
+  lSQL: string;
+  lMapping: TMVCFieldsMapping;
+  lSavedValve: Boolean;
+begin
+  { A name the mapping does not know is passed through to SQL verbatim. That is
+    deliberate - the mapping is keyed on the Delphi field name and its alias, never
+    on the database column, so filtering on a column the entity does not declare
+    works today and people rely on it. What was missing is the ability to say no.
+    The default stays open; 4.0 will flip it. }
+  SetLength(lMapping, 1);
+  lMapping[0].InstanceFieldName := 'code';
+  lMapping[0].DatabaseFieldName := 'CODICE';
+  lMapping[0].Alias := 'code';
+
+  lParser := TRQL2SQL.Create;
+  try
+    lComp := TRQLCompilerRegistry.Instance.GetCompiler('sqlite').Create(lMapping);
+    try
+      lParser.Execute('eq(secret_column,1)', lSQL, lComp);
+      Assert.Contains(lSQL, 'secret_column', 'the pass-through is the 3.4 behaviour');
+
+      lSavedValve := TRQLCompiler.AllowUnmappedRQLFields;
+      TRQLCompiler.AllowUnmappedRQLFields := False;
+      try
+        Assert.WillRaise(
+          procedure
+          begin
+            lParser.Execute('eq(secret_column,1)', lSQL, lComp);
+          end, ERQLException,
+          'with the valve closed an undeclared column must not reach the SQL');
+        lParser.Execute('eq(code,1)', lSQL, lComp);
+        Assert.Contains(lSQL, 'CODICE', 'a mapped field must still compile');
+      finally
+        TRQLCompiler.AllowUnmappedRQLFields := lSavedValve;
+      end;
+    finally
+      lComp.Free;
+    end;
+  finally
+    lParser.Free;
+  end;
+end;
+
 procedure TTestRQLCompiler.Test_MySQL_EscapesBackslash_PreventsSQLInjection;
 var
   lParser: TRQL2SQL;
@@ -2755,6 +2986,18 @@ begin
   Assert.AreEqual('', MVCMatchCORSOrigin('https://a.com', ''), 'no Origin header -> no ACAO');
 end;
 
+procedure TTestSecurityHelpers.MVCCORSAllowsCredentials_NeverOnAWildcardOrigin;
+begin
+  { A browser rejects Access-Control-Allow-Credentials on a wildcard origin, so
+    emitting it there advertises something no client can use - and the day the
+    wildcard is replaced by a real origin the header starts meaning something.
+    The middleware and the filter must answer the same way. }
+  Assert.IsFalse(MVCCORSAllowsCredentials(True, '*'), 'credentials on a wildcard origin');
+  Assert.IsFalse(MVCCORSAllowsCredentials(True, ''), 'credentials with no allowed origin');
+  Assert.IsFalse(MVCCORSAllowsCredentials(False, 'https://app.example'));
+  Assert.IsTrue(MVCCORSAllowsCredentials(True, 'https://app.example'));
+end;
+
 procedure TTestSecurityHelpers.TMVCFormFile_SafeFileName_StripsPathComponents;
   function SafeNameFor(const AClientName: string): string;
   var
@@ -2795,6 +3038,451 @@ begin
   Assert.AreEqual('Basic ***', MVCRedactSecret('Basic dXNlcjpwYXNzd29yZA=='));
   Assert.AreEqual('***', MVCRedactSecret('rawtokenwithoutscheme'));
   Assert.AreEqual('', MVCRedactSecret(''));
+end;
+
+{ TTestWizardSecurityDefaults }
+
+function TTestWizardSecurityDefaults.TemplatesDir: string;
+begin
+  { The test executable lives in unittests\general\TestClient\binNN. }
+  Result := TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '..\..\..\..\ideexpert\templates'));
+end;
+
+procedure TTestWizardSecurityDefaults.GeneratedProjectsSetTheJWTCookieSecure;
+var
+  lDir: string;
+  lFile: string;
+begin
+  { M-16. The framework's own default is Secure=True; the wizard used to override
+    it to False in both scaffolds and write JWT_COOKIE_SECURE=false into the
+    generated .env, so every generated web app shipped its authentication cookie
+    in the clear unless somebody remembered to change it. This reads the template
+    sources, so flipping the default back fails here. }
+  lDir := TemplatesDir;
+  if not TDirectory.Exists(lDir) then
+  begin
+    { Running from a packaged copy without the wizard sources - say so instead of
+      passing quietly. }
+    Assert.Pass('wizard templates not present next to this test (' + lDir + ')');
+    Exit;
+  end;
+
+  for lFile in TArray<string>.Create('engineconfig.pas.tpro', 'webmodule.pas.tpro') do
+    Assert.IsTrue(
+      TFile.ReadAllText(TPath.Combine(lDir, lFile))
+        .Contains('dotEnv.Env(''JWT_COOKIE_SECURE'', True)'),
+      lFile + ' must default the JWT cookie to Secure');
+
+  Assert.IsTrue(
+    TFile.ReadAllText(TPath.Combine(lDir, 'dotenv.tpro'))
+      .Contains('JWT_COOKIE_SECURE=true'),
+    'the generated .env must default JWT_COOKIE_SECURE to true');
+end;
+
+procedure TTestWizardSecurityDefaults.GeneratedProjectsSetTheSessionCookieSecure;
+var
+  lDir: string;
+  lFile: string;
+begin
+  { The framework default for the session cookie's Secure attribute is False,
+    because a Secure cookie is not sent over plain HTTP and flipping the default
+    would break every development setup on upgrade. Generated projects are new,
+    so they get it turned on, with a .env switch for local HTTP work - the same
+    shape as JWT_COOKIE_SECURE. }
+  lDir := TemplatesDir;
+  if not TDirectory.Exists(lDir) then
+  begin
+    Assert.Pass('wizard templates not present next to this test (' + lDir + ')');
+    Exit;
+  end;
+
+  for lFile in TArray<string>.Create('engineconfig.pas.tpro', 'webmodule.pas.tpro') do
+    Assert.IsTrue(
+      TFile.ReadAllText(TPath.Combine(lDir, lFile))
+        .Contains('dotEnv.Env(''SESSION_COOKIE_SECURE'', True)'),
+      lFile + ' must pass the session cookie Secure flag');
+
+  Assert.IsTrue(
+    TFile.ReadAllText(TPath.Combine(lDir, 'dotenv.tpro'))
+      .Contains('SESSION_COOKIE_SECURE=true'),
+    'the generated .env must default SESSION_COOKIE_SECURE to true');
+
+  { The file-session scaffold used to pass HttpOnly=False explicitly, undoing
+    the framework default on the one store that writes the id to disk. }
+  for lFile in TArray<string>.Create('engineconfig.pas.tpro', 'webmodule.pas.tpro') do
+    Assert.IsFalse(
+      TFile.ReadAllText(TPath.Combine(lDir, lFile))
+        .Contains('UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, False'),
+      lFile + ' must not turn HttpOnly off on the file session');
+end;
+
+{ TTestClientSafeExceptionMessage }
+
+procedure TTestClientSafeExceptionMessage.FrameworkExceptionsKeepTheirMessage;
+var
+  lEx: EMVCException;
+begin
+  { The framework's own exceptions are written for the client - a 404 that said
+    "Internal server error" would be a regression in the other direction. }
+  lEx := EMVCException.Create('Resource not found');
+  try
+    Assert.AreEqual('Resource not found', MVCClientSafeExceptionMessage(lEx));
+  finally
+    lEx.Free;
+  end;
+end;
+
+procedure TTestClientSafeExceptionMessage.ForeignExceptionsAreGenericOutsideDebug;
+var
+  lEx: Exception;
+begin
+  { M-04. The message of anything that is not ours is internal: a FireDAC error
+    carries the SQL statement with real table and column names, an IO error a
+    server-side absolute path. The expectation follows the build, so this test
+    keeps meaning in a RELEASE build - which is the one that matters. }
+  lEx := Exception.Create(
+    'EFDDBEngineException: SELECT id, ssn FROM employees WHERE dept = :p1');
+  try
+    {$IFDEF DEBUG}
+    Assert.AreEqual(lEx.Message, MVCClientSafeExceptionMessage(lEx),
+      'a DEBUG build keeps the real message');
+    {$ELSE}
+    Assert.AreEqual('Internal server error', MVCClientSafeExceptionMessage(lEx),
+      'a RELEASE build must not send an internal message to the client');
+    Assert.IsFalse(MVCClientSafeExceptionMessage(lEx).Contains('SELECT'),
+      'the SQL statement reached the client');
+    {$ENDIF}
+  finally
+    lEx.Free;
+  end;
+end;
+
+{ TTestStaticFileWindowsNames }
+
+// M-11. None of these is a traversal - the resolved file really does sit under
+// the document root - but Win32 normalises the name away, so each one defeats a
+// deny rule written on the file name while still reaching the file system.
+
+procedure TTestStaticFileWindowsNames.AlternateDataStreamIsRefused;
+var
+  lReal: string;
+  lFlagged: Boolean;
+begin
+  { ':' is not in FInvalidPathChars, so HasValidPathChars lets an ADS through,
+    and ExtractFileExt then returns '.config::$DATA' - the media-type lookup
+    misses and the file goes out as application/octet-stream. }
+  Assert.IsFalse(TMVCStaticContents.IsStaticFile('www', 'web.config::$DATA',
+    lReal, lFlagged));
+  Assert.IsTrue(lFlagged, 'an alternate data stream must be refused');
+end;
+
+procedure TTestStaticFileWindowsNames.TrailingDotOrSpaceIsRefused;
+var
+  lReal: string;
+  lFlagged: Boolean;
+begin
+  { Win32 strips a trailing dot or space, so "secret.txt." opens "secret.txt". }
+  TMVCStaticContents.IsStaticFile('www', 'secret.txt.', lReal, lFlagged);
+  Assert.IsTrue(lFlagged, 'a trailing dot must be refused');
+  TMVCStaticContents.IsStaticFile('www', 'secret.txt ', lReal, lFlagged);
+  Assert.IsTrue(lFlagged, 'a trailing space must be refused');
+end;
+
+procedure TTestStaticFileWindowsNames.WildcardsAreRefused;
+var
+  lReal: string;
+  lFlagged: Boolean;
+begin
+  { HasValidPathChars(True) allows '*' and '?' on purpose; a static file request
+    has no business carrying either. }
+  TMVCStaticContents.IsStaticFile('www', 'secret.*', lReal, lFlagged);
+  Assert.IsTrue(lFlagged, 'a wildcard must be refused');
+  TMVCStaticContents.IsStaticFile('www', 'secre?.txt', lReal, lFlagged);
+  Assert.IsTrue(lFlagged, 'a wildcard must be refused');
+end;
+
+procedure TTestStaticFileWindowsNames.OrdinaryNamesStillPass;
+var
+  lReal: string;
+  lFlagged: Boolean;
+begin
+  { The guard must not turn into an outage: an ordinary name is not flagged,
+    whether or not the file happens to exist. }
+  TMVCStaticContents.IsStaticFile('www', 'index.html', lReal, lFlagged);
+  Assert.IsFalse(lFlagged, 'an ordinary name must not be flagged');
+  TMVCStaticContents.IsStaticFile('www', 'assets/app.min.js', lReal, lFlagged);
+  Assert.IsFalse(lFlagged, 'dots inside a name are ordinary');
+end;
+
+{ TTestFormFileSaveToFile }
+
+procedure TTestFormFileSaveToFile.SaveToFileCannotLeaveTheChosenDirectory;
+var
+  lDir: string;
+  lPayload: TStringStream;
+  lFile: TMVCFormFile;
+begin
+  { M-15. FileName is copied verbatim out of Content-Disposition. The two-arg
+    overload keeps the directory in the caller's hands and reduces the client's
+    name to a leaf; the one-arg overload cannot repair a path that was already
+    combined with a hostile name, so it refuses it. }
+  lDir := TPath.Combine(TPath.GetTempPath, 'dmvc_upl_' +
+    TGUID.NewGuid.ToString.Replace('{', '').Replace('}', ''));
+  TDirectory.CreateDirectory(lDir);
+  try
+    lPayload := TStringStream.Create('payload');
+    try
+      lFile := TMVCFormFile.Create('doc', '..\..\evil.txt', 'text/plain', lPayload);
+      try
+        lFile.SaveToFile(lDir, lFile.FileName);
+        Assert.IsTrue(TFile.Exists(TPath.Combine(lDir, 'evil.txt')),
+          'the upload must land in the directory the caller chose');
+        Assert.IsFalse(TFile.Exists(TPath.GetFullPath(
+          TPath.Combine(lDir, '..\..\evil.txt'))),
+          'the upload must not be written outside that directory');
+
+        { And the one-arg overload must not silently accept the hostile path. }
+        Assert.WillRaise(
+          procedure
+          begin
+            lFile.SaveToFile(TPath.Combine(lDir, lFile.FileName));
+          end, EMVCException,
+          'a path carrying a ".." segment must be refused, not written');
+      finally
+        lFile.Free;
+      end;
+    finally
+      lPayload.Free;
+    end;
+  finally
+    TDirectory.Delete(lDir, True);
+  end;
+end;
+
+procedure TTestFormFileSaveToFile.SaveToFileRefusesARootedClientName;
+var
+  lDir, lElsewhere, lHostileName: string;
+  lPayload: TStringStream;
+  lFile: TMVCFormFile;
+begin
+  { The ".." variant is not the easy one. TPath.Combine returns its SECOND
+    argument verbatim when that argument is rooted (System.IOUtils,
+    DoIsPathRooted), so SaveToFile(TPath.Combine(UPLOAD_DIR, Doc.FileName)) with
+    a filename of "C:\inetpub\wwwroot\shell.aspx" drops UPLOAD_DIR entirely and
+    writes wherever the client said - with no dot segment anywhere in the path. }
+  lDir := TPath.Combine(TPath.GetTempPath, 'dmvc_upl_' +
+    TGUID.NewGuid.ToString.Replace('{', '').Replace('}', ''));
+  lElsewhere := TPath.Combine(TPath.GetTempPath, 'dmvc_pwn_' +
+    TGUID.NewGuid.ToString.Replace('{', '').Replace('}', ''));
+  TDirectory.CreateDirectory(lDir);
+  TDirectory.CreateDirectory(lElsewhere);
+  try
+    lHostileName := TPath.Combine(lElsewhere, 'pwned.txt');
+    lPayload := TStringStream.Create('payload');
+    try
+      lFile := TMVCFormFile.Create('doc', lHostileName, 'text/plain', lPayload);
+      try
+        Assert.WillRaise(
+          procedure
+          begin
+            lFile.SaveToFile(TPath.Combine(lDir, lFile.FileName));
+          end, EMVCException,
+          'a rooted client file name must be refused, not written');
+        Assert.IsFalse(TFile.Exists(lHostileName),
+          'the upload escaped the directory the caller chose');
+
+        { The two-argument overload reduces it to a leaf instead of refusing. }
+        lFile.SaveToFile(lDir, lFile.FileName);
+        Assert.IsTrue(TFile.Exists(TPath.Combine(lDir, 'pwned.txt')),
+          'the safe overload must still save, under the leaf name');
+        Assert.IsFalse(TFile.Exists(lHostileName));
+      finally
+        lFile.Free;
+      end;
+    finally
+      lPayload.Free;
+    end;
+  finally
+    TDirectory.Delete(lDir, True);
+    TDirectory.Delete(lElsewhere, True);
+  end;
+end;
+
+procedure TTestFormFileSaveToFile.SaveToFileAcceptsARelativeApplicationDirectory;
+var
+  lRelDir, lTarget: string;
+  lPayload: TStringStream;
+  lFile: TMVCFormFile;
+begin
+  { The guard must look at the client's name, not at the path: '.\uploads' is
+    an ordinary application directory - it is the shape TMVCStaticFilesOptions
+    itself defaults to - and a guard that refused a "." segment anywhere in the
+    path turned the documented one-argument idiom into an exception. }
+  lRelDir := '.' + PathDelim + 'dmvc_upl_rel_' +
+    TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
+  TDirectory.CreateDirectory(lRelDir);
+  try
+    lPayload := TStringStream.Create('payload');
+    try
+      lFile := TMVCFormFile.Create('doc', 'report.pdf', 'application/pdf', lPayload);
+      try
+        lTarget := TPath.Combine(lRelDir, lFile.SafeFileName);
+        lFile.SaveToFile(lTarget);
+        Assert.IsTrue(TFile.Exists(lTarget),
+          'a relative application directory must not be refused');
+      finally
+        lFile.Free;
+      end;
+    finally
+      lPayload.Free;
+    end;
+  finally
+    TDirectory.Delete(lRelDir, True);
+  end;
+end;
+
+procedure TTestFormFileSaveToFile.SaveToFileKeepsAnOrdinaryName;
+var
+  lDir, lTarget: string;
+  lPayload: TStringStream;
+  lFile: TMVCFormFile;
+begin
+  { The guard must not become an outage: an ordinary upload still saves, through
+    either overload. }
+  lDir := TPath.Combine(TPath.GetTempPath, 'dmvc_upl_' +
+    TGUID.NewGuid.ToString.Replace('{', '').Replace('}', ''));
+  TDirectory.CreateDirectory(lDir);
+  try
+    lPayload := TStringStream.Create('payload');
+    try
+      lFile := TMVCFormFile.Create('doc', 'report.pdf', 'application/pdf', lPayload);
+      try
+        lTarget := TPath.Combine(lDir, 'report.pdf');
+        lFile.SaveToFile(lTarget);
+        Assert.IsTrue(TFile.Exists(lTarget), 'an ordinary upload must still be saved');
+        Assert.AreEqual('payload', TFile.ReadAllText(lTarget));
+
+        lFile.SaveToFile(lDir, 'copy.pdf');
+        Assert.IsTrue(TFile.Exists(TPath.Combine(lDir, 'copy.pdf')));
+      finally
+        lFile.Free;
+      end;
+    finally
+      lPayload.Free;
+    end;
+  finally
+    TDirectory.Delete(lDir, True);
+  end;
+end;
+
+{ TTestRateLimitStoreCeiling }
+
+procedure TTestRateLimitStoreCeiling.StoreDoesNotGrowWithoutBound;
+var
+  lStore: TMVCInMemoryRateLimitStorage;
+  lKeepAlive: IMVCRateLimitStorage;
+  I, lRemaining: Integer;
+  lReset: TDateTime;
+begin
+  { M-10. With a client-controlled key (rlkAPIKey reads X-API-Key) a caller both
+    escapes its own limit and grows this store for the whole window, while every
+    request pays an O(N) scan under one lock. Only the entries already expired
+    used to be dropped, and a rotating key never expires within the window.
+    The ceiling is 100000; going past it must not leave the store above it. }
+  lStore := TMVCInMemoryRateLimitStorage.Create;
+  lKeepAlive := lStore; // refcount owns it
+  for I := 1 to 100010 do
+    lStore.CheckRateLimit('key-' + IntToStr(I), 100, 60, lRemaining, lReset);
+  Assert.IsTrue(lStore.KeyCount <= 100000,
+    'the rate limit store grew past its ceiling (' + lStore.KeyCount.ToString + ')');
+
+  { Past the ceiling an UNKNOWN key is refused, not admitted. True means "limit
+    exceeded" to every caller of IMVCRateLimitStorage, so answering False here
+    would switch the limiter OFF for exactly the keys a flooder rotates through -
+    the mitigation would be a better bypass than the growth it prevents. }
+  Assert.IsTrue(lStore.CheckRateLimit('brand-new-key', 100, 60, lRemaining, lReset),
+    'past the ceiling an unknown key must be refused, not let through');
+
+  { A key the store already holds is unaffected: the ceiling must not lock out
+    the clients that were already being counted. }
+  Assert.IsFalse(lStore.CheckRateLimit('key-1', 100, 60, lRemaining, lReset),
+    'a key already in the store must keep being served past the ceiling');
+end;
+
+{ TTestPathDotSegments }
+
+procedure TTestPathDotSegments.DotSegmentsAreDetected;
+begin
+  Assert.IsTrue(MVCPathHasDotSegment('/public/../admin'));
+  Assert.IsTrue(MVCPathHasDotSegment('/a/./b'));
+  Assert.IsTrue(MVCPathHasDotSegment('/..'));
+  Assert.IsTrue(MVCPathHasDotSegment('..'));
+  Assert.IsTrue(MVCPathHasDotSegment('/a/b/..'));
+  { Backslash too: the file-system callers pass Windows paths, and a browser
+    treats a backslash in a URL as a separator anyway. }
+  Assert.IsTrue(MVCPathHasDotSegment('C:\uploads\..\..\evil.txt'));
+  Assert.IsTrue(MVCPathHasDotSegment('a\.\b'));
+end;
+
+procedure TTestPathDotSegments.DotsInsideNamesAreNotSegments;
+begin
+  { A dot inside a segment is an ordinary character. Refusing these would break
+    perfectly normal URLs, which is how an over-eager check becomes an outage. }
+  Assert.IsFalse(MVCPathHasDotSegment('/files/release.1.2.zip'));
+  Assert.IsFalse(MVCPathHasDotSegment('/a/..hidden'));
+  Assert.IsFalse(MVCPathHasDotSegment('/a/...'));
+  Assert.IsFalse(MVCPathHasDotSegment('/plain/path'));
+  Assert.IsFalse(MVCPathHasDotSegment(''));
+end;
+
+{ TTestSessionIDValidation }
+
+procedure TTestSessionIDValidation.GeneratedIDsAreAccepted;
+var
+  I: Integer;
+begin
+  { Whatever the engine issues must survive its own filter, or every session
+    breaks. Checked against real generated ids, not a hand-written sample. }
+  for I := 1 to 50 do
+    Assert.IsTrue(IsValidSessionID(GenerateSessionID),
+      'a freshly generated session id was rejected');
+end;
+
+procedure TTestSessionIDValidation.TraversalShapesAreRejected;
+begin
+  Assert.IsFalse(IsValidSessionID('..\..\www\assets\app.js'));
+  Assert.IsFalse(IsValidSessionID('../../etc/passwd'));
+  Assert.IsFalse(IsValidSessionID('..'));
+  { Already percent-decoded by the time the check runs. }
+  Assert.IsFalse(IsValidSessionID('..%5c..%5cwww'));
+end;
+
+procedure TTestSessionIDValidation.RootedAndUNCShapesAreRejected;
+begin
+  { TPath.Combine returns its second argument verbatim when that one is rooted,
+    so a rooted id escapes the session folder without needing any dots. }
+  Assert.IsFalse(IsValidSessionID('C:\Windows\Temp\x'));
+  Assert.IsFalse(IsValidSessionID('\attacker\share\x'));
+  Assert.IsFalse(IsValidSessionID('/etc/passwd'));
+end;
+
+procedure TTestSessionIDValidation.EmptyAndOverlongAreRejected;
+begin
+  Assert.IsFalse(IsValidSessionID(''));
+  Assert.IsFalse(IsValidSessionID(StringOfChar('A', 256)));
+  Assert.IsTrue(IsValidSessionID(StringOfChar('A', 255)));
+end;
+
+procedure TTestSessionIDValidation.SeparatorsAndDotsAreRejected;
+begin
+  { A trailing dot or a colon is a path trick on Windows: trailing dots are
+    stripped by the filesystem, and a colon opens an alternate data stream. }
+  Assert.IsFalse(IsValidSessionID('DT1234.'));
+  Assert.IsFalse(IsValidSessionID('DT1234::$DATA'));
+  Assert.IsFalse(IsValidSessionID('DT 1234'));
+  Assert.IsFalse(IsValidSessionID('DT-1234'));
+  Assert.IsFalse(IsValidSessionID('DT_1234'));
 end;
 
 { TTestStaticFilesTraversal }
@@ -3143,6 +3831,33 @@ begin
   end;
 end;
 
+procedure TTestJSONNestingDepth.ClearingTheLimitDoesNotDisableIt;
+var
+  lSaved: Integer;
+begin
+  // Zeroing the limit used to mean "no limit", which put a single line of
+  // configuration between an app and the crash the limit exists to prevent.
+  // A cleared limit is the default one instead: it cannot be switched off.
+  lSaved := JsonMaxNestingDepth;
+  try
+    JsonMaxNestingDepth := 0;
+    Assert.WillRaise(
+      procedure
+      begin
+        TJsonBaseObject.Parse(NestedJSON(DefaultJsonMaxNestingDepth + 1, False)).Free;
+      end, EJsonParserException);
+
+    JsonMaxNestingDepth := -1;
+    Assert.WillRaise(
+      procedure
+      begin
+        TJsonBaseObject.Parse(NestedJSON(DefaultJsonMaxNestingDepth + 1, False)).Free;
+      end, EJsonParserException);
+  finally
+    JsonMaxNestingDepth := lSaved;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
@@ -3157,6 +3872,13 @@ TDUnitX.RegisterTestFixture(TTestDotEnvParser);
 TDUnitX.RegisterTestFixture(TTestSqids);
 TDUnitX.RegisterTestFixture(TTestRQLCompiler);
 TDUnitX.RegisterTestFixture(TTestGenericNullables);
+TDUnitX.RegisterTestFixture(TTestWizardSecurityDefaults);
+TDUnitX.RegisterTestFixture(TTestClientSafeExceptionMessage);
+TDUnitX.RegisterTestFixture(TTestStaticFileWindowsNames);
+TDUnitX.RegisterTestFixture(TTestFormFileSaveToFile);
+TDUnitX.RegisterTestFixture(TTestRateLimitStoreCeiling);
+TDUnitX.RegisterTestFixture(TTestPathDotSegments);
+TDUnitX.RegisterTestFixture(TTestSessionIDValidation);
 TDUnitX.RegisterTestFixture(TTestStaticFilesTraversal);
 TDUnitX.RegisterTestFixture(TTestSecurityHelpers);
 TDUnitX.RegisterTestFixture(TTestSwaggerMetadata);

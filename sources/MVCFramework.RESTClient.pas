@@ -170,7 +170,9 @@ type
     function SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
 
     /// <summary>
-    /// Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// Add a custom SSL certificate validation. Without one, a certificate the
+    /// platform rejected is refused (set MVCRESTClientAcceptInvalidCertificates
+    /// to accept it anyway).
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 
@@ -577,6 +579,15 @@ type
     procedure BodyFor(const aObject: TObject; const aRootNode: string = '');
     procedure BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string = '');
   end;
+
+var
+  { Opt-in escape hatch for a client that must talk to a host with a self-signed
+    or expired certificate and cannot install a validation proc - typically a
+    test or a lab. It is a global on purpose: turning it on is a decision about
+    the process, not about one request, and it should be visible as such.
+    Prefer IMVCRESTClient.SetValidateServerCertificateProc, which decides per
+    certificate. }
+  MVCRESTClientAcceptInvalidCertificates: Boolean = False;
 
 implementation
 
@@ -1573,10 +1584,15 @@ end;
 procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
 const aCertificate: TCertificate; var aAccepted: Boolean);
 begin
+  { The RTL calls this only when the certificate has ALREADY failed platform
+    validation, and with no handler installed it raises - fail-closed. Answering
+    True here turned that into "accept self-signed, expired, wrong hostname,
+    unknown CA" for every outgoing HTTPS call, MITM included. The caller's own
+    proc still decides when it installs one. }
   if Assigned(fValidateServerCertificate) then
     fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
   else
-    aAccepted := True;
+    aAccepted := MVCRESTClientAcceptInvalidCertificates;
 end;
 
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;

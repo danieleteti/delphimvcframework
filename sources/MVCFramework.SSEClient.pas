@@ -116,8 +116,12 @@ type
       const ARequest: TURLRequest; const Certificate: TCertificate;
       var Accepted: Boolean);
   public
+    /// <summary>AIgnoreCertificateErrors defaults to False: a certificate the
+    /// platform rejected - self-signed, expired, wrong host, unknown CA - is
+    /// refused, like TMVCRESTClient. Pass True only against a host you control
+    /// and whose certificate you cannot fix.</summary>
     constructor Create(const AURL: string;
-      const AIgnoreCertificateErrors: Boolean = True);
+      const AIgnoreCertificateErrors: Boolean = False);
     destructor Destroy; override;
     procedure Start;
     procedure Stop;

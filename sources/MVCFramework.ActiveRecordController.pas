@@ -137,10 +137,15 @@ type
 
 implementation
 
+
 uses
   MVCFramework.Logger,
+  System.SyncObjs,
   JsonDataObjects,
   Data.DB;
+
+var
+  gAuthWarningLogged: Integer = 0;
 
 // Turns the raw ($id) URL segment into one string value per primary-key column.
 // Single key: the segment IS the value. Composite key: the segment is a JSON
@@ -363,6 +368,14 @@ begin
   end
   else
   begin
+    { No authorization function means every registered entity is readable and
+      writable by anyone - an open, silent default. Changing it to False would
+      break existing applications, so it is made audible instead. Once per
+      process: controllers are built per request, so warning here every time
+      would drown the log. }
+    if TInterlocked.CompareExchange(gAuthWarningLogged, 1, 0) = 0 then
+      LogW('TMVCActiveRecordController has no authorization function: every ' +
+        'registered entity is exposed to anonymous callers for read and write.');
     Result := True;
   end;
 end;

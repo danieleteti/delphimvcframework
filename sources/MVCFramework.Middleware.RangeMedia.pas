@@ -126,11 +126,16 @@ function UseRangeMediaMiddleware(
 
 implementation
 
+
 uses
   System.SysUtils,
   System.IOUtils,
   System.Classes,
   System.Math;
+
+const
+  { Largest slice served in a single 206 response. }
+  MAX_RANGE_SLICE = 8 * 1024 * 1024;
 
 { Factory function }
 
@@ -343,6 +348,13 @@ begin
     end;
 
     // Serve partial content
+    { RFC 7233 lets a server answer with fewer bytes than were asked for, and
+      the client comes back for the rest. Without a cap, "Range: bytes=0-" -
+      which is exactly what a browser sends first for a <video> - allocates the
+      whole file in memory, once per request. The cap is applied before the
+      Content-Range header is built, so the header stays truthful. }
+    if (LRangeEnd - LRangeStart + 1) > MAX_RANGE_SLICE then
+      LRangeEnd := LRangeStart + MAX_RANGE_SLICE - 1;
     LContentLength := LRangeEnd - LRangeStart + 1;
     LPartialStream := TMemoryStream.Create;
     LPartialStream.SetSize(LContentLength);
@@ -371,8 +383,11 @@ begin
 
   LPathInfo := AContext.Request.PathInfo;
 
-  // Only intercept requests matching our URL prefix
-  if not LPathInfo.StartsWith(FURLPath, True) then
+  // Only intercept requests matching our URL prefix, on a segment boundary:
+  // a bare prefix match makes /media swallow /mediation/report, and this
+  // middleware answers 404 rather than passing the request on.
+  if (not SameText(LPathInfo, FURLPath)) and
+     (not LPathInfo.StartsWith(FURLPath + '/', True)) then
     Exit;
 
   // Only handle GET and HEAD

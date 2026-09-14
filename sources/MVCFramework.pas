@@ -396,6 +396,14 @@ type
     function GetQueryParams: TDictionary<string, string>; virtual; abstract;
     function GetQueryParamsMulti(const AParamName: string): TArray<string>; virtual; abstract;
     function GetHeader(const AName: string): string; virtual; abstract;
+    /// <summary>
+    /// True when the request carries AName more than once.
+    /// Only hosts that keep the raw header list can answer this: HTTP.sys is
+    /// handed the 41 known headers already merged by the kernel, and WebBroker
+    /// exposes them one value at a time, so both answer False. Indy, the
+    /// default host, answers for real.
+    /// </summary>
+    function IsDuplicatedHeader(const AName: string): Boolean; virtual;
     function GetPathInfo: string; virtual; abstract;
     function GetParams(const AParamName: string): string; virtual; abstract;
     function GetIsAjax: Boolean; virtual; abstract;
@@ -433,6 +441,13 @@ type
     destructor Destroy; override;
     { Virtual abstract public methods }
     function ClientIp: string; virtual; abstract;
+    /// <summary>
+    /// The address of the peer on the other end of the socket, ignoring
+    /// X-Forwarded-For and X-Real-IP entirely. ClientIp is the right answer for
+    /// logging and rate limiting; this one is the only safe input for a network
+    /// ACL, because the forwarded headers are written by the client.
+    /// </summary>
+    function PeerIp: string; virtual;
     function ClientPreferredLanguage(): String; virtual; abstract;
     function QueryString: string; virtual; abstract;
     function QueryStringParam(const AName: string): string; virtual; abstract;
@@ -1310,6 +1325,10 @@ type
     property ViewEngineClass: TMVCViewEngineClass read GetViewEngineClass;
     property WebModule: TWebModule read FWebModule;
     property Config: TMVCConfig read FConfig;
+    /// <summary>max_request_size, already parsed. The config is frozen once the
+    /// engine is built, so a host adapter can read this instead of looking the
+    /// key up and parsing it again on every request.</summary>
+    property MaxRequestSize: Int64 read FConfigCache_MaxRequestSize;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
@@ -1467,6 +1486,21 @@ type
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
+
+/// <summary>
+/// Produces a new session id: the letters DT followed by the hex digits of
+/// three GUIDs, which is the shape IsValidSessionID accepts.
+/// </summary>
+function GenerateSessionID: string;
+
+/// <summary>
+/// The message that may be sent to the client for AException.
+/// Only the framework's own exceptions carry text written for a client; the
+/// message of anything else is internal (a FireDAC error carries the whole SQL
+/// statement, an IO error a server-side absolute path). A DEBUG build keeps the
+/// real message, because that build is not facing the internet.
+/// </summary>
+function MVCClientSafeExceptionMessage(const AException: Exception): string;
 {Renders a verb set the way MVCHTTPMethodsAsString does: 'httpGET,httpPOST', or 'any' when empty}
 function MVCHTTPMethodsToString(const AMVCHTTPMethods: TMVCHTTPMethods): string;
 function GetErrorPageHandler(const ErrorPageURL: String): TMVCExceptionHandlerProc;
@@ -1634,6 +1668,18 @@ begin
   gIsShuttingDown := True;
 end;
 
+
+function MVCClientSafeExceptionMessage(const AException: Exception): string;
+begin
+{$IFDEF DEBUG}
+  Result := AException.Message;
+{$ELSE}
+  if AException is EMVCException then
+    Result := AException.Message
+  else
+    Result := 'Internal server error';
+{$ENDIF}
+end;
 
 function GenerateSessionID: string;
 begin
@@ -1929,6 +1975,20 @@ begin
   Result := Accept.Contains(MediaType);
 end;
 
+function TMVCWebRequest.IsDuplicatedHeader(const AName: string): Boolean;
+begin
+  { Hosts that cannot see the raw header list answer False rather than guess. }
+  Result := False;
+end;
+
+function TMVCWebRequest.PeerIp: string;
+begin
+  { An adapter that cannot see the socket returns nothing rather than falling
+    back to ClientIp, which honours client-written forwarded headers. Callers
+    use this for network ACLs, so the empty answer has to deny. }
+  Result := '';
+end;
+
 function TMVCWebRequest.ClientPrefer(const AMediaType: string): Boolean;
 begin
   Result := (Accept = '*/*') or (AnsiPos(AMediaType, LowerCase(Accept)) = 1);
@@ -2016,18 +2076,14 @@ begin
 end;
 
 function TMVCWebRequest.GetOverwrittenHTTPMethod: TMVCHTTPMethodType;
-var
-  lOverriddenMethod: string;
 begin
-  lOverriddenMethod := Headers[TMVCConstants.X_HTTP_Method_Override];
-  if lOverriddenMethod.IsEmpty then
-  begin
-    Exit(HTTPMethod);
-  end
-  else
-  begin
-    Result := TMVCRouter.StringMethodToHTTPMetod(HTTPMethodAsString);
-  end;
+  { Method overriding via header is not supported: letting a client rewrite the
+    verb turns every "POST is the only method this proxy allows" rule into a
+    formality, and it never worked here anyway - both branches of the old
+    implementation returned the real method, so no application can be relying on
+    the override having an effect. The routine stays because it is public API;
+    it now says plainly what it always did. }
+  Result := HTTPMethod;
 end;
 
 function TMVCWebRequest.GetRawWebRequest: TWebRequest;
@@ -2829,9 +2885,38 @@ var
 begin
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
-    raise EMVCException.CreateFmt(http_status.RequestEntityTooLarge,
-      'Request size exceeded the max allowed size [%d KiB]',
+    { Answered here rather than raised. There is no TWebContext yet, so an
+      exception thrown at this point escapes into host-specific plumbing:
+      WebBroker maps it to 413, Indy turns any exception into a 500, and on
+      HTTP.sys nothing answers at all. Writing the response directly is what
+      makes Indy Direct and HTTP.sys agree; the WebBroker family enters at
+      ExecuteAction instead, where the raise is still in place and WebBroker
+      does map it to 413. }
+    AResponse.StatusCode := http_status.RequestEntityTooLarge;
+    AResponse.ReasonString := 'Request Entity Too Large';
+    AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
+    AResponse.Content := Format('Request size exceeded the max allowed size [%d KiB]',
       [(FConfigCache_MaxRequestSize div 1024)]);
+    Exit(True);
+  end;
+
+  { A request that repeats one of these is ambiguous, and the hosts do not
+    resolve the ambiguity the same way: HTTP.sys is handed a value the kernel
+    joined with a comma, Indy keeps the first. Anything in front of us - proxy,
+    WAF - may well have read the other one. Refuse instead of picking.
+    Only Indy can answer the question: HTTP.sys and the WebBroker family are
+    handed a header list with the duplicates already resolved, so their
+    IsDuplicatedHeader is the base one and returns False. This closes the case
+    we can see rather than pretending to close all of them. }
+  if ARequest.IsDuplicatedHeader('Authorization') or
+    ARequest.IsDuplicatedHeader('Content-Length') or
+    ARequest.IsDuplicatedHeader('Content-Type') then
+  begin
+    AResponse.StatusCode := http_status.BadRequest;
+    AResponse.ReasonString := 'Bad Request';
+    AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
+    AResponse.Content := 'Duplicated header';
+    Exit(True);
   end;
 
   lStopWatch := TStopWatch.StartNew;
@@ -2898,7 +2983,7 @@ begin
           lRoutingPath := lRawPath;
         lMatched := TMVCRouter.ExecuteRouting(
           lRoutingPath,
-          AContext.Request.GetOverwrittenHTTPMethod,
+          AContext.Request.HTTPMethod,
           AContext.Request.ContentType,
           AContext.Request.Accept,
           FControllers,
@@ -3233,8 +3318,14 @@ begin
           end
           else
           begin
+            { Same reasoning as TMVCRenderer.Render(AException): outside DEBUG
+              neither the class name nor the raw message reaches the client. }
+            {$IFDEF DEBUG}
             SendHTTPStatus(AContext, lRespStatus,
               Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+            {$ELSE}
+            SendHTTPStatus(AContext, lRespStatus, MVCClientSafeExceptionMessage(Ex));
+            {$ENDIF}
           end;
         end;
         AContext.Data['__duration'] := Format('%dms', [AStopWatch.ElapsedMilliseconds]);
@@ -3265,8 +3356,14 @@ begin
           end
           else
           begin
+            { Same reasoning as TMVCRenderer.Render(AException): outside DEBUG
+              neither the class name nor the raw message reaches the client. }
+            {$IFDEF DEBUG}
             SendHTTPStatus(AContext, http_status.InternalServerError,
               Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+            {$ELSE}
+            SendHTTPStatus(AContext, http_status.InternalServerError, MVCClientSafeExceptionMessage(Ex));
+            {$ENDIF}
           end;
         end;
       end;
@@ -3346,7 +3443,20 @@ begin
     SessionCookieMustSent := not Result.IsEmpty;
   end;
   if not Result.IsEmpty then
+  begin
     Result := TIdURI.URLDecode(Result);
+    { Decoding happens here, so this is the first point where a '..', a drive
+      letter or a UNC prefix could appear in the id. An id that this engine
+      cannot have issued is dropped instead of being passed on: the caller then
+      starts a fresh session, which is what already happens for any id it does
+      not recognise. Both the file store (file name) and the database store
+      (query) consume this value. }
+    if not IsValidSessionID(Result) then
+    begin
+      Result := '';
+      SessionCookieMustSent := False;
+    end;
+  end;
 end;
 
 class function TMVCEngine.ExtractSessionIdFromRequest(const ARequest: TMVCWebRequest; out SessionCookieMustSent: Boolean): string;
@@ -3359,7 +3469,20 @@ begin
     SessionCookieMustSent := not Result.IsEmpty;
   end;
   if not Result.IsEmpty then
+  begin
     Result := TIdURI.URLDecode(Result);
+    { Decoding happens here, so this is the first point where a '..', a drive
+      letter or a UNC prefix could appear in the id. An id that this engine
+      cannot have issued is dropped instead of being passed on: the caller then
+      starts a fresh session, which is what already happens for any id it does
+      not recognise. Both the file store (file name) and the database store
+      (query) consume this value. }
+    if not IsValidSessionID(Result) then
+    begin
+      Result := '';
+      SessionCookieMustSent := False;
+    end;
+  end;
 end;
 
 procedure TMVCEngine.FillActualParamsForAction(const ASelectedController: TMVCController;
@@ -4054,8 +4177,31 @@ begin
   end;
 
   lFileName := TPath.Combine(lWebRoot, AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
+{$IFDEF MSWINDOWS}
+  { Checked on the request path, not on the combined name, which legitimately
+    contains the drive colon. None of these is a traversal - the resolved file
+    really does sit under the web root - but Win32 normalises them away, so they
+    defeat any deny rule written on the name:
+      f.txt::$DATA  alternate data stream, and ':' is not an invalid path char
+      f.txt.        trailing dot and trailing space are stripped by the API
+      SECRET~1.TXT  the 8.3 alias is a different string for the same file
+      *  ?          HasValidPathChars(True) allows them on purpose
+    The 8.3 form cannot be spotted here; the rest can. }
+  if (Pos(':', AWebRequestPath) > 0) or (Pos('*', AWebRequestPath) > 0) or
+    (Pos('?', AWebRequestPath) > 0) or AWebRequestPath.EndsWith('.') or
+    AWebRequestPath.EndsWith(' ') then
+  begin
+    AIsDirectoryTraversalAttack := True;
+    Exit(False);
+  end;
+{$ENDIF}
   if not TPath.HasValidPathChars(lFileName, True) then
   begin
+    { Flagged like a traversal on purpose. The callers use this flag as their
+      only reason to stop, and a path this function refuses to resolve must not
+      be handed to the directory and SPA branches, which do no checking of
+      their own. }
+    AIsDirectoryTraversalAttack := True;
     Exit(False);
   end;
 
@@ -4065,7 +4211,13 @@ begin
   // directory whose name merely starts with the web-root folder name (e.g.
   // "wwwroot-secret" vs "wwwroot") would pass the prefix test. On Windows the
   // file system is case-insensitive, so the comparison must be too.
-  if not lFileName.StartsWith(IncludeTrailingPathDelimiter(lWebRoot),
+  { Both sides get a trailing separator before the comparison. On the right it
+    stops a sibling whose name merely starts with the web-root folder name
+    ("wwwroot-secret" vs "wwwroot"); on the left it lets the web root itself
+    through, which is what an empty request path resolves to - the directory
+    request for "/static/". The separator is only for comparing, never for IO. }
+  if not IncludeTrailingPathDelimiter(lFileName)
+    .StartsWith(IncludeTrailingPathDelimiter(lWebRoot),
     {$IFDEF MSWINDOWS}True{$ELSE}False{$ENDIF}) then
   begin
     AIsDirectoryTraversalAttack := True;
@@ -5287,7 +5439,12 @@ begin
     R := TMVCErrorResponse.Create;
     try
       R.StatusCode := GetContext.Response.StatusCode;
-      R.Message := AException.Message;
+      { Only the framework's own exceptions carry a message written for the
+        client. Anything else is an internal error whose text was never meant to
+        travel: a FireDAC EFDDBEngineException carries the whole SQL statement
+        with real table and column names, an IO error carries a server-side
+        absolute path. The detail is already logged server-side. }
+      R.Message := MVCClientSafeExceptionMessage(AException);
       // The internal exception class name is reconnaissance for an attacker and
       // is not part of the API contract; expose it only in DEBUG builds.
       {$IFDEF DEBUG}
@@ -6036,7 +6193,9 @@ begin
   begin
     fHeaders := TStringList.Create;
   end;
-  fHeaders.Values[Name] := Value;
+  { Defence at the source, so a header carried by an IMVCResponse is already
+    clean whatever host flushes it. }
+  fHeaders.Values[MVCStripCRLF(Name)] := MVCStripCRLF(Value);
   Result := Self;
 end;
 

@@ -31,85 +31,11 @@ uses
   Winapi.Windows,
   Winapi.ShellAPI,
   JsonDataObjects,
-  TemplatePro;
+  TemplatePro,
+  DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas',
+  DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas';
 
 type
-  // Config keys (duplicated from DMVC.Expert.Commons to avoid ToolsAPI dependency)
-  TConfigKey = class sealed
-  public const
-    program_name = 'program.name';
-    program_default_server_port = 'program.default_server_port';
-    program_msheap = 'program.msheap';
-    program_sqids = 'program.sqids';
-    program_dotenv = 'program.dotenv';
-    program_ssv_templatepro = 'program.ssv.templatepro';
-    program_ssv_webstencils = 'program.ssv.webstencils';
-    program_ssv_mustache = 'program.ssv.mustache';
-    program_type = 'program.type';
-    program_server_protocol = 'program.server.protocol';
-    program_service_container_generate = 'program.service.container.generate';
-    program_service_container_unit_name = 'program.service.container.unit_name';
-    program_minimal_api = 'program.minimal_api';
-    program_htmx = 'program.htmx';
-    mustache_helpers_unit_name = 'mustache.helpers_unit_name';
-    templatepro_helpers_unit_name = 'templatepro.helpers_unit_name';
-    webstencils_helpers_unit_name = 'webstencils.helpers_unit_name';
-    controller_unit_name = 'controller.unit_name';
-    controller_classname = 'controller.classname';
-    controller_index_methods_generate = 'controller.index_methods.generate';
-    controller_action_filters_generate = 'controller.action_filters.generate';
-    controller_crud_methods_generate = 'controller.crud_methods.generate';
-    controller_actions_profiling_generate = 'controller.actions.profiling.generate';
-    entity_generate = 'entity.generate';
-    entity_classname = 'entity.classname';
-    entity_unit_name = 'entity.unit_name';
-    jsonrpc_generate = 'jsonrpc.generate';
-    jsonrpc_classname = 'jsonrpc.classname';
-    jsonrpc_unit_name = 'jsonrpc.unit_name';
-    authentication_unit_name = 'authentication.unit_name';
-    authentication_classname = 'authentication.classname';
-    websocket_unit_name = 'websocketserver.unit_name';
-    websocket_generate = 'websocketserver.generate';
-    serializer_name_case = 'serializer.name_case';
-    webmodule_classname = 'webmodule.classname';
-    webmodule_unit_name = 'webmodule.unit_name';
-    webmodule_classname_short = 'webmodule.classname_short';
-    default_media_type = 'default_media_type';
-    webmodule_middleware_analytics = 'webmodule.middleware.analytics';
-    webmodule_middleware_staticfiles = 'webmodule.middleware.staticfiles';
-    webmodule_middleware_trace = 'webmodule.middleware.trace';
-    webmodule_middleware_compression = 'webmodule.middleware.compression';
-    webmodule_middleware_etag = 'webmodule.middleware.etag';
-    webmodule_middleware_cors = 'webmodule.middleware.cors';
-    webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
-    webmodule_middleware_jwt = 'webmodule.middleware.jwt';
-    webmodule_middleware_jwt_asymmetric = 'webmodule.middleware.jwt.asymmetric';
-    webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
-    webmodule_middleware_activerecord_con_def_name = 'webmodule.middleware.activerecord.con_def_name';
-    webmodule_middleware_activerecord_con_def_filename = 'webmodule.middleware.activerecord.con_def_filename';
-    con_def_filename = 'con_def_filename';
-    webmodule_middleware_session_memory = 'webmodule.middleware.session.memory';
-    webmodule_middleware_session_file = 'webmodule.middleware.session.file';
-    webmodule_middleware_session_database = 'webmodule.middleware.session.database';
-    webmodule_middleware_session_timeout = 'webmodule.middleware.session.timeout';
-    // Server engine type
-    program_server_engine = 'program.server_engine';
-    // Computed: True for ISAPI/Apache/WinService/FastCGI WebBroker; False for console WebBroker / IndyDirect / HTTP.sys
-    program_uses_webmodule = 'program.uses_webmodule';
-  end;
-
-  TProgramTypes = record
-  public const
-    HTTP_CONSOLE = 'http.console';
-    HTTPS_CONSOLE = 'https.console';
-    FASTCGI_CONSOLE = 'fastcgi.console';
-    WINDOWS_SERVICE = 'windows.service';
-    INDY_DIRECT = 'indy.direct';
-    HTTPSYS = 'httpsys';
-    ISAPI = 'isapi';
-    APACHE = 'apache';
-  end;
-
   TTestCase = record
     Name: string;
     Config: TJSONObject;
@@ -119,6 +45,11 @@ type
     // Leave empty to skip the file-check phase for the case.
     ExpectedFiles: TArray<string>;
     ForbiddenFiles: TArray<string>;
+    // Optional content assertions, each entry 'relative/path|needle'.
+    // A missing file fails both lists: an assertion that passes because nothing
+    // was generated is worse than no assertion at all.
+    MustContain: TArray<string>;
+    MustNotContain: TArray<string>;
   end;
 
   TTestResult = record
@@ -451,508 +382,22 @@ begin
 end;
 
 function GenerateProject(const AConfig: TJSONObject; const AOutputDir: string): Boolean;
-var
-  LSource: string;
 begin
+  // The real thing. This used to be a 490-line copy of TDMVCProjectGenerator:
+  // the two drifted by construction, and every file the copy did not write
+  // (the .env, loggerpro.json, half the view templates) was a template nothing
+  // ever rendered. TemplateFolder makes the generator read the .tpro files on
+  // disk instead of the copies embedded in the BPL, so this suite tests the
+  // templates in the working tree.
   Result := True;
   try
     ForceDirectories(AOutputDir);
-
-    // Set server-side view engine metadata BEFORE generating any files
-    AConfig.B['program.ssv.any'] := AConfig.B[TConfigKey.program_ssv_mustache] or
-                                     AConfig.B[TConfigKey.program_ssv_templatepro] or
-                                     AConfig.B[TConfigKey.program_ssv_webstencils];
-
-    // Minimal API + server-side views (TemplatePro) => the "Web App" flavor.
-    // Mirror of DMVC.Expert.ProjectGenerator: drives RoutesU template selection
-    // and suppresses the controller-oriented SSV scaffolding.
-    AConfig.B['program.minimal_api.web'] :=
-      AConfig.B[TConfigKey.program_minimal_api] and
-      AConfig.B[TConfigKey.program_ssv_templatepro];
-
-    // Logging profile: default to fluent when tests don't override, and
-    // pre-compute the derived booleans the templates consume (the real
-    // DMVC.Expert.ProjectGenerator does the same).
-    if (not AConfig.Contains('logging.profile')) or AConfig.S['logging.profile'].IsEmpty then
-    begin
-      AConfig.S['logging.profile'] := 'fluent';
-      AConfig.B['logging.appender.console'] := True;
-      AConfig.B['logging.appender.file'] := True;
-    end;
-    AConfig.B['logging.profile.fluent'] :=
-      SameText(AConfig.S['logging.profile'], 'fluent');
-    AConfig.B['logging.profile.json'] :=
-      SameText(AConfig.S['logging.profile'], 'json');
-    AConfig.B['logging.profile.disabled'] :=
-      SameText(AConfig.S['logging.profile'], 'disabled');
-    // Ensure every appender flag exists so the strict test template engine
-    // doesn't throw on undefined variables. Defaults to False for any flag
-    // not set by the test case.
-    if not AConfig.Contains('logging.appender.console')  then AConfig.B['logging.appender.console']  := False;
-    if not AConfig.Contains('logging.appender.file')     then AConfig.B['logging.appender.file']     := False;
-    if not AConfig.Contains('logging.appender.jsonl')    then AConfig.B['logging.appender.jsonl']    := False;
-    if not AConfig.Contains('logging.appender.html')     then AConfig.B['logging.appender.html']     := False;
-    if not AConfig.Contains('logging.appender.odbg')     then AConfig.B['logging.appender.odbg']     := False;
-    if not AConfig.Contains('logging.appender.eventlog') then AConfig.B['logging.appender.eventlog'] := False;
-    if not AConfig.Contains('logging.appender.syslog')   then AConfig.B['logging.appender.syslog']   := False;
-    if not AConfig.Contains('logging.exewatch')          then AConfig.B['logging.exewatch']          := False;
-
-    // Main controller emission gate (mirror of DMVC.Expert.ProjectGenerator).
-    // Suppress for Minimal API WebApp: lambda routes replace the controller
-    // class even when SSV is on (the controller would otherwise be emitted
-    // and shadow the routes file).
-    AConfig.B['controller.main.generate'] :=
-      (not AConfig.B['program.minimal_api.web']) and
-      (AConfig.B[TConfigKey.controller_index_methods_generate] or
-       AConfig.B[TConfigKey.controller_action_filters_generate] or
-       AConfig.B['program.ssv.any']);
-
-    // Always use .html extension for better editor support
-    AConfig.S['template.extension'] := 'html';
-
-    if AConfig.B[TConfigKey.program_ssv_templatepro] then
-      AConfig.S['template.engine.name'] := 'TemplatePro'
-    else if AConfig.B[TConfigKey.program_ssv_mustache] then
-      AConfig.S['template.engine.name'] := 'Mustache'
-    else if AConfig.B[TConfigKey.program_ssv_webstencils] then
-      AConfig.S['template.engine.name'] := 'WebStencils';
-
-    AConfig.S['dmvc.version'] := 'v3.x';
-
-    // Set form references for Delphi (braces conflict with TemplatePro)
-    AConfig.S['webmodule_form_reference'] :=
-      '{' + AConfig.S[TConfigKey.webmodule_classname_short] + ': TWebModule}';
-    AConfig.S['service_form_reference'] :=
-      '{DMVCFrameworkWindowsService: TDMVCFrameworkWindowsService}';
-
-    // Determine server engine (default to 'webbroker' if not specified)
-    if AConfig.S[TConfigKey.program_server_engine] = '' then
-      AConfig.S[TConfigKey.program_server_engine] := 'webbroker';
-
-    // Default: no webmodule (console WebBroker uses EngineConfigU + TMVCServerFactory)
-    if not AConfig.Contains(TConfigKey.program_uses_webmodule) then
-      AConfig.B[TConfigKey.program_uses_webmodule] := False;
-
-    // Generate program file based on server engine + program type combinations
-    if AConfig.S[TConfigKey.program_server_engine] = 'indydirect' then
-    begin
-      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
-      begin
-        LogVerbose('Generating Indy Direct Service program...');
-        LSource := TTestTemplateEngine.Render('program_service_indydirect.dpr.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-
-        LogVerbose('Generating ServiceU.pas (Indy Direct)...');
-        LSource := TTestTemplateEngine.Render('service_indydirect.pas.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
-
-        LogVerbose('Generating ServiceU.dfm...');
-        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
-      end
-      else
-      begin
-        LogVerbose('Generating Indy Direct program...');
-        LSource := TTestTemplateEngine.Render('program_indydirect.dpr.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-      end;
-
-      LogVerbose('Generating EngineConfigU.pas...');
-      LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'EngineConfigU.pas'), LSource);
-    end
-    else if AConfig.S[TConfigKey.program_server_engine] = 'httpsys' then
-    begin
-      if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
-      begin
-        LogVerbose('Generating HTTP.sys Service program...');
-        LSource := TTestTemplateEngine.Render('program_service_httpsys.dpr.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-
-        LogVerbose('Generating ServiceU.pas (HTTP.sys)...');
-        LSource := TTestTemplateEngine.Render('service_httpsys.pas.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
-
-        LogVerbose('Generating ServiceU.dfm...');
-        LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
-      end
-      else
-      begin
-        LogVerbose('Generating HTTP.sys program...');
-        LSource := TTestTemplateEngine.Render('program_httpsys.dpr.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-      end;
-
-      LogVerbose('Generating EngineConfigU.pas...');
-      LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'EngineConfigU.pas'), LSource);
-    end
-    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE then
-    begin
-      LogVerbose('Generating Windows Service program (WebBroker)...');
-      LSource := TTestTemplateEngine.Render('program_service.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-
-      // Generate Service unit
-      LogVerbose('Generating ServiceU.pas...');
-      LSource := TTestTemplateEngine.Render('service.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.pas'), LSource);
-
-      LogVerbose('Generating ServiceU.dfm...');
-      LSource := TTestTemplateEngine.Render('service.dfm.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'ServiceU.dfm'), LSource);
-    end
-    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI then
-    begin
-      LogVerbose('Generating ISAPI library...');
-      LSource := TTestTemplateEngine.Render('program_isapi.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-    end
-    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE then
-    begin
-      LogVerbose('Generating Apache module...');
-      LSource := TTestTemplateEngine.Render('program_apache.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-    end
-    else if AConfig.S[TConfigKey.program_type] = TProgramTypes.FASTCGI_CONSOLE then
-    begin
-      // FastCGI: still uses WebBroker infrastructure (TFastCGIApplication), no IMVCServer
-      LogVerbose('Generating FastCGI program.dpr...');
-      LSource := TTestTemplateEngine.Render('program.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-    end
-    else
-    begin
-      // Console WebBroker: use IMVCServer abstraction via TMVCServerFactory.CreateWebBroker
-      LogVerbose('Generating WebBroker console program.dpr...');
-      LSource := TTestTemplateEngine.Render('program_webbroker.dpr.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_name] + '.dpr'), LSource);
-
-      LogVerbose('Generating EngineConfigU.pas...');
-      LSource := TTestTemplateEngine.Render('engineconfig.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'EngineConfigU.pas'), LSource);
-    end;
-
-    // Main Controllers.HomeU - only when it would contain at least one method
-    if AConfig.B['controller.main.generate'] then
-    begin
-      LogVerbose('Generating Controllers.HomeU...');
-      LSource := TTestTemplateEngine.Render('controller.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.controller_unit_name] + '.pas'), LSource);
-    end;
-
-    // JSON sidecar for SSV presets
-    if AConfig.B['program.ssv.any'] and not AConfig.B[TConfigKey.program_minimal_api] then
-    begin
-      LogVerbose('Generating Controllers.APIU...');
-      LSource := TTestTemplateEngine.Render('controller_api.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, 'Controllers.APIU.pas'), LSource);
-    end;
-
-    // Generate BootConfigU (always)
-    LogVerbose('Generating BootConfigU...');
-    LSource := TTestTemplateEngine.Render('boot_config.pas.tpro', AConfig);
-    TFile.WriteAllText(TPath.Combine(AOutputDir, 'BootConfigU.pas'), LSource);
-
-    // Generate CRUD sample: controller class (default) or lambda-route unit (Minimal API).
-    if AConfig.B[TConfigKey.controller_crud_methods_generate] then
-    begin
-      if AConfig.B['program.minimal_api.web'] then
-      begin
-        LogVerbose('Generating RoutesU (Minimal API WebApp)...');
-        LSource := TTestTemplateEngine.Render('routes_minimal_web.pas.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'RoutesU.pas'), LSource);
-      end
-      else if AConfig.B[TConfigKey.program_minimal_api] then
-      begin
-        LogVerbose('Generating RoutesU (Minimal API)...');
-        LSource := TTestTemplateEngine.Render('routes_minimal.pas.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'RoutesU.pas'), LSource);
-      end
-      else
-      begin
-        LogVerbose('Generating Controllers.PeopleU...');
-        LSource := TTestTemplateEngine.Render('controller_people.pas.tpro', AConfig);
-        TFile.WriteAllText(TPath.Combine(AOutputDir, 'Controllers.PeopleU.pas'), LSource);
-      end;
-    end;
-
-    // WebModule only for WebBroker non-console cases (ISAPI, Apache, Windows Service, FastCGI).
-    // Console WebBroker uses EngineConfigU + TMVCServerFactory.CreateWebBroker instead.
-    if ((AConfig.S[TConfigKey.program_server_engine] = 'webbroker') or
-        (AConfig.S[TConfigKey.program_server_engine] = '')) and
-       ((AConfig.S[TConfigKey.program_type] = TProgramTypes.WINDOWS_SERVICE) or
-        (AConfig.S[TConfigKey.program_type] = TProgramTypes.ISAPI) or
-        (AConfig.S[TConfigKey.program_type] = TProgramTypes.APACHE) or
-        (AConfig.S[TConfigKey.program_type] = TProgramTypes.FASTCGI_CONSOLE)) then
-    begin
-      AConfig.B['program.uses_webmodule'] := True;
-
-      LogVerbose('Generating webmodule...');
-      LSource := TTestTemplateEngine.Render('webmodule.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.pas'), LSource);
-
-      LogVerbose('Generating webmodule.dfm...');
-      LSource := TTestTemplateEngine.Render('webmodule.dfm.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webmodule_unit_name] + '.dfm'), LSource);
-    end;
-
-    // Generate optional units
-    if AConfig.B[TConfigKey.entity_generate] then
-    begin
-      LogVerbose('Generating entity...');
-      LSource := TTestTemplateEngine.Render('entity.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.entity_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.program_service_container_generate] then
-    begin
-      LogVerbose('Generating services...');
-      LSource := TTestTemplateEngine.Render('services.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.program_service_container_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.jsonrpc_generate] then
-    begin
-      LogVerbose('Generating jsonrpc...');
-      LSource := TTestTemplateEngine.Render('jsonrpc.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.jsonrpc_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.webmodule_middleware_jwt] then
-    begin
-      LogVerbose('Generating authentication handler...');
-      LSource := TTestTemplateEngine.Render('authentication.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.authentication_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.websocket_generate] then
-    begin
-      LogVerbose('Generating websocket server...');
-      LSource := TTestTemplateEngine.Render('websocketserver.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.websocket_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.program_ssv_mustache] then
-    begin
-      LogVerbose('Generating mustache helpers...');
-      LSource := TTestTemplateEngine.Render('helpers_mustache.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.mustache_helpers_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.program_ssv_templatepro] then
-    begin
-      LogVerbose('Generating templatepro helpers...');
-      LSource := TTestTemplateEngine.Render('helpers_templatepro.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.templatepro_helpers_unit_name] + '.pas'), LSource);
-    end;
-
-    if AConfig.B[TConfigKey.program_ssv_webstencils] then
-    begin
-      LogVerbose('Generating webstencils helpers...');
-      LSource := TTestTemplateEngine.Render('helpers_webstencils.pas.tpro', AConfig);
-      TFile.WriteAllText(TPath.Combine(AOutputDir, AConfig.S[TConfigKey.webstencils_helpers_unit_name] + '.pas'), LSource);
-    end;
-
-    // Create www folder for static files middleware
-    if AConfig.B[TConfigKey.webmodule_middleware_staticfiles] then
-    begin
-      LogVerbose('Creating www folder...');
-      ForceDirectories(TPath.Combine(AOutputDir, 'www'));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'www\index.html'),
-        '<!DOCTYPE html>' + sLineBreak +
-        '<html>' + sLineBreak +
-        '<head>' + sLineBreak +
-        '  <title>Welcome</title>' + sLineBreak +
-        '</head>' + sLineBreak +
-        '<body>' + sLineBreak +
-        '  <h1>Static Files Work!</h1>' + sLineBreak +
-        '  <p>This file is served from the <code>/static</code> path.</p>' + sLineBreak +
-        '</body>' + sLineBreak +
-        '</html>');
-    end;
-
-    // Create templates folder for server-side views
-    // Generate in project root (not in bin/) so they're accessible during development
-    if (AConfig.B[TConfigKey.program_ssv_mustache] or
-        AConfig.B[TConfigKey.program_ssv_templatepro] or
-        AConfig.B[TConfigKey.program_ssv_webstencils]) and
-       not AConfig.B['program.minimal_api.web'] then
-    begin
-      LogVerbose('Creating templates folder with header, footer and index...');
-      ForceDirectories(TPath.Combine(AOutputDir, 'templates'));
-
-      // Template engine metadata is already set at the beginning of GenerateProject
-      var LTemplateExt := AConfig.S['template.extension'];
-
-      // Generate complete index template
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\index.' + LTemplateExt),
-        TTestTemplateEngine.Render('views\index_complete_view.tpro', AConfig));
-    end;
-
-    // Minimal API WebApp view set. Separate from the controller-oriented SSV
-    // block above: minimal-web has no THomeController/about views — it ships a
-    // navbar baselayout plus home / login / admin / time(fragment), matching the
-    // routes in routes_minimal_web.pas.tpro. Files are runtime TemplatePro
-    // templates: loaded raw (NOT compiled — they contain runtime extends/block
-    // directives), only wizard-time placeholders replaced.
-    if AConfig.B['program.minimal_api.web'] then
-    begin
-      LogVerbose('Creating Minimal API WebApp view set...');
-      ForceDirectories(TPath.Combine(AOutputDir, 'templates'));
-      ForceDirectories(TPath.Combine(AOutputDir, 'templates\pages'));
-
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\baselayout.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\minimal_baselayout.tpro'), TEncoding.UTF8)
-          .Replace('{{:program_name}}', AConfig.S[TConfigKey.program_name]));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\pages\home.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\minimal_home.tpro'), TEncoding.UTF8)
-          .Replace('{{:program_name}}', AConfig.S[TConfigKey.program_name]));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\pages\login.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\minimal_login.tpro'), TEncoding.UTF8)
-          .Replace('{{:program_name}}', AConfig.S[TConfigKey.program_name]));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\pages\admin_home.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\minimal_admin.tpro'), TEncoding.UTF8)
-          .Replace('{{:program_name}}', AConfig.S[TConfigKey.program_name]));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\pages\time.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\minimal_time.tpro'), TEncoding.UTF8));
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'templates\error.html'),
-        TFile.ReadAllText(TPath.Combine(TTestTemplateEngine.GetTemplatePath,
-          'views\error_view.tpro'), TEncoding.UTF8));
-    end;
-
-    // Create .gitignore file
-    LogVerbose('Creating .gitignore...');
-    TFile.WriteAllText(
-      TPath.Combine(AOutputDir, '.gitignore'),
-      '# Delphi compiled files' + sLineBreak +
-      '*.exe' + sLineBreak +
-      '*.dll' + sLineBreak +
-      '*.bpl' + sLineBreak +
-      '*.dcp' + sLineBreak +
-      '*.dcu' + sLineBreak +
-      '*.obj' + sLineBreak +
-      '*.o' + sLineBreak +
-      '*.res' + sLineBreak +
-      '*.rsm' + sLineBreak +
-      '*.map' + sLineBreak +
-      '*.drc' + sLineBreak +
-      '*.local' + sLineBreak +
-      '*.identcache' + sLineBreak +
-      '*.projdata' + sLineBreak +
-      '*.tvsconfig' + sLineBreak +
-      '*.dsk' + sLineBreak +
-      '*.stat' + sLineBreak +
-      sLineBreak +
-      '# Delphi autogenerated files' + sLineBreak +
-      '__history/' + sLineBreak +
-      '__recovery/' + sLineBreak +
-      '*.~*' + sLineBreak +
-      sLineBreak +
-      '# Build output' + sLineBreak +
-      'bin/' + sLineBreak +
-      'Win32/' + sLineBreak +
-      'Win64/' + sLineBreak +
-      'Debug/' + sLineBreak +
-      'Release/' + sLineBreak +
-      sLineBreak +
-      '# Environment files' + sLineBreak +
-      '.env' + sLineBreak +
-      '*.env.local' + sLineBreak);
-
-    // Create sample .env file when dotenv is enabled
-    if AConfig.B[TConfigKey.program_dotenv] then
-    begin
-      LogVerbose('Creating .env.sample...');
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, '.env.sample'),
-        '# Sample environment configuration' + sLineBreak +
-        '# Copy this file to .env and modify the values' + sLineBreak +
-        sLineBreak +
-        '# Application base path (relative path from exe to project root)' + sLineBreak +
-        '# Development default: ..\.. (exe in Win32\Debug)' + sLineBreak +
-        '# Production: . (exe alongside templates/www/etc.)' + sLineBreak +
-        '# APP_BASE_PATH=.' + sLineBreak +
-        sLineBreak +
-        '# Server configuration' + sLineBreak +
-        'SERVER_PORT=' + AConfig.S[TConfigKey.program_default_server_port] + sLineBreak +
-        sLineBreak +
-        '# Database configuration (if using ActiveRecord)' + sLineBreak +
-        '# DB_CONNECTION_DEF_NAME=MyConnection' + sLineBreak +
-        '# DB_HOST=localhost' + sLineBreak +
-        '# DB_PORT=5432' + sLineBreak +
-        '# DB_NAME=mydb' + sLineBreak +
-        '# DB_USER=user' + sLineBreak +
-        '# DB_PASSWORD=password' + sLineBreak +
-        sLineBreak +
-        '# JWT configuration (if using JWT middleware)' + sLineBreak +
-        '# JWT_SECRET=your-secret-key-change-this-in-production' + sLineBreak +
-        '# JWT_EXPIRES_HOURS=24' + sLineBreak);
-    end;
-
-    // Create sample FDConnectionDefs.ini when ActiveRecord middleware is enabled
+    TDMVCProjectGenerator.TemplateFolder := TTestTemplateEngine.GetTemplatePath;
+    TDMVCProjectGenerator.Generate(AOutputDir,
+      AConfig.S[TConfigKey.program_name], AConfig);
+    // SQLite needs the folder to exist before the first connection.
     if AConfig.B[TConfigKey.webmodule_middleware_activerecord] then
-    begin
-      LogVerbose('Creating FDConnectionDefs.ini and data folder...');
-      TFile.WriteAllText(
-        TPath.Combine(AOutputDir, 'FDConnectionDefs.ini'),
-        '; FireDAC Connection Definitions' + sLineBreak +
-        '; https://docwiki.embarcadero.com/RADStudio/en/Defining_Connection_(FireDAC)' + sLineBreak +
-        sLineBreak +
-        '[' + AConfig.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] + ']' + sLineBreak +
-        '; PostgreSQL example' + sLineBreak +
-        '; DriverID=PG' + sLineBreak +
-        '; Server=localhost' + sLineBreak +
-        '; Port=5432' + sLineBreak +
-        '; Database=mydb' + sLineBreak +
-        '; User_Name=postgres' + sLineBreak +
-        '; Password=password' + sLineBreak +
-        sLineBreak +
-        '; SQLite example' + sLineBreak +
-        'DriverID=SQLite' + sLineBreak +
-        'Database=.\data\database.db' + sLineBreak +
-        sLineBreak +
-        '; InterBase/Firebird example' + sLineBreak +
-        '; DriverID=IB' + sLineBreak +
-        '; Server=localhost' + sLineBreak +
-        '; Port=3050' + sLineBreak +
-        '; Database=C:\databases\mydb.fdb' + sLineBreak +
-        '; User_Name=SYSDBA' + sLineBreak +
-        '; Password=masterkey' + sLineBreak +
-        sLineBreak +
-        '; MySQL/MariaDB example' + sLineBreak +
-        '; DriverID=MySQL' + sLineBreak +
-        '; Server=localhost' + sLineBreak +
-        '; Port=3306' + sLineBreak +
-        '; Database=mydb' + sLineBreak +
-        '; User_Name=root' + sLineBreak +
-        '; Password=password' + sLineBreak +
-        sLineBreak +
-        '; SQL Server example' + sLineBreak +
-        '; DriverID=MSSQL' + sLineBreak +
-        '; Server=localhost' + sLineBreak +
-        '; Database=mydb' + sLineBreak +
-        '; User_Name=sa' + sLineBreak +
-        '; Password=password' + sLineBreak);
-
-      // Create data folder for SQLite database
-      ForceDirectories(TPath.Combine(AOutputDir, 'data'));
-    end;
-
+      ForceDirectories(TPath.Combine(AOutputDir, 'bin' + PathDelim + 'data'));
   except
     on E: Exception do
     begin
@@ -1002,6 +447,53 @@ begin
   end;
 end;
 
+function VerifyContent(const AOutputDir: string;
+  const AMustContain, AMustNotContain: TArray<string>; out AError: string): Boolean;
+var
+  LEntry, LRel, LNeedle, LAbs, LText: string;
+  LSep: Integer;
+  LFailures: TArray<string>;
+begin
+  AError := '';
+  LFailures := nil;
+
+  for LEntry in AMustContain do
+  begin
+    LSep := LEntry.IndexOf('|');
+    LRel := LEntry.Substring(0, LSep);
+    LNeedle := LEntry.Substring(LSep + 1);
+    LAbs := TPath.Combine(AOutputDir, LRel.Replace('/', PathDelim));
+    if not TFile.Exists(LAbs) then
+      LFailures := LFailures + ['no ' + LRel]
+    else
+    begin
+      LText := TFile.ReadAllText(LAbs);
+      if not LText.Contains(LNeedle) then
+        LFailures := LFailures + [LRel + ' lacks "' + LNeedle + '"'];
+    end;
+  end;
+
+  for LEntry in AMustNotContain do
+  begin
+    LSep := LEntry.IndexOf('|');
+    LRel := LEntry.Substring(0, LSep);
+    LNeedle := LEntry.Substring(LSep + 1);
+    LAbs := TPath.Combine(AOutputDir, LRel.Replace('/', PathDelim));
+    if not TFile.Exists(LAbs) then
+      LFailures := LFailures + ['no ' + LRel]
+    else
+    begin
+      LText := TFile.ReadAllText(LAbs);
+      if LText.Contains(LNeedle) then
+        LFailures := LFailures + [LRel + ' still has "' + LNeedle + '"'];
+    end;
+  end;
+
+  Result := Length(LFailures) = 0;
+  if not Result then
+    AError := 'Content check: ' + String.Join(' | ', LFailures);
+end;
+
 procedure RunTest(const ATestCase: TTestCase);
 var
   LResult: TTestResult;
@@ -1019,6 +511,10 @@ begin
   LResult.ErrorMessage := '';
 
   LOutputDir := TPath.Combine(GOutputDir, ATestCase.Name);
+  // Wipe first: a file left by a previous run satisfies an ExpectedFiles
+  // assertion the current templates no longer produce.
+  if TDirectory.Exists(LOutputDir) then
+    TDirectory.Delete(LOutputDir, True);
 
   try
     LResult.GenerationOK := GenerateProject(ATestCase.Config, LOutputDir);
@@ -1036,7 +532,22 @@ begin
           Log('File check: OK')
         else
         begin
-          Log('File check: FAILED — ' + LFileError);
+          Log('File check: FAILED - ' + LFileError);
+          LResult.ErrorMessage := LFileError;
+        end;
+      end;
+
+      if LResult.FileCheckOK and
+         ((Length(ATestCase.MustContain) > 0) or
+          (Length(ATestCase.MustNotContain) > 0)) then
+      begin
+        LResult.FileCheckOK := VerifyContent(LOutputDir,
+          ATestCase.MustContain, ATestCase.MustNotContain, LFileError);
+        if LResult.FileCheckOK then
+          Log('Content check: OK')
+        else
+        begin
+          Log('Content check: FAILED - ' + LFileError);
           LResult.ErrorMessage := LFileError;
         end;
       end;
@@ -1617,9 +1128,9 @@ begin
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
-  LTestCase.ExpectedFiles := ['templates/baselayout.html', 'templates/error.html',
-    'templates/pages/home.html', 'templates/pages/login.html',
-    'templates/pages/admin_home.html', 'templates/pages/time.html'];
+  LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
+    'bin/templates/pages/home.html', 'bin/templates/pages/login.html',
+    'bin/templates/pages/admin_home.html', 'bin/templates/pages/time.html'];
   LTestCase.ForbiddenFiles := [];
   ATestCases.Add(LTestCase);
 
@@ -1664,11 +1175,72 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_etag] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
-  LTestCase.ExpectedFiles := ['templates/baselayout.html', 'templates/error.html',
-    'templates/pages/home.html', 'templates/pages/login.html',
-    'templates/pages/admin_home.html', 'templates/pages/time.html'];
+  LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
+    'bin/templates/pages/home.html', 'bin/templates/pages/login.html',
+    'bin/templates/pages/admin_home.html', 'bin/templates/pages/time.html'];
   LTestCase.ForbiddenFiles := [];
   ATestCases.Add(LTestCase);
+
+  // From here on the case record is reset first: the four assertion arrays are
+  // sticky otherwise, and a case that forgets to clear them inherits the previous
+  // one's expectations.
+  LTestCase := Default(TTestCase);
+
+  // Test 56: ISAPI + TemplatePro views. The WebModule flavor (ISAPI, Apache,
+  // Windows Service, FastCGI) must render errors through UseExceptionHandler,
+  // not through a hand-rolled handler that puts E.Message on the page.
+  LTestCase.Name := 'isapi_webapp_error_handler';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := ['WebModuleU.pas|UseExceptionHandler'];
+  LTestCase.MustNotContain := ['WebModuleU.pas|lError := E.Message'];
+  ATestCases.Add(LTestCase);
+
+  // Test 57: Indy Direct + Minimal API + JWT. The combination was never
+  // exercised: the JWT units are emitted only for the non-minimal flavor while
+  // the middleware call is emitted always. Also pins the two things a minimal
+  // API project silently lost: the engine config callback (so the dmvc.* keys
+  // in .env are actually read) and a login handler that does not hand out a
+  // token to admin/admin.
+  LTestCase.Name := 'indydirect_minimal_api_jwt';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B['controller.main.generate'] := False;
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := [
+    'RoutesU.pas|Result := JWT(',
+    'TestProject.dpr|expose_server_signature',
+    'bin/.env|dmvc.expose_x_powered_by=false'];
+  LTestCase.MustNotContain := ['AuthenticationU.pas|UserName.Equals(Password)'];
+  ATestCases.Add(LTestCase);
+
+  // Test 58: Indy Direct over HTTPS. The .env must carry the certificate keys
+  // the generated .dpr reads, otherwise the project cannot start.
+  LTestCase.Name := 'indydirect_https_env';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.S[TConfigKey.program_default_server_port] := '443';
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := [
+    'bin/.env|https.cert.privkey',
+    'bin/.env|https.cert.cacert'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 end;
 
 procedure PrintSummary;

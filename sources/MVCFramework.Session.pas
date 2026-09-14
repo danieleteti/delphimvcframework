@@ -85,6 +85,7 @@ type
   private
     fTimeoutInMinutes: Integer;
     fHttpOnly: Boolean;
+    fSecure: Boolean;
   protected
     property HttpOnly: Boolean read fHttpOnly;
     property TimeoutInMinutes: Integer read fTimeoutInMinutes;
@@ -94,7 +95,18 @@ type
     function CreateFromSessionID(const ASessionId: string): TMVCWebSession; virtual; abstract;
     function TryFindSessionID(const ASessionID: String): Boolean; virtual; abstract;
     procedure TryDeleteSessionID(const ASessionID: String); virtual; abstract;
-    constructor Create(const aHttpOnly: Boolean = False; const aTimeoutInMinutes: Integer = 0); virtual;
+    constructor Create(const aHttpOnly: Boolean = True; const aTimeoutInMinutes: Integer = 0;
+      const aSecure: Boolean = False); virtual;
+    /// <summary>
+    /// Emits the session cookie with the Secure attribute, so the browser only
+    /// ever sends it back over HTTPS.
+    /// Default False, and deliberately so: a Secure cookie is not stored or sent
+    /// at all over plain HTTP, which would silently break every development
+    /// setup - and any existing deployment on HTTP - on upgrade. Turn it on
+    /// wherever the application is actually served over TLS. The wizard turns it
+    /// on in generated projects.
+    /// </summary>
+    property Secure: Boolean read fSecure write fSecure;
   end;
 
   TMVCWebSessionClass = class of TMVCWebSession;
@@ -166,10 +178,21 @@ type
     function CreateFromSessionID(const ASessionId: string): TMVCWebSession; override;
     function TryFindSessionID(const ASessionID: String): Boolean; override;
     procedure TryDeleteSessionID(const ASessionID: String); override;
-    constructor Create(const aHttpOnly: Boolean = False; aTimeoutInMinutes: Integer = 0; aSessionFolder: String = 'dmvc_sessions'); reintroduce; virtual;
+    constructor Create(const aHttpOnly: Boolean = True; aTimeoutInMinutes: Integer = 0;
+      aSessionFolder: String = 'dmvc_sessions'; const aSecure: Boolean = False); reintroduce; virtual;
   end;
 
 procedure ClearSessionCookiesAlreadySet(const ACookies: TCookieCollection);
+
+/// <summary>
+/// True when ASessionID has the shape GenerateSessionID produces ('DT' followed
+/// by hex digits), i.e. letters and digits only.
+/// The session id arrives from a cookie or a query-string parameter, so it is
+/// attacker-controlled: the file store turns it into a file name and the
+/// database store puts it in a query. Anything outside [A-Za-z0-9] is rejected
+/// before it can become either.
+/// </summary>
+function IsValidSessionID(const ASessionID: string): Boolean;
 
 
 implementation
@@ -185,6 +208,19 @@ var
   GlCriticalSection: TCriticalSection;
   GSessionTypeLock: Int64 = 0;
 
+
+function IsValidSessionID(const ASessionID: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if (ASessionID = '') or (Length(ASessionID) > 255) then
+    Exit;
+  for I := 1 to Length(ASessionID) do
+    if not CharInSet(ASessionID[I], ['A' .. 'Z', 'a' .. 'z', '0' .. '9']) then
+      Exit;
+  Result := True;
+end;
 
 procedure ClearSessionCookiesAlreadySet(const aCookies: TCookieCollection);
 var
@@ -329,6 +365,7 @@ begin
   lCookie.name := TMVCConstants.SESSION_TOKEN_NAME;
   lCookie.Value := aSessionId;
   lCookie.HttpOnly := fHttpOnly;
+  lCookie.Secure := GetSessionFactory.Secure;
   lSessionTimeout := GetSessionFactory.GetTimeout;
   if lSessionTimeout = 0 then
     // Pure "session cookie" semantics (browser deletes on close) cannot be
@@ -342,6 +379,17 @@ begin
     lCookie.Expires := Now + OneMinute * lSessionTimeout;
 
   lCookie.Path := '/';
+{$IF CompilerVersion >= 35.0}
+  { Lax still travels on a top-level navigation, so ordinary links keep working,
+    but the session cookie stops riding along with a cross-site form post or
+    subresource request. Without it the browser default applies, and that is not
+    the same on every browser or version.
+    The version guard is not about Lax: TCookie.SameSite arrived in 10.4.2, and
+    CompilerVersion is 34.0 for the whole 10.4 line, so 11 is the lowest
+    threshold that can actually be expressed. Indy has the same problem and says
+    so in IdCompilerDefines.inc. }
+  lCookie.SameSite := 'Lax';
+{$ENDIF}
   Result := ASessionId;
 end;
 
@@ -600,6 +648,12 @@ end;
 
 function TMVCWebSessionFileFactory.GetSessionFileName(aSessionID: String): String;
 begin
+  { Belt and braces: the id is already filtered where it enters the engine, but
+    this is the point where it would become a path, so it is checked here too.
+    TPath.Combine returns the second argument verbatim when it is rooted, so
+    even without a '..' an absolute or UNC id would escape the folder. }
+  if not IsValidSessionID(aSessionID) then
+    raise EMVCSession.Create('Invalid session id');
   Result := TPath.Combine(fSessionFolder, aSessionId);
 end;
 
@@ -692,6 +746,12 @@ var
   lSessionFileName: string;
 begin
   inherited;
+  { An id this engine cannot have issued - the empty one included, which is what
+    SessionStop sees when the client has no cookie yet, on the first login - has
+    no file to delete. Exit like the database factory does; raising here would
+    turn "log in without a session" into a 500. }
+  if not IsValidSessionID(ASessionID) then
+    Exit;
   lSessionFileName := GetSessionFileName(ASessionID);
   if TFile.Exists(lSessionFileName) then
   begin
@@ -710,6 +770,8 @@ function TMVCWebSessionFileFactory.TryFindSessionID(
   const ASessionID: String): Boolean;
 begin
   inherited;
+  if not IsValidSessionID(ASessionID) then
+    Exit(False);
   Result := TFile.Exists(GetSessionFileName(ASessionID));
 end;
 
@@ -718,9 +780,10 @@ begin
   gLock := TObject.Create;
 end;
 
-constructor TMVCWebSessionFileFactory.Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer; aSessionFolder: String);
+constructor TMVCWebSessionFileFactory.Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer;
+  aSessionFolder: String; const aSecure: Boolean);
 begin
-  inherited Create(aHttpOnly, aTimeoutInMinutes);
+  inherited Create(aHttpOnly, aTimeoutInMinutes, aSecure);
   fSessionFolder := GetSessionFolder(aSessionFolder);
 end;
 
@@ -776,11 +839,13 @@ end;
 
 { TMVCWebSessionFactory }
 
-constructor TMVCWebSessionFactory.Create(const aHttpOnly: Boolean; const aTimeoutInMinutes: Integer);
+constructor TMVCWebSessionFactory.Create(const aHttpOnly: Boolean; const aTimeoutInMinutes: Integer;
+  const aSecure: Boolean);
 begin
   inherited Create;
   fHttpOnly := aHttpOnly;
   fTimeoutInMinutes := aTimeoutInMinutes;
+  fSecure := aSecure;
 end;
 
 function TMVCWebSessionFactory.GetTimeout: Integer;

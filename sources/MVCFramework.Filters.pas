@@ -84,14 +84,15 @@ uses
 // the standard filter-inheritance rules).
 //
 //   lEngine.Root.AsWeb
-//     .Use(MemorySession(10))         // 10-minute idle timeout, no HttpOnly
+//     .Use(MemorySession(10))         // 10-minute idle timeout, HttpOnly on
 //     .MapGet('/', HomeHandler);
 //
 // The factory is owned by the filter via an interface-managed holder, so it is
 // freed when the filter is dropped (typically engine shutdown). The session
 // itself is read/written via the usual TWebContext.Session API.
 function MemorySession(const ATimeoutInMinutes: Integer = 0;
-  const AHttpOnly: Boolean = False): TMVCEndpointFilter;
+  const AHttpOnly: Boolean = True;
+  const ASecure: Boolean = False): TMVCEndpointFilter;
 
 // CORS filter. Handles preflight OPTIONS requests directly (short-circuits
 // with 200 + Access-Control-* headers) and stamps the same headers on every
@@ -310,7 +311,8 @@ function RequireRole(const ARoles: TArray<string>): TMVCEndpointFilter; overload
 // restart (data stored under ASessionFolder).
 function FileSession(const ATimeoutInMinutes: Integer = 0;
   const ASessionFolder: string = 'dmvc_sessions';
-  const AHttpOnly: Boolean = False): TMVCEndpointFilter;
+  const AHttpOnly: Boolean = True;
+  const ASecure: Boolean = False): TMVCEndpointFilter;
 
 // Database-backed session factory EndpointFilter — sibling of MemorySession.
 // Requires an ActiveRecord connection in scope on the same group (i.e. the
@@ -318,7 +320,8 @@ function FileSession(const ATimeoutInMinutes: Integer = 0;
 // connection). Combine with ActiveRecord(...) earlier in the filter chain.
 function DatabaseSession(const ATimeoutInMinutes: Integer = 0;
   const AConnectionDefName: string = '';
-  const AHttpOnly: Boolean = False): TMVCEndpointFilter;
+  const AHttpOnly: Boolean = True;
+  const ASecure: Boolean = False): TMVCEndpointFilter;
 
 // -------------------------------------------------------------------------
 // Extended HTTPFilter helpers
@@ -444,6 +447,7 @@ function Swagger(AEngine: TMVCEngine;
 
 implementation
 
+
 uses
 {$IF Defined(MSWINDOWS)}
   WinAPI.Windows,                   // GetStdHandle, PeekConsoleInput (WaitForShutdownOrConsoleReturn)
@@ -468,6 +472,10 @@ uses
   MVCFramework.Middleware.OpenAPI3,     // TMVCOpenAPI3Middleware (OpenAPI helper)
   MVCFramework.Middleware.Swagger,      // TMVCSwaggerMiddleware (Swagger helper)
   FireDAC.Comp.Client;              // FDManager (ActiveRecord filter)
+
+const
+  { Largest slice served in a single 206 response. }
+  MAX_RANGE_SLICE = 8 * 1024 * 1024;
 
 type
   // Holds the lifetime of a session factory for the MemorySession filter.
@@ -506,7 +514,7 @@ begin
 end;
 
 function MemorySession(const ATimeoutInMinutes: Integer;
-  const AHttpOnly: Boolean): TMVCEndpointFilter;
+  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
 var
   lHolder: ISessionFactoryHolder;
 begin
@@ -516,7 +524,7 @@ begin
   // closure is freed, the captured interface refcount drops to zero, and the
   // holder's destructor frees the factory.
   lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionMemoryFactory.Create(AHttpOnly, ATimeoutInMinutes));
+    TMVCWebSessionMemoryFactory.Create(AHttpOnly, ATimeoutInMinutes, ASecure));
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -1074,12 +1082,13 @@ begin
   begin
     AContext.Response.SetCustomHeader('Access-Control-Allow-Origin', lAllowOrigin);
     // The ACAO value depends on the request Origin, so caches must vary on it.
-    if lAllowOrigin <> '*' then
-      AContext.Response.SetCustomHeader('Vary', 'Origin');
+    // Appended: the handler may already vary on something of its own.
+    if (lAllowOrigin <> '*') and
+      (Pos('Origin', AContext.Response.GetCustomHeader('Vary')) = 0) then
+      AContext.Response.SetCustomHeader('Vary',
+        Trim((AContext.Response.GetCustomHeader('Vary') + ', Origin').TrimLeft([',', ' '])));
   end;
-  // Never advertise credentials for a wildcard origin (the browser would reject
-  // it, and honouring it elsewhere is a cross-origin credential leak).
-  if AAllowsCredentials and (lAllowOrigin <> '') and (lAllowOrigin <> '*') then
+  if MVCCORSAllowsCredentials(AAllowsCredentials, lAllowOrigin) then
     AContext.Response.SetCustomHeader('Access-Control-Allow-Credentials', 'true');
   if AExposeHeaders <> '' then
     AContext.Response.SetCustomHeader('Access-Control-Expose-Headers', AExposeHeaders);
@@ -1330,6 +1339,10 @@ begin
       // minimal-API has no controller class. Handlers that gate on those will
       // see them as empty and should treat that as "every action requires auth"
       // (this filter is per-group; presence on the group implies "auth required").
+      { Deny by default: the parameter is `var`, not `out`, so a handler that
+        leaves a branch unassigned would have this read stack garbage - and
+        False here skips authentication altogether. }
+      lAuthRequired := True;
       AHandler.OnRequest(AContext, '', '', lAuthRequired);
       if not lAuthRequired then
         Exit(ANext());
@@ -1439,12 +1452,12 @@ end;
 
 function FileSession(const ATimeoutInMinutes: Integer;
   const ASessionFolder: string;
-  const AHttpOnly: Boolean): TMVCEndpointFilter;
+  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
 var
   lHolder: ISessionFactoryHolder;
 begin
   lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionFileFactory.Create(AHttpOnly, ATimeoutInMinutes, ASessionFolder));
+    TMVCWebSessionFileFactory.Create(AHttpOnly, ATimeoutInMinutes, ASessionFolder, ASecure));
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -1458,7 +1471,7 @@ end;
 
 function DatabaseSession(const ATimeoutInMinutes: Integer;
   const AConnectionDefName: string;
-  const AHttpOnly: Boolean): TMVCEndpointFilter;
+  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
 var
   lHolder: ISessionFactoryHolder;
 begin
@@ -1467,7 +1480,7 @@ begin
   // signature for forward compatibility and to document the dependency on
   // ActiveRecord(...) earlier in the filter chain.
   lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionDatabaseFactory.Create(AHttpOnly, ATimeoutInMinutes, AConnectionDefName));
+    TMVCWebSessionDatabaseFactory.Create(AHttpOnly, ATimeoutInMinutes, AConnectionDefName, ASecure));
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -1897,7 +1910,11 @@ begin
     begin
       lPathInfo := AContext.Request.PathInfo;
 
-      if not lPathInfo.StartsWith(lState.URLPath, True) then
+      { On a segment boundary, like the middleware twin: a bare prefix match
+        makes /media swallow /mediation/report, and this filter never calls
+        ANext once it has decided the request is its own. }
+      if (not SameText(lPathInfo, lState.URLPath)) and
+        (not lPathInfo.StartsWith(lState.URLPath + '/', True)) then
       begin
         ANext();
         Exit;
@@ -1956,6 +1973,10 @@ begin
 
         // 206 Partial Content — slice into a fresh memory stream and hand
         // it off; the response sink owns it from here.
+        { Same cap as the RangeMedia middleware: see MAX_RANGE_SLICE there.
+          "Range: bytes=0-" is a whole-file allocation without it. }
+        if (lRangeEnd - lRangeStart + 1) > MAX_RANGE_SLICE then
+          lRangeEnd := lRangeStart + MAX_RANGE_SLICE - 1;
         lContentLength := lRangeEnd - lRangeStart + 1;
         lPartialStream := TMemoryStream.Create;
         try
@@ -2144,6 +2165,8 @@ begin
     var
       lPathInfo, lFullPathInfo, lRelative, lFileName: string;
       lAllow: Boolean;
+      lIsStaticFile: Boolean;
+      lIsDirectoryTraversalAttack: Boolean;
       lOpts: TMVCStaticFilesOptions;
     begin
       lPathInfo := AContext.Request.PathInfo;
@@ -2187,17 +2210,29 @@ begin
       lRelative := lRelative.Replace('/', PathDelim, [rfReplaceAll]);
       if lRelative.StartsWith(PathDelim) then
         lRelative := lRelative.Remove(0, 1);
+      { A %00 survives URL decoding as a real #0 and TPath.Combine raises on it
+        before any check below runs. Same guard as the middleware twin. }
+      if not TPath.HasValidPathChars(lRelative, False) then
+      begin
+        AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+        Exit;
+      end;
       lFullPathInfo := TPath.Combine(lState.ResolvedRoot, lRelative);
 
       // Direct file hit + path-traversal defense via TMVCStaticContents.
-      if TMVCStaticContents.IsStaticFile(lState.ResolvedRoot, lRelative,
-        lFileName, lAllow {= isDirectoryTraversalAttack}) then
+      // The flag is read OUTSIDE the if on purpose: IsStaticFile returns False
+      // whenever it raises the flag, so a nested check never runs, and the
+      // directory and SPA branches below use lFullPathInfo, which carries no
+      // containment check of its own.
+      lIsStaticFile := TMVCStaticContents.IsStaticFile(lState.ResolvedRoot,
+        lRelative, lFileName, lIsDirectoryTraversalAttack);
+      if lIsDirectoryTraversalAttack then
       begin
-        if lAllow then
-        begin
-          AContext.Response.StatusCode := http_status.NotFound;
-          Exit;
-        end;
+        AContext.Response.StatusCode := http_status.NotFound;
+        Exit;
+      end;
+      if lIsStaticFile then
+      begin
         if StaticFilesSendFileWithMime(AContext, lFileName,
           lState.MediaTypes, lOpts.Charset) then
           Exit;

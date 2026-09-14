@@ -147,10 +147,16 @@ var
 begin
   lCustomHeaders := AContext.Response.CustomHeaders;
   lCustomHeaders.Values['Access-Control-Allow-Origin'] := AAllowOrigin;
+  { The value depends on the request's Origin, so a shared cache must not serve
+    one origin's response to another. CORSFilter already does this. }
+  if (AAllowOrigin <> '*') and
+    (Pos('Origin', lCustomHeaders.Values['Vary']) = 0) then
+    lCustomHeaders.Values['Vary'] :=
+      Trim((lCustomHeaders.Values['Vary'] + ', Origin').TrimLeft([',', ' ']));
   lCustomHeaders.Values['Access-Control-Allow-Methods'] := FAllowsMethods;
   lCustomHeaders.Values['Access-Control-Allow-Headers'] := FAllowsHeaders;
   lCustomHeaders.Values['Access-Control-Max-Age'] := FAccessControlMaxAge;
-  if FAllowsCredentials then
+  if MVCCORSAllowsCredentials(FAllowsCredentials, AAllowOrigin) then
   begin
     // Omit Access-Control-Allow-Credentials if <> true
     // https://github.com/danieleteti/delphimvcframework/issues/679#issuecomment-1676535853

@@ -336,6 +336,9 @@ var
 begin
   // This procedure is a basic copy of the inherited OnBeforeControllerAction procedure.
   // Extention is by enabling the Authorization based on the context the call is being performed.
+  { `var`, not `out`: an unassigned AuthRequired is stack garbage, and False
+    here skips authentication. }
+  AuthRequired := True;
   aHandler.OnRequest(nil, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin

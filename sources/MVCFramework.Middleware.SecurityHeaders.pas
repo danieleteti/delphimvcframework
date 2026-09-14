@@ -70,7 +70,7 @@ end;
 procedure TMVCSecurityHeadersMiddleware.OnBeforeRouting(AContext: TWebContext;
   var AHandled: Boolean);
 begin
-  AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode = block');
+  AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode=block');
   AContext.Response.SetCustomHeader('X-Content-Type-Options', 'nosniff');
 end;
 

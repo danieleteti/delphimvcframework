@@ -85,7 +85,9 @@ type
     function SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
 
     /// <summary>
-    /// Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// Add a custom SSL certificate validation. Without one, a certificate the
+    /// platform rejected is refused (set MVCRESTClientAcceptInvalidCertificates
+    /// to accept it anyway).
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 

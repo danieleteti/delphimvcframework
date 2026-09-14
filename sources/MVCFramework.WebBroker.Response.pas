@@ -38,6 +38,7 @@ type
   TMVCWebBrokerResponse = class(TMVCWebResponse)
   private
     FWebResponse: TWebResponse;
+    procedure StripCRLFFromHeaders;
   protected
     function GetCustomHeaders: TStrings; override;
     function GetReasonString: string; override;
@@ -82,8 +83,28 @@ begin
   FWebResponse := AWebResponse;
 end;
 
+procedure TMVCWebBrokerResponse.StripCRLFFromHeaders;
+var
+  I: Integer;
+  lHeaders: TStrings;
+  lLine: string;
+begin
+  { CustomHeaders is WebBroker's own TStrings and every writer reaches it
+    directly, so this is the last point before it goes out. A CR/LF in a header
+    value is response splitting; the other two hosts strip it in their own flush
+    loop. }
+  lHeaders := FWebResponse.CustomHeaders;
+  for I := 0 to lHeaders.Count - 1 do
+  begin
+    lLine := lHeaders[I];
+    if (Pos(#13, lLine) > 0) or (Pos(#10, lLine) > 0) then
+      lHeaders[I] := MVCStripCRLF(lLine);
+  end;
+end;
+
 procedure TMVCWebBrokerResponse.Flush;
 begin
+  StripCRLFFromHeaders;
   if not FWebResponse.Sent then
     FWebResponse.SendResponse;
 end;
@@ -202,11 +223,12 @@ end;
 
 procedure TMVCWebBrokerResponse.SendRedirect(const AUrl: string);
 begin
-  FWebResponse.SendRedirect(AUrl);
+  FWebResponse.SendRedirect(MVCStripCRLF(AUrl));
 end;
 
 procedure TMVCWebBrokerResponse.SendResponse;
 begin
+  StripCRLFFromHeaders;
   FWebResponse.SendResponse;
 end;
 

@@ -4298,6 +4298,17 @@ end;
 
 initialization
 
+{ The vendored JsonDataObjects.pas carries a nesting-depth limit that upstream does not
+  have: the parser is recursive-descent, and a request body of a few tens of KB made only
+  of nested arrays kills the process without raising anything. Naming the variable here
+  means a future sync that drops the patch breaks the build of the framework, not just of
+  its tests. 1000 is far deeper than any real document and an order of magnitude below the
+  measured stack limit; an app that needs more raises it, it cannot clear it.
+  Only raised from the library default: an application that picked its own value -
+  in its .dpr, or in a unit initialized before this one - keeps it. }
+if JsonMaxNestingDepth = DefaultJsonMaxNestingDepth then
+  JsonMaxNestingDepth := 1000;
+
 gSingleFormatSettings := FormatSettings;
 gSingleFormatSettings.DecimalSeparator := '.';
 gSingleFormatSettings.ThousandSeparator := #0;

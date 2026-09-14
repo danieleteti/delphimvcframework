@@ -81,7 +81,7 @@ type
 implementation
 
 uses
-  System.DateUtils, MVCFramework.Commons;
+  System.DateUtils, System.NetEncoding, MVCFramework.Commons;
 
 { TMVCIndyDirectResponse }
 
@@ -223,8 +223,13 @@ begin
   // Sync custom headers to Indy response
   for I := 0 to FCustomHeaders.Count - 1 do
   begin
-    FResponseInfo.CustomHeaders.Values[FCustomHeaders.Names[I]] :=
-      Trim(FCustomHeaders.ValueFromIndex[I]);
+    { Stripped here rather than only in SetCustomHeader: every other writer -
+      SetLocation, Render201Created, the redirect filter, CORS, and every header
+      of an IMVCResponse - reaches the wire through this loop, and Indy writes
+      the header list verbatim (IdHeaderList does not validate CR/LF, and
+      folding is off). A CR/LF in a header value is response splitting. }
+    FResponseInfo.CustomHeaders.Values[MVCStripCRLF(FCustomHeaders.Names[I])] :=
+      MVCStripCRLF(Trim(FCustomHeaders.ValueFromIndex[I]));
   end;
 
   // Sync cookies to Indy response via Set-Cookie headers
@@ -233,8 +238,12 @@ begin
     lCookie := FCookies[I];
     with FResponseInfo.Cookies.Add do
     begin
-      CookieName := lCookie.Name;
-      Value := lCookie.Value;
+      { Percent-encoded like WebBroker does through TCookie.GetHeaderValue.
+        Without it an application that puts a user-controlled value in a cookie
+        gets attribute injection ("; Path=/; Domain=...") on this host while the
+        very same code is safe under WebBroker. }
+      CookieName := TNetEncoding.URL.Encode(lCookie.Name);
+      Value := TNetEncoding.URL.Encode(lCookie.Value);
       Path := lCookie.Path;
       Domain := lCookie.Domain;
       Expires := lCookie.Expires;
@@ -390,7 +399,9 @@ end;
 
 procedure TMVCIndyDirectResponse.SendRedirect(const AUrl: string);
 begin
-  FResponseInfo.Redirect(AUrl);
+  { Indy writes Location itself here, so this path never reaches the flush loop
+    that strips the other headers. }
+  FResponseInfo.Redirect(MVCStripCRLF(AUrl));
 end;
 
 procedure TMVCIndyDirectResponse.SendResponse;

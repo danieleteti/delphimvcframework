@@ -71,7 +71,10 @@ type
     FUrlRegistered: Boolean;
     procedure HandleRequest(ARequest: PHTTP_REQUEST; const ABodyBytes: TBytes);
     procedure CheckError(AResult: ULONG; const AContext: string);
-    function ReadFullBody(ARequest: PHTTP_REQUEST; AInitialBodyBytes: TBytes): TBytes;
+    function ReadFullBody(ARequest: PHTTP_REQUEST; AInitialBodyBytes: TBytes;
+      out ARequestTooLarge: Boolean): TBytes;
+    function MaxRequestSize: Int64;
+    procedure SendBareStatus(ARequest: PHTTP_REQUEST; const AStatusCode: Integer);
     { [FIX-HS-ASYNC] Dispatch body drain + pipeline to the default task pool
       so the listener thread never blocks on a single request. ARequestBuffer
       and AInitialBody are managed TBytes; the anonymous method keeps them
@@ -174,8 +177,29 @@ end;
   this turns ~3 MB of memory traffic into a single 1 MB allocation.
   Fallback path: no Content-Length (chunked transfer or raw TCP upload).
   Grow a TBytes adaptively. Rare on modern clients; kept for compatibility. }
+function TMVCHttpSysServer.MaxRequestSize: Int64;
+begin
+  { The engine parsed this once when the config was frozen; this runs on every
+    request. }
+  Result := FEngine.MaxRequestSize;
+end;
+
+procedure TMVCHttpSysServer.SendBareStatus(ARequest: PHTTP_REQUEST;
+  const AStatusCode: Integer);
+var
+  LResponse: TMVCHttpSysResponse;
+begin
+  LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
+  try
+    LResponse.StatusCode := AStatusCode;
+    LResponse.Flush;
+  finally
+    LResponse.Free;
+  end;
+end;
+
 function TMVCHttpSysServer.ReadFullBody(ARequest: PHTTP_REQUEST;
-  AInitialBodyBytes: TBytes): TBytes;
+  AInitialBodyBytes: TBytes; out ARequestTooLarge: Boolean): TBytes;
 const
   GROW_CHUNK = 65536;
 var
@@ -186,6 +210,7 @@ var
   LResult: ULONG;
   LRoom: ULONG;
   LInitialLen: Integer;
+  LMaxSize: Int64;
   LCLHeader: HTTP_KNOWN_HEADER;
 begin
   { Read Content-Length inline from the known-header table. Avoids taking
@@ -199,6 +224,18 @@ begin
   else
     LContentLength := -1;
   LInitialLen := Length(AInitialBodyBytes);
+  LMaxSize := MaxRequestSize;
+  ARequestTooLarge := False;
+
+  { The engine enforces max_request_size only once the body has been read, and
+    the allocation below is sized from the Content-Length header alone. Without
+    this guard a request of a hundred bytes, carrying no body at all, commits
+    whatever the header claims. Refuse before allocating. }
+  if LContentLength > LMaxSize then
+  begin
+    ARequestTooLarge := True;
+    Exit(nil);
+  end;
 
   if LContentLength >= 0 then
   begin
@@ -243,8 +280,15 @@ begin
     Move(AInitialBodyBytes[0], Result[0], LInitialLen);
     LWritten := LInitialLen;
   end;
+  { The no-Content-Length path grows until EOF, so it needs the same ceiling:
+    an endless chunked body would otherwise grow the process without bound. }
   while True do
   begin
+    if LWritten > LMaxSize then
+    begin
+      ARequestTooLarge := True;
+      Exit(nil);
+    end;
     if Length(Result) - LWritten < GROW_CHUNK then
       SetLength(Result, Length(Result) + GROW_CHUNK);
     LBytesReceived := 0;
@@ -399,13 +443,7 @@ begin
       { The verb is parsed here, before the engine has a request to hand to its
         own exception handling: without this the connection would just be
         dropped. Answer 501, which is what an unknown method deserves. }
-      LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
-      try
-        LResponse.StatusCode := HTTP_STATUS.NotImplemented;
-        LResponse.Flush;
-      finally
-        LResponse.Free;
-      end;
+      SendBareStatus(ARequest, HTTP_STATUS.NotImplemented);
       Exit;
     end;
   end;
@@ -434,11 +472,19 @@ begin
     procedure
     var
       LFullBody: TBytes;
+      LTooLarge: Boolean;
       LReq: PHTTP_REQUEST;
     begin
       try
         LReq := PHTTP_REQUEST(@ARequestBuffer[0]);
-        LFullBody := ReadFullBody(LReq, AInitialBody);
+        LFullBody := ReadFullBody(LReq, AInitialBody, LTooLarge);
+        if LTooLarge then
+        begin
+          { Raising here would be caught by the handler below, which only logs -
+            the client would get a dropped connection instead of an answer. }
+          SendBareStatus(LReq, HTTP_STATUS.RequestEntityTooLarge);
+          Exit;
+        end;
         HandleRequest(LReq, LFullBody);
       except
         on E: Exception do

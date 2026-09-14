@@ -116,7 +116,7 @@ type
     [Test]
     procedure TestPOSTWithoutContentType;
     [Test]
-    procedure TestXHTTPMethodOverride_POST_as_PUT;
+    procedure TestXHTTPMethodOverrideIsIgnored;
     [Test]
     procedure TestPUTWithParamsAndJSONBody;
     [Test]
@@ -329,6 +329,28 @@ type
     [Test]
     [Category('staticfiles')]
     procedure TestFileWithFolderName;
+    [Test]
+    procedure TestStaticFilesTraversalIsRefused;
+    [Test]
+    procedure TestSPAFallbackDoesNotEscapeTheDocumentRoot;
+    [Test]
+    procedure TestOversizedBodyIsRefused;
+    [Test]
+    procedure TestA413DoesNotLeakOntoTheNextKeepAliveRequest;
+    [Test]
+    procedure TestDuplicatedQueryParamAccessorsAgree;
+    [Test]
+    procedure TestOversizedChunkedBodyIsRefused;
+    [Test]
+    procedure TestQueryDecoderIsTheSameOnEveryHost;
+    [Test]
+    procedure TestPeerIpIgnoresForwardedHeaders;
+    [Test]
+    procedure TestCookieValueCannotInjectAttributes;
+    [Test]
+    procedure TestSessionCookieCarriesItsProtections;
+    [Test]
+    procedure TestDuplicatedAuthorizationHeaderIsNotResolvedInFavourOfTheSecond;
     [Test]
     // Apache normalizes the path and returns 200 before the SPA fallback
     // middleware can respond with the expected 404/403.
@@ -560,7 +582,7 @@ uses
     , TestConstsU, MVCFramework.Tests.Serializer.Entities,
   MVCFramework.Logger, System.IOUtils, MVCFramework.Utils,
   System.Net.HttpClient, System.Net.URLClient,
-  IdHTTP, IdMultipartFormData, IdGlobal;
+  IdHTTP, IdMultipartFormData, IdGlobal, IdTCPClient;
 
 function GetServer: string;
 begin
@@ -1653,6 +1675,377 @@ begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1.html');
   Assert.areEqual(200, lRes.StatusCode, '/static/folder1.html');
   Assert.areEqual('This is a TEXT file', lRes.Content, '/static/folder1.html');
+end;
+
+procedure TServerTest.TestStaticFilesTraversalIsRefused;
+var
+  lRes: IMVCRESTResponse;
+
+  procedure Refused(const APath: String);
+  begin
+    lRes := RESTClient.HandleRedirects(False)
+      .Accept(TMVCMediaType.TEXT_HTML).Get(APath);
+    Assert.IsTrue(lRes.StatusCode >= 400,
+      APath + ' must not be served (got ' + lRes.StatusCode.ToString + ')');
+  end;
+
+begin
+  { The containment check inside TMVCStaticContents.IsStaticFile was correct all
+    along; what was missing was the caller acting on it, so nothing below this
+    line would have failed at the check itself - it would have been served.
+
+    Not every host reaches the middleware with the same string: HTTP.sys hands
+    over a path the kernel already canonicalised, so some of these die upstream.
+    Either way the answer must not be 200. }
+  Refused('/static/../../secret.txt');
+  Refused('/static/%2e%2e%2f%2e%2e%2fsecret.txt');
+  Refused('/static/....//secret.txt');
+
+  { TPath.Combine returns its second argument when that one is rooted, so a
+    drive letter or a UNC share needs no dots at all to leave the document
+    root. The UNC form also made the server open an outbound SMB connection. }
+  Refused('/static/C:/Windows/win.ini');
+  Refused('/static////attacker.example/share/');
+
+  { A legitimate file must still be served, or the fix is just a denial of
+    service on the static content. }
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
+  Assert.areEqual(200, lRes.StatusCode, '/static/index.html must still be served');
+end;
+
+procedure TServerTest.TestSPAFallbackDoesNotEscapeTheDocumentRoot;
+var
+  lRes: IMVCRESTResponse;
+begin
+  { /spa has SPAWebAppSupport enabled: on a miss it walks up the tree looking
+    for an index.html. Walking up from a path that already escaped the document
+    root would serve a file from above it. }
+  lRes := RESTClient.HandleRedirects(False)
+    .Accept(TMVCMediaType.TEXT_HTML).Get('/spa/%2e%2e%2f%2e%2e%2f');
+  Assert.IsTrue(lRes.StatusCode >= 400,
+    'the SPA fallback must not walk above the document root (got ' +
+    lRes.StatusCode.ToString + ')');
+
+  { The fallback itself must keep working for a normal deep link. }
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/some/client/route');
+  Assert.areEqual(200, lRes.StatusCode, 'the SPA fallback must still work');
+end;
+
+procedure TServerTest.TestA413DoesNotLeakOntoTheNextKeepAliveRequest;
+var
+  lHTTP: TIdHTTP;
+  lBody: TStringStream;
+  lStatusAfter: Integer;
+begin
+  { The Indy guard latches "body too large" in a threadvar, because on the
+    form-urlencoded path Indy drops the post stream before the handler runs.
+    Indy calls DoneWithPostStream twice though, and for every OTHER content type
+    the second call happens in a finally, AFTER the response has been written -
+    so latching there set the flag for a request that was already answered, and
+    the next request on the same keep-alive connection inherited it. A bodiless
+    GET never reaches OnCreatePostStream, so nothing cleared it: it was answered
+    413 with no body at all.
+    TIdHTTP keeps the connection alive across these two calls, which is what puts
+    both on the same server thread. }
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    lHTTP.HTTPOptions := lHTTP.HTTPOptions + [hoNoProtocolErrorException, hoKeepOrigProtocol];
+    lBody := TStringStream.Create('{"data":"' + StringOfChar('x', 6 * 1024 * 1024) + '"}');
+    try
+      lHTTP.Request.ContentType := TMVCMediaType.APPLICATION_JSON;
+      lHTTP.Post(GetServer + '/echo/1/2/3', lBody);
+      Assert.areEqual(HTTP_STATUS.RequestEntityTooLarge, lHTTP.Response.ResponseCode,
+        'a body past max_request_size must be refused with 413');
+    finally
+      lBody.Free;
+    end;
+
+    lHTTP.Get(GetServer + '/req/with/params/1/2/3');
+    lStatusAfter := lHTTP.Response.ResponseCode;
+    Assert.areNotEqual(HTTP_STATUS.RequestEntityTooLarge, lStatusAfter,
+      'a bodiless GET after a 413 on the same connection was answered 413 itself');
+    Assert.areEqual(200, lStatusAfter,
+      'the request after a 413 must be served normally (got ' + lStatusAfter.ToString + ')');
+  finally
+    lHTTP.Free;
+  end;
+end;
+
+procedure TServerTest.TestOversizedBodyIsRefused;
+var
+  lRes: IMVCRESTResponse;
+  lBody: String;
+begin
+  { max_request_size defaults to 5 MiB and had no test on any host. On HTTP.sys
+    the limit was also enforced too late to matter: the body buffer was sized
+    from the Content-Length header before a single byte had been received, so
+    the memory was already committed by the time the engine looked at the
+    number. }
+  lBody := '{"data":"' + StringOfChar('x', 6 * 1024 * 1024) + '"}';
+  lRes := RESTClient
+    .AddHeader('Content-Type', TMVCMediaType.APPLICATION_JSON)
+    .Post('/echo/1/2/3', lBody);
+  Assert.areEqual(HTTP_STATUS.RequestEntityTooLarge, lRes.StatusCode,
+    'a body past max_request_size must be refused with 413');
+
+  { A normal body on the same route must still go through, or the guard is
+    just an outage. }
+  lRes := RESTClient
+    .AddHeader('Content-Type', TMVCMediaType.APPLICATION_JSON)
+    .Post('/echo/1/2/3', '{"client":"clientdata"}');
+  Assert.areEqual(200, lRes.StatusCode, 'a normal body must still be accepted');
+end;
+
+procedure TServerTest.TestDuplicatedAuthorizationHeaderIsNotResolvedInFavourOfTheSecond;
+var
+  lTCP: TIdTCPClient;
+  lLine, lStatus, lBody: String;
+begin
+  { M-13. The hosts disagreed: HTTP.sys is handed a value the kernel joined with
+    a comma ("Bearer good, Bearer evil"), Indy keeps the first. Whatever sits in
+    front of us may well have read the other one. Only Indy keeps the raw header
+    list, so only Indy can refuse with 400 - but on every host the one thing that
+    must never happen is the *second* value winning, which is what an attacker
+    appending a header is after.
+    Two headers cannot be sent through a normal client, so this goes on the
+    socket. }
+  lTCP := TIdTCPClient.Create(nil);
+  try
+    lTCP.Host := TEST_SERVER_ADDRESS;
+    lTCP.Port := 8888;
+    lTCP.ConnectTimeout := 5000;
+    lTCP.ReadTimeout := 10000;
+    lTCP.Connect;
+    try
+      lTCP.IOHandler.WriteLn('GET /security/echoauth HTTP/1.1');
+      lTCP.IOHandler.WriteLn('Host: ' + TEST_SERVER_ADDRESS);
+      lTCP.IOHandler.WriteLn('Authorization: Bearer good');
+      lTCP.IOHandler.WriteLn('Authorization: Bearer evil');
+      lTCP.IOHandler.WriteLn('Connection: close');
+      lTCP.IOHandler.WriteLn('');
+
+      { The server is free to close as soon as it has answered, so every read
+        past the status line has to tolerate the peer going away. }
+      lStatus := '';
+      lBody := '';
+      try
+        lStatus := lTCP.IOHandler.ReadLn;
+        repeat
+          lLine := lTCP.IOHandler.ReadLn;
+          lBody := lBody + lLine;
+        until (lLine = '') or (not lTCP.Connected);
+        while lTCP.Connected do
+          lBody := lBody + lTCP.IOHandler.ReadLn;
+      except
+        { whatever arrived before the close is what we assert on }
+      end;
+    finally
+      try
+        lTCP.Disconnect;
+      except
+      end;
+    end;
+  finally
+    lTCP.Free;
+  end;
+
+  if lStatus.Contains(' 400 ') then
+    Exit; // refused outright: the strongest answer, and what Indy now does
+
+  Assert.IsFalse(lBody.Contains('evil') and (not lBody.Contains('good')),
+    'the appended Authorization header won over the original: ' + lBody);
+end;
+
+procedure TServerTest.TestQueryDecoderIsTheSameOnEveryHost;
+var
+  lRes: IMVCRESTResponse;
+begin
+  { M-02. TIdURI.URLDecode accepts the non-standard IIS form %uXXXX and silently
+    drops a malformed escape; TNetEncoding leaves both literal. Indy used the
+    first, the other two hosts the second, so the host decided whether an action
+    received "<script>" or the harmless literal - and a WAF inspecting the raw
+    bytes saw neither '<' nor the deletion. }
+  lRes := RESTClient.Get('/security/echoquery?q=%u003Cscript%u003E');
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.AreEqual('%u003Cscript%u003E', lRes.Content,
+    'the non-standard %uXXXX escape must not be decoded');
+
+  lRes := RESTClient.Get('/security/echoquery?q=ad%zzmin');
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.AreEqual('ad%zzmin', lRes.Content,
+    'a malformed escape must survive as written, not be deleted');
+
+  { Standard escapes must still decode, or the change is just breakage. }
+  lRes := RESTClient.Get('/security/echoquery?q=a%20b%2Bc');
+  Assert.AreEqual('a b+c', lRes.Content, 'standard escapes must still decode');
+end;
+
+procedure TServerTest.TestPeerIpIgnoresForwardedHeaders;
+var
+  lRes: IMVCRESTResponse;
+begin
+  { M-06. The localhost-only ACL on TMVCSystemController used ClientIp, which
+    honours these headers whenever MVCTrustProxyForwardedHeaders is on - and that
+    is exactly the deployment (behind nginx, IIS ARR, HAProxy) where the ACL
+    stopped protecting anything. PeerIp must never move, whatever is sent. }
+  lRes := RESTClient
+    .AddHeader('X-Forwarded-For', '1.2.3.4')
+    .AddHeader('X-Real-IP', '5.6.7.8')
+    .Get('/security/peerip');
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.IsTrue((lRes.Content = '127.0.0.1') or (lRes.Content = '::1') or
+    (lRes.Content = '0:0:0:0:0:0:0:1'),
+    'PeerIp followed a forwarded header (got "' + lRes.Content + '")');
+end;
+
+procedure TServerTest.TestCookieValueCannotInjectAttributes;
+var
+  lHTTP: TIdHTTP;
+  lRaw: String;
+begin
+  { M-08. WebBroker percent-encodes name and value through TCookie.GetHeaderValue;
+    Indy and HTTP.sys concatenated them raw, so a user-controlled cookie value
+    could append its own attributes - on those two hosts only, with identical
+    application code. Read off the wire: neither IMVCRESTResponse nor THTTPClient
+    shows the raw Set-Cookie line. }
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    lHTTP.Get(GetServer + '/security/hostilecookie');
+    lRaw := lHTTP.Response.RawHeaders.Text;
+    Assert.IsFalse(lRaw.Contains('Domain=attacker.example'),
+      'a cookie value injected a Domain attribute: ' + lRaw);
+    Assert.IsTrue(lRaw.Contains('hostile='),
+      'the cookie must still be sent');
+  finally
+    lHTTP.Free;
+  end;
+end;
+
+procedure TServerTest.TestSessionCookieCarriesItsProtections;
+var
+  lHTTP: TIdHTTP;
+  lRaw: String;
+begin
+  { M-05. The session cookie set HttpOnly from a factory flag that defaulted to
+    False, and never set SameSite at all: the session token was readable from
+    JavaScript, so any XSS became session theft, and the browser's own SameSite
+    default is not the same everywhere. Secure is deliberately still not forced -
+    a Secure cookie is not sent over plain HTTP and that would break every
+    development setup on upgrade. }
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    { Reading Session['value'] is enough to start a session and emit the cookie. }
+    lHTTP.Get(GetServer + '/session');
+    lRaw := lHTTP.Response.RawHeaders.Text;
+    Assert.IsTrue(lRaw.Contains('dtsessionid='),
+      'no session cookie was sent: ' + lRaw);
+    { Case-insensitive: the attribute names are case-insensitive per RFC 6265 and
+      IIS rewrites them - it emits "httponly" where the other hosts emit
+      "HttpOnly". }
+    Assert.IsTrue(lRaw.ToLower.Contains('httponly'),
+      'the session cookie must be HttpOnly by default: ' + lRaw);
+    {$IF CompilerVersion >= 35.0}
+    Assert.IsTrue(lRaw.ToLower.Contains('samesite=lax'),
+      'the session cookie must carry SameSite: ' + lRaw);
+    {$ENDIF}
+  finally
+    lHTTP.Free;
+  end;
+end;
+
+procedure TServerTest.TestOversizedChunkedBodyIsRefused;
+var
+  lTCP: TIdTCPClient;
+  lChunk: String;
+  lSent: Int64;
+  lStatusLine: String;
+  I: Integer;
+begin
+  { A genuine chunked upload cannot be produced by setting a header on a normal
+    client - the body would still go out with a Content-Length and the request
+    would simply be malformed. It has to be written on the socket.
+
+    Chunked carries no Content-Length, so the engine's size guard compares -1
+    against the limit and waves it through. The body used to accumulate in
+    memory until the process died. }
+  lChunk := StringOfChar('x', 64 * 1024);
+  lTCP := TIdTCPClient.Create(nil);
+  try
+    lTCP.Host := TEST_SERVER_ADDRESS;
+    lTCP.Port := 8888;
+    lTCP.ConnectTimeout := 5000;
+    lTCP.ReadTimeout := 15000;
+    lTCP.Connect;
+    try
+      lTCP.IOHandler.WriteLn('POST /echo/1/2/3 HTTP/1.1');
+      lTCP.IOHandler.WriteLn('Host: ' + TEST_SERVER_ADDRESS);
+      lTCP.IOHandler.WriteLn('Content-Type: application/json');
+      lTCP.IOHandler.WriteLn('Transfer-Encoding: chunked');
+      lTCP.IOHandler.WriteLn('Connection: close');
+      lTCP.IOHandler.WriteLn('');
+
+      { Well past the 5 MiB limit, then a proper terminator so the server is
+        free to answer rather than waiting on us. }
+      lSent := 0;
+      I := 0;
+      try
+        while (lSent < 8 * 1024 * 1024) and lTCP.Connected do
+        begin
+          lTCP.IOHandler.WriteLn(IntToHex(Length(lChunk), 1));
+          lTCP.IOHandler.WriteLn(lChunk);
+          Inc(lSent, Length(lChunk));
+          Inc(I);
+        end;
+        if lTCP.Connected then
+        begin
+          lTCP.IOHandler.WriteLn('0');
+          lTCP.IOHandler.WriteLn('');
+        end;
+      except
+        { The server is free to hang up on us mid-upload; that is a refusal. }
+      end;
+
+      { Refusing by closing the connection is a legitimate answer here, and it
+        is what HTTP.sys does, so a close is not a test failure - reading from a
+        closed peer raises rather than returning ''. }
+      lStatusLine := '';
+      try
+        if lTCP.Connected then
+          lStatusLine := lTCP.IOHandler.ReadLn;
+      except
+        on E: Exception do
+          lStatusLine := '<connection closed: ' + E.ClassName + '>';
+      end;
+    finally
+      try
+        lTCP.Disconnect;
+      except
+        { already gone }
+      end;
+    end;
+  finally
+    lTCP.Free;
+  end;
+
+  { Either the server answered with an error, or it closed on us. What it must
+    not do is accept 8 MiB and answer 200. }
+  Assert.IsFalse(lStatusLine.Contains(' 200 '),
+    'an oversized chunked body must not be accepted (status line: "' +
+    lStatusLine + '")');
+end;
+
+procedure TServerTest.TestDuplicatedQueryParamAccessorsAgree;
+var
+  lRes: IMVCRESTResponse;
+begin
+  { QueryStringParam reads a TStringList, which answers with the first match;
+    QueryParams used to be built with AddOrSetValue, so it answered with the
+    last. Validating with one accessor and using the other was a bypass, and it
+    is also the classic proxy-versus-app split: most proxies take the first. }
+  lRes := RESTClient.Get('/queryparam/duplicated?role=user&role=admin');
+  Assert.areEqual(200, lRes.StatusCode);
+  Assert.areEqual('stringparam=user dict=user', lRes.Content,
+    'the two query-string accessors disagree on a repeated key');
 end;
 
 procedure TServerTest.TestFuncActionGetComplexObject;
@@ -2896,23 +3289,50 @@ begin
   end;
 end;
 
-procedure TServerTest.TestXHTTPMethodOverride_POST_as_PUT;
+procedure TServerTest.TestXHTTPMethodOverrideIsIgnored;
+// A client must not be able to change the verb with a header. /echo answers to
+// POST, PUT and PATCH but NOT to GET, so if any override header were honoured
+// the request would stop matching and come back 404. A 200 is the pass.
+//
+// This is not hypothetical on Indy: IdCustomHTTPServer rewrites the command
+// from all three of these headers when the request is a POST, before DMVC ever
+// sees it. HTTP.sys and WebBroker honour none of them, and a verb that changes
+// on one host only is a way around whatever sits in front of the server.
+const
+  OVERRIDE_HEADERS: array [0 .. 2] of string = ('X-HTTP-Method-Override',
+    'X-HTTP-Method', 'X-METHOD-OVERRIDE');
 var
+  lClient: IMVCRESTClient;
   r: IMVCRESTResponse;
   JSON: System.JSON.TJSONObject;
+  lHeader: string;
+  I: Integer;
 begin
-  JSON := System.JSON.TJSONObject.Create;
-  JSON.AddPair('client', 'clientdata');
-  r := RESTClient.AddHeader(TMVCConstants.X_HTTP_Method_Override, 'PUT').AddPathParam('par1', 1)
-    .AddPathParam('par2', 2).AddPathParam('par3', 3).Post('/echo/($par1)/($par2)/($par3)',
-    TSystemJSON.JSONValueToString(JSON));
+  for I := Low(OVERRIDE_HEADERS) to High(OVERRIDE_HEADERS) do
+  begin
+    lHeader := OVERRIDE_HEADERS[I];
+    // a fresh client per header: the default headers must stay in place, so
+    // ClearHeaders is not an option here
+    lClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
 
-  JSON := TSystemJSON.StringAsJSONObject(r.Content);
-  try
-    Assert.areEqual('clientdata', JSON.Get('client').JsonValue.Value);
-    Assert.areEqual('from server', JSON.Get('echo').JsonValue.Value);
-  finally
-    JSON.Free;
+    JSON := System.JSON.TJSONObject.Create;
+    JSON.AddPair('client', 'clientdata');
+    // JSONValueToString owns and frees JSON
+    r := lClient.AddHeader(lHeader, 'GET').AddPathParam('par1', 1).AddPathParam('par2', 2)
+      .AddPathParam('par3', 3).Post('/echo/($par1)/($par2)/($par3)',
+      TSystemJSON.JSONValueToString(JSON));
+
+    Assert.areEqual(HTTP_STATUS.OK, r.StatusCode,
+      Format('%s changed the verb: the POST was routed as GET', [lHeader]));
+
+    JSON := TSystemJSON.StringAsJSONObject(r.Content);
+    Assert.IsNotNull(JSON, Format('%s: the body is not the echo object', [lHeader]));
+    try
+      Assert.areEqual('clientdata', JSON.Get('client').JsonValue.Value);
+      Assert.areEqual('from server', JSON.Get('echo').JsonValue.Value);
+    finally
+      JSON.Free;
+    end;
   end;
 end;
 

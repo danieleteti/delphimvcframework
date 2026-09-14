@@ -43,7 +43,12 @@ type
     FWebRequest: TWebRequest;
     FMultipartFallback: TStringList;
     FMultipartFallbackTried: Boolean;
+    { The verb is read at least twice per request, and under ISAPI every read of
+      TWebRequest.Method is a GetServerVariable round trip. }
+    FRealHTTPCommand: string;
+    FRealHTTPCommandLoaded: Boolean;
     procedure EnsureMultipartFallback;
+    function GetRealHTTPCommand: string;
   protected
     function GetHeader(const AName: string): string; override;
     function GetPathInfo: string; override;
@@ -80,6 +85,7 @@ type
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
     function ClientIp: string; override;
+    function PeerIp: string; override;
     function ClientPreferredLanguage: String; override;
     function QueryString: string; override;
     function QueryStringParam(const AName: string): string; override;
@@ -97,6 +103,23 @@ implementation
 uses
   System.Rtti,
   MVCFramework.Router;
+
+{ TIdHTTPAppRequest is reached by RTTI, never by a unit reference: pulling in
+  IdHTTPWebBrokerBridge would link a full Indy HTTP server into every ISAPI and
+  Apache binary, and that unit's initialization claims WebRequestHandlerProc and
+  TWebResponseStream.FGetResponseStream - two process-wide slots the ISAPI and
+  Apache hosts claim too. See GetClientConnection below, which has done it this
+  way for the same reason. }
+function IsOrInheritsFromTIdHTTPAppRequest(AClass: TClass): Boolean;
+begin
+  while AClass <> nil do
+  begin
+    if AClass.ClassName = 'TIdHTTPAppRequest' then
+      Exit(True);
+    AClass := AClass.ClassParent;
+  end;
+  Result := False;
+end;
 
 { TMVCWebBrokerRequest }
 
@@ -208,6 +231,11 @@ end;
 function TMVCWebBrokerRequest.Accept: string;
 begin
   Result := FWebRequest.Accept;
+end;
+
+function TMVCWebBrokerRequest.PeerIp: string;
+begin
+  Result := FWebRequest.RemoteAddr;
 end;
 
 function TMVCWebBrokerRequest.ClientIp: string;
@@ -338,14 +366,67 @@ begin
   Result := FWebRequest.GetFieldByName(AName);
 end;
 
+function TMVCWebBrokerRequest.GetRealHTTPCommand: string;
+var
+  lCtx: TRttiContext;
+  lField: TRttiField;
+  lRequestInfo: TObject;
+  lRawCommand: string;
+  lSpacePos: Integer;
+begin
+  if FRealHTTPCommandLoaded then
+    Exit(FRealHTTPCommand);
+  Result := FWebRequest.Method;
+  { When this WebBroker application is hosted by TIdHTTPWebBrokerBridge, Indy has
+    already rewritten the verb of a POST from any of X-HTTP-Method-Override,
+    X-HTTP-Method or X-METHOD-OVERRIDE (IdCustomHTTPServer.pas, "check for
+    overrides when LCmd is 'POST'") - and TWebRequest keeps no trace of the
+    request line. Routing must never depend on a header a client can write, and
+    ISAPI, Apache and HTTP.sys honour none of them: a verb that changes on one
+    host only is a way past whatever sits in front of the server. RawHTTPCommand
+    is captured before the rewrite, so it still holds the line as it arrived.
+    Under any other WebBroker host the class check fails and nothing here
+    applies. }
+  if (FWebRequest <> nil) and IsOrInheritsFromTIdHTTPAppRequest(FWebRequest.ClassType) then
+  begin
+    lCtx := TRttiContext.Create;
+    try
+      lField := lCtx.GetType(FWebRequest.ClassType).GetField('FRequestInfo');
+      if Assigned(lField) then
+      begin
+        lRequestInfo := lField.GetValue(FWebRequest).AsObject;
+        if Assigned(lRequestInfo) then
+        begin
+          lField := lCtx.GetType(lRequestInfo.ClassType).GetField('FRawHTTPCommand');
+          if Assigned(lField) then
+          begin
+            lRawCommand := lField.GetValue(lRequestInfo).AsString;
+            if lRawCommand <> '' then
+            begin
+              lSpacePos := Pos(' ', lRawCommand);
+              if lSpacePos > 0 then
+                SetLength(lRawCommand, lSpacePos - 1);
+              Result := UpperCase(lRawCommand);
+            end;
+          end;
+        end;
+      end;
+    finally
+      lCtx.Free;
+    end;
+  end;
+  FRealHTTPCommand := Result;
+  FRealHTTPCommandLoaded := True;
+end;
+
 function TMVCWebBrokerRequest.GetHTTPMethod: TMVCHTTPMethodType;
 begin
-  Result := TMVCRouter.StringMethodToHTTPMetod(FWebRequest.Method);
+  Result := TMVCRouter.StringMethodToHTTPMetod(GetRealHTTPCommand);
 end;
 
 function TMVCWebBrokerRequest.GetHTTPMethodAsString: string;
 begin
-  Result := FWebRequest.Method;
+  Result := GetRealHTTPCommand;
 end;
 
 function TMVCWebBrokerRequest.GetIsAjax: Boolean;
@@ -449,22 +530,33 @@ function TMVCWebBrokerRequest.GetQueryParams: TDictionary<string, string>;
 var
   I: Integer;
   lRow: String;
+  lName: String;
 begin
   if not Assigned(FQueryParams) then
   begin
     FQueryParams := TDictionary<string, string>.Create;
     for I := 0 to Pred(FWebRequest.QueryFields.Count) do
     begin
+      { First value wins, matching QueryStringParam (TStringList.Values returns
+        the first match) and the other two hosts. Add() alone would also raise
+        on a repeated key, turning ?a=1&a=2 into a 500 on this host only. }
       lRow := FWebRequest.QueryFields[i];
       if lRow.Contains('=') then
       begin
-        FQueryParams.Add(
-          LowerCase(Trim(FWebRequest.QueryFields.Names[I])),
-          FWebRequest.QueryFields.ValueFromIndex[I]);
+        lName := LowerCase(Trim(FWebRequest.QueryFields.Names[I]));
+        if not FQueryParams.ContainsKey(lName) then
+          FQueryParams.Add(lName, FWebRequest.QueryFields.ValueFromIndex[I]);
       end
       else
       begin
-        FQueryParams.AddOrSetValue(LowerCase(lRow), '');
+        { A bare key: WebBroker keeps the token without a '=', so QueryStringParam
+          (TStrings.Values) skips this row and finds a LATER "a=1" instead, while
+          this dictionary answers ''. The other two hosts append the '=' when they
+          parse, so they agree; here the first-wins entry has to be recorded for
+          both readers. }
+        lName := LowerCase(lRow);
+        if not FQueryParams.ContainsKey(lName) then
+          FQueryParams.Add(lName, '');
       end;
     end;
   end;
@@ -488,8 +580,25 @@ begin
 end;
 
 function TMVCWebBrokerRequest.QueryStringParam(const AName: string): string;
+var
+  I, lNameLen: Integer;
+  lRow: string;
 begin
-  Result := FWebRequest.QueryFields.Values[AName];
+  { First match wins, bare keys included. TStrings.Values skips a row with no
+    '=', so ?a&a=1 answered '1' here while QueryParams answered '' - the two
+    accessors disagreeing on the same request is how a value gets validated
+    through one and used through the other. }
+  lNameLen := Length(AName);
+  for I := 0 to FWebRequest.QueryFields.Count - 1 do
+  begin
+    lRow := FWebRequest.QueryFields[I];
+    if SameText(lRow, AName) then
+      Exit('');
+    if (Length(lRow) > lNameLen) and (lRow[lNameLen + 1] = '=') and
+      SameText(Copy(lRow, 1, lNameLen), AName) then
+      Exit(Copy(lRow, lNameLen + 2, MaxInt));
+  end;
+  Result := '';
 end;
 
 function TMVCWebBrokerRequest.QueryStringParamExists(const AName: string): Boolean;
@@ -510,18 +619,6 @@ begin
 end;
 
 function TMVCWebBrokerRequest.GetClientConnection: TObject;
-
-  function IsOrInheritsFromTIdHTTPAppRequest(AClass: TClass): Boolean;
-  begin
-    while AClass <> nil do
-    begin
-      if AClass.ClassName = 'TIdHTTPAppRequest' then
-        Exit(True);
-      AClass := AClass.ClassParent;
-    end;
-    Result := False;
-  end;
-
 var
   LCtx: TRttiContext;
   LField: TRttiField;
@@ -555,7 +652,7 @@ end;
 
 function TMVCWebBrokerRequest.GetMethod: string;
 begin
-  Result := FWebRequest.Method;
+  Result := GetRealHTTPCommand;
 end;
 
 function TMVCWebBrokerRequest.GetHost: string;

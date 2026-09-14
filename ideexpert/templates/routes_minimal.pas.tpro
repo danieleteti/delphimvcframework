@@ -18,11 +18,40 @@ uses
   System.Generics.Collections,
   MVCFramework.Commons,
   MVCFramework.Logger,
+{{if webmodule_middleware_jwt}}
+  System.DateUtils,
+  MVCFramework.DotEnv,
+  MVCFramework.Filters,
+  MVCFramework.JWT,
+  {{:authentication_unit_name}},
+{{endif}}
   {{:entity_unit_name}}{{if program_service_container_generate}},
   {{:program_service_container_unit_name}}{{endif}};
 
+{{if webmodule_middleware_jwt}}
+// Bearer-JWT gate for the admin subtree. It also serves the login endpoint that
+// lives inside the group: POST /api/v1/admin/login with jwtusername and jwtpassword
+// headers returns a token. Verification happens here, in the route pipeline: the
+// classic JWT middleware verifies in OnBeforeControllerAction, which a minimal-API
+// route never reaches.
+function BearerAuthFilter: TMVCEndpointFilter;
+begin
+  Result := JWT(
+    {{:authentication_classname}}.Create,
+    procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
+      JWT.Claims.ExpirationTime := Now + OneHour;
+      JWT.Claims.NotBefore := Now - OneMinute * 5;
+      JWT.Claims.IssuedAt := Now;
+    end,
+    dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+    '/api/v1/admin/login',
+    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+    300);
+end;
+{{else}}
 // Short-circuits with 401 unless the request carries a Bearer token.
-// Replace the placeholder check with your real validator (JWT signer, opaque-token store, ...).
 function BearerAuthFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
@@ -30,13 +59,15 @@ begin
     var
       lAuth: string;
     begin
+      // Placeholder: any Bearer string gets in. Replace with a real validator
+      // (JWT signer, opaque-token store, ...) before this goes anywhere near production.
       lAuth := Ctx.Request.Headers['Authorization'];
       if not lAuth.StartsWith('Bearer ', True) then
         Exit(Status(401, 'Bearer token required'));
-      // TODO: validate the token here (signature, claims, expiry, ...).
       Result := Next();
     end;
 end;
+{{endif}}
 
 procedure RegisterPeopleRoutes(const AGroup: TMVCRouteGroup<TObject>);
 begin

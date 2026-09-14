@@ -253,6 +253,36 @@ type
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure TestQueryConsumes;
 
+    {Security regression endpoints. Each exists because a fix needed a way to be
+     observed from the client side.}
+
+    {The decoder must be the same on every host: %uXXXX is a non-standard IIS
+     form and a malformed escape must survive as written, not vanish.}
+    [MVCPath('/security/echoquery')]
+    [MVCHTTPMethod([httpGET])]
+    function TestEchoQueryVerbatim: String;
+
+    {A duplicated header must not let the second value win over the first.}
+    [MVCPath('/security/echoauth')]
+    [MVCHTTPMethod([httpGET])]
+    function TestEchoAuthorization: String;
+
+    {A network ACL has to look at the socket, not at a header the client writes.}
+    [MVCPath('/security/peerip')]
+    [MVCHTTPMethod([httpGET])]
+    function TestPeerIpIgnoresForwardedHeaders: String;
+
+    {A cookie value carrying cookie syntax must not be able to add attributes.}
+    [MVCPath('/security/hostilecookie')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestHostileCookieValue;
+
+    {The two query-string accessors must agree on a repeated key. Returning
+     both on the same request is the only way to see them disagree.}
+    [MVCPath('/queryparam/duplicated')]
+    [MVCHTTPMethod([httpGET])]
+    function TestDuplicatedQueryParam: String;
+
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
     procedure TestHelloWorld;
@@ -1393,6 +1423,44 @@ begin
   finally
     lEnt.Free;
   end;
+end;
+
+function TTestServerController.TestEchoQueryVerbatim: String;
+begin
+  Result := Context.Request.QueryStringParam('q');
+end;
+
+function TTestServerController.TestEchoAuthorization: String;
+begin
+  Result := Context.Request.Headers['Authorization'];
+end;
+
+function TTestServerController.TestPeerIpIgnoresForwardedHeaders: String;
+begin
+  Result := Context.Request.PeerIp;
+end;
+
+procedure TTestServerController.TestHostileCookieValue;
+var
+  lCookie: TCookie;
+begin
+  lCookie := Context.Response.Cookies.Add;
+  lCookie.Name := 'hostile';
+  { Cookie syntax inside the value: raw concatenation would let this add
+    attributes to the Set-Cookie line the browser parses. }
+  lCookie.Value := 'x; Path=/; Domain=attacker.example';
+  lCookie.Path := '/';
+  Render('cookie set');
+end;
+
+function TTestServerController.TestDuplicatedQueryParam: String;
+var
+  lFromDict: String;
+begin
+  if not Context.Request.QueryParams.TryGetValue('role', lFromDict) then
+    lFromDict := '<missing>';
+  Result := Format('stringparam=%s dict=%s',
+    [Context.Request.QueryStringParam('role'), lFromDict]);
 end;
 
 procedure TTestServerController.TestHelloWorld;

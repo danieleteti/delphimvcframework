@@ -148,6 +148,7 @@ type
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
     function ClientIp: string; override;
+    function PeerIp: string; override;
     function ClientPreferredLanguage: String; override;
     function QueryString: string; override;
     function QueryStringParam(const AName: string): string; override;
@@ -661,7 +662,7 @@ end;
 function TMVCHttpSysRequest.GetQueryParams: TDictionary<string, string>;
 var
   I: Integer;
-  lName, lValue: string;
+  lName, lValue, lKey: string;
 begin
   if not Assigned(FQueryParams) then
   begin
@@ -671,10 +672,20 @@ begin
     begin
       lName := FQueryStringParams.Names[I];
       lValue := FQueryStringParams.ValueFromIndex[I];
+      { First value wins, so that QueryParams and QueryStringParam agree on a
+        repeated key: QueryStringParam reads TStringList.Values, which returns
+        the first match. Two accessors disagreeing on ?role=user&role=admin is
+        a validate-with-one, use-the-other bypass waiting to happen, and most
+        proxies and WAFs in front of us also take the first. }
       if lName <> '' then
-        FQueryParams.AddOrSetValue(LowerCase(lName), lValue)
+        lKey := LowerCase(lName)
       else
-        FQueryParams.AddOrSetValue(LowerCase(FQueryStringParams[I]), '');
+      begin
+        lKey := LowerCase(FQueryStringParams[I]);
+        lValue := '';
+      end;
+      if not FQueryParams.ContainsKey(lKey) then
+        FQueryParams.Add(lKey, lValue);
     end;
   end;
   Result := FQueryParams;
@@ -796,6 +807,11 @@ begin
   Result := FBodyBytes;
 end;
 
+function TMVCHttpSysRequest.PeerIp: string;
+begin
+  Result := FClientIpStr;
+end;
+
 function TMVCHttpSysRequest.ClientIp: string;
 begin
   Result := MVCResolveClientIP(
@@ -870,8 +886,15 @@ begin
   for lPair in lPairs do
   begin
     lEqPos := Pos('=', lPair);
+    { Decoded because the response side percent-encodes name and value, the same
+      way WebBroker does on both sides (TCookie.GetHeaderValue writes them
+      encoded, TWebRequest.ExtractCookieFields reads them decoded). Encoding on
+      the way out and not decoding on the way in would turn a value with a space
+      or an '=' into a different value on the next request, on these two hosts
+      only. }
     if lEqPos > 0 then
-      FCookies.Values[Trim(Copy(lPair, 1, lEqPos - 1))] := Trim(Copy(lPair, lEqPos + 1, MaxInt))
+      FCookies.Values[TNetEncoding.URL.Decode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
+        TNetEncoding.URL.Decode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
     else
       FCookies.Values[Trim(lPair)] := '';
   end;

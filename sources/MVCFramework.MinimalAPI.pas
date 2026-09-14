@@ -110,6 +110,10 @@ type
     fFileName: string;
     fContentType: string;
     fStream: TStream;
+    procedure DoSaveToFile(const APath: string);
+    class function IsUsableLeafName(const ALeaf: string): Boolean;
+    class function TryMakeLeafName(const AClientFileName: string;
+      out ALeaf: string): Boolean;
   public
     constructor Create(const AFieldName, AFileName, AContentType: string;
       AStream: TStream);
@@ -121,12 +125,20 @@ type
     /// for path traversal or absolute-path overwrite. Empty for a name that is
     /// only path separators or ".."/".". Prefer generating your own name.</summary>
     function SafeFileName: string;
+    /// <summary>Writes the upload into ADirectory under the client-supplied
+    /// name reduced by SafeFileName, so the client cannot choose where the file
+    /// lands. This is the overload to prefer.</summary>
+    procedure SaveToFile(const ADirectory, AClientFileName: string); overload;
     function Size: Int64;
     // Request-owned content stream, seeked to 0. Do not free.
     function ContentStream: TStream;
     function ContentAsBytes: TBytes;
     function ContentAsString(const AEncoding: TEncoding = nil): string;
-    procedure SaveToFile(const APath: string);
+    procedure SaveToFile(const APath: string); overload;
+    /// <summary>The client-supplied name reduced to a leaf and refused outright
+    /// when it is a Windows name that would write somewhere else (a colon, a
+    /// device name, a trailing dot or space).</summary>
+    class function SanitizeLeafName(const AClientFileName: string): string;
   end;
 
   // -------------------------------------------------------------------------
@@ -828,7 +840,77 @@ begin
   Result := lEnc.GetString(lBytes);
 end;
 
+procedure TMVCFormFile.SaveToFile(const ADirectory, AClientFileName: string);
+begin
+  { The client picks the name, never the directory. The dot-segment guard of the
+    one-argument overload is deliberately NOT applied to the result: the name is
+    already reduced to a leaf here, while ADirectory belongs to the application
+    and is very often relative ('.\uploads') - which that guard would refuse. }
+  DoSaveToFile(TPath.Combine(ADirectory, SanitizeLeafName(AClientFileName)));
+end;
+
 procedure TMVCFormFile.SaveToFile(const APath: string);
+var
+  lLeaf: string;
+begin
+  { FileName is copied verbatim out of the Content-Disposition header, and the
+    idiom the guide teaches is SaveToFile(TPath.Combine(UPLOAD_DIR, Doc.FileName)).
+    Two different names defeat that, and TPath.Combine hands both through:
+      "..\..\inetpub\wwwroot\shell.aspx"  is carried along verbatim
+      "C:\inetpub\wwwroot\shell.aspx"     is ROOTED, so Combine returns it and
+                                          drops UPLOAD_DIR entirely
+                                          (System.IOUtils, DoIsPathRooted)
+    Once the two have been combined the caller's intended directory is no longer
+    recoverable, so the path itself cannot be repaired. What is still visible is
+    the client name this instance carries: when the path ends with it and the
+    name is not already a safe leaf, the caller passed it through unreduced, and
+    that is refused. Testing the client name rather than the path is also what
+    lets an ordinary relative application directory ('.\uploads') keep working.
+    Use the two-argument overload, or SafeFileName, to build the path safely. }
+  if (fFileName <> '') and APath.EndsWith(fFileName, True) and
+    (not TryMakeLeafName(fFileName, lLeaf)) then
+    raise EMVCException.Create(
+      'Refusing to save an upload to a path built from the unsanitized client ' +
+      'file name. Use SaveToFile(ADirectory, AClientFileName) or SafeFileName.');
+  DoSaveToFile(APath);
+end;
+
+class function TMVCFormFile.IsUsableLeafName(const ALeaf: string): Boolean;
+begin
+  { The Windows names that make a write land somewhere other than where it reads:
+    a colon opens an alternate data stream, a device name (NUL, CON, COM1)
+    swallows the upload, a trailing dot or space is stripped by the file system.
+    The static-file middleware refuses the same set on the way out. }
+  Result := not ((ALeaf = '') or (ALeaf = '.') or (ALeaf = '..') or
+    (Pos(':', ALeaf) > 0) or (Pos('*', ALeaf) > 0) or (Pos('?', ALeaf) > 0) or
+    (ALeaf[Length(ALeaf)] = '.') or (ALeaf[Length(ALeaf)] = ' ') or
+    MatchText(TPath.GetFileNameWithoutExtension(ALeaf),
+    ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6',
+    'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
+    'LPT7', 'LPT8', 'LPT9']));
+end;
+
+class function TMVCFormFile.TryMakeLeafName(const AClientFileName: string;
+  out ALeaf: string): Boolean;
+begin
+  { True only when the client sent a name that was ALREADY a usable leaf - which
+    is the question the one-argument SaveToFile has to answer. A name that merely
+    needs reducing ("sub/report.pdf", "C:\x\report.pdf") answers False even
+    though ALeaf comes back usable. }
+  ALeaf := TPath.GetFileName(AClientFileName.Replace('/', PathDelim, [rfReplaceAll]));
+  Result := IsUsableLeafName(ALeaf) and SameText(ALeaf, AClientFileName);
+end;
+
+class function TMVCFormFile.SanitizeLeafName(const AClientFileName: string): string;
+begin
+  { Reducing the name to a leaf is this routine's job, so only an unusable leaf
+    is refused here. }
+  Result := TPath.GetFileName(AClientFileName.Replace('/', PathDelim, [rfReplaceAll]));
+  if not IsUsableLeafName(Result) then
+    raise EMVCException.Create('The uploaded file has no usable name');
+end;
+
+procedure TMVCFormFile.DoSaveToFile(const APath: string);
 var
   lFile: TFileStream;
 begin
@@ -2100,6 +2182,13 @@ begin
   end;
 
   try
+    { Same rule as the controller router: a path still carrying a "." or ".."
+      segment is refused rather than resolved. This dispatcher runs BEFORE
+      TMVCRouter.ExecuteRouting and returns without calling it once a route
+      matches, so the guard there never sees these requests - and a wildcard
+      route ('/files/($p:*)') would hand the segments straight to the handler. }
+    if MVCPathHasDotSegment(AContext.Request.PathInfo) then
+      Exit;
     if not fRegistry.TryMatch(AContext.Request.HTTPMethod,
       AContext.Request.PathInfo,
       AContext.Request.Headers['Accept'],

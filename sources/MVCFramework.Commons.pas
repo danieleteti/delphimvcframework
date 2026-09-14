@@ -676,6 +676,24 @@ function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
 /// <summary>Removes CR and LF characters from a string so it cannot inject an
 /// extra HTTP header when used as a header name or value (response splitting).</summary>
+/// <summary>
+/// True when the path contains a "." or ".." segment, in any position.
+/// Segment-aware on purpose: a file named "..hidden" or "release.1.2" is not
+/// a dot-segment and must not be refused.
+/// </summary>
+function MVCPathHasDotSegment(const APath: string): Boolean;
+
+/// <summary>
+/// True when Access-Control-Allow-Credentials may be emitted for the origin
+/// that is about to be allowed. A browser rejects the header on a wildcard
+/// origin, so emitting it there advertises what no client can use - and the day
+/// the wildcard is replaced by a real origin, that dead header starts meaning
+/// something. Shared by the CORS middleware and the CORS filter so the two
+/// cannot drift apart.
+/// </summary>
+function MVCCORSAllowsCredentials(const AAllowsCredentials: Boolean;
+  const AAllowOrigin: string): Boolean;
+
 function MVCStripCRLF(const AValue: string): string;
 
 /// <summary>Resolves the client IP. X-Forwarded-For / X-Real-IP are only
@@ -948,6 +966,37 @@ end;
 function AppPath: string;
 begin
   Result := GlobalAppPath;
+end;
+
+function MVCPathHasDotSegment(const APath: string): Boolean;
+var
+  I, lSegStart, lSegLen, lLen: Integer;
+begin
+  { Both separators. A backslash is not a segment separator in a URL, but
+    browsers treat it as one and so does the file system, and this function is
+    used for both. Scanning both can only make the check stricter.
+    Scanned by index rather than Split: this runs on every request, and Split
+    allocates the array plus one string per segment. }
+  Result := False;
+  if Pos('.', APath) = 0 then
+    Exit;
+  lLen := Length(APath);
+  lSegStart := 1;
+  for I := 1 to lLen + 1 do
+    if (I > lLen) or (APath[I] = '/') or (APath[I] = '\') then
+    begin
+      lSegLen := I - lSegStart;
+      if ((lSegLen = 1) and (APath[lSegStart] = '.')) or
+        ((lSegLen = 2) and (APath[lSegStart] = '.') and (APath[lSegStart + 1] = '.')) then
+        Exit(True);
+      lSegStart := I + 1;
+    end;
+end;
+
+function MVCCORSAllowsCredentials(const AAllowsCredentials: Boolean;
+  const AAllowOrigin: string): Boolean;
+begin
+  Result := AAllowsCredentials and (AAllowOrigin <> '') and (AAllowOrigin <> '*');
 end;
 
 function MVCStripCRLF(const AValue: string): string;

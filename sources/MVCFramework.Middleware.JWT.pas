@@ -145,6 +145,17 @@ type
       ALeewaySeconds: Cardinal = 300;
       AHMACAlgorithm: String = HMAC_HS512); overload; virtual;
       deprecated 'Use TMVCJWTCookieAuthenticationMiddleware for secure cookie-based JWT authentication';
+    /// <summary>
+    /// Name of the request parameter the token is also accepted in, on top of the
+    /// Authorization header. Defaults to 'access_token' - the 3.4 behaviour, which
+    /// SSE endpoints, &lt;img&gt; tags and download links depend on, none of which can
+    /// send a header. Set it to an empty string to accept the token from the header
+    /// only: a token in a URL ends up in proxy logs, browser history and Referer.
+    /// Note this reads Request.Params, which is wider than the query string: a
+    /// route parameter of the same name wins over it, and a form field is read too.
+    /// </summary>
+    property AuthorizationAccessTokenParamName: string read FAuthorizationAccessToken
+      write FAuthorizationAccessToken;
     property AuthorizationHeaderName: string read FAuthorizationHeaderName;
     property UserNameHeaderName: string read FUserNameHeaderName;
     property PasswordHeaderName: string read FPasswordHeaderName;
@@ -643,6 +654,12 @@ var
   ErrorMsg: string;
   CookieToken: string;
 begin
+  { Deny by default. Both parameters are declared `var`, not `out`, and Delphi
+    zeroes neither: a handler that leaves a branch unassigned makes the caller
+    read stack garbage, and the two failures point the wrong way - AuthRequired
+    False skips authentication entirely, IsAuthorized True grants access. }
+  AuthRequired := True;
+  IsAuthorized := False;
   // check if the resource is protected
   if Assigned(FAuthenticationHandler) then
   begin
@@ -658,7 +675,7 @@ begin
       }
       // retrieve the token from the "authentication Bearer" header
       AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
-      if AuthHeader.IsEmpty then
+      if AuthHeader.IsEmpty and not FAuthorizationAccessToken.IsEmpty then
         // retrieve the token from the "access_token" query param
         AuthHeader := AContext.Request.Params[FAuthorizationAccessToken];
 
@@ -712,7 +729,10 @@ begin
     else
     begin
       // retrieve the token from the "access_token" query param
-      AuthAccessToken := AContext.Request.Params[FAuthorizationAccessToken];
+      if FAuthorizationAccessToken.IsEmpty then
+        AuthAccessToken := ''
+      else
+        AuthAccessToken := AContext.Request.Params[FAuthorizationAccessToken];
       if (not AuthAccessToken.IsEmpty) then
       begin
         AuthToken := AuthAccessToken.Trim;
@@ -1381,6 +1401,12 @@ var
   AuthToken: string;
   ErrorMsg: string;
 begin
+  { Deny by default. Both parameters are declared `var`, not `out`, and Delphi
+    zeroes neither: a handler that leaves a branch unassigned makes the caller
+    read stack garbage, and the two failures point the wrong way - AuthRequired
+    False skips authentication entirely, IsAuthorized True grants access. }
+  AuthRequired := True;
+  IsAuthorized := False;
   // check if the resource is protected
   if Assigned(FAuthenticationHandler) then
   begin

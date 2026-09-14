@@ -1350,7 +1350,9 @@ const
 var
   // Maximum number of nested objects/arrays the parser accepts before raising an
   // EJsonParserException. The parser is recursive-descent, so unbounded nesting in
-  // untrusted input exhausts the thread's stack. Set to 0 to disable the check.
+  // untrusted input exhausts the thread's stack. The check cannot be switched off:
+  // zero and negative values mean DefaultJsonMaxNestingDepth. To accept deeper
+  // documents raise the value, don't clear it.
   JsonMaxNestingDepth: Integer = DefaultJsonMaxNestingDepth; // not thread-safe
 
   JsonSerializationConfig: TJsonSerializationConfig = ( // not thread-safe
@@ -1694,7 +1696,7 @@ type
     procedure ParseItemValue(const Data: TJsonAbstractParser.PItemData);
     procedure AcceptFailed(TokenKind: TJsonTokenKind);
     procedure EnterNestingLevel;
-    procedure NestingTooDeepError;
+    procedure NestingTooDeepError(AMaxDepth: Integer);
   protected
     FLook: TJsonToken;
     FLineNum: Integer;
@@ -2935,17 +2937,22 @@ begin
   {$ENDIF STRICT_JSON_PARSER}
 end;
 
-procedure TJsonReader.NestingTooDeepError;
+procedure TJsonReader.NestingTooDeepError(AMaxDepth: Integer);
 begin
-  raise EJsonParserException.CreateResFmt(@RsNestingTooDeep, [JsonMaxNestingDepth],
+  raise EJsonParserException.CreateResFmt(@RsNestingTooDeep, [AMaxDepth],
     FLineNum, GetLineColumn, GetPosition);
 end;
 
 procedure TJsonReader.EnterNestingLevel;
+var
+  LMaxDepth: Integer;
 begin
   Inc(FDepth);
-  if (JsonMaxNestingDepth > 0) and (FDepth > JsonMaxNestingDepth) then
-    NestingTooDeepError;
+  LMaxDepth := JsonMaxNestingDepth;
+  if LMaxDepth <= 0 then // a cleared limit is the default one, never "no limit"
+    LMaxDepth := DefaultJsonMaxNestingDepth;
+  if FDepth > LMaxDepth then
+    NestingTooDeepError(LMaxDepth);
 end;
 
 procedure TJsonReader.ParseObjectBody(const Data: TJsonAbstractParser.PObjectData);

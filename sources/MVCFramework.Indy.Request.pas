@@ -77,13 +77,20 @@ type
     FCachedContentFieldsText: TStringList;
     FFiles: TMVCIndyRequestFiles;
     FMultipartParsed: Boolean;
+    { Cached like FCachedBody/FCachedRawContent: the verb is read at least twice
+      per request (routing, plus the router log, whose parameters are built
+      eagerly) and each read would otherwise allocate twice. }
+    FRealHTTPCommand: string;
+    FRealHTTPCommandLoaded: Boolean;
     procedure ParseCookies;
     procedure EnsureQueryStringParams;
     procedure LoadBody;
     procedure LoadRawContent;
     procedure ParseMultipartContent;
+    function GetRealHTTPCommand: string;
   protected
     function GetHeader(const AName: string): string; override;
+    function IsDuplicatedHeader(const AName: string): Boolean; override;
     function GetPathInfo: string; override;
     function GetHTTPMethod: TMVCHTTPMethodType; override;
     function GetHTTPMethodAsString: string; override;
@@ -119,6 +126,7 @@ type
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
     function ClientIp: string; override;
+    function PeerIp: string; override;
     function ClientPreferredLanguage: String; override;
     function QueryString: string; override;
     function QueryStringParam(const AName: string): string; override;
@@ -133,6 +141,7 @@ implementation
 
 uses
   System.StrUtils,
+  System.NetEncoding,
   IdURI,
   MVCFramework.Router;
 
@@ -181,8 +190,15 @@ begin
   for lPair in lPairs do
   begin
     lEqPos := Pos('=', lPair);
+    { Decoded because the response side percent-encodes name and value, the same
+      way WebBroker does on both sides (TCookie.GetHeaderValue writes them
+      encoded, TWebRequest.ExtractCookieFields reads them decoded). Encoding on
+      the way out and not decoding on the way in would turn a value with a space
+      or an '=' into a different value on the next request, on these two hosts
+      only. }
     if lEqPos > 0 then
-      FCookies.Values[Trim(Copy(lPair, 1, lEqPos - 1))] := Trim(Copy(lPair, lEqPos + 1, MaxInt))
+      FCookies.Values[TNetEncoding.URL.Decode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
+        TNetEncoding.URL.Decode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
     else
       FCookies.Values[Trim(lPair)] := '';
   end;
@@ -206,13 +222,20 @@ begin
     lEqPos := Pos('=', lPair);
     if lEqPos > 0 then
     begin
-      lName := TIdURI.URLDecode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
-      lValue := TIdURI.URLDecode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
+      { TNetEncoding, not TIdURI, and the difference is the point. TIdURI.URLDecode
+        accepts the non-standard IIS form %uXXXX - so %u003Cscript%u003E arrives
+        as <script> with no '<' anywhere in the bytes a WAF inspected - and it
+        silently drops a malformed escape, turning ad%zzmin into admin. The other
+        two hosts use TNetEncoding, which leaves both forms literal. The host was
+        the only thing deciding which of the two an action received.
+        '+' is already turned into a space above, so nothing changes there. }
+      lName := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
+      lValue := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
       FQueryStringParams.Add(lName + '=' + lValue);
     end
     else
     begin
-      FQueryStringParams.Add(TIdURI.URLDecode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
+      FQueryStringParams.Add(TNetEncoding.URL.Decode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
     end;
   end;
 end;
@@ -268,19 +291,71 @@ begin
   Result := FRequestInfo.RawHeaders.Values[AName];
 end;
 
+function TMVCIndyDirectRequest.IsDuplicatedHeader(const AName: string): Boolean;
+var
+  I, lCount, lNameLen: Integer;
+  lLine: string;
+begin
+  { Compared against the raw line rather than RawHeaders.Names[I]: TIdHeaderList
+    overrides Names and allocates twice per header to produce it, and this runs
+    three times on every request. A folded continuation line starts with
+    whitespace, so it cannot match a name either way. }
+  lNameLen := Length(AName);
+  lCount := 0;
+  for I := 0 to FRequestInfo.RawHeaders.Count - 1 do
+  begin
+    lLine := FRequestInfo.RawHeaders[I];
+    if (Length(lLine) > lNameLen) and (lLine[lNameLen + 1] = ':') and
+      (StrLIComp(PChar(lLine), PChar(AName), lNameLen) = 0) then
+    begin
+      Inc(lCount);
+      if lCount > 1 then
+        Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
 function TMVCIndyDirectRequest.GetPathInfo: string;
 begin
   Result := FRequestInfo.Document;
 end;
 
+function TMVCIndyDirectRequest.GetRealHTTPCommand: string;
+var
+  lSpacePos: Integer;
+begin
+  if FRealHTTPCommandLoaded then
+    Exit(FRealHTTPCommand);
+  { Indy rewrites RequestInfo.Command on POST from any of X-HTTP-Method-Override,
+    X-HTTP-Method or X-METHOD-OVERRIDE (IdCustomHTTPServer.pas, "check for
+    overrides when LCmd is 'POST'"). Routing must never depend on a header a
+    client can write, and the other two hosts honour no such thing - a verb that
+    changes on one host only is a way past whatever sits in front of the server.
+    RawHTTPCommand is captured before the rewrite, so it still holds the request
+    line as it arrived. }
+  Result := FRequestInfo.RawHTTPCommand;
+  if Result = '' then
+    Result := FRequestInfo.Command
+  else
+  begin
+    lSpacePos := Pos(' ', Result);
+    if lSpacePos > 0 then
+      SetLength(Result, lSpacePos - 1);
+    Result := UpperCase(Result);
+  end;
+  FRealHTTPCommand := Result;
+  FRealHTTPCommandLoaded := True;
+end;
+
 function TMVCIndyDirectRequest.GetHTTPMethod: TMVCHTTPMethodType;
 begin
-  Result := TMVCRouter.StringMethodToHTTPMetod(FRequestInfo.Command);
+  Result := TMVCRouter.StringMethodToHTTPMetod(GetRealHTTPCommand);
 end;
 
 function TMVCIndyDirectRequest.GetHTTPMethodAsString: string;
 begin
-  Result := FRequestInfo.Command;
+  Result := GetRealHTTPCommand;
 end;
 
 function TMVCIndyDirectRequest.GetParams(const AParamName: string): string;
@@ -490,7 +565,7 @@ end;
 function TMVCIndyDirectRequest.GetQueryParams: TDictionary<string, string>;
 var
   I: Integer;
-  lName, lValue: string;
+  lName, lValue, lKey: string;
 begin
   if not Assigned(FQueryParams) then
   begin
@@ -500,10 +575,20 @@ begin
     begin
       lName := FQueryStringParams.Names[I];
       lValue := FQueryStringParams.ValueFromIndex[I];
+      { First value wins, so that QueryParams and QueryStringParam agree on a
+        repeated key: QueryStringParam reads TStringList.Values, which returns
+        the first match. Two accessors disagreeing on ?role=user&role=admin is
+        a validate-with-one, use-the-other bypass waiting to happen, and most
+        proxies and WAFs in front of us also take the first. }
       if lName <> '' then
-        FQueryParams.AddOrSetValue(LowerCase(lName), lValue)
+        lKey := LowerCase(lName)
       else
-        FQueryParams.AddOrSetValue(LowerCase(FQueryStringParams[I]), '');
+      begin
+        lKey := LowerCase(FQueryStringParams[I]);
+        lValue := '';
+      end;
+      if not FQueryParams.ContainsKey(lKey) then
+        FQueryParams.Add(lKey, lValue);
     end;
   end;
   Result := FQueryParams;
@@ -586,7 +671,7 @@ end;
 
 function TMVCIndyDirectRequest.GetMethod: string;
 begin
-  Result := FRequestInfo.Command;
+  Result := GetRealHTTPCommand;
 end;
 
 function TMVCIndyDirectRequest.GetHost: string;
@@ -638,6 +723,11 @@ begin
     MVCTrustProxyForwardedHeaders);
 end;
 
+function TMVCIndyDirectRequest.PeerIp: string;
+begin
+  Result := FContext.Binding.PeerIP;
+end;
+
 function TMVCIndyDirectRequest.ClientPreferredLanguage: String;
 begin
   Result := FRequestInfo.RawHeaders.Values['Accept-Language'];
@@ -687,7 +777,8 @@ begin
   Result := FCookies.Values[AName];
 end;
 
-function IndexOfBytes(const AHaystack, ANeedle: TBytes; const AStart: Integer): Integer;
+function IndexOfBytes(const AHaystack, ANeedle: TBytes; const AStart: Integer;
+  const AEnd: Integer = -1): Integer;
 var
   I, J: Integer;
   lHayLen, lNeedleLen: Integer;
@@ -695,6 +786,12 @@ var
 begin
   Result := -1;
   lHayLen := Length(AHaystack);
+  { AEnd bounds the scan. Without it a search inside one part runs to the end of
+    the whole body, so a body made of boundaries with no header separator costs
+    one full scan per part: quadratic, and a 5 MiB request keeps a connection
+    thread at 100% for tens of minutes. }
+  if (AEnd >= 0) and (AEnd < lHayLen) then
+    lHayLen := AEnd;
   lNeedleLen := Length(ANeedle);
   if (lNeedleLen = 0) or (lNeedleLen > lHayLen) then
     Exit;
@@ -775,7 +872,11 @@ begin
       lBoundary := AnsiDequotedStr(lBoundary, '"');
   end;
 
-  if lBoundary = '' then
+  { RFC 2046 caps a boundary at 70 characters. The cap matters here because the
+    boundary is the needle of a naive matcher: a 16 KB boundary (Indy's line
+    limit) against a 5 MiB body is ~8e10 byte comparisons on a connection
+    thread. Anything longer is not a legal multipart body. }
+  if (lBoundary = '') or (Length(lBoundary) > 70) then
     Exit;
 
   // Read raw content (bytes, never decoded as a whole)
@@ -809,7 +910,7 @@ begin
       lPartEnd := lNextBoundary;
 
     // Header/body separator (double CRLF) inside this part
-    lHeaderEnd := IndexOfBytes(lRaw, lCRLF2, lPartStart);
+    lHeaderEnd := IndexOfBytes(lRaw, lCRLF2, lPartStart, lPartEnd);
     if (lHeaderEnd < 0) or (lHeaderEnd >= lPartEnd) then
     begin
       lPos := lNextBoundary;

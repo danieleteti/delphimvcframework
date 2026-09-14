@@ -119,7 +119,9 @@ type
       webmodule_classname_short = 'webmodule.classname_short'; // TMyWebModule -> MyWebModule
       default_media_type = 'default_media_type';
       // Server engine type
-      program_server_engine = 'program.server_engine'; // 'webbroker', 'indydirect', 'httpsys'
+      program_server_engine = 'program.server_engine';
+      program_server_protocol = 'program.server.protocol';
+      program_uses_webmodule = 'program.uses_webmodule'; // 'webbroker', 'indydirect', 'httpsys'
       // Logging configuration
       logging_profile = 'logging.profile'; // 'fluent' | 'json'
       logging_appender_console = 'logging.appender.console';

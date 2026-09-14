@@ -199,6 +199,9 @@ var
   SessionData: TSessionData;
   SessionPair: TPair<string, string>;
 begin
+  { `var`, not `out`: an unassigned AuthRequired would be stack garbage, and
+    False there skips authentication altogether. }
+  AuthRequired := True;
   FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
@@ -400,6 +403,9 @@ var
   IsAuthorized: Boolean;
   AuthRequired: Boolean;
 begin
+  { `var`, not `out`: an unassigned AuthRequired would be stack garbage, and
+    False there skips authentication altogether. }
+  AuthRequired := True;
   FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin

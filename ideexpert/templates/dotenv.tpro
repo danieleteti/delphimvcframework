@@ -31,7 +31,7 @@ dmvc.view_path=templates
 dmvc.view_cache=false
 dmvc.max_entities_record_count=20
 dmvc.expose_server_signature=false
-dmvc.expose_x_powered_by=true
+dmvc.expose_x_powered_by=false
 dmvc.max_request_size=524288
 
 # ============================================================================
@@ -40,7 +40,7 @@ dmvc.max_request_size=524288
 dmvc.profiler.enabled={{:controller_actions_profiling_generate}}
 dmvc.profiler.warning_threshold=1000
 dmvc.profiler.logs_only_over_threshold=true
-{{if program_type|eq,"https.console"}}
+{{if program_server_protocol|eq,"https"}}
 
 # ============================================================================
 # HTTPS / TLS
@@ -91,12 +91,29 @@ dmvc.sqids.min_length=6
 JWT_PRIVATE_KEY_FILE=jwt-private.pem
 JWT_PUBLIC_KEY_FILE=jwt-public.pem
 {{else}}
-JWT_SECRET=change-this-secret-in-production-use-strong-key
+# No default on purpose: this file is the only place the secret exists, and a
+# working-looking placeholder is a public string that signs real tokens.
+# Generate one with:  openssl rand -base64 48
+JWT_SECRET=
 {{endif}}
 JWT_ISSUER={{:program_name}}
+# The generated authentication handler is fail-closed: leave these empty and
+# /login refuses everyone. Fill them in for a first run, then replace
+# OnAuthentication with your real user store.
+ADMIN_USER=
+ADMIN_PASSWORD=
 {{if program_ssv_any}}
-JWT_COOKIE_SECURE=false
+# Set to false only for local development over plain HTTP.
+JWT_COOKIE_SECURE=true
 {{endif}}
+{{endif}}
+{{if @(webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_minimal_api_web)}}
+
+# ============================================================================
+# Session cookie
+# ============================================================================
+# Set to false only for local development over plain HTTP.
+SESSION_COOKIE_SECURE=true
 {{endif}}
 {{if webmodule_middleware_activerecord}}
 

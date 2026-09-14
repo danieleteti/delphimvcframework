@@ -100,7 +100,7 @@ implementation
 {$IFDEF MSWINDOWS}
 
 uses
-  System.DateUtils, MVCFramework.Commons;
+  System.DateUtils, System.NetEncoding, MVCFramework.Commons;
 
 const
   { Max number of unknown headers we support in a single response }
@@ -291,7 +291,7 @@ begin
   { Location (for redirects) }
   if FLocation <> '' then
   begin
-    lLocationAnsi := UTF8String(FLocation);
+    lLocationAnsi := UTF8String(MVCStripCRLF(FLocation));
     lResponse.Headers.KnownHeaders[Ord(HttpHeaderResponseLocation)].RawValueLength :=
       Length(lLocationAnsi);
     lResponse.Headers.KnownHeaders[Ord(HttpHeaderResponseLocation)].pRawValue :=
@@ -306,8 +306,10 @@ begin
   begin
     if lUnknownCount >= MAX_UNKNOWN_HEADERS then
       Break;
-    lHeaderName := FCustomHeaders.Names[I];
-    lHeaderValue := Trim(FCustomHeaders.ValueFromIndex[I]);
+    { See the twin comment in MVCFramework.Indy.Response: this loop is the one
+      point every header writer passes through. }
+    lHeaderName := MVCStripCRLF(FCustomHeaders.Names[I]);
+    lHeaderValue := MVCStripCRLF(Trim(FCustomHeaders.ValueFromIndex[I]));
     if lHeaderName = '' then
       Continue;
 
@@ -326,7 +328,10 @@ begin
     if lUnknownCount >= MAX_UNKNOWN_HEADERS then
       Break;
     lCookie := FCookies[I];
-    lCookieStr := lCookie.Name + '=' + lCookie.Value;
+    { Percent-encoded like WebBroker does through TCookie.GetHeaderValue -
+      raw concatenation here allowed attribute injection from a cookie value. }
+    lCookieStr := TNetEncoding.URL.Encode(lCookie.Name) + '=' +
+      TNetEncoding.URL.Encode(lCookie.Value);
     if lCookie.Path <> '' then
       lCookieStr := lCookieStr + '; Path=' + lCookie.Path;
     if lCookie.Domain <> '' then

@@ -98,7 +98,8 @@ type
     function CreateFromSessionID(const ASessionId: string): TMVCWebSession; override;
     function TryFindSessionID(const ASessionID: String): Boolean; override;
     procedure TryDeleteSessionID(const ASessionID: String); override;
-    constructor Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer = 0; aFireDACConDefName: String = ''); reintroduce; virtual;
+    constructor Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer = 0;
+      aFireDACConDefName: String = ''; const aSecure: Boolean = False); reintroduce; virtual;
   end;
 
 implementation
@@ -194,12 +195,21 @@ end;
 procedure TMVCWebSessionDatabaseFactory.TryDeleteSessionID(const ASessionID: String);
 begin
   inherited;
+  { Both queries quote the id by hand, so a '"' inside it would close the string
+    and the rest would be read as RQL - a DELETE with a WHERE of the caller's
+    choosing. The engine already refuses an id that is not alphanumeric before
+    it gets here; this repeats the check because these two are public and the
+    cost is a scan of at most 255 characters. }
+  if not IsValidSessionID(ASessionID) then
+    Exit;
   TMVCActiveRecord.DeleteRQL<TMVCSessionActiveRecord>('eq(session_id, "' + ASessionID + '")');
 end;
 
 function TMVCWebSessionDatabaseFactory.TryFindSessionID(const aSessionID: String): Boolean;
 begin
   inherited;
+  if not IsValidSessionID(aSessionID) then
+    Exit(False);
   Result := TMVCActiveRecord.Count<TMVCSessionActiveRecord>(Format('eq(session_id, "%s")', [aSessionID])) = 1;
 end;
 
@@ -228,9 +238,10 @@ begin
   SetTimeout(aTimeout);
 end;
 
-constructor TMVCWebSessionDatabaseFactory.Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer; aFireDACConDefName: String);
+constructor TMVCWebSessionDatabaseFactory.Create(const aHttpOnly: Boolean; aTimeoutInMinutes: Integer;
+  aFireDACConDefName: String; const aSecure: Boolean);
 begin
-  inherited Create(aHttpOnly, aTimeoutInMinutes);
+  inherited Create(aHttpOnly, aTimeoutInMinutes, aSecure);
   fFireDACConDefName := aFireDACConDefName;
 end;
 

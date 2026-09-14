@@ -453,6 +453,19 @@ begin
     LRequestPathInfo := '/'
   else if not LRequestPathInfo.StartsWith('/') then
     LRequestPathInfo := '/' + LRequestPathInfo;
+  { A path still carrying a dot-segment is refused rather than resolved.
+
+    Resolving would be the wrong direction: HTTP.sys hands us a path the kernel
+    has already collapsed, so /public/../admin arrives as /admin and executes,
+    while Indy and WebBroker pass the literal string through and simply do not
+    match. Normalising here would make all three behave like the permissive one
+    and hand the same bypass to every host - a reverse proxy that denies /admin
+    never saw /admin. Refusing keeps Indy and WebBroker exactly as they are and
+    can only tighten HTTP.sys, where anything that survived kernel
+    canonicalisation had to have been encoded on purpose. }
+  if MVCPathHasDotSegment(LRequestPathInfo) then
+    Exit(False);
+
   LRequestPathInfo := TIdURI.PathEncode(Trim(LRequestPathInfo)); //regression introduced in fix for issue 492
 
   { Build the table on first call; engine owns subsequent reuse. }
@@ -573,7 +586,7 @@ class function TMVCRouter.IsCompatiblePath(
 var
   lMatch: TMatch;
   lPattern: string;
-  I: Integer;
+  I, J: Integer;
   lNames: TList<TPair<String, String>>;
   lCacheItem: TMVCActionParamCacheItem;
   P: TPair<string, string>;
@@ -615,6 +628,24 @@ begin
       }
 
       lParValue := TIdURI.URLDecode(lMatch.Groups[I].Value);
+      { The decode is the point where %2F becomes a separator and %2E%2E a dot
+        segment: the regex matched one segment, the action gets three. The check
+        upstream in ExecuteRouting cannot see this - it runs on the still-encoded
+        path. A parameter that merely contains a slash is left alone, because
+        carrying an encoded one is a documented use; a dot segment is not. }
+      if MVCPathHasDotSegment(lParValue) then
+      begin
+        { Undo what this call already put in the table. aParams is shared by every
+          candidate route and is a TDictionary: leaving the parameters of the
+          groups matched before this one behind makes the NEXT candidate with the
+          same parameter names raise EListError on Add - a 500 where the request
+          should simply not match. Nothing else in this routine can fail midway,
+          so this is the only place the invariant "match fully or add nothing"
+          has to be restored by hand. }
+        for J := 1 to I - 1 do
+          aParams.Remove(lCacheItem.Params[J - 1].Key);
+        Exit(False);
+      end;
       if P.Value.IsEmpty then
       begin
         {no converter}

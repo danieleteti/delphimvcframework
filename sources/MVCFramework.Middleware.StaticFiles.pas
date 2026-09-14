@@ -237,6 +237,7 @@ var
   lPathInfo: string;
   lFileName: string;
   lIsDirectoryTraversalAttach: Boolean;
+  lIsStaticFile: Boolean;
   lFullPathInfo: string;
   lRealFileName: string;
   lAllow: Boolean;
@@ -288,6 +289,15 @@ begin
   begin
     lPathInfo := lPathInfo.Remove(0, 1);
   end;
+  { A %00 survives URL decoding as a real #0, and TPath.Combine raises on it
+    before any of the checks below run - the 500 that follows carries the
+    absolute document root in its message. }
+  if not TPath.HasValidPathChars(lPathInfo, False) then
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+    AHandled := True;
+    Exit;
+  end;
   lFullPathInfo := TPath.Combine(fDocumentRoot, lPathInfo);
 
   { Now the actual requested path is in lFullPathInfo }
@@ -297,19 +307,21 @@ begin
     DoSanityCheck;
   end;
 
-  if TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
-    lIsDirectoryTraversalAttach) then
+  { The traversal flag has to be read OUTSIDE the if: IsStaticFile returns
+    False whenever it raises the flag, so a check nested inside the if can
+    never run. Everything below this point works on lFullPathInfo, which is a
+    plain TPath.Combine with no containment check of its own. }
+  lIsStaticFile := TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo,
+    lRealFileName, lIsDirectoryTraversalAttach);
+  if lIsDirectoryTraversalAttach then
   begin
-    // check if it's a direct file request
-    // lIsFileRequest := TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
-    // lIsDirectoryTraversalAttach);
-    if lIsDirectoryTraversalAttach then
-    begin
-      AContext.Response.StatusCode := HTTP_STATUS.NotFound;
-      AHandled := True;
-      Exit;
-    end;
+    AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+    AHandled := True;
+    Exit;
+  end;
 
+  if lIsStaticFile then
+  begin
     AHandled := SendStaticFileIfPresent(AContext, lRealFileName);
     if AHandled then
     begin

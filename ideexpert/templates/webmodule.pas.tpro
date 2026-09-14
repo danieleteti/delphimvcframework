@@ -129,7 +129,7 @@ begin
 {{endif}}
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
       Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
-      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'true');
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
       Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end);
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
@@ -213,15 +213,15 @@ begin
 {{if webmodule_middleware_jwt_asymmetric}}
       LSigner,
 {{else}}
-      dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
       '/login',
       '/logout',
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
       300  // leeway seconds
     )
-    // WARNING: SetCookieSecure(False) for HTTP dev; remove in production (HTTPS).
-    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', False))
+    // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
+    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', True))
   );
 {{else}}
   // JWT Bearer auth (Authorization header, for API clients)
@@ -232,7 +232,7 @@ begin
 {{if webmodule_middleware_jwt_asymmetric}}
       LSigner,
 {{else}}
-      dotEnv.Env('JWT_SECRET', 'change-this-secret-in-production-use-strong-key'),
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
       '/login',
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
@@ -242,14 +242,14 @@ begin
 {{endif}}
 {{endif}}
 {{if webmodule_middleware_session_memory}}
-  fMVC.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}));
+  fMVC.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_session_file}}
-  fMVC.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, False, TPath.Combine(AppPath, 'sessions')));
+  fMVC.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, TPath.Combine(AppPath, 'sessions'), dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_session_database}}
   // Database session: requires ActiveRecord middleware + dmvc_sessions table
-  fMVC.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}));
+  fMVC.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
 {{endif}}
 {{if webmodule_middleware_analytics}}
   fMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
@@ -278,38 +278,11 @@ begin
   // Middleware - END
 {{if program_ssv_templatepro}}
 
-  // Render templates/error.html for browser requests; JSON for API clients.
-  fMVC.SetExceptionHandler(
-    procedure(E: Exception; SelectedController: TMVCController;
-      WebContext: TWebContext; var ExceptionHandled: Boolean)
-    var
-      lError: String;
-      lTemplateCode: String;
-      lFullTemplatePath, lTemplateCodePath: String;
-    begin
-      ExceptionHandled := False;
-      if not WebContext.Request.ClientPreferHTML then
-        Exit;
-      lFullTemplatePath := TPath.Combine(AppPath, WebContext.Config[TMVCConfigKey.ViewPath]);
-      lTemplateCodePath := TPath.Combine(lFullTemplatePath,
-        'error.' + WebContext.Config[TMVCConfigKey.DefaultViewFileExtension]);
-      if TFile.Exists(lTemplateCodePath) then
-      begin
-        if Assigned(E) then
-          lError := E.Message
-        else
-          lError := HTTP_STATUS.ReasonStringFor(WebContext.Response.StatusCode);
-        WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-        lTemplateCode := TFile.ReadAllText(lTemplateCodePath, TEncoding.UTF8);
-        WebContext.Response.Content := TTProCompiler.CompileAndRender(
-          lTemplateCode,
-          ['error', 'app_name', 'dmvc_version', 'current_year'],
-          [lError, '{{:program_name}}', DMVCFRAMEWORK_VERSION, YearOf(Now)],
-          lFullTemplatePath);
-        ExceptionHandled := True;
-      end;
-    end
-  );
+  // Browser requests get the HTML error view; API clients get RFC 7807 problem+json.
+  // ehShowDetails leaks the exception message in DEBUG only: a production build must
+  // not put SQL errors, paths or connection strings on the page.
+  fMVC.UseExceptionHandler('error', '{{:program_name}}',
+    {$IFDEF DEBUG}[ehShowDetails]{$ELSE}[]{$ENDIF});
 {{endif}}
 {{if jsonrpc_generate}}
 

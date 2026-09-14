@@ -63,6 +63,11 @@ const
   TEST_FILE_MP3     = 'audio.mp3';     // 256 bytes
   TEST_FILE_MP4     = 'video.mp4';     // 256 bytes
   TEST_FILE_SIZE    = 1024;
+  // Larger than the 8 MiB single-slice cap, so "Range: bytes=0-" has something
+  // to be capped against. Written to the temp fixture dir, never committed.
+  TEST_FILE_BIG     = 'big.bin';
+  TEST_BIG_SIZE     = 9 * 1024 * 1024;
+  MAX_RANGE_SLICE   = 8 * 1024 * 1024;
 
 type
   [TestFixture]
@@ -94,6 +99,8 @@ type
     // -----------------------------------------------------------------------
     [Test]
     procedure Test200_FullFile_NoRangeHeader;
+    [Test]
+    procedure Test206_OpenEndedRangeIsCappedNotBuffered;
     [Test]
     procedure Test200_HasAcceptRangesHeader;
     [Test]
@@ -255,6 +262,11 @@ begin
     LBytes[I] := Byte(I mod 256);
   TFile.WriteAllBytes(TPath.Combine(FTempDir, TEST_FILE_BIN), LBytes);
 
+  // big.bin: past the single-slice cap
+  SetLength(LBytes, TEST_BIG_SIZE);
+  FillChar(LBytes[0], Length(LBytes), $41);
+  TFile.WriteAllBytes(TPath.Combine(FTempDir, TEST_FILE_BIG), LBytes);
+
   // audio.mp3 and video.mp4: 256 zero bytes (only used for MIME type checks)
   SetLength(LBytes, 256);
   FillChar(LBytes[0], Length(LBytes), 0);
@@ -306,6 +318,27 @@ begin
   LResp := Get(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIN);
   Assert.AreEqual(200, LResp.StatusCode, 'Expected 200 OK for request without Range header');
   Assert.AreEqual(TEST_FILE_SIZE, Integer(LResp.ContentLength), 'Content-Length must equal file size');
+end;
+
+procedure TRangeMediaMiddlewareTests.Test206_OpenEndedRangeIsCappedNotBuffered;
+var
+  LResp: IHTTPResponse;
+begin
+  { "Range: bytes=0-" is the first thing every browser sends for a <video>, and
+    the 206 branch used to slice the whole remainder into a TMemoryStream: a 4 GB
+    file meant a 4 GB allocation per request. RFC 7233 allows answering with
+    fewer bytes than were asked for, so the slice is capped and the client comes
+    back for the rest - the Content-Range header has to stay truthful about what
+    was actually sent. }
+  LResp := GetWithRange(TEST_URL_BASE + '/testmedia/' + TEST_FILE_BIG, 'bytes=0-');
+  Assert.AreEqual(206, LResp.StatusCode, 'an open-ended range must still be a 206');
+  Assert.IsTrue(LResp.ContentLength <= MAX_RANGE_SLICE,
+    'the whole file was buffered: Content-Length is ' +
+    IntToStr(LResp.ContentLength));
+  Assert.AreEqual<Int64>(0, ContentRangeStart(LResp));
+  Assert.IsTrue(LResp.HeaderValue['Content-Range'].Contains('/' + IntToStr(TEST_BIG_SIZE)),
+    'Content-Range must still report the full file size: ' +
+    LResp.HeaderValue['Content-Range']);
 end;
 
 procedure TRangeMediaMiddlewareTests.Test200_HasAcceptRangesHeader;

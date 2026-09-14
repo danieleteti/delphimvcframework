@@ -82,12 +82,18 @@ var
 {{endif}}
 begin
 {{if program_minimal_api}}
-  // Engine boots on built-in defaults (logged to console at startup).
-  // Pass a config callback to Create to override any TMVCConfigKey value.
+  // Built-in defaults, overridden below only where the .env has a say.
+  // Add any other TMVCConfigKey to the callback as needed.
 {{if program_minimal_api_web}}
   // IMPORTANT: ViewCache is OFF by default — enable it for production.
 {{endif}}
-  LEngine := TMVCEngine.Create;
+  LEngine := TMVCEngine.Create(
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+    end);
 {{else}}
   LEngine := TMVCEngine.Create(
     procedure(Config: TMVCConfig)
@@ -113,7 +119,7 @@ begin
       //Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
       //Enable X-Powered-By Header in response
-      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'true');
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
       // Max request size in bytes
       Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end);

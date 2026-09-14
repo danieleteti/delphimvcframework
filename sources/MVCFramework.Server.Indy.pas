@@ -31,6 +31,7 @@ interface
 uses
   System.SysUtils, System.Classes,
   IdHTTPServer, IdContext, IdCustomHTTPServer, IdSocketHandle, IdGlobal,
+  IdHeaderList,
   MVCFramework, MVCFramework.Server.Intf, MVCFramework.Commons;
 
 type
@@ -59,6 +60,10 @@ type
     procedure InternalHandleRequest(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo;
       AResponseInfo: TIdHTTPResponseInfo);
+    procedure OnDoneWithPostStream(AContext: TIdContext;
+      ARequestInfo: TIdHTTPRequestInfo; var VCanFree: Boolean);
+    procedure OnCreatePostStream(AContext: TIdContext;
+      AHeaders: TIdHeaderList; var VPostStream: TStream);
     procedure OnParseAuthentication(AContext: TIdContext;
       const AAuthType, AAuthData: String;
       var VUsername, VPassword: String; var VHandled: Boolean);
@@ -108,8 +113,57 @@ type
 implementation
 
 uses
+  IdGlobalProtocols,                // TextIsSame, ExtractHeaderItem
   MVCFramework.Indy.Request, MVCFramework.Indy.Response,
   MVCFramework.Logger, MVCFramework.Signal;
+
+type
+  { A request body that stops growing at max_request_size.
+
+    Indy reads the whole body into this stream before the engine sees the
+    request, and on the chunked path it never sets ContentLength - it stays -1,
+    so the engine's own size guard compares -1 against the limit and lets it
+    through. That made max_request_size a suggestion on this host: a chunked
+    body with no terminating chunk grew the process until it died.
+
+    Bytes past the limit are counted and dropped rather than stored, and the
+    flag is read back in InternalHandleRequest, which answers 413. Dropping
+    rather than raising keeps Indy's own error path out of it - a raise here
+    becomes a dropped connection, not an answer. }
+  TMVCBoundedPostStream = class(TMemoryStream)
+  private
+    fLimit: Int64;
+    fExceeded: Boolean;
+  public
+    constructor Create(const ALimit: Int64);
+    function Write(const Buffer; Count: Longint): Longint; override;
+    property Exceeded: Boolean read fExceeded;
+  end;
+
+threadvar
+  { Latched here because the flag on the stream can be gone by the time the
+    handler runs - see OnDoneWithPostStream. One connection is served by one
+    thread at a time, so a threadvar is the right scope. }
+  gPostStreamExceeded: Boolean;
+
+constructor TMVCBoundedPostStream.Create(const ALimit: Int64);
+begin
+  inherited Create;
+  fLimit := ALimit;
+  fExceeded := False;
+end;
+
+function TMVCBoundedPostStream.Write(const Buffer; Count: Longint): Longint;
+begin
+  if Size + Count > fLimit then
+  begin
+    { Report the bytes as consumed so Indy keeps draining the connection
+      normally; they are simply not kept. }
+    fExceeded := True;
+    Exit(Count);
+  end;
+  Result := inherited Write(Buffer, Count);
+end;
 
 { TMVCIndyServer }
 
@@ -120,6 +174,8 @@ begin
   FHTTPServer.OnCommandGet := OnCommandGet;
   FHTTPServer.OnCommandOther := OnCommandOther;
   FHTTPServer.OnParseAuthentication := OnParseAuthentication;
+  FHTTPServer.OnCreatePostStream := OnCreatePostStream;
+  FHTTPServer.OnDoneWithPostStream := OnDoneWithPostStream;
   FEngine := nil;
   FPort := 8080;
   FHost := '0.0.0.0';
@@ -215,6 +271,39 @@ begin
   InternalHandleRequest(AContext, ARequestInfo, AResponseInfo);
 end;
 
+procedure TMVCIndyServer.OnCreatePostStream(AContext: TIdContext;
+  AHeaders: TIdHeaderList; var VPostStream: TStream);
+var
+  lMaxSize: Int64;
+begin
+  gPostStreamExceeded := False;
+  lMaxSize := TMVCConstants.DEFAULT_MAX_REQUEST_SIZE;
+  if Assigned(FEngine) then
+    lMaxSize := FEngine.MaxRequestSize;
+  VPostStream := TMVCBoundedPostStream.Create(lMaxSize);
+end;
+
+procedure TMVCIndyServer.OnDoneWithPostStream(AContext: TIdContext;
+  ARequestInfo: TIdHTTPRequestInfo; var VCanFree: Boolean);
+begin
+  { Indy calls DoneWithPostStream twice, and only ONE of the two is this one:
+      IdCustomHTTPServer.pas:1415  form-urlencoded only, BEFORE the handler runs
+                                   (the body is already in FormParams and the
+                                   stream is nil'd, so the handler cannot ask)
+      IdCustomHTTPServer.pas:1512  every other content type, in the finally,
+                                   AFTER the response has been written
+    Latching on the second one would set the flag once the request it belongs to
+    is already answered, and the next request on the same keep-alive connection -
+    a bodiless GET, which never reaches OnCreatePostStream and so never clears
+    it - would be answered 413. The handler reads the live stream itself in that
+    case, so the flag is needed only on the form path. }
+  if TextIsSame(ExtractHeaderItem(ARequestInfo.ContentType),
+    TMVCMediaType.APPLICATION_FORM_URLENCODED) and
+    (ARequestInfo.PostStream is TMVCBoundedPostStream) and
+    TMVCBoundedPostStream(ARequestInfo.PostStream).Exceeded then
+    gPostStreamExceeded := True;
+end;
+
 procedure TMVCIndyServer.OnParseAuthentication(AContext: TIdContext;
   const AAuthType, AAuthData: String;
   var VUsername, VPassword: String; var VHandled: Boolean);
@@ -244,7 +333,22 @@ begin
   try
     LResponse := TMVCIndyDirectResponse.Create(AContext, AResponseInfo, FSingleFlushResponse);
     try
-      FEngine.HandleRequest(LRequest, LResponse);
+      if gPostStreamExceeded or ((ARequestInfo.PostStream is TMVCBoundedPostStream) and
+        TMVCBoundedPostStream(ARequestInfo.PostStream).Exceeded) then
+      begin
+        gPostStreamExceeded := False;
+        { The chunked path leaves ContentLength at -1, so the engine's guard
+          cannot see this one. }
+        LResponse.StatusCode := http_status.RequestEntityTooLarge;
+        LResponse.ReasonString := 'Request Entity Too Large';
+        LResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
+        LResponse.Content := 'Request size exceeded the max allowed size';
+      end
+      else
+      begin
+        gPostStreamExceeded := False;
+        FEngine.HandleRequest(LRequest, LResponse);
+      end;
       LResponse.Flush;
     finally
       LResponse.Free;
