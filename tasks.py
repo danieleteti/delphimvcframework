@@ -189,11 +189,16 @@ def copy_sources():
         + glob.glob("ideexpert\\*.bmp")
         + glob.glob("ideexpert\\*.png")
         + glob.glob("ideexpert\\*.res")
+        + glob.glob("ideexpert\\*.rc")
     )
 
     for file in src:
         print("Copying " + file + " to " + config.output_folder + "\\ideexpert")
         copy2(file, config.output_folder + "\\ideexpert\\")
+
+    # dmvcframeworkDT.dproj embeds icons\*.ico; DMVC.Expert.Templates.rc embeds templates\*.tpro
+    for folder in ["icons", "templates"]:
+        copytree(rf"ideexpert\{folder}", config.output_folder + rf"\ideexpert\{folder}", ignore=ignore_patterns)
 
     files = [
         #"dmvcframeworkDTResource.rc",
