@@ -30,7 +30,10 @@ uses
   System.Generics.Collections,
   System.JSON,
   Swag.Common.Types,
-  Swag.Doc.Definition;
+  Swag.Doc.Definition,
+  Swag.Doc.Example,
+  Swag.Doc.Extensions,
+  Swag.Doc.Path.Operation.Content;
 
 type
   /// <summary>
@@ -52,7 +55,17 @@ type
     fEnum: TStringList;
     fAllowEmptyValue: Boolean;
     fRef: string;
+    fDeprecated: Boolean;
+    fStyle: TSwagRequestParameterStyle;
+    fExplode: Boolean;
+    fAllowReserved: Boolean;
+    fExample: TJSONValue;
+    fExamples: TObjectList<TSwagExample>;
+    fContent: TObjectList<TSwagMediaType>;
+    fExtensions: TSwagExtensions;
     procedure SetAllowEmptyValue(const pValue: Boolean);
+    procedure SetItems(const pValue: TJSONObject);
+    procedure SetExample(const pValue: TJSONValue);
   protected
     function ReturnInLocationToString: string;
   public
@@ -63,7 +76,20 @@ type
     procedure Load(pJson: TJSONObject);
 
     /// <summary>
-    /// There are five possible parameter types: Query, Header, Path, Form e Body.
+    /// Adds an example of the parameter value and returns it. Available in OpenAPI 3 only.
+    /// </summary>
+    function AddExample(const pName: string): TSwagExample;
+
+    /// <summary>
+    /// Adds a media type to the content of the parameter and returns it. The content MUST only contain one entry.
+    /// Available in OpenAPI 3 only.
+    /// </summary>
+    function AddMediaType(const pMediaType: TSwagMimeType): TSwagMediaType;
+
+    /// <summary>
+    /// There are seven possible parameter types: Query, Header, Path, Form, Body, Cookie and QueryString.
+    /// Form and Body are written as the request body of the operation in OpenAPI 3, and Cookie and QueryString
+    /// are only available in OpenAPI 3.
     /// </summary>
     property InLocation: TSwagRequestParameterInLocation read fInLocation write fInLocation;
 
@@ -77,6 +103,7 @@ type
 
     /// <summary>
     /// A brief description of the parameter. This could contain examples of use. GFM syntax can be used for rich text representation.
+    /// In OpenAPI 3, when the parameter is a reference, the description overrides the referenced one.
     /// </summary>
     property Description: string read fDescription write fDescription;
 
@@ -94,10 +121,16 @@ type
     /// <summary>
     /// If in is "body"
     /// Required. The schema defining the type used for the body parameter.
+    /// In OpenAPI 3 the schema can be defined for any parameter location and, when assigned, it is written
+    /// instead of the type, format, pattern, default, enum and items properties.
     /// </summary>
     property Schema: TSwagDefinition read fSchema;
 
-    property Items: TJSONObject read fItems;
+    /// <summary>
+    /// Required if type is "array". Describes the type of items in the array.
+    /// The parameter takes ownership of the assigned object.
+    /// </summary>
+    property Items: TJSONObject read fItems write SetItems;
 
     /// <summary>
     /// If in is any value other than "body"
@@ -131,6 +164,55 @@ type
     property AllowEmptyValue: Boolean read fAllowEmptyValue write SetAllowEmptyValue;
 
     property Ref: string read fRef write fRef;
+
+    /// <summary>
+    /// Specifies that a parameter is deprecated and SHOULD be transitioned out of usage. Default value is false.
+    /// Available in OpenAPI 3 only.
+    /// </summary>
+    property Deprecated: Boolean read fDeprecated write fDeprecated;
+
+    /// <summary>
+    /// Describes how the parameter value will be serialized depending on the type of the parameter value.
+    /// Available in OpenAPI 3 only.
+    /// </summary>
+    property Style: TSwagRequestParameterStyle read fStyle write fStyle;
+
+    /// <summary>
+    /// When this is true, parameter values of type array or object generate separate parameters for each value
+    /// of the array or key-value pair of the map. For other types of parameters this property has no effect.
+    /// It is written together with the Style property. Available in OpenAPI 3 only.
+    /// </summary>
+    property Explode: Boolean read fExplode write fExplode;
+
+    /// <summary>
+    /// Determines whether the parameter value SHOULD allow reserved characters, as defined by RFC3986,
+    /// to be included without percent-encoding. This property only applies to parameters with an in value of query.
+    /// The default value is false. Available in OpenAPI 3 only.
+    /// </summary>
+    property AllowReserved: Boolean read fAllowReserved write fAllowReserved;
+
+    /// <summary>
+    /// Example of the parameter's potential value. The Example and Examples fields are mutually exclusive.
+    /// The parameter takes ownership of the assigned value. Available in OpenAPI 3 only.
+    /// </summary>
+    property Example: TJSONValue read fExample write SetExample;
+
+    /// <summary>
+    /// Examples of the parameter's potential value. Available in OpenAPI 3 only.
+    /// </summary>
+    property Examples: TObjectList<TSwagExample> read fExamples;
+
+    /// <summary>
+    /// A map containing the representation of the parameter, used instead of the schema. It MUST only contain one
+    /// entry. A QueryString parameter without content is written with the application/x-www-form-urlencoded
+    /// media type and the schema of the parameter. Available in OpenAPI 3 only.
+    /// </summary>
+    property Content: TObjectList<TSwagMediaType> read fContent;
+
+    /// <summary>
+    /// The Specification Extensions of the parameter.
+    /// </summary>
+    property Extensions: TSwagExtensions read fExtensions;
   end;
 
 implementation
@@ -151,6 +233,7 @@ const
   c_SwagRequestParameterPattern = 'pattern';
   c_SwagRequestParameterFormat = 'format';
   c_SwagRequestParameterEnum = 'enum';
+  c_SwagRequestParameterItems = 'items';
   c_SwagRequestParameterAllowEmptyValue = 'allowEmptyValue';
   c_SwagRequestParameterRef = '$ref';
 
@@ -161,13 +244,36 @@ begin
   inherited Create;
   fSchema := TSwagDefinition.Create;
   fEnum := TStringList.Create;
+  fExamples := TObjectList<TSwagExample>.Create;
+  fContent := TObjectList<TSwagMediaType>.Create;
+  fExtensions := TSwagExtensions.Create;
 end;
 
 destructor TSwagRequestParameter.Destroy;
 begin
   FreeAndNil(fSchema);
   FreeAndNil(fEnum);
+  if Assigned(fItems) then
+    FreeAndNil(fItems);
+  FreeAndNil(fExample);
+  FreeAndNil(fExamples);
+  FreeAndNil(fContent);
+  FreeAndNil(fExtensions);
   inherited Destroy;
+end;
+
+function TSwagRequestParameter.AddExample(const pName: string): TSwagExample;
+begin
+  Result := TSwagExample.Create;
+  Result.Name := pName;
+  fExamples.Add(Result);
+end;
+
+function TSwagRequestParameter.AddMediaType(const pMediaType: TSwagMimeType): TSwagMediaType;
+begin
+  Result := TSwagMediaType.Create;
+  Result.MediaType := pMediaType;
+  fContent.Add(Result);
 end;
 
 function TSwagRequestParameter.GenerateJsonObject: TJSONObject;
@@ -197,7 +303,7 @@ begin
   if fRequired or (fInLocation = rpiPath) then
     vJsonObject.AddPair(c_SwagRequestParameterRequired, TJSONBool.Create(True));
 
-  if fAllowEmptyValue and (fInLocation = rpiQuery) or (fInLocation = rpiFormData) then
+  if fAllowEmptyValue and ((fInLocation = rpiQuery) or (fInLocation = rpiFormData)) then
     vJsonObject.AddPair(c_SwagRequestParameterAllowEmptyValue, TJSONBool.Create(True));
 
   if fInLocation = rpiBody then // schema only allow in body parameters
@@ -209,6 +315,9 @@ begin
   end;
   if (fTypeParameter <> stpNotDefined) then
     vJsonObject.AddPair(c_SwagRequestParameterType, c_SwagTypeParameter[fTypeParameter]);
+
+  if Assigned(fItems) then
+    vJsonObject.AddPair(c_SwagRequestParameterItems, fItems.Clone as TJSONObject);
 
   if not fFormat.IsEmpty then
     vJsonObject.AddPair(c_SwagRequestParameterFormat, fFormat);
@@ -223,6 +332,7 @@ begin
     vJsonObject.AddPair(c_SwagRequestParameterEnum, vJsonEnum);
   end;
 
+  fExtensions.WriteTo(vJsonObject);
   Result := vJsonObject;
 end;
 
@@ -231,6 +341,8 @@ var
  vEnum: TJSONArray;
   i: Integer;
 begin
+  fExtensions.ReadFrom(pJson);
+
   if Assigned(pJson.Values[c_SwagRequestParameterRef]) then
   begin
     fRef := pJson.Values[c_SwagRequestParameterRef].Value;
@@ -270,8 +382,8 @@ begin
   if Assigned(pJson.Values[c_SwagRequestParameterSchema]) then
     fSchema.JsonSchema := pJson.Values[c_SwagRequestParameterSchema].Clone as TJSONObject;
 
-  if Assigned(pJson.Values['items']) then
-    fItems := pJson.Values['items'] as TJSONObject;
+  if pJson.Values[c_SwagRequestParameterItems] is TJSONObject then
+    SetItems(pJson.Values[c_SwagRequestParameterItems].Clone as TJSONObject);
 
   if Assigned(pJson.Values[c_SwagRequestParameterEnum]) then
   begin
@@ -294,6 +406,23 @@ begin
     fAllowEmptyValue := pValue
   else
     raise Exception.Create('allowEmptyValue not allowed to be set on ' + ReturnInLocationToString);
+end;
+
+procedure TSwagRequestParameter.SetItems(const pValue: TJSONObject);
+begin
+  if fItems = pValue then
+    Exit;
+  if Assigned(fItems) then
+    fItems.Free;
+  fItems := pValue;
+end;
+
+procedure TSwagRequestParameter.SetExample(const pValue: TJSONValue);
+begin
+  if fExample = pValue then
+    Exit;
+  fExample.Free;
+  fExample := pValue;
 end;
 
 end.

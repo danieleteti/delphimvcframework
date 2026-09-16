@@ -59,6 +59,11 @@ type
     procedure ToType(const pTypeParameter: string);
   end;
 
+  TSwagRequestParameterStyleHelper = record helper for TSwagRequestParameterStyle
+  public
+    procedure ToType(const pStyleString: string);
+  end;
+
 implementation
 
 uses
@@ -151,6 +156,21 @@ begin
     if (LowerCase(c_SwagSecurityDefinitionType[vSecurityDefinitionType]) = LowerCase(pSecurityDefinitionTypeString.Trim)) then
     begin
       Self := vSecurityDefinitionType;
+      Break;
+    end;
+end;
+
+{ TSwagRequestParameterStyleHelper }
+
+procedure TSwagRequestParameterStyleHelper.ToType(const pStyleString: string);
+var
+  vStyle: TSwagRequestParameterStyle;
+begin
+  Self := rpsNotDefined;
+  for vStyle := Low(TSwagRequestParameterStyle) to High(TSwagRequestParameterStyle) do
+    if (LowerCase(c_SwagRequestParameterStyle[vStyle]) = LowerCase(pStyleString.Trim)) then
+    begin
+      Self := vStyle;
       Break;
     end;
 end;

@@ -25,72 +25,15 @@ unit Swag.Doc.Path.Operation.ResponseHeaders;
 interface
 
 uses
-  System.SysUtils,
-  System.Json;
+  Swag.Doc.Path.Operation.Content;
 
 type
   /// <summary>
-  /// Lists the headers that can be sent as part of a response.
+  /// Lists the headers that can be sent as part of a response. The class is declared in the
+  /// Swag.Doc.Path.Operation.Content unit, together with the media type and encoding objects that it uses.
   /// </summary>
-  TSwagHeaders = class(TObject)
-  private
-    fName: string;
-    fDescription: string;
-    fType: string;
-    fFormat: string;
-  public
-    function GenerateJsonObject: TJSONObject;
-    procedure Load(pJson : TJSONObject);
-
-    /// <summary>
-    /// A header name alias.
-    /// </summary>
-    property Name: string read fName write fName;
-
-    /// <summary>
-    /// A short description of the header.
-    /// </summary>
-    property Description: string read fDescription write fDescription;
-
-    /// <summary>
-    /// Required. The type of the object. The value MUST be one of "string", "number", "integer", "boolean", or "array".
-    /// </summary>
-    property ValueType: string read fType write fType;
-
-    property Format: string read fFormat write fFormat;
-  end;
+  TSwagHeaders = Swag.Doc.Path.Operation.Content.TSwagHeaders;
 
 implementation
-
-const
-  c_SwagHeadersDescription = 'description';
-  c_SwagHeadersType = 'type';
-  c_SwagHeadersFormat = 'format';
-
-{ TSwagHeaders }
-
-function TSwagHeaders.GenerateJsonObject: TJSONObject;
-var
-  vJsonObject: TJsonObject;
-begin
-  vJsonObject := TJSONObject.Create;
-  if fDescription.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersDescription, fDescription);
-  if fType.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersType, fType);
-  if fFormat.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersFormat, fFormat);
-  Result := vJsonObject;
-end;
-
-procedure TSwagHeaders.Load(pJson: TJSONObject);
-begin
-  if Assigned(pJson.Values[c_SwagHeadersDescription]) then
-    fDescription := pJson.Values[c_SwagHeadersDescription].Value;
-  if Assigned(pJson.Values[c_SwagHeadersType]) then
-    fType := pJson.Values[c_SwagHeadersType].Value;
-  if Assigned(pJson.Values[c_SwagHeadersFormat]) then
-    fFormat := pJson.Values[c_SwagHeadersFormat].Value;
-end;
 
 end.

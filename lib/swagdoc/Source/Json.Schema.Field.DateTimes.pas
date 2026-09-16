@@ -33,10 +33,6 @@ type
   [ASchemaType(skDateTime)]
   TJsonFieldDateTime = class(TJsonField)
   strict protected
-    const c_DateFormat = 'yyyy-MM-dd';
-    const c_TimeFormat = 'HH:mm:ss';
-    const c_DateTimeFormat = c_DateFormat + 'T' + c_TimeFormat;
-
     function GetFormat: string; virtual;
   public
     function ToJsonSchema: TJsonObject; override;
@@ -50,10 +46,7 @@ type
   end;
 
   [ASchemaType(skTime)]
-  TJsonFieldTime = class(TJsonFieldDateTime)
-  strict protected
-    function GetFormat: string; override;
-  end;
+  TJsonFieldTime = class(TJsonFieldDateTime);
 
 implementation
 
@@ -64,7 +57,7 @@ uses
 
 function TJsonFieldDateTime.GetFormat: string;
 begin
-  Result := c_DateTimeFormat;
+  Result := 'date-time';
 end;
 
 function TJsonFieldDateTime.ToJsonSchema: TJsonObject;
@@ -77,14 +70,7 @@ end;
 
 function TJsonFieldDate.GetFormat: string;
 begin
-  Result := c_DateFormat;
-end;
-
-{ TJsonFieldTime }
-
-function TJsonFieldTime.GetFormat: string;
-begin
-  Result := c_TimeFormat;
+  Result := 'date';
 end;
 
 initialization
