@@ -1,0 +1,26 @@
+{{# ================================================================
+   ERROR PAGE - Bootstrap 5.3
+   ================================================================
+   Extends baselayout.html. Rendered by TMVCEngine.UseExceptionHandler via the
+   configured view engine — for browser requests on classic controllers, minimal
+   routes, and engine route-not-found alike (API clients get RFC 7807 JSON).
+
+   Variables available (set by UseExceptionHandler):
+     status      - HTTP status code (e.g. 404)
+     statustext  - reason phrase (e.g. Not Found)
+     error       - the error message (empty unless ehShowDetails is enabled)
+     app_name, dmvc_version, current_year - app-wide (full-stack baselayout)
+   ================================================================ #}}
+{{extends "baselayout.html"}}
+
+{{block "title"}}Error{{endblock}}
+
+{{block "body"}}
+  <div class="hero">
+    <h1>{{:status}} &middot; {{:statustext}}</h1>
+    <p class="lead">{{:error}}</p>
+  </div>
+  <div class="text-center mt-3">
+    <a href="/" class="btn btn-outline-primary">Back to Home &rarr;</a>
+  </div>
+{{endblock}}

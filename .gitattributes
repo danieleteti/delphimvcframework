@@ -1,0 +1,6 @@
+# The MariaDB server bundled for the ActiveRecord tests is vendor material and
+# must arrive on disk byte for byte as it was published: mariadb-install-db
+# reads the .sql scripts under share/ to build the system tables, and nothing
+# in that folder is ever edited here. Without this, git would rewrite their
+# line endings on checkout depending on core.autocrlf.
+unittests/general/TestClient/mariadb/** -text

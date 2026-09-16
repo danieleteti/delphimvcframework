@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DMVCFramework — Data URL Upload Sample</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #1a1f2b;
+      --panel-2: #232a3a;
+      --border: #2c3447;
+      --text: #e8ebf2;
+      --muted: #9aa3b8;
+      --accent: #6aa9ff;
+      --accent-text: #0a1320;
+      --ok: #2ecc71;
+      --err: #ff5e6c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 48px 16px;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+    .lead { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    .lead code {
+      background: var(--panel);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 140px;
+      padding: 32px 24px;
+      background: var(--panel);
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .dropzone:hover { border-color: var(--accent); }
+    .dropzone.over {
+      border-color: var(--accent);
+      background: var(--panel-2);
+    }
+    .dropzone strong { font-size: 15px; font-weight: 600; }
+    .dropzone span { color: var(--muted); font-size: 13px; }
+
+    /* Hide file input fully — visually and from layout */
+    .file-input {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .controls input[type=text] {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+    .controls input[type=text]:focus { border-color: var(--accent); }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 0;
+      background: var(--accent);
+      color: var(--accent-text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+    button:not(:disabled):hover { filter: brightness(1.1); }
+
+    .out {
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 320px;
+      overflow: auto;
+      min-height: 48px;
+    }
+    .out.ok  { color: var(--ok); }
+    .out.err { color: var(--err); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Data URL Upload</h1>
+  <p class="lead">
+    Pick or drop a file. The browser encodes it as a <code>data:</code> URL inside JSON;
+    the server decodes it via the <code>TDataURL</code> custom type serializer.
+  </p>
+
+  <label class="dropzone" id="drop" for="file">
+    <strong>Click to choose a file</strong>
+    <span>or drag &amp; drop here</span>
+  </label>
+  <input class="file-input" type="file" id="file">
+
+  <div class="controls">
+    <input type="text" id="name" placeholder="filename (auto-filled)">
+    <button id="send" disabled>Upload</button>
+  </div>
+
+  <div class="out" id="out">No file selected.</div>
+</main>
+
+<script>
+  const drop = document.getElementById('drop');
+  const file = document.getElementById('file');
+  const name = document.getElementById('name');
+  const send = document.getElementById('send');
+  const out  = document.getElementById('out');
+
+  let dataURL = null;
+
+  function setOut(text, cls) {
+    out.textContent = text;
+    out.className = 'out' + (cls ? ' ' + cls : '');
+  }
+
+  function load(f) {
+    if (!f) return;
+    name.value = f.name;
+    setOut(`Reading "${f.name}" (${f.size.toLocaleString()} bytes)...`);
+    const r = new FileReader();
+    r.onload = () => {
+      dataURL = r.result;
+      send.disabled = false;
+      setOut('Ready to upload. Data URL preview:\n\n' + r.result.slice(0, 120) + '...');
+    };
+    r.onerror = () => setOut('Read failed.', 'err');
+    r.readAsDataURL(f);
+  }
+
+  file.addEventListener('change', e => load(e.target.files[0]));
+
+  ['dragenter', 'dragover'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); })
+  );
+  ['dragleave', 'drop'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); })
+  );
+  drop.addEventListener('drop', e => load(e.dataTransfer.files[0]));
+
+  send.addEventListener('click', async () => {
+    if (!dataURL) return;
+    send.disabled = true;
+    setOut('Uploading...');
+    try {
+      const res = await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.value, file: dataURL })
+      });
+      const text = await res.text();
+      setOut(`HTTP ${res.status}\n\n${text}`, res.ok ? 'ok' : 'err');
+    } catch (err) {
+      setOut('Network error: ' + err.message, 'err');
+    } finally {
+      send.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

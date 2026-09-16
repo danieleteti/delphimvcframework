@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JWT RS256 Asymmetric Authentication - DMVCFramework</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.blue.min.css">
+  <style>
+    :root { --dmvc-accent: #3b82f6; }
+    body { background: #0c1222; }
+    .hero { text-align: center; padding: 2rem 1rem 1.5rem; }
+    .hero h1 { color: #93bbfc; font-size: 1.8rem; font-weight: 800; }
+    .hero p { color: #94a3b8; }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.65rem;
+      border-radius: 4px; background: rgba(37,99,235,0.15); color: #93bbfc;
+      border: 1px solid rgba(37,99,235,0.25); }
+    .badge-green { background: rgba(5,150,105,0.15); color: #34d399; border-color: rgba(5,150,105,0.25); }
+    .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.25); }
+    .section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #93bbfc; margin-bottom: 0.5rem; }
+    pre.token { word-break: break-all; white-space: pre-wrap; font-size: 0.78rem;
+      background: rgba(15,23,42,0.8); padding: 0.75rem; border-radius: 8px;
+      border: 1px solid rgba(71,85,105,0.3); color: #cbd5e1; max-height: 200px; overflow-y: auto; }
+    .token-part-header { color: #f87171; }
+    .token-part-payload { color: #a78bfa; }
+    .token-part-signature { color: #34d399; }
+    .result-box { padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(71,85,105,0.3);
+      background: rgba(15,23,42,0.4); min-height: 60px; font-size: 0.88rem; }
+    .result-ok { border-color: rgba(5,150,105,0.3); }
+    .result-err { border-color: rgba(239,68,68,0.3); }
+    article { background: rgba(15,23,42,0.6); border: 1px solid rgba(71,85,105,0.3); border-radius: 10px; }
+    article header { border-bottom: 1px solid rgba(37,99,235,0.15); font-weight: 600; color: #e2e8f0; }
+    .step-num { display: inline-block; width: 1.6rem; height: 1.6rem; line-height: 1.6rem;
+      text-align: center; border-radius: 50%; background: var(--dmvc-accent); color: #fff;
+      font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem; }
+    input { font-size: 0.88rem !important; }
+    footer[class="container"] { border-top: 1px solid rgba(71,85,105,0.3); margin-top: 2rem;
+      padding: 1.5rem 0; text-align: center; color: #64748b; }
+    .key-flow { display: flex; align-items: center; justify-content: center; gap: 1rem;
+      flex-wrap: wrap; margin: 1rem 0; padding: 1rem; border-radius: 8px;
+      background: rgba(37,99,235,0.05); border: 1px dashed rgba(37,99,235,0.2); }
+    .key-flow .arrow { color: #64748b; font-size: 1.2rem; }
+    .key-box { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600; text-align: center; }
+    .key-private { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+    .key-public { background: rgba(5,150,105,0.1); border: 1px solid rgba(5,150,105,0.3); color: #34d399; }
+    .key-token { background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); color: #a78bfa; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="hero">
+      <h1>JWT RS256 Asymmetric Authentication</h1>
+      <p>DMVCFramework + TaurusTLS (OpenSSL 1.1.1+)</p>
+      <p>
+        <span class="badge">RS256</span>
+        <span class="badge">RSA 2048-bit</span>
+        <span class="badge">OpenSSL 1.1.1+</span>
+      </p>
+    </div>
+
+    <article>
+      <header>How RSA JWT differs from HMAC JWT</header>
+      <p><strong>HMAC (HS256)</strong>: One shared secret for both signing and verification.<br>
+         <strong>RSA (RS256)</strong>: Private key signs, public key verifies. The public key can be shared freely.</p>
+      <div class="key-flow">
+        <div class="key-box key-private">Private Key<br><small>signs tokens</small></div>
+        <span class="arrow">&rarr;</span>
+        <div class="key-box key-token">JWT Token<br><small>RS256 signed</small></div>
+        <span class="arrow">&rarr;</span>
+        <div class="key-box key-public">Public Key<br><small>verifies tokens</small></div>
+      </div>
+      <p><small>In a microservice architecture, only the auth server needs the private key.
+         All other services verify tokens using the public key.</small></p>
+    </article>
+
+    <!-- Step 1: Public endpoint -->
+    <p class="section-label"><span class="step-num">1</span> Public Endpoint (no auth required)</p>
+    <article>
+      <header>GET /api/public/info</header>
+      <p>This endpoint does not require authentication. Call it to verify the server is running.</p>
+      <button id="btnPublic" onclick="callPublic()">Call Public Endpoint</button>
+      <div id="publicResult" class="result-box" style="margin-top:0.75rem">
+        <em style="color:#64748b">Click the button to call the public endpoint.</em>
+      </div>
+    </article>
+
+    <!-- Step 2: Login -->
+    <p class="section-label"><span class="step-num">2</span> Login (get RS256 JWT token)</p>
+    <article>
+      <header>POST /api/login</header>
+      <p>Authenticate with username/password. The server signs a JWT with the RSA <strong>private key</strong> and returns it.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;align-items:end">
+        <div>
+          <label for="username" style="font-size:0.82rem">Username</label>
+          <input type="text" id="username" value="admin" style="margin-bottom:0">
+        </div>
+        <div>
+          <label for="password" style="font-size:0.82rem">Password</label>
+          <input type="password" id="password" value="admin" style="margin-bottom:0">
+        </div>
+        <button id="btnLogin" onclick="doLogin()" style="margin-bottom:0">Login</button>
+      </div>
+      <p style="margin-top:0.5rem"><small>Demo credentials: <code>admin/admin</code> or <code>user/user</code></small></p>
+      <div id="loginResult" class="result-box" style="margin-top:0.75rem">
+        <em style="color:#64748b">Enter credentials and click Login.</em>
+      </div>
+      <div id="tokenDisplay" style="display:none;margin-top:0.75rem">
+        <p class="section-label">JWT Token (RS256 signed)</p>
+        <pre class="token" id="tokenPre"></pre>
+        <p style="margin-top:0.5rem"><small>
+          <span class="token-part-header">Red</span> = Header &middot;
+          <span class="token-part-payload">Purple</span> = Payload &middot;
+          <span class="token-part-signature">Green</span> = RSA Signature
+        </small></p>
+        <div id="tokenDecoded" style="margin-top:0.75rem"></div>
+      </div>
+    </article>
+
+    <!-- Step 3: Protected endpoint -->
+    <p class="section-label"><span class="step-num">3</span> Protected Endpoint (JWT required)</p>
+    <article>
+      <header>GET /api/protected/profile</header>
+      <p>This endpoint requires a valid RS256 JWT in the <code>Authorization: Bearer</code> header.
+         The server verifies the signature using the RSA <strong>public key</strong>.</p>
+      <div style="display:flex;gap:0.5rem">
+        <button id="btnProtected" onclick="callProtected()" disabled>Call Protected Endpoint</button>
+        <button id="btnSecret" onclick="callSecret()" disabled class="outline">Call Secret Endpoint</button>
+        <button onclick="callProtectedWithout()" class="outline secondary">Call Without Token</button>
+      </div>
+      <div id="protectedResult" class="result-box" style="margin-top:0.75rem">
+        <em style="color:#64748b">Login first, then call a protected endpoint.</em>
+      </div>
+    </article>
+
+    <!-- Step 4: Server code reference -->
+    <p class="section-label"><span class="step-num">4</span> Server-Side Code</p>
+    <article>
+      <header>Key Difference: HS256 vs RS256 in Delphi</header>
+      <pre style="font-size:0.78rem;overflow-x:auto;margin:0"><code>// HS256 (symmetric - shared secret):
+Engine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+  AuthHandler, ConfigClaims,
+  'my_shared_secret',       // &lt;-- same secret for sign + verify
+  '/api/login'));
+
+// RS256 (asymmetric - key pair):
+<strong>uses MVCFramework.JWT.RSA;   // &lt;-- requires TaurusTLS (OpenSSL 1.1.1+)</strong>
+
+var LSigner := TRSAJWTSigner.CreateFromFiles(
+  JWT_RS256,                // &lt;-- algorithm
+  'keys/private.pem',      // &lt;-- private key (sign)
+  'keys/public.pem');      // &lt;-- public key (verify)
+
+Engine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+  AuthHandler, ConfigClaims,
+  LSigner,                  // &lt;-- signer instead of secret
+  '/api/login'));</code></pre>
+    </article>
+  </main>
+
+  <footer class="container">
+    <small>JWT RS256 Sample &middot; Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a></small>
+  </footer>
+
+  <script>
+  var jwtToken = '';
+
+  function showResult(elId, data, isError) {
+    var el = document.getElementById(elId);
+    el.className = 'result-box ' + (isError ? 'result-err' : 'result-ok');
+    if (typeof data === 'object') {
+      el.innerHTML = '<pre style="margin:0;font-size:0.82rem;white-space:pre-wrap">' +
+        JSON.stringify(data, null, 2) + '</pre>';
+    } else {
+      el.innerHTML = data;
+    }
+  }
+
+  function callPublic() {
+    fetch('/api/public/info')
+      .then(r => r.json())
+      .then(data => showResult('publicResult', data))
+      .catch(err => showResult('publicResult', 'Error: ' + err, true));
+  }
+
+  function doLogin() {
+    var user = document.getElementById('username').value;
+    var pass = document.getElementById('password').value;
+    fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'jwtusername': user,
+        'jwtpassword': pass,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' - check credentials');
+      return r.json();
+    })
+    .then(data => {
+      jwtToken = data.token;
+      showResult('loginResult', '<span class="badge badge-green">Authenticated!</span> Token received (' + jwtToken.length + ' bytes)');
+
+      // Show token with colored parts
+      var parts = jwtToken.split('.');
+      document.getElementById('tokenPre').innerHTML =
+        '<span class="token-part-header">' + parts[0] + '</span>.' +
+        '<span class="token-part-payload">' + parts[1] + '</span>.' +
+        '<span class="token-part-signature">' + parts[2] + '</span>';
+      document.getElementById('tokenDisplay').style.display = 'block';
+
+      // Decode header and payload
+      try {
+        var header = JSON.parse(atob(parts[0].replace(/-/g,'+').replace(/_/g,'/')));
+        var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+        document.getElementById('tokenDecoded').innerHTML =
+          '<div class="grid"><div>' +
+          '<p class="section-label">Header</p>' +
+          '<pre style="font-size:0.78rem;margin:0">' + JSON.stringify(header, null, 2) + '</pre></div><div>' +
+          '<p class="section-label">Payload</p>' +
+          '<pre style="font-size:0.78rem;margin:0">' + JSON.stringify(payload, null, 2) + '</pre></div></div>';
+      } catch(e) {}
+
+      // Enable protected buttons
+      document.getElementById('btnProtected').disabled = false;
+      document.getElementById('btnSecret').disabled = false;
+    })
+    .catch(err => {
+      showResult('loginResult', '<span class="badge badge-red">Failed</span> ' + err, true);
+    });
+  }
+
+  function callProtected() {
+    fetch('/api/protected/profile', {
+      headers: { 'Authorization': 'Bearer ' + jwtToken }
+    })
+    .then(r => r.json())
+    .then(data => showResult('protectedResult', data))
+    .catch(err => showResult('protectedResult', 'Error: ' + err, true));
+  }
+
+  function callSecret() {
+    fetch('/api/protected/secret', {
+      headers: { 'Authorization': 'Bearer ' + jwtToken }
+    })
+    .then(r => r.json())
+    .then(data => showResult('protectedResult', data))
+    .catch(err => showResult('protectedResult', 'Error: ' + err, true));
+  }
+
+  function callProtectedWithout() {
+    fetch('/api/protected/profile')
+    .then(r => {
+      if (!r.ok) return r.text().then(t => { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 200)); });
+      return r.json();
+    })
+    .then(data => showResult('protectedResult', data))
+    .catch(err => showResult('protectedResult', '<span class="badge badge-red">Rejected</span> ' + err.message, true));
+  }
+  </script>
+</body>
+</html>

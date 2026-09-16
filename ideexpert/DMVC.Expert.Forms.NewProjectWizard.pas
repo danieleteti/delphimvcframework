@@ -1,8 +1,8 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -22,12 +22,12 @@
 //
 // ***************************************************************************
 //
-// This IDE expert is based off of the one included with the DUnitX }
-// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti. }
+// This IDE expert is based off of the one included with the DUnitX
+// project.  Original source by Robert Love.  Adapted by Nick Hodges and Daniele Teti.
 //
-// The DUnitX project is run by Vincent Parrett and can be found at: }
+// The DUnitX project is run by Vincent Parrett and can be found at:
 //
-// https://github.com/VSoftTechnologies/DUnitX }
+// https://github.com/VSoftTechnologies/DUnitX
 // ***************************************************************************
 
 unit DMVC.Expert.Forms.NewProjectWizard;
@@ -50,6 +50,7 @@ uses
   VCL.StdCtrls,
   VCL.Imaging.pngimage,
   VCL.ExtCtrls,
+  VCL.ComCtrls,
   System.Actions,
   Vcl.ActnList,
   Vcl.AppEvnts,
@@ -57,97 +58,163 @@ uses
 
 type
   TfrmDMVCNewProject = class(TForm)
-    btnOK: TButton;
-    btnCancel: TButton;
-    chkAddToProjectGroup: TCheckBox;
-    edtWebModuleName: TEdit;
-    lblWbModule: TLabel;
-    edtServerPort: TEdit;
-    lblServerPort: TLabel;
+    Shape1: TShape;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    Panel2: TPanel;
+    lblBook: TLabel;
+    lblCopyRight: TLabel;
+    Shape2: TShape;
+    Image2: TImage;
+    lblPATREON: TLabel;
+    lblPageTitle: TLabel;
+    lblPageHint: TLabel;
+    pcWizard: TPageControl;
+    tsAppType: TTabSheet;
+    tsServer: TTabSheet;
+    tsFeatures: TTabSheet;
+    tsLogging: TTabSheet;
+    tsOptions: TTabSheet;
+    // tsLogging controls
+    lblLoggingProfile: TLabel;
+    rgLoggingProfile: TRadioGroup;
+    gbLoggingAppenders: TGroupBox;
+    lblAppenderHint: TLabel;
+    chkLogConsole: TCheckBox;
+    chkLogFile: TCheckBox;
+    chkLogJSONL: TCheckBox;
+    chkLogHTML: TCheckBox;
+    chkLogODBG: TCheckBox;
+    chkLogEventLog: TCheckBox;
+    chkLogSyslog: TCheckBox;
+    gbLoggingExeWatch: TGroupBox;
+    chkLogExeWatch: TCheckBox;
+    lblExeWatchHint: TLabel;
+    // tsAppType controls
+    rgApplicationType: TRadioGroup;
+    lblAppTypeDescription: TLabel;
+    gbApiStyle: TGroupBox;
+    chkMinimalAPI: TCheckBox;
+    lblApiStyleDescription: TLabel;
+    // tsServer controls
+    rgServerProtocol: TRadioGroup;
+    lblServerPort: TLabel;
+    edtServerPort: TEdit;
+    btnTestPort: TButton;
+    lblProtocolDescription: TLabel;
+    lblServerEngine: TLabel;
+    cbServerEngine: TComboBox;
+    lblProjectName: TLabel;
+    edtProjectName: TEdit;
+    lblProjectFolder: TLabel;
+    edtProjectFolder: TEdit;
+    btnBrowseFolder: TButton;
+    // tsFeatures controls
     gbControllerUnitOptions: TGroupBox;
-    lblClassName: TLabel;
-    Label1: TLabel;
     chkCreateIndexMethod: TCheckBox;
-    edtControllerClassName: TEdit;
     chkCreateActionFiltersMethods: TCheckBox;
     chkCreateCRUDMethods: TCheckBox;
-    Shape1: TShape;
-    GroupBox1: TGroupBox;
-    chkAnalyticsMiddleware: TCheckBox;
-    chkCompression: TCheckBox;
-    chkStaticFiles: TCheckBox;
-    chkTrace: TCheckBox;
-    chkCORS: TCheckBox;
-    chkETAG: TCheckBox;
-    lblBook: TLabel;
-    chkActiveRecord: TCheckBox;
-    EdtFDConnDefFileName: TEdit;
-    GroupBoxJSONRPC: TGroupBox;
-    Label3: TLabel;
-    EdtJSONRPCClassName: TEdit;
+    chkProfileActions: TCheckBox;
+    gbAdditionalFeatures: TGroupBox;
+    lblSSV: TLabel;
+    lblSessionType: TLabel;
+    lblJSONRPCClassName: TLabel;
+    cbSSV: TComboBox;
+    cbSessionType: TComboBox;
     chkJSONRPC: TCheckBox;
+    EdtJSONRPCClassName: TEdit;
+    chkWebSocketServer: TCheckBox;
+    chkServicesContainer: TCheckBox;
+    GroupBox1: TGroupBox;
     Label4: TLabel;
     Bevel1: TBevel;
     Label5: TLabel;
-    EdtConnDefName: TEdit;
-    ApplicationEvents: TApplicationEvents;
-    lblCopyRight: TLabel;
-    chkMSHeap: TCheckBox;
-    chkCustomConfigDotEnv: TCheckBox;
-    chkProfileActions: TCheckBox;
-    lblPATREON: TLabel;
-    chkServicesContainer: TCheckBox;
-    chkSqids: TCheckBox;
-    rgNameCase: TRadioGroup;
-    rgSSV: TRadioGroup;
-    Image2: TImage;
-    Shape2: TShape;
-    rgServerType: TRadioGroup;
+    chkCompression: TCheckBox;
+    chkAnalyticsMiddleware: TCheckBox;
+    chkStaticFiles: TCheckBox;
+    chkCORS: TCheckBox;
+    chkTrace: TCheckBox;
+    chkETAG: TCheckBox;
     chkRateLimit: TCheckBox;
-    chkWebSocketServer: TCheckBox;
+    chkActiveRecord: TCheckBox;
+    EdtFDConnDefFileName: TEdit;
+    EdtConnDefName: TEdit;
+    // tsOptions controls
+    lblNameCase: TLabel;
+    lblClassName: TLabel;
+    lblWbModule: TLabel;
+    cbNameCase: TComboBox;
+    edtControllerClassName: TEdit;
+    edtWebModuleName: TEdit;
+    chkSqids: TCheckBox;
+    chkHtmx: TCheckBox;
+    chkCustomConfigDotEnv: TCheckBox;
+    rgJWTAlgorithm: TRadioGroup;
+    lblJWTAsymmetricWarning: TLabel;
+    chkCreateSubfolder: TCheckBox;
+    lblSummary: TLabel;
+    // Buttons
+    btnBack: TButton;
+    btnNext: TButton;
+    btnFinish: TButton;
+    btnCancel: TButton;
+    ApplicationEvents: TApplicationEvents;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure Image1Click(Sender: TObject);
+    procedure lblBookClick(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
     procedure lblBookMouseLeave(Sender: TObject);
-    procedure lblBookClick(Sender: TObject);
+    procedure lblFrameworkVersionClick(Sender: TObject);
     procedure lblFrameworkVersionMouseEnter(Sender: TObject);
     procedure lblFrameworkVersionMouseLeave(Sender: TObject);
-    procedure lblFrameworkVersionClick(Sender: TObject);
-    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
-    procedure btnOKClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure lblPATREONClick(Sender: TObject);
     procedure lblPATREONMouseEnter(Sender: TObject);
     procedure lblPATREONMouseLeave(Sender: TObject);
-    procedure rgSSVClick(Sender: TObject);
+    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure btnFinishClick(Sender: TObject);
+    procedure btnBackClick(Sender: TObject);
+    procedure btnNextClick(Sender: TObject);
+    procedure btnBrowseFolderClick(Sender: TObject);
+    procedure rgApplicationTypeClick(Sender: TObject);
+    procedure rgServerProtocolClick(Sender: TObject);
+    procedure btnTestPortClick(Sender: TObject);
+    procedure chkCreateSubfolderClick(Sender: TObject);
+    procedure rgLoggingProfileClick(Sender: TObject);
+    procedure chkLogExeWatchClick(Sender: TObject);
+    procedure chkMinimalAPIClick(Sender: TObject);
   private
-    { Private declarations }
     fModel: TJsonObject;
-    function GetAddToProjectGroup: boolean;
-    function GetCreateIndexMethod: boolean;
-    function GetCreateControllerUnit: boolean;
+    fCurrentPage: Integer;
+    fIsCustomPreset: Boolean;
+    fIsMinimalAPIPreset: Boolean;
+    fPresetCaption: string;
+    procedure UpdateSummary;
+    procedure ShowNextStepsDialog(const AProjectName: string;
+      const AHints: TArray<string>);
     function GetControllerClassName: string;
     function GetWebModuleClassName: string;
-    function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
-    function GetCreateCRUDMethods: boolean;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
+    function GetBaseFolder: string;
+    function GetProjectName: string;
+    function GetProjectFolder: string;
+    procedure UpdateProjectNameHint;
+    procedure UpdateWebModuleVisibility;
+    procedure NavigateToPage(APageIndex: Integer);
+    function GetPageCount: Integer;
+    function MapPageIndex(AVisualIndex: Integer): Integer;
+    function ValidateCurrentPage: Boolean;
   public
-    { Public declarations }
-    // Read Only Properties to extract values without having to know control values.
     property ControllerClassName: string read GetControllerClassName;
-    property CreateControllerUnit: boolean read GetCreateControllerUnit;
-    property JSONRPCClassName: String read GetJSONRPCClassName;
-    property AddToProjectGroup: boolean read GetAddToProjectGroup;
-    property CreateIndexMethod: boolean read GetCreateIndexMethod;
-    property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property CreateActionFiltersMethods: boolean
-      read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
+    property ProjectName: string read GetProjectName;
+    property ProjectFolder: string read GetProjectFolder;
+    procedure SetCustomMode(AIsCustom: Boolean);
+    procedure SetMinimalAPIMode(AEnabled: Boolean);
+    procedure SetApiStyleVisible(AVisible: Boolean);
+    procedure SetPresetCaption(const ACaption: string);
+    procedure InitWizardPages;
     function GetConfigModel: TJSONObject;
   end;
 
@@ -157,9 +224,309 @@ uses
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
   System.StrUtils,
-  DMVC.Expert.Commons, System.TypInfo;
+  System.IOUtils,
+  DMVC.Expert.Commons,
+  System.TypInfo,
+  Winapi.Winsock2;
 
 {$R *.dfm}
+
+const
+  PAGE_APP_TYPE = 0;
+  PAGE_SERVER   = 1;
+  PAGE_FEATURES = 2;
+  PAGE_LOGGING  = 3;
+  PAGE_OPTIONS  = 4;
+
+  PAGE_TITLES: array[0..4] of string = (
+    'Application Type',
+    'Server && Project',
+    'Features',
+    'Logging',
+    'Project Options'
+  );
+
+  PAGE_HINTS: array[0..4] of string = (
+    'Select the type of application to be created',
+    'Configure the server protocol, port, and project location',
+    'Select controller options, middleware, and features',
+    'Choose how LoggerPro is wired and which appenders are enabled',
+    'Configure naming, class names, and additional options'
+  );
+
+function IsValidDelphiIdentifier(const AName: string): Boolean;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := False;
+  if AName.IsEmpty then
+    Exit;
+  C := AName[1];
+  if not CharInSet(C, ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+  for I := 2 to Length(AName) do
+  begin
+    C := AName[I];
+    if not CharInSet(C, ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+      Exit;
+  end;
+  Result := True;
+end;
+
+{ Navigation }
+
+function TfrmDMVCNewProject.GetPageCount: Integer;
+begin
+  if fIsCustomPreset then
+    Result := 5
+  else
+    Result := 4;
+end;
+
+function TfrmDMVCNewProject.MapPageIndex(AVisualIndex: Integer): Integer;
+begin
+  if fIsCustomPreset then
+    Result := AVisualIndex
+  else
+  begin
+    case AVisualIndex of
+      0: Result := PAGE_APP_TYPE;
+      1: Result := PAGE_SERVER;
+      2: Result := PAGE_LOGGING;
+    else
+      Result := PAGE_OPTIONS;
+    end;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.NavigateToPage(APageIndex: Integer);
+var
+  LActualPage: Integer;
+  LIsLast, LIsFirst: Boolean;
+  LPages: array[0..4] of TTabSheet;
+begin
+  LPages[0] := tsAppType;
+  LPages[1] := tsServer;
+  LPages[2] := tsFeatures;
+  LPages[3] := tsLogging;
+  LPages[4] := tsOptions;
+
+  fCurrentPage := APageIndex;
+  LActualPage := MapPageIndex(APageIndex);
+  LIsFirst := (APageIndex = 0);
+  LIsLast := (APageIndex = GetPageCount - 1);
+
+  pcWizard.ActivePage := LPages[LActualPage];
+
+  lblPageTitle.Caption := PAGE_TITLES[LActualPage];
+  lblPageHint.Caption := PAGE_HINTS[LActualPage];
+
+  if fPresetCaption <> '' then
+    Caption := Format('DMVCFramework :: %s (%d of %d)',
+      [fPresetCaption, APageIndex + 1, GetPageCount])
+  else
+    Caption := Format('DMVCFramework :: New Project Wizard (%d of %d)',
+      [APageIndex + 1, GetPageCount]);
+
+  // Update summary on the last page
+  if LIsLast then
+    UpdateSummary;
+
+  btnBack.Enabled := not LIsFirst;
+  btnNext.Enabled := not LIsLast;
+  btnFinish.Enabled := LIsLast;
+  if LIsLast then
+    btnFinish.Default := True
+  else
+    btnNext.Default := True;
+end;
+
+function TfrmDMVCNewProject.ValidateCurrentPage: Boolean;
+var
+  LActualPage: Integer;
+  lProjectName: string;
+  lPort: Integer;
+  lPortText: string;
+  lHasAppender: Boolean;
+begin
+  Result := True;
+  LActualPage := MapPageIndex(fCurrentPage);
+
+  case LActualPage of
+    PAGE_SERVER:
+    begin
+      // Validate port
+      lPortText := Trim(edtServerPort.Text);
+      if lPortText.IsEmpty or not TryStrToInt(lPortText, lPort) or (lPort < 1) or (lPort > 65534) then
+      begin
+        ShowMessage('Please enter a valid port number (1-65534).');
+        edtServerPort.SetFocus;
+        Result := False;
+        Exit;
+      end;
+
+      // Validate project name
+      lProjectName := Trim(edtProjectName.Text);
+      if lProjectName.IsEmpty then
+        lProjectName := 'MyDMVCProject';
+      if not IsValidDelphiIdentifier(lProjectName) then
+      begin
+        ShowMessage('Project name must be a valid Delphi identifier:' + sLineBreak +
+          '- Start with a letter or underscore' + sLineBreak +
+          '- Contain only letters, digits, and underscores' + sLineBreak +
+          '- No spaces or special characters');
+        edtProjectName.SetFocus;
+        Result := False;
+      end;
+    end;
+
+    PAGE_LOGGING:
+    begin
+      // Disabled profile doesn't need appenders. Fluent and JSON profiles need
+      // at least one: LoggerPro.Build raises ELoggerPro otherwise. ExeWatch is
+      // itself an appender (wired via WithExeWatch), so it counts toward the
+      // minimum on its own.
+      if rgLoggingProfile.ItemIndex <> 2 then
+      begin
+        lHasAppender := chkLogConsole.Checked or chkLogFile.Checked or
+          chkLogJSONL.Checked or chkLogHTML.Checked or chkLogODBG.Checked or
+          chkLogEventLog.Checked or chkLogSyslog.Checked or
+          chkLogExeWatch.Checked;
+        if not lHasAppender then
+        begin
+          ShowMessage('Select at least one appender (ExeWatch counts), or ' +
+            'switch the profile to "Disabled" if you want the generated ' +
+            'project to produce no log output.');
+          Result := False;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.btnBackClick(Sender: TObject);
+begin
+  if fCurrentPage > 0 then
+    NavigateToPage(fCurrentPage - 1);
+end;
+
+procedure TfrmDMVCNewProject.btnNextClick(Sender: TObject);
+begin
+  if ValidateCurrentPage then
+    if fCurrentPage < GetPageCount - 1 then
+      NavigateToPage(fCurrentPage + 1);
+end;
+
+procedure TfrmDMVCNewProject.SetCustomMode(AIsCustom: Boolean);
+begin
+  fIsCustomPreset := AIsCustom;
+end;
+
+procedure TfrmDMVCNewProject.SetApiStyleVisible(AVisible: Boolean);
+begin
+  // Toggle the entire "API Style" group box (caption + descriptive label +
+  // chkMinimalAPI checkbox). Hiding only chkMinimalAPI leaves an empty
+  // labelled group on the page — call this from preset Apply procs instead.
+  gbApiStyle.Visible := AVisible;
+  chkMinimalAPI.Visible := AVisible;
+end;
+
+procedure TfrmDMVCNewProject.SetMinimalAPIMode(AEnabled: Boolean);
+begin
+  fIsMinimalAPIPreset := AEnabled;
+  if AEnabled then
+  begin
+    // Lock the routing model: Minimal API is the typology. chkCreateCRUDMethods
+    // is the generator trigger for RoutesU.pas, so it is locked ON (visible),
+    // not hidden.
+    chkMinimalAPI.Checked := True;
+    chkMinimalAPI.Enabled := False;
+    chkCreateCRUDMethods.Checked := True;
+    chkCreateCRUDMethods.Enabled := False;
+    // Hide controls with no meaning when no controller class is generated —
+    // each edit together with its caption label.
+    edtControllerClassName.Visible := False;
+    lblClassName.Visible := False;
+    chkCreateIndexMethod.Visible := False;
+    chkCreateActionFiltersMethods.Visible := False;
+    chkProfileActions.Visible := False;
+    chkJSONRPC.Visible := False;
+    EdtJSONRPCClassName.Visible := False;
+    lblJSONRPCClassName.Visible := False;
+  end
+  else
+  begin
+    chkMinimalAPI.Enabled := True;
+    chkCreateCRUDMethods.Enabled := True;
+    edtControllerClassName.Visible := True;
+    lblClassName.Visible := True;
+    chkCreateIndexMethod.Visible := True;
+    chkCreateActionFiltersMethods.Visible := True;
+    chkProfileActions.Visible := True;
+    chkJSONRPC.Visible := True;
+    EdtJSONRPCClassName.Visible := True;
+    lblJSONRPCClassName.Visible := True;
+  end;
+  UpdateWebModuleVisibility;
+end;
+
+procedure TfrmDMVCNewProject.UpdateWebModuleVisibility;
+var
+  lShow: Boolean;
+begin
+  // WebModule class name only matters for WebBroker-based projects
+  // (cbServerEngine.ItemIndex = 0). Indy Direct (1) and HTTP.sys (2)
+  // do not generate a TWebModule. Hidden in Minimal-API mode regardless.
+  lShow := (not fIsMinimalAPIPreset) and (cbServerEngine.ItemIndex = 0);
+  edtWebModuleName.Visible := lShow;
+  lblWbModule.Visible := lShow;
+end;
+
+procedure TfrmDMVCNewProject.InitWizardPages;
+begin
+  NavigateToPage(0);
+end;
+
+{ Form events }
+
+procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
+var
+  lDefaultProjectsFolder: string;
+begin
+  edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
+  edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
+  edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
+  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
+  chkJSONRPC.Checked := False;
+  EdtJSONRPCClassName.TextHint := 'TMyJSONRPCService';
+  chkWebSocketServer.Checked := False;
+  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
+  fModel := TJsonObject.Create;
+  fIsCustomPreset := False;
+  fIsMinimalAPIPreset := False;
+
+  lDefaultProjectsFolder := TPath.Combine(
+    TPath.GetDocumentsPath,
+    'Embarcadero\Studio\Projects');
+  if not TDirectory.Exists(lDefaultProjectsFolder) then
+    lDefaultProjectsFolder := TPath.GetHomePath;
+  edtProjectFolder.Text := lDefaultProjectsFolder;
+  edtProjectFolder.TextHint := lDefaultProjectsFolder;
+
+  UpdateProjectNameHint;
+  UpdateWebModuleVisibility;
+
+  {$IF not Defined(FASTCGI)}
+  rgServerProtocol.Items.Delete(rgServerProtocol.Items.Count-1);
+  rgServerProtocol.ItemIndex := 0;
+  {$ENDIF}
+end;
+
+procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
+begin
+  fModel.Free;
+end;
 
 procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
   var Done: Boolean);
@@ -177,74 +544,235 @@ begin
   EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
   chkProfileActions.Enabled := chkCreateIndexMethod.Checked or chkCreateCRUDMethods.Checked;
   if not chkProfileActions.Enabled then
-  begin
     chkProfileActions.Checked := False;
-  end;
-  case rgServerType.ItemIndex of
-    0: begin //http
+  case rgServerProtocol.ItemIndex of
+    0: begin
          lblServerPort.Caption := 'HTTP Server Port';
          SyncServerPort('8080');
        end;
-    1: begin //https
+    1: begin
          lblServerPort.Caption := 'HTTPS Server Port';
          SyncServerPort('443');
        end;
-    2: begin //fastcgi
+    2: begin
          lblServerPort.Caption := 'FastCGI Server Port';
          SyncServerPort('9000');
        end;
   end;
+
+  // ISAPI/Apache: library hosted by IIS or Apache. Force WebBroker, no protocol/port,
+  // no listening socket → no WebSocket. Web server fronts everything.
+  if (rgApplicationType.ItemIndex = 2) or (rgApplicationType.ItemIndex = 3) then
+  begin
+    cbServerEngine.ItemIndex := 0; // WebBroker
+    cbServerEngine.Enabled := False;
+    lblServerEngine.Enabled := False;
+    rgServerProtocol.Enabled := False;
+    edtServerPort.Enabled := False;
+    btnTestPort.Enabled := False;
+    lblServerPort.Enabled := False;
+    chkWebSocketServer.Checked := False;
+    chkWebSocketServer.Enabled := False;
+    if rgApplicationType.ItemIndex = 2 then
+      lblProtocolDescription.Caption :=
+        'ISAPI library (.dll) hosted by IIS. Web server handles transport, ' +
+        'TLS and connections. WebSocket not supported.'
+    else
+      lblProtocolDescription.Caption :=
+        'Apache 2.4 module (.dll on Windows, .so on Linux) loaded via ' +
+        'LoadModule + SetHandler. Apache 2.2 and earlier are NOT supported. ' +
+        'Web server handles transport, TLS and connections. WebSocket not supported.';
+  end
+  // FastCGI requires WebBroker (forces engine + disables combo)
+  else if rgServerProtocol.ItemIndex = 2 then
+  begin
+    cbServerEngine.ItemIndex := 0; // WebBroker
+    cbServerEngine.Enabled := False;
+    lblServerEngine.Enabled := False;
+    rgServerProtocol.Enabled := True;
+    edtServerPort.Enabled := True;
+    btnTestPort.Enabled := True;
+    lblServerPort.Enabled := True;
+    chkWebSocketServer.Enabled := True;
+    lblProtocolDescription.Caption :=
+      'FastCGI deployment behind a web server. Requires WebBroker engine.';
+  end
+  else
+  begin
+    rgServerProtocol.Enabled := True;
+    edtServerPort.Enabled := True;
+    btnTestPort.Enabled := True;
+    lblServerPort.Enabled := True;
+    cbServerEngine.Enabled := True;
+    lblServerEngine.Enabled := True;
+    case cbServerEngine.ItemIndex of
+      1: begin // Indy Direct: HTTPS uses TaurusTLS
+           if rgServerProtocol.ItemIndex = 1 then
+             lblProtocolDescription.Caption :=
+               'Indy Direct. HTTPS requires TaurusTLS (OpenSSL 1.1.1+) and certificate files.'
+           else
+             lblProtocolDescription.Caption :=
+               'Indy Direct: standalone Indy server, no WebBroker.';
+           chkWebSocketServer.Enabled := True;
+         end;
+      2: begin // HTTP.sys: no WebSocket, Windows-only; HTTPS via kernel
+           chkWebSocketServer.Checked := False;
+           chkWebSocketServer.Enabled := False;
+           if rgServerProtocol.ItemIndex = 1 then
+             lblProtocolDescription.Caption :=
+               'HTTP.sys kernel-mode (IOCP). HTTPS handled by Windows kernel via ' +
+               'netsh http add sslcert. WebSocket not supported.'
+           else
+             lblProtocolDescription.Caption :=
+               'HTTP.sys: Windows kernel-mode HTTP server (IOCP). WebSocket not supported.';
+         end;
+    else
+      // WebBroker: all features enabled; HTTPS uses TaurusTLS
+      chkWebSocketServer.Enabled := True;
+      case rgServerProtocol.ItemIndex of
+        0: lblProtocolDescription.Caption :=
+             'WebBroker (Indy bridge). Standard HTTP server.';
+        1: lblProtocolDescription.Caption :=
+             'WebBroker (Indy bridge). HTTPS requires TaurusTLS (OpenSSL 1.1.1+) ' +
+             'and certificate files.';
+      end;
+    end;
+  end;
+
+  // RS256 (asymmetric) requires extra runtime deps — show the warning
+  // only when that algorithm is selected.
+  lblJWTAsymmetricWarning.Visible := rgJWTAlgorithm.ItemIndex = 2;
+  lblJWTAsymmetricWarning.Enabled := rgJWTAlgorithm.ItemIndex = 2;
+
+  UpdateWebModuleVisibility;
 end;
 
-procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+procedure TfrmDMVCNewProject.btnFinishClick(Sender: TObject);
 var
   lHints: TArray<String>;
+  lProjectFolder: string;
+  lProjectName: string;
 begin
+  lProjectName := Trim(edtProjectName.Text);
+  if lProjectName.IsEmpty then
+    lProjectName := 'MyDMVCProject';
+
+  if not IsValidDelphiIdentifier(lProjectName) then
+  begin
+    ShowMessage('Project name must be a valid Delphi identifier:' + sLineBreak +
+      '- Start with a letter or underscore' + sLineBreak +
+      '- Contain only letters, digits, and underscores' + sLineBreak +
+      '- No spaces or special characters');
+    ModalResult := mrNone;
+    edtProjectName.SetFocus;
+    Exit;
+  end;
+
+  lProjectFolder := GetProjectFolder;
+  if TDirectory.Exists(lProjectFolder) then
+  begin
+    if (Length(TDirectory.GetFiles(lProjectFolder)) > 0) or
+       (Length(TDirectory.GetDirectories(lProjectFolder)) > 0) then
+    begin
+      if MessageDlg('The project folder already exists and is not empty. Continue?',
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+      begin
+        ModalResult := mrNone;
+        Exit;
+      end;
+    end;
+  end;
+
   lHints := [];
   if chkActiveRecord.Checked then
-  begin
     lHints := lHints + ['- Include required FireDAC units in your project'];
-  end;
-  if rgServerType.ItemIndex = 1 then
-  begin
+  // TaurusTLS only needed for HTTPS with WebBroker or Indy Direct
+  // HTTP.sys delegates TLS to the Windows kernel (netsh http add sslcert)
+  // ISAPI/Apache: TLS is handled by the front-end web server
+  if (rgApplicationType.ItemIndex < 2)
+    and (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex <> 2) then
     lHints := lHints + ['- Install TaurusTLS from GetIT or directly from github (https://github.com/TurboPack/indy_extras)'];
-  end;
+  if (rgApplicationType.ItemIndex < 2)
+    and (rgServerProtocol.ItemIndex = 1) and (cbServerEngine.ItemIndex = 2) then
+    lHints := lHints + ['- HTTP.sys HTTPS: bind certificate to port via "netsh http add sslcert ipport=0.0.0.0:PORT certhash=THUMBPRINT appid={GUID}"'];
+  if rgApplicationType.ItemIndex = 2 then
+    lHints := lHints + [
+      '- Deploy the .dll into IIS as an ISAPI extension',
+      '- Set Application Pool to "No Managed Code", Enable 32-bit Apps if Win32 build',
+      '- Allow ISAPI extension in IIS Handler Mappings'];
+  if rgApplicationType.ItemIndex = 3 then
+    lHints := lHints + [
+      '- Apache 2.4 only (Apache 2.2 and earlier are NOT supported)',
+      '- Builds for Windows (.dll) and Linux (.so)',
+      '- Copy the binary into Apache modules folder',
+      '- Add to httpd.conf:    LoadModule dmvc_module modules/<your.dll/.so>',
+      '- Add a <Location ...>  SetHandler mod_dmvc-handler  </Location> block'];
   if Length(lHints) > 0 then
-  begin
-    ShowMessage('Remember to:' + sLineBreak + String.Join(sLineBreak, lHints));
+    ShowNextStepsDialog(lProjectName, lHints);
+end;
+
+procedure TfrmDMVCNewProject.ShowNextStepsDialog(const AProjectName: string;
+  const AHints: TArray<string>);
+var
+  LDlg: TTaskDialog;
+  I: Integer;
+  LContent: string;
+  LLine: string;
+begin
+  // Uses VCL's native TTaskDialog: DPI-safe, system-styled, and avoids the
+  // layout fragility of a hand-rolled form (label auto-sizing at HiDPI was
+  // pushing the title over the subtitle on the custom dialog).
+  LDlg := TTaskDialog.Create(nil);
+  try
+    LDlg.Caption := 'DelphiMVCFramework Wizard';
+    LDlg.Title := Format('Project "%s" created', [AProjectName]);
+    LDlg.MainIcon := tdiInformation;
+    LDlg.CommonButtons := [tcbOk];
+    LDlg.DefaultButton := tcbOk;
+    LDlg.Flags := [tfAllowDialogCancellation]; // no tfSizeToContent: missing in 10.2 Tokyo
+
+    LContent := 'Before deploying remember to:';
+    for I := 0 to High(AHints) do
+    begin
+      LLine := AHints[I];
+      if LLine.StartsWith('- ') then
+        LLine := #$2022 + ' ' + LLine.Substring(2);
+      LContent := LContent + sLineBreak + sLineBreak + LLine;
+    end;
+    LDlg.Text := LContent;
+
+    LDlg.Execute;
+  finally
+    LDlg.Free;
   end;
 end;
 
-procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
-begin
-  edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
-  edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
-  edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
-  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
-  chkJSONRPC.Checked := False;
-  chkWebSocketServer.Checked := False;
-  lblCopyRight.Caption := TMVCConstants.COPYRIGHT;
-  fModel := TJsonObject.Create;
+{ Property getters }
 
-  {$IF not Defined(FASTCGI)}
-  rgServerType.ItemIndex := 0;
-  rgServerType.Enabled := False;
-  {$ENDIF}
+function TfrmDMVCNewProject.GetControllerClassName: string;
+begin
+  if Trim(edtControllerClassName.Text) = '' then
+    Result := TDefaultValues.sDefaultControllerName
+  else
+    Result := Trim(edtControllerClassName.Text);
 end;
 
-procedure TfrmDMVCNewProject.FormDestroy(Sender: TObject);
+function TfrmDMVCNewProject.GetWebModuleClassName: string;
 begin
-  fModel.Free;
+  if Trim(edtWebModuleName.Text) = '' then
+    Result := TDefaultValues.sDefaultWebModuleName
+  else
+    Result := Trim(edtWebModuleName.Text);
 end;
 
-function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
+function TfrmDMVCNewProject.GetServerPort: Integer;
+var
+  lServerPort: Integer;
 begin
-  Result := chkAddToProjectGroup.Checked;
-end;
-
-function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
-begin
-  Result := chkCreateIndexMethod.Checked;
+  Result := StrToInt(TDefaultValues.sDefaultServerPort);
+  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text, lServerPort) then
+    if (lServerPort > 0) and (lServerPort < 65535) then
+      Result := lServerPort;
 end;
 
 function TfrmDMVCNewProject.GetCreateJSONRPCInterface: boolean;
@@ -258,84 +786,172 @@ begin
   begin
     Result := EdtJSONRPCClassName.Text;
     if Result.IsEmpty then
-    begin
       Result := EdtJSONRPCClassName.TextHint;
-    end;
   end
   else
-  begin
     Result := '';
+end;
+
+function TfrmDMVCNewProject.GetBaseFolder: string;
+begin
+  Result := Trim(edtProjectFolder.Text);
+  if Result.IsEmpty then
+  begin
+    Result := TPath.Combine(TPath.GetDocumentsPath, 'Embarcadero\Studio\Projects');
+    if not TDirectory.Exists(Result) then
+      Result := TPath.GetHomePath;
   end;
 end;
 
-function TfrmDMVCNewProject.GetServerPort: Integer;
+function TfrmDMVCNewProject.GetProjectName: string;
 var
-  lServerPort: Integer;
+  LBaseFolder: string;
+  LCounter: Integer;
 begin
-  Result := StrToInt(TDefaultValues.sDefaultServerPort);
-  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
-    lServerPort) then
+  Result := Trim(edtProjectName.Text);
+  if Result.IsEmpty then
   begin
-    if (lServerPort > 0) and (lServerPort < 65535) then
-      Result := lServerPort;
+    LBaseFolder := GetBaseFolder;
+    LCounter := 1;
+    repeat
+      Result := 'DMVCFrameworkProject' + LCounter.ToString;
+      Inc(LCounter);
+    until not TDirectory.Exists(TPath.Combine(LBaseFolder, Result));
   end;
 end;
 
-function TfrmDMVCNewProject.GetWebModuleClassName: string;
+function TfrmDMVCNewProject.GetProjectFolder: string;
 begin
-  if Trim(edtWebModuleName.Text) = '' then
-  begin
-    Result := TDefaultValues.sDefaultWebModuleName
-  end
+  if chkCreateSubfolder.Checked then
+    Result := TPath.Combine(GetBaseFolder, GetProjectName)
   else
+    Result := GetBaseFolder;
+end;
+
+procedure TfrmDMVCNewProject.UpdateProjectNameHint;
+var
+  LBaseFolder: string;
+  LCounter: Integer;
+  LSuggestedName: string;
+begin
+  LBaseFolder := GetBaseFolder;
+  LCounter := 1;
+  repeat
+    LSuggestedName := 'DMVCFrameworkProject' + LCounter.ToString;
+    Inc(LCounter);
+  until not TDirectory.Exists(TPath.Combine(LBaseFolder, LSuggestedName));
+  edtProjectName.Text := LSuggestedName;
+  edtProjectName.TextHint := LSuggestedName;
+end;
+
+procedure TfrmDMVCNewProject.chkCreateSubfolderClick(Sender: TObject);
+begin
+  if chkCreateSubfolder.Checked then
+    lblProjectFolder.Caption := 'Base Folder (project created as subfolder)'
+  else
+    lblProjectFolder.Caption := 'Project Folder';
+end;
+
+procedure TfrmDMVCNewProject.rgLoggingProfileClick(Sender: TObject);
+var
+  lEnableAppenders: Boolean;
+begin
+  // Profile index 2 = Disabled (null logger). Disable appender selection to
+  // make it obvious that the generated project produces no log output.
+  lEnableAppenders := rgLoggingProfile.ItemIndex <> 2;
+  gbLoggingAppenders.Enabled := lEnableAppenders;
+  chkLogConsole.Enabled := lEnableAppenders;
+  chkLogFile.Enabled := lEnableAppenders;
+  chkLogJSONL.Enabled := lEnableAppenders;
+  chkLogHTML.Enabled := lEnableAppenders;
+  chkLogODBG.Enabled := lEnableAppenders;
+  chkLogEventLog.Enabled := lEnableAppenders;
+  chkLogSyslog.Enabled := lEnableAppenders;
+  gbLoggingExeWatch.Enabled := lEnableAppenders;
+  chkLogExeWatch.Enabled := lEnableAppenders;
+end;
+
+procedure TfrmDMVCNewProject.chkMinimalAPIClick(Sender: TObject);
+begin
+  // Minimal API mode emits a RoutesU.pas with lambda routes instead of a
+  // controller class, so the controller-class options become irrelevant.
+  // CRUD checkbox stays enabled — it now means "generate the CRUD sample
+  // lambdas" instead of "controller CRUD methods".
+  chkCreateIndexMethod.Enabled := not chkMinimalAPI.Checked;
+  chkCreateActionFiltersMethods.Enabled := not chkMinimalAPI.Checked;
+  chkProfileActions.Enabled := not chkMinimalAPI.Checked;
+  if chkMinimalAPI.Checked then
   begin
-    Result := Trim(edtWebModuleName.Text);
+    chkCreateIndexMethod.Checked := False;
+    chkCreateActionFiltersMethods.Checked := False;
+    chkProfileActions.Checked := False;
   end;
 end;
+
+procedure TfrmDMVCNewProject.chkLogExeWatchClick(Sender: TObject);
+var
+  LDlg: TTaskDialog;
+begin
+  if not chkLogExeWatch.Checked then
+    Exit;
+
+  LDlg := TTaskDialog.Create(nil);
+  try
+    LDlg.Caption := 'DelphiMVCFramework Wizard';
+    LDlg.Title := 'ExeWatch prerequisites';
+    LDlg.MainIcon := tdiInformation;
+    LDlg.CommonButtons := [tcbOk];
+    LDlg.DefaultButton := tcbOk;
+    LDlg.Flags := [tfAllowDialogCancellation]; // no tfSizeToContent: missing in 10.2 Tokyo
+    LDlg.Text :=
+      'Before building a project that uses the ExeWatch appender, make sure:' + sLineBreak + sLineBreak +
+      #$2022 + ' The ExeWatch SDK for Delphi is downloaded from https://exewatch.com ' +
+      'and its source folder is on the project / IDE library path.' + sLineBreak + sLineBreak +
+      #$2022 + ' Your API key is configured:' + sLineBreak +
+      '    Fluent profile -> .env keys exewatch.apikey, exewatch.customerid, exewatch.appversion' + sLineBreak +
+      '    JSON profile   -> "apiKey", "customerId", "appVersion" inside the ExeWatch block of loggerpro.json' + sLineBreak + sLineBreak +
+      #$2022 + ' The generated project will not compile until LoggerPro.ExeWatchAppender ' +
+      'and its dependencies are reachable from the uses clause.';
+    LDlg.Execute;
+  finally
+    LDlg.Free;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);
+var
+  LDlg: TFileOpenDialog;
+begin
+  // TFileOpenDialog, not SelectDirectory: the Vista+ picker has an address bar,
+  // so the path can be typed or pasted instead of hunted down in a tree.
+  LDlg := TFileOpenDialog.Create(nil);
+  try
+    LDlg.Title := 'Select Project Folder';
+    LDlg.Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem];
+    LDlg.DefaultFolder := edtProjectFolder.Text;
+    LDlg.FileName := edtProjectFolder.Text;
+    if LDlg.Execute then
+    begin
+      edtProjectFolder.Text := LDlg.FileName;
+      UpdateProjectNameHint;
+    end;
+  finally
+    LDlg.Free;
+  end;
+end;
+
+{ Link handlers }
 
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://github.com/danieleteti/delphimvcframework'),
-    nil, nil, SW_SHOW);
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONClick(Sender: TObject);
-begin
-  ShellExecute(0, PChar('open'),
-    PChar('https://www.patreon.com/delphimvcframework'),
-    nil, nil, SW_SHOW);
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONMouseEnter(Sender: TObject);
-begin
-  lblPATREON.Font.Color := clHighlight;
-  lblPATREON.Font.Style := lblPATREON.Font.Style + [fsUnderline];
-end;
-
-procedure TfrmDMVCNewProject.lblPATREONMouseLeave(Sender: TObject);
-begin
-  lblPATREON.Font.Color := Font.Color;
-  lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
-end;
-
-procedure TfrmDMVCNewProject.rgSSVClick(Sender: TObject);
-begin
-{$if not Defined(WEBSTENCILS)}
-  if SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils') then
-  begin
-    ShowMessage('This Delphi version doesn''t support WebStencils, so DelphiMVCFramework cannot use it.' +
-      sLineBreak + 'Consider to use TemplatePro.');
-    rgSSV.ItemIndex := 1;
-  end;
-{$endif}
+    PChar('https://github.com/danieleteti/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://leanpub.com/delphimvcframework'),
-    nil, nil, SW_SHOW);
+    PChar('https://leanpub.com/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);
@@ -353,8 +969,7 @@ end;
 procedure TfrmDMVCNewProject.lblFrameworkVersionClick(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'),
-    nil, nil, SW_SHOW);
+    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblFrameworkVersionMouseEnter(Sender: TObject);
@@ -369,85 +984,315 @@ begin
   lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style - [fsUnderline];
 end;
 
-function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;
+procedure TfrmDMVCNewProject.lblPATREONClick(Sender: TObject);
 begin
-  Result := chkCreateActionFiltersMethods.Checked;
+  ShellExecute(0, PChar('open'),
+    PChar('https://www.patreon.com/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
-function TfrmDMVCNewProject.GetCreateControllerUnit: boolean;
+procedure TfrmDMVCNewProject.lblPATREONMouseEnter(Sender: TObject);
 begin
-  Result := True;
+  lblPATREON.Font.Color := clHighlight;
+  lblPATREON.Font.Style := lblPATREON.Font.Style + [fsUnderline];
 end;
 
-function TfrmDMVCNewProject.GetCreateCRUDMethods: boolean;
+procedure TfrmDMVCNewProject.lblPATREONMouseLeave(Sender: TObject);
 begin
-  Result := chkCreateCRUDMethods.Checked;
+  lblPATREON.Font.Color := Font.Color;
+  lblPATREON.Font.Style := lblPATREON.Font.Style - [fsUnderline];
 end;
+
+procedure TfrmDMVCNewProject.rgApplicationTypeClick(Sender: TObject);
+const
+  APP_TYPE_DESCRIPTIONS: array[0..3] of string = (
+    'Runs in a terminal/console window. Ideal for development, debugging, ' +
+    'and Docker/container deployments. Works on both Windows and Linux.',
+    'Runs as a background Windows service managed by the Service Control Manager (SCM). ' +
+    'Starts automatically with Windows, runs without user login. Ideal for production servers.',
+    'ISAPI extension (.dll) hosted by IIS. The web server fronts the application: ' +
+    'TLS, connection pooling and lifecycle are handled by IIS. WebSocket and ' +
+    'stand-alone listening sockets are not available in this mode.',
+    'Apache 2.4 module loaded via LoadModule + SetHandler. Builds as .dll on ' +
+    'Windows and .so on Linux. Apache 2.2 and earlier are NOT supported. ' +
+    'TLS and connection lifecycle are handled by Apache. WebSocket not supported.'
+  );
+begin
+  if (rgApplicationType.ItemIndex >= 0) and (rgApplicationType.ItemIndex <= High(APP_TYPE_DESCRIPTIONS)) then
+    lblAppTypeDescription.Caption := APP_TYPE_DESCRIPTIONS[rgApplicationType.ItemIndex];
+end;
+
+procedure TfrmDMVCNewProject.rgServerProtocolClick(Sender: TObject);
+const
+  PROTOCOL_DESCRIPTIONS: array[0..2] of string = (
+    'Standard HTTP server. Best choice for development and reverse-proxy deployments (nginx, Apache, IIS).',
+    'HTTPS with TLS encryption. Requires TaurusTLS library. Use for direct client-facing deployments without a reverse proxy.',
+    'FastCGI protocol for integration with web servers (nginx, Apache, IIS). The web server handles HTTP/HTTPS and forwards requests.'
+  );
+begin
+  if (rgServerProtocol.ItemIndex >= 0) and (rgServerProtocol.ItemIndex <= High(PROTOCOL_DESCRIPTIONS)) then
+    lblProtocolDescription.Caption := PROTOCOL_DESCRIPTIONS[rgServerProtocol.ItemIndex];
+end;
+
+procedure TfrmDMVCNewProject.btnTestPortClick(Sender: TObject);
+var
+  LPort: Integer;
+  LWsa: TWSAData;
+  LSock: TSocket;
+  LAddr: TSockAddrIn;
+  LReuse: Integer;
+  LErr: Integer;
+begin
+  if not TryStrToInt(Trim(edtServerPort.Text), LPort) or (LPort < 1) or (LPort > 65534) then
+  begin
+    ShowMessage('Please enter a valid port number (1-65534).');
+    Exit;
+  end;
+
+  // Probe via raw Winsock: SO_REUSEADDR + bind on 0.0.0.0:port, then close.
+  // Avoids Indy quirks (TIdTCPServer.Active=True requires an OnExecute
+  // handler, TIdSimpleServer needs IOHandler wiring) — both produced
+  // misleading "NOT available" messages even on free ports.
+  if WSAStartup($0202, LWsa) <> 0 then
+  begin
+    ShowMessage(Format('Cannot test port: WSAStartup failed (%d).', [WSAGetLastError]));
+    Exit;
+  end;
+  try
+    LSock := socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if LSock = INVALID_SOCKET then
+    begin
+      ShowMessage(Format('Cannot test port: socket() failed (WSA %d).', [WSAGetLastError]));
+      Exit;
+    end;
+    try
+      LReuse := 1;
+      setsockopt(LSock, SOL_SOCKET, SO_REUSEADDR, @LReuse, SizeOf(LReuse));
+
+      FillChar(LAddr, SizeOf(LAddr), 0);
+      LAddr.sin_family := AF_INET;
+      LAddr.sin_port := htons(LPort);
+      LAddr.sin_addr.S_addr := INADDR_ANY;
+
+      if Winapi.Winsock2.bind(LSock, TSockAddr(LAddr), SizeOf(LAddr)) = SOCKET_ERROR then
+      begin
+        LErr := WSAGetLastError;
+        ShowMessage(Format('Port %d is NOT available (WSA error %d).', [LPort, LErr]));
+      end
+      else
+        ShowMessage(Format('Port %d is available.', [LPort]));
+    finally
+      closesocket(LSock);
+    end;
+  finally
+    WSACleanup;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.SetPresetCaption(const ACaption: string);
+begin
+  fPresetCaption := ACaption;
+end;
+
+procedure TfrmDMVCNewProject.UpdateSummary;
+var
+  LSummary: TStringList;
+  LMiddlewares: TStringList;
+begin
+  LSummary := TStringList.Create;
+  try
+    LMiddlewares := TStringList.Create;
+    try
+      LSummary.Add('--- Project Summary ---');
+      LSummary.Add('');
+
+      // Application type
+      case rgApplicationType.ItemIndex of
+        0: LSummary.Add('Application: Console (' + rgServerProtocol.Items[rgServerProtocol.ItemIndex] + ')');
+        1: LSummary.Add('Application: Windows Service');
+        2: LSummary.Add('Application: ISAPI module (.dll for IIS)');
+        3: LSummary.Add('Application: Apache 2.4 module (.dll Win / .so Linux)');
+      end;
+
+      if rgApplicationType.ItemIndex < 2 then
+        LSummary.Add('Port: ' + edtServerPort.Text);
+      LSummary.Add('Controller: ' + GetControllerClassName);
+      LSummary.Add('WebModule: ' + GetWebModuleClassName);
+
+      // Middlewares
+      if chkCompression.Checked then LMiddlewares.Add('Compression');
+      if chkCORS.Checked then LMiddlewares.Add('CORS');
+      if chkStaticFiles.Checked then LMiddlewares.Add('Static Files');
+      case rgJWTAlgorithm.ItemIndex of
+        1: LMiddlewares.Add('JWT (HS256)');
+        2: LMiddlewares.Add('JWT (RS256 - requires TaurusTLS)');
+      end;
+      if chkActiveRecord.Checked then LMiddlewares.Add('ActiveRecord');
+      if chkETAG.Checked then LMiddlewares.Add('ETag');
+      if chkRateLimit.Checked then LMiddlewares.Add('Rate Limit');
+      if chkAnalyticsMiddleware.Checked then LMiddlewares.Add('Analytics');
+      if chkTrace.Checked then LMiddlewares.Add('Trace');
+      if LMiddlewares.Count > 0 then
+        LSummary.Add('Middleware: ' + LMiddlewares.DelimitedText)
+      else
+        LSummary.Add('Middleware: (none)');
+
+      // Features
+      if cbSSV.ItemIndex > 0 then
+        LSummary.Add('Views: ' + cbSSV.Items[cbSSV.ItemIndex]);
+      if cbSessionType.ItemIndex > 0 then
+        LSummary.Add('Session: ' + cbSessionType.Items[cbSessionType.ItemIndex]);
+      if chkWebSocketServer.Checked then
+        LSummary.Add('WebSocket: Yes');
+      if chkJSONRPC.Checked then
+        LSummary.Add('JSON-RPC: Yes');
+
+      lblSummary.Caption := LSummary.Text;
+    finally
+      LMiddlewares.Free;
+    end;
+  finally
+    LSummary.Free;
+  end;
+end;
+
+{ Config model }
 
 function TfrmDMVCNewProject.GetConfigModel: TJSONObject;
 begin
   fModel.Clear;
-  fModel.S[TConfigKey.program_name] :=  'TBA';
+  fModel.S[TConfigKey.program_name] := GetProjectName;
   fModel.S[TConfigKey.program_default_server_port] := GetServerPort.ToString;
-  fModel.B[TConfigKey.program_msheap] := chkMSHeap.Checked;
+  // MSHeap option removed in 3.6.x: measured 60-82% regression vs FastMM on
+  // HTTP workloads. Keep the config key False so templates still render.
+  fModel.B[TConfigKey.program_msheap] := False;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
-  fModel.B[TConfigKey.program_ssv_templatepro] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'templatepro');
-  fModel.B[TConfigKey.program_ssv_webstencils] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'webstencils');
-  fModel.B[TConfigKey.program_ssv_mustache] := SameText(rgSSV.Items[rgSSV.ItemIndex], 'mustache');
+  fModel.B[TConfigKey.program_htmx] := chkHtmx.Checked;
+  fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');
+  fModel.B[TConfigKey.program_ssv_webstencils] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'webstencils');
+  fModel.B[TConfigKey.program_ssv_mustache] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'mustache');
+  if fModel.B[TConfigKey.program_ssv_templatepro] or
+     fModel.B[TConfigKey.program_ssv_webstencils] or
+     fModel.B[TConfigKey.program_ssv_mustache] then
+    fModel.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML'
+  else
+    fModel.S[TConfigKey.default_media_type] := 'TMVCConstants.DEFAULT_CONTENT_TYPE';
   fModel.B[TConfigKey.program_service_container_generate] := chkServicesContainer.Checked;
+  fModel.B[TConfigKey.program_minimal_api] := chkMinimalAPI.Checked;
   fModel.S[TConfigKey.program_service_container_unit_name] := 'TBA';
   fModel.S[TConfigKey.controller_unit_name] := 'TBA';
-  fModel.S[TConfigKey.controller_classname] :=  GetControllerClassName;
-  fModel.B[TConfigKey.controller_index_methods_generate] :=  chkCreateIndexMethod.Checked;
-  fModel.B[TConfigKey.controller_action_filters_generate] :=  chkCreateActionFiltersMethods.Checked;
-  fModel.B[TConfigKey.controller_crud_methods_generate] :=  chkCreateCRUDMethods.Checked;
-  fModel.B[TConfigKey.controller_actions_profiling_generate] :=  chkProfileActions.Checked;
+  fModel.S[TConfigKey.controller_classname] := GetControllerClassName;
+  fModel.B[TConfigKey.controller_index_methods_generate] := chkCreateIndexMethod.Checked;
+  fModel.B[TConfigKey.controller_action_filters_generate] := chkCreateActionFiltersMethods.Checked;
+  fModel.B[TConfigKey.controller_crud_methods_generate] := chkCreateCRUDMethods.Checked;
+  fModel.B[TConfigKey.controller_actions_profiling_generate] := chkProfileActions.Checked;
   fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
-  fModel.S[TConfigKey.entity_classname] :=  'TPerson';
-  fModel.B[TConfigKey.jsonrpc_generate] :=  GetCreateJSONRPCInterface;
-  fModel.S[TConfigKey.jsonrpc_classname] :=  GetJSONRPCClassName;
+  fModel.S[TConfigKey.entity_classname] := 'TPerson';
+  fModel.S[TConfigKey.entity_unit_name] := 'TBA';
+  fModel.B[TConfigKey.jsonrpc_generate] := GetCreateJSONRPCInterface;
+  fModel.S[TConfigKey.jsonrpc_classname] := GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';
-  fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), rgNameCase.ItemIndex + 1);
+  fModel.S[TConfigKey.serializer_name_case] := GetEnumName(TypeInfo(TMVCNameCase), cbNameCase.ItemIndex + 1);
   fModel.S[TConfigKey.websocket_unit_name] := 'WebSocketServerU';
   fModel.B[TConfigKey.websocket_generate] := chkWebSocketServer.Checked;
 
-  case rgServerType.ItemIndex of
-    0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
-    1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
-    2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
-    else
-      raise Exception.Create('Invalid Server Type');
+  case rgServerProtocol.ItemIndex of
+    0: fModel.S['program.server.protocol'] := 'http';
+    1: fModel.S['program.server.protocol'] := 'https';
+    2: fModel.S['program.server.protocol'] := 'fastcgi';
   end;
 
-  //webmodule
+  case cbServerEngine.ItemIndex of
+    0: fModel.S[TConfigKey.program_server_engine] := 'webbroker';
+    1: fModel.S[TConfigKey.program_server_engine] := 'indydirect';
+    2: fModel.S[TConfigKey.program_server_engine] := 'httpsys';
+  else
+    fModel.S[TConfigKey.program_server_engine] := 'indydirect';
+  end;
 
-  fModel.S[TConfigKey.webmodule_classname] :=  GetWebModuleClassName;
-  fModel.B[TConfigKey.webmodule_middleware_analytics] :=  chkAnalyticsMiddleware.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_staticfiles] :=  chkStaticFiles.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_trace] :=  chkTrace.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_compression] :=  chkCompression.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_etag] :=  chkETAG.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_cors] :=  chkCORS.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_ratelimit] :=  chkRateLimit.Checked;
-  fModel.B[TConfigKey.webmodule_middleware_activerecord] :=  chkActiveRecord.Checked;
-  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] :=  EdtConnDefName.Text;
-  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] :=  EdtFDConnDefFileName.Text;
+  case rgApplicationType.ItemIndex of
+    0: begin // Console (Win/Linux)
+         case cbServerEngine.ItemIndex of
+           1: fModel.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+           2: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+         else
+           // WebBroker console: program_type derives from protocol
+           case rgServerProtocol.ItemIndex of
+             0: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
+             1: fModel.S[TConfigKey.program_type] := TProgramTypes.HTTPS_CONSOLE;
+             2: fModel.S[TConfigKey.program_type] := TProgramTypes.FASTCGI_CONSOLE;
+           end;
+         end;
+       end;
+    1: fModel.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+    2: fModel.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+    3: fModel.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  else
+    raise Exception.Create('Invalid Application Type');
+  end;
 
-  //webmodule - end
-  Result := fModel;
-end;
+  fModel.S[TConfigKey.mustache_helpers_unit_name] := 'TBA';
+  fModel.S[TConfigKey.templatepro_helpers_unit_name] := 'TBA';
+  fModel.S[TConfigKey.webstencils_helpers_unit_name] := 'TBA';
 
-function TfrmDMVCNewProject.GetControllerClassName: string;
-begin
-  if Trim(edtControllerClassName.Text) = '' then
+  fModel.S[TConfigKey.webmodule_unit_name] := 'TBA';
+  fModel.S[TConfigKey.webmodule_classname] := GetWebModuleClassName;
+  fModel.S[TConfigKey.webmodule_classname_short] := GetWebModuleClassName.Substring(1);
+  fModel.B[TConfigKey.webmodule_middleware_analytics] := chkAnalyticsMiddleware.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_staticfiles] := chkStaticFiles.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_trace] := chkTrace.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_compression] := chkCompression.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_etag] := chkETAG.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_cors] := chkCORS.Checked;
+  fModel.B[TConfigKey.webmodule_middleware_ratelimit] := chkRateLimit.Checked;
+  // rgJWTAlgorithm: 0=None, 1=HS256, 2=RS256
+  fModel.B[TConfigKey.webmodule_middleware_jwt] := rgJWTAlgorithm.ItemIndex > 0;
+  fModel.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := rgJWTAlgorithm.ItemIndex = 2;
+  fModel.B[TConfigKey.webmodule_middleware_activerecord] := chkActiveRecord.Checked;
+  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_name] := EdtConnDefName.Text;
+  fModel.S[TConfigKey.webmodule_middleware_activerecord_con_def_filename] := EdtFDConnDefFileName.Text;
+  fModel.S[TConfigKey.con_def_filename] := ExtractFileName(StringReplace(EdtFDConnDefFileName.Text, '$(AppPath)', '', [rfIgnoreCase]));
+
+  fModel.B[TConfigKey.webmodule_middleware_session_memory] := cbSessionType.ItemIndex = 1;
+  fModel.B[TConfigKey.webmodule_middleware_session_file] := cbSessionType.ItemIndex = 2;
+  fModel.B[TConfigKey.webmodule_middleware_session_database] := cbSessionType.ItemIndex = 3;
+  fModel.I[TConfigKey.webmodule_middleware_session_timeout] := 0;
+
+  // Logging tab
+  case rgLoggingProfile.ItemIndex of
+    0: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.FLUENT;
+    1: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.JSON_CONFIG;
+    2: fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.DISABLED;
+  else
+    fModel.S[TConfigKey.logging_profile] := TLoggingProfiles.FLUENT;
+  end;
+  // When logging is disabled the appender checkboxes are meaningless, force
+  // them to False so the generated BootConfigU contains only the null-logger
+  // branch and no dead uses of appender units.
+  if rgLoggingProfile.ItemIndex = 2 then
   begin
-    Result := TDefaultValues.sDefaultControllerName
+    fModel.B[TConfigKey.logging_appender_console] := False;
+    fModel.B[TConfigKey.logging_appender_file] := False;
+    fModel.B[TConfigKey.logging_appender_jsonl] := False;
+    fModel.B[TConfigKey.logging_appender_html] := False;
+    fModel.B[TConfigKey.logging_appender_odbg] := False;
+    fModel.B[TConfigKey.logging_appender_eventlog] := False;
+    fModel.B[TConfigKey.logging_appender_syslog] := False;
+    fModel.B[TConfigKey.logging_exewatch] := False;
   end
   else
   begin
-    Result := Trim(edtControllerClassName.Text);
+    fModel.B[TConfigKey.logging_appender_console] := chkLogConsole.Checked;
+    fModel.B[TConfigKey.logging_appender_file] := chkLogFile.Checked;
+    fModel.B[TConfigKey.logging_appender_jsonl] := chkLogJSONL.Checked;
+    fModel.B[TConfigKey.logging_appender_html] := chkLogHTML.Checked;
+    fModel.B[TConfigKey.logging_appender_odbg] := chkLogODBG.Checked;
+    fModel.B[TConfigKey.logging_appender_eventlog] := chkLogEventLog.Checked;
+    fModel.B[TConfigKey.logging_appender_syslog] := chkLogSyslog.Checked;
+    fModel.B[TConfigKey.logging_exewatch] := chkLogExeWatch.Checked;
   end;
+
+  Result := fModel;
 end;
 
 end.

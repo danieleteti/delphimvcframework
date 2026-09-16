@@ -482,7 +482,7 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 808
+        Width = 824
         Height = 69
         Align = alTop
         Caption = 
@@ -497,6 +497,7 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         WordWrap = True
+        ExplicitWidth = 808
       end
       object btnGenericExcWithCustomHandling: TButton
         Left = 0

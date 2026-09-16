@@ -8,15 +8,12 @@ This guide provides detailed instructions for installing DelphiMVCFramework in y
 
 | Delphi Version | Package Group |
 |---|---|
-| **Delphi 13 Athens** | `packages\d130\dmvcframework_group.groupproj` |
+| **Delphi 13 Florence** | `packages\d130\dmvcframework_group.groupproj` |
 | **Delphi 12 Athens** | `packages\d120\dmvcframework_group.groupproj` |
-| **Delphi 11.3 Alexandria** | `packages\d113\dmvcframework_group.groupproj` |
 | **Delphi 11 Alexandria** | `packages\d110\dmvcframework_group.groupproj` |
 | **Delphi 10.4 Sydney** | `packages\d104\dmvcframework_group.groupproj` |
 | **Delphi 10.3 Rio** | `packages\d103\dmvcframework_group.groupproj` |
 | **Delphi 10.2 Tokyo** | `packages\d102\dmvcframework_group.groupproj` |
-| **Delphi 10.1 Berlin** | `packages\d101\dmvcframework_group.groupproj` |
-| **Delphi 10.0 Seattle** | `packages\d100\dmvcframework_group.groupproj` |
 
 ### Operating Systems
 - Windows (32-bit and 64-bit)

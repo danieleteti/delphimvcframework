@@ -15,10 +15,12 @@
     - [Delphi Versions](#delphi-versions)
     - [Operating Systems](#operating-systems)
     - [Deployment Targets](#deployment-targets)
+    - [Supported Databases (MVCActiveRecord)](#supported-databases-mvcactiverecord)
   - [🔒 **Security & TLS 1.3 Support**](#-security--tls-13-support)
   - [🏁 **Quick Start**](#-quick-start)
   - [📚 **Learning Resources**](#-learning-resources)
     - [📖 **Official Guide**](#-official-guide)
+    - [📘 **Technical Guides & Papers**](#-technical-guides--papers)
     - [🎓 **Training & Support**](#-training--support)
   - [🤝 **Community & Support**](#-community--support)
     - [💬 **Get Help**](#-get-help)
@@ -36,8 +38,8 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danieleteti/delphimvcframework)
 [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/sindresorhus/awesome)
 
-![](https://img.shields.io/badge/stable-dmvcframework--3.4.2--magnesium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.4.3--aluminium-rc2--dev)
+![](https://img.shields.io/badge/stable-dmvcframework--3.4.3--aluminium-blue)
+![](https://img.shields.io/badge/beta-dmvcframework--3.5.0--silicon-orange)
 
 **The most popular Delphi RESTful framework on GitHub**
 
@@ -71,7 +73,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 
 ### 💾 **Data Access & ORM**
 - **MVCActiveRecord** - Powerful ORM with full CRUD operations
-- **Multi-database support**: PostgreSQL, MySQL, MariaDB, Firebird, InterBase, SQLite, Microsoft SQL Server
+- **Multi-database support**: PostgreSQL, MySQL, MariaDB, Firebird, InterBase, SQLite, Microsoft SQL Server, Oracle
 - **RQL (Resource Query Language)** for flexible querying
 - **Named queries** support for optimized database access
 - **Connection pooling** and transaction management
@@ -101,7 +103,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - **IDE Wizard** for project creation
 - **Comprehensive logging** with LoggerPro integration
 - **Built-in profiler** for performance monitoring
-- **Unit testing framework** (250+ tests)
+- **Unit testing framework** — 872 tests running against 5 server hosts (Classic / Indy Direct / HTTP.sys / Apache 2.4 / ISAPI). See [docs/unit_tests.md](docs/unit_tests.md) for how to run them and the prerequisites.
 - **dotEnv configuration** support
 - **Multiple deployment options**: Standalone, Apache module, IIS ISAPI, Linux daemon
 
@@ -113,9 +115,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - **Delphi 11.x Alexandria** ✅
 - **Delphi 10.4 Sydney** ✅
 - **Delphi 10.3 Rio** ✅
-- **Delphi 10.2 Tokyo** ✅
-- **Delphi 10.1 Berlin** ✅
-- **Delphi 10 Seattle** ✅
+- **Delphi 10.2 Tokyo** ✅ (minimum supported)
 
 ### Operating Systems
 - **Windows** (32-bit and 64-bit)
@@ -130,6 +130,22 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 - Windows or Linux FMX Applications
 - Apache Modules (Windows/Linux)
 - IIS ISAPI Extensions (Windows)
+
+### Supported Databases (MVCActiveRecord)
+
+MVCActiveRecord works with any database supported by FireDAC. The RQL (Resource Query Language) compiler and SQL generator are available for the following databases:
+
+| Database | Minimum Version | Notes |
+|----------|----------------|-------|
+| **PostgreSQL** | 9.6+ | RETURNING clause, native UUID. Recommended: 13+ |
+| **Microsoft SQL Server** | 2012+ | OFFSET/FETCH pagination requires 2012. Recommended: 2019+ |
+| **MySQL** | 5.7+ | LAST_INSERT_ID, backtick quoting. MariaDB 10.2+ also supported |
+| **Firebird** | 1.5+ | gen_id sequences, ROWS pagination. RETURNING clause requires 2.0+. Recommended: 3.0+ (IDENTITY columns) |
+| **InterBase** | XE3+ | No RETURNING clause, uses gen_id sequences for auto-generated keys |
+| **SQLite** | 3.8+ | last_insert_rowid, no sequences. Recommended: 3.30+ |
+| **Oracle** | 12c (12.1)+ | OFFSET/FETCH pagination, RETURNING clause, sequences via DUAL |
+
+> **Tip:** Include `MVCFramework.SQLGenerators` in your project's uses clause to register all database backends at once. Alternatively, include only the specific generator you need (e.g. `MVCFramework.SQLGenerators.PostgreSQL`).
 
 ## 🔒 **Security & TLS 1.3 Support**
 
@@ -178,6 +194,22 @@ The comprehensive **"DelphiMVCFramework - The Official Guide"** is available in 
 - [🇬🇧 English](https://leanpub.com/delphimvcframework) (eBook & Hardcover)
 - [🇧🇷 Portuguese](https://leanpub.com/delphimvcframework-br)
 - [🇪🇸 Spanish](https://leanpub.com/delphimvcframework-es)
+
+### 📘 **Technical Guides & Papers**
+Premium guides and video tutorials available at the [DMVCFramework Patreon Shop](https://www.danieleteti.it/patreon-products/):
+- **TemplatePro 1.1 - The Definitive Guide** (EN, IT, ES, DE)
+- **A Practical Guide to Managing Complex Configurations with .env** (EN, IT)
+- **Prompt Engineering - Mastering AI Communication** (EN, IT, ES, DE)
+- **Building a Robust Job Queue System with FirebirdSQL** (EN, IT, ES)
+- **Practical Guide to API and Webhooks with DelphiMVCFramework** (IT, ES)
+- **Understanding JSON-RPC: A Lightweight Remote Procedure Call Protocol** (EN)
+- **CRUD Web API with Delphi, DMVCFramework, and PostgreSQL** (EN)
+- **MVCActiveRecord Series** - Complete ORM guide in 3 parts (EN, IT)
+- **Pagination with RQL in DMVCFramework** (EN)
+- **Using Caddy as Reverse Proxy for DMVCFramework Applications** (EN, IT, ES)
+- **Localization in DMVCFramework Web Applications** (Video)
+- **Sessions in DMVCFramework** (Video)
+- **Bag of Words in Delphi** - NLP guide (EN, IT) — Free for Patreon members
 
 ### 🎓 **Training & Support**
 - **Professional Training**: Available through [bit Time Professionals](https://www.bittimeprofessionals.it) (world wide) and [Delphi Studio ES](https://www.delphistudio.es) (in Spain)
@@ -236,10 +268,10 @@ DelphiMVCFramework is released under the Apache License 2.0. See [LICENSE](LICEN
 | Documentation | Community |
 |---|---|
 | [Quick Start](docs/quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
-| [Installation](INSTALLATION.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
-| [Samples](SAMPLES.md) | [X](https://x.com/danieleteti) |
-| [RQL Guide](RQL.md) | [Blog](https://www.danieleteti.it) |
-| [dotEnv](DOTENV.md) |  |
+| [Installation](docs/installation_guide.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
+| [Samples](docs/samples_guide.md) | [X](https://x.com/danieleteti) |
+| [RQL Guide](docs/rql_guide.md) | [Blog](https://www.danieleteti.it) |
+| [dotEnv](docs/dotenv_guide.md) |  |
 
 ---
 

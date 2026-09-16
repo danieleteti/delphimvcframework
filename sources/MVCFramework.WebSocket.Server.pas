@@ -1,3 +1,27 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
 unit MVCFramework.WebSocket.Server;
 
 interface
@@ -62,9 +86,11 @@ type
     FOwnsData: Boolean;
     FPeriodicInterval: Integer;
     FServer: TMVCWebSocketServer;
+    FHandshakeHeaders: TStrings; // owned - HTTP headers of the upgrade request
     function GetConnectedUsersCount: Integer;
   public
-    constructor Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer; AOwnsData: Boolean = True);
+    constructor Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer;
+      AOwnsData: Boolean = True; AHandshakeHeaders: TStringList = nil);
     destructor Destroy; override;
 
     /// <summary>
@@ -120,8 +146,21 @@ type
     /// </summary>
     procedure Disconnect(const AReason: string = '');
 
+    /// <summary>
+    /// Real client IP. Honours X-Forwarded-For / X-Real-IP only when
+    /// MVCTrustProxyForwardedHeaders is True, otherwise returns the peer IP.
+    /// </summary>
+    function RealClientIP: string;
+
     property Context: TIdContext read FContext;
     property ClientId: string read FClientId;
+
+    /// <summary>
+    /// HTTP request headers of the WebSocket upgrade handshake (read-only).
+    /// NameValueSeparator is ':', so HandshakeHeaders.Values['Origin'] works
+    /// (the returned value keeps the leading space: Trim it).
+    /// </summary>
+    property HandshakeHeaders: TStrings read FHandshakeHeaders;
 
     /// <summary>
     /// Username for this client (can be set in OnClientConnect)
@@ -174,7 +213,7 @@ type
     FOnPeriodicMessage: TWebSocketPeriodicMessageEvent;
     FPeriodicMessageInterval: Integer;
     procedure OnExecuteEvent(AContext: TIdContext);
-    function PerformHandshake(AContext: TIdContext; out AClientId: string): Boolean;
+    function PerformHandshake(AContext: TIdContext; out AClientId: string; out AHeaders: TStringList): Boolean;
     procedure ProcessFrames(AClient: TWebSocketClient);
     function GetClientCount: Integer;
   protected
@@ -255,13 +294,22 @@ implementation
 
 uses
   System.DateUtils,
-  System.Math;
+  System.Math,
+  MVCFramework.Commons;
 
 { TWebSocketClient }
 
-constructor TWebSocketClient.Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer; AOwnsData: Boolean);
+constructor TWebSocketClient.Create(AContext: TIdContext; const AClientId: string; AServer: TMVCWebSocketServer;
+  AOwnsData: Boolean; AHandshakeHeaders: TStringList);
 begin
   inherited Create;
+  if AHandshakeHeaders <> nil then
+    FHandshakeHeaders := AHandshakeHeaders // takes ownership
+  else
+  begin
+    FHandshakeHeaders := TStringList.Create;
+    FHandshakeHeaders.NameValueSeparator := ':';
+  end;
   FContext := AContext;
   FClientId := AClientId;
   FUsername := AClientId; // Default username is ClientId (IP address)
@@ -274,9 +322,27 @@ end;
 
 destructor TWebSocketClient.Destroy;
 begin
+  FHandshakeHeaders.Free;
   if FOwnsData and Assigned(FData) then
     FData.Free;
   inherited;
+end;
+
+function TWebSocketClient.RealClientIP: string;
+var
+  lPeerIP: string;
+begin
+  // ClientId can be the Sec-WebSocket-Protocol value (a username), so the peer IP
+  // is read from the socket, not from ClientId.
+  lPeerIP := '';
+  if Assigned(FContext) and Assigned(FContext.Connection) and Assigned(FContext.Connection.Socket) and
+    Assigned(FContext.Connection.Socket.Binding) then
+    lPeerIP := FContext.Connection.Socket.Binding.PeerIP;
+  Result := MVCResolveClientIP(
+    Trim(FHandshakeHeaders.Values['X-Forwarded-For']),
+    Trim(FHandshakeHeaders.Values['X-Real-IP']),
+    lPeerIP,
+    MVCTrustProxyForwardedHeaders);
 end;
 
 procedure TWebSocketClient.SendText(const AMessage: string);
@@ -475,7 +541,7 @@ begin
   end;
 end;
 
-function TMVCWebSocketServer.PerformHandshake(AContext: TIdContext; out AClientId: string): Boolean;
+function TMVCWebSocketServer.PerformHandshake(AContext: TIdContext; out AClientId: string; out AHeaders: TStringList): Boolean;
 var
   LRequestLine, LLine: string;
   LHeaders: TStringList;
@@ -483,8 +549,10 @@ var
   LIOHandler: TIdIOHandler;
 begin
   Result := False;
+  AHeaders := nil;
   LIOHandler := AContext.Connection.IOHandler;
   LHeaders := TStringList.Create;
+  LHeaders.NameValueSeparator := ':'; // lets the app do HandshakeHeaders.Values['Origin']
   try
     // Read HTTP request
     LRequestLine := LIOHandler.ReadLn(IndyTextEncoding_UTF8);
@@ -550,9 +618,11 @@ begin
     // CRITICAL: Clear buffer after handshake
     LIOHandler.InputBuffer.Clear;
 
+    AHeaders := LHeaders; // ownership moves to the caller (the client frees it)
+    LHeaders := nil;
     Result := True;
   finally
-    LHeaders.Free;
+    LHeaders.Free; // nil-safe: frees only on the failure paths
   end;
 end;
 
@@ -677,16 +747,22 @@ procedure TMVCWebSocketServer.OnExecuteEvent(AContext: TIdContext);
 var
   LClientId: string;
   LClient: TWebSocketClient;
+  LHandshakeHeaders: TStringList;
 begin
   LClient := nil;
   try
     // Perform WebSocket handshake
-    if PerformHandshake(AContext, LClientId) then
+    if PerformHandshake(AContext, LClientId, LHandshakeHeaders) then
     begin
       DoLog(Format('WebSocket handshake successful for %s', [LClientId]));
 
-      // Create client object
-      LClient := TWebSocketClient.Create(AContext, LClientId, Self);
+      // Create client object (takes ownership of the handshake headers)
+      try
+        LClient := TWebSocketClient.Create(AContext, LClientId, Self, True, LHandshakeHeaders);
+      except
+        LHandshakeHeaders.Free;
+        raise;
+      end;
 
       // Add to clients list
       FClientsLock.Enter;

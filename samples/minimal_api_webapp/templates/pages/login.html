@@ -1,0 +1,44 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Sign in · Minimal API WebApp{{endblock}}
+
+{{block "body"}}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3 text-center"><i class="bi bi-box-arrow-in-right"></i> Sign in</h1>
+
+                {{if error}}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>{{:error}}</div>
+                </div>
+                {{endif}}
+
+                <form method="POST" action="/login" autocomplete="on">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" name="username"
+                               class="form-control" autocomplete="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password"
+                               class="form-control" autocomplete="current-password" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="remember" name="remember" value="true">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign in</button>
+                </form>
+
+                <p class="small text-muted mt-3 mb-0 text-center">
+                    Hint: <code>admin</code> / <code>admin</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{{endblock}}

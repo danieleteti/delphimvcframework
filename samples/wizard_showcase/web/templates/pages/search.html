@@ -1,0 +1,45 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Search · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/">&larr; back to index</a></nav>
+<h1 class="mb-3">Search</h1>
+<p class="text-muted">A single <code>TSearchQuery</code> record carries
+   <code>[MVCFromQueryString]</code> attributes on its fields, each with a
+   default value. Submit with empty fields to see the defaults kick in.</p>
+
+<form method="get" action="/search" class="row g-2 mb-4" style="max-width:40rem;">
+    <div class="col-sm-6">
+        <label class="form-label">Term (<code>q</code>)</label>
+        <input class="form-control" type="text" name="q" value="{{:term}}">
+    </div>
+    <div class="col-sm-3">
+        <label class="form-label">Page</label>
+        <input class="form-control" type="number" name="page" min="1" value="{{:page}}">
+    </div>
+    <div class="col-sm-3">
+        <label class="form-label">Size</label>
+        <input class="form-control" type="number" name="size" min="1" max="100" value="{{:size}}">
+    </div>
+    <div class="col-12">
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-header fw-semibold">Bound values</div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Term</dt>     <dd class="col-sm-9"><code>{{:term}}</code></dd>
+            <dt class="col-sm-3">Page</dt>     <dd class="col-sm-9"><code>{{:page}}</code></dd>
+            <dt class="col-sm-3">PageSize</dt> <dd class="col-sm-9"><code>{{:size}}</code></dd>
+        </dl>
+    </div>
+    <div class="card-footer text-secondary small">
+        Defaults from the attributes: page = "1", size = "10". The handler
+        receives a populated <code>TSearchQuery</code> regardless of which
+        query params the request carried.
+    </div>
+</div>
+{{endblock}}

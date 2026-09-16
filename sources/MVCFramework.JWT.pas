@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,6 +29,7 @@ unit MVCFramework.JWT;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Collections,
   JsonDataObjects,
   MVCFramework,
@@ -39,6 +40,52 @@ type
 {$SCOPEDENUMS ON}
   TJWTCheckableClaim = (ExpirationTime, NotBefore, IssuedAt);
   TJWTCheckableClaims = set of TJWTCheckableClaim;
+
+  /// <summary>
+  /// Abstraction for JWT signing and verification.
+  /// Supports both symmetric (HMAC) and asymmetric (RSA) algorithms.
+  /// For HMAC, Sign and Verify use the same shared secret.
+  /// For RSA, Sign uses a private key and Verify uses a public key.
+  /// </summary>
+  IJWTSigner = interface
+    ['{4F7B3C2A-8D1E-4A5F-B6C9-7E2D3F1A0B5C}']
+    function GetAlgorithm: string;
+    function Sign(const Input: string): TBytes;
+    function Verify(const Input: string; const Signature: TBytes): Boolean;
+  end;
+
+  /// <summary>
+  /// Provides JWT signers by inspecting the token header (kid, alg).
+  /// Used by the OIDC middleware to verify ID token signatures against
+  /// public keys fetched from a JWKS (JSON Web Key Set) endpoint.
+  /// The implementation (e.g., TMVCJWKSClient) lives in a separate unit
+  /// that depends on TaurusTLS; this interface has no crypto dependencies.
+  /// </summary>
+  IJWKSProvider = interface
+    ['{A1C7E9F3-5B2D-4E8A-9F6C-3D7B1A4E2F5C}']
+    /// <summary>
+    /// Returns a signer configured with the public key matching the token header.
+    /// AJWTHeaderJSON is the raw JSON of the JWT header (contains "kid", "alg").
+    /// Returns nil if no matching key is found.
+    /// </summary>
+    function GetSignerForToken(const AJWTHeaderJSON: string): IJWTSigner;
+  end;
+
+  /// <summary>
+  /// HMAC-based JWT signer. Wraps the existing HMAC() function
+  /// from MVCFramework.HMAC into the IJWTSigner interface.
+  /// Supports HS256, HS384, HS512.
+  /// </summary>
+  THMACJWTSigner = class(TInterfacedObject, IJWTSigner)
+  private
+    FAlgorithm: string;
+    FKey: string;
+  public
+    constructor Create(const AAlgorithm, AKey: string);
+    function GetAlgorithm: string;
+    function Sign(const Input: string): TBytes;
+    function Verify(const Input: string; const Signature: TBytes): Boolean;
+  end;
 
   TJWTRegisteredClaimNames = class sealed
   public
@@ -244,12 +291,21 @@ type
     function AsCustomData: TMVCCustomData;
   end;
 
+  // Forward declaration so TJWTClaimsSetup below can reference TJWT.
+  TJWT = class;
+
+  // Configures the registered claims of a freshly-minted token (issuer,
+  // audience, expiration time, ...) before it is signed. Used by both the
+  // classic JWT middleware and the minimal-API JWT() filter helper.
+  TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
+
   TJWT = class
   private
     FSecretKey: string;
     FRegisteredClaims: TJWTRegisteredClaims;
     FCustomClaims: TJWTCustomClaims;
     FHMACAlgorithm: string;
+    FSigner: IJWTSigner;
     FRegClaimsToChecks: TJWTCheckableClaims;
     FLeewaySeconds: Cardinal;
     FData: TObject; //the jwt middleware will inject TMVCWebRequest here
@@ -262,10 +318,21 @@ type
     function GetLiveValidityWindowInSeconds: Cardinal;
     function IsValidToken(const Token: string; out Header, Payload: TJDOJSONObject; out Error: string): Boolean;
   public
+    /// <summary>
+    /// Creates a JWT instance using HMAC (symmetric) signing.
+    /// This is the standard constructor for HS256/HS384/HS512.
+    /// </summary>
     constructor Create(
       const SecretKey: string;
       const ALeewaySeconds: Cardinal = 300;
-      const HMACAlgorithm: String = HMAC_HS512); virtual;
+      const HMACAlgorithm: String = HMAC_HS512); overload; virtual;
+    /// <summary>
+    /// Creates a JWT instance using a custom signer (e.g., TRSAJWTSigner for RS256/RS384/RS512).
+    /// The signer determines the algorithm and handles signing/verification.
+    /// </summary>
+    constructor Create(
+      const ASigner: IJWTSigner;
+      const ALeewaySeconds: Cardinal = 300); overload;
     destructor Destroy; override;
     function GetToken: string;
     function LoadToken(const Token: string; out Error: string): Boolean;
@@ -284,13 +351,49 @@ type
       write SetLiveValidityWindowInSeconds;
   end;
 
+const
+  /// <summary>
+  /// The demo secret that DMVCFramework used to ship as the default value of the
+  /// ASecret parameter of the JWT middleware and filter constructors. It is
+  /// published in the framework sources, so a token signed with it can be forged
+  /// by anyone. It is kept here only to be detected and rejected
+  /// (see GHSA-hgv7-ch4w-2f47).
+  /// </summary>
+  MVC_JWT_INSECURE_DEFAULT_SECRET = 'D3lph1MVCFram3w0rk';
+
+/// <summary>
+/// Raises EMVCJWTException if ASecret is the well-known secret shipped with the
+/// framework, or is empty. Called by TJWT and by
+/// every JWT middleware/filter constructor so that a misconfigured server fails
+/// at startup instead of accepting forged tokens.
+/// </summary>
+procedure CheckJWTSecret(const ASecret: string);
+
 implementation
 
 uses
-  System.SysUtils,
   MVCFramework.Commons,
   System.DateUtils,
   IdGlobal;
+
+procedure CheckJWTSecret(const ASecret: string);
+begin
+  if ASecret = MVC_JWT_INSECURE_DEFAULT_SECRET then
+    raise EMVCJWTException.Create(
+      'Refusing to use the built-in demo JWT secret "' + MVC_JWT_INSECURE_DEFAULT_SECRET + '". ' +
+      'This value is published in the DelphiMVCFramework sources, so anyone can sign a token ' +
+      'with it, put any "username" and "roles" claims inside, and be authenticated by this ' +
+      'server as any user (see advisory GHSA-hgv7-ch4w-2f47). ' +
+      'Pass your own secret to the JWT middleware/filter: a long random string, unique per ' +
+      'application, kept out of the source code (e.g. dotEnv("jwt.secret") or an environment ' +
+      'variable), and shared by all the instances that must accept each other tokens.');
+  if ASecret = '' then
+    raise EMVCJWTException.Create(
+      'Refusing to use an empty JWT secret: HMAC signatures computed with an empty key can be ' +
+      'reproduced by anyone, so tokens could be forged. Pass a long random secret, unique per ' +
+      'application, kept out of the source code. ' +
+      'To use asymmetric signatures instead, pass an IJWTSigner (e.g. TRSAJWTSigner).');
+end;
 
 { TJWTRegisteredClaims }
 
@@ -510,13 +613,64 @@ begin
   Result := True;
 end;
 
+{ THMACJWTSigner }
+
+constructor THMACJWTSigner.Create(const AAlgorithm, AKey: string);
+begin
+  inherited Create;
+  FAlgorithm := AAlgorithm;
+  FKey := AKey;
+end;
+
+function THMACJWTSigner.GetAlgorithm: string;
+begin
+  Result := FAlgorithm;
+end;
+
+function THMACJWTSigner.Sign(const Input: string): TBytes;
+begin
+  Result := HMAC(FAlgorithm, Input, FKey);
+end;
+
+function THMACJWTSigner.Verify(const Input: string; const Signature: TBytes): Boolean;
+var
+  lComputed: TBytes;
+  I: Integer;
+  lDiff: Byte;
+begin
+  lComputed := Sign(Input);
+  if Length(lComputed) <> Length(Signature) then
+    Exit(False);
+  // Constant-time comparison to prevent timing attacks
+  lDiff := 0;
+  for I := 0 to Length(lComputed) - 1 do
+    lDiff := lDiff or (lComputed[I] xor Signature[I]);
+  Result := lDiff = 0;
+end;
+
+{ TJWT }
+
 constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal; const HMACAlgorithm: String);
 begin
   inherited Create;
+  CheckJWTSecret(SecretKey);
   FSecretKey := SecretKey;
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
   FHMACAlgorithm := HMACAlgorithm;
+  FSigner := THMACJWTSigner.Create(HMACAlgorithm, SecretKey);
+  FLeewaySeconds := ALeewaySeconds;
+  FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+end;
+
+constructor TJWT.Create(const ASigner: IJWTSigner; const ALeewaySeconds: Cardinal);
+begin
+  inherited Create;
+  FSecretKey := '';
+  FRegisteredClaims := TJWTRegisteredClaims.Create;
+  FCustomClaims := TJWTCustomClaims.Create;
+  FHMACAlgorithm := ASigner.GetAlgorithm;
+  FSigner := ASigner;
   FLeewaySeconds := ALeewaySeconds;
   FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
 end;
@@ -568,7 +722,7 @@ begin
       lHeaderEncoded := URLSafeB64encode(lHeader.ToString, False, IndyTextEncoding_UTF8);
       lPayloadEncoded := URLSafeB64encode(lPayload.ToString, False, IndyTextEncoding_UTF8);
       lToken := lHeaderEncoded + '.' + lPayloadEncoded;
-      lBytes := HMAC(HMACAlgorithm, lToken, FSecretKey);
+      lBytes := FSigner.Sign(lToken);
       lHash := URLSafeB64encode(lBytes, False);
       Result := lToken + '.' + lHash;
     finally
@@ -616,8 +770,16 @@ begin
       end;
 
       lAlgName := Header.S['alg'];
-      Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
-        URLSafeB64encode(HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey), False);
+      // Validate that the token's algorithm matches the configured signer.
+      // This prevents algorithm confusion attacks (e.g., HS256 token verified by RS256 signer).
+      if not SameText(lAlgName, FSigner.GetAlgorithm) then
+      begin
+        Error := Error + ' (algorithm mismatch: token=' + lAlgName + ', expected=' + FSigner.GetAlgorithm + ')';
+        Exit(False);
+      end;
+      Result := FSigner.Verify(
+        lPieces[0] + '.' + lPieces[1],
+        URLSafeB64DecodeBytes(lPieces[2]));
 
       // if the token is correctly signed and has not been tampered,
       // let's check it's validity usinf nbf, exp, iat as configured in
@@ -628,8 +790,8 @@ begin
         begin
           if not CheckExpirationTime(Payload, Error) then
           begin
-            Exit(False);
             Error := Error + ' (step6)';
+            Exit(False);
           end;
 
         end;
@@ -638,8 +800,8 @@ begin
         begin
           if not CheckNotBefore(Payload, Error) then
           begin
-            Exit(False);
             Error := Error + ' (step7)';
+            Exit(False);
           end;
         end;
 
@@ -647,8 +809,8 @@ begin
         begin
           if not CheckIssuedAt(Payload, Error) then
           begin
-            Exit(False);
             Error := Error + ' (step8)';
+            Exit(False);
           end;
         end;
 

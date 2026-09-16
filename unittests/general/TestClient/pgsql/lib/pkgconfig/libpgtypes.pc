@@ -1,0 +1,12 @@
+prefix=D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/postgresql-17.10/meson-install
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: libpgtypes
+Description: PostgreSQL libpgtypes library
+URL: https://www.postgresql.org/
+Version: 17.10
+Requires.private: zlib, libzstd >= 1.4.0
+Libs: -L${libdir} -lpgtypes
+Libs.private: -lws2_32 D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/gettext/lib/libintl.lib -L${libdir} -lpgport D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/openssl/lib/libssl.lib D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/openssl/lib/libcrypto.lib -lpgcommon D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/openssl/lib/libssl.lib D:/a/postgresql-packaging-foundation/postgresql-packaging-foundation/openssl/lib/libcrypto.lib
+Cflags: -I${includedir}

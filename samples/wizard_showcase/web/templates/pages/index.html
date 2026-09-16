@@ -1,0 +1,64 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Minimal API WebApp Showcase · TestProject{{endblock}}
+
+{{block "body"}}
+<h1 class="mb-3">Minimal API WebApp Showcase</h1>
+<p class="lead text-muted">Five endpoints, each demonstrating a different
+   parameter-binding mode in a server-rendered context.</p>
+
+<div class="list-group mt-4">
+    <a href="/people" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>GET /people</code></h5>
+            <small class="text-muted">DI interface</small>
+        </div>
+        <p class="mb-1">Lambda receives <code>IPeopleService</code> resolved from the service container.</p>
+    </a>
+    <a href="/people/42" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>GET /people/(id:int)</code></h5>
+            <small class="text-muted">primitive route segment</small>
+        </div>
+        <p class="mb-1">Integer arg bound from the next unconsumed route segment.</p>
+    </a>
+    <div class="list-group-item">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>DELETE /people/(id:int)</code></h5>
+            <small class="text-muted">MapDelete + HTMX hx-delete</small>
+        </div>
+        <p class="mb-1">Wired to the per-row Delete button on
+           <a href="/people">/people</a>. Returns empty body; HTMX swaps the
+           <code>&lt;tr&gt;</code> out.</p>
+    </div>
+    <a href="/search" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>GET /search</code></h5>
+            <small class="text-muted">[MVCFromQueryString] + defaults</small>
+        </div>
+        <p class="mb-1">Record bound from query-string params with per-field
+           default values. Omit any param &mdash; the default kicks in.</p>
+    </a>
+    <a href="/signup" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>GET / POST /signup</code></h5>
+            <small class="text-muted">[MVCFromContentField] + TArray&lt;string&gt;</small>
+        </div>
+        <p class="mb-1">Record bound from form-urlencoded fields, including a multi-value
+           checkbox group that lands in a <code>TArray&lt;string&gt;</code>.</p>
+    </a>
+    <a href="/context" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1"><code>GET /context</code></h5>
+            <small class="text-muted">[MVCFromHeader] + [MVCFromCookie]</small>
+        </div>
+        <p class="mb-1">Record bound from request headers and cookies, with per-field
+           default values when the source is missing.</p>
+    </a>
+</div>
+
+<p class="mt-4 text-muted small">All routes are mounted via <code>ARoot.AsWeb</code>;
+   <code>/people/*</code> additionally goes through a logging endpoint filter attached
+   with <code>.Use(LogFilter())</code>. Read <code>RoutesU.pas</code> and
+   <code>ShowcaseModelsU.pas</code> — both files are heavily commented.</p>
+{{endblock}}

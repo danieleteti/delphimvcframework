@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework T, Vcl.StdCtrlseam
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework T, Vcl.StdCtrlseam
 //
 // https://github.com/danieleteti/delphimvcframework
 //

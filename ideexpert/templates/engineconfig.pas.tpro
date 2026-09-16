@@ -1,0 +1,312 @@
+{{include "_license_header.tpro"}}
+unit EngineConfigU;
+
+interface
+
+uses
+  MVCFramework;
+
+procedure ConfigureEngine(AEngine: TMVCEngine);
+
+implementation
+
+uses
+{{if controller_main_generate}}
+  {{:controller_unit_name}},
+{{endif}}
+{{if @(program_ssv_any and (not program_minimal_api))}}
+  Controllers.APIU,
+{{endif}}
+{{if @(controller_crud_methods_generate and (not program_minimal_api))}}
+  Controllers.PeopleU,
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}},
+  MVCFramework.JSONRPC,
+{{endif}}
+{{if @(webmodule_middleware_jwt and (not program_minimal_api))}}
+  {{:authentication_unit_name}},
+  MVCFramework.JWT,
+  MVCFramework.Middleware.JWT,
+{{if webmodule_middleware_jwt_asymmetric}}
+  MVCFramework.JWT.RSA,
+{{endif}}
+{{endif}}
+  System.IOUtils,
+  System.DateUtils,
+{{if program_ssv_templatepro}}
+  TemplatePro,
+  MVCFramework.View.Renderers.TemplatePro,
+{{endif}}
+{{if program_ssv_webstencils}}
+  MVCFramework.View.Renderers.WebStencils,
+{{endif}}
+{{if program_ssv_mustache}}
+  MVCFramework.View.Renderers.Mustache,
+{{endif}}
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+{{if @(webmodule_middleware_activerecord and (not program_minimal_api))}}
+  MVCFramework.Middleware.ActiveRecord,
+{{endif}}
+{{if @(webmodule_middleware_session_memory and (not program_minimal_api))}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if @(webmodule_middleware_session_file and (not program_minimal_api))}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if @(webmodule_middleware_session_database and (not program_minimal_api))}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if program_ssv_any}}
+  MVCFramework.Middleware.Redirect,
+{{endif}}
+{{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
+  MVCFramework.Middleware.StaticFiles,
+{{endif}}
+{{if @(webmodule_middleware_analytics and (not program_minimal_api))}}
+  MVCFramework.Middleware.Analytics,
+{{endif}}
+{{if @(webmodule_middleware_trace and (not program_minimal_api))}}
+  MVCFramework.Middleware.Trace,
+{{endif}}
+{{if @(webmodule_middleware_cors and (not program_minimal_api))}}
+  MVCFramework.Middleware.CORS,
+{{endif}}
+{{if @(webmodule_middleware_etag and (not program_minimal_api))}}
+  MVCFramework.Middleware.ETag,
+{{endif}}
+{{if @(webmodule_middleware_ratelimit and (not program_minimal_api))}}
+  MVCFramework.Middleware.RateLimit,
+{{endif}}
+{{if @(webmodule_middleware_compression and (not program_minimal_api))}}
+  MVCFramework.Middleware.Compression,
+{{endif}}
+{{if program_minimal_api}}
+  MVCFramework.MinimalAPI,
+  MVCFramework.Filters,
+{{endif}}
+  System.SysUtils;
+
+procedure ConfigureEngine(AEngine: TMVCEngine);
+{{if @((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles))}}
+var
+{{if webmodule_middleware_ratelimit}}
+  LRateLimitMiddleware: TMVCRateLimitMiddleware;
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  LJWTClaimsSetup: TJWTClaimsSetup;
+{{if webmodule_middleware_jwt_asymmetric}}
+  LSigner: IJWTSigner;
+{{endif}}
+{{endif}}
+{{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
+  LWwwPath: string;
+{{endif}}
+{{endif}}
+{{if @(program_minimal_api and (program_ssv_any or webmodule_middleware_staticfiles))}}
+var
+  LWwwPath: string;
+{{endif}}
+begin
+{{if @((not program_minimal_api) and (program_ssv_any or webmodule_middleware_staticfiles))}}
+
+  // Static files path (www folder at same level as executable)
+  LWwwPath := TPath.Combine(AppPath, 'www');
+{{endif}}
+{{if @(program_minimal_api and (program_ssv_any or webmodule_middleware_staticfiles))}}
+
+  // Static files path (www folder at same level as executable)
+  LWwwPath := TPath.Combine(AppPath, 'www');
+{{endif}}
+
+{{if @(not program_minimal_api)}}
+  // Controllers
+{{if controller_main_generate}}
+  AEngine.AddController({{:controller_classname}});
+{{endif}}
+{{if program_ssv_any}}
+  AEngine.AddController(TAPIController);
+{{endif}}
+{{if controller_crud_methods_generate}}
+  AEngine.AddController(TPeopleController);
+{{endif}}
+  // Controllers - END
+{{endif}}
+{{if program_ssv_templatepro}}
+
+  // Server Side View
+  AEngine.SetViewEngine(TMVCTemplateProViewEngine);
+  // Server Side View - END
+{{endif}}
+{{if program_ssv_webstencils}}
+
+  // Server Side View
+  AEngine.SetViewEngine(TMVCWebStencilsViewEngine);
+  // Server Side View - END
+{{endif}}
+{{if program_ssv_mustache}}
+
+  // Server Side View
+  AEngine.SetViewEngine(TMVCMustacheViewEngine);
+  // Server Side View - END
+{{endif}}
+{{if @(not program_minimal_api)}}
+{{if webmodule_middleware_ratelimit}}
+
+  LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
+    10,           // max requests
+    60,           // window seconds
+    rlkIPAddress
+  );
+  // LRateLimitMiddleware.AddExcludedPath('/health');
+  LRateLimitMiddleware.SetOnRateLimitExceeded(
+  procedure(const AContext: TWebContext; const AKey: string;
+    const ALimit: Integer; const AWindowSeconds: Integer)
+  begin
+    LogW(Format('Rate limit exceeded for key: %s (Limit: %d requests per %d seconds)',
+      [AKey, ALimit, AWindowSeconds]));
+  end
+  );
+{{endif}}
+{{if webmodule_middleware_jwt}}
+
+  LJWTClaimsSetup := procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
+      JWT.Claims.ExpirationTime := Now + OneHour;
+      JWT.Claims.NotBefore := Now - OneMinute * 5;
+      JWT.Claims.IssuedAt := Now;
+      // JWT.CustomClaims['app'] := '{{:program_name}}';
+    end;
+{{if webmodule_middleware_jwt_asymmetric}}
+
+  // RS256: generate keys with openssl genrsa / openssl rsa -pubout
+  LSigner := TRSAJWTSigner.CreateFromFiles(
+    JWT_RS256,
+    dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
+    dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
+  );
+{{endif}}
+{{endif}}
+
+  // Middleware
+{{if @(program_ssv_any and (not program_minimal_api))}}
+  AEngine.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/web'));
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
+  AEngine.AddMiddleware(LRateLimitMiddleware);
+{{endif}}
+{{if webmodule_middleware_jwt}}
+{{if program_ssv_any}}
+  // JWT cookie auth (HTTP-only cookie, for browser clients)
+  AEngine.AddMiddleware(
+    UseJWTCookieAuthentication(
+      {{:authentication_classname}}.Create,
+      LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+{{endif}}
+      '/login',   // Login URL (POST username & password here)
+      '/logout',  // Logout URL
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      300  // Leeway seconds (5 minutes)
+    )
+    // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
+    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', True))
+  );
+{{else}}
+  // JWT Bearer auth (Authorization header, for API clients)
+  AEngine.AddMiddleware(
+    UseJWTMiddleware(
+      {{:authentication_classname}}.Create,
+      LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+{{endif}}
+      '/login',   // Login URL (POST username & password here)
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      300  // Leeway seconds (5 minutes)
+    )
+  );
+{{endif}}
+{{endif}}
+{{if webmodule_middleware_session_memory}}
+  AEngine.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_session_file}}
+  AEngine.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, TPath.Combine(AppPath, 'sessions'), dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_session_database}}
+  // Database session: requires ActiveRecord middleware + dmvc_sessions table
+  AEngine.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_analytics}}
+  AEngine.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
+{{endif}}
+{{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
+  AEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', LWwwPath));
+{{endif}}
+{{if webmodule_middleware_trace}}
+  AEngine.AddMiddleware(TMVCTraceMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_compression}}
+  AEngine.AddMiddleware(TMVCCompressionMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_etag}}
+  AEngine.AddMiddleware(TMVCETagMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_cors}}
+  AEngine.AddMiddleware(TMVCCORSMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_activerecord}}
+  AEngine.AddMiddleware(TMVCActiveRecordMiddleware.Create(
+    dotEnv.Env('firedac.connection_definition_name', '{{:webmodule_middleware_activerecord_con_def_name}}'),
+    dotEnv.Env('firedac.connection_definitions_filename', TPath.Combine(AppPath, '{{:con_def_filename}}'))
+  ));
+{{endif}}
+  // Middleware - END
+{{endif}}
+{{if program_minimal_api}}
+
+  // HTTPFilter chain (engine-wide). Order matters: first = outermost.
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+  AEngine.UseHTTPFilter(StaticFiles('/static', LWwwPath));
+{{endif}}
+{{if webmodule_middleware_cors}}
+  AEngine.UseHTTPFilter(CORSFilter('*'));
+{{endif}}
+{{if webmodule_middleware_etag}}
+  AEngine.UseHTTPFilter(ETag());
+{{endif}}
+{{if webmodule_middleware_compression}}
+  AEngine.UseHTTPFilter(Compression(1024));
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
+  AEngine.UseHTTPFilter(RateLimit(60, 60));
+{{endif}}
+{{endif}}
+
+{{if program_ssv_templatepro}}
+  // Browser requests get the HTML error view; API clients get RFC 7807 problem+json.
+  // Emitted only for TemplatePro server-side views (classic web + minimal web app),
+  // the only flavors that ship an 'error' view. ehShowDetails leaks the exception
+  // message in DEBUG only.
+  AEngine.UseExceptionHandler('error', '{{:program_name}}',
+    {$IFDEF DEBUG}[ehShowDetails]{$ELSE}[]{$ENDIF});
+{{endif}}
+{{if jsonrpc_generate}}
+
+  AEngine.PublishObject(
+    function : TObject
+    begin
+      Result := {{:jsonrpc_classname}}.Create;
+    end, '/jsonrpc');
+{{endif}}
+end;
+
+end.

@@ -1,0 +1,54 @@
+<div class="hero">
+    <h2>Welcome to {{:program_name}}! 🚀</h2>
+    <p>Your DelphiMVCFramework application is up and running</p>
+</div>
+
+<div class="features">
+    <div class="feature-card">
+        <h3>⚡ High Performance</h3>
+        <p>Built on Delphi's native compilation for maximum speed and efficiency</p>
+    </div>
+
+    <div class="feature-card">
+        <h3>🎨 {{:template_engine_name}}</h3>
+        <p>Server-side rendering with {{:template_engine_name}} template engine</p>
+    </div>
+
+    <div class="feature-card">
+        <h3>🔧 RESTful API</h3>
+        <p>Full RESTful services support with automatic content negotiation</p>
+    </div>
+{{if controller_crud_methods_generate}}
+
+    <div class="feature-card">
+        <h3>📊 CRUD Operations</h3>
+        <p>Complete Create, Read, Update, Delete operations ready to use</p>
+    </div>
+{{endif}}
+{{if webmodule_middleware_jwt}}
+
+    <div class="feature-card">
+        <h3>🔐 JWT Authentication</h3>
+        <p>Secure authentication with JWT cookie-based middleware</p>
+    </div>
+{{endif}}
+{{if webmodule_middleware_activerecord}}
+
+    <div class="feature-card">
+        <h3>💾 ActiveRecord ORM</h3>
+        <p>Database access with MVCActiveRecord pattern</p>
+    </div>
+{{endif}}
+</div>
+
+<div class="info-box" style="margin-top: 40px;">
+    <strong>💡 Quick Start:</strong> This page is rendered from <code>templates/index.{{:template_extension}}</code><br>
+    Edit the template file to customize this page, or check the controller at <code>{{:controller_unit_name}}.pas</code>
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="https://github.com/danieleteti/delphimvcframework" class="btn">📚 View Documentation</a>
+{{if controller_crud_methods_generate}}
+    <a href="/web/people" class="btn" style="margin-left: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">👥 View People API</a>
+{{endif}}
+</div>

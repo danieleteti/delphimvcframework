@@ -1,0 +1,186 @@
+<!--
+  STANDALONE INDEX PAGE (for Mustache / WebStencils) - Bootstrap 5.3
+
+  This template is processed ONCE at project generation time by
+  TemplatePro to produce the final .html file.
+
+  Two kinds of placeholders are used here:
+
+    :variable         Resolved NOW by the wizard (e.g. program_name, current_year)
+
+    raw/:variable     Outputs literal template syntax so the RUNTIME
+                      template engine can resolve it on each request.
+
+  After generation, the output file contains only runtime
+  placeholders that your chosen template engine will process.
+-->
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{:program_name}}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    (function() {
+      var t = localStorage.getItem('dmvc-theme') || 'dark';
+      document.documentElement.setAttribute('data-bs-theme', t);
+    })();
+  </script>
+</head>
+<body>
+
+  {{# ---- Navigation ---- #}}
+  <nav class="navbar navbar-expand-md border-bottom mb-3 sticky-top bg-body-tertiary">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary" href="/">{{raw}}{{:app_name}}{{endraw}}</a>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <a class="nav-link" target="_blank" rel="noopener"
+           href="https://www.danieleteti.it/delphimvcframework/">Docs</a>
+        <button class="btn btn-sm btn-outline-secondary" id="themeToggle"
+                type="button" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
+      </div>
+    </div>
+  </nav>
+
+  {{# ---- Main Content ---- #}}
+  <main class="container">
+
+    <div class="hero">
+      <h1>{{raw}}{{:app_name}}{{endraw}}</h1>
+      <p class="lead">Your web application is running on DelphiMVCFramework</p>
+      <p class="mb-0">
+        <span class="badge brand-mono text-bg-primary">{{raw}}{{:dmvc_version}}{{endraw}}</span>
+        <span class="badge brand-mono text-bg-secondary">{{raw}}{{:compiler_version}}{{endraw}}</span>
+        <span class="badge brand-mono text-bg-secondary">{{raw}}{{:current_date}}{{endraw}}</span>
+      </p>
+    </div>
+
+    {{# ---- Feature Cards ---- #}}
+    <p class="section-label">Features</p>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">Web Application</div>
+          <div class="card-body">
+            <p class="mb-0">Complete web applications with server-side template engines
+               for dynamic HTML rendering.</p>
+          </div>
+          <div class="card-footer text-secondary small">TemplatePro, WebStencils, Mustache</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">RESTful API</div>
+          <div class="card-body">
+            <p class="mb-0">Full RESTful services with automatic content negotiation,
+               serialization, and routing.</p>
+          </div>
+          <div class="card-footer text-secondary small">JSON, XML, custom formats</div>
+        </div>
+      </div>
+{{if controller_crud_methods_generate}}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">CRUD Operations</div>
+          <div class="card-body">
+            <p class="mb-0">Create, Read, Update, and Delete operations
+               ready to use with sample entities.</p>
+          </div>
+          <div class="card-footer text-secondary small">MVCActiveRecord ORM</div>
+        </div>
+      </div>
+{{endif}}
+{{if webmodule_middleware_jwt}}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">JWT Authentication</div>
+          <div class="card-body">
+            <p class="mb-0">Secure stateless authentication with JSON Web Tokens
+               via cookie or bearer header.</p>
+          </div>
+          <div class="card-footer text-secondary small">HMAC or RSA signing</div>
+        </div>
+      </div>
+{{endif}}
+{{if webmodule_middleware_activerecord}}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">ActiveRecord ORM</div>
+          <div class="card-body">
+            <p class="mb-0">Database access with the MVCActiveRecord pattern.
+               PostgreSQL, MySQL, SQLite, SQL Server, and more.</p>
+          </div>
+          <div class="card-footer text-secondary small">FireDAC connection pooling</div>
+        </div>
+      </div>
+{{endif}}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-header fw-semibold">WebSockets</div>
+          <div class="card-body">
+            <p class="mb-0">Real-time bidirectional communication for live updates,
+               chat, and push notifications.</p>
+          </div>
+          <div class="card-footer text-secondary small">Groups, broadcasting, custom protocols</div>
+        </div>
+      </div>
+    </div>
+
+    {{# ---- Quick Start ---- #}}
+    <p class="section-label">Quick Start</p>
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">Next Steps</div>
+      <div class="card-body">
+        <p>This page is rendered from <code>templates/index.{{:template_extension}}</code>.
+           Edit the template to customize it, or check the controller at
+           <code>{{:controller_unit_name}}.pas</code>.</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="https://www.danieleteti.it/delphimvcframework/" target="_blank" class="btn btn-outline-primary">
+            View Documentation &rarr;
+          </a>
+{{if controller_crud_methods_generate}}
+          <a href="/api/people" target="_blank" class="btn btn-outline-primary">
+            Try People API &rarr;
+          </a>
+{{endif}}
+        </div>
+      </div>
+      <div class="card-footer text-secondary small">
+        ViewData: app_name={{raw}}{{:app_name}}{{endraw}},
+        date={{raw}}{{:current_date}}{{endraw}},
+        time={{raw}}{{:current_time}}{{endraw}},
+        compiler={{raw}}{{:compiler_version}}{{endraw}}
+      </div>
+    </div>
+
+  </main>
+
+  {{# ---- Page Footer ---- #}}
+  <footer class="container border-top mt-5 pt-3 pb-3 text-center text-secondary small">
+    &copy; {{:current_year}} {{raw}}{{:app_name}}{{endraw}} &middot;
+    Built with <a class="link-primary" href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      function current() { return document.documentElement.getAttribute('data-bs-theme'); }
+      function updateIcon() {
+        btn.innerHTML = current() === 'dark' ? '&#9788;' : '&#9790;';
+        btn.title = current() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var next = current() === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-bs-theme', next);
+        localStorage.setItem('dmvc-theme', next);
+        updateIcon();
+      });
+    })();
+  </script>
+
+</body>
+</html>

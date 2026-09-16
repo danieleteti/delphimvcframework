@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 698
+  ClientHeight = 851
   ClientWidth = 1094
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     1094
-    698)
+    810)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 8
     Width = 806
-    Height = 682
+    Height = 794
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -347,5 +347,65 @@ object MainForm: TMainForm
     TabOrder = 34
     WordWrap = True
     OnClick = btnErrorWith2PKsClick
+  end
+  object btnAttrValidation: TButton
+    Left = 8
+    Top = 683
+    Width = 121
+    Height = 34
+    Caption = 'Validation (Attrs)'
+    TabOrder = 35
+    WordWrap = True
+    OnClick = btnAttrValidationClick
+  end
+  object btnAuditColumns: TButton
+    Left = 144
+    Top = 683
+    Width = 121
+    Height = 34
+    Caption = 'Audit + CurrentUser'
+    TabOrder = 36
+    WordWrap = True
+    OnClick = btnAuditColumnsClick
+  end
+  object btnChangeTracking: TButton
+    Left = 8
+    Top = 723
+    Width = 121
+    Height = 34
+    Caption = 'Change Tracking'
+    TabOrder = 37
+    WordWrap = True
+    OnClick = btnChangeTrackingClick
+  end
+  object btnFoRefresh: TButton
+    Left = 144
+    Top = 723
+    Width = 121
+    Height = 34
+    Caption = 'foRefresh (DB defaults)'
+    TabOrder = 38
+    WordWrap = True
+    OnClick = btnFoRefreshClick
+  end
+  object btnSoftDelete: TButton
+    Left = 8
+    Top = 763
+    Width = 257
+    Height = 34
+    Caption = 'Soft Delete + Restore + HardDelete'
+    TabOrder = 39
+    WordWrap = True
+    OnClick = btnSoftDeleteClick
+  end
+  object btnCompositeKeys: TButton
+    Left = 8
+    Top = 803
+    Width = 257
+    Height = 34
+    Caption = 'Composite (Multiple) Primary Keys'
+    TabOrder = 40
+    WordWrap = True
+    OnClick = btnCompositeKeysClick
   end
 end

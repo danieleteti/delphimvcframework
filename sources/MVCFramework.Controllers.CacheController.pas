@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -188,28 +188,28 @@ begin
       var
         SS: TStringStream;
       begin
-        if Context.Response.RawWebResponse.ContentStream = nil then
+        if Context.Response.ContentStream = nil then
         begin
           R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'], [
             ContentType,
             Context.Response.CustomHeaders.Text,
-            Context.Response.RawWebResponse.Content,
+            Context.Response.Content,
             'text', Context.Response.StatusCode.ToString + ':' + Context.Response.ReasonString]);
           LogI('CACHE ContentStream = nil');
         end
         else
         begin
-          Context.Response.RawWebResponse.ContentStream.Position := 0;
+          Context.Response.ContentStream.Position := 0;
           SS := TStringStream.Create('', TEncoding.ANSI);
           try
-            SS.CopyFrom(Context.Response.RawWebResponse.ContentStream, 0);
+            SS.CopyFrom(Context.Response.ContentStream, 0);
             R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'],
               [ContentType,
               Context.Response.CustomHeaders.Text,
               SS.DataString,
               'stream', Context.Response.StatusCode.ToString + ':' +
               Context.Response.ReasonString]);
-            Context.Response.RawWebResponse.ContentStream.Position := 0;
+            Context.Response.ContentStream.Position := 0;
           finally
             SS.Free;
           end;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -99,25 +99,6 @@ type
     procedure MapResult(aResp: IMVCRESTResponse; aMethod: TRttiMethod; aRttiType: TRttiType; out aResult: TValue);
   end;
 
-  TRESTAdapter<T: IInvokable> = class(TVirtualInterface, IRESTAdapter<T>)
-  private
-    fRESTClient: IMVCRESTClient;
-  protected
-    procedure DoInvoke(aMethod: TRttiMethod; const aArgs: TArray<TValue>;  out aResult: TValue);
-    procedure AddRequestHeaders(aObj: TRttiObject);
-    procedure AddRequestHeader(aKey: string; aValue: string);
-    procedure MapResult(aResp: IMVCRESTResponse; aMethod: TRttiMethod; aRttiType: TRttiType; out aResult: TValue);
-    function GetURL(aMethod: TRttiMethod; const aArgs: TArray<TValue>): string;
-    function GetBodyAsString(aMethod: TRttiMethod; const aArgs: TArray<TValue>): string;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function Build(aRESTClient: IMVCRESTClient): T; overload;
-    function Build(const aServerName: string; const aServerPort: Word = 80): T; overload;
-    function ResourcesService: T;
-    property RESTClient: IMVCRESTClient read fRESTClient write fRESTClient;
-  end;
-
   IAsynchRequest = interface
     ['{3E720356-F2B7-4C32-8051-B7723263740F}']
     procedure SetErrorProc(const aValue: TProc<Exception>);
@@ -131,6 +112,29 @@ type
     property SuccessProc: TProc<TValue> read GetSuccessProc write SetSuccessProc;
     property ErrorProc: TProc<Exception> read GetErrorProc write SetErrorProc;
     property Synchronized: Boolean read GetSynchronized write SetSynchronized;
+  end;
+
+  TRESTAdapter<T: IInvokable> = class(TVirtualInterface, IRESTAdapter<T>)
+  private
+    fRESTClient: IMVCRESTClient;
+  protected
+    procedure DoInvoke(aMethod: TRttiMethod; const aArgs: TArray<TValue>;  out aResult: TValue);
+    procedure AddRequestHeaders(aObj: TRttiObject);
+    procedure AddRequestHeader(aKey: string; aValue: string);
+    procedure MapResult(aResp: IMVCRESTResponse; aMethod: TRttiMethod; aRttiType: TRttiType; out aResult: TValue);
+    function GetURL(aMethod: TRttiMethod; const aArgs: TArray<TValue>): string;
+    function GetBodyAsString(aMethod: TRttiMethod; const aArgs: TArray<TValue>): string;
+    // Detect an IAsynchRequest in the call arguments. Extracted as a virtual seam
+    // so the ordering invariant of issue #900 (this must run BEFORE the body object
+    // is freed by GetBodyAsString) can be verified deterministically by tests.
+    function GetAsynchRequest(const aArgs: TArray<TValue>): IAsynchRequest; virtual;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Build(aRESTClient: IMVCRESTClient): T; overload;
+    function Build(const aServerName: string; const aServerPort: Word = 80): T; overload;
+    function ResourcesService: T;
+    property RESTClient: IMVCRESTClient read fRESTClient write fRESTClient;
   end;
 
   TAsynchRequest = class(TInterfacedObject, IAsynchRequest)
@@ -234,10 +238,14 @@ begin
 
   // lURL and lBody
   lURL := GetURL(aMethod, aArgs);
-  lBody := GetBodyAsString(aMethod, aArgs);
 
-  // Asynch way to do
-  if aArgs[Length(aArgs) - 1].TryAsType<IAsynchRequest>(lAsyncClass) then
+  // Asynch way to do.
+  // This check MUST happen BEFORE GetBodyAsString, because GetBodyAsString may
+  // free the [Body] parameter object (BodyAttribute.OwnsObject defaults to True).
+  // If the last argument is that same object, inspecting it afterwards would be a
+  // use-after-free, crashing inside TObject.GetInterfaceEntry (issue #900).
+  lAsyncClass := GetAsynchRequest(aArgs);
+  if Assigned(lAsyncClass) then
   begin
     fRESTClient.Async(
       procedure(ARESTResponse: IMVCRESTResponse)
@@ -254,6 +262,10 @@ begin
       lAsyncClass.ErrorProc,
       lAsyncClass.Synchronized);
   end;
+
+  // Build the body (this may free the [Body] object) only after all argument
+  // inspections above are done.
+  lBody := GetBodyAsString(aMethod, aArgs);
 
   case lRestResourceAttr.HTTPMethodType of
     httpGET:
@@ -301,8 +313,16 @@ begin
       try
         if lArg.IsObject then
         begin
-
-          if TRttiUtils.HasAttribute<MVCListOfAttribute>(aMethod, lAttrListOf) then
+          // Decide collection-vs-object from the BODY PARAMETER, not the method.
+          // The method-level [MVCListOf] describes the RESPONSE shape (consumed by
+          // MapResult) and must not force the request body to serialize as a
+          // collection when the body is a single object (issue #897). A body is
+          // serialized as a collection only when it is explicitly marked with
+          // [MVCListOf] on the parameter, or when the argument is in fact a list
+          // (duck-typed) — the latter preserves the historical behavior for
+          // collection bodies that used to rely on the method attribute.
+          if TRttiUtils.HasAttribute<MVCListOfAttribute>(lParameter, lAttrListOf)
+            or TDuckTypedList.CanBeWrappedAsList(lArg.AsObject) then
             Exit(
               GetDefaultSerializer.SerializeCollection(lArg.AsObject)
             { Mapper.ObjectListToJSONArrayString(WrapAsList(lArg.AsObject), True) }
@@ -326,6 +346,12 @@ begin
         end;
       end;
   end;
+end;
+
+function TRESTAdapter<T>.GetAsynchRequest(const aArgs: TArray<TValue>): IAsynchRequest;
+begin
+  if not aArgs[Length(aArgs) - 1].TryAsType<IAsynchRequest>(Result) then
+    Result := nil;
 end;
 
 function TRESTAdapter<T>.GetURL(aMethod: TRttiMethod; const aArgs: TArray<TValue>): string;

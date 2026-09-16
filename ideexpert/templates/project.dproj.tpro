@@ -1,0 +1,107 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{{:new_guid}}</ProjectGuid>
+        <MainSource>{{:program_name}}.dpr</MainSource>
+        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <TargetedPlatforms>1</TargetedPlatforms>
+{{if @(program_type = "isapi" or program_type = "apache")}}
+        <AppType>Library</AppType>
+{{else}}
+        <AppType>Console</AppType>
+{{endif}}
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_1)'!=''">
+        <Cfg_1>true</Cfg_1>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
+        <Cfg_2>true</Cfg_2>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base)'!=''">
+        <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
+    </PropertyGroup>
+    <ItemGroup>
+        <DelphiCompile Include="$(MainSource)">
+            <MainSource>MainSource</MainSource>
+        </DelphiCompile>
+{{if program_uses_webmodule}}
+        <DCCReference Include="{{:webmodule_unit_name}}.pas">
+            <Form>{{:webmodule_classname_short}}</Form>
+            <DesignClass>TWebModule</DesignClass>
+        </DCCReference>
+{{else}}
+        <DCCReference Include="EngineConfigU.pas"/>
+{{endif}}
+{{if controller_main_generate}}
+        <DCCReference Include="{{:controller_unit_name}}.pas"/>
+{{endif}}
+{{if @(program_ssv_any and (not program_minimal_api))}}
+        <DCCReference Include="Controllers.APIU.pas"/>
+{{endif}}
+{{if controller_crud_methods_generate}}
+{{if program_minimal_api}}
+        <DCCReference Include="RoutesU.pas"/>
+{{else}}
+        <DCCReference Include="Controllers.PeopleU.pas"/>
+{{endif}}
+{{endif}}
+{{if entity_generate}}
+        <DCCReference Include="{{:entity_unit_name}}.pas"/>
+{{endif}}
+{{if program_service_container_generate}}
+        <DCCReference Include="{{:program_service_container_unit_name}}.pas"/>
+{{endif}}
+{{if jsonrpc_generate}}
+        <DCCReference Include="{{:jsonrpc_unit_name}}.pas"/>
+{{endif}}
+{{if websocketserver_generate}}
+        <DCCReference Include="{{:websocketserver_unit_name}}.pas"/>
+{{endif}}
+{{if program_ssv_mustache}}
+        <DCCReference Include="{{:mustache_helpers_unit_name}}.pas"/>
+{{endif}}
+{{if program_ssv_templatepro}}
+        <DCCReference Include="{{:templatepro_helpers_unit_name}}.pas"/>
+{{endif}}
+{{if program_ssv_webstencils}}
+        <DCCReference Include="{{:webstencils_helpers_unit_name}}.pas"/>
+{{endif}}
+        <DCCReference Include="BootConfigU.pas"/>
+        <BuildConfiguration Include="Base">
+            <Key>Base</Key>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Delphi.Personality>
+                <Source>
+                    <Source Name="MainSource">{{:program_name}}.dpr</Source>
+                </Source>
+            </Delphi.Personality>
+            <Platforms>
+                <Platform value="Win32">True</Platform>
+            </Platforms>
+        </BorlandProject>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+    <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
+</Project>

@@ -1,0 +1,34 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Posts · Minimal API WebApp{{endblock}}
+
+{{block "body"}}
+<div class="d-flex align-items-center mb-3">
+    <h1 class="h3 mb-0 me-2"><i class="bi bi-card-text"></i> Posts</h1>
+    <span class="badge bg-secondary">{{:posts.@@count}}</span>
+</div>
+
+<div class="row g-3">
+    {{for p in posts}}
+    <div class="col-md-6">
+        <article class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title d-flex align-items-center mb-2">
+                    {{if p.@@index|lt,4}}
+                        <i class="bi bi-star-fill text-warning me-2"></i>
+                    {{endif}}
+                    <span class="text-muted me-2">#{{:p.@@index}}</span>
+                    {{:p.title|uppercase}}
+                </h5>
+                <p class="card-text text-body-secondary">{{:p.abstract|trunc,200}}</p>
+            </div>
+            <div class="card-footer bg-transparent d-flex justify-content-between small text-muted">
+                <span><i class="bi bi-file-text"></i> {{:p.word_count}} words</span>
+                <span><i class="bi bi-chat-left"></i> {{:p.comments}} comments</span>
+                <span><i class="bi bi-calendar3"></i> {{:p.post_date}}</span>
+            </div>
+        </article>
+    </div>
+    {{endfor}}
+</div>
+{{endblock}}

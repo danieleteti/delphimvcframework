@@ -38,12 +38,38 @@ type
     procedure TestServerListenerAndClient;
   end;
 
+function StandaloneEngineConfig: TProc<TMVCEngine>;
+
 implementation
 
 uses
   MVCFramework.RESTClient,
   MVCFramework.RESTClient.Intf,
-  StandAloneServerWebModuleTest;
+  MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Session;
+
+function StandaloneEngineConfig: TProc<TMVCEngine>;
+begin
+  Result :=
+    procedure(AEngine: TMVCEngine)
+    begin
+      AEngine.AddController(TTestController,
+        function: TMVCController
+        begin
+          Result := TTestController.Create;
+        end);
+      AEngine.AddMiddleware(UseMemorySessionMiddleware(0));
+      AEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+        TMVCDefaultAuthenticationHandler.New
+          .SetOnAuthentication(
+          procedure(const AUserName, APassword: string;
+            AUserRoles: TList<string>; var IsValid: Boolean;
+            const ASessionData: TDictionary<String, String>)
+          begin
+            IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+          end)));
+    end;
+end;
 
 { TTestServerContainer }
 
@@ -63,15 +89,21 @@ procedure TTestServerContainer.TestListener;
 var
   lListener: IMVCListener;
 begin
-  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(5000).SetMaxConnections(512)
-    .SetWebModuleClass(TestWebModuleClass));
+  // Unique high-range port per test: low ports (5000/6000/7000) are
+  // common service defaults and - more importantly - sharing a port
+  // between tests in this fixture meant a failure in one left a socket
+  // in TIME_WAIT that blocked the next test for ~60 seconds.
+  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(15100).SetMaxConnections(512)
+    .SetEngineConfig(StandaloneEngineConfig()));
 
   Assert.IsTrue(Assigned(lListener));
 
   lListener.Start;
-  Assert.IsTrue(lListener.Active);
-
-  lListener.Stop;
+  try
+    Assert.IsTrue(lListener.Active);
+  finally
+    lListener.Stop;
+  end;
   Assert.IsFalse(lListener.Active);
 end;
 
@@ -80,19 +112,21 @@ var
   lListener: IMVCListener;
   LClient: IMVCRESTClient;
 begin
-  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(6000).SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass));
+  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(15200).SetMaxConnections(1024)
+    .SetEngineConfig(StandaloneEngineConfig()));
 
   Assert.IsTrue(Assigned(lListener));
 
   lListener.Start;
-  Assert.IsTrue(lListener.Active);
+  try
+    Assert.IsTrue(lListener.Active);
 
-  LClient := TMVCRESTClient.New.BaseURL('localhost', 6000);
-  LClient.SetBasicAuthorization('dmvc', '123');
-  Assert.AreEqual('Hello World called with GET', LClient.Get('/hello').Content);
-
-  lListener.Stop;
+    LClient := TMVCRESTClient.New.BaseURL('localhost', 15200);
+    LClient.SetBasicAuthorization('dmvc', '123');
+    Assert.AreEqual('Hello World called with GET', LClient.Get('/hello').Content);
+  finally
+    lListener.Stop;
+  end;
   Assert.IsFalse(lListener.Active);
 end;
 
@@ -102,22 +136,23 @@ var
 begin
   LListenerCtx := TMVCListenersContext.Create;
 
-  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener2').SetPort(6000).SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass));
+  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener2').SetPort(15300).SetMaxConnections(1024)
+    .SetEngineConfig(StandaloneEngineConfig()));
 
-  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener3').SetPort(7000).SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass2));
+  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener3').SetPort(15400).SetMaxConnections(1024)
+    .SetEngineConfig(StandaloneEngineConfig()));
 
   Assert.IsTrue(Assigned(LListenerCtx.FindByName('Listener2')));
   Assert.IsTrue(Assigned(LListenerCtx.FindByName('Listener3')));
 
   LListenerCtx.StartAll;
-
-  Assert.IsTrue(LListenerCtx.Count = 2);
-  Assert.IsTrue(LListenerCtx.FindByName('Listener2').Active);
-  Assert.IsTrue(LListenerCtx.FindByName('Listener3').Active);
-
-  LListenerCtx.StopAll;
+  try
+    Assert.IsTrue(LListenerCtx.Count = 2);
+    Assert.IsTrue(LListenerCtx.FindByName('Listener2').Active);
+    Assert.IsTrue(LListenerCtx.FindByName('Listener3').Active);
+  finally
+    LListenerCtx.StopAll;
+  end;
 
   Assert.IsFalse(LListenerCtx.FindByName('Listener2').Active);
   Assert.IsFalse(LListenerCtx.FindByName('Listener3').Active);

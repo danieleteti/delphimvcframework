@@ -1,0 +1,54 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Signup · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/">&larr; back to index</a></nav>
+<h1 class="mb-3">Signup</h1>
+
+{{if submitted}}
+<div class="alert alert-success">
+    <h4 class="alert-heading">Form received</h4>
+    <p class="mb-2">The handler bound the form-urlencoded POST body to a
+       <code>TSignupForm</code> record. Below is what landed in each field.</p>
+    <hr>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Username</dt><dd class="col-sm-9">{{:username}}</dd>
+        <dt class="col-sm-3">Email</dt>   <dd class="col-sm-9">{{:email}}</dd>
+        <dt class="col-sm-3">Newsletter</dt><dd class="col-sm-9">{{:newsletter}}</dd>
+        <dt class="col-sm-3">Interests <small class="text-muted">(TArray&lt;string&gt;)</small></dt>
+        <dd class="col-sm-9">{{:interests_html}}</dd>
+    </dl>
+</div>
+<p><a href="/signup" class="btn btn-outline-secondary">Submit another</a></p>
+{{else}}
+<p class="text-muted">Every field below maps to a
+   <code>[MVCFromContentField]</code> attribute on a field of
+   <code>TSignupForm</code>. The "interests" checkboxes share the same
+   <code>name="interest"</code>; minimal API binds <em>all</em> selected values
+   into a <code>TArray&lt;string&gt;</code>, not just the last one.</p>
+
+<form method="post" action="/signup" class="mt-3" style="max-width:32rem;">
+    <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input class="form-control" type="text" name="username" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" name="email" required>
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="newsletter" value="on" id="nl">
+        <label class="form-check-label" for="nl">Subscribe to newsletter</label>
+    </div>
+    <fieldset class="mb-3">
+        <legend class="form-label">Interests</legend>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="interest" value="delphi" id="i1"><label class="form-check-label" for="i1">Delphi</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="interest" value="pascal" id="i2"><label class="form-check-label" for="i2">Pascal</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="interest" value="rest" id="i3"><label class="form-check-label" for="i3">REST</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="interest" value="htmx" id="i4"><label class="form-check-label" for="i4">HTMX</label></div>
+    </fieldset>
+    <button class="btn btn-primary" type="submit">Submit</button>
+</form>
+{{endif}}
+{{endblock}}

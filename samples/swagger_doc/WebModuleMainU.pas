@@ -56,7 +56,7 @@ begin
   LSwagInfo.Version := 'v1';
   LSwagInfo.TermsOfService := 'http://www.apache.org/licenses/LICENSE-2.0.txt';
   LSwagInfo.Description := 'Swagger Documentation Example';
-  LSwagInfo.ContactName := 'João Antônio Duarte';
+  LSwagInfo.ContactName := 'Joï¿½o Antï¿½nio Duarte';
   LSwagInfo.ContactEmail := 'joao.antonioduarte@hotmail.com';
   LSwagInfo.ContactUrl := 'https://github.com/joaoduarte19';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
@@ -78,7 +78,7 @@ begin
   FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
     TAuthHandler.Create,
     LClaimsSetup,
-    'D3lph1MVCFram3w0rk',
+    'demo_only_secret_9f3c1e_use_your_own_random_secret_in_production',
     '/api/login',
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,7 +37,12 @@ type
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
+    { MySQL/MariaDB treat "\" as a string-escape char under the default sql_mode,
+      so a backslash must itself be escaped before the value is quoted, otherwise
+      a value like  \'  breaks out of the literal (SQL injection). }
+    function QuoteMySQLString(const aValue: string): string;
   protected
+    function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>; override;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   public
     function GetTableNameForSQL(const TableName: string): string; override;
@@ -50,6 +55,22 @@ uses
   System.SysUtils;
 
 { TRQLMySQLCompiler }
+
+function TRQLMySQLCompiler.QuoteMySQLString(const aValue: string): string;
+begin
+  // Escape "\" first (so we never double an escape we just introduced),
+  // then let QuotedString double the single quotes.
+  Result := aValue.Replace('\', '\\', [rfReplaceAll]).QuotedString('''');
+end;
+
+function TRQLMySQLCompiler.QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+var
+  I: Integer;
+begin
+  SetLength(Result, Length(aStringArray));
+  for I := 0 to Length(aStringArray) - 1 do
+    Result[I] := QuoteMySQLString(aStringArray[I]);
+end;
 
 function TRQLMySQLCompiler.GetTableNameForSQL(const TableName: string): string;
 begin
@@ -88,7 +109,7 @@ var
   lValue, lDBFieldName: string;
 begin
   if (aRQLFIlter.RightValueType = vtString) and not(aRQLFIlter.Token in [tkContains, tkStarts]) then
-    lValue := aRQLFIlter.OpRight.QuotedString('''')
+    lValue := QuoteMySQLString(aRQLFIlter.OpRight)
   else if aRQLFIlter.RightValueType = vtBoolean then
   begin
     if SameText(aRQLFIlter.OpRight, 'true') then
@@ -134,12 +155,12 @@ begin
       end;
     tkContains:
       begin
-        lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        lValue := QuoteMySQLString(Format('%%%s%%', [lValue]));
         Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkStarts:
       begin
-        lValue := Format('%s%%', [lValue]).QuotedString('''');
+        lValue := QuoteMySQLString(Format('%s%%', [lValue]));
         Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:

@@ -1,3 +1,12 @@
+-- pldbgapi--unpackaged--1.1.sql
+--  This script converts an existing API installation to an extension.
+--
+-- Copyright (c) 2004-2024 EnterpriseDB Corporation. All Rights Reserved.
+--
+-- Licensed under the Artistic License v2.0, see 
+--		https://opensource.org/licenses/artistic-license-2.0
+-- for full details
+
 ALTER EXTENSION pldbgapi ADD TYPE breakpoint;
 ALTER EXTENSION pldbgapi ADD TYPE frame;
 

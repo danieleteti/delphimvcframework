@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -100,8 +100,7 @@ var
 
 implementation
 
-uses
-  WinAPI.Windows;
+{ no platform-specific uses needed }
 
 
 { TObjectPool<T> }
@@ -234,7 +233,7 @@ begin
       fObjectPool.Lock;
       try
         fObjectPool.ShrinkPoolTo(fObjectPool.fShrinkTargetSize);
-        ZeroMemory(@lAvgSize, SizeOf(lAvgSize));
+        FillChar(lAvgSize, SizeOf(lAvgSize), 0);
       finally
         fObjectPool.UnLock;
       end;

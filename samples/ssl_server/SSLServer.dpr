@@ -85,7 +85,8 @@ begin
     write('Checking ', lOpenSSLLib, '...');
     if not TFile.Exists(lOpenSSLLib) then
       raise Exception.CreateFmt('Required OPENSSL library not found in the exe folder: %s' + sLineBreak +
-        'Download INDY compatible OpenSSL Libraries from http://indy.fulgan.com/SSL/', [lOpenSSLLib]);
+        'Download INDY compatible OpenSSL Libraries from ' +
+        'https://github.com/IndySockets/OpenSSL-Binaries', [lOpenSSLLib]);
     Writeln('OK');
   end;
 end;

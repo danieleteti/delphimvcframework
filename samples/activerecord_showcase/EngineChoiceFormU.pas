@@ -7,7 +7,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
 
 type
-  TRDBMSEngine = (PostgreSQL, Firebird, Interbase, MSSQLServer, MySQL, MariaDB, SQLite);
+  TRDBMSEngine = (PostgreSQL, Firebird, Interbase, MSSQLServer, MySQL, MariaDB, SQLite, Oracle);
 
   TEngineChoiceForm = class(TForm)
     Button1: TButton;
@@ -19,6 +19,7 @@ type
     Button6: TButton;
     Button7: TButton;
     Shape1: TShape;
+    Button8: TButton;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private

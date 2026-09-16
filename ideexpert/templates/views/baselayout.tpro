@@ -1,0 +1,144 @@
+{{# BASE LAYOUT - DMVCFramework Web Application (Bootstrap 5.3)
+
+  All pages extend this file. In a child template, the first directive must be
+  the extends pointing back here (e.g. extends "../baselayout.html"). The
+  TemplatePro comment block this notice lives in is stripped at render time, so
+  the literal directive name is safe to mention.
+
+  Bootstrap 5.3 ships dark mode out of the box (data-bs-theme="dark"); the
+  inline script below restores the saved theme before first paint.
+
+  Available blocks (override in child templates):
+    "title"     - Page title (shown in browser tab)
+    "body"      - Main page content
+    "extra_css" - Additional CSS link or style tags
+    "scripts"   - Page-specific script tags (before body close)
+    "extra_js"  - Additional JavaScript after scripts
+
+  Available variables (set by the controller):
+    app_name         - Application name
+    dmvc_version     - DelphiMVCFramework version string
+    current_year     - Current year (for copyright)
+    page_id          - Current page identifier ("index", "about", ...)
+#}}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{block "title"}}{{:app_name}}{{endblock}} &mdash; {{:app_name}}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="manifest" href="/static/site.webmanifest">
+  <meta name="theme-color" content="#fbbf24">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+  {{block "extra_css"}}{{endblock}}
+  <!--HTMX_SCRIPT-->
+  <script>
+    // Restore theme preference before first paint (no flash).
+    (function() {
+      var t = localStorage.getItem('dmvc-theme') || 'dark';
+      document.documentElement.setAttribute('data-bs-theme', t);
+    })();
+  </script>
+</head>
+<body>
+
+  {{# ---- Navigation Bar ---- #}}
+  <nav class="navbar navbar-expand-md border-bottom mb-3 sticky-top bg-body-tertiary">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary" href="/web">{{:app_name}}</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarNav" aria-controls="navbarNav"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link {{if page_id|eq,"index"}}active{{endif}}"
+               {{if page_id|eq,"index"}}aria-current="page"{{endif}}
+               href="/web">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{if page_id|eq,"about"}}active{{endif}}"
+               {{if page_id|eq,"about"}}aria-current="page"{{endif}}
+               href="/web/about">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" target="_blank" rel="noopener"
+               href="https://www.danieleteti.it/delphimvcframework/">Docs</a>
+          </li>
+        </ul>
+        <button class="btn btn-sm btn-outline-secondary" id="themeToggle"
+                type="button" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
+      </div>
+    </div>
+  </nav>
+
+  {{# ---- Main Content (overridden by child templates) ---- #}}
+  <main class="container">
+    {{block "body"}}{{endblock}}
+  </main>
+
+  {{# ---- Page Footer ---- #}}
+  <footer class="container border-top mt-5 pt-3 pb-3 text-center text-secondary small">
+    &copy; {{:current_year}} {{:app_name}} &middot;
+    Built with <a class="link-primary" href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}
+  </footer>
+
+  {{# ---- Toast Notification Container (Bootstrap 5.3 toast API) ---- #}}
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {{# ---- Page Scripts (overridden by child templates) ---- #}}
+  {{block "scripts"}}{{endblock}}
+  {{block "extra_js"}}{{endblock}}
+
+  <script>
+    // Theme toggle button -> flips data-bs-theme + persists choice.
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      function current() { return document.documentElement.getAttribute('data-bs-theme'); }
+      function updateIcon() {
+        btn.innerHTML = current() === 'dark' ? '&#9788;' : '&#9790;';
+        btn.title = current() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var next = current() === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-bs-theme', next);
+        localStorage.setItem('dmvc-theme', next);
+        updateIcon();
+      });
+    })();
+
+    // Show a toast notification. Usage: showToast('Saved!', 'success')
+    // Types: 'success', 'danger', 'info' (default), 'warning'.
+    function showToast(message, type) {
+      var container = document.getElementById('toastContainer');
+      var cls = 'text-bg-' + (type || 'info');
+      var el = document.createElement('div');
+      el.className = 'toast align-items-center border-0 ' + cls;
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+      el.setAttribute('aria-atomic', 'true');
+      el.innerHTML =
+        '<div class="d-flex">' +
+          '<div class="toast-body">' + message + '</div>' +
+          '<button type="button" class="btn-close btn-close-white me-2 m-auto"' +
+                  ' data-bs-dismiss="toast" aria-label="Close"></button>' +
+        '</div>';
+      container.appendChild(el);
+      var t = new bootstrap.Toast(el, { delay: 3000 });
+      t.show();
+      el.addEventListener('hidden.bs.toast', function() { el.remove(); });
+    }
+  </script>
+
+</body>
+</html>

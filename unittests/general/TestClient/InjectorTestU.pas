@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -56,6 +56,10 @@ type
     procedure TestSingletonPerRequestWithDelegate;
     [Test]
     procedure TestCascadeConstructorInjection;
+    [Test]
+    procedure TestDelegateNotSupportingInterfaceRaisesContainerError;
+    [Test]
+    procedure TestSingletonDelegateNotSupportingInterfaceRaisesContainerError;
   end;
 
 
@@ -104,6 +108,54 @@ uses
 
 { TTestContainer }
 
+procedure TTestContainer.TestDelegateNotSupportingInterfaceRaisesContainerError;
+var
+  lRaised: Boolean;
+begin
+  // A transient delegate returns an object that does NOT implement the
+  // registered interface. The container must raise a clear container error,
+  // not crash dereferencing a nil Instance (which is always nil for transients).
+  var lCont := NewMVCServiceContainer;
+  lCont.RegisterType(
+    function: TInterfacedObject
+    begin
+      Result := TServiceB.Create; // implements IServiceB, NOT IServiceA
+    end, IServiceA);
+  lCont.Build;
+  var lResolver := NewServiceContainerResolver(lCont);
+  lRaised := False;
+  try
+    lResolver.Resolve(TypeInfo(IServiceA));
+  except
+    on E: EMVCContainerErrorUnknownService do
+      lRaised := True;
+  end;
+  Assert.IsTrue(lRaised, 'Expected EMVCContainerErrorUnknownService, not an access violation');
+end;
+
+procedure TTestContainer.TestSingletonDelegateNotSupportingInterfaceRaisesContainerError;
+var
+  lRaised: Boolean;
+begin
+  // Same, on the singleton path (Instance is nil when Supports fails).
+  var lCont := NewMVCServiceContainer;
+  lCont.RegisterType(
+    function: TInterfacedObject
+    begin
+      Result := TServiceB.Create; // implements IServiceB, NOT IServiceA
+    end, IServiceA, TRegistrationType.Singleton);
+  lCont.Build;
+  var lResolver := NewServiceContainerResolver(lCont);
+  lRaised := False;
+  try
+    lResolver.Resolve(TypeInfo(IServiceA));
+  except
+    on E: EMVCContainerErrorUnknownService do
+      lRaised := True;
+  end;
+  Assert.IsTrue(lRaised, 'Expected EMVCContainerErrorUnknownService, not an access violation');
+end;
+
 procedure TTestContainer.TestCascadeConstructorInjection;
 begin
   var lCont := NewMVCServiceContainer;
@@ -112,7 +164,7 @@ begin
   lCont.RegisterType(TServiceC, IServiceC);
   lCont.Build;
 
-  // 1° "request"
+  // 1ï¿½ "request"
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceC)) as IServiceC;
   Assert.IsNotNull(l0.GetServiceA);
@@ -125,7 +177,7 @@ begin
   Assert.AreNotEqual(l0.GetServiceA, l01.GetServiceA);
   Assert.AreEqual(l0.GetServiceB, l01.GetServiceB);
 
-  // 2° "request"
+  // 2ï¿½ "request"
   lResolver := NewServiceContainerResolver(lCont);
   var l1 := lResolver.Resolve(TypeInfo(IServiceC)) as IServiceC;
   Assert.IsNotNull(l0.GetServiceA);
@@ -153,7 +205,7 @@ begin
   lCont.RegisterType(TServiceA, IServiceA, TRegistrationType.Singleton, 'Svc1');
   lCont.Build;
 
-  // 1° Request
+  // 1ï¿½ Request
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));
   var l1 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -162,7 +214,7 @@ begin
   var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
   Assert.AreEqual(l2, l3);
 
-  // 2° Request
+  // 2ï¿½ Request
   lResolver := NewServiceContainerResolver(lCont);
   var l10 := lResolver.Resolve(TypeInfo(IServiceA));
   var l11 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -178,7 +230,7 @@ begin
           .RegisterType(TServiceA, IServiceA, TRegistrationType.SingletonPerRequest, 'Svc1');
   lCont.Build;
 
-  // 1° "request"
+  // 1ï¿½ "request"
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));
   var l1 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -187,7 +239,7 @@ begin
   var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
   Assert.AreEqual(l2, l3);
 
-  // 2° "request"
+  // 2ï¿½ "request"
   lResolver := NewServiceContainerResolver(lCont);
   var l00 := lResolver.Resolve(TypeInfo(IServiceA));
   var l10 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -210,7 +262,7 @@ begin
                         end, IServiceA, TRegistrationType.SingletonPerRequest, 'Svc1');
   lCont.Build;
 
-  // 1° "request"
+  // 1ï¿½ "request"
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));
   var l1 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -219,7 +271,7 @@ begin
   var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
   Assert.AreEqual(l2, l3);
 
-  // 2° "request"
+  // 2ï¿½ "request"
   lResolver := NewServiceContainerResolver(lCont);
   var l00 := lResolver.Resolve(TypeInfo(IServiceA));
   var l10 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -241,7 +293,7 @@ begin
                      end, IServiceA, TRegistrationType.Singleton, 'Svc1');
   lCont.Build;
 
-  // 1° Request
+  // 1ï¿½ Request
   var lResolver := NewServiceContainerResolver(lCont);
   var l0 := lResolver.Resolve(TypeInfo(IServiceA));
   var l1 := lResolver.Resolve(TypeInfo(IServiceA));
@@ -250,7 +302,7 @@ begin
   var l3 := lResolver.Resolve(TypeInfo(IServiceA), 'Svc1');
   Assert.AreEqual(l2, l3);
 
-  // 2° Request
+  // 2ï¿½ Request
   lResolver := NewServiceContainerResolver(lCont);
   var l10 := lResolver.Resolve(TypeInfo(IServiceA));
   var l11 := lResolver.Resolve(TypeInfo(IServiceA));

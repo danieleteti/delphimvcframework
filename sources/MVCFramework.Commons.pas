@@ -1,12 +1,12 @@
-// ***************************************************************************
+ï»¿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano Mï¿½ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -52,7 +52,9 @@ uses
 
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE);
+  { httpQUERY is appended on purpose: the ordinal of every other member must not move. }
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpHEAD, httpOPTIONS, httpTRACE,
+    httpQUERY);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
@@ -85,6 +87,11 @@ type
     IMAGE_PNG = 'image/png';
     IMAGE_SVG_XML = 'image/svg+xml';
     IMAGE_GIF = 'image/gif';
+    VIDEO_MP4 = 'video/mp4';
+    VIDEO_MPEG = 'video/mpeg';
+    VIDEO_OGG = 'video/ogg';
+    AUDIO_MPEG = 'audio/mpeg';
+    AUDIO_OGG = 'audio/ogg';
     APPLICATION_PDF = 'application/pdf';
     APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
@@ -122,16 +129,18 @@ type
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
-    SSE_RETRY_DEFAULT = 100;
+    SSE_RETRY_DEFAULT = 10000;
+    SSE_HEARTBEAT_DEFAULT = 15000;
+    SSE_INTERVAL_DEFAULT = 1000;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
-    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' àèéùòì''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½''"@\?\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A\$';
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
     MAX_RECORD_COUNT = 100;
-    COPYRIGHT = 'Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team';
+    COPYRIGHT = 'Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team';
   end;
 
   HATEOAS = record
@@ -170,7 +179,7 @@ type
     ErrorPageURL = 'error_page_url';
   end;
 
-  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI, hftIndyDirect, hftHttpSys);
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record
@@ -534,11 +543,19 @@ type
 
   TMVCViewDataObject = class(TObjectDictionary<string, TValue>)
   private
-    { private declarations }
+    // Inherited TDictionary<>.Items[setter] (SetItem) raises EListError when
+    // the key isn't already present. That makes `ViewData['key'] := value`
+    // unusable on a fresh dictionary. Override the default property to use
+    // AddOrSetValue semantics â€” same behaviour TMVCController.SetViewData
+    // already provides for the classic surface.
+    function GetItemAddOrSet(const Name: string): TValue;
+    procedure SetItemAddOrSet(const Name: string; const Value: TValue);
   protected
     { protected declarations }
   public
     constructor Create;
+    property Items[const Name: string]: TValue
+      read GetItemAddOrSet write SetItemAddOrSet; default;
   end;
 
   TMVCStringPair = class
@@ -657,6 +674,45 @@ var
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
+/// <summary>Removes CR and LF characters from a string so it cannot inject an
+/// extra HTTP header when used as a header name or value (response splitting).</summary>
+/// <summary>
+/// True when the path contains a "." or ".." segment, in any position.
+/// Segment-aware on purpose: a file named "..hidden" or "release.1.2" is not
+/// a dot-segment and must not be refused.
+/// </summary>
+function MVCPathHasDotSegment(const APath: string): Boolean;
+
+/// <summary>
+/// True when Access-Control-Allow-Credentials may be emitted for the origin
+/// that is about to be allowed. A browser rejects the header on a wildcard
+/// origin, so emitting it there advertises what no client can use - and the day
+/// the wildcard is replaced by a real origin, that dead header starts meaning
+/// something. Shared by the CORS middleware and the CORS filter so the two
+/// cannot drift apart.
+/// </summary>
+function MVCCORSAllowsCredentials(const AAllowsCredentials: Boolean;
+  const AAllowOrigin: string): Boolean;
+
+function MVCStripCRLF(const AValue: string): string;
+
+/// <summary>Resolves the client IP. X-Forwarded-For / X-Real-IP are only
+/// honoured when ATrustProxyHeaders is True, otherwise the direct peer IP is
+/// used â€” a client can forge those headers, so trusting them without a proxy
+/// in front spoofs the IP (rate-limit bypass, poisoned audit logs).</summary>
+function MVCResolveClientIP(const AForwardedFor, ARealIP, APeerIP: string;
+  const ATrustProxyHeaders: Boolean): string;
+
+/// <summary>Masks a secret-carrying header value (Authorization, Cookie, ...)
+/// for logging: keeps the scheme/first token for debugging and replaces the
+/// credential with ***. Returns '' for an empty value.</summary>
+function MVCRedactSecret(const AValue: string): string;
+
+var
+  /// <summary>When True, MVCResolveClientIP honours X-Forwarded-For / X-Real-IP.
+  /// Default False (secure): only enable it when a trusted reverse proxy that
+  /// sets these headers is actually in front of the server.</summary>
+  MVCTrustProxyForwardedHeaders: Boolean = False;
 
 function B64Encode(const aValue: string): string; overload;
 function B64Encode(const aValue: TBytes): string; overload;
@@ -666,6 +722,7 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
   : string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
+function URLSafeB64DecodeBytes(const Value: string): TBytes;
 
 function URLEncode(const Value: string): string; overload;
 function URLDecode(const Value: string): string;
@@ -695,7 +752,7 @@ function SnakeCase(const Value: string): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
-  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
+  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH, httpQUERY];
 
 const
   MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');
@@ -911,6 +968,72 @@ begin
   Result := GlobalAppPath;
 end;
 
+function MVCPathHasDotSegment(const APath: string): Boolean;
+var
+  I, lSegStart, lSegLen, lLen: Integer;
+begin
+  { Both separators. A backslash is not a segment separator in a URL, but
+    browsers treat it as one and so does the file system, and this function is
+    used for both. Scanning both can only make the check stricter.
+    Scanned by index rather than Split: this runs on every request, and Split
+    allocates the array plus one string per segment. }
+  Result := False;
+  if Pos('.', APath) = 0 then
+    Exit;
+  lLen := Length(APath);
+  lSegStart := 1;
+  for I := 1 to lLen + 1 do
+    if (I > lLen) or (APath[I] = '/') or (APath[I] = '\') then
+    begin
+      lSegLen := I - lSegStart;
+      if ((lSegLen = 1) and (APath[lSegStart] = '.')) or
+        ((lSegLen = 2) and (APath[lSegStart] = '.') and (APath[lSegStart + 1] = '.')) then
+        Exit(True);
+      lSegStart := I + 1;
+    end;
+end;
+
+function MVCCORSAllowsCredentials(const AAllowsCredentials: Boolean;
+  const AAllowOrigin: string): Boolean;
+begin
+  Result := AAllowsCredentials and (AAllowOrigin <> '') and (AAllowOrigin <> '*');
+end;
+
+function MVCStripCRLF(const AValue: string): string;
+begin
+  Result := AValue.Replace(#13, '', [rfReplaceAll]).Replace(#10, '', [rfReplaceAll]);
+end;
+
+function MVCResolveClientIP(const AForwardedFor, ARealIP, APeerIP: string;
+  const ATrustProxyHeaders: Boolean): string;
+  function FirstHop(const AValue: string): string;
+  begin
+    Result := AValue.Split([',', ';'])[0].Trim;
+  end;
+begin
+  if ATrustProxyHeaders then
+  begin
+    if AForwardedFor.Trim <> '' then
+      Exit(FirstHop(AForwardedFor));
+    if ARealIP.Trim <> '' then
+      Exit(FirstHop(ARealIP));
+  end;
+  Result := APeerIP;
+end;
+
+function MVCRedactSecret(const AValue: string): string;
+var
+  lSpacePos: Integer;
+begin
+  if AValue.Trim = '' then
+    Exit('');
+  lSpacePos := AValue.IndexOf(' ');
+  if lSpacePos > 0 then
+    Result := AValue.Substring(0, lSpacePos) + ' ***' // keep the scheme
+  else
+    Result := '***';
+end;
+
 function IP2Long(const AIP: string): Cardinal;
 var
   lPieces: TArray<string>;
@@ -975,6 +1098,23 @@ begin
     Result := Result + ByteToHex(B);
 end;
 
+function IsTextualApplicationContentType(const aContentMediaType: string): Boolean;
+begin
+  // application/* types that are textual and benefit from charset declaration
+  Result := aContentMediaType.StartsWith('application/') and (
+    aContentMediaType.Contains('json') or
+    aContentMediaType.Contains('xml') or
+    aContentMediaType.Contains('javascript') or
+    aContentMediaType.Contains('ecmascript') or
+    aContentMediaType.Contains('yaml') or
+    aContentMediaType.Contains('urlencoded') or
+    aContentMediaType.Contains('graphql') or
+    aContentMediaType.Contains('csv') or
+    aContentMediaType.Contains('sql') or
+    aContentMediaType.Contains('html')
+  );
+end;
+
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 var
   lContentMediaType: string;
@@ -992,7 +1132,7 @@ begin
       Result := lContentMediaType;
     end
     else
-      if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
+      if lContentMediaType.StartsWith('text/') or IsTextualApplicationContentType(lContentMediaType)
     then
     begin
       Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
@@ -1104,6 +1244,17 @@ end;
 constructor TMVCViewDataObject.Create;
 begin
   inherited Create([]);
+end;
+
+function TMVCViewDataObject.GetItemAddOrSet(const Name: string): TValue;
+begin
+  if not TryGetValue(Name, Result) then
+    Result := TValue.Empty;
+end;
+
+procedure TMVCViewDataObject.SetItemAddOrSet(const Name: string; const Value: TValue);
+begin
+  AddOrSetValue(Name, Value);
 end;
 
 { TMVCCriticalSectionHelper }
@@ -1468,6 +1619,20 @@ begin
   else
     raise EExternalException.Create('Illegal base64url length');
   end;
+end;
+
+function URLSafeB64DecodeBytes(const Value: string): TBytes;
+var
+  lPadded: string;
+begin
+  case Length(Value) mod 4 of
+    0: lPadded := Value;
+    2: lPadded := Value + '==';
+    3: lPadded := Value + '=';
+  else
+    raise EExternalException.Create('Illegal base64url length');
+  end;
+  Result := TBytes(TURLSafeDecode.DecodeBytes(lPadded));
 end;
 
 { TMultiReadExclusiveWriteSynchronizerHelper }
@@ -2033,6 +2198,12 @@ TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable,
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
 GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HInstance)));
+// IIS loads ISAPI DLLs with the "\\?\" Win32 extended-length prefix. That
+// prefix disables path normalization, so any downstream TPath.Combine with
+// "..\foo" leaves the literal ".." in the path and breaks DirectoryExists
+// / FileExists checks. Strip it here so AppPath is always a normal path.
+if GlobalAppPath.StartsWith('\\?\') then
+  GlobalAppPath := Copy(GlobalAppPath, 5, MaxInt);
 
 finalization
 

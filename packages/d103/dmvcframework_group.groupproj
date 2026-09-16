@@ -3,10 +3,10 @@
         <ProjectGuid>{EA879EE4-1245-4456-AED9-57FDF63577E6}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="SwagDoc.dproj">
+        <Projects Include="..\..\lib\swagdoc\Source\SwagDoc.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="loggerproRT.dproj">
+        <Projects Include="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkRT.dproj">
@@ -24,22 +24,22 @@
         </BorlandProject>
     </ProjectExtensions>
     <Target Name="SwagDoc">
-        <MSBuild Projects="SwagDoc.dproj"/>
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj"/>
     </Target>
     <Target Name="SwagDoc:Clean">
-        <MSBuild Projects="SwagDoc.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj" Targets="Clean"/>
     </Target>
     <Target Name="SwagDoc:Make">
-        <MSBuild Projects="SwagDoc.dproj" Targets="Make"/>
+        <MSBuild Projects="..\..\lib\swagdoc\Source\SwagDoc.dproj" Targets="Make"/>
     </Target>
     <Target Name="loggerproRT">
-        <MSBuild Projects="loggerproRT.dproj"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj"/>
     </Target>
     <Target Name="loggerproRT:Clean">
-        <MSBuild Projects="loggerproRT.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Clean"/>
     </Target>
     <Target Name="loggerproRT:Make">
-        <MSBuild Projects="loggerproRT.dproj" Targets="Make"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Make"/>
     </Target>
     <Target Name="dmvcframeworkRT">
         <MSBuild Projects="dmvcframeworkRT.dproj"/>
@@ -69,4 +69,30 @@
         <CallTarget Targets="SwagDoc:Make;loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+    <ItemGroup Condition="'$(BuildGroup)'=='ALL'">
+        <BuildGroupProject Include="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj">
+            <ProjectGuid>{1611FBE6-5266-48FE-BDF5-E46EEAA922BE}</ProjectGuid>
+            <Configurations>Release</Configurations>
+            <Platforms>Win32;Win64</Platforms>
+            <Enabled>True</Enabled>
+        </BuildGroupProject>
+        <BuildGroupProject Include="..\..\lib\swagdoc\Source\SwagDoc.dproj">
+            <ProjectGuid>{5B9408E7-46AC-4431-9716-C9EB9F8589B1}</ProjectGuid>
+            <Configurations>Release</Configurations>
+            <Platforms>Win32;Win64</Platforms>
+            <Enabled>True</Enabled>
+        </BuildGroupProject>
+        <BuildGroupProject Include="dmvcframeworkRT.dproj">
+            <ProjectGuid>{96D17257-AF74-48CB-9893-7BCCB56A069D}</ProjectGuid>
+            <Configurations>Release</Configurations>
+            <Platforms>Win32;Win64</Platforms>
+            <Enabled>True</Enabled>
+        </BuildGroupProject>
+        <BuildGroupProject Include="dmvcframeworkDT.dproj">
+            <ProjectGuid>{84344511-1DC2-41BA-8689-9F36C1D475BE}</ProjectGuid>
+            <Configurations>Release</Configurations>
+            <Platforms>Win32</Platforms>
+            <Enabled>True</Enabled>
+        </BuildGroupProject>
+    </ItemGroup>
 </Project>

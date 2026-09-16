@@ -121,7 +121,6 @@ samples/serversideviews_lua/bin/templates/__compiled/
 samples/serversideviews_lua/lua4delphi/unittests/Win32/
 /unittests/general/TestClient/bin/EchoSingleComplexRecord_RESPONSE.json
 /unittests/general/TestClient/bin/TestRequest_Echo_ComplexRecords_RESPONSE.json
-unittests/general/TestClient/pgsql/testdatadir/
 unittests/general/TestClient/bin32/EchoSingleComplexRecord_RESPONSE.json
 TestRequest_Echo_ComplexRecords_RESPONSE.json
 EchoSingleComplexRecord_RESPONSE.json
@@ -152,6 +151,38 @@ samples/wine_cellar_sample/winecellarclient_mobile/Android/Debug/
 samples/wine_cellar_sample/winecellarclient_mobile/Android64/Debug/
 *.delphilsp.json
 /unittests/general/TestClient/pgsql/testdatadir/
+/unittests/general/TestClient/pgsql/testdatadir/**
+/unittests/general/TestClient/bin32/firebird/doc/
+/unittests/general/TestClient/bin32/firebird/doc/**
+/unittests/general/TestClient/bin64/firebird/doc/
+/unittests/general/TestClient/bin64/firebird/doc/**
+/unittests/general/TestClient/bin32/firebird/system32/
+/unittests/general/TestClient/bin32/firebird/system32/**
+/unittests/general/TestClient/bin64/firebird/system32/
+/unittests/general/TestClient/bin64/firebird/system32/**
+
+# Track embedded PostgreSQL + Firebird runtime needed by integration tests
+# (override the global *.exe / *.dll ignore for these specific dirs)
+!/unittests/general/TestClient/pgsql/bin/**
+!/unittests/general/TestClient/pgsql/lib/**
+!/unittests/general/TestClient/bin32/firebird/**
+!/unittests/general/TestClient/bin64/firebird/**
+
+# OpenSSL DLLs needed by Indy-based crypto tests
+!/unittests/general/TestClient/bin32/libeay32.dll
+!/unittests/general/TestClient/bin32/ssleay32.dll
+!/unittests/general/TestClient/bin64/libeay32.dll
+!/unittests/general/TestClient/bin64/ssleay32.dll
+
+# Re-assert ignores that must win even inside the FB/PG dirs above
+/unittests/general/TestClient/bin32/firebird/doc/**
+/unittests/general/TestClient/bin64/firebird/doc/**
+/unittests/general/TestClient/bin32/firebird/system32/**
+/unittests/general/TestClient/bin64/firebird/system32/**
+/unittests/general/TestClient/pgsql/testdatadir/**
+
+# Local Win64 TestServer build output (not part of the repo)
+/unittests/general/TestServer/bin64/
 **/dmvc_sessions/*
 .claude
 /samples/websocket_chat/_README.md
@@ -164,3 +195,54 @@ nul
 /tools/certificatesgenerator/*.csr
 /tools/certificatesgenerator/*.key
 /tools/certificatesgenerator/*.crt
+/CLAUDE.md
+/build_tests.bat
+/output/*
+/ideexpert/tests/output/*
+/ideexpert/build_now.bat
+/ideexpert/build_wizard.bat
+/ideexpert/build_wizard2.bat
+/ideexpert/*.md
+/ideexpert/tests/*.md
+
+# Personal notes
+GUIDA_OIDC_DANIELE.md
+
+/tools/bin/Entities*.env
+/tools/bin/Entities*.pas
+
+# Apache portable for ISAPI/Apache integration tests (downloaded by tasks.py)
+/unittests/apache/Apache24/
+/unittests/apache/httpd24.zip
+/unittests/apache/ReadMe.txt
+/unittests/apache/logs/
+/unittests/apache/conf/httpd-test.conf
+
+# IIS Express runtime directory for ISAPI integration tests
+/unittests/iis/
+/performancetest/results_c30_10s_postopt/*.json
+/performancetest/results_c30_10s_preopt/*.json
+/performancetest/results_msheap/*
+
+# Release report per Patreon — mai committare
+/docs/release_report_3.5.0-silicon.md
+/docs/release_report_3.5.0-silicon_en.md
+/docs/patreon_*.md
+/docs/itdevcon*.md
+/docs/superpowers/*
+# Minimal API guide — commercial document, never commit
+/docs/minimal_api_guide.md
+
+# Sample runtime SQLite DB files (seeded at first run, not source)
+samples/**/people.db
+samples/**/people.db-journal
+samples/**/people_feed.csv
+/**/run.xml
+
+# MariaDB bundled for the ActiveRecord tests: the binaries are versioned, the
+# data directory is created and destroyed by every run.
+/unittests/general/TestClient/mariadb/testdatadir/
+/unittests/general/TestClient/mariadb/testdatadir/**
+!/unittests/general/TestClient/mariadb/bin/**
+!/unittests/general/TestClient/mariadb/lib/**
+!/unittests/general/TestClient/mariadb/share/**

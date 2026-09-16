@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{633E3EFE-23BC-406F-A3A4-F2E0E58E81A0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="concurrency_speed_test_httpsys.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="concurrency_speed_test_indydirect.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="concurrency_speed_test.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="concurrency_speed_test_httpsys">
+        <MSBuild Projects="concurrency_speed_test_httpsys.dproj"/>
+    </Target>
+    <Target Name="concurrency_speed_test_httpsys:Clean">
+        <MSBuild Projects="concurrency_speed_test_httpsys.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="concurrency_speed_test_httpsys:Make">
+        <MSBuild Projects="concurrency_speed_test_httpsys.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="concurrency_speed_test_indydirect">
+        <MSBuild Projects="concurrency_speed_test_indydirect.dproj"/>
+    </Target>
+    <Target Name="concurrency_speed_test_indydirect:Clean">
+        <MSBuild Projects="concurrency_speed_test_indydirect.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="concurrency_speed_test_indydirect:Make">
+        <MSBuild Projects="concurrency_speed_test_indydirect.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="concurrency_speed_test">
+        <MSBuild Projects="concurrency_speed_test.dproj"/>
+    </Target>
+    <Target Name="concurrency_speed_test:Clean">
+        <MSBuild Projects="concurrency_speed_test.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="concurrency_speed_test:Make">
+        <MSBuild Projects="concurrency_speed_test.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="concurrency_speed_test_httpsys;concurrency_speed_test_indydirect;concurrency_speed_test"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="concurrency_speed_test_httpsys:Clean;concurrency_speed_test_indydirect:Clean;concurrency_speed_test:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="concurrency_speed_test_httpsys:Make;concurrency_speed_test_indydirect:Make;concurrency_speed_test:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -1,0 +1,6 @@
+Win32/
+Win64/
+bin/
+www/
+__history/
+last_run.log

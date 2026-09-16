@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,7 +39,7 @@ type
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
   protected
-//    procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); override;
+    procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); override;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   end;
 
@@ -50,33 +50,35 @@ uses
 
 { TRQLMSSQLCompiler }
 
-//procedure TRQLMSSQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
-//var
-//  lLimit, lTmp: TRQLCustom;
-//  lSort: TRQLSort;
-//begin
-//  inherited;
-//  if aRQLAST.TreeContainsToken(tkLimit, lLimit) then
-//  begin
-//    if TRQLLimit(lLimit).Count = 0 then
-//    begin
-//      raise ERQLException.Create('MSSQL Server doesn''t support "FETCH NEXT 0"');
-//    end;
-//    if not aRQLAST.TreeContainsToken(tkSort, lTmp) then
-//    begin
-//      if aRQLAST.Last is TRQLLimit then
-//      begin
-//        lSort := TRQLSort.Create;
-//        aRQLAST.Insert(aRQLAST.Count-1, lSort);
-//        lSort.Add('+', GetPKFieldName);
-//      end
-//      else
-//      begin
-//        raise ERQLException.Create('Invalid position for RQLLimit');
-//      end;
-//    end;
-//  end;
-//end;
+procedure TRQLMSSQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
+var
+  lLimit, lSortToken: TRQLCustom;
+  lSort: TRQLSort;
+  lLimitIndex: Integer;
+begin
+  inherited;
+  // T-SQL's "OFFSET ... ROWS FETCH NEXT ... ROWS ONLY" requires an ORDER BY
+  // clause. If the caller used RQL with `limit(...)` (or the framework added
+  // a synthetic limit because of MaxRecordCount) but NO `sort(...)`, we
+  // inject a sort-by-primary-key right before the limit so the generated
+  // SQL becomes deterministic and syntactically valid.
+  if not aRQLAST.TreeContainsToken(tkLimit, lLimit) then
+    Exit;
+  if aRQLAST.TreeContainsToken(tkSort, lSortToken) then
+    Exit;
+  // No field mapping = no way to resolve the primary-key name. Skip the
+  // injection: the generated SQL will be syntactically invalid on real
+  // MSSQL, but at least the compiler itself does not crash. This happens
+  // only in isolated compile-only scenarios (tests, fixtures); real AR
+  // usage always provides a mapping.
+  if not HasMapping then
+    Exit;
+  lLimitIndex := aRQLAST.IndexOf(lLimit);
+  lSort := TRQLSort.Create;
+  lSort.Token := tkSort;
+  lSort.Add('+', GetPKFieldName);
+  aRQLAST.Insert(lLimitIndex, lSort);
+end;
 
 function TRQLMSSQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
@@ -207,7 +209,12 @@ end;
 
 function TRQLMSSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' /*limit*/ OFFSET %d ROWS FETCH NEXT %d ROWS ONLY', [aRQLLimit.Start, aRQLLimit.Count]);
+  if aRQLLimit.Count = 0 then
+    raise ERQLException.Create(
+      'SQL Server rejects "FETCH NEXT 0 ROWS ONLY". ' +
+      'Use MaxRecordCount > 0 (to cap the result set) or -1 (no limit).');
+  Result := Format(' /*limit*/ OFFSET %d ROWS FETCH NEXT %d ROWS ONLY',
+    [aRQLLimit.Start, aRQLLimit.Count]);
 end;
 
 function TRQLMSSQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;

@@ -1,0 +1,18 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Person {{:id}} · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/people">&larr; back to list</a></nav>
+<h1 class="mb-3">Person #{{:id}}</h1>
+<dl class="row">
+    <dt class="col-sm-3">ID</dt>
+    <dd class="col-sm-9">{{:id}}</dd>
+    <dt class="col-sm-3">Name</dt>
+    <dd class="col-sm-9">{{:fullname}}</dd>
+</dl>
+<p class="text-muted small">The <code>id</code> value above was bound from the
+   <code>(id:int)</code> route segment to the handler's <code>ID: Integer</code>
+   parameter. The <code>:int</code> constraint rejects non-numeric ids with a
+   404 before the handler runs — try <a href="/people/abc">/people/abc</a>.</p>
+{{endblock}}

@@ -79,7 +79,7 @@ begin
   FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
     TAuthHandler.Create,
     LClaimsSetup,
-    'D3lph1MVCFram3w0rk',
+    'demo_only_secret_9f3c1e_use_your_own_random_secret_in_production',
     '/api/login',
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));

@@ -56,7 +56,9 @@ uses
   MVCFramework.RQL.AST2SQLite,
   MVCFramework.RQL.AST2PostgreSQL,
   MVCFramework.RQL.AST2MSSQL,
-  MVCFramework.RQL.AST2MySQL, System.Generics.Collections;
+  MVCFramework.RQL.AST2MySQL,
+  MVCFramework.RQL.AST2Oracle,
+  System.Generics.Collections;
 
 {$R *.dfm}
 

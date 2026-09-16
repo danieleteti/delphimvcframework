@@ -1,8 +1,8 @@
-﻿// ***************************************************************************
+// ***************************************************************************
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -22,25 +22,27 @@
 //
 // ***************************************************************************
 //
-// This unit provides cross-platform console functionality including:
+// Cross-platform console library:
 // - Colored text output
-// - Tables, boxes, progress bars, and menus
-// - Interactive menus with keyboard navigation
-// - Robust keyboard input handling using ReadConsoleInput on Windows
-// - Full support for special keys (arrows, function keys, etc.)
+// - Tables, boxes, progress bars, spinners, and interactive menus
+// - Keyboard input handling (arrows, special keys)
+// - Windows and Linux support
 //
 // *************************************************************************** }
 
 unit MVCFramework.Console;
 
 {$I dmvcframework.inc}
+{$WARN UNIT_PLATFORM OFF}
 
 interface
 
 uses
   System.SysUtils,
   System.SyncObjs,
-  System.Classes
+  System.Classes,
+  System.Character,
+  LoggerPro.AnsiColors
 {$IFDEF MSWINDOWS}
   ,WinApi.Windows
 {$ENDIF}
@@ -48,45 +50,61 @@ uses
   ,Posix.Unistd,
   Posix.Termios,
   Posix.SysStat,
-  Posix.Fcntl
+  Posix.Fcntl,
+  Posix.SysSelect,
+  Posix.StrOpts,
+  Posix.Stdlib
 {$ENDIF}
     ;
 
 const
-  // Special key codes (256 + VirtualKeyCode to avoid conflicts with ASCII)
   KEY_UP    = 256 + 38;  // VK_UP
   KEY_DOWN  = 256 + 40;  // VK_DOWN
   KEY_LEFT  = 256 + 37;  // VK_LEFT
   KEY_RIGHT = 256 + 39;  // VK_RIGHT
-  KEY_ESCAPE = 27;       // Standard ESC
-  KEY_ENTER = 13;        // Standard Enter
+  KEY_ESCAPE = 27;
+  KEY_ENTER = 13;
+  ESC = #27;
 
 type
-  // https://stackoverflow.com/questions/17125440/c-win32-console-color
-  // https://docs.microsoft.com/en-us/dotnet/api/system.consolecolor?view=netcore-3.1
   TConsoleColor = (
-    Black = 0, // The color black.
-    DarkBlue = 1, // The color dark blue.
-    DarkGreen = 2, // The color dark green.
-    DarkCyan = 3, // The color dark cyan (dark blue-green).
-    DarkRed = 4, // The color dark red.
-    DarkMagenta = 5, // The color dark magenta (dark purplish-red).
-    DarkYellow = 6, // The color dark yellow (ochre).
-    Gray = 7, // The color gray.
-    DarkGray = 8, // The color dark gray.
-    Blue = 9, // The color blue.
-    Green = 10, // The color green.
-    Cyan = 11, // The color Cyan(Blue - green).
-    Red = 12, // The color red.
-    Magenta = 13, // The color magenta (purplish-red).
-    Yellow = 14, // The color yellow.
-    White = 15, // The color white.
-    UseDefault = 16 //Use Style Color
+    Black = 0,
+    DarkBlue = 1,
+    DarkGreen = 2,
+    DarkCyan = 3,
+    DarkRed = 4,
+    DarkMagenta = 5,
+    DarkYellow = 6,
+    Gray = 7,
+    DarkGray = 8,
+    Blue = 9,
+    Green = 10,
+    Cyan = 11,
+    Red = 12,
+    Magenta = 13,
+    Yellow = 14,
+    White = 15,
+    UseDefault = 16
     );
 
-  TProgressBarStyle = (pbsSimple, pbsBlocks, pbsArrows, pbsCircles);
-
   TBoxStyle = (bsSingle, bsDouble, bsRounded, bsThick, bsUseDefault);
+
+  TSpinnerStyle = (
+    ssLine,       // - \ | /
+    ssDots,       // Braille dots
+    ssBounce,     // Braille bounce
+    ssGrow,       // Block elements
+    ssArrow,      // Arrow rotation
+    ssCircle,     // Circle quarters
+    ssClock,      // Clock faces
+    ssEarth,      // Globe rotation
+    ssMoon,       // Moon phases
+    ssWeather     // Weather emoji
+  );
+
+  TProgressBarStyle = (pbsSimple, pbsBlocks, pbsArrows, pbsCircles);
+  TAlignment = (taLeft, taCenter, taRight);
+  TListStyle = (lsBullet, lsNumbered, lsDash, lsArrow);
 
   EMVCConsole = class(Exception)
   end;
@@ -101,73 +119,212 @@ type
     Y: Word;
   end;
 
-  // Enhanced console features
-  TMVCConsoleProgressBar = class
-  private
-    FPosition: Integer;
-    FMaxValue: Integer;
-    FStartX, FStartY: Integer;
-    FWidth: Integer;
-    FStyle: TProgressBarStyle;
-    FTitle: string;
-    procedure UpdateDisplay;
-  public
-    constructor Create(const ATitle: string; AMaxValue: Integer; AWidth: Integer = 50;
-                      AStyle: TProgressBarStyle = pbsBlocks);
-    procedure SetPosition(AValue: Integer);
-    procedure Increment(AValue: Integer = 1);
-    procedure Finish;
-    property Position: Integer read FPosition;
-    property MaxValue: Integer read FMaxValue;
+  TConsoleColorStyle = record
+    Text:          string;         // default text style, e.g. Fore.Cyan
+    Draw:          string;         // borders/lines,       e.g. Fore.White
+    Symbols:       string;         // list prefixes,       e.g. Fore.Gray + Style.Dim
+    Highlight:     string;         // selected items,      e.g. Back.Blue + Fore.White + Style.Bright
+    HighlightText: string;         // headers/titles,      e.g. Fore.White + Style.Bright
+    Background:    TConsoleColor;  // whole-screen background fill (used by ClrScr + SetConsoleTheme)
+    BoxStyle:      TBoxStyle;
   end;
 
   TStringArray = array of string;
   TStringMatrix = array of TStringArray;
-  TAlignment = (taLeft, taCenter, taRight);
-  TListStyle = (lsBullet, lsNumbered, lsDash, lsArrow);
-  TConsoleColorArray = array of TConsoleColor;
-  TIntegerArray = array of Integer;
 
-  // Menu types
-  TMenuItemStyle = record
-    Text: string;
-    Icon: string;
-    Enabled: Boolean;
-  end;
-  TMenuItemsArray = array of TMenuItemStyle;
-
-  TConsoleColorStyle = record
-    TextColor, BackgroundColor, DrawColor, SymbolsColor, BackgroundHighlightColor, TextHighlightColor: TConsoleColor;
-    BoxStyle: TBoxStyle;
-  end;
-
+  /// <summary>
+  /// ANSI foreground, background and style escape sequences.
+  /// Pure type aliases to the canonical records in LoggerPro.AnsiColors.
+  /// No structure or values duplicated. User-facing API
+  /// (Fore.Red, Back.Red, Style.ResetAll, ...) unchanged.
+  /// </summary>
+  Fore  = LoggerPro.AnsiColors.Fore;
+  Back  = LoggerPro.AnsiColors.Back;
+  Style = LoggerPro.AnsiColors.Style;
 
 var
-  //CONSOLE STYLE
-  MVCConsoleStyle: TConsoleColorStyle = (
-    TextColor : TConsoleColor.Cyan;
-    BackgroundColor : TConsoleColor.Black;
-    DrawColor : TConsoleColor.White;
-    SymbolsColor : TConsoleColor.Gray;
-    BackgroundHighlightColor: TConsoleColor.Cyan;
-    TextHighlightColor: TConsoleColor.Blue;
-    BoxStyle: TBoxStyle.bsRounded;
+  ConsoleTheme: TConsoleColorStyle = (
+    Text:          FORE_CYAN;
+    Draw:          FORE_WHITE;
+    Symbols:       FORE_GRAY;
+    Highlight:     BACK_CYAN + FORE_DARKBLUE + STYLE_BRIGHT;
+    HighlightText: FORE_BLUE + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsRounded;
+  );
+
+const
+  ConsoleThemeDefault: TConsoleColorStyle = (
+    Text:          FORE_CYAN;
+    Draw:          FORE_WHITE;
+    Symbols:       FORE_GRAY;
+    Highlight:     BACK_CYAN + FORE_DARKBLUE + STYLE_BRIGHT;
+    HighlightText: FORE_BLUE + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsRounded;
+  );
+
+  ConsoleThemeClassic: TConsoleColorStyle = (
+    Text:          FORE_WHITE;
+    Draw:          FORE_GRAY;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_BLUE + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_WHITE + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsSingle;
+  );
+
+  ConsoleThemeMatrix: TConsoleColorStyle = (
+    Text:          FORE_GREEN;
+    Draw:          FORE_DARKGREEN;
+    Symbols:       FORE_DARKGREEN + STYLE_DIM;
+    Highlight:     BACK_DARKGREEN + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_GREEN + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsSingle;
+  );
+
+  ConsoleThemeSunset: TConsoleColorStyle = (
+    Text:          FORE_YELLOW;
+    Draw:          FORE_RED;
+    Symbols:       FORE_DARKYELLOW + STYLE_DIM;
+    Highlight:     BACK_DARKRED + FORE_YELLOW + STYLE_BRIGHT;
+    HighlightText: FORE_YELLOW + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsRounded;
+  );
+
+  ConsoleThemeOcean: TConsoleColorStyle = (
+    Text:          FORE_CYAN;
+    Draw:          FORE_BLUE;
+    Symbols:       FORE_DARKCYAN + STYLE_DIM;
+    Highlight:     BACK_DARKBLUE + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_CYAN + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsThick;
+  );
+
+  ConsoleThemeMonochrome: TConsoleColorStyle = (
+    Text:          FORE_GRAY;
+    Draw:          FORE_DARKGRAY;
+    Symbols:       FORE_DARKGRAY + STYLE_DIM;
+    Highlight:     BACK_DARKGRAY + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_WHITE + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsThick;
+  );
+
+  ConsoleThemeMagenta: TConsoleColorStyle = (
+    Text:          FORE_MAGENTA;
+    Draw:          FORE_DARKMAGENTA;
+    Symbols:       FORE_DARKMAGENTA + STYLE_DIM;
+    Highlight:     BACK_DARKMAGENTA + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_MAGENTA + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsRounded;
+  );
+
+  ConsoleThemeAlert: TConsoleColorStyle = (
+    Text:          FORE_WHITE;
+    Draw:          FORE_GRAY;
+    Symbols:       FORE_DARKGRAY + STYLE_DIM;
+    Highlight:     BACK_RED + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_RED + STYLE_BRIGHT;
+    Background:    TConsoleColor.Black;
+    BoxStyle:      TBoxStyle.bsSingle;
+  );
+
+  // --- Themes with non-black backgrounds ---
+
+  // Navy: DarkBlue background — Turbo Pascal / classic IDE aesthetic
+  ConsoleThemeNavy: TConsoleColorStyle = (
+    Text:          FORE_WHITE;
+    Draw:          FORE_CYAN;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_CYAN + FORE_DARKBLUE + STYLE_BRIGHT;
+    HighlightText: FORE_YELLOW + STYLE_BRIGHT;
+    Background:    TConsoleColor.DarkBlue;
+    BoxStyle:      TBoxStyle.bsDouble;
+  );
+
+  // Forest: DarkGreen background — vintage terminal look
+  ConsoleThemeForest: TConsoleColorStyle = (
+    Text:          FORE_YELLOW;
+    Draw:          FORE_WHITE;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_DARKYELLOW + FORE_BLACK + STYLE_BRIGHT;
+    HighlightText: FORE_WHITE + STYLE_BRIGHT;
+    Background:    TConsoleColor.DarkGreen;
+    BoxStyle:      TBoxStyle.bsSingle;
+  );
+
+  // Slate: DarkGray background — softer dark mode
+  ConsoleThemeSlate: TConsoleColorStyle = (
+    Text:          FORE_WHITE;
+    Draw:          FORE_CYAN;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_BLUE + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_CYAN + STYLE_BRIGHT;
+    Background:    TConsoleColor.DarkGray;
+    BoxStyle:      TBoxStyle.bsRounded;
+  );
+
+  // Paper: Gray background — retro light terminal
+  ConsoleThemePaper: TConsoleColorStyle = (
+    Text:          FORE_DARKBLUE;
+    Draw:          FORE_DARKGREEN;
+    Symbols:       FORE_DARKGRAY;
+    Highlight:     BACK_DARKBLUE + FORE_WHITE + STYLE_BRIGHT;
+    HighlightText: FORE_DARKBLUE + STYLE_BRIGHT;
+    Background:    TConsoleColor.Gray;
+    BoxStyle:      TBoxStyle.bsSingle;
+  );
+
+  // Burgundy: DarkRed background — dramatic, high-contrast
+  ConsoleThemeBurgundy: TConsoleColorStyle = (
+    Text:          FORE_YELLOW;
+    Draw:          FORE_WHITE;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_DARKYELLOW + FORE_BLACK + STYLE_BRIGHT;
+    HighlightText: FORE_WHITE + STYLE_BRIGHT;
+    Background:    TConsoleColor.DarkRed;
+    BoxStyle:      TBoxStyle.bsThick;
+  );
+
+  // Midnight: DarkCyan background — teal terminal
+  ConsoleThemeMidnight: TConsoleColorStyle = (
+    Text:          FORE_WHITE;
+    Draw:          FORE_YELLOW;
+    Symbols:       FORE_GRAY + STYLE_DIM;
+    Highlight:     BACK_DARKCYAN + FORE_BLACK + STYLE_BRIGHT;
+    HighlightText: FORE_YELLOW + STYLE_BRIGHT;
+    Background:    TConsoleColor.DarkCyan;
+    BoxStyle:      TBoxStyle.bsRounded;
   );
 
 
-// Basic console functions
+// ============================================================================
+// CONSOLE THEME FUNCTIONS
+// ============================================================================
+
+procedure SetConsoleTheme(const Theme: TConsoleColorStyle);
+
+
+// ============================================================================
+// LOW-LEVEL CONSOLE FUNCTIONS
+// ============================================================================
+
 procedure ResetConsole;
-procedure TextColor(const color: TConsoleColor);
-procedure TextBackground(const color: TConsoleColor);
+procedure TextColor(const Color: TConsoleColor);
+procedure TextBackground(const Color: TConsoleColor);
 procedure GotoXY(const X, Y: Word);
 function GetConsoleSize: TMVCConsoleSize;
 function GetConsoleBufferSize: TMVCConsoleSize;
 function GetCursorPosition: TMVCConsolePoint;
 procedure ClrScr;
 function GetCh: Char;
-
-function GetKey: Integer;  // Returns key code, special keys are 256+VirtualKeyCode
-function IsSpecialKey(KeyCode: Integer): Boolean; inline;  // True if key is a special key (>= 256)
+function GetKey: Integer;
+function IsSpecialKey(KeyCode: Integer): Boolean; inline;
 procedure WaitForReturn;
 procedure SaveColors;
 procedure RestoreSavedColors;
@@ -180,79 +337,164 @@ function BackgroundAttr: Word;
 procedure SetBackgroundAttr(const BackgroundAttr: Word);
 procedure HideCursor;
 procedure ShowCursor;
-procedure CenterInScreen(const Text: String);
-function KeyPressed: boolean;
+function KeyPressed: Boolean;
 procedure EnableUTF8Console;
 
-// Enhanced functions
-procedure WriteColoredText(const Text: string; ForeColor: TConsoleColor = UseDefault;
-                          BackColor: TConsoleColor = UseDefault);
-procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor = UseDefault;
-                          BackColor: TConsoleColor = UseDefault);
+/// <summary>
+/// Enables ANSI virtual terminal processing on Windows 10+.
+/// No-op on Linux (ANSI is natively supported).
+/// Idempotent: safe to call multiple times.
+/// Called automatically by DMVC color console renderers.
+/// Call manually only if using Fore/Back/Style directly with WriteLn.
+/// </summary>
+procedure EnableANSIColorConsole;
+
+/// <summary>
+/// Returns True if ANSI escape sequences are supported by the current console.
+/// Always True on Linux. On Windows, True only after a successful EnableANSIColorConsole call.
+/// </summary>
+function IsANSIColorConsoleEnabled: Boolean;
+
+// ============================================================================
+// ANSI PRIMITIVES (low-level, theme-aware)
+// ============================================================================
+
+procedure WriteAnsiText(const AStyle, AText: string);
+procedure WriteAnsiLine(const AStyle, AText: string);
+
+// ============================================================================
+// TEXT OUTPUT
+// ============================================================================
+
+procedure WriteColoredText(const Text: string;
+  ForeColor: TConsoleColor = UseDefault;
+  BackColor: TConsoleColor = UseDefault);
+
+procedure WriteLine(const Text: string); overload;
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor); overload;
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor;
+  BackColor: TConsoleColor); overload;
+
+procedure WriteAlignedText(const Text: string; Width: Integer;
+  Alignment: TAlignment = taCenter; TextColor: TConsoleColor = UseDefault);
+procedure CenterInScreen(const Text: String);
+
+// ============================================================================
+// STATUS MESSAGES
+// ============================================================================
+
+procedure WriteHeader(const Text: string; Width: Integer = 80;
+  HeaderColor: TConsoleColor = UseDefault);
+procedure WriteSeparator(Width: Integer = 60; CharSymbol: Char = '-');
+procedure WriteSuccess(const Message: string);
+procedure WriteWarning(const Message: string);
+procedure WriteError(const Message: string);
+procedure WriteInfo(const Message: string);
+procedure WriteFormattedList(const Title: string; const Items: TStringArray;
+  ListStyle: TListStyle);
+
+// ============================================================================
+// DRAWING PRIMITIVES
+// ============================================================================
+
 procedure DrawBox(X, Y, Width, Height: Word; Style: TBoxStyle = bsRounded;
-                 const Title: string = '');
+  const Title: string = '');
 procedure DrawHorizontalLine(X, Y, Length: Word; Style: TBoxStyle = bsUseDefault);
 procedure DrawVerticalLine(X, Y, Length: Word; Style: TBoxStyle = bsUseDefault);
 procedure ClearRegion(X, Y, Width, Height: Word);
 procedure SaveCursorPosition;
 procedure RestoreCursorPosition;
 
-// Information and utility functions
+// ============================================================================
+// INFORMATION
+// ============================================================================
+
 function ColorName(const Color: TConsoleColor): String;
 function IsTerminalCapable: Boolean;
 function GetTerminalName: string;
 procedure Beep;
 procedure FlashScreen;
 
-// Enhanced library functions - ASCII-based for maximum compatibility
-procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix; const Style: TBoxStyle = bsUseDefault);
-procedure ShowSimpleProgressBar(const Title: string; Position, MaxValue: Integer; Width: Integer = 50);
-procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer = 80; TextColor: TConsoleColor = UseDefault; Style: TBoxStyle = bsUseDefault);
-procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment = taCenter; TextColor: TConsoleColor = UseDefault);
-procedure ShowProgressAnimation(const Title: string; Steps: Integer = 20; DelayMs: Integer = 100);
-procedure WriteStatusLine(const Items: TStringArray; const Statuses: TStringArray;
-                         const Colors: TConsoleColorArray);
-procedure ShowSimpleMenu(const Title: string; const Items: TStringArray; SelectedIndex: Integer = 0);
-procedure WriteFormattedList(const Title: string; const Items: TStringArray;
-                           ListStyle: TListStyle);
+// ============================================================================
+// HIGH-LEVEL API
+// ============================================================================
 
-// Interactive menu functions
-// These functions use GetKey to handle special keys like arrows
-function ShowInteractiveMenu(const Title: string; const Items: TStringArray;
-                           DefaultIndex: Integer = 0;
-                           const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+type
+  ISpinner = interface
+    ['{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}']
+    procedure Hide;
+  end;
 
-function ShowAdvancedMenu(const Title: string; const Items: TMenuItemsArray;
-                        DefaultIndex: Integer = 0;
-                        HighlightColor: TConsoleColor = DarkCyan;
-                        const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+  IProgress = interface
+    ['{8F5E3C2A-1B4D-4E9F-A3C7-9D2E6F1B8A4C}']
+    procedure Update(Value: Integer);
+    procedure Increment(Amount: Integer = 1);
+    procedure SetMessage(const Msg: string);
+    procedure Complete;
+  end;
 
-// Helper function for menu items
-function CreateMenuItem(const Text: string; const Icon: string = ''; Enabled: Boolean = True): TMenuItemStyle;
+/// <summary>
+/// Interactive menu with keyboard navigation. Returns selected index or -1 if cancelled.
+/// </summary>
+function Menu(const Items: TStringArray): Integer; overload;
+function Menu(const Title: string; const Items: TStringArray): Integer; overload;
+function Menu(const Title: string; const Items: TStringArray;
+  DefaultIndex: Integer): Integer; overload;
 
-// Dashboard and report utilities
-procedure ShowSystemDashboard(const Title: string; const ServerStatuses: TStringArray;
-                              const ServerColors: TConsoleColorArray;
-                              const MetricNames: TStringArray; const MetricValues: TIntegerArray);
-procedure WriteReport(const Title: string; const Sections: TStringArray;
-                     const SectionContents: TStringMatrix);
-procedure ShowLoadingSpinner(const Message: string; Iterations: Integer = 20);
-procedure WriteColoredTable(const Headers: TStringArray;
-                           const Data: TStringMatrix;
-                           HeaderColor: TConsoleColor = UseDefault;
-                           DrawColor: TConsoleColor = UseDefault;
-                           DataColor: TConsoleColor = UseDefault;
-                           BoxStyle: TBoxStyle = bsUseDefault);
+/// <summary>
+/// Displays a formatted table with auto-sizing columns.
+/// </summary>
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix); overload;
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix;
+  const Title: string); overload;
 
-// Quick utility functions
-procedure WriteHeader(const Text: string; Width: Integer = 80; HeaderColor: TConsoleColor = UseDefault);
-procedure WriteSeparator(Width: Integer = 60; CharSymbol: Char = '-');
-procedure WriteSuccess(const Message: string);
-procedure WriteWarning(const Message: string);
-procedure WriteError(const Message: string);
-procedure WriteInfo(const Message: string);
+/// <summary>
+/// Interactive table with row selection. Returns selected row index or -1.
+/// </summary>
+function TableMenu(const Headers: TStringArray;
+  const Data: TStringMatrix): Integer; overload;
+function TableMenu(const Title: string; const Headers: TStringArray;
+  const Data: TStringMatrix): Integer; overload;
+function TableMenu(const Title: string; const Headers: TStringArray;
+  const Data: TStringMatrix; DefaultIndex: Integer): Integer; overload;
 
-// Utility functions
+/// <summary>
+/// Displays a box with optional title and content lines.
+/// </summary>
+procedure Box(const Content: TStringArray); overload;
+procedure Box(const Title: string; const Content: TStringArray); overload;
+procedure Box(const Title: string; const Content: TStringArray;
+  Width: Integer); overload;
+
+/// <summary>
+/// Progress bar with auto-cleanup. MaxValue > 0: determinate. MaxValue = 0: indeterminate.
+/// </summary>
+function Progress(const Title: string; MaxValue: Integer): IProgress; overload;
+function Progress(const Title: string): IProgress; overload;
+
+/// <summary>
+/// Yes/no confirmation prompt. Returns True if user confirms.
+/// </summary>
+function Confirm(const Question: string): Boolean; overload;
+function Confirm(const Question: string; DefaultYes: Boolean): Boolean; overload;
+
+/// <summary>
+/// Quick single-choice prompt. Returns selected index or -1.
+/// </summary>
+function Choose(const Question: string; const Options: TStringArray): Integer;
+
+/// <summary>
+/// Non-blocking background spinner. Call Hide or release the interface to stop.
+/// </summary>
+function Spinner(AStyle: TSpinnerStyle = ssLine;
+  AColor: TConsoleColor = DarkGray): ISpinner; overload;
+function Spinner(const AMessage: string; AStyle: TSpinnerStyle = ssLine;
+  AColor: TConsoleColor = DarkGray): ISpinner; overload;
+
+// ============================================================================
+// UTILITY
+// ============================================================================
+
 function PadRight(const S: string; Len: Integer): string;
 
 
@@ -262,11 +504,7 @@ uses
   System.TypInfo,
   System.Math;
 
-const
-  ESC = Chr(27);
-
 type
-  TStyleColorComponent = (sccText, sccBackground, sccHighLightBackground, sccHighLightText, sccDraw, sccSymbol);
   TBoxChars = record
     TopLeft, TopRight, BottomLeft, BottomRight: Char;
     Vertical, Horizontal: Char;
@@ -276,154 +514,188 @@ type
 var
   GForeGround, GSavedForeGround: Int16;
   GBackGround, GSavedBackGround: Int16;
+  GThemeReset: string;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
   GIsConsoleAllocated: Boolean = False;
   GLock: TObject = nil;
-  hConsoleInput: THandle;
   GSavedCursorX, GSavedCursorY: Word;
+{$IFDEF MSWINDOWS}
+  hConsoleInput: THandle;
+{$ENDIF}
+
+const
+  // Cross-platform ANSI escape sequences indexed by TConsoleColor.
+  // GBackGround is stored bit-shifted (Ord shl 4) for historical reasons;
+  // look up with ANSI_BG[TConsoleColor(GBackGround shr 4)].
+  ANSI_FG: array[TConsoleColor] of string = (
+    FORE_BLACK,       // Black
+    FORE_DARKBLUE,    // DarkBlue
+    FORE_DARKGREEN,   // DarkGreen
+    FORE_DARKCYAN,    // DarkCyan
+    FORE_DARKRED,     // DarkRed
+    FORE_DARKMAGENTA, // DarkMagenta
+    FORE_DARKYELLOW,  // DarkYellow
+    FORE_GRAY,        // Gray
+    FORE_DARKGRAY,    // DarkGray
+    FORE_BLUE,        // Blue
+    FORE_GREEN,       // Green
+    FORE_CYAN,        // Cyan
+    FORE_RED,         // Red
+    FORE_MAGENTA,     // Magenta
+    FORE_YELLOW,      // Yellow
+    FORE_WHITE,       // White
+    ''                // UseDefault — callers substitute ConsoleTheme.Text
+  );
+
+  ANSI_BG: array[TConsoleColor] of string = (
+    BACK_BLACK,       // Black
+    BACK_DARKBLUE,    // DarkBlue
+    BACK_DARKGREEN,   // DarkGreen
+    BACK_DARKCYAN,    // DarkCyan
+    BACK_DARKRED,     // DarkRed
+    BACK_DARKMAGENTA, // DarkMagenta
+    BACK_DARKYELLOW,  // DarkYellow
+    BACK_GRAY,        // Gray
+    BACK_DARKGRAY,    // DarkGray
+    BACK_BLUE,        // Blue
+    BACK_GREEN,       // Green
+    BACK_CYAN,        // Cyan
+    BACK_RED,         // Red
+    BACK_MAGENTA,     // Magenta
+    BACK_YELLOW,      // Yellow
+    BACK_WHITE,       // White
+    ''                // UseDefault — no background override
+  );
 
 {$IFDEF LINUX}
+type
+  TLinuxWinSize = record
+    ws_row: Word;
+    ws_col: Word;
+    ws_xpixel: Word;
+    ws_ypixel: Word;
+  end;
+
+  TLinuxTimeVal = record
+    tv_sec: Int64;
+    tv_usec: Int64;
+  end;
+
+const
+  TIOCGWINSZ = $5413;
+
+function __select(nfds: Integer; readfds, writefds, exceptfds: Pointer;
+  timeout: Pointer): Integer; cdecl; external 'libc.so.6' name 'select';
+
 var
   GOriginalTermios: termios;
   GTerminalSetup: Boolean = False;
 
-const
-  // ANSI Color codes for Linux
-  ANSI_COLORS: array[TConsoleColor] of string = (
-    '30',     // Black
-    '34',     // DarkBlue
-    '32',     // DarkGreen
-    '36',     // DarkCyan
-    '31',     // DarkRed
-    '35',     // DarkMagenta
-    '33',     // DarkYellow
-    '37',     // Gray
-    '90',     // DarkGray
-    '94',     // Blue
-    '92',     // Green
-    '96',     // Cyan
-    '91',     // Red
-    '95',     // Magenta
-    '93',     // Yellow
-    '97'      // White
-  );
-
-  ANSI_BG_COLORS: array[TConsoleColor] of string = (
-    '40',     // Black
-    '44',     // DarkBlue
-    '42',     // DarkGreen
-    '46',     // DarkCyan
-    '41',     // DarkRed
-    '45',     // DarkMagenta
-    '43',     // DarkYellow
-    '47',     // Gray
-    '100',    // DarkGray
-    '104',    // Blue
-    '102',    // Green
-    '106',    // Cyan
-    '101',    // Red
-    '105',    // Magenta
-    '103',    // Yellow
-    '107'     // White
-  );
-
 {$ENDIF}
+
+// ============================================================================
+// INTERNAL HELPERS
+// ============================================================================
 
 function GetBoxStyleOrDefault(BoxStyle: TBoxStyle): TBoxStyle;
 begin
   Result := BoxStyle;
   if Result = bsUseDefault then
-  begin
-    Result := MVCConsoleStyle.BoxStyle;
-  end;
+    Result := ConsoleTheme.BoxStyle;
 end;
 
-//On Windows Requires UTF8 Console and proper font
 function GetBoxChars(Style: TBoxStyle): TBoxChars;
 begin
   Style := GetBoxStyleOrDefault(Style);
   case Style of
     bsSingle: begin
-      Result.TopLeft := '┌';
-      Result.TopRight := '┐';
-      Result.BottomLeft := '└';
-      Result.BottomRight := '┘';
-      Result.Vertical := '│';
-      Result.Horizontal := '─';
-      Result.LeftJoin := '├';
-      Result.RightJoin := '┤';
-      Result.TopJoin := '┬';
-      Result.BottomJoin := '┴';
-      Result.Cross := '┼';
+      Result.TopLeft := #$250C; Result.TopRight := #$2510;
+      Result.BottomLeft := #$2514; Result.BottomRight := #$2518;
+      Result.Vertical := #$2502; Result.Horizontal := #$2500;
+      Result.LeftJoin := #$251C; Result.RightJoin := #$2524;
+      Result.TopJoin := #$252C; Result.BottomJoin := #$2534;
+      Result.Cross := #$253C;
     end;
     bsDouble: begin
-      Result.TopLeft := '╔';
-      Result.TopRight := '╗';
-      Result.BottomLeft := '╚';
-      Result.BottomRight := '╝';
-      Result.Vertical := '║';
-      Result.Horizontal := '═';
-      Result.LeftJoin := '╠';
-      Result.RightJoin := '╣';
-      Result.TopJoin := '╦';
-      Result.BottomJoin := '╩';
-      Result.Cross := '╬';
+      Result.TopLeft := #$2554; Result.TopRight := #$2557;
+      Result.BottomLeft := #$255A; Result.BottomRight := #$255D;
+      Result.Vertical := #$2551; Result.Horizontal := #$2550;
+      Result.LeftJoin := #$2560; Result.RightJoin := #$2563;
+      Result.TopJoin := #$2566; Result.BottomJoin := #$2569;
+      Result.Cross := #$256C;
     end;
     bsRounded: begin
-      Result.TopLeft := '╭';
-      Result.TopRight := '╮';
-      Result.BottomLeft := '╰';
-      Result.BottomRight := '╯';
-      Result.Vertical := '│';
-      Result.Horizontal := '─';
-      Result.LeftJoin := '├';
-      Result.RightJoin := '┤';
-      Result.TopJoin := '┬';
-      Result.BottomJoin := '┴';
-      Result.Cross := '┼';
+      Result.TopLeft := #$256D; Result.TopRight := #$256E;
+      Result.BottomLeft := #$2570; Result.BottomRight := #$256F;
+      Result.Vertical := #$2502; Result.Horizontal := #$2500;
+      Result.LeftJoin := #$251C; Result.RightJoin := #$2524;
+      Result.TopJoin := #$252C; Result.BottomJoin := #$2534;
+      Result.Cross := #$253C;
     end;
     bsThick: begin
-      Result.TopLeft := '┏';
-      Result.TopRight := '┓';
-      Result.BottomLeft := '┗';
-      Result.BottomRight := '┛';
-      Result.Vertical := '┃';
-      Result.Horizontal := '━';
-      Result.LeftJoin := '┣';
-      Result.RightJoin := '┫';
-      Result.TopJoin := '┳';
-      Result.BottomJoin := '┻';
-      Result.Cross := '╋';
+      Result.TopLeft := #$250F; Result.TopRight := #$2513;
+      Result.BottomLeft := #$2517; Result.BottomRight := #$251B;
+      Result.Vertical := #$2503; Result.Horizontal := #$2501;
+      Result.LeftJoin := #$2523; Result.RightJoin := #$252B;
+      Result.TopJoin := #$2533; Result.BottomJoin := #$253B;
+      Result.Cross := #$254B;
     end;
   end;
 end;
 
-// ============================================================================
-// Utility functions
-// ============================================================================
-
-
-function GetColorOrDefault(Color: TConsoleColor; StyleColorComponent: TStyleColorComponent): TConsoleColor;
+procedure FlushOutput; inline;
 begin
-  if Color = TConsoleColor.UseDefault then
+  Flush(Output);
+end;
+
+function CalcColumnWidths(const Headers: TStringArray; const Data: TStringMatrix): TArray<Integer>;
+var
+  I, J: Integer;
+begin
+  SetLength(Result, Length(Headers));
+  for I := 0 to High(Headers) do
   begin
-    case StyleColorComponent of
-      sccText: Result := MVCConsoleStyle.TextColor;
-      sccBackground: Result := MVCConsoleStyle.BackgroundColor;
-      sccDraw: Result := MVCConsoleStyle.DrawColor;
-      sccSymbol: Result := MVCConsoleStyle.SymbolsColor;
-      sccHighLightBackground: Result := MVCConsoleStyle.BackgroundHighlightColor;
-      sccHighLightText: Result := MVCConsoleStyle.TextHighlightColor;
-      else
-        raise EMVCConsole.Create('Unknown StyleColorComponent');
-    end;
-  end
-  else
-  begin
-    Result := Color;
+    Result[I] := Length(Headers[I]);
+    for J := 0 to High(Data) do
+      if (I < Length(Data[J])) and (Length(Data[J][I]) > Result[I]) then
+        Result[I] := Length(Data[J][I]);
+    Inc(Result[I], 2); // padding
   end;
 end;
+
+procedure WriteAnsiText(const AStyle, AText: string);
+begin
+  Write(AStyle + AText + GThemeReset);
+end;
+
+procedure WriteAnsiLine(const AStyle, AText: string);
+begin
+  WriteLn(AStyle + AText + GThemeReset);
+end;
+
+// ============================================================================
+// ANSI COLOR CONSOLE
+// ============================================================================
+
+function IsANSIColorConsoleEnabled: Boolean;
+begin
+  // Delegated to LoggerPro.AnsiColors - single source of truth, no
+  // duplicated state. Public API of this unit is unchanged.
+  Result := LoggerPro.AnsiColors.IsANSIColorConsoleEnabled;
+end;
+
+procedure EnableANSIColorConsole;
+begin
+  // Delegated to LoggerPro.AnsiColors - single source of truth. The
+  // underlying implementation is idempotent (safe to call multiple times)
+  // and enables Windows 10+ virtual terminal processing, no-op on Unix.
+  LoggerPro.AnsiColors.EnableANSIColorConsole;
+end;
+
+// ============================================================================
+// UTILITY
+// ============================================================================
 
 function PadRight(const S: string; Len: Integer): string;
 begin
@@ -434,165 +706,33 @@ begin
     Result := Copy(Result, 1, Len);
 end;
 
-procedure WriteTableBottomBorder(ColWidths: array of Integer; const Style: TBoxStyle);
-var
-  lBoxChars: TBoxChars;
-  Line: string;
-  I: Integer;
-begin
-  lBoxChars := GetBoxChars(Style);
-  WriteColoredText(lBoxChars.BottomLeft, MVCConsoleStyle.DrawColor);
-  Line := '';
-  for I := 0 to High(ColWidths) do
-  begin
-    Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
-    if I < High(ColWidths) then
-      Line := Line + lBoxChars.BottomJoin
-    else
-      Line := Line + lBoxChars.BottomRight
-  end;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-end;
-
-procedure WriteTableTopBorder(ColWidths: array of Integer; const Style: TBoxStyle);
-var
-  lBoxChars: TBoxChars;
-  Line: string;
-  I: Integer;
-begin
-  lBoxChars := GetBoxChars(Style);
-  WriteColoredText(lBoxChars.TopLeft, MVCConsoleStyle.DrawColor);
-  Line := '';
-  for I := 0 to High(ColWidths) do
-  begin
-    Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
-    if I < High(ColWidths) then
-      Line := Line + lBoxChars.TopJoin
-    else
-      Line := Line + lBoxChars.TopRight
-  end;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-end;
-
-
 // ============================================================================
-// Progress Bar Implementation
+// PLATFORM: LINUX
 // ============================================================================
 
-constructor TMVCConsoleProgressBar.Create(const ATitle: string; AMaxValue: Integer;
-                                         AWidth: Integer; AStyle: TProgressBarStyle);
-var
-  CurPos: TMVCConsolePoint;
+function ColorName(const Color: TConsoleColor): String;
 begin
-  inherited Create;
-  FTitle := ATitle;
-  FMaxValue := AMaxValue;
-  FWidth := AWidth;
-  FStyle := AStyle;
-  FPosition := 0;
-
-  CurPos := GetCursorPosition;
-  FStartX := CurPos.X;
-  FStartY := CurPos.Y;
-
-  if FTitle <> '' then
-  begin
-    WriteLineColored(FTitle, White);
-    Inc(FStartY);
-  end;
-
-  UpdateDisplay;
-end;
-
-procedure TMVCConsoleProgressBar.UpdateDisplay;
-var
-  Progress: Double;
-  FilledChars: Integer;
-  I: Integer;
-  ProgressChar, EmptyChar: string;
-  ProgressLine: string;
-begin
-  if FMaxValue = 0 then
-    Progress := 0
+  case Color of
+    TConsoleColor.Black:       Result := 'Black';
+    TConsoleColor.DarkBlue:    Result := 'DarkBlue';
+    TConsoleColor.DarkGreen:   Result := 'DarkGreen';
+    TConsoleColor.DarkCyan:    Result := 'DarkCyan';
+    TConsoleColor.DarkRed:     Result := 'DarkRed';
+    TConsoleColor.DarkMagenta: Result := 'DarkMagenta';
+    TConsoleColor.DarkYellow:  Result := 'DarkYellow';
+    TConsoleColor.Gray:        Result := 'Gray';
+    TConsoleColor.DarkGray:    Result := 'DarkGray';
+    TConsoleColor.Blue:        Result := 'Blue';
+    TConsoleColor.Green:       Result := 'Green';
+    TConsoleColor.Cyan:        Result := 'Cyan';
+    TConsoleColor.Red:         Result := 'Red';
+    TConsoleColor.Magenta:     Result := 'Magenta';
+    TConsoleColor.Yellow:      Result := 'Yellow';
+    TConsoleColor.White:       Result := 'White';
+    TConsoleColor.UseDefault:  Result := 'UseDefault';
   else
-    Progress := FPosition / FMaxValue;
-  FilledChars := Round(Progress * FWidth);
-
-  case FStyle of
-    pbsSimple: begin
-      ProgressChar := '#';
-      EmptyChar := '.';
-    end;
-    pbsBlocks: begin
-      ProgressChar := '#';  // Fallback to ASCII
-      EmptyChar := '-';
-    end;
-    pbsArrows: begin
-      ProgressChar := '>';
-      EmptyChar := '-';
-    end;
-    pbsCircles: begin
-      ProgressChar := 'o';  // Fallback to ASCII
-      EmptyChar := '.';
-    end;
+    Result := 'Unknown';
   end;
-
-  // Build progress line in memory first
-  ProgressLine := '[';
-  for I := 0 to FWidth - 1 do
-  begin
-    if I < FilledChars then
-      ProgressLine := ProgressLine + ProgressChar
-    else
-      ProgressLine := ProgressLine + EmptyChar;
-  end;
-  ProgressLine := ProgressLine + Format('] %3.0f%% (%d/%d)', [Progress * 100, FPosition, FMaxValue]);
-
-  // Clear the line first
-  GotoXY(FStartX, FStartY);
-  Write(StringOfChar(' ', Length(ProgressLine) + 5));
-
-  // Write the progress line
-  GotoXY(FStartX, FStartY);
-  Write(ProgressLine);
-
-  // Force flush
-{$IFDEF MSWINDOWS}
-  Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-  Flush(Output);
-{$ENDIF}
-end;
-
-procedure TMVCConsoleProgressBar.SetPosition(AValue: Integer);
-begin
-  FPosition := Min(AValue, FMaxValue);
-  UpdateDisplay;
-end;
-
-procedure TMVCConsoleProgressBar.Increment(AValue: Integer);
-begin
-  SetPosition(FPosition + AValue);
-end;
-
-procedure TMVCConsoleProgressBar.Finish;
-begin
-  SetPosition(FMaxValue);
-  WriteLn;
-end;
-
-// ============================================================================
-// Platform-specific implementations
-// ============================================================================
-
-// GetKey returns the full key code. For special keys like arrows, it returns
-// 256 + VirtualKeyCode to distinguish them from ASCII characters.
-// GetCh returns only ASCII characters for backward compatibility.
-
-function ColorName(const color: TConsoleColor): String;
-begin
-  Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
 end;
 
 {$IFDEF LINUX}
@@ -620,23 +760,22 @@ begin
   end;
 end;
 
-function KeyPressed: boolean;
+function KeyPressed: Boolean;
 var
   FDSet: fd_set;
-  TimeVal: timeval;
+  TimeVal: TLinuxTimeVal;
 begin
   SetupTerminal;
   __FD_ZERO(FDSet);
   __FD_SET(STDIN_FILENO, FDSet);
   TimeVal.tv_sec := 0;
   TimeVal.tv_usec := 0;
-  Result := select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
+  Result := __select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
 end;
 
 procedure EnableUTF8Console;
 begin
-  // Linux terminals usually handle UTF-8 by default
-  WriteLn(ESC + '[?1049h'); // Enable alternative screen buffer
+  WriteLn(ESC + '[?1049h');
 end;
 
 procedure HideCursor;
@@ -655,14 +794,18 @@ begin
 end;
 
 procedure WaitForReturn;
+var
+  Ch: Char;
 begin
-  ReadLn;
+  SetupTerminal;
+  repeat
+    Ch := GetCh;
+  until (Ch = #13) or (Ch = #10);
 end;
 
 procedure UpdateMode;
 begin
-  Write(ESC + '[' + ANSI_COLORS[TConsoleColor(GForeGround)] + ';' +
-        ANSI_BG_COLORS[TConsoleColor(GBackGround)] + 'm');
+  Write(ANSI_FG[TConsoleColor(GForeGround)] + ANSI_BG[TConsoleColor(GBackGround shr 4)]);
 end;
 
 function GetCh: Char;
@@ -683,7 +826,7 @@ end;
 
 function GetConsoleSize: TMVCConsoleSize;
 var
-  WinSize: winsize;
+  WinSize: TLinuxWinSize;
 begin
   if ioctl(STDOUT_FILENO, TIOCGWINSZ, @WinSize) = 0 then
   begin
@@ -699,7 +842,7 @@ end;
 
 function GetConsoleBufferSize: TMVCConsoleSize;
 begin
-  Result := GetConsoleSize; // Same as window size on Linux
+  Result := GetConsoleSize;
 end;
 
 function GetCursorPosition: TMVCConsolePoint;
@@ -711,23 +854,19 @@ var
   NumberIndex: Integer;
   CurrentNumber: string;
 begin
-  Write(ESC + '[6n'); // Query cursor position
-
+  Write(ESC + '[6n');
   Response := '';
   NumberIndex := 0;
   CurrentNumber := '';
-
-  // Read response: ESC[row;colR
   repeat
     Ch := GetCh;
     Response := Response + Ch;
   until (Ch = 'R') or (Length(Response) > 20);
 
-  // Parse response
   for I := 1 to Length(Response) do
   begin
     Ch := Response[I];
-    if Ch in ['0'..'9'] then
+    if CharInSet(Ch, ['0'..'9']) then
       CurrentNumber := CurrentNumber + Ch
     else if (Ch = ';') or (Ch = 'R') then
     begin
@@ -742,7 +881,7 @@ begin
 
   if NumberIndex >= 2 then
   begin
-    Result.Y := Numbers[0] - 1; // Convert to 0-based
+    Result.Y := Numbers[0] - 1;
     Result.X := Numbers[1] - 1;
   end
   else
@@ -754,29 +893,60 @@ end;
 
 procedure ClrScr;
 begin
-  Write(ESC + '[2J'); // Clear entire screen
-  Write(ESC + '[H');  // Move to home position
+  Write(ESC + '[2J');
+  Write(ESC + '[H');
+end;
+
+function GetKey: Integer;
+var
+  Buffer: array[0..0] of Char;
+  Ch: Char;
+begin
+  Result := 0;
+  SetupTerminal;
+  if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+  begin
+    Ch := Buffer[0];
+    Result := Ord(Ch);
+    if Ch = #27 then
+    begin
+      if KeyPressed then
+      begin
+        if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+        begin
+          if Buffer[0] = '[' then
+          begin
+            if __read(STDIN_FILENO, @Buffer, 1) = 1 then
+            begin
+              case Buffer[0] of
+                'A': Result := KEY_UP;
+                'B': Result := KEY_DOWN;
+                'C': Result := KEY_RIGHT;
+                'D': Result := KEY_LEFT;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 {$ENDIF}
 
+// ============================================================================
+// PLATFORM: WINDOWS
+// ============================================================================
+
 {$IFDEF MSWINDOWS}
 
-{.$IF not Defined(RIOORBETTER)}
 const
   ATTACH_PARENT_PROCESS = DWORD(-1);
 function AttachConsole(dwProcessId: DWORD): BOOL; stdcall; external kernel32 name 'AttachConsole';
-{.$ENDIF}
 
 procedure EnableUTF8Console;
 begin
   SetConsoleOutputCP(CP_UTF8);
-end;
-
-procedure WinCheck(const Value: LongBool);
-begin
-  if not Value then
-    raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
 end;
 
 procedure KeyInit;
@@ -785,8 +955,7 @@ var
 begin
   Reset(Input);
   GInputHandle := TTextRec(Input).Handle;
-  hConsoleInput := GInputHandle; // Initialize hConsoleInput
-
+  hConsoleInput := GInputHandle;
   SetActiveWindow(0);
   GetConsoleMode(hConsoleInput, mode);
   if (mode and ENABLE_MOUSE_INPUT) = ENABLE_MOUSE_INPUT then
@@ -818,46 +987,29 @@ begin
   end;
 end;
 
-function KeyPressed: boolean;
-{$IFDEF MSWINDOWS}
+function KeyPressed: Boolean;
 var
   InputRecord: INPUT_RECORD;
   NumRead: DWORD;
 begin
   Result := False;
   Init;
-
   if PeekConsoleInput(GInputHandle, InputRecord, 1, NumRead) and (NumRead > 0) then
   begin
     if (InputRecord.EventType = KEY_EVENT) and InputRecord.Event.KeyEvent.bKeyDown then
       Result := True
     else
-      // Discard non-keyboard events or key-up events
       ReadConsoleInput(GInputHandle, InputRecord, 1, NumRead);
   end;
 end;
-{$ENDIF}
-{$IFDEF LINUX}
-var
-  FDSet: fd_set;
-  TimeVal: timeval;
-begin
-  SetupTerminal;
-  __FD_ZERO(FDSet);
-  __FD_SET(STDIN_FILENO, FDSet);
-  TimeVal.tv_sec := 0;
-  TimeVal.tv_usec := 0;
-  Result := select(STDIN_FILENO + 1, @FDSet, nil, nil, @TimeVal) > 0;
-end;
-{$ENDIF}
 
-procedure InternalShowCursor(const ShowCursor: Boolean);
+procedure InternalShowCursor(const AShowCursor: Boolean);
 var
   info: CONSOLE_CURSOR_INFO;
 begin
   Init;
   GetConsoleCursorInfo(GOutHandle, info);
-  info.bVisible := ShowCursor;
+  info.bVisible := AShowCursor;
   SetConsoleCursorInfo(GOutHandle, info);
 end;
 
@@ -873,7 +1025,6 @@ var
   dwConSize: UInt32;
   lStartCoord: _COORD;
   lCharsWritten: UInt32;
-  lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
 begin
   Init;
   lSize := GetConsoleBufferSize;
@@ -881,16 +1032,15 @@ begin
   lStartCoord.X := 0;
   lStartCoord.Y := 0;
   if not FillConsoleOutputCharacter(GOutHandle, ' ', dwConSize, lStartCoord, lCharsWritten) then
-    raise EMVCConsole.CreateFmt('Cannot fill console with blank char - GetLastError() = %d', [GetLastError]);
-
-  if not GetConsoleScreenBufferInfo(GOutHandle, lConsoleScreenBufferInfo) then
-    raise EMVCConsole.CreateFmt('Cannot GetConsoleScreenBufferInfo - GetLastError() = %d', [GetLastError]);
-
-  if not FillConsoleOutputAttribute(GOutHandle, lConsoleScreenBufferInfo.wAttributes, dwConSize, lStartCoord,
+    raise EMVCConsole.CreateFmt('Cannot fill console - GetLastError() = %d', [GetLastError]);
+  if not FillConsoleOutputAttribute(GOutHandle, GForeGround or GBackGround, dwConSize, lStartCoord,
     lCharsWritten) then
     raise EMVCConsole.CreateFmt('Cannot FillConsoleOutputAttribute - GetLastError() = %d', [GetLastError]);
-
   GotoXY(0, 0);
+  // Sync the ANSI current attribute with the background we just painted.
+  // FillConsoleOutputAttribute sets stored cell attrs but does not update the
+  // terminal's "current" text attribute used by subsequent Write() calls.
+  Write(ANSI_BG[TConsoleColor(GBackGround shr 4)]);
 end;
 
 function GetConsoleSize: TMVCConsoleSize;
@@ -914,18 +1064,6 @@ begin
   Result.Y := lConsoleScreenBufferInfo.dwCursorPosition.Y;
 end;
 
-procedure EnsureStdInput;
-begin
-  if GInputHandle = INVALID_HANDLE_VALUE then
-  begin
-    GInputHandle := GetStdHandle(STD_INPUT_HANDLE);
-    if GInputHandle = INVALID_HANDLE_VALUE then
-    begin
-      raise EMVCConsole.CreateFmt('Cannot Get STD_INPUT_HANDLE - GetLastError() = %d', [GetLastError]);
-    end;
-  end;
-end;
-
 function GetCh: Char;
 var
   Key: Integer;
@@ -934,18 +1072,16 @@ begin
   if Key < 256 then
     Result := Chr(Key)
   else
-    Result := #0;  // Special key, use GetKey for full code
+    Result := #0;
 end;
 
 function GetKey: Integer;
-{$IFDEF MSWINDOWS}
 var
   InputRecord: INPUT_RECORD;
   NumRead: DWORD;
   KeyEvent: KEY_EVENT_RECORD;
 begin
   Init;
-
   repeat
     if ReadConsoleInput(GInputHandle, InputRecord, 1, NumRead) then
     begin
@@ -956,14 +1092,11 @@ begin
         begin
           if KeyEvent.AsciiChar <> #0 then
           begin
-            // Normal ASCII key
             Result := Ord(KeyEvent.AsciiChar);
             Exit;
           end
           else
           begin
-            // Special key like arrow keys (no ASCII)
-            // Return 256 + VirtualKeyCode
             Result := 256 + KeyEvent.wVirtualKeyCode;
             Exit;
           end;
@@ -972,45 +1105,6 @@ begin
     end;
   until False;
 end;
-{$ENDIF}
-{$IFDEF LINUX}
-var
-  Buffer: array[0..0] of Char;
-  Ch: Char;
-begin
-  Result := 0;
-  SetupTerminal;
-
-  if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-  begin
-    Ch := Buffer[0];
-    Result := Ord(Ch);
-
-    // Handle Linux escape sequences for arrow keys
-    if Ch = #27 then
-    begin
-      if KeyPressed then
-      begin
-        if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-        begin
-          if Buffer[0] = '[' then
-          begin
-            if __read(STDIN_FILENO, @Buffer, 1) = 1 then
-            begin
-              case Buffer[0] of
-                'A': Result := KEY_UP;    // Up arrow
-                'B': Result := KEY_DOWN;  // Down arrow
-                'C': Result := KEY_RIGHT; // Right arrow
-                'D': Result := KEY_LEFT;  // Left arrow
-              end;
-            end;
-          end;
-        end;
-      end;
-    end;
-  end;
-end;
-{$ENDIF}
 
 function GetConsoleBufferSize: TMVCConsoleSize;
 var
@@ -1025,7 +1119,7 @@ end;
 procedure UpdateMode;
 begin
   Init;
-  SetConsoleTextAttribute(GOutHandle, Ord(GForeGround) or Ord(GBackGround));
+  Write(ANSI_FG[TConsoleColor(GForeGround)] + ANSI_BG[TConsoleColor(GBackGround shr 4)]);
 end;
 
 procedure GotoXY(const X, Y: Word);
@@ -1036,9 +1130,7 @@ begin
   lCoord.X := X;
   lCoord.Y := Y;
   if not SetConsoleCursorPosition(GOutHandle, lCoord) then
-  begin
     raise EMVCConsole.Create('Invalid Coordinates');
-  end;
 end;
 
 procedure HideCursor;
@@ -1054,7 +1146,7 @@ end;
 {$ENDIF}
 
 // ============================================================================
-// HIGH LEVEL CROSS-PLATFORM FUNCTIONS
+// CROSS-PLATFORM HIGH-LEVEL FUNCTIONS
 // ============================================================================
 
 procedure CenterInScreen(const Text: String);
@@ -1064,26 +1156,24 @@ begin
   Init;
   Size := GetConsoleSize;
   GotoXY(Size.Columns div 2 - Length(Text) div 2, Size.Rows div 2 - 1);
-  Write(Text)
+  Write(Text);
 end;
 
 procedure ResetConsole;
 begin
+  Write(STYLE_RESETALL);
   SetDefaultColors;
-{$IFDEF LINUX}
-  Write(ESC + '[0m'); // Reset all attributes
-{$ENDIF}
 end;
 
-procedure TextColor(const color: TConsoleColor);
+procedure TextColor(const Color: TConsoleColor);
 begin
-  GForeGround := Ord(color);
+  GForeGround := Ord(Color);
   UpdateMode;
 end;
 
-procedure TextBackground(const color: TConsoleColor);
+procedure TextBackground(const Color: TConsoleColor);
 begin
-  GBackGround := Ord(color) shl 4;
+  GBackGround := Ord(Color) shl 4;
   UpdateMode;
 end;
 
@@ -1146,30 +1236,154 @@ begin
   UpdateMode;
 end;
 
+function IsSpecialKey(KeyCode: Integer): Boolean;
+begin
+  Result := KeyCode > 255;
+end;
+
 // ============================================================================
-// ENHANCED FUNCTIONS
+// TEXT OUTPUT
 // ============================================================================
 
 procedure WriteColoredText(const Text: string; ForeColor: TConsoleColor;
                           BackColor: TConsoleColor);
+var
+  LStyle: string;
 begin
-  Init; // Ensure console is initialized
-  SaveColors;
-  try
-    TextColor(GetColorOrDefault(ForeColor, sccText));
-    TextBackground(GetColorOrDefault(BackColor, sccBackground));
-    Write(Text);
-  finally
-    RestoreSavedColors;
-  end;
+  if ForeColor = UseDefault then
+    LStyle := ConsoleTheme.Text
+  else
+    LStyle := ANSI_FG[ForeColor];
+  if BackColor <> UseDefault then
+    LStyle := LStyle + ANSI_BG[BackColor];
+  Write(LStyle + Text + GThemeReset);
 end;
 
-procedure WriteLineColored(const Text: string; ForeColor: TConsoleColor;
-                          BackColor: TConsoleColor);
+procedure WriteLine(const Text: string);
+begin
+  WriteLn(Text);
+end;
+
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor);
+begin
+  WriteColoredText(Text, ForeColor, UseDefault);
+  WriteLn;
+end;
+
+procedure WriteLine(const Text: string; ForeColor: TConsoleColor; BackColor: TConsoleColor);
 begin
   WriteColoredText(Text, ForeColor, BackColor);
   WriteLn;
 end;
+
+procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment; TextColor: TConsoleColor);
+var
+  PaddingLeft, PaddingRight: Integer;
+  AlignedText: string;
+begin
+  if Length(Text) >= Width then
+  begin
+    WriteLine(Text, TextColor);
+    Exit;
+  end;
+  case Alignment of
+    taLeft:
+      AlignedText := Text + StringOfChar(' ', Width - Length(Text));
+    taRight:
+      AlignedText := StringOfChar(' ', Width - Length(Text)) + Text;
+    taCenter:
+    begin
+      PaddingLeft := (Width - Length(Text)) div 2;
+      PaddingRight := Width - Length(Text) - PaddingLeft;
+      AlignedText := StringOfChar(' ', PaddingLeft) + Text + StringOfChar(' ', PaddingRight);
+    end;
+  end;
+  WriteLine(AlignedText, TextColor);
+end;
+
+// ============================================================================
+// STATUS MESSAGES
+// ============================================================================
+
+procedure WriteHeader(const Text: string; Width: Integer; HeaderColor: TConsoleColor);
+var
+  Line: string;
+  PaddingSize: Integer;
+  CharSymbol: Char;
+  LHeaderStyle: string;
+begin
+  if HeaderColor = UseDefault then
+    LHeaderStyle := ConsoleTheme.HighlightText
+  else
+    LHeaderStyle := ANSI_FG[HeaderColor];
+  CharSymbol := GetBoxChars(ConsoleTheme.BoxStyle).Horizontal;
+  Line := StringOfChar(CharSymbol, Width);
+  WriteAnsiLine(ConsoleTheme.Draw, Line);
+
+  if Text <> '' then
+  begin
+    PaddingSize := (Width - Length(Text) - 2) div 2;
+    Line := StringOfChar(' ', PaddingSize) + ' ' + Text + ' ' +
+            StringOfChar(' ', Width - PaddingSize - Length(Text) - 2);
+    WriteAnsiLine(LHeaderStyle, Line);
+    Line := StringOfChar(CharSymbol, Width);
+    WriteAnsiLine(ConsoleTheme.Draw, Line);
+  end;
+end;
+
+procedure WriteSeparator(Width: Integer; CharSymbol: Char);
+begin
+  WriteAnsiLine(ConsoleTheme.Draw, StringOfChar(CharSymbol, Width));
+end;
+
+procedure WriteSuccess(const Message: string);
+begin
+  WriteColoredText('[SUCCESS]', Black, Green);
+  WriteAnsiLine(ConsoleTheme.Text, ' ' + Message);
+end;
+
+procedure WriteWarning(const Message: string);
+begin
+  WriteColoredText('[WARNING]', Black, Yellow);
+  WriteAnsiLine(ConsoleTheme.Text, ' ' + Message);
+end;
+
+procedure WriteError(const Message: string);
+begin
+  WriteColoredText('[ERROR]', White, Red);
+  WriteAnsiLine(ConsoleTheme.Text, ' ' + Message);
+end;
+
+procedure WriteInfo(const Message: string);
+begin
+  WriteColoredText('[INFO]', White, Blue);
+  WriteAnsiLine(ConsoleTheme.Text, ' ' + Message);
+end;
+
+procedure WriteFormattedList(const Title: string; const Items: TStringArray;
+  ListStyle: TListStyle);
+var
+  I: Integer;
+  Prefix: string;
+begin
+  if Title <> '' then
+    WriteAnsiLine(ConsoleTheme.Text, Title);
+  for I := 0 to High(Items) do
+  begin
+    case ListStyle of
+      lsBullet: Prefix := '  * ';
+      lsNumbered: Prefix := Format('%3d. ', [I + 1]);
+      lsDash: Prefix := '  - ';
+      lsArrow: Prefix := '  > ';
+    end;
+    WriteAnsiText(ConsoleTheme.Symbols, Prefix);
+    WriteAnsiLine(ConsoleTheme.Text, Items[I]);
+  end;
+end;
+
+// ============================================================================
+// DRAWING PRIMITIVES
+// ============================================================================
 
 procedure SaveCursorPosition;
 var
@@ -1192,8 +1406,6 @@ var
   BoxChars: TBoxChars;
 begin
   BoxChars := GetBoxChars(Style);
-
-  // Top border
   GotoXY(X, Y);
   Write(BoxChars.TopLeft);
   TitleStart := (Width - Length(Title)) div 2;
@@ -1213,7 +1425,6 @@ begin
   end;
   Write(BoxChars.TopRight);
 
-  // Side borders
   for I := 1 to Height - 2 do
   begin
     GotoXY(X, Y + I);
@@ -1222,7 +1433,6 @@ begin
     Write(BoxChars.Vertical);
   end;
 
-  // Bottom border
   GotoXY(X, Y + Height - 1);
   Write(BoxChars.BottomLeft);
   for I := 1 to Width - 2 do
@@ -1267,12 +1477,16 @@ begin
   end;
 end;
 
+// ============================================================================
+// INFORMATION
+// ============================================================================
+
 function IsTerminalCapable: Boolean;
 begin
 {$IFDEF LINUX}
   Result := isatty(STDOUT_FILENO) = 1;
 {$ELSE}
-  Result := True; // Assume Windows console is capable
+  Result := True;
 {$ENDIF}
 end;
 
@@ -1305,11 +1519,10 @@ end;
 procedure FlashScreen;
 begin
 {$IFDEF LINUX}
-  Write(ESC + '[?5h'); // Enable reverse video
+  Write(ESC + '[?5h');
   Sleep(100);
-  Write(ESC + '[?5l'); // Disable reverse video
+  Write(ESC + '[?5l');
 {$ELSE}
-  // Flash by inverting colors briefly
   SaveColors;
   try
     TextColor(Black);
@@ -1324,651 +1537,231 @@ begin
 end;
 
 // ============================================================================
-// ENHANCED LIBRARY FUNCTIONS - ASCII Based for Maximum Compatibility
+// HIGH-LEVEL API: TABLE
 // ============================================================================
 
-procedure WriteSimpleTable(const Headers: TStringArray; const Data: TStringMatrix; const Style: TBoxStyle);
+procedure InternalDrawTable(const Headers: TStringArray; const Data: TStringMatrix;
+  const ColWidths: TArray<Integer>; const lBoxChars: TBoxChars;
+  HighlightRow: Integer = -1);
 var
-  ColWidths: array of Integer;
   I, J: Integer;
-  Line, Cell: string;
-  lBoxChars: TBoxChars;
+  Cell, Line: string;
 begin
-  if Length(Headers) = 0 then Exit;
-
-  lBoxChars := GetBoxChars(Style);
-
-  // Calculate column widths
-  SetLength(ColWidths, Length(Headers));
-  for I := 0 to High(Headers) do
-  begin
-    ColWidths[I] := Length(Headers[I]);
-    for J := 0 to High(Data) do
-    begin
-      if (I < Length(Data[J])) and (Length(Data[J][I]) > ColWidths[I]) then
-        ColWidths[I] := Length(Data[J][I]);
-    end;
-    Inc(ColWidths[I], 2); // Add padding
-  end;
-
   // Top border
-  WriteTableTopBorder(ColWidths, Style);
-
-  // Headers
-  WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
+  WriteAnsiText(ConsoleTheme.Draw, lBoxChars.TopLeft);
   Line := '';
-  for I := 0 to High(Headers) do
-  begin
-    Cell := ' ' + PadRight(Headers[I], ColWidths[I] - 2) + ' ';
-    WriteColoredText(Cell, MVCConsoleStyle.TextHighlightColor);
-    if I < High(ColWidths) then
-      WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor)
-  end;
-  WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-
-  // Header separator
-  WriteColoredText(lBoxChars.LeftJoin, MVCConsoleStyle.DrawColor);
-  Line := '';
-  for I := 0 to High(ColWidths) do
-  begin
-    Line := StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
-    WriteColoredText(Line, MVCConsoleStyle.DrawColor);
-    if I < High(ColWidths) then
-      WriteColoredText(lBoxChars.Cross, MVCConsoleStyle.DrawColor)
-  end;
-  WriteLineColored(lBoxChars.RightJoin, MVCConsoleStyle.DrawColor);
-
-  // Data rows
-  for I := 0 to High(Data) do
-  begin
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-    Line := '';
-    for J := 0 to High(Headers) do
-    begin
-      if J < Length(Data[I]) then
-        Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
-      else
-        Cell := StringOfChar(' ', ColWidths[J]);
-      Line := Line + Cell + lBoxChars.Vertical;
-    end;
-    WriteLineColored(Line);
-  end;
-
-  // Bottom border
-  WriteTableBottomBorder(ColWidths, Style);
-end;
-
-procedure ShowSimpleProgressBar(const Title: string; Position, MaxValue: Integer; Width: Integer);
-var
-  Progress: Double;
-  FilledChars: Integer;
-  ProgressLine: string;
-  BarContent: string;
-begin
-  if MaxValue = 0 then Exit;
-
-  Progress := Position / MaxValue;
-  FilledChars := Round(Progress * Width);
-
-  // Build the bar content
-  BarContent := StringOfChar('=', FilledChars) + StringOfChar(' ', Width - FilledChars);
-
-  // Build complete progress line
-  ProgressLine := Format('[%s] %3.0f%% (%d/%d)',
-    [BarContent,
-     Progress * 100,
-     Position,
-     MaxValue]);
-
-  if Title <> '' then
-  begin
-    WriteColoredText(Title + ': ', Gray);
-    WriteColoredText(ProgressLine, White);
-  end
-  else
-    WriteColoredText(ProgressLine, White);
-
-  // Force flush to ensure progress bar is displayed
-{$IFDEF MSWINDOWS}
-  Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-  Flush(Output);
-{$ENDIF}
-end;
-
-procedure DrawSimpleBox(const Title: string; const Content: TStringArray; Width: Integer; TextColor: TConsoleColor; Style: TBoxStyle);
-var
-  I: Integer;
-  Line: string;
-  ContentLine: string;
-  lBoxChars: TBoxChars;
-begin
-  lBoxChars := GetBoxChars(Style);
-
-  // Top border
-  Line := lBoxChars.TopLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.TopRight;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-  // Title (if provided)
-  if Title <> '' then
-  begin
-    ContentLine := ' ' + PadRight(Title, Width - 4) + ' ';
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-    WriteColoredText(ContentLine, GetColorOrDefault(TextColor, sccHighLightText));
-    WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-
-    // Title separator
-    Line := lBoxChars.LeftJoin + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.RightJoin;
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-  end;
-
-  // Content lines
-  for I := 0 to High(Content) do
-  begin
-    WriteColoredText(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-    ContentLine := ' ' + PadRight(Content[I], Width - 4) + ' ';
-    WriteColoredText(ContentLine, TextColor);
-    WriteLineColored(lBoxChars.Vertical, MVCConsoleStyle.DrawColor);
-  end;
-
-  // Bottom border
-  Line := lBoxChars.BottomLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.BottomRight;
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-end;
-
-procedure WriteAlignedText(const Text: string; Width: Integer; Alignment: TAlignment; TextColor: TConsoleColor);
-var
-  PaddingLeft, PaddingRight: Integer;
-  AlignedText: string;
-begin
-  TextColor := GetColorOrDefault(TextColor, sccText);
-
-  if Length(Text) >= Width then
-  begin
-    WriteLineColored(Text, TextColor);
-    Exit;
-  end;
-
-  case Alignment of
-    taLeft:
-      AlignedText := Text + StringOfChar(' ', Width - Length(Text));
-    taRight:
-      AlignedText := StringOfChar(' ', Width - Length(Text)) + Text;
-    taCenter:
-    begin
-      PaddingLeft := (Width - Length(Text)) div 2;
-      PaddingRight := Width - Length(Text) - PaddingLeft;
-      AlignedText := StringOfChar(' ', PaddingLeft) + Text + StringOfChar(' ', PaddingRight);
-    end;
-  end;
-
-  WriteLineColored(AlignedText, TextColor);
-end;
-
-procedure ShowProgressAnimation(const Title: string; Steps: Integer; DelayMs: Integer);
-var
-  I: Integer;
-  Percent: Double;
-  ProgressLine: string;
-  CurPos: TMVCConsolePoint;
-begin
-  if Title <> '' then
-    WriteLineColored(Title, Yellow);
-
-  // Save cursor position for animation
-  CurPos := GetCursorPosition;
-
-  for I := 0 to Steps do
-  begin
-    Percent := (I / Steps) * 100;
-    ProgressLine := Format('Progress: [%s%s] %3.0f%%',
-      [StringOfChar('=', I * 40 div Steps),
-       StringOfChar(' ', 40 - (I * 40 div Steps)),
-       Percent]);
-
-    // Go back to saved position
-    GotoXY(CurPos.X, CurPos.Y);
-
-    // Clear the line and write progress
-    WriteColoredText(ProgressLine + StringOfChar(' ', 10), White);
-
-    // Force flush
-{$IFDEF MSWINDOWS}
-    Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-    Flush(Output);
-{$ENDIF}
-
-    Sleep(DelayMs);
-  end;
-  WriteLn;
-end;
-
-procedure WriteStatusLine(const Items: TStringArray; const Statuses: TStringArray;
-                         const Colors: TConsoleColorArray);
-var
-  I: Integer;
-  MaxLen: Integer;
-begin
-  MaxLen := Min(Length(Items), Length(Statuses));
-  for I := 0 to MaxLen - 1 do
-  begin
-    WriteColoredText(Items[I] + ': ', Gray);
-    if I < Length(Colors) then
-      WriteLineColored(Statuses[I], Colors[I])
-    else
-      WriteLineColored(Statuses[I], White);
-  end;
-end;
-
-procedure ShowSimpleMenu(const Title: string; const Items: TStringArray; SelectedIndex: Integer);
-var
-  I: Integer;
-  Line: string;
-  MaxWidth: Integer;
-begin
-  // Calculate max width
-  MaxWidth := Length(Title);
-  for I := 0 to High(Items) do
-    if Length(Items[I]) + 4 > MaxWidth then
-      MaxWidth := Length(Items[I]) + 4;
-  Inc(MaxWidth, 4); // Add border padding
-
-  // Top border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-  // Title
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-
-  // Separator
-  Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-  // Menu items
-  for I := 0 to High(Items) do
-  begin
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-
-    if I = SelectedIndex then
-    begin
-      WriteColoredText('> ', MVCConsoleStyle.TextColor);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleStyle.TextColor);
-    end
-    else
-    begin
-      WriteColoredText('  ', MVCConsoleStyle.TextColor);
-      WriteColoredText(PadRight(Items[I], MaxWidth - 6), MVCConsoleStyle.TextColor);
-    end;
-
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-  end;
-
-  // Bottom border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-end;
-
-procedure WriteFormattedList(const Title: string; const Items: TStringArray;
-                           ListStyle: TListStyle);
-var
-  I: Integer;
-  Prefix: string;
-begin
-  if Title <> '' then
-  begin
-    WriteLineColored(Title, MVCConsoleStyle.TextColor);
-    WriteLn;
-  end;
-
-  for I := 0 to High(Items) do
-  begin
-    case ListStyle of
-      lsBullet: Prefix := '  • ';
-      lsNumbered: Prefix := Format('%3d. ', [I + 1]);
-      lsDash: Prefix := '  - ';
-      lsArrow: Prefix := '  > ';
-    end;
-
-    WriteColoredText(Prefix, MVCConsoleStyle.SymbolsColor);
-    WriteLineColored(Items[I], MVCConsoleStyle.TextColor);
-  end;
-end;
-
-procedure ShowSystemDashboard(const Title: string; const ServerStatuses: TStringArray;
-                              const ServerColors: TConsoleColorArray;
-                              const MetricNames: TStringArray; const MetricValues: TIntegerArray);
-var
-  I: Integer;
-  Line: string;
-  MaxWidth: Integer;
-  MaxLen: Integer;
-  Progress: Double;
-  FilledChars: Integer;
-  ProgressBarWidth: Integer;
-  ProgressStr: string;
-  MetricLine: string;
-begin
-  MaxWidth := 60;
-  ProgressBarWidth := 20;
-
-  // Top border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-  // Title
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight(Title, MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-
-  // Separator
-  Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-  // Server statuses
-  WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-  WriteColoredText(PadRight('Server Status:', MaxWidth - 4), MVCConsoleStyle.TextColor);
-  WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-
-  MaxLen := Min(Length(ServerStatuses), Length(ServerColors));
-  for I := 0 to MaxLen - 1 do
-  begin
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-    WriteColoredText('  ' + ServerStatuses[I], ServerColors[I]);
-    WriteColoredText(StringOfChar(' ', MaxWidth - Length(ServerStatuses[I]) - 6), MVCConsoleStyle.TextColor);
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-  end;
-
-  // Metrics
-  if Length(MetricNames) > 0 then
-  begin
-    Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-
-    WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-    WriteColoredText(PadRight('Performance Metrics:', MaxWidth - 4), MVCConsoleStyle.TextColor);
-    WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-
-    MaxLen := Min(Length(MetricNames), Length(MetricValues));
-    for I := 0 to MaxLen - 1 do
-    begin
-      // Calculate progress
-      Progress := MetricValues[I] / 100;
-      FilledChars := Round(Progress * ProgressBarWidth);
-
-      // Build progress string
-      ProgressStr := '[' + StringOfChar('=', FilledChars) +
-                     StringOfChar(' ', ProgressBarWidth - FilledChars) + '] ' +
-                     Format('%3d%%', [MetricValues[I]]);
-
-      // Build complete line
-      MetricLine := '  ' + MetricNames[I] + ': ' + ProgressStr;
-
-      WriteColoredText('| ', MVCConsoleStyle.DrawColor);
-      WriteColoredText(PadRight(MetricLine, MaxWidth - 4), MVCConsoleStyle.TextColor);
-      WriteLineColored(' |', MVCConsoleStyle.DrawColor);
-    end;
-  end;
-
-  // Bottom border
-  Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
-end;
-
-procedure WriteReport(const Title: string; const Sections: TStringArray;
-                     const SectionContents: TStringMatrix);
-var
-  I, J: Integer;
-  MaxLen: Integer;
-begin
-  // Report header
-  WriteHeader(Title);
-  WriteLn;
-
-  // Report sections
-  MaxLen := Min(Length(Sections), Length(SectionContents));
-  for I := 0 to MaxLen - 1 do
-  begin
-    WriteLineColored(Sections[I], Yellow);
-    WriteSeparator(40);
-
-    for J := 0 to High(SectionContents[I]) do
-      WriteLineColored('  ' + SectionContents[I][J], White);
-
-    WriteLn;
-  end;
-
-  WriteHeader('End of Report');
-end;
-
-procedure ShowLoadingSpinner(const Message: string; Iterations: Integer);
-var
-  I: Integer;
-  SpinChars: array[0..3] of Char;
-  CurPos: TMVCConsolePoint;
-begin
-  SpinChars[0] := '|';
-  SpinChars[1] := '/';
-  SpinChars[2] := '-';
-  SpinChars[3] := '\';
-
-  // Ensure we're using visible colors
-  SaveColors;
-  try
-    TextColor(White);
-    TextBackground(Black);
-
-    // Write message
-    Write(Message + ' ');
-
-    // Force flush immediately after writing message
-{$IFDEF MSWINDOWS}
-    Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-    Flush(Output);
-{$ENDIF}
-
-    // Save cursor position for spinner
-    CurPos := GetCursorPosition;
-
-    TextColor(Yellow);
-    for I := 0 to Iterations do
-    begin
-      // Go back to spinner position
-      GotoXY(CurPos.X, CurPos.Y);
-
-      // Write spinner character
-      Write(SpinChars[I mod 4]);
-
-      // Force flush for smooth animation
-{$IFDEF MSWINDOWS}
-      Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-      Flush(Output);
-{$ENDIF}
-
-      Sleep(150);
-    end;
-
-    // Go back to spinner position and write Done
-    GotoXY(CurPos.X, CurPos.Y);
-    TextColor(Green);
-    Write('Done!');
-    WriteLn;
-  finally
-    RestoreSavedColors;
-  end;
-end;
-
-procedure WriteColoredTable(const Headers: TStringArray;
-                            const Data: TStringMatrix;
-                           HeaderColor: TConsoleColor;
-                           DrawColor: TConsoleColor;
-                           DataColor: TConsoleColor;
-                           BoxStyle: TBoxStyle);
-var
-  ColWidths: array of Integer;
-  I, J: Integer;
-  Line, Cell: string;
-  lBoxChars: TBoxChars;
-begin
-  if Length(Headers) = 0 then Exit;
-
-  HeaderColor := GetColorOrDefault(HeaderColor, sccHighLightText);
-  DrawColor := GetColorOrDefault(DrawColor, sccDraw);
-  DataColor := GetColorOrDefault(DataColor, sccText);
-
-  lBoxChars := GetBoxChars(BoxStyle);
-
-  // Calculate column widths
-  SetLength(ColWidths, Length(Headers));
-  for I := 0 to High(Headers) do
-  begin
-    ColWidths[I] := Length(Headers[I]);
-    for J := 0 to High(Data) do
-    begin
-      if (I < Length(Data[J])) and (Length(Data[J][I]) > ColWidths[I]) then
-        ColWidths[I] := Length(Data[J][I]);
-    end;
-    Inc(ColWidths[I], 2); // Add padding
-  end;
-
-  // Top border
-  Line := lBoxChars.TopLeft;
   for I := 0 to High(ColWidths) do
   begin
     Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
     if I < High(ColWidths) then
       Line := Line + lBoxChars.TopJoin
     else
-      Line := Line + lBoxChars.TopRight
+      Line := Line + lBoxChars.TopRight;
   end;
-  WriteLineColored(Line, DrawColor);
+  WriteAnsiLine(ConsoleTheme.Draw, Line);
 
-  // Headers with color
-  Line := '';
-  WriteColoredText(lBoxChars.Vertical, DrawColor);
+  // Headers
+  WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
   for I := 0 to High(Headers) do
   begin
     Cell := ' ' + PadRight(Headers[I], ColWidths[I] - 2) + ' ';
-    Line := Cell;
-    WriteColoredText(Line, HeaderColor);
-    WriteColoredText(lBoxChars.Vertical, DrawColor);
-    Line := '';
+    WriteAnsiText(ConsoleTheme.HighlightText, Cell);
+    WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
   end;
-  Writeln;
+  WriteLn;
 
   // Header separator
-  Line := lBoxChars.LeftJoin;
+  WriteAnsiText(ConsoleTheme.Draw, lBoxChars.LeftJoin);
   for I := 0 to High(ColWidths) do
   begin
-    Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
+    WriteAnsiText(ConsoleTheme.Draw, StringOfChar(lBoxChars.Horizontal, ColWidths[I]));
     if I < High(ColWidths) then
-      Line := Line + lBoxChars.Cross
+      WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Cross)
     else
-      Line := Line + lBoxChars.RightJoin
+      WriteAnsiText(ConsoleTheme.Draw, lBoxChars.RightJoin);
   end;
-  WriteLineColored(Line, DrawColor);
-  // Data rows with color
+  WriteLn;
 
+  // Data rows
   for I := 0 to High(Data) do
   begin
-    WriteColoredText(lBoxChars.Vertical, DrawColor);
-    Line := '';
+    WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
     for J := 0 to High(Headers) do
     begin
       if J < Length(Data[I]) then
         Cell := ' ' + PadRight(Data[I][J], ColWidths[J] - 2) + ' '
       else
         Cell := StringOfChar(' ', ColWidths[J]);
-      WriteColoredText(Cell, DataColor);
-      WriteColoredText(lBoxChars.Vertical, DrawColor);
+
+      if I = HighlightRow then
+        WriteAnsiText(ConsoleTheme.Highlight, Cell)
+      else
+        WriteAnsiText(ConsoleTheme.Text, Cell);
+
+      WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
     end;
-    Writeln;
+    WriteLn;
   end;
 
   // Bottom border
-  Line := lBoxChars.BottomLeft;
+  WriteAnsiText(ConsoleTheme.Draw, lBoxChars.BottomLeft);
+  Line := '';
   for I := 0 to High(ColWidths) do
   begin
     Line := Line + StringOfChar(lBoxChars.Horizontal, ColWidths[I]);
     if I < High(ColWidths) then
       Line := Line + lBoxChars.BottomJoin
     else
-      Line := Line + lBoxChars.BottomRight
+      Line := Line + lBoxChars.BottomRight;
   end;
-  WriteLineColored(Line, DrawColor);
+  WriteAnsiLine(ConsoleTheme.Draw, Line);
 end;
 
-// ============================================================================
-// QUICK UTILITY FUNCTIONS
-// ============================================================================
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix);
+begin
+  Table(Headers, Data, '');
+end;
 
-procedure WriteHeader(const Text: string; Width: Integer; HeaderColor: TConsoleColor);
+procedure Table(const Headers: TStringArray; const Data: TStringMatrix; const Title: string);
 var
-  Line: string;
-  PaddingSize: Integer;
-  CharSymbol: Char;
+  ColWidths: TArray<Integer>;
 begin
-  HeaderColor := GetColorOrDefault(HeaderColor, sccHighLightText);
-  CharSymbol := GetBoxChars(MVCConsolestyle.BoxStyle).Horizontal;
-  Line := StringOfChar(CharSymbol, Width);
-  WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+  if Length(Headers) = 0 then Exit;
 
-  if Text <> '' then
+  ColWidths := CalcColumnWidths(Headers, Data);
+
+  if Title <> '' then
+    WriteAnsiLine(ConsoleTheme.HighlightText, Title);
+
+  InternalDrawTable(Headers, Data, ColWidths, GetBoxChars(bsUseDefault));
+end;
+
+// ============================================================================
+// HIGH-LEVEL API: TABLE MENU
+// ============================================================================
+
+function TableMenu(const Headers: TStringArray; const Data: TStringMatrix): Integer;
+begin
+  Result := TableMenu('', Headers, Data, 0);
+end;
+
+function TableMenu(const Title: string; const Headers: TStringArray; const Data: TStringMatrix): Integer;
+begin
+  Result := TableMenu(Title, Headers, Data, 0);
+end;
+
+function TableMenu(const Title: string; const Headers: TStringArray;
+  const Data: TStringMatrix; DefaultIndex: Integer): Integer;
+var
+  ColWidths: TArray<Integer>;
+  lBoxChars: TBoxChars;
+  SelectedIndex: Integer;
+  Key: Integer;
+  StartY: Integer;
+
+  procedure DrawTable;
   begin
-    PaddingSize := (Width - Length(Text) - 2) div 2;
-    Line := StringOfChar(' ', PaddingSize) + ' ' + Text + ' ' +
-            StringOfChar(' ', Width - PaddingSize - Length(Text) - 2);
-    WriteLineColored(Line, HeaderColor);
+    GotoXY(0, StartY);
+    if Title <> '' then
+      WriteAnsiLine(ConsoleTheme.HighlightText, Title);
+    InternalDrawTable(Headers, Data, ColWidths, lBoxChars, SelectedIndex);
+    WriteLine('Use arrows to navigate, Enter to select, ESC to cancel', DarkGray);
+  end;
 
-    Line := StringOfChar(CharSymbol, Width);
-    WriteLineColored(Line, MVCConsoleStyle.DrawColor);
+begin
+  if (Length(Data) = 0) or (Length(Headers) = 0) then Exit(-1);
+
+  lBoxChars := GetBoxChars(bsUseDefault);
+  ColWidths := CalcColumnWidths(Headers, Data);
+
+  ClrScr;
+  StartY := 0;
+  SelectedIndex := EnsureRange(DefaultIndex, 0, High(Data));
+
+  HideCursor;
+  try
+    repeat
+      DrawTable;
+      Key := GetKey;
+      case Key of
+        KEY_UP: if SelectedIndex > 0 then Dec(SelectedIndex);
+        KEY_DOWN: if SelectedIndex < High(Data) then Inc(SelectedIndex);
+        KEY_ENTER: Exit(SelectedIndex);
+        KEY_ESCAPE: Exit(-1);
+      end;
+    until False;
+  finally
+    ShowCursor;
   end;
 end;
 
-procedure WriteSeparator(Width: Integer; CharSymbol: Char);
+// ============================================================================
+// HIGH-LEVEL API: BOX
+// ============================================================================
+
+procedure Box(const Content: TStringArray);
 begin
-  WriteLineColored(StringOfChar(CharSymbol, Width), Gray);
+  Box('', Content, 60);
 end;
 
-procedure WriteSuccess(const Message: string);
+procedure Box(const Title: string; const Content: TStringArray);
 begin
-  WriteColoredText('[SUCCESS] ', Green);
-  WriteLineColored(Message, White);
+  Box(Title, Content, 60);
 end;
 
-procedure WriteWarning(const Message: string);
+procedure Box(const Title: string; const Content: TStringArray; Width: Integer);
+var
+  I: Integer;
+  Line, ContentLine: string;
+  lBoxChars: TBoxChars;
 begin
-  WriteColoredText('[WARNING] ', Yellow);
-  WriteLineColored(Message, White);
-end;
+  lBoxChars := GetBoxChars(bsUseDefault);
 
-procedure WriteError(const Message: string);
-begin
-  WriteColoredText('[ERROR] ', Red);
-  WriteLineColored(Message, White);
-end;
+  // Top border
+  Line := lBoxChars.TopLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.TopRight;
+  WriteAnsiLine(ConsoleTheme.Draw, Line);
 
-procedure WriteInfo(const Message: string);
-begin
-  WriteColoredText('[INFO] ', Cyan);
-  WriteLineColored(Message, White);
+  // Title
+  if Title <> '' then
+  begin
+    ContentLine := ' ' + PadRight(Title, Width - 4) + ' ';
+    WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
+    WriteAnsiText(ConsoleTheme.HighlightText, ContentLine);
+    WriteAnsiLine(ConsoleTheme.Draw, lBoxChars.Vertical);
+
+    Line := lBoxChars.LeftJoin + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.RightJoin;
+    WriteAnsiLine(ConsoleTheme.Draw, Line);
+  end;
+
+  // Content
+  for I := 0 to High(Content) do
+  begin
+    WriteAnsiText(ConsoleTheme.Draw, lBoxChars.Vertical);
+    ContentLine := ' ' + PadRight(Content[I], Width - 4) + ' ';
+    WriteAnsiText(ConsoleTheme.Text, ContentLine);
+    WriteAnsiLine(ConsoleTheme.Draw, lBoxChars.Vertical);
+  end;
+
+  // Bottom border
+  Line := lBoxChars.BottomLeft + StringOfChar(lBoxChars.Horizontal, Width - 2) + lBoxChars.BottomRight;
+  WriteAnsiLine(ConsoleTheme.Draw, Line);
 end;
 
 // ============================================================================
-// INTERACTIVE MENU FUNCTIONS
+// HIGH-LEVEL API: MENU
 // ============================================================================
 
-function ShowInteractiveMenu(const Title: string; const Items: TStringArray;
-                           DefaultIndex: Integer = 0;
-                           const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+function Menu(const Items: TStringArray): Integer;
+begin
+  Result := Menu('', Items, 0);
+end;
+
+function Menu(const Title: string; const Items: TStringArray): Integer;
+begin
+  Result := Menu(Title, Items, 0);
+end;
+
+function Menu(const Title: string; const Items: TStringArray; DefaultIndex: Integer): Integer;
 var
   SelectedIndex: Integer;
   Key: Integer;
@@ -1977,109 +1770,89 @@ var
   MaxWidth: Integer;
   StartX, StartY: Word;
   CurPos: TMVCConsolePoint;
-  ConsoleSize: TMVCConsoleSize;
+  ConsSize: TMVCConsoleSize;
   Line: string;
   MenuHeight: Integer;
+  BoxChars: TBoxChars;
+  Hint: string;
 begin
-  Result := -1;  // Default to cancelled
+  Result := -1;
   if Length(Items) = 0 then Exit;
 
-  Init; // Ensure console is initialized
+  Init;
+  Hint := 'Use arrows to navigate, Enter to select, ESC to cancel';
 
-  SelectedIndex := DefaultIndex;
-  if SelectedIndex < 0 then SelectedIndex := 0;
-  if SelectedIndex > High(Items) then SelectedIndex := High(Items);
+  SelectedIndex := EnsureRange(DefaultIndex, 0, High(Items));
 
-  // Calculate max width
-  MaxWidth := Length(Title);
+  // Calculate max width (must also cover the hint line for proper clearing)
+  MaxWidth := Length(Hint);
+  if Length(Title) > MaxWidth then
+    MaxWidth := Length(Title);
   for I := 0 to High(Items) do
     if Length(Items[I]) + 6 > MaxWidth then
       MaxWidth := Length(Items[I]) + 6;
-  Inc(MaxWidth, 4); // Add border padding
+  Inc(MaxWidth, 4);
 
-  // Calculate menu height
-  MenuHeight := Length(Items) + 5; // Items + borders + title + separator
-  if Hint <> '' then Inc(MenuHeight);
+  // top border + items + bottom border + hint = N + 3
+  // with title: + title + separator = N + 5
+  MenuHeight := Length(Items) + 3;
+  if Title <> '' then
+    Inc(MenuHeight, 2);
+  Inc(MenuHeight); // hint line
 
-  // Get console size and current position
-  ConsoleSize := GetConsoleSize;
+  ConsSize := GetConsoleSize;
   CurPos := GetCursorPosition;
   StartX := CurPos.X;
   StartY := CurPos.Y;
 
-  // Ensure menu fits in console
-  if StartY + MenuHeight > ConsoleSize.Rows then
+  if StartY + MenuHeight > ConsSize.Rows then
   begin
-    StartY := ConsoleSize.Rows - MenuHeight - 1;
-    //if StartY < 0 then StartY := 0;
+    StartY := ConsSize.Rows - MenuHeight - 1;
     GotoXY(StartX, StartY);
   end;
 
-  // Hide cursor during menu
   HideCursor;
   try
     Done := False;
     while not Done do
     begin
-      // Go back to start position
       GotoXY(StartX, StartY);
+      BoxChars := GetBoxChars(ConsoleTheme.BoxStyle);
 
-      // Draw menu
       // Top border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      Line := BoxChars.TopLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.TopRight;
+      WriteAnsiLine(ConsoleTheme.Draw, Line);
 
       // Title
-      WriteColoredText('| ', Cyan);
-      WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLineColored(' |', Cyan);
+      if Title <> '' then
+      begin
+        WriteAnsiText(ConsoleTheme.Draw, BoxChars.Vertical + ' ');
+        WriteAnsiText(ConsoleTheme.HighlightText, PadRight(Title, MaxWidth - 4));
+        WriteAnsiLine(ConsoleTheme.Draw, ' ' + BoxChars.Vertical);
 
-      // Separator
-      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+        Line := BoxChars.LeftJoin + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.RightJoin;
+        WriteAnsiLine(ConsoleTheme.Draw, Line);
+      end;
 
-      // Menu items
+      // Items
       for I := 0 to High(Items) do
       begin
-        WriteColoredText('| ', Cyan);
-
+        WriteAnsiText(ConsoleTheme.Draw, BoxChars.Vertical + ' ');
         if I = SelectedIndex then
-        begin
-          // Highlighted item
-          SaveColors;
-          TextBackground(DarkCyan);
-          TextColor(White);
-          Write('> ' + PadRight(Items[I], MaxWidth - 6) + ' ');
-          RestoreSavedColors;
-        end
+          WriteAnsiText(ConsoleTheme.Highlight, '> ' + PadRight(Items[I], MaxWidth - 6) + ' ')
         else
-        begin
-          WriteColoredText('  ' + PadRight(Items[I], MaxWidth - 6) + ' ', White);
-        end;
-
-        WriteLineColored('|', Cyan);
+          WriteAnsiText(ConsoleTheme.Text, '  ' + PadRight(Items[I], MaxWidth - 6) + ' ');
+        WriteAnsiLine(ConsoleTheme.Draw, BoxChars.Vertical);
       end;
 
       // Bottom border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+      Line := BoxChars.BottomLeft + StringOfChar(BoxChars.Horizontal, MaxWidth - 2) + BoxChars.BottomRight;
+      WriteAnsiLine(ConsoleTheme.Draw, Line);
 
-      // Hint
-      if Hint <> '' then
-        WriteLineColored(Hint, DarkGray);
+      WriteAnsiLine(ConsoleTheme.Symbols, Hint);
+      FlushOutput;
 
-      // Flush output
-{$IFDEF MSWINDOWS}
-      Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-      Flush(Output);
-{$ENDIF}
-
-      // Read key
       Key := GetKey;
-
-      // Handle keys
       case Key of
         KEY_UP:
           begin
@@ -2106,17 +1879,16 @@ begin
       end;
     end;
 
-    // Clear the menu area safely
+    // Clear menu area
     for I := 0 to MenuHeight - 1 do
     begin
-      if StartY + I < ConsoleSize.Rows then
+      if StartY + I < ConsSize.Rows then
       begin
         GotoXY(StartX, StartY + I);
-        Write(StringOfChar(' ', Min(MaxWidth + 5, ConsoleSize.Columns - StartX)));
+        Write(StringOfChar(' ', Min(MaxWidth, ConsSize.Columns - StartX)));
       end;
     end;
-
-    if StartY < ConsoleSize.Rows then
+    if StartY < ConsSize.Rows then
       GotoXY(StartX, StartY);
 
   finally
@@ -2124,217 +1896,399 @@ begin
   end;
 end;
 
-function ShowAdvancedMenu(const Title: string; const Items: TMenuItemsArray;
-                        DefaultIndex: Integer = 0;
-                        HighlightColor: TConsoleColor = DarkCyan;
-                        const Hint: string = 'Use arrows to navigate, Enter to select, ESC to cancel'): Integer;
+// ============================================================================
+// HIGH-LEVEL API: PROGRESS
+// ============================================================================
+
+type
+  TConsoleProgress = class(TInterfacedObject, IProgress)
+  private
+    FTitle: string;
+    FMaxValue: Integer;
+    FCurrent: Integer;
+    FStartX, FStartY: Integer;
+    FWidth: Integer;
+    FCompleted: Boolean;
+    FSpinnerIndex: Integer;
+    FSpinnerChars: string;
+    procedure DrawDeterminate;
+    procedure DrawIndeterminate;
+  public
+    constructor Create(const ATitle: string; AMaxValue: Integer; AWidth: Integer = 50);
+    destructor Destroy; override;
+    procedure Update(Value: Integer);
+    procedure Increment(Amount: Integer = 1);
+    procedure SetMessage(const Msg: string);
+    procedure Complete;
+  end;
+
+constructor TConsoleProgress.Create(const ATitle: string; AMaxValue: Integer; AWidth: Integer);
+begin
+  inherited Create;
+  FTitle := ATitle;
+  FMaxValue := AMaxValue;
+  FCurrent := 0;
+  FWidth := AWidth;
+  FCompleted := False;
+  FSpinnerIndex := 0;
+  FSpinnerChars := '|/-\';
+
+  FStartX := GetCursorPosition.X;
+  FStartY := GetCursorPosition.Y;
+
+  WriteAnsiLine(ConsoleTheme.Text, FTitle);
+  if FMaxValue > 0 then
+    DrawDeterminate
+  else
+    DrawIndeterminate;
+end;
+
+destructor TConsoleProgress.Destroy;
+begin
+  if not FCompleted then
+    Complete;
+  inherited;
+end;
+
+procedure TConsoleProgress.DrawDeterminate;
 var
-  SelectedIndex: Integer;
-  Key: Integer;
-  Done: Boolean;
+  Percent, FilledWidth: Integer;
+  Bar: string;
+begin
+  if FMaxValue = 0 then Exit;
+  Percent := (FCurrent * 100) div FMaxValue;
+  FilledWidth := (FCurrent * FWidth) div FMaxValue;
+  Bar := '[' + StringOfChar('=', FilledWidth) + StringOfChar(' ', FWidth - FilledWidth) + ']';
+  GotoXY(FStartX, FStartY + 1);
+  WriteAnsiText(ConsoleTheme.HighlightText, Bar);
+  WriteAnsiText(ConsoleTheme.Text, Format(' %3d%%', [Percent]));
+end;
+
+procedure TConsoleProgress.DrawIndeterminate;
+begin
+  GotoXY(FStartX, FStartY + 1);
+  WriteAnsiText(ConsoleTheme.Draw, '[');
+  WriteAnsiText(ConsoleTheme.HighlightText, FSpinnerChars[FSpinnerIndex + 1]);
+  WriteAnsiText(ConsoleTheme.Draw, ']');
+  WriteAnsiText(ConsoleTheme.Text, ' Processing...');
+  FSpinnerIndex := (FSpinnerIndex + 1) mod Length(FSpinnerChars);
+end;
+
+procedure TConsoleProgress.Update(Value: Integer);
+begin
+  if FCompleted then Exit;
+  FCurrent := Value;
+  if FMaxValue > 0 then
+    DrawDeterminate
+  else
+    DrawIndeterminate;
+end;
+
+procedure TConsoleProgress.Increment(Amount: Integer);
+begin
+  Update(FCurrent + Amount);
+end;
+
+procedure TConsoleProgress.SetMessage(const Msg: string);
+begin
+  GotoXY(FStartX, FStartY);
+  Write(Msg.PadRight(FWidth + 10));
+  FTitle := Msg;
+end;
+
+procedure TConsoleProgress.Complete;
+begin
+  if FCompleted then Exit;
+  FCompleted := True;
+  if FMaxValue > 0 then
+  begin
+    FCurrent := FMaxValue;
+    DrawDeterminate;
+  end;
+  GotoXY(FStartX, FStartY + 2);
+  WriteAnsiLine(ConsoleTheme.HighlightText, 'Done!');
+end;
+
+function Progress(const Title: string; MaxValue: Integer): IProgress;
+begin
+  Result := TConsoleProgress.Create(Title, MaxValue);
+end;
+
+function Progress(const Title: string): IProgress;
+begin
+  Result := TConsoleProgress.Create(Title, 0);
+end;
+
+// ============================================================================
+// HIGH-LEVEL API: CONFIRM & CHOOSE
+// ============================================================================
+
+function Confirm(const Question: string): Boolean;
+begin
+  Result := Confirm(Question, True);
+end;
+
+function Confirm(const Question: string; DefaultYes: Boolean): Boolean;
+var
+  Response: string;
+begin
+  WriteAnsiText(ConsoleTheme.Text, Question + ' ');
+  if DefaultYes then
+    WriteAnsiText(ConsoleTheme.HighlightText, '[Y/n]: ')
+  else
+    WriteAnsiText(ConsoleTheme.HighlightText, '[y/N]: ');
+  ReadLn(Response);
+  Response := Trim(UpperCase(Response));
+  if Response = '' then
+    Result := DefaultYes
+  else
+    Result := (Response = 'Y') or (Response = 'YES');
+end;
+
+function Choose(const Question: string; const Options: TStringArray): Integer;
+var
   I: Integer;
-  MaxWidth: Integer;
-  StartX, StartY: Word;
+  Response: string;
+  Choice: Integer;
+begin
+  WriteAnsiLine(ConsoleTheme.HighlightText, Question);
+  for I := 0 to High(Options) do
+  begin
+    WriteAnsiText(ConsoleTheme.Symbols, Format('  [%d] ', [I + 1]));
+    WriteAnsiLine(ConsoleTheme.Text, Options[I]);
+  end;
+  WriteAnsiText(ConsoleTheme.HighlightText, 'Your choice: ');
+  ReadLn(Response);
+  if TryStrToInt(Trim(Response), Choice) then
+  begin
+    if (Choice >= 1) and (Choice <= Length(Options)) then
+      Result := Choice - 1
+    else
+      Result := -1;
+  end
+  else
+    Result := -1;
+end;
+
+// ============================================================================
+// HIGH-LEVEL API: SPINNER (non-blocking, thread-based)
+// ============================================================================
+
+type
+  TSpinnerFrames = TArray<string>;
+
+  TConsoleSpinner = class(TInterfacedObject, ISpinner)
+  private
+    FFlag: Integer;
+    FThread: TThread;
+    FFrames: TSpinnerFrames;
+    FColor: TConsoleColor;
+    FMessage: string;
+    FInterval: Integer;
+    FSpinnerX, FSpinnerY: Word;
+    FMaxDisplayWidth: Integer;
+  public
+    constructor Create(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor);
+    destructor Destroy; override;
+    procedure Hide;
+  end;
+
+function GetSpinnerFrames(AStyle: TSpinnerStyle): TSpinnerFrames;
+begin
+  case AStyle of
+    ssLine:
+      Result := TSpinnerFrames.Create('-', '\', '|', '/');
+    ssDots:
+      Result := TSpinnerFrames.Create(
+        #$280B, #$2819, #$2839, #$2838, #$283C,
+        #$2834, #$2826, #$2827, #$2807, #$280F);
+    ssBounce:
+      Result := TSpinnerFrames.Create(
+        #$2801, #$2802, #$2804, #$2840,
+        #$2880, #$2820, #$2810, #$2808);
+    ssGrow:
+      Result := TSpinnerFrames.Create(
+        #$258F, #$258E, #$258D, #$258C,
+        #$258B, #$258A, #$2589, #$2588);
+    ssArrow:
+      Result := TSpinnerFrames.Create(
+        #$2190, #$2196, #$2191, #$2197,
+        #$2192, #$2198, #$2193, #$2199);
+    ssCircle:
+      Result := TSpinnerFrames.Create(#$25D0, #$25D3, #$25D1, #$25D2);
+    ssClock:
+      Result := TSpinnerFrames.Create(
+        #$D83D#$DD50, #$D83D#$DD51, #$D83D#$DD52, #$D83D#$DD53,
+        #$D83D#$DD54, #$D83D#$DD55, #$D83D#$DD56, #$D83D#$DD57,
+        #$D83D#$DD58, #$D83D#$DD59, #$D83D#$DD5A, #$D83D#$DD5B);
+    ssEarth:
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF0D, #$D83C#$DF0E, #$D83C#$DF0F);
+    ssMoon:
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF11, #$D83C#$DF12, #$D83C#$DF13, #$D83C#$DF14,
+        #$D83C#$DF15, #$D83C#$DF16, #$D83C#$DF17, #$D83C#$DF18);
+    ssWeather:
+      Result := TSpinnerFrames.Create(
+        #$D83C#$DF24, #$D83C#$DF27, #$26C8,
+        #$D83C#$DF29, #$D83C#$DF28, #$D83C#$DF2A);
+  else
+    Result := TSpinnerFrames.Create('-', '\', '|', '/');
+  end;
+end;
+
+function GetSpinnerInterval(AStyle: TSpinnerStyle): Integer;
+begin
+  case AStyle of
+    ssClock, ssEarth, ssMoon, ssWeather: Result := 200;
+    ssDots, ssBounce: Result := 80;
+    ssGrow: Result := 120;
+  else
+    Result := 100;
+  end;
+end;
+
+function DisplayWidth(const S: string): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  I := 1;
+  while I <= Length(S) do
+  begin
+    if (I < Length(S)) and Char.IsHighSurrogate(S, I - 1) then
+    begin
+      Inc(Result, 2);
+      Inc(I, 2);
+    end
+    else
+    begin
+      Inc(Result, 1);
+      Inc(I);
+    end;
+  end;
+end;
+
+constructor TConsoleSpinner.Create(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor);
+var
+  lFrames: TSpinnerFrames;
+  lInterval: Integer;
+  lColor: TConsoleColor;
+  lSpinnerX, lSpinnerY: Word;
+  lMaxWidth: Integer;
   CurPos: TMVCConsolePoint;
-  ConsoleSize: TMVCConsoleSize;
-  Line: string;
-  ItemText: string;
-  MenuHeight: Integer;
+  lFrame: string;
 begin
-  Result := -1;  // Default to cancelled
-  if Length(Items) = 0 then Exit;
+  inherited Create;
+  FFrames := GetSpinnerFrames(AStyle);
+  FColor := AColor;
+  FMessage := AMessage;
+  FInterval := GetSpinnerInterval(AStyle);
+  TInterlocked.Exchange(FFlag, 1);
 
-  HighlightColor := GetColorOrDefault(HighlightColor, sccHighLightBackground);
-
-  Init; // Ensure console is initialized
-
-  SelectedIndex := DefaultIndex;
-  if SelectedIndex < 0 then SelectedIndex := 0;
-  if SelectedIndex > High(Items) then SelectedIndex := High(Items);
-
-  // Skip to first enabled item if default is disabled
-  while (SelectedIndex <= High(Items)) and (not Items[SelectedIndex].Enabled) do
-    Inc(SelectedIndex);
-  if SelectedIndex > High(Items) then
+  if FMessage <> '' then
   begin
-    SelectedIndex := 0;
-    while (SelectedIndex <= High(Items)) and (not Items[SelectedIndex].Enabled) do
-      Inc(SelectedIndex);
+    TextColor(FColor);
+    Write(FMessage + ' ');
   end;
 
-  // Calculate max width
-  MaxWidth := Length(Title);
-  for I := 0 to High(Items) do
-  begin
-    ItemText := Items[I].Icon + ' ' + Items[I].Text;
-    if Length(ItemText) + 6 > MaxWidth then
-      MaxWidth := Length(ItemText) + 6;
-  end;
-  Inc(MaxWidth, 4); // Add border padding
-
-  // Calculate menu height
-  MenuHeight := Length(Items) + 5; // Items + borders + title + separator
-  if Hint <> '' then Inc(MenuHeight);
-
-  // Get console size and current position
-  ConsoleSize := GetConsoleSize;
-  CurPos := GetCursorPosition;
-  StartX := CurPos.X;
-  StartY := CurPos.Y;
-
-  // Ensure menu fits in console
-  if StartY + MenuHeight > ConsoleSize.Rows then
-  begin
-    StartY := ConsoleSize.Rows - MenuHeight - 1;
-    GotoXY(StartX, StartY);
-  end;
-
-  // Hide cursor during menu
   HideCursor;
-  try
-    Done := False;
-    while not Done do
-    begin
-      // Go back to start position
-      GotoXY(StartX, StartY);
 
-      // Draw menu
-      // Top border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
+  CurPos := GetCursorPosition;
+  FSpinnerX := CurPos.X;
+  FSpinnerY := CurPos.Y;
 
-      // Title
-      WriteColoredText('| ', Cyan);
-      WriteColoredText(PadRight(Title, MaxWidth - 4), Yellow);
-      WriteLineColored(' |', Cyan);
-
-      // Separator
-      Line := '+' + StringOfChar('-', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
-
-      // Menu items
-      for I := 0 to High(Items) do
-      begin
-        WriteColoredText('| ', Cyan);
-
-        ItemText := Items[I].Icon + ' ' + Items[I].Text;
-
-        if not Items[I].Enabled then
-        begin
-          // Disabled item
-          WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', DarkGray);
-        end
-        else if I = SelectedIndex then
-        begin
-          // Highlighted item
-          SaveColors;
-          TextBackground(HighlightColor);
-          TextColor(White);
-          Write('> ' + PadRight(ItemText, MaxWidth - 6) + ' ');
-          RestoreSavedColors;
-        end
-        else
-        begin
-          WriteColoredText('  ' + PadRight(ItemText, MaxWidth - 6) + ' ', White);
-        end;
-
-        WriteLineColored('|', Cyan);
-      end;
-
-      // Bottom border
-      Line := '+' + StringOfChar('=', MaxWidth - 2) + '+';
-      WriteLineColored(Line, Cyan);
-
-      // Hint
-      if Hint <> '' then
-        WriteLineColored(Hint, DarkGray);
-
-      // Flush output
-{$IFDEF MSWINDOWS}
-      Flush(Output);
-{$ENDIF}
-{$IFDEF LINUX}
-      Flush(Output);
-{$ENDIF}
-
-      // Read key
-      Key := GetKey;
-
-      // Handle keys
-      case Key of
-        KEY_UP:
-          begin
-            repeat
-              Dec(SelectedIndex);
-              if SelectedIndex < 0 then
-                SelectedIndex := High(Items);
-            until Items[SelectedIndex].Enabled;
-          end;
-        KEY_DOWN:
-          begin
-            repeat
-              Inc(SelectedIndex);
-              if SelectedIndex > High(Items) then
-                SelectedIndex := 0;
-            until Items[SelectedIndex].Enabled;
-          end;
-        KEY_ENTER:
-          begin
-            if Items[SelectedIndex].Enabled then
-            begin
-              Done := True;
-              Result := SelectedIndex;
-            end;
-          end;
-        KEY_ESCAPE:
-          begin
-            Done := True;
-            Result := -1;
-          end;
-      end;
-    end;
-
-    // Clear the menu area safely
-    for I := 0 to MenuHeight - 1 do
-    begin
-      if StartY + I < ConsoleSize.Rows then
-      begin
-        GotoXY(StartX, StartY + I);
-        Write(StringOfChar(' ', Min(MaxWidth + 5, ConsoleSize.Columns - StartX)));
-      end;
-    end;
-
-    if StartY < ConsoleSize.Rows then
-      GotoXY(StartX, StartY);
-
-  finally
-    ShowCursor;
+  FMaxDisplayWidth := 0;
+  for lFrame in FFrames do
+  begin
+    lMaxWidth := DisplayWidth(lFrame);
+    if lMaxWidth > FMaxDisplayWidth then
+      FMaxDisplayWidth := lMaxWidth;
   end;
+
+  lFrames := FFrames;
+  lInterval := FInterval;
+  lColor := FColor;
+  lSpinnerX := FSpinnerX;
+  lSpinnerY := FSpinnerY;
+  lMaxWidth := FMaxDisplayWidth;
+
+  FThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      I: Integer;
+      Frame: string;
+    begin
+      I := 0;
+      while TInterlocked.CompareExchange(FFlag, 1, 1) = 1 do
+      begin
+        Frame := lFrames[I mod Length(lFrames)];
+        GotoXY(lSpinnerX, lSpinnerY);
+        TextColor(lColor);
+        Write(Frame + StringOfChar(' ', lMaxWidth - DisplayWidth(Frame)));
+        Flush(Output);
+        Inc(I);
+        Sleep(lInterval);
+      end;
+    end
+  );
+  FThread.FreeOnTerminate := False;
+  FThread.Start;
+end;
+
+destructor TConsoleSpinner.Destroy;
+begin
+  Hide;
+  inherited;
+end;
+
+procedure TConsoleSpinner.Hide;
+begin
+  if TInterlocked.CompareExchange(FFlag, 0, 1) = 0 then
+    Exit;
+  if Assigned(FThread) then
+  begin
+    FThread.WaitFor;
+    FreeAndNil(FThread);
+  end;
+  GotoXY(FSpinnerX, FSpinnerY);
+  Write(StringOfChar(' ', FMaxDisplayWidth));
+  GotoXY(FSpinnerX, FSpinnerY);
+  ShowCursor;
+  Flush(Output);
+end;
+
+function Spinner(AStyle: TSpinnerStyle; AColor: TConsoleColor): ISpinner;
+begin
+  Result := TConsoleSpinner.Create('', AStyle, AColor);
+end;
+
+function Spinner(const AMessage: string; AStyle: TSpinnerStyle; AColor: TConsoleColor): ISpinner;
+begin
+  Result := TConsoleSpinner.Create(AMessage, AStyle, AColor);
 end;
 
 // ============================================================================
-// HELPER FUNCTIONS
+// CONSOLE THEME FUNCTIONS
 // ============================================================================
 
-function IsSpecialKey(KeyCode: Integer): Boolean;
+procedure SetConsoleTheme(const Theme: TConsoleColorStyle);
 begin
-  Result := KeyCode > 255;
+  ConsoleTheme := Theme;
+  GThemeReset  := STYLE_RESETALL + ANSI_BG[Theme.Background];
+  TextBackground(Theme.Background);
 end;
 
-function CreateMenuItem(const Text: string; const Icon: string = ''; Enabled: Boolean = True): TMenuItemStyle;
-begin
-  Result.Text := Text;
-  Result.Icon := Icon;
-  Result.Enabled := Enabled;
-end;
+// ============================================================================
 
 initialization
   GLock := TObject.Create;
   GSavedCursorX := 0;
   GSavedCursorY := 0;
-
-  GForeGround := Ord(MVCConsoleStyle.TextColor);
-  GBackGround := Ord(MVCConsoleStyle.BackgroundColor);
+  GForeGround  := Ord(TConsoleColor.Gray);
+  GBackGround  := Ord(TConsoleColor.Black) shl 4;
+  GThemeReset  := STYLE_RESETALL + BACK_BLACK;
+  EnableANSIColorConsole;
 
 finalization
 {$IFDEF LINUX}

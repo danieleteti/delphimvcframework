@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -77,6 +77,12 @@ type
     function GetByPK(const aValue: TGuid; const RaiseExceptionIfNotFound: Boolean = True): T; overload;
 
     /// <summary>
+    /// Retrieves an entity by a composite primary key: one value per PK column,
+    /// in declaration order. Works for single-key entities too.
+    /// </summary>
+    function GetByPKs(const aValues: array of const; const RaiseExceptionIfNotFound: Boolean = True): T;
+
+    /// <summary>
     /// Inserts a new entity into the database
     /// </summary>
     /// <param name="aEntity">Entity to insert (must not be nil)</param>
@@ -144,6 +150,8 @@ type
     function Exists(const aValue: Int64): Boolean; overload;
     function Exists(const aValue: string): Boolean; overload;
     function Exists(const aValue: TGuid): Boolean; overload;
+    /// <summary>Checks existence by a composite primary key (one value per column).</summary>
+    function Exists(const aValues: array of const): Boolean; overload;
   end;
 
   /// <summary>
@@ -161,6 +169,7 @@ type
     function GetByPK(const aValue: Int64; const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     function GetByPK(const aValue: string; const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     function GetByPK(const aValue: TGuid; const RaiseExceptionIfNotFound: Boolean = True): T; overload;
+    function GetByPKs(const aValues: array of const; const RaiseExceptionIfNotFound: Boolean = True): T;
 
     procedure Insert(const aEntity: T);
     procedure Update(const aEntity: T; const RaiseExceptionIfNotFound: Boolean = True);
@@ -197,6 +206,7 @@ type
     function Exists(const aValue: Int64): Boolean; overload;
     function Exists(const aValue: string): Boolean; overload;
     function Exists(const aValue: TGuid): Boolean; overload;
+    function Exists(const aValues: array of const): Boolean; overload;
   end;
 
   /// <summary>
@@ -248,6 +258,11 @@ end;
 function TMVCRepository<T>.GetByPK(const aValue: TGuid; const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := TMVCActiveRecord.GetByPK<T>(aValue, RaiseExceptionIfNotFound);
+end;
+
+function TMVCRepository<T>.GetByPKs(const aValues: array of const; const RaiseExceptionIfNotFound: Boolean): T;
+begin
+  Result := TMVCActiveRecord.GetByPKs<T>(aValues, RaiseExceptionIfNotFound);
 end;
 
 procedure TMVCRepository<T>.Insert(const aEntity: T);
@@ -400,6 +415,16 @@ var
 begin
   lEntity := GetByPK(aValue, False);
   Result := Assigned(lEntity) ;
+  if Assigned(lEntity) then
+    lEntity.Free;
+end;
+
+function TMVCRepository<T>.Exists(const aValues: array of const): Boolean;
+var
+  lEntity: T;
+begin
+  lEntity := GetByPKs(aValues, False);
+  Result := Assigned(lEntity);
   if Assigned(lEntity) then
     lEntity.Free;
 end;

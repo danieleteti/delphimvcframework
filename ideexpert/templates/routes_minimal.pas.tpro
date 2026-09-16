@@ -1,0 +1,151 @@
+{{include "_license_header.tpro"}}
+unit RoutesU;
+
+// Minimal API routes: versioned /api/v1 surface, public people CRUD + Bearer-protected admin group.
+
+interface
+
+uses
+  MVCFramework,
+  MVCFramework.MinimalAPI;
+
+procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
+
+implementation
+
+uses
+  System.SysUtils,
+  System.Generics.Collections,
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+{{if webmodule_middleware_jwt}}
+  System.DateUtils,
+  MVCFramework.DotEnv,
+  MVCFramework.Filters,
+  MVCFramework.JWT,
+  {{:authentication_unit_name}},
+{{endif}}
+  {{:entity_unit_name}}{{if program_service_container_generate}},
+  {{:program_service_container_unit_name}}{{endif}};
+
+{{if webmodule_middleware_jwt}}
+// Bearer-JWT gate for the admin subtree. It also serves the login endpoint that
+// lives inside the group: POST /api/v1/admin/login with jwtusername and jwtpassword
+// headers returns a token. Verification happens here, in the route pipeline: the
+// classic JWT middleware verifies in OnBeforeControllerAction, which a minimal-API
+// route never reaches.
+function BearerAuthFilter: TMVCEndpointFilter;
+begin
+  Result := JWT(
+    {{:authentication_classname}}.Create,
+    procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
+      JWT.Claims.ExpirationTime := Now + OneHour;
+      JWT.Claims.NotBefore := Now - OneMinute * 5;
+      JWT.Claims.IssuedAt := Now;
+    end,
+    dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+    '/api/v1/admin/login',
+    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+    300);
+end;
+{{else}}
+// Short-circuits with 401 unless the request carries a Bearer token.
+function BearerAuthFilter: TMVCEndpointFilter;
+begin
+  Result := function (const Ctx: TWebContext;
+                       const Next: TMVCEndpointFilterNext): IMVCResponse
+    var
+      lAuth: string;
+    begin
+      // Placeholder: any Bearer string gets in. Replace with a real validator
+      // (JWT signer, opaque-token store, ...) before this goes anywhere near production.
+      lAuth := Ctx.Request.Headers['Authorization'];
+      if not lAuth.StartsWith('Bearer ', True) then
+        Exit(Status(401, 'Bearer token required'));
+      Result := Next();
+    end;
+end;
+{{endif}}
+
+procedure RegisterPeopleRoutes(const AGroup: TMVCRouteGroup<TObject>);
+begin
+{{if program_service_container_generate}}
+  AGroup.MapGet<IPeopleService>('',
+    function (PeopleService: IPeopleService): IMVCResponse
+    begin
+      Result := Ok(PeopleService.GetAll);
+    end);
+{{else}}
+  AGroup.MapGet('',
+    function: IMVCResponse
+    var
+      lList: TObjectList<TPerson>;
+    begin
+      lList := TObjectList<TPerson>.Create(True);
+      try
+        lList.Add(TPerson.Create(1, 'Henry',     'Ford',    EncodeDate(1863, 7, 30)));
+        lList.Add(TPerson.Create(2, 'Guglielmo', 'Marconi', EncodeDate(1874, 4, 25)));
+        lList.Add(TPerson.Create(3, 'Antonio',   'Meucci',  EncodeDate(1808, 4, 13)));
+        Result := Ok(lList);
+      except
+        lList.Free;
+        raise;
+      end;
+    end);
+{{endif}}
+
+  // :int constraint rejects non-numeric ids before the handler runs.
+  AGroup.MapGet<Integer>('/($id:int)',
+    function (ID: Integer): IMVCResponse
+    begin
+      Result := Ok(TPerson.Create(ID, 'Daniele', 'Teti', EncodeDate(1979, 11, 4)));
+    end);
+
+  AGroup.MapPost<TPerson>('',
+    function (Person: TPerson): IMVCResponse
+    begin
+      LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
+      Result := Created('', 'Person created');
+    end);
+end;
+
+// Auth filter applied locally: every route on lAdmin requires Bearer. Use() returns a modified copy.
+procedure RegisterAdminRoutes(const AGroup: TMVCRouteGroup<TObject>);
+var
+  lAdmin: TMVCRouteGroup<TObject>;
+begin
+  lAdmin := AGroup.Use(BearerAuthFilter());
+
+  lAdmin.MapGet('/health',
+    function: IMVCResponse
+    begin
+      Result := Ok('admin ok');
+    end);
+
+  lAdmin.MapDelete<Integer>('/people/($id:int)',
+    function (ID: Integer): IMVCResponse
+    begin
+      LogI('Admin deleted person with id ' + ID.ToString);
+      Result := NoContent;
+    end);
+end;
+
+procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
+var
+  lApiV1: TMVCRouteGroup<TObject>;
+begin
+  ARoot.MapGet('',
+    function: IMVCResponse
+    begin
+      Result := Redirect('/api/v1/people');
+    end);
+
+  lApiV1 := ARoot.Prefix('/api/v1');
+  RegisterPeopleRoutes(lApiV1.Prefix('/people'));
+  // Auth gate is applied inside RegisterAdminRoutes via .Use(BearerAuthFilter()).
+  RegisterAdminRoutes(lApiV1.Prefix('/admin'));
+end;
+
+end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -67,6 +67,13 @@ type
     [RESTResource(httpPOST, '/people')]
     function SendPerson([Body] ABody: TPerson): TPerson;
 
+    // Issue #897: single-object request body + collection response body.
+    // The method-level [MVCListOf] describes the response array and must not
+    // make the adapter serialize the [Body] object as a collection.
+    [RESTResource(httpPOST, '/people/searchbysample')]
+    [MVCListOf(TPerson)]
+    function SearchPeopleBySample([Body] ACriteria: TPerson): TObjectList<TPerson>;
+
     [RESTResource(HttpGet, '/people')]
     function GetPersonInJSONArray: TJSONArray;
 
@@ -105,6 +112,12 @@ type
     procedure TestGetTonyStarkAsynch;
     [Test]
     procedure TestPostPerson;
+    [Test]
+    procedure TestSearchPeopleBySample_ObjectBodyArrayResult;
+    // Issue #900: the [Body] object must not be freed before the IAsynchRequest
+    // inspection (which reads the last argument). Otherwise it is a use-after-free.
+    [Test]
+    procedure TestIssue900_BodyNotFreedBeforeAsyncCheck;
     [Test]
     procedure TestGetPersonByID;
     [Test]
@@ -241,6 +254,90 @@ begin
     Assert.IsFalse(RetPerson.Married);
   finally
     RetPerson.Free;
+  end;
+end;
+
+procedure TTestRESTAdapter.TestSearchPeopleBySample_ObjectBodyArrayResult;
+var
+  lCriteria: TPerson;
+  lResult: TObjectList<TPerson>;
+begin
+  // Issue #897: a single-object [Body] combined with a method-level [MVCListOf]
+  // (which describes the array RESPONSE) must NOT serialize the request body as
+  // a collection. Pre-fix the server received a JSON array and BodyAs<TPerson>
+  // could not bind it. The adapter owns and frees lCriteria ([Body] default).
+  lCriteria := TPerson.GetNew('Search', 'Criteria', 0, False);
+  lResult := TESTService.SearchPeopleBySample(lCriteria);
+  try
+    Assert.AreEqual<Integer>(1, lResult.Count, 'object body was not received as a single object');
+    Assert.AreEqual('Search', lResult[0].FirstName);
+    Assert.AreEqual('Criteria', lResult[0].LastName);
+  finally
+    lResult.Free;
+  end;
+end;
+
+type
+  // A [Body] probe whose destruction is globally observable. Its destructor only
+  // touches a global counter, so the ordering assertion below never reads freed
+  // memory and is therefore independent of the active memory manager.
+  TProbePerson = class(TPerson)
+  public
+    destructor Destroy; override;
+  end;
+
+  // Instrumented adapter that snapshots how many probe bodies have been freed at
+  // the exact moment the async-request inspection runs.
+  TInstrumentedRESTAdapter = class(TRESTAdapter<ITESTService>)
+  protected
+    function GetAsynchRequest(const aArgs: TArray<TValue>): IAsynchRequest; override;
+  end;
+
+var
+  GProbeFreeCount: Integer;
+  GFreeCountAtAsyncCheck: Integer;
+
+destructor TProbePerson.Destroy;
+begin
+  Inc(GProbeFreeCount);
+  inherited;
+end;
+
+function TInstrumentedRESTAdapter.GetAsynchRequest(const aArgs: TArray<TValue>): IAsynchRequest;
+begin
+  GFreeCountAtAsyncCheck := GProbeFreeCount;
+  Result := inherited GetAsynchRequest(aArgs);
+end;
+
+procedure TTestRESTAdapter.TestIssue900_BodyNotFreedBeforeAsyncCheck;
+var
+  lService: ITESTService;
+  lProbe: TProbePerson;
+  lRet: TPerson;
+begin
+  GProbeFreeCount := 0;
+  GFreeCountAtAsyncCheck := -1;
+
+  // TRESTAdapter is a TVirtualInterface: the built interface owns the adapter
+  // instance through reference counting, so it must not be freed explicitly.
+  lService := TInstrumentedRESTAdapter.Create.Build(TEST_SERVER_ADDRESS, 8888);
+
+  lProbe := TProbePerson.Create;
+  lProbe.FirstName := 'Peter';
+  lProbe.LastName := 'Parker';
+  // The adapter owns the [Body] object (default OwnsObject = True) and frees it
+  // inside DoInvoke. lProbe is the last argument, so a premature free would make
+  // the subsequent IAsynchRequest inspection a use-after-free (issue #900).
+  lRet := lService.SendPerson(lProbe);
+  try
+    Assert.AreEqual<Integer>(0, GFreeCountAtAsyncCheck,
+      'Body was already freed when the IAsynchRequest check ran (use-after-free, issue #900)');
+    Assert.AreEqual<Integer>(1, GProbeFreeCount,
+      'Owned body must be freed exactly once by the adapter');
+    Assert.AreEqual('Peter', lRet.FirstName);
+    Assert.AreEqual('Parker', lRet.LastName);
+  finally
+    lRet.Free;
   end;
 end;
 

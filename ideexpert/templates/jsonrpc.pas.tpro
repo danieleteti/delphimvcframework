@@ -1,0 +1,93 @@
+{{include "_license_header.tpro"}}
+unit {{:jsonrpc_unit_name}};
+
+interface
+
+uses
+  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects;
+
+type
+  // Public methods = callable RPC methods. Functions = Requests; Procedures = Notifications (no result).
+  {{:jsonrpc_classname}} = class
+  public
+    // [MVCJSONRPCAllowGET] also allows HTTP GET (default: POST only).
+    [MVCDoc('Reverses the input string. If AUpperCase is True, the result is also uppercased.')]
+    [MVCJSONRPCAllowGET]
+    function ReverseString(const Value: String; const AUpperCase: Boolean = False): String;
+
+    [MVCDoc('Divides A by B. Raises a JSON-RPC error if B is zero.')]
+    function Divide(const A, B: Double): Double;
+
+    [MVCDoc('Returns the next Monday starting from the given date.')]
+    function GetNextMonday(const ADate: TDate): TDate;
+
+    [MVCDoc('Returns server information as a JSON object.')]
+    function GetServerInfo: TJDOJsonObject;
+
+    // Notification: client sends no "id"; server returns HTTP 204, no body.
+    [MVCDoc('Logs a message on the server. This is a notification - no response is sent back.')]
+    procedure LogMessage(const AMessage: String; const ALevel: String = 'INFO');
+
+    // Hooks called before/after every method invocation.
+    procedure OnBeforeCallHook(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
+    procedure OnAfterCallHook(const Context: TWebContext; const JSONResponse: TJDOJsonObject);
+  end;
+
+implementation
+
+uses
+  System.SysUtils, System.StrUtils, System.DateUtils,
+  MVCFramework.Logger;
+
+function {{:jsonrpc_classname}}.ReverseString(const Value: String; const AUpperCase: Boolean): String;
+begin
+  Result := System.StrUtils.ReverseString(Value);
+  if AUpperCase then
+    Result := Result.ToUpper;
+end;
+
+function {{:jsonrpc_classname}}.Divide(const A, B: Double): Double;
+begin
+  // EMVCJSONRPCError -> JSON-RPC error response (HTTP stays 200 per spec).
+  if B = 0 then
+    raise EMVCJSONRPCError.Create(JSONRPC_USER_ERROR + 1, 'Division by zero');
+  Result := A / B;
+end;
+
+function {{:jsonrpc_classname}}.GetNextMonday(const ADate: TDate): TDate;
+begin
+  Result := ADate;
+  repeat
+    Result := Result + 1;
+  until DayOfTheWeek(Result) = 1; // 1 = Monday
+end;
+
+function {{:jsonrpc_classname}}.GetServerInfo: TJDOJsonObject;
+begin
+  Result := TJDOJsonObject.Create;
+  Result.S['serverName'] := 'DMVCFramework JSON-RPC Server';
+  Result.S['serverTime'] := DateTimeToStr(Now);
+  Result.S['frameworkVersion'] := DMVCFRAMEWORK_VERSION;
+end;
+
+procedure {{:jsonrpc_classname}}.LogMessage(const AMessage: String; const ALevel: String);
+begin
+  LogI(Format('[%s] %s', [ALevel, AMessage]));
+end;
+
+procedure {{:jsonrpc_classname}}.OnBeforeCallHook(
+  const Context: TWebContext; const JSONRequest: TJDOJsonObject);
+begin
+  // Raise EMVCJSONRPCError here to reject the call.
+  LogI('JSON-RPC call: ' + JSONRequest.S['method']);
+end;
+
+procedure {{:jsonrpc_classname}}.OnAfterCallHook(
+  const Context: TWebContext; const JSONResponse: TJDOJsonObject);
+begin
+  // JSONResponse is nil for notifications.
+  if JSONResponse <> nil then
+    LogI('JSON-RPC response ready for request id: ' + JSONResponse.S['id']);
+end;
+
+end.

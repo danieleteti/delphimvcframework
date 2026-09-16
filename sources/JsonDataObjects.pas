@@ -1,7 +1,7 @@
 (*****************************************************************************
 The MIT License (MIT)
 
-Copyright (c) 2015-2025 Andreas Hausladen
+Copyright (c) 2015-2026 Andreas Hausladen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -92,17 +92,22 @@ unit JsonDataObjects;
 {--------------------------------------------------------------------------------------------------}
 
 {$IFDEF SUPPORTS_UTF8STRING}
-  // Enables internal UTF8 values for values written via UTF8[], ValueUTF8 or loaded by the UTF8-Parser.
-  // Alle keys will remain UnicodeStrings. The UTF8 values will automatically by converted to
-  // UnicodeStrings if accessed by anything other than UTF8[], ValueUTF8. The internal UTF8 value
+  // Enables internal UTF8 values for values set via UTF8[], ValueUTF8 or loaded by the UTF8-Parser.
+  // Alle keys remain UnicodeStrings. The UTF8 values will automatically by converted to
+  // UnicodeStrings if accessed by anything other than UTF8[] or ValueUTF8. The internal UTF8 value
   // is then replaced by the UnicodeString. The JSON-Writer (UTF8 and UTF16) also converts all
   // internal UTF8 values to UnicodeString.
-  // So this only helps to save memory if the JSON is loaded, accessed via UTF8[], ValueUTF8 and never
-  // written.
+  // So this only helps to save memory if the JSON is loaded, accessed via UTF8[] or ValueUTF8 and
+  // never written.
   {.$DEFINE USE_UTF8STRING_VALUES}
 {$ENDIF SUPPORTS_UTF8STRING}
 
-// Sanity checks all array index accesses and raise an EListError exception.
+// If defined, then a number value that would be read as a float because it doesn't fit into an
+// Int64 or UInt64, will be stored as text and converted to the target datatype on every access.
+// This keeps the number intact, but increases memory usage und decreases the performance.
+{.$DEFINE KEEP_BIGDECIMAL_PRECISION}
+
+// Sanity checks all array index accesses and raises an EListError exception.
 {$DEFINE CHECK_ARRAY_INDEX}
 
 // If defined the JSON parser is more strict to what is allowed and what not.
@@ -113,7 +118,7 @@ unit JsonDataObjects;
 // enables the special handling for "</" but makes the parser slightly slower.
 {.$DEFINE ESCAPE_SLASH_AFTER_LESSTHAN}
 
-// When parsing a JSON string the pair names are interned to reduce the memory foot print. This
+// When parsing a JSON string the property names are interned to reduce the memory foot print. This
 // slightly slows down the parser but saves a lot of memory if the JSON string contains repeating
 // pair names. The interning uses a hashset to store the strings.
 {$DEFINE USE_STRINGINTERN_FOR_NAMES}
@@ -136,7 +141,7 @@ unit JsonDataObjects;
 {$IFDEF MSWINDOWS}
   // When adding JSON object properties with string literals, the string literals are stored directly
   // in the "Name" field instead of using UStrAsg what creates a new heap string. This improves the
-  // performance as no string is copied and it slighly reduces the memory usage.
+  // performance because no string is copied and it slighly reduces the memory usage.
   // The string literals are only used if they are in the main instance or the DLL that contains the
   // JsonDataObjects unit. Other string literals are copied using UStrAsg because unloading the DLL
   // that holds them would cause access violations.
@@ -180,6 +185,10 @@ type
   PAnsiChar = MarshaledAString;
   {$ENDIF NEXTGEN}
 
+  {$IF not declared(PFormatSettings)}
+  PFormatSettings = ^TFormatSettings;
+  {$IFEND}
+
   EJsonException = class(Exception);
   EJsonCastException = class(EJsonException);
   EJsonPathException = class(EJsonException);
@@ -222,7 +231,7 @@ type
     // If NullConvertsToValueTypes is True and an object is nil/null, a convertion to String, Int,
     // Long, Float, DateTime, Boolean will return ''/0/False
     // Default: False
-    NullConvertsToValueTypes: Boolean; // Isn't use for serialization. Should default to True and be deprecated.
+    NullConvertsToValueTypes: Boolean; // Isn't used for serialization. Should default to True and be deprecated.
   end;
 
   TJsonReaderProgressProc = procedure(Data: Pointer; Percentage: Integer; Position, Size: NativeInt);
@@ -316,10 +325,15 @@ type
   TJsonDataType = (
     jdtNone, jdtString, jdtInt, jdtLong, jdtULong, jdtFloat, jdtDateTime, jdtUtcDateTime, jdtBool,
     jdtArray, jdtObject
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    , jdtBigDecimal // used only internally Types[] returns it as jdtFloat
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     {$IFDEF USE_UTF8STRING_VALUES}
     , jdtUTF8String // used only internally Types[] returns it as jdtString
     {$ENDIF USE_UTF8STRING_VALUES}
   );
+
+  TJsonRootDataType = (jrdtInvalid, jrdtObject, jrdtArray, jrdtPrimitiveValue);
 
   // TJsonDataValue holds the actual value
   PJsonDataValue = ^TJsonDataValue;
@@ -331,9 +345,10 @@ type
         {$IFDEF USE_UTF8STRING_VALUES}
         jdtUTF8String: (UTF8: PAnsiChar); // only for debugging, "S: Pointer" is used in the code
         {$ENDIF USE_UTF8STRING_VALUES}
-        jdtString: (S: Pointer); // We manage the string ourself. Delphi doesn't allow "string" in a
-                                 // variant record and if we have no string, we don't need to clean
-                                 // it up, anyway.
+        jdtString{$IFDEF KEEP_BIGDECIMAL_PRECISION}, jdtBigDecimal{$ENDIF}:
+          (S: Pointer); // We manage the string ourself. Delphi doesn't allow "string" in a
+                        // variant record and if we have no string, we don't need to clean
+                        // it up, anyway.
         jdtInt: (I: Integer);
         jdtLong: (L: Int64);
         jdtULong: (U: UInt64);
@@ -365,6 +380,9 @@ type
     {$IFDEF SUPPORTS_UTF8STRING}
     procedure SetValueUTF8(const AValue: UTF8String);
     {$ENDIF SUPPORTS_UTF8STRING}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure SetBigDecimalValue(const AValue: string);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     procedure SetIntValue(const AValue: Integer);
     procedure SetLongValue(const AValue: Int64);
     procedure SetULongValue(const AValue: UInt64);
@@ -376,23 +394,28 @@ type
     procedure SetObjectValue(const AValue: TJsonObject);
     procedure SetVariantValue(const AValue: Variant);
 
+    function GetTyp: TJsonDataType;
+
     procedure InternToJSON(var Writer: TJsonOutputWriter);
     procedure InternSetValue(const AValue: string); // skips the call to Clear()
     procedure InternSetValueTransfer(var AValue: string); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure InternSetValueTransferBigDecimal(var AValue: string); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     {$IFDEF USE_UTF8STRING_VALUES}
     procedure InternSetValueUTF8(const AValue: UTF8String); // skips the call to Clear()
     procedure InternSetValueUTF8Transfer(P: PAnsiChar; Len: Integer); // skips the call to Clear() and transfers the string without going through UStrAsg+UStrClr
     procedure ConvertUTF8ToStringType;
     {$ENDIF USE_UTF8STRING_VALUES}
-    procedure InternSetArrayValue(const AValue: TJsonArray);
-    procedure InternSetObjectValue(const AValue: TJsonObject);
+    procedure InternSetArrayValue(const AValue: TJsonArray); // skips the call to Clear()
+    procedure InternSetObjectValue(const AValue: TJsonObject); // skips the call to Clear()
     procedure Clear;
     procedure TypeCastError(ExpectedType: TJsonDataType);
   public
     function IsNull: Boolean;
     procedure Assign(AValue: PJsonDataValue);
 
-    property Typ: TJsonDataType read FTyp;
+    property Typ: TJsonDataType read GetTyp;
     property Value: string read GetValue write SetValue;
     {$IFDEF SUPPORTS_UTF8STRING}
     property ValueUTF8: UTF8String read GetValueUTF8 write SetValueUTF8;
@@ -519,7 +542,7 @@ type
     class operator Implicit(const Value: Variant): TJsonDataValueHelper; overload;
 
     function IsNull: Boolean;
-    
+
     property Typ: TJsonDataType read GetTyp;
     property Value: string read GetValue write SetValue;
     {$IFDEF SUPPORTS_UTF8STRING}
@@ -586,23 +609,16 @@ type
     end;
   end;
 
-  // TJsonBaseObject is the base class for TJsonArray and TJsonObject
+  // TJsonBaseObject is the base class for TJsonArray, TJsonObject and TJsonPrimitiveValue
   TJsonBaseObject = class abstract(TObject)
   private type
     TWriterAppendMethod = procedure(P: PChar; Len: Integer) of object;
-    TStreamInfo = record
-      Buffer: PByte;
-      Size: NativeInt;
-      AllocationBase: Pointer;
-    end;
   private
     class procedure StrToJSONStr(const AppendMethod: TWriterAppendMethod; const S: string); static;
     class procedure EscapeStrToJSONStr(F, P, EndP: PChar; const AppendMethod: TWriterAppendMethod); static;
     class procedure DateTimeToJSONStr(const AppendMethod: TWriterAppendMethod; const Value: TDateTime); static;
     class procedure UtcDateTimeToJSONStr(const AppendMethod: TWriterAppendMethod; const Value: TDateTime); static;
     class procedure InternInitAndAssignItem(Dest, Source: PJsonDataValue); static;
-    class procedure GetStreamBytes(Stream: TStream; var Encoding: TEncoding; Utf8WithoutBOM: Boolean;
-      var StreamInfo: TStreamInfo); static;
 
     {$IFDEF USE_FAST_AUTOREFCOUNT}
     function ARCObjRelease: Integer; inline;
@@ -613,6 +629,9 @@ type
   public
     const DataTypeNames: array[TJsonDataType] of string = (
       'null', 'String', 'Integer', 'Long', 'ULong', 'Float', 'DateTime', 'UTC-DateTime', 'Bool', 'Array', 'Object'
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      , 'BigDecimal'
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       {$IFDEF USE_UTF8STRING_VALUES}
       , 'UTF8-String'
       {$ENDIF USE_UTF8STRING_VALUES}
@@ -623,8 +642,9 @@ type
     {$ENDIF USE_FAST_NEWINSTANCE}
 
     // ParseXxx returns nil if the JSON string is empty or consists only of white chars.
-    // If the JSON string starts with a "[" then the returned object is a TJsonArray otherwise
-    // it is a TJsonObject.
+    // If the JSON string starts with a "[" then the returned object is a TJsonArray, if is starts with
+    // a "{" it is a TJsonObject, otherwise it is a TJsonPrimitiveValue. If there are syntax error
+    // an EJsonParserException is thrown.
     class function ParseUtf8(S: PAnsiChar; Len: Integer = -1; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static; inline;
     {$IFDEF SUPPORTS_UTF8STRING}
     class function ParseUtf8(const S: UTF8String; AProgress: PJsonReaderProgressRec = nil): TJsonBaseObject; overload; static; inline;
@@ -668,6 +688,7 @@ type
     function ToString: {$IFDEF FPC}AnsiString{$ELSE}string{$ENDIF}; override;
 
     function Clone: TJsonBaseObject;
+    function GetDataType: TJsonRootDataType; virtual; abstract;
 
     class function JSONToDateTime(const Value: string; ConvertToLocalTime: Boolean = True): TDateTime; static;
     class function DateTimeToJSON(const Value: TDateTime; UseUtcTime: Boolean): string; static;
@@ -685,6 +706,7 @@ type
   public
     destructor Destroy; override;
     function Clone: TJsonPrimitiveValue;
+    function GetDataType: TJsonRootDataType; override;
     procedure Assign(ASource: TJsonPrimitiveValue);
 
     property Item: PJsonDataValue read GetItem;
@@ -706,12 +728,17 @@ type
     property Current: TJsonDataValueHelper read GetCurrent;
   end;
 
-  // TJsonArray hold a JSON array and manages the array elements.
+  // TJsonArray holds a JSON array and manages the array elements.
   TJsonArray = class {$IFDEF USE_FAST_NEWINSTANCE}sealed{$ENDIF}(TJsonBaseObject)
   private
     FItems: PJsonDataValueArray;
     FCapacity: Integer;
     FCount: Integer;
+
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    //procedure AddBigDecimal(const AValue: string);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
     function GetString(Index: Integer): string; inline;
     {$IFDEF SUPPORTS_UTF8STRING}
     function GetUTF8String(Index: Integer): UTF8String; inline;
@@ -751,6 +778,7 @@ type
     function AddItem: PJsonDataValue;
     function InsertItem(Index: Integer): PJsonDataValue;
 
+
     procedure Grow;
     procedure InternApplyCapacity; inline;
     procedure SetCapacity(const Value: Integer);
@@ -761,6 +789,13 @@ type
   public
     destructor Destroy; override;
 
+    /// <summary>
+    /// Reset() removes all elements but keeps the internal list's capacity.
+    /// </summary>
+    procedure Reset;
+    /// <summary>
+    /// Clear() removes all elements and shrinks the list's capacity.
+    /// </summary>
     procedure Clear;
     procedure Delete(Index: Integer);
     // Extract removes the object/array from the array and transfers the ownership to the caller.
@@ -769,6 +804,7 @@ type
     function ExtractObject(Index: Integer): TJsonObject;
     procedure Assign(ASource: TJsonArray);
     function Clone: TJsonArray;
+    function GetDataType: TJsonRootDataType; override;
 
     procedure Add(const AValue: string); overload;
     {$IFDEF SUPPORTS_UTF8STRING}
@@ -852,7 +888,7 @@ type
     property Current: TJsonNameValuePair read GetCurrent;
   end;
 
-  // TJsonObject hold a JSON object and manages the JSON object properties
+  // TJsonObject holds a JSON object and manages the JSON object properties
   TJsonObject = class {$IFDEF USE_FAST_NEWINSTANCE}sealed{$ENDIF}(TJsonBaseObject)
   private type
     PJsonStringArray = ^TJsonStringArray;
@@ -916,7 +952,7 @@ type
     {$ENDIF USE_UTF8STRING_VALUES}
     procedure InternAdd(var AName: string; const AValue: Integer); overload;
     procedure InternAdd(var AName: string; const AValue: Int64); overload;
-    procedure InternAdd(var AName: string; const AValue: UInt64); overload;
+    //procedure InternAdd(var AName: string; const AValue: UInt64); overload;
     procedure InternAdd(var AName: string; const AValue: Double); overload;
     procedure InternAdd(var AName: string; const AValue: TDateTime); overload;
     procedure InternAdd(var AName: string; const AValue: Boolean); overload;
@@ -950,6 +986,7 @@ type
     destructor Destroy; override;
     procedure Assign(ASource: TJsonObject);
     function Clone: TJsonObject;
+    function GetDataType: TJsonRootDataType; override;
 
     // ToSimpleObject() maps the JSON object properties to the Delphi object by using the object's
     // TypeInfo.
@@ -959,6 +996,13 @@ type
     // The object's class must be compiled with the $M+ compiler switch or derive from TPersistent.
     procedure FromSimpleObject(AObject: TObject; ALowerCamelCase: Boolean = False);
 
+    /// <summary>
+    /// Reset() removes all properties but keeps the internal list's capacity.
+    /// </summary>
+    procedure Reset;
+    /// <summary>
+    /// Clear() removes all properties and shrinks the list's capacity.
+    /// </summary>
     procedure Clear;
     procedure Remove(const Name: string);
     procedure Delete(Index: Integer);
@@ -989,7 +1033,7 @@ type
     property DUtc[const Name: string]: TDateTime read GetUtcDateTime write SetUtcDateTime; // returns 0 if property doesn't exist, auto type-cast except for array/object
     property B[const Name: string]: Boolean read GetBool write SetBool;           // returns false if property doesn't exist, auto type-cast with "<>'true'" and "<>0" except for array/object
     property A[const Name: string]: TJsonArray read GetArray write SetArray;      // auto creates array on first access
-    property O[const Name: string]: TJsonObject read GetObj write SetObject;   // auto creates object on first access
+    property O[const Name: string]: TJsonObject read GetObj write SetObject;      // auto creates object on first access
 
     property Path[const NamePath: string]: TJsonDataValueHelper read GetPath write SetPath;
 
@@ -1000,12 +1044,317 @@ type
     property Capacity: Integer read FCapacity write SetCapacity;
   end;
 
+  /// <summary>
+  /// An abstract JSON parser.
+  /// </summary>
+  TJsonAbstractParser = class abstract(TObject)
+  private
+    type
+      TStreamInfo = record
+        Buffer: PByte;
+        Size: NativeInt;
+        AllocationBase: Pointer;
+      end;
+
+      // Used to create incompatible pointer types, so that we get type checking from the compiler
+      TDataRec = record
+      end;
+  private
+    FProgress: PJsonReaderProgressRec;
+    class procedure GetStreamBytes(Stream: TStream; var Encoding: TEncoding; Utf8WithoutBOM: Boolean;
+      var StreamInfo: TStreamInfo); static;
+  public
+    type
+      PObjectData = ^TDataRec;
+      PArrayData = ^TDataRec;
+      PItemData = ^TDataRec;
+  protected
+    /// <summary>
+    /// <c>CreateRootObject</c> is called by the <c>ParseXxx</c> methods to create a new JSON object that will
+    /// be the root of the JSON. The implementation can store the created root and later extract it from the
+    /// parser.
+    /// </summary>
+    function CreateRootObject: PObjectData; virtual; abstract;
+    /// <summary>
+    /// <c>CreateRootArray</c> is called by the <c>ParseXxx</c> methods to create a new JSON array that will
+    /// be the root of the JSON. The implementation can store the created root and later extract it from the
+    /// parser.
+    /// </summary>
+    function CreateRootArray: PArrayData; virtual; abstract;
+    /// <summary>
+    /// <c>CreateRootPrimitive</c> is called by the <c>ParseXxx</c> methods to create a new JSON primitive that
+    /// will be the JSON value. The implementation can store the created root and later extract it from the
+    /// parser.
+    /// </summary>
+    function CreateRootPrimitive: PItemData; virtual; abstract;
+
+    /// <summary>
+    /// <c>Cleanup</c> cleans up the parser. Must release the root object/array/primitive if it is still owned by
+    // the parser. The method is called from the destructor, at the begin of <c>ParseXxx</c> and if <c>ParseXxx</c>
+    // raise an exception.
+    /// </summary>
+    procedure Cleanup; virtual; abstract;
+
+    /// <summary>
+    /// <c>ClearRootObject</c> is called to remove all properties from the JSON root object. It is only called for the
+    /// root object, even it is was just created by <c>CreateRootObject</c>. The main usage is to clear the root element
+    /// that was specified in the <c>FillFromXxx</c> method.
+    /// </summary>
+    procedure ClearRootObject(Data: PObjectData); virtual; abstract;
+    /// <summary>
+    /// <c>ClearRootArray</c> is called to remove all elements from the JSON root array. It is only called for the
+    /// root array, even it is was just created by <c>CreateRootArray</c>. The main usage is to clear the root element
+    /// that was specified in the <c>FillFromXxx</c> method.
+    /// </summary>
+    procedure ClearRootArray(Data: PArrayData); virtual; abstract;
+    /// <summary>
+    /// <c>ClearRootPrimitive</c> is called to set the JSON root primitive to null. It is only called for the
+    /// root primitive, even it is was just created by <c>CreateRootPrimitive</c>. The main usage is to clear the root
+    /// element that was specified in the <c>FillFromXxx</c> method.
+    /// </summary>
+    procedure ClearRootPrimitive(Data: PItemData); virtual; abstract;
+
+    /// <summary>
+    /// <c>AddObjectProperty</c> creates a new JSON object as property of another object.
+    /// <returns>Returns a new JSON object that can be used as "Data" for <c>AddXxxProperty</c> calls.</returns>
+    /// <param name="Data">Parent JSON object.</param>
+    /// <param name="PropName">
+    /// The PropName parameter contains the property name. It uses the "var" modifier so that an implementation can
+    /// "steal" the string without copying or incrementing the string reference counter.
+    /// </param>
+    /// </summary>
+    function AddObjectProperty(Data: PObjectData; var PropName: string): PObjectData; virtual; abstract;
+    /// <summary>
+    /// <c>AddArrayProperty</c> creates a new JSON array as property of another object.
+    /// <returns>Returns a new JSON array that can be used as "Data" for <c>AddXxxElement</c> calls.</returns>
+    /// <param name="Data">Parent JSON object.</param>
+    /// <param name="PropName">
+    /// The PropName parameter contains the property name. It uses the "var" modifier so that an implementation can
+    /// "steal" the string without copying or incrementing the string reference counter.
+    /// </param>
+    /// </summary>
+    function AddArrayProperty(Data: PObjectData; var PropName: string): PArrayData; virtual; abstract;
+    /// <summary>
+    /// <c>AddProperty</c> creates a new JSON primitive (string, number), as property of another object.
+    /// <returns>Returns a new JSON primitive that can be used as "Data" for <c>SetXxxValue</c> calls.</returns>
+    /// <param name="Data">Parent JSON object.</param>
+    /// <param name="PropName">
+    /// The PropName parameter contains the property name. It uses the "var" modifier so that an implementation can
+    /// "steal" the string without copying or incrementing the string reference counter.
+    /// </param>
+    /// </summary>
+    function AddProperty(Data: PObjectData; var PropName: string): PItemData; virtual; abstract;
+
+    /// <summary>
+    /// <c>AddObjectElement</c> appends a new JSON object to the JSON array.
+    /// <returns>Returns a new JSON object that can be used as "Data" for <c>AddXxxProperty</c> calls.</returns>
+    /// <param name="Data">Parent JSON array.</param>
+    /// </summary>
+    function AddObjectElement(Data: PArrayData): PObjectData; virtual; abstract;
+    /// <summary>
+    /// <c>AddArrayElement</c> appends a new JSON array to the JSON array.
+    /// <returns>Returns a new JSON array that can be used as "Data" for <c>AddXxxElement</c> calls.</returns>
+    /// <param name="Data">Parent JSON array.</param>
+    /// </summary>
+    function AddArrayElement(Data: PArrayData): PArrayData; virtual; abstract;
+    /// <summary>
+    /// <c>AddElement</c> appends a new JSON primitive to the JSON array.
+    /// <returns>Returns a new JSON primitive that can be used as "Data" for <c>SetXxxValue</c> calls.</returns>
+    /// <param name="Data">Parent JSON array.</param>
+    /// </summary>
+    function AddElement(Data: PArrayData): PItemData; virtual; abstract;
+
+
+    /// <summary>
+    /// <c>SetNullValue</c> sets the primitive value to null.
+    /// <param name="Data">JSON primitive</param>
+    /// </summary>
+    procedure SetNullValue(Data: PItemData); virtual; abstract;
+    /// <summary>
+    /// <c>SetStrValue</c> sets the primitive value to the string.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value. It uses the "var" modifier so that an implementation can
+    /// "steal" the string without copying or incrementing the string reference counter.</param>
+    /// </summary>
+    procedure SetStrValue(Data: PItemData; var Value: string); virtual; abstract;
+    /// <summary>
+    /// <c>SetIntValue</c> sets the primitive value to the Integer value.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value</param>
+    /// </summary>
+    procedure SetIntValue(Data: PItemData; const Value: Integer); virtual; abstract;
+    /// <summary>
+    /// <c>SetLongValue</c> sets the primitive value to the Int64 value.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value</param>
+    /// </summary>
+    procedure SetLongValue(Data: PItemData; const Value: Int64); virtual; abstract;
+    /// <summary>
+    /// <c>SetULongValue</c> sets the primitive value to the UInt64 value.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value</param>
+    /// </summary>
+    procedure SetULongValue(Data: PItemData; const Value: UInt64); virtual; abstract;
+    /// <summary>
+    /// <c>SetFloatValue</c> sets the primitive value to the Double value.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value</param>
+    /// </summary>
+    procedure SetFloatValue(Data: PItemData; const Value: Double); virtual; abstract;
+    /// <summary>
+    /// <c>SetBoolValue</c> sets the primitive value to the Boolean value.
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value</param>
+    /// </summary>
+    procedure SetBoolValue(Data: PItemData; const Value: Boolean); virtual; abstract;
+
+    {$IFDEF USE_UTF8STRING_VALUES}
+    /// <summary>
+    /// <c>SetUtf8Value</c> sets the primitive value to the UTF8-String. The default implementation converts the
+    /// UTF8-String to string and calls <c>SetStrValue</c>
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="P">Pointer to the first UTF8-Char. The buffer doesn't include a #0.</param>
+    /// <param name="Len">Number of bytes of the UTF8-String.</param>
+    /// </summary>
+    procedure SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer); virtual;
+    {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    /// <summary>
+    /// <c>SetBigDecimalValue</c> sets the primitive value to the the big decimal. The default implementation
+    /// converts the string to a Double and calls <c>SetFloatValue</c>
+    /// <param name="Data">JSON primitive</param>
+    /// <param name="Value">Value. It uses the "var" modifier so that an implementation can
+    /// "steal" the string without copying or incrementing the string reference counter.</param>
+    /// </summary>
+    procedure SetBigDecimalValue(Data: PItemData; var Value: string); virtual;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+  public
+    constructor Create(Progress: PJsonReaderProgressRec = nil);
+    destructor Destroy; override;
+
+    /// <summary>
+    /// <c>ParseUtf8</c> parses the given JSON UTF8-String.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">Pointer to the UTF8-String's first UTF8 character</param>
+    /// <param name="Len">Number of UTF8 characters in the JSON string (excluding a terminating #0). With the default
+    /// value of -1, the method counts the UTF8 characters until it finds a #0 in the string.</param>
+    /// </summary>
+    procedure ParseUtf8(S: PAnsiChar; Len: Integer = -1); overload; inline;
+    {$IFDEF SUPPORTS_UTF8STRING}
+    /// <summary>
+    /// <c>ParseUtf8</c> parses the given JSON UTF8-String.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String empty or consists only of white chars, no JSON element will be created.</br>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">UTF8-String</param>
+    /// </summary>
+    procedure ParseUtf8(const S: UTF8String); overload; inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
+    /// <summary>
+    /// <c>ParseUtf8Bytes</c> parses the given JSON UTF8-String.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">Pointer to the UTF8-String buffer's first byte</param>
+    /// <param name="Len">Number of bytes in the JSON string buffer</param>
+    /// </summary>
+    procedure ParseUtf8Bytes(S: PByte; Len: Integer = -1);
+    /// <summary>
+    /// <c>Parse</c> parses the given JSON UTF16-String.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">Pointer to the UTF16-String's first UTF16 character</param>
+    /// <param name="Len">Number of UTF16 characters in the JSON string (excluding a terminating #0). With the default
+    /// value of -1, the method counts the UTF16 characters until it finds a #0 in the string.</param>
+    /// </summary>
+    procedure Parse(S: PWideChar; Len: Integer = -1); overload;
+    /// <summary>
+    /// <c>Parse</c> parses the given JSON string.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">UTF8-String</param>
+    /// </summary>
+    procedure Parse(const S: string); overload; inline;
+    /// <summary>
+    /// <c>Parse</c> parses the given JSON UTF8-String with the given encoding, array index und byte count.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="Bytes">A byte array that contains or isd the UTF8-String</param>
+    /// <param name="Encoding">The encoding that the "Bytes" parameter uses. If nil is specified, UTF8 encoding is
+    /// used.</param>
+    /// <param name="ByteIndex">Thet start index in "Bytes" parameter where the parser shound start parsing</param>
+    /// <param name="ByteCount">The number of bytes that should be parsed starting a the "ByteIndex" in the "Bytes"
+    /// array. If "ByteCount" is -1, the max. length of the "Bytes" array starting from "ByteIndex" is automatically
+    /// calculated.</param>
+    /// </summary>
+    procedure Parse(const Bytes: TBytes; Encoding: TEncoding = nil; ByteIndex: Integer = 0; ByteCount: Integer = -1); overload;
+    /// <summary>
+    /// <c>ParseFile</c> parses a JSON string from a file.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="FileName">Filename of the file to parse</param>
+    /// <param name="Utf8WithtouBom">If the file doesn't have a BOM and "Utf8WithtouBom" is true, the file's encoding
+    /// is assumed to be UTF8</param>
+    /// </summary>
+    procedure ParseFile(const FileName: string; Utf8WithoutBOM: Boolean = True);
+    /// <summary>
+    /// <c>ParseStream</c> parses a JSON string from a stream.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="Stream">Filename of the file to parse</param>
+    /// <param name="Utf8WithtouBom">If the file doesn't have a BOM and "Utf8WithtouBom" is true, the file's encoding
+    /// is assumed to be UTF8</param>
+    /// </summary>
+    procedure ParseStream(Stream: TStream; Encoding: TEncoding = nil; Utf8WithoutBOM: Boolean = True);
+
+    // FromXxxJSON() raises an EJsonParserException if you try to parse an array JSON string into a
+    // TJsonObject or an object JSON string into a TJsonArray.
+    // The GetRootData must not be nil. If it is, nothing happens.
+
+    /// <summary>
+    /// <c>ParseUtf8</c> parses the given JSON UTF8-String.<br/>
+    /// The function calls <c>Cleanup</c> and then one of the <c>CreateRootXxx</c> methods to create the JSON element.
+    /// If the JSON String is nil, empty or consists only of white chars, no JSON element will be created.<br/>
+    /// If a syntax error is found a EJsonParserException is thrown.
+    /// <param name="S">Pointer to the UTF8-String's first UTF8 character</param>
+    /// <param name="Len">Number of UTF8 characters in the JSON string (excluding a terminating #0). With the default
+    /// value of -1, the method counts the UTF8 characters until it finds a #0 in the string.</param>
+    /// </summary>
+    {$IFDEF SUPPORTS_UTF8STRING}
+    procedure FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; const S: UTF8String); overload; inline;
+    {$ENDIF SUPPORTS_UTF8STRING}
+    procedure FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PAnsiChar; Len: Integer = -1); overload; inline;
+    procedure FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PByte; Len: Integer = -1); overload;
+    procedure FillFromJSON(RootData: Pointer; RootDataType: TJsonRootDataType; const S: UnicodeString); overload;
+    procedure FillFromJSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PWideChar; Len: Integer = -1); overload;
+    procedure FillFromStream(RootData: Pointer; RootDataType: TJsonRootDataType; Stream: TStream; Encoding: TEncoding; Utf8WithoutBOM: Boolean);
+  end;
+
   // Rename classes because RTL classes have the same name
   TJDOJsonBaseObject = TJsonBaseObject;
   TJDOJsonObject = TJsonObject;
   TJDOJsonArray = TJsonArray;
 
+const
+  // Deep enough for any legitimate document, shallow enough to stay well clear of a
+  // stack overflow on the smallest supported thread stack.
+  DefaultJsonMaxNestingDepth = 512;
+
 var
+  // Maximum number of nested objects/arrays the parser accepts before raising an
+  // EJsonParserException. The parser is recursive-descent, so unbounded nesting in
+  // untrusted input exhausts the thread's stack. The check cannot be switched off:
+  // zero and negative values mean DefaultJsonMaxNestingDepth. To accept deeper
+  // documents raise the value, don't clear it.
+  JsonMaxNestingDepth: Integer = DefaultJsonMaxNestingDepth; // not thread-safe
+
   JsonSerializationConfig: TJsonSerializationConfig = ( // not thread-safe
     LineBreak: #10;
     IndentChar: #9;
@@ -1015,10 +1364,29 @@ var
   );
 
 /// <summary>
-/// Result True if the string is a valid json object or json array
+/// All StrToFloat and FloatToStr calls that are used to auto-convert values from their internal
+/// type, will use these global JSON-FormatSettings unless a different FormatSettings for the current
+/// thread is configured via SetJsonThreadAutoConvertDoubleStringFormatSettings. If the global
+/// JSON-FormatSettings is set to nil (default), the JSON Storage FormatSettings are used with
+/// DecimalSeparator = '.' <br/>
+/// The function returns the old FormatSettings pointer.<br/>
+/// The caller must guarantee that the FormatSettings pointer stays valid while it is assigned.
+/// </summary>
+function SetJsonGlobalAutoConvertDoubleStringFormatSettings(GlobalFormatSettings: PFormatSettings): PFormatSettings;
+
+/// <summary>
+/// All StrToFloat and FloatToStr calls in the current thread that are used to auto-convert values
+/// from their internal type, will use the thread FormatSettings. If the variable is set to nil,
+/// the global JSON-FormatSettings are used. The function returns the old FormatSettings pointer.<br/>
+/// The caller must guarantee that the FormatSettings pointer stays valid while it is assigned.
+/// </summary>
+function SetJsonThreadAutoConvertDoubleStringFormatSettings(ThreadFormatSettings: PFormatSettings): PFormatSettings;
+
+/// <summary>
+/// Result True if the string is a valid json object, json array or a JSON primitive
 /// starting with "{" or "[" and with valid json content
 /// </summary>
-function IsValidJSON(const JSONString: string): Boolean;
+function IsValidJSON(const JSONString: string; FailOnPrimitive: Boolean = False): Boolean;
 
 /// <summary>
 /// Result True if the string is a valid json object
@@ -1066,6 +1434,7 @@ resourcestring
   RsUnexpectedToken = 'Expected %s but found %s';
   RsInvalidStringCharacter = 'Invalid character in string';
   RsStringNotClosed = 'String not closed';
+  RsNestingTooDeep = 'JSON nesting level exceeds the maximum of %d';
   RsInvalidHexNumber = 'Invalid hex number "%s"';
   RsTypeCastError = 'Cannot cast %s into %s';
   RsMissingClassInfo = 'Class "%s" doesn''t have type information. {$M+} was not specified';
@@ -1084,8 +1453,11 @@ type
     jtkEof, jtkInvalidSymbol,
     jtkLBrace, jtkRBrace, jtkLBracket, jtkRBracket, jtkComma, jtkColon,
     jtkIdent,
-    jtkValue{ only for error message},
-    jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse, jtkNull
+    jtkValue{ only for error message}, jtkString, jtkInt, jtkLong, jtkULong, jtkFloat,
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal, // the number is stored as a string
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    jtkTrue, jtkFalse, jtkNull
   );
 
 const
@@ -1093,13 +1465,26 @@ const
     'end of file', 'invalid symbol',
     '"{"', '"}"', '"["', '"]"', '","', '":"',
     'identifier',
-    'value', 'value', 'value', 'value', 'value', 'value', 'value', 'value', 'value'
+    'value', 'value', 'value', 'value', 'value', 'value',
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    'value',
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    'value', 'value', 'value'
   );
 
   Power10: array[0..18] of Double = (
     1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7, 1E8, 1E9,
     1E10, 1E11, 1E12, 1E13, 1E14, 1E15, 1E16, 1E17, 1E18
   );
+
+  ReciprocalPower10: array[0..18] of Double = (
+    1/1E0, 1/1E1, 1/1E2, 1/1E3, 1/1E4, 1/1E5, 1/1E6, 1/1E7, 1/1E8, 1/1E9,
+    1/1E10, 1/1E11, 1/1E12, 1/1E13, 1/1E14, 1/1E15, 1/1E16, 1/1E17, 1/1E18
+  );
+
+  {$IFDEF CPUX86}
+  Single2ToThePowerOf64: Single = 1.84467440737096E+19; // used for UInt64->Double conversion
+  {$ENDIF CPUX86}
 
   // XE7 broke string literal collapsing
 var
@@ -1114,6 +1499,12 @@ const
   {$IFEND}
 
 type
+  {$IFDEF CPUX86}
+  TInt64HiLo = record
+    Lo, Hi: Integer;
+  end;
+  {$ENDIF CPUX86}
+
   {$IFDEF FPC}
   PStrRec = ^TStrRec;
   TStrRec = record
@@ -1186,7 +1577,7 @@ type
   {$ENDIF USE_UTF8STRING_VALUES}
   public
     Kind: TJsonTokenKind;
-    S: string; // jtkIdent/jtkString
+    S: string; // jtkIdent/jtkString/BigDecimal
     case Integer of
       0: (I: Integer; HI: Integer);
       1: (L: Int64);
@@ -1197,6 +1588,99 @@ type
       {$ENDIF USE_UTF8STRING_VALUES}
   end;
 
+  /// <summary>
+  /// Implements a parser that creates/fills the JsonDataObjects.<br/>
+  ///   (PObjectData => TJsonObject, <br/>
+  ///   PArrayData => TJsonArray, <br/>
+  ///   PItemData => PJsonDataValue)
+  /// </summary>
+  TJsonObjectParser = class sealed(TJsonAbstractParser)
+  public
+    type PObjectData = TJsonAbstractParser.PObjectData;
+    type PArrayData = TJsonAbstractParser.PArrayData;
+    type PItemData = TJsonAbstractParser.PItemData;
+  private
+    FRootObject: TJsonBaseObject;
+  protected
+    function CreateRootObject: PObjectData; override;
+    function CreateRootArray: PArrayData; override;
+    function CreateRootPrimitive: PItemData; override;
+    procedure Cleanup; override;
+
+    procedure ClearRootObject(Data: PObjectData); override;
+    procedure ClearRootArray(Data: PArrayData); override;
+    procedure ClearRootPrimitive(Data: PItemData); override;
+
+    function AddObjectProperty(Data: PObjectData; var PropName: string): PObjectData; override;
+    function AddArrayProperty(Data: PObjectData; var PropName: string): PArrayData; override;
+    function AddProperty(Data: PObjectData; var PropName: string): PItemData; override;
+
+    function AddObjectElement(Data: PArrayData): PObjectData; override;
+    function AddArrayElement(Data: PArrayData): PArrayData; override;
+    function AddElement(Data: PArrayData): PItemData; override;
+
+    procedure SetNullValue(Data: PItemData); override;
+    procedure SetStrValue(Data: PItemData; var Value: string); override;
+    procedure SetIntValue(Data: PItemData; const Value: Integer); override;
+    procedure SetLongValue(Data: PItemData; const Value: Int64); override;
+    procedure SetULongValue(Data: PItemData; const Value: UInt64); override;
+    procedure SetFloatValue(Data: PItemData; const Value: Double); override;
+    procedure SetBoolValue(Data: PItemData; const Value: Boolean); override;
+    {$IFDEF USE_UTF8STRING_VALUES}
+    procedure SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer); override;
+    {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure SetBigDecimalValue(Data: PItemData; var Value: string); override;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+  public
+    function AcquireRootObject: TJsonBaseObject;
+  end;
+
+  /// <summary>
+  /// Implements a "Null" parser that is used to validate the JSON structure.
+  /// </summary>
+  TJsonValidateParser = class sealed(TJsonAbstractParser)
+  private
+    FRootDataType: TJsonRootDataType;
+  public
+    type PObjectData = TJsonAbstractParser.PObjectData;
+    type PArrayData = TJsonAbstractParser.PArrayData;
+    type PItemData = TJsonAbstractParser.PItemData;
+  protected
+    function CreateRootObject: PObjectData; override;
+    function CreateRootArray: PArrayData; override;
+    function CreateRootPrimitive: PItemData; override;
+    procedure Cleanup; override;
+
+    procedure ClearRootObject(Data: PObjectData); override;
+    procedure ClearRootArray(Data: PArrayData); override;
+    procedure ClearRootPrimitive(Data: PItemData); override;
+
+    function AddObjectProperty(Data: PObjectData; var PropName: string): PObjectData; override;
+    function AddArrayProperty(Data: PObjectData; var PropName: string): PArrayData; override;
+    function AddProperty(Data: PObjectData; var PropName: string): PItemData; override;
+
+    function AddObjectElement(Data: PArrayData): PObjectData; override;
+    function AddArrayElement(Data: PArrayData): PArrayData; override;
+    function AddElement(Data: PArrayData): PItemData; override;
+
+    procedure SetNullValue(Data: PItemData); override;
+    procedure SetStrValue(Data: PItemData; var Value: string); override;
+    procedure SetIntValue(Data: PItemData; const Value: Integer); override;
+    procedure SetLongValue(Data: PItemData; const Value: Int64); override;
+    procedure SetULongValue(Data: PItemData; const Value: UInt64); override;
+    procedure SetFloatValue(Data: PItemData; const Value: Double); override;
+    procedure SetBoolValue(Data: PItemData; const Value: Boolean); override;
+    {$IFDEF USE_UTF8STRING_VALUES}
+    procedure SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer); override;
+    {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    procedure SetBigDecimalValue(Data: PItemData; var Value: string); override;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+  public
+    property DataType: TJsonRootDataType read FRootDataType;
+  end;
+
   TJsonReader = class(TObject)
   private
     {$IFDEF USE_STRINGINTERN_FOR_NAMES}
@@ -1204,19 +1688,24 @@ type
     {$ENDIF USE_STRINGINTERN_FOR_NAMES}
     FPropName: string;
     procedure Accept(TokenKind: TJsonTokenKind);
-    procedure ParseObjectBody(const Data: TJsonObject);
-    procedure ParseObjectProperty(const Data: TJsonObject);
-    procedure ParseObjectPropertyValue(const Data: TJsonObject);
-    procedure ParseArrayBody(const Data: TJsonArray);
-    procedure ParseArrayPropertyValue(const Data: TJsonArray);
+    procedure ParseObjectBody(const Data: TJsonAbstractParser.PObjectData);
+    procedure ParseObjectProperty(const Data: TJsonAbstractParser.PObjectData);
+    procedure ParseObjectPropertyValue(const Data: TJsonAbstractParser.PObjectData);
+    procedure ParseArrayBody(const Data: TJsonAbstractParser.PArrayData);
+    procedure ParseArrayPropertyValue(const Data: TJsonAbstractParser.PArrayData);
+    procedure ParseItemValue(const Data: TJsonAbstractParser.PItemData);
     procedure AcceptFailed(TokenKind: TJsonTokenKind);
+    procedure EnterNestingLevel;
+    procedure NestingTooDeepError(AMaxDepth: Integer);
   protected
     FLook: TJsonToken;
     FLineNum: Integer;
+    FDepth: Integer;
     FStart: Pointer;
     FLineStart: Pointer;
     FLastProgressValue: NativeInt;
     FSize: NativeInt;
+    FParser: TJsonAbstractParser;
     FProgress: PJsonReaderProgressRec;
     procedure CheckProgress(Position: Pointer);
     function GetLineColumn: NativeInt;
@@ -1236,9 +1725,10 @@ type
     procedure FreeInstance; override;
     {$ENDIF USE_FAST_NEWINSTANCE}
 
-    constructor Create(AStart: Pointer; ASize: NativeInt; AProgress: PJsonReaderProgressRec);
+    constructor Create(AStart: Pointer; ASize: NativeInt; AParser: TJsonAbstractParser;
+      AProgress: PJsonReaderProgressRec);
     destructor Destroy; override;
-    procedure Parse(Data: TJsonBaseObject);
+    procedure Parse(RootData: Pointer; RootDataType: TJsonRootDataType);
   end;
 
   TUtf8JsonReader = class sealed(TJsonReader)
@@ -1254,7 +1744,7 @@ type
     procedure LexNumber(P: PByte{$IFDEF CPUARM}; EndP: PByte{$ENDIF});
     procedure LexIdent(P: PByte{$IFDEF CPUARM}; EndP: PByte{$ENDIF});
   public
-    constructor Create(S: PByte; Len: NativeInt; AProgress: PJsonReaderProgressRec);
+    constructor Create(S: PByte; Len: NativeInt; AParser: TJsonAbstractParser; AProgress: PJsonReaderProgressRec);
   end;
 
   TStringJsonReader = class sealed(TJsonReader)
@@ -1270,7 +1760,7 @@ type
     procedure LexNumber(P: PChar{$IFDEF CPUARM}; EndP: PChar{$ENDIF});
     procedure LexIdent(P: PChar{$IFDEF CPUARM}; EndP: PChar{$ENDIF});
   public
-    constructor Create(S: PChar; Len: Integer; AProgress: PJsonReaderProgressRec);
+    constructor Create(S: PChar; Len: Integer; AParser: TJsonAbstractParser; AProgress: PJsonReaderProgressRec);
   end;
 
   TMemoryStreamAccess = class(TMemoryStream);
@@ -1298,7 +1788,7 @@ type
   end;
 
 var
-  JSONFormatSettings: TFormatSettings;
+  JSONStorageFormatSettings: TFormatSettings;
   {$IFDEF USE_NAME_STRING_LITERAL}
   JsonMemInfoInitialized: Boolean = False;
   JsonMemInfoBlockStart: PByte = nil;
@@ -1306,6 +1796,11 @@ var
   JsonMemInfoMainBlockStart: PByte = nil;
   JsonMemInfoMainBlockEnd: PByte = nil;
   {$ENDIF USE_NAME_STRING_LITERAL}
+  JsonGlobalAutoConvertDoubleStringFormatSettings: PFormatSettings = nil;
+
+threadvar
+  JsonThreadAutoConvertDoubleStringFormatSettings: PFormatSettings;
+
 
 {$IFDEF MSWINDOWS}
 
@@ -1481,6 +1976,21 @@ begin
   raise EJsonCastException.CreateResFmt(@RsVarTypeNotSupported, [VarType]);
 end;
 
+function MapJsonDataType(ATyp: TJsonDataType): TJsonDataType; inline;
+begin
+  Result := ATyp;
+  // Change the internal types to external types
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if Result = jdtUTF8String then
+    Result := jdtString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  if Result = jdtBigDecimal then
+    Result := jdtFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+end;
+
+
 {$IFDEF USE_NAME_STRING_LITERAL}
 procedure AsgString(var Dest: string; const Source: string);
 begin
@@ -1509,6 +2019,40 @@ end;
 procedure AnsiLowerCamelCaseString(var S: string);
 begin
   S := AnsiLowerCase(PChar(S)^) + Copy(S, 2);
+end;
+
+
+function SetJsonGlobalAutoConvertDoubleStringFormatSettings(GlobalFormatSettings: PFormatSettings): PFormatSettings;
+begin
+  Result := JsonGlobalAutoConvertDoubleStringFormatSettings;
+  JsonGlobalAutoConvertDoubleStringFormatSettings := GlobalFormatSettings;
+end;
+
+function SetJsonThreadAutoConvertDoubleStringFormatSettings(ThreadFormatSettings: PFormatSettings): PFormatSettings;
+begin
+  Result := JsonThreadAutoConvertDoubleStringFormatSettings;
+  JsonThreadAutoConvertDoubleStringFormatSettings := ThreadFormatSettings;
+end;
+
+function GetConvertFormatSettings: PFormatSettings;
+begin
+  Result := Pointer(JsonThreadAutoConvertDoubleStringFormatSettings);
+  if Result = nil then
+  begin
+    Result := Pointer(JsonGlobalAutoConvertDoubleStringFormatSettings);
+    if Result = nil then
+      Result := @JSONStorageFormatSettings; // old behavior
+  end;
+end;
+
+function ConvertFloatToStr(Value: Double): string; inline;
+begin
+  Result := FloatToStr(Value, GetConvertFormatSettings()^);
+end;
+
+function ConvertStrToFloat(const Value: string): Double; inline;
+begin
+  Result := StrToFloat(Value, GetConvertFormatSettings()^);
 end;
 
 {$IF not declared(TryStrToUInt64)}
@@ -1633,20 +2177,27 @@ var
   Hour, Min, Sec, MSec: Word;
 begin
   DateTimeToSystemTime(Value, LocalTime);
-  Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3d',
-    [LocalTime.wYear, LocalTime.wMonth, LocalTime.wDay,
-     LocalTime.wHour, LocalTime.wMinute, LocalTime.wSecond, LocalTime.wMilliseconds]);
+  if LocalTime.wMilliseconds = 0 then
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d',
+      [LocalTime.wYear, LocalTime.wMonth, LocalTime.wDay,
+       LocalTime.wHour, LocalTime.wMinute, LocalTime.wSecond])
+  else
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3d',
+      [LocalTime.wYear, LocalTime.wMonth, LocalTime.wDay,
+       LocalTime.wHour, LocalTime.wMinute, LocalTime.wSecond, LocalTime.wMilliseconds]);
+
+  Offset := 0;
   if TzSpecificLocalTimeToSystemTime(nil, LocalTime, UtcTime) then
   begin
     Offset := Value - SystemTimeToDateTime(UtcTime);
     DecodeTime(Offset, Hour, Min, Sec, MSec);
-    if Offset < 0 then
-      Result := Format('%s-%.2d:%.2d', [Result, Hour, Min])
-    else if Offset > 0 then
-      Result := Format('%s+%.2d:%.2d', [Result, Hour, Min])
-    else
-      Result := Result + 'Z';
   end;
+  if Offset < 0 then
+    Result := Format('%s-%.2d:%.2d', [Result, Hour, Min])
+  else if Offset > 0 then
+    Result := Format('%s+%.2d:%.2d', [Result, Hour, Min])
+  else
+    Result := Result + 'Z';
 end;
 {$ELSE}
 var
@@ -1655,7 +2206,11 @@ var
 begin
   DecodeDate(Value, Year, Month, Day);
   DecodeTime(Value, Hour, Minute, Second, MilliSeconds);
-  Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3d', [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
+  if MilliSeconds = 0 then
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d', [Year, Month, Day, Hour, Minute, Second])
+  else
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3d', [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
+
   Offset := Value - TTimeZone.Local.ToUniversalTime(Value);
   DecodeTime(Offset, Hour, Minute, Second, MilliSeconds);
   if Offset < 0 then
@@ -1680,6 +2235,27 @@ begin
     Dec(MaxLen);
   end;
   Value := V;
+end;
+
+function ParseSecFractionPart(P: PChar; var MSec: Integer): PChar;
+begin
+  Result := ParseDateTimePart(P, MSec, 3);
+  // Convert the fraction (of a second) to milliseconds
+  case Result - P of // Length
+    1: MSec := MSec * 100; // [0.]x => [0.]x00
+    2: MSec := MSec * 10;  // Make [0.]xx => [0.]xx0
+  end;
+
+  // Skip other digits. TDateTime's precision cannot represent them
+  if Result^ in ['0'..'9'] then
+  begin
+    // Don't round 0.9995 up to 1.0. We can't have 1000ms as a "millisecond" component and
+    // we don't want to change the "second" component either.
+    if (MSec < 999) and (Result^ >= '5') then
+      Inc(MSec); // round up
+    while Result^ in ['0'..'9'] do
+      Inc(Result);
+  end;
 end;
 
 function VarTypeToJsonDataType(AVarType: TVarType): TJsonDataType;
@@ -1779,6 +2355,30 @@ begin
     SetLength(S, OldLen);
 end;
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure BigDecimalToString(var Result: string; const AValue: string);
+var
+  Ps: Integer;
+  FS: PFormatSettings;
+begin
+  Result := AValue;
+  // BigDecimal has a '.' as Decimal separator. But if we want to convert it to a string, we
+  // need to follow the rules as if we would do a ConvertFloatToStr(value).
+  FS := GetConvertFormatSettings;
+  if FS.DecimalSeparator <> '.' then
+  begin
+    Ps := Pos('.', AValue);
+    if Ps > 0 then
+      Result[Ps] := FS.DecimalSeparator;
+  end;
+end;
+
+function BigDecimalToFloat(const AValue: string): Double; inline;
+begin
+  Result := StrToFloat(AValue, JSONStorageFormatSettings); // force '.' decimal separator
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 { TJsonSerializationConfig }
 
 procedure TJsonSerializationConfig.InitDefaults;
@@ -1815,6 +2415,214 @@ begin
 end;
 {$ENDIF USE_UTF8STRING_VALUES}
 
+{ TJsonReaderHandler }
+
+procedure TJsonObjectParser.ClearRootObject(Data: PObjectData);
+begin
+  TJsonObject(Data).Clear;
+end;
+
+procedure TJsonObjectParser.ClearRootArray(Data: PArrayData);
+begin
+  TJsonArray(Data).Clear;
+end;
+
+procedure TJsonObjectParser.ClearRootPrimitive(Data: PItemData);
+begin
+  PJsonDataValue(Data).Clear;
+end;
+
+function TJsonObjectParser.AddObjectProperty(Data: PObjectData; var PropName: string): PObjectData;
+begin
+  Result := PObjectData(TJsonObject(Data).InternAddObject(PropName));
+end;
+
+function TJsonObjectParser.AddArrayProperty(Data: PObjectData; var PropName: string): PArrayData;
+begin
+  Result := PArrayData(TJsonObject(Data).InternAddArray(PropName));
+end;
+
+function TJsonObjectParser.AddProperty(Data: PObjectData; var PropName: string): PItemData;
+begin
+  Result := PItemData(TJsonObject(Data).InternAddItem(PropName));
+end;
+
+function TJsonObjectParser.AddObjectElement(Data: PArrayData): PObjectData;
+begin
+  Result := PObjectData(TJsonArray(Data).AddObject());
+end;
+
+function TJsonObjectParser.AddArrayElement(Data: PArrayData): PArrayData;
+begin
+  Result := PArrayData(TJsonArray(Data).AddArray());
+end;
+
+function TJsonObjectParser.AddElement(Data: PArrayData): PItemData;
+begin
+  Result := PItemData(TJsonArray(Data).AddItem());
+end;
+
+procedure TJsonObjectParser.SetNullValue(Data: PItemData);
+begin
+  PJsonDataValue(Data).InternSetObjectValue(nil);
+end;
+
+{$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonObjectParser.SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer);
+begin
+  PJsonDataValue(Data).InternSetValueUTF8Transfer(P, Len);
+end;
+{$ENDIF USE_UTF8STRING_VALUES}
+
+procedure TJsonObjectParser.SetStrValue(Data: PItemData; var Value: string);
+begin
+  PJsonDataValue(Data).InternSetValueTransfer(Value);
+end;
+
+procedure TJsonObjectParser.SetIntValue(Data: PItemData; const Value: Integer);
+begin
+  PJsonDataValue(Data).IntValue := Value;
+end;
+
+procedure TJsonObjectParser.SetLongValue(Data: PItemData; const Value: Int64);
+begin
+  PJsonDataValue(Data).LongValue := Value;
+end;
+
+procedure TJsonObjectParser.SetULongValue(Data: PItemData; const Value: UInt64);
+begin
+  PJsonDataValue(Data).ULongValue := Value;
+end;
+
+procedure TJsonObjectParser.SetFloatValue(Data: PItemData; const Value: Double);
+begin
+  PJsonDataValue(Data).FloatValue := Value;
+end;
+
+procedure TJsonObjectParser.SetBoolValue(Data: PItemData; const Value: Boolean);
+begin
+  PJsonDataValue(Data).BoolValue := Value;
+end;
+
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonObjectParser.SetBigDecimalValue(Data: PItemData; var Value: string);
+begin
+  PJsonDataValue(Data).InternSetValueTransferBigDecimal(Value);
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
+{ TJsonValidateParser }
+
+function TJsonValidateParser.CreateRootObject: PObjectData;
+begin
+  FRootDataType := jrdtObject;
+  Result := nil;
+end;
+
+function TJsonValidateParser.CreateRootArray: PArrayData;
+begin
+  FRootDataType := jrdtArray;
+  Result := nil;
+end;
+
+function TJsonValidateParser.CreateRootPrimitive: PItemData;
+begin
+  FRootDataType := jrdtPrimitiveValue;
+  Result := nil;
+end;
+
+procedure TJsonValidateParser.Cleanup;
+begin
+  FRootDataType := jrdtInvalid;
+end;
+
+procedure TJsonValidateParser.ClearRootObject(Data: PObjectData);
+begin
+end;
+
+procedure TJsonValidateParser.ClearRootArray(Data: PArrayData);
+begin
+end;
+
+procedure TJsonValidateParser.ClearRootPrimitive(Data: PItemData);
+begin
+end;
+
+function TJsonValidateParser.AddObjectProperty(Data: PObjectData; var PropName: string): PObjectData;
+begin
+  //PropName := '';
+  Result := nil;
+end;
+
+function TJsonValidateParser.AddArrayProperty(Data: PObjectData; var PropName: string): PArrayData;
+begin
+  //PropName := '';
+  Result := nil;
+end;
+
+function TJsonValidateParser.AddProperty(Data: PObjectData; var PropName: string): PItemData;
+begin
+  //PropName := '';
+  Result := nil;
+end;
+
+function TJsonValidateParser.AddObjectElement(Data: PArrayData): PObjectData;
+begin
+  Result := nil;
+end;
+
+function TJsonValidateParser.AddArrayElement(Data: PArrayData): PArrayData;
+begin
+  Result := nil;
+end;
+
+function TJsonValidateParser.AddElement(Data: PArrayData): PItemData;
+begin
+  Result := nil;
+end;
+
+procedure TJsonValidateParser.SetNullValue(Data: PItemData);
+begin
+end;
+
+{$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonValidateParser.SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer);
+begin
+end;
+{$ENDIF USE_UTF8STRING_VALUES}
+
+procedure TJsonValidateParser.SetStrValue(Data: PItemData; var Value: string);
+begin
+  //Value := '';
+end;
+
+procedure TJsonValidateParser.SetIntValue(Data: PItemData; const Value: Integer);
+begin
+end;
+
+procedure TJsonValidateParser.SetLongValue(Data: PItemData; const Value: Int64);
+begin
+end;
+
+procedure TJsonValidateParser.SetULongValue(Data: PItemData; const Value: UInt64);
+begin
+end;
+
+procedure TJsonValidateParser.SetFloatValue(Data: PItemData; const Value: Double);
+begin
+end;
+
+procedure TJsonValidateParser.SetBoolValue(Data: PItemData; const Value: Boolean);
+begin
+end;
+
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonValidateParser.SetBigDecimalValue(Data: PItemData; var Value: string);
+begin
+  //Value := '';
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 { TJsonReader }
 
 {$IFDEF USE_FAST_NEWINSTANCE}
@@ -1834,7 +2642,8 @@ begin
 end;
 {$ENDIF ~USE_FAST_NEWINSTANCE}
 
-constructor TJsonReader.Create(AStart: Pointer; ASize: NativeInt; AProgress: PJsonReaderProgressRec);
+constructor TJsonReader.Create(AStart: Pointer; ASize: NativeInt; AParser: TJsonAbstractParser;
+  AProgress: PJsonReaderProgressRec);
 begin
   //inherited Create;
   {$IFDEF USE_FAST_NEWINSTANCE}
@@ -1855,6 +2664,7 @@ begin
   FLineStart := nil;
 
   FSize := ASize;
+  FParser := AParser;
   FProgress := AProgress;
   FLastProgressValue := 0; // class is not zero-filled
   if (FProgress <> nil) and Assigned(FProgress.Progress) then
@@ -2091,51 +2901,64 @@ begin
   end;
 end;
 
-procedure TJsonReader.Parse(Data: TJsonBaseObject);
-var
-  A: TJsonArray;
+procedure TJsonReader.Parse(RootData: Pointer; RootDataType: TJsonRootDataType);
 begin
-  if Data is TJsonObject then
-  begin
-    TJsonObject(Data).Clear;
-    Next; // initialize Lexer
-    Accept(jtkLBrace);
-    ParseObjectBody(TJsonObject(Data));
-    Accept(jtkRBrace);
-  end
-  else if Data is TJsonArray then
-  begin
-    TJsonArray(Data).Clear;
-    Next; // initialize Lexer
-    Accept(jtkLBracket);
-    ParseArrayBody(TJsonArray(Data));
-    Accept(jtkRBracket)
-  end 
-  else if Data is TJsonPrimitiveValue then
-  begin
-    TJsonPrimitiveValue(Data).Item.Clear;
-    Next; // initialize Lexer 
-    if FLook.Kind < jtkString then // block everything that isn't a value
-      Accept(jtkLBracket); // throw "{" expected error. That's what happened before TJsonPrimitiveValue was added
+  FDepth := 0; // a previously aborted Parse() may have left it dirty
+  case RootDataType of
+    jrdtObject:
+      begin
+        FParser.ClearRootObject(RootData);
+        Next; // initialize Lexer
+        Accept(jtkLBrace);
+        ParseObjectBody(RootData);
+        Accept(jtkRBrace);
+      end;
 
-    // Use the array parser to parse the value
-    A := TJsonArray.Create;
-    try
-      ParseArrayPropertyValue(A);
-      if (A.Count > 0) and not A.Items[0].IsNull then
-        TJsonPrimitiveValue(Data).Item.Assign(A.Items[0]);
-    finally
-      A.Free;
-    end;
-  end;      
+    jrdtArray:
+      begin
+        FParser.ClearRootArray(RootData);
+        Next; // initialize Lexer
+        Accept(jtkLBracket);
+        ParseArrayBody(RootData);
+        Accept(jtkRBracket);
+      end;
+
+    jrdtPrimitiveValue:
+      begin
+        FParser.ClearRootPrimitive(RootData);
+        Next; // initialize Lexer
+        if FLook.Kind < jtkString then // block everything that isn't a value
+          Accept(jtkLBracket); // throw "{" expected error. That's what happened before TJsonPrimitiveValue was added
+        ParseItemValue(RootData);
+      end;
+  end;
   {$IFDEF STRICT_JSON_PARSER}
   Accept(jtkEof);
   {$ENDIF STRICT_JSON_PARSER}
 end;
 
-procedure TJsonReader.ParseObjectBody(const Data: TJsonObject);
+procedure TJsonReader.NestingTooDeepError(AMaxDepth: Integer);
+begin
+  raise EJsonParserException.CreateResFmt(@RsNestingTooDeep, [AMaxDepth],
+    FLineNum, GetLineColumn, GetPosition);
+end;
+
+procedure TJsonReader.EnterNestingLevel;
+var
+  LMaxDepth: Integer;
+begin
+  Inc(FDepth);
+  LMaxDepth := JsonMaxNestingDepth;
+  if LMaxDepth <= 0 then // a cleared limit is the default one, never "no limit"
+    LMaxDepth := DefaultJsonMaxNestingDepth;
+  if FDepth > LMaxDepth then
+    NestingTooDeepError(LMaxDepth);
+end;
+
+procedure TJsonReader.ParseObjectBody(const Data: TJsonAbstractParser.PObjectData);
 // ObjectBody ::= [ ObjectProperty [ "," ObjectProperty ]* ]
 begin
+  EnterNestingLevel;
   if FLook.Kind <> jtkRBrace then
   begin
     while FLook.Kind <> jtkEof do
@@ -2146,10 +2969,11 @@ begin
       Accept(jtkComma);
     end;
   end;
+  Dec(FDepth);
 end;
 
-procedure TJsonReader.ParseObjectProperty(const Data: TJsonObject);
-// Property ::= IDENT ":" ObjectPropertyValue
+procedure TJsonReader.ParseObjectProperty(const Data: TJsonAbstractParser.PObjectData);
+// Property ::= String ":" ObjectPropertyValue
 begin
   {$IFDEF STRICT_JSON_PARSER}
   if FLook.Kind = jtkString then
@@ -2178,29 +3002,44 @@ begin
   ParseObjectPropertyValue(Data);
 end;
 
-procedure TJsonReader.ParseObjectPropertyValue(const Data: TJsonObject);
+procedure TJsonReader.ParseObjectPropertyValue(const Data: TJsonAbstractParser.PObjectData);
 // ObjectPropertyValue ::= Object | Array | Value
 begin
   case FLook.Kind of
     jtkLBrace:
       begin
         Accept(jtkLBrace);
-        ParseObjectBody(Data.InternAddObject(FPropName));
+        ParseObjectBody(FParser.AddObjectProperty(Data, FPropName));
         Accept(jtkRBrace);
       end;
 
     jtkLBracket:
       begin
         Accept(jtkLBracket);
-        ParseArrayBody(Data.InternAddArray(FPropName));
+        ParseArrayBody(FParser.AddArrayProperty(Data, FPropName));
         Accept(jtkRBracket);
       end;
 
-    jtkNull:
+    jtkNull,
+    {$IFNDEF STRICT_JSON_PARSER}
+    jtkIdent,
+    {$ENDIF ~STRICT_JSON_PARSER}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal,
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse:
       begin
-        Data.InternAdd(FPropName, TJsonObject(nil));
-        Next;
+        ParseItemValue(FParser.AddProperty(Data, FPropName));
       end;
+  end;
+end;
+
+procedure TJsonReader.ParseItemValue(const Data: TJsonAbstractParser.PItemData);
+// Value ::= value
+begin
+  case FLook.Kind of
+    jtkNull:
+      FParser.SetNullValue(Data);
 
     {$IFNDEF STRICT_JSON_PARSER}
     jtkIdent,
@@ -2209,56 +3048,44 @@ begin
       begin
         {$IFDEF USE_UTF8STRING_VALUES}
         if FLook.UTF8 <> nil then
-          Data.InternAddItem(FPropName).InternSetValueUTF8Transfer(FLook.UTF8, FLook.UTF8Len)
+          FParser.SetUtf8Value(Data, FLook.UTF8, FLook.UTF8Len)
         else
         {$ENDIF USE_UTF8STRING_VALUES}
-          Data.InternAddItem(FPropName).InternSetValueTransfer(FLook.S);
-        Next;
+          FParser.SetStrValue(Data, FLook.S);
       end;
+
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal:
+      FParser.SetBigDecimalValue(Data, FLook.S);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
     jtkInt:
-      begin
-        Data.InternAdd(FPropName, FLook.I);
-        Next;
-      end;
+      FParser.SetIntValue(Data, FLook.I);
 
     jtkLong:
-      begin
-        Data.InternAdd(FPropName, FLook.L);
-        Next;
-      end;
+      FParser.SetLongValue(Data, FLook.L);
 
     jtkULong:
-      begin
-        Data.InternAdd(FPropName, FLook.U);
-        Next;
-      end;
+      FParser.SetULongValue(Data, FLook.U);
 
     jtkFloat:
-      begin
-        Data.InternAdd(FPropName, FLook.F);
-        Next;
-      end;
+      FParser.SetFloatValue(Data, FLook.F);
 
     jtkTrue:
-      begin
-        Data.InternAdd(FPropName, True);
-        Next;
-      end;
+      FParser.SetBoolValue(Data, True);
 
     jtkFalse:
-      begin
-        Data.InternAdd(FPropName, False);
-        Next;
-      end
+      FParser.SetBoolValue(Data, False);
   else
     Accept(jtkValue);
   end;
+  Next;
 end;
 
-procedure TJsonReader.ParseArrayBody(const Data: TJsonArray);
+procedure TJsonReader.ParseArrayBody(const Data: TJsonAbstractParser.PArrayData);
 // ArrayBody ::= [ ArrayPropertyValue [ "," ArrayPropertyValue ]* ]
 begin
+  EnterNestingLevel;
   if FLook.Kind <> jtkRBracket then
   begin
     while FLook.Kind <> jtkEof do
@@ -2269,80 +3096,37 @@ begin
       Accept(jtkComma);
     end;
   end;
+  Dec(FDepth);
 end;
 
-procedure TJsonReader.ParseArrayPropertyValue(const Data: TJsonArray);
+procedure TJsonReader.ParseArrayPropertyValue(const Data: TJsonAbstractParser.PArrayData);
 // ArrayPropertyValue ::= Object | Array | Value
 begin
   case FLook.Kind of
     jtkLBrace:
       begin
         Accept(jtkLBrace);
-        ParseObjectBody(Data.AddObject);
+        ParseObjectBody(FParser.AddObjectElement(Data));
         Accept(jtkRBrace);
       end;
 
     jtkLBracket:
       begin
         Accept(jtkLBracket);
-        ParseArrayBody(Data.AddArray);
+        ParseArrayBody(FParser.AddArrayElement(Data));
         Accept(jtkRBracket);
       end;
 
-    jtkNull:
-      begin
-        Data.Add(TJsonObject(nil));
-        Next;
-      end;
-
+    jtkNull,
     {$IFNDEF STRICT_JSON_PARSER}
     jtkIdent,
     {$ENDIF ~STRICT_JSON_PARSER}
-    jtkString:
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jtkBigDecimal,
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+    jtkString, jtkInt, jtkLong, jtkULong, jtkFloat, jtkTrue, jtkFalse:
       begin
-        {$IFDEF USE_UTF8STRING_VALUES}
-        if FLook.UTF8 <> nil then
-          Data.AddUtf8(FLook.UTF8, FLook.UTF8Len)
-        else
-        {$ENDIF USE_UTF8STRING_VALUES}
-          Data.Add(FLook.S);
-        Next;
-      end;
-
-    jtkInt:
-      begin
-        Data.Add(FLook.I);
-        Next;
-      end;
-
-    jtkLong:
-      begin
-        Data.Add(FLook.L);
-        Next;
-      end;
-
-    jtkULong:
-      begin
-        Data.Add(FLook.U);
-        Next;
-      end;
-
-    jtkFloat:
-      begin
-        Data.Add(FLook.F);
-        Next;
-      end;
-
-    jtkTrue:
-      begin
-        Data.Add(True);
-        Next;
-      end;
-
-    jtkFalse:
-      begin
-        Data.Add(False);
-        Next;
+        ParseItemValue(FParser.AddElement(Data));
       end;
   else
     Accept(jtkValue);
@@ -2369,6 +3153,11 @@ end;
 
 { TJsonDataValue }
 
+function TJsonDataValue.GetTyp: TJsonDataType;
+begin
+  Result := MapJsonDataType(FTyp);
+end;
+
 procedure TJsonDataValue.Clear;
 {$IFDEF USE_FAST_AUTOREFCOUNT}
 var
@@ -2383,6 +3172,10 @@ begin
     jdtUTF8String:
       UTF8String(FValue.S) := '';
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      string(FValue.S) := '';
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       FValue.I := 0;
     jdtLong:
@@ -2507,6 +3300,10 @@ begin
     jdtUTF8String:
       Result := UTF8String(FValue.S);
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2547,6 +3344,7 @@ begin
       jdtString:
         string(FValue.S) := AValue;
       //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
+      //jdtBigDecimal: VarTypeToJsonDataType doesn't return jdtBigDecimal
       jdtInt:
         FValue.I := AValue;
       jdtLong:
@@ -2605,6 +3403,10 @@ begin
         Result := string(FValue.S);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      BigDecimalToString(Result, string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := IntToStr(FValue.I);
     jdtLong:
@@ -2612,7 +3414,7 @@ begin
     jdtULong:
       Result := UIntToStr(FValue.U);
     jdtFloat:
-      Result := FloatToStr(FValue.F, JSONFormatSettings);
+      Result := ConvertFloatToStr(FValue.F);
     jdtDateTime:
       Result := TJsonBaseObject.DateTimeToJSON(FValue.F, JsonSerializationConfig.UseUtcTime);
     jdtUtcDateTime:
@@ -2662,6 +3464,14 @@ begin
   Pointer(AValue) := nil;
 end;
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonDataValue.InternSetValueTransferBigDecimal(var AValue: string);
+begin
+  InternSetValueTransfer(AValue);
+  FTyp := jdtBigDecimal;
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 {$IFDEF SUPPORTS_UTF8STRING}
 
   {$IFDEF USE_UTF8STRING_VALUES}
@@ -2697,7 +3507,7 @@ function TJsonDataValue.GetValueUTF8: UTF8String;
 
   procedure SlowConvert(var S: UTF8String);
   begin
-    Result := UTF8Encode(GetValue);
+    S := UTF8Encode(GetValue); // uses GetValue() to convert the value to a string
   end;
 
 begin
@@ -2736,6 +3546,22 @@ begin
 end;
 {$ENDIF SUPPORTS_UTF8STRING}
 
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonDataValue.SetBigDecimalValue(const AValue: string);
+var
+  LTyp: TJsonDataType;
+begin
+  LTyp := FTyp;
+  if (LTyp <> jdtBigDecimal) or (AValue <> string(FValue.S)) then
+  begin
+    if LTyp <> jdtNone then
+      Clear;
+    FTyp := jdtBigDecimal;
+    string(FValue.S) := AValue;
+  end;
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
 function TJsonDataValue.GetIntValue: Integer;
 begin
   case FTyp of
@@ -2743,15 +3569,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToInt(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToInt(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2797,15 +3627,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToInt64(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToInt64(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2851,15 +3685,19 @@ begin
       Result := 0;
     jdtString:
       if not TryStrToUInt64(string(FValue.S), Result) then
-        Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+        Result := Trunc(ConvertStrToFloat(string(FValue.S)));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
         if not TryStrToUInt64(string(FValue.S), Result) then
-          Result := Trunc(StrToFloat(string(FValue.S), JSONFormatSettings));
+          Result := Trunc(ConvertStrToFloat(string(FValue.S)));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := Trunc(GetFloatValue);
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
@@ -2904,20 +3742,31 @@ begin
     jdtNone:
       Result := 0;
     jdtString:
-      Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+      Result := ConvertStrToFloat(string(FValue.S));
     {$IFDEF USE_UTF8STRING_VALUES}
     jdtUTF8String:
       begin
         ConvertUTF8ToStringType;
-        Result := StrToFloat(string(FValue.S), JSONFormatSettings);
+        Result := ConvertStrToFloat(string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := BigDecimalToFloat(string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime, jdtUtcDateTime:
@@ -2964,12 +3813,23 @@ begin
         Result := TJsonBaseObject.JSONToDateTime(string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime:
@@ -3018,12 +3878,23 @@ begin
         Result := TJsonBaseObject.JSONToDateTime(string(FValue.S), False);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := GetFloatValue;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I;
     jdtLong:
       Result := FValue.L;
     jdtULong:
+      {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
+        Result := FValue.I
+      else
+        Result := FValue.I + Single2ToThePowerOf64;
+      {$ELSE}
       Result := FValue.U;
+      {$ENDIF CPUX86}
     jdtFloat:
       Result := FValue.F;
     jdtDateTime:
@@ -3069,6 +3940,10 @@ begin
     jdtUTF8String:
       Result := UTF8String(FValue.S) = 'true';
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Result := string(FValue.S) <> '0';
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Result := FValue.I <> 0;
     jdtLong:
@@ -3107,7 +3982,7 @@ begin
   end;
 end;
 
-function DoubleToText(Buffer: PChar; const Value: Extended): Integer; {inline;}
+function DoubleToText(Buffer: PChar; const Value: Extended): Integer;
 var
   I: Integer;
   {$IFDEF FPC}
@@ -3115,11 +3990,11 @@ var
   {$ENDIF FPC}
 begin
   {$IFDEF FPC}
-  Result := FloatToText(AnsiBuf, Value, ffGeneral, 15, 0, JSONFormatSettings);
+  Result := FloatToText(AnsiBuf, Value, ffGeneral, 15, 0, JSONStorageFormatSettings);
   for I := 0 to Result - 1 do
     Buffer[I] := WideChar(Ord(AnsiBuf[I])); // we only have digits and -, +, ., E as characters
   {$ELSE}
-  Result := FloatToText(Buffer, Value, fvExtended, ffGeneral, 15, 0, JSONFormatSettings);
+  Result := FloatToText(Buffer, Value, fvExtended, ffGeneral, 15, 0, JSONStorageFormatSettings);
   {$ENDIF FPC}
 
   // Add the decimal separator if FloatToText didn't add it, so that the data type of
@@ -3242,6 +4117,10 @@ begin
         TJsonBaseObject.StrToJSONStr(Writer.AppendStrValue, string(FValue.S));
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      Writer.AppendValue(string(FValue.S));
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       begin
         BufEnd := @PChar(@Buffer[0])[Length(Buffer)]; // extra typecast to work around a compiler bug (fixed in XE3)
@@ -3318,8 +4197,12 @@ var
 begin
   DecodeDate(UtcDateTime, Year, Month, Day);
   DecodeTime(UtcDateTime, Hour, Minute, Second, MilliSeconds);
-  Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ',
-    [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
+  if Milliseconds = 0 then
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2dZ',
+      [Year, Month, Day, Hour, Minute, Second])
+  else
+    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ',
+      [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
 end;
 
 function TJsonBaseObject.Clone: TJsonBaseObject;
@@ -3344,9 +4227,14 @@ begin
     DateTimeToSystemTime(Value, LocalTime);
     if not TzSpecificLocalTimeToSystemTime(nil, LocalTime, UtcTime) then
       UtcTime := LocalTime;
-    Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ',
-      [UtcTime.wYear, UtcTime.wMonth, UtcTime.wDay,
-       UtcTime.wHour, UtcTime.wMinute, UtcTime.wSecond, UtcTime.wMilliseconds]);
+    if UtcTime.wMilliseconds = 0 then
+      Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2dZ',
+        [UtcTime.wYear, UtcTime.wMonth, UtcTime.wDay,
+         UtcTime.wHour, UtcTime.wMinute, UtcTime.wSecond])
+    else
+      Result := Format('%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ',
+        [UtcTime.wYear, UtcTime.wMonth, UtcTime.wDay,
+         UtcTime.wHour, UtcTime.wMinute, UtcTime.wSecond, UtcTime.wMilliseconds]);
   end
   else
     Result := DateTimeToISO8601(Value);
@@ -3410,14 +4298,15 @@ begin
       Exit; // invalid format
     P := ParseDateTimePart(P + 1, Day, 2);
 
-    Hour := 0;
-    Min := 0;
-    Sec := 0;
-    MSec := 0;
     Result := EncodeDate(Year, Month, Day);
 
     if P^ = 'T' then
     begin
+      Hour := 0;
+      Min := 0;
+      Sec := 0;
+      MSec := 0;
+
       P := ParseDateTimePart(P + 1, Hour, 2);
       if P^ <> ':' then
         Exit; // invalid format
@@ -3426,7 +4315,7 @@ begin
       begin
         P := ParseDateTimePart(P + 1, Sec, 2);
         if P^ = '.' then
-          P := ParseDateTimePart(P + 1, MSec, 3);
+          P := ParseSecFractionPart(P + 1, MSec); // limit to milliseconds
       end;
       Result := Result + EncodeTime(Hour, Min, Sec, MSec);
       if (P^ <> 'Z') and (P^ <> #0) then
@@ -3624,47 +4513,18 @@ end;
 
 class function TJsonBaseObject.ParseUtf8Bytes(S: PByte; Len: Integer; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
 var
-  P: PByte;
-  L: Integer;
+  Parser: TJsonObjectParser;
 begin
   if (S = nil) or (Len = 0) then
     Result := nil
   else
   begin
-    if Len < 0 then
-    begin
-      {$IFDEF NEXTGEN}
-      Len := Utf8StrLen(S);
-      {$ELSE}
-      Len := StrLen(PAnsiChar(S));
-      {$ENDIF NEXTGEN}
-    end;
-    P := S;
-    L := Len;
-    while (L > 0) and (P^ <= 32) do
-    begin
-      Inc(P);
-      Dec(L);
-    end;
-    if L = 0 then
-      Result := nil
-    else
-    begin
-      if (L > 0) and (P^ = Byte(Ord('['))) then
-        Result := TJsonArray.Create
-      else
-        Result := TJsonObject.Create;
-
-      {$IFDEF AUTOREFCOUNT}
-      Result.FromUtf8JSON(S, Len, AProgress);
-      {$ELSE}
-      try
-        Result.FromUtf8JSON(S, Len, AProgress);
-      except
-        Result.Free;
-        raise;
-      end;
-      {$ENDIF AUTOREFCOUNT}
+    Parser := TJsonObjectParser.Create(AProgress);
+    try
+      Parser.ParseUtf8Bytes(S, Len);
+      Result := Parser.AcquireRootObject();
+    finally
+      Parser.Free;
     end;
   end;
 end;
@@ -3676,43 +4536,18 @@ end;
 
 class function TJsonBaseObject.Parse(S: PWideChar; Len: Integer; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
 var
-  P: PWideChar;
-  L: Integer;
+  Parser: TJsonObjectParser;
 begin
   if (S = nil) or (Len = 0) then
     Result := nil
   else
   begin
-    if Len < 0 then
-      Len := StrLen(S);
-    P := S;
-    L := Len;
-    while (L > 0) and (P^ <= #32) do
-    begin
-      Inc(P);
-      Dec(L);
-    end;
-    if L = 0 then
-      Result := nil
-    else
-    begin
-      if (L > 0) and (P^ = '[') then
-        Result := TJsonArray.Create
-      else if P^ = '{' then
-        Result := TJsonObject.Create
-      else         
-        Result := TJsonPrimitiveValue.Create;
-
-      {$IFDEF AUTOREFCOUNT}
-      Result.FromJSON(S, Len, AProgress);
-      {$ELSE}
-      try
-        Result.FromJSON(S, Len, AProgress);
-      except
-        Result.Free;
-        raise;
-      end;
-      {$ENDIF AUTOREFCOUNT}
+    Parser := TJsonObjectParser.Create(AProgress);
+    try
+      Parser.Parse(S, Len);
+      Result := Parser.AcquireRootObject();
+    finally
+      Parser.Free;
     end;
   end;
 end;
@@ -3721,20 +4556,20 @@ class function TJsonBaseObject.Parse(const Bytes: TBytes; Encoding: TEncoding; B
   ByteCount: Integer; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
 var
   L: Integer;
+  Parser: TJsonObjectParser;
 begin
   L := Length(Bytes);
-  if ByteCount = -1 then
-    ByteCount := L - ByteIndex;
-  if (ByteCount <= 0) or (ByteIndex + ByteCount > L) then
+  if L = 0 then
     Result := nil
   else
   begin
-    if (Encoding = TEncoding.UTF8) or (Encoding = nil) then
-      Result := ParseUtf8Bytes(PByte(@Bytes[ByteIndex]), ByteCount, AProgress)
-    else if Encoding = TEncoding.Unicode then
-      Result := Parse(PWideChar(@Bytes[ByteIndex]), ByteCount div SizeOf(WideChar), AProgress)
-    else
-      Result := Parse(Encoding.GetString(Bytes, ByteIndex, ByteCount), AProgress);
+    Parser := TJsonObjectParser.Create(AProgress);
+    try
+      Parser.Parse(Bytes, Encoding, ByteIndex, ByteCount);
+      Result := Parser.AcquireRootObject();
+    finally
+      Parser.Free;
+    end;
   end;
 end;
 
@@ -3752,36 +4587,16 @@ begin
 end;
 
 class function TJsonBaseObject.ParseFromStream(Stream: TStream; Encoding: TEncoding;
-  Utf8WithoutBOM: Boolean; AProgress: PJsonReaderProgressRec
-): TJsonBaseObject;
+  Utf8WithoutBOM: Boolean; AProgress: PJsonReaderProgressRec): TJsonBaseObject;
 var
-  StreamInfo: TStreamInfo;
-  S: string;
-  L: Integer;
+  Parser: TJsonObjectParser;
 begin
-  GetStreamBytes(Stream, Encoding, Utf8WithoutBOM, StreamInfo);
+  Parser := TJsonObjectParser.Create(AProgress);
   try
-    if Encoding = TEncoding.UTF8 then
-      Result := ParseUtf8Bytes(StreamInfo.Buffer, StreamInfo.Size, AProgress)
-    else if Encoding = TEncoding.Unicode then
-      Result := Parse(PWideChar(Pointer(StreamInfo.Buffer)), StreamInfo.Size div SizeOf(WideChar), AProgress)
-    else
-    begin
-      L := TEncodingStrictAccess(Encoding).GetCharCountEx(StreamInfo.Buffer, StreamInfo.Size);
-      SetLength(S, L);
-      if L > 0 then
-        TEncodingStrictAccess(Encoding).GetCharsEx(StreamInfo.Buffer, StreamInfo.Size, PChar(Pointer(S)), L)
-      else if StreamInfo.Size > 0 then
-        ErrorNoMappingForUnicodeCharacter;
-
-      // release memory
-      FreeMem(StreamInfo.AllocationBase);
-      StreamInfo.AllocationBase := nil;
-
-      Result := Parse(S, AProgress);
-    end;
+    Parser.ParseStream(Stream, Encoding, Utf8WithoutBOM);
+    Result := Parser.AcquireRootObject();
   finally
-    FreeMem(StreamInfo.AllocationBase);
+    Parser.Free;
   end;
 end;
 
@@ -3797,23 +4612,16 @@ begin
   FromUtf8JSON(PByte(S), Len, AProgress);
 end;
 
-procedure TJsonBaseObject.FromUtf8JSON(S: PByte; Len: Integer; AProgress: PJsonReaderProgressRec);
+procedure TJsonBaseObject.FromUtf8JSON(S: PByte; Len: Integer;
+  AProgress: PJsonReaderProgressRec);
 var
-  Reader: TJsonReader;
+  Parser: TJsonObjectParser;
 begin
-  if Len < 0 then
-  begin
-    {$IFDEF NEXTGEN}
-    Len := Utf8StrLen(S);
-    {$ELSE}
-    Len := StrLen(PAnsiChar(S));
-    {$ENDIF NEXTGEN}
-  end;
-  Reader := TUtf8JsonReader.Create(S, Len, AProgress);
+  Parser := TJsonObjectParser.Create(AProgress);
   try
-    Reader.Parse(Self);
+    Parser.FillFromUtf8JSON(Self, GetDataType, S, Len);
   finally
-    Reader.Free;
+    Parser.Free;
   end;
 end;
 
@@ -3824,15 +4632,13 @@ end;
 
 procedure TJsonBaseObject.FromJSON(S: PWideChar; Len: Integer; AProgress: PJsonReaderProgressRec);
 var
-  Reader: TJsonReader;
+  Parser: TJsonObjectParser;
 begin
-  if Len < 0 then
-    Len := StrLen(S);
-  Reader := TStringJsonReader.Create(S, Len, AProgress);
+  Parser := TJsonObjectParser.Create(AProgress);
   try
-    Reader.Parse(Self);
+    Parser.FillFromJSON(Self, GetDataType, S, Len);
   finally
-    Reader.Free;
+    Parser.Free;
   end;
 end;
 
@@ -3848,148 +4654,16 @@ begin
   end;
 end;
 
-class procedure TJsonBaseObject.GetStreamBytes(Stream: TStream; var Encoding: TEncoding; Utf8WithoutBOM: Boolean;
-  var StreamInfo: TStreamInfo);
-{$IFDEF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
-const
-  MaxBufSize = 20 * 1024 * 1024;
-var
-  ReadCount, ReadBufSize: NativeInt;
-{$ENDIF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
-var
-  Position: Int64;
-  Size: NativeInt;
-  Bytes: PByte;
-  BufStart: Integer;
-begin
-  BufStart := 0;
-  Position := Stream.Position;
-  Size := Stream.Size - Position;
-
-  StreamInfo.Buffer := nil;
-  StreamInfo.Size := 0;
-  StreamInfo.AllocationBase := nil;
-  try
-    Bytes := nil;
-    if Size > 0 then
-    begin
-      if Stream is TCustomMemoryStream then
-      begin
-        Bytes := TCustomMemoryStream(Stream).Memory;
-        TCustomMemoryStream(Stream).Position := Position + Size;
-        Inc(Bytes, Position);
-      end
-      else
-      begin
-        GetMem(StreamInfo.AllocationBase, Size);
-        Bytes := StreamInfo.AllocationBase;
-        {$IFDEF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
-        if (Stream is THandleStream) and (Size > MaxBufSize) then
-        begin
-          ReadCount := Size;
-          // Read in 20 MB blocks to work around a network limitation in Windows 2003 or older (INSUFFICIENT RESOURCES)
-          while ReadCount > 0 do
-          begin
-            ReadBufSize := ReadCount;
-            if ReadBufSize > MaxBufSize then
-              ReadBufSize := MaxBufSize;
-            Stream.ReadBuffer(Bytes[Size - ReadCount], ReadBufSize);
-            Dec(ReadCount, ReadBufSize);
-          end;
-        end
-        else
-        {$ENDIF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
-          Stream.ReadBuffer(StreamInfo.AllocationBase^, Size);
-      end;
-    end;
-
-    if Encoding = nil then
-    begin
-      // Determine the encoding from the BOM
-      if Utf8WithoutBOM then
-        Encoding := TEncoding.UTF8
-      else
-        Encoding := TEncoding.Default;
-
-      if Size >= 2 then
-      begin
-        if (Bytes[0] = $EF) and (Bytes[1] = $BB) then
-        begin
-          if Bytes[2] = $BF then
-          begin
-            Encoding := TEncoding.UTF8;
-            BufStart := 3;
-          end;
-        end
-        else if (Bytes[0] = $FF) and (Bytes[1] = $FE) then
-        begin
-          if (Bytes[2] = 0) and (Bytes[3] = 0) then
-          begin
-            raise EJsonException.CreateRes(@RsUnsupportedFileEncoding);
-            //Result := bomUtf32LE;
-            //BufStart := 4;
-          end
-          else
-          begin
-            Encoding := TEncoding.Unicode;
-            BufStart := 2;
-          end;
-        end
-        else if (Bytes[0] = $FE) and (Bytes[1] = $FF) then
-        begin
-          Encoding := TEncoding.BigEndianUnicode;
-          BufStart := 2;
-        end
-        else if (Bytes[0] = 0) and (Bytes[1] = 0) and (Size >= 4) then
-        begin
-          if (Bytes[2] = $FE) and (Bytes[3] = $FF) then
-          begin
-            raise EJsonException.CreateRes(@RsUnsupportedFileEncoding);
-            //Result := bomUtf32BE;
-            //BufStart := 4;
-          end;
-        end;
-      end;
-    end;
-    Inc(Bytes, BufStart);
-    StreamInfo.Buffer := Bytes;
-    StreamInfo.Size := Size - BufStart;
-  except
-    FreeMem(StreamInfo.AllocationBase);
-    raise;
-  end;
-end;
-
 procedure TJsonBaseObject.LoadFromStream(Stream: TStream; Encoding: TEncoding; Utf8WithoutBOM: Boolean;
   AProgress: PJsonReaderProgressRec);
 var
-  StreamInfo: TStreamInfo;
-  S: string;
-  L: Integer;
+  Parser: TJsonObjectParser;
 begin
-  GetStreamBytes(Stream, Encoding, Utf8WithoutBOM, StreamInfo);
+  Parser := TJsonObjectParser.Create(AProgress);
   try
-    if Encoding = TEncoding.UTF8 then
-      FromUtf8JSON(StreamInfo.Buffer, StreamInfo.Size, AProgress)
-    else if Encoding = TEncoding.Unicode then
-      FromJSON(PWideChar(Pointer(StreamInfo.Buffer)), StreamInfo.Size div SizeOf(WideChar), AProgress)
-    else
-    begin
-      L := TEncodingStrictAccess(Encoding).GetCharCountEx(StreamInfo.Buffer, StreamInfo.Size);
-      SetLength(S, L);
-      if L > 0 then
-        TEncodingStrictAccess(Encoding).GetCharsEx(StreamInfo.Buffer, StreamInfo.Size, PChar(Pointer(S)), L)
-      else if StreamInfo.Size > 0 then
-        ErrorNoMappingForUnicodeCharacter;
-
-      // release memory
-      FreeMem(StreamInfo.AllocationBase);
-      StreamInfo.AllocationBase := nil;
-
-      FromJSON(S, AProgress);
-    end;
+    Parser.FillFromStream(Self, GetDataType, Stream, Encoding, Utf8WithoutBOM);
   finally
-    FreeMem(StreamInfo.AllocationBase);
+    Parser.Free;
   end;
 end;
 
@@ -4146,6 +4820,13 @@ begin
         UTF8String(Dest.FValue.S) := UTF8String(Source.FValue.S);
       end;
     {$ENDIF USE_UTF8STRING_VALUES}
+    {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+    jdtBigDecimal:
+      begin
+        Dest.FValue.P := nil;
+        string(Dest.FValue.S) := string(Source.FValue.S);
+      end;
+    {$ENDIF KEEP_BIGDECIMAL_PRECISION}
     jdtInt:
       Dest.FValue.I := Source.FValue.I;
     jdtLong:
@@ -4258,6 +4939,11 @@ begin
   end;
 end;
 
+function TJsonPrimitiveValue.GetDataType: TJsonRootDataType;
+begin
+  Result := jrdtPrimitiveValue;
+end;
+
 procedure TJsonPrimitiveValue.Assign(ASource: TJsonPrimitiveValue);
 begin
   if ASource <> nil then
@@ -4290,10 +4976,19 @@ end;
 
 destructor TJsonArray.Destroy;
 begin
-  Clear;
+  Reset;
   FreeMem(FItems);
   FItems := nil;
   //inherited Destroy;
+end;
+
+procedure TJsonArray.Reset;
+var
+  I: Integer;
+begin
+  for I := 0 to FCount - 1 do
+    FItems[I].Clear;
+  FCount := 0;
 end;
 
 procedure TJsonArray.Clear;
@@ -4302,6 +4997,12 @@ var
 begin
   for I := 0 to FCount - 1 do
     FItems[I].Clear;
+  if FCount > 16 then
+  begin
+    FreeMem(FItems);
+    FItems := nil;
+    FCapacity := 0;
+  end;
   FCount := 0;
 end;
 
@@ -4542,6 +5243,16 @@ begin
   Data := AddItem;
   Data.BoolValue := AValue;
 end;
+
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+{procedure TJsonArray.AddBigDecimal(const AValue: string);
+var
+  Data: PJsonDataValue;
+begin
+  Data := AddItem;
+  Data.SetBigDecimalValue(AValue);
+end;}
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
 procedure TJsonArray.Add(const AValue: Integer);
 var
@@ -4933,11 +5644,7 @@ begin
   if Cardinal(Index) >= Cardinal(FCount) then
     RaiseListError(Index);
   {$ENDIF CHECK_ARRAY_INDEX}
-  Result := FItems[Index].Typ;
-  {$IFDEF USE_UTF8STRING_VALUES}
-  if Result = jdtUTF8String then
-    Result := jdtString;
-  {$ENDIF USE_UTF8STRING_VALUES}
+  Result := MapJsonDataType(FItems[Index].Typ);
 end;
 
 function TJsonArray.GetTypeEx(Index: Integer): TJsonDataType;
@@ -4991,7 +5698,7 @@ procedure TJsonArray.Assign(ASource: TJsonArray);
 var
   I: Integer;
 begin
-  Clear;
+  Reset;
   if ASource <> nil then
   begin
     if FCapacity < ASource.Count then
@@ -5006,6 +5713,7 @@ begin
   else
   begin
     FreeMem(FItems);
+    FItems := nil;
     FCapacity := 0;
   end;
 end;
@@ -5019,6 +5727,11 @@ begin
     Result.Free;
     raise;
   end;
+end;
+
+function TJsonArray.GetDataType: TJsonRootDataType;
+begin
+  Result := jrdtArray;
 end;
 
 class procedure TJsonArray.RaiseListError(Index: Integer);
@@ -5069,7 +5782,7 @@ end;
 
 destructor TJsonObject.Destroy;
 begin
-  Clear;
+  Reset;
   FreeMem(FItems);
   FreeMem(FNames);
   FreeMem(FSortedNames);
@@ -5135,6 +5848,22 @@ begin
   end;
 end;
 
+procedure TJsonObject.Reset;
+var
+  I: Integer;
+begin
+  {$IFDEF USE_LAST_NAME_STRING_LITERAL_CACHE}
+  FLastValueItem := nil;
+  {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
+  for I := 0 to FCount - 1 do
+  begin
+    FNames[I] := '';
+    FItems[I].Clear;
+  end;
+  FCount := 0;
+  FFirstUnsortedNameIndex := -1;
+end;
+
 procedure TJsonObject.Clear;
 var
   I: Integer;
@@ -5146,6 +5875,16 @@ begin
   begin
     FNames[I] := '';
     FItems[I].Clear;
+  end;
+  if FCount > 16 then
+  begin
+    FreeMem(FItems);
+    FreeMem(FNames);
+    FreeMem(FSortedNames);
+    FItems := nil;
+    FNames := nil;
+    FSortedNames := nil;
+    FCapacity := 0;
   end;
   FCount := 0;
   FFirstUnsortedNameIndex := -1;
@@ -5210,6 +5949,7 @@ var
   I: Integer;
   SortIndex: Integer;
 begin
+  // Sort the FSortedNames[] array, so we keep the original/insertion order of the properties for Items[], IndexOf, ...
   if FFirstUnsortedNameIndex <> -1 then
   begin
     if FCount <> 0 then
@@ -5228,7 +5968,7 @@ begin
         QuickSortNames(0, FCount - 1);
       end;
     end;
-    FFirstUnsortedNameIndex := -1; // reset so that we don't recurve in InternAddSortedName
+    FFirstUnsortedNameIndex := -1; // reset so that we don't recurse in InternAddSortedName
   end;
 end;
 
@@ -5589,13 +6329,7 @@ var
   Item: PJsonDataValue;
 begin
   if FindItem(Name, Item) then
-  begin
-    Result := Item.Typ;
-    {$IFDEF USE_UTF8STRING_VALUES}
-    if Result = jdtUTF8String then
-      Result := jdtString;
-    {$ENDIF USE_UTF8STRING_VALUES}
-  end
+    Result := MapJsonDataType(Item.Typ)
   else
     Result := jdtNone;
 end;
@@ -5642,6 +6376,7 @@ begin
     SortUnsortedNames;
 
   Result := InternIndexOfSortedName(Name);
+  // We got the "sorted index", but we need to return the FItems[] index
   if Result <> -1 then
     Result := FSortedNames[Result];
 end;
@@ -5815,13 +6550,13 @@ begin
   Data.LongValue := AValue;
 end;
 
-procedure TJsonObject.InternAdd(var AName: string; const AValue: UInt64);
+{procedure TJsonObject.InternAdd(var AName: string; const AValue: UInt64);
 var
   Data: PJsonDataValue;
 begin
   Data := InternAddItem(AName);
   Data.ULongValue := AValue;
-end;
+end;}
 
 procedure TJsonObject.InternAdd(var AName: string; const AValue: Double);
 var
@@ -5944,7 +6679,7 @@ begin
 
               tkVariant:
                 begin
-                  case Types[PropName] of
+                  case Types[PropName] of // maps jdtUtf8String->jdtString and jdtBigDecimal->jdtFloat
                     jdtObject, jdtArray:
                       V := Null;
                     jdtInt:
@@ -5998,6 +6733,7 @@ begin
   Count := GetPropList(AObject, PropList);
   if Count > 0 then
   begin
+    SetCapacity(Count);
     try
       for Index := 0 to Count - 1 do
       begin
@@ -6136,7 +6872,7 @@ procedure TJsonObject.Assign(ASource: TJsonObject);
 var
   I: Integer;
 begin
-  Clear;
+  Reset;
   if ASource <> nil then
   begin
     FCapacity := ASource.Count;
@@ -6156,11 +6892,14 @@ begin
       InternInitAndAssignItem(@FItems[I], @ASource.FItems[I]);
     end;
   end
-  else
+  else if FCapacity > 0 then
   begin
     FreeMem(FItems);
     FreeMem(FNames);
     FreeMem(FSortedNames);
+    FItems := nil;
+    FNames := nil;
+    FSortedNames := nil;
     FCapacity := 0;
   end;
 end;
@@ -6174,6 +6913,11 @@ begin
     Result.Free;
     raise;
   end;
+end;
+
+function TJsonObject.GetDataType: TJsonRootDataType;
+begin
+  Result := jrdtObject;
 end;
 
 procedure TJsonObject.PathError(P, EndP: PChar);
@@ -6371,6 +7115,9 @@ begin
     FStrings[I].Name := '';
   FreeMem(FStrings);
   FreeMem(FBuckets);
+  //FStrings := nil;
+  //FBuckets := nil;
+  //FCount := 0;
 end;
 
 procedure TStringIntern.Intern(var S: string; var PropName: string);
@@ -6578,7 +7325,6 @@ begin
     FLastType := ltInitial;
 
     // Set up some initial indention levels
-    // TODO change to one buffer with #0 vs. IndentChar
     FIndents := AllocMem(5 * SizeOf(string));
     FIndentsLen := 5;
     //FIndents[0] := '';
@@ -6864,9 +7610,10 @@ end;
 
 { TUtf8JsonReader }
 
-constructor TUtf8JsonReader.Create(S: PByte; Len: NativeInt; AProgress: PJsonReaderProgressRec);
+constructor TUtf8JsonReader.Create(S: PByte; Len: NativeInt; AParser: TJsonAbstractParser;
+  AProgress: PJsonReaderProgressRec);
 begin
-  inherited Create(S, Len * SizeOf(Byte), AProgress);
+  inherited Create(S, Len * SizeOf(Byte), AParser, AProgress);
   FText := S;
   FTextEnd := S + Len;
 end;
@@ -7181,17 +7928,27 @@ var
   {$IFNDEF CPUARM}
   EndP: PByte;
   {$ENDIF ~CPUARM}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart: PByte;
+  {$ELSE}
   EndInt64P: PByte;
+  Value, FractionValue, Scale: Double;
+  Exponent: Integer;
+  NegE: Boolean;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
   Ch: Byte;
-  Value, Scale: Double;
-  Exponent, IntValue: Integer;
-  Neg, NegE: Boolean;
+  IntValue: Integer;
+  Neg: Boolean;
   DigitCount: Integer;
 begin
   {$IFNDEF CPUARM}
   EndP := FTextEnd;
   {$ENDIF ~CPUARM}
   Neg := False;
+
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart := P;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   Ch := P^;
   if Ch = Byte(Ord('-')) then
@@ -7244,62 +8001,119 @@ begin
       FText := P;
       Exit;
     end;
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     Value := FLook.I;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
   end
   else if DigitCount <= 20 then // UInt64 fits 20 digits (not all)
   begin
     FLook.U := ParseUInt64Utf8(F, P);
     if (DigitCount = 20) and (FLook.U mod 10 <> PByte(P - 1)^ - Byte(Ord('0'))) then // overflow => too large
+    begin
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Value := ParseAsDoubleUtf8(F, P)
-    else if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
-      // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
-      Value := FLook.U
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    end
     else
     begin
-      FLook.Kind := jtkLong;
-      case DigitCount of
-        19:
-         if FLook.HI and $80000000 <> 0 then // can't be negative because we cached that case already
-           FLook.Kind := jtkULong;
-        20:
-          FLook.Kind := jtkULong;
-      end;
-
-      if not (P^ in [Ord('.'), Ord('E'), Ord('e')]) then
+      if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
+        // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
+      else
       begin
-        // just an integer
-        if Neg then
-        begin
-          if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
-          begin
-            FLook.I := -FLook.I;
-            FLook.Kind := jtkInt;
-          end
-          else                 // 64bit Integer
-            FLook.L := -FLook.L;
+        FLook.Kind := jtkLong;
+        case DigitCount of
+          19:
+            if FLook.HI and $80000000 <> 0 then // can't be negative because we catched that case already
+              FLook.Kind := jtkULong;
+          20:
+            FLook.Kind := jtkULong;
         end;
-        FText := P;
-        Exit;
+
+        if not (P^ in [Ord('.'), Ord('E'), Ord('e')]) then
+        begin
+          // just an integer
+          if Neg then
+          begin
+            if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
+            begin
+              FLook.I := -FLook.I;
+              FLook.Kind := jtkInt;
+            end
+            else // 64bit Integer
+              FLook.L := -FLook.L;
+          end;
+          FText := P;
+          Exit;
+        end;
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
+        Value := FLook.I
+      else
+        Value := FLook.I + Single2ToThePowerOf64;
+        {$ELSE}
       Value := FLook.U;
+        {$ENDIF CPUX86}
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end;
   end
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  ;
+  {$ELSE}
   else
     Value := ParseAsDoubleUtf8(F, P);
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   // decimal digits
   if (P + 1 < EndP) and (P^ = Byte(Ord('.'))) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+    // skip leading '0' digits
+    F := P;
+    while (P < EndP) and (P^ = Byte(Ord('0'))) do
+      Inc(P);
+    DigitCount := P - F;
+    // find the last decimal digit
     F := P;
     EndInt64P := F + 18;
     if EndInt64P > EndP then
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in [Ord('0')..Ord('9')]) do
       Inc(P);
-    Value := Value + ParseUInt64Utf8(F, P) / Power10[P - F];
 
-    // "Double" can't handle that many digits
+    // if we have up to 18 digits in total, we can use one floating point multipication
+    if DigitCount + (P - F) <= 18 then
+    begin
+      F := F - DigitCount;
+      FractionValue := Int64(ParseUInt64Utf8(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+    end
+    else
+    begin
+      FractionValue := Int64(ParseUInt64Utf8(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+      if DigitCount > 0 then
+      begin
+        Scale := 1;
+        while DigitCount >= 50 do
+        begin
+          Scale := Scale * (1/1E50);
+          Dec(DigitCount, 50);
+        end;
+        while DigitCount >= 18 do
+        begin
+          Scale := Scale * (1/1E18);
+          Dec(DigitCount, 18);
+        end;
+        if DigitCount > 0 then
+          FractionValue := FractionValue * ReciprocalPower10[DigitCount] * Scale;
+      end;
+    end;
+
+    Value := Value + FractionValue;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+
+    // "Double" can't handle that many significant digits
     while (P < EndP) and (P^ in [Ord('0')..Ord('9')]) do
       Inc(P);
   end;
@@ -7308,23 +8122,31 @@ begin
   if (P < EndP) and (P^ in [Ord('e'), Ord('E')]) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     NegE := False;
-    if (P < EndP) then
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    if P < EndP then
     begin
       case P^ of
         Ord('-'):
           begin
+            {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
             NegE := True;
+            {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
             Inc(P);
           end;
         Ord('+'):
           Inc(P);
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Exponent := 0;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
       F := P;
       while (P < EndP) and (P^ in [Ord('0')..Ord('9')]) do
       begin
+        {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         Exponent := Exponent * 10 + (P^ - Byte(Ord('0')));
+        {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
         Inc(P);
       end;
       if P = F then
@@ -7335,6 +8157,7 @@ begin
         Exit;
       end;
 
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       if Exponent > 308 then
         Exponent := 308;
 
@@ -7355,6 +8178,7 @@ begin
         Value := Value / Scale
       else
         Value := Value * Scale;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end
     else
     begin
@@ -7364,11 +8188,18 @@ begin
     end;
   end;
 
-  if Neg then
-    FLook.F := -Value
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  // if we need a Double then we make it a BigDecimal "String" to keep the exact value from the JSON
+  SetStringUtf8(FLook.S, NumberStart, P - NumberStart);
+  FLook.Kind := jtkBigDecimal;
+  {$ELSE}
+  if not Neg then
+    FLook.F := Value
   else
-    FLook.F := Value;
+    FLook.F := -Value;
   FLook.Kind := jtkFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
   FText := P;
 end;
 
@@ -7447,9 +8278,10 @@ end;
 
 { TStringJsonReader }
 
-constructor TStringJsonReader.Create(S: PChar; Len: Integer; AProgress: PJsonReaderProgressRec);
+constructor TStringJsonReader.Create(S: PChar; Len: Integer; AParser: TJsonAbstractParser;
+  AProgress: PJsonReaderProgressRec);
 begin
-  inherited Create(S, Len * SizeOf(WideChar), AProgress);
+  inherited Create(S, Len * SizeOf(WideChar), AParser, AProgress);
   FText := S;
   FTextEnd := S + Len;
 end;
@@ -7712,17 +8544,27 @@ var
   {$IFNDEF CPUARM}
   EndP: PChar;
   {$ENDIF ~CPUARM}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart: PChar;
+  {$ELSE}
   EndInt64P: PChar;
+  Value, FractionValue, Scale: Double;
+  Exponent: Integer;
+  NegE: Boolean;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
   Ch: Char;
-  Value, Scale: Double;
-  Exponent, IntValue: Integer;
-  Neg, NegE: Boolean;
+  IntValue: Integer;
+  Neg: Boolean;
   DigitCount: Integer;
 begin
   {$IFNDEF CPUARM}
   EndP := FTextEnd;
   {$ENDIF ~CPUARM}
   Neg := False;
+
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  NumberStart := P;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   Ch := P^;
   if Ch = '-' then
@@ -7775,62 +8617,119 @@ begin
       FText := P;
       Exit;
     end;
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     Value := FLook.I;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
   end
   else if DigitCount <= 20 then // UInt64 fits 20 digits (not all)
   begin
     FLook.U := ParseUInt64(F, P);
     if (DigitCount = 20) and (FLook.U mod 10 <> Ord(PWideChar(P - 1)^) - Ord('0')) then // overflow => too large
+    begin
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Value := ParseAsDouble(F, P)
-    else if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
-      // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
-      Value := FLook.U
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    end
     else
     begin
-      FLook.Kind := jtkLong;
-      case DigitCount of
-        19:
-         if FLook.HI and $80000000 <> 0 then // can't be negative because we cached that case already
-           FLook.Kind := jtkULong;
-        20:
-          FLook.Kind := jtkULong;
-      end;
-
-      if not (P^ in ['.', 'E', 'e']) then
+      if Neg and ((DigitCount = 20) or ((DigitCount = 19) and (FLook.HI and $80000000 <> 0))) then
+        // "negative UInt64" doesn't fit into UInt64/Int64 => use Double
+      else
       begin
-        // just an integer
-        if Neg then
-        begin
-          if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
-          begin
-            FLook.I := -FLook.I;
-            FLook.Kind := jtkInt;
-          end
-          else                 // 64bit Integer
-            FLook.L := -FLook.L;
+        FLook.Kind := jtkLong;
+        case DigitCount of
+          19:
+            if FLook.HI and $80000000 <> 0 then // can't be negative because we catched that case already
+              FLook.Kind := jtkULong;
+          20:
+            FLook.Kind := jtkULong;
         end;
-        FText := P;
-        Exit;
+
+        if not (P^ in ['.', 'E', 'e']) then
+        begin
+          // just an integer
+          if Neg then
+          begin
+            if (FLook.HI = 0) and (FLook.I >= 0) then // 32bit Integer
+            begin
+              FLook.I := -FLook.I;
+              FLook.Kind := jtkInt;
+            end
+            else // 64bit Integer
+              FLook.L := -FLook.L;
+          end;
+          FText := P;
+          Exit;
+        end;
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+      if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
+        Value := FLook.I
+      else
+        Value := FLook.I + Single2ToThePowerOf64;
+        {$ELSE}
       Value := FLook.U;
+        {$ENDIF CPUX86}
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end;
   end
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  ;
+  {$ELSE}
   else
     Value := ParseAsDouble(F, P);
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 
   // decimal digits
   if (P + 1 < EndP) and (P^ = '.') then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
+    // skip leading '0' digits
+    F := P;
+    while (P < EndP) and (P^ = '0') do
+      Inc(P);
+    DigitCount := P - F;
+    // find the last decimal digit
     F := P;
     EndInt64P := F + 18;
     if EndInt64P > EndP then
       EndInt64P := EndP;
     while (P < EndInt64P) and (P^ in ['0'..'9']) do
       Inc(P);
-    Value := Value + ParseUInt64(F, P) / Power10[P - F];
 
-    // "Double" can't handle that many digits
+    // if we have up to 18 digits in total, we can use one floating point multipication
+    if DigitCount + (P - F) <= 18 then
+    begin
+      F := F - DigitCount;
+      FractionValue := Int64(ParseUInt64(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+    end
+    else
+    begin
+      FractionValue := Int64(ParseUInt64(F, P)) * ReciprocalPower10[P - F]; // UInt64->Int64: faster and works around an x86 on ARM Prism Emulation bug
+      if DigitCount > 0 then
+      begin
+        Scale := 1;
+        while DigitCount >= 50 do
+        begin
+          Scale := Scale * (1/1E50);
+          Dec(DigitCount, 50);
+        end;
+        while DigitCount >= 18 do
+        begin
+          Scale := Scale * (1/1E18);
+          Dec(DigitCount, 18);
+        end;
+        if DigitCount > 0 then
+          FractionValue := FractionValue * ReciprocalPower10[DigitCount] * Scale;
+      end;
+    end;
+
+    Value := Value + FractionValue;
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+
+    // "Double" can't handle that many significant digits
     while (P < EndP) and (P^ in ['0'..'9']) do
       Inc(P);
   end;
@@ -7839,23 +8738,31 @@ begin
   if (P < EndP) and ((P^ = 'e') or (P^ = 'E')) then
   begin
     Inc(P);
+    {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
     NegE := False;
-    if (P < EndP) then
+    {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
+    if P < EndP then
     begin
       case P^ of
         '-':
           begin
+            {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
             NegE := True;
+            {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
             Inc(P);
           end;
         '+':
           Inc(P);
       end;
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       Exponent := 0;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
       F := P;
       while (P < EndP) and (P^ in ['0'..'9']) do
       begin
+        {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         Exponent := Exponent * 10 + (Ord(P^) - Ord('0'));
+        {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
         Inc(P);
       end;
       if P = F then
@@ -7866,6 +8773,7 @@ begin
         Exit;
       end;
 
+      {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
       if Exponent > 308 then
         Exponent := 308;
 
@@ -7886,6 +8794,7 @@ begin
         Value := Value / Scale
       else
         Value := Value * Scale;
+      {$ENDIF ~KEEP_BIGDECIMAL_PRECISION}
     end
     else
     begin
@@ -7895,11 +8804,18 @@ begin
     end;
   end;
 
-  if Neg then
-    FLook.F := -Value
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  // if we need a Double then we make it a BigDecimal "String" to keep the exact value from the JSON
+  SetString(FLook.S, NumberStart, P - NumberStart);
+  FLook.Kind := jtkBigDecimal;
+  {$ELSE}
+  if not Neg then
+    FLook.F := Value
   else
-    FLook.F := Value;
+    FLook.F := -Value;
   FLook.Kind := jtkFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
   FText := P;
 end;
 
@@ -7976,6 +8892,457 @@ begin
   FText := P;
 end;
 
+{ TJsonAbstractParser }
+
+constructor TJsonAbstractParser.Create(Progress: PJsonReaderProgressRec);
+begin
+  inherited Create;
+  FProgress := Progress;
+end;
+
+destructor TJsonAbstractParser.Destroy;
+begin
+  Cleanup;
+  inherited Destroy;
+end;
+
+class procedure TJsonAbstractParser.GetStreamBytes(Stream: TStream; var Encoding: TEncoding; Utf8WithoutBOM: Boolean;
+  var StreamInfo: TStreamInfo);
+{$IFDEF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
+const
+  MaxBufSize = 20 * 1024 * 1024;
+var
+  ReadCount, ReadBufSize: NativeInt;
+{$ENDIF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
+var
+  Position: Int64;
+  Size: NativeInt;
+  Bytes: PByte;
+  BufStart: Integer;
+begin
+  BufStart := 0;
+  Position := Stream.Position;
+  Size := Stream.Size - Position;
+
+  StreamInfo.Buffer := nil;
+  StreamInfo.Size := 0;
+  StreamInfo.AllocationBase := nil;
+  try
+    Bytes := nil;
+    if Size > 0 then
+    begin
+      if Stream is TCustomMemoryStream then
+      begin
+        Bytes := TCustomMemoryStream(Stream).Memory;
+        TCustomMemoryStream(Stream).Position := Position + Size;
+        Inc(Bytes, Position);
+      end
+      else
+      begin
+        GetMem(StreamInfo.AllocationBase, Size);
+        Bytes := StreamInfo.AllocationBase;
+        {$IFDEF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
+        if (Stream is THandleStream) and (Size > MaxBufSize) then
+        begin
+          ReadCount := Size;
+          // Read in 20 MB blocks to work around a network limitation in Windows 2003 or older (INSUFFICIENT RESOURCES)
+          while ReadCount > 0 do
+          begin
+            ReadBufSize := ReadCount;
+            if ReadBufSize > MaxBufSize then
+              ReadBufSize := MaxBufSize;
+            Stream.ReadBuffer(Bytes[Size - ReadCount], ReadBufSize);
+            Dec(ReadCount, ReadBufSize);
+          end;
+        end
+        else
+        {$ENDIF WORKAROUND_NETWORK_FILE_INSUFFICIENT_RESOURCES}
+          Stream.ReadBuffer(StreamInfo.AllocationBase^, Size);
+      end;
+    end;
+
+    if Encoding = nil then
+    begin
+      // Determine the encoding from the BOM
+      if Utf8WithoutBOM then
+        Encoding := TEncoding.UTF8
+      else
+        Encoding := TEncoding.Default;
+
+      if Size >= 2 then
+      begin
+        if (Bytes[0] = $EF) and (Bytes[1] = $BB) then
+        begin
+          if Bytes[2] = $BF then
+          begin
+            Encoding := TEncoding.UTF8;
+            BufStart := 3;
+          end;
+        end
+        else if (Bytes[0] = $FF) and (Bytes[1] = $FE) then
+        begin
+          if (Bytes[2] = 0) and (Bytes[3] = 0) then
+          begin
+            raise EJsonException.CreateRes(@RsUnsupportedFileEncoding);
+            //Result := bomUtf32LE;
+            //BufStart := 4;
+          end
+          else
+          begin
+            Encoding := TEncoding.Unicode;
+            BufStart := 2;
+          end;
+        end
+        else if (Bytes[0] = $FE) and (Bytes[1] = $FF) then
+        begin
+          Encoding := TEncoding.BigEndianUnicode;
+          BufStart := 2;
+        end
+        else if (Bytes[0] = 0) and (Bytes[1] = 0) and (Size >= 4) then
+        begin
+          if (Bytes[2] = $FE) and (Bytes[3] = $FF) then
+          begin
+            raise EJsonException.CreateRes(@RsUnsupportedFileEncoding);
+            //Result := bomUtf32BE;
+            //BufStart := 4;
+          end;
+        end;
+      end;
+    end;
+    Inc(Bytes, BufStart);
+    StreamInfo.Buffer := Bytes;
+    StreamInfo.Size := Size - BufStart;
+  except
+    FreeMem(StreamInfo.AllocationBase);
+    raise;
+  end;
+end;
+
+procedure TJsonAbstractParser.ParseUtf8(S: PAnsiChar; Len: Integer);
+begin
+  ParseUtf8Bytes(PByte(S), Len);
+end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonAbstractParser.ParseUtf8(const S: UTF8String);
+begin
+  ParseUtf8Bytes(PByte(S), Length(S));
+end;
+{$ENDIF SUPPORTS_UTF8STRING}
+
+procedure TJsonAbstractParser.ParseUtf8Bytes(S: PByte; Len: Integer);
+var
+  P: PByte;
+  L: Integer;
+  RootData: Pointer;
+  RootDataType: TJsonRootDataType;
+begin
+  Cleanup;
+
+  if (S = nil) or (Len = 0) then
+    Exit;
+
+  if Len < 0 then
+  begin
+    {$IFDEF NEXTGEN}
+    Len := Utf8StrLen(S);
+    {$ELSE}
+    Len := StrLen(PAnsiChar(S));
+    {$ENDIF NEXTGEN}
+  end;
+  P := S;
+  L := Len;
+  while (L > 0) and (P^ <= 32) do
+  begin
+    Inc(P);
+    Dec(L);
+  end;
+  if L = 0 then
+    Exit;
+
+  if P^ = Byte(Ord('[')) then
+  begin
+    RootDataType := jrdtArray;
+    RootData := CreateRootArray();
+  end
+  else if P^ = Byte(Ord('{')) then
+  begin
+    RootDataType := jrdtObject;
+    RootData := CreateRootObject();
+  end
+  else
+  begin
+    RootDataType := jrdtPrimitiveValue;
+    RootData := CreateRootPrimitive();
+  end;
+
+  try
+    FillFromUtf8JSON(RootData, RootDataType, S, Len);
+  except
+    Cleanup;
+    raise;
+  end;
+end;
+
+procedure TJsonAbstractParser.Parse(S: PWideChar; Len: Integer);
+var
+  P: PWideChar;
+  L: Integer;
+  RootData: Pointer;
+  RootDataType: TJsonRootDataType;
+begin
+  Cleanup;
+
+  if (S = nil) or (Len = 0) then
+    Exit;
+  if Len < 0 then
+    Len := StrLen(S);
+  P := S;
+  L := Len;
+  while (L > 0) and (P^ <= #32) do
+  begin
+    Inc(P);
+    Dec(L);
+  end;
+  if L = 0 then
+    Exit;
+
+  if P^ = '[' then
+  begin
+    RootDataType := jrdtArray;
+    RootData := CreateRootArray();
+  end
+  else if P^ = '{' then
+  begin
+    RootDataType := jrdtObject;
+    RootData := CreateRootObject();
+  end
+  else
+  begin
+    RootDataType := jrdtPrimitiveValue;
+    RootData := CreateRootPrimitive();
+  end;
+
+  try
+    FillFromJSON(RootData, RootDataType, S, Len);
+  except
+    Cleanup;
+    raise;
+  end;
+end;
+
+procedure TJsonAbstractParser.Parse(const S: string);
+begin
+  Parse(PChar(Pointer(S)), Length(S));
+end;
+
+procedure TJsonAbstractParser.Parse(const Bytes: TBytes; Encoding: TEncoding; ByteIndex, ByteCount: Integer);
+var
+  L: Integer;
+begin
+  Cleanup;
+
+  L := Length(Bytes);
+  if ByteCount = -1 then
+    ByteCount := L - ByteIndex;
+  if (ByteCount <= 0) or (ByteIndex + ByteCount > L) then
+    Exit;
+
+  if (Encoding = TEncoding.UTF8) or (Encoding = nil) then
+    ParseUtf8Bytes(PByte(@Bytes[ByteIndex]), ByteCount)
+  else if Encoding = TEncoding.Unicode then
+    Parse(PWideChar(@Bytes[ByteIndex]), ByteCount div SizeOf(WideChar))
+  else
+    Parse(Encoding.GetString(Bytes, ByteIndex, ByteCount));
+end;
+
+procedure TJsonAbstractParser.ParseFile(const FileName: string; Utf8WithoutBOM: Boolean);
+var
+  Stream: TFileStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    ParseStream(Stream, nil, Utf8WithoutBOM);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TJsonAbstractParser.ParseStream(Stream: TStream; Encoding: TEncoding; Utf8WithoutBOM: Boolean);
+var
+  StreamInfo: TStreamInfo;
+  S: string;
+  L: Integer;
+begin
+  GetStreamBytes(Stream, Encoding, Utf8WithoutBOM, StreamInfo);
+  try
+    if Encoding = TEncoding.UTF8 then
+      ParseUtf8Bytes(StreamInfo.Buffer, StreamInfo.Size)
+    else if Encoding = TEncoding.Unicode then
+      Parse(PWideChar(Pointer(StreamInfo.Buffer)), StreamInfo.Size div SizeOf(WideChar))
+    else
+    begin
+      L := TEncodingStrictAccess(Encoding).GetCharCountEx(StreamInfo.Buffer, StreamInfo.Size);
+      SetLength(S, L);
+      if L > 0 then
+        TEncodingStrictAccess(Encoding).GetCharsEx(StreamInfo.Buffer, StreamInfo.Size, PChar(Pointer(S)), L)
+      else if StreamInfo.Size > 0 then
+        ErrorNoMappingForUnicodeCharacter;
+
+      // release memory
+      FreeMem(StreamInfo.AllocationBase);
+      StreamInfo.AllocationBase := nil;
+
+      Parse(S);
+    end;
+  finally
+    FreeMem(StreamInfo.AllocationBase);
+  end;
+end;
+
+{$IFDEF SUPPORTS_UTF8STRING}
+procedure TJsonAbstractParser.FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; const S: UTF8String);
+begin
+  FillFromUtf8JSON(RootData, RootDataType, PAnsiChar(Pointer(S)), Length(S));
+end;
+
+{$ENDIF SUPPORTS_UTF8STRING}
+procedure TJsonAbstractParser.FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PAnsiChar; Len: Integer);
+begin
+  FillFromUtf8JSON(RootData, RootDataType, PByte(S), Len);
+end;
+
+procedure TJsonAbstractParser.FillFromUtf8JSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PByte; Len: Integer);
+var
+  Reader: TJsonReader;
+begin
+  if RootDataType = jrdtInvalid then // RootData is allowed to be nil
+    Exit;
+
+  if Len < 0 then
+  begin
+    {$IFDEF NEXTGEN}
+    Len := Utf8StrLen(S);
+    {$ELSE}
+    Len := StrLen(PAnsiChar(S));
+    {$ENDIF NEXTGEN}
+  end;
+  Reader := TUtf8JsonReader.Create(S, Len, Self, FProgress);
+  try
+    Reader.Parse(RootData, RootDataType);
+  finally
+    Reader.Free;
+  end;
+end;
+
+procedure TJsonAbstractParser.FillFromJSON(RootData: Pointer; RootDataType: TJsonRootDataType; const S: UnicodeString);
+begin
+  FillFromJSON(RootData, RootDataType, PWideChar(S), Length(S));
+end;
+
+procedure TJsonAbstractParser.FillFromJSON(RootData: Pointer; RootDataType: TJsonRootDataType; S: PWideChar; Len: Integer);
+var
+  Reader: TJsonReader;
+begin
+  if RootDataType = jrdtInvalid then // RootData is allowed to be nil
+    Exit;
+
+  if Len < 0 then
+    Len := StrLen(S);
+  Reader := TStringJsonReader.Create(S, Len, Self, FProgress);
+  try
+    Reader.Parse(RootData, RootDataType);
+  finally
+    Reader.Free;
+  end;
+end;
+
+procedure TJsonAbstractParser.FillFromStream(RootData: Pointer; RootDataType: TJsonRootDataType; Stream: TStream;
+  Encoding: TEncoding; Utf8WithoutBOM: Boolean);
+var
+  StreamInfo: TStreamInfo;
+  S: string;
+  L: Integer;
+begin
+  GetStreamBytes(Stream, Encoding, Utf8WithoutBOM, StreamInfo);
+  try
+    if Encoding = TEncoding.UTF8 then
+      FillFromUtf8JSON(RootData, RootDataType, StreamInfo.Buffer, StreamInfo.Size)
+    else if Encoding = TEncoding.Unicode then
+      FillFromJSON(RootData, RootDataType, PWideChar(Pointer(StreamInfo.Buffer)), StreamInfo.Size div SizeOf(WideChar))
+    else
+    begin
+      L := TEncodingStrictAccess(Encoding).GetCharCountEx(StreamInfo.Buffer, StreamInfo.Size);
+      SetLength(S, L);
+      if L > 0 then
+        TEncodingStrictAccess(Encoding).GetCharsEx(StreamInfo.Buffer, StreamInfo.Size, PChar(Pointer(S)), L)
+      else if StreamInfo.Size > 0 then
+        ErrorNoMappingForUnicodeCharacter;
+
+      // release memory
+      FreeMem(StreamInfo.AllocationBase);
+      StreamInfo.AllocationBase := nil;
+
+      FillFromJSON(RootData, RootDataType, S);
+    end;
+  finally
+    FreeMem(StreamInfo.AllocationBase);
+  end;
+end;
+
+{$IFDEF USE_UTF8STRING_VALUES}
+procedure TJsonAbstractParser.SetUtf8Value(Data: PItemData; P: PAnsiChar; Len: Integer);
+var
+  S: string;
+begin
+  SetStringUtf8(S, PByte(P), Len);
+  SetStrValue(Data, S);
+end;
+{$ENDIF USE_UTF8STRING_VALUES}
+
+{$IFDEF KEEP_BIGDECIMAL_PRECISION}
+procedure TJsonAbstractParser.SetBigDecimalValue(Data: PItemData; var Value: string);
+begin
+  SetFloatValue(Data, BigDecimalToFloat(Value));
+end;
+{$ENDIF KEEP_BIGDECIMAL_PRECISION}
+
+{ TJsonObjectParser }
+
+function TJsonObjectParser.CreateRootObject: PObjectData;
+begin
+  FRootObject := TJsonObject.Create;
+  Result := PObjectData(FRootObject);
+end;
+
+function TJsonObjectParser.CreateRootArray: PArrayData;
+begin
+  FRootObject := TJsonArray.Create;
+  Result := PArrayData(FRootObject);
+end;
+
+function TJsonObjectParser.CreateRootPrimitive: PItemData;
+begin
+  FRootObject := TJsonPrimitiveValue.Create;
+  // TJsonPrimitiveValue isn't the PItemData, the TJsonPrimitiveValue.Item is
+  Result := PItemData(TJsonPrimitiveValue(FRootObject).Item);
+end;
+
+procedure TJsonObjectParser.Cleanup;
+begin
+  {$IFDEF AUTOREFCOUNT}
+  FRootObject := nil;
+  {$ELSE}
+  FreeAndNil(FRootObject);
+  {$ENDIF AUTOREFCOUNT}
+end;
+
+function TJsonObjectParser.AcquireRootObject: TJsonBaseObject;
+begin
+  Result := FRootObject;
+  FRootObject := nil;
+end;
+
 { TJsonDataValueHelper }
 
 class operator TJsonDataValueHelper.Implicit(const Value: string): TJsonDataValueHelper;
@@ -7997,6 +9364,10 @@ begin
       jdtUTF8String:
         ConvertUTF8ToString(Result, Value.FData.FValueUTF8);
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        BigDecimalToString(Result, Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := IntToStr(Value.FData.FIntValue);
       jdtLong:
@@ -8004,7 +9375,7 @@ begin
       jdtULong:
         Result := UIntToStr(Value.FData.FULongValue);
       jdtFloat:
-        Result := FloatToStr(Value.FData.FFloatValue, JSONFormatSettings);
+        Result := ConvertFloatToStr(Value.FData.FFloatValue);
       jdtDateTime:
         Result := TJsonBaseObject.DateTimeToJSON(Value.FData.FDateTimeValue, JsonSerializationConfig.UseUtcTime);
       jdtUtcDateTime:
@@ -8047,7 +9418,7 @@ class operator TJsonDataValueHelper.Implicit(const Value: TJsonDataValueHelper):
 
   procedure SlowConvert(var S: UTF8String);
   begin
-    S := UTF8Encode(Value.Value);
+    S := UTF8Encode(Value.Value); // uses GetValue() to convert the value to a string
   end;
 
 begin
@@ -8091,6 +9462,10 @@ begin
           Result := StrToIntDef(Value.FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(Value.GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8130,6 +9505,10 @@ begin
           Result := StrToInt64Def(Value.FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(Value.GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8169,6 +9548,10 @@ end;
 //          Result := StrToInt64Def(Value.FData.FValue, 0);
 //        end;
 //      {$ENDIF USE_UTF8STRING_VALUES}
+//      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+//      jdtBigDecimal:
+//        Result := Trunc(Value.GetFloatValue);
+//      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 //      jdtInt:
 //        Result := Value.FData.FIntValue;
 //      jdtLong:
@@ -8200,20 +9583,31 @@ begin
   else
     case Value.FData.FTyp of
       jdtString:
-        Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        Result := ConvertStrToFloat(Value.FData.FValue);
       {$IFDEF USE_UTF8STRING_VALUES}
       jdtUTF8String:
         begin
           Value.ConvertUTF8ToStringType;
-          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+          Result := ConvertStrToFloat(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := BigDecimalToFloat(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime, jdtUtcDateTime:
@@ -8240,20 +9634,31 @@ begin
   else
     case Value.FData.FTyp of
       jdtString:
-        Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+        Result := ConvertStrToFloat(Value.FData.FValue);
       {$IFDEF USE_UTF8STRING_VALUES}
       jdtUTF8String:
         begin
           Value.ConvertUTF8ToStringType;
-          Result := StrToFloat(Value.FData.FValue, JSONFormatSettings);
+          Result := ConvertStrToFloat(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := BigDecimalToFloat(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime, jdtUtcDateTime:
@@ -8288,12 +9693,23 @@ begin
           Result := TJsonBaseObject.JSONToDateTime(Value.FData.FValue);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
         Result := Value.FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(Value.FData.FULongValue).Hi and $80000000 = 0 then
+          Result := Value.FData.FLongValue
+        else
+          Result := Value.FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := Value.FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := Value.FData.FFloatValue;
       jdtDateTime:
@@ -8326,6 +9742,10 @@ begin
       jdtUTF8String:
         Result := Value.FData.FValueUTF8 = 'true';
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.FData.FValue <> '0';
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue <> 0;
       jdtLong:
@@ -8408,6 +9828,10 @@ begin
       jdtUTF8String:
         Result := Value.FData.FValueUTF8;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Value.GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := Value.FData.FIntValue;
       jdtLong:
@@ -8443,10 +9867,10 @@ begin
   LTyp := VarTypeToJsonDataType(VarType(Value));
   if LTyp <> jdtNone then
   begin
-    Result.FData.FTyp := LTyp;
     case LTyp of
       jdtString:
         Result.FData.FValue := Value;
+      //jdtBigDecimal: VarTypeToJsonDataType doesn't return jdtBigDecimal
       //jdtUTF8String: VarTypeToJsonDataType doesn't return jdtUTF8String
       jdtInt:
         Result.FData.FIntValue := Value;
@@ -8465,6 +9889,7 @@ begin
         Result.FData.FObj := nil;
       {$ENDIF ~AUTOREFCOUNT}
     end;
+    Result.FData.FTyp := LTyp;
   end;
 end;
 
@@ -8545,6 +9970,10 @@ begin
           Result := StrToInt64Def(FData.FValue, 0);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := Trunc(GetFloatValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
@@ -8620,12 +10049,23 @@ begin
           Result := TJsonBaseObject.JSONToDateTime(FData.FValue, False);
         end;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Result := GetFloatValue;
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Result := FData.FIntValue;
       jdtLong:
         Result := FData.FLongValue;
       jdtULong:
+        {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
+        if TInt64HiLo(FData.FULongValue).Hi and $80000000 = 0 then
+          Result := FData.FLongValue
+        else
+          Result := FData.FLongValue + Single2ToThePowerOf64;
+        {$ELSE}
         Result := FData.FULongValue;
+        {$ENDIF CPUX86}
       jdtFloat:
         Result := FData.FFloatValue;
       jdtDateTime:
@@ -8714,6 +10154,14 @@ begin
     Result := FData.FIntern.Typ
   else
     Result := FData.FTyp;
+  {$IFDEF USE_UTF8STRING_VALUES}
+  if Result = jdtUTF8String then
+    Result := jdtString;
+  {$ENDIF USE_UTF8STRING_VALUES}
+  {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+  if Result = jdtBigDecimal then
+    Result := jdtFloat;
+  {$ENDIF KEEP_BIGDECIMAL_PRECISION}
 end;
 
 function TJsonDataValueHelper.IsNull: Boolean;
@@ -8748,6 +10196,10 @@ begin
       jdtUTF8String:
         Item.ValueUTF8 := Value.FData.FValueUTF8;
       {$ENDIF USE_UTF8STRING_VALUES}
+      {$IFDEF KEEP_BIGDECIMAL_PRECISION}
+      jdtBigDecimal:
+        Item.SetBigDecimalValue(Value.FData.FValue);
+      {$ENDIF KEEP_BIGDECIMAL_PRECISION}
       jdtInt:
         Item.IntValue := Value.FData.FIntValue;
       jdtLong:
@@ -9339,17 +10791,20 @@ begin
   Result := Pointer(FBytes);
 end;
 
-
-function IsValidJSON(const JSONString: string): Boolean;
+function IsValidJSON(const JSONString: string; FailOnPrimitive: Boolean = False): Boolean;
 var
-  Obj: TJsonBaseObject;
+  Parser: TJsonValidateParser;
 begin
   try
-    Obj := TJsonObject.Parse(JSONString);
+    Parser := TJsonValidateParser.Create(nil);
     try
-      Result := Obj <> nil;
+      Parser.Parse(JSONString);
+      if FailOnPrimitive and (Parser.DataType = jrdtPrimitiveValue) then
+        Result := False
+      else
+        Result := Parser.DataType <> jrdtInvalid;
     finally
-      Obj.Free;
+      Parser.Free;
     end;
   except
     // Invalid JSON will raise an exception
@@ -9359,14 +10814,15 @@ end;
 
 function IsValidJSONArray(const JSONString: string): Boolean;
 var
-  Obj: TJsonBaseObject;
+  Parser: TJsonValidateParser;
 begin
   try
-    Obj := TJsonObject.Parse(JSONString);
+    Parser := TJsonValidateParser.Create(nil);
     try
-      Result := Obj is TJsonArray;
+      Parser.Parse(JSONString);
+      Result := Parser.DataType = jrdtArray;
     finally
-      Obj.Free;
+      Parser.Free;
     end;
   except
     // Invalid JSON will raise an exception
@@ -9376,14 +10832,15 @@ end;
 
 function IsValidJSONObject(const JSONString: string): Boolean;
 var
-  Obj: TJsonBaseObject;
+  Parser: TJsonValidateParser;
 begin
   try
-    Obj := TJsonObject.Parse(JSONString);
+    Parser := TJsonValidateParser.Create(nil);
     try
-      Result := Obj is TJsonObject;
+      Parser.Parse(JSONString);
+      Result := Parser.DataType = jrdtObject;
     finally
-      Obj.Free;
+      Parser.Free;
     end;
   except
     // Invalid JSON will raise an exception
@@ -9402,10 +10859,11 @@ initialization
     TzSpecificLocalTimeToSystemTime := TzSpecificLocalTimeToSystemTimeWin2000;
     {$ENDIF SUPPORT_WINDOWS2000}
   {$ENDIF MSWINDOWS}
-  // Make sTrue and sFalse a mutable string (RefCount<>-1) so that UStrAsg doesn't always
-  // create a new string.
+  // Make sTrue and sFalse a mutable string (RefCount<>-1) so that UStrAsg doesn't create
+  // a new string everytime it is invoked.
   UniqueString(sTrue);
   UniqueString(sFalse);
-  JSONFormatSettings.DecimalSeparator := '.';
+  JSONStorageFormatSettings.ThousandSeparator := ',';
+  JSONStorageFormatSettings.DecimalSeparator := '.';
 
 end.

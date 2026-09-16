@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -361,6 +361,35 @@ type
     property Values8: TArray<Byte> read FValues8 write FValues8;
     property Values64: TArray<Int64> read FValues64 write FValues64;
     property Booleans: TArray<Boolean> read FBooleans write FBooleans;
+  end;
+
+  // Named array aliases - each is a distinct PTypeInfo even though the
+  // memory layout matches TArray<Xxx>. Used to reproduce the cross-module
+  // TypeInfo mismatch reported in issue #889 (modular/BPL setups where a
+  // model type has a different PTypeInfo than the one instantiated inside
+  // the serializer package).
+  TNamedIntArray = array of Integer;
+  TNamedInt64Array = array of Int64;
+  TNamedByteArray = array of Byte;
+  TNamedStringArray = array of String;
+  TNamedBooleanArray = array of Boolean;
+  TNamedDoubleArray = array of Double;
+
+  TEntityWithNamedArray = class
+  private
+    FIntegers: TNamedIntArray;
+    FLongs: TNamedInt64Array;
+    FBytes: TNamedByteArray;
+    FNames: TNamedStringArray;
+    FFlags: TNamedBooleanArray;
+    FReals: TNamedDoubleArray;
+  public
+    property Integers: TNamedIntArray read FIntegers write FIntegers;
+    property Longs: TNamedInt64Array read FLongs write FLongs;
+    property Bytes: TNamedByteArray read FBytes write FBytes;
+    property Names: TNamedStringArray read FNames write FNames;
+    property Flags: TNamedBooleanArray read FFlags write FFlags;
+    property Reals: TNamedDoubleArray read FReals write FReals;
   end;
 
   IChildEntity = interface

@@ -64,6 +64,18 @@
 #define FB_API_DEPRECATED
 #endif
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+#define FB_DLL_EXPORT __declspec(dllexport)
+#elif defined __has_attribute
+#if __has_attribute (visibility)
+#define FB_DLL_EXPORT __attribute__ ((visibility("default")))
+#else
+#define FB_DLL_EXPORT
+#endif
+#else
+#define FB_DLL_EXPORT
+#endif
+
 
 #ifndef INCLUDE_TYPES_PUB_H
 #define INCLUDE_TYPES_PUB_H
@@ -1813,6 +1825,7 @@ ISC_STATUS ISC_EXPORT fb_database_crypt_callback(ISC_STATUS*, void*);
 #define isc_dpb_nolinger                                  88
 #define isc_dpb_reset_icu                                 89
 #define isc_dpb_map_attach                90
+#define isc_dpb_clear_map                 96
 
 #define isc_dpb_address 1
 
@@ -2166,6 +2179,7 @@ ISC_STATUS ISC_EXPORT fb_database_crypt_callback(ISC_STATUS*, void*);
 #define fb_shutrsn_signal                                 -5
 #define fb_shutrsn_services                               -6
 #define fb_shutrsn_exit_called                    -7
+#define fb_shutrsn_emergency                      -8
 
 #define fb_cancel_disable                                 1
 #define fb_cancel_enable                                  2
@@ -2302,6 +2316,8 @@ enum db_info_types
 
         fb_info_crypt_key = 133,
         fb_info_crypt_state = 134,
+
+        fb_info_db_file_id = 145,
 
         isc_info_db_last_value   
 };

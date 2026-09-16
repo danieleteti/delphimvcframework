@@ -26,7 +26,6 @@ implementation
 uses
   System.IOUtils,
   MVCFramework.Commons,
-  MVCFramework.Serializer.URLEncoded,
   MVCFramework.View.Renderers.TemplatePro,
   MVCFramework.Middleware.ActiveRecord,
   MVCFramework.Middleware.StaticFiles,
@@ -74,10 +73,6 @@ begin
   // Server Side View
   FMVC.SetViewEngine(TMVCTemplateProViewEngine);
   // Server Side View - END
-
-  // Serializers
-  FMVC.AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create(nil));
-  // Serializers - END
 
   // Middleware
   fMVC.AddMiddleware(UseFileSessionMiddleware);  

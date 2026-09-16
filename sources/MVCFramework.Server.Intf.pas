@@ -1,0 +1,141 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
+unit MVCFramework.Server.Intf;
+
+{$I dmvcframework.inc}
+
+interface
+
+uses
+  System.SysUtils, MVCFramework;
+
+type
+  IMVCServer = interface;
+  IMVCIndyServer = interface;
+
+  /// <summary>
+  /// Per-server callback that wires a TLS IOHandler/binding into the
+  /// underlying engine. Templates assign this from a provider unit, e.g.:
+  ///   LServer.HTTPSConfigurator := TaurusTLSIndyConfigurator;
+  /// Implementations cast AServer to the concrete server class to access
+  /// engine-specific knobs (TIdHTTPServer, TIdHTTPWebBrokerBridge, ...).
+  /// </summary>
+  TMVCHTTPSConfigurator = reference to procedure(AServer: IMVCServer);
+
+  /// <summary>
+  /// Callback invoked after a TMVCEngine is created, to add controllers
+  /// and middleware. Shared by the server factory and every IMVCServer
+  /// implementation so the signatures stay assignment-compatible.
+  /// </summary>
+  TMVCEngineConfigProc = TProc<TMVCEngine>;
+
+  IMVCServer = interface
+    ['{A8D7B2C1-E5F4-4A3B-9C6D-1F2E3A4B5C6D}']
+    procedure SetEngine(AEngine: TMVCEngine);
+    function GetEngine: TMVCEngine;
+    procedure Listen(APort: Integer = 8080; const AHost: string = '0.0.0.0');
+    procedure Stop;
+    /// <summary>
+    /// One-shot lifecycle for CONSOLE applications: calls Listen, blocks
+    /// the calling thread until a termination signal arrives (Ctrl+C,
+    /// SIGTERM), then calls Stop. Equivalent to:
+    ///   Self.Listen(APort, AHost);
+    ///   try WaitForTerminationSignal; finally Self.Stop; end;
+    ///
+    /// DO NOT call RunAndWait from a VCL/FMX form, an IDE expert, a
+    /// unit-test fixture or any host where the main thread already runs
+    /// a message loop or is otherwise owned — it will deadlock the host.
+    /// In those cases call Listen() (non-blocking) to start the server
+    /// and Stop() to shut it down; the host's own lifecycle governs
+    /// when each runs.
+    /// </summary>
+    procedure RunAndWait(APort: Integer = 8080; const AHost: string = '0.0.0.0');
+    function IsRunning: Boolean;
+    function GetPort: Integer;
+    function GetHost: string;
+    procedure SetMaxConnections(AValue: Integer);
+    function GetMaxConnections: Integer;
+    procedure SetKeepAlive(AValue: Boolean);
+    function GetKeepAlive: Boolean;
+    procedure SetListenQueue(AValue: Integer);
+    function GetListenQueue: Integer;
+    // HTTPS configuration. Each implementation handles SSL internally:
+    //   - TMVCIndyServer/TMVCWebBrokerServer: TaurusTLS using the cert
+    //     properties below.
+    //   - TMVCHttpSysServer: SSL bound externally via "netsh http add
+    //     sslcert"; UseHTTPS only flips the registered URL prefix to
+    //     "https://", cert properties are ignored.
+    procedure SetUseHTTPS(AValue: Boolean);
+    function GetUseHTTPS: Boolean;
+    procedure SetCertFile(const AValue: string);
+    function GetCertFile: string;
+    procedure SetKeyFile(const AValue: string);
+    function GetKeyFile: string;
+    procedure SetRootCertFile(const AValue: string);
+    function GetRootCertFile: string;
+    procedure SetCertPassword(const AValue: string);
+    function GetCertPassword: string;
+    procedure SetHTTPSConfigurator(AValue: TMVCHTTPSConfigurator);
+    function GetHTTPSConfigurator: TMVCHTTPSConfigurator;
+    property Engine: TMVCEngine read GetEngine write SetEngine;
+    property Port: Integer read GetPort;
+    property Host: string read GetHost;
+    property MaxConnections: Integer read GetMaxConnections write SetMaxConnections;
+    property KeepAlive: Boolean read GetKeepAlive write SetKeepAlive;
+    property ListenQueue: Integer read GetListenQueue write SetListenQueue;
+    property UseHTTPS: Boolean read GetUseHTTPS write SetUseHTTPS;
+    property CertFile: string read GetCertFile write SetCertFile;
+    property KeyFile: string read GetKeyFile write SetKeyFile;
+    property RootCertFile: string read GetRootCertFile write SetRootCertFile;
+    property CertPassword: string read GetCertPassword write SetCertPassword;
+    property HTTPSConfigurator: TMVCHTTPSConfigurator
+      read GetHTTPSConfigurator write SetHTTPSConfigurator;
+  end;
+
+  /// <summary>
+  /// Indy-specific extension. When SingleFlushResponse is True, each
+  /// response is emitted via IOHandler.WriteBufferOpen/Flush/Close so
+  /// that headers and body land in a single send() call (typically a
+  /// single TCP segment for payloads below the MSS). Intended for
+  /// embedded/non-conforming HTTP clients that do not correctly
+  /// reassemble a response split across separate header/body segments.
+  ///
+  /// Trade-off: the full response body is buffered in memory before
+  /// being sent. Do not enable for streamed/large downloads.
+  ///
+  /// Default is False (standard Indy emission, fully backward
+  /// compatible).
+  /// </summary>
+  IMVCIndyServer = interface(IMVCServer)
+    ['{B7F4E6A2-3D8C-4E1A-9B5F-7A2D4C6E8F1B}']
+    procedure SetSingleFlushResponse(AValue: Boolean);
+    function GetSingleFlushResponse: Boolean;
+    property SingleFlushResponse: Boolean
+      read GetSingleFlushResponse write SetSingleFlushResponse;
+  end;
+
+implementation
+
+end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -103,7 +103,8 @@ type
 implementation
 
 uses
-  MVCFramework.Tests.WebModule1,
+  MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Session,
   LiveServerTestU,
   MVCFramework.SystemJSONUtils,
   System.JSON,
@@ -119,7 +120,21 @@ begin
     .SetName('AppServer')
     .SetPort(3000)
     .SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass)
+    .SetEngineConfig(
+      procedure(AEngine: TMVCEngine)
+      begin
+        AEngine.AddController(TAppController);
+        AEngine.AddMiddleware(UseMemorySessionMiddleware(0));
+        AEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+          TMVCDefaultAuthenticationHandler.New
+            .SetOnAuthentication(
+            procedure(const AUserName, APassword: string;
+              AUserRoles: TList<string>; var IsValid: Boolean;
+              const ASessionData: TDictionary<String, String>)
+            begin
+              IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+            end)));
+      end)
     );
   FServerListener.Start;
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -92,10 +92,29 @@ type
     fMapping: TMVCFieldsMapping;
   protected
     function GetDatabaseFieldName(const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean = False): string;
-    function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+    function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>; virtual;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual; abstract;
     procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); virtual;
+    /// <summary>True if a non-empty field mapping is available to the
+    /// compiler. Descendants may need this to decide whether to emit
+    /// metadata that depends on the mapping (e.g. a sort-by-PK).</summary>
+    function HasMapping: Boolean;
   public
+    /// <summary>
+    /// When True (the default, and the 3.4 behaviour) an RQL name the field
+    /// mapping does not know is passed through to the SQL as-is. That is not the
+    /// oversight it looks like: the mapping is keyed on the Delphi field name and
+    /// its MVCNameAs alias, never on the database column, so filtering on a column
+    /// the entity does not declare - a partially mapped table, a view - works today
+    /// and code depends on it. Set to False to refuse those names instead: the
+    /// compiler then raises ERQLException and only declared fields reach the SQL.
+    /// Applies only when a mapping exists: a compiler built with an empty mapping
+    /// has nothing to check against and still passes every name through.
+    /// Note that the framework's own soft-delete filters on a column the entity
+    /// does not declare, so closing this valve turns that feature off too.
+    /// The default will flip in 4.0.
+    /// </summary>
+    class var AllowUnmappedRQLFields: Boolean;
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
     // Overwritten by descendant if the SQL syntax requires more than the simple table name
@@ -249,7 +268,12 @@ implementation
 
 uses
   System.Character,
-  System.StrUtils;
+  System.StrUtils,
+  System.SyncObjs,
+  MVCFramework.Logger;
+
+var
+  gUnmappedRQLFieldReported: Integer = 0;
 
 { TRQL2SQL }
 
@@ -761,6 +785,7 @@ function TRQL2SQL.ParseLimit(const MaxRecordCount: Integer): Boolean;
 var
   lStart: string;
   lCount: string;
+  lRQLLimitCount: Int64;
   lRQLLimit: TRQLLimit;
 begin
   SaveCurPos;
@@ -787,14 +812,25 @@ begin
   lRQLLimit := TRQLLimit.Create;
   fAST.Add(lRQLLimit);
   lRQLLimit.Token := tkLimit;
-  lRQLLimit.Start := StrToInt64(lStart); // XE7 compat
+  { Clamped low as well as high: SQLite reads a negative LIMIT as "no limit", so
+    limit(0,-1) walked straight past MaxEntitiesRecordCount. A number the lexer
+    accepts but Int64 does not still raises, as it did before: answering an empty
+    page to a malformed limit hides the client's bug instead of reporting it. }
+  lRQLLimit.Start := Max(0, StrToInt64(lStart)); // XE7 compat
+  lRQLLimitCount := StrToInt64(lCount);
   if MaxRecordCount > -1 then
   begin
-    lRQLLimit.Count := Min(StrToInt64(lCount), MaxRecordCount);
+    { Clamped to the cap, not to zero: the cap bounds the page, it does not empty it. }
+    if lRQLLimitCount < 0 then
+      lRQLLimit.Count := MaxRecordCount
+    else
+      lRQLLimit.Count := Min(lRQLLimitCount, MaxRecordCount);
   end
   else
   begin
-    lRQLLimit.Count := StrToInt64(lCount);
+    { No cap configured: a negative count keeps meaning whatever the dialect
+      made of it. }
+    lRQLLimit.Count := lRQLLimitCount;
   end;
   Result := true;
 end;
@@ -1313,9 +1349,15 @@ begin
   end;
 
 
-  { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
-  if UsePropertyNameIfAttributeDoesntExists then
-    Exit(GetFieldNameForSQL(RQLPropertyName))
+  if UsePropertyNameIfAttributeDoesntExists and AllowUnmappedRQLFields then
+  begin
+    { Once per process, not per request: this is a posture warning, not an event. }
+    if TInterlocked.CompareExchange(gUnmappedRQLFieldReported, 1, 0) = 0 then
+      LogW('RQL accepted the undeclared field "' + RQLPropertyName +
+        '" and passed it to the SQL as-is. Set TRQLCompiler.AllowUnmappedRQLFields ' +
+        'to False to allow only fields the entity declares.');
+    Exit(GetFieldNameForSQL(RQLPropertyName));
+  end
   else
     raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
       [RQLPropertyName]);
@@ -1340,7 +1382,17 @@ end;
 
 function TRQLCompiler.GetPKFieldName: String;
 begin
+  if Length(fMapping) = 0 then
+    raise ERQLException.Create(
+      'RQL compiler has no field mapping; cannot resolve primary-key ' +
+      'field name. Pass a non-empty TMVCFieldsMapping to the compiler ' +
+      'constructor (or override AdjustAST in the compiler).');
   Result := fMapping[0].InstanceFieldName;
+end;
+
+function TRQLCompiler.HasMapping: Boolean;
+begin
+  Result := Length(fMapping) > 0;
 end;
 
 function TRQLCompiler.GetTableNameForSQL(const TableName: string): string;
@@ -1389,5 +1441,9 @@ begin
     end;
   end;
 end;
+
+initialization
+
+TRQLCompiler.AllowUnmappedRQLFields := True;
 
 end.

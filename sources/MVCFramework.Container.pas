@@ -294,6 +294,7 @@ var
   lType: TRttiType;
   lService: TObject;
   lServiceKey: string;
+  lIntfDisposer: IInterface;
 begin
   if not fBuilt then
   begin
@@ -320,10 +321,20 @@ begin
       begin
         lService := lReg.Delegate();
       end;
+      if lService = nil then
+        raise EMVCContainerErrorUnknownService.
+          CreateFmt('Service for interface "%s" resolved to nil', [lTypeInfo.Name]);
+      // Give the fresh instance a deterministic owner for the rest of this
+      // method. A refcount-0 TInterfacedObject can otherwise be freed by a
+      // *failing* Supports() (the RTL behaviour differs across platforms),
+      // which would turn the error path below into a use-after-free. This ref
+      // keeps it alive here and frees it exactly once when the method exits
+      // (unless Result took ownership on success).
+      Supports(lService, IInterface, lIntfDisposer);
       if not Supports(lService, lTypeInfo.TypeData.GUID, Result) then
       begin
         raise EMVCContainerErrorUnknownService.
-          CreateFmt('"%s" doesn''t supports requested interface', [TInterfacedObject(lReg.Instance).QualifiedClassName]);
+          CreateFmt('"%s" doesn''t support the requested interface "%s"', [lService.QualifiedClassName, lTypeInfo.Name]);
       end;
       {rtSingletonPerRequest is destroyed by the adapter owned by Context}
     end;
@@ -344,10 +355,16 @@ begin
             begin
               lService := lReg.Delegate();
             end;
+            if lService = nil then
+              raise EMVCContainerErrorUnknownService.
+                CreateFmt('Service for interface "%s" resolved to nil', [lTypeInfo.Name]);
+            // Deterministic owner for the rest of the method (see the transient
+            // branch above); on success lReg.Instance takes ownership.
+            Supports(lService, IInterface, lIntfDisposer);
             if not Supports(lService, lTypeInfo.TypeData.GUID, lReg.Instance) then
             begin
               raise EMVCContainerErrorUnknownService.
-                CreateFmt('"%s" doesn''t supports requested interface', [TInterfacedObject(lReg.Instance).QualifiedClassName]);
+                CreateFmt('"%s" doesn''t support the requested interface "%s"', [lService.QualifiedClassName, lTypeInfo.Name]);
             end;
           end;
         finally

@@ -3,27 +3,30 @@ unit CustomLoggerConfigU;
 interface
 
 uses
-  LoggerPro; // loggerpro core
+  LoggerPro;
 
 function GetLogger: ILogWriter;
 
 implementation
 
 uses
-  System.IOUtils
-    , LoggerPro.FileAppender // loggerpro file appender (logs to file)
-    , LoggerPro.SimpleConsoleAppender // loggerpro console appender
-
-  {$IFDEF MSWINDOWS} , LoggerPro.OutputdebugStringAppender {$ENDIF} // loggerpro outputdebugstring appender (logs to the debugger)
-    ;
+  System.IOUtils,
+  LoggerPro.Builder;
 
 function GetLogger: ILogWriter;
 begin
-  Result := BuildLogWriter([
-    TLoggerProFileAppender.Create(10, 1000, TPath.Combine('MyFolder', 'MyLogs')),
-    TLoggerProSimpleConsoleAppender.Create
-    {$IFDEF MSWINDOWS}, TLoggerProOutputDebugStringAppender.Create{$ENDIF}
-    ], nil, TLogType.Debug);
+  { LoggerPro 2.0 - Builder Pattern API }
+  Result := LoggerProBuilder
+    .WriteToFile
+      .WithLogsFolder(TPath.Combine('MyFolder', 'MyLogs'))
+      .WithMaxBackupFiles(10)
+      .WithMaxFileSizeInKB(1000)
+      .Done
+    .WriteToSimpleConsole.Done
+    {$IFDEF MSWINDOWS}
+    .WriteToOutputDebugString.Done
+    {$ENDIF}
+    .Build;
 end;
 
 end.

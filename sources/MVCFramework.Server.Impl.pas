@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,24 +34,25 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  IdHTTPWebBrokerBridge,
-  IdSSLOpenSSL,
-  IdSSL,
-  IdContext,
+  MVCFramework.Commons,
   MVCFramework.Server,
+  MVCFramework.Server.Intf,
+  MVCFramework.Server.Indy,
   MVCFramework;
 
 type
+  // Deprecated as of 3.5, removed in 4.0 (see MVCFramework.Server). These types
+  // implement and cross-reference the deprecated IMVCListener* interfaces, so
+  // deprecation warnings are silenced inside this implementation unit; callers
+  // of TMVCListener / TMVCListenerProperties / TMVCListenersContext still get them.
+{$WARN SYMBOL_DEPRECATED OFF}
   TMVCListenerProperties = class(TInterfacedObject, IMVCListenerProperties)
   private
     FName: string;
     FPort: Integer;
     FMaxConnections: Integer;
-    FWebModuleClass: TComponentClass;
-    FSSLCertFile: String;
-    FSSLRootCertFile: String;
-    FSSLKeyFile: String;
-    FSSLPassword: String;
+    FConfigAction: TProc<TMVCConfig>;
+    FEngineConfig: TMVCEngineConfigProc;
   protected
     function GetName: string;
     function SetName(const AValue: string): IMVCListenerProperties;
@@ -62,28 +63,21 @@ type
     function GetMaxConnections: Integer;
     function SetMaxConnections(AValue: Integer): IMVCListenerProperties;
 
-    function GetWebModuleClass: TComponentClass;
-    function SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
+    function GetConfigAction: TProc<TMVCConfig>;
+    function SetConfigAction(AValue: TProc<TMVCConfig>): IMVCListenerProperties;
 
-    function GetSSLOptions(out SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): Boolean;
-    function SetSSLOptions(const SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
+    function GetEngineConfig: TMVCEngineConfigProc;
+    function SetEngineConfig(AValue: TMVCEngineConfigProc): IMVCListenerProperties;
   public
     constructor Create;
     class function New: IMVCListenerProperties; static;
-  end;
+  end deprecated 'Removed in DelphiMVCFramework 4.0 - use TMVCServerFactory / IMVCServer (MVCFramework.Server.Factory) instead.';
 
   TMVCListener = class(TInterfacedObject, IMVCListener)
   private
-    FBridge: TIdHTTPWebBrokerBridge;
-    FBridgeSSLHandler: TIdServerIOHandlerSSLOpenSSL;
-    FBridgeSSLPassword: String;
-    procedure OnParseAuthentication(AContext: TIdContext; const AAuthType,
-      AAuthData: String; var VUsername, VPassword: String;
-      var VHandled: Boolean);
-    procedure OnGetSSLPassword(var APassword: string);
-{$IF Defined(RIOORBETTER)}
-    procedure QuerySSLPort(APort: Word; var VUseSSL: boolean);
-{$ENDIF}
+    FEngine: TMVCEngine;
+    FServer: IMVCIndyServer;
+    FPort: Integer;
   protected
     function GetActive: Boolean;
 
@@ -92,7 +86,7 @@ type
   public
     constructor Create(AProperties: IMVCListenerProperties);
     destructor Destroy; override;
-  end;
+  end deprecated 'Removed in DelphiMVCFramework 4.0 - use TMVCServerFactory / IMVCServer (MVCFramework.Server.Factory) instead.';
 
   TMVCListenersContext = class(TInterfacedObject, IMVCListenersContext)
   private
@@ -112,7 +106,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-  end;
+  end deprecated 'Removed in DelphiMVCFramework 4.0 - use TMVCServerFactory / IMVCServer (MVCFramework.Server.Factory) instead.';
 
   TMVCDefaultAuthenticationHandler = class(TInterfacedObject, IMVCDefaultAuthenticationHandler)
   private
@@ -156,11 +150,8 @@ begin
   FName := '';
   FPort := 8080;
   FMaxConnections := 1024;
-  FWebModuleClass := nil;
-  FSSLCertFile := '';
-  FSSLRootCertFile := '';
-  FSSLKeyFile := '';
-  FSSLPassword := '';
+  FConfigAction := nil;
+  FEngineConfig := nil;
 end;
 
 function TMVCListenerProperties.GetMaxConnections: Integer;
@@ -178,19 +169,14 @@ begin
   Result := FPort;
 end;
 
-function TMVCListenerProperties.GetSSLOptions(out SSLCertFile, SSLRootCertFile,
-  SSLKeyFile, SSLPassword: String): Boolean;
+function TMVCListenerProperties.GetConfigAction: TProc<TMVCConfig>;
 begin
-  SSLCertFile := FSSLCertFile;
-  SSLRootCertFile := FSSLRootCertFile;
-  SSLKeyFile := FSSLKeyFile;
-  SSLPassword := FSSLPassword;
-  Result := not (FSSLCertFile.IsEmpty and FSSLKeyFile.IsEmpty);
+  Result := FConfigAction;
 end;
 
-function TMVCListenerProperties.GetWebModuleClass: TComponentClass;
+function TMVCListenerProperties.GetEngineConfig: TMVCEngineConfigProc;
 begin
-  Result := FWebModuleClass;
+  Result := FEngineConfig;
 end;
 
 class function TMVCListenerProperties.New: IMVCListenerProperties;
@@ -216,19 +202,15 @@ begin
   Result := Self;
 end;
 
-function TMVCListenerProperties.SetSSLOptions(const SSLCertFile,
-  SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
+function TMVCListenerProperties.SetConfigAction(AValue: TProc<TMVCConfig>): IMVCListenerProperties;
 begin
-  FSSLCertFile := SSLCertFile;
-  FSSLRootCertFile := SSLRootCertFile;
-  FSSLKeyFile := SSLKeyFile;
-  FSSLPassword := SSLPassword;
+  FConfigAction := AValue;
   Result := Self;
 end;
 
-function TMVCListenerProperties.SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
+function TMVCListenerProperties.SetEngineConfig(AValue: TMVCEngineConfigProc): IMVCListenerProperties;
 begin
-  FWebModuleClass := AValue;
+  FEngineConfig := AValue;
   Result := Self;
 end;
 
@@ -236,9 +218,7 @@ end;
 
 constructor TMVCListener.Create(AProperties: IMVCListenerProperties);
 var
-  lSSLCertFile: String;
-  lSSLRootCertFile: String;
-  lSSLKeyFile: String;
+  lEngineConfig: TMVCEngineConfigProc;
 begin
   inherited Create;
 
@@ -248,69 +228,49 @@ begin
   if AProperties.GetName.IsEmpty then
     raise EMVCServerException.Create('Listener name was not informed.');
 
-  FBridge := TIdHTTPWebBrokerBridge.Create(nil);
-  FBridge.DefaultPort := AProperties.GetPort;
-  FBridge.MaxConnections := AProperties.GetMaxConnections;
-  FBridge.OnParseAuthentication := OnParseAuthentication;
-  FBridge.RegisterWebModuleClass(AProperties.GetWebModuleClass);
+  lEngineConfig := AProperties.GetEngineConfig;
+  if not Assigned(lEngineConfig) then
+    raise EMVCServerException.Create('Listener engine configuration was not informed (SetEngineConfig).');
 
-  if AProperties.GetSSLOptions(lSSLCertFile,lSSLRootCertFile,lSSLKeyFile,FBridgeSSLPassword) then
-  begin
-    //notice for client implementations
-    //OpenSSL currently don't support perfect forward security by default
-    FBridgeSSLHandler := TIdServerIOHandlerSSLOpenSSL.Create(FBridge);
-    FBridgeSSLHandler.SSLOptions.Method := sslvTLSv1_2;
-    FBridgeSSLHandler.SSLOptions.SSLVersions := [sslvSSLv23, sslvSSLv3, sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
-    FBridgeSSLHandler.SSLOptions.Mode := sslmServer;
-    FBridgeSSLHandler.SSLOptions.CertFile := lSSLCertFile;
-    FBridgeSSLHandler.SSLOptions.RootCertFile := lSSLRootCertFile; //should be empty, currently broken in 10.3.3
-    FBridgeSSLHandler.SSLOptions.KeyFile := lSSLKeyFile;
-    FBridgeSSLHandler.OnGetPassword := OnGetSSLPassword;
-    FBridge.IOHandler := FBridgeSSLHandler;
-    {$IF Defined(RIOORBETTER)}
-    FBridge.OnQuerySSLPort := QuerySSLPort;
-    {$ENDIF}
+  FPort := AProperties.GetPort;
+  FEngine := TMVCEngine.Create(AProperties.GetConfigAction);
+  try
+    lEngineConfig(FEngine);
+  except
+    FEngine.Free;
+    raise;
   end;
+
+  FServer := TMVCIndyServer.Create(FEngine);
+  FServer.MaxConnections := AProperties.GetMaxConnections;
 end;
 
 destructor TMVCListener.Destroy;
 begin
-  if Assigned(FBridge) then
-    FBridge.Free;
+  if Assigned(FServer) then
+  begin
+    if FServer.IsRunning then
+      FServer.Stop;
+    FServer := nil;
+  end;
+  FEngine.Free;
   inherited Destroy;
 end;
 
-procedure TMVCListener.OnGetSSLPassword(var APassword: string);
-begin
-  APassword := FBridgeSSLPassword;
-end;
-
-procedure TMVCListener.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername, VPassword: String; var VHandled: Boolean);
-begin
-  vhandled := True;
-end;
-
-
-{$IF Defined(RIOORBETTER)}
-procedure TMVCListener.QuerySSLPort(APort: Word; var VUseSSL: boolean);
-begin
-  VUseSSL := true;
-end;
-{$ENDIF}
-
 function TMVCListener.GetActive: Boolean;
 begin
-  Result := FBridge.Active;
+  Result := Assigned(FServer) and FServer.IsRunning;
 end;
 
 procedure TMVCListener.Start;
 begin
-  FBridge.Active := True;
+  FServer.Listen(FPort);
 end;
 
 procedure TMVCListener.Stop;
 begin
-  FBridge.Active := False;
+  if FServer.IsRunning then
+    FServer.Stop;
 end;
 
 { TMVCListenersContext }

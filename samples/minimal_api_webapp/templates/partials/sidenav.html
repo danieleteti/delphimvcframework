@@ -1,0 +1,23 @@
+<script>
+    const highlightMenuItem = (evt) => {
+        const target = evt.target.closest('.nav-link');
+        if (!target) return;
+        const sidebar = target.closest('.app-sidebar');
+        if (!sidebar) return;
+        sidebar.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('selected'));
+        target.classList.add('selected');
+    };
+</script>
+<aside class="app-sidebar" hx-target="#main" hx-on::after-request="highlightMenuItem(event)">
+    <span class="brand"><i class="bi bi-lightning-charge-fill"></i> Minimal API</span>
+    <nav class="nav flex-column">
+        <a class="nav-link" hx-get="/"          hx-push-url="true"><i class="bi bi-house-door"></i> Home</a>
+        <a class="nav-link" hx-get="/users"     hx-push-url="true"><i class="bi bi-people"></i> Users</a>
+        <a class="nav-link" hx-get="/posts"     hx-push-url="true"><i class="bi bi-card-text"></i> Posts</a>
+        <a class="nav-link" hx-get="/customers" hx-push-url="true"><i class="bi bi-person-vcard"></i> Customers</a>
+    </nav>
+    <nav class="nav flex-column app-sidebar-footer">
+        <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+        <a class="nav-link" href="/admin/"><i class="bi bi-shield-lock"></i> Admin</a>
+    </nav>
+</aside>

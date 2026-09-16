@@ -62,10 +62,11 @@
 
 #define LibraryName "DelphiMVCFramework"
 #define SetupName "DMVCFramework"
-#define LibraryVersion "3.4.3"
-#define LibraryVersionInfo "aluminium rc3"
+{ Keep in sync with DMVCFRAMEWORK_VERSION in sources\dmvcframeworkbuildconsts.inc }
+#define LibraryVersion "3.5.0"
+#define LibraryVersionInfo "silicon rc4"
 #define LibraryPublisher "Daniele Teti"
-#define LibraryCopyright "Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team"
+#define LibraryCopyright "Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team"
 #define LibraryURL "https://www.danieleteti.it/delphimvcframework/"
 #define LibrarySamplesFolder "samples"
 #define LibraryPackagesFolder "packages"

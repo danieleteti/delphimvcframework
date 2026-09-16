@@ -3,7 +3,7 @@ unit HelpersU;
 interface
 
 uses
-  System.Rtti, TemplatePro;
+  System.Rtti, TemplatePro, TemplatePro.Types;
 
 function Age(const Value: TValue; const Parameters: TArray<TFilterParameter>): TValue;
 

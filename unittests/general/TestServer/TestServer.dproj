@@ -127,6 +127,7 @@
         <DCCReference Include="AuthHandlersU.pas"/>
         <DCCReference Include="..\..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="TestServerControllerJSONRPCU.pas"/>
+        <DCCReference Include="MinimalAPIWebTestsU.pas"/>
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>

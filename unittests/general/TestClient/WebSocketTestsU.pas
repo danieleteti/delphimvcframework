@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -49,6 +49,8 @@ type
     procedure TestCreatePongFrame;
     [Test]
     procedure TestMaskPayload;
+    [Test]
+    procedure TestWriteAndParseFrameRoundTrip;
   end;
 
   [TestFixture]
@@ -77,11 +79,24 @@ type
     procedure TestConnectionRateLimiter;
   end;
 
+  [TestFixture]
+  TTestWebSocketHandshakeHeaders = class
+  public
+    [Test]
+    procedure TestHeadersAreExposedAsNameValuePairs;
+    [Test]
+    procedure TestRealClientIPIgnoresForwardedByDefault;
+    [Test]
+    procedure TestRealClientIPHonoursForwardedWhenTrusted;
+  end;
+
 implementation
 
 uses
   System.NetEncoding,
-  System.DateUtils;
+  System.DateUtils,
+  MVCFramework.Commons,
+  MVCFramework.WebSocket.Server;
 
 { TTestWebSocketFrame }
 
@@ -180,6 +195,51 @@ begin
 
   // Verify payload is present (masking happens during write, not during create)
   Assert.IsTrue(Length(lFrame.Payload) > 0, 'Payload should be present');
+end;
+
+procedure TTestWebSocketFrame.TestWriteAndParseFrameRoundTrip;
+var
+  lFrame: TMVCWebSocketFrame;
+  lPayload: TBytes;
+  I: Integer;
+begin
+  // Test frame creation with various payload sizes
+  // Verify frames are created correctly for different payload lengths
+
+  // Test 50 bytes (small, fits in 7-bit length)
+  SetLength(lPayload, 50);
+  for I := 0 to 49 do
+    lPayload[I] := Byte(I);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(50), lFrame.PayloadLength, '50 byte payload length');
+  Assert.AreEqual<Integer>(50, Length(lFrame.Payload), '50 byte payload array');
+  for I := 0 to 49 do
+    Assert.AreEqual(Byte(I), lFrame.Payload[I], Format('Byte %d of 50', [I]));
+
+  // Test 183 bytes (extends past 125, uses 16-bit length field)
+  // This is the specific size from issue #866
+  SetLength(lPayload, 183);
+  for I := 0 to 182 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(183), lFrame.PayloadLength, '183 byte payload length');
+  Assert.AreEqual<Integer>(183, Length(lFrame.Payload), '183 byte payload array');
+
+  // Test 1000 bytes
+  SetLength(lPayload, 1000);
+  for I := 0 to 999 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(1000), lFrame.PayloadLength, '1000 byte payload length');
+  Assert.AreEqual<Integer>(1000, Length(lFrame.Payload), '1000 byte payload array');
+
+  // Test 30000 bytes
+  SetLength(lPayload, 30000);
+  for I := 0 to 29999 do
+    lPayload[I] := Byte(I mod 256);
+  lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
+  Assert.AreEqual(UInt64(30000), lFrame.PayloadLength, '30000 byte payload length');
+  Assert.AreEqual<Integer>(30000, Length(lFrame.Payload), '30000 byte payload array');
 end;
 
 { TTestWebSocketHandshake }
@@ -335,9 +395,82 @@ begin
   end;
 end;
 
+{ TTestWebSocketHandshakeHeaders }
+
+// Builds a client without a connection: RealClientIP then falls back to an empty
+// peer IP, which is enough to tell "forwarded honoured" from "forwarded ignored".
+function NewClientWithHeaders(const AHeaders: array of string): TWebSocketClient;
+var
+  lHeaders: TStringList;
+  I: Integer;
+begin
+  lHeaders := TStringList.Create;
+  try
+    lHeaders.NameValueSeparator := ':';
+    for I := Low(AHeaders) to High(AHeaders) do
+      lHeaders.Add(AHeaders[I]);
+  except
+    lHeaders.Free;
+    raise;
+  end;
+  Result := TWebSocketClient.Create(nil, 'chat-john', nil, True, lHeaders);
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestHeadersAreExposedAsNameValuePairs;
+var
+  lClient: TWebSocketClient;
+begin
+  lClient := NewClientWithHeaders(['Origin: https://example.com', 'Cookie: a=1']);
+  try
+    Assert.AreEqual('https://example.com', Trim(lClient.HandshakeHeaders.Values['Origin']));
+    Assert.AreEqual('a=1', Trim(lClient.HandshakeHeaders.Values['cookie']), 'lookup must be case insensitive');
+  finally
+    lClient.Free;
+  end;
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestRealClientIPIgnoresForwardedByDefault;
+var
+  lClient: TWebSocketClient;
+  lSaved: Boolean;
+begin
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := False;
+  try
+    lClient := NewClientWithHeaders(['X-Forwarded-For: 203.0.113.7, 10.0.0.1']);
+    try
+      Assert.AreNotEqual('203.0.113.7', lClient.RealClientIP, 'a forged X-Forwarded-For must not be trusted');
+    finally
+      lClient.Free;
+    end;
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
+  end;
+end;
+
+procedure TTestWebSocketHandshakeHeaders.TestRealClientIPHonoursForwardedWhenTrusted;
+var
+  lClient: TWebSocketClient;
+  lSaved: Boolean;
+begin
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := True;
+  try
+    lClient := NewClientWithHeaders(['X-Forwarded-For: 203.0.113.7, 10.0.0.1']);
+    try
+      Assert.AreEqual('203.0.113.7', lClient.RealClientIP, 'first hop of X-Forwarded-For');
+    finally
+      lClient.Free;
+    end;
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestWebSocketFrame);
   TDUnitX.RegisterTestFixture(TTestWebSocketHandshake);
   TDUnitX.RegisterTestFixture(TTestWebSocketRateLimiter);
+  TDUnitX.RegisterTestFixture(TTestWebSocketHandshakeHeaders);
 
 end.

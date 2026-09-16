@@ -1,0 +1,28 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Context · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/">&larr; back to index</a></nav>
+<h1 class="mb-3">Request context</h1>
+<p class="text-muted">A single <code>TContextInfo</code> record carries
+   <code>[MVCFromHeader]</code> and <code>[MVCFromCookie]</code> attributes on
+   its fields. Each request resolves both sources in a single argument.</p>
+
+<dl class="row">
+    <dt class="col-sm-3">User-Agent <small class="text-muted">(header)</small></dt>
+    <dd class="col-sm-9"><code>{{:user_agent}}</code></dd>
+
+    <dt class="col-sm-3">Accept-Language <small class="text-muted">(header, default "en")</small></dt>
+    <dd class="col-sm-9"><code>{{:language}}</code></dd>
+
+    <dt class="col-sm-3">Theme <small class="text-muted">(cookie, default "light")</small></dt>
+    <dd class="col-sm-9"><code>{{:theme}}</code></dd>
+</dl>
+
+<p class="alert alert-info">The handler also writes the <code>theme</code>
+   cookie on every response. Open DevTools &rarr; Application &rarr; Cookies,
+   change the value (e.g. to <code>dark</code>), reload — the new value flows
+   back through <code>[MVCFromCookie('theme', 'light')]</code> into the
+   record. Clear the cookie to see the default kick in.</p>
+{{endblock}}

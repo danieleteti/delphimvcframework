@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -31,6 +31,9 @@ uses
   MVCFramework,
   System.SysUtils,
   MVCFramework.Commons,
+  MVCFramework.Validation,
+  MVCFramework.Validators,
+  MVCFramework.ValidationEngine,
   FireDAC.Comp.Client,
   System.Generics.Collections,
   Data.DB,
@@ -38,6 +41,49 @@ uses
   System.UITypes, JsonDataObjects;
 
 type
+
+  /// <summary>
+  /// Instrumented DTO used by the double-free regression test. Each
+  /// instance increments LiveCount on construction and decrements it on
+  /// destruction. A single request MUST leave LiveCount unchanged.
+  /// </summary>
+  TFromBodyEchoObj = class
+  private
+    FName: string;
+    class var FLiveCount: Integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    class function LiveCount: Integer; static;
+    property Name: string read FName write FName;
+  end;
+
+  /// <summary>
+  /// DTO used by the validation-engine concurrency stress test. Mixes
+  /// property validators with an OnValidate cross-field rule so the
+  /// cached metadata (PropertiesToValidate + IsValidatable flag) gets
+  /// fully exercised on every request.
+  /// </summary>
+  [MVCNameCase(ncCamelCase)]
+  TStressValidationDTO = class(TMVCValidatable)
+  private
+    FName: string;
+    FEmail: string;
+    FAge: Integer;
+  public
+    [MVCRequired('name is required')]
+    [MVCMinLength(3, 'name must be at least 3 chars')]
+    property Name: string read FName write FName;
+
+    [MVCRequired('email is required')]
+    [MVCEmail('email must be a valid address')]
+    property Email: string read FEmail write FEmail;
+
+    [MVCRange(0, 150, 'age out of range')]
+    property Age: Integer read FAge write FAge;
+
+    procedure OnValidate(const AErrors: PMVCValidationErrors); override;
+  end;
 
   [MVCPath]
   [MVCPath('/donotusethis')]
@@ -133,6 +179,36 @@ type
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     procedure TestGetPersons;
 
+    // Issue #897: single-object request body, collection response body.
+    [MVCPath('/people/searchbysample')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure TestSearchPeopleBySample;
+
+    // Streamed dataset: a forward-only (fmOnDemand + Unidirectional) PostgreSQL
+    // cursor emitted to the client through TMVCJSONArrayWriter, so neither the
+    // whole dataset nor the whole JSON is materialized on the server. Reads the
+    // streamed_people table seeded by the client-side PostgreSQL fixture.
+    [MVCPath('/streameddataset')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces('application/json')]
+    procedure TestStreamedDataSet;
+
+    // Chunked streaming via TMVCStreamedResponse: same forward-only PostgreSQL
+    // cursor as /streameddataset but emitted through the engine's chunk writer
+    // (Indy chunked transfer / HTTP.sys). The query and its connection are
+    // owned by TOwningQuery and freed after the last chunk is sent.
+    [MVCPath('/streameddatasetchunked')]
+    [MVCHTTPMethod([httpGET])]
+    function GetStreamedDataSetChunked: TMVCStreamedResponse;
+
+    // C1 regression: a *function* action whose response is produced by a
+    // streaming writer. After the writer sends the whole body the dispatcher
+    // must NOT try to render the function's return value (that path used to
+    // dereference a nil TypeInfo -> AV on an already-sent reply).
+    [MVCPath('/streaming/functionwriter')]
+    [MVCHTTPMethod([httpGET])]
+    function StreamViaFunctionWriter: JsonDataObjects.TJsonArray;
+
     [MVCPath('/wrappedpeople')]
     [MVCHTTPMethod([httpGET])]
     procedure TestGetWrappedPeople;
@@ -161,6 +237,51 @@ type
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE])]
     [MVCProduces('application/json')]
     procedure TestWithAllVerbs;
+
+    {QUERY (RFC 10008): safe, idempotent, and it carries a body. Echo the body
+     verbatim - rendering a constant here would pass even if the body were dropped.}
+    [MVCPath('/query/echo')]
+    [MVCHTTPMethod([httpQUERY])]
+    procedure TestQueryEchoBody;
+
+    [MVCPath('/query/getonly')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestQueryGetOnly;
+
+    [MVCPath('/query/consumes')]
+    [MVCHTTPMethod([httpQUERY])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    procedure TestQueryConsumes;
+
+    {Security regression endpoints. Each exists because a fix needed a way to be
+     observed from the client side.}
+
+    {The decoder must be the same on every host: %uXXXX is a non-standard IIS
+     form and a malformed escape must survive as written, not vanish.}
+    [MVCPath('/security/echoquery')]
+    [MVCHTTPMethod([httpGET])]
+    function TestEchoQueryVerbatim: String;
+
+    {A duplicated header must not let the second value win over the first.}
+    [MVCPath('/security/echoauth')]
+    [MVCHTTPMethod([httpGET])]
+    function TestEchoAuthorization: String;
+
+    {A network ACL has to look at the socket, not at a header the client writes.}
+    [MVCPath('/security/peerip')]
+    [MVCHTTPMethod([httpGET])]
+    function TestPeerIpIgnoresForwardedHeaders: String;
+
+    {A cookie value carrying cookie syntax must not be able to add attributes.}
+    [MVCPath('/security/hostilecookie')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestHostileCookieValue;
+
+    {The two query-string accessors must agree on a repeated key. Returning
+     both on the same request is the only way to see them disagree.}
+    [MVCPath('/queryparam/duplicated')]
+    [MVCHTTPMethod([httpGET])]
+    function TestDuplicatedQueryParam: String;
 
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
@@ -378,6 +499,24 @@ type
     [MVCPath('/issues/806')]
     function TestIssue806(const [MVCFromBody] Entity: TTestCasingAsIs): Boolean;
 
+    { FromBody aliased as function Result - regression test for the
+      double-free that used to happen when Result and the framework-owned
+      [MVCFromBody] parameter pointed to the same instance. }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/frombody/echoref')]
+    function FromBodyEchoRef(const [MVCFromBody] Obj: TFromBodyEchoObj): TFromBodyEchoObj;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/frombody/echoref/livecount')]
+    function FromBodyEchoRefLiveCount: Int64;
+
+    { Stress endpoint - exercises the validation cache under concurrent
+      load. Returns 200 with the echoed payload on success; the framework
+      emits 422 EMVCValidationException on validation failure. }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/stress/validate')]
+    function StressValidate(const [MVCFromBody] DTO: TStressValidationDTO): TStressValidationDTO;
+
     {sqids}
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/sqids/stoi/($id:sqids)')]
@@ -391,6 +530,21 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/wrongconverter/($id:blablabla)')]
     function TestInvalidConverter(id: Int64): Int64;
+
+    {file upload}
+    [MVCPath('/fileupload')]
+    [MVCHTTPMethod([httpPOST])]
+    function TestFileUpload: IMVCResponse;
+
+    {multipart form-data text fields (issue #758)}
+    [MVCPath('/multipartfields')]
+    [MVCHTTPMethod([httpPOST])]
+    function TestMultipartFormDataFields: IMVCResponse;
+
+    {keep-alive}
+    [MVCPath('/keepalive/ping')]
+    [MVCHTTPMethod([httpGET])]
+    function KeepAlivePing: IMVCResponse;
 
   end;
 
@@ -488,6 +642,14 @@ type
     [MVCHTTPMethod([httpGET])]
     function GetPeople: TObjectList<TPerson>;
 
+    [MVCPath('/list/streaming')]
+    [MVCHTTPMethod([httpGET])]
+    function GetOKResponseList: IMVCResponse;
+
+    [MVCPath('/dataset/streaming')]
+    [MVCHTTPMethod([httpGET])]
+    function GetOKResponseDataSet: IMVCResponse;
+
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
     function GetPerson(id: Integer): IPerson;
@@ -566,11 +728,42 @@ implementation
 
 uses
   System.JSON,
+  System.SyncObjs,
   Web.HTTPApp,
   Generics.Collections,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
+  MVCFramework.SSE.Writer,
+  FireDAC.Stan.Option,
+  Winapi.Windows,
   System.IOUtils, MVCFramework.Tests.Serializer.Entities, System.DateUtils;
+
+type
+  // The streamed-response wrapper frees the QUERY after rendering; this helper
+  // makes the query also own its connection, so the connection stays alive for
+  // the whole stream and is freed right after the query.
+  TOwningQuery = class(TFDQuery)
+  private
+    FOwnedConn: TFDConnection;
+  public
+    constructor CreateOwning(const AConnDefName: string);
+    destructor Destroy; override;
+  end;
+
+constructor TOwningQuery.CreateOwning(const AConnDefName: string);
+begin
+  inherited Create(nil);
+  FOwnedConn := TFDConnection.Create(nil);
+  FOwnedConn.ConnectionDefName := AConnDefName;
+  FOwnedConn.Open;
+  Connection := FOwnedConn;
+end;
+
+destructor TOwningQuery.Destroy;
+begin
+  inherited;        // close/free the query first
+  FOwnedConn.Free;  // then the connection it used
+end;
 
 { TTestServerController }
 
@@ -638,24 +831,36 @@ begin
   c.value := 'usersettings1-value';
   c.Path := '/usersettings1';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings2';
   c.value := 'usersettings2-value';
   c.Path := '/usersettings2';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings3';
   c.value := 'usersettings3-value';
   c.Path := '/usersettings3';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
   c := Context.Response.Cookies.Add;
   c.Name := 'usersettings4';
   c.value := 'usersettings4-value';
   c.Path := '/usersettings4';
   c.Expires := 0;
+  {$IF CompilerVersion >= 35.0}
+  c.SameSite := 'Strict'; // must reach the wire on every engine
+  {$ENDIF}
 
 end;
 
@@ -947,9 +1152,9 @@ begin
   ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   Obj := TJDOJSONObject.Create;
   try
-    Obj.s['name1'] := 'jørn';
-    Obj.s['name2'] := 'Što je Unicode?';
-    Obj.s['name3'] := 'àèéìòù';
+    Obj.s['name1'] := 'jï¿½rn';
+    Obj.s['name2'] := 'ï¿½to je Unicode?';
+    Obj.s['name3'] := 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½';
     Render(Obj, false);
   finally
     Obj.Free;
@@ -1012,6 +1217,169 @@ begin
 
 end;
 
+const
+  STREAM_PG_CONN_DEF = 'STREAM_PG_CONN';
+
+// Registers a FireDAC PostgreSQL connection def pointing at the embedded PG
+// started by the client-side fixture (localhost:5555 / activerecordtest, trust
+// auth, no password). Called once from the unit initialization (single-threaded
+// startup, before any request is served) so the request path stays lock-free â€”
+// no global lock on the hot path. VendorLib is pinned to an in-repo libpq
+// matching the server's bitness, and SetDllDirectory makes libpq's own dependent
+// DLLs resolvable from that folder.
+procedure RegisterStreamPGConnDef;
+var
+  lParams: TStringList;
+  lLibPqDir: string;
+  lExeDir: string;
+begin
+  lExeDir := TPath.GetDirectoryName(ParamStr(0));
+{$IFDEF WIN32}
+  lLibPqDir := TPath.GetFullPath(TPath.Combine(lExeDir,
+    '..\..\..\..\samples\activerecord_showcase\bin32'));
+{$ELSE}
+  lLibPqDir := TPath.GetFullPath(TPath.Combine(lExeDir,
+    '..\..\TestClient\pgsql\bin'));
+{$ENDIF}
+  SetDllDirectory(PChar(lLibPqDir));
+
+  lParams := TStringList.Create;
+  try
+    lParams.Add('DriverID=PG');
+    lParams.Add('Database=activerecordtest');
+    lParams.Add('Server=localhost');
+    lParams.Add('Port=5555');
+    lParams.Add('GUIDEndian=Big');
+    lParams.Add('VendorLib=' + TPath.Combine(lLibPqDir, 'libpq.dll'));
+    lParams.Add('Pooled=False');
+    FDManager.AddConnectionDef(STREAM_PG_CONN_DEF, 'PG', lParams);
+  finally
+    lParams.Free;
+  end;
+end;
+
+procedure TTestServerController.TestStreamedDataSet;
+var
+  lConn: TFDConnection;
+  lQry: TFDQuery;
+  lWriter: TMVCJSONArrayWriter;
+  lStreamingOK: Boolean;
+begin
+  lConn := TFDConnection.Create(nil);
+  try
+    lConn.ConnectionDefName := STREAM_PG_CONN_DEF;
+    lConn.Open;
+
+    lQry := TFDQuery.Create(nil);
+    try
+      lQry.Connection := lConn;
+      // Forward-only streaming cursor: rows are fetched on demand as Next is
+      // called, so the full result is never materialized server-side.
+      lQry.FetchOptions.Mode := TFDFetchMode.fmOnDemand;
+      lQry.FetchOptions.Unidirectional := True;
+      lQry.UpdateOptions.ReadOnly := True;
+      lQry.UpdateOptions.RequestLive := False;
+      lQry.Open('SELECT id, first_name, last_name FROM streamed_people ORDER BY id');
+
+      lWriter := nil;
+      lStreamingOK := True;
+      try
+        lWriter := TMVCJSONArrayWriter.Create(Context);
+      except
+        on EMVCException do
+          // Backend without an Indy IOHandler (HTTP.sys): the streaming writer
+          // cannot take over the socket. Fall back to a normal buffered array
+          // render so the endpoint still returns valid data on that backend.
+          lStreamingOK := False;
+      end;
+
+      if lStreamingOK then
+      begin
+        try
+          while not lQry.Eof do
+          begin
+            if not lWriter.Connected then
+              Break;
+            lWriter.Send(Serializer.SerializeDataSetRecord(lQry));
+            lQry.Next;
+          end;
+        finally
+          lWriter.Free; // emits the closing "]" and closes the socket
+        end;
+      end
+      else
+      begin
+        Context.Response.SetCustomHeader('X-DMVC-Streaming', 'fallback');
+        Render(lQry, False);
+      end;
+    finally
+      lQry.Free;
+    end;
+  finally
+    lConn.Free;
+  end;
+end;
+
+function TTestServerController.StreamViaFunctionWriter: JsonDataObjects.TJsonArray;
+var
+  lWriter: TMVCJSONArrayWriter;
+begin
+  Result := nil;
+  try
+    lWriter := TMVCJSONArrayWriter.Create(Context);
+  except
+    on EMVCException do
+    begin
+      // Host without an Indy streaming socket (HTTP.sys): buffered fallback so
+      // the endpoint still returns the same JSON array on every host.
+      Result := JsonDataObjects.TJsonArray.Create;
+      Result.AddObject.I['n'] := 1;
+      Result.AddObject.I['n'] := 2;
+      Exit;
+    end;
+  end;
+  try
+    lWriter.Send('{"n":1}');
+    lWriter.Send('{"n":2}');
+  finally
+    lWriter.Free; // emits the closing "]" and closes the socket
+  end;
+  // Response already fully streamed; the function result must be ignored.
+end;
+
+function TTestServerController.GetStreamedDataSetChunked: TMVCStreamedResponse;
+var
+  lQry: TOwningQuery;
+begin
+  lQry := TOwningQuery.CreateOwning(STREAM_PG_CONN_DEF);
+  lQry.FetchOptions.Mode := TFDFetchMode.fmOnDemand;
+  lQry.FetchOptions.Unidirectional := True;
+  lQry.UpdateOptions.ReadOnly := True;
+  lQry.UpdateOptions.RequestLive := False;
+  lQry.Open('SELECT id, first_name, last_name FROM streamed_people ORDER BY id');
+  Result := StreamDataSet(lQry, TMVCNameCase.ncLowerCase, True);
+end;
+
+procedure TTestServerController.TestSearchPeopleBySample;
+var
+  lCriteria: TPerson;
+  lList: TObjectList<TPerson>;
+begin
+  // Issue #897: the request body is a single object (a search "sample"), the
+  // response is a JSON array. If the RESTAdapter wrongly serialized the body as
+  // a collection (because the method carries [MVCListOf] describing the
+  // response), BodyAs<TPerson> below would fail to bind the object. We echo the
+  // received criteria back inside a one-element list to prove the round-trip.
+  lCriteria := Context.Request.BodyAs<TPerson>();
+  try
+    lList := TObjectList<TPerson>.Create(True);
+    lList.Add(TPerson.GetNew(lCriteria.FirstName, lCriteria.LastName, 0, False));
+    Render<TPerson>(lList, True);
+  finally
+    lCriteria.Free;
+  end;
+end;
+
 procedure TTestServerController.TestGetPersonsHateos;
 begin
   Render<TPerson>(TPerson.GetList, True,
@@ -1055,6 +1423,44 @@ begin
   finally
     lEnt.Free;
   end;
+end;
+
+function TTestServerController.TestEchoQueryVerbatim: String;
+begin
+  Result := Context.Request.QueryStringParam('q');
+end;
+
+function TTestServerController.TestEchoAuthorization: String;
+begin
+  Result := Context.Request.Headers['Authorization'];
+end;
+
+function TTestServerController.TestPeerIpIgnoresForwardedHeaders: String;
+begin
+  Result := Context.Request.PeerIp;
+end;
+
+procedure TTestServerController.TestHostileCookieValue;
+var
+  lCookie: TCookie;
+begin
+  lCookie := Context.Response.Cookies.Add;
+  lCookie.Name := 'hostile';
+  { Cookie syntax inside the value: raw concatenation would let this add
+    attributes to the Set-Cookie line the browser parses. }
+  lCookie.Value := 'x; Path=/; Domain=attacker.example';
+  lCookie.Path := '/';
+  Render('cookie set');
+end;
+
+function TTestServerController.TestDuplicatedQueryParam: String;
+var
+  lFromDict: String;
+begin
+  if not Context.Request.QueryParams.TryGetValue('role', lFromDict) then
+    lFromDict := '<missing>';
+  Result := Format('stringparam=%s dict=%s',
+    [Context.Request.QueryStringParam('role'), lFromDict]);
 end;
 
 procedure TTestServerController.TestHelloWorld;
@@ -1112,6 +1518,58 @@ end;
 function TTestServerController.TestIssue806(const Entity: TTestCasingAsIs): Boolean;
 begin
   Result := Entity.myProp = 'hello world';
+end;
+
+function TTestServerController.FromBodyEchoRef(
+  const Obj: TFromBodyEchoObj): TFromBodyEchoObj;
+begin
+  // This is the exact "CRUD returns the persisted entity" pattern that
+  // previously caused a silent double-free: both the function Result and
+  // the framework-owned [MVCFromBody] parameter point to the same object.
+  Result := Obj;
+end;
+
+function TTestServerController.FromBodyEchoRefLiveCount: Int64;
+begin
+  Result := TFromBodyEchoObj.LiveCount;
+end;
+
+function TTestServerController.StressValidate(
+  const DTO: TStressValidationDTO): TStressValidationDTO;
+begin
+  // Framework has already run the property validators + OnValidate hook
+  // before this point (or thrown 422). Echo back the accepted DTO.
+  Result := DTO;
+end;
+
+{ TStressValidationDTO }
+
+procedure TStressValidationDTO.OnValidate(
+  const AErrors: PMVCValidationErrors);
+begin
+  // Cross-field rule: if age is 0, name must start with 'MINOR_'. Keeps
+  // the OnValidate path exercised even on valid "shape" payloads.
+  if (FAge = 0) and (not FName.StartsWith('MINOR_')) then
+    AErrors.Add('Name', 'age=0 requires name to start with MINOR_');
+end;
+
+{ TFromBodyEchoObj }
+
+constructor TFromBodyEchoObj.Create;
+begin
+  inherited;
+  TInterlocked.Increment(FLiveCount);
+end;
+
+destructor TFromBodyEchoObj.Destroy;
+begin
+  TInterlocked.Decrement(FLiveCount);
+  inherited;
+end;
+
+class function TFromBodyEchoObj.LiveCount: Integer;
+begin
+  Result := FLiveCount;
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;
@@ -1324,6 +1782,24 @@ begin
   Render(lPerson, True);
 end;
 
+procedure TTestServerController.TestQueryEchoBody;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Context.Request.Body);
+end;
+
+procedure TTestServerController.TestQueryGetOnly;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render('get-only');
+end;
+
+procedure TTestServerController.TestQueryConsumes;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Context.Request.Body);
+end;
+
 procedure TTestServerController.Tmpl_ListOfDataUsingDatasets;
 var
   lDS: TFDMemTable;
@@ -1469,6 +1945,16 @@ end;
 function TTestActionResultController.GetPeople: TObjectList<TPerson>;
 begin
   Result := TPerson.GetList();
+end;
+
+function TTestActionResultController.GetOKResponseList: IMVCResponse;
+begin
+  Result := OKResponse(TPerson.GetList(3));
+end;
+
+function TTestActionResultController.GetOKResponseDataSet: IMVCResponse;
+begin
+  Result := OKResponse(TTestServerController.GetDataSet);
 end;
 
 function TTestActionResultController.GetPerson(id: Integer): IPerson;
@@ -1625,5 +2111,57 @@ begin
   Result.LastName := 'Teti';
   Result.Age := 99;
 end;
+
+function TTestServerController.TestFileUpload: IMVCResponse;
+var
+  lFilesCount: Integer;
+  lFileName: string;
+  lFileSize: Int64;
+begin
+  if Context.Request.Files = nil then
+    Exit(BadRequestResponse('Files not supported on this server backend'));
+  lFilesCount := Context.Request.Files.Count;
+  if lFilesCount = 0 then
+    Exit(BadRequestResponse('No files uploaded'));
+  lFileName := Context.Request.Files[0].FileName;
+  lFileSize := Context.Request.Files[0].Stream.Size;
+  Result := OKResponse(Format('files=%d;name=%s;size=%d', [lFilesCount, lFileName, lFileSize]));
+end;
+
+function TTestServerController.KeepAlivePing: IMVCResponse;
+begin
+  Result := OKResponse('pong');
+end;
+
+function TTestServerController.TestMultipartFormDataFields: IMVCResponse;
+var
+  lFilesCount: Integer;
+  lParts: TStringList;
+begin
+  if Context.Request.Files <> nil then
+    lFilesCount := Context.Request.Files.Count
+  else
+    lFilesCount := 0;
+
+  lParts := TStringList.Create;
+  try
+    lParts.Add('files=' + IntToStr(lFilesCount));
+    lParts.Add('organization_id=' + Context.Request.ContentParam('organization_id'));
+    lParts.Add('first_name=' + Context.Request.ContentParam('first_name'));
+    lParts.Add('last_name=' + Context.Request.ContentParam('last_name'));
+    lParts.Add('job=' + Context.Request.ContentParam('job'));
+    lParts.Add('registered_at=' + Context.Request.ContentParam('registered_at'));
+    lParts.Add('missing=' + Context.Request.ContentParam('missing'));
+    Result := OKResponse(lParts.Text);
+  finally
+    lParts.Free;
+  end;
+end;
+
+initialization
+
+// One-time, single-threaded registration at startup keeps the streaming
+// request path lock-free (no global lock acting as a server bottleneck).
+RegisterStreamPGConnDef;
 
 end.

@@ -122,7 +122,7 @@
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <SanitizedProjectName>DMVCFrameworkTests</SanitizedProjectName>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\delphistompclient;..\..\..\lib\dmustache;..\..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\delphistompclient;..\..\..\lib\dmustache;..\..\..\lib\loggerpro;C:\DLib\indy_extras\TaurusTLS\Source;C:\DLib\indy_extras\TaurusTLS\Source\Extra;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_DcuOutput>.\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_E>false</DCC_E>
@@ -209,10 +209,6 @@
         <DCCReference Include="BOs.pas"/>
         <DCCReference Include="..\TestServer\TestServerControllerU.pas"/>
         <DCCReference Include="RESTAdapterTestsU.pas"/>
-        <DCCReference Include="..\RESTClient\MVCFramework.Tests.WebModule1.pas">
-            <Form>TestWebModule1</Form>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.RESTClient.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.AppController.pas"/>
         <DCCReference Include="..\..\..\samples\commons\BusinessObjectsU.pas"/>
@@ -242,10 +238,6 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecordController.pas"/>
         <DCCReference Include="ActiveRecordControllerTestU.pas"/>
-        <DCCReference Include="webmodules\ActiveRecordControllerWebModuleU.pas">
-            <Form>ActiveRecordControllerWebModule</Form>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
         <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
         <DCCReference Include="StandaloneServerTestU.pas"/>
         <DCCReference Include="webmodules\StandAloneServerWebModuleTest.pas">
@@ -278,6 +270,8 @@
         <DCCReference Include="InjectorTestU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Container.pas"/>
         <DCCReference Include="TestDataSetCSVSerializer.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.CSV.pas"/>
+        <DCCReference Include="TestObjectCSVSerializer.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.BloomFilter.pas"/>
         <DCCReference Include="TestsBloomFilterU.pas"/>
         <DCCReference Include="DotEnvTestU.pas"/>
@@ -286,6 +280,9 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.Client.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.ConnectionManager.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
+        <DCCReference Include="RangeMediaMiddlewareTestsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas"/>
+        <DCCReference Include="TestMinimalWebApiU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

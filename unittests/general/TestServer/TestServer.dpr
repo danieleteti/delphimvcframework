@@ -11,6 +11,7 @@ uses
   Winapi.Windows,
   {$ENDIF }
   Web.WebBroker,
+  FireDAC.Phys.PG,
   MVCFramework.Commons,
   MVCFramework.Console,
   WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
@@ -21,6 +22,7 @@ uses
   AuthHandlersU in 'AuthHandlersU.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
+  MinimalAPIWebTestsU in 'MinimalAPIWebTestsU.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   FDConnectionConfigU in '..\..\common\FDConnectionConfigU.pas',
@@ -41,7 +43,7 @@ const
   ;
 procedure Logo;
 begin
-  DrawSimpleBox('DMVCFramework TEST SERVER',
+  Box('DMVCFramework TEST SERVER',
   [
       'PLATFORM'.PadRight(25) + gPLATFORM,
       'DMVCFRAMEWORK VERSION'.PadRight(25) + DMVCFRAMEWORK_VERSION,
@@ -64,11 +66,11 @@ begin
     LServer.MaxConnections := 0;
     LServer.ListenQueue := 200;
     TextColor(TConsoleColor.Gray);
-    Writeln;
-    WriteLineColored(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
+    WriteLn;
+    WriteLine(' Press RETURN to stop the server ', TConsoleColor.White, TConsoleColor.Blue);
     HideCursor;
     while GetCh() <> Char(KEY_ENTER) do;
-    WriteLineColored('Server stopped', TConsoleColor.Red);
+    WriteLine('Server stopped', TConsoleColor.Red);
     ResetConsole();
     ShowCursor;
   finally

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF0123456789}</ProjectGuid>
+        <Version>13.4</Version>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="PerfBenchServer_WebBroker.dproj"/>
+        <Projects Include="PerfBenchServer_IndyDirect.dproj"/>
+        <Projects Include="PerfBenchServer_HttpSys.dproj"/>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="PerfBenchServer_WebBroker">
+        <MSBuild Projects="PerfBenchServer_WebBroker.dproj"/>
+    </Target>
+    <Target Name="PerfBenchServer_IndyDirect">
+        <MSBuild Projects="PerfBenchServer_IndyDirect.dproj"/>
+    </Target>
+    <Target Name="PerfBenchServer_HttpSys">
+        <MSBuild Projects="PerfBenchServer_HttpSys.dproj"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="PerfBenchServer_WebBroker"/>
+        <CallTarget Targets="PerfBenchServer_IndyDirect"/>
+        <CallTarget Targets="PerfBenchServer_HttpSys"/>
+    </Target>
+</Project>

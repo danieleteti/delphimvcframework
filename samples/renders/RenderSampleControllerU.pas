@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -84,7 +84,7 @@ type
     // Render BASED
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/simple')]
-    procedure GetCustomers_AsDataSet;
+    function GetCustomers_AsDataSet: TDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/people')]
@@ -283,11 +283,20 @@ type
     [MVCPath('/record')]
     procedure GetSingleRecord;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/record/func')]
+    function GetSingleRecordFunc: TSimpleRecord;
+
 
     // Enums
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/enums')]
     procedure GetClassWithEnums;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/enums/func')]
+    function GetClassWithEnumsFunc: TClassWithEnums;
+
 
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/enums')]
@@ -491,6 +500,16 @@ begin
   Render(lObj);
 end;
 
+function TRenderSampleController.GetClassWithEnumsFunc: TClassWithEnums;
+begin
+  Result := TClassWithEnums.Create;
+  Result.RGBSet := [ctGreen, ctBlue];
+  Result.EnumDefaultSerialization := ctGreen;
+  Result.EnumWithName := ctGreen;
+  Result.EnumWithOrdValue := ctGreen;
+  Result.EnumWithMappedValues := ctGreen;
+end;
+
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
 var
   Cust: TCustomer;
@@ -544,17 +563,13 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet;
+function TRenderSampleController.GetCustomers_AsDataSet: TDataSet;
 var
   lDM: TMyDataModule;
 begin
-  lDM := TMyDataModule.Create(nil);
-  try
-    lDM.qryCustomers.Open;
-    Render(lDM.qryCustomers, False);
-  finally
-    lDM.Free;
-  end;
+  lDM := ToFree<TMyDataModule>(TMyDataModule.Create(nil));
+  lDM.qryCustomers.Open;
+  Result := lDM.qryCustomers;
 end;
 
 function TRenderSampleController.GetCustomers_AsDataSet_AsFunction: TDataSet;
@@ -963,6 +978,11 @@ var
 begin
   lSR := TSimpleRecord.Create;
   Render<TSimpleRecord>(200, lSR);
+end;
+
+function TRenderSampleController.GetSingleRecordFunc: TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;

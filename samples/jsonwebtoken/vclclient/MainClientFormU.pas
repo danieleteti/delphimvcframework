@@ -6,188 +6,198 @@ uses
   Winapi.Windows,
   Winapi.Messages,
   System.SysUtils,
-  System.Variants,
   System.Classes,
-  MVCFramework.Middleware.JWT,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.StdCtrls,
-  Vcl.ExtCtrls;
+  Vcl.ExtCtrls,
+  Vcl.ComCtrls;
 
 type
-  TForm5 = class(TForm)
-    Memo1: TMemo;
-    Memo2: TMemo;
-    Panel1: TPanel;
-    btnGet: TButton;
-    btnLOGIN: TButton;
-    Splitter1: TSplitter;
-    Memo3: TMemo;
-    Splitter2: TSplitter;
-    btnLoginWithException: TButton;
-    btnLoginJsonObject: TButton;
-    Panel2: TPanel;
+  TMainForm = class(TForm)
+    pnlTop: TPanel;
+    gbLogin: TGroupBox;
+    lblUser: TLabel;
+    lblPass: TLabel;
+    edtUsername: TEdit;
+    edtPassword: TEdit;
+    btnLogin: TButton;
+    btnLoginJSON: TButton;
     chkRememberMe: TCheckBox;
-    procedure btnGetClick(Sender: TObject);
-    procedure btnLOGINClick(Sender: TObject);
-    procedure btnLoginWithExceptionClick(Sender: TObject);
-    procedure btnLoginJsonObjectClick(Sender: TObject);
+    gbActions: TGroupBox;
+    btnGetRole1: TButton;
+    btnGetRole2: TButton;
+    btnGetPublic: TButton;
+    btnLoginException: TButton;
+    btnClear: TButton;
+    gbToken: TGroupBox;
+    mmoToken: TMemo;
+    gbResponse: TGroupBox;
+    mmoResponse: TMemo;
+    StatusBar: TStatusBar;
+    procedure btnLoginClick(Sender: TObject);
+    procedure btnLoginJSONClick(Sender: TObject);
+    procedure btnGetRole1Click(Sender: TObject);
+    procedure btnGetRole2Click(Sender: TObject);
+    procedure btnGetPublicClick(Sender: TObject);
+    procedure btnLoginExceptionClick(Sender: TObject);
+    procedure btnClearClick(Sender: TObject);
   private
     FJWT: string;
     procedure SetJWT(const Value: string);
+    procedure LogRequest(const AMethod, APath: string);
+    procedure LogResponse(AStatusCode: Integer; const AContent: string; ASuccess: Boolean);
+    procedure DoLogin(const AUser, APass: string; AUseJSONBody: Boolean);
+    procedure DoGet(const APath: string; AUseAuth: Boolean);
     property JWT: string read FJWT write SetJWT;
-  public
-    { Public declarations }
   end;
 
 var
-  Form5: TForm5;
+  MainForm: TMainForm;
 
 implementation
 
 {$R *.dfm}
 
-
 uses
   MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient,
   MVCFramework.SystemJSONUtils,
-  System.JSON;
+  System.JSON,
+  System.DateUtils;
 
-procedure TForm5.btnGetClick(Sender: TObject);
-var
-  lClient: IMVCRESTClient;
-  lResp: IMVCRESTResponse;
-begin
-  { Getting JSON response }
-  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
-  lClient.ReadTimeOut(0);
-  if not FJWT.IsEmpty then
-  begin
-    lClient.SetBearerAuthorization(FJWT);
-  end;
+const
+  SERVER_HOST = 'localhost';
+  SERVER_PORT = 8080;
 
-  lClient
-    .AddQueryStringParam('firstname', 'Daniele')
-    .AddQueryStringParam('lastname', 'Teti');
-  lResp := lClient.Get('/admin/role1');
-  if not lResp.Success then
-    ShowMessage(lResp.Content);
+{ TMainForm }
 
-  Memo2.Lines.Text := lResp.Content;
-
-  { Getting HTML response }
-  lClient
-    .AddQueryStringParam('firstname', 'Daniele')
-    .AddQueryStringParam('lastname', 'Teti');
-  lResp := lClient.Accept('text/html').Get('/admin/role1');
-  if not lResp.Success then
-    ShowMessage(lResp.Content);
-
-  Memo3.Lines.Text := lResp.Content;
-end;
-
-procedure TForm5.btnLOGINClick(Sender: TObject);
-var
-  lClient: IMVCRESTClient;
-  lRest: IMVCRESTResponse;
-  lJSON: TJSONObject;
-  lSegment: string;
-begin
-  lSegment := '';
-  if chkRememberMe.Checked then
-  begin
-    lSegment := '?rememberme=1';
-  end;
-
-  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
-  lClient.ReadTimeOut(0);
-  lClient.SetBasicAuthorization('user1', 'user1');
-  lRest := lClient.Post('/login' + lSegment);
-  if not lRest.Success then
-  begin
-    ShowMessage(
-      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
-      'HTTP ERROR MESSAGE: ' + lRest.StatusText + sLineBreak +
-      'ERROR MESSAGE: ' + lRest.Content);
-    Exit;
-  end;
-
-  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
-  try
-    JWT := lJSON.GetValue('token').Value;
-  finally
-    lJSON.Free;
-  end;
-end;
-
-procedure TForm5.btnLoginJsonObjectClick(Sender: TObject);
-var
-  lClient: IMVCRESTClient;
-  lRest: IMVCRESTResponse;
-  lJSON: TJSONObject;
-  lSegment: string;
-begin
-  lSegment := '';
-  if chkRememberMe.Checked then
-  begin
-    lSegment := '?rememberme=1';
-  end;
-  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
-  lClient.ReadTimeOut(0);
-  lRest := lClient.Post('/login' + lSegment, '{"jwtusername":"user1","jwtpassword":"user1"}');
-
-  if not lRest.Success then
-  begin
-    ShowMessage(
-      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
-      'HTTP ERROR MESSAGE: ' + lRest.StatusText + sLineBreak +
-      'ERROR MESSAGE: ' + lRest.Content);
-
-    Exit;
-  end;
-
-  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
-  try
-    JWT := lJSON.GetValue('token').Value;
-  finally
-    lJSON.Free;
-  end;
-end;
-
-procedure TForm5.btnLoginWithExceptionClick(Sender: TObject);
-var
-  lClient: IMVCRESTClient;
-  lRest: IMVCRESTResponse;
-  lJSON: TJSONObject;
-begin
-  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
-  lClient.ReadTimeOut(0);
-  lClient.SetBasicAuthorization('user_raise_exception', 'user_raise_exception');
-  lRest := lClient.Post('/login');
-  if not lRest.Success then
-  begin
-    ShowMessage(
-      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
-      'HTTP ERROR MESSAGE: ' + lRest.StatusText + sLineBreak +
-      'ERROR MESSAGE: ' + lRest.Content);
-    Exit;
-  end;
-
-  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
-  try
-    JWT := lJSON.GetValue('token').Value;
-  finally
-    lJSON.Free;
-  end;
-end;
-
-procedure TForm5.SetJWT(const Value: string);
+procedure TMainForm.SetJWT(const Value: string);
 begin
   FJWT := Value;
-  Memo1.Lines.Text := Value;
+  mmoToken.Lines.Text := Value;
+  btnGetRole1.Enabled := not Value.IsEmpty;
+  btnGetRole2.Enabled := not Value.IsEmpty;
+  if not Value.IsEmpty then
+    StatusBar.Panels[0].Text := 'Authenticated as ' + edtUsername.Text
+  else
+    StatusBar.Panels[0].Text := 'Not authenticated';
+end;
+
+procedure TMainForm.LogRequest(const AMethod, APath: string);
+begin
+  mmoResponse.Lines.Add('--- ' + AMethod + ' ' + APath + ' ---');
+end;
+
+procedure TMainForm.LogResponse(AStatusCode: Integer; const AContent: string; ASuccess: Boolean);
+begin
+  if ASuccess then
+    mmoResponse.Lines.Add('HTTP ' + AStatusCode.ToString + ' OK')
+  else
+    mmoResponse.Lines.Add('HTTP ' + AStatusCode.ToString + ' ERROR');
+  mmoResponse.Lines.Add(AContent);
+  mmoResponse.Lines.Add('');
+end;
+
+procedure TMainForm.DoLogin(const AUser, APass: string; AUseJSONBody: Boolean);
+var
+  LClient: IMVCRESTClient;
+  LResp: IMVCRESTResponse;
+  LJSON: TJSONObject;
+  LSegment: string;
+begin
+  LSegment := '';
+  if chkRememberMe.Checked then
+    LSegment := '?rememberme=1';
+
+  LClient := TMVCRESTClient.New.BaseURL(SERVER_HOST, SERVER_PORT);
+  LClient.ReadTimeOut(0);
+
+  if AUseJSONBody then
+  begin
+    LogRequest('POST', '/login' + LSegment + ' (JSON body)');
+    LResp := LClient.Post('/login' + LSegment,
+      '{"jwtusername":"' + AUser + '","jwtpassword":"' + APass + '"}');
+  end
+  else
+  begin
+    LogRequest('POST', '/login' + LSegment + ' (headers)');
+    LClient.SetBasicAuthorization(AUser, APass);
+    LResp := LClient.Post('/login' + LSegment);
+  end;
+
+  if not LResp.Success then
+  begin
+    LogResponse(LResp.StatusCode, LResp.Content, False);
+    JWT := '';
+    Exit;
+  end;
+
+  LogResponse(LResp.StatusCode, LResp.Content, True);
+
+  LJSON := TSystemJSON.StringAsJSONObject(LResp.Content);
+  try
+    JWT := LJSON.GetValue('token').Value;
+  finally
+    LJSON.Free;
+  end;
+end;
+
+procedure TMainForm.DoGet(const APath: string; AUseAuth: Boolean);
+var
+  LClient: IMVCRESTClient;
+  LResp: IMVCRESTResponse;
+begin
+  LogRequest('GET', APath);
+
+  LClient := TMVCRESTClient.New.BaseURL(SERVER_HOST, SERVER_PORT);
+  LClient.ReadTimeOut(0);
+  if AUseAuth and (not FJWT.IsEmpty) then
+    LClient.SetBearerAuthorization(FJWT);
+
+  LResp := LClient.Accept('application/json').Get(APath);
+  LogResponse(LResp.StatusCode, LResp.Content, LResp.Success);
+end;
+
+// --- Button handlers ---
+
+procedure TMainForm.btnLoginClick(Sender: TObject);
+begin
+  DoLogin(edtUsername.Text, edtPassword.Text, False);
+end;
+
+procedure TMainForm.btnLoginJSONClick(Sender: TObject);
+begin
+  DoLogin(edtUsername.Text, edtPassword.Text, True);
+end;
+
+procedure TMainForm.btnGetRole1Click(Sender: TObject);
+begin
+  DoGet('/admin/role1', True);
+end;
+
+procedure TMainForm.btnGetRole2Click(Sender: TObject);
+begin
+  DoGet('/admin/role2', True);
+end;
+
+procedure TMainForm.btnGetPublicClick(Sender: TObject);
+begin
+  DoGet('/public', False);
+end;
+
+procedure TMainForm.btnLoginExceptionClick(Sender: TObject);
+begin
+  DoLogin('user_raise_exception', 'user_raise_exception', False);
+end;
+
+procedure TMainForm.btnClearClick(Sender: TObject);
+begin
+  mmoResponse.Clear;
+  mmoToken.Clear;
+  JWT := '';
 end;
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -58,8 +58,8 @@ uses
   ExpertsRepository, JsonDataObjects;
 
 resourcestring
-  sNewDMVCUnitCaption = 'DelphiMVCFramework Controller';
-  sNewDMVCProjectHint = 'Create New DelphiMVCFramework Controller Unit';
+  sNewDMVCUnitCaption = 'DMVCFramework Controller';
+  sNewDMVCProjectHint = 'Create New DMVCFramework Controller Unit';
 
 class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const APersonality: string);
 begin

@@ -1,0 +1,102 @@
+/* DMVCFramework — Bootstrap 5 theme overrides
+ *
+ * Bootstrap 5.3 ships built-in dark mode via `<html data-bs-theme="dark">`.
+ * This file only adds: brand fonts, a gold accent that overrides --bs-primary,
+ * a couple of one-off helpers (hero block, monospace badge), and an HTMX
+ * activity indicator. Everything else (cards, navbar, buttons, grid, alerts,
+ * forms, badges, spinners, ...) is stock Bootstrap.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* === Brand tokens (shared across themes) === */
+:root {
+  --brand-accent: #fbbf24;        /* amber-400 */
+  --brand-accent-strong: #d4991a;
+  --brand-font-body: 'Outfit', system-ui, -apple-system, sans-serif;
+  --brand-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* === Override Bootstrap primary with the brand accent === */
+[data-bs-theme="dark"],
+[data-bs-theme="light"] {
+  --bs-primary: var(--brand-accent);
+  --bs-primary-rgb: 251, 191, 36;
+  --bs-link-color: var(--brand-accent);
+  --bs-link-hover-color: var(--brand-accent-strong);
+  --bs-link-color-rgb: 251, 191, 36;
+}
+
+/* Bootstrap 5.3 generates btn-* color helpers from CSS vars at compile time,
+ * so the override above does NOT regenerate .btn-primary on the fly. Force
+ * the visible button surface to the accent here.
+ */
+.btn-primary {
+  --bs-btn-bg: var(--brand-accent);
+  --bs-btn-border-color: var(--brand-accent);
+  --bs-btn-hover-bg: var(--brand-accent-strong);
+  --bs-btn-hover-border-color: var(--brand-accent-strong);
+  --bs-btn-active-bg: var(--brand-accent-strong);
+  --bs-btn-active-border-color: var(--brand-accent-strong);
+  --bs-btn-disabled-bg: var(--brand-accent);
+  --bs-btn-disabled-border-color: var(--brand-accent);
+  --bs-btn-color: #1a1a1a;
+  --bs-btn-hover-color: #1a1a1a;
+  --bs-btn-active-color: #1a1a1a;
+  --bs-btn-disabled-color: #1a1a1a;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-accent);
+  --bs-btn-border-color: var(--brand-accent);
+  --bs-btn-hover-bg: var(--brand-accent);
+  --bs-btn-hover-border-color: var(--brand-accent);
+  --bs-btn-hover-color: #1a1a1a;
+  --bs-btn-active-bg: var(--brand-accent-strong);
+  --bs-btn-active-border-color: var(--brand-accent-strong);
+  --bs-btn-active-color: #1a1a1a;
+}
+
+/* === Body typography === */
+body { font-family: var(--brand-font-body); }
+code, pre, kbd, samp { font-family: var(--brand-font-mono); }
+
+/* === Hero block (used on home / about / index landing) === */
+.hero {
+  text-align: center;
+  padding: 3rem 1.5rem 2.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.08) 0%, transparent 100%);
+}
+.hero h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  margin-bottom: 0.6rem;
+}
+.hero p.lead { color: var(--bs-secondary-color); }
+
+/* === Monospace badge (.badge.font-monospace works but the font import
+ *     needs to be explicit; this keeps the visual identity consistent.) === */
+.badge.brand-mono {
+  font-family: var(--brand-font-mono);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* === Section label (small caps marker above a content section) === */
+.section-label {
+  font-family: var(--brand-font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--brand-accent);
+  margin-bottom: 0.75rem;
+}
+
+/* === HTMX activity indicator: dim the element while a request is in flight === */
+.htmx-request { opacity: 0.55; transition: opacity 0.25s ease-in-out; }
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator { display: inline-block; }

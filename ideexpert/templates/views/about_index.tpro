@@ -1,0 +1,92 @@
+{{# ================================================================
+   ABOUT PAGE (without HTMX) - Bootstrap 5.3
+   ================================================================
+   Extends baselayout.html. Uses plain fetch() for server info.
+
+   Variables available from the controller:
+     app_name, dmvc_version, compiler_version, current_date
+   ================================================================ #}}
+{{extends "../baselayout.html"}}
+
+{{block "title"}}About{{endblock}}
+
+{{block "body"}}
+
+  <div class="hero">
+    <h1>About {{:app_name}}</h1>
+    <p class="lead">The technologies and architecture behind this application</p>
+  </div>
+
+  {{# ---- Technology Stack ---- #}}
+  <p class="section-label">Technology Stack</p>
+  <div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-header fw-semibold">DelphiMVCFramework</div>
+        <div class="card-body">
+          <p>A powerful RESTful framework for Delphi supporting MVC architecture,
+             JSON-RPC APIs, WebSockets, and server-side rendered web applications.</p>
+          <p class="mb-0"><strong>Version:</strong> {{:dmvc_version}}</p>
+        </div>
+        <div class="card-footer text-secondary small">
+          <a class="link-primary" href="https://github.com/danieleteti/delphimvcframework" target="_blank">GitHub Repository</a>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-header fw-semibold">TemplatePro</div>
+        <div class="card-body">
+          <p>A fast template engine for Delphi with template inheritance, blocks,
+             loops, conditionals, and filters. Used for all server-side views.</p>
+          <p class="mb-0"><strong>Features:</strong> extends, block, for, if/else, filters</p>
+        </div>
+        <div class="card-footer text-secondary small">
+          <a class="link-primary" href="https://github.com/danieleteti/templatepro" target="_blank">Documentation</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{# ---- Server Info (loaded via fetch) ---- #}}
+  <p class="section-label">Server Info</p>
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Server Details</div>
+    <div class="card-body">
+      <div id="serverInfo" class="text-secondary small">
+        <div class="d-flex align-items-center">
+          <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+          Loading...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{# ---- REST API Link ---- #}}
+  <p class="section-label">REST API</p>
+  <div class="card">
+    <div class="card-header fw-semibold">Try the JSON API</div>
+    <div class="card-body">
+      <p>This application exposes a REST API alongside the web interface.
+         The same server serves both HTML pages and JSON endpoints.</p>
+      <a href="/api/server/info" target="_blank" class="btn btn-outline-primary">
+        Open /api/server/info &rarr;
+      </a>
+    </div>
+    <div class="card-footer text-secondary small">
+      See <code>{{:controller_unit_name}}.TAPIController.GetServerInfo</code>
+    </div>
+  </div>
+
+{{endblock}}
+
+{{block "scripts"}}
+<script>
+  // Load server info fragment on page load
+  fetch('/web/fragment/info')
+    .then(function(response) { return response.text(); })
+    .then(function(html) {
+      document.getElementById('serverInfo').innerHTML = html;
+    });
+</script>
+{{endblock}}

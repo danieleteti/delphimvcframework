@@ -1,0 +1,30 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Sign in · {{:program_name}}{{endblock}}
+
+{{block "body"}}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3 text-center">Sign in</h1>
+                {{if error}}
+                <div class="alert alert-danger">{{:error}}</div>
+                {{endif}}
+                <form method="POST" action="/login">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign in</button>
+                </form>
+                <p class="small text-muted mt-3 mb-0 text-center">Hint: <code>admin</code> / <code>admin</code></p>
+            </div>
+        </div>
+    </div>
+</div>
+{{endblock}}

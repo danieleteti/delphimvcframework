@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2025 Daniele Teti
+// Copyright (c) 2010-2026 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -65,20 +65,25 @@ type
     Check the sample @code(file_appender.dproj)
   }
   TLoggerProFileAppenderBase = class(TLoggerProAppenderBase)
-  private
-    procedure RetryMove(const aFileSrc, aFileDest: string);
-    procedure RetryDelete(const aFileSrc: string);
   protected
     fEncoding: TEncoding;
     fMaxBackupFileCount: Integer;
     fMaxFileSizeInKiloByte: Integer;
     fLogFileNameFormat: string;
     fLogsFolder: string;
+    fRotationInterval: TTimeRotationInterval;
+    fCurrentTimestamp: string;
+    fMaxRetainedFiles: Integer;
+    fOnAfterRotate: TFileRotateCallback;
+    procedure RetryMove(const aFileSrc, aFileDest: string);
+    procedure RetryDelete(const aFileSrc: string);
     function CreateWriter(const aFileName: string; const aBufferSize: Integer = 32): TStreamWriter;
     procedure CheckLogFileNameFormat(const LogFileNameFormat: String); virtual;
     procedure EmitStartRotateLogItem(aWriter: TStreamWriter); virtual;
     procedure EmitEndRotateLogItem(aWriter: TStreamWriter); virtual;
     function GetLogFileName(const aTag: string; const aFileNumber: Integer): string; virtual;
+    function GetTimestampForInterval(aDateTime: TDateTime): string;
+    procedure CleanupOldTimeRotatedFiles(const aTag: string);
     procedure WriteToStream(const aStreamWriter: TStreamWriter; const aValue: string); inline;
     procedure RotateFile(const aLogTag: string; out aNewFileName: string); virtual;
     procedure InternalWriteLog(const aStreamWriter: TStreamWriter; const aLogItem: TLogItem);
@@ -109,9 +114,14 @@ type
       aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT;
       aLogItemRenderer: ILogItemRenderer = nil;
-      aEncoding: TEncoding = nil);
+      aEncoding: TEncoding = nil;
+      aRotationInterval: TTimeRotationInterval = TTimeRotationInterval.None;
+      aMaxRetainedFiles: Integer = 0);
       reintroduce; virtual;
     procedure Setup; override;
+    { @abstract(Callback invoked after a log file is rotated.)
+      Runs on the logger thread - do not block. }
+    property OnAfterRotate: TFileRotateCallback read fOnAfterRotate write fOnAfterRotate;
   end;
 
   { @abstract(The default file appender)
@@ -121,12 +131,26 @@ type
   TLoggerProFileAppender = class(TLoggerProFileAppenderBase)
   private
     fWritersDictionary: TObjectDictionary<string, TStreamWriter>;
+    fFileNamesDictionary: TDictionary<string, string>;
     procedure AddWriter(const aLogTag: string; var aWriter: TStreamWriter; var aLogFileName: string);
     procedure RotateLog(const aLogTag: string; aWriter: TStreamWriter);
   public
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); overload; override;
+    { Returns the current log file name for the given tag, or '' if no log
+      has yet been written under that tag. The file may not exist on disk
+      until the first WriteLog for that tag. }
+    function GetCurrentLogFileName(const aLogTag: string): string;
+    { Returns every log file name currently being written to (one per tag
+      encountered so far). Useful for uploading / rotating / emailing the
+      complete set. }
+    function GetAllCurrentLogFileNames: TArray<string>;
+    { Scan aLog's appenders and return the first TLoggerProFileAppender
+      found, or nil. Handy when the Builder's WriteToFile created the
+      appender internally and the caller needs access to the file-name
+      helpers above. }
+    class function FromLog(const aLog: ICustomLogWriter): TLoggerProFileAppender; static;
   end;
 
   { @abstract(File appender with multiple tags)
@@ -138,9 +162,13 @@ type
   }
   TLoggerProSimpleFileAppender = class(TLoggerProFileAppenderBase)
   private
-    fFileWriter: TStreamWriter;
+    fCurrentLogFileName: string;
     procedure RotateLog;
   protected
+    { Exposed to descendants so structured-output appenders (HTML, XML, ...)
+      can write custom open/close markers in Setup / TearDown / EmitStart /
+      EmitEnd overrides. Still not meant for external access. }
+    fFileWriter: TStreamWriter;
     procedure CheckLogFileNameFormat(const LogFileNameFormat: String); override;
   public
   const
@@ -148,13 +176,16 @@ type
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); overload; override;
+    function GetCurrentLogFileName: string;
     constructor Create(
       aMaxBackupFileCount: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_BACKUP_FILE_COUNT;
       aMaxFileSizeInKiloByte: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_FILE_SIZE_KB;
       aLogsFolder: string = '';
       aLogFileNameFormat: string = TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT;
       aLogItemRenderer: ILogItemRenderer = nil;
-      aEncoding: TEncoding = nil);
+      aEncoding: TEncoding = nil;
+      aRotationInterval: TTimeRotationInterval = TTimeRotationInterval.None;
+      aMaxRetainedFiles: Integer = 0);
       override;
   end;
 
@@ -162,9 +193,8 @@ type
   TMakeFileNameProc = reference to procedure(out AFileName: string);
 
   { by an idea of Mark Lobanov <mark.v.lobanov@gmail.com> }
-  TLoggerProFileByFolderAppender = class(TLoggerProFileAppender)
+  TLoggerProFileByFolderAppender = class(TLoggerProSimpleFileAppender)
   private
-    fFileWriter: TStreamWriter;
     fCurrentDate: TDateTime;
     function GetLogFolder: string;
     function GetFileFormat: string;
@@ -200,9 +230,15 @@ type
       reintroduce;
   end;
 
+// Returns the size of an existing file in bytes. TFile.GetSize requires
+// Delphi 11 Alexandria (CompilerVersion 35); on older compilers (e.g.
+// 10.2.3 Tokyo) it falls back to a TFileStream-based size read.
+function GetFileSizeCompat(const aFileName: string): Int64;
+
 implementation
 
 uses
+  System.Types,
   System.IOUtils,
   System.StrUtils,
   System.Math,
@@ -217,6 +253,24 @@ uses
     ;
 
 
+function GetFileSizeCompat(const aFileName: string): Int64;
+{$IF CompilerVersion >= 35}
+begin
+  Result := TFile.GetSize(aFileName);
+end;
+{$ELSE}
+var
+  lStream: TFileStream;
+begin
+  lStream := TFileStream.Create(aFileName, fmOpenRead or fmShareDenyNone);
+  try
+    Result := lStream.Size;
+  finally
+    lStream.Free;
+  end;
+end;
+{$ENDIF}
+
 function OccurrencesOfChar(const S: string; const C: char): integer;
 var
   i: Integer;
@@ -230,14 +284,28 @@ end;
 procedure TLoggerProFileAppenderBase.CheckLogFileNameFormat(const LogFileNameFormat: String);
 begin
   //DEFAULT_FILENAME_FORMAT = '{module}.{number}.{tag}.log';
-  if not (LogFileNameFormat.Contains('{number}') and LogFileNameFormat.Contains('{tag}')) then
+  // When time rotation is active, {number} is optional (time-only rotation doesn't need it)
+  if fRotationInterval <> TTimeRotationInterval.None then
   begin
-    raise ELoggerPro.CreateFmt('Wrong FileFormat [%s] - [HINT] A correct file format for %s requires {number} and {tag} placeholders ({module} is optional). A valid file format is : %s',
-      [
-        ClassName,
-        LogFileNameFormat,
-        TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT
-      ]);
+    if not LogFileNameFormat.Contains('{tag}') then
+      raise ELoggerPro.CreateFmt('Wrong FileFormat [%s] - [HINT] A correct file format for %s requires {tag} placeholder. A valid file format is : %s',
+        [
+          ClassName,
+          LogFileNameFormat,
+          '{module}.{date}.{tag}.log'
+        ]);
+  end
+  else
+  begin
+    if not (LogFileNameFormat.Contains('{number}') and LogFileNameFormat.Contains('{tag}')) then
+    begin
+      raise ELoggerPro.CreateFmt('Wrong FileFormat [%s] - [HINT] A correct file format for %s requires {number} and {tag} placeholders ({module} is optional). A valid file format is : %s',
+        [
+          ClassName,
+          LogFileNameFormat,
+          TLoggerProFileAppenderBase.DEFAULT_FILENAME_FORMAT
+        ]);
+    end;
   end;
 end;
 
@@ -249,6 +317,7 @@ var
   lModuleName: string;
   lPath: string;
   lFormat: string;
+  lDir: string;
 begin
 {$IF Defined(Android)}
   lModuleName := TAndroidHelper.ApplicationTitle.Replace(' ', '_', [rfReplaceAll]);
@@ -268,8 +337,14 @@ begin
       Max(2,fMaxBackupFileCount.ToString.Length), //min padding 2
       '0') , [rfReplaceAll])
     .Replace('{tag}', aTag, [rfReplaceAll])
-    .Replace('{pid}', CurrentProcessId.ToString.PadLeft(8,'0'), [rfReplaceAll]);
+    .Replace('{pid}', CurrentProcessId.ToString.PadLeft(8,'0'), [rfReplaceAll])
+    .Replace('{date}', fCurrentTimestamp, [rfReplaceAll]);
   Result := TPath.Combine(lPath, lFormat);
+
+  // Ensure directory exists (needed when format contains subdirectories like {tag}/ or {date}/)
+  lDir := TPath.GetDirectoryName(Result);
+  if (lDir <> '') and (not TDirectory.Exists(lDir)) then
+    TDirectory.CreateDirectory(lDir);
 end;
 
 procedure TLoggerProFileAppenderBase.Setup;
@@ -390,18 +465,89 @@ begin
   RetryMove(aNewFileName, lRenamedFile);
 end;
 
+function TLoggerProFileAppenderBase.GetTimestampForInterval(aDateTime: TDateTime): string;
+var
+  lYear, lMonth, lDay, lHour, lWeek: Word;
+begin
+  DecodeDate(aDateTime, lYear, lMonth, lDay);
+  lHour := HourOf(aDateTime);
+
+  case fRotationInterval of
+    TTimeRotationInterval.Hourly:
+      Result := Format('%.4d%.2d%.2d%.2d', [lYear, lMonth, lDay, lHour]);
+
+    TTimeRotationInterval.Daily:
+      Result := Format('%.4d%.2d%.2d', [lYear, lMonth, lDay]);
+
+    TTimeRotationInterval.Weekly:
+      begin
+        lWeek := WeekOfTheYear(aDateTime);
+        Result := Format('%.4dW%.2d', [lYear, lWeek]);
+      end;
+
+    TTimeRotationInterval.Monthly:
+      Result := Format('%.4d%.2d', [lYear, lMonth]);
+  else
+    Result := '';
+  end;
+end;
+
+procedure TLoggerProFileAppenderBase.CleanupOldTimeRotatedFiles(const aTag: string);
+var
+  lFiles: TStringDynArray;
+  lPattern: string;
+  lModuleName: string;
+  I, J: Integer;
+  lTemp: string;
+begin
+  if fMaxRetainedFiles <= 0 then
+    Exit;
+
+{$IF not Defined(Mobile)}
+  lModuleName := TPath.GetFileNameWithoutExtension(GetModuleName(HInstance));
+{$ELSE}
+  lModuleName := 'app';
+{$ENDIF}
+
+  lPattern := lModuleName + '.*.' + aTag + '.log';
+  lFiles := TDirectory.GetFiles(fLogsFolder, lPattern);
+
+  // Simple sort (timestamps in filenames ensure chronological order)
+  for I := 0 to Length(lFiles) - 2 do
+    for J := I + 1 to Length(lFiles) - 1 do
+      if lFiles[I] > lFiles[J] then
+      begin
+        lTemp := lFiles[I];
+        lFiles[I] := lFiles[J];
+        lFiles[J] := lTemp;
+      end;
+
+  for I := 0 to Length(lFiles) - fMaxRetainedFiles - 1 do
+  begin
+    try
+      TFile.Delete(lFiles[I]);
+    except
+      // Ignore deletion errors (file might be locked)
+    end;
+  end;
+end;
+
 constructor TLoggerProFileAppenderBase.Create(
   aMaxBackupFileCount: Integer;
   aMaxFileSizeInKiloByte: Integer;
   aLogsFolder: string;
   aLogFileNameFormat: string;
   aLogItemRenderer: ILogItemRenderer;
-  aEncoding: TEncoding);
+  aEncoding: TEncoding;
+  aRotationInterval: TTimeRotationInterval;
+  aMaxRetainedFiles: Integer);
 begin
   inherited Create(aLogItemRenderer);
   fLogsFolder := aLogsFolder;
   fMaxBackupFileCount:= Max(1, aMaxBackupFileCount);
   fMaxFileSizeInKiloByte := aMaxFileSizeInKiloByte;
+  fRotationInterval := aRotationInterval;
+  fMaxRetainedFiles := aMaxRetainedFiles;
   CheckLogFileNameFormat(aLogFileNameFormat);
   fLogFileNameFormat := aLogFileNameFormat;
   if Assigned(aEncoding) then
@@ -460,6 +606,7 @@ begin
   aLogFileName := GetLogFileName(aLogTag, 0);
   aWriter := CreateWriter(aLogFileName);
   fWritersDictionary.Add(aLogTag, aWriter);
+  fFileNamesDictionary.AddOrSetValue(aLogTag, aLogFileName);
 end;
 
 procedure TLoggerProFileAppenderBase.EmitEndRotateLogItem(aWriter: TStreamWriter);
@@ -477,33 +624,61 @@ var
   lLogFileName: string;
 begin
   EmitEndRotateLogItem(aWriter);
-  //WriteToStream(aWriter, '#[ROTATE LOG ' + datetimetostr(Now, FormatSettings) + ']');
   // remove the writer during rename
   fWritersDictionary.Remove(aLogTag);
   RotateFile(aLogTag, lLogFileName);
+  if Assigned(fOnAfterRotate) then
+    fOnAfterRotate(GetLogFileName(aLogTag, 1));
   // re-create the writer
   AddWriter(aLogTag, aWriter, lLogFileName);
   EmitStartRotateLogItem(aWriter);
-  //WriteToStream(aWriter, '#[START LOG ' + datetimetostr(Now, FormatSettings) + ']');
 end;
 
 procedure TLoggerProFileAppender.Setup;
 begin
   inherited;
   fWritersDictionary := TObjectDictionary<string, TStreamWriter>.Create([doOwnsValues]);
+  fFileNamesDictionary := TDictionary<string, string>.Create;
+  if fRotationInterval <> TTimeRotationInterval.None then
+    fCurrentTimestamp := GetTimestampForInterval(Now);
 end;
 
 procedure TLoggerProFileAppender.TearDown;
+var
+  lWriter: TStreamWriter;
 begin
+  for lWriter in fWritersDictionary.Values do
+  begin
+    lWriter.Flush;
+  end;
   fWritersDictionary.Free;
+  fFileNamesDictionary.Free;
   inherited;
 end;
 
 procedure TLoggerProFileAppender.WriteLog(const aLogItem: TLogItem);
 var
   lWriter: TStreamWriter;
-  lLogFileName:string;
+  lLogFileName: string;
+  lNewTimestamp: string;
 begin
+  // Check time-based rotation
+  if fRotationInterval <> TTimeRotationInterval.None then
+  begin
+    lNewTimestamp := GetTimestampForInterval(aLogItem.TimeStamp);
+    if lNewTimestamp <> fCurrentTimestamp then
+    begin
+      // Fire callback for each file being rotated
+      if Assigned(fOnAfterRotate) then
+        for lLogFileName in fFileNamesDictionary.Values do
+          fOnAfterRotate(lLogFileName);
+      // Close all writers (interval changed)
+      fWritersDictionary.Clear; // doOwnsValues frees the writers
+      fFileNamesDictionary.Clear;
+      fCurrentTimestamp := lNewTimestamp;
+    end;
+  end;
+
   if not fWritersDictionary.TryGetValue(aLogItem.LogTag, lWriter) then
   begin
     AddWriter(aLogItem.LogTag, lWriter, lLogFileName);
@@ -511,9 +686,38 @@ begin
 
   InternalWriteLog(lWriter, aLogItem);
 
-  if lWriter.BaseStream.Size > fMaxFileSizeInKiloByte * 1024 then
+  // Size-based rotation (only when MaxFileSizeInKB > 0)
+  if (fMaxFileSizeInKiloByte > 0) and
+     (lWriter.BaseStream.Size > fMaxFileSizeInKiloByte * 1024) then
   begin
     RotateLog(aLogItem.LogTag, lWriter);
+  end;
+end;
+
+function TLoggerProFileAppender.GetCurrentLogFileName(const aLogTag: string): string;
+begin
+  if not fFileNamesDictionary.TryGetValue(aLogTag, Result) then
+    Result := '';
+end;
+
+function TLoggerProFileAppender.GetAllCurrentLogFileNames: TArray<string>;
+begin
+  Result := fFileNamesDictionary.Values.ToArray;
+end;
+
+class function TLoggerProFileAppender.FromLog(const aLog: ICustomLogWriter): TLoggerProFileAppender;
+var
+  i: Integer;
+  lObj: TObject;
+begin
+  Result := nil;
+  if aLog = nil then
+    Exit;
+  for i := 0 to aLog.AppendersCount - 1 do
+  begin
+    lObj := aLog.Appenders[i] as TObject;
+    if lObj is TLoggerProFileAppender then
+      Exit(TLoggerProFileAppender(lObj));
   end;
 end;
 
@@ -536,7 +740,9 @@ end;
 constructor TLoggerProSimpleFileAppender.Create(aMaxBackupFileCount, aMaxFileSizeInKiloByte: Integer;
   aLogsFolder: string; aLogFileNameFormat: String;
   aLogItemRenderer: ILogItemRenderer;
-  aEncoding: TEncoding);
+  aEncoding: TEncoding;
+  aRotationInterval: TTimeRotationInterval;
+  aMaxRetainedFiles: Integer);
 begin
   inherited Create(
     aMaxBackupFileCount,
@@ -544,7 +750,9 @@ begin
     aLogsFolder,
     aLogFileNameFormat,
     aLogItemRenderer,
-    aEncoding);
+    aEncoding,
+    aRotationInterval,
+    aMaxRetainedFiles);
 end;
 
 procedure TLoggerProSimpleFileAppender.RotateLog;
@@ -555,19 +763,24 @@ begin
   // remove the writer during rename
   fFileWriter.Free;
   RotateFile('', lLogFileName);
+  if Assigned(fOnAfterRotate) then
+    fOnAfterRotate(GetLogFileName('', 1));
   // re-create the writer
-  fFileWriter := CreateWriter(GetLogFileName('', 0));
+  fCurrentLogFileName := GetLogFileName('', 0);
+  fFileWriter := CreateWriter(fCurrentLogFileName);
   EmitStartRotateLogItem(fFileWriter);
 end;
 
 procedure TLoggerProSimpleFileAppender.Setup;
 begin
   inherited;
-  fFileWriter := CreateWriter(GetLogFileName('', 0));
+  fCurrentLogFileName := GetLogFileName('', 0);
+  fFileWriter := CreateWriter(fCurrentLogFileName);
 end;
 
 procedure TLoggerProSimpleFileAppender.TearDown;
 begin
+  fFileWriter.Flush;
   fFileWriter.Free;
   inherited;
 end;
@@ -579,6 +792,11 @@ begin
   begin
     RotateLog;
   end;
+end;
+
+function TLoggerProSimpleFileAppender.GetCurrentLogFileName: string;
+begin
+  Result := fCurrentLogFileName;
 end;
 
 { TLoggerProFileByFolderAppender }
@@ -627,10 +845,15 @@ end;
 procedure TLoggerProFileByFolderAppender.InternalRotateLog(aMakeFileNameProc: TMakeFileNameProc);
 var
   lLogFileName: string;
+  lOldFileName: string;
 begin
+  lOldFileName := fCurrentLogFileName;
   EmitEndRotateLogItem(fFileWriter);
   FreeAndNil(fFileWriter);
   aMakeFileNameProc(lLogFileName);
+  fCurrentLogFileName := lLogFileName;
+  if Assigned(fOnAfterRotate) and (lOldFileName <> '') then
+    fOnAfterRotate(lOldFileName);
   fFileWriter := CreateWriter(lLogFileName, 16 * 1024);
   EmitStartRotateLogItem(fFileWriter);
 end;
@@ -677,19 +900,15 @@ end;
 procedure TLoggerProFileByFolderAppender.Setup;
 begin
   inherited;
-  fFileWriter := CreateWriter(GetLogFileName(EmptyStr, 0));
   RefreshCurrentDate;
 end;
 
 procedure TLoggerProFileByFolderAppender.TearDown;
 begin
-  fFileWriter.Free;
   inherited;
 end;
 
 procedure TLoggerProFileByFolderAppender.WriteLog(const ALogItem: TLogItem);
-var
-  lLogRow: string;
 begin
   if not SameDate(fCurrentDate, Date) then
   begin
@@ -697,16 +916,7 @@ begin
     RefreshCurrentDate;
   end;
 
-  if Assigned(OnLogRow) then
-  begin
-    OnLogRow(ALogItem, lLogRow);
-  end
-  else
-  begin
-    lLogRow := LogItemRenderer.RenderLogItem(ALogItem);
-  end;
-
-  WriteToStream(fFileWriter, lLogRow);
+  WriteToStream(fFileWriter, FormatLog(ALogItem));
 
   if fFileWriter.BaseStream.Size > fMaxFileSizeInKiloByte * 1024 then
   begin

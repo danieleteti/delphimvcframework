@@ -1,0 +1,111 @@
+{{include "_license_header.tpro"}}
+unit {{:authentication_unit_name}};
+
+interface
+
+uses
+  System.SysUtils,
+  System.Generics.Collections,
+  MVCFramework,
+  MVCFramework.Commons;
+
+type
+  // JWT authentication handler. Customize OnRequest, OnAuthentication and OnAuthorization
+  // to validate credentials against your user store and enforce access rules.
+  {{:authentication_classname}} = class(TInterfacedObject, IMVCAuthenticationHandler)
+  protected
+    procedure OnRequest(
+      const AContext: TWebContext;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
+      var AuthenticationRequired: Boolean);
+    procedure OnAuthentication(
+      const AContext: TWebContext;
+      const UserName: string;
+      const Password: string;
+      UserRoles: TList<string>;
+      var IsValid: Boolean;
+      const SessionData: TSessionData);
+    procedure OnAuthorization(
+      const AContext: TWebContext;
+      UserRoles: TList<string>;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
+      var IsAuthorized: Boolean);
+  end;
+
+implementation
+
+uses
+  MVCFramework.DotEnv,
+  MVCFramework.Logger;
+
+{ {{:authentication_classname}} }
+
+procedure {{:authentication_classname}}.OnRequest(
+  const AContext: TWebContext;
+  const ControllerQualifiedClassName: string;
+  const ActionName: string;
+  var AuthenticationRequired: Boolean);
+begin
+  // TODO: set AuthenticationRequired := True for protected resources.
+  AuthenticationRequired := False;
+  LogI(Format('OnRequest: %s.%s - Auth Required: %s',
+    [ControllerQualifiedClassName, ActionName, BoolToStr(AuthenticationRequired, True)]));
+end;
+
+procedure {{:authentication_classname}}.OnAuthentication(
+  const AContext: TWebContext;
+  const UserName: string;
+  const Password: string;
+  UserRoles: TList<string>;
+  var IsValid: Boolean;
+  const SessionData: TSessionData);
+var
+  lExpectedUser, lExpectedPassword: string;
+begin
+  // Fail-closed until you replace this with a real user store (DB, LDAP, ...).
+  lExpectedUser := dotEnv.Env('ADMIN_USER');
+  lExpectedPassword := dotEnv.Env('ADMIN_PASSWORD');
+  if lExpectedUser.IsEmpty or lExpectedPassword.IsEmpty then
+  begin
+    LogW('Login refused: set ADMIN_USER and ADMIN_PASSWORD in .env, or replace {{:authentication_classname}}.OnAuthentication with a real user store');
+    IsValid := False;
+    UserRoles.Clear;
+    Exit;
+  end;
+  IsValid := (UserName = lExpectedUser) and (Password = lExpectedPassword);
+  if IsValid then
+  begin
+    LogI(Format('Authentication successful for user: %s', [UserName]));
+    // TODO: load actual roles from your user store
+    UserRoles.Add('admin');
+    UserRoles.Add('user');
+
+    SessionData.AddOrSetValue('username', UserName);
+    SessionData.AddOrSetValue('login_time', DateTimeToStr(Now));
+  end
+  else
+  begin
+    LogW(Format('Authentication failed for user: %s', [UserName]));
+    UserRoles.Clear;
+  end;
+end;
+
+procedure {{:authentication_classname}}.OnAuthorization(
+  const AContext: TWebContext;
+  UserRoles: TList<string>;
+  const ControllerQualifiedClassName: string;
+  const ActionName: string;
+  var IsAuthorized: Boolean);
+begin
+  // TODO: implement role-based checks. Default: allow all authenticated users.
+  IsAuthorized := True;
+
+  LogI(Format('OnAuthorization: %s.%s for roles [%s] - Authorized: %s',
+    [ControllerQualifiedClassName, ActionName,
+     String.Join(',', UserRoles.ToArray),
+     BoolToStr(IsAuthorized, True)]));
+end;
+
+end.

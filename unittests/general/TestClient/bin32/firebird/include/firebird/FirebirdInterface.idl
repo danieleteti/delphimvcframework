@@ -70,7 +70,9 @@ interface Status : Disposable
 	void setErrors(const intptr* value);
 	void setWarnings(const intptr* value);
 
+	[onError stubError]
 	const intptr* getErrors() const;
+	[onError stubError]
 	const intptr* getWarnings() const;
 
 	Status clone() const;
@@ -668,6 +670,10 @@ interface LogonInfo : Versioned
 	const string networkProtocol();
 	const string remoteAddress();
 	const uchar* authBlock(uint* length);
+
+version:
+	Attachment attachment(Status status);
+	Transaction transaction(Status status);
 }
 
 interface Management : PluginBase

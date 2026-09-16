@@ -150,6 +150,14 @@ begin
   end;
 end;
 
+//function TMyController.GetSingleDataSet: TDataSet;
+//begin
+//  var lDM := ToFree<TdmMain>(TdmMain.Create(nil));
+//  lDM.dsPeople.Open;
+//  Result := lDM.dsPeople;
+//end;
+
+
 function TMyController.GetMultipleDataSet: TEnumerable<TDataSet>;
 begin
   var lDM := TdmMain.Create(nil);

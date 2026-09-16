@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -117,6 +117,7 @@ type
 
   /// <summary>
   /// In-memory rate limit storage implementation
+
   /// </summary>
   TMVCInMemoryRateLimitStorage = class(TInterfacedObject, IMVCRateLimitStorage)
   private
@@ -128,6 +129,8 @@ type
       end;
   private
     FStorage: TDictionary<string, TRateLimitEntry>;
+    FLastCleanup: TDateTime;
+    FCeilingReported: Boolean;
     FLock: TCriticalSection;
     FStrategy: TMVCRateLimitStrategy;
     procedure CleanupExpiredEntries;
@@ -139,6 +142,11 @@ type
       out AResetTime: TDateTime): Boolean;
     procedure ResetKey(const AKey: string);
     procedure Clear;
+    /// <summary>
+    /// Number of distinct keys currently held. Not on IMVCRateLimitStorage on
+    /// purpose: widening the interface would break third-party implementations.
+    /// </summary>
+    function KeyCount: Integer;
   end;
 
   /// <summary>
@@ -208,7 +216,12 @@ implementation
 
 uses
   System.Math,
-  System.StrUtils;
+  System.StrUtils,
+  MVCFramework.Logger;
+
+const
+  { Hard ceiling on distinct keys held by the in-memory store. }
+  MAX_RATELIMIT_KEYS = 100000;
 
 { TMVCInMemoryRateLimitStorage }
 
@@ -227,6 +240,16 @@ begin
   inherited;
 end;
 
+function TMVCInMemoryRateLimitStorage.KeyCount: Integer;
+begin
+  FLock.Acquire;
+  try
+    Result := FStorage.Count;
+  finally
+    FLock.Release;
+  end;
+end;
+
 procedure TMVCInMemoryRateLimitStorage.CleanupExpiredEntries;
 var
   LKey: string;
@@ -236,6 +259,13 @@ var
 begin
   // This is called within a lock, so no need for additional synchronization
   LNow := Now;
+  { Throttled: this is a full scan of the store under the one lock, and it used
+    to run on every single request. With a large store that serialises every
+    request thread behind an O(N) walk. Nothing expires faster than a window, so
+    once a second is often enough. }
+  if (FLastCleanup > 0) and (SecondsBetween(LNow, FLastCleanup) < 1) then
+    Exit;
+  FLastCleanup := LNow;
   SetLength(LKeysToRemove, 0);
 
   for LKey in FStorage.Keys do
@@ -267,6 +297,34 @@ begin
     CleanupExpiredEntries;
 
     LNow := Now;
+
+    { CleanupExpiredEntries only drops windows that have already closed, so a
+      caller rotating its key - X-API-Key for rlkAPIKey, the callback value for
+      rlkCustom, and X-Forwarded-For for rlkIPAddress wherever forwarded headers
+      are trusted - escapes its own limit and grows this dictionary for a whole
+      window. Past the ceiling a key that is not already known is refused rather
+      than admitted. Clearing the store instead, which is the obvious move,
+      would hand the flooder a reset of everybody else's counter: the mitigation
+      would be a better bypass than the bug. }
+    if (FStorage.Count >= MAX_RATELIMIT_KEYS) and (not FStorage.ContainsKey(AKey)) then
+    begin
+      if not FCeilingReported then
+      begin
+        FCeilingReported := True;
+        LogW('Rate limit store reached ' + IntToStr(MAX_RATELIMIT_KEYS) +
+          ' keys: new keys are being refused. This is what key rotation looks ' +
+          'like when the key is client-controlled - validate it before the ' +
+          'limiter runs.');
+      end;
+      { True means "limit exceeded" to every caller of this interface, so the
+        refusal has to be True. Exit(False) here would have ADMITTED the key and
+        never stored it, which makes it take this branch again on the next
+        request: past the ceiling the limiter would have been off for every key
+        it did not already know. }
+      ARemaining := 0;
+      AResetTime := IncSecond(LNow, AWindowSeconds);
+      Exit(True);
+    end;
 
     if not FStorage.TryGetValue(AKey, LEntry) then
     begin

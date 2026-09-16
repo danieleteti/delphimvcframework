@@ -1,0 +1,192 @@
+{{include "_license_header.tpro"}}
+program {{:program_name}};
+
+{$APPTYPE CONSOLE}
+
+uses
+  System.SysUtils,
+  System.IOUtils,
+  Web.ReqMulti,
+  MVCFramework,
+  MVCFramework.Logger,
+  MVCFramework.DotEnv,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Signal,
+  MVCFramework.Server.Intf,
+  MVCFramework.Server.Factory,
+{{if program_minimal_api}}
+  MVCFramework.MinimalAPI,
+{{endif}}
+{{if program_server_protocol|eq,"https"}}
+  MVCFramework.Server.HTTPS.TaurusTLS,
+{{endif}}
+{{if websocketserver_generate}}
+  MVCFramework.WebSocket,
+  MVCFramework.WebSocket.Server,
+{{endif}}
+{{if program_ssv_mustache}}
+  MVCFramework.View.Renderers.Mustache,
+  mormot.core.mustache,
+{{endif}}
+{{if program_service_container_generate}}
+  MVCFramework.Container,
+{{endif}}
+{{if controller_main_generate}}
+  {{:controller_unit_name}} in '{{:controller_unit_name}}.pas',
+{{endif}}
+{{if @(program_ssv_any and (not program_minimal_api))}}
+  Controllers.APIU in 'Controllers.APIU.pas',
+{{endif}}
+{{if controller_crud_methods_generate}}
+{{if program_minimal_api}}
+  RoutesU in 'RoutesU.pas',
+{{else}}
+  Controllers.PeopleU in 'Controllers.PeopleU.pas',
+{{endif}}
+{{endif}}
+{{if entity_generate}}
+  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
+{{endif}}
+{{if program_service_container_generate}}
+  {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}} in '{{:jsonrpc_unit_name}}.pas',
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  {{:authentication_unit_name}} in '{{:authentication_unit_name}}.pas',
+{{endif}}
+{{if websocketserver_generate}}
+  {{:websocketserver_unit_name}} in '{{:websocketserver_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_mustache}}
+  {{:mustache_helpers_unit_name}} in '{{:mustache_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_templatepro}}
+  {{:templatepro_helpers_unit_name}} in '{{:templatepro_helpers_unit_name}}.pas',
+{{endif}}
+{{if program_ssv_webstencils}}
+  {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
+{{endif}}
+  BootConfigU in 'BootConfigU.pas',
+  EngineConfigU in 'EngineConfigU.pas';
+
+{$R *.res}
+
+procedure RunServer(aPort: Integer);
+var
+  LServer: IMVCServer;
+{{if websocketserver_generate}}
+  LWSServer: TMVCWebSocketServer;
+{{endif}}
+begin
+{{if program_minimal_api}}
+  // Engine boots on built-in defaults (logged to console at startup).
+  // Pass a config callback as first arg instead of nil to override any TMVCConfigKey.
+{{if program_minimal_api_web}}
+  // IMPORTANT: ViewCache is OFF by default — enable it for production.
+{{endif}}
+  LServer := TMVCServerFactory.CreateWebBroker(nil, ConfigureEngine);
+{{else}}
+  LServer := TMVCServerFactory.CreateWebBroker(
+    procedure(Config: TMVCConfig)
+    begin
+      //default content-type
+      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+      //default content charset
+      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+      //unhandled actions are permitted?
+      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+      //enables or not system controllers loading (available only from localhost requests)
+      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+      //default view file extension
+      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+      //view path
+      Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+{{if program_ssv_templatepro}}
+      //use cache for server side views
+      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+{{endif}}
+      //Max Record Count for automatic Entities CRUD
+      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+      //Enable Server Signature in response
+      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      //Enable X-Powered-By Header in response
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+      // Max request size in bytes
+      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+    end,
+    ConfigureEngine);
+{{endif}}
+{{if program_minimal_api}}
+  ConfigureRoutes(LServer.Engine.Root);
+{{endif}}
+{{if program_server_protocol|eq,"https"}}
+  LServer.HTTPSConfigurator := TaurusTLSWebBrokerConfigurator();
+  LServer.UseHTTPS := True;
+  LServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+  LServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+  LServer.CertPassword := dotEnv.Env('https.cert.password', '');
+  LogI('Starting on https://localhost:' + APort.ToString +
+    ' (WebBroker, Indy bridge + TaurusTLS). Press Ctrl+C to shut down.');
+{{else}}
+  LogI('Starting on http://localhost:' + APort.ToString +
+    ' (WebBroker, Indy bridge). Press Ctrl+C to shut down.');
+{{endif}}
+{{if websocketserver_generate}}
+  LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+  try
+    LWSServer.Active := True;
+    LogI('WebSocket on ws://localhost:' + LWSServer.DefaultPort.ToString);
+    LServer.RunAndWait(APort);
+  finally
+    LWSServer.Free;
+  end;
+{{else}}
+  LServer.RunAndWait(APort);
+{{endif}}
+  LServer := nil;
+end;
+
+begin
+  { Enable ReportMemoryLeaksOnShutdown during debug }
+  // ReportMemoryLeaksOnShutdown := True;
+  IsMultiThread := True;
+
+  MVCSerializeNulls := True;
+  Boot; // dotEnv + logger + profiler; must run before any LogI call
+
+  LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
+{{if program_sqids}}
+
+  TMVCSqids.SQIDS_ALPHABET := dotEnv.Env('dmvc.sqids.alphabet', '{{:scrambled_alphabet}}');
+  TMVCSqids.SQIDS_MIN_LENGTH := dotEnv.Env('dmvc.sqids.min_length', 6);
+{{endif}}
+
+  try
+{{if program_ssv_webstencils}}
+
+    WebStencilsProcessorConfigure;
+{{endif}}
+{{if program_ssv_mustache}}
+
+  // Project specific Mustache helpers
+  TMVCMustacheHelpers.OnLoadCustomHelpers := procedure(var MustacheHelpers: TSynMustacheHelpers)
+  begin
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper1', TMyMustacheHelpers.MyHelper1);
+    TSynMustache.HelperAdd(MustacheHelpers, 'MyHelper2', TMyMustacheHelpers.MyHelper2);
+  end;
+{{endif}}
+{{if program_service_container_generate}}
+
+    RegisterServices(DefaultMVCServiceContainer);
+    DefaultMVCServiceContainer.Build;
+{{endif}}
+
+    RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
+  except
+    on E: Exception do
+      LogF(E.ClassName + ': ' + E.Message);
+  end;
+end.

@@ -25,7 +25,7 @@ package loggerproRT;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggerPro'}
+{$DESCRIPTION 'LoggerPro - CopyRight 2026 Daniele Teti'}
 {$LIBSUFFIX '103'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
@@ -34,22 +34,40 @@ requires
   rtl,
   IndySystem,
   IndyProtocols,
-  IndyCore;
+  IndyCore,
+  FireDAC,
+  vcl;
 
 contains
+  LoggerPro in '..\..\LoggerPro.pas',
+  LoggerPro.AnsiColors in '..\..\LoggerPro.AnsiColors.pas',
+  LoggerPro.Builder in '..\..\LoggerPro.Builder.pas',
+  LoggerPro.CallbackAppender in '..\..\LoggerPro.CallbackAppender.pas',
+  LoggerPro.Config in '..\..\LoggerPro.Config.pas',
+  LoggerPro.ConsoleAppender in '..\..\LoggerPro.ConsoleAppender.pas',
+  LoggerPro.DBAppender in '..\..\LoggerPro.DBAppender.pas',
+  LoggerPro.DBAppender.FireDAC in '..\..\LoggerPro.DBAppender.FireDAC.pas',
   LoggerPro.ElasticSearchAppender in '..\..\LoggerPro.ElasticSearchAppender.pas',
   LoggerPro.EMailAppender in '..\..\LoggerPro.EMailAppender.pas',
   LoggerPro.FileAppender in '..\..\LoggerPro.FileAppender.pas',
+  LoggerPro.FileBySourceAppender in '..\..\LoggerPro.FileBySourceAppender.pas',
   LoggerPro.GlobalLogger in '..\..\LoggerPro.GlobalLogger.pas',
+  LoggerPro.HTMLFileAppender in '..\..\LoggerPro.HTMLFileAppender.pas',
+  LoggerPro.JSONLFileAppender in '..\..\LoggerPro.JSONLFileAppender.pas',
   LoggerPro.MemoryAppender in '..\..\LoggerPro.MemoryAppender.pas',
   LoggerPro.NSQAppender in '..\..\LoggerPro.NSQAppender.pas',
-  LoggerPro in '..\..\LoggerPro.pas',
-  LoggerPro.Proxy in '..\..\LoggerPro.Proxy.pas',
-  LoggerPro.RESTAppender in '..\..\LoggerPro.RESTAppender.pas',
-  LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
-  LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
-  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
   LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas',
-  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas';
+  LoggerPro.Proxy in '..\..\LoggerPro.Proxy.pas',
+  LoggerPro.Renderers in '..\..\LoggerPro.Renderers.pas',
+  LoggerPro.RendererRegistry in '..\..\LoggerPro.RendererRegistry.pas',
+  LoggerPro.StringsAppender in '..\..\LoggerPro.StringsAppender.pas',
+  LoggerPro.TimeRotatingFileAppender in '..\..\LoggerPro.TimeRotatingFileAppender.pas',
+  LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
+  LoggerPro.VCLListBoxAppender in '..\..\LoggerPro.VCLListBoxAppender.pas',
+  LoggerPro.VCLListViewAppender in '..\..\LoggerPro.VCLListViewAppender.pas',
+  LoggerPro.VCLMemoAppender in '..\..\LoggerPro.VCLMemoAppender.pas',
+  LoggerPro.WebhookAppender in '..\..\LoggerPro.WebhookAppender.pas',
+  LoggerPro.WindowsEventLogAppender in '..\..\LoggerPro.WindowsEventLogAppender.pas',
+  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas';
 
 end.

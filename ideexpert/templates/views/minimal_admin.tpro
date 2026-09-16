@@ -1,0 +1,10 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Admin · {{:program_name}}{{endblock}}
+
+{{block "body"}}
+<h1 class="mb-3">Admin area</h1>
+<p>Signed in as <strong>{{:user}}</strong>. This page is behind the
+   <code>RequireLogin</code> endpoint filter.</p>
+<a class="btn btn-outline-secondary" href="/admin/logout">Log out</a>
+{{endblock}}

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,8 +29,7 @@ interface
 uses
   MVCFramework.Commons,
   System.SysUtils,
-  JsonDataObjects,
-  ToolsAPI;
+  JsonDataObjects;
 
 type
   IGenCommand = interface
@@ -50,7 +49,7 @@ type
   TDefaultValues = class sealed
   public
     const
-      sDefaultControllerName = 'TMyController';
+      sDefaultControllerName = 'THomeController';
     const
       sDefaultWebModuleName = 'TMyWebModule';
     const
@@ -65,12 +64,17 @@ type
       program_msheap = 'program.msheap';
       program_sqids = 'program.sqids';
       program_dotenv = 'program.dotenv';
+      program_htmx = 'program.htmx';
       program_ssv_templatepro = 'program.ssv.templatepro';
       program_ssv_webstencils = 'program.ssv.webstencils';
       program_ssv_mustache = 'program.ssv.mustache';
       program_type = 'program.type'; //http.console, fastcgi.console, apache, isapi
       program_service_container_generate = 'program.service.container.generate';
       program_service_container_unit_name = 'program.service.container.unit_name';
+      // When True, the wizard emits a RoutesU.pas with lambda-based routes
+      // (Minimal API style) instead of a Controllers.*Controller class.
+      // Default False — pre-3.5 controller-based output is unchanged.
+      program_minimal_api = 'program.minimal_api';
       mustache_helpers_unit_name = 'mustache.helpers_unit_name';
       templatepro_helpers_unit_name = 'templatepro.helpers_unit_name';
       webstencils_helpers_unit_name = 'webstencils.helpers_unit_name';
@@ -86,6 +90,8 @@ type
       jsonrpc_generate = 'jsonrpc.generate';
       jsonrpc_classname = 'jsonrpc.classname';
       jsonrpc_unit_name = 'jsonrpc.unit_name';
+      authentication_unit_name = 'authentication.unit_name';
+      authentication_classname = 'authentication.classname';
       websocket_unit_name = 'websocketserver.unit_name';
       websocket_generate = 'websocketserver.generate';
       serializer_name_case = 'serializer.name_case';
@@ -98,9 +104,41 @@ type
       webmodule_middleware_etag = 'webmodule.middleware.etag';
       webmodule_middleware_cors = 'webmodule.middleware.cors';
       webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
+      webmodule_middleware_jwt = 'webmodule.middleware.jwt';
+      webmodule_middleware_jwt_asymmetric = 'webmodule.middleware.jwt.asymmetric';
       webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
       webmodule_middleware_activerecord_con_def_name = 'webmodule.middleware.activerecord.con_def_name';
       webmodule_middleware_activerecord_con_def_filename = 'webmodule.middleware.activerecord.con_def_filename';
+      con_def_filename = 'con_def_filename'; // Just the filename for file generation
+      // Session middleware
+      webmodule_middleware_session_memory = 'webmodule.middleware.session.memory';
+      webmodule_middleware_session_file = 'webmodule.middleware.session.file';
+      webmodule_middleware_session_database = 'webmodule.middleware.session.database';
+      webmodule_middleware_session_timeout = 'webmodule.middleware.session.timeout'; // timeout in minutes (0 = default)
+      // Computed values for templates
+      webmodule_classname_short = 'webmodule.classname_short'; // TMyWebModule -> MyWebModule
+      default_media_type = 'default_media_type';
+      // Server engine type
+      program_server_engine = 'program.server_engine';
+      program_server_protocol = 'program.server.protocol';
+      program_uses_webmodule = 'program.uses_webmodule'; // 'webbroker', 'indydirect', 'httpsys'
+      // Logging configuration
+      logging_profile = 'logging.profile'; // 'fluent' | 'json'
+      logging_appender_console = 'logging.appender.console';
+      logging_appender_file = 'logging.appender.file';
+      logging_appender_jsonl = 'logging.appender.jsonl';
+      logging_appender_html = 'logging.appender.html';
+      logging_appender_odbg = 'logging.appender.odbg';
+      logging_appender_eventlog = 'logging.appender.eventlog';
+      logging_appender_syslog = 'logging.appender.syslog';
+      logging_exewatch = 'logging.exewatch';
+  end;
+
+  TLoggingProfiles = record
+    const
+      FLUENT = 'fluent';
+      JSON_CONFIG = 'json';
+      DISABLED = 'disabled';
   end;
 
   TProgramTypes = record
@@ -110,9 +148,10 @@ type
       FASTCGI_CONSOLE = 'fastcgi.console';
       APACHE = 'apache';
       ISAPI = 'isapi';
+      WINDOWS_SERVICE = 'windows.service';
+      INDY_DIRECT = 'indy.direct';
+      HTTPSYS = 'httpsys';
   end;
-
-procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
 
 implementation
 
@@ -126,20 +165,6 @@ begin
   if (not Model.Contains(Key)) or Model.S[Key].IsEmpty then begin
     raise Exception.CreateFmt('Required key "%s" not found or empty while processing %s', [Key, ClassName]);
   end;
-end;
-
-procedure ChangeIOTAModuleFileNamePrefix(const IOTA: IOTAModule; const FileNamePrefix: String);
-var
-  lDirName: string;
-  lFileName: string;
-  lFileExt: string;
-begin
-  lDirName := TPath.GetDirectoryName(IOTA.FileName);
-  lFileName := TPath.GetFileNameWithoutExtension(IOTA.FileName);
-  lFileExt := TPath.GetExtension(IOTA.FileName);
-  lFileName := FileNamePrefix;
-  //  IOTA.FileName := TPath.Combine(lDirName, lFileName + lFileExt);
-  //  IOTA.Refresh(False);
 end;
 
 end.

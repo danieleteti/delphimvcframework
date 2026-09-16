@@ -1,0 +1,46 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Home · Minimal API WebApp{{endblock}}
+
+{{block "body"}}
+<div class="container-fluid p-0">
+    <h1 class="display-6 fw-semibold mb-3">DMVCFramework Minimal API</h1>
+    <p class="lead text-muted">Powered by Minimal API + TemplatePro + HTMX + Bootstrap.</p>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-diagram-3 text-primary"></i> Lambda routing</h5>
+                    <p class="card-text mb-0">
+                        Every route is a lambda. No controller classes.
+                        <code>WebRoot.MapGet('/', ...)</code>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-layout-text-window text-primary"></i> TemplatePro layout</h5>
+                    <p class="card-text mb-0">
+                        Pages <code>extend</code> a base layout and override named
+                        <code>block</code>s — title, body, scripts.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-lightning text-primary"></i> HTMX-aware</h5>
+                    <p class="card-text mb-0">
+                        The layout wraps only when <code>ispage</code> is true.
+                        HTMX requests get the body fragment.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{endblock}}

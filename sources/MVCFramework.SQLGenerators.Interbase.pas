@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,6 +43,7 @@ type
       const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord): string; override;
     function HasReturning: Boolean; override;
+    function HandlesRefreshNatively: Boolean; override;
   end;
 
 implementation
@@ -58,18 +59,18 @@ function TMVCSQLGeneratorInterbase.CreateInsertSQL(
 var
   lKeyValue: TPair<TRttiField, TFieldInfo>;
   lSB: TStringBuilder;
-  lPKInInsert: Boolean;
   lFieldName: String;
+  lPKIdx: Integer;
 begin
-  lPKInInsert := (not TableMap.fPrimaryKeyFieldName.IsEmpty);
-  lPKInInsert := lPKInInsert and (not(TMVCActiveRecordFieldOption.foReadOnly in TableMap.fPrimaryKeyOptions));
   lSB := TStringBuilder.Create;
   try
     lSB.Append('INSERT INTO ' + GetTableNameForSQL(TableMap.fTableName) + '(');
-    if lPKInInsert then
-    begin
-      lSB.Append(GetFieldNameForSQL(TableMap.fPrimaryKeyFieldName) + ',');
-    end;
+    // Interbase has no RETURNING: an auto-generated PK value is pre-fetched via a
+    // generator (FillPrimaryKey) BEFORE the insert, so every PK column that is not
+    // read-only is written as a value. Single-PK: identical to the old emission.
+    for lPKIdx := 0 to High(TableMap.fPrimaryKeys) do
+      if not (foReadOnly in TableMap.fPrimaryKeys[lPKIdx].Options) then
+        lSB.Append(GetFieldNameForSQL(TableMap.fPrimaryKeys[lPKIdx].FieldName) + ',');
 
     {partition}
     for lFieldName in fPartitionInfo.FieldNames do
@@ -88,10 +89,9 @@ begin
 
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(') values (');
-    if lPKInInsert then
-    begin
-      lSB.Append(':' + GetParamNameForSQL(TableMap.fPrimaryKeyFieldName) + ',');
-    end;
+    for lPKIdx := 0 to High(TableMap.fPrimaryKeys) do
+      if not (foReadOnly in TableMap.fPrimaryKeys[lPKIdx].Options) then
+        lSB.Append(':' + GetParamNameForSQL(TableMap.fPrimaryKeys[lPKIdx].FieldName) + ',');
 
     {partition}
     for lFieldName in fPartitionInfo.FieldNames do
@@ -121,6 +121,17 @@ end;
 
 function TMVCSQLGeneratorInterbase.HasReturning: Boolean;
 begin
+  Result := False;
+end;
+
+function TMVCSQLGeneratorInterbase.HandlesRefreshNatively: Boolean;
+begin
+  { Inherited from the Firebird generator this answered True, which claims the
+    INSERT surfaces foRefresh columns through a RETURNING clause. Interbase has
+    no RETURNING and CreateInsertSQL above emits none, so the framework opened a
+    statement that returns no result set and the insert died with "Cannot open /
+    define command, which does not return result sets". Those columns are read
+    back by the separate SELECT in RefreshFromDB instead. }
   Result := False;
 end;
 

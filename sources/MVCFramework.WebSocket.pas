@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -202,6 +202,8 @@ uses
 
 class function TMVCWebSocketFrame.Create(AOpcode: TMVCWebSocketOpcode;
   const APayload: TBytes; AFin, AMasked: Boolean): TMVCWebSocketFrame;
+var
+  lGuid: TGUID;
 begin
   Result.Fin := AFin;
   Result.Reserved := 0;
@@ -212,13 +214,10 @@ begin
 
   if AMasked then
   begin
-    // Generate cryptographically random masking key (RFC 6455 Section 10.3)
-    // Note: For client-side masking only. Server->Client frames MUST NOT be masked.
-    Result.MaskingKey[0] := Byte(Random(256));
-    Result.MaskingKey[1] := Byte(Random(256));
-    Result.MaskingKey[2] := Byte(Random(256));
-    Result.MaskingKey[3] := Byte(Random(256));
-    // TODO: Use TRandomNumberGenerator for cryptographically secure random
+    // Generate cryptographically secure masking key (RFC 6455 Section 5.3 / 10.3)
+    // Uses CreateGUID which is backed by OS crypto-random (CoCreateGuid on Windows, /dev/urandom on Linux)
+    CreateGUID(lGuid);
+    Move(lGuid, Result.MaskingKey[0], SizeOf(Result.MaskingKey));
   end
   else
   begin
@@ -241,7 +240,6 @@ end;
 class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean): TMVCWebSocketFrame;
 var
   Byte1, Byte2: Byte;
-  ExtendedPayloadLength: UInt64;
   I: Integer;
 begin
   // Read first two bytes
@@ -289,27 +287,17 @@ begin
   end;
 
   // Extended payload length
+  // Note: Indy's ReadUInt16/ReadUInt64 read big-endian (network byte order) and
+  // return values already converted to native endianness, so no manual swap needed
   if Result.PayloadLength = 126 then
   begin
-    // 16-bit extended payload length
-    ExtendedPayloadLength := AIOHandler.ReadUInt16;
-    Result.PayloadLength := ((ExtendedPayloadLength and $FF) shl 8) or
-                           ((ExtendedPayloadLength and $FF00) shr 8);
+    // 16-bit extended payload length (RFC 6455: network byte order)
+    Result.PayloadLength := AIOHandler.ReadUInt16;
   end
   else if Result.PayloadLength = 127 then
   begin
-    // 64-bit extended payload length
-    ExtendedPayloadLength := AIOHandler.ReadUInt64;
-    // Swap bytes for big-endian to little-endian
-    Result.PayloadLength :=
-      ((ExtendedPayloadLength and $FF) shl 56) or
-      ((ExtendedPayloadLength and $FF00) shl 40) or
-      ((ExtendedPayloadLength and $FF0000) shl 24) or
-      ((ExtendedPayloadLength and $FF000000) shl 8) or
-      ((ExtendedPayloadLength and $FF00000000) shr 8) or
-      ((ExtendedPayloadLength and $FF0000000000) shr 24) or
-      ((ExtendedPayloadLength and $FF000000000000) shr 40) or
-      ((ExtendedPayloadLength and $FF00000000000000) shr 56);
+    // 64-bit extended payload length (RFC 6455: network byte order)
+    Result.PayloadLength := AIOHandler.ReadUInt64;
   end;
 
   // Read masking key if present

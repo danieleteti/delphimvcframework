@@ -1,0 +1,26 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Docs · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/">&larr; back to index</a></nav>
+<h1 class="mb-3">Docs</h1>
+<p class="text-muted">A trailing <code>($slug:*)</code> route segment captures the
+   rest of the URL — slashes included — as a single string. Useful for doc
+   trees, virtual paths, and slugs with separators.</p>
+
+<div class="card">
+    <div class="card-header fw-semibold">Captured path</div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">slug</dt>
+            <dd class="col-sm-9"><code>{{:slug}}</code></dd>
+        </dl>
+    </div>
+    <div class="card-footer text-secondary small">
+        Try <code>/docs/getting-started</code> or
+        <code>/docs/guides/routing/wildcards</code> — everything after
+        <code>/docs/</code> arrives in one <code>string</code> argument.
+    </div>
+</div>
+{{endblock}}

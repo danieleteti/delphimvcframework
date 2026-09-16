@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -170,7 +170,9 @@ type
     function SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
 
     /// <summary>
-    /// Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// Add a custom SSL certificate validation. Without one, a certificate the
+    /// platform rejected is refused (set MVCRESTClientAcceptInvalidCertificates
+    /// to accept it anyway).
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 
@@ -474,6 +476,15 @@ type
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Execute a Query request (RFC 10008).
+    /// </summary>
+    function Query(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Query(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    function Query: IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Execute a Put request.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
@@ -568,6 +579,15 @@ type
     procedure BodyFor(const aObject: TObject; const aRootNode: string = '');
     procedure BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string = '');
   end;
+
+var
+  { Opt-in escape hatch for a client that must talk to a host with a self-signed
+    or expired certificate and cannot install a validation proc - typically a
+    test or a lab. It is a global on purpose: turning it on is a decision about
+    the process, not about one request, and it should be visible as such.
+    Prefer IMVCRESTClient.SetValidateServerCertificateProc, which decides per
+    certificate. }
+  MVCRESTClientAcceptInvalidCertificates: Boolean = False;
 
 implementation
 
@@ -1443,6 +1463,8 @@ begin
       Result := 'PATCH';
     httpTRACE:
       Result := 'TRACE';
+    httpQUERY:
+      Result := 'QUERY';
   end;
 end;
 
@@ -1562,10 +1584,15 @@ end;
 procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
 const aCertificate: TCertificate; var aAccepted: Boolean);
 begin
+  { The RTL calls this only when the certificate has ALREADY failed platform
+    validation, and with no handler installed it raises - fail-closed. Answering
+    True here turned that into "accept self-signed, expired, wrong hostname,
+    unknown CA" for every outgoing HTTPS call, MITM included. The caller's own
+    proc still decides when it installs one. }
   if Assigned(fValidateServerCertificate) then
     fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
   else
-    aAccepted := True;
+    aAccepted := MVCRESTClientAcceptInvalidCertificates;
 end;
 
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
@@ -1590,7 +1617,55 @@ begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
 
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Patch;
+    Exit;
+  end;
+
   Result := Patch(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TMVCRESTClient.Query(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+
+  Result := Query;
+end;
+
+function TMVCRESTClient.Query: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpQUERY);
+end;
+
+function TMVCRESTClient.Query(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
+begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Query;
+    Exit;
+  end;
+
+  Result := Query(aResource, SerializeObject(aBody));
 
   if aOwnsBody then
     aBody.Free;
@@ -1611,6 +1686,20 @@ function TMVCRESTClient.Post(const aResource: string; aBody: TObject; const aOwn
 begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // Callers commonly pass a TStringStream / TMemoryStream here meaning
+    // "this is the raw request body". Without this branch they would run
+    // through the stream type serializer and be wrapped as
+    // { "data": "<base64>" }, which is almost never what they want. The
+    // DTO serialization path is preserved for every other TObject.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Post;
+    Exit;
+  end;
 
   Result := Post(aResource, SerializeObject(aBody));
 
@@ -1698,6 +1787,16 @@ function TMVCRESTClient.Put(const aResource: string; aBody: TObject; const aOwns
 begin
   if aBody = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBody is TStream then
+  begin
+    // See TMVCRESTClient.Post(TObject) - same rationale for TStream bodies.
+    Resource(aResource);
+    ClearBody;
+    AddBody(TStream(aBody), aOwnsBody, TMVCMediaType.APPLICATION_JSON);
+    Result := Put;
+    Exit;
+  end;
 
   Result := Put(aResource, SerializeObject(aBody));
 

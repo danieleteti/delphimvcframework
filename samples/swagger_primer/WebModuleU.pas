@@ -26,11 +26,13 @@ implementation
 
 uses MyControllerU, System.IOUtils, MVCFramework.Commons, MVCFramework.Middleware.Compression,
   MVCFramework.Middleware.Swagger, MVCFramework.Swagger.Commons, MVCFramework.Middleware.CORS,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Middleware.StaticFiles,
+  MVCFramework.OpenAPI3, MVCFramework.Middleware.OpenAPI3;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 var
   lSwagInfo: TMVCSwaggerInfo;
+  lOAInfo: TMVCOpenAPIInfo;
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
@@ -73,6 +75,19 @@ begin
     ));
   FMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(FMVC, lSwagInfo, '/api/swagger.json',
     'Method for authentication using JSON Web Token (JWT)'));
+
+  // Same controllers, emitted as OpenAPI 3.1 (alongside the legacy Swagger 2.0
+  // doc above). Validates the controller-source path of the new emitter.
+  lOAInfo.Title := lSwagInfo.Title;
+  lOAInfo.Version := lSwagInfo.Version;
+  lOAInfo.Description := lSwagInfo.Description;
+  lOAInfo.ContactName := lSwagInfo.ContactName;
+  lOAInfo.ContactEmail := lSwagInfo.ContactEmail;
+  lOAInfo.ContactUrl := lSwagInfo.ContactUrl;
+  lOAInfo.LicenseName := lSwagInfo.LicenseName;
+  lOAInfo.LicenseUrl := lSwagInfo.LicenseUrl;
+  FMVC.AddMiddleware(TMVCOpenAPI3Middleware.Create(FMVC, lOAInfo,
+    '/api/openapi.json'));
 
 end;
 

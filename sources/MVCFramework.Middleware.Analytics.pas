@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -59,8 +59,8 @@ function GetAnalyticsDefaultLogger: ILogWriter;
 implementation
 
 uses
-  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, MVCFramework.Commons,
-  System.IOUtils;
+  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, LoggerPro.Builder,
+  MVCFramework.Commons, System.IOUtils;
 
 var
   GLogWriter: ILogWriter = nil;
@@ -88,7 +88,7 @@ begin
               LogItem.LogTypeAsString,
               LogItem.LogMessage]);
           end;
-        GLogWriter := BuildLogWriter([lLog]);
+        GLogWriter := LoggerProBuilder.WriteToAppender(lLog).Build;
       end;
     finally
       TMonitor.Exit(GLock);
@@ -124,12 +124,12 @@ begin
   lWebResp := AContext.Response;
   fLogWriter.Log(LOG_LEVEL[AContext.Response.StatusCode div 100],
     lWebReq.ClientIp + ';' +
-    lWebReq.RawWebRequest.Method + ';' +
-    lWebReq.RawWebRequest.PathInfo + ';' +
+    lWebReq.Method + ';' +
+    lWebReq.PathInfo + ';' +
     lWebResp.StatusCode.ToString + ';' +
     AContext.Data.Items['fqaction'] + ';' +
-    lWebResp.RawWebResponse.ContentLength.ToString + ';' +
-    lWebReq.RawWebRequest.Host,
+    lWebResp.ContentLength.ToString + ';' +
+    lWebReq.Host,
     ANALYTICS_TAG);
 end;
 

@@ -1,0 +1,13 @@
+{{extends "baselayout.html"}}
+
+{{block "title"}}Error{{endblock}}
+
+{{block "body"}}
+  <div class="hero">
+    <h1>{{:status}} &middot; {{:statustext}}</h1>
+    <p class="lead">{{:error}}</p>
+  </div>
+  <div class="text-center mt-3">
+    <a href="/" class="btn btn-outline-primary">Back to Home &rarr;</a>
+  </div>
+{{endblock}}

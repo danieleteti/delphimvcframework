@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{96D17257-AF74-48CB-9893-7BCCB56A069D}</ProjectGuid>
         <MainSource>dmvcframeworkRT.dpk</MainSource>
@@ -113,6 +113,11 @@
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_GenerateStackFrames>false</DCC_GenerateStackFrames>
+        <DCC_Assertions>false</DCC_Assertions>
+        <DCC_IntegerOverflowCheck>false</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>false</DCC_RangeChecking>
+        <DCC_Optimize>true</DCC_Optimize>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
@@ -149,6 +154,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Logger.ColorConsoleRenderer.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Analytics.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>
@@ -181,11 +187,16 @@
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MariaDB.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Oracle.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2Oracle.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.HTML.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.CSV.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.LRUCache.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
@@ -203,6 +214,8 @@
         <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SSE.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SSEClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Session.Internal.pas"/>
@@ -218,6 +231,22 @@
         <DCCReference Include="..\..\sources\MVCFramework.WebSocket.RateLimiter.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.WebSocket.Server.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
+        <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Validation.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ValidationEngine.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Validators.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.DataSet.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.MinimalAPI.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.StaticFiles.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.OpenAPI3.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.OpenAPI3.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JWT.RefreshToken.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JWT.RefreshToken.Filters.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JWT.RefreshToken.ActiveRecord.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Request.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.WebBroker.Response.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -1,18 +1,232 @@
-<html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JWT Authentication Sample - DMVCFramework</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.blue.min.css">
+  <style>
+    :root { --accent: #3b82f6; --accent-light: rgba(59,130,246,0.12); }
+    body { background: #0c1222; }
+    .hero { text-align: center; padding: 2.5rem 1rem 1.5rem; }
+    .hero h1 { color: #93bbfc; font-size: 1.7rem; font-weight: 800; margin-bottom: 0.3rem; }
+    .hero p { color: #94a3b8; }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem;
+      border-radius: 4px; background: var(--accent-light); color: #93bbfc;
+      border: 1px solid rgba(59,130,246,0.25); }
+    .badge-green { background: rgba(5,150,105,0.12); color: #34d399; border-color: rgba(5,150,105,0.25); }
+    .badge-red { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.25); }
+    .section-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #93bbfc; margin-bottom: 0.4rem; }
+    .step-num { display: inline-block; width: 1.5rem; height: 1.5rem; line-height: 1.5rem;
+      text-align: center; border-radius: 50%; background: var(--accent); color: #fff;
+      font-size: 0.78rem; font-weight: 700; margin-right: 0.4rem; }
+    article { background: rgba(15,23,42,0.6); border: 1px solid rgba(71,85,105,0.3); border-radius: 10px; }
+    article header { border-bottom: 1px solid rgba(59,130,246,0.15); font-weight: 600; color: #e2e8f0; }
+    pre.response { word-break: break-all; white-space: pre-wrap; font-size: 0.78rem;
+      background: rgba(15,23,42,0.8); padding: 0.75rem; border-radius: 8px;
+      border: 1px solid rgba(71,85,105,0.3); color: #cbd5e1; max-height: 300px; overflow-y: auto; }
+    .token-header { color: #f87171; }
+    .token-payload { color: #a78bfa; }
+    .token-sig { color: #34d399; }
+    .result-box { padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid rgba(71,85,105,0.3);
+      background: rgba(15,23,42,0.4); min-height: 50px; font-size: 0.85rem; }
+    .result-ok { border-color: rgba(5,150,105,0.3); }
+    .result-err { border-color: rgba(239,68,68,0.3); }
+    footer { border-top: 1px solid rgba(71,85,105,0.3); margin-top: 2rem;
+      padding: 1.5rem 0; text-align: center; color: #64748b; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem; }
+    .user-card { padding: 0.6rem; border-radius: 8px; border: 1px solid rgba(71,85,105,0.3);
+      background: rgba(15,23,42,0.4); font-size: 0.85rem; text-align: center; }
+    .user-card strong { color: #e2e8f0; display: block; margin-bottom: 0.2rem; }
+    .user-card small { color: #64748b; }
+    kbd { font-size: 0.78rem; padding: 0.1rem 0.4rem; border-radius: 4px;
+      background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #93bbfc; }
+  </style>
+</head>
 <body>
- <h2>Here's the public and the private sections on this application server</h2>
- <ul>
-   <li><a href="/public">Public section</a></li>
-   <li><a href="/admin/role1">Private section for role1</a></li>
-   <li><a href="/admin/role2">Private section for role2</a></li>   
- </ul>
- <p>
-  The available users are shown below:
-  <ul>
-  <li>user1/user1 (role1)</li>
-  <li>user2/user2 (role2)</li>
-  <li>user3/user3 (role1, role2)</li>  
-  </ul>
-  </p>
+  <main class="container">
+    <div class="hero">
+      <h1>JWT Authentication Sample</h1>
+      <p>DMVCFramework JWT Middleware Demo</p>
+      <p>
+        <span class="badge" id="algBadge">...</span>
+        <span class="badge">DMVCFramework</span>
+      </p>
+    </div>
+
+    <!-- Users -->
+    <p class="section-label">Demo Credentials</p>
+    <div class="grid-3">
+      <div class="user-card">
+        <strong>user1 / user1</strong>
+        <span class="badge-green badge">role1</span>
+      </div>
+      <div class="user-card">
+        <strong>user2 / user2</strong>
+        <span class="badge-green badge">role2</span>
+      </div>
+      <div class="user-card">
+        <strong>user3 / user3</strong>
+        <span class="badge-green badge">role1</span>
+        <span class="badge-green badge">role2</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Public -->
+    <p class="section-label" style="margin-top:1.5rem"><span class="step-num">1</span> Public Endpoint</p>
+    <article>
+      <header>GET /public</header>
+      <p>No authentication required.</p>
+      <button onclick="callAPI('/public', false)">Call Public</button>
+      <div id="result-public" class="result-box" style="margin-top:0.5rem">
+        <em style="color:#64748b">Click the button.</em>
+      </div>
+    </article>
+
+    <!-- Step 2: Login -->
+    <p class="section-label"><span class="step-num">2</span> Login</p>
+    <article>
+      <header>POST /login</header>
+      <p>Send credentials via <kbd>jwtusername</kbd> / <kbd>jwtpassword</kbd> headers.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;align-items:end">
+        <div>
+          <label for="user" style="font-size:0.82rem">Username</label>
+          <input type="text" id="user" value="user1" style="margin-bottom:0">
+        </div>
+        <div>
+          <label for="pass" style="font-size:0.82rem">Password</label>
+          <input type="password" id="pass" value="user1" style="margin-bottom:0">
+        </div>
+        <button onclick="doLogin()" style="margin-bottom:0">Login</button>
+      </div>
+      <div id="result-login" class="result-box" style="margin-top:0.5rem">
+        <em style="color:#64748b">Enter credentials and click Login.</em>
+      </div>
+      <div id="token-display" style="display:none;margin-top:0.75rem">
+        <p class="section-label">JWT Token</p>
+        <pre class="response" id="token-pre"></pre>
+        <p style="margin-top:0.3rem"><small>
+          <span class="token-header">Header</span> &middot;
+          <span class="token-payload">Payload</span> &middot;
+          <span class="token-sig">Signature</span>
+        </small></p>
+      </div>
+    </article>
+
+    <!-- Step 3: Protected -->
+    <p class="section-label"><span class="step-num">3</span> Protected Endpoints</p>
+    <article>
+      <header>GET /admin/role1 &middot; GET /admin/role2</header>
+      <p>Requires a valid JWT with the correct role.</p>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button id="btn-role1" onclick="callAPI('/admin/role1', true)" disabled>Call /admin/role1</button>
+        <button id="btn-role2" onclick="callAPI('/admin/role2', true)" disabled>Call /admin/role2</button>
+        <button onclick="callAPI('/admin/role1', false)" class="outline secondary">Call Without Token</button>
+      </div>
+      <div id="result-admin" class="result-box" style="margin-top:0.5rem">
+        <em style="color:#64748b">Login first, then call a protected endpoint.</em>
+      </div>
+    </article>
+
+    <!-- Step 4: Exception -->
+    <p class="section-label"><span class="step-num">4</span> Exception Handling</p>
+    <article>
+      <header>Login as user_raise_exception</header>
+      <p>The server raises an exception during authentication. With <kbd>application/json</kbd> as
+         default content type, the error is returned as JSON (not HTML).</p>
+      <button onclick="doExceptionLogin()">Login as user_raise_exception</button>
+      <div id="result-exception" class="result-box" style="margin-top:0.5rem">
+        <em style="color:#64748b">Click to see a JSON error response.</em>
+      </div>
+    </article>
+  </main>
+
+  <footer class="container">
+    <small>JWT Sample &middot; <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a></small>
+  </footer>
+
+  <script>
+  var token = '';
+
+  function show(id, data, isError) {
+    var el = document.getElementById(id);
+    el.className = 'result-box ' + (isError ? 'result-err' : 'result-ok');
+    el.innerHTML = typeof data === 'object'
+      ? '<pre style="margin:0;font-size:0.82rem;white-space:pre-wrap">' + JSON.stringify(data, null, 2) + '</pre>'
+      : data;
+  }
+
+  function callAPI(path, useToken) {
+    var h = { 'Accept': 'application/json' };
+    if (useToken && token) h['Authorization'] = 'Bearer ' + token;
+    fetch(path, { headers: h })
+      .then(function(r) {
+        return r.json().then(function(d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function(r) {
+        var id = path.startsWith('/admin') ? 'result-admin' : 'result-public';
+        show(id, r.data, !r.ok);
+      })
+      .catch(function(e) {
+        show('result-admin', 'Error: ' + e, true);
+      });
+  }
+
+  function doLogin() {
+    fetch('/login', {
+      method: 'POST',
+      headers: {
+        'jwtusername': document.getElementById('user').value,
+        'jwtpassword': document.getElementById('pass').value,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(d) { throw d; });
+      return r.json();
+    })
+    .then(function(data) {
+      token = data.token;
+      show('result-login', '<span class="badge badge-green">Authenticated!</span>');
+
+      // Decode and show token
+      var parts = token.split('.');
+      document.getElementById('token-pre').innerHTML =
+        '<span class="token-header">' + parts[0] + '</span>.' +
+        '<span class="token-payload">' + parts[1] + '</span>.' +
+        '<span class="token-sig">' + parts[2] + '</span>';
+      document.getElementById('token-display').style.display = 'block';
+
+      // Show algorithm badge
+      try {
+        var hdr = JSON.parse(atob(parts[0].replace(/-/g,'+').replace(/_/g,'/')));
+        document.getElementById('algBadge').textContent = hdr.alg;
+      } catch(e) {}
+
+      document.getElementById('btn-role1').disabled = false;
+      document.getElementById('btn-role2').disabled = false;
+    })
+    .catch(function(e) {
+      show('result-login', '<span class="badge badge-red">Failed</span> ' +
+        (e.message || JSON.stringify(e)), true);
+    });
+  }
+
+  function doExceptionLogin() {
+    fetch('/login', {
+      method: 'POST',
+      headers: {
+        'jwtusername': 'user_raise_exception',
+        'jwtpassword': 'user_raise_exception',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { show('result-exception', data, true); })
+    .catch(function(e) { show('result-exception', 'Error: ' + e, true); });
+  }
+  </script>
 </body>
 </html>

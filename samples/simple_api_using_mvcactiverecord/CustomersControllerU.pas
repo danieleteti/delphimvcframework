@@ -54,7 +54,7 @@ begin
   Result := TMVCActiveRecord.GetByPK<TCustomer>(ID);
 end;
 
-function TCustomersController.GetCustomers([MVCFromQueryString('rql','')] RQLFilter: String): TObjectList<TCustomer>;
+function TCustomersController.GetCustomers(RQLFilter: String): TObjectList<TCustomer>;
 begin
   Result := TMVCActiveRecord.SelectRQL<TCustomer>(RQLFilter, 1000);
 end;

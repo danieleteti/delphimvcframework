@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -89,7 +89,7 @@ type
     [MVCSwagResponses(HTTP_STATUS.OK, 'One {singularmodel}', SWAGUseDefaultControllerModel)]
     [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
-    procedure GetEntity(const entityname: string; const id: Integer); virtual;
+    procedure GetEntity(const entityname: string; const id: string); virtual;
 
     [MVCPath('/($entityname)')]
     [MVCHTTPMethod([httpPOST])]
@@ -107,7 +107,7 @@ type
     [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
     [MVCSwagParam(TMVCSwagParamLocation.plBody, '{singularmodel}', 'A single entity of type {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, True)]
-    procedure UpdateEntity(const entityname: string; const id: Integer); virtual;
+    procedure UpdateEntity(const entityname: string; const id: string); virtual;
 
     [MVCPath('/($entityname)/($id)')]
     [MVCHTTPMethod([httpDELETE])]
@@ -115,7 +115,7 @@ type
     [MVCSwagResponses(HTTP_STATUS.NoContent, '')]
     [MVCSwagResponses(HTTP_STATUS.NotFound, 'Error', TMVCErrorResponse)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
-    procedure DeleteEntity(const entityname: string; const id: Integer); virtual;
+    procedure DeleteEntity(const entityname: string; const id: string); virtual;
 
   end;
 
@@ -137,10 +137,61 @@ type
 
 implementation
 
+
 uses
   MVCFramework.Logger,
+  System.SyncObjs,
   JsonDataObjects,
   Data.DB;
+
+var
+  gAuthWarningLogged: Integer = 0;
+
+// Turns the raw ($id) URL segment into one string value per primary-key column.
+// Single key: the segment IS the value. Composite key: the segment is a JSON
+// array of typed values, e.g. [1,"ACME;01"], which sidesteps any delimiter
+// collision because JSON quotes and escapes string content.
+function ExtractPKValues(const AAR: TMVCActiveRecord; const ASegment: string): TArray<string>;
+var
+  lJSON: TJsonBaseObject;
+  lArr: TJsonArray;
+  I: Integer;
+begin
+  if not AAR.HasCompositePK then
+  begin
+    SetLength(Result, 1);
+    Result[0] := ASegment;
+    Exit;
+  end;
+  try
+    lJSON := TJsonBaseObject.Parse(ASegment);
+  except
+    on E: Exception do
+      raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+        'Composite key must be a JSON array (e.g. [1,"code"]); got: %s', [ASegment]);
+  end;
+  try
+    if not (lJSON is TJsonArray) then
+      raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+        'Composite key must be a JSON array (e.g. [1,"code"]); got: %s', [ASegment]);
+    lArr := TJsonArray(lJSON);
+    SetLength(Result, lArr.Count);
+    for I := 0 to lArr.Count - 1 do
+    begin
+      case lArr.Types[I] of
+        jdtString: Result[I] := lArr.S[I];
+        jdtInt: Result[I] := IntToStr(lArr.I[I]);
+        jdtLong: Result[I] := IntToStr(lArr.L[I]);
+        jdtULong: Result[I] := UIntToStr(lArr.U[I]);
+        jdtBool: Result[I] := BoolToStr(lArr.B[I], True);
+      else
+        Result[I] := lArr.S[I];
+      end;
+    end;
+  finally
+    lJSON.Free;
+  end;
+end;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -196,13 +247,10 @@ begin
           .Add('data', lARResp,
             procedure(const AObject: TObject; const Links: IMVCLinks)
             begin
-              //Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + )
-              case TMVCActiveRecord(AObject).GetPrimaryKeyFieldType of
-                ftInteger:
-                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInteger.ToString);
-                ftLargeint:
-                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString);
-              end;
+              // Self-link keyed on the PK: the scalar value for a single key,
+              // or a JSON array for a composite one. String/GUID keys included.
+              Links.AddRefLink.Add(HATEOAS.HREF,
+                fURLSegment + '/' + TMVCActiveRecord(AObject).PKAsURLSegment);
             end)
           .Add('meta', lStrDict));
       finally
@@ -249,7 +297,7 @@ begin
 end;
 
 
-procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);
+procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: string);
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
@@ -280,7 +328,8 @@ begin
       Exit;
     end;
 
-    if lAR.LoadByPK(id) then
+    // LoadByPKs handles both a single PK and a composite key (JSON array segment).
+    if lAR.LoadByPKs(ExtractPKValues(lAR, id)) then
     begin
       lResponse := MVCResponseBuilder
           .StatusCode(HTTP_STATUS.OK)
@@ -319,6 +368,14 @@ begin
   end
   else
   begin
+    { No authorization function means every registered entity is readable and
+      writable by anyone - an open, silent default. Changing it to False would
+      break existing applications, so it is made audible instead. Once per
+      process: controllers are built per request, so warning here every time
+      would drown the log. }
+    if TInterlocked.CompareExchange(gAuthWarningLogged, 1, 0) = 0 then
+      LogW('TMVCActiveRecordController has no authorization function: every ' +
+        'registered entity is exposed to anonymous callers for read and write.');
     Result := True;
   end;
 end;
@@ -364,7 +421,8 @@ begin
 
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.Insert;
-    Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString;
+    Context.Response.CustomHeaders.Values['X-REF'] :=
+      Context.Request.PathInfo + '/' + lAR.PKAsURLSegment;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
       RenderStatusMessage(HTTP_STATUS.Created, entityname.ToLower + ' created', '', lAR, False);
@@ -378,12 +436,13 @@ begin
   end;
 end;
 
-procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; const id: Integer);
+procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; const id: string);
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
+  lPKValues: TArray<string>;
 begin
   lProcessor := nil;
   if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
@@ -408,10 +467,12 @@ begin
       Exit;
     end;
     lAR.CheckAction(TMVCEntityAction.eaUpdate);
-    if not lAR.LoadByPK(id) then
+    lPKValues := ExtractPKValues(lAR, id);
+    if not lAR.LoadByPKs(lPKValues) then
       raise EMVCException.CreateFmt(HTTP_STATUS.NotFound, 'Cannot find entity %s', [entityname]);
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
-    lAR.SetPK(id);
+    // The URL is the source of truth for the key: re-assert it after body bind.
+    lAR.SetPKs(lPKValues);
     lAR.Update;
     Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
@@ -427,12 +488,13 @@ begin
   end;
 end;
 
-procedure TMVCActiveRecordController.DeleteEntity(const entityname: string; const id: Integer);
+procedure TMVCActiveRecordController.DeleteEntity(const entityname: string; const id: string);
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
+  lPKValues: TArray<string>;
 begin
   lProcessor := nil;
   if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
@@ -461,9 +523,10 @@ begin
       HTTP DELETE is an idempotent operation. Invoking it multiple times consecutively must result in
       the same behavior as the first. Meaning: you shouldn't return HTTP 404.
     }
-    if lAR.LoadByPK(id) then
+    lPKValues := ExtractPKValues(lAR, id);
+    if lAR.LoadByPKs(lPKValues) then
     begin
-      lAR.SetPK(id);
+      lAR.SetPKs(lPKValues);
       lAR.Delete;
     end;
     Render(HTTP_STATUS.OK, entityname.ToLower + ' deleted');

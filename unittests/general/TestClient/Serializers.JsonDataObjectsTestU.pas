@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -42,6 +42,16 @@ uses
   MVCFramework.Tests.Serializer.Entities,
   MVCFramework.Tests.Serializer.EntitiesModule,
   JsonDataObjects,
+  Data.DB,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
   MVCFramework.DataSet.Utils;
 
 type
@@ -93,6 +103,9 @@ type
     procedure TestSerializeDataSet;
     [Test]
     [Category('datasets')]
+    procedure TestSerializeDataSetWithLargeUint_Issue902;
+    [Test]
+    [Category('datasets')]
     procedure TestDataSetHelpers;
     { deserialize declarations }
     [Test]
@@ -114,6 +127,8 @@ type
     [Test]
     // [Category('this')]
     procedure TestDeserializeEntityWithArray;
+    [Test]
+    procedure TestDeserializeEntityWithNamedArrayAlias_Issue889;
     { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
@@ -274,7 +289,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' +
-    '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -386,7 +401,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17 16:37:50",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
-    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -663,6 +678,67 @@ begin
     O.Free;
   end;
   MVCNameCaseDefault := lSavedMVCNameCase;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithNamedArrayAlias_Issue889;
+// Regression for issue #889: in a modular project the model type
+// (e.g. TArray<Integer>) lives in a different BPL/package than
+// dmvcframework, so its PTypeInfo is distinct even though the memory
+// layout is identical. TRttiProperty.SetValue raises EInvalidCast
+// because it compares TypeInfo pointers for identity. We reproduce
+// the same mismatch locally - without a separate BPL - by declaring
+// named array aliases in the test DTO: each named alias has its own
+// TypeInfo, distinct from the serializer's TArray<Xxx>.
+const
+  JSON_WITH_NAMED_ARRAYS =
+    '{' +
+    '"Integers":[1,2,3],' +
+    '"Longs":[10000000000,20000000000],' +
+    '"Bytes":[10,20,30],' +
+    '"Names":["alpha","beta"],' +
+    '"Flags":[true,false,true],' +
+    '"Reals":[1.5,2.5]' +
+    '}';
+var
+  lSavedCase: TMVCNameCase;
+  O: TEntityWithNamedArray;
+begin
+  lSavedCase := MVCNameCaseDefault;
+  MVCNameCaseDefault := ncAsIs;
+  try
+    O := TEntityWithNamedArray.Create;
+    try
+      fSerializer.DeserializeObject(JSON_WITH_NAMED_ARRAYS, O);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Integers));
+      Assert.AreEqual<Integer>(1, O.Integers[0]);
+      Assert.AreEqual<Integer>(3, O.Integers[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Longs));
+      Assert.AreEqual<Int64>(10000000000, O.Longs[0]);
+      Assert.AreEqual<Int64>(20000000000, O.Longs[1]);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Bytes));
+      Assert.AreEqual<Byte>(30, O.Bytes[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Names));
+      Assert.AreEqual('alpha', O.Names[0]);
+      Assert.AreEqual('beta', O.Names[1]);
+
+      Assert.AreEqual<NativeInt>(3, Length(O.Flags));
+      Assert.IsTrue(O.Flags[0]);
+      Assert.IsFalse(O.Flags[1]);
+      Assert.IsTrue(O.Flags[2]);
+
+      Assert.AreEqual<NativeInt>(2, Length(O.Reals));
+      Assert.AreEqual<Double>(1.5, O.Reals[0]);
+      Assert.AreEqual<Double>(2.5, O.Reals[1]);
+    finally
+      O.Free;
+    end;
+  finally
+    MVCNameCaseDefault := lSavedCase;
+  end;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists;
@@ -1133,7 +1209,7 @@ const
     '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
     '"Active":true,' + '"Amount":100.0,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
     '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
-    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"9386c957-5379-4370-8492-8fa464a9cf0c"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -1225,6 +1301,64 @@ begin
   finally
     Dm.Free;
   end;
+end;
+
+type
+  // Holder used by TestSerializeDataSetWithLargeUint_Issue902. Public Int64
+  // field so MapDataSetFieldToRTTIField can reach it via RTTI.
+  TLargeUintHolder_Issue902 = class
+  public
+    BigId: Int64;
+  end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDataSetWithLargeUint_Issue902;
+// RAD Studio 13 added ftLargeUint (ord 52) for BIGINT UNSIGNED. FireDAC types
+// MySQL/MariaDB LAST_INSERT_ID() as ftLargeUint; before the fix the field
+// mapper/serializer only handled ftLargeInt/ftAutoInc and raised
+// "Unsupported FieldType (52)" on every auto-PK Insert read-back.
+{$IF Declared(ftLargeUint)}
+const
+  BIG_VALUE = Int64(4294967297); // 2^32 + 1: overflows 32-bit, fits Int64
+var
+  lMT: TFDMemTable;
+  lJSON: string;
+  lObj: TLargeUintHolder_Issue902;
+  lCtx: TRttiContext;
+  lField: TRttiField;
+{$ENDIF}
+begin
+{$IF Declared(ftLargeUint)}
+  lMT := TFDMemTable.Create(nil);
+  try
+    lMT.FieldDefs.Add('BigId', ftLargeUint);
+    lMT.FieldDefs.Add('Name', ftString, 50);
+    lMT.CreateDataSet;
+    lMT.Append;
+    lMT.FieldByName('BigId').AsLargeInt := BIG_VALUE;
+    lMT.FieldByName('Name').AsString := 'issue902';
+    lMT.Post;
+    lMT.First;
+
+    // Path A: DataSetToJsonObject (Serializer.JsonDataObjects) - used to raise.
+    lJSON := fSerializer.SerializeDataSetRecord(lMT);
+    Assert.Contains(lJSON, '4294967297', False, 'ftLargeUint not serialized');
+
+    // Path B: MapDataSetFieldToRTTIField (Serializer.Commons) - the exact
+    // code path hit by TMVCActiveRecord.Insert read-back of the PK.
+    lObj := TLargeUintHolder_Issue902.Create;
+    try
+      lField := lCtx.GetType(lObj.ClassType).GetField('BigId');
+      MapDataSetFieldToRTTIField(lMT.FieldByName('BigId'), lField, lObj);
+      Assert.AreEqual(BIG_VALUE, lObj.BigId, 'ftLargeUint not mapped to Int64');
+    finally
+      lObj.Free;
+    end;
+  finally
+    lMT.Free;
+  end;
+{$ELSE}
+  Assert.Pass('ftLargeUint not available on this Delphi version');
+{$ENDIF}
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDateTimeProperty;
@@ -1320,7 +1454,7 @@ const
     '"FAppreciationAs":"Yes",' + '"FAppreciation":{' + '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
   JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100.0,' +
-    '"Birthday":null,' + '"AccessDateTime":null,' + '"AccessTime":null,' + '"Active":true,' + '"Role":"roGuest",' +
+    '"Birthday":"1899-12-30",' + '"AccessDateTime":"1899-12-30T00:00:00.000+01:00",' + '"AccessTime":"00:00:00",' + '"Active":true,' + '"Role":"roGuest",' +
     '"Temporization":63623032670000,' + '"Department":{' + '"Id":1,' + '"Name":"Development",' + '"Notes":[' + '{' +
     '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' + '"DepartmentNull":null,' +
     '"Notes":[' + '{' + '"Description":"EntNote1"' + '},' + '{' + '"Description":"EntNote2"' + '}' + '],' +
@@ -1840,9 +1974,9 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
 const
-  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
+  JSON = '{' + '"GuidValue":"aeed1a0f-9061-40f0-9fda-d69ae7f20222",' +
     '"GuidValue2":"ca09dc98-85ba-46e8-aba2-117c2fa8ef25",' +
-    '"NullableGuid":"{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}",' +
+    '"NullableGuid":"eaba9b61-6812-4f0a-9469-d247eb2da8f4",' +
     '"NullableGuid2":"fa51caa7-7d48-46ba-bfde-34c1f740e066",' +
     '"Id":1,' + '"Code":2,' +
     '"Name":"João Antônio"' + '}';
@@ -1924,6 +2058,7 @@ begin
   lSavedNameCaseDefault := MVCNameCaseDefault;
   try
     MVCNameCaseDefault := ncAsIs;
+    MVCGuidSerializationTypeDefault := gstBraces;  // pre-3.5 default; restored explicitly for this block
 
     LEntity := TEntityCustomWithGuid2.Create;
     try

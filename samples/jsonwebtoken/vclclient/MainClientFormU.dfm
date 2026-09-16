@@ -1,164 +1,247 @@
-object Form5: TForm5
+object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'Form5'
-  ClientHeight = 460
-  ClientWidth = 647
+  Caption = 'JWT Authentication Client - DMVCFramework'
+  ClientHeight = 620
+  ClientWidth = 780
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   PixelsPerInch = 96
-  TextHeight = 13
-  object Splitter1: TSplitter
-    Left = 0
-    Top = 309
-    Width = 647
-    Height = 3
-    Cursor = crVSplit
-    Align = alBottom
-    ExplicitLeft = -16
-    ExplicitTop = 302
-    ExplicitWidth = 513
-  end
-  object Splitter2: TSplitter
-    Left = 0
-    Top = 187
-    Width = 647
-    Height = 3
-    Cursor = crVSplit
-    Align = alTop
-    ExplicitLeft = -8
-    ExplicitTop = 302
-    ExplicitWidth = 513
-  end
-  object Memo1: TMemo
-    Left = 0
-    Top = 89
-    Width = 647
-    Height = 98
-    Align = alTop
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 1
-    ExplicitTop = 49
-  end
-  object Memo2: TMemo
-    Left = 0
-    Top = 190
-    Width = 647
-    Height = 119
-    Align = alClient
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 2
-    ExplicitTop = 150
-    ExplicitHeight = 159
-  end
-  object Panel1: TPanel
+  TextHeight = 15
+  object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 647
-    Height = 89
+    Width = 780
+    Height = 145
     Align = alTop
+    BevelOuter = bvNone
+    ParentBackground = False
     TabOrder = 0
-    object btnGet: TButton
+    object gbLogin: TGroupBox
       AlignWithMargins = True
-      Left = 223
-      Top = 4
-      Width = 154
-      Height = 56
+      Left = 8
+      Top = 8
+      Width = 380
+      Height = 129
+      Margins.Left = 8
+      Margins.Top = 8
+      Margins.Right = 4
+      Margins.Bottom = 8
       Align = alLeft
-      Caption = 'Get a protected resource'
-      TabOrder = 2
-      OnClick = btnGetClick
-      ExplicitHeight = 41
-    end
-    object btnLOGIN: TButton
-      AlignWithMargins = True
-      Left = 4
-      Top = 4
-      Width = 101
-      Height = 56
-      Align = alLeft
-      Caption = 'Login (mode 1)'
+      Caption = ' Login '
       TabOrder = 0
-      OnClick = btnLOGINClick
-      ExplicitHeight = 41
-    end
-    object btnLoginWithException: TButton
-      AlignWithMargins = True
-      Left = 512
-      Top = 4
-      Width = 131
-      Height = 56
-      Align = alRight
-      Caption = 'Custom Exception in OnAuthenticate'
-      TabOrder = 3
-      WordWrap = True
-      OnClick = btnLoginWithExceptionClick
-      ExplicitHeight = 41
-    end
-    object btnLoginJsonObject: TButton
-      AlignWithMargins = True
-      Left = 111
-      Top = 4
-      Width = 106
-      Height = 56
-      Align = alLeft
-      Caption = 'Login (mode 2)'
-      TabOrder = 1
-      OnClick = btnLoginJsonObjectClick
-      ExplicitHeight = 41
-    end
-    object Panel2: TPanel
-      Left = 1
-      Top = 63
-      Width = 645
-      Height = 25
-      Align = alBottom
-      BevelOuter = bvNone
-      TabOrder = 4
-      ExplicitTop = 64
-      object chkRememberMe: TCheckBox
-        AlignWithMargins = True
-        Left = 4
-        Top = 3
-        Width = 165
-        Height = 19
-        Margins.Left = 4
-        Align = alLeft
-        Caption = 'Remember me for longer time'
+      object lblUser: TLabel
+        Left = 16
+        Top = 24
+        Width = 56
+        Height = 15
+        Caption = 'Username:'
+      end
+      object lblPass: TLabel
+        Left = 16
+        Top = 56
+        Width = 54
+        Height = 15
+        Caption = 'Password:'
+      end
+      object edtUsername: TEdit
+        Left = 88
+        Top = 21
+        Width = 140
+        Height = 23
         TabOrder = 0
+        Text = 'user1'
+      end
+      object edtPassword: TEdit
+        Left = 88
+        Top = 53
+        Width = 140
+        Height = 23
+        PasswordChar = '*'
+        TabOrder = 1
+        Text = 'user1'
+      end
+      object btnLogin: TButton
+        Left = 248
+        Top = 20
+        Width = 120
+        Height = 25
+        Caption = 'Login (Headers)'
+        TabOrder = 2
+        OnClick = btnLoginClick
+      end
+      object btnLoginJSON: TButton
+        Left = 248
+        Top = 52
+        Width = 120
+        Height = 25
+        Caption = 'Login (JSON Body)'
+        TabOrder = 3
+        OnClick = btnLoginJSONClick
+      end
+      object chkRememberMe: TCheckBox
+        Left = 88
+        Top = 88
+        Width = 170
+        Height = 17
+        Caption = 'Remember me (10h token)'
+        TabOrder = 4
+      end
+    end
+    object gbActions: TGroupBox
+      AlignWithMargins = True
+      Left = 396
+      Top = 8
+      Width = 376
+      Height = 129
+      Margins.Left = 4
+      Margins.Top = 8
+      Margins.Right = 8
+      Margins.Bottom = 8
+      Align = alClient
+      Caption = ' Protected Resources '
+      TabOrder = 1
+      object btnGetRole1: TButton
+        Left = 16
+        Top = 28
+        Width = 150
+        Height = 25
+        Caption = 'GET /admin/role1'
+        Enabled = False
+        TabOrder = 0
+        OnClick = btnGetRole1Click
+      end
+      object btnGetRole2: TButton
+        Left = 16
+        Top = 60
+        Width = 150
+        Height = 25
+        Caption = 'GET /admin/role2'
+        Enabled = False
+        TabOrder = 1
+        OnClick = btnGetRole2Click
+      end
+      object btnGetPublic: TButton
+        Left = 184
+        Top = 28
+        Width = 170
+        Height = 25
+        Caption = 'GET /public (no auth)'
+        TabOrder = 2
+        OnClick = btnGetPublicClick
+      end
+      object btnLoginException: TButton
+        Left = 184
+        Top = 60
+        Width = 170
+        Height = 25
+        Caption = 'Login with Exception'
+        TabOrder = 3
+        OnClick = btnLoginExceptionClick
+      end
+      object btnClear: TButton
+        Left = 184
+        Top = 92
+        Width = 170
+        Height = 25
+        Caption = 'Clear Log'
+        TabOrder = 4
+        OnClick = btnClearClick
       end
     end
   end
-  object Memo3: TMemo
+  object gbToken: TGroupBox
+    AlignWithMargins = True
+    Left = 8
+    Top = 149
+    Width = 764
+    Height = 113
+    Margins.Left = 8
+    Margins.Top = 4
+    Margins.Right = 8
+    Margins.Bottom = 4
+    Align = alTop
+    Caption = ' JWT Token '
+    TabOrder = 1
+    object mmoToken: TMemo
+      AlignWithMargins = True
+      Left = 6
+      Top = 20
+      Width = 752
+      Height = 87
+      Margins.Left = 4
+      Margins.Top = 2
+      Margins.Right = 4
+      Margins.Bottom = 4
+      Align = alClient
+      Color = clInfoBk
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clNavy
+      Font.Height = -11
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      ScrollBars = ssVertical
+      TabOrder = 0
+      WordWrap = False
+    end
+  end
+  object gbResponse: TGroupBox
+    AlignWithMargins = True
+    Left = 8
+    Top = 270
+    Width = 764
+    Height = 322
+    Margins.Left = 8
+    Margins.Top = 4
+    Margins.Right = 8
+    Margins.Bottom = 4
+    Align = alClient
+    Caption = ' Server Response '
+    TabOrder = 2
+    object mmoResponse: TMemo
+      AlignWithMargins = True
+      Left = 6
+      Top = 20
+      Width = 752
+      Height = 296
+      Margins.Left = 4
+      Margins.Top = 2
+      Margins.Right = 4
+      Margins.Bottom = 4
+      Align = alClient
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -12
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      ScrollBars = ssBoth
+      TabOrder = 0
+      WordWrap = False
+    end
+  end
+  object StatusBar: TStatusBar
     Left = 0
-    Top = 312
-    Width = 647
-    Height = 148
-    Align = alBottom
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 3
+    Top = 596
+    Width = 780
+    Height = 24
+    Panels = <
+      item
+        Text = 'Not authenticated'
+        Width = 250
+      end
+      item
+        Text = 'Server: localhost:8080'
+        Width = 200
+      end>
   end
 end

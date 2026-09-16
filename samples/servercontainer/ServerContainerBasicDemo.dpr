@@ -7,19 +7,14 @@ uses
   System.SysUtils,
   Winapi.Windows,
   Winapi.ShellAPI,
-  Web.WebReq,
-  Web.WebBroker,
+  MVCFramework,
   MVCFramework.Console,
   MVCFramework.DotEnv,
   MVCFramework.Logger,
   MVCFramework.Commons,
   MVCFramework.Server,
   MVCFramework.Server.Impl,
-  CustomWebModuleU in 'CustomWebModuleU.pas' {CustomWebModule: TWebModule},
-  App1MainControllerU in 'App1MainControllerU.pas',
-  WebModule01U in 'WebModule01U.pas' {WebModule01: TWebModule},
-  WebModule02U in 'WebModule02U.pas' {WebModule02: TWebModule},
-  WebModule03U in 'WebModule03U.pas' {WebModule03: TWebModule};
+  App1MainControllerU in 'App1MainControllerU.pas';
 
 {$R *.res}
 
@@ -27,6 +22,7 @@ uses
 procedure RunServer(APort: Integer);
 var
   lServerListeners: IMVCListenersContext;
+  lEngineConfig: TProc<TMVCEngine>;
 begin
   dotEnvConfigure(
     function: IMVCDotEnv
@@ -43,6 +39,14 @@ begin
                .Build();             //uses the executable folder to look for .env* files
     end);
 
+  // All four listeners share the same engine configuration: a TMVCListener is
+  // now an Indy Direct server (no WebBroker), so the controller stack is wired
+  // through SetEngineConfig instead of a TWebModule class.
+  lEngineConfig :=
+    procedure(AEngine: TMVCEngine)
+    begin
+      AEngine.AddController(TApp1MainController);
+    end;
 
   Writeln(Format('Starting HTTP Server or port %d, %d, %d and %d',
     [APort, APort + 10, APort + 20, APort + 30]));
@@ -53,28 +57,28 @@ begin
     .SetName('BasicDemo1')
     .SetPort(APort)
     .SetMaxConnections(1024)
-    .SetWebModuleClass(TWebModule01)
+    .SetEngineConfig(lEngineConfig)
     );
 
   lServerListeners.Add(TMVCListenerProperties.New
     .SetName('BasicDemo2')
     .SetPort(APort + 10)
     .SetMaxConnections(1024)
-    .SetWebModuleClass(TWebModule02)
+    .SetEngineConfig(lEngineConfig)
     );
 
   lServerListeners.Add(TMVCListenerProperties.New
     .SetName('BasicDemo3')
     .SetPort(APort + 20)
     .SetMaxConnections(1024)
-    .SetWebModuleClass(TWebModule03)
+    .SetEngineConfig(lEngineConfig)
     );
 
   lServerListeners.Add(TMVCListenerProperties.New
     .SetName('BasicDemo4')
     .SetPort(APort + 30)
     .SetMaxConnections(1024)
-    .SetWebModuleClass(TWebModule03)
+    .SetEngineConfig(lEngineConfig)
     );
 
   lServerListeners.StartAll;

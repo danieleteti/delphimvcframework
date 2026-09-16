@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,9 +34,9 @@ uses
   MVCFramework.Middleware.Session.Internal
   ;
 
-  function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False): TMVCSessionMiddleware;
-  function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False; const aSessionFolder: String = 'dmvc_sessions'): TMVCSessionMiddleware;
-  function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = False): TMVCSessionMiddleware;
+  function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSecure: Boolean = False): TMVCSessionMiddleware;
+  function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSessionFolder: String = 'dmvc_sessions'; const aSecure: Boolean = False): TMVCSessionMiddleware;
+  function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSecure: Boolean = False): TMVCSessionMiddleware;
 
 implementation
 
@@ -44,20 +44,25 @@ uses
   MVCFramework.Session.Database;
 
 
-function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean): TMVCSessionMiddleware;
-begin
-  Result := TMVCSessionMiddleware.Create(TMVCWebSessionMemoryFactory.Create(aHttpOnly, aTimeoutInMinutes));
-end;
-
-function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean; const aSessionFolder: String): TMVCSessionMiddleware;
-begin
-  Result := TMVCSessionMiddleware.Create(TMVCWebSessionFileFactory.Create(aHttpOnly, aTimeoutInMinutes, aSessionFolder));
-end;
-
-function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean): TMVCSessionMiddleware;
+function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean;
+  const aSecure: Boolean): TMVCSessionMiddleware;
 begin
   Result := TMVCSessionMiddleware.Create(
-    TMVCWebSessionDatabaseFactory.Create(aHttpOnly, aTimeoutInMinutes, 'notused'));
+    TMVCWebSessionMemoryFactory.Create(aHttpOnly, aTimeoutInMinutes, aSecure));
+end;
+
+function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean;
+  const aSessionFolder: String; const aSecure: Boolean): TMVCSessionMiddleware;
+begin
+  Result := TMVCSessionMiddleware.Create(
+    TMVCWebSessionFileFactory.Create(aHttpOnly, aTimeoutInMinutes, aSessionFolder, aSecure));
+end;
+
+function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer; const aHttpOnly: Boolean;
+  const aSecure: Boolean): TMVCSessionMiddleware;
+begin
+  Result := TMVCSessionMiddleware.Create(
+    TMVCWebSessionDatabaseFactory.Create(aHttpOnly, aTimeoutInMinutes, 'notused', aSecure));
 end;
 
 

@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 Not Found - DMVCFramework</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  line-height: 1.6;
+  color: #1e293b;
+}
+.container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  max-width: 42rem;
+  width: 100%;
+  overflow: hidden;
+}
+.header {
+  background: linear-gradient(135deg, #005195 0%, #003A69 100%);
+  color: white;
+  padding: 3rem 2.5rem;
+  text-align: center;
+}
+.status-code {
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.status-text {
+  font-size: 1.5rem;
+  font-weight: 300;
+  opacity: 0.95;
+}
+.body {
+  padding: 2.5rem;
+}
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+.error-message {
+  font-size: 1.125rem;
+  color: #475569;
+  margin-bottom: 1.5rem;
+}
+.details {
+  background: #f8fafc;
+  border-left: 4px solid #005195;
+  padding: 1.25rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+.error-items {
+  margin-top: 1.5rem;
+}
+.error-items-title {
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.75rem;
+}
+.error-items ul {
+  list-style: none;
+  padding: 0;
+}
+.error-items li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #64748b;
+}
+.error-items li:before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #005195;
+  font-weight: bold;
+}
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+.app-error-code {
+  display: inline-block;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="status-code">404</div>
+    <div class="status-text">Not Found</div>
+  </div>
+  <div class="body">
+    <div class="error-title">🔍 EMVCException</div>
+    <div class="error-message">The requested endpoint '/api/customers/999' does not exist on this server</div>
+
+    <div class="details">
+      <strong>Detailed Message:</strong> Route not found. Please check the API documentation for available endpoints.
+    </div>
+
+    <div class="details">
+      <strong>Server:</strong> DMVCFramework 3.2.2-nitrogen<br>
+      <strong>Timestamp:</strong> 2026-02-06 15:30:42
+    </div>
+
+    <div class="app-error-code">
+      Application Error Code: 1042
+    </div>
+
+    <div class="error-items">
+      <div class="error-items-title">Additional Information:</div>
+      <ul>
+        <li>Available routes start with /api/v1/</li>
+        <li>Check that the resource ID exists</li>
+        <li>Verify you have proper authentication</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer">Powered by DelphiMVCFramework</div>
+</div>
+</body>
+</html>

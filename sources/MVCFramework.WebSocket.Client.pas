@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -94,6 +94,7 @@ type
     FAutoReconnect: Boolean;
     FReconnectInterval: Integer;
     FPollInterval: Integer;
+    FSubProtocol: string;
 
     // Events
     FOnConnect: TMVCWebSocketClientConnectEvent;
@@ -110,7 +111,12 @@ type
     procedure DoReceive;
     procedure SendPong(const AData: TBytes);
   public
-    constructor Create(const AURL: string);
+    constructor Create(const AURL: string); overload;
+    /// <summary>
+    /// Create a client that announces a WebSocket subprotocol during the
+    /// handshake (Sec-WebSocket-Protocol header).
+    /// </summary>
+    constructor Create(const AURL, ASubProtocol: string); overload;
     destructor Destroy; override;
 
     /// <summary>
@@ -147,6 +153,12 @@ type
     /// WebSocket URL (ws:// or wss://)
     /// </summary>
     property URL: string read FURL;
+
+    /// <summary>
+    /// Optional WebSocket subprotocol sent as the Sec-WebSocket-Protocol
+    /// header during the handshake. Empty by default (no header sent).
+    /// </summary>
+    property SubProtocol: string read FSubProtocol write FSubProtocol;
 
     /// <summary>
     /// Connected state
@@ -233,6 +245,13 @@ begin
   FAutoReconnect := False;
   FReconnectInterval := 5;
   FPollInterval := 10; // Default: 10ms (good balance between responsiveness and CPU usage)
+  FSubProtocol := '';
+end;
+
+constructor TMVCWebSocketClient.Create(const AURL, ASubProtocol: string);
+begin
+  Create(AURL);
+  FSubProtocol := ASubProtocol;
 end;
 
 destructor TMVCWebSocketClient.Destroy;
@@ -301,18 +320,15 @@ var
   Line: string;
   AcceptKey: string;
   I: Integer;
+  RandomBytes: TIdBytes;
 begin
   Result := False;
 
   // Generate random 16-byte key (as per RFC 6455)
-  var
-    RandomBytes: TIdBytes;
-  begin
-    SetLength(RandomBytes, 16);
-    for I := 0 to 15 do
-      RandomBytes[i] := Random(256);
-    SecWebSocketKey := TIdEncoderMIME.EncodeBytes(RandomBytes);
-  end;
+  SetLength(RandomBytes, 16);
+  for I := 0 to 15 do
+    RandomBytes[i] := Random(256);
+  SecWebSocketKey := TIdEncoderMIME.EncodeBytes(RandomBytes);
 
   // Calculate expected accept key
   ExpectedAccept := TMVCWebSocketHandshake.CalculateAcceptKey(SecWebSocketKey);
@@ -323,8 +339,10 @@ begin
              'Upgrade: websocket'#13#10 +
              'Connection: Upgrade'#13#10 +
              Format('Sec-WebSocket-Key: %s'#13#10, [SecWebSocketKey]) +
-             'Sec-WebSocket-Version: 13'#13#10 +
-             #13#10;
+             'Sec-WebSocket-Version: 13'#13#10;
+  if FSubProtocol <> '' then
+    Request := Request + 'Sec-WebSocket-Protocol: ' + FSubProtocol + #13#10;
+  Request := Request + #13#10;
 
   // Send handshake
   FTCPClient.IOHandler.Write(Request, IndyTextEncoding_UTF8);

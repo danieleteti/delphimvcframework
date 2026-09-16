@@ -1,7 +1,8 @@
+-- Language-specific snowball dictionaries
 /*
  * Create underlying C functions for Snowball stemmers
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball_func.sql.in
  *
@@ -35,7 +36,7 @@ COMMENT ON TEXT SEARCH TEMPLATE snowball IS 'snowball stemmer';
 /*
  * text search configuration for arabic language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -75,9 +76,135 @@ ALTER TEXT SEARCH CONFIGURATION arabic ADD MAPPING
     FOR word, hword_part, hword
 	WITH arabic_stem;
 /*
+ * text search configuration for armenian language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * armenian and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY armenian_stem
+	(TEMPLATE = snowball, Language = armenian );
+
+COMMENT ON TEXT SEARCH DICTIONARY armenian_stem IS 'snowball stemmer for armenian language';
+
+CREATE TEXT SEARCH CONFIGURATION armenian
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION armenian IS 'configuration for armenian language';
+
+ALTER TEXT SEARCH CONFIGURATION armenian ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION armenian ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH armenian_stem;
+
+ALTER TEXT SEARCH CONFIGURATION armenian ADD MAPPING
+    FOR word, hword_part, hword
+	WITH armenian_stem;
+/*
+ * text search configuration for basque language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * basque and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY basque_stem
+	(TEMPLATE = snowball, Language = basque );
+
+COMMENT ON TEXT SEARCH DICTIONARY basque_stem IS 'snowball stemmer for basque language';
+
+CREATE TEXT SEARCH CONFIGURATION basque
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION basque IS 'configuration for basque language';
+
+ALTER TEXT SEARCH CONFIGURATION basque ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION basque ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH basque_stem;
+
+ALTER TEXT SEARCH CONFIGURATION basque ADD MAPPING
+    FOR word, hword_part, hword
+	WITH basque_stem;
+/*
+ * text search configuration for catalan language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * catalan and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY catalan_stem
+	(TEMPLATE = snowball, Language = catalan );
+
+COMMENT ON TEXT SEARCH DICTIONARY catalan_stem IS 'snowball stemmer for catalan language';
+
+CREATE TEXT SEARCH CONFIGURATION catalan
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION catalan IS 'configuration for catalan language';
+
+ALTER TEXT SEARCH CONFIGURATION catalan ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION catalan ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH catalan_stem;
+
+ALTER TEXT SEARCH CONFIGURATION catalan ADD MAPPING
+    FOR word, hword_part, hword
+	WITH catalan_stem;
+/*
  * text search configuration for danish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -119,7 +246,7 @@ ALTER TEXT SEARCH CONFIGURATION danish ADD MAPPING
 /*
  * text search configuration for dutch language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -161,7 +288,7 @@ ALTER TEXT SEARCH CONFIGURATION dutch ADD MAPPING
 /*
  * text search configuration for english language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -203,7 +330,7 @@ ALTER TEXT SEARCH CONFIGURATION english ADD MAPPING
 /*
  * text search configuration for finnish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -245,7 +372,7 @@ ALTER TEXT SEARCH CONFIGURATION finnish ADD MAPPING
 /*
  * text search configuration for french language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -287,7 +414,7 @@ ALTER TEXT SEARCH CONFIGURATION french ADD MAPPING
 /*
  * text search configuration for german language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -329,7 +456,7 @@ ALTER TEXT SEARCH CONFIGURATION german ADD MAPPING
 /*
  * text search configuration for greek language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -369,9 +496,51 @@ ALTER TEXT SEARCH CONFIGURATION greek ADD MAPPING
     FOR word, hword_part, hword
 	WITH greek_stem;
 /*
+ * text search configuration for hindi language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * hindi and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY hindi_stem
+	(TEMPLATE = snowball, Language = hindi );
+
+COMMENT ON TEXT SEARCH DICTIONARY hindi_stem IS 'snowball stemmer for hindi language';
+
+CREATE TEXT SEARCH CONFIGURATION hindi
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION hindi IS 'configuration for hindi language';
+
+ALTER TEXT SEARCH CONFIGURATION hindi ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION hindi ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH english_stem;
+
+ALTER TEXT SEARCH CONFIGURATION hindi ADD MAPPING
+    FOR word, hword_part, hword
+	WITH hindi_stem;
+/*
  * text search configuration for hungarian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -413,7 +582,7 @@ ALTER TEXT SEARCH CONFIGURATION hungarian ADD MAPPING
 /*
  * text search configuration for indonesian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -455,7 +624,7 @@ ALTER TEXT SEARCH CONFIGURATION indonesian ADD MAPPING
 /*
  * text search configuration for irish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -497,7 +666,7 @@ ALTER TEXT SEARCH CONFIGURATION irish ADD MAPPING
 /*
  * text search configuration for italian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -539,7 +708,7 @@ ALTER TEXT SEARCH CONFIGURATION italian ADD MAPPING
 /*
  * text search configuration for lithuanian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -581,7 +750,7 @@ ALTER TEXT SEARCH CONFIGURATION lithuanian ADD MAPPING
 /*
  * text search configuration for nepali language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -623,7 +792,7 @@ ALTER TEXT SEARCH CONFIGURATION nepali ADD MAPPING
 /*
  * text search configuration for norwegian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -665,7 +834,7 @@ ALTER TEXT SEARCH CONFIGURATION norwegian ADD MAPPING
 /*
  * text search configuration for portuguese language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -707,7 +876,7 @@ ALTER TEXT SEARCH CONFIGURATION portuguese ADD MAPPING
 /*
  * text search configuration for romanian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -749,7 +918,7 @@ ALTER TEXT SEARCH CONFIGURATION romanian ADD MAPPING
 /*
  * text search configuration for russian language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -789,9 +958,51 @@ ALTER TEXT SEARCH CONFIGURATION russian ADD MAPPING
     FOR word, hword_part, hword
 	WITH russian_stem;
 /*
+ * text search configuration for serbian language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * serbian and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY serbian_stem
+	(TEMPLATE = snowball, Language = serbian );
+
+COMMENT ON TEXT SEARCH DICTIONARY serbian_stem IS 'snowball stemmer for serbian language';
+
+CREATE TEXT SEARCH CONFIGURATION serbian
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION serbian IS 'configuration for serbian language';
+
+ALTER TEXT SEARCH CONFIGURATION serbian ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION serbian ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH serbian_stem;
+
+ALTER TEXT SEARCH CONFIGURATION serbian ADD MAPPING
+    FOR word, hword_part, hword
+	WITH serbian_stem;
+/*
  * text search configuration for spanish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -833,7 +1044,7 @@ ALTER TEXT SEARCH CONFIGURATION spanish ADD MAPPING
 /*
  * text search configuration for swedish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -875,7 +1086,7 @@ ALTER TEXT SEARCH CONFIGURATION swedish ADD MAPPING
 /*
  * text search configuration for tamil language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -917,7 +1128,7 @@ ALTER TEXT SEARCH CONFIGURATION tamil ADD MAPPING
 /*
  * text search configuration for turkish language
  *
- * Copyright (c) 2007-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -956,3 +1167,45 @@ ALTER TEXT SEARCH CONFIGURATION turkish ADD MAPPING
 ALTER TEXT SEARCH CONFIGURATION turkish ADD MAPPING
     FOR word, hword_part, hword
 	WITH turkish_stem;
+/*
+ * text search configuration for yiddish language
+ *
+ * Copyright (c) 2007-2024, PostgreSQL Global Development Group
+ *
+ * src/backend/snowball/snowball.sql.in
+ *
+ * yiddish and certain other macros are replaced for each language;
+ * see the Makefile for details.
+ *
+ * Note: this file is read in single-user -j mode, which means that the
+ * command terminator is semicolon-newline-newline; whenever the backend
+ * sees that, it stops and executes what it's got.  If you write a lot of
+ * statements without empty lines between, they'll all get quoted to you
+ * in any error message about one of them, so don't do that.  Also, you
+ * cannot write a semicolon immediately followed by an empty line in a
+ * string literal (including a function body!) or a multiline comment.
+ */
+
+CREATE TEXT SEARCH DICTIONARY yiddish_stem
+	(TEMPLATE = snowball, Language = yiddish );
+
+COMMENT ON TEXT SEARCH DICTIONARY yiddish_stem IS 'snowball stemmer for yiddish language';
+
+CREATE TEXT SEARCH CONFIGURATION yiddish
+	(PARSER = default);
+
+COMMENT ON TEXT SEARCH CONFIGURATION yiddish IS 'configuration for yiddish language';
+
+ALTER TEXT SEARCH CONFIGURATION yiddish ADD MAPPING
+	FOR email, url, url_path, host, file, version,
+	    sfloat, float, int, uint,
+	    numword, hword_numpart, numhword
+	WITH simple;
+
+ALTER TEXT SEARCH CONFIGURATION yiddish ADD MAPPING
+    FOR asciiword, hword_asciipart, asciihword
+	WITH yiddish_stem;
+
+ALTER TEXT SEARCH CONFIGURATION yiddish ADD MAPPING
+    FOR word, hword_part, hword
+	WITH yiddish_stem;

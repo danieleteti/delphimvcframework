@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -70,7 +70,7 @@ end;
 procedure TMVCSecurityHeadersMiddleware.OnBeforeRouting(AContext: TWebContext;
   var AHandled: Boolean);
 begin
-  AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode = block');
+  AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode=block');
   AContext.Response.SetCustomHeader('X-Content-Type-Options', 'nosniff');
 end;
 

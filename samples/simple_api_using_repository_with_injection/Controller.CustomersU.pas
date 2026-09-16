@@ -33,10 +33,7 @@ type
 
     [MVCPath('/($ID:sqids)')]
     [MVCHTTPMethods([httpPUT])]
-    function UpdateCustomerByID(
-        const ID: Integer;
-        [MVCFromBody] const Customer: TCustomer
-    ): IMVCResponse;
+    function UpdateCustomerByID(const ID: Integer; [MVCFromBody] const Customer: TCustomer): IMVCResponse;
 
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]

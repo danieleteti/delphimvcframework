@@ -27,7 +27,7 @@ ERROR:[Error] Expected ")" or "," - got "e" (column 23 - found "eq(billing_...")
  /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 0, 100
 ERROR:[Error] Expected "sort" and/or "limit" (column 18 - found "<EOF>...")
  where ((nome = 'Daniele') and (cognome = 'Teti')) /*sort*/ ORDER BY nome DESC /*limit*/ LIMIT 10, 20
- where (nome >= 'pi\ppo') /*limit*/ LIMIT 0, 10
+ where (nome >= 'pi\\ppo') /*limit*/ LIMIT 0, 10
 ERROR:[Error] Expected EOF (column 27 - found "*/...")
  where (nome >= 'hello world') /*limit*/ LIMIT 0, 100
  where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
@@ -35,7 +35,7 @@ ERROR:[Error] Expected EOF (column 27 - found "*/...")
  where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
  where ((nome = 'Daniele') and (cognome = 'Teti')) /*limit*/ LIMIT 0, 100
  where (nome >= '') /*limit*/ LIMIT 0, 100
- where (nome >= 'pi\ppo') /*limit*/ LIMIT 0, 100
+ where (nome >= 'pi\\ppo') /*limit*/ LIMIT 0, 100
  where ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*sort*/ ORDER BY nome ASC, cognome DESC /*limit*/ LIMIT 0, 100
  /*sort*/ ORDER BY nome ASC /*limit*/ LIMIT 0, 100
  where ((nome = 'Daniele') and (cognome = 'Teti') and ((field1 = 'Ciao') or (field2 = 'Mondo'))) /*limit*/ LIMIT 0, 100

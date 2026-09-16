@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -278,6 +278,24 @@ uses
   MVCFramework.Nullables,
   MVCFramework.JSONRPC;
 
+var
+  gSingleFormatSettings: TFormatSettings;
+
+{ [PARITY] Round a Single's Extended representation down to its
+  lossless 7-digit decimal form and return it as a Double. Used to
+  suppress the spurious 15-digit tail JsonDataObjects otherwise
+  emits when formatting a Single whose IEEE 754 representation isn't
+  exactly expressible (e.g. 1e-10). The local gSingleFormatSettings
+  is initialised to en-US-like semantics with '.' decimal separator
+  because JsonDataObjects expects that in its serialisation config. }
+function RoundSingleTo7DigitDouble(const AValue: Extended): Double;
+var
+  LStr: string;
+begin
+  LStr := FloatToStrF(AValue, ffGeneral, 7, 0, gSingleFormatSettings);
+  Result := StrToFloat(LStr, gSingleFormatSettings);
+end;
+
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
   if RootNode.IsEmpty then
@@ -410,30 +428,27 @@ begin
     tkFloat:
       begin
         if (AValue.TypeInfo = System.TypeInfo(TDate)) then
-        begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := DateToISODate(AValue.AsExtended);
-        end
+          AJSONObject.S[AName] := DateToISODate(AValue.AsExtended)
         else if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
-        begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsExtended);
-        end
+          AJSONObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsExtended)
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
+          AJSONObject.S[AName] := TimeToISOTime(AValue.AsExtended)
+        else if AValue.TypeInfo = System.TypeInfo(Single) then
         begin
-          if (AValue.AsExtended = 0) then
-            AJSONObject[AName] := Null
-          else
-            AJSONObject.S[AName] := TimeToISOTime(AValue.AsExtended);
+          { [PARITY] Store the Single as the 7-digit-rounded Double value
+            produced by round-tripping through a '.' separated decimal
+            string. JsonDataObjects's 15-digit formatter would otherwise
+            expose the imprecise Extended tail (e.g. Single(1e-10)
+            printing as 1.00000001335143E-10). 7 digits is Single's
+            lossless round-trip precision.
+            Uses the local 'single_round' helper which holds its own
+            en-US TFormatSettings - avoids taking a dependency on
+            TFormatSettings.Invariant (Delphi 10.3+) since this unit
+            must remain 10.1 compatible. }
+          AJSONObject.F[AName] := RoundSingleTo7DigitDouble(AValue.AsExtended);
         end
         else
-        begin
           AJSONObject.F[AName] := AValue.AsExtended;
-        end;
       end;
 
     tkVariant:
@@ -840,7 +855,7 @@ begin
           ftInteger, ftSmallint, ftShortint, ftByte:
             AJsonArray.Add(ADataSet.Fields[lField.I].AsInteger);
 
-          ftLargeint, ftAutoInc, ftLongword:
+          ftLargeint, ftAutoInc, ftLongword{$IF Declared(ftLargeUint)}, ftLargeUint{$ENDIF}:
             AJsonArray.Add(ADataSet.Fields[lField.I].AsLargeInt);
 {$IFDEF TOKYOORBETTER}
           ftGuid:
@@ -1014,7 +1029,7 @@ begin
           ftInteger, ftSmallint, ftShortint, ftByte, ftWord:
             AJSONObject.I[lFName] := ADataSet.Fields[lField.I].AsInteger;
 
-          ftLargeint, ftAutoInc, ftLongword:
+          ftLargeint, ftAutoInc, ftLongword{$IF Declared(ftLargeUint)}, ftLargeUint{$ENDIF}:
             AJSONObject.L[lFName] := ADataSet.Fields[lField.I].AsLargeInt;
 {$IFDEF TOKYOORBETTER}
           ftGuid:
@@ -1128,6 +1143,8 @@ begin
     if ARootNode.IsEmpty then
     begin
       JSONArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
+      // Standalone array: it is the owned root; free it via JsonBase below.
+      JsonBase := JSONArray;
     end
     else
     begin
@@ -1135,9 +1152,12 @@ begin
         JsonBase := TJDOJsonObject.Parse(ASerializedList);
         if not(JsonBase is TJDOJsonObject) then
         begin
-          JsonBase.Free;
-          raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
-            [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+          try
+            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+              [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+          finally
+            JsonBase.Free;
+          end;
         end;
         JSONObject := TJDOJsonObject(JsonBase);
       except
@@ -1146,13 +1166,18 @@ begin
           raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
         end;
       end;
+      // A[ARootNode] returns a CHILD array OWNED by JSONObject (=JsonBase):
+      // it must NOT be freed on its own. Free only the owning root (JsonBase).
       JSONArray := JSONObject.A[ARootNode] as TJDOJsonArray;
     end;
     try
       GetTypeSerializers.Items[AList.ClassInfo].DeserializeRoot(JSONArray, AList, []);
       Exit;
     finally
-      JSONArray.Free;
+      // Frees the owned root in both cases (standalone array, or the parsed
+      // object whose child array is released transitively) — fixes the prior
+      // leak of the root and the latent double-free of the borrowed child.
+      JsonBase.Free;
     end;
   end;
 
@@ -1266,6 +1291,20 @@ function TMVCJsonDataObjectsSerializer.JsonArrayToArray(
 type
   TSetOfTypeElement = (xString, xByte, xInt, xLong, xFloat, xBool);
   TSetOfType = set of TSetOfTypeElement;
+  // Compare the element TypeInfo of a dynamic-array TypeInfo against a
+  // known target element TypeInfo. elType2 is the PPTypeInfo of the
+  // element, always set (independent of cleanup). Using this instead of
+  // comparing the dyn-array TypeInfo itself for identity is what makes
+  // the routing survive a cross-module PTypeInfo mismatch (issue #889).
+  function DynArrayElementIs(ADynArrayTI, AElementTI: PTypeInfo): Boolean;
+  var
+    lTD: PTypeData;
+  begin
+    if (ADynArrayTI = nil) or (ADynArrayTI.Kind <> tkDynArray) then
+      Exit(False);
+    lTD := GetTypeData(ADynArrayTI);
+    Result := (lTD^.elType2 <> nil) and (lTD^.elType2^ = AElementTI);
+  end;
 var
   I: Integer;
   lStrArr: TArray<string>;
@@ -1289,13 +1328,13 @@ begin
         end;
       jdtInt, jdtLong:
         begin
-          if ATypeInfo = TypeInfo(TArray<Int64>) then
+          if DynArrayElementIs(ATypeInfo, TypeInfo(Int64)) then
           begin
             Include(lSetOfType, xLong);
             lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
           end
           else
-          if ATypeInfo = TypeInfo(TArray<Byte>) then
+          if DynArrayElementIs(ATypeInfo, TypeInfo(Byte)) then
           begin
             Include(lSetOfType, xByte);
             lByteArr := lByteArr + [AJsonArray.Items[I].IntValue];
@@ -1330,18 +1369,38 @@ begin
   end;
 
   if Length(lStrArr) > 0 then
-    Exit(TValue.From < TArray < string >> (lStrArr));
-  if Length(lByteArr) > 0 then
-    Exit(TValue.From < TArray < Byte >> (lByteArr));
-  if Length(lIntArr) > 0 then
-    Exit(TValue.From < TArray < Integer >> (lIntArr));
-  if Length(lLongArr) > 0 then
-    Exit(TValue.From < TArray < Int64 >> (lLongArr));
-  if Length(lBoolArr) > 0 then
-    Exit(TValue.From < TArray < Boolean >> (lBoolArr));
-  if Length(lDoubleArr) > 0 then
-    Exit(TValue.From < TArray < Double >> (lDoubleArr));
-  Result := TValue.From < TArray < String >> ([]);
+    Result := TValue.From < TArray < string >> (lStrArr)
+  else if Length(lByteArr) > 0 then
+    Result := TValue.From < TArray < Byte >> (lByteArr)
+  else if Length(lIntArr) > 0 then
+    Result := TValue.From < TArray < Integer >> (lIntArr)
+  else if Length(lLongArr) > 0 then
+    Result := TValue.From < TArray < Int64 >> (lLongArr)
+  else if Length(lBoolArr) > 0 then
+    Result := TValue.From < TArray < Boolean >> (lBoolArr)
+  else if Length(lDoubleArr) > 0 then
+    Result := TValue.From < TArray < Double >> (lDoubleArr)
+  else
+    Result := TValue.From < TArray < String >> ([]);
+
+  // Issue #889: when the target property is a dynamic-array type with a
+  // PTypeInfo distinct from the serializer's TArray<T> (BPL boundary or
+  // a named alias such as `TMyInts = array of Integer`), TRttiProperty.SetValue
+  // compares TypeInfo pointers for identity and raises EInvalidCast even
+  // though the memory layout is byte-identical. Retarget the TValue to the
+  // caller's TypeInfo so SetValue succeeds. elType2 is the PPTypeInfo of
+  // the element type (always set, independent of cleanup); comparing its
+  // dereference confirms the element kind truly matches, guarding against
+  // same-size-different-semantics cases like `array of Integer` vs
+  // `array of Single` on Win32.
+  if (ATypeInfo <> nil) and (Result.TypeInfo <> ATypeInfo) and
+    (ATypeInfo.Kind = tkDynArray) and (Result.TypeInfo.Kind = tkDynArray) and
+    (GetTypeData(ATypeInfo)^.elType2 <> nil) and
+    (GetTypeData(Result.TypeInfo)^.elType2 <> nil) and
+    (GetTypeData(ATypeInfo)^.elType2^ = GetTypeData(Result.TypeInfo)^.elType2^) then
+  begin
+    TValueData(Result).FTypeInfo := ATypeInfo;
+  end;
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;
@@ -2723,7 +2782,13 @@ begin
           {$ENDIF}
 
           LFieldName := LRttiProperty.Name;
-          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiProperty.Name]);
+          // Build the qualified "Class.Field" name only when an ignore-list is
+          // present; otherwise it is a per-property heap allocation discarded on
+          // the hot path (IsIgnoredAttribute short-circuits to False for [] ).
+          if Length(AIgnoredAttributes) > 0 then
+            LQualifiedFieldName := AObject.ClassName + '.' + LFieldName
+          else
+            LQualifiedFieldName := '';
           if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiProperty)) and
              (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
              (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
@@ -2743,7 +2808,11 @@ begin
         for LRttiField in LRttiType.GetFields do
         begin
           LFieldName := LRttiField.Name;
-          LQualifiedFieldName := Format('%s.%s', [AObject.ClassName, LRttiField.Name]);
+          // See note above: skip the qualified-name allocation when no ignore-list.
+          if Length(AIgnoredAttributes) > 0 then
+            LQualifiedFieldName := AObject.ClassName + '.' + LFieldName
+          else
+            LQualifiedFieldName := '';
           if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(LRttiField)) and
              (not IsIgnoredAttribute(AIgnoredAttributes, LFieldName)) and
              (not IsIgnoredAttribute(AIgnoredAttributes, LQualifiedFieldName))
@@ -4227,5 +4296,21 @@ begin
   end;
 end;
 
+initialization
+
+{ The vendored JsonDataObjects.pas carries a nesting-depth limit that upstream does not
+  have: the parser is recursive-descent, and a request body of a few tens of KB made only
+  of nested arrays kills the process without raising anything. Naming the variable here
+  means a future sync that drops the patch breaks the build of the framework, not just of
+  its tests. 1000 is far deeper than any real document and an order of magnitude below the
+  measured stack limit; an app that needs more raises it, it cannot clear it.
+  Only raised from the library default: an application that picked its own value -
+  in its .dpr, or in a unit initialized before this one - keeps it. }
+if JsonMaxNestingDepth = DefaultJsonMaxNestingDepth then
+  JsonMaxNestingDepth := 1000;
+
+gSingleFormatSettings := FormatSettings;
+gSingleFormatSettings.DecimalSeparator := '.';
+gSingleFormatSettings.ThousandSeparator := #0;
 
 end.

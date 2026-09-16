@@ -1,0 +1,304 @@
+{{include "_license_header.tpro"}}
+unit {{:webmodule_unit_name}};
+
+interface
+
+uses
+  System.Classes,
+  Web.HTTPApp,
+  MVCFramework;
+
+type
+  {{:webmodule_classname}} = class(TWebModule)
+    procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
+  private
+    fMVC: TMVCEngine;
+  end;
+
+var
+  WebModuleClass: TComponentClass = {{:webmodule_classname}};
+
+implementation
+
+{$R *.dfm}
+
+uses
+{{if controller_main_generate}}
+  {{:controller_unit_name}},
+{{endif}}
+{{if @(program_ssv_any and (not program_minimal_api))}}
+  Controllers.APIU,
+{{endif}}
+{{if controller_crud_methods_generate}}
+  Controllers.PeopleU,
+{{endif}}
+{{if jsonrpc_generate}}
+  {{:jsonrpc_unit_name}},
+  MVCFramework.JSONRPC,
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  {{:authentication_unit_name}},
+  MVCFramework.JWT,
+  MVCFramework.Middleware.JWT,
+{{if webmodule_middleware_jwt_asymmetric}}
+  MVCFramework.JWT.RSA,
+{{endif}}
+{{endif}}
+  System.IOUtils,
+  System.DateUtils,
+{{if program_ssv_templatepro}}
+  TemplatePro,
+  MVCFramework.View.Renderers.TemplatePro,
+{{endif}}
+{{if program_ssv_webstencils}}
+  MVCFramework.View.Renderers.WebStencils,
+{{endif}}
+{{if program_ssv_mustache}}
+  MVCFramework.View.Renderers.Mustache,
+{{endif}}
+  MVCFramework.Commons,
+  MVCFramework.Logger,
+{{if webmodule_middleware_activerecord}}
+  MVCFramework.Middleware.ActiveRecord,
+{{endif}}
+{{if webmodule_middleware_session_memory}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if webmodule_middleware_session_file}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if webmodule_middleware_session_database}}
+  MVCFramework.Middleware.Session,
+{{endif}}
+{{if program_ssv_any}}
+  MVCFramework.Middleware.Redirect,
+{{endif}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+  MVCFramework.Middleware.StaticFiles,
+{{endif}}
+{{if webmodule_middleware_analytics}}
+  MVCFramework.Middleware.Analytics,
+{{endif}}
+{{if webmodule_middleware_trace}}
+  MVCFramework.Middleware.Trace,
+{{endif}}
+{{if webmodule_middleware_cors}}
+  MVCFramework.Middleware.CORS,
+{{endif}}
+{{if webmodule_middleware_etag}}
+  MVCFramework.Middleware.ETag,
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
+  MVCFramework.Middleware.RateLimit,
+{{endif}}
+{{if webmodule_middleware_compression}}
+  MVCFramework.Middleware.Compression,
+{{endif}}
+  System.SysUtils;
+
+procedure {{:webmodule_classname}}.WebModuleCreate(Sender: TObject);
+{{if @(webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles)}}
+var
+{{if webmodule_middleware_ratelimit}}
+  LRateLimitMiddleware: TMVCRateLimitMiddleware;
+{{endif}}
+{{if webmodule_middleware_jwt}}
+  LJWTClaimsSetup: TJWTClaimsSetup;
+{{if webmodule_middleware_jwt_asymmetric}}
+  LSigner: IJWTSigner;
+{{endif}}
+{{endif}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+  LWwwPath: string;
+{{endif}}
+{{endif}}
+begin
+  fMVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+      Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+{{if program_ssv_templatepro}}
+      // ViewCache: false for development, true for production
+      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+{{endif}}
+      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+    end);
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+
+  // Static files path (www folder at same level as executable)
+  LWwwPath := TPath.Combine(AppPath, 'www');
+{{endif}}
+
+  // Controllers
+{{if controller_main_generate}}
+  fMVC.AddController({{:controller_classname}});
+{{endif}}
+{{if controller_crud_methods_generate}}
+  fMVC.AddController(TPeopleController);
+{{endif}}
+{{if program_ssv_any}}
+  fMVC.AddController(TAPIController);
+{{endif}}
+{{if program_ssv_templatepro}}
+  fMVC.SetViewEngine(TMVCTemplateProViewEngine);
+{{endif}}
+{{if program_ssv_webstencils}}
+  fMVC.SetViewEngine(TMVCWebStencilsViewEngine);
+{{endif}}
+{{if program_ssv_mustache}}
+  fMVC.SetViewEngine(TMVCMustacheViewEngine);
+{{endif}}
+
+{{if webmodule_middleware_ratelimit}}
+
+  LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
+    10,           // max requests
+    60,           // window seconds
+    rlkIPAddress
+  );
+  // LRateLimitMiddleware.AddExcludedPath('/health');
+  LRateLimitMiddleware.SetOnRateLimitExceeded(
+  procedure(const AContext: TWebContext; const AKey: string;
+    const ALimit: Integer; const AWindowSeconds: Integer)
+  begin
+    LogW(Format('Rate limit exceeded for key: %s (Limit: %d requests per %d seconds)',
+      [AKey, ALimit, AWindowSeconds]));
+  end
+  );
+{{endif}}
+{{if webmodule_middleware_jwt}}
+
+  LJWTClaimsSetup := procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
+      JWT.Claims.ExpirationTime := Now + OneHour;
+      JWT.Claims.NotBefore := Now - OneMinute * 5;
+      JWT.Claims.IssuedAt := Now;
+      // JWT.CustomClaims['app'] := '{{:program_name}}';
+    end;
+{{if webmodule_middleware_jwt_asymmetric}}
+
+  // RS256: generate keys with openssl genrsa / openssl rsa -pubout
+  LSigner := TRSAJWTSigner.CreateFromFiles(
+    JWT_RS256,
+    dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
+    dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
+  );
+{{endif}}
+{{endif}}
+
+  // Middleware
+{{if program_ssv_any}}
+  fMVC.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/web'));
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
+  fMVC.AddMiddleware(LRateLimitMiddleware);
+{{endif}}
+{{if webmodule_middleware_jwt}}
+{{if program_ssv_any}}
+  // JWT cookie auth (HTTP-only cookie, for browser clients)
+  fMVC.AddMiddleware(
+    UseJWTCookieAuthentication(
+      {{:authentication_classname}}.Create,
+      LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+{{endif}}
+      '/login',
+      '/logout',
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      300  // leeway seconds
+    )
+    // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
+    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', True))
+  );
+{{else}}
+  // JWT Bearer auth (Authorization header, for API clients)
+  fMVC.AddMiddleware(
+    UseJWTMiddleware(
+      {{:authentication_classname}}.Create,
+      LJWTClaimsSetup,
+{{if webmodule_middleware_jwt_asymmetric}}
+      LSigner,
+{{else}}
+      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
+{{endif}}
+      '/login',
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      300  // leeway seconds
+    )
+  );
+{{endif}}
+{{endif}}
+{{if webmodule_middleware_session_memory}}
+  fMVC.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_session_file}}
+  fMVC.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, TPath.Combine(AppPath, 'sessions'), dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_session_database}}
+  // Database session: requires ActiveRecord middleware + dmvc_sessions table
+  fMVC.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
+{{endif}}
+{{if webmodule_middleware_analytics}}
+  fMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
+{{endif}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+  fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', LWwwPath));
+{{endif}}
+{{if webmodule_middleware_trace}}
+  fMVC.AddMiddleware(TMVCTraceMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_compression}}
+  fMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_etag}}
+  fMVC.AddMiddleware(TMVCETagMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_cors}}
+  fMVC.AddMiddleware(TMVCCORSMiddleware.Create);
+{{endif}}
+{{if webmodule_middleware_activerecord}}
+  fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(
+    dotEnv.Env('firedac.connection_definition_name', '{{:webmodule_middleware_activerecord_con_def_name}}'),
+    dotEnv.Env('firedac.connection_definitions_filename', TPath.Combine(AppPath, '{{:con_def_filename}}'))
+  ));
+{{endif}}
+  // Middleware - END
+{{if program_ssv_templatepro}}
+
+  // Browser requests get the HTML error view; API clients get RFC 7807 problem+json.
+  // ehShowDetails leaks the exception message in DEBUG only: a production build must
+  // not put SQL errors, paths or connection strings on the page.
+  fMVC.UseExceptionHandler('error', '{{:program_name}}',
+    {$IFDEF DEBUG}[ehShowDetails]{$ELSE}[]{$ENDIF});
+{{endif}}
+{{if jsonrpc_generate}}
+
+  // JSON-RPC 2.0 endpoint at /jsonrpc. GET /jsonrpc/describe shows auto-generated docs.
+  fMVC.PublishObject(
+    function : TObject
+    begin
+      Result := {{:jsonrpc_classname}}.Create;
+    end, '/jsonrpc');
+{{endif}}
+
+end;
+
+procedure {{:webmodule_classname}}.WebModuleDestroy(Sender: TObject);
+begin
+  fMVC.Free;
+end;
+
+end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -269,14 +269,9 @@ begin
   FIOHandler := AContext.Connection.IOHandler;
   FConnectedAt := Now;
   FLastActivity := Now;
-  // Generate a unique connection ID (UUID-like format)
-  FConnectionId := Format('%.8x-%.4x-%.4x-%.4x-%.12x', [
-    Cardinal(Random(High(Integer))),
-    Word(Random(High(Word))),
-    Word(Random(High(Word))),
-    Word(Random(High(Word))),
-    Cardinal(Random(High(Integer))) * Cardinal(Random(High(Integer)))
-  ]);
+  // Unpredictable connection ID: a v4 GUID (OS CSPRNG) instead of Random, which
+  // is a non-crypto PRNG and (without Randomize) deterministic per process.
+  FConnectionId := TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
   FLock := TCriticalSection.Create;
   FManager := AManager;
   FOwnsUserData := False;

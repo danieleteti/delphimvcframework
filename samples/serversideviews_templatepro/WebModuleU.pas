@@ -29,8 +29,7 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
-  CustomTemplateProFiltersU,
-  MVCFramework.Serializer.URLEncoded;
+  CustomTemplateProFiltersU;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -61,8 +60,7 @@ begin
       Config[TMVCConfigKey.ViewCache] := 'false';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCTemplateProViewEngine)
-    .AddSerializer(TMVCMediaType.APPLICATION_FORM_URLENCODED, TMVCURLEncodedSerializer.Create);
+    .SetViewEngine(TMVCTemplateProViewEngine);
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

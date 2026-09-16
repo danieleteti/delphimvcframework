@@ -98,26 +98,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="CustomWebModuleU.pas">
-            <Form>CustomWebModule</Form>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
         <DCCReference Include="App1MainControllerU.pas"/>
-        <DCCReference Include="WebModule01U.pas">
-            <Form>WebModule01</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
-        <DCCReference Include="WebModule02U.pas">
-            <Form>WebModule02</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
-        <DCCReference Include="WebModule03U.pas">
-            <Form>WebModule03</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

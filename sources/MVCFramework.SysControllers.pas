@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -101,7 +101,7 @@ type
 implementation
 
 uses
-  JsonDataObjects, MVCFramework.ActiveRecord;
+  JsonDataObjects, MVCFramework.ActiveRecord, MVCFramework.Router;
 
 function MSecToTime(mSec: Int64): string;
 const
@@ -203,7 +203,9 @@ begin
           LStrConsumes := '';
           LStrProduces := '';
           LStrDoc := '';
-          LStrHTTPMethods := 'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
+          {Same answer the router gives, verbatim}
+          LStrHTTPMethods := MVCHTTPMethodsToString(
+            TMVCRouter.AllowedMethods(LMethod.GetAttributes));
           for LAttribute in LMethod.GetAttributes do
           begin
             if LAttribute is MVCDocAttribute then
@@ -218,7 +220,6 @@ begin
             end;
             if LAttribute is MVCHTTPMethodAttribute then
             begin
-              LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethodsAsString;
               LFoundAttrib := true;
             end;
             if LAttribute is MVCConsumesAttribute then
@@ -262,12 +263,19 @@ end;
 
 procedure TMVCSystemController.OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean);
 var
-  ClientIp: string;
+  lPeerIp: string;
 begin
   inherited;
-  ClientIp := Context.Request.ClientIp;
-  AHandled := not((ClientIp = '::1') or (ClientIp = '127.0.0.1') or (ClientIp = '0:0:0:0:0:0:0:1') or
-    (ClientIp.ToLower = 'localhost'));
+  { The peer, deliberately, not ClientIp. ClientIp honours X-Forwarded-For and
+    X-Real-IP when MVCTrustProxyForwardedHeaders is on - which every deployment
+    behind nginx, IIS ARR or HAProxy turns on - and those headers are written by
+    the client. This is a network ACL, not logging: it must look at the socket.
+    ServerConfig serialises the whole TMVCConfig and DescribeServer returns the
+    entire controller and action map, so getting this wrong hands over the map
+    of the application. }
+  lPeerIp := Context.Request.PeerIp;
+  AHandled := not((lPeerIp = '::1') or (lPeerIp = '127.0.0.1') or (lPeerIp = '0:0:0:0:0:0:0:1') or
+    (lPeerIp.ToLower = 'localhost'));
   if AHandled then
   begin
     AContext.Response.StatusCode := HTTP_STATUS.Forbidden;

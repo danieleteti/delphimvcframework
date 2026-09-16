@@ -1,8 +1,8 @@
 /*
  * SQL Information Schema
- * as defined in ISO/IEC 9075-11:2016
+ * as defined in ISO/IEC 9075-11:2023
  *
- * Copyright (c) 2003-2020, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2024, PostgreSQL Global Development Group
  *
  * src/backend/catalog/information_schema.sql
  *
@@ -26,7 +26,7 @@
 
 
 /*
- * 5.1
+ * 6.2
  * INFORMATION_SCHEMA schema
  */
 
@@ -43,37 +43,33 @@ SET search_path TO information_schema;
 CREATE FUNCTION _pg_expandarray(IN anyarray, OUT x anyelement, OUT n int)
     RETURNS SETOF RECORD
     LANGUAGE sql STRICT IMMUTABLE PARALLEL SAFE
-    AS 'select $1[s], s - pg_catalog.array_lower($1,1) + 1
-        from pg_catalog.generate_series(pg_catalog.array_lower($1,1),
-                                        pg_catalog.array_upper($1,1),
-                                        1) as g(s)';
+    ROWS 100 SUPPORT pg_catalog.array_unnest_support
+    AS 'SELECT * FROM pg_catalog.unnest($1) WITH ORDINALITY';
 
 /* Given an index's OID and an underlying-table column number, return the
  * column's position in the index (NULL if not there) */
 CREATE FUNCTION _pg_index_position(oid, smallint) RETURNS int
     LANGUAGE sql STRICT STABLE
-    AS $$
+BEGIN ATOMIC
 SELECT (ss.a).n FROM
   (SELECT information_schema._pg_expandarray(indkey) AS a
    FROM pg_catalog.pg_index WHERE indexrelid = $1) ss
   WHERE (ss.a).x = $2;
-$$;
+END;
 
 CREATE FUNCTION _pg_truetypid(pg_attribute, pg_type) RETURNS oid
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT CASE WHEN $2.typtype = 'd' THEN $2.typbasetype ELSE $1.atttypid END$$;
+RETURN CASE WHEN $2.typtype = 'd' THEN $2.typbasetype ELSE $1.atttypid END;
 
 CREATE FUNCTION _pg_truetypmod(pg_attribute, pg_type) RETURNS int4
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT CASE WHEN $2.typtype = 'd' THEN $2.typtypmod ELSE $1.atttypmod END$$;
+RETURN CASE WHEN $2.typtype = 'd' THEN $2.typtypmod ELSE $1.atttypmod END;
 
 -- these functions encapsulate knowledge about the encoding of typmod:
 
@@ -82,8 +78,7 @@ CREATE FUNCTION _pg_char_max_length(typid oid, typmod int4) RETURNS integer
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $2 = -1 /* default typmod */
        THEN null
        WHEN $1 IN (1042, 1043) /* char, varchar */
@@ -91,15 +86,14 @@ $$SELECT
        WHEN $1 IN (1560, 1562) /* bit, varbit */
        THEN $2
        ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_char_octet_length(typid oid, typmod int4) RETURNS integer
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $1 IN (25, 1042, 1043) /* text, char, varchar */
        THEN CASE WHEN $2 = -1 /* default typmod */
                  THEN CAST(2^30 AS integer)
@@ -107,15 +101,14 @@ $$SELECT
                       pg_catalog.pg_encoding_max_length((SELECT encoding FROM pg_catalog.pg_database WHERE datname = pg_catalog.current_database()))
             END
        ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_numeric_precision(typid oid, typmod int4) RETURNS integer
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE $1
          WHEN 21 /*int2*/ THEN 16
          WHEN 23 /*int4*/ THEN 32
@@ -123,75 +116,71 @@ $$SELECT
          WHEN 1700 /*numeric*/ THEN
               CASE WHEN $2 = -1
                    THEN null
-                   ELSE (($2 - 4) >> 16) & 65535
+                   ELSE (($2 - 4) >> 16) & 0xFFFF
                    END
          WHEN 700 /*float4*/ THEN 24 /*FLT_MANT_DIG*/
          WHEN 701 /*float8*/ THEN 53 /*DBL_MANT_DIG*/
          ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_numeric_precision_radix(typid oid, typmod int4) RETURNS integer
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $1 IN (21, 23, 20, 700, 701) THEN 2
        WHEN $1 IN (1700) THEN 10
        ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_numeric_scale(typid oid, typmod int4) RETURNS integer
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $1 IN (21, 23, 20) THEN 0
        WHEN $1 IN (1700) THEN
             CASE WHEN $2 = -1
                  THEN null
-                 ELSE ($2 - 4) & 65535
+                 ELSE ($2 - 4) & 0xFFFF
                  END
        ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_datetime_precision(typid oid, typmod int4) RETURNS integer
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $1 IN (1082) /* date */
            THEN 0
        WHEN $1 IN (1083, 1114, 1184, 1266) /* time, timestamp, same + tz */
            THEN CASE WHEN $2 < 0 THEN 6 ELSE $2 END
        WHEN $1 IN (1186) /* interval */
-           THEN CASE WHEN $2 < 0 OR $2 & 65535 = 65535 THEN 6 ELSE $2 & 65535 END
+           THEN CASE WHEN $2 < 0 OR $2 & 0xFFFF = 0xFFFF THEN 6 ELSE $2 & 0xFFFF END
        ELSE null
-  END$$;
+  END;
 
 CREATE FUNCTION _pg_interval_type(typid oid, mod int4) RETURNS text
     LANGUAGE sql
     IMMUTABLE
     PARALLEL SAFE
     RETURNS NULL ON NULL INPUT
-    AS
-$$SELECT
+RETURN
   CASE WHEN $1 IN (1186) /* interval */
-           THEN pg_catalog.upper(substring(pg_catalog.format_type($1, $2) from 'interval[()0-9]* #"%#"' for '#'))
+           THEN pg_catalog.upper(substring(pg_catalog.format_type($1, $2) similar 'interval[()0-9]* #"%#"' escape '#'))
        ELSE null
-  END$$;
+  END;
 
 
--- 5.2 INFORMATION_SCHEMA_CATALOG_NAME view appears later.
+-- 6.3 INFORMATION_SCHEMA_CATALOG_NAME view appears later.
 
 
 /*
- * 5.3
+ * 6.4
  * CARDINAL_NUMBER domain
  */
 
@@ -200,7 +189,7 @@ CREATE DOMAIN cardinal_number AS integer
 
 
 /*
- * 5.4
+ * 6.5
  * CHARACTER_DATA domain
  */
 
@@ -208,7 +197,7 @@ CREATE DOMAIN character_data AS character varying COLLATE "C";
 
 
 /*
- * 5.5
+ * 6.6
  * SQL_IDENTIFIER domain
  */
 
@@ -216,7 +205,7 @@ CREATE DOMAIN sql_identifier AS name;
 
 
 /*
- * 5.2
+ * 6.3
  * INFORMATION_SCHEMA_CATALOG_NAME view
  */
 
@@ -227,7 +216,7 @@ GRANT SELECT ON information_schema_catalog_name TO PUBLIC;
 
 
 /*
- * 5.6
+ * 6.7
  * TIME_STAMP domain
  */
 
@@ -235,7 +224,7 @@ CREATE DOMAIN time_stamp AS timestamp(2) with time zone
     DEFAULT current_timestamp(2);
 
 /*
- * 5.7
+ * 6.8
  * YES_OR_NO domain
  */
 
@@ -243,11 +232,11 @@ CREATE DOMAIN yes_or_no AS character varying(3) COLLATE "C"
     CONSTRAINT yes_or_no_check CHECK (value IN ('YES', 'NO'));
 
 
--- 5.8 ADMINISTRABLE_ROLE_AUTHORIZATIONS view appears later.
+-- 6.9 ADMINISTRABLE_ROLE_AUTHORIZATIONS view appears later.
 
 
 /*
- * 5.9
+ * 6.10
  * APPLICABLE_ROLES view
  */
 
@@ -255,7 +244,14 @@ CREATE VIEW applicable_roles AS
     SELECT CAST(a.rolname AS sql_identifier) AS grantee,
            CAST(b.rolname AS sql_identifier) AS role_name,
            CAST(CASE WHEN m.admin_option THEN 'YES' ELSE 'NO' END AS yes_or_no) AS is_grantable
-    FROM pg_auth_members m
+    FROM (SELECT member, roleid, admin_option FROM pg_auth_members
+          -- This UNION could be UNION ALL, but UNION works even if we start
+          -- to allow explicit pg_database_owner membership.
+          UNION
+          SELECT datdba, pg_authid.oid, false
+          FROM pg_database, pg_authid
+          WHERE datname = current_database() AND rolname = 'pg_database_owner'
+         )  m
          JOIN pg_authid a ON (m.member = a.oid)
          JOIN pg_authid b ON (m.roleid = b.oid)
     WHERE pg_has_role(a.oid, 'USAGE');
@@ -264,7 +260,7 @@ GRANT SELECT ON applicable_roles TO PUBLIC;
 
 
 /*
- * 5.8
+ * 6.9
  * ADMINISTRABLE_ROLE_AUTHORIZATIONS view
  */
 
@@ -277,7 +273,7 @@ GRANT SELECT ON administrable_role_authorizations TO PUBLIC;
 
 
 /*
- * 5.10
+ * 6.11
  * ASSERTIONS view
  */
 
@@ -285,7 +281,7 @@ GRANT SELECT ON administrable_role_authorizations TO PUBLIC;
 
 
 /*
- * 5.11
+ * 6.12
  * ATTRIBUTES view
  */
 
@@ -378,7 +374,7 @@ GRANT SELECT ON attributes TO PUBLIC;
 
 
 /*
- * 5.12
+ * 6.13
  * CHARACTER_SETS view
  */
 
@@ -402,12 +398,13 @@ GRANT SELECT ON character_sets TO PUBLIC;
 
 
 /*
- * 5.13
+ * 6.14
  * CHECK_CONSTRAINT_ROUTINE_USAGE view
  */
 
 CREATE VIEW check_constraint_routine_usage AS
-    SELECT CAST(current_database() AS sql_identifier) AS constraint_catalog,
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS constraint_catalog,
            CAST(nc.nspname AS sql_identifier) AS constraint_schema,
            CAST(c.conname AS sql_identifier) AS constraint_name,
            CAST(current_database() AS sql_identifier) AS specific_catalog,
@@ -427,7 +424,7 @@ GRANT SELECT ON check_constraint_routine_usage TO PUBLIC;
 
 
 /*
- * 5.14
+ * 6.15
  * CHECK_CONSTRAINTS view
  */
 
@@ -435,8 +432,7 @@ CREATE VIEW check_constraints AS
     SELECT CAST(current_database() AS sql_identifier) AS constraint_catalog,
            CAST(rs.nspname AS sql_identifier) AS constraint_schema,
            CAST(con.conname AS sql_identifier) AS constraint_name,
-           CAST(substring(pg_get_constraintdef(con.oid) from 7) AS character_data)
-             AS check_clause
+           CAST(pg_get_expr(con.conbin, coalesce(c.oid, 0)) AS character_data) AS check_clause
     FROM pg_constraint con
            LEFT OUTER JOIN pg_namespace rs ON (rs.oid = con.connamespace)
            LEFT OUTER JOIN pg_class c ON (c.oid = con.conrelid)
@@ -445,7 +441,22 @@ CREATE VIEW check_constraints AS
       AND con.contype = 'c'
 
     UNION
-    -- not-null constraints
+    -- not-null constraints on domains
+
+    SELECT current_database()::information_schema.sql_identifier AS constraint_catalog,
+           rs.nspname::information_schema.sql_identifier AS constraint_schema,
+           con.conname::information_schema.sql_identifier AS constraint_name,
+           pg_catalog.format('%s IS NOT NULL', coalesce(at.attname, 'VALUE'))::information_schema.character_data AS check_clause
+     FROM pg_constraint con
+            LEFT JOIN pg_namespace rs ON rs.oid = con.connamespace
+            LEFT JOIN pg_class c ON c.oid = con.conrelid
+            LEFT JOIN pg_type t ON t.oid = con.contypid
+            LEFT JOIN pg_attribute at ON (con.conrelid = at.attrelid AND con.conkey[1] = at.attnum)
+     WHERE pg_has_role(coalesce(c.relowner, t.typowner), 'USAGE'::text)
+       AND con.contype = 'n'
+
+    UNION
+    -- not-null constraints on relations
 
     SELECT CAST(current_database() AS sql_identifier) AS constraint_catalog,
            CAST(n.nspname AS sql_identifier) AS constraint_schema,
@@ -465,7 +476,7 @@ GRANT SELECT ON check_constraints TO PUBLIC;
 
 
 /*
- * 5.15
+ * 6.16
  * COLLATIONS view
  */
 
@@ -482,7 +493,7 @@ GRANT SELECT ON collations TO PUBLIC;
 
 
 /*
- * 5.16
+ * 6.17
  * COLLATION_CHARACTER_SET_APPLICABILITY view
  */
 
@@ -501,28 +512,31 @@ GRANT SELECT ON collation_character_set_applicability TO PUBLIC;
 
 
 /*
- * 5.17
+ * 6.18
  * COLUMN_COLUMN_USAGE view
  */
 
 CREATE VIEW column_column_usage AS
-    SELECT CAST(current_database() AS sql_identifier) AS table_catalog,
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS table_catalog,
            CAST(n.nspname AS sql_identifier) AS table_schema,
            CAST(c.relname AS sql_identifier) AS table_name,
            CAST(ac.attname AS sql_identifier) AS column_name,
            CAST(ad.attname AS sql_identifier) AS dependent_column
 
     FROM pg_namespace n, pg_class c, pg_depend d,
-         pg_attribute ac, pg_attribute ad
+         pg_attribute ac, pg_attribute ad, pg_attrdef atd
 
     WHERE n.oid = c.relnamespace
           AND c.oid = ac.attrelid
           AND c.oid = ad.attrelid
-          AND d.classid = 'pg_catalog.pg_class'::regclass
+          AND ac.attnum <> ad.attnum
+          AND ad.attrelid = atd.adrelid
+          AND ad.attnum = atd.adnum
+          AND d.classid = 'pg_catalog.pg_attrdef'::regclass
           AND d.refclassid = 'pg_catalog.pg_class'::regclass
-          AND d.objid = d.refobjid
-          AND c.oid = d.objid
-          AND d.objsubid = ad.attnum
+          AND d.objid = atd.oid
+          AND d.refobjid = ac.attrelid
           AND d.refobjsubid = ac.attnum
           AND ad.attgenerated <> ''
           AND pg_has_role(c.relowner, 'USAGE');
@@ -531,7 +545,7 @@ GRANT SELECT ON column_column_usage TO PUBLIC;
 
 
 /*
- * 5.18
+ * 6.19
  * COLUMN_DOMAIN_USAGE view
  */
 
@@ -561,7 +575,7 @@ GRANT SELECT ON column_domain_usage TO PUBLIC;
 
 
 /*
- * 5.19
+ * 6.20
  * COLUMN_PRIVILEGES
  */
 
@@ -635,7 +649,7 @@ GRANT SELECT ON column_privileges TO PUBLIC;
 
 
 /*
- * 5.20
+ * 6.21
  * COLUMN_UDT_USAGE view
  */
 
@@ -664,7 +678,7 @@ GRANT SELECT ON column_udt_usage TO PUBLIC;
 
 
 /*
- * 5.21
+ * 6.22
  * COLUMNS view
  */
 
@@ -794,7 +808,7 @@ GRANT SELECT ON columns TO PUBLIC;
 
 
 /*
- * 5.22
+ * 6.23
  * CONSTRAINT_COLUMN_USAGE view
  */
 
@@ -846,7 +860,7 @@ GRANT SELECT ON constraint_column_usage TO PUBLIC;
 
 
 /*
- * 5.23
+ * 6.24
  * CONSTRAINT_PERIOD_USAGE view
  */
 
@@ -854,7 +868,7 @@ GRANT SELECT ON constraint_column_usage TO PUBLIC;
 
 
 /*
- * 5.24
+ * 6.25
  * CONSTRAINT_TABLE_USAGE view
  */
 
@@ -878,11 +892,11 @@ CREATE VIEW constraint_table_usage AS
 GRANT SELECT ON constraint_table_usage TO PUBLIC;
 
 
--- 5.25 DATA_TYPE_PRIVILEGES view appears later.
+-- 6.26 DATA_TYPE_PRIVILEGES view appears later.
 
 
 /*
- * 5.26
+ * 6.27
  * DIRECT_SUPERTABLES view
  */
 
@@ -890,7 +904,7 @@ GRANT SELECT ON constraint_table_usage TO PUBLIC;
 
 
 /*
- * 5.27
+ * 6.28
  * DIRECT_SUPERTYPES view
  */
 
@@ -898,7 +912,7 @@ GRANT SELECT ON constraint_table_usage TO PUBLIC;
 
 
 /*
- * 5.28
+ * 6.29
  * DOMAIN_CONSTRAINTS view
  */
 
@@ -949,7 +963,7 @@ GRANT SELECT ON domain_udt_usage TO PUBLIC;
 
 
 /*
- * 5.29
+ * 6.30
  * DOMAINS view
  */
 
@@ -1034,11 +1048,11 @@ CREATE VIEW domains AS
 GRANT SELECT ON domains TO PUBLIC;
 
 
--- 5.30 ELEMENT_TYPES view appears later.
+-- 6.31 ELEMENT_TYPES view appears later.
 
 
 /*
- * 5.31
+ * 6.32
  * ENABLED_ROLES view
  */
 
@@ -1051,7 +1065,7 @@ GRANT SELECT ON enabled_roles TO PUBLIC;
 
 
 /*
- * 5.32
+ * 6.33
  * FIELDS view
  */
 
@@ -1059,7 +1073,7 @@ GRANT SELECT ON enabled_roles TO PUBLIC;
 
 
 /*
- * 5.33
+ * 6.34
  * KEY_COLUMN_USAGE view
  */
 
@@ -1102,7 +1116,7 @@ GRANT SELECT ON key_column_usage TO PUBLIC;
 
 
 /*
- * 5.34
+ * 6.35
  * KEY_PERIOD_USAGE view
  */
 
@@ -1110,7 +1124,7 @@ GRANT SELECT ON key_column_usage TO PUBLIC;
 
 
 /*
- * 5.35
+ * 6.36
  * METHOD_SPECIFICATION_PARAMETERS view
  */
 
@@ -1118,7 +1132,7 @@ GRANT SELECT ON key_column_usage TO PUBLIC;
 
 
 /*
- * 5.36
+ * 6.37
  * METHOD_SPECIFICATIONS view
  */
 
@@ -1126,7 +1140,7 @@ GRANT SELECT ON key_column_usage TO PUBLIC;
 
 
 /*
- * 5.37
+ * 6.38
  * PARAMETERS view
  */
 
@@ -1193,7 +1207,7 @@ GRANT SELECT ON parameters TO PUBLIC;
 
 
 /*
- * 5.38
+ * 6.39
  * PERIODS view
  */
 
@@ -1201,7 +1215,7 @@ GRANT SELECT ON parameters TO PUBLIC;
 
 
 /*
- * 5.39
+ * 6.40
  * PRIVATE_PARAMETERS view
  */
 
@@ -1209,7 +1223,7 @@ GRANT SELECT ON parameters TO PUBLIC;
 
 
 /*
- * 5.40
+ * 6.41
  * REFERENCED_TYPES view
  */
 
@@ -1217,7 +1231,7 @@ GRANT SELECT ON parameters TO PUBLIC;
 
 
 /*
- * 5.41
+ * 6.42
  * REFERENTIAL_CONSTRAINTS view
  */
 
@@ -1279,7 +1293,7 @@ GRANT SELECT ON referential_constraints TO PUBLIC;
 
 
 /*
- * 5.42
+ * 6.43
  * ROLE_COLUMN_GRANTS view
  */
 
@@ -1299,14 +1313,14 @@ CREATE VIEW role_column_grants AS
 GRANT SELECT ON role_column_grants TO PUBLIC;
 
 
--- 5.43 ROLE_ROUTINE_GRANTS view is based on 5.50 ROUTINE_PRIVILEGES and is defined there instead.
+-- 6.44 ROLE_ROUTINE_GRANTS view is based on 6.51 ROUTINE_PRIVILEGES and is defined there instead.
 
 
--- 5.44 ROLE_TABLE_GRANTS view is based on 5.63 TABLE_PRIVILEGES and is defined there instead.
+-- 6.45 ROLE_TABLE_GRANTS view is based on 6.64 TABLE_PRIVILEGES and is defined there instead.
 
 
 /*
- * 5.45
+ * 6.46
  * ROLE_TABLE_METHOD_GRANTS view
  */
 
@@ -1314,22 +1328,49 @@ GRANT SELECT ON role_column_grants TO PUBLIC;
 
 
 
--- 5.46 ROLE_USAGE_GRANTS view is based on 5.75 USAGE_PRIVILEGES and is defined there instead.
+-- 6.47 ROLE_USAGE_GRANTS view is based on 6.76 USAGE_PRIVILEGES and is defined there instead.
 
 
--- 5.47 ROLE_UDT_GRANTS view is based on 5.74 UDT_PRIVILEGES and is defined there instead.
+-- 6.48 ROLE_UDT_GRANTS view is based on 6.75 UDT_PRIVILEGES and is defined there instead.
 
 
 /*
- * 5.48
+ * 6.49
  * ROUTINE_COLUMN_USAGE view
  */
 
--- not tracked by PostgreSQL
+CREATE VIEW routine_column_usage AS
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS specific_catalog,
+           CAST(np.nspname AS sql_identifier) AS specific_schema,
+           CAST(nameconcatoid(p.proname, p.oid) AS sql_identifier) AS specific_name,
+           CAST(current_database() AS sql_identifier) AS routine_catalog,
+           CAST(np.nspname AS sql_identifier) AS routine_schema,
+           CAST(p.proname AS sql_identifier) AS routine_name,
+           CAST(current_database() AS sql_identifier) AS table_catalog,
+           CAST(nt.nspname AS sql_identifier) AS table_schema,
+           CAST(t.relname AS sql_identifier) AS table_name,
+           CAST(a.attname AS sql_identifier) AS column_name
+
+    FROM pg_namespace np, pg_proc p, pg_depend d,
+         pg_class t, pg_namespace nt, pg_attribute a
+
+    WHERE np.oid = p.pronamespace
+          AND p.oid = d.objid
+          AND d.classid = 'pg_catalog.pg_proc'::regclass
+          AND d.refobjid = t.oid
+          AND d.refclassid = 'pg_catalog.pg_class'::regclass
+          AND t.relnamespace = nt.oid
+          AND t.relkind IN ('r', 'v', 'f', 'p')
+          AND t.oid = a.attrelid
+          AND d.refobjsubid = a.attnum
+          AND pg_has_role(t.relowner, 'USAGE');
+
+GRANT SELECT ON routine_column_usage TO PUBLIC;
 
 
 /*
- * 5.49
+ * 6.50
  * ROUTINE_PERIOD_USAGE view
  */
 
@@ -1337,7 +1378,7 @@ GRANT SELECT ON role_column_grants TO PUBLIC;
 
 
 /*
- * 5.50
+ * 6.51
  * ROUTINE_PRIVILEGES view
  */
 
@@ -1381,7 +1422,7 @@ GRANT SELECT ON routine_privileges TO PUBLIC;
 
 
 /*
- * 5.42
+ * 6.43
  * ROLE_ROUTINE_GRANTS view
  */
 
@@ -1404,31 +1445,100 @@ GRANT SELECT ON role_routine_grants TO PUBLIC;
 
 
 /*
- * 5.51
+ * 6.52
  * ROUTINE_ROUTINE_USAGE view
  */
 
--- not tracked by PostgreSQL
+CREATE VIEW routine_routine_usage AS
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS specific_catalog,
+           CAST(np.nspname AS sql_identifier) AS specific_schema,
+           CAST(nameconcatoid(p.proname, p.oid) AS sql_identifier) AS specific_name,
+           CAST(current_database() AS sql_identifier) AS routine_catalog,
+           CAST(np1.nspname AS sql_identifier) AS routine_schema,
+           CAST(nameconcatoid(p1.proname, p1.oid) AS sql_identifier) AS routine_name
+
+    FROM pg_namespace np, pg_proc p, pg_depend d,
+         pg_proc p1, pg_namespace np1
+
+    WHERE np.oid = p.pronamespace
+          AND p.oid = d.objid
+          AND d.classid = 'pg_catalog.pg_proc'::regclass
+          AND d.refobjid = p1.oid
+          AND d.refclassid = 'pg_catalog.pg_proc'::regclass
+          AND p1.pronamespace = np1.oid
+          AND p.prokind IN ('f', 'p') AND p1.prokind IN ('f', 'p')
+          AND pg_has_role(p1.proowner, 'USAGE');
+
+GRANT SELECT ON routine_routine_usage TO PUBLIC;
 
 
 /*
- * 5.52
+ * 6.53
  * ROUTINE_SEQUENCE_USAGE view
  */
 
--- not tracked by PostgreSQL
+CREATE VIEW routine_sequence_usage AS
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS specific_catalog,
+           CAST(np.nspname AS sql_identifier) AS specific_schema,
+           CAST(nameconcatoid(p.proname, p.oid) AS sql_identifier) AS specific_name,
+           CAST(current_database() AS sql_identifier) AS routine_catalog,
+           CAST(np.nspname AS sql_identifier) AS routine_schema,
+           CAST(p.proname AS sql_identifier) AS routine_name,
+           CAST(current_database() AS sql_identifier) AS sequence_catalog,
+           CAST(ns.nspname AS sql_identifier) AS sequence_schema,
+           CAST(s.relname AS sql_identifier) AS sequence_name
+
+    FROM pg_namespace np, pg_proc p, pg_depend d,
+         pg_class s, pg_namespace ns
+
+    WHERE np.oid = p.pronamespace
+          AND p.oid = d.objid
+          AND d.classid = 'pg_catalog.pg_proc'::regclass
+          AND d.refobjid = s.oid
+          AND d.refclassid = 'pg_catalog.pg_class'::regclass
+          AND s.relnamespace = ns.oid
+          AND s.relkind = 'S'
+          AND pg_has_role(s.relowner, 'USAGE');
+
+GRANT SELECT ON routine_sequence_usage TO PUBLIC;
 
 
 /*
- * 5.53
+ * 6.54
  * ROUTINE_TABLE_USAGE view
  */
 
--- not tracked by PostgreSQL
+CREATE VIEW routine_table_usage AS
+    SELECT DISTINCT
+           CAST(current_database() AS sql_identifier) AS specific_catalog,
+           CAST(np.nspname AS sql_identifier) AS specific_schema,
+           CAST(nameconcatoid(p.proname, p.oid) AS sql_identifier) AS specific_name,
+           CAST(current_database() AS sql_identifier) AS routine_catalog,
+           CAST(np.nspname AS sql_identifier) AS routine_schema,
+           CAST(p.proname AS sql_identifier) AS routine_name,
+           CAST(current_database() AS sql_identifier) AS table_catalog,
+           CAST(nt.nspname AS sql_identifier) AS table_schema,
+           CAST(t.relname AS sql_identifier) AS table_name
+
+    FROM pg_namespace np, pg_proc p, pg_depend d,
+         pg_class t, pg_namespace nt
+
+    WHERE np.oid = p.pronamespace
+          AND p.oid = d.objid
+          AND d.classid = 'pg_catalog.pg_proc'::regclass
+          AND d.refobjid = t.oid
+          AND d.refclassid = 'pg_catalog.pg_class'::regclass
+          AND t.relnamespace = nt.oid
+          AND t.relkind IN ('r', 'v', 'f', 'p')
+          AND pg_has_role(t.relowner, 'USAGE');
+
+GRANT SELECT ON routine_table_usage TO PUBLIC;
 
 
 /*
- * 5.54
+ * 6.55
  * ROUTINES view
  */
 
@@ -1546,7 +1656,7 @@ GRANT SELECT ON routines TO PUBLIC;
 
 
 /*
- * 5.55
+ * 6.56
  * SCHEMATA view
  */
 
@@ -1567,7 +1677,7 @@ GRANT SELECT ON schemata TO PUBLIC;
 
 
 /*
- * 5.56
+ * 6.57
  * SEQUENCES view
  */
 
@@ -1597,7 +1707,7 @@ GRANT SELECT ON sequences TO PUBLIC;
 
 
 /*
- * 5.57
+ * 6.58
  * SQL_FEATURES table
  */
 
@@ -1617,12 +1727,9 @@ GRANT SELECT ON sql_features TO PUBLIC;
 
 
 /*
- * 5.58
+ * 6.59
  * SQL_IMPLEMENTATION_INFO table
  */
-
--- Note: Implementation information items are defined in ISO/IEC 9075-3:2008,
--- clause 9.1.
 
 CREATE TABLE sql_implementation_info (
     implementation_info_id      character_data,
@@ -1649,7 +1756,7 @@ GRANT SELECT ON sql_implementation_info TO PUBLIC;
 
 
 /*
- * 5.59
+ * 6.60
  * SQL_PARTS table
  */
 
@@ -1671,14 +1778,13 @@ INSERT INTO sql_parts VALUES ('11', 'Information and Definition Schema (SQL/Sche
 INSERT INTO sql_parts VALUES ('13', 'Routines and Types Using the Java Programming Language (SQL/JRT)', 'NO', NULL, '');
 INSERT INTO sql_parts VALUES ('14', 'XML-Related Specifications (SQL/XML)', 'NO', NULL, '');
 INSERT INTO sql_parts VALUES ('15', 'Multi-Dimensional Arrays (SQL/MDA)', 'NO', NULL, '');
+INSERT INTO sql_parts VALUES ('16', 'Property Graph Queries (SQL/PGQ)', 'NO', NULL, '');
 
 
 /*
- * 5.60
+ * 6.61
  * SQL_SIZING table
  */
-
--- Note: Sizing items are defined in ISO/IEC 9075-3:2008, clause 9.2.
 
 CREATE TABLE sql_sizing (
     sizing_id       cardinal_number,
@@ -1720,7 +1826,7 @@ GRANT SELECT ON sql_sizing TO PUBLIC;
 
 
 /*
- * 5.61
+ * 6.62
  * TABLE_CONSTRAINTS view
  */
 
@@ -1741,7 +1847,11 @@ CREATE VIEW table_constraints AS
              AS is_deferrable,
            CAST(CASE WHEN c.condeferred THEN 'YES' ELSE 'NO' END AS yes_or_no)
              AS initially_deferred,
-           CAST('YES' AS yes_or_no) AS enforced
+           CAST('YES' AS yes_or_no) AS enforced,
+           CAST(CASE WHEN c.contype = 'u'
+                     THEN CASE WHEN (SELECT NOT indnullsnotdistinct FROM pg_index WHERE indexrelid = conindid) THEN 'YES' ELSE 'NO' END
+                     END
+                AS yes_or_no) AS nulls_distinct
 
     FROM pg_namespace nc,
          pg_namespace nr,
@@ -1771,7 +1881,8 @@ CREATE VIEW table_constraints AS
            CAST('CHECK' AS character_data) AS constraint_type,
            CAST('NO' AS yes_or_no) AS is_deferrable,
            CAST('NO' AS yes_or_no) AS initially_deferred,
-           CAST('YES' AS yes_or_no) AS enforced
+           CAST('YES' AS yes_or_no) AS enforced,
+           CAST(NULL AS yes_or_no) AS nulls_distinct
 
     FROM pg_namespace nr,
          pg_class r,
@@ -1793,7 +1904,7 @@ GRANT SELECT ON table_constraints TO PUBLIC;
 
 
 /*
- * 5.62
+ * 6.63
  * TABLE_METHOD_PRIVILEGES view
  */
 
@@ -1801,7 +1912,7 @@ GRANT SELECT ON table_constraints TO PUBLIC;
 
 
 /*
- * 5.63
+ * 6.64
  * TABLE_PRIVILEGES view
  */
 
@@ -1844,7 +1955,7 @@ GRANT SELECT ON table_privileges TO PUBLIC;
 
 
 /*
- * 5.43
+ * 6.45
  * ROLE_TABLE_GRANTS view
  */
 
@@ -1865,7 +1976,7 @@ GRANT SELECT ON role_table_grants TO PUBLIC;
 
 
 /*
- * 5.63
+ * 6.65
  * TABLES view
  */
 
@@ -1911,7 +2022,7 @@ GRANT SELECT ON tables TO PUBLIC;
 
 
 /*
- * 5.65
+ * 6.66
  * TRANSFORMS view
  */
 
@@ -1951,7 +2062,7 @@ CREATE VIEW transforms AS
 
 
 /*
- * 5.66
+ * 6.67
  * TRANSLATIONS view
  */
 
@@ -1959,7 +2070,7 @@ CREATE VIEW transforms AS
 
 
 /*
- * 5.67
+ * 6.68
  * TRIGGERED_UPDATE_COLUMNS view
  */
 
@@ -1991,7 +2102,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.68
+ * 6.69
  * TRIGGER_COLUMN_USAGE view
  */
 
@@ -1999,7 +2110,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.69
+ * 6.70
  * TRIGGER_PERIOD_USAGE view
  */
 
@@ -2007,7 +2118,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.70
+ * 6.71
  * TRIGGER_ROUTINE_USAGE view
  */
 
@@ -2015,7 +2126,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.71
+ * 6.72
  * TRIGGER_SEQUENCE_USAGE view
  */
 
@@ -2023,7 +2134,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.72
+ * 6.73
  * TRIGGER_TABLE_USAGE view
  */
 
@@ -2031,7 +2142,7 @@ GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
 
 /*
- * 5.73
+ * 6.74
  * TRIGGERS view
  */
 
@@ -2100,7 +2211,7 @@ GRANT SELECT ON triggers TO PUBLIC;
 
 
 /*
- * 5.74
+ * 6.75
  * UDT_PRIVILEGES view
  */
 
@@ -2142,7 +2253,7 @@ GRANT SELECT ON udt_privileges TO PUBLIC;
 
 
 /*
- * 5.46
+ * 6.48
  * ROLE_UDT_GRANTS view
  */
 
@@ -2162,7 +2273,7 @@ GRANT SELECT ON role_udt_grants TO PUBLIC;
 
 
 /*
- * 5.75
+ * 6.76
  * USAGE_PRIVILEGES view
  */
 
@@ -2333,7 +2444,7 @@ GRANT SELECT ON usage_privileges TO PUBLIC;
 
 
 /*
- * 5.45
+ * 6.47
  * ROLE_USAGE_GRANTS view
  */
 
@@ -2354,7 +2465,7 @@ GRANT SELECT ON role_usage_grants TO PUBLIC;
 
 
 /*
- * 5.76
+ * 6.77
  * USER_DEFINED_TYPES view
  */
 
@@ -2401,7 +2512,7 @@ GRANT SELECT ON user_defined_types TO PUBLIC;
 
 
 /*
- * 5.77
+ * 6.78
  * VIEW_COLUMN_USAGE
  */
 
@@ -2440,7 +2551,7 @@ GRANT SELECT ON view_column_usage TO PUBLIC;
 
 
 /*
- * 5.78
+ * 6.79
  * VIEW_PERIOD_USAGE
  */
 
@@ -2448,7 +2559,7 @@ GRANT SELECT ON view_column_usage TO PUBLIC;
 
 
 /*
- * 5.79
+ * 6.80
  * VIEW_ROUTINE_USAGE
  */
 
@@ -2481,7 +2592,7 @@ GRANT SELECT ON view_routine_usage TO PUBLIC;
 
 
 /*
- * 5.80
+ * 6.81
  * VIEW_TABLE_USAGE
  */
 
@@ -2516,7 +2627,7 @@ GRANT SELECT ON view_table_usage TO PUBLIC;
 
 
 /*
- * 5.81
+ * 6.82
  * VIEWS view
  */
 
@@ -2584,7 +2695,7 @@ GRANT SELECT ON views TO PUBLIC;
 -- The following views have dependencies that force them to appear out of order.
 
 /*
- * 5.25
+ * 6.26
  * DATA_TYPE_PRIVILEGES view
  */
 
@@ -2612,7 +2723,7 @@ GRANT SELECT ON data_type_privileges TO PUBLIC;
 
 
 /*
- * 5.30
+ * 6.31
  * ELEMENT_TYPES view
  */
 
@@ -2640,8 +2751,6 @@ CREATE VIEW element_types AS
            CAST(null AS cardinal_number) AS datetime_precision,
            CAST(null AS character_data) AS interval_type,
            CAST(null AS cardinal_number) AS interval_precision,
-
-           CAST(null AS character_data) AS domain_default, -- XXX maybe a bug in the standard
 
            CAST(current_database() AS sql_identifier) AS udt_catalog,
            CAST(nbt.nspname AS sql_identifier) AS udt_schema,
@@ -2728,7 +2837,7 @@ CREATE VIEW _pg_foreign_table_columns AS
           AND a.attnum > 0;
 
 /*
- * 24.2
+ * 24.3
  * COLUMN_OPTIONS view
  */
 CREATE VIEW column_options AS
@@ -2759,7 +2868,7 @@ CREATE VIEW _pg_foreign_data_wrappers AS
 
 
 /*
- * 24.4
+ * 24.5
  * FOREIGN_DATA_WRAPPER_OPTIONS view
  */
 CREATE VIEW foreign_data_wrapper_options AS
@@ -2773,7 +2882,7 @@ GRANT SELECT ON foreign_data_wrapper_options TO PUBLIC;
 
 
 /*
- * 24.5
+ * 24.6
  * FOREIGN_DATA_WRAPPERS view
  */
 CREATE VIEW foreign_data_wrappers AS
@@ -2806,7 +2915,7 @@ CREATE VIEW _pg_foreign_servers AS
 
 
 /*
- * 24.6
+ * 24.7
  * FOREIGN_SERVER_OPTIONS view
  */
 CREATE VIEW foreign_server_options AS
@@ -2820,7 +2929,7 @@ GRANT SELECT ON TABLE foreign_server_options TO PUBLIC;
 
 
 /*
- * 24.7
+ * 24.8
  * FOREIGN_SERVERS view
  */
 CREATE VIEW foreign_servers AS
@@ -2860,7 +2969,7 @@ CREATE VIEW _pg_foreign_tables AS
 
 
 /*
- * 24.8
+ * 24.9
  * FOREIGN_TABLE_OPTIONS view
  */
 CREATE VIEW foreign_table_options AS
@@ -2875,7 +2984,7 @@ GRANT SELECT ON TABLE foreign_table_options TO PUBLIC;
 
 
 /*
- * 24.9
+ * 24.10
  * FOREIGN_TABLES view
  */
 CREATE VIEW foreign_tables AS
@@ -2905,7 +3014,7 @@ CREATE VIEW _pg_user_mappings AS
 
 
 /*
- * 24.12
+ * 24.13
  * USER_MAPPING_OPTIONS view
  */
 CREATE VIEW user_mapping_options AS
@@ -2925,7 +3034,7 @@ GRANT SELECT ON user_mapping_options TO PUBLIC;
 
 
 /*
- * 24.13
+ * 24.14
  * USER_MAPPINGS view
  */
 CREATE VIEW user_mappings AS

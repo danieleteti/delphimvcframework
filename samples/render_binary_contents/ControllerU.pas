@@ -77,8 +77,9 @@ begin
   begin
     Context.Response.ContentType := TMVCMediaType.APPLICATION_OCTET_STREAM;
   end;
+
   StatusCode := HTTP_STATUS.OK;
-  Result := TFileStream.Create(lPath, fmOpenRead, fmShareDenyNone)
+  Result := TFileStream.Create(lPath, fmOpenRead, fmShareDenyNone);
 end;
 
 

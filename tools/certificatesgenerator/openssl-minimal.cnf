@@ -1,0 +1,18 @@
+[req]
+default_bits = 4096
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_ca
+
+[dn]
+C = IT
+ST = Italy
+L = Local
+O = DMVCFramework CA
+CN = DMVCFramework Local Trusted CA
+
+[v3_ca]
+basicConstraints = critical,CA:true
+keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash

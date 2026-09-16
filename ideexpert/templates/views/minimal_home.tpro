@@ -1,0 +1,46 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Home · {{:program_name}}{{endblock}}
+
+{{block "body"}}
+<h1 class="mb-3">{{:program_name}}</h1>
+<p class="lead text-muted">Minimal API WebApp — lambda routes, TemplatePro views, HTMX.</p>
+
+<div class="row g-3 mt-1">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">HTMX fragment</h5>
+                <p class="card-text">The button below issues an <code>hx-get</code> to
+                   <code>/time</code> and swaps in the server-rendered fragment.</p>
+                <button class="btn btn-primary" hx-get="/time" hx-target="#time-slot" hx-swap="innerHTML">
+                    Load server time
+                </button>
+                <div id="time-slot" class="mt-3 text-muted">Not loaded yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Static files</h5>
+                <p class="card-text">
+                    Files under <code>bin/www/</code> are served by the
+                    <code>StaticFiles</code> HTTPFilter wired in
+                    <code>EngineConfigU.ConfigureEngine</code>. Open the links
+                    below — each one round-trips through the filter.
+                </p>
+                <ul class="list-unstyled mb-0">
+                    <li><a href="/static/css/style.css" target="_blank"><code>/static/css/style.css</code></a>
+                        — the amber accent on this page comes from here.</li>
+                    <li><a href="/static/favicon.ico" target="_blank"><code>/static/favicon.ico</code></a>
+                        — also wired in the tab icon.</li>
+                    <li><a href="/static/index.html" target="_blank"><code>/static/index.html</code></a>
+                        — sample landing page.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{{endblock}}

@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2025 Daniele Teti
+// Copyright (c) 2010-2026 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -67,7 +67,7 @@ begin
   FFromAddresses := aFromAddresses;
   FToAddresses := aToAddresses;
   { by default, email appender sends only errors }
-  SetLogLevel(TLogType.Error);
+  SetMinimumLevel(TLogType.Error);
 end;
 
 procedure TLoggerProEMailAppender.PrepareMessage(const aLogItem: TLogItem;

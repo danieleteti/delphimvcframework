@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -149,13 +149,13 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
     if AContext.Request.ClientPreferHTML then
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED, AContext.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-      AContext.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + AContext.Config
+      AContext.Response.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + AContext.Config
         [TMVCConfigKey.ServerName];
     end;
     AContext.Response.StatusCode := HTTP_STATUS.Unauthorized;
@@ -170,19 +170,19 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
     if AContext.Request.ClientPreferHTML then
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN, AContext.Config[TMVCConfigKey.ServerName]]);
     end
     else if AContext.Request.ContentMediaType.StartsWith(TMVCMediaType.APPLICATION_JSON) then
     begin
       AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-      AContext.Response.RawWebResponse.Content :=
+      AContext.Response.Content :=
         '{"status":"error", "message":"' + CONTENT_403_FORBIDDEN.Replace('"', '\"') + '"}';
     end
     else
     begin
       AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-      AContext.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN + sLineBreak + AContext.Config
+      AContext.Response.Content := CONTENT_403_FORBIDDEN + sLineBreak + AContext.Config
         [TMVCConfigKey.ServerName];
     end;
     AContext.Response.StatusCode := HTTP_STATUS.Forbidden;
@@ -199,6 +199,9 @@ var
   SessionData: TSessionData;
   SessionPair: TPair<string, string>;
 begin
+  { `var`, not `out`: an unassigned AuthRequired would be stack garbage, and
+    False there skips authentication altogether. }
+  AuthRequired := True;
   FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
@@ -303,7 +306,7 @@ begin
     AHandled := True;
     AContext.Response.StatusCode := HTTP_STATUS.BadRequest;
     AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.RawWebResponse.Content :=
+    AContext.Response.Content :=
       '{"status":"error", "message":"username and password are mandatory in the body request as json object"}';
     Exit;
   end;
@@ -357,7 +360,7 @@ begin
         AContext.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
         AContext.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
         AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-        AContext.Response.RawWebResponse.Content := '{"status":"OK"}';
+        AContext.Response.Content := '{"status":"OK"}';
 
         AHandled := True;
       finally
@@ -400,6 +403,9 @@ var
   IsAuthorized: Boolean;
   AuthRequired: Boolean;
 begin
+  { `var`, not `out`: an unassigned AuthRequired would be stack garbage, and
+    False there skips authentication altogether. }
+  AuthRequired := True;
   FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
@@ -459,7 +465,7 @@ begin
   if AContext.Request.ClientPreferHTML then
   begin
     AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-    AContext.Response.RawWebResponse.Content :=
+    AContext.Response.Content :=
       Format(CONTENT_HTML_FORMAT, [IntToStr(AHttpStatus), AContext.Config[TMVCConfigKey.ServerName]]);
   end
   else
@@ -467,7 +473,7 @@ begin
     IsPositive := (AHttpStatus div 100) = 2;
     Msg := IfThen(IsPositive, 'OK', 'KO');
     AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.RawWebResponse.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
+    AContext.Response.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
   end;
   AHandled := True;
 end;

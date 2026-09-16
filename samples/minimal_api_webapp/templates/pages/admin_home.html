@@ -1,0 +1,22 @@
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Admin · Minimal API WebApp{{endblock}}
+
+{{block "body"}}
+<h1 class="h3 mb-3"><i class="bi bi-shield-lock"></i> Admin</h1>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <p class="mb-1">Welcome, <strong>{{:user}}</strong>.</p>
+        <p class="text-muted mb-0 small">
+            This page is rendered only when a session cookie carries the
+            <code>user</code> key. The <code>RequireLogin</code> filter redirects
+            to <code>/login</code> otherwise.
+        </p>
+    </div>
+</div>
+
+<a href="/admin/logout" class="btn btn-outline-danger">
+    <i class="bi bi-box-arrow-right"></i> Log out
+</a>
+{{endblock}}

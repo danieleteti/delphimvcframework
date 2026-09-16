@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2025 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -95,7 +95,7 @@ begin
   if Context.Request.PathInfo = '/handledbymiddleware' then
   begin
     Handled := True;
-    Context.Response.RawWebResponse.Content := 'This is a middleware response';
+    Context.Response.Content := 'This is a middleware response';
     Context.Response.StatusCode := 200;
   end
   else
