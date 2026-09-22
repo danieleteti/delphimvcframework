@@ -48,6 +48,14 @@ implementation
 uses
   System.SysUtils;
 
+type
+  /// <summary>Always-false condition that replaces limit(n,0), which T-SQL
+  /// cannot express: FETCH NEXT requires at least one row.</summary>
+  TRQLMSSQLNoRows = class(TRQLCustom)
+  public
+    SQL: string;
+  end;
+
 { TRQLMSSQLCompiler }
 
 procedure TRQLMSSQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
@@ -55,8 +63,32 @@ var
   lLimit, lSortToken: TRQLCustom;
   lSort: TRQLSort;
   lLimitIndex: Integer;
+  lNoRows: TRQLMSSQLNoRows;
 begin
   inherited;
+  // limit(n,0) asks for no rows, as LIMIT 0 does on the other engines. T-SQL
+  // refuses "FETCH NEXT 0 ROWS", so sort and limit are dropped and the WHERE
+  // gets a leading always-false term: every filter compiles to a
+  // parenthesized expression, so "(1=0) AND <filter>" needs no extra nesting.
+  if aRQLAST.TreeContainsToken(tkLimit, lLimit) and (TRQLLimit(lLimit).Count = 0) then
+  begin
+    aRQLAST.Remove(lLimit);
+    if aRQLAST.TreeContainsToken(tkSort, lSortToken) then
+      aRQLAST.Remove(lSortToken);
+    lNoRows := TRQLMSSQLNoRows.Create;
+    if (aRQLAST.Count > 0) and (aRQLAST[0] is TRQLWhere) then
+    begin
+      lNoRows.SQL := '(1=0) AND ';
+      aRQLAST.Insert(1, lNoRows);
+    end
+    else
+    begin
+      lNoRows.SQL := '(1=0)';
+      aRQLAST.Insert(0, lNoRows);
+      aRQLAST.Insert(0, TRQLWhere.Create);
+    end;
+    Exit;
+  end;
   // T-SQL's "OFFSET ... ROWS FETCH NEXT ... ROWS ONLY" requires an ORDER BY
   // clause. If the caller used RQL with `limit(...)` (or the framework added
   // a synthetic limit because of MaxRecordCount) but NO `sort(...)`, we
@@ -102,6 +134,10 @@ begin
   else if aRQLCustom is TRQLWhere then
   begin
     Result := RQLWhereToSQL(TRQLWhere(aRQLCustom));
+  end
+  else if aRQLCustom is TRQLMSSQLNoRows then
+  begin
+    Result := TRQLMSSQLNoRows(aRQLCustom).SQL;
   end
   else
     raise ERQLException.CreateFmt('Unknown token in compiler: %s', [aRQLCustom.ClassName]);
@@ -209,10 +245,6 @@ end;
 
 function TRQLMSSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  if aRQLLimit.Count = 0 then
-    raise ERQLException.Create(
-      'SQL Server rejects "FETCH NEXT 0 ROWS ONLY". ' +
-      'Use MaxRecordCount > 0 (to cap the result set) or -1 (no limit).');
   Result := Format(' /*limit*/ OFFSET %d ROWS FETCH NEXT %d ROWS ONLY',
     [aRQLLimit.Start, aRQLLimit.Count]);
 end;
