@@ -42,12 +42,24 @@ type
   TMVCSQLGeneratorMSSQL = class(TMVCSQLGenerator)
   protected
     function GetCompilerClass: TRQLCompilerClass; override;
-    function BuildOutputClause(const TableMap: TMVCTableMap;
-      const ARefreshFieldsOnly: Boolean): string;
+    /// <summary>SQL Server has no BEFORE triggers, and OUTPUT reports the row
+    /// as it was before the AFTER triggers ran. It also rejects "OUTPUT" without
+    /// INTO on a table with enabled triggers. So whatever foRefresh promises
+    /// (DB defaults, computed columns, values written by a trigger) is read
+    /// back by selecting the row again by key, in the same batch.
+    /// Diagnosis of the trigger failure: Flavio Basile.</summary>
+    function RefreshColumnList(const TableMap: TMVCTableMap;
+      const AIncludeAutoGenPK: Boolean; const APrefix: string = ''): string;
+    function AppendUpdateRefresh(const TableMap: TMVCTableMap; const ASQL: string): string;
     function BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string; override;
     function BuildSoftDeleteSetDeleted(const TableMap: TMVCTableMap): string; override;
     function BuildSoftDeleteSetRestored(const TableMap: TMVCTableMap): string; override;
   public
+    /// <summary>The driver reports the LAST row count of the batch, which is
+    /// a trigger's when the trigger does not SET NOCOUNT ON: a stale-version
+    /// UPDATE that changed nothing then looks successful. @@ROWCOUNT right
+    /// after the statement is the statement's own, triggers or not.</summary>
+    function GetRowsAffectedSQL: string; override;
     function CreateInsertSQL(
       const TableMap: TMVCTableMap;
       const ARInstance: TMVCActiveRecord): string; override;
@@ -64,36 +76,38 @@ implementation
 uses
   System.Rtti,
   System.SysUtils,
+  Data.DB,
   MVCFramework.RQL.AST2MSSQL;
 
-function TMVCSQLGeneratorMSSQL.BuildOutputClause(const TableMap: TMVCTableMap;
-  const ARefreshFieldsOnly: Boolean): string;
+function TMVCSQLGeneratorMSSQL.RefreshColumnList(const TableMap: TMVCTableMap;
+  const AIncludeAutoGenPK: Boolean; const APrefix: string): string;
 var
   lFieldInfo: TFieldInfo;
-  lParts: string;
-  lFirst: Boolean;
 begin
-  lParts := '';
-  lFirst := True;
-  if (not ARefreshFieldsOnly) and (TableMap.fAutoGenPKIndex >= 0) then
-  begin
-    lParts := 'inserted.' + AutoGenPKFieldName(TableMap);
-    lFirst := False;
-  end;
+  Result := '';
+  if AIncludeAutoGenPK and (TableMap.fAutoGenPKIndex >= 0) then
+    Result := APrefix + AutoGenPKFieldName(TableMap);
   for lFieldInfo in TableMap.RefreshFields do
   begin
-    if lFirst then
-    begin
-      lParts := 'inserted.' + GetFieldNameForSQL(lFieldInfo.FieldName);
-      lFirst := False;
-    end
-    else
-      lParts := lParts + ', inserted.' + GetFieldNameForSQL(lFieldInfo.FieldName);
+    if Result <> '' then
+      Result := Result + ', ';
+    Result := Result + APrefix + GetFieldNameForSQL(lFieldInfo.FieldName);
   end;
-  if lParts = '' then
-    Result := ''
-  else
-    Result := ' OUTPUT ' + lParts;
+end;
+
+function TMVCSQLGeneratorMSSQL.AppendUpdateRefresh(const TableMap: TMVCTableMap;
+  const ASQL: string): string;
+begin
+  Result := ASQL;
+  if TableMap.RefreshFields.Count = 0 then
+    Exit;
+  // The UPDATE's own row count is captured before anything else can change
+  // it: a missed row (not found, stale version) must bring back no row.
+  Result := Result + ';' + sLineBreak +
+    'DECLARE @dmvc_rows INT = @@ROWCOUNT;' + sLineBreak +
+    'SELECT ' + RefreshColumnList(TableMap, False) +
+    ' FROM ' + GetTableNameForSQL(TableMap.fTableName) +
+    ' WHERE ' + BuildPKWhereConjunction(TableMap, ' = :') + ' AND @dmvc_rows > 0;';
 end;
 
 function TMVCSQLGeneratorMSSQL.CreateInsertSQL(
@@ -103,19 +117,16 @@ var
   lKeyValue: TPair<TRttiField, TFieldInfo>;
   lSB: TStringBuilder;
   lFieldName: String;
-  lOutput: string;
-  lValuesPos: Integer;
-  lLegacyPos: Integer;
-  lPKIdx: Integer;
+  lPK: TMVCPKInfo;
+  lPKName, lTableName, lKeyType: string;
+  lValuesPos, I: Integer;
+  lAllPKsInserted: Boolean;
 begin
+  lTableName := GetTableNameForSQL(TableMap.fTableName);
   lSB := TStringBuilder.Create;
   try
-    lSB.Append('INSERT INTO ' + TableMap.fTableName + '(');
-    // PK columns participating in the INSERT, emitted raw like the map columns
-    // below (MSSQL does not quote here). Single-PK: identical to the old emission.
-    for lPKIdx := 0 to High(TableMap.fPrimaryKeys) do
-      if TableMap.fPrimaryKeys[lPKIdx].InInsert then
-        lSB.Append(TableMap.fPrimaryKeys[lPKIdx].FieldName + ',');
+    lSB.Append('INSERT INTO ' + lTableName + '(');
+    lSB.Append(PKInsertColumns(TableMap));
 
     {partition}
     for lFieldName in fPartitionInfo.FieldNames do
@@ -128,14 +139,12 @@ begin
     begin
       if lKeyValue.Value.Insertable then
       begin
-        lSB.Append(lKeyValue.Value.FieldName + ',');
+        lSB.Append(GetFieldNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
     end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(') values (');
-    for lPKIdx := 0 to High(TableMap.fPrimaryKeys) do
-      if TableMap.fPrimaryKeys[lPKIdx].InInsert then
-        lSB.Append(':' + TableMap.fPrimaryKeys[lPKIdx].FieldName + ',');
+    lSB.Append(PKInsertParams(TableMap));
 
     {partition}
     for lFieldName in fPartitionInfo.FieldNames do
@@ -151,7 +160,7 @@ begin
         lSB.Append(OBJECT_VERSION_STARTING_VALUE + ',');
       end else if lKeyValue.Value.Insertable then
       begin
-        lSB.Append(':' + lKeyValue.Value.FieldName + ',');
+        lSB.Append(':' + GetParamNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
     end;
     lSB.Remove(lSB.Length - 1, 1);
@@ -161,59 +170,71 @@ begin
     lSB.Free;
   end;
 
-  // Strip any legacy ;SELECT SCOPE_IDENTITY tail that may have been added
-  lLegacyPos := Pos(';SELECT SCOPE_IDENTITY', UpperCase(Result));
-  if lLegacyPos > 0 then
-    Result := TrimRight(Copy(Result, 1, lLegacyPos - 1));
-
-  // Build OUTPUT clause (PK + RefreshFields for INSERT)
-  lOutput := BuildOutputClause(TableMap, False);
-  if lOutput = '' then
-    Exit;
-
-  // Inject OUTPUT before " VALUES " (case-insensitive search, preserve original case)
   lValuesPos := Pos(' VALUES (', UpperCase(Result));
-  if lValuesPos > 0 then
-    Insert(lOutput, Result, lValuesPos);
+  if TableMap.fAutoGenPKIndex >= 0 then
+  begin
+    lPK := TableMap.fPrimaryKeys[TableMap.fAutoGenPKIndex];
+    lPKName := GetFieldNameForSQL(lPK.FieldName);
+    if lPK.FieldType in [ftInteger, ftLargeInt] then
+    begin
+      // IDENTITY. SCOPE_IDENTITY is confined to this scope, so a trigger's own
+      // inserts cannot shadow it. NULL means the column is not an IDENTITY:
+      // fail instead of leaving the in-memory key at 0.
+      Result := Result + ';' + sLineBreak +
+        'IF SCOPE_IDENTITY() IS NULL THROW 50000, ''DMVCFramework - ' +
+        'SCOPE_IDENTITY() is NULL after INSERT into ' + TableMap.fTableName.Replace('''', '''''') +
+        ', an auto-generated integer key must be an IDENTITY column'', 1;' + sLineBreak +
+        'SELECT ' + RefreshColumnList(TableMap, True) + ' FROM ' + lTableName +
+        ' WHERE ' + lPKName + ' = SCOPE_IDENTITY();';
+    end
+    else
+    begin
+      // A GUID or string key filled by a DEFAULT: only OUTPUT can hand it
+      // back, and INTO a table variable keeps it legal on a table with triggers.
+      if lPK.FieldType = ftGuid then
+        lKeyType := 'UNIQUEIDENTIFIER'
+      else
+        lKeyType := 'NVARCHAR(4000)';
+      Insert(' OUTPUT inserted.' + lPKName + ' INTO @dmvc_key', Result, lValuesPos);
+      Result := 'DECLARE @dmvc_key TABLE (k ' + lKeyType + ');' + sLineBreak +
+        Result + ';' + sLineBreak +
+        'SELECT ' + RefreshColumnList(TableMap, True) + ' FROM ' + lTableName +
+        ' WHERE ' + lPKName + ' = (SELECT k FROM @dmvc_key);';
+    end;
+  end
+  else if TableMap.RefreshFields.Count > 0 then
+  begin
+    lAllPKsInserted := TableMap.HasPK;
+    for I := 0 to High(TableMap.fPrimaryKeys) do
+      lAllPKsInserted := lAllPKsInserted and TableMap.fPrimaryKeys[I].InInsert;
+    if lAllPKsInserted then
+      // The key values are the INSERT's own parameters.
+      Result := Result + ';' + sLineBreak +
+        'SELECT ' + RefreshColumnList(TableMap, False) + ' FROM ' + lTableName +
+        ' WHERE ' + BuildPKWhereConjunction(TableMap, ' = :') + ';'
+    else
+      // No key to find the row again: OUTPUT is the only way left, and SQL
+      // Server accepts it only on a table without triggers.
+      Insert(' OUTPUT ' + RefreshColumnList(TableMap, False, 'inserted.'), Result, lValuesPos);
+  end;
 end;
 
 function TMVCSQLGeneratorMSSQL.CreateUpdateSQL(
   const TableMap: TMVCTableMap;
   const ARInstance: TMVCActiveRecord): string;
-var
-  lOutput: string;
-  lWherePos: Integer;
 begin
-  Result := inherited CreateUpdateSQL(TableMap, ARInstance);
-  if TableMap.RefreshFields.Count = 0 then
-    Exit;
-  // RefreshFields-only for UPDATE (PK is already known).
-  lOutput := BuildOutputClause(TableMap, True);
-  if lOutput = '' then
-    Exit;
-  lWherePos := Pos(' WHERE ', UpperCase(Result));
-  if lWherePos > 0 then
-    Insert(lOutput, Result, lWherePos);
+  Result := AppendUpdateRefresh(TableMap, inherited CreateUpdateSQL(TableMap, ARInstance));
 end;
 
 function TMVCSQLGeneratorMSSQL.CreateUpdateSQL(
   const TableMap: TMVCTableMap;
   const ARInstance: TMVCActiveRecord;
   const AChangedFields: TArray<string>): string;
-var
-  lOutput: string;
-  lWherePos: Integer;
 begin
-  Result := inherited CreateUpdateSQL(TableMap, ARInstance, AChangedFields);
-  if TableMap.RefreshFields.Count = 0 then
-    Exit;
-  lOutput := BuildOutputClause(TableMap, True);
-  if lOutput = '' then
-    Exit;
-  lWherePos := Pos(' WHERE ', UpperCase(Result));
-  if lWherePos > 0 then
-    Insert(lOutput, Result, lWherePos);
+  Result := AppendUpdateRefresh(TableMap,
+    inherited CreateUpdateSQL(TableMap, ARInstance, AChangedFields));
 end;
+
 
 function TMVCSQLGeneratorMSSQL.BuildSoftDeleteWhereSuffix(const TableMap: TMVCTableMap): string;
 begin
@@ -234,6 +255,11 @@ begin
   Result := inherited BuildSoftDeleteSetRestored(TableMap);
   // MSSQL BIT columns: FALSE -> 0
   Result := StringReplace(Result, ' = FALSE', ' = 0', [rfIgnoreCase]);
+end;
+
+function TMVCSQLGeneratorMSSQL.GetRowsAffectedSQL: string;
+begin
+  Result := 'SELECT CAST(@@ROWCOUNT AS BIGINT) AS dmvc_rows_affected';
 end;
 
 function TMVCSQLGeneratorMSSQL.GetCompilerClass: TRQLCompilerClass;

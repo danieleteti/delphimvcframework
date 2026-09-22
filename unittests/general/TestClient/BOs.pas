@@ -829,6 +829,8 @@ type
     query returns with whatever GetBackEnd answers. }
   [MVCNamedSQLQuery('get_backend_name', 'select ''mysql'' backendname', TMVCActiveRecordBackEnd.MySQL)]
   [MVCNamedSQLQuery('get_backend_name', 'select ''mariadb'' backendname', 'mariadb')]
+  [MVCNamedSQLQuery('get_backend_name', 'select ''mssql'' backendname', TMVCActiveRecordBackEnd.MSSql)]
+  [MVCNamedSQLQuery('get_backend_name', 'select ''oracle'' backendname from dual', TMVCActiveRecordBackEnd.Oracle)]
   TDummyEntity = class(TMVCActiveRecord)
   private
     [MVCTableField('backendname')]

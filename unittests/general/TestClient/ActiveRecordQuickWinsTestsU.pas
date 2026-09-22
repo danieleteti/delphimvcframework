@@ -392,6 +392,11 @@ type
     [Test]     procedure TestUpdateRefetchesTriggerOutput;
     [Test]     procedure TestForefreshFieldStaysWritable;
     [Test]     procedure TestPKAndForefreshBothFilled;
+    // A class with foRefresh fields must still Delete, one by one or in bulk:
+    // those statements have nothing to read back.
+    [Test]     procedure TestDeleteOfRefreshableEntity;
+    [Test]     procedure TestDeleteRQLOfRefreshableEntity;
+    [Test]     procedure TestDeleteAllOfRefreshableEntity;
   end;
 
   // ===================================================================
@@ -1923,6 +1928,54 @@ begin
   finally
     lR.Free;
   end;
+end;
+
+procedure TTestForefresh.TestDeleteOfRefreshableEntity;
+var
+  lR: TRefreshable;
+begin
+  lR := TRefreshable.Create;
+  try
+    lR.Name := 'todelete';
+    lR.Insert;
+    lR.Delete;
+  finally
+    lR.Free;
+  end;
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRefreshable>);
+end;
+
+procedure TTestForefresh.TestDeleteRQLOfRefreshableEntity;
+var
+  lR: TRefreshable;
+  I: Integer;
+begin
+  for I := 1 to 3 do
+  begin
+    lR := TRefreshable.Create;
+    try
+      lR.Name := 'bulk' + I.ToString;
+      lR.Insert;
+    finally
+      lR.Free;
+    end;
+  end;
+  Assert.AreEqual(Int64(2), TMVCActiveRecord.DeleteRQL(TRefreshable, 'in(name,["bulk1","bulk2"])'));
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count<TRefreshable>);
+end;
+
+procedure TTestForefresh.TestDeleteAllOfRefreshableEntity;
+var
+  lR: TRefreshable;
+begin
+  lR := TRefreshable.Create;
+  try
+    lR.Name := 'all';
+    lR.Insert;
+  finally
+    lR.Free;
+  end;
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.DeleteAll(TRefreshable));
 end;
 
 { TTestValidation }
