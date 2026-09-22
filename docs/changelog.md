@@ -298,6 +298,20 @@ certificate you cannot fix.
     `TRACE`; `QUERY` opens no surface that was not already open. Declare
     `[MVCHTTPMethod([...])]` if you want the route narrowed.
 
+- **`foRefresh` on SQL Server returns the row as it is after the triggers.**
+  SQL Server has no BEFORE triggers, and `OUTPUT` reports the row before the
+  AFTER triggers run, so a column written by a trigger came back stale. After
+  an Insert or Update the row is now selected again by key, in the same batch.
+  Same round trip as before, plus one primary-key lookup.
+- **SQL Server: an auto-generated integer key that is not an IDENTITY now
+  raises on Insert** (`SCOPE_IDENTITY() is NULL ...`) instead of silently
+  leaving the in-memory key at 0. The row is inserted before the error. GUID
+  and string keys filled by a `DEFAULT` are read back through
+  `OUTPUT ... INTO` a table variable and work.
+- **RQL `limit(n,0)` / `MaxRecordCount = 0` on SQL Server returns an empty
+  list** instead of raising `SQL Server rejects "FETCH NEXT 0 ROWS"`, as
+  `LIMIT 0` does on the other engines.
+
 - Default `TGUID` serialisation format is now dashes-only (RFC 4122)
   instead of `{braces}`. See **BREAKING CHANGES** above for migration.
 - `TDate` / `TDateTime` / `TTime` zero no longer serialises as JSON
@@ -526,6 +540,24 @@ written case-insensitively. Check the rules in front of a DMVCFramework server.
   deserialized lists to `TMVCActiveRecord.Merge`, which matches rows by primary
   key, remove the attribute.
 
+**WebSocket server: limits against unauthenticated peers** (PR #915)
+
+A peer could pin a server thread forever by opening the socket and never
+finishing the upgrade handshake, or make the server try to allocate up to 2^63
+bytes with one 14-byte frame header. `TMVCWebSocketServer` has four new
+properties, **on by default** (0 disables each one):
+
+| Property | Default |
+|---|---|
+| `MaxPayloadLength` | 16 MB, checked before the payload buffer is allocated |
+| `HandshakeTimeoutMs` | 5000 |
+| `MaxHandshakeHeaders` | 64 |
+| `FrameReadTimeoutMs` | 30000, only while a frame that has started is being read |
+
+Idle connected clients are not affected. A connection that fails the handshake
+or breaks the protocol is now closed; before, Indy re-entered the handshake on
+the same socket.
+
 ### Deprecated
 
 - **`TMVCListener` / `TMVCListenerProperties` / `TMVCListenersContext`**
@@ -538,6 +570,26 @@ written case-insensitively. Check the rules in front of a DMVCFramework server.
   compiling with a deprecation warning until you migrate.
 
 ### Fixed
+
+- **SQL Server: Insert and Update failed on a table with enabled triggers**
+  whenever something had to be read back (the generated key, a `foRefresh`
+  field): SQL Server rejects `OUTPUT inserted.col` without `INTO` there.
+  Diagnosis: Flavio Basile.
+- **SQL Server: optimistic locking was not detected behind a trigger without
+  `SET NOCOUNT ON`.** The driver reported the trigger's row count, so a stale
+  `foVersion` Update, or an Update/Delete of a missing row, looked successful.
+  Framework statements now read `@@ROWCOUNT` right after the statement
+  (`TMVCSQLGenerator.GetRowsAffectedSQL`, empty on every other engine).
+- **`Delete`, `DeleteRQL`, `DeleteAll`, `HardDeleteRQL` and `RestoreRQL`
+  failed on any engine for a class with `foRefresh` fields** (FireDAC -308):
+  the refresh read-back now runs only for the entity's own Insert and Update.
+- **A `TGUID` auto-generated primary key stayed empty after Insert**, on
+  every engine.
+- **SQL Server Insert did not quote table and column names**: a column with a
+  space in its name broke the statement.
+- **Delphi 13.2: `MVCFramework.ActiveRecord.pas` did not compile** (E2010, #917),
+  and `MVCFramework.JWT.RSA.pas` did not compile against TaurusTLS after its
+  PR #278.
 
 - **HTTP.sys dispatched `SEARCH` - and a dozen other verbs - as `GET`.**
   The HTTP.sys request adapter mapped the kernel's `HTTP_VERB` enumeration
