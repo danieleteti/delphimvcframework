@@ -742,14 +742,14 @@ begin
       LInputBytes := ToBytes(Input, IndyTextEncoding_UTF8);
 
       // Ed25519 uses one-shot signing (no Update step)
-      // Note: EVP_DigestSign declared with PEVP_CIPHER_CTX in TaurusTLS headers
-      // is actually EVP_MD_CTX in OpenSSL - cast to work around the header mismatch.
+      // Pointer cast: TaurusTLS before PR #278 declared these with PEVP_CIPHER_CTX,
+      // after it with the correct PEVP_MD_CTX. Untyped, so both headers compile.
       LSigLen := 0;
-      if EVP_DigestSign(PEVP_CIPHER_CTX(LCtx), nil, @LSigLen, @LInputBytes[0], Length(LInputBytes)) <> 1 then
+      if EVP_DigestSign(Pointer(LCtx), nil, @LSigLen, @LInputBytes[0], Length(LInputBytes)) <> 1 then
         raise EMVCJWTSignerException.Create('EVP_DigestSign (get length) failed.');
 
       SetLength(Result, LSigLen);
-      if EVP_DigestSign(PEVP_CIPHER_CTX(LCtx), @Result[0], @LSigLen, @LInputBytes[0], Length(LInputBytes)) <> 1 then
+      if EVP_DigestSign(Pointer(LCtx), @Result[0], @LSigLen, @LInputBytes[0], Length(LInputBytes)) <> 1 then
         raise EMVCJWTSignerException.Create('EVP_DigestSign failed.');
       SetLength(Result, LSigLen);
     finally
@@ -782,8 +782,8 @@ begin
       LInputBytes := ToBytes(Input, IndyTextEncoding_UTF8);
 
       // Ed25519 uses one-shot verification (no Update step)
-      // Cast: see note in Sign about TaurusTLS header mismatch
-      Result := EVP_DigestVerify(PEVP_CIPHER_CTX(LCtx), @Signature[0], Length(Signature),
+      // Pointer cast: see note in Sign about the TaurusTLS header change
+      Result := EVP_DigestVerify(Pointer(LCtx), @Signature[0], Length(Signature),
         @LInputBytes[0], Length(LInputBytes)) = 1;
     finally
       EVP_MD_CTX_free(LCtx);

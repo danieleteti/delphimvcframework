@@ -1345,7 +1345,7 @@ type
     procedure UnregisterInsert(const Value: T);
 
     // events
-    procedure DoItemApplyAction(const Obj: TMVCActiveRecord; const EntityAction: TMVCEntityAction;
+    procedure DoItemApplyAction(const Obj: T; const EntityAction: TMVCEntityAction;
       const ItemApplyAction: TMVCItemApplyAction<T>; var Handled: Boolean);
 
     class function KeyExistsInt(const NewList: TObjectList<T>; const KeyValue: Integer; out Index: Integer): Boolean;
@@ -4771,7 +4771,7 @@ class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params:
   const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions; const OutList: TObjectList<T>): UInt32;
 var
   lDataSet: TDataSet;
-  lAR: TMVCActiveRecord;
+  lAR: T;
 begin
   lDataSet := ExecQuery(SQL, Params, ParamTypes, True, False);
   try
@@ -4790,7 +4790,7 @@ end;
 
 class function TMVCActiveRecordHelper.LoadFromDataSet<T>(const DataSet: TDataSet; const OutList: TObjectList<T>; const Options: TMVCActiveRecordLoadOptions): UInt32;
 var
-  lAR: TMVCActiveRecord;
+  lAR: T;
 begin
   while not DataSet.Eof do
   begin
@@ -6626,7 +6626,7 @@ begin
   inherited;
 end;
 
-procedure TMVCUnitOfWork<T>.DoItemApplyAction(const Obj: TMVCActiveRecord; const EntityAction: TMVCEntityAction;
+procedure TMVCUnitOfWork<T>.DoItemApplyAction(const Obj: T; const EntityAction: TMVCEntityAction;
   const ItemApplyAction: TMVCItemApplyAction<T>; var Handled: Boolean);
 begin
   if Assigned(ItemApplyAction) then
