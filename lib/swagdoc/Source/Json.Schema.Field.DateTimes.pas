@@ -46,7 +46,10 @@ type
   end;
 
   [ASchemaType(skTime)]
-  TJsonFieldTime = class(TJsonFieldDateTime);
+  TJsonFieldTime = class(TJsonFieldDateTime)
+  strict protected
+    function GetFormat: string; override;
+  end;
 
 implementation
 
@@ -71,6 +74,13 @@ end;
 function TJsonFieldDate.GetFormat: string;
 begin
   Result := 'date';
+end;
+
+{ TJsonFieldTime }
+
+function TJsonFieldTime.GetFormat: string;
+begin
+  Result := 'time';
 end;
 
 initialization
