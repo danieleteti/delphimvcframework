@@ -9,21 +9,21 @@ package SwagDoc;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
+{$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO ON}
+{$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
+{$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'SwagDoc Library'}
 {$RUNONLY}
@@ -51,14 +51,6 @@ contains
   Swag.Doc.Info.Contact in 'Swag.Doc.Info.Contact.pas',
   Swag.Doc.Info.License in 'Swag.Doc.Info.License.pas',
   Swag.Doc.Info in 'Swag.Doc.Info.pas',
-  Swag.Doc.Server in 'Swag.Doc.Server.pas',
-  Swag.Common.Json in 'Swag.Common.Json.pas',
-  Swag.Doc.Extensions in 'Swag.Doc.Extensions.pas',
-  Swag.Doc.Example in 'Swag.Doc.Example.pas',
-  Swag.Doc.Link in 'Swag.Doc.Link.pas',
-  Swag.Doc.SecurityRequirement in 'Swag.Doc.SecurityRequirement.pas',
-  Swag.Doc.Path.Operation.Content in 'Swag.Doc.Path.Operation.Content.pas',
-  Swag.Doc.Path.Operation.RequestBody in 'Swag.Doc.Path.Operation.RequestBody.pas',
   Swag.Doc.Path.Operation in 'Swag.Doc.Path.Operation.pas',
   Swag.Doc.Path.Operation.RequestParameter in 'Swag.Doc.Path.Operation.RequestParameter.pas',
   Swag.Doc.Path.Operation.Response in 'Swag.Doc.Path.Operation.Response.pas',
@@ -68,12 +60,20 @@ contains
   Swag.Doc.SecurityDefinitionApiKey in 'Swag.Doc.SecurityDefinitionApiKey.pas',
   Swag.Doc.SecurityDefinitionBasic in 'Swag.Doc.SecurityDefinitionBasic.pas',
   Swag.Doc.SecurityDefinitionOAuth2 in 'Swag.Doc.SecurityDefinitionOAuth2.pas',
+  Swag.Doc.Tags in 'Swag.Doc.Tags.pas',
+  Swag.Doc in 'Swag.Doc.pas',
+  Swag.Common.Json in 'Swag.Common.Json.pas',
+  Swag.Doc.Extensions in 'Swag.Doc.Extensions.pas',
+  Swag.Doc.Example in 'Swag.Doc.Example.pas',
+  Swag.Doc.Link in 'Swag.Doc.Link.pas',
+  Swag.Doc.SecurityRequirement in 'Swag.Doc.SecurityRequirement.pas',
+  Swag.Doc.Server in 'Swag.Doc.Server.pas',
+  Swag.Doc.Path.Operation.Content in 'Swag.Doc.Path.Operation.Content.pas',
+  Swag.Doc.Path.Operation.RequestBody in 'Swag.Doc.Path.Operation.RequestBody.pas',
   Swag.Doc.SecurityDefinitionHttp in 'Swag.Doc.SecurityDefinitionHttp.pas',
   Swag.Doc.SecurityDefinitionOpenIdConnect in 'Swag.Doc.SecurityDefinitionOpenIdConnect.pas',
   Swag.Doc.SecurityDefinitionMutualTls in 'Swag.Doc.SecurityDefinitionMutualTls.pas',
-  Swag.Doc.Tags in 'Swag.Doc.Tags.pas',
   Swag.Doc.JsonConverter in 'Swag.Doc.JsonConverter.pas',
-  Swag.Doc in 'Swag.Doc.pas',
   Swag.Doc.OpenApi.Generator in 'Swag.Doc.OpenApi.Generator.pas',
   Swag.Doc.OpenApi.Loader in 'Swag.Doc.OpenApi.Loader.pas',
   Swag.Doc.FileLoader in 'Swag.Doc.FileLoader.pas';

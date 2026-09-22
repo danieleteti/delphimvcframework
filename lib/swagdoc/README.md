@@ -1,6 +1,8 @@
 # SwagDoc
 SwagDoc is a Delphi library to generate the swagger.json (Swagger 2.0) or the openapi.json (OpenAPI 3) file of a REST API. Create a public documentation of your REST API using Swagger 2.0 or OpenAPI 3.2.1 for Delphi Language. SwagDoc's only responsibility is to generate the JSON document. The document is responsible for containing all the documentation for your REST API. This file must be attached to the Swagger UI (User Interface) files.
 
+An API written with [Horse](https://github.com/HashLoad/horse) publishes that document without writing a single route: the `Integrations\Horse` folder has a middleware that serves it and renders it with Swagger UI or Scalar. APIs written with [DelphiMVCFramework](https://github.com/danieleteti/delphimvcframework) already use SwagDoc, which the framework bundles in its own tree.
+
 [![PayPal donate button](https://user-images.githubusercontent.com/26885358/62580349-60bd8780-b87c-11e9-901e-425cf2a83671.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AW8TZ2QTDA7K8)
 
 
@@ -98,6 +100,57 @@ end;
 `SwaggerJson` holds the generated `TJSONValue` and `SwaggerVersion` returns the version string written in the document ("2.0" or "3.2.1"). The name of the file written by `SaveSwaggerJsonToFile` can be changed with the `SwaggerFileName` property.
 
 
+## Web frameworks
+
+A REST API usually publishes its documentation from the server itself, instead of writing a file to disk. The `Integrations` folder has one page per framework, with what is needed on each side.
+
+### Horse
+
+`Integrations\Horse` is a middleware that publishes the document and the page that renders it. Add the two folders to the search path of the project:
+
+```
+SwagDoc\Source
+SwagDoc\Integrations\Horse\Source
+```
+
+One line publishes the documentation, and `SwagDocApi` is the `TSwagDoc` of the application, described with the same object model of the rest of this page:
+
+```delphi
+uses
+  Horse, Horse.SwagDoc;
+
+begin
+  THorse.Use(HorseSwagDoc);
+
+  SwagDocApi.Info.Title := 'Pet Store';
+  SwagDocApi.Info.Version := '1.0.0';
+
+  THorse.Get('/pets/:id', GetPet);
+  THorse.Listen(9000);
+end.
+```
+
+The page is published at `/docs` and the document at `/docs/openapi.json`. The `Route` method documents a route with the syntax used to register it in Horse, translating `/pets/:id` to `/pets/{id}` and writing its path parameter:
+
+```delphi
+SwagDocApi.Route('/pets/:id').AddOperation(ohvGet).Summary := 'Returns a pet';
+```
+
+The routes registered in Horse that are not documented yet are written in the document with a single response, which shows what is still missing. The document is written as OpenAPI 3 and `SwagDocApi.SpecVersion := svSwagger2` publishes the Swagger 2.0 one instead. The interface is selected at runtime, between Swagger UI and Scalar, and its files are loaded from a CDN or embedded in the executable by a conditional define.
+
+The [page of the integration](Integrations/Horse/README.md) describes the settings, and applications that document their API with GBSwagger are moved by the [migration guide](Integrations/Horse/Migration-gbswagger-to-SwagDoc.md).
+
+### DelphiMVCFramework
+
+The integration is written on the framework side: DelphiMVCFramework bundles the sources of SwagDoc in `lib/swagdoc` and owns the `MVCFramework.Middleware.Swagger` middleware, which reads the attributes of the controllers and builds the document on each request. An application adds the middleware to the engine and documents its operations with the attributes of the framework:
+
+```delphi
+FMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(FMVC, LSwaggerInfo, '/api/help/swagger.json'));
+```
+
+The release of SwagDoc that documents the API is the one bundled with the framework, and the family of the specification is defined by the middleware. The [page of the integration](Integrations/DMVC/README.md) describes the coupling and what is needed to publish an OpenAPI 3 document.
+
+
 ## Swagger 2.0 and OpenAPI 3 with the same object model
 
 The classes and properties used to describe a Swagger 2.0 document keep working when the document is generated as OpenAPI 3. The fields that no longer exist in OpenAPI 3 are translated to their new representation:
@@ -116,7 +169,7 @@ The classes and properties used to describe a Swagger 2.0 document keep working 
 | `Parameters` (reusable) | `parameters` | `components/parameters` (body and formData parameters go to `components/requestBodies`) |
 | `SecurityDefinitions` | `securityDefinitions` | `components/securitySchemes` |
 | References written as `#/definitions/Name` | Kept | Converted to `#/components/schemas/Name` |
-| `TJsonField.Nullable` | `x-nullable` extension | `type` that also accepts `"null"`, or `anyOf` with a `null` type for references |
+| `TJsonField.Nullable` | Not written, or the `x-nullable` extension when `WriteNullableExtension` is True | `type` that also accepts `"null"`, or `anyOf` with a `null` type for references |
 | `exclusiveMinimum` and `exclusiveMaximum` | Boolean, together with `minimum` and `maximum` | Numeric limits |
 | `type: file` in schemas and parameters | Kept | `type: string` with `format: binary` |
 | Basic security definition | `type: basic` | `type: http` with `scheme: basic` |
@@ -328,13 +381,13 @@ begin
 end;
 ```
 
-Each requirement added with `AddSecurityRequirement` is an alternative (logical OR) and the schemes of a requirement are all required (logical AND). When the document has no requirement, every security definition is written as an alternative without scopes, as in the previous releases, and the `Security` list of the operations keeps working. `DisableSecurity` writes an empty array, which removes the security of the document.
+Each requirement added with `AddSecurityRequirement` is an alternative (logical OR) and the schemes of a requirement are all required (logical AND). When the document has no requirement, it writes no `security` of its own, unless `GlobalSecurityFromDefinitions` is True, which writes every security definition as an alternative without scopes; the `Security` list of the operations keeps working. `DisableSecurity` writes an empty array, which removes the security of the document.
 
 The OAuth2 scheme accepts several flows with `AddFlow`, including `oftDeviceAuthorization`, and the single flow properties (`Flow`, `AuthorizationUrl`, `TokenUrl` and `Scopes`) keep working. A Swagger 2.0 document receives the first flow that exists in Swagger 2.0, and the requirements that use a scheme without a Swagger 2.0 equivalent are removed. The API key scheme accepts the `kilCookie` location, the OpenID Connect scheme is available through `TSwagSecurityDefinitionOpenIdConnect`, client certificates through `TSwagSecurityDefinitionMutualTls`, and every scheme has the `Deprecated` property.
 
 ### Schemas
 
-The JSON schemas built with `TJsonSchema` are used by both families. OpenAPI 3.2.1 uses JSON Schema 2020-12, so the `Nullable` property of a field is written as a `type` array that includes `"null"`, while Swagger 2.0 receives the `x-nullable` extension. The `Format` property of a string field is written in both families.
+The JSON schemas built with `TJsonSchema` are used by both families. OpenAPI 3.2.1 uses JSON Schema 2020-12, so the `Nullable` property of a field is written as a `type` array that includes `"null"`, while Swagger 2.0 receives the `x-nullable` extension only when `WriteNullableExtension` is True. The `Format` property of a string field is written in both families.
 
 
 ## Loading and converting documents
@@ -360,6 +413,15 @@ When an OpenAPI 3 document is loaded, the `Host`, `BasePath` and `Schemes` prope
 - `Demos\GenerateSwaggerJsonFromCode`: builds a small Swagger 2.0 document with inline JSON schemas (VCL).
 - `Demos\LoadSwaggerJsonToObject`: loads a swagger.json file into the object model and writes it again (VCL).
 - `Demos\GenerateUnitFileForMVCFramework`: reads a swagger.json file and generates a Delphi client unit for DelphiMVCFramework (FMX).
+- `Integrations\Horse\Demos\SampleHorseApi`: a pet store API written with Horse and documented with the middleware (console). It shows the documentation of a tag, a schema of the components, a request body, responses with media types and a path parameter declared by the route, and it selects the user interface with the `-scalar` parameter and the specification version with the `-swagger2` one.
+
+
+## Sample applications
+
+Two complete APIs, in the https://github.com/marcelojaloto/Delphi/tree/master/samples repository, publish an OpenAPI 3.2.1 document generated by SwagDoc:
+
+- [server-api-rest-dmvc](https://github.com/marcelojaloto/Delphi/tree/master/samples/server-api-rest-dmvc): a customers API written with DelphiMVCFramework, documented with the attributes of the framework and published by its middleware, with the Swagger UI files deployed by the application itself.
+- [tasks-manager-horse](https://github.com/marcelojaloto/Delphi/tree/master/samples/tasks-manager-horse): a task manager written with Horse, with a PostgreSQL database, authentication with JWT and a client application. The document is written by its `Tasks.Server.Core.Documentation` unit and published by the middleware of this repository.
 
 
 ## Json Schema

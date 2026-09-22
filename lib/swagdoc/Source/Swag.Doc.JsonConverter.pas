@@ -53,20 +53,30 @@ type
     class procedure RenameBooleanPair(pJson: TJSONObject; const pOldName, pNewName: string);
     class procedure ReplaceFileType(pJson: TJSONObject);
     class procedure ConvertNullableToTypeArray(pJson: TJSONObject);
-    class procedure ConvertTypeArrayToNullable(pJson: TJSONObject);
+    class procedure ConvertTypeArrayToNullable(pJson: TJSONObject; const pWriteNullableExtension: Boolean);
     class procedure ConvertNullableAnyOfToNullable(pJson: TJSONObject);
     class procedure WrapNullableRefIntoAllOf(pJson: TJSONObject);
     class procedure ConvertExclusiveLimitToNumber(pJson: TJSONObject; const pLimitName, pExclusiveName: string);
     class procedure ConvertExclusiveLimitToBoolean(pJson: TJSONObject; const pLimitName, pExclusiveName: string);
     class procedure ConvertExamplesToExample(pJson: TJSONObject);
-    class procedure ConvertObjectToSwagger2(pJson: TJSONObject);
+    class procedure ConvertObjectToSwagger2(pJson: TJSONObject; const pWriteNullableExtension: Boolean);
     class procedure ConvertObjectToOpenApi3(pJson: TJSONObject);
-    class procedure ConvertValue(pJson: TJSONValue; const pVersion: TSwagVersion; const pIsNameMap: Boolean);
+    class procedure ConvertValue(pJson: TJSONValue; const pVersion: TSwagVersion; const pIsNameMap: Boolean;
+      const pWriteNullableExtension: Boolean);
   public
     /// <summary>
     /// Converts, in place, the references and the schema keywords of the given JSON value to the target family.
+    /// A nullable schema loses its nullability in a Swagger 2.0 document, which has no keyword for it.
     /// </summary>
-    class procedure Convert(pJson: TJSONValue; const pVersion: TSwagVersion);
+    class procedure Convert(pJson: TJSONValue; const pVersion: TSwagVersion); overload;
+
+    /// <summary>
+    /// Converts, in place, the references and the schema keywords of the given JSON value to the target family.
+    /// When pWriteNullableExtension is True, a nullable schema is written with the x-nullable extension in a
+    /// Swagger 2.0 document. The x-nullable extension read from a Swagger 2.0 document is always kept.
+    /// </summary>
+    class procedure Convert(pJson: TJSONValue; const pVersion: TSwagVersion;
+      const pWriteNullableExtension: Boolean); overload;
   end;
 
 implementation
@@ -110,11 +120,17 @@ const
 
 class procedure TSwagJsonConverter.Convert(pJson: TJSONValue; const pVersion: TSwagVersion);
 begin
-  ConvertValue(pJson, pVersion, False);
+  Convert(pJson, pVersion, False);
+end;
+
+class procedure TSwagJsonConverter.Convert(pJson: TJSONValue; const pVersion: TSwagVersion;
+  const pWriteNullableExtension: Boolean);
+begin
+  ConvertValue(pJson, pVersion, False, pWriteNullableExtension);
 end;
 
 class procedure TSwagJsonConverter.ConvertValue(pJson: TJSONValue; const pVersion: TSwagVersion;
-  const pIsNameMap: Boolean);
+  const pIsNameMap: Boolean; const pWriteNullableExtension: Boolean);
 var
   vObject: TJSONObject;
   vIndex: Integer;
@@ -123,7 +139,7 @@ begin
   if pJson is TJSONArray then
   begin
     for vIndex := 0 to TJSONArray(pJson).Count - 1 do
-      ConvertValue(TJSONArray(pJson).Items[vIndex], pVersion, False);
+      ConvertValue(TJSONArray(pJson).Items[vIndex], pVersion, False, pWriteNullableExtension);
     Exit;
   end;
 
@@ -133,7 +149,7 @@ begin
   vObject := TJSONObject(pJson);
   if not pIsNameMap then
     case pVersion of
-      svSwagger2: ConvertObjectToSwagger2(vObject);
+      svSwagger2: ConvertObjectToSwagger2(vObject, pWriteNullableExtension);
       svOpenApi3: ConvertObjectToOpenApi3(vObject);
     end;
 
@@ -141,13 +157,14 @@ begin
   begin
     vKey := vObject.Pairs[vIndex].JsonString.Value;
     if pIsNameMap then
-      ConvertValue(vObject.Pairs[vIndex].JsonValue, pVersion, False)
+      ConvertValue(vObject.Pairs[vIndex].JsonValue, pVersion, False, pWriteNullableExtension)
     else if not (IsInstanceData(vKey) or vKey.StartsWith(c_JsonExtensionPrefix)) then
-      ConvertValue(vObject.Pairs[vIndex].JsonValue, pVersion, IsNameMap(vKey));
+      ConvertValue(vObject.Pairs[vIndex].JsonValue, pVersion, IsNameMap(vKey), pWriteNullableExtension);
   end;
 end;
 
-class procedure TSwagJsonConverter.ConvertObjectToSwagger2(pJson: TJSONObject);
+class procedure TSwagJsonConverter.ConvertObjectToSwagger2(pJson: TJSONObject;
+  const pWriteNullableExtension: Boolean);
 var
   vIndex: Integer;
 begin
@@ -155,8 +172,11 @@ begin
   for vIndex := Low(c_OpenApi3RefPrefixes) to High(c_OpenApi3RefPrefixes) do
     ReplaceRefPrefix(pJson, c_OpenApi3RefPrefixes[vIndex], c_Swagger2RefPrefixes[vIndex]);
   ReplaceRefPrefix(pJson, c_OpenApi3RequestBodiesRefPrefix, c_Swagger2RequestBodiesRefPrefix);
-  RenameBooleanPair(pJson, c_JsonNullable, c_JsonNullableExtension);
-  ConvertTypeArrayToNullable(pJson);
+  if pWriteNullableExtension then
+    RenameBooleanPair(pJson, c_JsonNullable, c_JsonNullableExtension)
+  else
+    pJson.RemovePair(c_JsonNullable).Free;
+  ConvertTypeArrayToNullable(pJson, pWriteNullableExtension);
   WrapNullableRefIntoAllOf(pJson);
   ConvertExclusiveLimitToBoolean(pJson, c_JsonMinimum, c_JsonExclusiveMinimum);
   ConvertExclusiveLimitToBoolean(pJson, c_JsonMaximum, c_JsonExclusiveMaximum);
@@ -322,7 +342,8 @@ begin
     TJSONArray(pJson.Values[c_JsonEnum]).AddElement(TJSONNull.Create);
 end;
 
-class procedure TSwagJsonConverter.ConvertTypeArrayToNullable(pJson: TJSONObject);
+class procedure TSwagJsonConverter.ConvertTypeArrayToNullable(pJson: TJSONObject;
+  const pWriteNullableExtension: Boolean);
 var
   vTypes: TJSONArray;
   vEnum: TJSONArray;
@@ -354,7 +375,8 @@ begin
   if not vHasNull then
     Exit;
 
-  ReplacePair(pJson, c_JsonNullableExtension, TJSONBool.Create(True));
+  if pWriteNullableExtension then
+    ReplacePair(pJson, c_JsonNullableExtension, TJSONBool.Create(True));
   if pJson.Values[c_JsonEnum] is TJSONArray then
   begin
     vEnum := TJSONArray(pJson.Values[c_JsonEnum]);

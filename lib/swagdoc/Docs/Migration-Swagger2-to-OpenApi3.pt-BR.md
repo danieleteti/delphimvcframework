@@ -566,10 +566,10 @@ Cada `AddSecurityRequirement` é uma alternativa (OR) e os esquemas de um requis
 
 | Nível | Primeira opção | Segunda opção | Terceira opção |
 |-------|--------------|---------------|--------------|
-| Documento | `SecurityRequirements` | `DisableSecurity` grava `[]` | Todas as definições de segurança como alternativas sem escopos (comportamento da versão anterior) |
+| Documento | `SecurityRequirements` | `DisableSecurity` grava `[]` | `GlobalSecurityFromDefinitions` grava todas as definições de segurança como alternativas sem escopos |
 | Operação | `SecurityRequirements` | Lista `Security`, sem escopos | `DisableSecurity` grava `[]` |
 
-> A terceira opção do nível de documento torna cada esquema uma forma alternativa de chamar a API inteira. Quando a API tem mais de um esquema, declare os requisitos explicitamente.
+> `GlobalSecurityFromDefinitions` é False por padrão, então um documento sem requisitos não grava um `security` próprio e cada operação mantém a segurança que declara. Defina como True para tornar cada esquema uma forma alternativa de chamar a API inteira.
 
 #### Esquemas em um documento Swagger 2.0
 
@@ -594,8 +594,9 @@ As palavras-chave de schema são convertidas para a família que está sendo ger
 
 | Construção | Saída no Swagger 2.0 | Saída no OpenAPI 3.2.1 |
 |--------------|--------------------|----------------------|
-| Campo `Nullable`, `nullable: true` ou `x-nullable: true` | `x-nullable: true` | Array em `type` que inclui `"null"` |
-| Referência anulável | `allOf` com a referência e `x-nullable` | `anyOf` com a referência e `type: "null"` |
+| Campo `Nullable` ou `nullable: true` | Não gravado, ou `x-nullable: true` quando `WriteNullableExtension` é True | Array em `type` que inclui `"null"` |
+| Referência anulável | Apenas a referência, ou `allOf` com `x-nullable` quando `WriteNullableExtension` é True | `anyOf` com a referência e `type: "null"` |
+| `x-nullable: true` lido de um documento Swagger 2.0 | Mantido | Array em `type` que inclui `"null"` |
 | `exclusiveMinimum` e `exclusiveMaximum` | Booleanos, junto com `minimum` e `maximum` | Limites numéricos |
 | `type: file` | Mantido | `type: string`, `format: binary` |
 | Array `examples` do schema | Primeiro item como `example` | Mantido |
@@ -856,6 +857,23 @@ Mantenha as duas até que os consumidores (geradores de clientes, API gateways, 
 | nenhuma | `Deploy\OpenApi3` com Swagger UI 5.32.15 e `openapi.json` |
 | nenhuma | `Demos\SampleOpenApi3`: a versão OpenAPI 3.2.1 da `SampleApi`, gravando em `Deploy\OpenApi3` |
 
+### 8.7 Publicando o documento pela própria aplicação
+
+Uma API escrita com um framework web publica o documento pelo próprio servidor, em vez de copiar um arquivo para um servidor web. A pasta `Integrations` do repositório tem uma página por framework.
+
+Com o [Horse](https://github.com/HashLoad/horse), o middleware de `Integrations\Horse` publica o documento e a página que o apresenta. Uma aplicação que já o utiliza muda uma propriedade:
+
+```delphi
+THorse.Use(HorseSwagDoc);
+
+SwagDocApi.SpecVersion := svOpenApi3;
+SwagDocConfig.DocumentRoute := '/docs/openapi.json';
+```
+
+Com o [DelphiMVCFramework](https://github.com/danieleteti/delphimvcframework), o SwagDoc é distribuído dentro da pasta `lib/swagdoc` do framework e o middleware `MVCFramework.Middleware.Swagger` monta o documento a cada requisição. Publicar um documento OpenAPI 3 exige uma versão distribuída que declare `TSwagVersion` e o middleware definindo `SpecVersion := svOpenApi3`.
+
+A página que apresenta o documento também precisa entender a família. Os arquivos do Swagger UI publicados por uma aplicação escrita para o Swagger 2.0 são substituídos pela distribuição de `Deploy\OpenApi3`.
+
 ## 9. Validação e testes
 
 ### 9.1 Regressão do Swagger 2.0
@@ -912,3 +930,4 @@ Documentos construídos em código devem ser idênticos. Documentos carregados d
 - Distribuição do Swagger UI: https://github.com/swagger-api/swagger-ui/tree/master/dist
 - Repositório do SwagDoc: https://github.com/marcelojaloto/SwagDoc
 - Demos do SwagDoc: `Demos\SampleApi` (Swagger 2.0) e `Demos\SampleOpenApi3` (OpenAPI 3.2.1)
+- Aplicações de exemplo que publicam um documento OpenAPI 3.2.1: https://github.com/marcelojaloto/Delphi/tree/master/samples — `server-api-rest-dmvc` (DelphiMVCFramework) e `tasks-manager-horse` (Horse)

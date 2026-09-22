@@ -78,6 +78,8 @@ type
     fJsonSchemaDialect: string;
     fSecurityRequirements: TObjectList<TSwagSecurityRequirement>;
     fDisableSecurity: Boolean;
+    fGlobalSecurityFromDefinitions: Boolean;
+    fWriteNullableExtension: Boolean;
     fResponses: TObjectList<TSwagResponse>;
     fHeaders: TObjectList<TSwagHeaders>;
     fExamples: TObjectList<TSwagExample>;
@@ -237,8 +239,8 @@ type
 
     /// <summary>
     /// The alternative security requirements of the whole API (logical OR). Each requirement lists the schemes that
-    /// are all required (logical AND) with their scopes. When the list is empty, every security definition is written
-    /// as an alternative requirement without scopes.
+    /// are all required (logical AND) with their scopes. When the list is empty, the security of the document is
+    /// written according to the DisableSecurity and GlobalSecurityFromDefinitions properties.
     /// </summary>
     property SecurityRequirements: TObjectList<TSwagSecurityRequirement> read fSecurityRequirements;
 
@@ -247,6 +249,21 @@ type
     /// so no security scheme is required by default.
     /// </summary>
     property DisableSecurity: Boolean read fDisableSecurity write fDisableSecurity;
+
+    /// <summary>
+    /// When True and no security requirement is declared, every security definition is written as an alternative
+    /// requirement of the document, without scopes. The default value is False, so the security of the document is
+    /// only written when it is declared, and the operations keep the security they declare themselves.
+    /// </summary>
+    property GlobalSecurityFromDefinitions: Boolean read fGlobalSecurityFromDefinitions
+      write fGlobalSecurityFromDefinitions;
+
+    /// <summary>
+    /// When True, a schema field marked as nullable is written with the x-nullable extension in a Swagger 2.0
+    /// document. The default value is False, because Swagger 2.0 has no keyword for nullable values. The x-nullable
+    /// extension read from a Swagger 2.0 document is always kept, and OpenAPI 3 always writes the nullable type.
+    /// </summary>
+    property WriteNullableExtension: Boolean read fWriteNullableExtension write fWriteNullableExtension;
 
     /// <summary>
     /// An object to hold parameters that can be used across operations. This property does not define global
@@ -616,7 +633,7 @@ begin
       vJsonObject.AddPair(c_SwagSecurity, TSwagSecurityRequirement.GenerateJsonArray(fSecurityRequirements))
     else if fDisableSecurity then
       vJsonObject.AddPair(c_SwagSecurity, TJSONArray.Create)
-    else
+    else if fGlobalSecurityFromDefinitions then
     begin
       lArraySecurity := TJSONArray.Create;
 
@@ -670,7 +687,7 @@ begin
     begin
       vJsonObject := GenerateSwaggerJsonObject;
       RemoveUnsupportedSecurityRequirements(vJsonObject);
-      TSwagJsonConverter.Convert(vJsonObject, svSwagger2);
+      TSwagJsonConverter.Convert(vJsonObject, svSwagger2, fWriteNullableExtension);
     end;
   end;
 

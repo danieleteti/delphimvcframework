@@ -413,7 +413,7 @@ begin
     Exit(TJSONArray.Create);
 
   Result := nil;
-  if fSwagDoc.SecurityDefinitions.Count = 0 then
+  if (not fSwagDoc.GlobalSecurityFromDefinitions) or (fSwagDoc.SecurityDefinitions.Count = 0) then
     Exit;
 
   Result := TJSONArray.Create;
