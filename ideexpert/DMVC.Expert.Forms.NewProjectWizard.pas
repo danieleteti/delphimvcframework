@@ -33,6 +33,8 @@
 unit DMVC.Expert.Forms.NewProjectWizard;
 
 {$I ..\sources\dmvcframework.inc}
+// An IDE wizard is Windows-only: TTaskDialog / TFileOpenDialog are fine here
+{$WARN SYMBOL_PLATFORM OFF}
 
 interface
 

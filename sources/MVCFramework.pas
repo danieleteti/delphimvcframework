@@ -5186,7 +5186,9 @@ procedure TMVCRenderer.Render(
   const ASerializationType: TMVCDatasetSerializationType;
   const ASerializationAction: TMVCDatasetSerializationAction);
 var
+{$IFDEF MVC_HAS_STREAMING_JSON}
   LStream: TMemoryStream;
+{$ENDIF}
   LOK: Boolean;
 begin
   if Assigned(ADataSet) then
