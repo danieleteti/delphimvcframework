@@ -11,7 +11,7 @@ uses
   MVCFramework.Logger,
   LoggerPro,
   LoggerPro.FileAppender,
-  LoggerPro.SimpleConsoleAppender,
+  LoggerPro.ConsoleAppender,
   LoggerPro.Proxy,
   LoggerPro.Renderers;
 

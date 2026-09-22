@@ -17,13 +17,13 @@ type
       const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
     procedure GetEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
     procedure UpdateEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
     procedure DeleteEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
   end;
 
@@ -36,13 +36,13 @@ type
       const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
     procedure GetEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
     procedure UpdateEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
     procedure DeleteEntity(const Context: TWebContext;
-      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      const Renderer: TMVCRenderer; const entityname: string; const id: string;
       var Handled: Boolean);
   end;
 
@@ -75,7 +75,7 @@ begin
 end;
 
 procedure TArticleProcessor.DeleteEntity(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+  const Renderer: TMVCRenderer; const entityname: string; const id: string;
   var Handled: Boolean);
 begin
   Handled := False;
@@ -96,14 +96,14 @@ begin
 end;
 
 procedure TArticleProcessor.GetEntity(const Context: TWebContext;
-const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+const Renderer: TMVCRenderer; const entityname: string; const id: string;
 var Handled: Boolean);
 begin
   Handled := False;
 end;
 
 procedure TArticleProcessor.UpdateEntity(const Context: TWebContext;
-const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+const Renderer: TMVCRenderer; const entityname: string; const id: string;
 var Handled: Boolean);
 begin
   Handled := False;
@@ -175,7 +175,7 @@ begin
 end;
 
 procedure TContactProcessor.DeleteEntity(const Context: TWebContext;
-const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+const Renderer: TMVCRenderer; const entityname: string; const id: string;
 var Handled: Boolean);
 begin
   Handled := False; // inherit the default behaviour
@@ -188,7 +188,7 @@ begin
 end;
 
 procedure TContactProcessor.GetEntity(const Context: TWebContext;
-const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+const Renderer: TMVCRenderer; const entityname: string; const id: string;
 var Handled: Boolean);
 var
   lContact: TContact;
@@ -227,7 +227,7 @@ begin
 end;
 
 procedure TContactProcessor.UpdateEntity(const Context: TWebContext;
-const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+const Renderer: TMVCRenderer; const entityname: string; const id: string;
 var Handled: Boolean);
 begin
   Handled := False; // inherit the default behaviour
