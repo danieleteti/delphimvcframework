@@ -135,8 +135,13 @@ type
     /// </summary>
     /// <param name="AIOHandler">Indy IO handler to read from</param>
     /// <param name="AServerSide">True if parsing as server (expects masked frames), False if parsing as client</param>
+    /// <param name="AMaxPayloadLength">Upper bound for the declared payload length (0 = no limit).
+    /// The check happens BEFORE the payload buffer is allocated: the 64-bit extended length comes
+    /// straight from the wire, so without a bound a single frame header can request an allocation
+    /// of up to 2^63 bytes.</param>
     /// <returns>Parsed WebSocket frame</returns>
-    class function ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean = True): TMVCWebSocketFrame; static;
+    class function ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean = True;
+      AMaxPayloadLength: UInt64 = 0): TMVCWebSocketFrame; static;
 
     /// <summary>
     /// Write a WebSocket frame to a stream
@@ -237,7 +242,8 @@ begin
   end;
 end;
 
-class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean): TMVCWebSocketFrame;
+class function TMVCWebSocketFrameParser.ParseFrame(AIOHandler: TIdIOHandler; AServerSide: Boolean;
+  AMaxPayloadLength: UInt64): TMVCWebSocketFrame;
 var
   Byte1, Byte2: Byte;
   I: Integer;
@@ -299,6 +305,11 @@ begin
     // 64-bit extended payload length (RFC 6455: network byte order)
     Result.PayloadLength := AIOHandler.ReadUInt64;
   end;
+
+  // Reject oversized frames before allocating anything (see AMaxPayloadLength)
+  if (AMaxPayloadLength > 0) and (Result.PayloadLength > AMaxPayloadLength) then
+    raise EMVCWebSocketException.CreateFmt('Frame payload too large: %d bytes (max %d)',
+      [Result.PayloadLength, AMaxPayloadLength]);
 
   // Read masking key if present
   if Result.Masked then

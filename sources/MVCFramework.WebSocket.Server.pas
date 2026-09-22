@@ -38,6 +38,16 @@ uses
   IdGlobal,
   MVCFramework.WebSocket;
 
+const
+  /// <summary>Default upper bound for a single incoming frame payload (16 MB)</summary>
+  DEFAULT_MAX_PAYLOAD_LENGTH: UInt64 = 16 * 1024 * 1024;
+  /// <summary>Default read timeout while reading the upgrade handshake (ms)</summary>
+  DEFAULT_HANDSHAKE_TIMEOUT_MS = 5000;
+  /// <summary>Default maximum number of header lines in the upgrade handshake</summary>
+  DEFAULT_MAX_HANDSHAKE_HEADERS = 64;
+  /// <summary>Default read timeout while reading a frame that has already started (ms)</summary>
+  DEFAULT_FRAME_READ_TIMEOUT_MS = 30000;
+
 type
   /// <summary>
   /// Exception raised to terminate a WebSocket connection
@@ -212,6 +222,10 @@ type
     FOnClientDisconnect: TWebSocketClientDisconnectEvent;
     FOnPeriodicMessage: TWebSocketPeriodicMessageEvent;
     FPeriodicMessageInterval: Integer;
+    FMaxPayloadLength: UInt64;
+    FHandshakeTimeoutMs: Integer;
+    FMaxHandshakeHeaders: Integer;
+    FFrameReadTimeoutMs: Integer;
     procedure OnExecuteEvent(AContext: TIdContext);
     function PerformHandshake(AContext: TIdContext; out AClientId: string; out AHeaders: TStringList): Boolean;
     procedure ProcessFrames(AClient: TWebSocketClient);
@@ -243,6 +257,38 @@ type
     /// This is the default for all clients, but can be customized per-client in OnClientConnect
     /// </summary>
     property PeriodicMessageInterval: Integer read FPeriodicMessageInterval write FPeriodicMessageInterval;
+
+    /// <summary>
+    /// Maximum accepted payload length of a single incoming frame in bytes
+    /// (default DEFAULT_MAX_PAYLOAD_LENGTH = 16 MB, 0 = unlimited).
+    /// The declared length is checked before any buffer is allocated, so a client
+    /// cannot make the server allocate an arbitrary amount of memory with one frame header.
+    /// </summary>
+    property MaxPayloadLength: UInt64 read FMaxPayloadLength write FMaxPayloadLength;
+
+    /// <summary>
+    /// Read timeout in milliseconds while the HTTP upgrade handshake is being read
+    /// (default DEFAULT_HANDSHAKE_TIMEOUT_MS = 5000, 0 = no timeout).
+    /// Without it a client that opens the socket and never finishes the request
+    /// keeps a server thread blocked in ReadLn forever ("slowloris" on the handshake).
+    /// </summary>
+    property HandshakeTimeoutMs: Integer read FHandshakeTimeoutMs write FHandshakeTimeoutMs;
+
+    /// <summary>
+    /// Maximum number of header lines accepted in the upgrade handshake
+    /// (default DEFAULT_MAX_HANDSHAKE_HEADERS = 64). The handshake fails when exceeded.
+    /// </summary>
+    property MaxHandshakeHeaders: Integer read FMaxHandshakeHeaders write FMaxHandshakeHeaders;
+
+    /// <summary>
+    /// Read timeout in milliseconds applied AFTER the handshake, i.e. while a frame that
+    /// has already started is being read (default DEFAULT_FRAME_READ_TIMEOUT_MS = 30000,
+    /// 0 = Indy default, no timeout). Idle connections are not affected: ProcessFrames only
+    /// calls ParseFrame after Readable() reported data, so this bounds a client that sends a
+    /// partial frame header and then goes silent, which would otherwise pin the thread
+    /// inside ReadUInt16/ReadUInt64/ReadBytes indefinitely.
+    /// </summary>
+    property FrameReadTimeoutMs: Integer read FFrameReadTimeoutMs write FFrameReadTimeoutMs;
 
     /// <summary>
     /// Broadcast text message to all connected clients (optionally exclude one)
@@ -476,6 +522,10 @@ begin
   FClients := TObjectList<TWebSocketClient>.Create(True); // Owns objects
   FClientsLock := TCriticalSection.Create;
   FPeriodicMessageInterval := 0; // Disabled by default
+  FMaxPayloadLength := DEFAULT_MAX_PAYLOAD_LENGTH;
+  FHandshakeTimeoutMs := DEFAULT_HANDSHAKE_TIMEOUT_MS;
+  FMaxHandshakeHeaders := DEFAULT_MAX_HANDSHAKE_HEADERS;
+  FFrameReadTimeoutMs := DEFAULT_FRAME_READ_TIMEOUT_MS;
 end;
 
 destructor TMVCWebSocketServer.Destroy;
@@ -554,6 +604,11 @@ begin
   LHeaders := TStringList.Create;
   LHeaders.NameValueSeparator := ':'; // lets the app do HandshakeHeaders.Values['Origin']
   try
+    // Bound the handshake: a peer that never sends a complete request must not
+    // hold this thread forever (see HandshakeTimeoutMs)
+    if FHandshakeTimeoutMs > 0 then
+      LIOHandler.ReadTimeout := FHandshakeTimeoutMs;
+
     // Read HTTP request
     LRequestLine := LIOHandler.ReadLn(IndyTextEncoding_UTF8);
     if not LRequestLine.StartsWith('GET ') then
@@ -565,6 +620,8 @@ begin
       LLine := LIOHandler.ReadLn(IndyTextEncoding_UTF8);
       if LLine = '' then
         Break;
+      if (FMaxHandshakeHeaders > 0) and (LHeaders.Count >= FMaxHandshakeHeaders) then
+        Exit; // too many headers: treat as a failed handshake
       LHeaders.Add(LLine);
     end;
 
@@ -617,6 +674,13 @@ begin
 
     // CRITICAL: Clear buffer after handshake
     LIOHandler.InputBuffer.Clear;
+
+    // Handshake done: from now on the timeout only bounds a frame that has already
+    // started (ProcessFrames waits for idle connections with Readable(), not ReadTimeout)
+    if FFrameReadTimeoutMs > 0 then
+      LIOHandler.ReadTimeout := FFrameReadTimeoutMs
+    else
+      LIOHandler.ReadTimeout := IdTimeoutDefault;
 
     AHeaders := LHeaders; // ownership moves to the caller (the client frees it)
     LHeaders := nil;
@@ -679,7 +743,7 @@ begin
       if not LIOHandler.InputBufferIsEmpty or LIOHandler.Readable(LReadTimeout) then
       begin
         // Read frame (server side, expecting masked frames from client)
-        LFrame := TMVCWebSocketFrameParser.ParseFrame(LIOHandler, True);
+        LFrame := TMVCWebSocketFrameParser.ParseFrame(LIOHandler, True, FMaxPayloadLength);
 
         case LFrame.Opcode of
           TMVCWebSocketOpcode.Text:
@@ -798,6 +862,17 @@ begin
       finally
         FClientsLock.Leave;
       end;
+    end;
+
+    // Close the connection explicitly. Without this Indy calls OnExecute again on the
+    // same socket after a failed handshake (timeout, too many headers) or after a
+    // protocol error in ProcessFrames (oversized frame): the offending connection would
+    // never be closed, it would just re-enter the handshake and burn another timeout.
+    try
+      if AContext.Connection.Connected then
+        AContext.Connection.Disconnect;
+    except
+      // the peer may already be gone - not an error
     end;
   end;
 end;

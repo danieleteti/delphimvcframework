@@ -51,6 +51,10 @@ type
     procedure TestMaskPayload;
     [Test]
     procedure TestWriteAndParseFrameRoundTrip;
+    [Test]
+    procedure TestParseFrameRejectsOversizedDeclaredLength;
+    [Test]
+    procedure TestParseFrameAcceptsPayloadWithinLimit;
   end;
 
   [TestFixture]
@@ -95,8 +99,23 @@ implementation
 uses
   System.NetEncoding,
   System.DateUtils,
+  IdGlobal,
+  IdIOHandlerStream,
   MVCFramework.Commons,
   MVCFramework.WebSocket.Server;
+
+/// Builds an Indy IO handler that "receives" exactly the given bytes, so
+/// TMVCWebSocketFrameParser.ParseFrame can be exercised without a socket.
+function MakeReceivingIOHandler(const ABytes: TBytes; out AStream: TMemoryStream): TIdIOHandlerStream;
+begin
+  AStream := TMemoryStream.Create;
+  if Length(ABytes) > 0 then
+    AStream.WriteBuffer(ABytes[0], Length(ABytes));
+  AStream.Position := 0;
+  Result := TIdIOHandlerStream.Create(nil, AStream, nil);
+  Result.FreeStreams := False;
+  Result.Open;
+end;
 
 { TTestWebSocketFrame }
 
@@ -240,6 +259,92 @@ begin
   lFrame := TMVCWebSocketFrameParser.CreateBinaryFrame(lPayload, False);
   Assert.AreEqual(UInt64(30000), lFrame.PayloadLength, '30000 byte payload length');
   Assert.AreEqual<Integer>(30000, Length(lFrame.Payload), '30000 byte payload array');
+end;
+
+procedure TTestWebSocketFrame.TestParseFrameRejectsOversizedDeclaredLength;
+var
+  lBytes: TBytes;
+  lStream: TMemoryStream;
+  lIOHandler: TIdIOHandlerStream;
+begin
+  // Masked binary frame whose 64-bit extended length declares 2^63-1 bytes.
+  // Only the 14-byte header is on the wire: a parser without a bound would try to
+  // allocate the declared size before noticing the payload never arrives.
+  lBytes := TBytes.Create(
+    $82,                                            // FIN + binary opcode
+    $FF,                                            // MASK + 127 (64-bit length follows)
+    $7F, $FF, $FF, $FF, $FF, $FF, $FF, $FF,         // declared length 2^63-1
+    $01, $02, $03, $04);                            // masking key
+  lIOHandler := MakeReceivingIOHandler(lBytes, lStream);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        TMVCWebSocketFrameParser.ParseFrame(lIOHandler, True, 16 * 1024 * 1024);
+      end,
+      EMVCWebSocketException,
+      'a declared length above MaxPayloadLength must be rejected before allocation');
+  finally
+    lIOHandler.Free;
+    lStream.Free;
+  end;
+end;
+
+procedure TTestWebSocketFrame.TestParseFrameAcceptsPayloadWithinLimit;
+const
+  MASK: array[0..3] of Byte = ($0A, $0B, $0C, $0D);
+var
+  lBytes: TBytes;
+  lStream: TMemoryStream;
+  lIOHandler: TIdIOHandlerStream;
+  lFrame: TMVCWebSocketFrame;
+  I: Integer;
+begin
+  // 10-byte masked binary frame (payload bytes 0..9 XOR mask)
+  SetLength(lBytes, 2 + 4 + 10);
+  lBytes[0] := $82;        // FIN + binary
+  lBytes[1] := $80 or 10;  // MASK + length 10
+  for I := 0 to 3 do
+    lBytes[2 + I] := MASK[I];
+  for I := 0 to 9 do
+    lBytes[6 + I] := Byte(I) xor MASK[I mod 4];
+
+  // Within the limit: parsed and unmasked normally
+  lIOHandler := MakeReceivingIOHandler(lBytes, lStream);
+  try
+    lFrame := TMVCWebSocketFrameParser.ParseFrame(lIOHandler, True, 1024);
+    Assert.AreEqual(UInt64(10), lFrame.PayloadLength, 'payload length');
+    for I := 0 to 9 do
+      Assert.AreEqual(Byte(I), lFrame.Payload[I], Format('payload byte %d', [I]));
+  finally
+    lIOHandler.Free;
+    lStream.Free;
+  end;
+
+  // 0 = unlimited keeps the previous behaviour
+  lIOHandler := MakeReceivingIOHandler(lBytes, lStream);
+  try
+    lFrame := TMVCWebSocketFrameParser.ParseFrame(lIOHandler, True, 0);
+    Assert.AreEqual(UInt64(10), lFrame.PayloadLength, 'payload length with no limit');
+  finally
+    lIOHandler.Free;
+    lStream.Free;
+  end;
+
+  // The same frame above a smaller limit is rejected
+  lIOHandler := MakeReceivingIOHandler(lBytes, lStream);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        TMVCWebSocketFrameParser.ParseFrame(lIOHandler, True, 9);
+      end,
+      EMVCWebSocketException,
+      'a 10-byte payload must be rejected when the limit is 9');
+  finally
+    lIOHandler.Free;
+    lStream.Free;
+  end;
 end;
 
 { TTestWebSocketHandshake }
