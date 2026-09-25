@@ -517,17 +517,23 @@ begin
     Exit(TValue.Empty);
   end;
   case lField.DataType of
-    ftInteger, ftSmallInt, ftWord:
+    ftInteger, ftSmallInt, ftWord, ftShortint, ftByte:
       Result := lField.AsInteger;
     ftLargeint, ftAutoInc:
       Result := lField.AsLargeInt;
+    ftLargeUint:
+      Result := lField.AsLargeUInt;
+    ftLongWord:
+      Result := lField.AsLongWord;
     ftFloat:
       Result := lField.AsFloat;
     ftSingle:
       Result := lField.AsSingle;
+    ftExtended:
+      Result := lField.AsExtended;
     ftCurrency:
       Result := lField.AsCurrency;
-    ftString, ftWideString, ftMemo, ftWideMemo:
+    ftString, ftWideString, ftMemo, ftWideMemo, ftGuid, ftFixedChar, ftFixedWideChar:
       Result := lField.AsWideString;
     ftDate:
       Result := TDate(Trunc(lField.AsDateTime));
