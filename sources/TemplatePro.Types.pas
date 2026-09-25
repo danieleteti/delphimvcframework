@@ -32,7 +32,7 @@ uses
   System.RTTI;
 
 const
-  TEMPLATEPRO_VERSION = '1.1';
+  TEMPLATEPRO_VERSION = '1.2';
 
 type
   ETProException = class(Exception)
@@ -63,13 +63,18 @@ type
 
   TTokenType = (ttContent, ttInclude, ttFor, ttEndFor, ttForElse, ttIfThen, ttBoolExpression, ttElse, ttEndIf, ttStartTag, ttComment, ttJump, ttBlock,
     ttEndBlock, ttInherited, ttContinue, ttLiteralString, ttEndTag, ttValue, ttFilterName, ttFilterParameter, ttLineBreak, ttSystemVersion, ttExit,
-    ttEOF, ttInfo, ttMacro, ttEndMacro, ttCallMacro, ttMacroParam, ttExpression, ttSet, ttIncludeStart, ttIncludeEnd, ttAutoescape, ttEndAutoescape);
+    ttEOF, ttInfo, ttMacro, ttEndMacro, ttCallMacro, ttMacroParam, ttExpression, ttSet, ttIncludeStart, ttIncludeEnd, ttAutoescape, ttEndAutoescape,
+    { 1.2 - append only: compiled templates store the ordinal }
+    ttSwitch, ttCase, ttDefault, ttEndSwitch, ttPush, ttEndPush, ttStack, ttEndCall, ttFill, ttEndFill, ttSlot, ttEndSlot,
+    ttDependency);
 
 const
   TOKEN_TYPE_DESCR: array [Low(TTokenType) .. High(TTokenType)] of string = ('ttContent', 'ttInclude', 'ttFor', 'ttEndFor', 'ttForElse', 'ttIfThen',
     'ttBoolExpression', 'ttElse', 'ttEndIf', 'ttStartTag', 'ttComment', 'ttJump', 'ttBlock', 'ttEndBlock', 'ttInherited', 'ttContinue', 'ttLiteralString',
     'ttEndTag', 'ttValue', 'ttFilterName', 'ttFilterParameter', 'ttLineBreak', 'ttSystemVersion', 'ttExit', 'ttEOF', 'ttInfo', 'ttMacro',
-    'ttEndMacro', 'ttCallMacro', 'ttMacroParam', 'ttExpression', 'ttSet', 'ttIncludeStart', 'ttIncludeEnd', 'ttAutoescape', 'ttEndAutoescape');
+    'ttEndMacro', 'ttCallMacro', 'ttMacroParam', 'ttExpression', 'ttSet', 'ttIncludeStart', 'ttIncludeEnd', 'ttAutoescape', 'ttEndAutoescape',
+    'ttSwitch', 'ttCase', 'ttDefault', 'ttEndSwitch', 'ttPush', 'ttEndPush', 'ttStack', 'ttEndCall', 'ttFill', 'ttEndFill',
+    'ttSlot', 'ttEndSlot', 'ttDependency');
 
 const
   { ttInfo value1 can be: }
@@ -131,9 +136,11 @@ type
 
   TMacroParameter = record
     Name: String;
-    DefaultValue: String;
     HasDefault: Boolean;
-    class function Create(const Name: String; const DefaultValue: String = ''; HasDefault: Boolean = False): TMacroParameter; static;
+    // a literal, a variable (resolved in the caller's scope) or an expression
+    DefaultValue: TFilterParameter;
+    // the parameter token: its Ref1 filters (applied to the default) follow it
+    TokenIndex: Int64;
   end;
 
   TMacroDefinition = record
@@ -186,8 +193,15 @@ type
     IsFieldIteration: Boolean;
     FieldsCount: Integer;
     TotalCount: Integer;
+    // {{for i in range(...)}}: the current value is RangeStart + IteratorPosition * RangeStep
+    IsRange: Boolean;
+    RangeStart: Int64;
+    RangeStep: Int64;
+    // {{for f in obj.@@fields}}: the metadata list iterated by the loop, freed with it
+    OwnedData: TObject;
     function IncrementIteratorPosition: Integer;
     constructor Create(DataSourceName: String; LoopExpression: String; FullPath: String; IteratorName: String; AIsFieldIteration: Boolean = False);
+    destructor Destroy; override;
   end;
 
   TTProTemplateSectionType = (stUnknown, stLayout, stPage);
@@ -314,15 +328,6 @@ begin
   Result.ParentBlockAddress := ParentAddr;
 end;
 
-{ TMacroParameter }
-
-class function TMacroParameter.Create(const Name: String; const DefaultValue: String; HasDefault: Boolean): TMacroParameter;
-begin
-  Result.Name := Name;
-  Result.DefaultValue := DefaultValue;
-  Result.HasDefault := HasDefault;
-end;
-
 { TMacroDefinition }
 
 class function TMacroDefinition.Create(const Name: String; const Parameters: TArray<TMacroParameter>; BeginTokenIndex, EndTokenIndex: Int64): TMacroDefinition;
@@ -361,6 +366,12 @@ begin
   Self.IsFieldIteration := AIsFieldIteration;
   Self.FieldsCount := 0;
   Self.TotalCount := 0;
+end;
+
+destructor TLoopStackItem.Destroy;
+begin
+  OwnedData.Free;
+  inherited;
 end;
 
 function TLoopStackItem.IncrementIteratorPosition: Integer;

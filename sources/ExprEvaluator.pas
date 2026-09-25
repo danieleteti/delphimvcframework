@@ -809,6 +809,7 @@ var
   Condition, ThenValue, ElseValue: Variant;
   IfWord: string;
   SavePos: Integer;
+  OldSkip, TakeThen: Boolean;
 begin
   SkipWhitespace;
   if FPos > Length(FInput) then
@@ -839,15 +840,25 @@ begin
   if not ConsumeKeyword('THEN') then
     raise Exception.Create('Expected THEN after IF condition');
 
-  ThenValue := ParseIfExpression;
+  // Short-circuit: parse both branches, evaluate only the selected one
+  // (when already skipping, both branches stay skipped)
+  OldSkip := FSkipEvaluation;
+  TakeThen := (not OldSkip) and Boolean(Condition);
+  try
+    FSkipEvaluation := OldSkip or not TakeThen;
+    ThenValue := ParseIfExpression;
 
-  SkipWhitespace;
-  if not ConsumeKeyword('ELSE') then
-    raise Exception.Create('Expected ELSE after THEN');
+    SkipWhitespace;
+    if not ConsumeKeyword('ELSE') then
+      raise Exception.Create('Expected ELSE after THEN');
 
-  ElseValue := ParseIfExpression;
+    FSkipEvaluation := OldSkip or TakeThen;
+    ElseValue := ParseIfExpression;
+  finally
+    FSkipEvaluation := OldSkip;
+  end;
 
-  if Condition then
+  if TakeThen then
     Result := ThenValue
   else
     Result := ElseValue;
@@ -1102,7 +1113,11 @@ begin
         SkipWhitespace;
         Right := ParseFactor;
         if not FSkipEvaluation then
+        begin
+          if Trunc(Right) = 0 then
+            raise Exception.Create('Division by zero');
           Left := Trunc(Left) mod Trunc(Right);
+        end;
       end
       else
         Break;
@@ -1114,7 +1129,11 @@ begin
         SkipWhitespace;
         Right := ParseFactor;
         if not FSkipEvaluation then
+        begin
+          if Trunc(Right) = 0 then
+            raise Exception.Create('Division by zero');
           Left := Trunc(Left) div Trunc(Right);
+        end;
       end
       else
         Break;
