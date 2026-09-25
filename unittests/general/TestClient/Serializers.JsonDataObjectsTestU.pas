@@ -137,6 +137,8 @@ type
     [Test]
     procedure TestStringDictionary;
     [Test]
+    procedure TestStreamingFastPathSkipsClassesWithTypeSerializer;
+    [Test]
     procedure TestSerializeDeserializeGuid;
     [Test]
     procedure TestSerializeDeserializeGuidSerializtionType;
@@ -250,7 +252,8 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Commons, System.TypInfo, BOs, BusinessObjectsU;
+  MVCFramework.Commons, System.TypInfo, BOs, BusinessObjectsU,
+  MVCFramework.Serializer.Streaming;
 
 const
   LINE_BREAK = #$A;
@@ -2216,6 +2219,26 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeNil;
 begin
   Assert.areEqual('null', fSerializer.SerializeObject(nil));
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestStreamingFastPathSkipsClassesWithTypeSerializer;
+var
+  lDict: TMVCStringDictionary;
+  lStream: TMemoryStream;
+begin
+  // OKResponse(TObject) tries the streaming fast path first. A class with a
+  // registered type serializer (here TMVCStringDictionary) must be left to
+  // that serializer, not written as an object without properties ("{}").
+  lDict := StrDict(['application', 'version'], ['demo', '1.0']);
+  lStream := TMemoryStream.Create;
+  try
+    Assert.IsFalse(TMVCStreamingJsonSerializer.TryWriteObject(lDict, lStream),
+      'the streaming fast path must decline a class with a type serializer');
+    Assert.AreEqual(Int64(0), lStream.Size, 'nothing must be written before falling back');
+  finally
+    lStream.Free;
+    lDict.Free;
+  end;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestStringDictionary;

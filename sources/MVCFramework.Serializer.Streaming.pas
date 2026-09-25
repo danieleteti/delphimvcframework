@@ -426,6 +426,19 @@ begin
     Exit(LPlan);
   end;
 
+  { [PARITY] A class with its own IMVCTypeSerializer (TMVCStringDictionary,
+    TMVCObjectDictionary, user-registered classes) is written by that
+    serializer. Walking its properties instead would emit an empty object for the
+    dictionaries, which expose no properties. Checked here, so it covers
+    the root object of OKResponse(TObject) and the items of a list. }
+  if HasCustomTypeSerializer(AClass.ClassInfo) then
+  begin
+    LPlan.Supported := False;
+    GLock.Enter;
+    try GPlanCache.AddOrSetValue(AClass, LPlan); finally GLock.Leave; end;
+    Exit(LPlan);
+  end;
+
   { [PARITY] MVCSerialize(stFields) selects field walking instead of
     property walking. The streaming plan only walks properties, so any
     class decorated with stFields falls back to legacy. Properties as

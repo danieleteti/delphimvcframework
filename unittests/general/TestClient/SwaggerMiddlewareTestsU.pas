@@ -720,7 +720,9 @@ var
 begin
   {OpenAPI 3.1 has no "nullable": a type array with "null" instead}
   Assert.IsFalse(FText.Contains('"nullable"'), 'nullable keyword');
-  lType := FDoc.O['components'].O['schemas'].O['TNativeItem'].O['properties'].O['code'].A['type'];
+  // the key follows MVCNameCaseDefault, which other fixtures may have changed
+  lType := FDoc.O['components'].O['schemas'].O['TNativeItem'].O['properties']
+    .O[TMVCSerializerHelper.ApplyNameCase(MVCNameCaseDefault, 'Code')].A['type'];
   Assert.AreEqual(2, lType.Count);
   Assert.AreEqual('integer', lType.S[0]);
   Assert.AreEqual('null', lType.S[1]);
