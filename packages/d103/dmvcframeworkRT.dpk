@@ -125,6 +125,7 @@ contains
   MVCFramework.Container in '..\..\sources\MVCFramework.Container.pas',
   sqids in '..\..\sources\sqids.pas',
   MVCFramework.View.Renderers.TemplatePro in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas',
+  MVCFramework.View.Renderers.TemplatePro.ActiveRecord in '..\..\sources\MVCFramework.View.Renderers.TemplatePro.ActiveRecord.pas',
   TemplatePro in '..\..\sources\TemplatePro.pas',
   MVCFramework.Session.Database in '..\..\sources\MVCFramework.Session.Database.pas',
   MVCFramework.SSE in '..\..\sources\MVCFramework.SSE.pas',
