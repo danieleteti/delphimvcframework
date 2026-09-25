@@ -50,6 +50,36 @@ uses
   TemplatePro,
   TemplatePro.Types;
 
+type
+  TCachedView = record
+    Compiled: TBytes;
+    ViewTimeStamp: TDateTime;
+  end;
+
+var
+  // ponytail: one global lock around a dictionary lookup; fine unless profiling says otherwise
+  gCompiledViews: TDictionary<string, TCachedView>;
+
+function TryGetCachedView(const aKey: string; out aView: TCachedView): Boolean;
+begin
+  TMonitor.Enter(gCompiledViews);
+  try
+    Result := gCompiledViews.TryGetValue(aKey, aView);
+  finally
+    TMonitor.Exit(gCompiledViews);
+  end;
+end;
+
+procedure CacheView(const aKey: string; const aView: TCachedView);
+begin
+  TMonitor.Enter(gCompiledViews);
+  try
+    gCompiledViews.AddOrSetValue(aKey, aView);
+  finally
+    TMonitor.Exit(gCompiledViews);
+  end;
+end;
+
 {$WARNINGS OFF}
 
 function GetDataSetOrObjectListCount(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
@@ -91,59 +121,6 @@ begin
   end;
 end;
 
-function UrlEncodeFilter(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
-begin
-  if aValue.IsEmpty then
-  begin
-    Exit('');
-  end;
-  if not aValue.IsType<String> then
-  begin
-    raise EMVCSSVException.Create('Expected string, got ' + aValue.TypeInfo.Name);
-  end;
-  if Length(aParameters) <> 0 then
-  begin
-    raise EMVCSSVException.Create('Expected 0 params, got ' + Length(aParameters).ToString);
-  end;
-  Result := URLEncode(aValue.AsString);
-end;
-
-function DumpAsJSONString(const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue;
-var
-  lWrappedList: IMVCList;
-begin
-  if aValue.IsEmpty then
-  begin
-    Exit('');
-  end
-  else if not aValue.IsObject then
-  begin
-    if aValue.IsType<Int64> then
-    begin
-      Exit(aValue.AsInt64);
-    end else if aValue.IsType<Integer> then
-    begin
-      Exit(aValue.AsInteger);
-    end else if aValue.IsType<string> then
-    begin
-      Exit(aValue.AsString);
-    end;
-    Exit('(Error: Cannot serialize non-object as JSON)');
-  end;
-
-  if TDuckTypedList.CanBeWrappedAsList(aValue.AsObject, lWrappedList) then
-  begin
-    Result := GetDefaultSerializer.SerializeCollection(lWrappedList)
-  end
-  else
-  begin
-    if aValue.AsObject is TDataSet then
-      Result := GetDefaultSerializer.SerializeDataSet(TDataSet(aValue.AsObject))
-    else
-      Result := GetDefaultSerializer.SerializeObject(aValue.AsObject);
-  end;
-end;
-
 procedure TMVCTemplateProViewEngine.Execute(const ViewName: string; const Builder: TStringBuilder);
 var
   lTP: TTProCompiler;
@@ -157,48 +134,90 @@ var
   lUseCompiledVersion: Boolean;
   lCacheDir: string;
   lActualCalculatedFileName: String;
+  lCacheKey: string;
+  lCheckChanges: Boolean;
+  lCachedView: TCachedView;
+  lInMemory: Boolean;
 begin
   lUseCompiledVersion := False;
-  lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
-  if lViewFileName.IsEmpty then
-    raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
+  lInMemory := False;
+  lCheckChanges := False;
   if FUseViewCache then
   begin
-    lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
-    if not TDirectory.Exists(lCacheDir) then
-    begin
-      TDirectory.CreateDirectory(lCacheDir);
-    end;
-    lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
-
-    if not FileAge(lViewFileName, lActualFileTimeStamp) then
-    begin
-      raise EMVCSSVException.CreateFmt('View [%s] not found',
-        [ViewName]);
-    end;
-
-    if FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
-    begin
-      lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
-    end;
+    // the key is what GetRealFileName resolves from: no file system access to find the cached view
+    lCacheKey := FViewPath + '|' + FDefaultViewFileExtension + '|' + ViewName;
+    lCheckChanges := SameText(Config[TMVCConfigKey.ViewCacheCheckChanges], 'true');
+    lInMemory := TryGetCachedView(lCacheKey, lCachedView);
   end;
 
-  if lUseCompiledVersion then
+  if lInMemory and not lCheckChanges then
   begin
-    lCompiledTemplate := TTProCompiledTemplate.CreateFromFile(lCompiledViewFileName);
+    // production: compiled once per process, never checked again (changes are picked up on restart)
+    lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
   end
   else
   begin
-    lTP := TTProCompiler.Create;
-    try
-      lViewTemplate := TFile.ReadAllText(lViewFileName);
-      lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
-      if FUseViewCache then
+    lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
+    if lViewFileName.IsEmpty then
+      raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
+    if FUseViewCache then
+    begin
+      lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
+      if not TDirectory.Exists(lCacheDir) then
       begin
-        lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+        TDirectory.CreateDirectory(lCacheDir);
       end;
-    finally
-      lTP.Free;
+      lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
+
+      if not FileAge(lViewFileName, lActualFileTimeStamp) then
+      begin
+        raise EMVCSSVException.CreateFmt('View [%s] not found',
+          [ViewName]);
+      end;
+
+      if lInMemory and (lCachedView.ViewTimeStamp = lActualFileTimeStamp) then
+      begin
+        lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
+        lInMemory := not lCompiledTemplate.IsStale;
+      end
+      else
+      begin
+        lInMemory := False;
+      end;
+
+      if (not lInMemory) and FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
+      begin
+        lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
+      end;
+    end;
+
+    if lUseCompiledVersion then
+    begin
+      lCompiledTemplate := TTProCompiledTemplate.CreateFromFile(lCompiledViewFileName);
+      // a changed partial, layout or import (the view file itself is checked above by timestamp)
+      lUseCompiledVersion := not lCompiledTemplate.IsStale;
+    end;
+
+    if (not lUseCompiledVersion) and (not lInMemory) then
+    begin
+      lTP := TTProCompiler.Create;
+      try
+        lViewTemplate := TFile.ReadAllText(lViewFileName);
+        lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
+        if FUseViewCache then
+        begin
+          lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+        end;
+      finally
+        lTP.Free;
+      end;
+    end;
+
+    if FUseViewCache and not lInMemory then
+    begin
+      lCachedView.Compiled := lCompiledTemplate.SaveToBytes;
+      lCachedView.ViewTimeStamp := lActualFileTimeStamp;
+      CacheView(lCacheKey, lCachedView);
     end;
   end;
 
@@ -214,8 +233,8 @@ begin
         lCompiledTemplate.SetData('LoggedUserName', WebContext.LoggedUser.UserName);
       end;
     end;
-    lCompiledTemplate.AddFilter('json', DumpAsJSONString);
-    lCompiledTemplate.AddFilter('urlencode', UrlEncodeFilter);
+    // 'json' and 'urlencode' are TemplatePro built-ins: registering custom filters with
+    // those names would now replace them (custom filters win) and change the output.
     lCompiledTemplate.AddFilter('count', GetDataSetOrObjectListCount);
     lCompiledTemplate.AddFilter('fromquery',
       function (const aValue: TValue; const aParameters: TArray<TFilterParameter>): TValue
@@ -246,5 +265,13 @@ begin
     end;
   end;
 end;
+
+initialization
+
+gCompiledViews := TDictionary<string, TCachedView>.Create;
+
+finalization
+
+gCompiledViews.Free;
 
 end.
