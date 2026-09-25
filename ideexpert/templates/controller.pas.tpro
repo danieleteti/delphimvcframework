@@ -49,6 +49,19 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     function GetInfoFragment: String;
+{{if program_ssv_templatepro}}
+
+    // Table example: search, status filter and sorting come from the query
+    // string, so every state of the table has its own URL.
+    [MVCPath('/people')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function People(
+      [MVCFromQueryString('q', '')] const Search: String;
+      [MVCFromQueryString('status', '')] const Status: String;
+      [MVCFromQueryString('sort', 'name')] const Sort: String;
+      [MVCFromQueryString('dir', 'asc')] const Dir: String): String;
+{{endif}}
 {{else}}
 
     [MVCPath('/reversedstrings/($Value)')]
@@ -63,7 +76,73 @@ type
 implementation
 
 uses
-  System.StrUtils, System.SysUtils{{if program_ssv_any}}, System.DateUtils{{endif}}, MVCFramework.Logger;
+  System.StrUtils, System.SysUtils{{if program_ssv_any}}, System.DateUtils{{endif}}, MVCFramework.Logger{{if program_ssv_templatepro}},
+  System.Math, System.Generics.Defaults, MVCFramework.HTMX{{endif}};
+{{if program_ssv_templatepro}}
+
+type
+  { One row of the People table. Sample data built in memory: replace
+    SamplePeople with a query (e.g. TMVCActiveRecord.SelectRQL) in a real app. }
+  TPersonRow = class
+  private
+    fName, fEmail, fRole, fCity, fStatus: String;
+    fJoined: TDate;
+    fProjects: Integer;
+    function GetInitials: String;
+  public
+    constructor Create(const AName, AEmail, ARole, ACity, AStatus: String; AJoined: TDate; AProjects: Integer);
+    property Name: String read fName;
+    property Initials: String read GetInitials;
+    property Email: String read fEmail;
+    property Role: String read fRole;
+    property City: String read fCity;
+    property Status: String read fStatus;
+    property Joined: TDate read fJoined;
+    property Projects: Integer read fProjects;
+  end;
+
+constructor TPersonRow.Create(const AName, AEmail, ARole, ACity, AStatus: String; AJoined: TDate; AProjects: Integer);
+begin
+  inherited Create;
+  fName := AName;
+  fEmail := AEmail;
+  fRole := ARole;
+  fCity := ACity;
+  fStatus := AStatus;
+  fJoined := AJoined;
+  fProjects := AProjects;
+end;
+
+function TPersonRow.GetInitials: String;
+var
+  lParts: TArray<String>;
+begin
+  lParts := fName.Split([' ']);
+  Result := Copy(lParts[0], 1, 1);
+  if Length(lParts) > 1 then
+    Result := Result + Copy(lParts[High(lParts)], 1, 1);
+end;
+
+function SamplePeople: TObjectList<TPersonRow>;
+begin
+  Result := TObjectList<TPersonRow>.Create(True);
+  Result.Add(TPersonRow.Create('Ada Rossi', 'ada.rossi@example.com', 'Admin', 'Rome', 'Active', EncodeDate(2021, 3, 14), 12));
+  Result.Add(TPersonRow.Create('Bruno Ferri', 'bruno.ferri@example.com', 'Developer', 'Milan', 'Active', EncodeDate(2022, 7, 2), 7));
+  Result.Add(TPersonRow.Create('Daniele Teti', 'daniele.teti@example.com', 'Admin', 'Rome', 'Active', EncodeDate(2010, 1, 11), 42));
+  Result.Add(TPersonRow.Create('Chiara Neri', 'chiara.neri@example.com', 'Designer', 'Turin', 'Invited', EncodeDate(2025, 11, 20), 0));
+  Result.Add(TPersonRow.Create('Diego Alves', 'diego.alves@example.com', 'Developer', 'Lisbon', 'Active', EncodeDate(2020, 1, 9), 18));
+  Result.Add(TPersonRow.Create('Elena Petrova', 'elena.petrova@example.com', 'Analyst', 'Berlin', 'Active', EncodeDate(2023, 5, 30), 5));
+  Result.Add(TPersonRow.Create('Farid Haddad', 'farid.haddad@example.com', 'Support', 'Paris', 'Suspended', EncodeDate(2019, 9, 17), 3));
+  Result.Add(TPersonRow.Create('Grace Kim', 'grace.kim@example.com', 'Developer', 'Toronto', 'Active', EncodeDate(2024, 2, 5), 9));
+  Result.Add(TPersonRow.Create('Hugo Martin', 'hugo.martin@example.com', 'Designer', 'Lyon', 'Active', EncodeDate(2022, 10, 11), 6));
+  Result.Add(TPersonRow.Create('Ines Duarte', 'ines.duarte@example.com', 'Analyst', 'Porto', 'Invited', EncodeDate(2026, 1, 8), 0));
+  Result.Add(TPersonRow.Create('Jonas Weber', 'jonas.weber@example.com', 'Developer', 'Munich', 'Active', EncodeDate(2018, 6, 25), 24));
+  Result.Add(TPersonRow.Create('Keiko Sato', 'keiko.sato@example.com', 'Admin', 'Osaka', 'Active', EncodeDate(2021, 12, 1), 11));
+  Result.Add(TPersonRow.Create('Luca Bianchi', 'luca.bianchi@example.com', 'Support', 'Bologna', 'Suspended', EncodeDate(2020, 4, 19), 2));
+  Result.Add(TPersonRow.Create('Maya Patel', 'maya.patel@example.com', 'Developer', 'Austin', 'Active', EncodeDate(2023, 8, 14), 8));
+  Result.Add(TPersonRow.Create('Noah Brown', 'noah.brown@example.com', 'Analyst', 'Dublin', 'Invited', EncodeDate(2026, 2, 27), 0));
+end;
+{{endif}}
 
 {{if program_ssv_any}}
 procedure {{:controller_classname}}.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);
@@ -134,19 +213,108 @@ end;
 
 function {{:controller_classname}}.GetClockFragment: String;
 begin
-  Result :=
-    '<p>Server time: <strong>' + FormatDateTime('hh:nn:ss', Now) + '</strong></p>' +
-    '<p>Server date: ' + FormatDateTime('dddd, dd mmmm yyyy', Now) + '</p>';
+  // Just the value: the page decides where it goes (hx-swap="innerHTML").
+  Result := '<time datetime="' + FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now) + '">' +
+    FormatDateTime('hh:nn:ss', Now) + '</time>';
 end;
 
 function {{:controller_classname}}.GetInfoFragment: String;
 begin
   Result :=
-    '<p><strong>Application:</strong> {{:program_name}}</p>' +
-    '<p><strong>DMVC Version:</strong> ' + DMVCFRAMEWORK_VERSION + '</p>' +
-    '<p><strong>Compiler:</strong> ' + Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant) + '</p>' +
-    '<p><strong>Server Time:</strong> ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</p>';
+    '<dl class="meta-list">' +
+    '<dt>Application</dt><dd>{{:program_name}}</dd>' +
+    '<dt>DMVCFramework</dt><dd>' + DMVCFRAMEWORK_VERSION + '</dd>' +
+    '<dt>Compiler</dt><dd>' + Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant) + '</dd>' +
+    '<dt>Server time</dt><dd>' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</dd>' +
+    '</dl>';
 end;
+{{if program_ssv_templatepro}}
+
+function {{:controller_classname}}.People(const Search, Status, Sort, Dir: String): String;
+var
+  lAll, lRows: TObjectList<TPersonRow>;
+  lRow: TPersonRow;
+  lActive, lInvited, lSuspended: Integer;
+  lSort, lDir: String;
+  lSign: Integer;
+begin
+  lAll := SamplePeople;
+  lRows := TObjectList<TPersonRow>.Create(False); // a view on lAll, which owns the rows
+  try
+    // Search first (it drives the counters), then the status filter
+    lActive := 0;
+    lInvited := 0;
+    lSuspended := 0;
+    for lRow in lAll do
+    begin
+      if (Search <> '') and not (ContainsText(lRow.Name, Search) or ContainsText(lRow.Email, Search) or
+        ContainsText(lRow.Role, Search) or ContainsText(lRow.City, Search)) then
+        Continue;
+      if SameText(lRow.Status, 'Active') then
+        Inc(lActive)
+      else if SameText(lRow.Status, 'Invited') then
+        Inc(lInvited)
+      else
+        Inc(lSuspended);
+      if (Status = '') or SameText(lRow.Status, Status) then
+        lRows.Add(lRow);
+    end;
+
+    // Only known columns are accepted: anything else sorts by name
+    lSort := LowerCase(Sort);
+    if not MatchText(lSort, ['name', 'role', 'city', 'joined', 'projects']) then
+      lSort := 'name';
+    if SameText(Dir, 'desc') then
+    begin
+      lDir := 'desc';
+      lSign := -1;
+    end
+    else
+    begin
+      lDir := 'asc';
+      lSign := 1;
+    end;
+    lRows.Sort(TComparer<TPersonRow>.Construct(
+      function(const L, R: TPersonRow): Integer
+      begin
+        if lSort = 'role' then
+          Result := CompareText(L.Role, R.Role)
+        else if lSort = 'city' then
+          Result := CompareText(L.City, R.City)
+        else if lSort = 'joined' then
+          Result := CompareValue(L.Joined, R.Joined)
+        else if lSort = 'projects' then
+          Result := CompareValue(L.Projects, R.Projects)
+        else
+          Result := 0;
+        if Result = 0 then
+          Result := CompareText(L.Name, R.Name);
+        Result := Result * lSign;
+      end));
+
+    ViewData['people'] := lRows;
+    ViewData['q'] := Search;
+    ViewData['status'] := LowerCase(Status);
+    ViewData['sort'] := lSort;
+    ViewData['dir'] := lDir;
+    ViewData['count_all'] := lActive + lInvited + lSuspended;
+    ViewData['count_active'] := lActive;
+    ViewData['count_invited'] := lInvited;
+    ViewData['count_suspended'] := lSuspended;
+    ViewData['count_shown'] := lRows.Count;
+
+    // HTMX asks for the table only (search box, sort links, filter tabs);
+    // a normal request, or a browser without JavaScript, gets the whole page.
+    if Context.Request.IsHTMX and not Context.Request.HXIsBoosted then
+      Result := RenderView('people/table')
+    else
+      Result := RenderView('people/index');
+  finally
+    lRows.Free;
+    lAll.Free;
+  end;
+end;
+{{endif}}
 
 {{else}}
 function {{:controller_classname}}.GetReversedString(const Value: String): String;

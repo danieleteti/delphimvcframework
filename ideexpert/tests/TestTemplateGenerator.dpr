@@ -663,7 +663,15 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  // The People page is the table example: its views and its action
+  LTestCase.ExpectedFiles := ['bin/templates/people/index.html', 'bin/templates/people/table.html'];
+  LTestCase.MustContain := ['Controllers.HomeU.pas|function THomeController.People(',
+    'bin/templates/people/index.html|{{include "table.html"}}',
+    'bin/templates/people/index.html|Controllers.HomeU.People',
+    'bin/templates/people/table.html|{{for p in people}}',
+    'bin/templates/baselayout.html|href="/web/people"'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 10: With Mustache SSV
   LTestCase.Name := 'with_mustache_ssv';

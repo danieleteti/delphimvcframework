@@ -47,47 +47,75 @@
 </head>
 <body>
 
+  {{# ---- Icon sprite: one stroke family, referenced with <use href="#i-..."> ---- #}}
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="m6 15 6 6 6-6M6 9l6-6 6 6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  </svg>
+
   {{# ---- Navigation Bar ---- #}}
-  <nav class="navbar navbar-expand-md border-bottom mb-3 sticky-top bg-body-tertiary">
+  <nav class="navbar navbar-expand-md border-bottom sticky-top app-navbar">
     <div class="container">
-      <a class="navbar-brand fw-bold text-primary" href="/web">{{:app_name}}</a>
+      <a class="navbar-brand" href="/web">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#fbbf24"/>
+          <path d="M9 9h6.5a7 7 0 0 1 0 14H9z" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+        {{:app_name}}
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
               data-bs-target="#navbarNav" aria-controls="navbarNav"
               aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto">
+        <ul class="navbar-nav me-auto gap-md-1">
           <li class="nav-item">
             <a class="nav-link {{if page_id|eq,"index"}}active{{endif}}"
                {{if page_id|eq,"index"}}aria-current="page"{{endif}}
                href="/web">Home</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link {{if page_id|eq,"people"}}active{{endif}}"
+               {{if page_id|eq,"people"}}aria-current="page"{{endif}}
+               href="/web/people">People</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link {{if page_id|eq,"about"}}active{{endif}}"
                {{if page_id|eq,"about"}}aria-current="page"{{endif}}
                href="/web/about">About</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" target="_blank" rel="noopener"
-               href="https://www.danieleteti.it/delphimvcframework/">Docs</a>
-          </li>
         </ul>
-        <button class="btn btn-sm btn-outline-secondary" id="themeToggle"
-                type="button" title="Toggle theme" aria-label="Toggle theme">&#9790;</button>
+        <div class="d-flex align-items-center gap-2">
+          <a class="nav-link text-secondary small d-none d-md-inline" target="_blank" rel="noopener"
+             href="https://www.danieleteti.it/delphimvcframework/">Docs <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+          <button class="btn btn-sm btn-outline-secondary btn-icon" id="themeToggle"
+                  type="button" aria-label="Switch theme">
+            <svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </nav>
 
   {{# ---- Main Content (overridden by child templates) ---- #}}
-  <main class="container">
+  <main class="container pb-4">
     {{block "body"}}{{endblock}}
   </main>
 
   {{# ---- Page Footer ---- #}}
-  <footer class="container border-top mt-5 pt-3 pb-3 text-center text-secondary small">
-    &copy; {{:current_year}} {{:app_name}} &middot;
-    Built with <a class="link-primary" href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a> {{:dmvc_version}}
+  <footer class="border-top mt-5">
+    <div class="container d-flex flex-wrap justify-content-between gap-2 py-3 text-secondary small">
+      <span>&copy; {{:current_year}} {{:app_name}}</span>
+      <span>Built with <a href="https://www.danieleteti.it/delphimvcframework/">DelphiMVCFramework</a>
+        <span class="font-monospace">{{:dmvc_version}}</span> &middot;
+        <a href="https://leanpub.com/delphimvcframework-2nd-edition" target="_blank" rel="noopener">The official guide</a></span>
+    </div>
   </footer>
 
   {{# ---- Toast Notification Container (Bootstrap 5.3 toast API) ---- #}}
@@ -105,8 +133,10 @@
       var btn = document.getElementById('themeToggle');
       function current() { return document.documentElement.getAttribute('data-bs-theme'); }
       function updateIcon() {
-        btn.innerHTML = current() === 'dark' ? '&#9788;' : '&#9790;';
-        btn.title = current() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+        var dark = current() === 'dark';
+        btn.querySelector('use').setAttribute('href', dark ? '#i-sun' : '#i-moon');
+        btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+        btn.setAttribute('aria-label', btn.title);
       }
       updateIcon();
       btn.addEventListener('click', function() {

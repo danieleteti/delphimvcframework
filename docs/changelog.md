@@ -158,6 +158,15 @@ certificate you cannot fix.
   the system CSPRNG, drawn at every generation, so a new project starts
   without editing `.env` first. The generated `.gitignore` already excludes
   `.env`.
+- **Web Application projects from the IDE wizard start from a fuller UI.**
+  The TemplatePro views have a page header, a live server panel and a
+  "Start here" list on the home page, drawn icons, themed selection and focus,
+  and a new **People** page (`/web/people`) that shows how to render a table:
+  the controller filters and sorts a list of objects from the query string,
+  `people/table.html` loops over it (`@@index`, filters, the `else` branch as
+  empty state, macros for the sortable headers), and with HTMX only the table
+  is replaced while the address bar keeps a shareable URL. Without HTMX the
+  same templates work as plain GET forms and links.
 - **The `QUERY` HTTP method (RFC 10008).** `QUERY` is safe and idempotent
   like `GET`, but it carries a request body: the query travels in the
   payload instead of the URL, so it is not URL-length limited and does not
@@ -633,6 +642,16 @@ the same socket.
 
 ### Fixed
 
+- **TemplatePro: more dataset field types, unsigned values.** Fields of type
+  `ftShortint`, `ftByte`, `ftLongWord`, `ftExtended`, `ftGuid`, `ftFixedChar`,
+  `ftFixedWideChar` and (Delphi 13+) `ftLargeUint` can be used in views, and
+  unsigned values above the signed maximum no longer render as negative
+  numbers. Contributed by Patrick Premartin.
+- **`OKResponse(StrDict(...))` returned `{"data":{}}`.** The streaming fast
+  path of `OKResponse(TObject)` walked the properties of any class, so a
+  class with its own type serializer (`TMVCStringDictionary`, user-registered
+  ones) came out as an empty object. Such classes now go through their
+  serializer again, as a root object and as list items.
 - **`[MVCMaxLength(n)]` and `[MVCPattern(...)]` now always validate.** In a
   unit that used `MVCFramework`, Delphi resolved them to the Swagger
   documentation attributes `MVCFramework.MVCMaxLengthAttribute` /

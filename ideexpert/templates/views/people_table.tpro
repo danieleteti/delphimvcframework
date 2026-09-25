@@ -1,0 +1,90 @@
+{{# ================================================================
+   PEOPLE TABLE (fragment) - TemplatePro + Bootstrap 5.3
+   ================================================================
+   Status filter, sortable header, rows and footer of the People page.
+   people/index.html includes it; with HTMX the controller renders it alone
+   (Request.IsHTMX) and it replaces #people-table in place.
+
+   Variables (set by the People action):
+     people          - list of rows (Name, Initials, Email, Role, City,
+                       Joined, Projects, Status)
+     q, status       - current search text and status filter ("" = all)
+     sort, dir       - current sort column and direction (asc | desc)
+     count_all, count_active, count_invited, count_suspended, count_shown
+   ================================================================ #}}
+{{# Query string of the page for a given filter and order #}}
+{{macro qs(q, status, sort, dir)}}q={{:q|urlencode}}&amp;status={{:status}}&amp;sort={{:sort}}&amp;dir={{:dir}}{{endmacro}}
+
+{{# Sortable column header: a second click on the same column reverses it #}}
+{{macro th(label, key, cls, q, status, sort, dir)}}
+{{set nextdir := "asc"}}
+{{if key|eq,sort}}{{if dir|eq,"asc"}}{{set nextdir := "desc"}}{{endif}}{{endif}}
+<th scope="col" class="{{:cls}}"{{if key|eq,sort}} aria-sort="{{if dir|eq,"asc"}}ascending{{else}}descending{{endif}}"{{endif}}>
+  <a href="/web/people?{{>qs(q, status, key, nextdir)}}" hx-get="/web/people?{{>qs(q, status, key, nextdir)}}">{{:label}}<svg class="icon" aria-hidden="true"><use href="{{if key|eq,sort}}#i-up{{else}}#i-sort{{endif}}"/></svg></a>
+</th>
+{{endmacro}}
+
+<div id="people-table">
+  {{# Current filter and order travel with the search box (form="people-search") #}}
+  <input type="hidden" name="status" value="{{:status}}" form="people-search">
+  <input type="hidden" name="sort" value="{{:sort}}" form="people-search">
+  <input type="hidden" name="dir" value="{{:dir}}" form="people-search">
+
+  <nav class="segmented mb-3" aria-label="Filter by status">
+    <a href="/web/people?{{>qs(q, "", sort, dir)}}" hx-get="/web/people?{{>qs(q, "", sort, dir)}}"{{if !status}} aria-current="true"{{endif}}>All<span class="count">{{:count_all}}</span></a>
+    <a href="/web/people?{{>qs(q, "active", sort, dir)}}" hx-get="/web/people?{{>qs(q, "active", sort, dir)}}"{{if status|eq,"active"}} aria-current="true"{{endif}}>Active<span class="count">{{:count_active}}</span></a>
+    <a href="/web/people?{{>qs(q, "invited", sort, dir)}}" hx-get="/web/people?{{>qs(q, "invited", sort, dir)}}"{{if status|eq,"invited"}} aria-current="true"{{endif}}>Invited<span class="count">{{:count_invited}}</span></a>
+    <a href="/web/people?{{>qs(q, "suspended", sort, dir)}}" hx-get="/web/people?{{>qs(q, "suspended", sort, dir)}}"{{if status|eq,"suspended"}} aria-current="true"{{endif}}>Suspended<span class="count">{{:count_suspended}}</span></a>
+  </nav>
+
+  <div class="table-shell">
+    <table class="table data-table">
+      <caption class="visually-hidden">People, sorted by {{:sort}} ({{:dir}}ending)</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="rownum d-none d-md-table-cell">#</th>
+          {{>th("Name", "name", "", q, status, sort, dir)}}
+          {{>th("Role", "role", "d-none d-sm-table-cell", q, status, sort, dir)}}
+          {{>th("City", "city", "d-none d-lg-table-cell", q, status, sort, dir)}}
+          {{>th("Joined", "joined", "d-none d-md-table-cell", q, status, sort, dir)}}
+          {{>th("Projects", "projects", "num", q, status, sort, dir)}}
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{for p in people}}
+        <tr>
+          <td class="rownum d-none d-md-table-cell">{{:p.@@index}}</td>
+          <td>
+            <div class="person">
+              <span class="avatar" aria-hidden="true">{{:p.Initials}}</span>
+              <div>
+                <div class="name">{{:p.Name}}</div>
+                <div class="email">{{:p.Email}}</div>
+              </div>
+            </div>
+          </td>
+          <td class="d-none d-sm-table-cell">{{:p.Role}}</td>
+          <td class="muted d-none d-lg-table-cell">{{:p.City}}</td>
+          <td class="muted d-none d-md-table-cell">{{:p.Joined|datetostr,"dd mmm yyyy"}}</td>
+          <td class="num">{{:p.Projects}}</td>
+          <td><span class="status status-{{:p.Status|lowercase}}">{{:p.Status}}</span></td>
+        </tr>
+        {{else}}
+        <tr>
+          <td colspan="7" class="empty-state">
+            <strong>Nobody matches this search</strong>
+            <span class="text-secondary">Search looks at name, email, role and city.</span>
+            <a href="/web/people" hx-get="/web/people">Show everyone</a>
+          </td>
+        </tr>
+        {{endfor}}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <span>{{:count_shown}} of {{:count_all}} shown</span>
+    <span>Sample data from <code>SamplePeople</code> in the controller</span>
+  </div>
+</div>

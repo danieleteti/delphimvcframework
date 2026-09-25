@@ -1,0 +1,81 @@
+{{# ================================================================
+   PEOPLE PAGE - how to render a table with TemplatePro
+   ================================================================
+   Extends baselayout.html and includes table.html, the part that changes.
+   Works with and without HTMX:
+     - without it the search box is a normal GET form and every link
+       reloads the page;
+     - with it (hx-* attributes) only #people-table is replaced and the
+       address bar follows (hx-push-url), so each state has its own URL.
+
+   Variables: see table.html.
+   ================================================================ #}}
+{{extends "../baselayout.html"}}
+
+{{block "title"}}People{{endblock}}
+
+{{block "body"}}
+
+  <header class="page-header">
+    <h1>People</h1>
+    <p class="lead">A table rendered on the server from a list of objects: search, filter by
+      status and sort by any column. The controller prepares the rows, the template only
+      shows them.</p>
+  </header>
+
+  <div hx-target="#people-table" hx-swap="outerHTML" hx-push-url="true">
+    <form id="people-search" class="toolbar" action="/web/people" method="get" role="search">
+      <label class="search">
+        <span class="visually-hidden">Search people</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+        <input class="form-control" type="search" name="q" value="{{:q}}"
+               placeholder="Search name, email, role or city" autocomplete="off"
+               hx-get="/web/people" hx-trigger="input changed delay:300ms, search"
+               hx-include="closest form">
+      </label>
+      <noscript><button class="btn btn-outline-secondary" type="submit">Search</button></noscript>
+    </form>
+
+    {{include "table.html"}}
+  </div>
+
+  <details class="explain mt-5">
+    <summary>How this table is built</summary>
+    <div class="row g-4">
+      <div class="col-lg-5 text-secondary">
+        <p><code>{{:controller_unit_name}}.People</code> reads <code>q</code>, <code>status</code>,
+          <code>sort</code> and <code>dir</code> from the query string, filters and sorts the rows,
+          and puts them in <code>ViewData['people']</code>.</p>
+        <p><code>people/table.html</code> loops over them. <code>@@index</code> numbers the rows,
+          filters format the values, and the <code>else</code> branch of the loop is the empty state.</p>
+        <p class="mb-0">When the request comes from HTMX the action renders <code>people/table</code>
+          alone, so the same template serves the full page and the partial update.</p>
+      </div>
+      <div class="col-lg-7">
+<pre class="source"><code>{{raw}}{{for p in people}}
+&lt;tr&gt;
+  &lt;td&gt;{{:p.@@index}}&lt;/td&gt;
+  &lt;td&gt;{{:p.Name}} &lt;small&gt;{{:p.Email}}&lt;/small&gt;&lt;/td&gt;
+  &lt;td&gt;{{:p.Joined|datetostr,"dd mmm yyyy"}}&lt;/td&gt;
+  &lt;td class="num"&gt;{{:p.Projects}}&lt;/td&gt;
+  &lt;td class="status-{{:p.Status|lowercase}}"&gt;{{:p.Status}}&lt;/td&gt;
+&lt;/tr&gt;
+{{else}}
+&lt;tr&gt;&lt;td colspan="7"&gt;Nobody matches this search&lt;/td&gt;&lt;/tr&gt;
+{{endfor}}{{endraw}}</code></pre>
+      </div>
+    </div>
+  </details>
+
+{{endblock}}
+
+{{block "scripts"}}
+<script>
+  // Back/forward: HTMX restores the table from its history cache; keep the
+  // search box in step with the restored address.
+  document.body.addEventListener('htmx:historyRestore', function() {
+    var q = document.querySelector('#people-search input[name="q"]');
+    if (q) q.value = new URLSearchParams(location.search).get('q') || '';
+  });
+</script>
+{{endblock}}

@@ -773,6 +773,14 @@ begin
 
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.' + LTemplateExt,
         LoadTemplate('views\error_view.tpro'));
+
+      // People: the table example (one template pair for HTMX and plain pages)
+      TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'people'));
+      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'index.' + LTemplateExt,
+        LoadTemplate('views\people_index.tpro')
+          .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT));
+      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'table.' + LTemplateExt,
+        LoadTemplate('views\people_table.tpro'));
     end
     else
     begin

@@ -16,11 +16,13 @@
 {{block "title"}}Error{{endblock}}
 
 {{block "body"}}
-  <div class="hero">
-    <h1>{{:status}} &middot; {{:statustext}}</h1>
-    <p class="lead">{{:error}}</p>
-  </div>
-  <div class="text-center mt-3">
-    <a href="/" class="btn btn-outline-primary">Back to Home &rarr;</a>
-  </div>
+  <header class="page-header">
+    <p class="error-code">HTTP {{:status}}</p>
+    <h1>{{:statustext}}</h1>
+    {{if error}}<p class="lead">{{:error}}</p>{{else}}<p class="lead">The page could not be shown. Check the address, or start again from the home page.</p>{{endif}}
+    <div class="page-actions">
+      <a href="/" class="btn btn-primary">Go to the home page</a>
+      <button type="button" class="btn btn-outline-secondary" onclick="history.back()">Go back</button>
+    </div>
+  </header>
 {{endblock}}
