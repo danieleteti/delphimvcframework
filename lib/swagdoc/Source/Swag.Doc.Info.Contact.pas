@@ -25,7 +25,8 @@ unit Swag.Doc.Info.Contact;
 interface
 
 uses
-  System.JSON;
+  System.JSON,
+  Swag.Doc.Extensions;
 
 type
   /// <summary>
@@ -36,7 +37,11 @@ type
     fName: string;
     fEmail: string;
     fUrl: string;
+    fExtensions: TSwagExtensions;
   public
+    constructor Create; reintroduce;
+    destructor Destroy; override;
+
     function GenerateJsonObject: TJSONObject;
     function IsEmpty: Boolean;
     procedure Load(pJson: TJSONObject);
@@ -47,14 +52,19 @@ type
     property Name: string read fName write fName;
 
     /// <summary>
-    /// The URL pointing to the contact information. MUST be in the format of a URL.
+    /// The email address of the contact person/organization. MUST be in the format of an email address.
     /// </summary>
     property Email: string read fEmail write fEmail;
 
     /// <summary>
-    /// The email address of the contact person/organization. MUST be in the format of an email address.
+    /// The URL pointing to the contact information. MUST be in the format of a URL.
     /// </summary>
     property Url: string read fUrl write fUrl;
+
+    /// <summary>
+    /// The Specification Extensions of the contact.
+    /// </summary>
+    property Extensions: TSwagExtensions read fExtensions;
   end;
 
 implementation
@@ -68,12 +78,25 @@ const
 
 { TSwagInfoContact }
 
+constructor TSwagInfoContact.Create;
+begin
+  inherited Create;
+  fExtensions := TSwagExtensions.Create;
+end;
+
+destructor TSwagInfoContact.Destroy;
+begin
+  FreeAndNil(fExtensions);
+  inherited Destroy;
+end;
+
 function TSwagInfoContact.GenerateJsonObject: TJSONObject;
 begin
   Result := TJsonObject.Create;
   Result.AddPair(c_SwagInfoContactName, fName);
   Result.AddPair(c_SwagInfoContactEmail, fEmail);
   Result.AddPair(c_SwagInfoContactUrl, fUrl);
+  fExtensions.WriteTo(Result);
 end;
 
 function TSwagInfoContact.IsEmpty: Boolean;
@@ -91,6 +114,8 @@ begin
 
   if Assigned(pJson.Values[c_SwagInfoContactUrl]) then
     fUrl := pJson.Values[c_SwagInfoContactUrl].Value;
+
+  fExtensions.ReadFrom(pJson);
 end;
 
 end.

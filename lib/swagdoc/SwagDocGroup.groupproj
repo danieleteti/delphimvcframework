@@ -18,6 +18,9 @@
         <Projects Include="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Demos\SampleOpenApi3\SampleOpenApi3.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -71,14 +74,23 @@
     <Target Name="GenerateUnitFileForMVCFramework:Make">
         <MSBuild Projects="Demos\GenerateUnitFileForMVCFramework\GenerateUnitFileForMVCFramework.dproj" Targets="Make"/>
     </Target>
+    <Target Name="SampleOpenApi3">
+        <MSBuild Projects="Demos\SampleOpenApi3\SampleOpenApi3.dproj"/>
+    </Target>
+    <Target Name="SampleOpenApi3:Clean">
+        <MSBuild Projects="Demos\SampleOpenApi3\SampleOpenApi3.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SampleOpenApi3:Make">
+        <MSBuild Projects="Demos\SampleOpenApi3\SampleOpenApi3.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="SwagDoc;GenerateSwagger;LoadSwaggerJsonToObject;SampleApi;GenerateUnitFileForMVCFramework"/>
+        <CallTarget Targets="SwagDoc;GenerateSwagger;LoadSwaggerJsonToObject;SampleApi;GenerateUnitFileForMVCFramework;SampleOpenApi3"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="SwagDoc:Clean;GenerateSwagger:Clean;LoadSwaggerJsonToObject:Clean;SampleApi:Clean;GenerateUnitFileForMVCFramework:Clean"/>
+        <CallTarget Targets="SwagDoc:Clean;GenerateSwagger:Clean;LoadSwaggerJsonToObject:Clean;SampleApi:Clean;GenerateUnitFileForMVCFramework:Clean;SampleOpenApi3:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="SwagDoc:Make;GenerateSwagger:Make;LoadSwaggerJsonToObject:Make;SampleApi:Make;GenerateUnitFileForMVCFramework:Make"/>
+        <CallTarget Targets="SwagDoc:Make;GenerateSwagger:Make;LoadSwaggerJsonToObject:Make;SampleApi:Make;GenerateUnitFileForMVCFramework:Make;SampleOpenApi3:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

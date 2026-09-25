@@ -92,7 +92,6 @@ var
   vSchemaKind: TSchemaKind;
   vClass: TPersistentClass;
 begin
-  //Result := nil; //dt
   vSchemaKind := GetSchemaKind<T>;
   if (vSchemaKind = skUnknown) then
     raise ETypeNotSupportedByAField.Create(c_ErrorTypeNotSupportedByAField);
@@ -129,7 +128,6 @@ end;
 function TJsonSchema.GetSchemaKind<T>: TSchemaKind;
 var
   vTypeInfo: PTypeInfo;
-  //vClass: TPersistentClass;   //dt
 begin
   Result := skUnknown;
   vTypeInfo := System.TypeInfo(T);

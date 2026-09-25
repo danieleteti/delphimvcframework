@@ -36,6 +36,8 @@ type
   /// On top of this subset, there are extensions provided by this specification to allow for more complete documentation.
   /// Further information about the properties can be found in JSON Schema Core and JSON Schema Validation.
   /// Unless stated otherwise, the property definitions follow the JSON Schema specification as referenced here.
+  /// In a Swagger 2.0 document the reusable schemas are written under definitions and in an OpenAPI 3 document
+  /// they are written under components/schemas. The references are converted to the target version by the library.
   /// </summary>
   TSwagDefinition = class(TObject)
   private
@@ -47,7 +49,16 @@ type
   public
     destructor Destroy; override;
 
+    /// <summary>
+    /// Generates a reference object to the schema name, using the Swagger 2.0 prefix #/definitions/.
+    /// </summary>
     function GenerateJsonRefDefinition: TJsonObject;
+
+    /// <summary>
+    /// Returns True when neither the name nor the JSON schema was defined.
+    /// </summary>
+    function IsEmpty: Boolean;
+
     /// <summary>
     /// The schema name alias.
     /// </summary>
@@ -57,6 +68,7 @@ type
     /// See more in:
     ///  * http://json-schema.org
     ///  * https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#schemaObject
+    ///  * https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.2.1.md#schema-object
     /// </summary>
     property JsonSchema: TJsonObject read GetJsonSchema write SetJsonSchema;
   end;
@@ -78,6 +90,11 @@ end;
 function TSwagDefinition.GetJsonSchema: TJsonObject;
 begin
   Result := fJsonSchema;
+end;
+
+function TSwagDefinition.IsEmpty: Boolean;
+begin
+  Result := fName.IsEmpty and (not Assigned(fJsonSchema));
 end;
 
 procedure TSwagDefinition.SetJsonSchema(const pValue: TJsonObject);

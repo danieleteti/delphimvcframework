@@ -158,6 +158,20 @@
         <DCCReference Include="Swag.Doc.Tags.pas"/>
         <DCCReference Include="Swag.Doc.pas"/>
         <DCCReference Include="Swag.Doc.FileLoader.pas"/>
+        <DCCReference Include="Swag.Common.Json.pas"/>
+        <DCCReference Include="Swag.Doc.Extensions.pas"/>
+        <DCCReference Include="Swag.Doc.Example.pas"/>
+        <DCCReference Include="Swag.Doc.Link.pas"/>
+        <DCCReference Include="Swag.Doc.SecurityRequirement.pas"/>
+        <DCCReference Include="Swag.Doc.Server.pas"/>
+        <DCCReference Include="Swag.Doc.Path.Operation.Content.pas"/>
+        <DCCReference Include="Swag.Doc.Path.Operation.RequestBody.pas"/>
+        <DCCReference Include="Swag.Doc.SecurityDefinitionHttp.pas"/>
+        <DCCReference Include="Swag.Doc.SecurityDefinitionOpenIdConnect.pas"/>
+        <DCCReference Include="Swag.Doc.SecurityDefinitionMutualTls.pas"/>
+        <DCCReference Include="Swag.Doc.JsonConverter.pas"/>
+        <DCCReference Include="Swag.Doc.OpenApi.Generator.pas"/>
+        <DCCReference Include="Swag.Doc.OpenApi.Loader.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

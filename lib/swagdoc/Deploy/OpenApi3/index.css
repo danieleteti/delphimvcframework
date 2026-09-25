@@ -1,0 +1,65 @@
+html {
+    box-sizing: border-box;
+    overflow: -moz-scrollbars-vertical;
+    overflow-y: scroll;
+}
+
+*,
+*:before,
+*:after {
+    box-sizing: inherit;
+}
+
+body {
+    margin: 0;
+    background: #fafafa;
+}
+
+html.dark-mode body {
+    background: #1c2022;
+}
+
+.swagger-ui .topbar,
+html.dark-mode .swagger-ui .topbar {
+    padding: 0;
+    background: transparent;
+}
+
+.swagger-ui .topbar a,
+.swagger-ui .topbar .download-url-wrapper {
+    display: none;
+}
+
+.swagger-ui .topbar .dark-mode-toggle {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 10;
+    margin: 0;
+    opacity: 1;
+}
+
+.swagger-ui .topbar .dark-mode-toggle button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.swagger-ui .topbar .dark-mode-toggle button svg {
+    fill: #3b4151;
+}
+
+html.dark-mode .swagger-ui .topbar .dark-mode-toggle button {
+    border-color: #3b4151;
+    background: #2a2f31;
+}
+
+html.dark-mode .swagger-ui .topbar .dark-mode-toggle button svg {
+    fill: #e4e6e6;
+}
