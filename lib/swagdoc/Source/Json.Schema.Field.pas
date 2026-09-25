@@ -53,6 +53,11 @@ type
     property Name: string read fName write fName;
     property Description: string read fDescription write fDescription;
     property Required: Boolean read fRequired write fRequired;
+
+    /// <summary>
+    /// Allows sending a null value for the defined schema. In OpenAPI 3 the type of the schema also accepts null,
+    /// as defined by JSON Schema 2020-12, and in a Swagger 2.0 document the x-nullable extension is written.
+    /// </summary>
     property Nullable: Boolean read fNullable write fNullable;
   end;
 
@@ -108,6 +113,8 @@ begin
   Result.AddPair('type', GetTypeName);
   if not fDescription.IsEmpty then
     Result.AddPair('description', fDescription);
+  if fNullable then
+    Result.AddPair('nullable', TJSONBool.Create(True));
 end;
 
 

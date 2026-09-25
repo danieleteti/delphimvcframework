@@ -31,11 +31,11 @@ uses
   Swag.Doc.SecurityDefinition;
 
 type
-  TSwagSecurityDefinitionApiKeyInLocation = (kilNotDefined, kilQuery, kilHeader);
+  TSwagSecurityDefinitionApiKeyInLocation = (kilNotDefined, kilQuery, kilHeader, kilCookie);
 
 type
   /// <summary>
-  /// The security scheme object API key (either as a header or as a query parameter)
+  /// The security scheme object API key (either as a header, as a query parameter or, in OpenAPI 3, as a cookie)
   /// </summary>
   [ASecurityDefinition(ssdApiKey)]
   TSwagSecurityDefinitionApiKey = class(TSwagSecurityDefinition)
@@ -47,13 +47,20 @@ type
   public
     function GenerateJsonObject: TJSONObject; override;
     procedure Load(pJson: TJSONObject); override;
+
+    /// <summary>
+    /// Returns False for Swagger 2.0 when the key is sent in a cookie, because Swagger 2.0 does not define that location.
+    /// </summary>
+    function SupportsVersion(const pVersion: TSwagVersion): Boolean; override;
+
     /// <summary>
     /// Required The location of the API key. Valid values are "query" or "header".
+    /// The value "cookie" is available in OpenAPI 3 only.
     /// </summary>
     property InLocation: TSwagSecurityDefinitionApiKeyInLocation read fInLocation write fInLocation;
 
     /// <summary>
-    /// Required. The name of the header or query parameter to be used.
+    /// Required. The name of the header, query parameter or cookie to be used.
     /// </summary>
     property Name: string read fName write fName;
   end;
@@ -70,7 +77,7 @@ const
   c_SwagSecurityDefinitionApiKeyName = 'name';
 
   c_SwagSecurityDefinitionApiKeyInLocation: array[TSwagSecurityDefinitionApiKeyInLocation] of string =
-    ('', 'query', 'header');
+    ('', 'query', 'header', 'cookie');
 
 { TSwagSecurityDefinitionApiKey }
 
@@ -88,6 +95,11 @@ begin
   Result := vJsonItem;
 end;
 
+function TSwagSecurityDefinitionApiKey.SupportsVersion(const pVersion: TSwagVersion): Boolean;
+begin
+  Result := (pVersion <> svSwagger2) or (fInLocation <> kilCookie);
+end;
+
 function TSwagSecurityDefinitionApiKey.GetTypeSecurity: TSwagSecurityDefinitionType;
 begin
   Result := ssdApiKey;
@@ -96,6 +108,7 @@ end;
 procedure TSwagSecurityDefinitionApiKey.Load(pJson: TJSONObject);
 var
   vIn: string;
+  vInLocation: TSwagSecurityDefinitionApiKeyInLocation;
 begin
   if Assigned(pJson.Values[c_SwagSecurityDefinitionApiKeyDescription]) then
     fDescription := pJson.Values[c_SwagSecurityDefinitionApiKeyDescription].Value;
@@ -104,12 +117,13 @@ begin
   if Assigned(pJson.Values[c_SwagSecurityDefinitionApiKeyIn]) then
   begin
     vIn := pJson.Values[c_SwagSecurityDefinitionApiKeyIn].Value;
-    if vIn.ToLower = c_SwagSecurityDefinitionApiKeyInLocation[kilQuery] then
-      fInLocation := kilQuery
-    else if vIn.ToLower = c_SwagSecurityDefinitionApiKeyInLocation[kilHeader] then
-      fInLocation := kilHeader
-    else
-      fInLocation := kilNotDefined;
+    fInLocation := kilNotDefined;
+    for vInLocation := Low(TSwagSecurityDefinitionApiKeyInLocation) to High(TSwagSecurityDefinitionApiKeyInLocation) do
+      if (vInLocation <> kilNotDefined) and (vIn.ToLower = c_SwagSecurityDefinitionApiKeyInLocation[vInLocation]) then
+      begin
+        fInLocation := vInLocation;
+        Break;
+      end;
   end;
 end;
 

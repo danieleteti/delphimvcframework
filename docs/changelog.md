@@ -127,6 +127,31 @@ certificate you cannot fix.
 
 ### Added
 
+- **OpenAPI 3 from the Swagger middleware.** `TMVCSwaggerMiddleware` and the
+  `Swagger(...)` HTTP filter take a new optional last parameter,
+  `ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2`
+  (`MVCFramework.Swagger.Commons`). With `ssvOpenAPI3` the same URL serves an
+  OpenAPI 3 document (`"openapi": "3.2.1"`, built by SwagDoc) with every
+  feature of the middleware: JWT and basic security, `MVCSwagAuthentication`,
+  `MVCRequiresAuthentication`, `MVCSwagJSONSchemaField`, `MVCSWAGDefaultModel`
+  and the `TMVCActiveRecordController` CRUD paths. The JWT scheme is
+  `http`/`bearer`/`JWT`, so Swagger UI's Authorize box takes the raw token.
+  Unless the application passes `AHost`, the document's server is relative
+  (`"servers": [{"url": "<basePath>"}]`): "Try it out" calls the origin that
+  served the document. Swagger 2.0 stays the default (for the two fixes
+  that touch it see **Fixed**).
+- **The IDE wizard generates API documentation.** New option "API
+  documentation (OpenAPI 3)", on by default for RESTful, Full-Stack, Custom
+  and Minimal API RESTful projects. Controller projects register the Swagger
+  middleware with OpenAPI 3; Minimal API projects register the `OpenAPI(...)`
+  filter. Both publish the document at `/openapi.json` and serve Swagger UI
+  at `/swagger`, both switched by `dmvc.openapi.enabled` in `.env` (default
+  `true`; set it to `false` to publish no documentation, e.g. in
+  production). The wizard downloads the official Swagger UI release (5.33.0,
+  SHA-256 verified) into `bin\www\swagger` while it creates the project,
+  showing a progress dialog that can be cancelled and gives up after 30
+  seconds. Without network access the project is still created and the
+  folder contains a README with the download steps.
 - **The `QUERY` HTTP method (RFC 10008).** `QUERY` is safe and idempotent
   like `GET`, but it carries a request body: the query travels in the
   payload instead of the URL, so it is not URL-length limited and does not
@@ -173,7 +198,8 @@ certificate you cannot fix.
     `POST` one does.
   - **Documentation:** `QUERY` does not appear in the generated Swagger or
     OpenAPI output. The `query` path-item slot only exists in OpenAPI 3.2;
-    SwagDoc emits OpenAPI 2 and the native emitter targets 3.1. Both skip
+    the Swagger middleware (Swagger 2.0, or OpenAPI 3 through SwagDoc) and
+    the native emitter (3.1) do not map it. Both skip
     the verb rather than writing an invalid document. This lands with the
     OpenAPI 3.2 emitter in 4.0.
   - **Hosts:** verified end to end on Indy Direct, HTTP.sys, WebBroker,
@@ -286,6 +312,17 @@ certificate you cannot fix.
 
 ### Changed
 
+- **Native OpenAPI emitter (`OpenAPI(...)` filter, `TMVCOpenAPI3Middleware`):**
+  - schema property names are the JSON names the serializer writes
+    (`MVCNameAs`, `MVCNameCase`, `MVCNameCaseDefault`); members marked
+    `MVCDoNotSerialize` are left out;
+  - `Produces<T>` describes the `{"data": T}` envelope that `Ok(object)`
+    renders;
+  - nullable fields use the OpenAPI 3.1 form (`"type": [..., "null"]`)
+    instead of the 3.0 keyword `nullable`;
+  - on controllers, a path parameter with the `sqids` converter is a string,
+    and action parameters match path placeholders ignoring case (`id` and
+    `($ID)` are one path parameter).
 - **`TMVCHTTPMethodType` has a ninth member, `httpQUERY`.** It is appended
   at the end of the enumeration, so no existing ordinal moved and no
   persisted value changed meaning. Two consequences:
@@ -599,6 +636,14 @@ the same socket.
   have been removed (use `MVCSwagMaxLength` / `MVCSwagPattern` for Swagger
   documentation): the names now always mean the validators. Models that
   declared them in such a unit start validating after the upgrade.
+- **Swagger document `host` on Indy Direct and HTTP.sys:** it contained the
+  port twice (`"localhost:8080:8080"`), which made the document invalid, and
+  behind a proxy or a port mapping it mixed two ports (`"localhost:9090:8080"`).
+  The port is now added only when the Host header has none. WebBroker output
+  is unchanged; so is any application that passes `AHost`.
+- **Swagger middleware, paths with a parameter converter** (`($ID:sqids)`):
+  the converter stayed in the documented path literally. The path is now
+  `{ID}` with a string path parameter.
 - **SQL Server: Insert and Update failed on a table with enabled triggers**
   whenever something had to be read back (the generated key, a `foRefresh`
   field): SQL Server rejects `OUTPUT inserted.col` without `INTO` there.

@@ -53,6 +53,7 @@ type
     fBasePath: string;
     fPathFilter: string;
     fTransferProtocolSchemes: TMVCTransferProtocolSchemes;
+    fSpecVersion: TMVCSwaggerSpecVersion;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -71,8 +72,14 @@ type
       const ABasePath: string = '';
       const APathFilter: String = '';
       const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS];
-      const AEnableBearerAuthentication: Boolean = False);
+      const AEnableBearerAuthentication: Boolean = False;
+      const ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2);
     destructor Destroy; override;
+    /// <summary>
+    /// Host written in a Swagger 2.0 document when none is configured: the request
+    /// Host, plus the server port when the Host header carries no port of its own.
+    /// </summary>
+    class function DocumentHost(const ARequestHost: string; const AServerPort: Integer): string; static;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
@@ -98,10 +105,12 @@ uses
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.SecurityDefinitionApiKey,
   Swag.Doc.SecurityDefinitionBasic,
+  Swag.Doc.SecurityDefinitionHttp,
   Swag.Doc.Definition,
   System.Generics.Collections,
   System.Generics.Defaults,
   System.TypInfo,
+  System.StrUtils,
   MVCFramework.Serializer.Commons,
   Json.Common.Helpers,
   MVCFramework.ActiveRecord;
@@ -127,13 +136,39 @@ begin
   end;
 end;
 
+{ A path parameter with a converter ("($ID:sqids)") travels as the converter's
+  text, not as the type of the action parameter the router hands over. }
+procedure PathConvertersAsStrings(const AMVCPath: string;
+  const AParams: TObjectList<TSwagRequestParameter>);
+var
+  lParam: TSwagRequestParameter;
+begin
+  for lParam in AParams do
+    if (lParam.InLocation = rpiPath) and ContainsText(AMVCPath, '($' + lParam.Name + ':') then
+      lParam.TypeParameter := stpString;
+end;
+
 { TMVCSwaggerMiddleware }
+
+class function TMVCSwaggerMiddleware.DocumentHost(const ARequestHost: string;
+  const AServerPort: Integer): string;
+begin
+  {WebBroker (Indy bridge) gives the host name alone; Indy Direct and HTTP.sys give
+   the whole Host header. "name:port" and "[v6]:port" already carry a port (the
+   one the client used, which behind a proxy is not the listening one); "name"
+   and "[v6]" do not. The port is looked for after the last "]".}
+  if ARequestHost.Substring(ARequestHost.LastIndexOf(']') + 1).Contains(':') then
+    Result := ARequestHost
+  else
+    Result := ARequestHost + ':' + AServerPort.ToString;
+end;
 
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
   const AHost, ABasePath: string;
   const APathFilter: String;
-  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes; const AEnableBearerAuthentication: Boolean);
+  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes; const AEnableBearerAuthentication: Boolean;
+  const ASpecVersion: TMVCSwaggerSpecVersion);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
@@ -146,6 +181,7 @@ begin
   fBasePath := ABasePath;
   fPathFilter := APathFilter;
   fTransferProtocolSchemes := ATransferProtocolSchemes;
+  fSpecVersion := ASpecVersion;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -277,7 +313,8 @@ begin
 
               for I in lMVCHttpMethods do
               begin
-                {OpenAPI 2 has no slot for TRACE: emitting it would write an empty key}
+                {A verb MVCHttpMethodToSwagPathOperation cannot map (e.g. QUERY) comes back as
+                 ohvNotDefined: emitting it would write an empty operation key}
                 if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
                 begin
                   Continue;
@@ -312,6 +349,7 @@ begin
                       lControllerDefaultModelSingularName,
                       lControllerDefaultModelPluralName)
                     );
+                  PathConvertersAsStrings(lControllerPath + lMethodPath, lSwagPathOp.Parameters);
                   lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
                   lSwagPath.Operations.Add(lSwagPathOp);
                   lSwagPathOp := nil; // ownership transferred to lSwagPath.Operations
@@ -477,7 +515,8 @@ begin
 
             for I in lMVCHttpMethods do
             begin
-              {OpenAPI 2 has no slot for TRACE: emitting it would write an empty key}
+              {A verb MVCHttpMethodToSwagPathOperation cannot map (e.g. QUERY) comes back as
+                 ohvNotDefined: emitting it would write an empty operation key}
               if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
               begin
                 Continue;
@@ -512,6 +551,7 @@ begin
                     lControllerDefaultModelSingularName,
                     lControllerDefaultModelPluralName)
                   );
+                PathConvertersAsStrings(lControllerPath + lMethodPath, lSwagPathOp.Parameters);
                 lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
                 if lSwagPathOp.OperationID.IsEmpty then
                 begin
@@ -559,7 +599,7 @@ var
   lObjType: TRttiType;
   lJwtUrlField: TRttiField;
   lJwtUrlSegment: string;
-  lSecurityDefsBearer: TSwagSecurityDefinitionApiKey;
+  lSecurityDefsBearer: TSwagSecurityDefinition;
   lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
   lJWTMiddleware := nil;
@@ -613,11 +653,24 @@ begin
   if fEnableBearerAuthentication or
    (Assigned(lJWTMiddleware) and Assigned(lJwtUrlField)) then
   begin
-    lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+    {OpenAPI 3 has a real bearer scheme: Swagger UI then takes the raw token and
+     sends "Authorization: Bearer <token>". Swagger 2.0 has none, so there the
+     scheme stays an API key in the Authorization header (the value typed must
+     include "Bearer ").}
+    if fSpecVersion = ssvOpenAPI3 then
+    begin
+      lSecurityDefsBearer := TSwagSecurityDefinitionHttp.Create;
+      TSwagSecurityDefinitionHttp(lSecurityDefsBearer).Scheme := 'bearer';
+      TSwagSecurityDefinitionHttp(lSecurityDefsBearer).BearerFormat := 'JWT';
+    end
+    else
+    begin
+      lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+      TSwagSecurityDefinitionApiKey(lSecurityDefsBearer).InLocation := kilHeader;
+      TSwagSecurityDefinitionApiKey(lSecurityDefsBearer).Name := 'Authorization';
+    end;
     try
       lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
-      lSecurityDefsBearer.InLocation := kilHeader;
-      lSecurityDefsBearer.Name := 'Authorization';
       lSecurityDefsBearer.Description := fJWTDescription;
       ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
     except
@@ -632,9 +685,13 @@ var
   lSwagSchemes: TSwagTransferProtocolSchemes;
 begin
   ASwagDoc.Host := fHost;
-  if ASwagDoc.Host.IsEmpty then
+  // OpenAPI 3 without a configured host: no host at all, so SwagDoc writes a
+  // relative server ("servers": [{"url": <basePath>}]) that clients resolve
+  // against the URL the document came from. The request Host header is not
+  // echoed into the document.
+  if ASwagDoc.Host.IsEmpty and (fSpecVersion = ssvSwagger2) then
   begin
-    ASwagDoc.Host := Format('%s:%d', [AContext.Request.Host, AContext.Request.ServerPort]);
+    ASwagDoc.Host := DocumentHost(AContext.Request.Host, AContext.Request.ServerPort);
   end;
 
   ASwagDoc.BasePath := fBasePath;
@@ -694,6 +751,8 @@ begin
   begin
     LSwagDoc := TSwagDoc.Create;
     try
+      if fSpecVersion = ssvOpenAPI3 then
+        LSwagDoc.SpecVersion := svOpenApi3;
       DocumentApiInfo(LSwagDoc);
       DocumentApiSettings(AContext, LSwagDoc);
       DocumentApiAuthentication(LSwagDoc);

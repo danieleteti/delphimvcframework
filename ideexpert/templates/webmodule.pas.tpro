@@ -77,8 +77,12 @@ uses
 {{if program_ssv_any}}
   MVCFramework.Middleware.Redirect,
 {{endif}}
-{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger)}}
   MVCFramework.Middleware.StaticFiles,
+{{endif}}
+{{if program_openapi_swagger}}
+  MVCFramework.Swagger.Commons,
+  MVCFramework.Middleware.Swagger,
 {{endif}}
 {{if webmodule_middleware_analytics}}
   MVCFramework.Middleware.Analytics,
@@ -115,6 +119,10 @@ var
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   LWwwPath: string;
 {{endif}}
+{{endif}}
+{{if program_openapi_swagger}}
+var
+  LSwaggerInfo: TMVCSwaggerInfo;
 {{endif}}
 begin
   fMVC := TMVCEngine.Create(Self,
@@ -260,6 +268,20 @@ begin
 {{endif}}
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', LWwwPath));
+{{endif}}
+{{if program_openapi_swagger}}
+  // API documentation: OpenAPI 3 document at {{:program_openapi_url}}, Swagger UI at /swagger.
+  // dmvc.openapi.enabled=false in .env publishes neither (e.g. in production).
+  if dotEnv.Env('dmvc.openapi.enabled', True) then
+  begin
+    LSwaggerInfo.Title := '{{:program_name}}';
+    LSwaggerInfo.Version := 'v1';
+    LSwaggerInfo.Description := '{{:program_name}} API';
+    fMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(fMVC, LSwaggerInfo, '{{:program_openapi_url}}',
+      JWT_DEFAULT_DESCRIPTION, False, '', '', '', {{:program_openapi_schemes}}, False, ssvOpenAPI3));
+    fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/swagger',
+      TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger')));
+  end;
 {{endif}}
 {{if webmodule_middleware_trace}}
   fMVC.AddMiddleware(TMVCTraceMiddleware.Create);

@@ -66,6 +66,7 @@ begin
   TJsonFieldString(Result).MinLength := Self.fMinLength;
   TJsonFieldString(Result).MaxLength := Self.fMaxLength;
   TJsonFieldString(Result).Pattern   := Self.fPattern;
+  TJsonFieldString(Result).Format := Self.fFormat;
 end;
 
 constructor TJsonFieldString.Create;
@@ -85,6 +86,8 @@ begin
     Result.AddPair('maxLength', fMaxLength);
   if (fPattern.Length > 0) then
     Result.AddPair('pattern', fPattern);
+  if (fFormat.Length > 0) then
+    Result.AddPair('format', fFormat);
 end;
 
 initialization

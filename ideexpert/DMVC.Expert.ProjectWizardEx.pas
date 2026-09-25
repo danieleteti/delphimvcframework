@@ -61,7 +61,8 @@ uses
   ExpertsRepository,
   JsonDataObjects,
   DMVC.Expert.Commons,
-  DMVC.Expert.ProjectGenerator;
+  DMVC.Expert.ProjectGenerator,
+  DMVC.Expert.Forms.SwaggerUIProgress;
 
 procedure ExecuteWizardForPreset(APreset: TDMVCProjectPreset);
 var
@@ -72,6 +73,7 @@ var
   lProjectPath: string;
   lProject: IOTAProject;
   lConfig: IOTABuildConfiguration;
+  lWarning: string;
 begin
   WizardForm := TfrmDMVCNewProject.Create(Application);
   try
@@ -88,7 +90,25 @@ begin
       lProjectName := WizardForm.ProjectName;
       lJSON := WizardForm.GetConfigModel;
 
-      TDMVCProjectGenerator.Generate(lProjectFolder, lProjectName, lJSON);
+      // Swagger UI is downloaded in a background task behind a modal progress
+      // dialog (Cancel, 30 s deadline): the IDE keeps pumping messages, and a
+      // failed download never stops the project creation.
+      TDMVCProjectGenerator.SwaggerUIInstaller :=
+        function(ATargetFolder, ADocumentURL: string): string
+        begin
+          Result := InstallSwaggerUIWithProgress(ATargetFolder, ADocumentURL);
+        end;
+      Screen.Cursor := crHourGlass;
+      try
+        TDMVCProjectGenerator.Generate(lProjectFolder, lProjectName, lJSON);
+      finally
+        Screen.Cursor := crDefault;
+        TDMVCProjectGenerator.SwaggerUIInstaller := nil;
+      end;
+      for lWarning in TDMVCProjectGenerator.Warnings do
+        (BorlandIDEServices as IOTAMessageServices).AddTitleMessage('DMVCFramework wizard: ' + lWarning);
+      if Length(TDMVCProjectGenerator.Warnings) > 0 then
+        (BorlandIDEServices as IOTAMessageServices).ShowMessageView(nil);
 
       lProjectPath := TPath.Combine(lProjectFolder, lProjectName + '.dpr');
       (BorlandIDEServices as IOTAActionServices).OpenFile(lProjectPath);

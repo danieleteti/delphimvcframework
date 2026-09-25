@@ -76,7 +76,14 @@ begin
     function (PeopleService: IPeopleService): IMVCResponse
     begin
       Result := Ok(PeopleService.GetAll);
+{{if program_openapi_native}}
+    end)
+    .WithTags('People')
+    .WithSummary('List all people')
+    .Produces<TArray<TPerson>>;
+{{else}}
     end);
+{{endif}}
 {{else}}
   AGroup.MapGet('',
     function: IMVCResponse
@@ -93,7 +100,14 @@ begin
         lList.Free;
         raise;
       end;
+{{if program_openapi_native}}
+    end)
+    .WithTags('People')
+    .WithSummary('List all people')
+    .Produces<TArray<TPerson>>;
+{{else}}
     end);
+{{endif}}
 {{endif}}
 
   // :int constraint rejects non-numeric ids before the handler runs.
@@ -101,14 +115,27 @@ begin
     function (ID: Integer): IMVCResponse
     begin
       Result := Ok(TPerson.Create(ID, 'Daniele', 'Teti', EncodeDate(1979, 11, 4)));
+{{if program_openapi_native}}
+    end)
+    .WithTags('People')
+    .WithSummary('Get a person')
+    .Produces<TPerson>;
+{{else}}
     end);
+{{endif}}
 
   AGroup.MapPost<TPerson>('',
     function (Person: TPerson): IMVCResponse
     begin
       LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
       Result := Created('', 'Person created');
+{{if program_openapi_native}}
+    end)
+    .WithTags('People')
+    .WithSummary('Create a person');
+{{else}}
     end);
+{{endif}}
 end;
 
 // Auth filter applied locally: every route on lAdmin requires Bearer. Use() returns a modified copy.
@@ -122,14 +149,26 @@ begin
     function: IMVCResponse
     begin
       Result := Ok('admin ok');
+{{if program_openapi_native}}
+    end)
+    .WithTags('Admin')
+    .WithSummary('Admin health check (Bearer token required)');
+{{else}}
     end);
+{{endif}}
 
   lAdmin.MapDelete<Integer>('/people/($id:int)',
     function (ID: Integer): IMVCResponse
     begin
       LogI('Admin deleted person with id ' + ID.ToString);
       Result := NoContent;
+{{if program_openapi_native}}
+    end)
+    .WithTags('Admin')
+    .WithSummary('Delete a person (Bearer token required)');
+{{else}}
     end);
+{{endif}}
 end;
 
 procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
@@ -140,7 +179,12 @@ begin
     function: IMVCResponse
     begin
       Result := Redirect('/api/v1/people');
+{{if program_openapi_native}}
+    end)
+    .WithOpenAPI(False); // a redirect, not part of the API
+{{else}}
     end);
+{{endif}}
 
   lApiV1 := ARoot.Prefix('/api/v1');
   RegisterPeopleRoutes(lApiV1.Prefix('/people'));

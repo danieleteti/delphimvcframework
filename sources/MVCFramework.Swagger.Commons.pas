@@ -52,6 +52,12 @@ type
     stObject, stArray, stString, stChar, stGuid);
   TMVCSwagAuthenticationType = (atBasic, atJsonWebToken);
   TMVCSwagFieldSerializationType = (fsNotDefined, fsReadOnly, fsFillSingle, fsEditable);
+  /// <summary>
+  /// Specification written by TMVCSwaggerMiddleware and by the Swagger() HTTP filter.
+  /// ssvSwagger2 (the default) writes a Swagger 2.0 document; ssvOpenAPI3 writes an
+  /// OpenAPI 3 document (the latest 3.x release supported by SwagDoc) from the same attributes.
+  /// </summary>
+  TMVCSwaggerSpecVersion = (ssvSwagger2, ssvOpenAPI3);
 
 
   /// <summary>
@@ -1723,7 +1729,8 @@ end;
 
 class function TMVCSwagger.MVCPathToSwagPath(const aResourcePath: string): string;
 begin
-  Result := TRegEx.Replace(aResourcePath, '(\([($])([\w_]+)([)])', '{\2}', [roIgnoreCase, roMultiLine]);
+  // "($name)" and "($name:converter)" (the router's form, e.g. ":sqids") both become "{name}"
+  Result := TRegEx.Replace(aResourcePath, '(\([($])([\w_]+)(:[\w*]+)?([)])', '{\2}', [roIgnoreCase, roMultiLine]);
 end;
 
 class function TMVCSwagger.CheckNeedFieldSerialization(const aFieldSerializationType: TMVCSwagFieldSerializationType; const aMVCHTTPMethod: TMVCHTTPMethodType;

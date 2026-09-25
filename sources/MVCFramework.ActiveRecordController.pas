@@ -64,7 +64,7 @@ type
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Retrieve a list of {singularmodel}', 'Get{pluralmodel}')]
     [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
-    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', TMVCSwagParamType.ptString, False)]
     procedure GetEntities(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/searches')]
@@ -72,7 +72,7 @@ type
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Searches through {pluralmodel} and returns a list of {singularmodel}', 'Get{pluralmodel}BySearch')]
     [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
-    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', TMVCSwagParamType.ptString, False)]
     procedure GetEntitiesByRQL(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/searches')]
@@ -80,7 +80,7 @@ type
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Searches through {pluralmodel} and returns a list of {singularmodel}', 'Get{pluralmodel}BySearchAsPOST')]
     [MVCSwagResponses(HTTP_STATUS.OK, 'List of {singularmodel}', SWAGUseDefaultControllerModel, True)]
     [MVCSwagResponses(HTTP_STATUS.BadRequest, '', TMVCErrorResponse)]
-    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', SWAGUseDefaultControllerModel, TMVCSwagParamType.ptString, False)]
+    [MVCSwagParam(TMVCSwagParamLocation.plQuery, 'rql', 'RQL filter used to filter the list of {singularmodel}', TMVCSwagParamType.ptString, False)]
     procedure GetEntitiesByRQLwithPOST(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/($id)')]

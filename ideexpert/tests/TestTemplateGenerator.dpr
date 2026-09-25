@@ -20,6 +20,7 @@
 program TestTemplateGenerator;
 
 {$APPTYPE CONSOLE}
+{$WARN SYMBOL_PLATFORM OFF} // Windows-only tool (TFileAttribute in the SwaggerUI tests)
 
 uses
   System.SysUtils,
@@ -28,12 +29,18 @@ uses
   System.Generics.Collections,
   System.DateUtils,
   System.Rtti,
+  System.Hash,
+  System.Zip,
+  System.Diagnostics,
+  IdContext,
+  IdTCPServer,
   Winapi.Windows,
   Winapi.ShellAPI,
   JsonDataObjects,
   TemplatePro,
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas',
-  DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas';
+  DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
+  DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas';
 
 type
   TTestCase = record
@@ -72,6 +79,7 @@ type
   end;
 
 var
+  GSwaggerUIZip: TBytes; // one real download, reused by every *_openapi case
   GOutputDir: string;
   GVerbose: Boolean;
   GTestResults: TList<TTestResult>;
@@ -1287,6 +1295,135 @@ begin
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
+
+  // === API documentation option (OpenAPI 3 + Swagger UI downloaded at generation) ===
+
+  // Test 62: controller project, option ON. Swagger middleware with OpenAPI 3,
+  // MVCSwag attributes on the sample controller, Swagger UI in bin\www\swagger
+  // with the initializer pointing at /openapi.json. Real download.
+  LTestCase.Name := 'indydirect_openapi_controllers';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.program_openapi] := True;
+  LTestCase.ExpectedFiles := ['bin/www/swagger/index.html', 'bin/www/swagger/index.css',
+    'bin/www/swagger/swagger-ui-bundle.js', 'bin/www/swagger/swagger-ui-standalone-preset.js',
+    'bin/www/swagger/swagger-ui.css', 'bin/www/swagger/swagger-initializer.js',
+    'bin/www/swagger/LICENSE', 'bin/www/swagger/NOTICE'];
+  LTestCase.ForbiddenFiles := ['bin/www/swagger/README-swagger-ui.txt',
+    'bin/www/swagger/swagger-ui.js', 'bin/www/swagger/swagger-ui-es-bundle.js',
+    'bin/www/swagger/swagger-ui-es-bundle-core.js'];
+  LTestCase.MustContain := [
+    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create(AEngine, LSwaggerInfo, ''/openapi.json''',
+    'EngineConfigU.pas|ssvOpenAPI3',
+    'EngineConfigU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
+    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'bin/.env|dmvc.openapi.enabled=true',
+    'Controllers.PeopleU.pas|[MVCSWAGDefaultModel(TPerson, ''Person'', ''People'')]',
+    'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
+  LTestCase.MustNotContain := ['bin/www/swagger/swagger-initializer.js|petstore'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 63: same controller project, option OFF: nothing of the above.
+  LTestCase.Name := 'indydirect_openapi_off';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_openapi] := False;
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := ['bin/www/swagger'];
+  LTestCase.MustContain := [];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|Swagger', 'Controllers.PeopleU.pas|MVCSwag',
+    'bin/.env|dmvc.openapi'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 64: WebModule flavor (ISAPI), option ON: the same wiring in WebModuleU.
+  LTestCase.Name := 'isapi_openapi';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.Config.B[TConfigKey.program_openapi] := True;
+  LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := ['WebModuleU.pas|ssvOpenAPI3',
+    'WebModuleU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
+    'WebModuleU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'bin/.env|dmvc.openapi.enabled=true'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 65: Minimal API, option ON: native OpenAPI() filter, route metadata,
+  // no Swagger middleware.
+  LTestCase.Name := 'indydirect_minimal_api_openapi';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B['controller.main.generate'] := False;
+  LTestCase.Config.B[TConfigKey.program_openapi] := True;
+  LTestCase.ExpectedFiles := ['bin/www/swagger/index.html', 'bin/www/swagger/swagger-initializer.js'];
+  LTestCase.ForbiddenFiles := ['bin/www/swagger/README-swagger-ui.txt'];
+  LTestCase.MustContain := [
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(OpenAPI(AEngine, LOpenAPIInfo, ''/openapi.json''))',
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(LSwaggerUIOptions))',
+    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'bin/.env|dmvc.openapi.enabled=true',
+    'RoutesU.pas|.Produces<TArray<TPerson>>',
+    'RoutesU.pas|.WithTags(''People'')',
+    'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCSwaggerMiddleware'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 66: controller project with Sqids and the option ON: the ($ID:sqids)
+  // path must compile and be documented.
+  LTestCase.Name := 'indydirect_openapi_sqids';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_sqids] := True;
+  LTestCase.Config.B[TConfigKey.program_openapi] := True;
+  LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := ['Controllers.PeopleU.pas|[MVCPath(''/($ID:sqids)'')]',
+    'Controllers.PeopleU.pas|"data":{"type":"array"'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 67: Minimal API, option OFF.
+  LTestCase.Name := 'indydirect_minimal_api_openapi_off';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B['controller.main.generate'] := False;
+  LTestCase.Config.B[TConfigKey.program_openapi] := False;
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := ['bin/www/swagger'];
+  LTestCase.MustContain := [];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|OpenAPI', 'RoutesU.pas|WithSummary',
+    'bin/.env|dmvc.openapi'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 end;
 
 procedure PrintSummary;
@@ -1378,6 +1515,206 @@ begin
   Result := RunDProjAppTypeTest(TProgramTypes.APACHE, 'Library') and Result;
 end;
 
+function CraftZip(const AEntries: TArray<string>): TBytes;
+var
+  LStream: TBytesStream;
+  LZip: TZipFile;
+  LName: string;
+begin
+  LStream := TBytesStream.Create;
+  try
+    LZip := TZipFile.Create;
+    try
+      LZip.Open(LStream, zmWrite);
+      for LName in AEntries do
+        LZip.Add(TEncoding.UTF8.GetBytes('// ' + LName), LName);
+      LZip.Close;
+    finally
+      LZip.Free;
+    end;
+    Result := Copy(LStream.Bytes, 0, LStream.Size);
+  finally
+    LStream.Free;
+  end;
+end;
+
+function SHA256Of(const ABytes: TBytes): string;
+var
+  LHash: THashSHA2;
+begin
+  LHash := THashSHA2.Create;
+  LHash.Update(ABytes);
+  Result := LHash.HashAsString;
+end;
+
+const
+  STALLED_PORT = 8899;
+
+type
+  { Accepts the connection and never answers: the download must give up at its deadline }
+  TStalledServer = class
+    procedure Execute(AContext: TIdContext);
+  end;
+
+procedure TStalledServer.Execute(AContext: TIdContext);
+begin
+  Sleep(100);
+end;
+
+{ DMVC.Expert.SwaggerUI without the network: the failure paths must extract
+  nothing and leave the README. The success path (real download) is covered
+  by the *_openapi generation cases. }
+function RunSwaggerUITests: Boolean;
+var
+  LDir, LErr, LReadme: string;
+  LZip: TBytes;
+  LRelease: TSwaggerUIRelease;
+  LServer: TIdTCPServer;
+  LStalled: TStalledServer;
+  LWatch: TStopwatch;
+
+  function Check(const AName: string; ACondition: Boolean; const ADetail: string): Boolean;
+  begin
+    Result := ACondition;
+    if Result then
+      Log('  [PASS] ' + AName)
+    else
+      Log('  [FAIL] ' + AName + ' - ' + ADetail);
+  end;
+
+begin
+  Log('');
+  Log('=== DMVC.Expert.SwaggerUI tests ===');
+  Result := True;
+  LZip := CraftZip(['swagger-ui-9.9.9/dist/index.html', 'swagger-ui-9.9.9/dist/swagger-ui-bundle.js',
+    'swagger-ui-9.9.9/dist/swagger-ui.js.map']);
+
+  // wrong hash: nothing extracted, README written
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_hash');
+  if TDirectory.Exists(LDir) then
+    TDirectory.Delete(LDir, True);
+  LRelease.Version := '9.9.9';
+  LRelease.SHA256 := StringOfChar('0', 64);
+  LErr := InstallSwaggerUIFromZip(LZip, LRelease, LDir, '/openapi.json');
+  Result := Check('hash mismatch is refused', LErr.Contains('SHA-256 mismatch'), LErr) and Result;
+  Result := Check('hash mismatch extracts nothing',
+    not TFile.Exists(TPath.Combine(LDir, 'index.html')) and
+    not TFile.Exists(TPath.Combine(LDir, 'swagger-initializer.js')), 'files found') and Result;
+  Result := Check('hash mismatch writes the README',
+    TFile.Exists(TPath.Combine(LDir, SWAGGER_UI_README)) and
+    TFile.ReadAllText(TPath.Combine(LDir, SWAGGER_UI_README)).Contains(SwaggerUIDownloadURL('9.9.9')),
+    'README missing or without the URL') and Result;
+  { the README is served with the UI: the reason and local paths stay in the IDE warning }
+  LReadme := TFile.ReadAllText(TPath.Combine(LDir, SWAGGER_UI_README));
+  Result := Check('the README carries no reason and no local path',
+    not LReadme.Contains('mismatch') and not LReadme.Contains(LDir) and
+    not LReadme.Contains('es-bundle'), LReadme) and Result;
+
+  // right hash: the crafted dist is extracted, .map skipped, initializer written
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_ok');
+  if TDirectory.Exists(LDir) then
+    TDirectory.Delete(LDir, True);
+  LRelease.SHA256 := SHA256Of(LZip);
+  LErr := InstallSwaggerUIFromZip(LZip, LRelease, LDir, '/api/doc.json');
+  Result := Check('matching hash is extracted', (LErr = '') and
+    TFile.Exists(TPath.Combine(LDir, 'index.html')) and
+    not TFile.Exists(TPath.Combine(LDir, 'swagger-ui.js.map')) and
+    not TFile.Exists(TPath.Combine(LDir, SWAGGER_UI_README)) and
+    TFile.ReadAllText(TPath.Combine(LDir, 'swagger-initializer.js')).Contains('url: "/api/doc.json"'), LErr) and Result;
+
+  // zip-slip: one entry escapes the target folder, so nothing is written at all
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_slip');
+  if TDirectory.Exists(LDir) then
+    TDirectory.Delete(LDir, True);
+  if TFile.Exists(TPath.Combine(TPath.GetFullPath(GOutputDir), 'evil.js')) then
+    TFile.Delete(TPath.Combine(TPath.GetFullPath(GOutputDir), 'evil.js'));
+  LZip := CraftZip(['swagger-ui-9.9.9/dist/index.html', 'swagger-ui-9.9.9/dist/swagger-ui-bundle.js',
+    'swagger-ui-9.9.9/dist/../../evil.js']);
+  LRelease.SHA256 := SHA256Of(LZip);
+  LErr := InstallSwaggerUIFromZip(LZip, LRelease, LDir, '/openapi.json');
+  Result := Check('zip-slip entry is rejected', LErr.Contains('Unsafe archive entry'), LErr) and Result;
+  Result := Check('zip-slip extracts nothing',
+    not TFile.Exists(TPath.Combine(TPath.GetFullPath(GOutputDir), 'evil.js')) and
+    not TFile.Exists(TPath.Combine(LDir, 'index.html')) and
+    TFile.Exists(TPath.Combine(LDir, SWAGGER_UI_README)), 'files found or README missing') and Result;
+
+  LZip := CraftZip(['swagger-ui-9.9.9/dist/index.html', 'swagger-ui-9.9.9/dist/swagger-ui-bundle.js']);
+  LRelease.SHA256 := SHA256Of(LZip);
+
+  // an old README that cannot be deleted does not turn a good install into a failure
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_readonly_readme');
+  if TDirectory.Exists(LDir) then
+  begin
+    if TFile.Exists(TPath.Combine(LDir, SWAGGER_UI_README)) then
+      TFile.SetAttributes(TPath.Combine(LDir, SWAGGER_UI_README), [TFileAttribute.faNormal]);
+    TDirectory.Delete(LDir, True);
+  end;
+  TDirectory.CreateDirectory(LDir);
+  TFile.WriteAllText(TPath.Combine(LDir, SWAGGER_UI_README), 'old');
+  TFile.SetAttributes(TPath.Combine(LDir, SWAGGER_UI_README), [TFileAttribute.faReadOnly]);
+  try
+    LErr := InstallSwaggerUIFromZip(LZip, LRelease, LDir, '/openapi.json');
+  finally
+    TFile.SetAttributes(TPath.Combine(LDir, SWAGGER_UI_README), [TFileAttribute.faNormal]);
+  end;
+  Result := Check('an undeletable old README is not fatal',
+    (LErr = '') and TFile.Exists(TPath.Combine(LDir, 'index.html')), LErr) and Result;
+
+  // a write failure after the extraction started says so
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_incomplete');
+  if TDirectory.Exists(LDir) then
+  begin
+    if TFile.Exists(TPath.Combine(LDir, 'swagger-ui-bundle.js')) then
+      TFile.SetAttributes(TPath.Combine(LDir, 'swagger-ui-bundle.js'), [TFileAttribute.faNormal]);
+    TDirectory.Delete(LDir, True);
+  end;
+  TDirectory.CreateDirectory(LDir);
+  TFile.WriteAllText(TPath.Combine(LDir, 'swagger-ui-bundle.js'), 'locked');
+  TFile.SetAttributes(TPath.Combine(LDir, 'swagger-ui-bundle.js'), [TFileAttribute.faReadOnly]);
+  try
+    LErr := InstallSwaggerUIFromZip(LZip, LRelease, LDir, '/openapi.json');
+  finally
+    TFile.SetAttributes(TPath.Combine(LDir, 'swagger-ui-bundle.js'), [TFileAttribute.faNormal]);
+  end;
+  Result := Check('a write failure says the installation is incomplete',
+    LErr.StartsWith('Swagger UI installation incomplete'), LErr) and Result;
+
+  // a server that accepts and never answers: the download must stop at the deadline
+  LDir := TPath.Combine(TPath.GetFullPath(GOutputDir), '_swaggerui_stalled');
+  if TDirectory.Exists(LDir) then
+    TDirectory.Delete(LDir, True);
+  LStalled := TStalledServer.Create;
+  LServer := TIdTCPServer.Create(nil);
+  try
+    LServer.Bindings.Add.SetBinding('127.0.0.1', STALLED_PORT);
+    LServer.OnExecute := LStalled.Execute;
+    LServer.Active := True;
+
+    LWatch := TStopwatch.StartNew;
+    LErr := InstallSwaggerUI(LDir, '/openapi.json',
+      Format('http://127.0.0.1:%d/swagger-ui.zip', [STALLED_PORT]), 2000, nil);
+    Result := Check('a stalled server is dropped at the deadline',
+      LErr.Contains('no answer within') and (LWatch.ElapsedMilliseconds < 6000) and
+      TFile.Exists(TPath.Combine(LDir, SWAGGER_UI_README)),
+      Format('%s (after %d ms)', [LErr, LWatch.ElapsedMilliseconds])) and Result;
+
+    LWatch := TStopwatch.StartNew;
+    LErr := InstallSwaggerUI(LDir, '/openapi.json',
+      Format('http://127.0.0.1:%d/swagger-ui.zip', [STALLED_PORT]), 60000,
+      function: Boolean
+      begin
+        Result := LWatch.ElapsedMilliseconds > 500;
+      end);
+    Result := Check('cancel stops a stalled download',
+      LErr.Contains('cancelled') and (LWatch.ElapsedMilliseconds < 5000),
+      Format('%s (after %d ms)', [LErr, LWatch.ElapsedMilliseconds])) and Result;
+  finally
+    LServer.Active := False;
+    LServer.Free;
+    LStalled.Free;
+  end;
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -1408,6 +1745,7 @@ end;
 var
   LTestCases: TList<TTestCase>;
   LTestCase: TTestCase;
+  LDownloadsBefore: Integer;
 begin
   try
     Log('DMVCFramework Template Generator Test Tool');
@@ -1462,6 +1800,32 @@ begin
         Exit;
       end;
 
+      if not RunSwaggerUITests then
+      begin
+        Log('');
+        Log('FAIL: DMVC.Expert.SwaggerUI tests did not pass.');
+        ExitCode := 1;
+        Exit;
+      end;
+
+      // One real download of the release for the whole run: every case with the
+      // option on extracts it through the same InstallSwaggerUIFromZip the
+      // wizard uses after its own download.
+      LDownloadsBefore := SwaggerUIDownloadCount;
+      try
+        GSwaggerUIZip := DownloadSwaggerUIZip(SwaggerUIDownloadURL(SWAGGER_UI_RELEASE.Version),
+          SWAGGER_UI_DEADLINE_MS, nil);
+      except
+        on E: Exception do
+          Log('Swagger UI download failed: ' + E.Message); // the *_openapi cases then fail
+      end;
+      TDMVCProjectGenerator.SwaggerUIInstaller :=
+        function(ATargetFolder, ADocumentURL: string): string
+        begin
+          Result := InstallSwaggerUIFromZip(GSwaggerUIZip, SWAGGER_UI_RELEASE,
+            ATargetFolder, ADocumentURL);
+        end;
+
       CreateTestCases(LTestCases);
 
       for LTestCase in LTestCases do
@@ -1470,6 +1834,8 @@ begin
         LTestCase.Config.Free;
       end;
 
+      Log(Format('Swagger UI release downloads during the generation cases: %d',
+        [SwaggerUIDownloadCount - LDownloadsBefore]));
       PrintSummary;
     finally
       LTestCases.Free;

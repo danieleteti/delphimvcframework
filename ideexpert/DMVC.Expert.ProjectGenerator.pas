@@ -61,6 +61,18 @@ type
     /// </summary>
     class var TemplateFolder: string;
     /// <summary>
+    /// Problems that did not stop the generation (e.g. Swagger UI not
+    /// downloaded), reset by every Generate call. The IDE wizard shows them.
+    /// </summary>
+    class var Warnings: TArray<string>;
+    /// <summary>
+    /// Puts Swagger UI into a folder (target folder, document URL) and returns ''
+    /// or the reason it could not. Nil means InstallSwaggerUI. The IDE wizard sets
+    /// it to run the download behind a progress dialog; the template tests set it
+    /// to reuse one download.
+    /// </summary>
+    class var SwaggerUIInstaller: TFunc<string, string, string>;
+    /// <summary>
     /// Generates a complete project to the specified folder
     /// </summary>
     class procedure Generate(const AProjectFolder, AProjectName: string; AConfig: TJSONObject);
@@ -73,7 +85,13 @@ type
 implementation
 
 uses
-  Winapi.Windows;
+  Winapi.Windows,
+  DMVC.Expert.SwaggerUI;
+
+const
+  // Document URL of the "API documentation" option, the same for controller
+  // and Minimal API projects (the templates serve Swagger UI at /swagger).
+  OPENAPI_DOCUMENT_URL = '/openapi.json';
 
 { TDMVCProjectGenerator }
 
@@ -347,7 +365,9 @@ var
   LCssPath: string;
   LTemplatesPath: string;
   LTemplateExt: string;
+  LSwaggerUIError: string;
 begin
+  Warnings := [];
   LogToFile('=== Starting project generation ===');
   LogToFile('Project: ' + AProjectName);
   LogToFile('Folder: ' + AProjectFolder);
@@ -428,6 +448,21 @@ begin
     AConfig.B[TConfigKey.logging_appender_syslog] := False;
   if not AConfig.Contains(TConfigKey.logging_exewatch) then
     AConfig.B[TConfigKey.logging_exewatch] := False;
+  if not AConfig.Contains(TConfigKey.program_openapi) then
+    AConfig.B[TConfigKey.program_openapi] := False;
+
+  // API documentation: controller projects use the Swagger middleware with
+  // OpenAPI 3 selected, Minimal API projects the native OpenAPI() filter
+  // (the Swagger middleware does not see lambda routes).
+  AConfig.B['program.openapi.swagger'] := AConfig.B[TConfigKey.program_openapi] and
+    not AConfig.B[TConfigKey.program_minimal_api];
+  AConfig.B['program.openapi.native'] := AConfig.B[TConfigKey.program_openapi] and
+    AConfig.B[TConfigKey.program_minimal_api];
+  AConfig.S['program.openapi.url'] := OPENAPI_DOCUMENT_URL;
+  if SameText(AConfig.S[TConfigKey.program_server_protocol], 'https') then
+    AConfig.S['program.openapi.schemes'] := '[psHTTPS]'
+  else
+    AConfig.S['program.openapi.schemes'] := '[psHTTP]';
 
   // Main ControllerU.pas is worth generating only when it will contain at
   // least one method. With the CRUD sample now living in Controllers.PeopleU,
@@ -638,6 +673,24 @@ begin
       '</body>' + sLineBreak +
       '</html>',
       TEncoding.UTF8);
+  end;
+
+  // Swagger UI for the API documentation option, downloaded from the official
+  // release. A failure leaves a README in the folder and never stops the generation.
+  if AConfig.B[TConfigKey.program_openapi] then
+  begin
+    if Assigned(SwaggerUIInstaller) then
+      LSwaggerUIError := SwaggerUIInstaller(
+        TPath.Combine(TPath.Combine(LBinPath, 'www'), 'swagger'), OPENAPI_DOCUMENT_URL)
+    else
+      LSwaggerUIError := InstallSwaggerUI(
+        TPath.Combine(TPath.Combine(LBinPath, 'www'), 'swagger'), OPENAPI_DOCUMENT_URL);
+    if LSwaggerUIError <> '' then
+    begin
+      LogToFile('Swagger UI: ' + LSwaggerUIError);
+      Warnings := Warnings + ['Swagger UI was not downloaded (' + LSwaggerUIError +
+        '). See bin\www\swagger\' + SWAGGER_UI_README + ' to add it by hand.'];
+    end;
   end;
 
   // Create templates folder for server-side views (in bin/, same level as executable)

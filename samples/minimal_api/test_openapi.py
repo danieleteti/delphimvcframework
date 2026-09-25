@@ -164,14 +164,15 @@ class OpenAPIEmissionTests(unittest.TestCase):
         tperson = self.spec["components"]["schemas"]["TPerson"]
         self.assertEqual(tperson["type"], "object")
         self.assertIn("properties", tperson)
-        for prop in ("ID", "FirstName", "LastName", "Age"):
+        # The keys the serializer writes: TPerson is [MVCNameCase(ncCamelCase)]
+        for prop in ("id", "firstName", "lastName", "age"):
             self.assertIn(prop, tperson["properties"])
-        # ID and Age must be integers
-        self.assertEqual(tperson["properties"]["ID"]["type"], "integer")
-        self.assertEqual(tperson["properties"]["Age"]["type"], "integer")
+        # id and age must be integers
+        self.assertEqual(tperson["properties"]["id"]["type"], "integer")
+        self.assertEqual(tperson["properties"]["age"]["type"], "integer")
         # Strings
-        self.assertEqual(tperson["properties"]["FirstName"]["type"], "string")
-        self.assertEqual(tperson["properties"]["LastName"]["type"], "string")
+        self.assertEqual(tperson["properties"]["firstName"]["type"], "string")
+        self.assertEqual(tperson["properties"]["lastName"]["type"], "string")
 
     def test_510_tperson_referenced_not_duplicated(self):
         # The schema should be referenced via $ref everywhere it's used,
