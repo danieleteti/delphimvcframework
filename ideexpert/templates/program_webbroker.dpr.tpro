@@ -135,6 +135,10 @@ begin
   LogI('Starting on http://localhost:' + APort.ToString +
     ' (WebBroker, Indy bridge). Press Ctrl+C to shut down.');
 {{endif}}
+{{if program_openapi}}
+  if dotEnv.Env('dmvc.openapi.enabled', False) then
+    LogI('API documentation (Swagger UI): {{if program_server_protocol|eq,"https"}}https{{else}}http{{endif}}://localhost:' + APort.ToString + '/swagger/');
+{{endif}}
 {{if websocketserver_generate}}
   LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
   try

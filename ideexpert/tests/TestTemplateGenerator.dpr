@@ -1318,13 +1318,15 @@ begin
     'bin/www/swagger/swagger-ui-es-bundle-core.js'];
   LTestCase.MustContain := [
     'EngineConfigU.pas|TMVCSwaggerMiddleware.Create(AEngine, LSwaggerInfo, ''/openapi.json''',
+    'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
     'EngineConfigU.pas|ssvOpenAPI3',
     'EngineConfigU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
-    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
     'Controllers.PeopleU.pas|[MVCSWAGDefaultModel(TPerson, ''Person'', ''People'')]',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
-  LTestCase.MustNotContain := ['bin/www/swagger/swagger-initializer.js|petstore'];
+  LTestCase.MustNotContain := ['bin/www/swagger/swagger-initializer.js|petstore',
+    'bin/.env|JWT_SECRET='#13#10]; // the wizard writes a generated key
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1356,7 +1358,7 @@ begin
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := ['WebModuleU.pas|ssvOpenAPI3',
     'WebModuleU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
-    'WebModuleU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'WebModuleU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true'];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
@@ -1378,8 +1380,9 @@ begin
   LTestCase.ForbiddenFiles := ['bin/www/swagger/README-swagger-ui.txt'];
   LTestCase.MustContain := [
     'EngineConfigU.pas|AEngine.UseHTTPFilter(OpenAPI(AEngine, LOpenAPIInfo, ''/openapi.json''))',
+    'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
     'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(LSwaggerUIOptions))',
-    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', True) then',
+    'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
     'RoutesU.pas|.Produces<TArray<TPerson>>',
     'RoutesU.pas|.WithTags(''People'')',

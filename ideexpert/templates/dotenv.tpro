@@ -48,7 +48,7 @@ dmvc.profiler.logs_only_over_threshold=true
 # API documentation
 # ============================================================================
 # true: publishes the OpenAPI 3 document (/openapi.json) and Swagger UI (/swagger).
-# Set it to false where the API must not describe itself (e.g. in production).
+# false, or the key missing: neither is published (e.g. in production).
 dmvc.openapi.enabled=true
 {{endif}}
 {{if program_server_protocol|eq,"https"}}
@@ -102,10 +102,10 @@ dmvc.sqids.min_length=6
 JWT_PRIVATE_KEY_FILE=jwt-private.pem
 JWT_PUBLIC_KEY_FILE=jwt-public.pem
 {{else}}
-# No default on purpose: this file is the only place the secret exists, and a
-# working-looking placeholder is a public string that signs real tokens.
-# Generate one with:  openssl rand -base64 48
-JWT_SECRET=
+# Signing key generated for this project by the wizard (384 random bits).
+# It exists only in this file: keep .env out of version control, and give
+# every environment its own key (e.g. openssl rand -hex 48).
+JWT_SECRET={{:program_jwt_secret}}
 {{endif}}
 JWT_ISSUER={{:program_name}}
 # The generated authentication handler is fail-closed: leave these empty and

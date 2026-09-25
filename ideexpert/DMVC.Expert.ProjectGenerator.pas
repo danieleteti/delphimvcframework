@@ -92,6 +92,27 @@ const
   // Document URL of the "API documentation" option, the same for controller
   // and Minimal API projects (the templates serve Swagger UI at /swagger).
   OPENAPI_DOCUMENT_URL = '/openapi.json';
+  BCRYPT_USE_SYSTEM_PREFERRED_RNG = $00000002;
+
+function BCryptGenRandom(hAlgorithm: Pointer; pbBuffer: PByte; cbBuffer: ULONG;
+  dwFlags: ULONG): LongInt; stdcall; external 'bcrypt.dll';
+
+{ A fresh HMAC key for the generated .env, from the system CSPRNG: 48 random
+  bytes (384 bits, the same as "openssl rand -base64 48") written as hex, so
+  no character needs quoting in the .env file. }
+function NewJWTSecret: string;
+var
+  lBytes: TBytes;
+  I: Integer;
+begin
+  SetLength(lBytes, 48);
+  if BCryptGenRandom(nil, @lBytes[0], Length(lBytes), BCRYPT_USE_SYSTEM_PREFERRED_RNG) <> 0 then
+    raise Exception.Create('Cannot generate the JWT secret: BCryptGenRandom failed');
+  Result := '';
+  for I := 0 to High(lBytes) do
+    Result := Result + IntToHex(lBytes[I], 2);
+  Result := Result.ToLower;
+end;
 
 { TDMVCProjectGenerator }
 
@@ -463,6 +484,10 @@ begin
     AConfig.S['program.openapi.schemes'] := '[psHTTPS]'
   else
     AConfig.S['program.openapi.schemes'] := '[psHTTP]';
+
+  // A new project gets its own JWT signing key in .env, so the server starts
+  // as soon as it is generated. Each generation draws a new one.
+  AConfig.S['program.jwt.secret'] := NewJWTSecret;
 
   // Main ControllerU.pas is worth generating only when it will contain at
   // least one method. With the CRUD sample now living in Controllers.PeopleU,

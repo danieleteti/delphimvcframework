@@ -272,8 +272,8 @@ begin
 {{endif}}
 {{if program_openapi_swagger}}
   // API documentation: OpenAPI 3 document at {{:program_openapi_url}}, Swagger UI at /swagger.
-  // dmvc.openapi.enabled=false in .env publishes neither (e.g. in production).
-  if dotEnv.Env('dmvc.openapi.enabled', True) then
+  // Published only when .env sets dmvc.openapi.enabled=true (off when the key is missing).
+  if dotEnv.Env('dmvc.openapi.enabled', False) then
   begin
     LSwaggerInfo.Title := '{{:program_name}}';
     LSwaggerInfo.Version := 'v1';
@@ -324,8 +324,8 @@ begin
 {{endif}}
 {{if program_openapi_native}}
   // API documentation: OpenAPI 3 document at {{:program_openapi_url}}, Swagger UI at /swagger.
-  // dmvc.openapi.enabled=false in .env publishes neither (e.g. in production).
-  if dotEnv.Env('dmvc.openapi.enabled', True) then
+  // Published only when .env sets dmvc.openapi.enabled=true (off when the key is missing).
+  if dotEnv.Env('dmvc.openapi.enabled', False) then
   begin
     LOpenAPIInfo.Title := '{{:program_name}}';
     LOpenAPIInfo.Version := 'v1';

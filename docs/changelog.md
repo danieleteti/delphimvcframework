@@ -145,13 +145,19 @@ certificate you cannot fix.
   and Minimal API RESTful projects. Controller projects register the Swagger
   middleware with OpenAPI 3; Minimal API projects register the `OpenAPI(...)`
   filter. Both publish the document at `/openapi.json` and serve Swagger UI
-  at `/swagger`, both switched by `dmvc.openapi.enabled` in `.env` (default
-  `true`; set it to `false` to publish no documentation, e.g. in
-  production). The wizard downloads the official Swagger UI release (5.33.0,
+  at `/swagger`, both published only when `.env` sets
+  `dmvc.openapi.enabled=true`. The generated `.env` sets it; without the key
+  (e.g. in production) no documentation is published. The wizard downloads the official Swagger UI release (5.33.0,
   SHA-256 verified) into `bin\www\swagger` while it creates the project,
   showing a progress dialog that can be cancelled and gives up after 30
   seconds. Without network access the project is still created and the
-  folder contains a README with the download steps.
+  folder contains a README with the download steps. When the documentation
+  is published, the console shows the Swagger UI URL at startup.
+- **The IDE wizard writes a JWT signing key into the generated `.env`.**
+  Projects with JWT (HMAC) get their own `JWT_SECRET`, 384 random bits from
+  the system CSPRNG, drawn at every generation, so a new project starts
+  without editing `.env` first. The generated `.gitignore` already excludes
+  `.env`.
 - **The `QUERY` HTTP method (RFC 10008).** `QUERY` is safe and idempotent
   like `GET`, but it carries a request body: the query travels in the
   payload instead of the URL, so it is not URL-length limited and does not
