@@ -38,7 +38,6 @@ implementation
 uses
   System.SysUtils,
   System.Rtti,
-  MVCFramework,
   MVCFramework.ActiveRecord,
   MVCFramework.Validators,
   TemplatePro;
@@ -56,8 +55,6 @@ begin
       aMetadata.Required := True
     else if lAttr is MVCMaxLength then
       aMetadata.Size := MVCMaxLength(lAttr).MaxLength
-    else if lAttr is MVCMaxLengthAttribute then // what [MVCMaxLength(n)] resolves to when MVCFramework is in uses
-      aMetadata.Size := MVCMaxLengthAttribute(lAttr).Value;
   end;
 end;
 
@@ -71,7 +68,6 @@ var
   lProp: TRttiProperty;
   lFieldInfo: TFieldInfo;
   lOptions: TMVCActiveRecordFieldOptions;
-  lAttr: TCustomAttribute;
 begin
   if not (aObject is TMVCActiveRecord) then
     Exit;
@@ -106,12 +102,7 @@ begin
     ApplyAttributes(lField.GetAttributes, aMetadata);
   lProp := lTableMap.fRTTIType.GetProperty(aPropertyName);
   if lProp <> nil then
-  begin
     ApplyAttributes(lProp.GetAttributes, aMetadata);
-    for lAttr in lProp.GetAttributes do
-      if lAttr is MVCDocAttribute then
-        aMetadata.DisplayLabel := MVCDocAttribute(lAttr).Value;
-  end;
 end;
 
 initialization
