@@ -1240,6 +1240,22 @@ begin
     'bin/.env|https.cert.cacert'];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
+
+  // Test 59: TemplatePro views. Dynamic includes ({{include @(expr)}}) must be
+  // confined to the views folder, resolved with the same key and rule the
+  // framework uses for TMVCConfigKey.ViewPath, so that a file name built from
+  // request data cannot read files outside it.
+  LTestCase.Name := 'templatepro_include_root';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := [
+    'TemplateProHelpersU.pas|dotEnv.Env(''dmvc.view_path'', TPath.Combine(AppPath, ''templates''))',
+    'TemplateProHelpersU.pas|CompiledTemplate.IncludeRootPath := lViewPath;'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 end;
 
