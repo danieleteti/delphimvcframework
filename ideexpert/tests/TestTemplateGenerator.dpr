@@ -1257,6 +1257,36 @@ begin
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
+
+  // Test 60: TemplatePro views get the forms library (bin/templates/lib), copied
+  // verbatim: it is a runtime TemplatePro file, not a wizard template.
+  LTestCase.Name := 'templatepro_forms_library';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro'];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := [
+    'bin/templates/lib/forms_bootstrap5.tpro|{{macro input(',
+    'bin/templates/lib/forms_bootstrap5.tpro|{{:model|attr,f.FieldName}}'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Test 61: ActiveRecord + TemplatePro views: the ActiveRecord field metadata
+  // unit is used, so {{for f in entity.@@fields}} and the forms library follow the mapping.
+  LTestCase.Name := 'templatepro_activerecord_fields';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := [
+    'EngineConfigU.pas|MVCFramework.View.Renderers.TemplatePro.ActiveRecord,'];
+  LTestCase.MustNotContain := [];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 end;
 
 procedure PrintSummary;

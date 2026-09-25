@@ -29,6 +29,8 @@ dmvc.load_system_controllers=true
 dmvc.default.view_file_extension=html
 dmvc.view_path=templates
 dmvc.view_cache=false
+# with view_cache=true: recompile a view when it or a layout/partial changes (a file check per request; off = load once, restart to update)
+#dmvc.view_cache_check_changes=true
 dmvc.max_entities_record_count=20
 dmvc.expose_server_signature=false
 dmvc.expose_x_powered_by=false

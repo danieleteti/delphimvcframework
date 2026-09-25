@@ -739,6 +739,15 @@ begin
       LoadTemplate('views\minimal_time.tpro'));
   end;
 
+  // TemplatePro forms library (import "lib/forms_bootstrap5.tpro" as f): a runtime
+  // TemplatePro file, copied verbatim (never rendered at wizard time).
+  if AConfig.B[TConfigKey.program_ssv_templatepro] or AConfig.B['program.minimal_api.web'] then
+  begin
+    TDirectory.CreateDirectory(TPath.Combine(LBinPath, 'templates' + PathDelim + 'lib'));
+    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'lib' + PathDelim + 'forms_bootstrap5.tpro',
+      LoadTemplate('views\forms_bootstrap5.tpro'));
+  end;
+
   // Create .gitignore file
   TFile.WriteAllText(
     TPath.Combine(AProjectFolder, '.gitignore'),

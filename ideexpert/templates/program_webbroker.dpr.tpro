@@ -107,6 +107,7 @@ begin
 {{if program_ssv_templatepro}}
       //use cache for server side views
       Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+      Config[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
 {{endif}}
       //Max Record Count for automatic Entities CRUD
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));

@@ -37,6 +37,9 @@ uses
 {{if program_ssv_templatepro}}
   TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
+{{if webmodule_middleware_activerecord}}
+  MVCFramework.View.Renderers.TemplatePro.ActiveRecord,
+{{endif}}
 {{endif}}
 {{if program_ssv_webstencils}}
   MVCFramework.View.Renderers.WebStencils,

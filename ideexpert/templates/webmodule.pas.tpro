@@ -50,6 +50,9 @@ uses
 {{if program_ssv_templatepro}}
   TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
+{{if webmodule_middleware_activerecord}}
+  MVCFramework.View.Renderers.TemplatePro.ActiveRecord,
+{{endif}}
 {{endif}}
 {{if program_ssv_webstencils}}
   MVCFramework.View.Renderers.WebStencils,
@@ -126,6 +129,7 @@ begin
 {{if program_ssv_templatepro}}
       // ViewCache: false for development, true for production
       Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+      Config[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
 {{endif}}
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
       Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
