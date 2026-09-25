@@ -428,8 +428,9 @@ function StaticFiles(const AOptions: TMVCStaticFilesOptions): TMVCHTTPFilter; ov
 function OpenAPI(AEngine: TMVCEngine; const AInfo: TMVCOpenAPIInfo;
   const AURL: string = '/openapi.json'): TMVCHTTPFilter;
 
-// Swagger (OpenAPI 2) HTTPFilter — exposes the classic Swagger JSON document
-// at AURL. Full parity wrapper around TMVCSwaggerMiddleware: auto-discovers
+// Swagger HTTPFilter — exposes the Swagger JSON document at AURL: Swagger 2.0
+// by default, OpenAPI 3 with ASpecVersion = ssvOpenAPI3 (same URL, same
+// attributes). Full parity wrapper around TMVCSwaggerMiddleware: auto-discovers
 // JWT middleware, supports MVCSwagAuthentication / MVCSwagJSONSchemaField /
 // MVCSWAGDefaultModel / MVCRequiresAuthentication / TMVCActiveRecordController
 // CRUD doc generation — features the newer OpenAPI 3 helper does not yet cover.
@@ -443,7 +444,8 @@ function Swagger(AEngine: TMVCEngine;
   const ABasePath: string = '';
   const APathFilter: string = '';
   const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS];
-  const AEnableBearerAuthentication: Boolean = False): TMVCHTTPFilter;
+  const AEnableBearerAuthentication: Boolean = False;
+  const ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2): TMVCHTTPFilter;
 
 implementation
 
@@ -2310,13 +2312,14 @@ function Swagger(AEngine: TMVCEngine;
   const ABasePath: string;
   const APathFilter: string;
   const ATransferProtocolSchemes: TMVCTransferProtocolSchemes;
-  const AEnableBearerAuthentication: Boolean): TMVCHTTPFilter;
+  const AEnableBearerAuthentication: Boolean;
+  const ASpecVersion: TMVCSwaggerSpecVersion): TMVCHTTPFilter;
 var
   lMW: IMVCMiddleware;
 begin
   lMW := TMVCSwaggerMiddleware.Create(AEngine, AInfo, AURL, AJWTDescription,
     AEnableBasicAuthentication, AHost, ABasePath, APathFilter,
-    ATransferProtocolSchemes, AEnableBearerAuthentication);
+    ATransferProtocolSchemes, AEnableBearerAuthentication, ASpecVersion);
   Result :=
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)

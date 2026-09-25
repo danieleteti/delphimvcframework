@@ -9,15 +9,28 @@ uses
   MVCFramework.Nullables,
   MVCFramework.Serializer.Commons,
   System.Generics.Collections,
+{{if program_openapi_swagger}}
+  MVCFramework.Swagger.Commons,
+{{endif}}
   {{:entity_unit_name}}{{if program_service_container_generate}},
   {{:program_service_container_unit_name}}{{endif}};
 
 type
   [MVCPath('/api/people')]
+{{if program_openapi_swagger}}
+  // MVCSwag* attributes describe the actions in the OpenAPI document (/openapi.json)
+  [MVCSWAGDefaultModel(TPerson, 'Person', 'People')]
+  [MVCSWAGDefaultSummaryTags('People')]
+{{endif}}
   TPeopleController = class(TMVCController)
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
+{{if program_openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'List all people', 'getPeople')]
+    // OkResponse(List) is rendered as {"data": [...]}
+    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/definitions/Person"}}}}')]
+{{endif}}
 {{if program_service_container_generate}}
     function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;
 {{else}}
@@ -26,18 +39,37 @@ type
 
     [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
     [MVCHTTPMethod([httpGET])]
+{{if program_openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Get a person', 'getPerson')]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(404, 'Not found')]
+{{endif}}
     function GetPerson(ID: Integer): TPerson;
 
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
+{{if program_openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Create a person', 'createPerson')]
+    [MVCSwagParam(plBody, 'Person', 'The person to create', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(201, 'Created')]
+{{endif}}
     function CreatePerson([MVCFromBody] Person: TPerson): IMVCResponse;
 
     [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
     [MVCHTTPMethod([httpPUT])]
+{{if program_openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Update a person', 'updatePerson')]
+    [MVCSwagParam(plBody, 'Person', 'The new data of the person', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(204, 'Updated')]
+{{endif}}
     function UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
 
     [MVCPath('/($ID{{if program_sqids}}:sqids{{endif}})')]
     [MVCHTTPMethod([httpDELETE])]
+{{if program_openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Delete a person', 'deletePerson')]
+    [MVCSwagResponses(204, 'Deleted')]
+{{endif}}
     function DeletePerson(ID: Integer): IMVCResponse;
   end;
 

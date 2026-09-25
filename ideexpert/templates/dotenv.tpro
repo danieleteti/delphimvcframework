@@ -40,6 +40,15 @@ dmvc.max_request_size=524288
 dmvc.profiler.enabled={{:controller_actions_profiling_generate}}
 dmvc.profiler.warning_threshold=1000
 dmvc.profiler.logs_only_over_threshold=true
+{{if program_openapi}}
+
+# ============================================================================
+# API documentation
+# ============================================================================
+# true: publishes the OpenAPI 3 document (/openapi.json) and Swagger UI (/swagger).
+# Set it to false where the API must not describe itself (e.g. in production).
+dmvc.openapi.enabled=true
+{{endif}}
 {{if program_server_protocol|eq,"https"}}
 
 # ============================================================================

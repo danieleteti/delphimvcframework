@@ -44,6 +44,7 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 var
   LSwagInfo: TMVCSwaggerInfo;
   LClaimsSetup: TJWTClaimsSetup;
+  LSpecVersion: TMVCSwaggerSpecVersion;
 begin
   FEngine := TMVCEngine.Create(Self,
     procedure(AConfig: TMVCConfig)
@@ -62,10 +63,18 @@ begin
   LSwagInfo.ContactUrl := 'https://github.com/danieleteti';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
+  { Run with -openapi3 (or /openapi3) to publish the same API as an OpenAPI 3 document at the same URL.
+    Swagger 2.0 (ssvSwagger2) is the default. }
+  if FindCmdLineSwitch('openapi3') then
+    LSpecVersion := ssvOpenAPI3
+  else
+    LSpecVersion := ssvSwagger2;
   FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json',
     'Method for authentication using JSON Web Token (JWT)',
-    False
-//    ,'api.dmvcframework.com', '/'  { Define a custom host and BasePath when your API uses a dns for external access }
+    False,
+    '', '', { Define a custom host and BasePath when your API uses a dns for external access, e.g. 'api.dmvcframework.com', '/' }
+    '', [psHTTP, psHTTPS], False,
+    LSpecVersion
     ));
 
   LClaimsSetup := procedure(const JWT: TJWT)
