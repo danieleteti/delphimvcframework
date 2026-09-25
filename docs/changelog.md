@@ -316,6 +316,20 @@ certificate you cannot fix.
   instead of `{braces}`. See **BREAKING CHANGES** above for migration.
 - `TDate` / `TDateTime` / `TTime` zero no longer serialises as JSON
   `null`. See **BREAKING CHANGES** above for migration.
+- **Swagger: date fields use the standard formats.** In the generated
+  `swagger.json`, `TDate` fields are described as `"format": "date"` and
+  `TDateTime` fields as `"format": "date-time"` and `TTime` fields as
+  `"format": "time"`, instead of the literal patterns `"yyyy-MM-dd"`,
+  `"yyyy-MM-ddTHH:mm:ss"` and `"HH:mm:ss"` (Nullable types included). These
+  are the formats
+  defined by the specification, so Swagger UI and client generators now
+  recognise them: a client regenerated from the document gets date types
+  where it used to get plain strings. The basic security scheme now also
+  carries its `description`. (SwagDoc update, PR #916 by Marcelo Jaloto.)
+- **Swagger documentation attributes renamed to `MVCSwag*`.** The
+  field-documentation attributes live in `MVCFramework.Swagger.Commons` as
+  `MVCSwagFormat`, `MVCSwagMaxLength`, `MVCSwagMinimum`, `MVCSwagMaximum`
+  and `MVCSwagPattern`, alongside the other `MVCSwag*` attributes.
 
 ### Security
 
@@ -568,9 +582,23 @@ the same socket.
   `IMVCServer` (`MVCFramework.Server.Factory`) instead, which also gives you
   the HTTP.sys / WebBroker backends and built-in HTTPS. Existing code keeps
   compiling with a deprecation warning until you migrate.
+- **`MVCFormat`, `MVCMinimum`, `MVCMaximum`** (the Swagger documentation
+  attributes declared in `MVCFramework`) are deprecated aliases of
+  `MVCSwagFormat`, `MVCSwagMinimum` and `MVCSwagMaximum`
+  (`MVCFramework.Swagger.Commons`) and **will be removed in 4.0**. Existing
+  code keeps compiling with a deprecation warning.
 
 ### Fixed
 
+- **`[MVCMaxLength(n)]` and `[MVCPattern(...)]` now always validate.** In a
+  unit that used `MVCFramework`, Delphi resolved them to the Swagger
+  documentation attributes `MVCFramework.MVCMaxLengthAttribute` /
+  `MVCPatternAttribute` instead of the validators in
+  `MVCFramework.Validators`, silently and whatever the order of the uses
+  clause, so the validation never ran. Those two documentation attributes
+  have been removed (use `MVCSwagMaxLength` / `MVCSwagPattern` for Swagger
+  documentation): the names now always mean the validators. Models that
+  declared them in such a unit start validating after the upgrade.
 - **SQL Server: Insert and Update failed on a table with enabled triggers**
   whenever something had to be read back (the generated key, a `foRefresh`
   field): SQL Server rejects `OUTPUT inserted.col` without `INTO` there.

@@ -134,6 +134,7 @@ begin
     vDelphiUnit.AddInterfaceUnit('REST.Types');
     vDelphiUnit.AddInterfaceUnit('MVCFramework');
     vDelphiUnit.AddInterfaceUnit('MVCFramework.Commons');
+    vDelphiUnit.AddInterfaceUnit('MVCFramework.Swagger.Commons');
     vDelphiUnit.AddImplementationUnit('Swag.Doc');
 
     ConvertSwaggerDefinitionsToTypeDefinitions(vDelphiUnit);
@@ -293,10 +294,10 @@ begin
     begin
       if (vFieldInfo.FieldType.ToLower = 'integer') and (vValue.ToLower = 'int64') then
         vFieldInfo.FieldType := 'Int64';
-      vFieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(vValue) + ')]');
+      vFieldInfo.AddAttribute('[MVCSwagFormat(' + QuotedStr(vValue) + ')]');
     end;
     if vTypeObj.TryGetValue('maxLength', vValue) then
-      vFieldInfo.AddAttribute('[MVCMaxLength(' + vValue + ')]');
+      vFieldInfo.AddAttribute('[MVCSwagMaxLength(' + vValue + ')]');
     vTypeInfo.Fields.Add(vFieldInfo);
   end;
   pDelphiUnit.AddType(vTypeInfo);
@@ -348,14 +349,14 @@ begin
       begin
         if (vFieldInfo.FieldType.ToLower = 'integer') and (vValue.ToLower = 'int64') then
           vFieldInfo.FieldType := 'Int64';
-        vFieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(vValue) + ')]');
+        vFieldInfo.AddAttribute('[MVCSwagFormat(' + QuotedStr(vValue) + ')]');
       end;
       if vTypeObj.TryGetValue('maxLength', vValue) then
-        vFieldInfo.AddAttribute('[MVCMaxLength(' + vValue + ')]');
+        vFieldInfo.AddAttribute('[MVCSwagMaxLength(' + vValue + ')]');
       if vTypeObj.TryGetValue('minimum', vValue) then
-        vFieldInfo.AddAttribute('[MVCMinimum(' + vValue + ')]');
+        vFieldInfo.AddAttribute('[MVCSwagMinimum(' + vValue + ')]');
       if vTypeObj.TryGetValue('maximum', vValue) then
-        vFieldInfo.AddAttribute('[MVCMaximum(' + vValue + ')]');
+        vFieldInfo.AddAttribute('[MVCSwagMaximum(' + vValue + ')]');
       vTypeInfo.Fields.Add(vFieldInfo);
     end;
     pDelphiUnit.AddType(vTypeInfo);

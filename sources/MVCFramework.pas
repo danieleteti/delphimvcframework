@@ -170,41 +170,11 @@ type
     { public declarations }
   end;
 
-  MVCFormatAttribute = class(MVCStringAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
+  MVCFormatAttribute = MVCSwagFormatAttribute deprecated 'Use MVCSwagFormat (swagger docs). Will be removed in 4.0';
 
-  MVCMaxLengthAttribute = class(MVCIntegerAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
+  MVCMinimumAttribute = MVCSwagMinimumAttribute deprecated 'Use MVCSwagMinimum (swagger docs). Will be removed in 4.0';
 
-  MVCMinimumAttribute = class(MVCIntegerAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
-
-  MVCMaximumAttribute = class(MVCIntegerAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
+  MVCMaximumAttribute = MVCSwagMaximumAttribute deprecated 'Use MVCSwagMaximum (swagger docs). Will be removed in 4.0';
 
   MVCInheritableAttribute = class(MVCBaseAttribute)
   private
@@ -287,10 +257,6 @@ type
       AType: TSwagTypeParameter; APattern: string = ''; AFormat: string = ''); overload;
     constructor Create(name: string; Location: TSwagRequestParameterInLocation; AType: TClass;
       APattern: string = ''; AFormat: string = ''); overload;
-  end;
-
-  MVCPatternAttribute = class(MVCStringAttribute)
-
   end;
 
   MVCStringEnumAttribute = class(MVCBaseAttribute)

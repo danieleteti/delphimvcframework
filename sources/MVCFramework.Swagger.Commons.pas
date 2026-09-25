@@ -259,6 +259,61 @@ type
   MVCSwagIgnorePathAttribute = class(TCustomAttribute);
 
   /// <summary>
+  /// Swagger doc: "format" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagFormatAttribute = class(TCustomAttribute)
+  private
+    fValue: string;
+  public
+    constructor Create(const aValue: string);
+    property Value: string read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "maxLength" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMaxLengthAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "minimum" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMinimumAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "maximum" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMaximumAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "pattern" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagPatternAttribute = class(TCustomAttribute)
+  private
+    fValue: string;
+  public
+    constructor Create(const aValue: string);
+    property Value: string read fValue;
+  end;
+
+  /// <summary>
   /// SwaggerDoc Methods
   /// </summary>
   TMVCSwagger = class sealed
@@ -1926,6 +1981,46 @@ constructor MVCSWAGFieldSerializationTypeAttribute.Create(const aFieldSerializat
 begin
   inherited Create;
   fFieldSerializationType := aFieldSerializationType;
+end;
+
+{ MVCSwagFormatAttribute }
+
+constructor MVCSwagFormatAttribute.Create(const aValue: string);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMaxLengthAttribute }
+
+constructor MVCSwagMaxLengthAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMinimumAttribute }
+
+constructor MVCSwagMinimumAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMaximumAttribute }
+
+constructor MVCSwagMaximumAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagPatternAttribute }
+
+constructor MVCSwagPatternAttribute.Create(const aValue: string);
+begin
+  inherited Create;
+  fValue := aValue;
 end;
 
 end.
