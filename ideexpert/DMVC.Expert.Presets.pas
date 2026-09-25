@@ -138,6 +138,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := True;       // REST controllers: Swagger middleware, OpenAPI 3
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None (stateless - JWT is the session)
 
@@ -183,6 +184,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := True;       // lambda routes: native OpenAPI() filter
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None
 
@@ -226,6 +228,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := False;      // HTML views, nothing to document
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
@@ -270,6 +273,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := False;      // web routes are hidden from OpenAPI: the document would be empty
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None — session is the MemorySession filter in RoutesU
 
@@ -314,6 +318,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := False;      // JSON-RPC has its own /describe
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None (stateless)
 
@@ -357,6 +362,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := False;
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 1; // Memory
 
@@ -400,6 +406,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := True;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := True;
+  AForm.chkOpenAPI.Checked := True;
   AForm.chkActiveRecord.Checked := True;
   AForm.cbSessionType.ItemIndex := 2; // File-based (no external dependencies, survives server restart)
 
@@ -431,6 +438,7 @@ begin
                                        // user picks API style (controller vs minimal)
       AForm.chkMinimalAPI.Checked := False;
       AForm.cbServerEngine.ItemIndex := 1; // Default Indy Direct for Custom
+      AForm.chkOpenAPI.Checked := True;
     end;
   end;
 end;

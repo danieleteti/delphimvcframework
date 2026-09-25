@@ -52,6 +52,12 @@ type
     stObject, stArray, stString, stChar, stGuid);
   TMVCSwagAuthenticationType = (atBasic, atJsonWebToken);
   TMVCSwagFieldSerializationType = (fsNotDefined, fsReadOnly, fsFillSingle, fsEditable);
+  /// <summary>
+  /// Specification written by TMVCSwaggerMiddleware and by the Swagger() HTTP filter.
+  /// ssvSwagger2 (the default) writes a Swagger 2.0 document; ssvOpenAPI3 writes an
+  /// OpenAPI 3 document (the latest 3.x release supported by SwagDoc) from the same attributes.
+  /// </summary>
+  TMVCSwaggerSpecVersion = (ssvSwagger2, ssvOpenAPI3);
 
 
   /// <summary>
@@ -257,6 +263,61 @@ type
   /// Use this attribute in the class or method to ignore the path in creating swagger documentation.
   /// </summary>
   MVCSwagIgnorePathAttribute = class(TCustomAttribute);
+
+  /// <summary>
+  /// Swagger doc: "format" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagFormatAttribute = class(TCustomAttribute)
+  private
+    fValue: string;
+  public
+    constructor Create(const aValue: string);
+    property Value: string read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "maxLength" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMaxLengthAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "minimum" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMinimumAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "maximum" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagMaximumAttribute = class(TCustomAttribute)
+  private
+    fValue: Int64;
+  public
+    constructor Create(const aValue: Int64);
+    property Value: Int64 read fValue;
+  end;
+
+  /// <summary>
+  /// Swagger doc: "pattern" of a JSON schema field. Documentation only, no validation.
+  /// </summary>
+  MVCSwagPatternAttribute = class(TCustomAttribute)
+  private
+    fValue: string;
+  public
+    constructor Create(const aValue: string);
+    property Value: string read fValue;
+  end;
 
   /// <summary>
   /// SwaggerDoc Methods
@@ -1668,7 +1729,8 @@ end;
 
 class function TMVCSwagger.MVCPathToSwagPath(const aResourcePath: string): string;
 begin
-  Result := TRegEx.Replace(aResourcePath, '(\([($])([\w_]+)([)])', '{\2}', [roIgnoreCase, roMultiLine]);
+  // "($name)" and "($name:converter)" (the router's form, e.g. ":sqids") both become "{name}"
+  Result := TRegEx.Replace(aResourcePath, '(\([($])([\w_]+)(:[\w*]+)?([)])', '{\2}', [roIgnoreCase, roMultiLine]);
 end;
 
 class function TMVCSwagger.CheckNeedFieldSerialization(const aFieldSerializationType: TMVCSwagFieldSerializationType; const aMVCHTTPMethod: TMVCHTTPMethodType;
@@ -1926,6 +1988,46 @@ constructor MVCSWAGFieldSerializationTypeAttribute.Create(const aFieldSerializat
 begin
   inherited Create;
   fFieldSerializationType := aFieldSerializationType;
+end;
+
+{ MVCSwagFormatAttribute }
+
+constructor MVCSwagFormatAttribute.Create(const aValue: string);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMaxLengthAttribute }
+
+constructor MVCSwagMaxLengthAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMinimumAttribute }
+
+constructor MVCSwagMinimumAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagMaximumAttribute }
+
+constructor MVCSwagMaximumAttribute.Create(const aValue: Int64);
+begin
+  inherited Create;
+  fValue := aValue;
+end;
+
+{ MVCSwagPatternAttribute }
+
+constructor MVCSwagPatternAttribute.Create(const aValue: string);
+begin
+  inherited Create;
+  fValue := aValue;
 end;
 
 end.

@@ -163,6 +163,11 @@ type
   public const
     ViewPath = 'view_path';
     ViewCache = 'view_cache';
+    /// <summary>
+    /// With ViewCache = 'true': 'true' checks on every request whether a view (or its layouts, partials,
+    /// imports) changed and recompiles it; 'false' (default) loads each view once per process.
+    /// </summary>
+    ViewCacheCheckChanges = 'view_cache_check_changes';
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';

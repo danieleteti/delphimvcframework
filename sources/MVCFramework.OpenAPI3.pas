@@ -188,7 +188,7 @@ type
     fEngine: TMVCEngine;
     fRttiCtx: TRttiContext;
     function ConvertPathPattern(const APattern: string;
-      out APathParams: TArray<string>): string;
+      out APathParams: TArray<string>; out AConverters: TArray<string>): string;
     function VerbToString(AVerb: TMVCHTTPMethodType): string;
     function ReadClassPath(AClass: TClass; const AURLSegment: string): string;
     procedure EmitControllerOperation(const APathsObject: TJsonObject;
@@ -233,6 +233,7 @@ uses
   System.StrUtils,
   System.SyncObjs,
   MVCFramework.Router,
+  MVCFramework.Serializer.Commons,
   MVCFramework.Swagger.Commons;
 
 function IsNullableTypeInfo_External(ATypeInfo: PTypeInfo): Boolean;
@@ -417,20 +418,18 @@ var
 begin
   if NullableInnerKind(string(ATypeInfo^.Name), lPrim, lFormat) then
   begin
-    // OpenAPI 3.1 idiomatic nullable: type = [primitive, "null"]
-    // We emit it as a plain "type" with a `nullable: true` companion so the
-    // schema also reads correctly under tools still on 3.0 — this is
-    // tolerated by 3.1.
-    ASchema.S['type'] := lPrim;
+    // OpenAPI 3.1 (JSON Schema 2020-12) nullable: type = [primitive, "null"].
+    // The 3.0 keyword "nullable" does not exist in 3.1.
+    ASchema.A['type'].Add(lPrim);
+    ASchema.A['type'].Add('null');
     if lFormat <> '' then
       ASchema.S['format'] := lFormat;
-    ASchema.B['nullable'] := True;
   end
   else
   begin
     // Unknown Nullable* — emit a permissive schema.
-    ASchema.S['type'] := 'string';
-    ASchema.B['nullable'] := True;
+    ASchema.A['type'].Add('string');
+    ASchema.A['type'].Add('null');
   end;
 end;
 
@@ -486,8 +485,10 @@ begin
       // for non-RTTI-restricted classes. Skip private/protected.
       if lProp.Visibility <> mvPublic then Continue;
     end;
+    if TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(lProp) then Continue;
     lFieldSchema := NewSchemaForRttiType(lProp.PropertyType);
-    lProps.O[lProp.Name] := lFieldSchema;  // takes ownership of the field schema
+    // the key the serializer writes: MVCNameAs, MVCNameCase, MVCNameCaseDefault
+    lProps.O[TMVCSerializerHelper.GetKeyName(lProp, lRttiType)] := lFieldSchema;  // takes ownership
   end;
 end;
 
@@ -498,7 +499,6 @@ var
   lRttiType: TRttiType;
   lField: TRttiField;
   lFieldSchema: TJsonObject;
-  lFieldName: string;
 begin
   if fComponentsSchemas.Contains(AName) then Exit;
 
@@ -510,14 +510,10 @@ begin
   lRttiType := fRttiCtx.GetType(ATypeInfo);
   for lField in lRttiType.GetFields do
   begin
-    lFieldName := lField.Name;
-    // Strip Hungarian "f" prefix on common private-field convention so the
-    // schema field names match what users see in JSON serialization.
-    if (Length(lFieldName) > 1) and (lFieldName[1] = 'f')
-       and CharInSet(lFieldName[2], ['A'..'Z']) then
-      lFieldName := Copy(lFieldName, 2, MaxInt);
+    if TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(lField) then Continue;
     lFieldSchema := NewSchemaForRttiType(lField.FieldType);
-    lProps.O[lFieldName] := lFieldSchema;
+    // the key the serializer writes for a record field
+    lProps.O[TMVCSerializerHelper.GetKeyName(lField, lRttiType)] := lFieldSchema;
   end;
 end;
 
@@ -967,7 +963,12 @@ begin
       lResponse.S['description'] := 'OK';
       lContent := lResponse.O['content'];
       lMediaType := lContent.O['application/json'];
-      lMediaType.O['schema'] := ASchemaBuilder.NewSchemaFor(lProducesType.AsType<PTypeInfo>);
+      // A Minimal API handler returns IMVCResponse: Ok(Body) is rendered as
+      // {"data": Body}, so Produces<T> describes the value under "data".
+      lSchema := TJsonObject.Create;
+      lMediaType.O['schema'] := lSchema;
+      lSchema.S['type'] := 'object';
+      lSchema.O['properties'].O['data'] := ASchemaBuilder.NewSchemaFor(lProducesType.AsType<PTypeInfo>);
     end
     else
     begin
@@ -1036,14 +1037,16 @@ begin
 end;
 
 function TMVCControllerOpenAPISource.ConvertPathPattern(
-  const APattern: string; out APathParams: TArray<string>): string;
+  const APattern: string; out APathParams: TArray<string>;
+  out AConverters: TArray<string>): string;
 var
   lSegments: TArray<string>;
   lOut: TStringBuilder;
   I: Integer;
-  lSeg, lInner: string;
+  lSeg, lInner, lConverter: string;
 begin
   APathParams := nil;
+  AConverters := nil;
   if APattern = '' then Exit('/');
   lOut := TStringBuilder.Create;
   try
@@ -1055,11 +1058,16 @@ begin
       if lSeg.StartsWith('($') and lSeg.EndsWith(')') then
       begin
         lInner := Copy(lSeg, 3, Length(lSeg) - 3);
-        // Strip optional constraint suffix (`:int`, `:guid`, ...)
+        // Split the converter suffix (`:sqids`) off, keeping it aside
+        lConverter := '';
         if Pos(':', lInner) > 0 then
+        begin
+          lConverter := Copy(lInner, Pos(':', lInner) + 1, MaxInt);
           lInner := Copy(lInner, 1, Pos(':', lInner) - 1);
+        end;
         lOut.Append('{').Append(lInner).Append('}');
         APathParams := APathParams + [lInner];
+        AConverters := AConverters + [lConverter];
       end
       else
         lOut.Append(lSeg);
@@ -1099,6 +1107,8 @@ procedure TMVCControllerOpenAPISource.EmitControllerOperation(
 var
   lFullPattern, lOpenAPIPath, lVerbStr: string;
   lPathParams: TArray<string>;
+  lPathConverters: TArray<string>;
+  lPathIdx: Integer;
   lPathObj, lOperation, lParam, lRequestBody, lContent, lMediaType, lResponse, lResponses: TJsonObject;
   lParamsArr: TJsonArray;
   lParameters: TArray<TRttiParameter>;
@@ -1139,7 +1149,7 @@ begin
     lTrimmedFullPattern := Copy(lTrimmedFullPattern, 1,
       Length(lTrimmedFullPattern) - 1);
 
-  lOpenAPIPath := ConvertPathPattern(lTrimmedFullPattern, lPathParams);
+  lOpenAPIPath := ConvertPathPattern(lTrimmedFullPattern, lPathParams, lPathConverters);
   lVerbStr := VerbToString(AVerb);
   if lVerbStr = '' then Exit;
 
@@ -1220,6 +1230,7 @@ begin
     lParamName := lParameter.Name;
     if lParamNameOverride <> '' then
       lParamName := lParamNameOverride;
+    lPathIdx := -1;
 
     if lFromQS then
       lParamLocation := 'query'
@@ -1231,13 +1242,14 @@ begin
     begin
       // No explicit location → infer: if the name matches a path capture,
       // it's a path param; otherwise it's a query param.
+      // The router matches names ignoring case: "id" binds "($ID)".
       lParamLocation := 'query';
-      if (Length(lPathParams) > 0)
-         and (System.StrUtils.IndexStr(lParameter.Name, lPathParams) >= 0) then
+      lPathIdx := System.StrUtils.IndexText(lParameter.Name, lPathParams);
+      if lPathIdx >= 0 then
       begin
         lParamLocation := 'path';
-        lParamName := lParameter.Name;
-        lConsumedPathParams := lConsumedPathParams + [lParameter.Name];
+        lParamName := lPathParams[lPathIdx];
+        lConsumedPathParams := lConsumedPathParams + [lParamName];
       end;
     end;
 
@@ -1245,7 +1257,14 @@ begin
       lParamTypeInfo := lParameter.ParamType.Handle
     else
       lParamTypeInfo := nil;
-    lSchema := ASchemaBuilder.NewSchemaFor(lParamTypeInfo);
+    if (lPathIdx >= 0) and SameText(lPathConverters[lPathIdx], 'sqids') then
+    begin
+      // a sqid travels as a string, whatever the action parameter type is
+      lSchema := TJsonObject.Create;
+      lSchema.S['type'] := 'string';
+    end
+    else
+      lSchema := ASchemaBuilder.NewSchemaFor(lParamTypeInfo);
 
     lParam := lParamsArr.AddObject;
     lParam.S['name'] := lParamName;

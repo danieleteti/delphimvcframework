@@ -212,6 +212,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Container.pas"/>
         <DCCReference Include="..\..\sources\sqids.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.View.Renderers.TemplatePro.ActiveRecord.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Session.Database.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SSE.pas"/>

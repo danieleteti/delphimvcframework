@@ -109,6 +109,7 @@ begin
 {{if program_ssv_templatepro}}
       //use cache for server side views
       Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+      Config[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
 {{endif}}
       //Max Record Count for automatic Entities CRUD
       Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
@@ -131,6 +132,10 @@ begin
 {{endif}}
     LogI('Starting on ' + SCHEME + '://localhost:' + APort.ToString +
       ' (Windows HTTP.sys, kernel-mode IOCP). Press Ctrl+C to shut down.');
+{{if program_openapi}}
+    if dotEnv.Env('dmvc.openapi.enabled', False) then
+      LogI('API documentation (Swagger UI): ' + SCHEME + '://localhost:' + APort.ToString + '/swagger/');
+{{endif}}
 {{if program_server_protocol|eq,"https"}}
     LogI('NOTE: HTTPS requires both URL ACL and SSL cert bound via netsh:');
     LogI('  netsh http add urlacl url=https://+:' + APort.ToString + '/ user=Everyone');

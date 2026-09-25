@@ -84,9 +84,84 @@ type
     /// If Handled is False, the template falls back to loading from the file system.
     /// </summary>
     property OnGetDynamicallyIncludedTemplate: TTProTemplateResolver read GetOnGetDynamicallyIncludedTemplate write SetOnGetDynamicallyIncludedTemplate;
+    function GetIncludeRootPath: string;
+    procedure SetIncludeRootPath(const Value: string);
+    /// <summary>
+    /// Optional (empty by default). When set, dynamic includes loaded from the file system
+    /// must resolve to a file inside this folder, otherwise rendering fails.
+    /// </summary>
+    property IncludeRootPath: string read GetIncludeRootPath write SetIncludeRootPath;
+    /// <summary>
+    /// True when a dependency recorded at compile time (static include, extends, import - also nested) changed:
+    /// a file missing or with a different time or size, or a resolver-provided template whose version
+    /// (see TTProConfiguration.TemplateChanged) changed. Files are checked by time and size only.
+    /// The main template source is NOT a dependency: checking it is up to the caller.
+    /// </summary>
+    function IsStale: Boolean;
+    /// <summary>
+    /// The compiled form (the same format written by SaveToFile), to be loaded with TTProCompiledTemplate.CreateFromBytes.
+    /// </summary>
+    function SaveToBytes: TBytes;
+  end;
+
+  /// <summary>
+  /// One field of {{for f in model.@@fields}}: for a dataset its TField answers the same names, for an object
+  /// the engine creates one of these per property (and frees it). OnGetFieldMetadata can change it.
+  /// </summary>
+  TTProFieldMetadata = class
+  private
+    fFieldName: string;
+    fDisplayLabel: string;
+    fDataType: string;
+    fRequired: Boolean;
+    fReadOnly: Boolean;
+    fSize: Integer;
+    fVisible: Boolean;
+    fHidden: Boolean;
+    fValue: TValue;
+  public
+    property FieldName: string read fFieldName; // the property name
+    property DisplayLabel: string read fDisplayLabel write fDisplayLabel; // default: "CustomerName" -> "Customer name"
+    property DataType: string read fDataType write fDataType; // as TField.DataType: 'ftString', 'ftInteger', 'ftDate'...
+    property Required: Boolean read fRequired write fRequired; // default False
+    property ReadOnly: Boolean read fReadOnly write fReadOnly; // default: True when the property has no setter
+    property Size: Integer read fSize write fSize; // default 0 (unknown)
+    property Visible: Boolean read fVisible write fVisible; // default True
+    property Hidden: Boolean read fHidden write fHidden; // default False
+    property Value: TValue read fValue; // the current value (Nullable unwrapped: null -> empty)
   end;
 
   TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
+
+  TTProOpenPush = record
+    Start: Integer; // position in the output buffer where the push content begins
+    StackName: string;
+    Once: Boolean;
+  end;
+
+  /// <summary>
+  /// {{push}}/{{stack}} state of one Render, shared with the dynamically included templates
+  /// </summary>
+  TTProStacks = class
+  private
+    fContents: TObjectDictionary<string, TList<string>>;
+    fPlaceholders: TList<TPair<Integer, string>>; // output position -> stack name
+    fOpenPushes: TStack<TTProOpenPush>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure WriteInto(const aBuff: TStringBuilder);
+  end;
+
+  /// <summary>
+  /// A running macro: where its slots come from
+  /// </summary>
+  TTProSlotFrame = record
+    CallTokenIndex: Int64; // the {{call}} (or {{>}}) running the macro
+    CallerVariables: TTProVariables; // the slots are rendered in the caller's scope
+    CallerLoops: TObjectList<TLoopStackItem>; // ...with the caller's loop variables
+    ParentFrame: Integer; // the frame of the caller, -1 outside macros
+  end;
 
   TTProCompiledTemplate = class(TInterfacedObject, ITProCompiledTemplate)
   private
@@ -104,6 +179,14 @@ type
     fAutoescapeStack: TStack<Boolean>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
     fOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
+    fIncludeRootPath: string;
+    // Objects created by custom filters and stored with {{set}}: freed when Render ends
+    fOwnedObjects: TObjectList<TObject>;
+    // Macro calls + dynamic includes currently open (a dynamically included template starts from its parent's)
+    fRenderNestingDepth: Integer;
+    fStacks: TTProStacks; // set only while rendering
+    fSlotFrames: TList<TTProSlotFrame>; // one per running macro call
+    fCurrentSlotFrame: Integer; // the frame {{slot}} reads from, -1 outside macros
     fExprEvaluator: TExprEvaluator;
     function IsNullableType(const Value: PValue): Boolean;
     procedure InitTemplateAnonFunctions; inline;
@@ -126,14 +209,30 @@ type
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
     function ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
-      const aVarNameWhereShoudBeApplied: String): TValue;
+      const aVarNameWhereShoudBeApplied: String; out aIsCustomFilter: Boolean): TValue;
+    procedure ExecuteFilterTrackingOwnership(const aFilterName: string; var aParameters: TArray<TFilterParameter>;
+      var aValue: TValue; const aContextName: string; var aValueOwned: Boolean);
+    procedure ReleaseOwnedObjects;
+    procedure ResetRenderState;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<TFilterParameter>); overload;
     procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<TFilterParameter>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
     function IsAnIterator(const VarName: String; out DataSourceName: String; out CurrentIterator: TLoopStackItem): Boolean;
     function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
-    function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
-    procedure ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string);
+    function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
+    function EvaluateExpressionToken(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
+    procedure ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string;
+      out ValueOwned: Boolean; out ValueIsHTML: Boolean);
+    function IsCustomFilter(const aFilterName: string): Boolean;
+    function ResolveFilterParameter(const aToken: TToken): TFilterParameter;
+    function GetParameterValue(const aParameter: TFilterParameter): TValue;
+    function ValueAsString(const aValue: TValue): string;
+    function OutputString(const aValue: TValue): string;
+    function MemberValue(const aModel: TValue; const aName: string): TValue;
+    function IsObjectForFields(const aExpression: string; out aObject: TValue): Boolean;
+    function ObjectFieldsMetadata(const aObject: TObject): TObjectList<TTProFieldMetadata>;
+    function ExecuteListAndTextFilter(const aFunctionName: string; var aParameters: TArray<TFilterParameter>;
+      const aValue: TValue; out aResult: TValue): Boolean;
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     procedure DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
     function GetFormatSettings: PTProFormatSettings;
@@ -142,8 +241,26 @@ type
     function ComparandOperator(const aComparandType: TComparandType; const aValue: TValue; const aParameters: TArray<TFilterParameter>;
       const aLocaleFormatSettings: TFormatSettings): TValue;
     procedure RegisterMacro(const TokenIndex: Int64);
-    function ExecuteMacro(const CallTokenIndex: Int64): String;
+    procedure ExecuteMacro(const CallTokenIndex: Int64; const aBuff: TStringBuilder);
+    procedure ExecuteMacroBody(const CallTokenIndex: Int64; const aBuff: TStringBuilder);
+    procedure RenderTo(const aBuff: TStringBuilder; const aStacks: TTProStacks);
+    procedure RenderRange(const aBuff: TStringBuilder; const aFrom, aTo: Int64);
+    function RenderSlot(const aSlotIdx: Int64; const aBuff: TStringBuilder): Int64;
+    function FindSlotContent(const aCallIdx: Int64; const aSlotName: string; out aFrom, aTo: Int64): Boolean;
+    function IsBlankRange(const aFrom, aTo: Int64): Boolean;
+    function SlotsInfo(const aCallIdx: Int64): TObject; // a TJDOJsonObject
+    function ResolveTokenName(const aToken: TToken): string;
+    procedure BeginPush(const aIdx: Int64; const aBuff: TStringBuilder);
+    procedure EndPush(const aBuff: TStringBuilder);
+    procedure AddStackPlaceholder(const aIdx: Int64; const aBuff: TStringBuilder);
+    function MacroArgumentValue(const aParameter: TFilterParameter): TValue;
+    function MacroArgument(const aTokenIdx: Int64; const aParameter: TFilterParameter; var aOwned: TArray<TObject>): TValue;
+    function LastFilterToken(const aIdx: Int64): Int64;
     procedure ProcessSetToken(var Idx: Int64);
+    function SelectSwitchBranch(const aSwitchIdx: Int64): Int64;
+    procedure InitRangeLoop(const aLoop: TLoopStackItem);
+    function TokenToFilterParameter(const aToken: TToken): TFilterParameter;
+    function ValueToFilterParameter(const aValue: TValue): TFilterParameter;
     function ExecuteStringFilter(const aFunctionName: string; var aParameters: TArray<TFilterParameter>;
       const aValue: TValue; const aExecuteAsFilterOnAValue: Boolean; out aResult: TValue): Boolean;
     function ExecuteDateFilter(const aFunctionName: string; var aParameters: TArray<TFilterParameter>;
@@ -158,14 +275,22 @@ type
     function GetLineEndingString: string;
     function GetOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
     procedure SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
+    function GetIncludeRootPath: string;
+    procedure SetIncludeRootPath(const Value: string);
   public
     function EvaluateExpression(const Expression: string): TValue;
     destructor Destroy; override;
     function Render: String;
+    function IsStale: Boolean;
     procedure ForEachToken(const TokenProc: TTokenWalkProc);
     procedure ClearData;
     procedure SaveToFile(const FileName: String);
+    function SaveToBytes: TBytes;
     class function CreateFromFile(const FileName: String): ITProCompiledTemplate;
+    /// <summary>
+    /// A new, independent instance from the output of SaveToBytes. No file system access.
+    /// </summary>
+    class function CreateFromBytes(const aBytes: TBytes): ITProCompiledTemplate;
     procedure SetData(const Name: String; Value: TValue); overload;
     procedure AddFilter(const FunctionName: string; const FunctionImpl: TTProTemplateFunction); overload;
     procedure AddFilter(const FunctionName: string; const AnonFunctionImpl: TTProTemplateAnonFunction); overload;
@@ -186,8 +311,17 @@ type
     fCurrentFileName: String;
     fLastMatchedLineBreakLength: Integer;
     fInheritanceChain: TList<string>;
+    fIncludeChain: TList<string>; // files being compiled, from the root down to the current one
     fStripNextLeadingWS: Boolean;  // For whitespace control: -}} strips leading WS from next content
     fOnGetIncludedTemplate: TTProTemplateResolver;
+    // {{import}} namespace -> library full path, shared with the files included in the same template
+    fNamespaces: TDictionary<string, string>;
+    fOwnedNamespaces: TDictionary<string, string>;
+    // ttDependency tokens of the template being compiled, shared with the compilers of its includes, layouts and libraries
+    fDependencies: TList<TToken>;
+    fOwnedDependencies: TList<TToken>;
+    procedure AddDependency(const aName, aKind: string; const aRef1, aRef2: Int64);
+    procedure ImportLibrary(const aLibraryName, aAlias: string; const aTokens: TList<TToken>; const aFileNameRefPath: string);
     function MatchLineBreak: Boolean;
     function MatchStartTag: Boolean;
     function MatchEndTag: Boolean;
@@ -195,12 +329,16 @@ type
     function MatchFilterParamValue(var aParamValue: TFilterParameter): Boolean;
     function MatchSymbol(const aSymbol: string): Boolean;
     function MatchExpression(out aExpression: string): Boolean;
+    function MatchRange(out aRangeExpression: string): Boolean;
+    function MatchNameArgument(out aName, aKind: string): Boolean;
     function MatchSpace: Boolean;
     function MatchString(out aStringValue: string): Boolean;
     procedure InternalMatchFilter(lIdentifier: String; var lStartVerbatim: Int64; const CurrToken: TTokenType; aTokens: TList<TToken>;
       const lRef2: Integer);
-    function GetFunctionParameters: TArray<TFilterParameter>;
-    function GetMacroParameters: TArray<TFilterParameter>;
+    function GetFunctionParameters(const aStopAtNamedArg: Boolean = False): TArray<TFilterParameter>;
+    function GetMacroParameters(out aNames: TArray<string>; out aFilters: TArray<TArray<TFilterInfo>>): TArray<TFilterParameter>;
+    procedure AddMacroParameterTokens(aTokens: TList<TToken>; const aMacroTokenIdx: Integer; const aParamTokens: TArray<TToken>;
+      const aFilters: TArray<TArray<TFilterInfo>>);
     function CreateFilterParameterToken(const FilterParameter: PFilterParameter): TToken;
     procedure Error(const aMessage: string);
     function Step: Char;
@@ -211,7 +349,7 @@ type
     procedure ProcessJumps(const aTokens: TList<TToken>);
     procedure Compile(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String); overload;
     constructor Create(const aEncoding: TEncoding; const aOptions: TTProCompilerOptions = []); overload;
-    procedure MatchFilters(lVarName: string; var lFilters: TArray<TFilterInfo>);
+    procedure MatchFilters(lVarName: string; var lFilters: TArray<TFilterInfo>; const aStopAtNamedArg: Boolean = False);
     procedure AddFilterTokens(aTokens: TList<TToken>; const aFilters: TArray<TFilterInfo>);
     function LoadTemplateSource(const aTemplateName: string; const aFullPath: string): string;
   public
@@ -246,13 +384,39 @@ type
     function ItemIsObject(const AIndex: Integer; out aValue: TValue): Boolean;
   end;
 
+  TTProFieldMetadataEvent = reference to procedure(const aObject: TObject; const aPropertyName: string;
+    const aMetadata: TTProFieldMetadata);
+
   TTProConfiguration = class sealed
   private
     class var fOnContextConfiguration: TTProCompiledTemplateEvent;
+    class var fOnGetFieldMetadata: TTProFieldMetadataEvent;
+    class var fOnGetTemplate: TTProTemplateResolver;
+    class var fTemplateVersions: TDictionary<string, Int64>; // guarded by TMonitor
+    class constructor Create;
+    class destructor Destroy;
   protected
     class procedure RegisterHandlers(const TemplateProCompiledTemplate: ITProCompiledTemplate);
   public
     class property OnContextConfiguration: TTProCompiledTemplateEvent read fOnContextConfiguration write fOnContextConfiguration;
+    /// <summary>
+    /// Optional global resolver for static includes, extends, imports (compile time) and dynamic includes (render time),
+    /// usable where the compiler is not accessible. It is asked after the instance resolver
+    /// (TTProCompiler.OnGetIncludedTemplate / OnGetDynamicallyIncludedTemplate) and before the file system.
+    /// Set it at startup: it is not synchronized.
+    /// </summary>
+    class property OnGetTemplate: TTProTemplateResolver read fOnGetTemplate write fOnGetTemplate;
+    /// <summary>
+    /// Called once per property when {{for f in obj.@@fields}} iterates an object (not a dataset): it can change
+    /// DisplayLabel, DataType, Required, ReadOnly, Size, Visible, Hidden. Set it at startup: it is not synchronized.
+    /// </summary>
+    class property OnGetFieldMetadata: TTProFieldMetadataEvent read fOnGetFieldMetadata write fOnGetFieldMetadata;
+    /// <summary>
+    /// Call it when a template served by a resolver changed (e.g. in a database): the compiled templates
+    /// depending on that name become stale (ITProCompiledTemplate.IsStale). Names are case-insensitive. Thread-safe.
+    /// </summary>
+    class procedure TemplateChanged(const Name: string);
+    class function GetTemplateVersion(const Name: string): Int64;
   end;
 
 function HTMLEncode(s: string): string;
@@ -263,10 +427,11 @@ function GetTValueFromPath(const aObject: TObject; FullPropertyPath: String): TV
 implementation
 
 uses
-  System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character,
+  System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character, System.RegularExpressions,
   JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD, Data.SqlTimSt;
 
 const
+  MAX_RENDER_NESTING = 64; // recursion through macros and dynamic includes, e.g. a tree 64 levels deep
   Sign = ['-', '+'];
   Numbers = ['0' .. '9'];
   SignAndNumbers = Sign + Numbers;
@@ -275,6 +440,8 @@ const
   ValueAllowedChars = IdenfierAllowedChars + [' ', '-', '+', '*', '.', '@', '/', '\']; // maybe a lot others
   START_TAG = '{{';
   END_TAG = '}}';
+  RANGE_PREFIX = 'range(';
+  RANGE_ARG_SEPARATOR = #1; // between the arguments of a compiled range(...)
 
 type
   TTProRTTIUtils = class sealed
@@ -318,6 +485,24 @@ var
 function WrapAsList(const AObject: TObject): ITProWrappedList;
 begin
   Result := TTProDuckTypedList.Wrap(AObject);
+end;
+
+function GetFileStamp(const aFileName: string; out aTime, aSize: Int64): Boolean;
+// last write time (as its bits) and size, without opening the file
+var
+  lSearchRec: TSearchRec;
+  lDateTime: TDateTime;
+begin
+  Result := FindFirst(aFileName, faAnyFile, lSearchRec) = 0;
+  if not Result then
+    Exit;
+  try
+    lDateTime := lSearchRec.TimeStamp;
+    aTime := PInt64(@lDateTime)^;
+    aSize := lSearchRec.Size;
+  finally
+    FindClose(lSearchRec);
+  end;
 end;
 
 procedure FunctionError(const aFunctionName, aErrMessage: string);
@@ -368,6 +553,8 @@ begin
         begin
           raise ETProRenderException.Create('Invalid type for comparand');
         end;
+        if aParameters[0].ParType = fptFloat then
+          Exit(ComparandOperator(aComparandType, TValue.From<Extended>(aValue.AsOrdinal), aParameters, aLocaleFormatSettings));
         if aParameters[0].ParType = fptInteger then
         begin
           lInt64Value := aParameters[0].ParIntValue
@@ -581,6 +768,16 @@ end;
 procedure TTProCompiledTemplate.SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
 begin
   fOnGetDynamicallyIncludedTemplate := Value;
+end;
+
+function TTProCompiledTemplate.GetIncludeRootPath: string;
+begin
+  Result := fIncludeRootPath;
+end;
+
+procedure TTProCompiledTemplate.SetIncludeRootPath(const Value: string);
+begin
+  fIncludeRootPath := Value;
 end;
 
 function TTProCompiledTemplate.GetNullableTValueAsTValue(const Value: PValue; const VarName: string): TValue;
@@ -921,17 +1118,34 @@ function TTProCompiler.LoadTemplateSource(const aTemplateName: string;
   const aFullPath: string): string;
 var
   lHandled: Boolean;
+  lTime, lSize: Int64;
 begin
-  // First, try the callback if assigned
+  // First the instance resolver, then the global one
+  lHandled := False;
   if Assigned(fOnGetIncludedTemplate) then
-  begin
-    lHandled := False;
     fOnGetIncludedTemplate(aTemplateName, Result, lHandled);
-    if lHandled then
-      Exit;
+  if not lHandled and Assigned(TTProConfiguration.fOnGetTemplate) then
+    TTProConfiguration.fOnGetTemplate(aTemplateName, Result, lHandled);
+  if lHandled then
+  begin
+    AddDependency(aTemplateName, 'r', TTProConfiguration.GetTemplateVersion(aTemplateName), -1);
+    Exit;
   end;
   // Fallback to file system using the pre-computed full path
   Result := TFile.ReadAllText(aFullPath, fEncoding);
+  if GetFileStamp(aFullPath, lTime, lSize) then
+    AddDependency(aFullPath, 'f', lTime, lSize);
+end;
+
+procedure TTProCompiler.AddDependency(const aName, aKind: string; const aRef1, aRef2: Int64);
+// Value1 = full path ("f") or resolver name ("r"); Ref1 = file time or template version, Ref2 = file size
+var
+  lToken: TToken;
+begin
+  for lToken in fDependencies do
+    if (lToken.Value2 = aKind) and SameText(lToken.Value1, aName) then
+      Exit;
+  fDependencies.Add(TToken.Create(ttDependency, aName, aKind, aRef1, aRef2));
 end;
 
 procedure TTProCompiler.InternalCompileIncludedTemplate(const aTemplate: string; const aTokens: TList<TToken>;
@@ -945,8 +1159,14 @@ begin
     // Copy inheritance chain to sub-compiler for circular inheritance detection
     for lFile in fInheritanceChain do
       lCompiler.fInheritanceChain.Add(lFile);
+    // Copy include chain (plus this file) for circular include detection
+    lCompiler.fIncludeChain.AddRange(fIncludeChain);
+    lCompiler.fIncludeChain.Add(aFileNameRefPath);
     // Propagate the template resolver callback
     lCompiler.fOnGetIncludedTemplate := fOnGetIncludedTemplate;
+    // an included file or a layout belongs to the same template: same namespaces
+    lCompiler.fNamespaces := fNamespaces;
+    lCompiler.fDependencies := fDependencies;
     lCompiler.Compile(aTemplate, aTokens, aFileNameRefPath);
     if aTokens[aTokens.Count - 1].TokenType <> ttEOF then
     begin
@@ -955,6 +1175,91 @@ begin
     aTokens.Delete(aTokens.Count - 1); // remove the EOF
   finally
     lCompiler.Free;
+  end;
+end;
+
+procedure TTProCompiler.ImportLibrary(const aLibraryName, aAlias: string; const aTokens: TList<TToken>;
+  const aFileNameRefPath: string);
+// {{import "lib" as ns}}: the macros of the library are embedded in this template, named "ns.<macro>".
+// Inside the library, calls to its own macros (and to the ones it imports) are qualified the same way.
+var
+  lFullPath: string;
+  lChainFile: string;
+  lImportedPath: string;
+  lSource: string;
+  lCompiler: TTProCompiler;
+  lLibTokens: TList<TToken>;
+  lNames: TDictionary<string, Boolean>;
+  lToken: TToken;
+  lDepth: Integer;
+begin
+  if TDirectory.Exists(aFileNameRefPath) then
+    lFullPath := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, aLibraryName))
+  else
+    lFullPath := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), aLibraryName));
+  for lChainFile in fIncludeChain do
+    if SameText(lChainFile, lFullPath) then
+      Error('Circular import detected: "' + aLibraryName + '"');
+  if fNamespaces.TryGetValue(aAlias, lImportedPath) and not SameText(lImportedPath, lFullPath) then
+    Error('Namespace "' + aAlias + '" already imported');
+  fNamespaces.AddOrSetValue(aAlias, lFullPath);
+  try
+    lSource := LoadTemplateSource(aLibraryName, lFullPath);
+  except
+    on E: Exception do
+      Error('Cannot read "' + aLibraryName + '"');
+  end;
+
+  lLibTokens := TList<TToken>.Create;
+  lNames := TDictionary<string, Boolean>.Create(TTProEqualityComparer.Create);
+  try
+    lCompiler := TTProCompiler.Create(fEncoding, [coIgnoreSysVersion, coParentTemplate] + (fOptions * [coDisableEatLineBreaks]));
+    try
+      lCompiler.fIncludeChain.AddRange(fIncludeChain);
+      lCompiler.fIncludeChain.Add(lFullPath);
+      lCompiler.fOnGetIncludedTemplate := fOnGetIncludedTemplate;
+      lCompiler.fDependencies := fDependencies;
+      // lCompiler keeps its own namespaces: the libraries imported by the library are internal to it
+      lCompiler.Compile(lSource, lLibTokens, lFullPath);
+    finally
+      lCompiler.Free;
+    end;
+
+    // outside the macros only whitespace is allowed (comments and imports leave no tokens there)
+    lDepth := 0;
+    for lToken in lLibTokens do
+    begin
+      if lToken.TokenType = ttMacro then
+      begin
+        lNames.AddOrSetValue(lToken.Value1, True);
+        Inc(lDepth);
+      end
+      else if (lToken.TokenType = ttEndMacro) and (lDepth > 0) then
+        Dec(lDepth)
+      else if (lDepth = 0) and not ((lToken.TokenType in [ttSystemVersion, ttLineBreak, ttEOF]) or
+        ((lToken.TokenType = ttContent) and lToken.Value1.Trim.IsEmpty)) then
+        Error('Library "' + aLibraryName + '" can contain only macros and imports');
+    end;
+    if lDepth <> 0 then
+      Error('Library "' + aLibraryName + '": "macro" without "endmacro"');
+
+    for lToken in lLibTokens do
+    begin
+      if lToken.TokenType = ttMacro then
+        Inc(lDepth);
+      if lDepth > 0 then
+      begin
+        if (lToken.TokenType = ttMacro) or ((lToken.TokenType = ttCallMacro) and lNames.ContainsKey(lToken.Value1)) then
+          aTokens.Add(TToken.Create(lToken.TokenType, aAlias + '.' + lToken.Value1, lToken.Value2, lToken.Ref1, lToken.Ref2))
+        else
+          aTokens.Add(lToken);
+      end;
+      if lToken.TokenType = ttEndMacro then
+        Dec(lDepth);
+    end;
+  finally
+    lNames.Free;
+    lLibTokens.Free;
   end;
 end;
 
@@ -992,6 +1297,7 @@ end;
 
 function TTProCompiler.CreateFilterParameterToken(const FilterParameter: PFilterParameter): TToken;
 begin
+  Result := TToken.Create(ttFilterParameter, '', '', -1, -1);
   case FilterParameter.ParType of
     fptString:
       begin
@@ -1007,10 +1313,17 @@ begin
         Result.Ref2 := Ord(FilterParameter.ParType);
       end;
 
-    fptVariable:
+    fptVariable, fptExpression:
       begin
         Result.TokenType := ttFilterParameter;
         Result.Value1 := FilterParameter.ParStrText;
+        Result.Ref2 := Ord(FilterParameter.ParType);
+      end;
+
+    fptFloat:
+      begin
+        Result.TokenType := ttFilterParameter;
+        Result.Value1 := FloatToStr(FilterParameter.ParFloatValue, TFormatSettings.Invariant);
         Result.Ref2 := Ord(FilterParameter.ParType);
       end;
 
@@ -1020,7 +1333,7 @@ begin
 
 end;
 
-procedure TTProCompiler.MatchFilters(lVarName: string; var lFilters: TArray<TFilterInfo>);
+procedure TTProCompiler.MatchFilters(lVarName: string; var lFilters: TArray<TFilterInfo>; const aStopAtNamedArg: Boolean);
 var
   lFuncName: string;
   lFuncParams: TArray<TFilterParameter>;
@@ -1033,7 +1346,7 @@ begin
     if not MatchVariable(lFuncName) then
       Error('Invalid function name applied to variable ' + lVarName);
     MatchSpace;
-    lFuncParams := GetFunctionParameters;
+    lFuncParams := GetFunctionParameters(aStopAtNamedArg);
     MatchSpace;
 
     lFilterInfo.FilterName := lFuncName;
@@ -1310,6 +1623,95 @@ begin
     Error('Empty expression in @(...)');
 end;
 
+function TTProCompiler.MatchRange(out aRangeExpression: string): Boolean;
+// range(stop) or range(start, stop[, step]); every argument is an expression (a bare one or @(...)).
+// Compiled as RANGE_PREFIX + the arguments separated by RANGE_ARG_SEPARATOR + ')'
+var
+  lSavedCharIndex: Int64;
+  lDepth: Integer;
+  lQuote: Char;
+  lArg: string;
+  lArgs: TArray<string>;
+  I: Integer;
+begin
+  lSavedCharIndex := fCharIndex;
+  Result := MatchSymbol('range');
+  if Result then
+  begin
+    MatchSpace;
+    Result := MatchSymbol('(');
+  end;
+  if not Result then
+  begin
+    fCharIndex := lSavedCharIndex;
+    Exit;
+  end;
+  lArgs := [];
+  lArg := '';
+  lDepth := 0;
+  lQuote := #0;
+  while True do
+  begin
+    if CurrentChar = #0 then
+      Error('Unclosed "range("');
+    if lQuote <> #0 then
+    begin
+      if CurrentChar = lQuote then
+        lQuote := #0;
+    end
+    else if CharInSet(CurrentChar, ['"', '''']) then
+      lQuote := CurrentChar
+    else if (CurrentChar = '@') and (fCharIndex + 1 < fInputString.Length) and
+      (fInputString.Chars[fCharIndex + 1] = '(') then
+    begin
+      Step; // @(expr) is the same as (expr) here: drop the marker, keep the parenthesis
+      Continue;
+    end
+    else if CurrentChar = '(' then
+      Inc(lDepth)
+    else if CurrentChar = ')' then
+    begin
+      if lDepth = 0 then
+        Break;
+      Dec(lDepth);
+    end
+    else if (CurrentChar = ',') and (lDepth = 0) then
+    begin
+      lArgs := lArgs + [lArg];
+      lArg := '';
+      Step;
+      Continue;
+    end;
+    lArg := lArg + CurrentChar;
+    Step;
+  end;
+  Step; // skip ')'
+  lArgs := lArgs + [lArg];
+  if Length(lArgs) > 3 then
+    Error('range expects 1 to 3 arguments');
+  for I := 0 to High(lArgs) do
+  begin
+    lArgs[I] := lArgs[I].Trim;
+    if lArgs[I].IsEmpty then
+      Error('range expects 1 to 3 arguments');
+  end;
+  aRangeExpression := RANGE_PREFIX + String.Join(RANGE_ARG_SEPARATOR, lArgs) + ')';
+end;
+
+function TTProCompiler.MatchNameArgument(out aName, aKind: string): Boolean;
+// a name given as "literal", variable or @(expression); aKind is "s", "v" or "@"
+begin
+  Result := True;
+  if MatchString(aName) then
+    aKind := 's'
+  else if MatchExpression(aName) then
+    aKind := '@'
+  else if MatchVariable(aName) then
+    aKind := 'v'
+  else
+    Result := False;
+end;
+
 function TTProCompiler.Step: Char;
 begin
   Inc(fCharIndex);
@@ -1332,9 +1734,16 @@ begin
   fCurrentFileName := lFileNameRefPath;
   // Clear inheritance chain for each new top-level compilation
   fInheritanceChain.Clear;
+  fIncludeChain.Clear;
+  fNamespaces.Clear;
+  fDependencies.Clear;
+  if not aFileNameRefPath.IsEmpty then
+    fIncludeChain.Add(lFileNameRefPath);
   lTokens := TList<TToken>.Create;
   try
     Compile(aTemplate, lTokens, fCurrentFileName);
+    // the dependencies go just before the final EOF: saved with the template, skipped by Render
+    lTokens.InsertRange(lTokens.Count - 1, fDependencies.ToArray);
     ProcessJumps(lTokens);
     Result := TTProCompiledTemplate.Create(lTokens);
   except
@@ -1374,11 +1783,19 @@ begin
   fEncoding := aEncoding;
   fOptions := aOptions;
   fInheritanceChain := TList<string>.Create;
+  fIncludeChain := TList<string>.Create;
+  fOwnedNamespaces := TDictionary<string, string>.Create(TTProEqualityComparer.Create);
+  fNamespaces := fOwnedNamespaces;
+  fOwnedDependencies := TList<TToken>.Create;
+  fDependencies := fOwnedDependencies;
 end;
 
 destructor TTProCompiler.Destroy;
 begin
   fInheritanceChain.Free;
+  fIncludeChain.Free;
+  fOwnedNamespaces.Free;
+  fOwnedDependencies.Free;
   inherited;
 end;
 
@@ -1414,6 +1831,7 @@ var
   lPropertyName: string;
   // Variables for include handling
   lIncludeFileName: string;
+  lIncludeChainFile: string;
   lIsDynamicInclude: Boolean;
   lHasMappings: Boolean;
   lMappingTargets: TArray<string>;
@@ -1434,6 +1852,40 @@ var
   lStripTrailingWS: Boolean; // Strip trailing whitespace from current content ({{-)
   lRawEndPos: Integer;       // Position of {{endraw}} for raw blocks
   lRawContent: string;       // Content inside raw block
+  // switch: per open switch, 0 = before the first case, 1 = in a case, 2 = after default
+  lSwitchStates: TArray<Integer>;
+  lSwitchBodyStarts: TArray<Integer>;
+  lCaseValue: TFilterParameter;
+  lCaseValues: TArray<TFilterParameter>;
+  lMacroArgNames: TArray<string>;
+  lMacroArgFilters: TArray<TArray<TFilterInfo>>;
+  lMacroParamToken: TToken;
+  lMacroParamTokens: TArray<TToken>;
+  lMacroDepth: Integer;
+  lImportedAliases: TArray<string>;
+  lIsBlockCall: Boolean;
+  lFillNames: TArray<string>; // per open {{call}}: the literal names of its fills, as "|name1||name2|"
+
+  procedure CloseSwitchBranch(const aTag: string);
+  var
+    J: Integer;
+  begin
+    if (Length(lBlockStack) = 0) or (lBlockStack[Length(lBlockStack)] <> 'S') then
+      Error('"' + aTag + '" without "switch"');
+    if lSwitchStates[High(lSwitchStates)] = 0 then
+    begin
+      for J := lSwitchBodyStarts[High(lSwitchBodyStarts)] to aTokens.Count - 1 do
+        if not ((aTokens[J].TokenType = ttLineBreak) or
+          ((aTokens[J].TokenType = ttContent) and aTokens[J].Value1.Trim.IsEmpty)) then
+          Error('Only whitespace is allowed between "switch" and the first "case"');
+      aTokens.DeleteRange(lSwitchBodyStarts[High(lSwitchBodyStarts)],
+        aTokens.Count - lSwitchBodyStarts[High(lSwitchBodyStarts)]);
+    end
+    else if (lEndVerbatim > lStartVerbatim) and (aTokens.Last.TokenType = ttContent) and aTokens.Last.Value1.Trim.IsEmpty and
+      ((lStartVerbatim = 0) or CharInSet(fInputString.Chars[lStartVerbatim - 1], [#10, #13])) then
+      aTokens.Delete(aTokens.Count - 1); // indentation of a case/default/endswitch line is not part of the previous branch
+  end;
+
 begin
   aTokens.Add(TToken.Create(ttSystemVersion, TEMPLATEPRO_VERSION, ''));
   lLastToken := ttEOF;
@@ -1445,6 +1897,9 @@ begin
   lIfStatementCount := -1;
   lForStatementCount := -1;
   lBlockStack := '';  // Empty stack at start
+  lMacroDepth := 0;
+  lImportedAliases := [];
+  lFillNames := [];
   SetLength(lElseIfPendingCounts, 0);
   fStripNextLeadingWS := False;  // Initialize whitespace control
   fInputString := aTemplate;
@@ -1709,8 +2164,9 @@ begin
             Error('Expected "in" after "for" iterator');
           if not MatchSpace then
             Error('Expected "space"');
-          if not MatchVariable(lIdentifier) then
-            Error('Expected iterable "for"');
+          if not MatchRange(lIdentifier) then
+            if not MatchVariable(lIdentifier) then
+              Error('Expected iterable "for"');
           MatchSpace;
           if not MatchEndTag then
             Error('Expected closing tag for "for"');
@@ -1722,11 +2178,16 @@ begin
           begin
             Error('loop data source and its iterator cannot have the same name: ' + lIdentifier)
           end;
-          // Check for .fields suffix for dataset field iteration
+          // Check for .fields (datasets) or .@@fields (datasets and objects) suffix for field iteration
           lIsFieldIteration := 0;
           if lIdentifier.EndsWith('.fields', True) then
           begin
             lIdentifier := lIdentifier.Substring(0, lIdentifier.Length - 7); // Remove '.fields'
+            lIsFieldIteration := 1;
+          end
+          else if lIdentifier.EndsWith('.@@fields', True) then
+          begin
+            lIdentifier := lIdentifier.Substring(0, lIdentifier.Length - 9); // Remove '.@@fields'
             lIsFieldIteration := 1;
           end;
           aTokens.Add(TToken.Create(lLastToken, lIdentifier, lIteratorName, -1, lIsFieldIteration));
@@ -2054,6 +2515,162 @@ begin
           end;
           lStartVerbatim := fCharIndex;
         end
+        else if MatchSymbol('switch') then { switch }
+        begin
+          if not MatchSpace then
+            Error('Expected <space> after "switch"');
+          lStringValue := '';
+          if MatchExpression(lIdentifier) then
+            lStringValue := '@'
+          else if not MatchVariable(lIdentifier) then
+            Error('Expected variable or @(expression) after "switch"');
+          SetLength(lFilters, 0);
+          MatchSpace;
+          if MatchSymbol('|') then
+            MatchFilters(lIdentifier, lFilters);
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "switch"');
+          lLastToken := ttSwitch;
+          // Value2 = '@' for an expression, Ref1 = filter count, Ref2 = first case/default/endswitch
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, lStringValue, Length(lFilters), -1));
+          AddFilterTokens(aTokens, lFilters);
+          lBlockStack := lBlockStack + 'S';
+          lSwitchStates := lSwitchStates + [0];
+          lSwitchBodyStarts := lSwitchBodyStarts + [aTokens.Count];
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('case') then { case }
+        begin
+          CloseSwitchBranch('case');
+          if lSwitchStates[High(lSwitchStates)] = 2 then
+            Error('"case" after "default"');
+          lSwitchStates[High(lSwitchStates)] := 1;
+          if not MatchSpace then
+            Error('Expected <space> after "case"');
+          lCaseValues := [];
+          repeat
+            MatchSpace;
+            lCaseValue := Default(TFilterParameter);
+            if MatchString(lStringValue) then
+            begin
+              lCaseValue.ParType := fptString;
+              lCaseValue.ParStrText := lStringValue;
+            end
+            else if MatchExpression(lStringValue) then
+            begin
+              lCaseValue.ParType := fptExpression;
+              lCaseValue.ParStrText := lStringValue;
+            end
+            else if CharInSet(CurrentChar, SignAndNumbers) then
+              MatchFilterParamValue(lCaseValue)
+            else if MatchVariable(lStringValue) then
+            begin
+              lCaseValue.ParType := fptVariable;
+              lCaseValue.ParStrText := lStringValue;
+            end
+            else
+              Error('Expected value after "case"');
+            lCaseValues := lCaseValues + [lCaseValue];
+            MatchSpace;
+          until not MatchSymbol(',');
+          if not MatchEndTag then
+            Error('Expected closing tag for "case"');
+          lLastToken := ttCase;
+          // Ref1 = endswitch, Ref2 = next case/default/endswitch; the values follow as ttFilterParameter
+          aTokens.Add(TToken.Create(lLastToken, '', '', -1, -1));
+          for I := 0 to High(lCaseValues) do
+            aTokens.Add(CreateFilterParameterToken(@lCaseValues[I]));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('default') then { default }
+        begin
+          CloseSwitchBranch('default');
+          if lSwitchStates[High(lSwitchStates)] = 2 then
+            Error('Duplicated "default" in "switch"');
+          lSwitchStates[High(lSwitchStates)] := 2;
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "default"');
+          lLastToken := ttDefault;
+          aTokens.Add(TToken.Create(lLastToken, '', '', -1, -1));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endswitch') then { endswitch }
+        begin
+          CloseSwitchBranch('endswitch');
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "endswitch"');
+          SetLength(lSwitchStates, Length(lSwitchStates) - 1);
+          SetLength(lSwitchBodyStarts, Length(lSwitchBodyStarts) - 1);
+          lBlockStack := Copy(lBlockStack, 1, Length(lBlockStack) - 1);
+          lLastToken := ttEndSwitch;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('push') then { push "stack name" [once] }
+        begin
+          if not MatchSpace then
+            Error('Expected <space> after "push"');
+          if not MatchNameArgument(lIdentifier, lStringValue) then
+            Error('Expected stack name after "push"');
+          MatchSpace;
+          lRef2 := IfThen(MatchSymbol('once'), 1, 0);
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "push"');
+          lLastToken := ttPush;
+          // Value2 = kind of Value1 ("s" string, "v" variable, "@" expression), Ref2 = 1 for "once"
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, lStringValue, -1, lRef2));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endpush') then { endpush }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "endpush"');
+          lLastToken := ttEndPush;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('stack') then { stack "stack name" }
+        begin
+          if not MatchSpace then
+            Error('Expected <space> after "stack"');
+          if not MatchNameArgument(lIdentifier, lStringValue) then
+            Error('Expected stack name after "stack"');
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "stack"');
+          lLastToken := ttStack;
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, lStringValue));
+          Inc(lContentOnThisLine); // it outputs, like a variable
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('import') then { import "library" as namespace }
+        begin
+          if not MatchSpace then
+            Error('Expected <space> after "import"');
+          // compile time: the path is a literal, like the one of a static include
+          if not MatchString(lStringValue) then
+            Error('Expected string after "import"');
+          if not (MatchSpace and MatchSymbol('as') and MatchSpace) then
+            Error('Expected "as" after the library name');
+          if not MatchVariable(lIdentifier) or lIdentifier.Contains('.') then
+            Error('Expected namespace after "as"');
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "import"');
+          if (lBlockStack <> '') or (lMacroDepth > 0) then
+            Error('"import" is allowed only at the top level of a template');
+          if MatchStr(lIdentifier.ToLower, lImportedAliases) then
+            Error('Namespace "' + lIdentifier + '" already imported');
+          lImportedAliases := lImportedAliases + [lIdentifier.ToLower];
+          ImportLibrary(lStringValue, lIdentifier, aTokens, aFileNameRefPath);
+          lLastToken := ttComment; // like a comment: no output, a line with only imports is eaten
+          lStartVerbatim := fCharIndex;
+        end
         else if MatchSymbol('include') then { include }
         begin
           if not MatchSpace then
@@ -2196,6 +2813,10 @@ begin
                 lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lIncludeFileName))
               else
                 lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lIncludeFileName));
+              // A file already being compiled up the chain would recurse forever
+              for lIncludeChainFile in fIncludeChain do
+                if SameText(lIncludeChainFile, lCurrentFileName) then
+                  Error('Circular include detected: "' + lIncludeFileName + '"');
               // Load template (via callback or file system)
               try
                 lTemplateSource := LoadTemplateSource(lIncludeFileName, lCurrentFileName);
@@ -2321,9 +2942,23 @@ begin
             Error('Expected "space" after "macro"');
           if not MatchVariable(lIdentifier) then
             Error('Expected macro name after "macro"');
+          // "ns.name" is reserved to the macros of the imported libraries
+          if lIdentifier.Contains('.') then
+            Error('Macro name "' + lIdentifier + '" cannot contain "."');
+          Inc(lMacroDepth);
 
-          // Parse macro parameters: macro name(param1, param2='default', ...)
-          lFuncParams := GetMacroParameters;
+          // Parse macro parameters: macro name(param1, param2="default", param3=variable, ...)
+          lFuncParams := GetMacroParameters(lMacroArgNames, lMacroArgFilters);
+          for I := 0 to High(lMacroArgNames) do
+            if lMacroArgNames[I].IsEmpty and (Length(lMacroArgFilters[I]) > 0) then
+              Error(Format('Macro "%s": filters are allowed only on a default value', [lIdentifier]));
+          for I := 1 to High(lMacroArgNames) do
+            if lMacroArgNames[I].IsEmpty and not lMacroArgNames[I - 1].IsEmpty then
+              Error(Format('Macro "%s": parameter "%s" without default after a parameter with default',
+                [lIdentifier, lFuncParams[I].ParStrText]));
+          for I := 0 to High(lFuncParams) do
+            if SameText(lMacroArgNames[I], 'slots') or (lMacroArgNames[I].IsEmpty and SameText(lFuncParams[I].ParStrText, 'slots')) then
+              Error('A macro parameter cannot be named "slots"');
 
           MatchSpace;
           if not MatchEndTag then
@@ -2333,11 +2968,17 @@ begin
           // Value1 = macro name, Ref1 = parameter count
           aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', Length(lFuncParams), -1));
 
-          // Add macro parameters as tokens
+          // Add macro parameters as tokens: Value1 = name; with a default, Value2 = its type ordinal as a digit + its value
+          lMacroParamTokens := [];
           for I := 0 to Length(lFuncParams) - 1 do
           begin
-            aTokens.Add(CreateFilterParameterToken(@lFuncParams[I]));
+            lMacroParamToken := CreateFilterParameterToken(@lFuncParams[I]);
+            if not lMacroArgNames[I].IsEmpty then
+              lMacroParamToken := TToken.Create(ttFilterParameter, lMacroArgNames[I],
+                Chr(Ord('0') + lMacroParamToken.Ref2) + lMacroParamToken.Value1, -1, Ord(fptVariable));
+            lMacroParamTokens := lMacroParamTokens + [lMacroParamToken];
           end;
+          AddMacroParameterTokens(aTokens, aTokens.Count - 1, lMacroParamTokens, lMacroArgFilters);
 
           lStartVerbatim := fCharIndex;
         end
@@ -2346,34 +2987,144 @@ begin
           MatchSpace;
           if not MatchEndTag then
             Error('Expected closing tag for "endmacro"');
+          if lMacroDepth > 0 then
+            Dec(lMacroDepth);
           lLastToken := ttEndMacro;
           aTokens.Add(TToken.Create(lLastToken, '', ''));
           lStartVerbatim := fCharIndex;
         end
-        else if MatchSymbol('>') then // macro call: {{>macroname(args)}}
+        else if (CurrentChar = '>') or MatchSymbol('call') then // macro call: {{>macroname(args)}} or {{call macroname(args)}}...{{endcall}}
         begin
+          lIsBlockCall := not MatchSymbol('>');
+          if lIsBlockCall and not MatchSpace then
+            Error('Expected macro name after "call"');
           MatchSpace;
           if not MatchVariable(lIdentifier) then
-            Error('Expected macro name after ">"');
+            Error('Expected macro name after "' + IfThen(lIsBlockCall, 'call', '>') + '"');
 
           // Parse call parameters
-          lFuncParams := GetMacroParameters;
+          lFuncParams := GetMacroParameters(lMacroArgNames, lMacroArgFilters);
+          for I := 1 to High(lMacroArgNames) do
+            if lMacroArgNames[I].IsEmpty and not lMacroArgNames[I - 1].IsEmpty then
+              Error('Positional argument after named argument in call to macro "' + lIdentifier + '"');
 
           MatchSpace;
           if not MatchEndTag then
             Error('Expected closing tag for macro call');
 
           lLastToken := ttCallMacro;
-          Inc(lContentOnThisLine);
-          // Value1 = macro name, Ref1 = parameter count
-          aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', Length(lFuncParams), -1));
+          if lIsBlockCall then
+          begin
+            // the body (the slots) follows: the output is complete at "endcall"
+            lBlockStack := lBlockStack + 'C';
+            lFillNames := lFillNames + [''];
+            lRef2 := -2; // ProcessJumps links it to its endcall
+          end
+          else
+          begin
+            Inc(lContentOnThisLine);
+            lRef2 := -1;
+          end;
+          // Value1 = macro name, Ref1 = tokens of the parameters and their filters, Ref2 = endcall (-1 = no body)
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, '', Length(lFuncParams), lRef2));
 
-          // Add call parameters as tokens
+          // Add call parameters as tokens (Value2 = parameter name for a named argument)
+          lMacroParamTokens := [];
           for I := 0 to Length(lFuncParams) - 1 do
           begin
-            aTokens.Add(CreateFilterParameterToken(@lFuncParams[I]));
+            lMacroParamToken := CreateFilterParameterToken(@lFuncParams[I]);
+            lMacroParamToken.Value2 := lMacroArgNames[I];
+            lMacroParamTokens := lMacroParamTokens + [lMacroParamToken];
           end;
+          AddMacroParameterTokens(aTokens, aTokens.Count - 1, lMacroParamTokens, lMacroArgFilters);
 
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endcall') then { endcall }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "endcall"');
+          if (lBlockStack <> '') and (lBlockStack[Length(lBlockStack)] = 'L') then
+            Error('Unbalanced "fill" - expected "endfill"');
+          if (lBlockStack = '') or (lBlockStack[Length(lBlockStack)] <> 'C') then
+            Error('"endcall" without "call"');
+          lBlockStack := Copy(lBlockStack, 1, Length(lBlockStack) - 1);
+          SetLength(lFillNames, Length(lFillNames) - 1);
+          lLastToken := ttEndCall;
+          // Ref1 = its call, Ref2 = its last fill (set by ProcessJumps)
+          aTokens.Add(TToken.Create(lLastToken, '', '', -1, -1));
+          Inc(lContentOnThisLine); // the output of the call ends here, like after {{>macro()}}
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('fill') then { fill "slot name" }
+        begin
+          if not MatchSpace then
+            Error('Expected <space> after "fill"');
+          if not MatchNameArgument(lIdentifier, lStringValue) then
+            Error('Expected slot name after "fill"');
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "fill"');
+          if (lBlockStack = '') or (lBlockStack[Length(lBlockStack)] <> 'C') then
+            Error('"fill" must be directly inside "call"');
+          if lStringValue = 's' then
+          begin
+            if SameText(lIdentifier, 'default') then
+              Error('The slot name "default" is reserved to the content outside "fill"');
+            if ContainsText(lFillNames[High(lFillNames)], '|' + lIdentifier + '|') then
+              Error('Duplicated fill "' + lIdentifier + '"');
+            lFillNames[High(lFillNames)] := lFillNames[High(lFillNames)] + '|' + lIdentifier + '|';
+          end;
+          lBlockStack := lBlockStack + 'L';
+          lLastToken := ttFill;
+          // Value2 = kind of Value1 ("s", "v", "@"), Ref1 = previous fill of the same call, Ref2 = endfill
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, lStringValue, -1, -1));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endfill') then { endfill }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "endfill"');
+          if (lBlockStack = '') or (lBlockStack[Length(lBlockStack)] <> 'L') then
+            Error('"endfill" without "fill"');
+          lBlockStack := Copy(lBlockStack, 1, Length(lBlockStack) - 1);
+          lLastToken := ttEndFill;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('slot') then // slot, slot "name", slot "name" + fallback + endslot
+        begin
+          MatchSpace;
+          if MatchEndTag then
+          begin
+            lIdentifier := 'default';
+            lStringValue := 's';
+          end
+          else
+          begin
+            if not MatchNameArgument(lIdentifier, lStringValue) then
+              Error('Expected slot name after "slot"');
+            MatchSpace;
+            if not MatchEndTag then
+              Error('Expected closing tag for "slot"');
+          end;
+          if lMacroDepth = 0 then
+            Error('"slot" can be used only inside a macro');
+          lLastToken := ttSlot;
+          // Value2 = kind of Value1 ("s", "v", "@"), Ref2 = endslot when there is a fallback (set by ProcessJumps)
+          aTokens.Add(TToken.Create(lLastToken, lIdentifier, lStringValue, -1, -1));
+          Inc(lContentOnThisLine); // it outputs, like a variable
+          lStartVerbatim := fCharIndex;
+        end
+        else if MatchSymbol('endslot') then { endslot: closes the nearest open slot }
+        begin
+          MatchSpace;
+          if not MatchEndTag then
+            Error('Expected closing tag for "endslot"');
+          lLastToken := ttEndSlot;
+          aTokens.Add(TToken.Create(lLastToken, '', ''));
           lStartVerbatim := fCharIndex;
         end
         else if MatchSymbol('exit') then { exit }
@@ -2503,10 +3254,23 @@ var
   lMinParentLevel: Integer;
   lMostDerivedIdx: Integer;
   lMostDerivedLevel: Integer;
+  lSwitchStack: TStack<TIfThenElseIndex>;
+  lSwitchItem: TIfThenElseIndex;
+  lOpenPushCount: Integer;
+  lCallStack: TStack<TIfThenElseIndex>; // IfIndex = the call, ElseIndex = its last fill so far
+  lCallItem: TIfThenElseIndex;
+  lFillStack: TStack<Int64>;
+  lOpenSlots: TList<Int64>;
 begin
   lCurrentLevel := 0; // Start at page level
+  lOpenPushCount := 0;
   lCheckForUnbalancedPair := True;
   lBlockDict := TObjectDictionary<string, TList<TBlockAddress>>.Create([doOwnsValues], TTProEqualityComparer.Create);
+  // IfIndex = the switch, ElseIndex = its last case/default seen so far
+  lSwitchStack := TStack<TIfThenElseIndex>.Create;
+  lCallStack := TStack<TIfThenElseIndex>.Create;
+  lFillStack := TStack<Int64>.Create;
+  lOpenSlots := TList<Int64>.Create;
   try
     lBlockStack := TStack<string>.Create;
     try
@@ -2698,11 +3462,110 @@ begin
                     lToken := aTokens[I];
                     lToken.Ref1 := lForAddress; // ttEndMacro.Ref1 -> ttMacro
                     aTokens[I] := lToken;
+                    lOpenSlots.Clear; // a slot without endslot has no fallback
+                  end;
+
+                { call with a body: ttCallMacro.Ref2 --> endcall; ttEndCall.Ref1 --> call, ttEndCall.Ref2 --> last fill }
+                { ttFill.Ref1 --> previous fill of the same call (-1 = none), ttFill.Ref2 --> endfill }
+                ttCallMacro:
+                  if aTokens[I].Ref2 = -2 then
+                  begin
+                    lCallItem.IfIndex := I;
+                    lCallItem.ElseIndex := -1;
+                    lCallStack.Push(lCallItem);
+                  end;
+
+                ttFill:
+                  begin
+                    lCallItem := lCallStack.Pop;
+                    lToken := aTokens[I];
+                    lToken.Ref1 := lCallItem.ElseIndex;
+                    aTokens[I] := lToken;
+                    lCallItem.ElseIndex := I;
+                    lCallStack.Push(lCallItem);
+                    lFillStack.Push(I);
+                  end;
+
+                ttEndFill:
+                  begin
+                    J := lFillStack.Pop;
+                    lToken := aTokens[J];
+                    lToken.Ref2 := I;
+                    aTokens[J] := lToken;
+                  end;
+
+                ttEndCall:
+                  begin
+                    lCallItem := lCallStack.Pop;
+                    lToken := aTokens[lCallItem.IfIndex];
+                    lToken.Ref2 := I;
+                    aTokens[lCallItem.IfIndex] := lToken;
+                    lToken := aTokens[I];
+                    lToken.Ref1 := lCallItem.IfIndex;
+                    lToken.Ref2 := lCallItem.ElseIndex;
+                    aTokens[I] := lToken;
+                  end;
+
+                { ttSlot.Ref2 --> the endslot closing its fallback (-1 = no fallback): endslot closes the nearest open slot }
+                ttSlot:
+                  lOpenSlots.Add(I);
+
+                ttEndSlot:
+                  begin
+                    if lOpenSlots.Count = 0 then
+                      Error('"endslot" without "slot"');
+                    J := lOpenSlots.Last;
+                    lOpenSlots.Delete(lOpenSlots.Count - 1);
+                    lToken := aTokens[J];
+                    lToken.Ref2 := I;
+                    aTokens[J] := lToken;
                   end;
 
                 ttExit:
                   begin
                     lCheckForUnbalancedPair := False;
+                  end;
+
+                { ttSwitch.Ref2 and every ttCase/ttDefault.Ref2 --> next branch (the last one --> endswitch) }
+                { ttCase.Ref1 and ttDefault.Ref1 --> endswitch }
+                ttPush:
+                  Inc(lOpenPushCount);
+                ttEndPush:
+                  begin
+                    Dec(lOpenPushCount);
+                    if lOpenPushCount < 0 then
+                      Error('"endpush" without "push"');
+                  end;
+
+                ttSwitch:
+                  begin
+                    lSwitchItem.IfIndex := I;
+                    lSwitchItem.ElseIndex := I;
+                    lSwitchStack.Push(lSwitchItem);
+                  end;
+
+                ttCase, ttDefault, ttEndSwitch:
+                  begin
+                    lSwitchItem := lSwitchStack.Pop;
+                    lToken := aTokens[lSwitchItem.ElseIndex];
+                    lToken.Ref2 := I;
+                    aTokens[lSwitchItem.ElseIndex] := lToken;
+                    if aTokens[I].TokenType = ttEndSwitch then
+                    begin
+                      J := aTokens[lSwitchItem.IfIndex].Ref2;
+                      while J <> I do
+                      begin
+                        lToken := aTokens[J];
+                        lToken.Ref1 := I;
+                        aTokens[J] := lToken;
+                        J := lToken.Ref2;
+                      end;
+                    end
+                    else
+                    begin
+                      lSwitchItem.ElseIndex := I;
+                      lSwitchStack.Push(lSwitchItem);
+                    end;
                   end;
               end;
             end; // for
@@ -2800,6 +3663,14 @@ begin
             begin
               Error('Unbalanced "block" - expected "endblock" for block "' + lBlockStack.Peek + '"');
             end;
+            if lCheckForUnbalancedPair and (lSwitchStack.Count > 0) then
+              Error('Unbalanced "switch" - expected "endswitch"');
+            if lCheckForUnbalancedPair and (lOpenPushCount > 0) then
+              Error('Unbalanced "push" - expected "endpush"');
+            if lCheckForUnbalancedPair and (lFillStack.Count > 0) then
+              Error('Unbalanced "fill" - expected "endfill"');
+            if lCheckForUnbalancedPair and (lCallStack.Count > 0) then
+              Error('Unbalanced "call" - expected "endcall"');
             finally
               lForElseStack.Free;
             end;
@@ -2816,31 +3687,51 @@ begin
       lBlockStack.Free;
     end;
   finally
+    lOpenSlots.Free;
+    lFillStack.Free;
+    lCallStack.Free;
+    lSwitchStack.Free;
     lBlockDict.Free;
   end;
   // TTProCompiledTemplate.InternalDumpToFile('debug.compiled.txt', aTokens);
 end;
 
-function TTProCompiler.GetFunctionParameters: TArray<TFilterParameter>;
+function TTProCompiler.GetFunctionParameters(const aStopAtNamedArg: Boolean): TArray<TFilterParameter>;
+// aStopAtNamedArg: in a macro call ", name=" starts the next argument, it is not another filter parameter
 var
   lFuncPar: TFilterParameter;
+  lCommaIndex: Integer;
 begin
   Result := [];
-  while MatchSymbol(',') do
+  while True do
   begin
+    lCommaIndex := fCharIndex;
+    if not MatchSymbol(',') then
+      Break;
     MatchSpace;
     if not MatchFilterParamValue(lFuncPar) then
       Error('Expected function parameter');
-    Result := Result + [lFuncPar];
     MatchSpace;
+    if aStopAtNamedArg and (CurrentChar = '=') then
+    begin
+      fCharIndex := lCommaIndex;
+      Break;
+    end;
+    Result := Result + [lFuncPar];
   end;
 end;
 
-function TTProCompiler.GetMacroParameters: TArray<TFilterParameter>;
+function TTProCompiler.GetMacroParameters(out aNames: TArray<string>; out aFilters: TArray<TArray<TFilterInfo>>): TArray<TFilterParameter>;
+// "(v1, name = v2|filter, ...)": aNames[I] is the name before "=" ('' when there isn't one), Result[I] the value,
+// aFilters[I] the filters applied to it
 var
   lFuncPar: TFilterParameter;
+  lName: string;
+  lFilters: TArray<TFilterInfo>;
 begin
   Result := [];
+  aNames := [];
+  aFilters := [];
   MatchSpace;
   if not MatchSymbol('(') then
     Exit; // No parameters
@@ -2850,24 +3741,53 @@ begin
   if MatchSymbol(')') then
     Exit;
 
-  // Parse first parameter
-  if not MatchFilterParamValue(lFuncPar) then
-    Error('Expected macro parameter');
-  Result := Result + [lFuncPar];
-  MatchSpace;
-
-  // Parse remaining parameters
-  while MatchSymbol(',') do
-  begin
+  repeat
     MatchSpace;
     if not MatchFilterParamValue(lFuncPar) then
       Error('Expected macro parameter');
-    Result := Result + [lFuncPar];
     MatchSpace;
-  end;
+    lName := '';
+    if MatchSymbol('=') then
+    begin
+      if lFuncPar.ParType <> fptVariable then
+        Error('Expected a name before "="');
+      lName := lFuncPar.ParStrText;
+      MatchSpace;
+      if not MatchFilterParamValue(lFuncPar) then
+        Error('Expected value after "' + lName + '="');
+      MatchSpace;
+    end;
+    lFilters := [];
+    if MatchSymbol('|') then
+      MatchFilters(lFuncPar.ParStrText, lFilters, True);
+    Result := Result + [lFuncPar];
+    aNames := aNames + [lName];
+    aFilters := aFilters + [lFilters];
+  until not MatchSymbol(',');
 
   if not MatchSymbol(')') then
     Error('Expected ")" after macro parameters');
+end;
+
+procedure TTProCompiler.AddMacroParameterTokens(aTokens: TList<TToken>; const aMacroTokenIdx: Integer;
+  const aParamTokens: TArray<TToken>; const aFilters: TArray<TArray<TFilterInfo>>);
+// each parameter token is followed by its filters (parameter Ref1 = filter count); the macro/call token
+// Ref1 becomes the number of tokens that follow it (without filters: the parameter count, as before 1.2)
+var
+  I: Integer;
+  lToken: TToken;
+begin
+  for I := 0 to High(aParamTokens) do
+  begin
+    lToken := aParamTokens[I];
+    if Length(aFilters[I]) > 0 then
+      lToken.Ref1 := Length(aFilters[I]);
+    aTokens.Add(lToken);
+    AddFilterTokens(aTokens, aFilters[I]);
+  end;
+  lToken := aTokens[aMacroTokenIdx];
+  lToken.Ref1 := aTokens.Count - aMacroTokenIdx - 1;
+  aTokens[aMacroTokenIdx] := lToken;
 end;
 
 function TTProCompiler.GetSubsequentText: String;
@@ -2999,7 +3919,7 @@ begin
     end
     else
       lStrValue := aParameters[0].ParStrText;
-    aResult := aValue.AsString.Contains(lStrValue);
+    aResult := ValueAsString(aValue).Contains(lStrValue);
   end
   else if SameText(aFunctionName, 'icontains') then
   begin
@@ -3014,7 +3934,7 @@ begin
     end
     else
       lStrValue := aParameters[0].ParStrText;
-    aResult := aValue.AsString.ToLowerInvariant.Contains(lStrValue);
+    aResult := ValueAsString(aValue).ToLowerInvariant.Contains(lStrValue.ToLowerInvariant);
   end
   else if SameText(aFunctionName, 'urlencode') then
   begin
@@ -3233,7 +4153,7 @@ begin
 end;
 
 function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
-  const aVarNameWhereShoudBeApplied: String): TValue;
+  const aVarNameWhereShoudBeApplied: String; out aIsCustomFilter: Boolean): TValue;
 var
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
@@ -3253,6 +4173,7 @@ var
   end;
 
 begin
+  aIsCustomFilter := False;
   lExecuteAsFilterOnAValue := not aVarNameWhereShoudBeApplied.IsEmpty;
   aFunctionName := lowercase(aFunctionName);
 
@@ -3268,12 +4189,27 @@ begin
         TField(aValue.AsObject).FieldName);
   end;
 
+  // A custom filter registered with the name of a built-in replaces the built-in
+  if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
+  begin
+    aIsCustomFilter := True;
+    Exit(lFunc(aValue, aParameters));
+  end;
+  if (fTemplateAnonFunctions <> nil) and fTemplateAnonFunctions.TryGetValue(aFunctionName, lAnonFunc) then
+  begin
+    aIsCustomFilter := True;
+    Exit(lAnonFunc(aValue, aParameters));
+  end;
+
   // Try string filters first
   if ExecuteStringFilter(aFunctionName, aParameters, aValue, lExecuteAsFilterOnAValue, Result) then
     Exit;
 
   // Try date filters
   if ExecuteDateFilter(aFunctionName, aParameters, aValue, aVarNameWhereShoudBeApplied, Result) then
+    Exit;
+
+  if ExecuteListAndTextFilter(aFunctionName, aParameters, aValue, Result) then
     Exit;
 
   if SameText(aFunctionName, 'gt') then
@@ -3362,7 +4298,7 @@ begin
         lDecimalMask := '.' + StringOfChar('0', Abs(lIntegerPar1));
       end;
       lExtendedValue := RoundTo(aValue.AsExtended, lIntegerPar1);
-      Result := FormatFloat('0' + lDecimalMask, lExtendedValue);
+      Result := FormatFloat('0' + lDecimalMask, lExtendedValue, fLocaleFormatSettings);
     end;
   end
   else if SameText(aFunctionName, 'formatfloat') then
@@ -3439,14 +4375,6 @@ begin
     else
       Result := aValue.ToString;
   end
-  else if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
-  begin
-    Result := lFunc(aValue, aParameters);
-  end
-  else if (fTemplateAnonFunctions <> nil) and fTemplateAnonFunctions.TryGetValue(aFunctionName, lAnonFunc) then
-  begin
-    Result := lAnonFunc(aValue, aParameters);
-  end
   else
   begin
     Error(Format('Unknown function [%s]', [aFunctionName]));
@@ -3458,254 +4386,258 @@ var
   I: Integer;
   r: string;
   b: UInt32;
-  C4: UCS4Char;
+  lSB: TStringBuilder;
 begin
-  I := 1;
-  while I <= Length(s) do
-  begin
-    r := '';
-    if (Char.IsHighSurrogate(S, I-1)) and (Char.IsLowSurrogate(S, I)) then
+  lSB := TStringBuilder.Create(Length(s));
+  try
+    I := 1;
+    while I <= Length(s) do
     begin
-      C4 := Char.ConvertToUtf32(S, I-1);
-      r := IntToStr(C4);
-      s := s.Substring(0, I-1) + '&#' + r + ';' + s.Substring(I+1);
-      Inc(I,r.Length + 3);
-      Continue;
-    end
-    else
-    begin
-      b := Ord(S[I]);
-      if b > 255 then
+      r := '';
+      if (Char.IsHighSurrogate(S, I-1)) and (Char.IsLowSurrogate(S, I)) then
       begin
-        if b = 8364 then
-          r := 'euro'
-        else
-          r := '#' + IntToStr(b);
+        lSB.Append('&#').Append(Char.ConvertToUtf32(S, I-1)).Append(';');
+        Inc(I, 2);
+        Continue;
       end
       else
       begin
+        b := Ord(S[I]);
+        if b > 255 then
+        begin
+          if b = 8364 then
+            r := 'euro'
+          else
+            r := '#' + IntToStr(b);
+        end
+        else
+        begin
 {$REGION 'entities'}
-      case b of
-        Ord('&'):
-          r := 'amp';
-        Ord('>'):
-          r := 'gt';
-        Ord('<'):
-          r := 'lt';
-        Ord('"'):
-          r := 'quot';
-        Ord(''''):
-          r := '#39';
-        160:
-          r := 'nbsp';
-        161:
-          r := 'excl';
-        162:
-          r := 'cent';
-        163:
-          r := 'pound';
-        164:
-          r := 'curren';
-        165:
-          r := 'yen';
-        166:
-          r := 'brvbar';
-        167:
-          r := 'sect';
-        168:
-          r := 'uml';
-        169:
-          r := 'copy';
-        170:
-          r := 'ordf';
-        171:
-          r := 'laquo';
-        172:
-          r := 'not';
-        173:
-          r := 'shy';
-        174:
-          r := 'reg';
-        175:
-          r := 'macr';
-        176:
-          r := 'deg';
-        177:
-          r := 'plusmn';
-        178:
-          r := 'sup2';
-        179:
-          r := 'sup3';
-        180:
-          r := 'acute';
-        181:
-          r := 'micro';
-        182:
-          r := 'para';
-        183:
-          r := 'middot';
-        184:
-          r := 'cedil';
-        185:
-          r := 'sup1';
-        186:
-          r := 'ordm';
-        187:
-          r := 'raquo';
-        188:
-          r := 'frac14';
-        189:
-          r := 'frac12';
-        190:
-          r := 'frac34';
-        191:
-          r := 'iquest';
-        192:
-          r := 'Agrave';
-        193:
-          r := 'Aacute';
-        194:
-          r := 'Acirc';
-        195:
-          r := 'Atilde';
-        196:
-          r := 'Auml';
-        197:
-          r := 'Aring';
-        198:
-          r := 'AElig';
-        199:
-          r := 'Ccedil';
-        200:
-          r := 'Egrave';
-        201:
-          r := 'Eacute';
-        202:
-          r := 'Ecirc';
-        203:
-          r := 'Euml';
-        204:
-          r := 'Igrave';
-        205:
-          r := 'Iacute';
-        206:
-          r := 'Icirc';
-        207:
-          r := 'Iuml';
-        208:
-          r := 'ETH';
-        209:
-          r := 'Ntilde';
-        210:
-          r := 'Ograve';
-        211:
-          r := 'Oacute';
-        212:
-          r := 'Ocirc';
-        213:
-          r := 'Otilde';
-        214:
-          r := 'Ouml';
-        215:
-          r := 'times';
-        216:
-          r := 'Oslash';
-        217:
-          r := 'Ugrave';
-        218:
-          r := 'Uacute';
-        219:
-          r := 'Ucirc';
-        220:
-          r := 'Uuml';
-        221:
-          r := 'Yacute';
-        222:
-          r := 'THORN';
-        223:
-          r := 'szlig';
-        224:
-          r := 'agrave';
-        225:
-          r := 'aacute';
-        226:
-          r := 'acirc';
-        227:
-          r := 'atilde';
-        228:
-          r := 'auml';
-        229:
-          r := 'aring';
-        230:
-          r := 'aelig';
-        231:
-          r := 'ccedil';
-        232:
-          r := 'egrave';
-        233:
-          r := 'eacute';
-        234:
-          r := 'ecirc';
-        235:
-          r := 'euml';
-        236:
-          r := 'igrave';
-        237:
-          r := 'iacute';
-        238:
-          r := 'icirc';
-        239:
-          r := 'iuml';
-        240:
-          r := 'eth';
-        241:
-          r := 'ntilde';
-        242:
-          r := 'ograve';
-        243:
-          r := 'oacute';
-        244:
-          r := 'ocirc';
-        245:
-          r := 'otilde';
-        246:
-          r := 'ouml';
-        247:
-          r := 'divide';
-        248:
-          r := 'oslash';
-        249:
-          r := 'ugrave';
-        250:
-          r := 'uacute';
-        251:
-          r := 'ucirc';
-        252:
-          r := 'uuml';
-        253:
-          r := 'yacute';
-        254:
-          r := 'thorn';
-        255:
-          r := 'yuml';
-      end;
+        case b of
+          Ord('&'):
+            r := 'amp';
+          Ord('>'):
+            r := 'gt';
+          Ord('<'):
+            r := 'lt';
+          Ord('"'):
+            r := 'quot';
+          Ord(''''):
+            r := '#39';
+          160:
+            r := 'nbsp';
+          161:
+            r := 'excl';
+          162:
+            r := 'cent';
+          163:
+            r := 'pound';
+          164:
+            r := 'curren';
+          165:
+            r := 'yen';
+          166:
+            r := 'brvbar';
+          167:
+            r := 'sect';
+          168:
+            r := 'uml';
+          169:
+            r := 'copy';
+          170:
+            r := 'ordf';
+          171:
+            r := 'laquo';
+          172:
+            r := 'not';
+          173:
+            r := 'shy';
+          174:
+            r := 'reg';
+          175:
+            r := 'macr';
+          176:
+            r := 'deg';
+          177:
+            r := 'plusmn';
+          178:
+            r := 'sup2';
+          179:
+            r := 'sup3';
+          180:
+            r := 'acute';
+          181:
+            r := 'micro';
+          182:
+            r := 'para';
+          183:
+            r := 'middot';
+          184:
+            r := 'cedil';
+          185:
+            r := 'sup1';
+          186:
+            r := 'ordm';
+          187:
+            r := 'raquo';
+          188:
+            r := 'frac14';
+          189:
+            r := 'frac12';
+          190:
+            r := 'frac34';
+          191:
+            r := 'iquest';
+          192:
+            r := 'Agrave';
+          193:
+            r := 'Aacute';
+          194:
+            r := 'Acirc';
+          195:
+            r := 'Atilde';
+          196:
+            r := 'Auml';
+          197:
+            r := 'Aring';
+          198:
+            r := 'AElig';
+          199:
+            r := 'Ccedil';
+          200:
+            r := 'Egrave';
+          201:
+            r := 'Eacute';
+          202:
+            r := 'Ecirc';
+          203:
+            r := 'Euml';
+          204:
+            r := 'Igrave';
+          205:
+            r := 'Iacute';
+          206:
+            r := 'Icirc';
+          207:
+            r := 'Iuml';
+          208:
+            r := 'ETH';
+          209:
+            r := 'Ntilde';
+          210:
+            r := 'Ograve';
+          211:
+            r := 'Oacute';
+          212:
+            r := 'Ocirc';
+          213:
+            r := 'Otilde';
+          214:
+            r := 'Ouml';
+          215:
+            r := 'times';
+          216:
+            r := 'Oslash';
+          217:
+            r := 'Ugrave';
+          218:
+            r := 'Uacute';
+          219:
+            r := 'Ucirc';
+          220:
+            r := 'Uuml';
+          221:
+            r := 'Yacute';
+          222:
+            r := 'THORN';
+          223:
+            r := 'szlig';
+          224:
+            r := 'agrave';
+          225:
+            r := 'aacute';
+          226:
+            r := 'acirc';
+          227:
+            r := 'atilde';
+          228:
+            r := 'auml';
+          229:
+            r := 'aring';
+          230:
+            r := 'aelig';
+          231:
+            r := 'ccedil';
+          232:
+            r := 'egrave';
+          233:
+            r := 'eacute';
+          234:
+            r := 'ecirc';
+          235:
+            r := 'euml';
+          236:
+            r := 'igrave';
+          237:
+            r := 'iacute';
+          238:
+            r := 'icirc';
+          239:
+            r := 'iuml';
+          240:
+            r := 'eth';
+          241:
+            r := 'ntilde';
+          242:
+            r := 'ograve';
+          243:
+            r := 'oacute';
+          244:
+            r := 'ocirc';
+          245:
+            r := 'otilde';
+          246:
+            r := 'ouml';
+          247:
+            r := 'divide';
+          248:
+            r := 'oslash';
+          249:
+            r := 'ugrave';
+          250:
+            r := 'uacute';
+          251:
+            r := 'ucirc';
+          252:
+            r := 'uuml';
+          253:
+            r := 'yacute';
+          254:
+            r := 'thorn';
+          255:
+            r := 'yuml';
+        end;
 {$ENDREGION}
+        end;
       end;
-    end;
 
-    if r <> '' then
-    begin
-      s := s.Substring(0, I-1) + '&' + r + ';' + s.Substring(I);
-      Inc(I, Length(r) + 1);
+      if r <> '' then
+        lSB.Append('&').Append(r).Append(';')
+      else
+        lSB.Append(s[I]);
+      Inc(I);
     end;
-    Inc(I);
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
   end;
-  Result := s;
 end;
 
 { TTProCompiledTemplate }
 
 constructor TTProCompiledTemplate.Create(Tokens: TList<TToken>);
+var
+  I: Integer;
 begin
   inherited Create;
   fLoopsStack := TObjectList<TLoopStackItem>.Create(True);
@@ -3717,53 +4649,78 @@ begin
   fTemplateAnonFunctions := nil;
   fMacros := TDictionary<string, TMacroDefinition>.Create(TTProEqualityComparer.Create);
   TTProConfiguration.RegisterHandlers(self);
+  // the macros of the imported libraries are known from the start, wherever their definitions are
+  for I := 0 to fTokens.Count - 1 do
+    if (fTokens[I].TokenType = ttMacro) and fTokens[I].Value1.Contains('.') then
+      RegisterMacro(I);
   fLocaleFormatSettings := TFormatSettings.Invariant;
   fLocaleFormatSettings.ShortDateFormat := 'yyyy-mm-dd';
   fEncoding := TEncoding.UTF8;
   fOutputLineEnding := lesLF;
   fDynamicIncludeCache := TDictionary<string, ITProCompiledTemplate>.Create;
+  fOwnedObjects := TObjectList<TObject>.Create(True);
+  fSlotFrames := TList<TTProSlotFrame>.Create;
+  fCurrentSlotFrame := -1;
+end;
+
+function LoadCompiledTemplate(const aStream: TStream; const aSource: string): ITProCompiledTemplate;
+var
+  lBR: TBinaryReader;
+  lTokens: TList<TToken>;
+begin
+  lBR := TBinaryReader.Create(aStream, nil, False); // False = don't own stream
+  try
+    lTokens := TList<TToken>.Create;
+    try
+      try
+        while True do
+        begin
+          lTokens.Add(TToken.CreateFromBytes(lBR));
+          if lTokens.Last.TokenType = ttEOF then
+          begin
+            Break;
+          end;
+        end;
+      except
+        on E: Exception do
+        begin
+          raise ETProRenderException.CreateFmt
+            ('Cannot load compiled template from [%s][CLASS: %s][MSG: %s] - consider to delete templates cache.',
+            [aSource, E.ClassName, E.Message])
+        end;
+      end;
+      Result := TTProCompiledTemplate.Create(lTokens);
+    except
+      lTokens.Free;
+      raise;
+    end;
+  finally
+    lBR.Free;
+  end;
 end;
 
 class function TTProCompiledTemplate.CreateFromFile(const FileName: String): ITProCompiledTemplate;
 var
-  lBR: TBinaryReader;
-  lTokens: TList<TToken>;
   lBufferedStream: TBufferedFileStream;
 begin
   // Use TBufferedFileStream for ~50% faster loading compared to TFile.ReadAllBytes + TBytesStream
   lBufferedStream := TBufferedFileStream.Create(FileName, fmOpenRead or fmShareDenyNone, 65536);
   try
-    lBR := TBinaryReader.Create(lBufferedStream, nil, False); // False = don't own stream
-    try
-      lTokens := TList<TToken>.Create;
-      try
-        try
-          while True do
-          begin
-            lTokens.Add(TToken.CreateFromBytes(lBR));
-            if lTokens.Last.TokenType = ttEOF then
-            begin
-              Break;
-            end;
-          end;
-        except
-          on E: Exception do
-          begin
-            raise ETProRenderException.CreateFmt
-              ('Cannot load compiled template from [FILE: %s][CLASS: %s][MSG: %s] - consider to delete templates cache.',
-              [FileName, E.ClassName, E.Message])
-          end;
-        end;
-        Result := TTProCompiledTemplate.Create(lTokens);
-      except
-        lTokens.Free;
-        raise;
-      end;
-    finally
-      lBR.Free;
-    end;
+    Result := LoadCompiledTemplate(lBufferedStream, 'FILE: ' + FileName);
   finally
     lBufferedStream.Free;
+  end;
+end;
+
+class function TTProCompiledTemplate.CreateFromBytes(const aBytes: TBytes): ITProCompiledTemplate;
+var
+  lStream: TBytesStream;
+begin
+  lStream := TBytesStream.Create(aBytes);
+  try
+    Result := LoadCompiledTemplate(lStream, 'BYTES');
+  finally
+    lStream.Free;
   end;
 end;
 
@@ -3772,6 +4729,8 @@ begin
   fOnGetValue := nil;
   fExprEvaluator.Free;
   fDynamicIncludeCache.Free;
+  fOwnedObjects.Free;
+  fSlotFrames.Free;
   fLoopsStack.Free;
   fIncludeSavedVarsStack.Free;
   fAutoescapeStack.Free;
@@ -3812,9 +4771,23 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.Render: String;
+procedure TTProCompiledTemplate.RenderTo(const aBuff: TStringBuilder; const aStacks: TTProStacks);
+begin
+  ResetRenderState;
+  fStacks := aStacks;
+  try
+    RenderRange(aBuff, 0, fTokens.Count);
+  finally
+    ReleaseOwnedObjects;
+    fStacks := nil;
+  end;
+end;
+
+procedure TTProCompiledTemplate.RenderRange(const aBuff: TStringBuilder; const aFrom, aTo: Int64);
+// renders the tokens from aFrom to aTo (excluded): the whole template, or the content of a slot
 var
   lIdx: Int64;
+  lValueOwned: Boolean;
   lBuff: TStringBuilder;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
@@ -3857,19 +4830,16 @@ var
   lDynIncludeCompiler: TTProCompiler;
   lDynIncludeTemplate: ITProCompiledTemplate;
   lDynHandled: Boolean;
-  // Variables for expression filters
-  lExprFilterCount: Int64;
   // Variables for JSON array path parsing
   lPathIndex: Integer;
   lPathRemainder: String;
 begin
+  lBuff := aBuff;
   lCurrentLevel := 0;
   lBlockStack := TStack<TBlockReturnInfo>.Create;
   try
-  lBuff := TStringBuilder.Create;
-  try
-    lIdx := 0;
-    while fTokens[lIdx].TokenType <> ttEOF do
+    lIdx := aFrom;
+    while (lIdx < aTo) and (fTokens[lIdx].TokenType <> ttEOF) do
     begin
       //Writeln(fTokens[lIdx].ToString);
       case fTokens[lIdx].TokenType of
@@ -3883,10 +4853,27 @@ begin
             // Decode isFieldIteration (bit 0) and elseAddress (bits 1+) from Ref2
             lIsFieldIteration := (fTokens[lIdx].Ref2 and 1) = 1;
             lForElseAddress := (fTokens[lIdx].Ref2 shr 1) - 1;  // -1 means no else
-            if LoopStackIsEmpty or (lForLoopItem.LoopExpression <> fTokens[lIdx].Value1) then
+            // nested ranges often share the expression, e.g. range(3) inside range(3): the iterator tells them apart
+            if LoopStackIsEmpty or (lForLoopItem.LoopExpression <> fTokens[lIdx].Value1) or
+              (lForLoopItem.IsRange and (lForLoopItem.IteratorName <> fTokens[lIdx].Value2)) then
             begin // push a new loop stack item
               SplitVariableName(fTokens[lIdx].Value1, lVarName, lVarMember);
-              if WalkThroughLoopStack(lVarName, lBaseVarName, lFullPath) then
+              if fTokens[lIdx].Value1.StartsWith(RANGE_PREFIX) then
+              begin
+                lForLoopItem := TLoopStackItem.Create('', fTokens[lIdx].Value1, '', fTokens[lIdx].Value2);
+                lForLoopItem.IsRange := True;
+                PushLoop(lForLoopItem);
+              end
+              else if lIsFieldIteration and IsObjectForFields(fTokens[lIdx].Value1, lObj) then
+              begin
+                // the properties of an object: a metadata list in a hidden variable, iterated as any list
+                lVarName := '@@fields' + lIdx.ToString;
+                lForLoopItem := TLoopStackItem.Create(lVarName, fTokens[lIdx].Value1, '', fTokens[lIdx].Value2);
+                lForLoopItem.OwnedData := ObjectFieldsMetadata(lObj.AsObject);
+                PushLoop(lForLoopItem);
+                SetData(lVarName, lForLoopItem.OwnedData);
+              end
+              else if WalkThroughLoopStack(lVarName, lBaseVarName, lFullPath) then
               begin
                 if not lVarMember.IsEmpty then
                   lFullPath := lFullPath + '.' + lVarMember;
@@ -3900,7 +4887,32 @@ begin
             lForLoopItem := PeekLoop;
 
             // Now, work with the stack head
-            if GetVariables.TryGetValue(PeekLoop.DataSourceName, lVariable) then
+            if lForLoopItem.IsRange then
+            begin
+              if lForLoopItem.IteratorPosition = -1 then
+                InitRangeLoop(lForLoopItem);
+              if lForLoopItem.IteratorPosition >= lForLoopItem.TotalCount - 1 then
+              begin
+                lForLoopItem.EOF := True;
+                if (lForLoopItem.IteratorPosition = -1) and (lForElseAddress > -1) then
+                  lIdx := lForElseAddress + 1  // empty range: jump to else content
+                else
+                  lIdx := fTokens[lIdx].Ref1;  // skip to endfor
+                Continue;
+              end;
+              lForLoopItem.IncrementIteratorPosition;
+            end
+            else if GetVariables.TryGetValue(PeekLoop.DataSourceName, lVariable) and (lVariable = nil) then
+            begin
+              // a variable set to an empty value (e.g. a macro parameter): nothing to iterate
+              lForLoopItem.EOF := True;
+              if lForElseAddress > -1 then
+                lIdx := lForElseAddress + 1
+              else
+                lIdx := fTokens[lIdx].Ref1;
+              Continue;
+            end
+            else if GetVariables.TryGetValue(PeekLoop.DataSourceName, lVariable) then
             begin
               if lForLoopItem.FullPath.IsEmpty and (not lForLoopItem.IsFieldIteration) then
               begin
@@ -4113,6 +5125,8 @@ begin
             end;
             if lForLoopItem.EOF then
             begin
+              if lForLoopItem.OwnedData <> nil then
+                GetVariables.Remove(lForLoopItem.DataSourceName); // the hidden variable of @@fields
               PopLoop;
             end
             else
@@ -4157,8 +5171,23 @@ begin
             lIdx := fTokens[lIdx].Ref2;
             Continue;
           end;
-        ttEndIf, ttStartTag, ttEndTag:
+        ttEndIf, ttStartTag, ttEndTag, ttEndSwitch, ttEndCall, ttEndFill, ttEndSlot, ttDependency:
           begin
+          end;
+        ttFill:
+          lIdx := fTokens[lIdx].Ref2; // a named slot is not part of the default one: skip to its endfill
+        ttSlot:
+          lIdx := RenderSlot(lIdx, lBuff);
+        ttSwitch:
+          begin
+            lIdx := SelectSwitchBranch(lIdx);
+            Continue;
+          end;
+        ttCase, ttDefault:
+          begin
+            // the previous branch is over: no fall-through
+            lIdx := fTokens[lIdx].Ref1;
+            Continue;
           end;
         ttInclude:
           begin
@@ -4182,10 +5211,15 @@ begin
               begin
                 fOnGetDynamicallyIncludedTemplate(lDynIncludeFileName, lDynIncludeSource, lDynHandled);
               end;
+              if not lDynHandled and Assigned(TTProConfiguration.fOnGetTemplate) then
+                TTProConfiguration.fOnGetTemplate(lDynIncludeFileName, lDynIncludeSource, lDynHandled);
 
               // Fallback to file system if not handled
               if not lDynHandled then
               begin
+                if (not fIncludeRootPath.IsEmpty) and
+                  (not lDynFullPath.StartsWith(IncludeTrailingPathDelimiter(TPath.GetFullPath(fIncludeRootPath)), True)) then
+                  Error('Dynamic include "' + lDynIncludeFileName + '" resolves outside IncludeRootPath');
                 try
                   lDynIncludeSource := TFile.ReadAllText(lDynFullPath, fEncoding);
                 except
@@ -4202,6 +5236,7 @@ begin
                 lDynIncludeTemplate := lDynIncludeCompiler.Compile(lDynIncludeSource, lDynFullPath);
                 // Propagate the callback to the compiled template for nested dynamic includes
                 lDynIncludeTemplate.OnGetDynamicallyIncludedTemplate := fOnGetDynamicallyIncludedTemplate;
+                lDynIncludeTemplate.IncludeRootPath := fIncludeRootPath;
               finally
                 lDynIncludeCompiler.Free;
               end;
@@ -4214,11 +5249,18 @@ begin
             if fVariables <> nil then
             begin
               for lVarPair in fVariables do
-                lDynIncludeTemplate.SetData(lVarPair.Key, lVarPair.Value.VarValue);
+                if lVarPair.Value = nil then // a variable set to an empty value
+                  lDynIncludeTemplate.SetData(lVarPair.Key, TValue.Empty)
+                else
+                  lDynIncludeTemplate.SetData(lVarPair.Key, lVarPair.Value.VarValue);
             end;
 
             // Execute and append output
-            lBuff.Append(lDynIncludeTemplate.Render);
+            if fRenderNestingDepth + 1 > MAX_RENDER_NESTING then
+              Error(Format('Template nesting too deep (max %d levels of macro calls and dynamic includes)', [MAX_RENDER_NESTING]));
+            (lDynIncludeTemplate as TTProCompiledTemplate).fRenderNestingDepth := fRenderNestingDepth + 1;
+            // same buffer and stacks: its pushes and stacks belong to this render
+            (lDynIncludeTemplate as TTProCompiledTemplate).RenderTo(lBuff, fStacks);
           end;
         ttBoolExpression:
           begin
@@ -4226,33 +5268,35 @@ begin
           end;
         ttValue, ttLiteralString:
           begin
-            lVarValue := EvaluateValue(lIdx, lMustBeEncoded { must be encoded } );
-            // lMustBeEncoded = False means explicit raw ($) - never encode
-            // lMustBeEncoded = True means follow autoescape stack
-            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-              lBuff.Append(lVarValue.ToString)
-            else
-              lBuff.Append(HTMLEncode(lVarValue.ToString));
-            if lVarValue.IsObjectInstance then
-            begin
-              lVarValue.AsObject.Free;
+            lVarValue := EvaluateValue(lIdx, lMustBeEncoded { must be encoded }, lValueOwned);
+            try
+              // lMustBeEncoded = False means explicit raw ($) - never encode
+              // lMustBeEncoded = True means follow autoescape stack
+              if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                lBuff.Append(OutputString(lVarValue))
+              else
+                lBuff.Append(HTMLEncode(OutputString(lVarValue)));
+            finally
+              // only objects created by custom filters are freed, never the caller's ones
+              if lValueOwned then
+                lVarValue.AsObject.Free;
             end;
           end;
         ttExpression:
           begin
-            lVarValue := EvaluateExpression(fTokens[lIdx].Value1);
-            lExprFilterCount := fTokens[lIdx].Ref1;
-            lMustBeEncoded := fTokens[lIdx].Ref2 = -1;
-            // Apply filters if present
-            if lExprFilterCount > 0 then
-              ApplyFilters(lIdx, lVarValue, lExprFilterCount, 'expression');
-            // Apply HTML encoding if required
-            // lMustBeEncoded = False means explicit raw ($) - never encode
-            // lMustBeEncoded = True means follow autoescape stack
-            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-              lBuff.Append(lVarValue.ToString)
-            else
-              lBuff.Append(HTMLEncode(lVarValue.ToString));
+            lVarValue := EvaluateExpressionToken(lIdx, lMustBeEncoded, lValueOwned);
+            try
+              // Apply HTML encoding if required
+              // lMustBeEncoded = False means explicit raw ($) - never encode
+              // lMustBeEncoded = True means follow autoescape stack
+              if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                lBuff.Append(OutputString(lVarValue))
+              else
+                lBuff.Append(HTMLEncode(OutputString(lVarValue)));
+            finally
+              if lValueOwned then
+                lVarValue.AsObject.Free;
+            end;
           end;
         ttSet:
           ProcessSetToken(lIdx);
@@ -4408,9 +5452,12 @@ begin
         ttCallMacro:
           begin
             // Execute macro
-            lBuff.Append(ExecuteMacro(lIdx));
-            // Skip the call parameters
-            lIdx := lIdx + fTokens[lIdx].Ref1;
+            ExecuteMacro(lIdx, lBuff);
+            // Skip the call parameters, and the body (the slots) if any
+            if fTokens[lIdx].Ref2 > -1 then
+              lIdx := fTokens[lIdx].Ref2
+            else
+              lIdx := lIdx + fTokens[lIdx].Ref1;
           end;
         ttAutoescape:
           begin
@@ -4423,6 +5470,12 @@ begin
             if fAutoescapeStack.Count > 1 then
               fAutoescapeStack.Pop;
           end;
+        ttPush:
+          BeginPush(lIdx, lBuff);
+        ttEndPush:
+          EndPush(lBuff);
+        ttStack:
+          AddStackPlaceholder(lIdx, lBuff);
       else
         begin
           Error('Invalid token at index #' + lIdx.ToString + ': ' + fTokens[lIdx].TokenTypeAsString);
@@ -4430,13 +5483,126 @@ begin
       end;
       Inc(lIdx);
     end;
+  finally
+    lBlockStack.Free;
+  end;
+end;
+
+function TTProCompiledTemplate.IsStale: Boolean;
+// the main template source is not a dependency: the caller checks it
+var
+  I: Integer;
+  lTime, lSize: Int64;
+begin
+  I := fTokens.Count - 2; // the dependencies are just before the final EOF
+  while (I >= 0) and (fTokens[I].TokenType = ttDependency) do
+  begin
+    if fTokens[I].Value2 = 'f' then
+    begin
+      if not GetFileStamp(fTokens[I].Value1, lTime, lSize) or (lTime <> fTokens[I].Ref1) or (lSize <> fTokens[I].Ref2) then
+        Exit(True);
+    end
+    else if TTProConfiguration.GetTemplateVersion(fTokens[I].Value1) <> fTokens[I].Ref1 then
+      Exit(True);
+    Dec(I);
+  end;
+  Result := False;
+end;
+
+function TTProCompiledTemplate.Render: String;
+var
+  lBuff: TStringBuilder;
+  lStacks: TTProStacks;
+begin
+  lBuff := TStringBuilder.Create;
+  try
+    lStacks := TTProStacks.Create;
+    try
+      RenderTo(lBuff, lStacks);
+      lStacks.WriteInto(lBuff);
+    finally
+      lStacks.Free;
+    end;
     Result := lBuff.ToString;
   finally
     lBuff.Free;
   end;
-  finally
-    lBlockStack.Free;
+end;
+
+{ TTProStacks }
+
+constructor TTProStacks.Create;
+begin
+  inherited Create;
+  fContents := TObjectDictionary<string, TList<string>>.Create([doOwnsValues], TTProEqualityComparer.Create);
+  fPlaceholders := TList<TPair<Integer, string>>.Create;
+  fOpenPushes := TStack<TTProOpenPush>.Create;
+end;
+
+destructor TTProStacks.Destroy;
+begin
+  fOpenPushes.Free;
+  fPlaceholders.Free;
+  fContents.Free;
+  inherited;
+end;
+
+procedure TTProStacks.WriteInto(const aBuff: TStringBuilder);
+var
+  I: Integer;
+  lContent: TList<string>;
+begin
+  // placeholders are recorded in buffer order: filling them from the last keeps the other positions valid
+  for I := fPlaceholders.Count - 1 downto 0 do
+    if fContents.TryGetValue(fPlaceholders[I].Value, lContent) then
+      aBuff.Insert(fPlaceholders[I].Key, String.Join('', lContent.ToArray));
+end;
+
+function TTProCompiledTemplate.ResolveTokenName(const aToken: TToken): string;
+begin
+  if aToken.Value2 = 'v' then
+    Result := ValueAsString(GetVarAsTValue(aToken.Value1))
+  else if aToken.Value2 = '@' then
+    Result := ValueAsString(EvaluateExpression(aToken.Value1))
+  else
+    Result := aToken.Value1;
+end;
+
+procedure TTProCompiledTemplate.BeginPush(const aIdx: Int64; const aBuff: TStringBuilder);
+var
+  lOpenPush: TTProOpenPush;
+begin
+  // the content is rendered in place, then moved to the stack by EndPush
+  lOpenPush.Start := aBuff.Length;
+  lOpenPush.StackName := ResolveTokenName(fTokens[aIdx]);
+  lOpenPush.Once := fTokens[aIdx].Ref2 = 1;
+  fStacks.fOpenPushes.Push(lOpenPush);
+end;
+
+procedure TTProCompiledTemplate.EndPush(const aBuff: TStringBuilder);
+var
+  lOpenPush: TTProOpenPush;
+  lContent: string;
+  lStackContent: TList<string>;
+begin
+  lOpenPush := fStacks.fOpenPushes.Pop;
+  lContent := aBuff.ToString(lOpenPush.Start, aBuff.Length - lOpenPush.Start);
+  aBuff.Length := lOpenPush.Start;
+  if not fStacks.fContents.TryGetValue(lOpenPush.StackName, lStackContent) then
+  begin
+    lStackContent := TList<string>.Create;
+    fStacks.fContents.Add(lOpenPush.StackName, lStackContent);
   end;
+  if not (lOpenPush.Once and lStackContent.Contains(lContent)) then
+    lStackContent.Add(lContent);
+end;
+
+procedure TTProCompiledTemplate.AddStackPlaceholder(const aIdx: Int64; const aBuff: TStringBuilder);
+begin
+  // a position in the output, not a marker: rendered data can never be taken for a stack
+  if fStacks.fOpenPushes.Count > 0 then
+    Error('"stack" cannot be used inside "push"');
+  fStacks.fPlaceholders.Add(TPair<Integer, string>.Create(aBuff.Length, ResolveTokenName(fTokens[aIdx])));
 end;
 
 function TTProCompiledTemplate.GetVarAsString(const Name: string): string;
@@ -4479,6 +5645,14 @@ begin
   if not lIsAnIterator then
   begin
     lDataSource := lVarName;
+  end
+  else if lCurrentIterator.IsRange then
+  begin
+    if lVarMembers.StartsWith('@@') then
+      Exit(GetPseudoVariable(lCurrentIterator.IteratorPosition, lVarMembers));
+    if lHasMember then
+      Error('A range value has no member "%s"', [lVarMembers]);
+    Exit(TValue.From<Int64>(lCurrentIterator.RangeStart + lCurrentIterator.IteratorPosition * lCurrentIterator.RangeStep));
   end;
 
   if GetVariables.TryGetValue(lDataSource, lVariable) then
@@ -4558,13 +5732,13 @@ begin
             if not lVarMembers.IsEmpty then
               lPJSONDataValue := lPJSONDataValue.Path[lVarMembers];
             case lPJSONDataValue.Typ of
-              jdtArray:
+              jdtArray: // an object for filters and macros, printed as JSON
                 begin
-                  Result := lPJSONDataValue.ArrayValue.ToJSON();
+                  Result := lPJSONDataValue.ArrayValue;
                 end;
               jdtObject:
                 begin
-                  Result := lPJSONDataValue.ObjectValue.ToJSON();
+                  Result := lPJSONDataValue.ObjectValue;
                 end;
               jdtFloat:
                 begin
@@ -4684,13 +5858,13 @@ begin
             if not lVarMembers.IsEmpty then
               lPJSONDataValue := lPJSONDataValue.Path[lVarMembers];
             case lPJSONDataValue.Typ of
-              jdtArray:
+              jdtArray: // an object for filters and macros, printed as JSON
                 begin
-                  Result := lPJSONDataValue.ArrayValue.ToJSON();
+                  Result := lPJSONDataValue.ArrayValue;
                 end;
               jdtObject:
                 begin
-                  Result := lPJSONDataValue.ObjectValue.ToJSON();
+                  Result := lPJSONDataValue.ObjectValue;
                 end;
               jdtFloat:
                 begin
@@ -4763,7 +5937,10 @@ begin
           begin
             if lCurrentIterator.FullPath.IsEmpty then
             begin
-              Result := WrapAsList(lVariable.VarValue.AsObject).GetItem(lCurrentIterator.IteratorPosition);
+              // the item as it is: an object, or a simple value (e.g. of a TList<string>)
+              WrapAsList(lVariable.VarValue.AsObject).ItemIsObject(lCurrentIterator.IteratorPosition, Result);
+              if Result.Kind = tkInterface then
+                Result := TObject(Result.AsInterface); // as before 1.2
             end
             else
             begin
@@ -5000,6 +6177,8 @@ function TTProCompiledTemplate.EvaluateIfExpressionAt(var Idx: Int64): Boolean;
 var
   lMustBeEncoded: Boolean;
   lExprResult: TValue;
+  lValue: TValue;
+  lValueOwned: Boolean;
 begin
   Inc(Idx);
   if fTokens[Idx].TokenType <> ttBoolExpression then
@@ -5017,11 +6196,17 @@ begin
   else
   begin
     // Original variable-based evaluation
-    Result := IsTruthy(EvaluateValue(Idx, lMustBeEncoded));
+    lValue := EvaluateValue(Idx, lMustBeEncoded, lValueOwned);
+    try
+      Result := IsTruthy(lValue);
+    finally
+      if lValueOwned then
+        lValue.AsObject.Free;
+    end;
   end;
 end;
 
-function TTProCompiledTemplate.EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
+function TTProCompiledTemplate.EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
 var
   lCurrTokenType: TTokenType;
   lVarName: string;
@@ -5029,10 +6214,12 @@ var
   lNegated: Boolean;
   lCurrentValue: TValue;
   lDataSetFieldMeta: string;
+  lValueIsHTML: Boolean;
 begin
   // Ref1 contains the number of filters (0 if there isn't any filter)
   // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
   MustBeEncoded := fTokens[Idx].Ref2 = -1;
+  ResultOwned := False;
   lCurrTokenType := fTokens[Idx].TokenType;
   lVarName := fTokens[Idx].Value1;
   lFilterCount := fTokens[Idx].Ref1;
@@ -5071,11 +6258,20 @@ begin
       lCurrentValue := GetNullableTValueAsTValue(@lCurrentValue, lVarName);
 
     // Apply filters
-    ApplyFilters(Idx, lCurrentValue, lFilterCount, lVarName);
+    ApplyFilters(Idx, lCurrentValue, lFilterCount, lVarName, ResultOwned, lValueIsHTML);
+    if lValueIsHTML then
+      MustBeEncoded := False;
 
     // For bool expressions, convert final result to boolean
     if lCurrTokenType = ttBoolExpression then
-      Result := IsTruthy(lCurrentValue)
+    begin
+      Result := IsTruthy(lCurrentValue);
+      if ResultOwned then
+      begin
+        lCurrentValue.AsObject.Free;
+        ResultOwned := False;
+      end;
+    end
     else
       Result := lCurrentValue;
   end
@@ -5094,17 +6290,26 @@ begin
   end;
   if lNegated then
   begin
+    if ResultOwned then
+    begin
+      Result.AsObject.Free;
+      ResultOwned := False;
+      Error('Cannot negate an object returned by a filter');
+    end;
     Result := not Result.AsBoolean;
   end;
 end;
 
-procedure TTProCompiledTemplate.ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string);
+procedure TTProCompiledTemplate.ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string;
+  out ValueOwned: Boolean; out ValueIsHTML: Boolean);
 var
   lFilterName: string;
   lFilterParCount: Int64;
   lFilterParameters: TArray<TFilterParameter>;
   I, J: Integer;
 begin
+  ValueOwned := False; // the initial value always belongs to the caller
+  ValueIsHTML := False;
   for J := 0 to FilterCount - 1 do
   begin
     Inc(Idx);
@@ -5116,16 +6321,12 @@ begin
     begin
       Inc(Idx);
       Assert(fTokens[Idx].TokenType = ttFilterParameter);
-      lFilterParameters[I].ParType := TFilterParameterType(fTokens[Idx].Ref2);
-      case lFilterParameters[I].ParType of
-        fptInteger:
-          lFilterParameters[I].ParIntValue := fTokens[Idx].Value1.ToInteger;
-        fptString, fptVariable:
-          lFilterParameters[I].ParStrText := fTokens[Idx].Value1;
-      end;
+      lFilterParameters[I] := ResolveFilterParameter(fTokens[Idx]);
     end;
+    // the built-in nl2br encodes its input itself: its result, if not changed by another filter, is emitted as is
+    ValueIsHTML := SameText(lFilterName, 'nl2br') and not IsCustomFilter(lFilterName);
     try
-      Value := ExecuteFilter(lFilterName, lFilterParameters, Value, ContextName);
+      ExecuteFilterTrackingOwnership(lFilterName, lFilterParameters, Value, ContextName, ValueOwned);
     except
       on E: Exception do
       begin
@@ -5135,19 +6336,609 @@ begin
   end;
 end;
 
-procedure TTProCompiledTemplate.SaveToFile(const FileName: String);
+function TTProCompiledTemplate.EvaluateExpressionToken(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
+// {{@expr|filters}}: Idx is left on the last filter token
+var
+  lValueIsHTML: Boolean;
+begin
+  Result := EvaluateExpression(fTokens[Idx].Value1);
+  MustBeEncoded := fTokens[Idx].Ref2 = -1;
+  ResultOwned := False;
+  if fTokens[Idx].Ref1 > 0 then
+  begin
+    ApplyFilters(Idx, Result, fTokens[Idx].Ref1, 'expression', ResultOwned, lValueIsHTML);
+    if lValueIsHTML then
+      MustBeEncoded := False;
+  end;
+end;
+
+function TTProCompiledTemplate.IsCustomFilter(const aFilterName: string): Boolean;
+begin
+  Result := fTemplateFunctions.ContainsKey(aFilterName.ToLower) or
+    ((fTemplateAnonFunctions <> nil) and fTemplateAnonFunctions.ContainsKey(aFilterName.ToLower));
+end;
+
+function TTProCompiledTemplate.ResolveFilterParameter(const aToken: TToken): TFilterParameter;
+// an @(expression) parameter is evaluated now and passed to the filter as a literal
+begin
+  Result := TokenToFilterParameter(aToken);
+  if Result.ParType = fptExpression then
+    Result := ValueToFilterParameter(EvaluateExpression(Result.ParStrText));
+end;
+
+function TTProCompiledTemplate.GetParameterValue(const aParameter: TFilterParameter): TValue;
+begin
+  case aParameter.ParType of
+    fptInteger:
+      Result := aParameter.ParIntValue;
+    fptFloat:
+      Result := aParameter.ParFloatValue;
+    fptVariable:
+      begin
+        Result := GetVarAsTValue(aParameter.ParStrText);
+        if (not Result.IsEmpty) and IsNullableType(@Result) then
+          Result := GetNullableTValueAsTValue(@Result, aParameter.ParStrText);
+      end;
+    fptExpression:
+      Result := EvaluateExpression(aParameter.ParStrText);
+  else
+    Result := aParameter.ParStrText;
+  end;
+end;
+
+function TTProCompiledTemplate.ValueAsString(const aValue: TValue): string;
+var
+  lValue: TValue;
+  lIsNull: Boolean;
+begin
+  if aValue.IsEmpty then
+    Exit('');
+  if aValue.Kind in [tkString, tkUString, tkWString, tkLString] then
+    Exit(aValue.AsString);
+  lValue := aValue;
+  Result := GetTValueVarAsString(@lValue, lIsNull);
+end;
+
+function TTProCompiledTemplate.MemberValue(const aModel: TValue; const aName: string): TValue;
+// the member aName of an object (RTTI property), dataset (field of the current record), JSON object (key),
+// dictionary with string keys (TryGetValue) or TStrings (Values[]); empty when the model or the member is missing
+var
+  lObj: TObject;
+  lType: TRttiType;
+  lProp: TRttiProperty;
+  lMethod: TRttiMethod;
+  lParams: TArray<TRttiParameter>;
+  lArgs: TArray<TValue>;
+  lField: TField;
+  lJSON: TJDOJsonObject;
+begin
+  Result := TValue.Empty;
+  if aModel.IsEmpty or not aModel.IsObject or (aModel.AsObject = nil) or aName.IsEmpty then
+    Exit;
+  lObj := aModel.AsObject;
+  if lObj is TDataSet then
+  begin
+    lField := TDataSet(lObj).FindField(aName);
+    if (lField <> nil) and not lField.IsNull then
+      Result := GetDataSetFieldAsTValue(TDataSet(lObj), lField.FieldName);
+  end
+  else if lObj is TJDOJsonObject then
+  begin
+    lJSON := TJDOJsonObject(lObj);
+    case lJSON.Types[aName] of
+      jdtString: Result := lJSON.S[aName];
+      jdtInt: Result := lJSON.I[aName];
+      jdtLong, jdtULong: Result := lJSON.L[aName];
+      jdtFloat: Result := lJSON.F[aName];
+      jdtBool: Result := lJSON.B[aName];
+      jdtObject: Result := lJSON.O[aName];
+      jdtArray: Result := lJSON.A[aName];
+    end; // jdtNone (missing or null): empty
+  end
+  else if lObj is TStrings then
+  begin
+    if TStrings(lObj).IndexOfName(aName) > -1 then
+      Result := TStrings(lObj).Values[aName];
+  end
+  else
+  begin
+    lType := GlContext.GetType(lObj.ClassType);
+    lMethod := lType.GetMethod('TryGetValue');
+    if lMethod <> nil then
+    begin
+      // a dictionary: only string keys
+      lParams := lMethod.GetParameters;
+      if (Length(lParams) <> 2) or (lParams[0].ParamType.Handle <> TypeInfo(string)) then
+        Exit;
+      SetLength(lArgs, 2);
+      lArgs[0] := aName;
+      TValue.Make(nil, lParams[1].ParamType.Handle, lArgs[1]);
+      if not lMethod.Invoke(lObj, lArgs).AsBoolean then
+        Exit;
+      Result := lArgs[1];
+      if Result.TypeInfo = TypeInfo(TValue) then
+        Result := Result.AsType<TValue>;
+    end
+    else
+    begin
+      lProp := lType.GetProperty(aName); // case-insensitive
+      if (lProp = nil) or not lProp.IsReadable then
+        Exit;
+      Result := lProp.GetValue(lObj);
+    end;
+  end;
+  if (not Result.IsEmpty) and IsNullableType(@Result) then
+    Result := GetNullableTValueAsTValue(@Result, aName);
+end;
+
+function FieldDataTypeOf(const aType: TRttiType): string;
+// the TField.DataType name for a simple property type, '' for the types @@fields skips
+var
+  lField: TRttiField;
+begin
+  Result := '';
+  if aType = nil then
+    Exit;
+  case aType.TypeKind of
+    tkString, tkLString, tkWString, tkUString, tkChar, tkWChar:
+      Result := 'ftString';
+    tkInteger:
+      Result := 'ftInteger';
+    tkInt64:
+      Result := 'ftLargeint';
+    tkEnumeration:
+      if aType.Handle = TypeInfo(Boolean) then
+        Result := 'ftBoolean'
+      else
+        Result := 'ftString'; // the value is the name of the enumeration item
+    tkFloat:
+      if aType.Handle = TypeInfo(TDate) then
+        Result := 'ftDate'
+      else if aType.Handle = TypeInfo(TTime) then
+        Result := 'ftTime'
+      else if aType.Handle = TypeInfo(TDateTime) then
+        Result := 'ftDateTime'
+      else if aType.Handle = TypeInfo(Currency) then
+        Result := 'ftCurrency'
+      else
+        Result := 'ftFloat';
+    tkRecord:
+      if string(aType.Name).StartsWith('Nullable', True) then
+      begin
+        lField := aType.GetField('fValue'); // MVCFramework.Nullables: the type of the wrapped value
+        if lField <> nil then
+          Result := FieldDataTypeOf(lField.FieldType);
+      end;
+  end;
+end;
+
+function ReadableLabel(const aName: string): string;
+// "CustomerName" -> "Customer name", "VAT_Number" -> "Vat number", "VATNumber" -> "Vat number":
+// words split at underscores and at lower/upper case changes, then all lower case with the first letter upper
+var
+  I: Integer;
+  lSB: TStringBuilder;
+  C: Char;
+begin
+  lSB := TStringBuilder.Create;
+  try
+    for I := 0 to aName.Length - 1 do
+    begin
+      C := aName.Chars[I];
+      if C = '_' then
+        C := ' '
+      else if C.IsUpper and (I > 0) and
+        (aName.Chars[I - 1].IsLower or aName.Chars[I - 1].IsDigit or
+        (aName.Chars[I - 1].IsUpper and (I < aName.Length - 1) and aName.Chars[I + 1].IsLower)) then
+        lSB.Append(' ');
+      lSB.Append(C);
+    end;
+    Result := string.Join(' ', lSB.ToString.ToLower.Split([' '], TStringSplitOptions.ExcludeEmpty));
+  finally
+    lSB.Free;
+  end;
+  if not Result.IsEmpty then
+    Result := Result.Chars[0].ToUpper + Result.Substring(1);
+end;
+
+function TTProCompiledTemplate.IsObjectForFields(const aExpression: string; out aObject: TValue): Boolean;
+// {{for f in x.@@fields}} iterates the properties of x when x is an object (not a dataset, a list or JSON)
+begin
+  aObject := GetVarAsTValue(aExpression);
+  Result := aObject.IsObject and (aObject.AsObject <> nil) and not (aObject.AsObject is TDataSet) and
+    not (aObject.AsObject is TJsonBaseObject) and (WrapAsList(aObject.AsObject) = nil);
+end;
+
+function TTProCompiledTemplate.ObjectFieldsMetadata(const aObject: TObject): TObjectList<TTProFieldMetadata>;
+// the readable public/published properties with a simple type, base class first, in declaration order
+var
+  lTypes: TList<TRttiType>;
+  lType: TRttiType;
+  lProp: TRttiProperty;
+  lDataType: string;
+  lMeta: TTProFieldMetadata;
+  I: Integer;
+begin
+  Result := TObjectList<TTProFieldMetadata>.Create(True);
+  try
+    lTypes := TList<TRttiType>.Create;
+    try
+      lType := GlContext.GetType(aObject.ClassType);
+      while (lType <> nil) and (lType.Handle <> TypeInfo(TObject)) do
+      begin
+        lTypes.Insert(0, lType);
+        lType := lType.BaseType;
+      end;
+      for I := 0 to lTypes.Count - 1 do
+        for lProp in lTypes[I].GetDeclaredProperties do
+        begin
+          if (lProp.Visibility < mvPublic) or not lProp.IsReadable then
+            Continue;
+          lDataType := FieldDataTypeOf(lProp.PropertyType);
+          if lDataType.IsEmpty then
+            Continue; // objects, arrays, records...
+          lMeta := TTProFieldMetadata.Create;
+          Result.Add(lMeta);
+          lMeta.fFieldName := lProp.Name;
+          lMeta.fDisplayLabel := ReadableLabel(lProp.Name);
+          lMeta.fDataType := lDataType;
+          lMeta.fReadOnly := not lProp.IsWritable;
+          lMeta.fVisible := True;
+          lMeta.fValue := MemberValue(aObject, lProp.Name);
+          if Assigned(TTProConfiguration.fOnGetFieldMetadata) then
+            TTProConfiguration.fOnGetFieldMetadata(aObject, lProp.Name, lMeta);
+        end;
+    finally
+      lTypes.Free;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+function TTProCompiledTemplate.OutputString(const aValue: TValue): string;
+// how {{:x|filter}} and {{@expr}} print: null -> nothing, floats and dates with the template FormatSettings (as {{:x}})
+begin
+  if aValue.IsEmpty then
+    Result := ''
+  else if aValue.Kind = tkFloat then
+    Result := ValueAsString(aValue)
+  else
+    Result := aValue.ToString;
+end;
+
+function TTProCompiledTemplate.ExecuteListAndTextFilter(const aFunctionName: string;
+  var aParameters: TArray<TFilterParameter>; const aValue: TValue; out aResult: TValue): Boolean;
+var
+  lObj: TObject;
+  lList: ITProWrappedList;
+  lStr, lSeparator, lPropName, lLine, lCurrent, lWord, lLineBreak: string;
+  lParts: TArray<string>;
+  lWidth, lCount: Int64;
+  I: Integer;
+
+  function JsonItem(const aArray: TJDOJsonArray; const aIndex: Integer): TValue;
+  begin
+    case aArray.Types[aIndex] of
+      jdtObject:
+        Result := aArray.O[aIndex];
+      jdtArray:
+        Result := aArray.A[aIndex];
+      jdtInt:
+        Result := aArray.I[aIndex];
+      jdtLong, jdtULong:
+        Result := aArray.L[aIndex];
+      jdtFloat:
+        Result := aArray.F[aIndex];
+      jdtBool:
+        Result := aArray.B[aIndex];
+      jdtNone:
+        Result := TValue.Empty;
+    else
+      Result := aArray.S[aIndex];
+    end;
+  end;
+
+  function ItemAsString(const aItem: TValue): string;
+  begin
+    if lPropName.IsEmpty then
+      Result := ValueAsString(aItem)
+    else if aItem.IsObject and (aItem.AsObject is TJDOJsonObject) then
+      Result := TJDOJsonObject(aItem.AsObject).Path[lPropName].Value
+    else if aItem.IsObject and (aItem.AsObject <> nil) then
+      Result := ValueAsString(GetTValueFromPath(aItem.AsObject, lPropName))
+    else
+      Result := ValueAsString(aItem);
+  end;
+
+  // the list elements of aValue (JSON array, duck-typed list, dynamic array), False if it is not a list
+  function GetElements(out aElements: TArray<TValue>): Boolean;
+  var
+    J: Integer;
+  begin
+    aElements := [];
+    Result := True;
+    if aValue.IsArray then
+    begin
+      SetLength(aElements, aValue.GetArrayLength);
+      for J := 0 to High(aElements) do
+        aElements[J] := aValue.GetArrayElement(J);
+      Exit;
+    end;
+    lObj := nil;
+    if aValue.IsObject then
+      lObj := aValue.AsObject;
+    if lObj is TJDOJsonArray then
+    begin
+      SetLength(aElements, TJDOJsonArray(lObj).Count);
+      for J := 0 to High(aElements) do
+        aElements[J] := JsonItem(TJDOJsonArray(lObj), J);
+      Exit;
+    end;
+    if lObj <> nil then
+    begin
+      lList := TTProDuckTypedList.Wrap(lObj);
+      if lList <> nil then
+      begin
+        SetLength(aElements, lList.Count);
+        for J := 0 to High(aElements) do
+          lList.ItemIsObject(J, aElements[J]);
+        Exit;
+      end;
+    end;
+    Result := False;
+  end;
+
+var
+  lElements: TArray<TValue>;
+begin
+  Result := True;
+  if SameText(aFunctionName, 'trim') then
+  begin
+    CheckParNumber(0, aParameters);
+    aResult := ValueAsString(aValue).Trim;
+  end
+  else if SameText(aFunctionName, 'replace') then
+  begin
+    CheckParNumber(2, aParameters);
+    aResult := StringReplace(ValueAsString(aValue), ValueAsString(GetParameterValue(aParameters[0])),
+      ValueAsString(GetParameterValue(aParameters[1])), [rfReplaceAll]);
+  end
+  else if SameText(aFunctionName, 'join') then
+  begin
+    CheckParNumber(1, 2, aParameters);
+    lSeparator := ValueAsString(GetParameterValue(aParameters[0]));
+    lPropName := '';
+    if Length(aParameters) = 2 then
+      lPropName := ValueAsString(GetParameterValue(aParameters[1]));
+    if aValue.IsEmpty then
+      aResult := ''
+    else if GetElements(lElements) then
+    begin
+      SetLength(lParts, Length(lElements));
+      for I := 0 to High(lElements) do
+        lParts[I] := ItemAsString(lElements[I]);
+      aResult := String.Join(lSeparator, lParts);
+    end
+    else
+      FunctionError(aFunctionName, 'can be applied only to a list');
+  end
+  else if SameText(aFunctionName, 'length') then
+  begin
+    CheckParNumber(0, aParameters);
+    if aValue.IsEmpty then
+      aResult := 0
+    else if aValue.IsObject and (aValue.AsObject is TDataSet) then
+      aResult := TDataSet(aValue.AsObject).RecordCount
+    else if GetElements(lElements) then
+      aResult := Length(lElements)
+    else
+      aResult := Length(ValueAsString(aValue));
+  end
+  else if SameText(aFunctionName, 'first') or SameText(aFunctionName, 'last') then
+  begin
+    // built-in: the element returned still belongs to the list, nothing is freed
+    CheckParNumber(0, aParameters);
+    if aValue.IsEmpty then
+      aResult := TValue.Empty
+    else if GetElements(lElements) then
+    begin
+      if Length(lElements) = 0 then
+        aResult := TValue.Empty
+      else if SameText(aFunctionName, 'first') then
+        aResult := lElements[0]
+      else
+        aResult := lElements[High(lElements)];
+    end
+    else
+    begin
+      lStr := ValueAsString(aValue);
+      if lStr.IsEmpty then
+        aResult := ''
+      else if SameText(aFunctionName, 'first') then
+        aResult := lStr.Substring(0, 1)
+      else
+        aResult := lStr.Substring(lStr.Length - 1);
+    end;
+  end
+  else if SameText(aFunctionName, 'striptags') then
+  begin
+    CheckParNumber(0, aParameters);
+    aResult := TRegEx.Replace(ValueAsString(aValue), '<[^>]*>', '');
+  end
+  else if SameText(aFunctionName, 'wordwrap') then
+  begin
+    CheckParNumber(1, aParameters);
+    lWidth := GetParameterValue(aParameters[0]).AsInt64;
+    if lWidth < 1 then
+      FunctionError(aFunctionName, 'width must be greater than zero');
+    lLineBreak := GetLineEndingString;
+    lParts := [];
+    // existing line breaks are kept, every line is wrapped at word boundaries
+    for lLine in ValueAsString(aValue).Replace(#13#10, #10).Replace(#13, #10).Split([#10]) do
+    begin
+      lCurrent := '';
+      for lWord in lLine.Split([' '], TStringSplitOptions.ExcludeEmpty) do
+      begin
+        if lCurrent.IsEmpty then
+          lCurrent := lWord
+        else if lCurrent.Length + 1 + lWord.Length <= lWidth then
+          lCurrent := lCurrent + ' ' + lWord
+        else
+        begin
+          lParts := lParts + [lCurrent];
+          lCurrent := lWord; // a word longer than the width stays whole
+        end;
+      end;
+      lParts := lParts + [lCurrent];
+    end;
+    aResult := String.Join(lLineBreak, lParts);
+  end
+  else if SameText(aFunctionName, 'pluralize') then
+  begin
+    CheckParNumber(2, aParameters);
+    if aValue.IsEmpty then
+      aResult := ''
+    else
+    begin
+      if aValue.Kind = tkFloat then
+        lCount := IfThen(aValue.AsExtended = 1, 1, 0)
+      else
+        lCount := StrToInt64Def(ValueAsString(aValue), 0);
+      if lCount = 1 then
+        aResult := ValueAsString(GetParameterValue(aParameters[0]))
+      else
+        aResult := ValueAsString(GetParameterValue(aParameters[1]));
+    end;
+  end
+  else if SameText(aFunctionName, 'attr') then
+  begin
+    // built-in: returns data owned by the model, never frees
+    CheckParNumber(1, aParameters);
+    aResult := MemberValue(aValue, ValueAsString(GetParameterValue(aParameters[0])));
+  end
+  else if SameText(aFunctionName, 'nl2br') then
+  begin
+    // the result is HTML: see ValueIsHTML in ApplyFilters
+    CheckParNumber(0, aParameters);
+    aResult := HTMLEncode(ValueAsString(aValue)).Replace(#13#10, '<br>').Replace(#10, '<br>').Replace(#13, '<br>');
+  end
+  else
+    Result := False;
+end;
+
+procedure TTProCompiledTemplate.ExecuteFilterTrackingOwnership(const aFilterName: string;
+  var aParameters: TArray<TFilterParameter>; var aValue: TValue; const aContextName: string; var aValueOwned: Boolean);
+// Ownership rule: an object returned by a custom filter, different from the object it received,
+// belongs to the engine (v1.1 contract). Anything else - SetData objects, objects returned by
+// built-in filters such as "default", objects passed through unchanged - belongs to the caller.
+var
+  lInput: TValue;
+  lIsCustomFilter: Boolean;
+  lSameObject: Boolean;
+begin
+  lInput := aValue;
+  try
+    aValue := ExecuteFilter(aFilterName, aParameters, lInput, aContextName, lIsCustomFilter);
+  except
+    if aValueOwned then
+    begin
+      aValue := TValue.Empty;
+      aValueOwned := False;
+      lInput.AsObject.Free;
+    end;
+    raise;
+  end;
+  lSameObject := lInput.IsObjectInstance and aValue.IsObjectInstance and (lInput.AsObject = aValue.AsObject);
+  if lSameObject then
+    Exit; // passed through: ownership unchanged
+  if aValueOwned then
+  begin
+    // engine-owned input consumed by the filter; an object result may live inside it (e.g. "first"
+    // on a filter-created list), so in that case the input is kept until Render ends
+    if aValue.IsObjectInstance then
+      fOwnedObjects.Add(lInput.AsObject)
+    else
+      lInput.AsObject.Free;
+  end;
+  aValueOwned := lIsCustomFilter and aValue.IsObjectInstance and (aValue.AsObject <> nil);
+end;
+
+procedure TTProCompiledTemplate.ResetRenderState;
+begin
+  // A render interrupted by an exception leaves these stacks half-filled: every render starts clean
+  fLoopsStack.Clear;
+  fIncludeSavedVarsStack.Clear;
+  fAutoescapeStack.Clear;
+  fAutoescapeStack.Push(True); // Default: autoescape enabled
+  fSlotFrames.Clear;
+  fCurrentSlotFrame := -1;
+end;
+
+procedure TTProCompiledTemplate.ReleaseOwnedObjects;
+var
+  lPair: TPair<string, TVarDataSource>;
+  lVarsToRemove: TList<string>;
+begin
+  if fOwnedObjects.Count = 0 then
+    Exit;
+  // no variable may keep pointing to an object that is about to be freed
+  if fVariables <> nil then
+  begin
+    lVarsToRemove := TList<string>.Create;
+    try
+      for lPair in fVariables do
+        if (lPair.Value <> nil) and lPair.Value.VarValue.IsObjectInstance and
+          (fOwnedObjects.IndexOf(lPair.Value.VarValue.AsObject) > -1) then
+          lVarsToRemove.Add(lPair.Key);
+      for var lVarName in lVarsToRemove do
+        fVariables.Remove(lVarName);
+    finally
+      lVarsToRemove.Free;
+    end;
+  end;
+  fOwnedObjects.Clear;
+end;
+
+procedure SaveCompiledTemplate(const aTokens: TList<TToken>; const aStream: TStream);
 var
   lToken: TToken;
   lBW: TBinaryWriter;
 begin
-  lBW := TBinaryWriter.Create(TFileStream.Create(FileName, fmCreate or fmOpenWrite or fmShareDenyNone), nil, True);
+  lBW := TBinaryWriter.Create(aStream, nil, False);
   try
-    for lToken in fTokens do
+    for lToken in aTokens do
     begin
       lToken.SaveToBytes(lBW);
     end;
   finally
     lBW.Free;
+  end;
+end;
+
+procedure TTProCompiledTemplate.SaveToFile(const FileName: String);
+var
+  lStream: TFileStream;
+begin
+  lStream := TFileStream.Create(FileName, fmCreate or fmOpenWrite or fmShareDenyNone);
+  try
+    SaveCompiledTemplate(fTokens, lStream);
+  finally
+    lStream.Free;
+  end;
+end;
+
+function TTProCompiledTemplate.SaveToBytes: TBytes;
+var
+  lStream: TBytesStream;
+begin
+  lStream := TBytesStream.Create;
+  try
+    SaveCompiledTemplate(fTokens, lStream);
+    Result := Copy(lStream.Bytes, 0, lStream.Size);
+  finally
+    lStream.Free;
   end;
 end;
 
@@ -5469,6 +7260,41 @@ end;
 
 { TTProConfiguration }
 
+class constructor TTProConfiguration.Create;
+begin
+  fTemplateVersions := TDictionary<string, Int64>.Create(TTProEqualityComparer.Create);
+end;
+
+class destructor TTProConfiguration.Destroy;
+begin
+  fTemplateVersions.Free;
+end;
+
+class procedure TTProConfiguration.TemplateChanged(const Name: string);
+var
+  lVersion: Int64;
+begin
+  TMonitor.Enter(fTemplateVersions);
+  try
+    if not fTemplateVersions.TryGetValue(Name, lVersion) then
+      lVersion := 0;
+    fTemplateVersions.AddOrSetValue(Name, lVersion + 1);
+  finally
+    TMonitor.Exit(fTemplateVersions);
+  end;
+end;
+
+class function TTProConfiguration.GetTemplateVersion(const Name: string): Int64;
+begin
+  TMonitor.Enter(fTemplateVersions);
+  try
+    if not fTemplateVersions.TryGetValue(Name, Result) then
+      Result := 0;
+  finally
+    TMonitor.Exit(fTemplateVersions);
+  end;
+end;
+
 class procedure TTProConfiguration.RegisterHandlers(const TemplateProCompiledTemplate: ITProCompiledTemplate);
 begin
   if Assigned(fOnContextConfiguration) then
@@ -5564,6 +7390,8 @@ begin
       else
       begin
         lTmpValue := TTProRTTIUtils.GetProperty(aObject, lPropName);
+        if lTmpValue.TypeInfo = TypeInfo(TValue) then
+          lTmpValue := lTmpValue.AsType<TValue>; // e.g. TTProFieldMetadata.Value
         if (not FullPropertyPath.IsEmpty) then
         begin
           if not lTmpValue.IsObject then
@@ -5586,36 +7414,31 @@ var
   lParams: TArray<TMacroParameter>;
   lMacroDef: TMacroDefinition;
   I: Integer;
+  lIdx: Int64;
   lParamToken: TToken;
 begin
   // Extract macro information from tokens
   lMacroName := fTokens[TokenIndex].Value1;
   lParamCount := fTokens[TokenIndex].Ref1;
 
-  // Parse macro parameters
-  SetLength(lParams, lParamCount);
-  for I := 0 to lParamCount - 1 do
+  // Parse macro parameters (Ref1 counts the tokens of the parameters and of their filters)
+  lParams := [];
+  lIdx := TokenIndex + 1;
+  while lIdx <= TokenIndex + lParamCount do
   begin
-    lParamToken := fTokens[TokenIndex + 1 + I];
-    if lParamToken.TokenType <> ttMacroParam then
-    begin
-      // For now, use ttFilterParameter as ttMacroParam
-      if lParamToken.TokenType = ttFilterParameter then
-      begin
-        lParams[I].Name := lParamToken.Value1;
-        // Check if it has a default value (string type means it's a default)
-        if lParamToken.Ref2 = Ord(fptString) then
-        begin
-          lParams[I].DefaultValue := lParamToken.Value1;
-          lParams[I].HasDefault := True;
-        end
-        else
-        begin
-          lParams[I].DefaultValue := '';
-          lParams[I].HasDefault := False;
-        end;
-      end;
-    end;
+    SetLength(lParams, Length(lParams) + 1);
+    I := High(lParams);
+    lParamToken := fTokens[lIdx];
+    lParams[I].TokenIndex := lIdx;
+    lIdx := LastFilterToken(lIdx) + 1;
+    lParams[I].Name := lParamToken.Value1;
+    // Value2 = '' (no default) or the default's TFilterParameterType ordinal as a digit followed by its value
+    lParams[I].HasDefault := not lParamToken.Value2.IsEmpty;
+    if lParams[I].HasDefault then
+      lParams[I].DefaultValue := TokenToFilterParameter(TToken.Create(ttFilterParameter,
+        lParamToken.Value2.Substring(1), '', -1, Ord(lParamToken.Value2.Chars[0]) - Ord('0')))
+    else
+      lParams[I].DefaultValue := Default(TFilterParameter);
   end;
 
   // Create macro definition
@@ -5636,6 +7459,7 @@ end;
 procedure TTProCompiledTemplate.ProcessSetToken(var Idx: Int64);
 var
   lVarValue: TValue;
+  lValueOwned: Boolean;
   lSetTargetVar: String;
   lSetSourceVar: String;
   lSetFilterCount: Integer;
@@ -5651,6 +7475,7 @@ begin
         lSetSourceVar := fTokens[Idx].Value2;
         // Get initial value from source variable (Value2)
         lVarValue := GetVarAsTValue(lSetSourceVar);
+        lValueOwned := False;
         // Apply filters if any (Ref1 = filter count)
         lSetFilterCount := fTokens[Idx].Ref1;
         for lSetJ := 0 to lSetFilterCount - 1 do
@@ -5664,16 +7489,13 @@ begin
           begin
             Inc(Idx);
             Assert(fTokens[Idx].TokenType = ttFilterParameter);
-            lSetFilterParams[lSetI].ParType := TFilterParameterType(fTokens[Idx].Ref2);
-            case lSetFilterParams[lSetI].ParType of
-              fptInteger:
-                lSetFilterParams[lSetI].ParIntValue := fTokens[Idx].Value1.ToInteger;
-              fptString, fptVariable:
-                lSetFilterParams[lSetI].ParStrText := fTokens[Idx].Value1;
-            end;
+            lSetFilterParams[lSetI] := ResolveFilterParameter(fTokens[Idx]);
           end;
-          lVarValue := ExecuteFilter(lSetFilterName, lSetFilterParams, lVarValue, lSetSourceVar);
+          ExecuteFilterTrackingOwnership(lSetFilterName, lSetFilterParams, lVarValue, lSetSourceVar, lValueOwned);
         end;
+        // a filter-created object must outlive the variable's uses: it is freed when Render ends
+        if lValueOwned then
+          fOwnedObjects.Add(lVarValue.AsObject);
         SetData(lSetTargetVar, lVarValue);
       end;
     1: // Expression
@@ -5694,21 +7516,350 @@ begin
   end;
 end;
 
-function TTProCompiledTemplate.ExecuteMacro(const CallTokenIndex: Int64): String;
+function TTProCompiledTemplate.TokenToFilterParameter(const aToken: TToken): TFilterParameter;
+begin
+  Result := Default(TFilterParameter);
+  Result.ParType := TFilterParameterType(aToken.Ref2);
+  case Result.ParType of
+    fptInteger:
+      Result.ParIntValue := aToken.Value1.ToInteger;
+    fptFloat:
+      Result.ParFloatValue := StrToFloat(aToken.Value1, TFormatSettings.Invariant);
+    fptString, fptVariable, fptExpression:
+      Result.ParStrText := aToken.Value1;
+  end;
+end;
+
+function TTProCompiledTemplate.ValueToFilterParameter(const aValue: TValue): TFilterParameter;
+// a computed value (e.g. the result of an @(expression)) as a literal parameter
+begin
+  Result := Default(TFilterParameter);
+  if aValue.IsEmpty then
+    Result.ParType := fptString
+  else if aValue.IsType<Boolean> then
+  begin
+    Result.ParType := fptInteger;
+    Result.ParIntValue := Ord(aValue.AsBoolean);
+  end
+  else if aValue.Kind in [tkInteger, tkInt64] then
+  begin
+    Result.ParType := fptInteger;
+    Result.ParIntValue := aValue.AsInt64;
+  end
+  else if aValue.Kind = tkFloat then
+  begin
+    Result.ParType := fptFloat;
+    Result.ParFloatValue := aValue.AsExtended;
+  end
+  else
+  begin
+    Result.ParType := fptString;
+    Result.ParStrText := aValue.ToString;
+  end;
+end;
+
+procedure TTProCompiledTemplate.InitRangeLoop(const aLoop: TLoopStackItem);
+var
+  lArgs: TArray<string>;
+  lStart, lStop, lStep, lCount: Int64;
+
+  function EvaluateArg(const aExpression: string): Int64;
+  var
+    lValue: TValue;
+  begin
+    lValue := EvaluateExpression(aExpression);
+    if lValue.Kind in [tkInteger, tkInt64] then
+      Result := lValue.AsInt64
+    else if (lValue.Kind = tkFloat) and (Frac(lValue.AsExtended) = 0) then
+      Result := Trunc(lValue.AsExtended)
+    else
+    begin
+      Error('range arguments must be integers, got [%s] from [%s]', [lValue.ToString, aExpression]);
+      Result := 0;
+    end;
+  end;
+
+begin
+  lArgs := aLoop.LoopExpression.Substring(Length(RANGE_PREFIX),
+    Length(aLoop.LoopExpression) - Length(RANGE_PREFIX) - 1).Split([RANGE_ARG_SEPARATOR]);
+  lStart := 0;
+  lStep := 1;
+  if Length(lArgs) = 1 then
+    lStop := EvaluateArg(lArgs[0])
+  else
+  begin
+    lStart := EvaluateArg(lArgs[0]);
+    lStop := EvaluateArg(lArgs[1]);
+    if Length(lArgs) = 3 then
+      lStep := EvaluateArg(lArgs[2]);
+  end;
+  if lStep = 0 then
+    Error('range step cannot be zero');
+  // Python semantics: the stop value is excluded
+  if (lStep > 0) and (lStop > lStart) then
+    lCount := (lStop - lStart + lStep - 1) div lStep
+  else if (lStep < 0) and (lStart > lStop) then
+    lCount := (lStart - lStop - lStep - 1) div -lStep
+  else
+    lCount := 0;
+  if lCount > MaxInt then
+    Error('range too large: %d items', [lCount]);
+  aLoop.RangeStart := lStart;
+  aLoop.RangeStep := lStep;
+  aLoop.TotalCount := lCount;
+end;
+
+function TTProCompiledTemplate.SelectSwitchBranch(const aSwitchIdx: Int64): Int64;
+// returns the index of the first token to execute: the body of the matching case, of default, or after endswitch
+var
+  lIdx, lBranch, lParIdx: Int64;
+  lValue: TValue;
+  lValueOwned, lValueIsHTML: Boolean;
+  lMatched: Boolean;
+  lParam: TFilterParameter;
+begin
+  lIdx := aSwitchIdx;
+  if fTokens[lIdx].Value2 = '@' then
+    lValue := EvaluateExpression(fTokens[lIdx].Value1)
+  else
+    lValue := GetVarAsTValue(fTokens[lIdx].Value1);
+  if (not lValue.IsEmpty) and IsNullableType(@lValue) then
+    lValue := GetNullableTValueAsTValue(@lValue, fTokens[lIdx].Value1);
+  lValueOwned := False;
+  if fTokens[lIdx].Ref1 > 0 then
+    ApplyFilters(lIdx, lValue, fTokens[lIdx].Ref1, fTokens[aSwitchIdx].Value1, lValueOwned, lValueIsHTML);
+  try
+    if (not lValue.IsEmpty) and lValue.IsType<Boolean> then
+      lValue := Ord(lValue.AsBoolean);
+    lBranch := fTokens[aSwitchIdx].Ref2;
+    while fTokens[lBranch].TokenType = ttCase do
+    begin
+      lMatched := False;
+      lParIdx := lBranch + 1;
+      while fTokens[lParIdx].TokenType = ttFilterParameter do
+      begin
+        if not lMatched then
+        begin
+          lParam := ResolveFilterParameter(fTokens[lParIdx]);
+          if (lParam.ParType = fptVariable) and (SameText(lParam.ParStrText, 'true') or SameText(lParam.ParStrText, 'false')) then
+            lParam := ValueToFilterParameter(SameText(lParam.ParStrText, 'true'));
+          // same semantics as the "eq" filter; a null value matches nothing
+          lMatched := ComparandOperator(ctEQ, lValue, [lParam], fLocaleFormatSettings).AsBoolean;
+        end;
+        Inc(lParIdx);
+      end;
+      if lMatched then
+        Exit(lParIdx);
+      lBranch := fTokens[lBranch].Ref2;
+    end;
+    Result := lBranch + 1; // body of default, or the token after endswitch
+  finally
+    if lValueOwned then
+      lValue.AsObject.Free;
+  end;
+end;
+
+function TTProCompiledTemplate.LastFilterToken(const aIdx: Int64): Int64;
+// the last token of the filters that follow a macro parameter token (Ref1 = filter count, -1 = none)
+var
+  J: Integer;
+begin
+  Result := aIdx;
+  for J := 1 to fTokens[aIdx].Ref1 do
+  begin
+    Inc(Result); // ttFilterName, Ref1 = its parameter count
+    Inc(Result, fTokens[Result].Ref1);
+  end;
+end;
+
+function TTProCompiledTemplate.MacroArgument(const aTokenIdx: Int64; const aParameter: TFilterParameter;
+  var aOwned: TArray<TObject>): TValue;
+// the value of a macro argument (or default) with the filters that follow its token; objects created
+// by the filters are added to aOwned, to be freed after the macro
+var
+  lIdx: Int64;
+  lOwned, lIsHTML: Boolean;
+begin
+  Result := MacroArgumentValue(aParameter);
+  if fTokens[aTokenIdx].Ref1 <= 0 then
+    Exit;
+  if (not Result.IsEmpty) and IsNullableType(@Result) then
+    Result := GetNullableTValueAsTValue(@Result, aParameter.ParStrText);
+  lIdx := aTokenIdx;
+  ApplyFilters(lIdx, Result, fTokens[aTokenIdx].Ref1, 'macro argument', lOwned, lIsHTML);
+  if lOwned then
+    aOwned := aOwned + [Result.AsObject];
+end;
+
+function TTProCompiledTemplate.MacroArgumentValue(const aParameter: TFilterParameter): TValue;
+begin
+  if (aParameter.ParType = fptVariable) and SameText(aParameter.ParStrText, 'true') then
+    Result := True
+  else if (aParameter.ParType = fptVariable) and SameText(aParameter.ParStrText, 'false') then
+    Result := False
+  else if aParameter.ParType = fptVariable then
+    Result := GetVarAsTValue(aParameter.ParStrText) // objects and lists are passed as they are
+  else
+    Result := GetParameterValue(aParameter);
+end;
+
+procedure TTProCompiledTemplate.ExecuteMacro(const CallTokenIndex: Int64; const aBuff: TStringBuilder);
+var
+  lFrame: TTProSlotFrame;
+  lSavedFrame: Integer;
+begin
+  Inc(fRenderNestingDepth);
+  try
+    if fRenderNestingDepth > MAX_RENDER_NESTING then
+      Error(Format('Template nesting too deep (max %d levels of macro calls and dynamic includes)', [MAX_RENDER_NESTING]));
+    lFrame.CallTokenIndex := CallTokenIndex;
+    lFrame.CallerVariables := GetVariables; // never nil: a slot can {{set}} in the caller's scope
+    lFrame.CallerLoops := fLoopsStack;
+    lFrame.ParentFrame := fCurrentSlotFrame;
+    fSlotFrames.Add(lFrame);
+    lSavedFrame := fCurrentSlotFrame;
+    fCurrentSlotFrame := fSlotFrames.Count - 1;
+    try
+      ExecuteMacroBody(CallTokenIndex, aBuff);
+    finally
+      fCurrentSlotFrame := lSavedFrame;
+      fSlotFrames.Delete(fSlotFrames.Count - 1);
+    end;
+  finally
+    Dec(fRenderNestingDepth);
+  end;
+end;
+
+function TTProCompiledTemplate.IsBlankRange(const aFrom, aTo: Int64): Boolean;
+// only whitespace and line breaks (the named slots, when the range is a call body, do not count)
+var
+  I: Int64;
+begin
+  I := aFrom;
+  while I < aTo do
+  begin
+    case fTokens[I].TokenType of
+      ttFill:
+        I := fTokens[I].Ref2;
+      ttLineBreak:
+        ;
+      ttContent:
+        if not fTokens[I].Value1.Trim.IsEmpty then
+          Exit(False);
+    else
+      Exit(False);
+    end;
+    Inc(I);
+  end;
+  Result := True;
+end;
+
+function TTProCompiledTemplate.FindSlotContent(const aCallIdx: Int64; const aSlotName: string; out aFrom, aTo: Int64): Boolean;
+// the tokens of a filled slot. Fill names are resolved in the current scope: call it in the caller's one.
+var
+  lFill: Int64;
+begin
+  Result := False;
+  aFrom := -1;
+  aTo := -1;
+  if fTokens[aCallIdx].Ref2 < 0 then
+    Exit; // {{>macro()}}: no body
+  if SameText(aSlotName, 'default') then
+  begin
+    aFrom := aCallIdx + 1 + fTokens[aCallIdx].Ref1; // after the call parameters
+    aTo := fTokens[aCallIdx].Ref2;
+  end
+  else
+  begin
+    lFill := fTokens[fTokens[aCallIdx].Ref2].Ref2; // the last fill, then back to the first
+    while (lFill > -1) and not SameText(ResolveTokenName(fTokens[lFill]), aSlotName) do
+      lFill := fTokens[lFill].Ref1;
+    if lFill = -1 then
+      Exit;
+    aFrom := lFill + 1;
+    aTo := fTokens[lFill].Ref2;
+  end;
+  Result := not IsBlankRange(aFrom, aTo);
+end;
+
+function TTProCompiledTemplate.SlotsInfo(const aCallIdx: Int64): TObject;
+var
+  lFill, lFrom, lTo: Int64;
+  lName: string;
+  lSlots: TJDOJsonObject;
+begin
+  lSlots := TJDOJsonObject.Create;
+  Result := lSlots;
+  try
+    lSlots.B['default'] := FindSlotContent(aCallIdx, 'default', lFrom, lTo);
+    lFill := fTokens[fTokens[aCallIdx].Ref2].Ref2;
+    while lFill > -1 do
+    begin
+      lName := ResolveTokenName(fTokens[lFill]);
+      lSlots.B[lName] := FindSlotContent(aCallIdx, lName, lFrom, lTo);
+      lFill := fTokens[lFill].Ref1;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+function TTProCompiledTemplate.RenderSlot(const aSlotIdx: Int64; const aBuff: TStringBuilder): Int64;
+// {{slot "name"}}: renders the content the caller gave for that slot, in the caller's scope.
+// Returns the last token handled: the slot itself (its fallback, if any, follows) or its endslot.
+var
+  lName: string;
+  lFrame: TTProSlotFrame;
+  lFrom, lTo: Int64;
+  lSavedVariables: TTProVariables;
+  lSavedLoops: TObjectList<TLoopStackItem>;
+  lSavedFrame: Integer;
+begin
+  Result := aSlotIdx;
+  lName := ResolveTokenName(fTokens[aSlotIdx]); // in the macro's scope
+  lFrame := fSlotFrames[fCurrentSlotFrame];
+  lSavedVariables := fVariables;
+  lSavedLoops := fLoopsStack;
+  lSavedFrame := fCurrentSlotFrame;
+  fVariables := lFrame.CallerVariables;
+  fLoopsStack := lFrame.CallerLoops;
+  fCurrentSlotFrame := lFrame.ParentFrame; // a {{slot}} inside the content refers to the caller's own slots
+  Inc(fRenderNestingDepth);
+  try
+    if FindSlotContent(lFrame.CallTokenIndex, lName, lFrom, lTo) then
+    begin
+      if fRenderNestingDepth > MAX_RENDER_NESTING then
+        Error(Format('Template nesting too deep (max %d levels of macro calls and dynamic includes)', [MAX_RENDER_NESTING]));
+      RenderRange(aBuff, lFrom, lTo);
+      if fTokens[aSlotIdx].Ref2 > -1 then
+        Result := fTokens[aSlotIdx].Ref2; // filled: skip the fallback
+    end;
+  finally
+    Dec(fRenderNestingDepth);
+    fCurrentSlotFrame := lSavedFrame;
+    fLoopsStack := lSavedLoops;
+    fVariables := lSavedVariables;
+  end;
+end;
+
+procedure TTProCompiledTemplate.ExecuteMacroBody(const CallTokenIndex: Int64; const aBuff: TStringBuilder);
+// the macro writes straight into the caller's output, so that {{stack}} positions stay absolute
 var
   lMacroName: String;
   lMacroDef: TMacroDefinition;
   lCallParamCount: Integer;
   lCallParams: TArray<TValue>;
-  I: Integer;
-  lIdx: Int64;
-  lBuff: TStringBuilder;
+  lBound: TArray<Boolean>;
+  lParamIndex: Integer;
+  I, J: Integer;
   lSavedVariables: TTProVariables;
+  lSavedLoops: TObjectList<TLoopStackItem>;
   lParamToken: TToken;
-  lMustBeEncoded: Boolean;
-  lParamValue: TValue;
-  lSavedIdx: Int64;
-  lJumpTo: Integer;
+  lSlots: TJDOJsonObject;
+  lIdx, lArgIdx: Int64;
+  lOwned: TArray<TObject>;
+  lObj: TObject;
 begin
   // Get macro name and parameters from call
   lMacroName := fTokens[CallTokenIndex].Value1;
@@ -5720,154 +7871,81 @@ begin
     Error('Macro "' + lMacroName + '" not defined');
   end;
 
-  // Evaluate call parameters
-  SetLength(lCallParams, lCallParamCount);
-  for I := 0 to lCallParamCount - 1 do
-  begin
-    lParamToken := fTokens[CallTokenIndex + 1 + I];
-    case TFilterParameterType(lParamToken.Ref2) of
-      fptString:
-        lCallParams[I] := lParamToken.Value1;
-      fptInteger:
-        lCallParams[I] := StrToInt(lParamToken.Value1);
-      fptFloat:
-        lCallParams[I] := StrToFloat(lParamToken.Value1, fLocaleFormatSettings);
-      fptVariable:
-        begin
-          // Handle boolean literals
-          if SameText(lParamToken.Value1, 'true') then
-            lCallParams[I] := True
-          else if SameText(lParamToken.Value1, 'false') then
-            lCallParams[I] := False
-          else
-            lCallParams[I] := GetVarAsTValue(lParamToken.Value1);
-        end;
-    end;
-  end;
-
-  // Save current variables and create new scope
+  // Bind the arguments (positional first, then named) to the parameters.
+  // Everything - defaults included - is evaluated here, in the caller's scope.
+  SetLength(lCallParams, Length(lMacroDef.Parameters));
+  SetLength(lBound, Length(lMacroDef.Parameters));
+  lOwned := [];
+  lSlots := nil;
   lSavedVariables := fVariables;
   try
+    // lCallParamCount counts the tokens of the arguments and of their filters
+    I := -1;
+    lIdx := CallTokenIndex + 1;
+    while lIdx <= CallTokenIndex + lCallParamCount do
+    begin
+      Inc(I);
+      lArgIdx := lIdx;
+      lIdx := LastFilterToken(lIdx) + 1;
+      lParamToken := fTokens[lArgIdx];
+      lParamIndex := I; // positional
+      if not lParamToken.Value2.IsEmpty then
+      begin
+        lParamIndex := -1;
+        for J := 0 to High(lMacroDef.Parameters) do
+          if SameText(lMacroDef.Parameters[J].Name, lParamToken.Value2) then
+            lParamIndex := J;
+        if lParamIndex = -1 then
+          Error('Unknown parameter "%s" for macro "%s"', [lParamToken.Value2, lMacroName]);
+        if lBound[lParamIndex] then
+          Error('Parameter "%s" passed twice to macro "%s"', [lParamToken.Value2, lMacroName]);
+      end;
+      if lParamIndex > High(lMacroDef.Parameters) then
+        Continue; // extra positional arguments are ignored (as in 1.1)
+      lCallParams[lParamIndex] := MacroArgument(lArgIdx, TokenToFilterParameter(lParamToken), lOwned);
+      lBound[lParamIndex] := True;
+    end;
+    for I := 0 to High(lMacroDef.Parameters) do
+      if not lBound[I] then
+      begin
+        if not lMacroDef.Parameters[I].HasDefault then
+          Error('Missing required parameter "' + lMacroDef.Parameters[I].Name + '" for macro "' + lMacroName + '"');
+        lCallParams[I] := MacroArgument(lMacroDef.Parameters[I].TokenIndex, lMacroDef.Parameters[I].DefaultValue, lOwned);
+      end;
+
+    // slots.<name>: which slots the caller filled (fill names are resolved in the caller's scope)
+    if fTokens[CallTokenIndex].Ref2 > -1 then
+      lSlots := TJDOJsonObject(SlotsInfo(CallTokenIndex));
+
+    // new scope for the macro (the caller's one is restored in finally)
     fVariables := TTProVariables.Create;
     try
       // Set macro parameters as variables in new scope
       // Use SetData to properly detect type (object, list, JSON, etc.)
       for I := 0 to High(lMacroDef.Parameters) do
-      begin
-        if I < Length(lCallParams) then
-        begin
-          // Use provided parameter - SetData handles type detection
-          SetData(lMacroDef.Parameters[I].Name, lCallParams[I]);
-        end
-        else if lMacroDef.Parameters[I].HasDefault then
-        begin
-          // Use default value
-          SetData(lMacroDef.Parameters[I].Name, lMacroDef.Parameters[I].DefaultValue);
-        end
-        else
-        begin
-          Error('Missing required parameter "' + lMacroDef.Parameters[I].Name + '" for macro "' + lMacroName + '"');
-        end;
-      end;
+        SetData(lMacroDef.Parameters[I].Name, lCallParams[I]);
+      if lSlots <> nil then
+        SetData('slots', TValue.From<TJDOJsonObject>(lSlots))
+      else
+        SetData('slots', TValue.Empty);
 
-      // Execute macro body
-      lBuff := TStringBuilder.Create;
+      // Execute macro body: the full renderer, with the macro's own loops (the caller's ones are not visible)
+      lSavedLoops := fLoopsStack;
+      fLoopsStack := TObjectList<TLoopStackItem>.Create(True);
       try
-        lIdx := lMacroDef.BeginTokenIndex;
-        while (lIdx < lMacroDef.EndTokenIndex) and (lIdx < fTokens.Count) do
-        begin
-          case fTokens[lIdx].TokenType of
-            ttContent:
-              lBuff.Append(fTokens[lIdx].Value1);
-            ttValue, ttLiteralString:
-              begin
-                lParamValue := EvaluateValue(lIdx, lMustBeEncoded);
-                // lMustBeEncoded = False means explicit raw ($) - never encode
-                // lMustBeEncoded = True means follow autoescape stack
-                if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-                  lBuff.Append(lParamValue.ToString)
-                else
-                  lBuff.Append(HTMLEncode(lParamValue.ToString));
-              end;
-            ttExpression:
-              begin
-                lParamValue := EvaluateExpression(fTokens[lIdx].Value1);
-                lMustBeEncoded := fTokens[lIdx].Ref2 = -1;
-                // lMustBeEncoded = False means explicit raw ($) - never encode
-                // lMustBeEncoded = True means follow autoescape stack
-                if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-                  lBuff.Append(lParamValue.ToString)
-                else
-                  lBuff.Append(HTMLEncode(lParamValue.ToString));
-              end;
-            ttAutoescape:
-              begin
-                // Push autoescape state: Value1 is 'true' or 'false'
-                fAutoescapeStack.Push(fTokens[lIdx].Value1 = 'true');
-              end;
-            ttEndAutoescape:
-              begin
-                // Pop autoescape state, but keep at least the default
-                if fAutoescapeStack.Count > 1 then
-                  fAutoescapeStack.Pop;
-              end;
-            ttSet:
-              ProcessSetToken(lIdx);
-            ttLineBreak:
-              lBuff.Append(GetLineEndingString);
-            ttCallMacro:
-              begin
-                // Nested macro call
-                lBuff.Append(ExecuteMacro(lIdx));
-                // Skip the call parameters
-                lIdx := lIdx + fTokens[lIdx].Ref1;
-              end;
-            ttIfThen:
-              begin
-                lSavedIdx := lIdx;
-                if EvaluateIfExpressionAt(lIdx) then
-                begin
-                  // condition is true, continue executing
-                end
-                else
-                begin
-                  lIdx := lSavedIdx;
-                  if fTokens[lIdx].Ref1 > -1 then { there is an else }
-                  begin
-                    lJumpTo := fTokens[lIdx].Ref1 + 1;
-                    // jump to the statement "after" ttElse (if it is ttLineBreak, jump it)
-                    if fTokens[lJumpTo].TokenType <> ttLineBreak then
-                      lIdx := lJumpTo
-                    else
-                      lIdx := lJumpTo + 1;
-                    Continue;
-                  end;
-                  lIdx := fTokens[lIdx].Ref2; // jump to "endif"
-                  Continue;
-                end;
-              end;
-            ttElse:
-              begin
-                // always jump to ttEndIf which it reference is at ttElse.Ref2
-                lIdx := fTokens[lIdx].Ref2;
-                Continue;
-              end;
-            ttEndIf:
-              begin
-                // do nothing, just continue
-              end;
-          end;
-          Inc(lIdx);
-        end;
-        Result := lBuff.ToString;
+        RenderRange(aBuff, lMacroDef.BeginTokenIndex, lMacroDef.EndTokenIndex);
       finally
-        lBuff.Free;
+        fLoopsStack.Free;
+        fLoopsStack := lSavedLoops;
       end;
     finally
       fVariables.Free;
     end;
   finally
     fVariables := lSavedVariables;
+    lSlots.Free;
+    for lObj in lOwned do
+      lObj.Free;
   end;
 end;
 
@@ -5939,6 +8017,7 @@ begin
   else if SameText(PropName, 'Required') then Result := AField.Required
   else if SameText(PropName, 'ReadOnly') then Result := AField.ReadOnly
   else if SameText(PropName, 'Visible') then Result := AField.Visible
+  else if SameText(PropName, 'Hidden') then Result := False // as the @@fields metadata of objects
   else if SameText(PropName, 'IsNull') then Result := AField.IsNull
   else if SameText(PropName, 'IsIndexField') then Result := AField.IsIndexField
   else if SameText(PropName, 'CanModify') then Result := AField.CanModify
@@ -6054,7 +8133,14 @@ var
   lResult: Variant;
 begin
   lEval := GetExprEvaluator;
-  lResult := lEval.Evaluate(Expression);
+  try
+    lResult := lEval.Evaluate(Expression);
+  except
+    on E: ETProException do
+      raise;
+    on E: Exception do
+      raise ETProRenderException.CreateFmt('Error evaluating expression [%s]: %s', [Expression, E.Message]);
+  end;
   Result := VariantToTValue(lResult);
 end;
 

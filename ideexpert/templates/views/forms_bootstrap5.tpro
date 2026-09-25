@@ -1,0 +1,150 @@
+{{#
+  TemplatePro forms library - Bootstrap 5 markup.
+  forms_html.tpro has the same macros with the same parameters: switch the imported file to restyle a form.
+  Import it once, at the top of a page: import "forms_bootstrap5.tpro" as f  (then f.input, f.form...)
+
+  Common rules
+  - name is also the id; the value shown is  model|attr,name  (model defaults to the variable formModel:
+    an object, a dataset (current record), a JSON object, a dictionary with string keys or a TStrings;
+    a null or missing model gives an empty value)
+  - errors defaults to the variable formErrors (same kinds as model): when  errors|attr,name  is not empty
+    the control gets is-invalid and the message is shown in an invalid-feedback div
+  - values and messages are HTML-escaped; attrs is emitted RAW (trusted author content, e.g. htmx attributes);
+    class is appended to the Bootstrap classes; required and readonly are emitted only when true,
+    maxlength only when greater than 0
+  - type date / datetime-local / time: the value is formatted yyyy-mm-dd / yyyy-mm-ddThh:nn / hh:nn;
+    a string value must already be in that format (it is how browsers post them)
+  - label="" emits no label element
+
+  Macros
+  - form(action, method="post", class="", attrs="")
+      the body of the call (default slot) is the content of the form
+  - input(name, label="", type="text", model=formModel, errors=formErrors, required=false, readonly=false,
+          placeholder="", maxlength=0, class="", attrs="")
+  - textarea(name, label="", rows=3, model=formModel, errors=formErrors, required=false, readonly=false,
+             class="", attrs="")
+  - select(name, options, label="", valueprop="", textprop="", empty="", model=formModel, errors=formErrors,
+           required=false, class="", attrs="")
+      options: a list of objects (valueprop and textprop name the members to use), a JSON array, or a list of
+      simple values (value = text). The option whose value eq the model value is selected.
+      empty not "": a first option with value "" and that text
+  - checkbox(name, label="", model=formModel, errors=formErrors, class="", attrs="")
+      checked when the model value is truthy. A hidden input with value "false" comes before the checkbox
+      (value "true"): an unchecked box posts "false", a checked one posts "false" then "true" (use the last value)
+  - submit(text="Submit", class="", attrs="")
+  - actions()
+      the body of the call (default slot) is the content of the wrapper, e.g. the buttons
+  - auto(model, errors=formErrors, exclude="")
+      one control per field of model.@@fields (object properties or dataset fields), made with the macros above:
+      skips the fields not Visible and the names listed in exclude (comma-separated);
+      Hidden -> input type hidden; strings -> text (maxlength = Size); integers -> number;
+      float and currency -> number with step any; date -> date; datetime -> datetime-local; time -> time;
+      boolean -> checkbox; memo -> textarea; Required and ReadOnly -> attributes; label = DisplayLabel
+#}}
+{{macro form(action, method="post", class="", attrs="")}}
+<form action="{{:action}}" method="{{:method}}"{{if class}} class="{{:class}}"{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+{{slot}}</form>{{endmacro}}
+{{macro input(name, label="", type="text", model=formModel, errors=formErrors, required=false, readonly=false, placeholder="", maxlength=0, class="", attrs="")}}
+{{set value := model|attr,name}}
+{{set err := errors|attr,name}}
+{{switch type}}
+{{case "date"}}
+{{set value := value|formatdatetime,"yyyy-mm-dd"}}
+{{case "datetime-local"}}
+{{set value := value|formatdatetime,"yyyy-mm-dd'T'hh:nn"}}
+{{case "time"}}
+{{if !value|contains,":"}}{{set value := value|formatdatetime,"hh:nn"}}{{elseif value|contains,"-"}}{{set value := value|formatdatetime,"hh:nn"}}{{endif}}
+{{endswitch}}
+<div class="mb-3">
+{{if label}}
+<label for="{{:name}}" class="form-label">{{:label}}</label>
+{{endif}}
+<input type="{{:type}}" class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="{{:value}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{if placeholder}} placeholder="{{:placeholder}}"{{endif}}{{if maxlength|gt,0}} maxlength="{{:maxlength}}"{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+{{if err}}
+<div class="invalid-feedback">{{:err}}</div>
+{{endif}}
+</div>{{endmacro}}
+{{macro textarea(name, label="", rows=3, model=formModel, errors=formErrors, required=false, readonly=false, class="", attrs="")}}
+{{set value := model|attr,name}}
+{{set err := errors|attr,name}}
+<div class="mb-3">
+{{if label}}
+<label for="{{:name}}" class="form-label">{{:label}}</label>
+{{endif}}
+<textarea class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" rows="{{:rows}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>{{:value}}</textarea>
+{{if err}}
+<div class="invalid-feedback">{{:err}}</div>
+{{endif}}
+</div>{{endmacro}}
+{{macro select(name, options, label="", valueprop="", textprop="", empty="", model=formModel, errors=formErrors, required=false, class="", attrs="")}}
+{{set value := model|attr,name}}
+{{set err := errors|attr,name}}
+<div class="mb-3">
+{{if label}}
+<label for="{{:name}}" class="form-label">{{:label}}</label>
+{{endif}}
+<select class="form-select{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}"{{if required}} required{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+{{if empty}}
+<option value="">{{:empty}}</option>
+{{endif}}
+{{for o in options}}
+{{if valueprop}}{{set ov := o|attr,valueprop}}{{else}}{{set ov := o}}{{endif}}
+{{if textprop}}{{set ot := o|attr,textprop}}{{else}}{{set ot := ov}}{{endif}}
+<option value="{{:ov}}"{{if ov|eq,value}} selected{{endif}}>{{:ot}}</option>
+{{endfor}}
+</select>
+{{if err}}
+<div class="invalid-feedback">{{:err}}</div>
+{{endif}}
+</div>{{endmacro}}
+{{macro checkbox(name, label="", model=formModel, errors=formErrors, class="", attrs="")}}
+{{set value := model|attr,name}}
+{{set err := errors|attr,name}}
+<div class="mb-3 form-check">
+<input type="hidden" name="{{:name}}" value="false">
+<input type="checkbox" class="form-check-input{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="true"{{if value}} checked{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+{{if label}}
+<label for="{{:name}}" class="form-check-label">{{:label}}</label>
+{{endif}}
+{{if err}}
+<div class="invalid-feedback">{{:err}}</div>
+{{endif}}
+</div>{{endmacro}}
+{{macro submit(text="Submit", class="", attrs="")}}
+<button type="submit" class="btn btn-primary{{if class}} {{:class}}{{endif}}"{{if attrs}} {{:attrs$}}{{endif}}>{{:text}}</button>{{endmacro}}
+{{macro actions()}}
+<div class="d-flex gap-2">
+{{slot}}</div>{{endmacro}}
+{{macro auto(model, errors=formErrors, exclude="")}}
+{{# every control after the first starts on a new line: continue skips the line break of the control's line #}}
+{{set skip := exclude|replace," ",""}}
+{{set skip := @("," + skip + ",")}}
+{{for f in model.@@fields}}
+{{if !f.Visible}}{{continue}}{{endif}}
+{{if skip|icontains,@("," + f.FieldName + ",")}}{{continue}}{{endif}}
+{{if started}}{{""}}
+{{endif}}
+{{set started := true}}
+{{if f.Hidden}}
+<input type="hidden" id="{{:f.FieldName}}" name="{{:f.FieldName}}" value="{{:model|attr,f.FieldName}}">{{continue}}
+{{endif}}
+{{switch f.DataType}}
+{{case "ftSmallint", "ftInteger", "ftWord", "ftLargeint", "ftAutoInc", "ftShortint", "ftByte", "ftLongWord"}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="number", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
+{{case "ftFloat", "ftCurrency", "ftBCD", "ftFMTBcd", "ftSingle", "ftExtended"}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="number", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly, attrs="step=any")}}{{continue}}
+{{case "ftDate"}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="date", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
+{{case "ftDateTime", "ftTimeStamp"}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="datetime-local", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
+{{case "ftTime"}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="time", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
+{{case "ftBoolean"}}
+{{>checkbox(f.FieldName, label=f.DisplayLabel, model=model, errors=errors)}}{{continue}}
+{{case "ftMemo", "ftWideMemo", "ftFmtMemo"}}
+{{>textarea(f.FieldName, label=f.DisplayLabel, model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
+{{default}}
+{{>input(f.FieldName, label=f.DisplayLabel, model=model, errors=errors, required=f.Required, readonly=f.ReadOnly, maxlength=f.Size)}}{{continue}}
+{{endswitch}}
+{{endfor}}
+{{endmacro}}

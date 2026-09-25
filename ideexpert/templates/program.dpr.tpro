@@ -131,6 +131,10 @@ begin
     LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
     LServer.Active := True;
     LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+{{if program_openapi}}
+    if dotEnv.Env('dmvc.openapi.enabled', False) then
+      LogI('API documentation (Swagger UI): ' + LProtocol + '://localhost:' + APort.ToString + '/swagger/');
+{{endif}}
 {{if websocketserver_generate}}
     LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
     try
@@ -185,6 +189,10 @@ begin
       end;
     LServer.Active := True;
     LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+{{if program_openapi}}
+    if dotEnv.Env('dmvc.openapi.enabled', False) then
+      LogI('API documentation (Swagger UI): ' + LProtocol + '://localhost:' + APort.ToString + '/swagger/');
+{{endif}}
 {{if websocketserver_generate}}
     LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
     try

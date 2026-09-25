@@ -75,6 +75,10 @@ type
       // (Minimal API style) instead of a Controllers.*Controller class.
       // Default False — pre-3.5 controller-based output is unchanged.
       program_minimal_api = 'program.minimal_api';
+      // API documentation (OpenAPI 3) + Swagger UI under /swagger.
+      // Controller projects: TMVCSwaggerMiddleware with ssvOpenAPI3.
+      // Minimal API projects: the native OpenAPI() HTTP filter.
+      program_openapi = 'program.openapi';
       mustache_helpers_unit_name = 'mustache.helpers_unit_name';
       templatepro_helpers_unit_name = 'templatepro.helpers_unit_name';
       webstencils_helpers_unit_name = 'webstencils.helpers_unit_name';

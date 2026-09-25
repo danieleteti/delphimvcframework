@@ -137,6 +137,7 @@ type
     chkTrace: TCheckBox;
     chkETAG: TCheckBox;
     chkRateLimit: TCheckBox;
+    chkOpenAPI: TCheckBox;
     chkActiveRecord: TCheckBox;
     EdtFDConnDefFileName: TEdit;
     EdtConnDefName: TEdit;
@@ -1131,6 +1132,7 @@ begin
       if chkActiveRecord.Checked then LMiddlewares.Add('ActiveRecord');
       if chkETAG.Checked then LMiddlewares.Add('ETag');
       if chkRateLimit.Checked then LMiddlewares.Add('Rate Limit');
+      if chkOpenAPI.Checked then LMiddlewares.Add('OpenAPI 3 + Swagger UI');
       if chkAnalyticsMiddleware.Checked then LMiddlewares.Add('Analytics');
       if chkTrace.Checked then LMiddlewares.Add('Trace');
       if LMiddlewares.Count > 0 then
@@ -1247,6 +1249,7 @@ begin
   fModel.B[TConfigKey.webmodule_middleware_etag] := chkETAG.Checked;
   fModel.B[TConfigKey.webmodule_middleware_cors] := chkCORS.Checked;
   fModel.B[TConfigKey.webmodule_middleware_ratelimit] := chkRateLimit.Checked;
+  fModel.B[TConfigKey.program_openapi] := chkOpenAPI.Checked;
   // rgJWTAlgorithm: 0=None, 1=HS256, 2=RS256
   fModel.B[TConfigKey.webmodule_middleware_jwt] := rgJWTAlgorithm.ItemIndex > 0;
   fModel.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := rgJWTAlgorithm.ItemIndex = 2;

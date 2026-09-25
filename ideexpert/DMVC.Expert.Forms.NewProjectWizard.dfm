@@ -973,6 +973,21 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Caption = 'Rate Limit'
           TabOrder = 6
         end
+        object chkOpenAPI: TCheckBox
+          Left = 310
+          Top = 50
+          Width = 250
+          Height = 17
+          Hint = 
+            'OpenAPI 3 document at /openapi.json and Swagger UI at /swagger ' +
+            '(downloaded from the official release when the project is created)'
+          Caption = 'API documentation (OpenAPI 3)'
+          Checked = True
+          ParentShowHint = False
+          ShowHint = True
+          State = cbChecked
+          TabOrder = 10
+        end
         object chkActiveRecord: TCheckBox
           Left = 28
           Top = 121

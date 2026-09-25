@@ -5,6 +5,7 @@ uses
   MainFormU in 'MainFormU.pas' {frmMain},
   DMVC.Expert.Forms.NewProjectWizard in '..\DMVC.Expert.Forms.NewProjectWizard.pas' {frmDMVCNewProject},
   DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
+  DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas';
 
 {$R *.res}

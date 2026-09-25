@@ -152,6 +152,8 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Commons.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.TemplateEngine.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.SwaggerUI.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.SwaggerUIProgress.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>

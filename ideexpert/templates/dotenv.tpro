@@ -29,6 +29,8 @@ dmvc.load_system_controllers=true
 dmvc.default.view_file_extension=html
 dmvc.view_path=templates
 dmvc.view_cache=false
+# with view_cache=true: recompile a view when it or a layout/partial changes (a file check per request; off = load once, restart to update)
+#dmvc.view_cache_check_changes=true
 dmvc.max_entities_record_count=20
 dmvc.expose_server_signature=false
 dmvc.expose_x_powered_by=false
@@ -40,6 +42,15 @@ dmvc.max_request_size=524288
 dmvc.profiler.enabled={{:controller_actions_profiling_generate}}
 dmvc.profiler.warning_threshold=1000
 dmvc.profiler.logs_only_over_threshold=true
+{{if program_openapi}}
+
+# ============================================================================
+# API documentation
+# ============================================================================
+# true: publishes the OpenAPI 3 document (/openapi.json) and Swagger UI (/swagger).
+# false, or the key missing: neither is published (e.g. in production).
+dmvc.openapi.enabled=true
+{{endif}}
 {{if program_server_protocol|eq,"https"}}
 
 # ============================================================================
@@ -91,10 +102,10 @@ dmvc.sqids.min_length=6
 JWT_PRIVATE_KEY_FILE=jwt-private.pem
 JWT_PUBLIC_KEY_FILE=jwt-public.pem
 {{else}}
-# No default on purpose: this file is the only place the secret exists, and a
-# working-looking placeholder is a public string that signs real tokens.
-# Generate one with:  openssl rand -base64 48
-JWT_SECRET=
+# Signing key generated for this project by the wizard (384 random bits).
+# It exists only in this file: keep .env out of version control, and give
+# every environment its own key (e.g. openssl rand -hex 48).
+JWT_SECRET={{:program_jwt_secret}}
 {{endif}}
 JWT_ISSUER={{:program_name}}
 # The generated authentication handler is fail-closed: leave these empty and
