@@ -84,6 +84,13 @@ type
     /// If Handled is False, the template falls back to loading from the file system.
     /// </summary>
     property OnGetDynamicallyIncludedTemplate: TTProTemplateResolver read GetOnGetDynamicallyIncludedTemplate write SetOnGetDynamicallyIncludedTemplate;
+    function GetIncludeRootPath: string;
+    procedure SetIncludeRootPath(const Value: string);
+    /// <summary>
+    /// Optional (empty by default). When set, dynamic includes loaded from the file system
+    /// must resolve to a file inside this folder, otherwise rendering fails.
+    /// </summary>
+    property IncludeRootPath: string read GetIncludeRootPath write SetIncludeRootPath;
   end;
 
   TTProCompiledTemplateEvent = reference to procedure(const TemplateProCompiledTemplate: ITProCompiledTemplate);
@@ -104,6 +111,11 @@ type
     fAutoescapeStack: TStack<Boolean>;
     fOnGetValue: TTProCompiledTemplateGetValueEvent;
     fOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
+    fIncludeRootPath: string;
+    // Objects created by custom filters and stored with {{set}}: freed when Render ends
+    fOwnedObjects: TObjectList<TObject>;
+    // Macro calls + dynamic includes currently open (a dynamically included template starts from its parent's)
+    fRenderNestingDepth: Integer;
     fExprEvaluator: TExprEvaluator;
     function IsNullableType(const Value: PValue): Boolean;
     procedure InitTemplateAnonFunctions; inline;
@@ -126,14 +138,19 @@ type
     function GetVariables: TTProVariables;
     procedure SplitVariableName(const VariableWithMember: String; out VarName, VarMembers: String);
     function ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
-      const aVarNameWhereShoudBeApplied: String): TValue;
+      const aVarNameWhereShoudBeApplied: String; out aIsCustomFilter: Boolean): TValue;
+    procedure ExecuteFilterTrackingOwnership(const aFilterName: string; var aParameters: TArray<TFilterParameter>;
+      var aValue: TValue; const aContextName: string; var aValueOwned: Boolean);
+    procedure ReleaseOwnedObjects;
+    procedure ResetRenderState;
     procedure CheckParNumber(const aHowManyPars: Integer; const aParameters: TArray<TFilterParameter>); overload;
     procedure CheckParNumber(const aMinParNumber, aMaxParNumber: Integer; const aParameters: TArray<TFilterParameter>); overload;
     function GetPseudoVariable(const VarIterator: Integer; const PseudoVarName: String): TValue; overload;
     function IsAnIterator(const VarName: String; out DataSourceName: String; out CurrentIterator: TLoopStackItem): Boolean;
     function GetOnGetValue: TTProCompiledTemplateGetValueEvent;
-    function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
-    procedure ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string);
+    function EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
+    procedure ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string;
+      out ValueOwned: Boolean);
     procedure SetOnGetValue(const Value: TTProCompiledTemplateGetValueEvent);
     procedure DoOnGetValue(const DataSource, Members: string; var Value: TValue; var Handled: Boolean);
     function GetFormatSettings: PTProFormatSettings;
@@ -143,6 +160,7 @@ type
       const aLocaleFormatSettings: TFormatSettings): TValue;
     procedure RegisterMacro(const TokenIndex: Int64);
     function ExecuteMacro(const CallTokenIndex: Int64): String;
+    function ExecuteMacroBody(const CallTokenIndex: Int64): String;
     procedure ProcessSetToken(var Idx: Int64);
     function ExecuteStringFilter(const aFunctionName: string; var aParameters: TArray<TFilterParameter>;
       const aValue: TValue; const aExecuteAsFilterOnAValue: Boolean; out aResult: TValue): Boolean;
@@ -158,6 +176,8 @@ type
     function GetLineEndingString: string;
     function GetOnGetDynamicallyIncludedTemplate: TTProTemplateResolver;
     procedure SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
+    function GetIncludeRootPath: string;
+    procedure SetIncludeRootPath(const Value: string);
   public
     function EvaluateExpression(const Expression: string): TValue;
     destructor Destroy; override;
@@ -186,6 +206,7 @@ type
     fCurrentFileName: String;
     fLastMatchedLineBreakLength: Integer;
     fInheritanceChain: TList<string>;
+    fIncludeChain: TList<string>; // files being compiled, from the root down to the current one
     fStripNextLeadingWS: Boolean;  // For whitespace control: -}} strips leading WS from next content
     fOnGetIncludedTemplate: TTProTemplateResolver;
     function MatchLineBreak: Boolean;
@@ -267,6 +288,7 @@ uses
   JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD, Data.SqlTimSt;
 
 const
+  MAX_RENDER_NESTING = 64; // recursion through macros and dynamic includes, e.g. a tree 64 levels deep
   Sign = ['-', '+'];
   Numbers = ['0' .. '9'];
   SignAndNumbers = Sign + Numbers;
@@ -581,6 +603,16 @@ end;
 procedure TTProCompiledTemplate.SetOnGetDynamicallyIncludedTemplate(const Value: TTProTemplateResolver);
 begin
   fOnGetDynamicallyIncludedTemplate := Value;
+end;
+
+function TTProCompiledTemplate.GetIncludeRootPath: string;
+begin
+  Result := fIncludeRootPath;
+end;
+
+procedure TTProCompiledTemplate.SetIncludeRootPath(const Value: string);
+begin
+  fIncludeRootPath := Value;
 end;
 
 function TTProCompiledTemplate.GetNullableTValueAsTValue(const Value: PValue; const VarName: string): TValue;
@@ -945,6 +977,9 @@ begin
     // Copy inheritance chain to sub-compiler for circular inheritance detection
     for lFile in fInheritanceChain do
       lCompiler.fInheritanceChain.Add(lFile);
+    // Copy include chain (plus this file) for circular include detection
+    lCompiler.fIncludeChain.AddRange(fIncludeChain);
+    lCompiler.fIncludeChain.Add(aFileNameRefPath);
     // Propagate the template resolver callback
     lCompiler.fOnGetIncludedTemplate := fOnGetIncludedTemplate;
     lCompiler.Compile(aTemplate, aTokens, aFileNameRefPath);
@@ -1332,6 +1367,9 @@ begin
   fCurrentFileName := lFileNameRefPath;
   // Clear inheritance chain for each new top-level compilation
   fInheritanceChain.Clear;
+  fIncludeChain.Clear;
+  if not aFileNameRefPath.IsEmpty then
+    fIncludeChain.Add(lFileNameRefPath);
   lTokens := TList<TToken>.Create;
   try
     Compile(aTemplate, lTokens, fCurrentFileName);
@@ -1374,11 +1412,13 @@ begin
   fEncoding := aEncoding;
   fOptions := aOptions;
   fInheritanceChain := TList<string>.Create;
+  fIncludeChain := TList<string>.Create;
 end;
 
 destructor TTProCompiler.Destroy;
 begin
   fInheritanceChain.Free;
+  fIncludeChain.Free;
   inherited;
 end;
 
@@ -1414,6 +1454,7 @@ var
   lPropertyName: string;
   // Variables for include handling
   lIncludeFileName: string;
+  lIncludeChainFile: string;
   lIsDynamicInclude: Boolean;
   lHasMappings: Boolean;
   lMappingTargets: TArray<string>;
@@ -2196,6 +2237,10 @@ begin
                 lCurrentFileName := TPath.GetFullPath(TPath.Combine(aFileNameRefPath, lIncludeFileName))
               else
                 lCurrentFileName := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(aFileNameRefPath), lIncludeFileName));
+              // A file already being compiled up the chain would recurse forever
+              for lIncludeChainFile in fIncludeChain do
+                if SameText(lIncludeChainFile, lCurrentFileName) then
+                  Error('Circular include detected: "' + lIncludeFileName + '"');
               // Load template (via callback or file system)
               try
                 lTemplateSource := LoadTemplateSource(lIncludeFileName, lCurrentFileName);
@@ -3233,7 +3278,7 @@ begin
 end;
 
 function TTProCompiledTemplate.ExecuteFilter(aFunctionName: string; var aParameters: TArray<TFilterParameter>; aValue: TValue;
-  const aVarNameWhereShoudBeApplied: String): TValue;
+  const aVarNameWhereShoudBeApplied: String; out aIsCustomFilter: Boolean): TValue;
 var
   lFunc: TTProTemplateFunction;
   lAnonFunc: TTProTemplateAnonFunction;
@@ -3253,6 +3298,7 @@ var
   end;
 
 begin
+  aIsCustomFilter := False;
   lExecuteAsFilterOnAValue := not aVarNameWhereShoudBeApplied.IsEmpty;
   aFunctionName := lowercase(aFunctionName);
 
@@ -3441,10 +3487,12 @@ begin
   end
   else if fTemplateFunctions.TryGetValue(aFunctionName, lFunc) then
   begin
+    aIsCustomFilter := True;
     Result := lFunc(aValue, aParameters);
   end
   else if (fTemplateAnonFunctions <> nil) and fTemplateAnonFunctions.TryGetValue(aFunctionName, lAnonFunc) then
   begin
+    aIsCustomFilter := True;
     Result := lAnonFunc(aValue, aParameters);
   end
   else
@@ -3458,249 +3506,251 @@ var
   I: Integer;
   r: string;
   b: UInt32;
-  C4: UCS4Char;
+  lSB: TStringBuilder;
 begin
-  I := 1;
-  while I <= Length(s) do
-  begin
-    r := '';
-    if (Char.IsHighSurrogate(S, I-1)) and (Char.IsLowSurrogate(S, I)) then
+  lSB := TStringBuilder.Create(Length(s));
+  try
+    I := 1;
+    while I <= Length(s) do
     begin
-      C4 := Char.ConvertToUtf32(S, I-1);
-      r := IntToStr(C4);
-      s := s.Substring(0, I-1) + '&#' + r + ';' + s.Substring(I+1);
-      Inc(I,r.Length + 3);
-      Continue;
-    end
-    else
-    begin
-      b := Ord(S[I]);
-      if b > 255 then
+      r := '';
+      if (Char.IsHighSurrogate(S, I-1)) and (Char.IsLowSurrogate(S, I)) then
       begin
-        if b = 8364 then
-          r := 'euro'
-        else
-          r := '#' + IntToStr(b);
+        lSB.Append('&#').Append(Char.ConvertToUtf32(S, I-1)).Append(';');
+        Inc(I, 2);
+        Continue;
       end
       else
       begin
+        b := Ord(S[I]);
+        if b > 255 then
+        begin
+          if b = 8364 then
+            r := 'euro'
+          else
+            r := '#' + IntToStr(b);
+        end
+        else
+        begin
 {$REGION 'entities'}
-      case b of
-        Ord('&'):
-          r := 'amp';
-        Ord('>'):
-          r := 'gt';
-        Ord('<'):
-          r := 'lt';
-        Ord('"'):
-          r := 'quot';
-        Ord(''''):
-          r := '#39';
-        160:
-          r := 'nbsp';
-        161:
-          r := 'excl';
-        162:
-          r := 'cent';
-        163:
-          r := 'pound';
-        164:
-          r := 'curren';
-        165:
-          r := 'yen';
-        166:
-          r := 'brvbar';
-        167:
-          r := 'sect';
-        168:
-          r := 'uml';
-        169:
-          r := 'copy';
-        170:
-          r := 'ordf';
-        171:
-          r := 'laquo';
-        172:
-          r := 'not';
-        173:
-          r := 'shy';
-        174:
-          r := 'reg';
-        175:
-          r := 'macr';
-        176:
-          r := 'deg';
-        177:
-          r := 'plusmn';
-        178:
-          r := 'sup2';
-        179:
-          r := 'sup3';
-        180:
-          r := 'acute';
-        181:
-          r := 'micro';
-        182:
-          r := 'para';
-        183:
-          r := 'middot';
-        184:
-          r := 'cedil';
-        185:
-          r := 'sup1';
-        186:
-          r := 'ordm';
-        187:
-          r := 'raquo';
-        188:
-          r := 'frac14';
-        189:
-          r := 'frac12';
-        190:
-          r := 'frac34';
-        191:
-          r := 'iquest';
-        192:
-          r := 'Agrave';
-        193:
-          r := 'Aacute';
-        194:
-          r := 'Acirc';
-        195:
-          r := 'Atilde';
-        196:
-          r := 'Auml';
-        197:
-          r := 'Aring';
-        198:
-          r := 'AElig';
-        199:
-          r := 'Ccedil';
-        200:
-          r := 'Egrave';
-        201:
-          r := 'Eacute';
-        202:
-          r := 'Ecirc';
-        203:
-          r := 'Euml';
-        204:
-          r := 'Igrave';
-        205:
-          r := 'Iacute';
-        206:
-          r := 'Icirc';
-        207:
-          r := 'Iuml';
-        208:
-          r := 'ETH';
-        209:
-          r := 'Ntilde';
-        210:
-          r := 'Ograve';
-        211:
-          r := 'Oacute';
-        212:
-          r := 'Ocirc';
-        213:
-          r := 'Otilde';
-        214:
-          r := 'Ouml';
-        215:
-          r := 'times';
-        216:
-          r := 'Oslash';
-        217:
-          r := 'Ugrave';
-        218:
-          r := 'Uacute';
-        219:
-          r := 'Ucirc';
-        220:
-          r := 'Uuml';
-        221:
-          r := 'Yacute';
-        222:
-          r := 'THORN';
-        223:
-          r := 'szlig';
-        224:
-          r := 'agrave';
-        225:
-          r := 'aacute';
-        226:
-          r := 'acirc';
-        227:
-          r := 'atilde';
-        228:
-          r := 'auml';
-        229:
-          r := 'aring';
-        230:
-          r := 'aelig';
-        231:
-          r := 'ccedil';
-        232:
-          r := 'egrave';
-        233:
-          r := 'eacute';
-        234:
-          r := 'ecirc';
-        235:
-          r := 'euml';
-        236:
-          r := 'igrave';
-        237:
-          r := 'iacute';
-        238:
-          r := 'icirc';
-        239:
-          r := 'iuml';
-        240:
-          r := 'eth';
-        241:
-          r := 'ntilde';
-        242:
-          r := 'ograve';
-        243:
-          r := 'oacute';
-        244:
-          r := 'ocirc';
-        245:
-          r := 'otilde';
-        246:
-          r := 'ouml';
-        247:
-          r := 'divide';
-        248:
-          r := 'oslash';
-        249:
-          r := 'ugrave';
-        250:
-          r := 'uacute';
-        251:
-          r := 'ucirc';
-        252:
-          r := 'uuml';
-        253:
-          r := 'yacute';
-        254:
-          r := 'thorn';
-        255:
-          r := 'yuml';
-      end;
+        case b of
+          Ord('&'):
+            r := 'amp';
+          Ord('>'):
+            r := 'gt';
+          Ord('<'):
+            r := 'lt';
+          Ord('"'):
+            r := 'quot';
+          Ord(''''):
+            r := '#39';
+          160:
+            r := 'nbsp';
+          161:
+            r := 'excl';
+          162:
+            r := 'cent';
+          163:
+            r := 'pound';
+          164:
+            r := 'curren';
+          165:
+            r := 'yen';
+          166:
+            r := 'brvbar';
+          167:
+            r := 'sect';
+          168:
+            r := 'uml';
+          169:
+            r := 'copy';
+          170:
+            r := 'ordf';
+          171:
+            r := 'laquo';
+          172:
+            r := 'not';
+          173:
+            r := 'shy';
+          174:
+            r := 'reg';
+          175:
+            r := 'macr';
+          176:
+            r := 'deg';
+          177:
+            r := 'plusmn';
+          178:
+            r := 'sup2';
+          179:
+            r := 'sup3';
+          180:
+            r := 'acute';
+          181:
+            r := 'micro';
+          182:
+            r := 'para';
+          183:
+            r := 'middot';
+          184:
+            r := 'cedil';
+          185:
+            r := 'sup1';
+          186:
+            r := 'ordm';
+          187:
+            r := 'raquo';
+          188:
+            r := 'frac14';
+          189:
+            r := 'frac12';
+          190:
+            r := 'frac34';
+          191:
+            r := 'iquest';
+          192:
+            r := 'Agrave';
+          193:
+            r := 'Aacute';
+          194:
+            r := 'Acirc';
+          195:
+            r := 'Atilde';
+          196:
+            r := 'Auml';
+          197:
+            r := 'Aring';
+          198:
+            r := 'AElig';
+          199:
+            r := 'Ccedil';
+          200:
+            r := 'Egrave';
+          201:
+            r := 'Eacute';
+          202:
+            r := 'Ecirc';
+          203:
+            r := 'Euml';
+          204:
+            r := 'Igrave';
+          205:
+            r := 'Iacute';
+          206:
+            r := 'Icirc';
+          207:
+            r := 'Iuml';
+          208:
+            r := 'ETH';
+          209:
+            r := 'Ntilde';
+          210:
+            r := 'Ograve';
+          211:
+            r := 'Oacute';
+          212:
+            r := 'Ocirc';
+          213:
+            r := 'Otilde';
+          214:
+            r := 'Ouml';
+          215:
+            r := 'times';
+          216:
+            r := 'Oslash';
+          217:
+            r := 'Ugrave';
+          218:
+            r := 'Uacute';
+          219:
+            r := 'Ucirc';
+          220:
+            r := 'Uuml';
+          221:
+            r := 'Yacute';
+          222:
+            r := 'THORN';
+          223:
+            r := 'szlig';
+          224:
+            r := 'agrave';
+          225:
+            r := 'aacute';
+          226:
+            r := 'acirc';
+          227:
+            r := 'atilde';
+          228:
+            r := 'auml';
+          229:
+            r := 'aring';
+          230:
+            r := 'aelig';
+          231:
+            r := 'ccedil';
+          232:
+            r := 'egrave';
+          233:
+            r := 'eacute';
+          234:
+            r := 'ecirc';
+          235:
+            r := 'euml';
+          236:
+            r := 'igrave';
+          237:
+            r := 'iacute';
+          238:
+            r := 'icirc';
+          239:
+            r := 'iuml';
+          240:
+            r := 'eth';
+          241:
+            r := 'ntilde';
+          242:
+            r := 'ograve';
+          243:
+            r := 'oacute';
+          244:
+            r := 'ocirc';
+          245:
+            r := 'otilde';
+          246:
+            r := 'ouml';
+          247:
+            r := 'divide';
+          248:
+            r := 'oslash';
+          249:
+            r := 'ugrave';
+          250:
+            r := 'uacute';
+          251:
+            r := 'ucirc';
+          252:
+            r := 'uuml';
+          253:
+            r := 'yacute';
+          254:
+            r := 'thorn';
+          255:
+            r := 'yuml';
+        end;
 {$ENDREGION}
+        end;
       end;
-    end;
 
-    if r <> '' then
-    begin
-      s := s.Substring(0, I-1) + '&' + r + ';' + s.Substring(I);
-      Inc(I, Length(r) + 1);
+      if r <> '' then
+        lSB.Append('&').Append(r).Append(';')
+      else
+        lSB.Append(s[I]);
+      Inc(I);
     end;
-    Inc(I);
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
   end;
-  Result := s;
 end;
 
 { TTProCompiledTemplate }
@@ -3722,6 +3772,7 @@ begin
   fEncoding := TEncoding.UTF8;
   fOutputLineEnding := lesLF;
   fDynamicIncludeCache := TDictionary<string, ITProCompiledTemplate>.Create;
+  fOwnedObjects := TObjectList<TObject>.Create(True);
 end;
 
 class function TTProCompiledTemplate.CreateFromFile(const FileName: String): ITProCompiledTemplate;
@@ -3772,6 +3823,7 @@ begin
   fOnGetValue := nil;
   fExprEvaluator.Free;
   fDynamicIncludeCache.Free;
+  fOwnedObjects.Free;
   fLoopsStack.Free;
   fIncludeSavedVarsStack.Free;
   fAutoescapeStack.Free;
@@ -3815,6 +3867,7 @@ end;
 function TTProCompiledTemplate.Render: String;
 var
   lIdx: Int64;
+  lValueOwned: Boolean;
   lBuff: TStringBuilder;
   lVariable: TVarDataSource;
   lWrapped: ITProWrappedList;
@@ -3863,6 +3916,7 @@ var
   lPathIndex: Integer;
   lPathRemainder: String;
 begin
+  ResetRenderState;
   lCurrentLevel := 0;
   lBlockStack := TStack<TBlockReturnInfo>.Create;
   try
@@ -4186,6 +4240,9 @@ begin
               // Fallback to file system if not handled
               if not lDynHandled then
               begin
+                if (not fIncludeRootPath.IsEmpty) and
+                  (not lDynFullPath.StartsWith(IncludeTrailingPathDelimiter(TPath.GetFullPath(fIncludeRootPath)), True)) then
+                  Error('Dynamic include "' + lDynIncludeFileName + '" resolves outside IncludeRootPath');
                 try
                   lDynIncludeSource := TFile.ReadAllText(lDynFullPath, fEncoding);
                 except
@@ -4202,6 +4259,7 @@ begin
                 lDynIncludeTemplate := lDynIncludeCompiler.Compile(lDynIncludeSource, lDynFullPath);
                 // Propagate the callback to the compiled template for nested dynamic includes
                 lDynIncludeTemplate.OnGetDynamicallyIncludedTemplate := fOnGetDynamicallyIncludedTemplate;
+                lDynIncludeTemplate.IncludeRootPath := fIncludeRootPath;
               finally
                 lDynIncludeCompiler.Free;
               end;
@@ -4218,6 +4276,9 @@ begin
             end;
 
             // Execute and append output
+            if fRenderNestingDepth + 1 > MAX_RENDER_NESTING then
+              Error(Format('Template nesting too deep (max %d levels of macro calls and dynamic includes)', [MAX_RENDER_NESTING]));
+            (lDynIncludeTemplate as TTProCompiledTemplate).fRenderNestingDepth := fRenderNestingDepth + 1;
             lBuff.Append(lDynIncludeTemplate.Render);
           end;
         ttBoolExpression:
@@ -4226,16 +4287,18 @@ begin
           end;
         ttValue, ttLiteralString:
           begin
-            lVarValue := EvaluateValue(lIdx, lMustBeEncoded { must be encoded } );
-            // lMustBeEncoded = False means explicit raw ($) - never encode
-            // lMustBeEncoded = True means follow autoescape stack
-            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-              lBuff.Append(lVarValue.ToString)
-            else
-              lBuff.Append(HTMLEncode(lVarValue.ToString));
-            if lVarValue.IsObjectInstance then
-            begin
-              lVarValue.AsObject.Free;
+            lVarValue := EvaluateValue(lIdx, lMustBeEncoded { must be encoded }, lValueOwned);
+            try
+              // lMustBeEncoded = False means explicit raw ($) - never encode
+              // lMustBeEncoded = True means follow autoescape stack
+              if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                lBuff.Append(lVarValue.ToString)
+              else
+                lBuff.Append(HTMLEncode(lVarValue.ToString));
+            finally
+              // only objects created by custom filters are freed, never the caller's ones
+              if lValueOwned then
+                lVarValue.AsObject.Free;
             end;
           end;
         ttExpression:
@@ -4244,15 +4307,21 @@ begin
             lExprFilterCount := fTokens[lIdx].Ref1;
             lMustBeEncoded := fTokens[lIdx].Ref2 = -1;
             // Apply filters if present
+            lValueOwned := False;
             if lExprFilterCount > 0 then
-              ApplyFilters(lIdx, lVarValue, lExprFilterCount, 'expression');
-            // Apply HTML encoding if required
-            // lMustBeEncoded = False means explicit raw ($) - never encode
-            // lMustBeEncoded = True means follow autoescape stack
-            if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-              lBuff.Append(lVarValue.ToString)
-            else
-              lBuff.Append(HTMLEncode(lVarValue.ToString));
+              ApplyFilters(lIdx, lVarValue, lExprFilterCount, 'expression', lValueOwned);
+            try
+              // Apply HTML encoding if required
+              // lMustBeEncoded = False means explicit raw ($) - never encode
+              // lMustBeEncoded = True means follow autoescape stack
+              if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                lBuff.Append(lVarValue.ToString)
+              else
+                lBuff.Append(HTMLEncode(lVarValue.ToString));
+            finally
+              if lValueOwned then
+                lVarValue.AsObject.Free;
+            end;
           end;
         ttSet:
           ProcessSetToken(lIdx);
@@ -4436,6 +4505,7 @@ begin
   end;
   finally
     lBlockStack.Free;
+    ReleaseOwnedObjects;
   end;
 end;
 
@@ -5000,6 +5070,8 @@ function TTProCompiledTemplate.EvaluateIfExpressionAt(var Idx: Int64): Boolean;
 var
   lMustBeEncoded: Boolean;
   lExprResult: TValue;
+  lValue: TValue;
+  lValueOwned: Boolean;
 begin
   Inc(Idx);
   if fTokens[Idx].TokenType <> ttBoolExpression then
@@ -5017,11 +5089,17 @@ begin
   else
   begin
     // Original variable-based evaluation
-    Result := IsTruthy(EvaluateValue(Idx, lMustBeEncoded));
+    lValue := EvaluateValue(Idx, lMustBeEncoded, lValueOwned);
+    try
+      Result := IsTruthy(lValue);
+    finally
+      if lValueOwned then
+        lValue.AsObject.Free;
+    end;
   end;
 end;
 
-function TTProCompiledTemplate.EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean): TValue;
+function TTProCompiledTemplate.EvaluateValue(var Idx: Int64; out MustBeEncoded: Boolean; out ResultOwned: Boolean): TValue;
 var
   lCurrTokenType: TTokenType;
   lVarName: string;
@@ -5033,6 +5111,7 @@ begin
   // Ref1 contains the number of filters (0 if there isn't any filter)
   // Ref2 is -1 if the variable must be HTMLEncoded, while contains 1 is the value must not be HTMLEncoded
   MustBeEncoded := fTokens[Idx].Ref2 = -1;
+  ResultOwned := False;
   lCurrTokenType := fTokens[Idx].TokenType;
   lVarName := fTokens[Idx].Value1;
   lFilterCount := fTokens[Idx].Ref1;
@@ -5071,11 +5150,18 @@ begin
       lCurrentValue := GetNullableTValueAsTValue(@lCurrentValue, lVarName);
 
     // Apply filters
-    ApplyFilters(Idx, lCurrentValue, lFilterCount, lVarName);
+    ApplyFilters(Idx, lCurrentValue, lFilterCount, lVarName, ResultOwned);
 
     // For bool expressions, convert final result to boolean
     if lCurrTokenType = ttBoolExpression then
-      Result := IsTruthy(lCurrentValue)
+    begin
+      Result := IsTruthy(lCurrentValue);
+      if ResultOwned then
+      begin
+        lCurrentValue.AsObject.Free;
+        ResultOwned := False;
+      end;
+    end
     else
       Result := lCurrentValue;
   end
@@ -5094,17 +5180,25 @@ begin
   end;
   if lNegated then
   begin
+    if ResultOwned then
+    begin
+      Result.AsObject.Free;
+      ResultOwned := False;
+      Error('Cannot negate an object returned by a filter');
+    end;
     Result := not Result.AsBoolean;
   end;
 end;
 
-procedure TTProCompiledTemplate.ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string);
+procedure TTProCompiledTemplate.ApplyFilters(var Idx: Int64; var Value: TValue; FilterCount: Int64; const ContextName: string;
+  out ValueOwned: Boolean);
 var
   lFilterName: string;
   lFilterParCount: Int64;
   lFilterParameters: TArray<TFilterParameter>;
   I, J: Integer;
 begin
+  ValueOwned := False; // the initial value always belongs to the caller
   for J := 0 to FilterCount - 1 do
   begin
     Inc(Idx);
@@ -5125,7 +5219,7 @@ begin
       end;
     end;
     try
-      Value := ExecuteFilter(lFilterName, lFilterParameters, Value, ContextName);
+      ExecuteFilterTrackingOwnership(lFilterName, lFilterParameters, Value, ContextName, ValueOwned);
     except
       on E: Exception do
       begin
@@ -5133,6 +5227,70 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TTProCompiledTemplate.ExecuteFilterTrackingOwnership(const aFilterName: string;
+  var aParameters: TArray<TFilterParameter>; var aValue: TValue; const aContextName: string; var aValueOwned: Boolean);
+// Ownership rule: an object returned by a custom filter, different from the object it received,
+// belongs to the engine (v1.1 contract). Anything else - SetData objects, objects returned by
+// built-in filters such as "default", objects passed through unchanged - belongs to the caller.
+var
+  lInput: TValue;
+  lIsCustomFilter: Boolean;
+  lSameObject: Boolean;
+begin
+  lInput := aValue;
+  try
+    aValue := ExecuteFilter(aFilterName, aParameters, lInput, aContextName, lIsCustomFilter);
+  except
+    if aValueOwned then
+    begin
+      aValue := TValue.Empty;
+      aValueOwned := False;
+      lInput.AsObject.Free;
+    end;
+    raise;
+  end;
+  lSameObject := lInput.IsObjectInstance and aValue.IsObjectInstance and (lInput.AsObject = aValue.AsObject);
+  if lSameObject then
+    Exit; // passed through: ownership unchanged
+  if aValueOwned then
+    lInput.AsObject.Free; // engine-owned input consumed by the filter
+  aValueOwned := lIsCustomFilter and aValue.IsObjectInstance and (aValue.AsObject <> nil);
+end;
+
+procedure TTProCompiledTemplate.ResetRenderState;
+begin
+  // A render interrupted by an exception leaves these stacks half-filled: every render starts clean
+  fLoopsStack.Clear;
+  fIncludeSavedVarsStack.Clear;
+  fAutoescapeStack.Clear;
+  fAutoescapeStack.Push(True); // Default: autoescape enabled
+end;
+
+procedure TTProCompiledTemplate.ReleaseOwnedObjects;
+var
+  lPair: TPair<string, TVarDataSource>;
+  lVarsToRemove: TList<string>;
+begin
+  if fOwnedObjects.Count = 0 then
+    Exit;
+  // no variable may keep pointing to an object that is about to be freed
+  if fVariables <> nil then
+  begin
+    lVarsToRemove := TList<string>.Create;
+    try
+      for lPair in fVariables do
+        if (lPair.Value <> nil) and lPair.Value.VarValue.IsObjectInstance and
+          (fOwnedObjects.IndexOf(lPair.Value.VarValue.AsObject) > -1) then
+          lVarsToRemove.Add(lPair.Key);
+      for var lVarName in lVarsToRemove do
+        fVariables.Remove(lVarName);
+    finally
+      lVarsToRemove.Free;
+    end;
+  end;
+  fOwnedObjects.Clear;
 end;
 
 procedure TTProCompiledTemplate.SaveToFile(const FileName: String);
@@ -5636,6 +5794,7 @@ end;
 procedure TTProCompiledTemplate.ProcessSetToken(var Idx: Int64);
 var
   lVarValue: TValue;
+  lValueOwned: Boolean;
   lSetTargetVar: String;
   lSetSourceVar: String;
   lSetFilterCount: Integer;
@@ -5651,6 +5810,7 @@ begin
         lSetSourceVar := fTokens[Idx].Value2;
         // Get initial value from source variable (Value2)
         lVarValue := GetVarAsTValue(lSetSourceVar);
+        lValueOwned := False;
         // Apply filters if any (Ref1 = filter count)
         lSetFilterCount := fTokens[Idx].Ref1;
         for lSetJ := 0 to lSetFilterCount - 1 do
@@ -5672,8 +5832,11 @@ begin
                 lSetFilterParams[lSetI].ParStrText := fTokens[Idx].Value1;
             end;
           end;
-          lVarValue := ExecuteFilter(lSetFilterName, lSetFilterParams, lVarValue, lSetSourceVar);
+          ExecuteFilterTrackingOwnership(lSetFilterName, lSetFilterParams, lVarValue, lSetSourceVar, lValueOwned);
         end;
+        // a filter-created object must outlive the variable's uses: it is freed when Render ends
+        if lValueOwned then
+          fOwnedObjects.Add(lVarValue.AsObject);
         SetData(lSetTargetVar, lVarValue);
       end;
     1: // Expression
@@ -5695,8 +5858,21 @@ begin
 end;
 
 function TTProCompiledTemplate.ExecuteMacro(const CallTokenIndex: Int64): String;
+begin
+  Inc(fRenderNestingDepth);
+  try
+    if fRenderNestingDepth > MAX_RENDER_NESTING then
+      Error(Format('Template nesting too deep (max %d levels of macro calls and dynamic includes)', [MAX_RENDER_NESTING]));
+    Result := ExecuteMacroBody(CallTokenIndex);
+  finally
+    Dec(fRenderNestingDepth);
+  end;
+end;
+
+function TTProCompiledTemplate.ExecuteMacroBody(const CallTokenIndex: Int64): String;
 var
   lMacroName: String;
+  lValueOwned: Boolean;
   lMacroDef: TMacroDefinition;
   lCallParamCount: Integer;
   lCallParams: TArray<TValue>;
@@ -5781,13 +5957,18 @@ begin
               lBuff.Append(fTokens[lIdx].Value1);
             ttValue, ttLiteralString:
               begin
-                lParamValue := EvaluateValue(lIdx, lMustBeEncoded);
-                // lMustBeEncoded = False means explicit raw ($) - never encode
-                // lMustBeEncoded = True means follow autoescape stack
-                if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
-                  lBuff.Append(lParamValue.ToString)
-                else
-                  lBuff.Append(HTMLEncode(lParamValue.ToString));
+                lParamValue := EvaluateValue(lIdx, lMustBeEncoded, lValueOwned);
+                try
+                  // lMustBeEncoded = False means explicit raw ($) - never encode
+                  // lMustBeEncoded = True means follow autoescape stack
+                  if (not lMustBeEncoded) or (not fAutoescapeStack.Peek) then
+                    lBuff.Append(lParamValue.ToString)
+                  else
+                    lBuff.Append(HTMLEncode(lParamValue.ToString));
+                finally
+                  if lValueOwned then
+                    lParamValue.AsObject.Free;
+                end;
               end;
             ttExpression:
               begin

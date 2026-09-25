@@ -26,8 +26,6 @@ unit ExprEvaluator;
 
 interface
 
-{$I dmvcframework.inc}
-
 uses
   System.SysUtils, System.Variants, System.Math, System.Generics.Collections,
   System.Masks;
@@ -81,15 +79,19 @@ type
     FPos: Integer;
     FFormatSettings: TFormatSettings;
     FSkipEvaluation: Boolean;  // When true, parse but don't execute functions
+    FNestingDepth: Integer;    // Guards the recursive descent against stack overflow
     FOnResolveExternalVariable: TExternalVariableResolver;
 
     function ParseIfExpression: Variant;
+    function ParseIfExpressionInner: Variant;
     function ParseLogical: Variant;
     function ParseRelational: Variant;
     function ParseAdditive: Variant;
     function ParseMultiplicative: Variant;
     function ParseFactor: Variant;
     function ParsePrimary: Variant;
+    function ParsePrimaryInner: Variant;
+    procedure EnterNesting;
     function ParseString: string;
     function CurrentChar: Char;
     procedure NextChar;
@@ -221,7 +223,7 @@ begin
         raise Exception.Create('Contains requires 2 arguments');
       if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
         raise Exception.Create('Contains requires non-null arguments');
-      {$IF Defined(FLORENCEORBETTER)}
+      {$IF CompilerVersion >= 37} // 13 Florence
       Result := String(Args[1]).Contains(String(Args[0]), True);
       {$ELSE}
       Result := String(Args[1]).ToLower.Contains(String(Args[0]).ToLower);
@@ -771,7 +773,38 @@ begin
     Result := ParseIfExpression;
 end;
 
+const
+  MAX_NESTING_DEPTH = 256; // ~128 levels of parentheses: far beyond any real expression
+
+procedure TExprEvaluator.EnterNesting;
+begin
+  Inc(FNestingDepth);
+  if FNestingDepth > MAX_NESTING_DEPTH then
+    raise Exception.CreateFmt('Expression nesting too deep (max %d levels)', [MAX_NESTING_DEPTH]);
+end;
+
+// Every recursion cycle of the parser goes through ParseIfExpression or ParsePrimary
 function TExprEvaluator.ParseIfExpression: Variant;
+begin
+  EnterNesting;
+  try
+    Result := ParseIfExpressionInner;
+  finally
+    Dec(FNestingDepth);
+  end;
+end;
+
+function TExprEvaluator.ParsePrimary: Variant;
+begin
+  EnterNesting;
+  try
+    Result := ParsePrimaryInner;
+  finally
+    Dec(FNestingDepth);
+  end;
+end;
+
+function TExprEvaluator.ParseIfExpressionInner: Variant;
 var
   Condition, ThenValue, ElseValue: Variant;
   IfWord: string;
@@ -922,7 +955,7 @@ begin
   NextChar; // skip closing "
 end;
 
-function TExprEvaluator.ParsePrimary: Variant;
+function TExprEvaluator.ParsePrimaryInner: Variant;
 var
   NumStr: string;
   Id: string;

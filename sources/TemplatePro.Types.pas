@@ -222,13 +222,23 @@ var
   lValue1Size: UInt32;
   lValue2Size: UInt32;
   lTokenAsByte: byte;
+
+  procedure CheckValueSize(const aSize: UInt32);
+  begin
+    if Odd(aSize) or (Int64(aSize) > aBytes.BaseStream.Size - aBytes.BaseStream.Position) then
+      raise ETProException.CreateFmt('Invalid value length %d', [aSize]);
+  end;
+
 begin
   lTokenAsByte := aBytes.ReadByte;
+  if Integer(lTokenAsByte) > Ord(High(TTokenType)) then
+    raise ETProException.CreateFmt('Invalid token type %d', [lTokenAsByte]);
   Result.TokenType := TTokenType(lTokenAsByte);
 
   // Optimized: Read directly into string memory to avoid intermediate TArray<byte> allocation
   // This is ~50% faster than TEncoding.Unicode.GetString(aBytes.ReadBytes(...))
   lValue1Size := aBytes.ReadUInt32;
+  CheckValueSize(lValue1Size);
   if lValue1Size > 0 then
   begin
     SetLength(Result.Value1, lValue1Size div SizeOf(Char));
@@ -238,6 +248,7 @@ begin
     Result.Value1 := '';
 
   lValue2Size := aBytes.ReadUInt32;
+  CheckValueSize(lValue2Size);
   if lValue2Size > 0 then
   begin
     SetLength(Result.Value2, lValue2Size div SizeOf(Char));
