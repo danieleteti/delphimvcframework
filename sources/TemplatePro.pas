@@ -694,6 +694,21 @@ begin
   fTemplateFunctions.Add(FunctionName.ToLower, FunctionImpl);
 end;
 
+{ Cardinal (and other 32-bit unsigned types) and UInt64 must not be read with
+  AsInteger/AsInt64: values above the signed maximum would come out negative. }
+function IsUnsignedInteger(const aTypeInfo: PTypeInfo): Boolean;
+begin
+  Result := (aTypeInfo <> nil) and (aTypeInfo^.Kind = tkInteger) and
+    (GetTypeData(aTypeInfo)^.OrdType = otULong);
+end;
+
+function IsUnsignedInt64(const aTypeInfo: PTypeInfo): Boolean;
+begin
+  // for an unsigned 64-bit type the range stored as Int64 is 0..-1
+  Result := (aTypeInfo <> nil) and (aTypeInfo^.Kind = tkInt64) and
+    (GetTypeData(aTypeInfo)^.MinInt64Value > GetTypeData(aTypeInfo)^.MaxInt64Value);
+end;
+
 function TTProCompiledTemplate.GetDataSetFieldAsTValue(const aDataSet: TDataSet; const FieldName: String): TValue;
 var
   lField: TField;
@@ -704,17 +719,25 @@ begin
     Exit(TValue.Empty);
   end;
   case lField.DataType of
-    ftInteger, ftSmallInt, ftWord:
+    ftInteger, ftSmallInt, ftWord, ftShortint, ftByte:
       Result := lField.AsInteger;
     ftLargeint, ftAutoInc:
       Result := lField.AsLargeInt;
+{$IF CompilerVersion >= 37} // ftLargeUint and TField.AsLargeUInt exist since Delphi 13
+    ftLargeUint:
+      Result := lField.AsLargeUInt;
+{$ENDIF}
+    ftLongWord:
+      Result := lField.AsLongWord;
     ftFloat:
       Result := lField.AsFloat;
     ftSingle:
       Result := lField.AsSingle;
+    ftExtended:
+      Result := lField.AsExtended;
     ftCurrency:
       Result := lField.AsCurrency;
-    ftString, ftWideString, ftMemo, ftWideMemo:
+    ftString, ftWideString, ftMemo, ftWideMemo, ftGuid, ftFixedChar, ftFixedWideChar:
       Result := lField.AsWideString;
     ftDate:
       Result := TDate(Trunc(lField.AsDateTime));
@@ -1010,9 +1033,15 @@ begin
     begin
       case Value.Kind of
         tkInteger:
-          Result := Value.AsInteger.ToString;
+          if IsUnsignedInteger(Value.TypeInfo) then
+            Result := Value.AsType<Cardinal>.ToString
+          else
+            Result := Value.AsInteger.ToString;
         tkInt64:
-          Result := Value.AsInt64.ToString;
+          if IsUnsignedInt64(Value.TypeInfo) then
+            Result := Value.AsType<UInt64>.ToString
+          else
+            Result := Value.AsInt64.ToString;
         tkString, tkUString, tkWString, tkLString:
           Result := Value.AsString;
         tkWChar, tkChar:
@@ -7956,9 +7985,19 @@ begin
   if Value.IsEmpty then
     Result := Null
   else if Value.Kind = tkInteger then
-    Result := Value.AsInteger
+  begin
+    if IsUnsignedInteger(Value.TypeInfo) then
+      Result := Int64(Value.AsType<Cardinal>)
+    else
+      Result := Value.AsInteger;
+  end
   else if Value.Kind = tkInt64 then
-    Result := Value.AsInt64
+  begin
+    if IsUnsignedInt64(Value.TypeInfo) then
+      Result := Value.AsType<UInt64>
+    else
+      Result := Value.AsInt64;
+  end
   else if Value.Kind = tkFloat then
     Result := Value.AsExtended
   else if Value.Kind in [tkString, tkUString, tkLString, tkWString] then
