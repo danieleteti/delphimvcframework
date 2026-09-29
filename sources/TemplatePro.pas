@@ -6909,6 +6909,7 @@ procedure TTProCompiledTemplate.ReleaseOwnedObjects;
 var
   lPair: TPair<string, TVarDataSource>;
   lVarsToRemove: TList<string>;
+  lVarName: string;
 begin
   if fOwnedObjects.Count = 0 then
     Exit;
@@ -6921,7 +6922,7 @@ begin
         if (lPair.Value <> nil) and lPair.Value.VarValue.IsObjectInstance and
           (fOwnedObjects.IndexOf(lPair.Value.VarValue.AsObject) > -1) then
           lVarsToRemove.Add(lPair.Key);
-      for var lVarName in lVarsToRemove do
+      for lVarName in lVarsToRemove do
         fVariables.Remove(lVarName);
     finally
       lVarsToRemove.Free;
