@@ -69,7 +69,7 @@ function TCustomersController.DeleteCustomerByID(const ID: Integer): IMVCRespons
 begin
   // Automatic transaction handling
   var lTx := TMVCRepository.UseTransactionContext;
-  var lCustomer := fCustomersRepository.GetByPK(ID);
+  var lCustomer := ToFree<TCustomer>(fCustomersRepository.GetByPK(ID));
   fCustomersRepository.Delete(lCustomer);
   Result := OKResponse;
 end;

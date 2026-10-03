@@ -70,7 +70,8 @@ end;
 procedure TMVCSecurityHeadersMiddleware.OnBeforeRouting(AContext: TWebContext;
   var AHandled: Boolean);
 begin
-  AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode=block');
+  // '0' per OWASP: the legacy XSS auditor was itself exploitable
+  AContext.Response.SetCustomHeader('X-XSS-Protection', '0');
   AContext.Response.SetCustomHeader('X-Content-Type-Options', 'nosniff');
 end;
 

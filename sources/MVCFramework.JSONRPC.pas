@@ -507,6 +507,16 @@ const
 var
   GProxyGeneratorsRegister: TDictionary<string, TJSONRPCProxyGeneratorClass>;
 
+{ The REST rule (MVCClientSafeExceptionMessage), plus the protocol errors this
+  unit raises for a malformed request: they describe the request, not the server }
+function JSONRPCClientSafeMessage(const AException: Exception): string;
+begin
+  if (AException is EMVCJSONRPCException) or (AException is EMVCJSONRPCInvalidVersion) then
+    Result := AException.Message
+  else
+    Result := MVCClientSafeExceptionMessage(AException);
+end;
+
 function IsReservedMethodName(const MethodName: string): Boolean;
 var
   lMethod: string;
@@ -1692,7 +1702,9 @@ begin
       on ExSer: EMVCSerializationException do
       begin
         ResponseStatus(200);
-        lJSONResp := CreateError(lReqID, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message, ExSer.DetailedMessage);
+        { DetailedMessage names server-side types and properties: DEBUG only }
+        lJSONResp := CreateError(lReqID, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message,
+          {$IFDEF DEBUG}ExSer.DetailedMessage{$ELSE}TValue.Empty{$ENDIF});
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [ExSer.ClassName, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message]));
       end;
       on Ex: Exception do // use another name for exception variable, otherwise E is nil!!
@@ -1706,13 +1718,15 @@ begin
         begin
           lExceptionHandled := False;
           lJSONRespErrorInfo.Code := 0;
-          lJSONRespErrorInfo.Msg := Ex.Message;
+          { Outside DEBUG only a client-safe message; the handler still gets the full Ex }
+          lJSONRespErrorInfo.Msg := JSONRPCClientSafeMessage(Ex);
           lJSONRespErrorInfo.Data := nil;
           fExceptionHandler(Ex, Context, lJSONRespErrorInfo,  lExceptionHandled);
           try
             if not lExceptionHandled then
             begin
-              lJSONResp := CreateError(lReqID, 0, Ex.Message, Ex.ClassName);
+              lJSONResp := CreateError(lReqID, 0, JSONRPCClientSafeMessage(Ex),
+                {$IFDEF DEBUG}Ex.ClassName{$ELSE}TValue.Empty{$ENDIF});
             end
             else
             begin
@@ -1731,7 +1745,7 @@ begin
         end
         else
         begin
-          lJSONResp := CreateError(lReqID, 0, Ex.Message);
+          lJSONResp := CreateError(lReqID, 0, JSONRPCClientSafeMessage(Ex));
         end;
       end;
     end; // except
@@ -1749,7 +1763,7 @@ begin
           if E is EMVCJSONRPCErrorResponse then
             lJSONResp := CreateError(lReqID, EMVCJSONRPCErrorResponse(E).JSONRPCErrorCode, E.Message)
           else
-            lJSONResp := CreateError(lReqID, 0, E.Message);
+            lJSONResp := CreateError(lReqID, 0, JSONRPCClientSafeMessage(E));
         end;
       end;
     end;

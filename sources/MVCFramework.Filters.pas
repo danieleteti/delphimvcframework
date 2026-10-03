@@ -221,7 +221,7 @@ function CORSFilter(
 function MVCMatchCORSOrigin(const AConfiguredOrigins, ARequestOrigin: string): string;
 
 // HTTPFilter that stamps the baseline response security headers
-//   X-XSS-Protection: 1; mode=block
+//   X-XSS-Protection: 0
 //   X-Content-Type-Options: nosniff
 // on every response. Stamped pre-Next so handlers can still override if a
 // stricter (or looser) policy is needed for a specific route. Equivalent
@@ -831,7 +831,8 @@ begin
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
     begin
-      AContext.Response.SetCustomHeader('X-XSS-Protection', '1; mode=block');
+      // '0' per OWASP: the legacy XSS auditor was itself exploitable
+      AContext.Response.SetCustomHeader('X-XSS-Protection', '0');
       AContext.Response.SetCustomHeader('X-Content-Type-Options', 'nosniff');
       ANext();
     end;

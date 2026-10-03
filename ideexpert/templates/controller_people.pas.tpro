@@ -130,7 +130,8 @@ begin
 {$ENDIF}
 {{endif}}
   LogI('Created ' + Person.FirstName + ' ' + Person.LastName);
-  Result := CreatedResponse('', 'Person created');
+  Person.ID := 4; // demo: no storage, so a fixed id for the new person
+  Result := CreatedResponse('/api/people/' + {{if program_sqids}}TMVCSqids.IntToSqid(Person.ID.Value){{else}}Person.ID.Value.ToString{{endif}}, 'Person created');
 end;
 
 function TPeopleController.UpdatePerson(ID: Integer; [MVCFromBody] Person: TPerson): IMVCResponse;
