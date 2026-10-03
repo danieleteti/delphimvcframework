@@ -149,6 +149,7 @@ type
     edtControllerClassName: TEdit;
     edtWebModuleName: TEdit;
     chkSqids: TCheckBox;
+    chkAISkills: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
     rgJWTAlgorithm: TRadioGroup;
@@ -1149,6 +1150,8 @@ begin
         LSummary.Add('WebSocket: Yes');
       if chkJSONRPC.Checked then
         LSummary.Add('JSON-RPC: Yes');
+      if chkAISkills.Checked then
+        LSummary.Add('AI agents: AGENTS.md + skills in .claude\skills');
 
       lblSummary.Caption := LSummary.Text;
     finally
@@ -1170,6 +1173,7 @@ begin
   // HTTP workloads. Keep the config key False so templates still render.
   fModel.B[TConfigKey.program_msheap] := False;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
+  fModel.B[TConfigKey.program_ai_skills] := chkAISkills.Checked;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_htmx] := chkHtmx.Checked;
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');

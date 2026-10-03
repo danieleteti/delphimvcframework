@@ -1258,6 +1258,20 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Use Sqids'
         TabOrder = 3
       end
+      object chkAISkills: TCheckBox
+        Left = 250
+        Top = 185
+        Width = 330
+        Height = 17
+        Hint =
+          'AGENTS.md, CLAUDE.md, GEMINI.md and the delphi-ai-skills for thi' +
+          's framework version in .claude\skills (downloaded when the projec' +
+          't is created; update_ai_skills.bat refreshes them)'
+        Caption = 'AI coding agent files and skills'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 7
+      end
       object chkHtmx: TCheckBox
         Left = 250
         Top = 206

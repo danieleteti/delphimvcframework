@@ -111,6 +111,7 @@
         </DCCReference>
         <DCCReference Include="..\DMVC.Expert.ProjectGenerator.pas"/>
         <DCCReference Include="..\DMVC.Expert.SwaggerUI.pas"/>
+        <DCCReference Include="..\DMVC.Expert.AISkills.pas"/>
         <DCCReference Include="..\DMVC.Expert.Commons.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

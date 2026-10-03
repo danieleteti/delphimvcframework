@@ -40,7 +40,8 @@ uses
   TemplatePro,
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas',
   DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
-  DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas';
+  DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
+  DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas';
 
 type
   TTestCase = record
@@ -80,6 +81,7 @@ type
 
 var
   GSwaggerUIZip: TBytes; // one real download, reused by every *_openapi case
+  GAISkillsZip: TBytes; // one real download of the skills branch, reused by every *_ai_skills case
   GOutputDir: string;
   GVerbose: Boolean;
   GTestResults: TList<TTestResult>;
@@ -1463,6 +1465,83 @@ begin
     'bin/.env|dmvc.openapi'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
+
+  // AI agent files off (the default): nothing of it is generated
+  LTestCase.Name := 'indydirect_ai_skills_off';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.ForbiddenFiles := ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'update_ai_skills.bat', '.claude'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // REST controllers: the core skills only
+  LTestCase.Name := 'indydirect_ai_skills_rest';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.ExpectedFiles := ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'update_ai_skills.bat',
+    '.claude/skills/VERSION', '.claude/skills/delphi/SKILL.md', '.claude/skills/delphi-code-smells/SKILL.md',
+    '.claude/skills/dmvcframework/SKILL.md', '.claude/skills/dmvcframework/reference/activerecord.md',
+    '.claude/skills/dmvcframework-security/SKILL.md', '.claude/skills/dmvcframework-testing/SKILL.md'];
+  LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-minimal-api', '.claude/skills/dmvcframework-webapp',
+    '.claude/skills/dmvcframework-ui', '.claude/skills/htmx-skill', '.claude/skills/dmvcframework-jsonrpc'];
+  LTestCase.MustContain := ['CLAUDE.md|@AGENTS.md', 'GEMINI.md|@AGENTS.md',
+    'AGENTS.md|DelphiMVCFramework ' + AISkillsDMVCVersion + ' project',
+    'AGENTS.md|<!-- delphi-local-sources -->',
+    'AGENTS.md|DelphiMVCFramework checkout: ' + AISkillsLocalDMVC + '   (sources/ + samples/)',
+    'AGENTS.md|`.claude/skills/dmvcframework/SKILL.md` - controllers',
+    'AGENTS.md|`.claude/skills/dmvcframework-security/SKILL.md`',
+    'AGENTS.md|DelphiMVCFramework ' + AISkillsLine + '.x',
+    'update_ai_skills.bat|set "REF=' + AISkillsRef + '"',
+    'update_ai_skills.bat|set "SKILLS=delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing"',
+    '.claude/skills/VERSION|' + AISkillsLine];
+  LTestCase.MustNotContain := ['AGENTS.md|dmvcframework-webapp', 'AGENTS.md|{{', 'update_ai_skills.bat|{{'];
+  // $(BDS) is set only when a Delphi install was found (not with --skip-compile)
+  if AISkillsLocalDelphiSource <> '' then
+    LTestCase.MustContain := LTestCase.MustContain +
+      ['AGENTS.md|Delphi RTL/VCL source: ' + AISkillsLocalDelphiSource]
+  else
+    LTestCase.MustNotContain := LTestCase.MustNotContain + ['AGENTS.md|Delphi RTL/VCL source:'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Minimal API web app with HTMX: + minimal-api, webapp, ui, htmx
+  LTestCase.Name := 'indydirect_ai_skills_minimal_web';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
+  LTestCase.Config.B[TConfigKey.entity_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.program_htmx] := True;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B['controller.main.generate'] := False;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.ExpectedFiles := ['.claude/skills/dmvcframework-minimal-api/SKILL.md',
+    '.claude/skills/dmvcframework-webapp/SKILL.md', '.claude/skills/dmvcframework-ui/SKILL.md',
+    '.claude/skills/htmx-skill/SKILL.md', '.claude/skills/dmvcframework/SKILL.md'];
+  LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-jsonrpc'];
+  LTestCase.MustContain := ['AGENTS.md|`.claude/skills/htmx-skill/SKILL.md`',
+    'update_ai_skills.bat|dmvcframework-minimal-api dmvcframework-webapp dmvcframework-ui htmx-skill'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // JSON-RPC: + jsonrpc
+  LTestCase.Name := 'indydirect_ai_skills_jsonrpc';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.ExpectedFiles := ['.claude/skills/dmvcframework-jsonrpc/SKILL.md'];
+  LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-webapp', '.claude/skills/htmx-skill'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 end;
 
 procedure PrintSummary;
@@ -1754,6 +1833,223 @@ begin
   end;
 end;
 
+{ DMVC.Expert.AISkills without the network: what an install from a branch zip
+  writes, removes and refuses. The real download is covered by the
+  *_ai_skills generation cases and by RunAISkillsBatTest. }
+function RunAISkillsTests: Boolean;
+var
+  LDir, LErr: string;
+  LZip: TBytes;
+  LConfig: TJSONObject;
+  LSkills: TArray<string>;
+
+  function Check(const AName: string; ACondition: Boolean; const ADetail: string): Boolean;
+  begin
+    Result := ACondition;
+    if Result then
+      Log('  [PASS] ' + AName)
+    else
+      Log('  [FAIL] ' + AName + ' - ' + ADetail);
+  end;
+
+  function MakeZip(const AEntries: array of string): TBytes;
+  var
+    lStream: TBytesStream;
+    lZip: TZipFile;
+    lEntry: string;
+  begin
+    lStream := TBytesStream.Create;
+    try
+      lZip := TZipFile.Create;
+      try
+        lZip.Open(lStream, zmWrite);
+        for lEntry in AEntries do
+          lZip.Add(TEncoding.UTF8.GetBytes('content of ' + lEntry), lEntry);
+        lZip.Close;
+      finally
+        lZip.Free;
+      end;
+      Result := Copy(lStream.Bytes, 0, lStream.Size);
+    finally
+      lStream.Free;
+    end;
+  end;
+
+  function Exists(const ARel: string): Boolean;
+  begin
+    Result := TFile.Exists(TPath.Combine(LDir, ARel)) or TDirectory.Exists(TPath.Combine(LDir, ARel));
+  end;
+
+begin
+  Log('');
+  Log('=== DMVC.Expert.AISkills ===');
+  Result := Check('line and branch from DMVCFRAMEWORK_VERSION',
+    (AISkillsLine = '3.5') and (AISkillsRef = 'dmvc-3.5') and AISkillsZipURL.EndsWith('/dmvc-3.5.zip'),
+    AISkillsLine + ' ' + AISkillsRef + ' ' + AISkillsZipURL);
+
+  LConfig := CreateBaseConfig;
+  try
+    LSkills := AISkillsFor(LConfig);
+    Result := Check('base project: the five core skills', string.Join(' ', LSkills) =
+      'delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing',
+      string.Join(' ', LSkills)) and Result;
+    LConfig.B[TConfigKey.program_ssv_mustache] := True;
+    Result := Check('Mustache views: no TemplatePro web skills', Length(AISkillsFor(LConfig)) = 5,
+      string.Join(' ', AISkillsFor(LConfig))) and Result;
+  finally
+    LConfig.Free;
+  end;
+
+  LDir := TPath.Combine(TPath.GetTempPath, 'dmvc_aiskills_' + TGUID.NewGuid.ToString);
+  try
+    LZip := MakeZip(['delphi-ai-skills-dmvc-3.5/README.md',
+      'delphi-ai-skills-dmvc-3.5/skills/VERSION',
+      'delphi-ai-skills-dmvc-3.5/skills/delphi/SKILL.md',
+      'delphi-ai-skills-dmvc-3.5/skills/delphi/reference/memory.md',
+      'delphi-ai-skills-dmvc-3.5/skills/dmvcframework/SKILL.md',
+      'delphi-ai-skills-dmvc-3.5/skills/htmx-skill/SKILL.md']);
+    // a file from an older install that the branch no longer has
+    TDirectory.CreateDirectory(TPath.Combine(LDir, '.claude\skills\delphi'));
+    TFile.WriteAllText(TPath.Combine(LDir, '.claude\skills\delphi\removed.md'), 'old');
+    LErr := InstallAISkillsFromZip(LZip, LDir, ['delphi', 'dmvcframework']);
+    Result := Check('install: requested skills, references and VERSION',
+      (LErr = '') and Exists('.claude\skills\delphi\SKILL.md') and
+      Exists('.claude\skills\delphi\reference\memory.md') and
+      Exists('.claude\skills\dmvcframework\SKILL.md') and Exists('.claude\skills\VERSION'), LErr) and Result;
+    Result := Check('install: other skills and repo files are not copied',
+      not Exists('.claude\skills\htmx-skill') and not Exists('.claude\README.md') and
+      not Exists('README.md'), '') and Result;
+    Result := Check('update: a file the branch dropped is removed',
+      not Exists('.claude\skills\delphi\removed.md'), '') and Result;
+
+    LErr := InstallAISkillsFromZip(LZip, LDir, ['delphi', 'dmvcframework-ui']);
+    Result := Check('a skill missing from the branch is reported',
+      LErr.Contains('dmvcframework-ui') and LErr.Contains('dmvc-3.5'), LErr) and Result;
+
+    LErr := InstallAISkillsFromZip(MakeZip(['delphi-ai-skills-dmvc-3.5/skills/delphi/../../../evil.txt']),
+      LDir, ['delphi']);
+    Result := Check('an entry escaping the target is refused',
+      LErr.Contains('Unsafe') and not TFile.Exists(TPath.Combine(TPath.GetDirectoryName(LDir), 'evil.txt')),
+      LErr) and Result;
+    Result := Check('a refused zip leaves the installed skills untouched',
+      Exists('.claude\skills\delphi\SKILL.md'), '') and Result;
+
+    LErr := InstallAISkillsFromZip(TEncoding.UTF8.GetBytes('<html>not a zip</html>'), LDir, ['delphi']);
+    Result := Check('a non-zip answer is an error, not an exception', LErr.Contains('zip'), LErr) and Result;
+  finally
+    if TDirectory.Exists(LDir) then
+      TDirectory.Delete(LDir, True);
+  end;
+end;
+
+{ The generated update_ai_skills.bat, run for real (curl + tar against the
+  branch on GitHub), must produce the same .claude\skills the wizard's own
+  install produced; a wrong branch must fail and leave the skills untouched. }
+function RunAISkillsBatTest(const AProjectDir: string): Boolean;
+var
+  LSkillsDir, LSaved, LBat, LBadBat, LRel: string;
+  LExit: Cardinal;
+  LBefore, LAfter: TArray<string>;
+  LSame: Boolean;
+  LA, LB: TBytes;
+  I: Integer;
+
+  function RunBat(const ABat: string): Cardinal;
+  var
+    lStart: TStartupInfo;
+    lProc: TProcessInformation;
+    lCmd: string;
+  begin
+    Result := Cardinal(-1);
+    FillChar(lStart, SizeOf(lStart), 0);
+    lStart.cb := SizeOf(lStart);
+    FillChar(lProc, SizeOf(lProc), 0);
+    // outer quotes: cmd /c drops the first and the last quote of the line
+    lCmd := 'cmd.exe /c ""' + ABat + '" > "' + ABat + '.log" 2>&1"';
+    if CreateProcess(nil, PChar(lCmd), nil, nil, False, CREATE_NO_WINDOW, nil,
+      PChar(AProjectDir), lStart, lProc) then
+    begin
+      WaitForSingleObject(lProc.hProcess, 180000);
+      GetExitCodeProcess(lProc.hProcess, Result);
+      CloseHandle(lProc.hProcess);
+      CloseHandle(lProc.hThread);
+    end;
+  end;
+
+  function Tree(const ADir: string): TArray<string>;
+  var
+    lFile: string;
+  begin
+    Result := [];
+    for lFile in TDirectory.GetFiles(ADir, '*', TSearchOption.soAllDirectories) do
+      Result := Result + [lFile.Substring(Length(ADir))];
+    TArray.Sort<string>(Result);
+  end;
+
+  function Check(const AName: string; ACondition: Boolean; const ADetail: string): Boolean;
+  begin
+    Result := ACondition;
+    if Result then
+      Log('  [PASS] ' + AName)
+    else
+      Log('  [FAIL] ' + AName + ' - ' + ADetail);
+  end;
+
+begin
+  Log('');
+  Log('=== update_ai_skills.bat (real download) ===');
+  LSkillsDir := TPath.Combine(AProjectDir, '.claude\skills');
+  LBat := TPath.Combine(AProjectDir, 'update_ai_skills.bat');
+  if not (TDirectory.Exists(LSkillsDir) and TFile.Exists(LBat)) then
+    Exit(Check('generated project has .claude\skills and the .bat', False, AProjectDir));
+
+  LSaved := AProjectDir + '_wizard_skills';
+  if TDirectory.Exists(LSaved) then
+    TDirectory.Delete(LSaved, True);
+  TDirectory.Move(LSkillsDir, LSaved); // the wizard's install, kept for the comparison
+  LBefore := Tree(LSaved);
+
+  LExit := RunBat(LBat);
+  Result := Check('the .bat installs from scratch (exit 0)', LExit = 0,
+    Format('exit %d, see %s.log', [Integer(LExit), LBat]));
+  if not Result then
+    Exit;
+  LAfter := Tree(LSkillsDir);
+  LSame := Length(LBefore) = Length(LAfter);
+  if LSame then
+    for I := 0 to High(LBefore) do
+    begin
+      LRel := LBefore[I];
+      if LRel = LAfter[I] then
+      begin
+        LA := TFile.ReadAllBytes(LSaved + LRel);
+        LB := TFile.ReadAllBytes(LSkillsDir + LRel);
+      end;
+      if (LRel <> LAfter[I]) or (Length(LA) <> Length(LB)) or
+        ((Length(LA) > 0) and not CompareMem(@LA[0], @LB[0], Length(LA))) then
+      begin
+        LSame := False;
+        Log('    differs: ' + LRel);
+        Break;
+      end;
+    end;
+  Result := Check('the .bat produces exactly the wizard''s files',
+    LSame, Format('%d files from the wizard, %d from the .bat', [Length(LBefore), Length(LAfter)]));
+
+  TFile.WriteAllText(TPath.Combine(LSkillsDir, 'delphi\stale.md'), 'old');
+  Result := Check('a second run refreshes (exit 0, stale file gone)',
+    (RunBat(LBat) = 0) and not TFile.Exists(TPath.Combine(LSkillsDir, 'delphi\stale.md')), '') and Result;
+
+  LBadBat := TPath.Combine(AProjectDir, 'update_ai_skills_bad.bat');
+  TFile.WriteAllText(LBadBat, TFile.ReadAllText(LBat).Replace('set "REF=' + AISkillsRef + '"',
+    'set "REF=dmvc-0.0"'), TEncoding.ASCII);
+  LExit := RunBat(LBadBat);
+  Result := Check('a missing branch fails (exit 1) and leaves the skills untouched',
+    (LExit = 1) and TFile.Exists(TPath.Combine(LSkillsDir, 'dmvcframework\SKILL.md')),
+    Format('exit %d', [Integer(LExit)])) and Result;
+  TDirectory.Delete(LSaved, True);
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -1865,6 +2161,31 @@ begin
             ATargetFolder, ADocumentURL);
         end;
 
+      if not RunAISkillsTests then
+      begin
+        Log('');
+        Log('FAIL: DMVC.Expert.AISkills tests did not pass.');
+        ExitCode := 1;
+        Exit;
+      end;
+      // One real download of the skills branch for the whole run, as for Swagger UI
+      try
+        GAISkillsZip := DownloadSwaggerUIZip(AISkillsZipURL, AI_SKILLS_DEADLINE_MS, nil);
+      except
+        on E: Exception do
+          Log('AI skills download failed: ' + E.Message); // the *_ai_skills cases then fail
+      end;
+      // what the IDE process has: $(DMVC) (the generated projects use it) and $(BDS)
+      SetEnvironmentVariable('DMVC', PChar(TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)), '..\..'))));
+      if GDelphiPath <> '' then
+        SetEnvironmentVariable('BDS', PChar(ExcludeTrailingPathDelimiter(TPath.GetDirectoryName(
+          ExcludeTrailingPathDelimiter(GDelphiPath)))));
+      TDMVCProjectGenerator.AISkillsInstaller :=
+        function(AProjectFolder: string; ASkills: TArray<string>): string
+        begin
+          Result := InstallAISkillsFromZip(GAISkillsZip, AProjectFolder, ASkills);
+        end;
+
       CreateTestCases(LTestCases);
 
       for LTestCase in LTestCases do
@@ -1876,6 +2197,12 @@ begin
       Log(Format('Swagger UI release downloads during the generation cases: %d',
         [SwaggerUIDownloadCount - LDownloadsBefore]));
       PrintSummary;
+      if not RunAISkillsBatTest(TPath.GetFullPath(TPath.Combine(GOutputDir, 'indydirect_ai_skills_rest'))) then
+      begin
+        Log('');
+        Log('FAIL: update_ai_skills.bat test did not pass.');
+        ExitCode := 1;
+      end;
     finally
       LTestCases.Free;
       GTestResults.Free;

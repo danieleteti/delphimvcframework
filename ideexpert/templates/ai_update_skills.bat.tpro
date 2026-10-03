@@ -1,0 +1,39 @@
+@echo off
+setlocal
+rem Downloads (or refreshes) the delphi-ai-skills for DelphiMVCFramework {{:ai_skills_line}}.x
+rem into .claude\skills. Needs curl.exe and tar.exe (Windows 10 1803 or later).
+rem Behind a proxy: set HTTPS_PROXY=http://host:port before running it.
+
+cd /d "%~dp0"
+set "REF={{:ai_skills_ref}}"
+set "SKILLS={{:ai_skills_names}}"
+set "URL=https://github.com/danieleteti/delphi-ai-skills/archive/refs/heads/%REF%.zip"
+set "WORK=%TEMP%\dmvc_ai_skills_%RANDOM%%RANDOM%"
+set "SRC=%WORK%\delphi-ai-skills-%REF%\skills"
+
+mkdir "%WORK%" || exit /b 1
+echo Downloading %URL%
+"%SystemRoot%\System32\curl.exe" -fsSL --max-time 120 -o "%WORK%\skills.zip" "%URL%"
+if errorlevel 1 goto :failed
+"%SystemRoot%\System32\tar.exe" -xf "%WORK%\skills.zip" -C "%WORK%"
+if errorlevel 1 goto :failed
+
+set "MISSING="
+for %%S in (%SKILLS%) do if not exist "%SRC%\%%S\SKILL.md" set "MISSING=1" & echo [ERROR] %%S is not in %REF%
+if defined MISSING goto :failed
+
+if not exist ".claude\skills" mkdir ".claude\skills"
+for %%S in (%SKILLS%) do (
+  if exist ".claude\skills\%%S" rmdir /s /q ".claude\skills\%%S"
+  xcopy "%SRC%\%%S" ".claude\skills\%%S\" /E /I /Y /Q >nul
+  echo   %%S
+)
+copy /y "%SRC%\VERSION" ".claude\skills\VERSION" >nul
+rmdir /s /q "%WORK%"
+echo Skills installed in .claude\skills
+exit /b 0
+
+:failed
+echo [ERROR] The skills were not updated; the ones already in .claude\skills are untouched.
+if exist "%WORK%" rmdir /s /q "%WORK%"
+exit /b 1

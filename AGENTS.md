@@ -180,6 +180,8 @@ Each preset pre-populates the same wizard form with different defaults; the user
 
 **Default server backend in every preset: Indy Direct** (not WebBroker).
 
+**AI agent files** (Options page, off by default in every preset): `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` (`@AGENTS.md`), `update_ai_skills.bat`, and the [delphi-ai-skills](https://github.com/danieleteti/delphi-ai-skills) that fit the project, downloaded from the branch `dmvc-<major>.<minor>` of the framework line the wizard was built with into `.claude\skills` (`DMVC.Expert.AISkills.pas`). A failed download is a warning; the `.bat` repeats the install.
+
 Tutorial projects showing the Minimal API scaffolds live in `samples/wizard_showcase/{rest,web}/`.
 
 ## IDE Expert - Template System (TemplatePro)
@@ -206,7 +208,7 @@ Templates with `_` prefix (e.g. `_license_header.tpro`) always use embedded vers
 - Condizionali: `{{if cond}}...{{elseif}}...{{else}}...{{endif}}`, negation `{{if !x}}`
 - Loop: `{{for item in list}}...{{endfor}}`
 - Include: `{{include "file.tpro"}}` (view-root relative), inheritance: `{{extends}}` (file-relative) + `{{block}}`
-- Filtri: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `contains`, plus DMVC's own `json`, `urlencode`, `count`, `fromquery`
+- Filtri: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `contains`, `json`, `urlencode` (TemplatePro), plus DMVC's own `count`, `fromquery`
 - Ref: https://www.danieleteti.it/templatepro/
 
 Generated views use **Bootstrap 5.3** (CDN, in `baselayout`) + a slim `style.css`; dark mode via `data-bs-theme`.
@@ -215,8 +217,8 @@ Generated views use **Bootstrap 5.3** (CDN, in `baselayout`) + a slim `style.css
 
 **Build commands:**
 ```bash
-# Build wizard BPL (requires the IDE to be closed)
-C:\DEV\dmvcframework\ideexpert\build_wizard2.bat
+# Build wizard BPL (requires the IDE to be closed): the design-time package
+msbuild packages\d130\dmvcframeworkDT.dproj /p:Config=Debug /p:Platform=Win32
 
 # Test templates
 cd C:\DEV\dmvcframework\ideexpert\tests && build_and_run.bat

@@ -24,30 +24,36 @@
 
 unit DMVC.Expert.Forms.SwaggerUIProgress;
 
-{ Runs InstallSwaggerUI in a background task behind a small modal dialog with a
-  Cancel button, so the IDE keeps pumping messages while Swagger UI downloads.
-  The download itself stops at SWAGGER_UI_DEADLINE_MS; Cancel (or closing the
-  dialog) stops it earlier. VCL only, no ToolsAPI. }
+{ Runs a download (Swagger UI, the AI skills) in a background task behind a
+  small modal dialog with a Cancel button, so the IDE keeps pumping messages.
+  The download itself stops at its deadline; Cancel (or closing the dialog)
+  stops it earlier. VCL only, no ToolsAPI. }
 
 interface
+
+uses
+  System.SysUtils,
+  DMVC.Expert.SwaggerUI;
 
 /// <summary>Same result as InstallSwaggerUI: '' or the reason. ADownloadURL
 /// overrides the release URL (tests).</summary>
 function InstallSwaggerUIWithProgress(const ATargetFolder, ADocumentURL: string;
   const ADownloadURL: string = ''): string;
+/// <summary>Runs AWork (which returns '' or the reason) behind the dialog,
+/// showing "<AWhat>... n s (at most ADeadlineMS)".</summary>
+function RunDownloadWithProgress(const AWhat: string; const ADeadlineMS: Cardinal;
+  const AWork: TFunc<TSwaggerUICancelled, string>): string;
 
 implementation
 
 uses
-  System.SysUtils,
   System.Classes,
   System.Threading,
   System.Diagnostics,
   Vcl.Forms,
   Vcl.Controls,
   Vcl.StdCtrls,
-  Vcl.ExtCtrls,
-  DMVC.Expert.SwaggerUI;
+  Vcl.ExtCtrls;
 
 type
   TSwaggerUIProgressForm = class(TForm)
@@ -58,19 +64,25 @@ type
     fTask: ITask;
     fWatch: TStopwatch;
     fCancel: TProc;
+    fWhat: string;
+    fDeadlineMS: Cardinal;
     procedure CancelClick(Sender: TObject);
     procedure TimerTick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     function TaskDone: Boolean;
   public
-    constructor CreateFor(const ATask: ITask; const ACancel: TProc);
+    constructor CreateFor(const ATask: ITask; const ACancel: TProc; const AWhat: string;
+      const ADeadlineMS: Cardinal);
   end;
 
-constructor TSwaggerUIProgressForm.CreateFor(const ATask: ITask; const ACancel: TProc);
+constructor TSwaggerUIProgressForm.CreateFor(const ATask: ITask; const ACancel: TProc;
+  const AWhat: string; const ADeadlineMS: Cardinal);
 begin
   inherited CreateNew(nil);
   fTask := ATask;
   fCancel := ACancel;
+  fWhat := AWhat;
+  fDeadlineMS := ADeadlineMS;
   Caption := 'DelphiMVCFramework Wizard';
   BorderStyle := bsDialog;
   Position := poScreenCenter;
@@ -83,7 +95,7 @@ begin
   fLabel.SetBounds(16, 16, 348, 32);
   fLabel.AutoSize := False;
   fLabel.WordWrap := True;
-  fLabel.Caption := Format('Downloading Swagger UI %s...', [SWAGGER_UI_RELEASE.Version]);
+  fLabel.Caption := fWhat + '...';
 
   fCancelButton := TButton.Create(Self);
   fCancelButton.Parent := Self;
@@ -126,12 +138,12 @@ begin
     ModalResult := mrOk;
   end
   else if fCancelButton.Enabled then
-    fLabel.Caption := Format('Downloading Swagger UI %s... %d s (at most %d s)',
-      [SWAGGER_UI_RELEASE.Version, fWatch.ElapsedMilliseconds div 1000, SWAGGER_UI_DEADLINE_MS div 1000]);
+    fLabel.Caption := Format('%s... %d s (at most %d s)',
+      [fWhat, fWatch.ElapsedMilliseconds div 1000, fDeadlineMS div 1000]);
 end;
 
-function InstallSwaggerUIWithProgress(const ATargetFolder, ADocumentURL: string;
-  const ADownloadURL: string): string;
+function RunDownloadWithProgress(const AWhat: string; const ADeadlineMS: Cardinal;
+  const AWork: TFunc<TSwaggerUICancelled, string>): string;
 var
   lCancelled: Boolean;
   lResult: string;
@@ -142,19 +154,12 @@ begin
   lCancelled := False;
   lTask := TTask.Run(
     procedure
-    var
-      lIsCancelled: TSwaggerUICancelled;
     begin
-      lIsCancelled :=
+      lResult := AWork(
         function: Boolean
         begin
           Result := lCancelled;
-        end;
-      if ADownloadURL = '' then
-        lResult := InstallSwaggerUI(ATargetFolder, ADocumentURL, lIsCancelled)
-      else
-        lResult := InstallSwaggerUI(ATargetFolder, ADocumentURL, ADownloadURL,
-          SWAGGER_UI_DEADLINE_MS, lIsCancelled);
+        end);
     end);
 
   lCursor := Screen.Cursor;
@@ -163,7 +168,7 @@ begin
     procedure
     begin
       lCancelled := True;
-    end);
+    end, AWhat, ADeadlineMS);
   try
     lForm.ShowModal;
   finally
@@ -172,6 +177,21 @@ begin
   end;
   lTask.Wait; // already finished: the dialog closes only when the task has
   Result := lResult;
+end;
+
+function InstallSwaggerUIWithProgress(const ATargetFolder, ADocumentURL: string;
+  const ADownloadURL: string): string;
+begin
+  Result := RunDownloadWithProgress('Downloading Swagger UI ' + SWAGGER_UI_RELEASE.Version,
+    SWAGGER_UI_DEADLINE_MS,
+    function(ACancelled: TSwaggerUICancelled): string
+    begin
+      if ADownloadURL = '' then
+        Result := InstallSwaggerUI(ATargetFolder, ADocumentURL, ACancelled)
+      else
+        Result := InstallSwaggerUI(ATargetFolder, ADocumentURL, ADownloadURL,
+          SWAGGER_UI_DEADLINE_MS, ACancelled);
+    end);
 end;
 
 end.

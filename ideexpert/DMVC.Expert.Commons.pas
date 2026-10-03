@@ -79,6 +79,9 @@ type
       // Controller projects: TMVCSwaggerMiddleware with ssvOpenAPI3.
       // Minimal API projects: the native OpenAPI() HTTP filter.
       program_openapi = 'program.openapi';
+      // AGENTS.md / CLAUDE.md / GEMINI.md + delphi-ai-skills in .claude\skills
+      // (downloaded when the project is created). Default False.
+      program_ai_skills = 'program.ai_skills';
       mustache_helpers_unit_name = 'mustache.helpers_unit_name';
       templatepro_helpers_unit_name = 'templatepro.helpers_unit_name';
       webstencils_helpers_unit_name = 'webstencils.helpers_unit_name';

@@ -59,6 +59,7 @@ contains
   DMVC.Expert.ProjectGenerator in '..\..\ideexpert\DMVC.Expert.ProjectGenerator.pas',
   DMVC.Expert.SwaggerUI in '..\..\ideexpert\DMVC.Expert.SwaggerUI.pas',
   DMVC.Expert.Forms.SwaggerUIProgress in '..\..\ideexpert\DMVC.Expert.Forms.SwaggerUIProgress.pas',
+  DMVC.Expert.AISkills in '..\..\ideexpert\DMVC.Expert.AISkills.pas',
   DMVC.Expert.Presets in '..\..\ideexpert\DMVC.Expert.Presets.pas';
 
 end.

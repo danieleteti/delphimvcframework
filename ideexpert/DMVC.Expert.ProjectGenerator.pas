@@ -73,6 +73,12 @@ type
     /// </summary>
     class var SwaggerUIInstaller: TFunc<string, string, string>;
     /// <summary>
+    /// Puts the AI skills into a project folder and returns '' or the reason it
+    /// could not. Nil means InstallAISkills (download from GitHub). Same role
+    /// as SwaggerUIInstaller.
+    /// </summary>
+    class var AISkillsInstaller: TFunc<string, TArray<string>, string>;
+    /// <summary>
     /// Generates a complete project to the specified folder
     /// </summary>
     class procedure Generate(const AProjectFolder, AProjectName: string; AConfig: TJSONObject);
@@ -86,7 +92,8 @@ implementation
 
 uses
   Winapi.Windows,
-  DMVC.Expert.SwaggerUI;
+  DMVC.Expert.SwaggerUI,
+  DMVC.Expert.AISkills;
 
 const
   // Document URL of the "API documentation" option, the same for controller
@@ -366,6 +373,13 @@ class procedure TDMVCProjectGenerator.Generate(const AProjectFolder, AProjectNam
     TFile.WriteAllText(TPath.Combine(AProjectFolder, AFileName), AContent, TEncoding.UTF8);
   end;
 
+  // no BOM: cmd.exe reads it as part of the first command, and an @import
+  // at the start of CLAUDE.md / GEMINI.md would not be recognised
+  procedure SaveFileNoBOM(const AFileName, AContent: string);
+  begin
+    TFile.WriteAllBytes(TPath.Combine(AProjectFolder, AFileName), TEncoding.UTF8.GetBytes(AContent));
+  end;
+
 const
   CONTROLLER_UNIT = 'Controllers.HomeU';
   CONTROLLER_API_UNIT = 'Controllers.APIU';
@@ -426,6 +440,8 @@ var
   LTemplatesPath: string;
   LTemplateExt: string;
   LSwaggerUIError: string;
+  LAISkills: TArray<string>;
+  LAISkillsError: string;
 begin
   Warnings := [];
   LogToFile('=== Starting project generation ===');
@@ -754,6 +770,36 @@ begin
       LogToFile('Swagger UI: ' + LSwaggerUIError);
       Warnings := Warnings + ['Swagger UI was not downloaded (' + LSwaggerUIError +
         '). See bin\www\swagger\' + SWAGGER_UI_README + ' to add it by hand.'];
+    end;
+  end;
+
+  // Agent instructions + the delphi-ai-skills of this framework line, downloaded
+  // like Swagger UI. update_ai_skills.bat repeats the install later or offline.
+  if AConfig.B[TConfigKey.program_ai_skills] then
+  begin
+    LAISkills := AISkillsFor(AConfig);
+    AConfig.S['ai.dmvc_version'] := AISkillsDMVCVersion;
+    AConfig.S['ai.skills_line'] := AISkillsLine;
+    AConfig.S['ai.skills_ref'] := AISkillsRef;
+    AConfig.S['ai.skills_names'] := string.Join(' ', LAISkills);
+    AConfig.S['ai.skills_list'] := AISkillsMarkdownList(LAISkills);
+    AConfig.S['ai.local_dmvc'] := AISkillsLocalDMVC;
+    AConfig.S['ai.local_delphi_source'] := AISkillsLocalDelphiSource;
+    AConfig.B['ai.local_sources'] := (AConfig.S['ai.local_dmvc'] <> '') or
+      (AConfig.S['ai.local_delphi_source'] <> '');
+    SaveFileNoBOM('AGENTS.md', RenderTemplate('ai_agents.md.tpro', AConfig));
+    SaveFileNoBOM('CLAUDE.md', '@AGENTS.md' + sLineBreak);
+    SaveFileNoBOM('GEMINI.md', '@AGENTS.md' + sLineBreak);
+    SaveFileNoBOM('update_ai_skills.bat', RenderTemplate('ai_update_skills.bat.tpro', AConfig));
+    if Assigned(AISkillsInstaller) then
+      LAISkillsError := AISkillsInstaller(AProjectFolder, LAISkills)
+    else
+      LAISkillsError := InstallAISkills(AProjectFolder, LAISkills, nil);
+    if LAISkillsError <> '' then
+    begin
+      LogToFile('AI skills: ' + LAISkillsError);
+      Warnings := Warnings + ['AI skills were not installed (' + LAISkillsError +
+        '). Run update_ai_skills.bat in the project folder to install them.'];
     end;
   end;
 

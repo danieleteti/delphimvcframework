@@ -62,6 +62,8 @@ uses
   JsonDataObjects,
   DMVC.Expert.Commons,
   DMVC.Expert.ProjectGenerator,
+  DMVC.Expert.SwaggerUI,
+  DMVC.Expert.AISkills,
   DMVC.Expert.Forms.SwaggerUIProgress;
 
 procedure ExecuteWizardForPreset(APreset: TDMVCProjectPreset);
@@ -98,12 +100,23 @@ begin
         begin
           Result := InstallSwaggerUIWithProgress(ATargetFolder, ADocumentURL);
         end;
+      TDMVCProjectGenerator.AISkillsInstaller :=
+        function(AProjectFolder: string; ASkills: TArray<string>): string
+        begin
+          Result := RunDownloadWithProgress('Downloading the AI skills (' + AISkillsRef + ')',
+            AI_SKILLS_DEADLINE_MS,
+            function(ACancelled: TSwaggerUICancelled): string
+            begin
+              Result := InstallAISkills(AProjectFolder, ASkills, ACancelled);
+            end);
+        end;
       Screen.Cursor := crHourGlass;
       try
         TDMVCProjectGenerator.Generate(lProjectFolder, lProjectName, lJSON);
       finally
         Screen.Cursor := crDefault;
         TDMVCProjectGenerator.SwaggerUIInstaller := nil;
+        TDMVCProjectGenerator.AISkillsInstaller := nil;
       end;
       for lWarning in TDMVCProjectGenerator.Warnings do
         (BorlandIDEServices as IOTAMessageServices).AddTitleMessage('DMVCFramework wizard: ' + lWarning);

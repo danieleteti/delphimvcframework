@@ -6,6 +6,7 @@ uses
   DMVC.Expert.Forms.NewProjectWizard in '..\DMVC.Expert.Forms.NewProjectWizard.pas' {frmDMVCNewProject},
   DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
   DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
+  DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas',
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas';
 
 {$R *.res}
