@@ -664,11 +664,20 @@ begin
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
   // The People page is the table example: its views and its action
-  LTestCase.ExpectedFiles := ['bin/templates/people/index.html', 'bin/templates/people/table.html'];
+  // The edit page, the search box and the table links use the forms library
+  LTestCase.ExpectedFiles := ['bin/templates/people/index.html', 'bin/templates/people/table.html',
+    'bin/templates/people/edit.html', 'bin/templates/lib/forms_bootstrap5.tpro'];
   LTestCase.MustContain := ['Controllers.HomeU.pas|function THomeController.People(',
+    'Controllers.HomeU.pas|function THomeController.EditPerson(ID: Integer): String;',
+    'Controllers.HomeU.pas|function THomeController.SavePerson(ID: Integer): IMVCResponse;',
     'bin/templates/people/index.html|{{include "table.html"}}',
     'bin/templates/people/index.html|Controllers.HomeU.People',
+    'bin/templates/people/index.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
+    'bin/templates/people/index.html|{{>f.input("q"',
     'bin/templates/people/table.html|{{for p in people}}',
+    'bin/templates/people/table.html|href="/web/people/{{:p.ID}}"',
+    'bin/templates/people/edit.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
+    'bin/templates/people/edit.html|{{call f.form(action',
     'bin/templates/baselayout.html|href="/web/people"'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1144,11 +1153,30 @@ begin
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
+  // Same pages as the controller-based web app (shared views, RoutesU instead of
+  // a controller) plus the login-protected Admin area
   LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
-    'bin/templates/pages/home.html', 'bin/templates/pages/login.html',
-    'bin/templates/pages/admin_home.html', 'bin/templates/pages/time.html'];
-  LTestCase.ForbiddenFiles := [];
+    'bin/templates/home/index.html', 'bin/templates/about/index.html',
+    'bin/templates/people/index.html', 'bin/templates/people/table.html',
+    'bin/templates/people/edit.html', 'bin/templates/pages/login.html',
+    'bin/templates/pages/admin_home.html', 'bin/templates/lib/forms_bootstrap5.tpro'];
+  LTestCase.ForbiddenFiles := ['bin/templates/pages/home.html', 'bin/templates/pages/time.html',
+    'bin/templates/index.html', 'Controllers.HomeU.pas'];
+  LTestCase.MustContain := [
+    'RoutesU.pas|lWeb.MapGet<TWebContext, TPeopleQuery>(''/people''',
+    'RoutesU.pas|lWeb.MapPost<TWebContext, Integer>(''/people/($id:int)''',
+    'RoutesU.pas|Result := Html(',
+    'RoutesU.pas|function BuildPeoplePage(',
+    'bin/templates/baselayout.html|href="/web/admin/">Admin</a>',
+    'bin/templates/home/index.html|a <code>MapGet</code> to <code>RoutesU</code>',
+    'bin/templates/people/index.html|RoutesU: MapGet(''/people'')',
+    'bin/templates/pages/login.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
+    'bin/templates/pages/login.html|{{call f.form("/web/login")}}'];
+  LTestCase.MustNotContain := ['bin/templates/baselayout.html|<!--EXTRA_NAV-->',
+    'bin/templates/home/index.html|{{:add_page_how}}',
+    'bin/templates/people/table.html|{{:controller_unit_name}}'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 54: Indy Direct + Minimal API + full HTTPFilter stack.
   // Verifies the engineconfig.pas.tpro minimal-API block emits
@@ -1192,8 +1220,8 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_etag] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
   LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
-    'bin/templates/pages/home.html', 'bin/templates/pages/login.html',
-    'bin/templates/pages/admin_home.html', 'bin/templates/pages/time.html'];
+    'bin/templates/home/index.html', 'bin/templates/people/edit.html',
+    'bin/templates/pages/login.html', 'bin/templates/pages/admin_home.html'];
   LTestCase.ForbiddenFiles := [];
   ATestCases.Add(LTestCase);
 

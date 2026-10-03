@@ -789,6 +789,11 @@ end;
 
 function TMVCWebSessionFileFactory.CreateFromSessionID(const aSessionId: string): TMVCWebSession;
 begin
+  { as the memory and database stores: an id without a session file is not a session.
+    Without this a stopped (logout) or planted id came back to life on the next request
+    that sent it, and a login after SessionStop kept the id known before the login. }
+  if not TryFindSessionID(aSessionId) then
+    Exit(nil);
   Result := TMVCWebSessionFile.Create(Self, fHttpOnly, GetSessionFolder(fSessionFolder));
   try
     TMVCWebSessionFile(Result).fSessionId := aSessionId;

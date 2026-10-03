@@ -29,6 +29,7 @@ interface
 
 uses
   MVCFramework,
+  MVCFramework.MinimalAPI,
   System.SysUtils,
   MVCFramework.Commons,
   MVCFramework.Validation,
@@ -113,11 +114,25 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure SessionGet;
 
+    [MVCPath('/sessionreadthenstop')]
+    [MVCHTTPMethod([httpPOST])]
+    function SessionReadThenStop: string;
+
+    [MVCPath('/sessionregenerate')]
+    [MVCHTTPMethod([httpPOST])]
+    function SessionRegenerate: string;
+
     [MVCPath('/headers')]
     procedure EchoHeaders;
 
     [MVCPath('/lotofcookies')]
     procedure GenerateCookies;
+
+    [MVCPath('/cookiewithexpires')]
+    procedure GenerateCookieWithExpires;
+
+    [MVCPath('/htmlfromcontroller')]
+    function HtmlFromController: IMVCResponse;
 
     [MVCPath('/dataset/($datasetname)')]
     procedure DataSetHandling;
@@ -526,10 +541,15 @@ type
     [MVCPath('/sqids/itos/($id)')]
     function TestReceiveIntegerAndReturnSqid(id: Int64): String;
 
-    {invalid converter}
+    {route parameter kinds: the same list, the same answers as the Minimal API router}
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/wrongconverter/($id:blablabla)')]
-    function TestInvalidConverter(id: Int64): Int64;
+    [MVCPath('/typedroute/int/($v:int)')]
+    [MVCPath('/typedroute/int64/($v:int64)')]
+    [MVCPath('/typedroute/float/($v:float)')]
+    [MVCPath('/typedroute/bool/($v:bool)')]
+    [MVCPath('/typedroute/guid/($v:guid)')]
+    [MVCPath('/typedroute/date/($v:date)')]
+    function TypedRoute(v: string): string;
 
     {file upload}
     [MVCPath('/fileupload')]
@@ -819,6 +839,27 @@ begin
   Render(Context.Request.Headers['ACCEPT']);
 end;
 
+function TTestServerController.HtmlFromController: IMVCResponse;
+begin
+  // MVCFramework.MinimalAPI.Html() also works from a classic controller action
+  Result := Html('<b>from a controller</b>');
+end;
+
+procedure TTestServerController.GenerateCookieWithExpires;
+var
+  c: TCookie;
+begin
+  // Tuesday 5 March 2030, noon local time: the same day in UTC in every time zone
+  // the suite runs in. "Tue" and "Mar" are also Italian abbreviations of other
+  // words (martedi' -> "mar"), which is how a localized date breaks a browser.
+  c := Context.Response.Cookies.Add;
+  c.Name := 'withexpires';
+  c.Value := 'v';
+  c.Path := '/';
+  c.Expires := EncodeDate(2030, 3, 5) + EncodeTime(12, 0, 0, 0);
+  Render('ok');
+end;
+
 procedure TTestServerController.GenerateCookies;
 var
   c: TCookie;
@@ -1026,6 +1067,20 @@ begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   s := Session['value'];
   Render(s);
+end;
+
+function TTestServerController.SessionReadThenStop: string;
+begin
+  // what a logout does after a filter has read the session (e.g. to check the user)
+  Result := Session['value'];
+  Context.SessionStop;
+end;
+
+function TTestServerController.SessionRegenerate: string;
+begin
+  // what a login does: a new id for the same data, the old id is dead
+  Context.SessionRegenerateId;
+  Result := Context.SessionId;
 end;
 
 procedure TTestServerController.SessionSet;
@@ -1469,9 +1524,9 @@ begin
   Render('hello world');
 end;
 
-function TTestServerController.TestInvalidConverter(id: Int64): Int64;
+function TTestServerController.TypedRoute(v: string): string;
 begin
-  Result := id; //never called
+  Result := v;
 end;
 
 procedure TTestServerController.TestIssue406;

@@ -49,6 +49,17 @@ type
       const ActionName: string; var AuthenticationRequired: Boolean); override;
   end;
 
+  { for a Minimal API group: every route needs a user, role1 is enough }
+  TMinimalBasicAuthHandler = class(TAuthHandlerBase)
+  public
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean); override;
+    procedure OnAuthorization(const AContext: TWebContext;
+      UserRoles: System.Generics.Collections.TList<System.string>;
+      const ControllerQualifiedClassName: string; const ActionName: string;
+      var IsAuthorized: Boolean); override;
+  end;
+
   TCustomAuthHandler = class(TAuthHandlerBase)
   public
     procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
@@ -100,6 +111,19 @@ procedure TBasicAuthHandler.OnRequest(const AContext: TWebContext; const Control
 begin
   AuthenticationRequired := ControllerQualifiedClassName.EndsWith
     ('TTestPrivateServerController');
+end;
+
+procedure TMinimalBasicAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
+begin
+  AuthenticationRequired := True;
+end;
+
+procedure TMinimalBasicAuthHandler.OnAuthorization(const AContext: TWebContext;
+  UserRoles: System.Generics.Collections.TList<System.string>;
+  const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
+begin
+  IsAuthorized := UserRoles.Contains('role1');
 end;
 
 procedure TCustomAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;

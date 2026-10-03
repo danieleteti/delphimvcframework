@@ -122,6 +122,20 @@ type
     [Test]
     procedure TestCookies;
     [Test]
+    procedure TestCookieExpiresIsNotLocalized;
+    [Test]
+    procedure TestHtmlFromController;
+    [Test]
+    procedure TestRouteParamKindsAreTheSameInBothRouters;
+    [Test]
+    procedure TestSessionRegenerateIdInBothRouters;
+    [Test]
+    procedure TestSessionStopKillsTheIdInBothRouters;
+    [Test]
+    procedure TestCustomAuthLoginGivesANewSessionId;
+    [Test]
+    procedure TestBasicAuthLoginGivesANewSessionId;
+    [Test]
     procedure TestSessionWithLogin;
     [Test]
     procedure TestSession;
@@ -297,8 +311,6 @@ type
     [Test]
     procedure TestWrongSqid;
 
-    [Test]
-    procedure TestInvalidConverter;
 
     // test responses objects
     [Test]
@@ -947,6 +959,175 @@ begin
   end;
   {$ENDIF}
 
+end;
+
+procedure TServerTest.TestBasicAuthLoginGivesANewSessionId;
+var
+  lURL, lPlanted, lAfterLogin: string;
+  lRes: IMVCRESTResponse;
+begin
+  // a session id known before the login (session fixation) must not become the logged-in one;
+  // the classic middleware and the Minimal API filter behave the same
+  for lURL in ['/private/role1', '/minimal-web/private/role1'] do
+  begin
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Post('/session/planted');
+    lPlanted := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).SetBasicAuthorization('user1', 'user1')
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lPlanted).Get(lURL);
+    Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, lURL);
+    lAfterLogin := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+    Assert.AreNotEqual(lPlanted, lAfterLogin, lURL + ': the login kept the planted session id');
+    // without credentials, the planted id must not open the logged-in session
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lPlanted).Get(lURL);
+    Assert.AreEqual<Integer>(HTTP_STATUS.Unauthorized, lRes.StatusCode, lURL + ': the planted id opens the session');
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lAfterLogin).Get(lURL);
+    Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, lURL + ': the new id does not open the session');
+  end;
+end;
+
+procedure TServerTest.TestCustomAuthLoginGivesANewSessionId;
+var
+  lPlanted, lAfterLogin: string;
+  lRes: IMVCRESTResponse;
+begin
+  // a session id known before the login (session fixation) must not become the logged-in one
+  lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Post('/session/planted');
+  lPlanted := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+  lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+    .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lPlanted)
+    .Post('/system/users/logged', '{"username":"user1","password":"user1"}');
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  lAfterLogin := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+  Assert.AreNotEqual(lPlanted, lAfterLogin, 'the login kept the planted session id');
+  lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+    .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lPlanted).Get('/privatecustom/role1');
+  Assert.AreNotEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, 'the planted id opens the logged-in session');
+  lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+    .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lAfterLogin).Get('/privatecustom/role1');
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, 'the new id does not open the logged-in session');
+end;
+
+procedure TServerTest.TestSessionStopKillsTheIdInBothRouters;
+var
+  lURL, lId: string;
+  lRes: IMVCRESTResponse;
+begin
+  for lURL in ['/sessionreadthenstop', '/minimal-web/sessionreadthenstop'] do
+  begin
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Post('/session/secret');
+    lId := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lId).Post(lURL);
+    Assert.AreEqual(200, lRes.StatusCode, lURL);
+    Assert.AreEqual('secret', lRes.Content.Trim, lURL + ': the session was not read');
+    // after the logout the id is dead on the server too, not only forgotten by the browser
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Accept(TMVCMediaType.TEXT_PLAIN)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lId).Get('/session');
+    Assert.AreNotEqual('secret', lRes.Content, lURL + ': the stopped session is still there');
+  end;
+end;
+
+procedure TServerTest.TestSessionRegenerateIdInBothRouters;
+var
+  lURL, lOldId, lNewId: string;
+  lRes: IMVCRESTResponse;
+begin
+  for lURL in ['/sessionregenerate', '/minimal-web/sessionregenerate'] do
+  begin
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Post('/session/kept');
+    lOldId := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+    Assert.IsNotEmpty(lOldId, lURL);
+
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lOldId).Post(lURL);
+    Assert.AreEqual(200, lRes.StatusCode, lURL);
+    lNewId := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME, True).Value;
+    Assert.IsNotEmpty(lNewId, lURL + ': no new session cookie');
+    Assert.AreNotEqual(lOldId, lNewId, lURL + ': same id');
+    Assert.AreEqual(lNewId, lRes.Content.Trim, lURL + ': SessionId after the call');
+
+    // the data moves to the new id
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Accept(TMVCMediaType.TEXT_PLAIN)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lNewId).Get('/session');
+    Assert.AreEqual('kept', lRes.Content, lURL + ': data lost');
+    // the old id, the one an attacker could have planted, no longer opens it
+    lRes := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888).Accept(TMVCMediaType.TEXT_PLAIN)
+      .AddCookie(TMVCConstants.SESSION_TOKEN_NAME, lOldId).Get('/session');
+    Assert.AreNotEqual('kept', lRes.Content, lURL + ': the old id still works');
+  end;
+end;
+
+procedure TServerTest.TestRouteParamKindsAreTheSameInBothRouters;
+const
+  // path=expected status; a value that does not fit the kind means "no such route"
+  CASES: array [0..13] of string = (
+    'int/12=200', 'int/abc=404', 'int64/9999999999=200', 'int64/1.5=404',
+    'float/1.5=200', 'float/x=404', 'bool/true=200', 'bool/maybe=404',
+    'guid/0F8FAD5B-D9CB-469F-A165-70867728950E=200', 'guid/nope=404',
+    'date/2024-08-20=200', 'date/2024-13-45=404', 'date/20240820=404', 'date/x=404');
+var
+  lCase, lPath, lPrefix: string;
+  lStatus: Integer;
+  lRes: IMVCRESTResponse;
+begin
+  for lPrefix in ['/typedroute/', '/minimal-web/typedroute/'] do
+    for lCase in CASES do
+    begin
+      lPath := lPrefix + lCase.Split(['='])[0];
+      lStatus := lCase.Split(['='])[1].ToInteger;
+      lRes := RESTClient.Get(lPath);
+      Assert.AreEqual(lStatus, lRes.StatusCode, lPath);
+      if lStatus = 200 then
+        Assert.AreEqual(lCase.Split(['='])[0].Split(['/'])[1], lRes.Content.Trim, lPath);
+    end;
+  // sqids decodes the value in both routers; a value that is not a sqid is not a match
+  lRes := RESTClient.Get('/minimal-web/typedroute/sqids/' + TMVCSqids.IntToSqid(1234));
+  Assert.AreEqual(200, lRes.StatusCode);
+  Assert.AreEqual('1234', lRes.Content.Trim);
+  Assert.AreEqual(404, RESTClient.Get('/sqids/stoi/___').StatusCode, 'controller: not a sqid');
+  Assert.AreEqual(404, RESTClient.Get('/minimal-web/typedroute/sqids/___').StatusCode, 'minimal: not a sqid');
+  lRes := RESTClient.Get('/sqids/stoi/' + TMVCSqids.IntToSqid(1234));
+  Assert.AreEqual(200, lRes.StatusCode);
+  Assert.AreEqual('1234', lRes.Content.Trim, 'controller: sqid decoded');
+  // an unknown kind stops the server at startup in both routers: TTestRouteParamKinds
+  // (ControllerWithAnUnknownKindFailsWhenAdded, MinimalRouteWithAnUnknownKindFailsWhenRegistered)
+end;
+
+procedure TServerTest.TestHtmlFromController;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get('/htmlfromcontroller');
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.Contains(LowerCase(lRes.HeaderValue('Content-Type')), 'text/html');
+  Assert.AreEqual('<b>from a controller</b>', lRes.Content);
+end;
+
+procedure TServerTest.TestCookieExpiresIsNotLocalized;
+var
+  lHTTP: TIdHTTP;
+  lLine: string;
+  I: Integer;
+begin
+  // RFC 6265 / 1123: day and month names are English whatever the server locale.
+  // A localized "mar, 05 mar 2030" is read by browsers as a date in the past
+  // ("mar" = March), and the cookie is dropped at once.
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    lHTTP.Get(GetServer + '/cookiewithexpires');
+    lLine := '';
+    for I := 0 to lHTTP.Response.RawHeaders.Count - 1 do
+      if lHTTP.Response.RawHeaders[I].Contains('withexpires=') then
+        lLine := lHTTP.Response.RawHeaders[I];
+    Assert.IsNotEmpty(lLine, 'cookie not sent');
+    Assert.Contains(lLine, 'Tue, 05', True, 'day name not in English: ' + lLine);
+    Assert.Contains(lLine, 'Mar', False, 'month name not in English: ' + lLine);
+    Assert.Contains(lLine, '2030', False, lLine);
+  finally
+    lHTTP.Free;
+  end;
 end;
 
 procedure TServerTest.TestCustomAuthRequestWithoutLogin;
@@ -2363,14 +2544,6 @@ begin
   c1.SessionId('');
   res := c1.Get('/session'); // rileggo il valore dalla sessione
   Assert.areEqual('', res.Content);
-end;
-
-procedure TServerTest.TestInvalidConverter;
-var
-  lRes: IMVCRESTResponse;
-begin
-  lRes := RESTClient.Get('/wrongconverter/1');
-  Assert.areEqual(500, lRes.StatusCode);
 end;
 
 procedure TServerTest.TestIssue406;

@@ -90,6 +90,7 @@
                {{if page_id|eq,"about"}}aria-current="page"{{endif}}
                href="/web/about">About</a>
           </li>
+          <!--EXTRA_NAV-->
         </ul>
         <div class="d-flex align-items-center gap-2">
           <a class="nav-link text-secondary small d-none d-md-inline" target="_blank" rel="noopener"

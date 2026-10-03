@@ -18,7 +18,7 @@
     <p class="lead">What this application is made of, and where each piece is documented.</p>
   </header>
 
-  <div class="row g-5">
+  <div class="row g-4 g-lg-5">
     <section class="col-lg-7 section" aria-labelledby="stackTitle">
       <h2 class="section-title" id="stackTitle">Built with</h2>
       <dl class="stack">
@@ -63,7 +63,7 @@
       </section>
       <section class="panel" aria-labelledby="apiTitle">
         <h2 class="panel-title" id="apiTitle">JSON API</h2>
-        <p class="text-secondary">The same data as JSON, from <code>Controllers.APIU</code>.</p>
+        <p class="text-secondary">The same data as JSON, from <code>{{:api_source}}</code>.</p>
         <a href="/api/server/info" target="_blank" class="btn btn-outline-primary">
           Open /api/server/info <svg class="icon ms-1" aria-hidden="true"><use href="#i-external"/></svg>
         </a>

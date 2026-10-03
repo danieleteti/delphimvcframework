@@ -42,6 +42,48 @@ uses
 type
 
   [TestFixture]
+  // controllers for TTestRouteParamKinds.ControllerWithAnUnknownKindFailsWhenAdded
+  [MVCPath('/kinds')]
+  TKindsBadActionController = class(TMVCController)
+  public
+    [MVCPath('/($id:uuid)')]
+    procedure GetOne(id: string);
+  end;
+
+  [MVCPath('/kinds/($tenant:tenant)')]
+  TKindsBadClassController = class(TMVCController)
+  public
+    [MVCPath('/items')]
+    procedure GetItems;
+  end;
+
+  [MVCPath('/kinds')]
+  TKindsGoodController = class(TMVCController)
+  public
+    [MVCPath('/($id:INT)/($code:sqids)/($d:date)/($x)')]
+    procedure GetOne(id: Integer; code: Int64; d: string; x: string);
+  end;
+
+  TTestRouteParamKinds = class(TObject)
+  public
+    [Test]
+    procedure ControllerWithAnUnknownKindFailsWhenAdded;
+    [Test]
+    procedure IntegerKindsAcceptOnlyDigits;
+    [Test]
+    procedure DateKindIsARealISODate;
+    [Test]
+    procedure MinimalRouteWithAnUnknownKindFailsWhenRegistered;
+  end;
+
+  TTestSessionStores = class(TObject)
+  public
+    [Test]
+    procedure DatabaseSessionListsItsKeys;
+    [Test]
+    procedure FileSessionWithAnUnknownIdIsNotFound;
+  end;
+
   TTestRouting = class(TObject)
   private
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -237,6 +279,8 @@ type
   [TestFixture]
   TTestUTC = class(TObject)
   public
+    [Test]
+    procedure TestRFC1123IsNotLocalized;
     [Test]
     procedure TestStringToDateTime_Local;
     [Test]
@@ -537,7 +581,8 @@ uses
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
   MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti,
-  MVCFramework.Session, MVCFramework.Middleware.RateLimit, JsonDataObjects;
+  MVCFramework.Session, MVCFramework.Middleware.RateLimit, JsonDataObjects,
+  MVCFramework.Session.Database;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -2241,6 +2286,22 @@ end;
 
 { TTestUTC }
 
+procedure TTestUTC.TestRFC1123IsNotLocalized;
+var
+  lSaved: TFormatSettings;
+begin
+  // the process-wide settings of an Italian server: "mar" is Tuesday there and March for a browser
+  lSaved := FormatSettings;
+  FormatSettings := TFormatSettings.Create('it-IT');
+  try
+    // what the HTTP.sys adapter writes in a cookie Expires (Indy's LocalDateTimeToHttpStr)
+    Assert.StartsWith('Tue, 05 Mar 2030 ', IdGlobal.LocalDateTimeToHttpStr(EncodeDate(2030, 3, 5) + EncodeTime(12, 0, 0, 0)));
+    Assert.EndsWith(' GMT', IdGlobal.LocalDateTimeToHttpStr(EncodeDate(2030, 3, 5) + EncodeTime(12, 0, 0, 0)));
+  finally
+    FormatSettings := lSaved;
+  end;
+end;
+
 procedure TTestUTC.TestStringToDateTime_Local;
 var
   lDate, lDateToCompare: TDateTime;
@@ -3858,8 +3919,205 @@ begin
   end;
 end;
 
+{ TTestRouteParamKinds }
+
+procedure TTestRouteParamKinds.IntegerKindsAcceptOnlyDigits;
+var
+  lOut: string;
+  lValue: string;
+begin
+  for lValue in ['12', '-12', '0'] do
+  begin
+    Assert.IsTrue(MVCRouteParamOfKind('int', lValue, lOut), 'int ' + lValue);
+    Assert.IsTrue(MVCRouteParamOfKind('int64', lValue, lOut), 'int64 ' + lValue);
+  end;
+  // what TryStrToInt also accepts: another spelling of a number is another URL for the same resource
+  for lValue in ['$10', '0x10', ' 10', '10 ', '+10', '', '-', '1e3'] do
+  begin
+    Assert.IsFalse(MVCRouteParamOfKind('int', lValue, lOut), 'int "' + lValue + '"');
+    Assert.IsFalse(MVCRouteParamOfKind('int64', lValue, lOut), 'int64 "' + lValue + '"');
+  end;
+  Assert.IsFalse(MVCRouteParamOfKind('int', '99999999999', lOut), 'int overflow');
+  Assert.IsTrue(MVCRouteParamOfKind('int64', '99999999999', lOut), 'int64');
+end;
+
+procedure TTestRouteParamKinds.DateKindIsARealISODate;
+var
+  lOut: string;
+begin
+  Assert.IsTrue(MVCRouteParamOfKind('date', '2024-02-29', lOut), 'leap day');
+  Assert.IsFalse(MVCRouteParamOfKind('date', '2023-02-29', lOut), 'not a leap year');
+  Assert.IsFalse(MVCRouteParamOfKind('date', '2024-13-01', lOut), 'month 13');
+  Assert.IsFalse(MVCRouteParamOfKind('date', '2024-8-20', lOut), 'one-digit month');
+  Assert.IsFalse(MVCRouteParamOfKind('date', '2024-08-20T10', lOut), 'a time');
+  Assert.IsFalse(MVCRouteParamOfKind('date', '20240820', lOut), 'no dashes');
+end;
+
+procedure TKindsBadActionController.GetOne(id: string);
+begin
+end;
+
+procedure TKindsBadClassController.GetItems;
+begin
+end;
+
+procedure TKindsGoodController.GetOne(id: Integer; code: Int64; d: string; x: string);
+begin
+end;
+
+procedure TTestRouteParamKinds.ControllerWithAnUnknownKindFailsWhenAdded;
+var
+  lEngine: TMVCEngine;
+begin
+  // the same rule as the Minimal API: a misspelled kind stops the server at startup, instead of a
+  // latent 500 on the first request that tries the route
+  lEngine := TMVCEngine.Create;
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.AddController(TKindsBadActionController);
+      end, EMVCException, 'kind on an action');
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.AddController(TKindsBadClassController);
+      end, EMVCException, 'kind on the controller');
+    lEngine.AddController(TKindsGoodController);
+  finally
+    lEngine.Free;
+  end;
+end;
+
+procedure TTestRouteParamKinds.MinimalRouteWithAnUnknownKindFailsWhenRegistered;
+var
+  lEngine: TMVCEngine;
+begin
+  // at request time it would turn every request tried against the route into a 500, also the
+  // requests meant for another route on the same path
+  lEngine := TMVCEngine.Create;
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.Root.MapGet('/items/($id:uuid)',
+          function: IMVCResponse
+          begin
+            Result := nil;
+          end);
+      end, EMVCException, 'unknown kind');
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.Root.MapGet('/files/($path:*)/meta',
+          function: IMVCResponse
+          begin
+            Result := nil;
+          end);
+      end, EMVCException, 'catch-all not last');
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.Root.MapGet('/items/($:int)',
+          function: IMVCResponse
+          begin
+            Result := nil;
+          end);
+      end, EMVCException, 'no name');
+    Assert.WillRaise(
+      procedure
+      begin
+        lEngine.Root.MapGet('/items/($)',
+          function: IMVCResponse
+          begin
+            Result := nil;
+          end);
+      end, EMVCException, 'no name, no kind');
+    // the known kinds, any case, and a trailing catch-all (also with a final slash) are fine
+    lEngine.Root.MapGet('/ok/($id:INT)/($g:guid)/($s:sqids)/($rest:*)',
+      function: IMVCResponse
+      begin
+        Result := nil;
+      end);
+    lEngine.Root.MapGet('/files/($p:*)/',
+      function: IMVCResponse
+      begin
+        Result := nil;
+      end);
+  finally
+    lEngine.Free;
+  end;
+end;
+
+{ TTestSessionStores }
+
+procedure TTestSessionStores.DatabaseSessionListsItsKeys;
+var
+  lData: TMVCSessionActiveRecord;
+  lSession: TMVCWebSessionDatabase;
+  lKeys: TArray<string>;
+begin
+  // SessionRegenerateId moves the data by Keys: a store that cannot list them loses it
+  lData := TMVCSessionActiveRecord.Create;
+  lData.SessionID := 'test';
+  lSession := TMVCWebSessionDatabase.CreateFromSessionData(nil, lData, 0, True);
+  try
+    lSession['cart'] := '3';
+    lSession['user'] := 'bob';
+    lKeys := lSession.Keys;
+    TArray.Sort<string>(lKeys);
+    Assert.AreEqual<Integer>(2, Length(lKeys));
+    Assert.AreEqual('cart', lKeys[0]);
+    Assert.AreEqual('user', lKeys[1]);
+  finally
+    lSession.Free;
+  end;
+end;
+
+procedure TTestSessionStores.FileSessionWithAnUnknownIdIsNotFound;
+var
+  lFactory: TMVCWebSessionFileFactory;
+  lSession: TMVCWebSession;
+  lId, lFolder: string;
+begin
+  // as the memory and database stores: an id without a session is not a session. Otherwise a stopped
+  // (or planted) id comes back to life on the next request that sends it
+  lFolder := TPath.Combine(TPath.GetTempPath, 'dmvc_session_tests_' + TGUID.NewGuid.ToString);
+  lFactory := TMVCWebSessionFileFactory.Create(True, 10, lFolder);
+  try
+    lId := GenerateSessionID;
+    lSession := lFactory.CreateFromSessionID(lId);
+    try
+      Assert.IsNull(lSession, 'unknown id');
+    finally
+      lSession.Free;
+    end;
+    lSession := lFactory.CreateNewSession(lId);
+    lSession.Free;
+    lSession := lFactory.CreateFromSessionID(lId);
+    try
+      Assert.IsNotNull(lSession, 'existing id');
+    finally
+      lSession.Free;
+    end;
+    lFactory.TryDeleteSessionID(lId);
+    lSession := lFactory.CreateFromSessionID(lId);
+    try
+      Assert.IsNull(lSession, 'deleted id');
+    finally
+      lSession.Free;
+    end;
+  finally
+    lFactory.Free;
+    if TDirectory.Exists(lFolder) then
+      TDirectory.Delete(lFolder, True);
+  end;
+end;
+
 initialization
 
+TDUnitX.RegisterTestFixture(TTestRouteParamKinds);
+TDUnitX.RegisterTestFixture(TTestSessionStores);
 TDUnitX.RegisterTestFixture(TTestRouting);
 // TDUnitX.RegisterTestFixture(TTestMappers);
 TDUnitX.RegisterTestFixture(TTestJWT);

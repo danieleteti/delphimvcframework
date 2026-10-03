@@ -173,12 +173,134 @@ type
       out ARouterResult: TMVCRouterResult): Boolean; overload; static;
   end;
 
+/// <summary>
+///   The kind of a route parameter, "($name:kind)", the same for controller routes and Minimal API
+///   routes: int, int64, float, bool, guid and date accept only a value of that shape; sqids decodes
+///   the value into its integer. Returns False when the value does not fit, and the route does not
+///   match (404 if no other route does). An unknown kind raises EMVCException.
+/// </summary>
+function MVCRouteParamOfKind(const AKind, AValue: string; out AResult: string): Boolean;
+
+/// <summary>
+///   True for '' and for the kinds MVCRouteParamOfKind knows (any case); lets a router reject
+///   a misspelled kind when the route is registered instead of at every request.
+/// </summary>
+function MVCIsRouteParamKind(const AKind: string): Boolean;
+
+/// <summary>
+///   Raises EMVCException for a route path with a parameter without a name, an unknown kind or a
+///   catch-all "($x:*)" that is not the last segment (or at all, when AAllowCatchAll is False).
+///   Called when a route is registered - controllers (TMVCEngine.AddController) and Minimal API -
+///   so the mistake stops the server at startup instead of turning requests into 500s.
+/// </summary>
+procedure MVCCheckRoutePath(const APath: string; const AAllowCatchAll: Boolean);
+
 implementation
 
 uses
   System.TypInfo,
   System.NetEncoding,
+  System.DateUtils,
   MVCFramework.Container;
+
+function MVCIsRouteParamKind(const AKind: string): Boolean;
+begin
+  // the same list as MVCRouteParamOfKind below
+  Result := (AKind = '') or SameText(AKind, 'int') or SameText(AKind, 'int64') or SameText(AKind, 'float') or
+    SameText(AKind, 'bool') or SameText(AKind, 'guid') or SameText(AKind, 'date') or SameText(AKind, 'sqids');
+end;
+
+procedure MVCCheckRoutePath(const APath: string; const AAllowCatchAll: Boolean);
+var
+  lMatch: TMatch;
+  lInner, lName, lKind: string;
+  lColon: Integer;
+begin
+  for lMatch in TRegEx.Matches(APath, '\(\$([^)]*)\)') do
+  begin
+    lInner := lMatch.Groups[1].Value;
+    lColon := Pos(':', lInner);
+    if lColon > 0 then
+    begin
+      lName := Copy(lInner, 1, lColon - 1);
+      lKind := Copy(lInner, lColon + 1, MaxInt);
+    end
+    else
+    begin
+      lName := lInner;
+      lKind := '';
+    end;
+    if lName = '' then
+      raise EMVCException.CreateFmt('Route "%s": a parameter without a name, %s', [APath, lMatch.Value]);
+    if lKind = '*' then
+    begin
+      if not AAllowCatchAll then
+        raise EMVCException.CreateFmt('Route "%s": the catch-all %s is available in Minimal API routes only',
+          [APath, lMatch.Value]);
+      if not APath.TrimRight(['/']).EndsWith(lMatch.Value) then
+        raise EMVCException.CreateFmt('Route "%s": the catch-all %s must be the last segment', [APath, lMatch.Value]);
+    end
+    else if not MVCIsRouteParamKind(lKind) then
+      raise EMVCException.CreateFmt('Route "%s": unknown route parameter kind [%s]', [APath, lKind]);
+  end;
+end;
+
+function MVCRouteParamOfKind(const AKind, AValue: string; out AResult: string): Boolean;
+
+  function IsDecimalInteger(const S: string): Boolean;
+  var
+    I, lStart: Integer;
+  begin
+    // "-" and digits only: TryStrToInt also reads "$10", "0x10" and " 10", other URLs for the same number
+    lStart := 1;
+    if (S <> '') and (S[1] = '-') then
+      lStart := 2;
+    Result := Length(S) >= lStart;
+    for I := lStart to Length(S) do
+      if not CharInSet(S[I], ['0'..'9']) then
+        Exit(False);
+  end;
+
+var
+  lInt: Integer;
+  lInt64: Int64;
+  lFloat: Double;
+  lDate: TDateTime;
+begin
+  AResult := AValue;
+  if AKind = '' then
+    Exit(True);
+  if SameText(AKind, 'int') then
+    Exit(IsDecimalInteger(AValue) and TryStrToInt(AValue, lInt));
+  if SameText(AKind, 'int64') then
+    Exit(IsDecimalInteger(AValue) and TryStrToInt64(AValue, lInt64));
+  if SameText(AKind, 'float') then
+    Exit(TryStrToFloat(AValue, lFloat, TFormatSettings.Invariant));
+  if SameText(AKind, 'bool') then
+    Exit(SameText(AValue, 'true') or SameText(AValue, 'false') or (AValue = '0') or (AValue = '1'));
+  if SameText(AKind, 'guid') then
+  begin
+    try
+      StringToGUID('{' + AValue.Replace('{', '').Replace('}', '') + '}');
+      Exit(True);
+    except
+      Exit(False);
+    end;
+  end;
+  if SameText(AKind, 'date') then
+    // yyyy-mm-dd: a path segment cannot hold the slashes of a locale date
+    Exit((AValue.Length = 10) and TryISO8601ToDate(AValue, lDate, True));
+  if SameText(AKind, 'sqids') then
+  begin
+    try
+      AResult := TMVCSqids.SqidToInt(AValue).ToString;
+      Exit(True);
+    except
+      Exit(False);
+    end;
+  end;
+  raise EMVCException.CreateFmt('Unknown route parameter kind [%s]', [AKind]);
+end;
 
 var
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
@@ -590,7 +712,7 @@ var
   lNames: TList<TPair<String, String>>;
   lCacheItem: TMVCActionParamCacheItem;
   P: TPair<string, string>;
-  lConv: string;
+  lKindValue: string;
   lParValue: String;
 begin
   if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
@@ -624,7 +746,7 @@ begin
 
       {
         P.Key = Parameter name
-        P.Value = Converter applied to the value before to be injected (eg. :sqid)
+        P.Value = ":kind" of the parameter (eg. :int, :sqids) or empty
       }
 
       lParValue := TIdURI.URLDecode(lMatch.Groups[I].Value);
@@ -632,38 +754,22 @@ begin
         segment: the regex matched one segment, the action gets three. The check
         upstream in ExecuteRouting cannot see this - it runs on the still-encoded
         path. A parameter that merely contains a slash is left alone, because
-        carrying an encoded one is a documented use; a dot segment is not. }
-      if MVCPathHasDotSegment(lParValue) then
+        carrying an encoded one is a documented use; a dot segment is not.
+        A value that does not fit the kind of the parameter is not a match either. }
+      if MVCPathHasDotSegment(lParValue) or
+        not MVCRouteParamOfKind(Copy(P.Value, 2, MaxInt), lParValue, lKindValue) then
       begin
         { Undo what this call already put in the table. aParams is shared by every
           candidate route and is a TDictionary: leaving the parameters of the
           groups matched before this one behind makes the NEXT candidate with the
           same parameter names raise EListError on Add - a 500 where the request
-          should simply not match. Nothing else in this routine can fail midway,
-          so this is the only place the invariant "match fully or add nothing"
-          has to be restored by hand. }
+          should simply not match. This is the only place the invariant "match
+          fully or add nothing" has to be restored by hand. }
         for J := 1 to I - 1 do
           aParams.Remove(lCacheItem.Params[J - 1].Key);
         Exit(False);
       end;
-      if P.Value.IsEmpty then
-      begin
-        {no converter}
-        aParams.Add(P.Key, lParValue);
-      end
-      else
-      begin
-        lConv := P.Value;
-        if SameText(lConv, ':sqids') then
-        begin
-          {sqids converter (so far the only one)}
-          aParams.Add(P.Key, TMVCSqids.SqidToInt(lParValue).ToString);
-        end
-        else
-        begin
-          raise EMVCException.CreateFmt('Unknown converter [%s]', [lConv]);
-        end;
-      end;
+      aParams.Add(P.Key, lKindValue);
     end;
   end;
 end;
@@ -676,17 +782,17 @@ var
   I: Integer;
   lList: TList<TPair<string, string>>;
   lNameFound: Boolean;
-  lConverter: string;
+  lKind: string;
   lName: string;
 begin
   lList := TList<TPair<string, string>>.Create;
   try
-    S := '\(\$([A-Za-z0-9\_]+)(\:[a-z]+)?\)';
+    S := '\(\$([A-Za-z0-9\_]+)(\:[a-z][a-z0-9]*)?\)';
     Matches := TRegEx.Matches(V, S, [roIgnoreCase, roCompiled, roSingleLine]);
     for M in Matches do
     begin
       lNameFound := False;
-      lConverter := '';
+      lKind := '';
       for I := 0 to M.Groups.Count - 1 do
       begin
         S := M.Groups[I].Value;
@@ -700,13 +806,13 @@ begin
           end;
           if lNameFound and (S.Chars[0] = ':') then
           begin
-            lConverter := S;
+            lKind := S;
           end;
         end;
       end;
       if lNameFound then
       begin
-        lList.Add(TPair<string,string>.Create(lName,lConverter));
+        lList.Add(TPair<string,string>.Create(lName,lKind));
       end;
     end;
     Result := lList;

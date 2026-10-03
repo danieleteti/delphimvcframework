@@ -1,9 +1,10 @@
 {{include "_license_header.tpro"}}
 unit RoutesU;
 
-// Minimal-API WebApp routes: lambda handlers on groups from ARoot.AsWeb.
-// Session/auth are endpoint filters (.Use); 'ispage' toggles full page vs
-// HTMX fragment for the TemplatePro layout.
+// Minimal-API web app: the same pages as the controller-based one (Home,
+// People, About) as lambda routes, plus a login-protected Admin area.
+// Session and login are endpoint filters (.Use); PageDefaults fills the
+// ViewData every page of baselayout.html reads.
 
 interface
 
@@ -18,16 +19,45 @@ implementation
 
 uses
   System.SysUtils,
+  System.StrUtils,
+  System.DateUtils,
+  System.Math,
+  System.Generics.Collections,
+  System.Generics.Defaults,
+  JsonDataObjects,
   MVCFramework.Commons,
   MVCFramework.HTMX;
 
 type
-  // Form-urlencoded binding for POST /login via [MVCFromContentField]
+  // Form-urlencoded binding for POST /web/login via [MVCFromContentField]
   // (same '(name)' convention as MVCFromQueryString / MVCFromHeader).
   TLoginForm = record
     [MVCFromContentField('username')] Username: string;
     [MVCFromContentField('password')] Password: string;
   end;
+
+  // Query string of the People page; the second argument is the default
+  TPeopleQuery = record
+    [MVCFromQueryString('q', '')] Search: string;
+    [MVCFromQueryString('status', '')] Status: string;
+    [MVCFromQueryString('sort', 'name')] Sort: string;
+    [MVCFromQueryString('dir', 'asc')] Dir: string;
+  end;
+
+{{include "_people_sample.pas.tpro"}}
+
+// Values every page reads from baselayout.html
+function PageDefaults: TMVCEndpointFilter;
+begin
+  Result :=
+    function (const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
+    begin
+      ViewData['app_name'] := '{{:program_name}}';
+      ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
+      ViewData['current_year'] := YearOf(Now);
+      Result := Next();
+    end;
+end;
 
 // Redirect to ARedirectTo unless the session carries a 'user'.
 function RequireLogin(const ARedirectTo: string): TMVCEndpointFilter;
@@ -47,29 +77,165 @@ var
   lWeb: TMVCRouteGroup<TObject>;
   lAdmin: TMVCRouteGroup<TObject>;
 begin
-  // Public surface; MemorySession is inherited by nested groups.
-  lWeb := ARoot.AsWeb.Use(MemorySession(30, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
-
-  lWeb.MapGet<TWebContext>('/',
-    function (Ctx: TWebContext): IMVCResponse
-    begin
-      ViewData['ispage'] := not Ctx.Request.IsHTMX;
-      Result := RenderView('pages/home');
-    end);
-
-  // HTMX fragment (rendered without the layout).
-  lWeb.MapGet('/time',
+  ARoot.AsWeb.MapGet('/',
     function: IMVCResponse
     begin
-      ViewData['ispage'] := False;
-      ViewData['now'] := DateTimeToStr(Now);
-      Result := RenderView('pages/time');
+      Result := Redirect('/web');
     end);
 
-  lWeb.MapGet<TWebContext>('/login',
-    function (Ctx: TWebContext): IMVCResponse
+  // JSON from the same routes: no .AsWeb, so this is an API route
+  ARoot.MapGet('/api/server/info',
+    function: IMVCResponse
+    var
+      lInfo: TJsonObject;
     begin
-      ViewData['ispage'] := not Ctx.Request.IsHTMX;
+      lInfo := TJsonObject.Create;
+      lInfo.S['application'] := '{{:program_name}}';
+      lInfo.S['dmvcVersion'] := DMVCFRAMEWORK_VERSION;
+      lInfo.S['serverTime'] := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
+      lInfo.S['compilerVersion'] := Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant);
+      Result := Ok(lInfo);
+    end);
+
+  // Pages; MemorySession and PageDefaults are inherited by nested groups.
+  lWeb := ARoot.AsWeb.Prefix('/web')
+    .Use(MemorySession(30, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)))
+    .Use(PageDefaults());
+
+  lWeb.MapGet('',
+    function: IMVCResponse
+    begin
+      ViewData['page_id'] := 'index';
+      ViewData['current_date'] := FormatDateTime('dddd, dd mmmm yyyy', Now);
+      ViewData['compiler_version'] := {$IF CompilerVersion >= 37}'Delphi 13 Florence'
+        {$ELSEIF CompilerVersion >= 36}'Delphi 12 Athens'
+        {$ELSEIF CompilerVersion >= 35}'Delphi 11 Alexandria'
+        {$ELSEIF CompilerVersion >= 34}'Delphi 10.4 Sydney'
+        {$ELSEIF CompilerVersion >= 33}'Delphi 10.3 Rio'
+        {$ELSEIF CompilerVersion >= 32}'Delphi 10.2 Tokyo'
+        {$ELSE}'Delphi'{$ENDIF};
+      Result := RenderView('home/index');
+    end);
+
+  lWeb.MapGet('/about',
+    function: IMVCResponse
+    begin
+      ViewData['page_id'] := 'about';
+      Result := RenderView('about/index');
+    end);
+
+  // HTMX fragments: just the HTML, the page decides where it goes
+  lWeb.MapGet('/fragment/clock',
+    function: IMVCResponse
+    begin
+      Result := Html('<time datetime="' + FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now) + '">' +
+        FormatDateTime('hh:nn:ss', Now) + '</time>');
+    end);
+
+  lWeb.MapGet('/fragment/info',
+    function: IMVCResponse
+    begin
+      Result := Html(
+        '<dl class="meta-list">' +
+        '<dt>Application</dt><dd>{{:program_name}}</dd>' +
+        '<dt>DMVCFramework</dt><dd>' + DMVCFRAMEWORK_VERSION + '</dd>' +
+        '<dt>Compiler</dt><dd>' + Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant) + '</dd>' +
+        '<dt>Server time</dt><dd>' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '</dd>' +
+        '</dl>');
+    end);
+
+  // Table example: search, status filter and sorting come from the query
+  // string, so every state of the table has its own URL.
+  lWeb.MapGet<TWebContext, TPeopleQuery>('/people',
+    function (Ctx: TWebContext; Q: TPeopleQuery): IMVCResponse
+    var
+      lPage: TPeoplePage;
+    begin
+      lPage := BuildPeoplePage(Q.Search, Q.Status, Q.Sort, Q.Dir);
+      try
+        ViewData['page_id'] := 'people';
+        ViewData['people'] := lPage.Rows;
+        ViewData['q'] := Q.Search;
+        ViewData['query'] := Ctx.Request.QueryParams; // model of the search box
+        ViewData['status'] := LowerCase(Q.Status);
+        ViewData['sort'] := lPage.Sort;
+        ViewData['dir'] := lPage.Dir;
+        ViewData['count_all'] := lPage.CountActive + lPage.CountInvited + lPage.CountSuspended;
+        ViewData['count_active'] := lPage.CountActive;
+        ViewData['count_invited'] := lPage.CountInvited;
+        ViewData['count_suspended'] := lPage.CountSuspended;
+        ViewData['count_shown'] := lPage.Rows.Count;
+        // HTMX asks for the table only; a normal request gets the whole page
+        if Ctx.Request.IsHTMX and not Ctx.Request.HXIsBoosted then
+          Result := RenderView('people/table')
+        else
+          Result := RenderView('people/index');
+      finally
+        lPage.Rows.Free;
+      end;
+    end);
+
+  // Form example: people/edit.html is built with the TemplatePro forms
+  // library (templates/lib/forms_bootstrap5.tpro).
+  lWeb.MapGet<Integer>('/people/($id:int)',
+    function (ID: Integer): IMVCResponse
+    var
+      lPerson: TPersonRow;
+    begin
+      lPerson := FindPerson(ID);
+      if lPerson = nil then
+        raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
+      try
+        ViewData['page_id'] := 'people';
+        // formModel is the variable the forms library reads the values from
+        ViewData['formModel'] := lPerson;
+        ViewData['person_id'] := ID;
+        ViewData['roles'] := GRoles;
+        ViewData['statuses'] := GStatuses;
+        Result := RenderView('people/edit');
+      finally
+        lPerson.Free;
+      end;
+    end);
+
+  lWeb.MapPost<TWebContext, Integer>('/people/($id:int)',
+    function (Ctx: TWebContext; ID: Integer): IMVCResponse
+    var
+      lPerson: TPersonRow;
+      lErrors: TDictionary<string, string>;
+    begin
+      lPerson := FindPerson(ID);
+      if lPerson = nil then
+        raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
+      lErrors := TDictionary<string, string>.Create; // field name -> message
+      try
+        ReadPerson(lPerson, Ctx.Request.ContentFields, lErrors);
+        if lErrors.Count = 0 then
+        begin
+          StorePerson(lPerson);
+          // Post/Redirect/Get: reloading the list does not submit the form again
+          Exit(Redirect('/web/people'));
+        end;
+
+        // Invalid: the same page, with what was typed and a message per field
+        ViewData['page_id'] := 'people';
+        ViewData['formModel'] := Ctx.Request.ContentFields;
+        ViewData['formErrors'] := lErrors;
+        ViewData['person_id'] := ID;
+        ViewData['roles'] := GRoles;
+        ViewData['statuses'] := GStatuses;
+        Result := RenderView('people/edit');
+        Result.StatusCode := HTTP_STATUS.UnprocessableEntity;
+      finally
+        lErrors.Free;
+        lPerson.Free;
+      end;
+    end);
+
+  lWeb.MapGet('/login',
+    function: IMVCResponse
+    begin
+      ViewData['page_id'] := 'admin';
       Result := RenderView('pages/login');
     end);
 
@@ -78,25 +244,27 @@ begin
     begin
       if (F.Username = 'admin') and (F.Password = 'admin') then
       begin
+        Ctx.SessionRegenerateId; // a new session id at login, against session fixation
         Ctx.Session['user'] := F.Username;
-        Result := Redirect('/admin/');
+        Result := Redirect('/web/admin/');
       end
       else
       begin
-        ViewData['ispage'] := not Ctx.Request.IsHTMX;
+        ViewData['page_id'] := 'admin';
         ViewData['error'] := 'Invalid credentials';
+        ViewData['login'] := Ctx.Request.ContentFields; // keeps the username; the password is never sent back
         Result := RenderView('pages/login');
-        Result.StatusCode := 401;
+        Result.StatusCode := HTTP_STATUS.Unauthorized;
       end;
     end);
 
-  // Login-protected admin subtree (inherits MemorySession via Prefix).
-  lAdmin := lWeb.Prefix('/admin').Use(RequireLogin('/login'));
+  // Login-protected admin subtree (inherits MemorySession and PageDefaults via Prefix).
+  lAdmin := lWeb.Prefix('/admin').Use(RequireLogin('/web/login'));
 
   lAdmin.MapGet<TWebContext>('/',
     function (Ctx: TWebContext): IMVCResponse
     begin
-      ViewData['ispage'] := not Ctx.Request.IsHTMX;
+      ViewData['page_id'] := 'admin';
       ViewData['user'] := Ctx.Session['user'];
       Result := RenderView('pages/admin_home');
     end);
@@ -105,8 +273,10 @@ begin
     function (Ctx: TWebContext): IMVCResponse
     begin
       Ctx.SessionStop;
-      Result := Redirect('/login');
+      Result := Redirect('/web/login');
     end);
 end;
+
+{{include "_people_sample_init.pas.tpro"}}
 
 end.

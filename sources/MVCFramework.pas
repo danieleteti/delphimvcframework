@@ -641,6 +641,9 @@ type
 
     procedure SessionStart; virtual;
     procedure SessionStop(const ARaiseExceptionIfExpired: Boolean = True); virtual;
+    { A new session id for the same session data; the old id stops working. Call it
+      after a login (and after any change of privilege) against session fixation. }
+    procedure SessionRegenerateId;
     procedure SetSessionFactory(const SessionFactory: TMVCWebSessionFactory);
 
     function SessionStarted: Boolean;
@@ -2471,6 +2474,44 @@ begin
   InternalSessionStart(fWebSession);
 end;
 
+procedure TWebContext.SessionRegenerateId;
+var
+  lOld, lNew: TMVCWebSession;
+  lKeys: TArray<string>;
+  lKey: string;
+begin
+  { Call it right after a login: an id that was known before the login (planted by
+    an attacker, or seen on a shared computer) must not open the logged-in session.
+    The data stays, the id changes, the old id is deleted. }
+  lOld := GetWebSession;
+  if fIsSessionStarted then
+    Exit; // created in this request (or already regenerated): nobody knew this id before
+  lKeys := lOld.Keys;
+  if (Length(lKeys) = 1) and (lKeys[0] = '<not implemented>') then
+  begin
+    // a custom store that cannot list its keys (TMVCWebSession.Keys not overridden): moving the
+    // data is impossible, so the id stays as it was before 3.5 - override Keys to get the new id
+    LogW('SessionRegenerateId: ' + lOld.ClassName + ' does not implement Keys, the session id is not regenerated');
+    Exit;
+  end;
+  lNew := GetSessionFactory.CreateNewSession(GenerateSessionID);
+  try
+    for lKey in lKeys do
+      lNew[lKey] := lOld[lKey];
+    GetSessionFactory.TryDeleteSessionID(lOld.SessionId);
+  except
+    GetSessionFactory.TryDeleteSessionID(lNew.SessionId);
+    lNew.Free;
+    raise;
+  end;
+  fWebSession := lNew;
+  lOld.Free;
+  fIsSessionStarted := True;
+  fSessionMustBeClose := False;
+  lNew.SendSessionCookie(fResponse.Cookies, lNew.SessionId);
+  lNew.MarkAsUsed;
+end;
+
 function TWebContext.SessionStarted: Boolean;
 var
   SId: string;
@@ -2502,6 +2543,9 @@ begin
     raise EMVCSessionExpiredException.Create;
   end;
   GetSessionFactory.TryDeleteSessionID(SId);
+  { drop the copy read in this request without saving it: FreeSession would write it
+    back at the end of the request and the stopped id would work again }
+  FreeAndNil(fWebSession);
   fIsSessionStarted := False;
   fSessionMustBeClose := True;
 end;
@@ -2535,7 +2579,28 @@ end;
 
 function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz;
   const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string): TMVCEngine;
+var
+  lCtx: TRttiContext;
+  lType: TRttiType;
+  lMethod: TRttiMethod;
+  lAttr: TCustomAttribute;
 begin
+  { a misspelled route parameter kind stops the server here, at startup, as for the
+    Minimal API: at request time it would be a 500 for every request tried against it }
+  lCtx := TRttiContext.Create;
+  try
+    lType := lCtx.GetType(AControllerClazz);
+    for lAttr in lType.GetAttributes do
+      if lAttr is MVCPathAttribute then
+        MVCCheckRoutePath(MVCPathAttribute(lAttr).Path, False);
+    for lMethod in lType.GetMethods do
+      if lMethod.Visibility = mvPublic then
+        for lAttr in lMethod.GetAttributes do
+          if lAttr is MVCPathAttribute then
+            MVCCheckRoutePath(MVCPathAttribute(lAttr).Path, False);
+  finally
+    lCtx.Free;
+  end;
   FControllers.Add(TMVCControllerDelegate.Create(AControllerClazz, ACreateAction, AURLSegment));
   { [PERF] The route table is keyed on the current controllers list; a new
     controller invalidates it. Rebuilt lazily on the next request. }

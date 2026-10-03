@@ -156,8 +156,12 @@ begin
 end;
 
 function TMVCWebSessionDatabase.Keys: TArray<String>;
+var
+  I: Integer;
 begin
-  Result := [''];
+  SetLength(Result, fSessionData.fJSONData.Count);
+  for I := 0 to fSessionData.fJSONData.Count - 1 do
+    Result[I] := fSessionData.fJSONData.Names[I];
 end;
 
 procedure TMVCWebSessionDatabase.MarkAsUsed;

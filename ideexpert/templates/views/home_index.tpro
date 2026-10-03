@@ -16,7 +16,7 @@
     <div class="row g-4 align-items-end">
       <div class="col-lg-7">
         <h1>{{:app_name}} is running</h1>
-        <p class="lead">A DelphiMVCFramework web application: controllers render TemplatePro
+        <p class="lead">A DelphiMVCFramework web application: {{:page_handlers}} render TemplatePro
           views on the server, and small scripts fetch server-rendered fragments into the page.</p>
         <div class="page-actions">
           <a class="btn btn-primary" href="/web/people">
@@ -43,7 +43,7 @@
     </div>
   </header>
 
-  <div class="row g-5">
+  <div class="row g-4 g-lg-5">
     <section class="col-lg-7 section" aria-labelledby="startTitle">
       <h2 class="section-title" id="startTitle">Start here</h2>
       <ol class="steps">
@@ -55,11 +55,11 @@
         <li>
           <strong>Render your own data</strong>
           <p>The People page renders a list of objects with <code>&#123;&#123;for&#125;&#125;</code> and sorts and
-             filters it in the controller. Copy it for your first real page.</p>
+             filters it on the server. Copy it for your first real page.</p>
         </li>
         <li>
           <strong>Add a page</strong>
-          <p>Add an action to <code>{{:controller_unit_name}}</code> that calls <code>RenderView('folder/name')</code>,
+          <p>Add {{:add_page_how}} that calls <code>RenderView('folder/name')</code>,
              and a template that extends <code>baselayout.html</code>.</p>
         </li>
         <li>
@@ -78,7 +78,7 @@
         <button id="btnLoadInfo" type="button" class="btn btn-outline-primary">Load server info</button>
         <div id="infoResult" class="mt-3 small" aria-live="polite"></div>
         <p class="small text-secondary mb-0 mt-3">
-          <code>fetch()</code> &middot; see <code>{{:controller_unit_name}}.GetInfoFragment</code>
+          <code>fetch()</code> &middot; see <code>{{:info_fragment_source}}</code>
         </p>
       </div>
     </section>

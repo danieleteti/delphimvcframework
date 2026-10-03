@@ -1,9 +1,10 @@
 {{extends "../baselayout.html"}}
+{{import "../lib/forms_bootstrap5.tpro" as f}}
 
-{{block "title"}}Sign in · {{:program_name}}{{endblock}}
+{{block "title"}}Sign in{{endblock}}
 
 {{block "body"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-5">
     <div class="col-md-5">
         <div class="card">
             <div class="card-body p-4">
@@ -11,17 +12,13 @@
                 {{if error}}
                 <div class="alert alert-danger">{{:error}}</div>
                 {{endif}}
-                <form method="POST" action="/login">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" id="username" name="username" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Sign in</button>
-                </form>
+                {{call f.form("/web/login")}}
+                {{set userattrs := {"autocomplete": "username", "autofocus": true}}}
+                {{set pwdattrs := {"autocomplete": "current-password"}}}
+                {{>f.input("username", label="Username", model=login, required=true, attrs=userattrs)}}
+                {{>f.input("password", label="Password", type="password", required=true, attrs=pwdattrs)}}
+                {{>f.submit("Sign in", class="w-100")}}
+                {{endcall}}
                 <p class="small text-muted mt-3 mb-0 text-center">Hint: <code>admin</code> / <code>admin</code></p>
             </div>
         </div>

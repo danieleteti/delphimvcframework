@@ -136,15 +136,16 @@ begin
   end;
 end;
 
-{ A path parameter with a converter ("($ID:sqids)") travels as the converter's
-  text, not as the type of the action parameter the router hands over. }
+{ A sqid ("($ID:sqids)") travels as text, not as the type of the action parameter
+  the router hands over. The other kinds ("($ID:int)") only check the value: the
+  action parameter type stays, as in the OpenAPI 3 document. }
 procedure PathConvertersAsStrings(const AMVCPath: string;
   const AParams: TObjectList<TSwagRequestParameter>);
 var
   lParam: TSwagRequestParameter;
 begin
   for lParam in AParams do
-    if (lParam.InLocation = rpiPath) and ContainsText(AMVCPath, '($' + lParam.Name + ':') then
+    if (lParam.InLocation = rpiPath) and ContainsText(AMVCPath, '($' + lParam.Name + ':sqids)') then
       lParam.TypeParameter := stpString;
 end;
 

@@ -708,31 +708,36 @@ begin
   lParam.O['schema'] := ASchema;
   if AConstraint <> '' then
   begin
-    // Surface the route constraint as a JSON Schema format/type when it maps
-    // cleanly. Otherwise drop it into description for human consumption.
-    if (AConstraint = 'int') or (AConstraint = 'int64') then
+    // The route kind decides the JSON Schema type; compared ignoring case, as the router does
+    if SameText(AConstraint, 'int') or SameText(AConstraint, 'int64') then
     begin
       ASchema.S['type'] := 'integer';
-      if AConstraint = 'int64' then ASchema.S['format'] := 'int64'
+      if SameText(AConstraint, 'int64') then ASchema.S['format'] := 'int64'
       else ASchema.S['format'] := 'int32';
     end
-    else if AConstraint = 'float' then
+    else if SameText(AConstraint, 'float') then
     begin
       ASchema.S['type'] := 'number';
     end
-    else if AConstraint = 'bool' then
+    else if SameText(AConstraint, 'bool') then
     begin
       ASchema.S['type'] := 'boolean';
     end
-    else if AConstraint = 'guid' then
+    else if SameText(AConstraint, 'guid') then
     begin
       ASchema.S['type'] := 'string';
       ASchema.S['format'] := 'uuid';
     end
-    else if AConstraint = 'date' then
+    else if SameText(AConstraint, 'date') then
     begin
       ASchema.S['type'] := 'string';
       ASchema.S['format'] := 'date';
+    end
+    else if SameText(AConstraint, 'sqids') then
+    begin
+      // a sqid travels as a string, whatever the handler parameter type (as for controllers)
+      ASchema.Clear;
+      ASchema.S['type'] := 'string';
     end;
   end;
 end;

@@ -380,6 +380,45 @@ const
   TEMPLATEPRO_HELPERS_UNIT = 'TemplateProHelpersU';
   WEBSTENCILS_HELPERS_UNIT = 'WebStencilsHelpersU';
   BOOT_CONFIG_UNIT = 'BootConfigU';
+
+  // A view of the TemplatePro web app, loaded raw (it holds runtime TemplatePro
+  // directives) with the wizard-time placeholders replaced. The controller-based
+  // and the minimal-API web app share the views: the placeholders name the code
+  // behind each page, and the minimal one adds the Admin entry to the navigation.
+  function ViewText(const AName: string): string;
+  var
+    lNL: string;
+  begin
+    Result := LoadTemplate(AName).Replace('{{:program_name}}', AProjectName);
+    if Result.Contains(#13#10) then
+      lNL := #13#10
+    else
+      lNL := #10;
+    if AConfig.B['program.minimal_api.web'] then
+      Result := Result
+        .Replace('{{:controller_unit_name}}', 'RoutesU')
+        .Replace('{{:page_handlers}}', 'minimal API routes')
+        .Replace('{{:add_page_how}}', 'a <code>MapGet</code> to <code>RoutesU</code>')
+        .Replace('{{:info_fragment_source}}', 'RoutesU: MapGet(''/fragment/info'')')
+        .Replace('{{:api_source}}', 'RoutesU: MapGet(''/api/server/info'')')
+        .Replace('{{:people_handler}}', 'RoutesU: MapGet(''/people'')')
+        .Replace('<!--EXTRA_NAV-->',
+          '<li class="nav-item">' + lNL +
+          '            <a class="nav-link {{if page_id|eq,"admin"}}active{{endif}}"' + lNL +
+          '               {{if page_id|eq,"admin"}}aria-current="page"{{endif}}' + lNL +
+          '               href="/web/admin/">Admin</a>' + lNL +
+          '          </li>')
+    else
+      Result := Result
+        .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT)
+        .Replace('{{:page_handlers}}', 'controllers')
+        .Replace('{{:add_page_how}}', 'an action to <code>' + CONTROLLER_UNIT + '</code>')
+        .Replace('{{:info_fragment_source}}', CONTROLLER_UNIT + '.GetInfoFragment')
+        .Replace('{{:api_source}}', CONTROLLER_API_UNIT)
+        .Replace('{{:people_handler}}', CONTROLLER_UNIT + '.People')
+        .Replace('          <!--EXTRA_NAV-->' + lNL, '');
+  end;
+
 var
   LBinPath: string;
   LWwwPath: string;
@@ -729,58 +768,60 @@ begin
     // Determine template file extension
     LTemplateExt := AConfig.S['template.extension'];
 
-    if AConfig.B[TConfigKey.program_ssv_templatepro] and
-       not AConfig.B['program.minimal_api.web'] then
+    if AConfig.B[TConfigKey.program_ssv_templatepro] then
     begin
-      // TemplatePro: use template inheritance pattern
-      // These view files contain runtime TemplatePro directives (extends, block)
-      // so they must NOT be processed by TemplatePro at wizard time.
-      // We load them raw and only replace wizard-time placeholders.
+      // TemplatePro: template inheritance. The same views serve the
+      // controller-based and the minimal-API web app (see ViewText).
       if AConfig.B[TConfigKey.program_htmx] then
         SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'baselayout.' + LTemplateExt,
-          LoadTemplate('views\baselayout.tpro')
-            .Replace('{{:program_name}}', AProjectName)
+          ViewText('views\baselayout.tpro')
             .Replace('<!--HTMX_SCRIPT-->',
               '<script src="https://unpkg.com/htmx.org@2/dist/htmx.min.js"></script>'))
       else
         SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'baselayout.' + LTemplateExt,
-          LoadTemplate('views\baselayout.tpro')
-            .Replace('{{:program_name}}', AProjectName)
+          ViewText('views\baselayout.tpro')
             .Replace('  <!--HTMX_SCRIPT-->' + #13#10, '')
             .Replace('  <!--HTMX_SCRIPT-->' + #10, ''));
 
       TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'home'));
-      if AConfig.B[TConfigKey.program_htmx] then
-        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
-          LoadTemplate('views\home_index_htmx.tpro')
-            .Replace('{{:program_name}}', AProjectName)
-            .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT))
-      else
-        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
-          LoadTemplate('views\home_index.tpro')
-            .Replace('{{:program_name}}', AProjectName)
-            .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT));
-
       TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'about'));
       if AConfig.B[TConfigKey.program_htmx] then
+      begin
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
+          ViewText('views\home_index_htmx.tpro'));
         SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'about' + PathDelim + 'index.' + LTemplateExt,
-          LoadTemplate('views\about_index_htmx.tpro')
-            .Replace('{{:program_name}}', AProjectName))
+          ViewText('views\about_index_htmx.tpro'));
+      end
       else
+      begin
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'home' + PathDelim + 'index.' + LTemplateExt,
+          ViewText('views\home_index.tpro'));
         SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'about' + PathDelim + 'index.' + LTemplateExt,
-          LoadTemplate('views\about_index.tpro')
-            .Replace('{{:program_name}}', AProjectName));
+          ViewText('views\about_index.tpro'));
+      end;
 
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.' + LTemplateExt,
-        LoadTemplate('views\error_view.tpro'));
+        ViewText('views\error_view.tpro'));
 
       // People: the table example (one template pair for HTMX and plain pages)
+      // and the edit form built with the forms library
       TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'people'));
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'index.' + LTemplateExt,
-        LoadTemplate('views\people_index.tpro')
-          .Replace('{{:controller_unit_name}}', CONTROLLER_UNIT));
+        ViewText('views\people_index.tpro'));
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'table.' + LTemplateExt,
-        LoadTemplate('views\people_table.tpro'));
+        ViewText('views\people_table.tpro'));
+      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'edit.' + LTemplateExt,
+        ViewText('views\people_edit.tpro'));
+
+      // Minimal API web app only: the login form and the page behind RequireLogin
+      if AConfig.B['program.minimal_api.web'] then
+      begin
+        TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'pages'));
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'login.' + LTemplateExt,
+          ViewText('views\minimal_login.tpro'));
+        SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'admin_home.' + LTemplateExt,
+          ViewText('views\minimal_admin.tpro'));
+      end;
     end
     else
     begin
@@ -792,42 +833,9 @@ begin
     end;
   end;
 
-  // Minimal API WebApp view set. Separate from the controller-oriented SSV
-  // block above: minimal-web has no THomeController/about views — it ships a
-  // navbar baselayout plus home / login / admin / time(fragment), matching the
-  // routes in routes_minimal_web.pas.tpro. Files are runtime TemplatePro
-  // templates: loaded raw, only wizard-time placeholders replaced.
-  //
-  // The Showcase WebApp variant uses the same baselayout but ships a different
-  // view set (one view per showcase endpoint), so this block forks on the
-  // showcase flag before emitting the per-page templates.
-  if AConfig.B['program.minimal_api.web'] then
-  begin
-    LTemplatesPath := TPath.Combine(LBinPath, 'templates');
-    TDirectory.CreateDirectory(LTemplatesPath);
-    TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'pages'));
-
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'baselayout.html',
-      LoadTemplate('views\minimal_baselayout.tpro')
-        .Replace('{{:program_name}}', AProjectName));
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.html',
-      LoadTemplate('views\error_view.tpro'));
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'home.html',
-      LoadTemplate('views\minimal_home.tpro')
-        .Replace('{{:program_name}}', AProjectName));
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'login.html',
-      LoadTemplate('views\minimal_login.tpro')
-        .Replace('{{:program_name}}', AProjectName));
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'admin_home.html',
-      LoadTemplate('views\minimal_admin.tpro')
-        .Replace('{{:program_name}}', AProjectName));
-    SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'pages' + PathDelim + 'time.html',
-      LoadTemplate('views\minimal_time.tpro'));
-  end;
-
   // TemplatePro forms library (import "lib/forms_bootstrap5.tpro" as f): a runtime
   // TemplatePro file, copied verbatim (never rendered at wizard time).
-  if AConfig.B[TConfigKey.program_ssv_templatepro] or AConfig.B['program.minimal_api.web'] then
+  if AConfig.B[TConfigKey.program_ssv_templatepro] then
   begin
     TDirectory.CreateDirectory(TPath.Combine(LBinPath, 'templates' + PathDelim + 'lib'));
     SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'lib' + PathDelim + 'forms_bootstrap5.tpro',

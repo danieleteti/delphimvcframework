@@ -116,6 +116,11 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCSwagSummary('Codes', 'Get by id', 'getByID')]
     procedure GetByID(id: Integer);
+    // a kind that only checks the value ("int"): the type is the action parameter's
+    [MVCPath('/number/($ID:int)')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary('Codes', 'Get by number', 'getByNumber')]
+    procedure GetByNumber(ID: Integer);
   end;
 
   // no action parameter: the path parameter comes from MVCSwagParam only,
@@ -216,6 +221,8 @@ type
     [Test]
     procedure ControllerPathParametersHaveTheRightType;
     [Test]
+    procedure RouteKindsAreDocumentedTheSameInBothRouters;
+    [Test]
     procedure NullableIsATypeArray;
     [Test]
     procedure FieldNamesFollowTheSerializer;
@@ -257,6 +264,10 @@ begin
 end;
 
 procedure TSwagTestSqidsController.GetByCode(ID: Integer);
+begin
+end;
+
+procedure TSwagTestSqidsController.GetByNumber(ID: Integer);
 begin
 end;
 
@@ -559,6 +570,9 @@ begin
     Assert.AreEqual('path', lParam.S['in']);
     {a sqid travels as a string, whatever the action parameter type is}
     Assert.AreEqual('string', lParam.S['type']);
+    {"int" only checks the value: an Integer parameter stays an integer}
+    lParam := lDoc.O['paths'].O['/api/codes/number/{ID}'].O['get'].A['parameters'].O[0];
+    Assert.AreEqual('integer', lParam.S['type'], 'Swagger 2, ($ID:int)');
   finally
     lDoc.Free;
   end;
@@ -569,6 +583,8 @@ begin
     lParam := lDoc.O['paths'].O['/api/codes/{ID}'].O['get'].A['parameters'].O[0];
     Assert.AreEqual('path', lParam.S['in']);
     Assert.AreEqual('string', lParam.O['schema'].S['type']);
+    lParam := lDoc.O['paths'].O['/api/codes/number/{ID}'].O['get'].A['parameters'].O[0];
+    Assert.AreEqual('integer', lParam.O['schema'].S['type'], 'OpenAPI 3, ($ID:int)');
   finally
     lDoc.Free;
   end;
@@ -669,6 +685,17 @@ begin
     begin
       Result := Ok(TNativeItem.Create);
     end).Produces<TNativeItem>;
+  // the same routes as TSwagTestSqidsController, as Minimal API routes
+  lEngine.Root.MapGet<Int64>('/minimal/codes/($ID:sqids)',
+    function(ID: Int64): IMVCResponse
+    begin
+      Result := Ok(TNativeItem.Create);
+    end);
+  lEngine.Root.MapGet<Integer>('/minimal/codes/number/($ID:int)',
+    function(ID: Integer): IMVCResponse
+    begin
+      Result := Ok(TNativeItem.Create);
+    end);
   lEngine.UseHTTPFilter(OpenAPI(lEngine, lInfo));
   FServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   FServer.Listen(NATIVE_TEST_PORT);
@@ -712,6 +739,23 @@ begin
   Assert.AreEqual('path', lParams.O[0].S['in']);
   Assert.AreEqual('ID', lParams.O[0].S['name']);
   Assert.AreEqual('integer', lParams.O[0].O['schema'].S['type']);
+end;
+
+procedure TNativeOpenAPITests.RouteKindsAreDocumentedTheSameInBothRouters;
+
+  function Schema(const APath: string): TJsonObject;
+  begin
+    Result := FDoc.O['paths'].O[APath].O['get'].A['parameters'].O[0].O['schema'];
+  end;
+
+begin
+  {a sqid is a string in the document, whatever the parameter type, for both routers}
+  Assert.AreEqual('string', Schema('/api/codes/{ID}').S['type'], 'controller, sqids');
+  Assert.AreEqual('string', Schema('/minimal/codes/{ID}').S['type'], 'minimal, sqids');
+  Assert.IsFalse(Schema('/minimal/codes/{ID}').Contains('format'), 'minimal, sqids: no int64 format');
+  {int keeps the integer type}
+  Assert.AreEqual('integer', Schema('/api/codes/number/{ID}').S['type'], 'controller, int');
+  Assert.AreEqual('integer', Schema('/minimal/codes/number/{ID}').S['type'], 'minimal, int');
 end;
 
 procedure TNativeOpenAPITests.NullableIsATypeArray;

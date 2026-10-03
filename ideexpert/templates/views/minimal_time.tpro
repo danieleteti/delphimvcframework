@@ -1,1 +1,0 @@
-<span class="badge bg-success">Server time: {{:now}}</span>

@@ -59,7 +59,7 @@
             <div class="person">
               <span class="avatar" aria-hidden="true">{{:p.Initials}}</span>
               <div>
-                <div class="name">{{:p.Name}}</div>
+                <a class="name" href="/web/people/{{:p.ID}}">{{:p.Name}}</a>
                 <div class="email">{{:p.Email}}</div>
               </div>
             </div>
@@ -85,6 +85,6 @@
 
   <div class="table-footer">
     <span>{{:count_shown}} of {{:count_all}} shown</span>
-    <span>Sample data from <code>SamplePeople</code> in the controller</span>
+    <span>Sample data from <code>SamplePeople</code> in <code>{{:controller_unit_name}}</code></span>
   </div>
 </div>

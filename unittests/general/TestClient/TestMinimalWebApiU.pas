@@ -41,6 +41,8 @@ type
     [Test]
     procedure Test_RenderView_contentType_includes_charset;
     [Test]
+    procedure Test_Html_returns_raw_fragment_as_text_html;
+    [Test]
     procedure Test_Form_binding_with_MVCFromContentField;
     [Test]
     procedure Test_OpenAPI_excludes_rkWeb_routes_by_default;
@@ -128,6 +130,22 @@ begin
   lCT := LowerCase(lResp.HeaderValue('Content-Type'));
   Assert.Contains(lCT, 'text/html');
   Assert.Contains(lCT, 'charset=utf-8');
+end;
+
+procedure TTestMinimalWebApi.Test_Html_returns_raw_fragment_as_text_html;
+var
+  lResp: IMVCRESTResponse;
+begin
+  lResp := RESTClient.Get('/minimal-web/html-fragment');
+  Assert.AreEqual(200, lResp.StatusCode);
+  Assert.Contains(LowerCase(lResp.HeaderValue('Content-Type')), 'text/html');
+  Assert.Contains(LowerCase(lResp.HeaderValue('Content-Type')), 'charset=utf-8');
+  // sent as is: not wrapped in JSON, not escaped
+  Assert.AreEqual('<time datetime="2026-09-29">10:32 &amp; ok</time>', lResp.Content);
+
+  lResp := RESTClient.Get('/minimal-web/html-fragment-422');
+  Assert.AreEqual(422, lResp.StatusCode);
+  Assert.AreEqual('<p>invalid</p>', lResp.Content);
 end;
 
 procedure TTestMinimalWebApi.Test_Form_binding_with_MVCFromContentField;

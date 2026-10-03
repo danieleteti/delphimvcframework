@@ -1378,6 +1378,7 @@ begin
               // Only persist to the session when one is configured (see guard above).
               if AContext.HasSessionSupport then
               begin
+                AContext.SessionRegenerateId; // against session fixation, as the classic middleware
                 AContext.LoggedUser.SaveToSession(AContext.Session);
                 for lPair in lSession do
                   AContext.Session[lPair.Key] := lPair.Value;

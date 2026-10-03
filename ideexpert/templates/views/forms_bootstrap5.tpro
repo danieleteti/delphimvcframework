@@ -1,7 +1,8 @@
 {{#
   TemplatePro forms library - Bootstrap 5 markup.
   forms_html.tpro has the same macros with the same parameters: switch the imported file to restyle a form.
-  Import it once, at the top of a page: import "forms_bootstrap5.tpro" as f  (then f.input, f.form...)
+  Import it once, at the top level of a page (outside any block), with a path relative to that page:
+    import "../lib/forms_bootstrap5.tpro" as f  (then f.input, f.form...)
 
   Common rules
   - name is also the id; the value shown is  model|attr,name  (model defaults to the variable formModel:
@@ -9,18 +10,28 @@
     a null or missing model gives an empty value)
   - errors defaults to the variable formErrors (same kinds as model): when  errors|attr,name  is not empty
     the control gets is-invalid and the message is shown in an invalid-feedback div
-  - values and messages are HTML-escaped; attrs is emitted RAW (trusted author content, e.g. htmx attributes);
+  - values and messages are HTML-escaped. attrs is a map of extra attributes (e.g. htmx), written with the
+    xmlattr filter: each value HTML-escaped, true = bare attribute, false and null left out:
+      set hx := {"hx-get": "/search", "hx-trigger": "input changed delay:300ms"}
+      >f.input("q", label="Search", attrs=hx)
+    (each line is a tag: the double braces are left out because a comment ends at the first closing pair)
+    a map can also come from the code: a JSON object, a TDictionary<string, string | TValue> or a TStrings;
     class is appended to the Bootstrap classes; required and readonly are emitted only when true,
     maxlength only when greater than 0
-  - type date / datetime-local / time: the value is formatted yyyy-mm-dd / yyyy-mm-ddThh:nn / hh:nn;
-    a string value must already be in that format (it is how browsers post them)
+  - type date / datetime-local / time: a date (a date value, or an ISO 8601 string as a JSON model holds
+    it: value|isdatetime) is formatted yyyy-mm-dd / yyyy-mm-ddThh:nn / hh:nn; anything else is shown as is,
+    e.g. what the browser posted after a failed validation, as WTForms and Django forms do
   - label="" emits no label element
 
   Macros
   - form(action, method="post", class="", attrs="")
       the body of the call (default slot) is the content of the form
   - input(name, label="", type="text", model=formModel, errors=formErrors, required=false, readonly=false,
-          placeholder="", maxlength=0, class="", attrs="")
+          placeholder="", maxlength=0, class="", attrs="", labelclass="", wrapclass="", prepend="", append="")
+      labelclass is appended to form-label (e.g. visually-hidden: a label for screen readers only);
+      wrapclass is appended to mb-3, the class of the wrapper div;
+      prepend / append not "": the input goes in an input-group, with that content (RAW: text,
+      an icon, an svg) in an input-group-text before / after it
   - textarea(name, label="", rows=3, model=formModel, errors=formErrors, required=false, readonly=false,
              class="", attrs="")
   - select(name, options, label="", valueprop="", textprop="", empty="", model=formModel, errors=formErrors,
@@ -42,26 +53,39 @@
       boolean -> checkbox; memo -> textarea; Required and ReadOnly -> attributes; label = DisplayLabel
 #}}
 {{macro form(action, method="post", class="", attrs="")}}
-<form action="{{:action}}" method="{{:method}}"{{if class}} class="{{:class}}"{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+<form action="{{:action}}" method="{{:method}}"{{if class}} class="{{:class}}"{{endif}}{{:attrs|xmlattr}}>
 {{slot}}</form>{{endmacro}}
-{{macro input(name, label="", type="text", model=formModel, errors=formErrors, required=false, readonly=false, placeholder="", maxlength=0, class="", attrs="")}}
+{{macro input(name, label="", type="text", model=formModel, errors=formErrors, required=false, readonly=false, placeholder="", maxlength=0, class="", attrs="", labelclass="", wrapclass="", prepend="", append="")}}
 {{set value := model|attr,name}}
 {{set err := errors|attr,name}}
 {{switch type}}
 {{case "date"}}
-{{set value := value|formatdatetime,"yyyy-mm-dd"}}
+{{if value|isdatetime}}{{set value := value|formatdatetime,"yyyy-mm-dd"}}{{endif}}
 {{case "datetime-local"}}
-{{set value := value|formatdatetime,"yyyy-mm-dd'T'hh:nn"}}
+{{if value|isdatetime}}{{set value := value|formatdatetime,"yyyy-mm-dd'T'hh':'nn"}}{{endif}}
 {{case "time"}}
-{{if !value|contains,":"}}{{set value := value|formatdatetime,"hh:nn"}}{{elseif value|contains,"-"}}{{set value := value|formatdatetime,"hh:nn"}}{{endif}}
+{{if value|isdatetime}}{{set value := value|formatdatetime,"hh':'nn"}}{{endif}}
 {{endswitch}}
-<div class="mb-3">
+<div class="mb-3{{if wrapclass}} {{:wrapclass}}{{endif}}">
 {{if label}}
-<label for="{{:name}}" class="form-label">{{:label}}</label>
+<label for="{{:name}}" class="form-label{{if labelclass}} {{:labelclass}}{{endif}}">{{:label}}</label>
 {{endif}}
-<input type="{{:type}}" class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="{{:value}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{if placeholder}} placeholder="{{:placeholder}}"{{endif}}{{if maxlength|gt,0}} maxlength="{{:maxlength}}"{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+{{if prepend}}{{set grouped := true}}{{elseif append}}{{set grouped := true}}{{else}}{{set grouped := false}}{{endif}}
+{{if grouped}}
+<div class="input-group{{if err}} has-validation{{endif}}">
+{{endif}}
+{{if prepend}}
+<span class="input-group-text">{{:prepend$}}</span>
+{{endif}}
+<input type="{{:type}}" class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="{{:value}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{if placeholder}} placeholder="{{:placeholder}}"{{endif}}{{if maxlength|gt,0}} maxlength="{{:maxlength}}"{{endif}}{{:attrs|xmlattr}}>
+{{if append}}
+<span class="input-group-text">{{:append$}}</span>
+{{endif}}
 {{if err}}
 <div class="invalid-feedback">{{:err}}</div>
+{{endif}}
+{{if grouped}}
+</div>
 {{endif}}
 </div>{{endmacro}}
 {{macro textarea(name, label="", rows=3, model=formModel, errors=formErrors, required=false, readonly=false, class="", attrs="")}}
@@ -71,7 +95,7 @@
 {{if label}}
 <label for="{{:name}}" class="form-label">{{:label}}</label>
 {{endif}}
-<textarea class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" rows="{{:rows}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>{{:value}}</textarea>
+<textarea class="form-control{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" rows="{{:rows}}"{{if required}} required{{endif}}{{if readonly}} readonly{{endif}}{{:attrs|xmlattr}}>{{:value}}</textarea>
 {{if err}}
 <div class="invalid-feedback">{{:err}}</div>
 {{endif}}
@@ -83,7 +107,7 @@
 {{if label}}
 <label for="{{:name}}" class="form-label">{{:label}}</label>
 {{endif}}
-<select class="form-select{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}"{{if required}} required{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+<select class="form-select{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}"{{if required}} required{{endif}}{{:attrs|xmlattr}}>
 {{if empty}}
 <option value="">{{:empty}}</option>
 {{endif}}
@@ -102,7 +126,7 @@
 {{set err := errors|attr,name}}
 <div class="mb-3 form-check">
 <input type="hidden" name="{{:name}}" value="false">
-<input type="checkbox" class="form-check-input{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="true"{{if value}} checked{{endif}}{{if attrs}} {{:attrs$}}{{endif}}>
+<input type="checkbox" class="form-check-input{{if err}} is-invalid{{endif}}{{if class}} {{:class}}{{endif}}" id="{{:name}}" name="{{:name}}" value="true"{{if value}} checked{{endif}}{{:attrs|xmlattr}}>
 {{if label}}
 <label for="{{:name}}" class="form-check-label">{{:label}}</label>
 {{endif}}
@@ -111,11 +135,12 @@
 {{endif}}
 </div>{{endmacro}}
 {{macro submit(text="Submit", class="", attrs="")}}
-<button type="submit" class="btn btn-primary{{if class}} {{:class}}{{endif}}"{{if attrs}} {{:attrs$}}{{endif}}>{{:text}}</button>{{endmacro}}
+<button type="submit" class="btn btn-primary{{if class}} {{:class}}{{endif}}"{{:attrs|xmlattr}}>{{:text}}</button>{{endmacro}}
 {{macro actions()}}
 <div class="d-flex gap-2">
 {{slot}}</div>{{endmacro}}
 {{macro auto(model, errors=formErrors, exclude="")}}
+{{set stepany := {"step": "any"}}}
 {{# every control after the first starts on a new line: continue skips the line break of the control's line #}}
 {{set skip := exclude|replace," ",""}}
 {{set skip := @("," + skip + ",")}}
@@ -132,7 +157,7 @@
 {{case "ftSmallint", "ftInteger", "ftWord", "ftLargeint", "ftAutoInc", "ftShortint", "ftByte", "ftLongWord"}}
 {{>input(f.FieldName, label=f.DisplayLabel, type="number", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
 {{case "ftFloat", "ftCurrency", "ftBCD", "ftFMTBcd", "ftSingle", "ftExtended"}}
-{{>input(f.FieldName, label=f.DisplayLabel, type="number", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly, attrs="step=any")}}{{continue}}
+{{>input(f.FieldName, label=f.DisplayLabel, type="number", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly, attrs=stepany)}}{{continue}}
 {{case "ftDate"}}
 {{>input(f.FieldName, label=f.DisplayLabel, type="date", model=model, errors=errors, required=f.Required, readonly=f.ReadOnly)}}{{continue}}
 {{case "ftDateTime", "ftTimeStamp"}}

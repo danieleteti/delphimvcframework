@@ -8,9 +8,11 @@
      - with it (hx-* attributes) only #people-table is replaced and the
        address bar follows (hx-push-url), so each state has its own URL.
 
-   Variables: see table.html.
+   Variables: see table.html; query is the query string, the model of the
+   search box (built by the forms library in lib/forms_bootstrap5.tpro).
    ================================================================ #}}
 {{extends "../baselayout.html"}}
+{{import "../lib/forms_bootstrap5.tpro" as f}}
 
 {{block "title"}}People{{endblock}}
 
@@ -19,20 +21,19 @@
   <header class="page-header">
     <h1>People</h1>
     <p class="lead">A table rendered on the server from a list of objects: search, filter by
-      status and sort by any column. The controller prepares the rows, the template only
+      status and sort by any column. The server prepares the rows, the template only
       shows them.</p>
   </header>
 
   <div hx-target="#people-table" hx-swap="outerHTML" hx-push-url="true">
     <form id="people-search" class="toolbar" action="/web/people" method="get" role="search">
-      <label class="search">
-        <span class="visually-hidden">Search people</span>
-        <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-        <input class="form-control" type="search" name="q" value="{{:q}}"
-               placeholder="Search name, email, role or city" autocomplete="off"
-               hx-get="/web/people" hx-trigger="input changed delay:300ms, search"
-               hx-include="closest form">
-      </label>
+      {{set search := {
+        "autocomplete": "off",
+        "hx-get": "/web/people",
+        "hx-trigger": "input changed delay:300ms, search",
+        "hx-include": "closest form"
+      }}}
+      {{>f.input("q", label="Search people", type="search", model=query, labelclass="visually-hidden", wrapclass="search", placeholder="Search name, email, role or city", prepend="<svg class='icon' aria-hidden='true'><use href='#i-search'/></svg>", attrs=search)}}
       <noscript><button class="btn btn-outline-secondary" type="submit">Search</button></noscript>
     </form>
 
@@ -43,12 +44,12 @@
     <summary>How this table is built</summary>
     <div class="row g-4">
       <div class="col-lg-5 text-secondary">
-        <p><code>{{:controller_unit_name}}.People</code> reads <code>q</code>, <code>status</code>,
+        <p><code>{{:people_handler}}</code> reads <code>q</code>, <code>status</code>,
           <code>sort</code> and <code>dir</code> from the query string, filters and sorts the rows,
           and puts them in <code>ViewData['people']</code>.</p>
         <p><code>people/table.html</code> loops over them. <code>@@index</code> numbers the rows,
           filters format the values, and the <code>else</code> branch of the loop is the empty state.</p>
-        <p class="mb-0">When the request comes from HTMX the action renders <code>people/table</code>
+        <p class="mb-0">When the request comes from HTMX the server renders <code>people/table</code>
           alone, so the same template serves the full page and the partial update.</p>
       </div>
       <div class="col-lg-7">

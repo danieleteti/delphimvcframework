@@ -61,6 +61,18 @@ type
       [MVCFromQueryString('status', '')] const Status: String;
       [MVCFromQueryString('sort', 'name')] const Sort: String;
       [MVCFromQueryString('dir', 'asc')] const Dir: String): String;
+
+    // Form example: people/edit.html is built with the TemplatePro forms
+    // library (templates/lib/forms_bootstrap5.tpro).
+    [MVCPath('/people/($ID:int)')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function EditPerson(ID: Integer): String;
+
+    [MVCPath('/people/($ID:int)')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function SavePerson(ID: Integer): IMVCResponse;
 {{endif}}
 {{else}}
 
@@ -80,68 +92,7 @@ uses
   System.Math, System.Generics.Defaults, MVCFramework.HTMX{{endif}};
 {{if program_ssv_templatepro}}
 
-type
-  { One row of the People table. Sample data built in memory: replace
-    SamplePeople with a query (e.g. TMVCActiveRecord.SelectRQL) in a real app. }
-  TPersonRow = class
-  private
-    fName, fEmail, fRole, fCity, fStatus: String;
-    fJoined: TDate;
-    fProjects: Integer;
-    function GetInitials: String;
-  public
-    constructor Create(const AName, AEmail, ARole, ACity, AStatus: String; AJoined: TDate; AProjects: Integer);
-    property Name: String read fName;
-    property Initials: String read GetInitials;
-    property Email: String read fEmail;
-    property Role: String read fRole;
-    property City: String read fCity;
-    property Status: String read fStatus;
-    property Joined: TDate read fJoined;
-    property Projects: Integer read fProjects;
-  end;
-
-constructor TPersonRow.Create(const AName, AEmail, ARole, ACity, AStatus: String; AJoined: TDate; AProjects: Integer);
-begin
-  inherited Create;
-  fName := AName;
-  fEmail := AEmail;
-  fRole := ARole;
-  fCity := ACity;
-  fStatus := AStatus;
-  fJoined := AJoined;
-  fProjects := AProjects;
-end;
-
-function TPersonRow.GetInitials: String;
-var
-  lParts: TArray<String>;
-begin
-  lParts := fName.Split([' ']);
-  Result := Copy(lParts[0], 1, 1);
-  if Length(lParts) > 1 then
-    Result := Result + Copy(lParts[High(lParts)], 1, 1);
-end;
-
-function SamplePeople: TObjectList<TPersonRow>;
-begin
-  Result := TObjectList<TPersonRow>.Create(True);
-  Result.Add(TPersonRow.Create('Ada Rossi', 'ada.rossi@example.com', 'Admin', 'Rome', 'Active', EncodeDate(2021, 3, 14), 12));
-  Result.Add(TPersonRow.Create('Bruno Ferri', 'bruno.ferri@example.com', 'Developer', 'Milan', 'Active', EncodeDate(2022, 7, 2), 7));
-  Result.Add(TPersonRow.Create('Daniele Teti', 'daniele.teti@example.com', 'Admin', 'Rome', 'Active', EncodeDate(2010, 1, 11), 42));
-  Result.Add(TPersonRow.Create('Chiara Neri', 'chiara.neri@example.com', 'Designer', 'Turin', 'Invited', EncodeDate(2025, 11, 20), 0));
-  Result.Add(TPersonRow.Create('Diego Alves', 'diego.alves@example.com', 'Developer', 'Lisbon', 'Active', EncodeDate(2020, 1, 9), 18));
-  Result.Add(TPersonRow.Create('Elena Petrova', 'elena.petrova@example.com', 'Analyst', 'Berlin', 'Active', EncodeDate(2023, 5, 30), 5));
-  Result.Add(TPersonRow.Create('Farid Haddad', 'farid.haddad@example.com', 'Support', 'Paris', 'Suspended', EncodeDate(2019, 9, 17), 3));
-  Result.Add(TPersonRow.Create('Grace Kim', 'grace.kim@example.com', 'Developer', 'Toronto', 'Active', EncodeDate(2024, 2, 5), 9));
-  Result.Add(TPersonRow.Create('Hugo Martin', 'hugo.martin@example.com', 'Designer', 'Lyon', 'Active', EncodeDate(2022, 10, 11), 6));
-  Result.Add(TPersonRow.Create('Ines Duarte', 'ines.duarte@example.com', 'Analyst', 'Porto', 'Invited', EncodeDate(2026, 1, 8), 0));
-  Result.Add(TPersonRow.Create('Jonas Weber', 'jonas.weber@example.com', 'Developer', 'Munich', 'Active', EncodeDate(2018, 6, 25), 24));
-  Result.Add(TPersonRow.Create('Keiko Sato', 'keiko.sato@example.com', 'Admin', 'Osaka', 'Active', EncodeDate(2021, 12, 1), 11));
-  Result.Add(TPersonRow.Create('Luca Bianchi', 'luca.bianchi@example.com', 'Support', 'Bologna', 'Suspended', EncodeDate(2020, 4, 19), 2));
-  Result.Add(TPersonRow.Create('Maya Patel', 'maya.patel@example.com', 'Developer', 'Austin', 'Active', EncodeDate(2023, 8, 14), 8));
-  Result.Add(TPersonRow.Create('Noah Brown', 'noah.brown@example.com', 'Analyst', 'Dublin', 'Invited', EncodeDate(2026, 2, 27), 0));
-end;
+{{include "_people_sample.pas.tpro"}}
 {{endif}}
 
 {{if program_ssv_any}}
@@ -232,76 +183,21 @@ end;
 
 function {{:controller_classname}}.People(const Search, Status, Sort, Dir: String): String;
 var
-  lAll, lRows: TObjectList<TPersonRow>;
-  lRow: TPersonRow;
-  lActive, lInvited, lSuspended: Integer;
-  lSort, lDir: String;
-  lSign: Integer;
+  lPage: TPeoplePage;
 begin
-  lAll := SamplePeople;
-  lRows := TObjectList<TPersonRow>.Create(False); // a view on lAll, which owns the rows
+  lPage := BuildPeoplePage(Search, Status, Sort, Dir);
   try
-    // Search first (it drives the counters), then the status filter
-    lActive := 0;
-    lInvited := 0;
-    lSuspended := 0;
-    for lRow in lAll do
-    begin
-      if (Search <> '') and not (ContainsText(lRow.Name, Search) or ContainsText(lRow.Email, Search) or
-        ContainsText(lRow.Role, Search) or ContainsText(lRow.City, Search)) then
-        Continue;
-      if SameText(lRow.Status, 'Active') then
-        Inc(lActive)
-      else if SameText(lRow.Status, 'Invited') then
-        Inc(lInvited)
-      else
-        Inc(lSuspended);
-      if (Status = '') or SameText(lRow.Status, Status) then
-        lRows.Add(lRow);
-    end;
-
-    // Only known columns are accepted: anything else sorts by name
-    lSort := LowerCase(Sort);
-    if not MatchText(lSort, ['name', 'role', 'city', 'joined', 'projects']) then
-      lSort := 'name';
-    if SameText(Dir, 'desc') then
-    begin
-      lDir := 'desc';
-      lSign := -1;
-    end
-    else
-    begin
-      lDir := 'asc';
-      lSign := 1;
-    end;
-    lRows.Sort(TComparer<TPersonRow>.Construct(
-      function(const L, R: TPersonRow): Integer
-      begin
-        if lSort = 'role' then
-          Result := CompareText(L.Role, R.Role)
-        else if lSort = 'city' then
-          Result := CompareText(L.City, R.City)
-        else if lSort = 'joined' then
-          Result := CompareValue(L.Joined, R.Joined)
-        else if lSort = 'projects' then
-          Result := CompareValue(L.Projects, R.Projects)
-        else
-          Result := 0;
-        if Result = 0 then
-          Result := CompareText(L.Name, R.Name);
-        Result := Result * lSign;
-      end));
-
-    ViewData['people'] := lRows;
+    ViewData['people'] := lPage.Rows;
     ViewData['q'] := Search;
+    ViewData['query'] := Context.Request.QueryParams; // model of the search box
     ViewData['status'] := LowerCase(Status);
-    ViewData['sort'] := lSort;
-    ViewData['dir'] := lDir;
-    ViewData['count_all'] := lActive + lInvited + lSuspended;
-    ViewData['count_active'] := lActive;
-    ViewData['count_invited'] := lInvited;
-    ViewData['count_suspended'] := lSuspended;
-    ViewData['count_shown'] := lRows.Count;
+    ViewData['sort'] := lPage.Sort;
+    ViewData['dir'] := lPage.Dir;
+    ViewData['count_all'] := lPage.CountActive + lPage.CountInvited + lPage.CountSuspended;
+    ViewData['count_active'] := lPage.CountActive;
+    ViewData['count_invited'] := lPage.CountInvited;
+    ViewData['count_suspended'] := lPage.CountSuspended;
+    ViewData['count_shown'] := lPage.Rows.Count;
 
     // HTMX asks for the table only (search box, sort links, filter tabs);
     // a normal request, or a browser without JavaScript, gets the whole page.
@@ -310,8 +206,63 @@ begin
     else
       Result := RenderView('people/index');
   finally
-    lRows.Free;
-    lAll.Free;
+    lPage.Rows.Free;
+  end;
+end;
+
+function {{:controller_classname}}.EditPerson(ID: Integer): String;
+var
+  lPerson: TPersonRow;
+begin
+  lPerson := FindPerson(ID);
+  if lPerson = nil then
+    raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
+  try
+    ViewData['page_id'] := 'people';
+    // formModel is the variable the forms library reads the values from
+    ViewData['formModel'] := lPerson;
+    ViewData['person_id'] := ID;
+    ViewData['roles'] := GRoles;
+    ViewData['statuses'] := GStatuses;
+    Result := RenderView('people/edit');
+  finally
+    lPerson.Free;
+  end;
+end;
+
+function {{:controller_classname}}.SavePerson(ID: Integer): IMVCResponse;
+var
+  lPerson: TPersonRow;
+  lErrors: TDictionary<String, String>;
+  lPage: TMVCHTMLResponse;
+begin
+  lPerson := FindPerson(ID);
+  if lPerson = nil then
+    raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
+  lErrors := TDictionary<String, String>.Create; // field name -> message
+  try
+    ReadPerson(lPerson, Context.Request.ContentFields, lErrors);
+    if lErrors.Count = 0 then
+    begin
+      StorePerson(lPerson);
+      // Post/Redirect/Get: reloading the list does not submit the form again
+      Exit(RedirectResponse('/web/people'));
+    end;
+
+    // Invalid: the same page, with what was typed and a message per field
+    ViewData['page_id'] := 'people';
+    ViewData['formModel'] := Context.Request.ContentFields;
+    ViewData['formErrors'] := lErrors;
+    ViewData['person_id'] := ID;
+    ViewData['roles'] := GRoles;
+    ViewData['statuses'] := GStatuses;
+    lPage := TMVCHTMLResponse.Create;
+    Result := lPage; // owned by the interface from here, also if RenderView raises
+    lPage.StatusCode := HTTP_STATUS.UnprocessableEntity;
+    lPage.HTMLBody := RenderView('people/edit');
+  finally
+    lErrors.Free;
+    lPerson.Free;
   end;
 end;
 {{endif}}
@@ -327,6 +278,10 @@ begin
   Result := System.StrUtils.ReverseString(Value.Trim);
 end;
 {{endif}}
+{{endif}}
+{{if program_ssv_templatepro}}
+
+{{include "_people_sample_init.pas.tpro"}}
 {{endif}}
 
 end.

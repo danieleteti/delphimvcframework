@@ -182,6 +182,10 @@ type
     fIncludeRootPath: string;
     // Objects created by custom filters and stored with {{set}}: freed when Render ends
     fOwnedObjects: TObjectList<TObject>;
+    // Map literals: the object of this render by {{set}} token and macro nesting level (also in
+    // fOwnedObjects), and the items decoded once by token; JSON objects and arrays (the JSON unit is private)
+    fMapLiterals: TDictionary<Int64, TObject>;
+    fMapLiteralItems: TObjectDictionary<Integer, TObject>;
     // Macro calls + dynamic includes currently open (a dynamically included template starts from its parent's)
     fRenderNestingDepth: Integer;
     fStacks: TTProStacks; // set only while rendering
@@ -257,6 +261,9 @@ type
     function MacroArgument(const aTokenIdx: Int64; const aParameter: TFilterParameter; var aOwned: TArray<TObject>): TValue;
     function LastFilterToken(const aIdx: Int64): Int64;
     procedure ProcessSetToken(var Idx: Int64);
+    function BuildMapLiteral(const aTokenIndex: Integer): TValue;
+    function MapToXmlAttr(const aValue: TValue): string;
+    function IsDateTimeValue(const aValue: TValue): Boolean;
     function SelectSwitchBranch(const aSwitchIdx: Int64): Int64;
     procedure InitRangeLoop(const aLoop: TLoopStackItem);
     function TokenToFilterParameter(const aToken: TToken): TFilterParameter;
@@ -329,6 +336,7 @@ type
     function MatchFilterParamValue(var aParamValue: TFilterParameter): Boolean;
     function MatchSymbol(const aSymbol: string): Boolean;
     function MatchExpression(out aExpression: string): Boolean;
+    function MatchMapLiteral: string;
     function MatchRange(out aRangeExpression: string): Boolean;
     function MatchNameArgument(out aName, aKind: string): Boolean;
     function MatchSpace: Boolean;
@@ -343,6 +351,7 @@ type
     procedure Error(const aMessage: string);
     function Step: Char;
     function CurrentChar: Char;
+    function AtLineBreak: Boolean;
     function GetSubsequentText: String;
     procedure InternalCompileIncludedTemplate(const aTemplate: string; const aTokens: TList<TToken>; const aFileNameRefPath: String;
       const aCompilerOptions: TTProCompilerOptions);
@@ -429,6 +438,8 @@ implementation
 uses
   System.StrUtils, System.IOUtils, System.NetEncoding, System.Math, System.Character, System.RegularExpressions,
   JsonDataObjects, MVCFramework.Nullables, Data.FmtBCD, Data.SqlTimSt;
+
+function ISOStringToLocalDateTime(const aISO: string): TDateTime; forward;
 
 const
   MAX_RENDER_NESTING = 64; // recursion through macros and dynamic includes, e.g. a tree 64 levels deep
@@ -740,13 +751,13 @@ begin
     ftString, ftWideString, ftMemo, ftWideMemo, ftGuid, ftFixedChar, ftFixedWideChar:
       Result := lField.AsWideString;
     ftDate:
-      Result := TDate(Trunc(lField.AsDateTime));
+      Result := TValue.From<TDate>(TDate(Trunc(lField.AsDateTime)));
     ftDateTime, ftTimeStamp:
-      Result := lField.AsDateTime;
+      Result := TValue.From<TDateTime>(lField.AsDateTime);
     ftTimeStampOffset:
       Result := TValue.From<TSQLTimeStampOffset>(lField.AsSQLTimeStampOffset);
     ftTime:
-      Result := lField.AsDateTime;
+      Result := TValue.From<TDateTime>(lField.AsDateTime);
     ftBoolean:
       Result := lField.AsBoolean;
     ftFMTBcd, ftBcd:
@@ -1584,6 +1595,13 @@ begin
   Result := MatchSymbol(START_TAG);
 end;
 
+function TTProCompiler.AtLineBreak: Boolean;
+// LF, CRLF (counted on its LF) or a lone CR
+begin
+  Result := (CurrentChar = #10) or ((CurrentChar = #13) and
+    not ((fCharIndex + 1 < fInputString.Length) and (fInputString.Chars[fCharIndex + 1] = #10)));
+end;
+
 function TTProCompiler.MatchString(out aStringValue: String): Boolean;
 begin
   aStringValue := '';
@@ -1596,6 +1614,8 @@ begin
       begin
         Error('Unclosed string at the end of file');
       end;
+      if AtLineBreak then
+        Inc(fCurrentLine);
       aStringValue := aStringValue + CurrentChar;
       Step;
     end;
@@ -1623,6 +1643,98 @@ begin
   Result := (lSymbolIndex > 0) and (lSymbolIndex = lSymbolLength);
   if not Result then
     fCharIndex := lSavedCharIndex;
+end;
+
+function TTProCompiler.MatchMapLiteral: string;
+// {"key": value, ...} (Jinja: dict literal). Keys are strings; a value is a string, a number,
+// true, false, null or a variable, read when the "set" runs. Line breaks are allowed between
+// the items. Encoded as a JSON array of [key, kind, text]: s(tring), n(umber), b(oolean),
+// z (null), v(ariable).
+var
+  lItems, lItem: TJDOJsonArray;
+  lKey, lText: string;
+  lInt64: Int64;
+  lFloat: Double;
+
+  procedure SkipBlanks;
+  begin
+    while CharInSet(CurrentChar, [' ', #9, #13, #10]) do
+    begin
+      // a map may span lines: count them, or every later error reports the wrong line
+      if AtLineBreak then
+        Inc(fCurrentLine);
+      Step;
+    end;
+  end;
+
+begin
+  if not MatchSymbol('{') then
+    Error('Expected "{"');
+  lItems := TJDOJsonArray.Create;
+  try
+    SkipBlanks;
+    if not MatchSymbol('}') then
+    begin
+      repeat
+        SkipBlanks;
+        if not MatchString(lKey) then
+          Error('Expected a string key in the map');
+        SkipBlanks;
+        if not MatchSymbol(':') then
+          Error('Expected ":" after the map key "' + lKey + '"');
+        SkipBlanks;
+        lItem := lItems.AddArray;
+        lItem.Add(lKey);
+        if MatchString(lText) then
+        begin
+          lItem.Add('s');
+          lItem.Add(lText);
+        end
+        else if CharInSet(CurrentChar, SignAndNumbers) then
+        begin
+          lText := CurrentChar;
+          Step;
+          while CharInSet(CurrentChar, Numbers + ['.']) do
+          begin
+            lText := lText + CurrentChar;
+            Step;
+          end;
+          if not (TryStrToInt64(lText, lInt64) or
+            (lText.Contains('.') and TryStrToFloat(lText, lFloat, TFormatSettings.Invariant))) then
+            Error('Invalid number "' + lText + '" for the map key "' + lKey + '"');
+          lItem.Add('n');
+          lItem.Add(lText);
+        end
+        else if MatchVariable(lText) then
+        begin
+          if SameText(lText, 'true') or SameText(lText, 'false') then
+          begin
+            lItem.Add('b');
+            lItem.Add(lText.ToLower);
+          end
+          else if SameText(lText, 'null') then
+          begin
+            lItem.Add('z');
+            lItem.Add('');
+          end
+          else
+          begin
+            lItem.Add('v');
+            lItem.Add(lText);
+          end;
+        end
+        else
+          Error('Expected a value for the map key "' + lKey + '"');
+        SkipBlanks;
+      until not MatchSymbol(',');
+      SkipBlanks;
+      if not MatchSymbol('}') then
+        Error('Expected "," or "}" in the map');
+    end;
+    Result := lItems.ToJSON;
+  finally
+    lItems.Free;
+  end;
 end;
 
 function TTProCompiler.MatchExpression(out aExpression: string): Boolean;
@@ -2256,8 +2368,20 @@ begin
             Error('Expected ":=" after variable name in "set"');
           MatchSpace;
 
-          // Check what follows: @(expr), "string", number, true/false, or variable
-          if MatchExpression(lVarName) then
+          // Check what follows: {map}, @(expr), "string", number, true/false, or variable
+          if CurrentChar = '{' then
+          begin
+            // Map literal {"key": value, ...} (Jinja: dict literal)
+            lVarName := MatchMapLiteral;
+            MatchSpace;
+            if not MatchEndTag then
+              Error('Expected closing tag for "set"');
+            lStartVerbatim := fCharIndex;
+            lLastToken := ttSet;
+            // Ref2=7 for map literal, Value2 = the encoded items
+            aTokens.Add(TToken.Create(lLastToken, lIdentifier, lVarName, 0, 7));
+          end
+          else if MatchExpression(lVarName) then
           begin
             // Expression @(...)
             MatchSpace;
@@ -4075,7 +4199,7 @@ begin
       begin
         // Try to parse ISO 8601 date string
         try
-          lDateValue := ISO8601ToDate(aValue.AsString, False);
+          lDateValue := ISOStringToLocalDateTime(aValue.AsString);
           if Length(aParameters) = 0 then
             aResult := FormatDateTime('yyyy-mm-dd', lDateValue)  // ISO 8601 default
           else
@@ -4160,7 +4284,7 @@ begin
       begin
         // Try to parse ISO 8601 datetime string
         try
-          lDateValue := ISO8601ToDate(aValue.AsString, False);
+          lDateValue := ISOStringToLocalDateTime(aValue.AsString);
           if Length(aParameters) = 0 then
             aResult := FormatDateTime('yyyy-mm-dd hh:nn:ss', lDateValue)  // ISO 8601 default
           else
@@ -4377,6 +4501,16 @@ begin
     CheckParNumber(0, aParameters);
     Result := False;
   end
+  else if SameText(aFunctionName, 'xmlattr') then
+  begin
+    CheckParNumber(0, aParameters);
+    Result := MapToXmlAttr(aValue);
+  end
+  else if SameText(aFunctionName, 'isdatetime') then
+  begin
+    CheckParNumber(0, aParameters);
+    Result := IsDateTimeValue(aValue);
+  end
   else if SameText(aFunctionName, 'version') then
   begin
     if lExecuteAsFilterOnAValue then
@@ -4408,6 +4542,23 @@ begin
   begin
     Error(Format('Unknown function [%s]', [aFunctionName]));
   end;
+end;
+
+function ISOStringToLocalDateTime(const aISO: string): TDateTime;
+// An ISO 8601 string without a time zone is local time, as in JavaScript: Delphi's ISO8601ToDate
+// reads it as UTC and shifts it (a date could even become the day before). With Z or an offset
+// the value is converted to local time.
+var
+  lTPos: Integer;
+  lTimePart: string;
+begin
+  lTPos := aISO.IndexOf('T');
+  if lTPos < 0 then
+    lTimePart := ''
+  else
+    lTimePart := aISO.Substring(lTPos + 1);
+  Result := ISO8601ToDate(aISO, not (lTimePart.Contains('Z') or lTimePart.Contains('z') or
+    lTimePart.Contains('+') or lTimePart.Contains('-')));
 end;
 
 function HTMLEncode(s: string): string;
@@ -4688,6 +4839,8 @@ begin
   fOutputLineEnding := lesLF;
   fDynamicIncludeCache := TDictionary<string, ITProCompiledTemplate>.Create;
   fOwnedObjects := TObjectList<TObject>.Create(True);
+  fMapLiterals := TDictionary<Int64, TObject>.Create;
+  fMapLiteralItems := TObjectDictionary<Integer, TObject>.Create([doOwnsValues]);
   fSlotFrames := TList<TTProSlotFrame>.Create;
   fCurrentSlotFrame := -1;
 end;
@@ -4758,6 +4911,8 @@ begin
   fOnGetValue := nil;
   fExprEvaluator.Free;
   fDynamicIncludeCache.Free;
+  fMapLiterals.Free;
+  fMapLiteralItems.Free;
   fOwnedObjects.Free;
   fSlotFrames.Free;
   fLoopsStack.Free;
@@ -6353,7 +6508,8 @@ begin
       lFilterParameters[I] := ResolveFilterParameter(fTokens[Idx]);
     end;
     // the built-in nl2br encodes its input itself: its result, if not changed by another filter, is emitted as is
-    ValueIsHTML := SameText(lFilterName, 'nl2br') and not IsCustomFilter(lFilterName);
+    // nl2br and xmlattr already escape what they emit (Jinja: they return Markup)
+    ValueIsHTML := (SameText(lFilterName, 'nl2br') or SameText(lFilterName, 'xmlattr')) and not IsCustomFilter(lFilterName);
     try
       ExecuteFilterTrackingOwnership(lFilterName, lFilterParameters, Value, ContextName, ValueOwned);
     except
@@ -6928,6 +7084,7 @@ begin
       lVarsToRemove.Free;
     end;
   end;
+  fMapLiterals.Clear;
   fOwnedObjects.Clear;
 end;
 
@@ -7543,6 +7700,207 @@ begin
       SetData(fTokens[Idx].Value1, StrToInt(fTokens[Idx].Value2));
     6: // Float literal
       SetData(fTokens[Idx].Value1, StrToFloat(fTokens[Idx].Value2, fLocaleFormatSettings));
+    7: // Map literal
+      SetData(fTokens[Idx].Value1, BuildMapLiteral(Idx));
+  end;
+end;
+
+function TTProCompiledTemplate.BuildMapLiteral(const aTokenIndex: Integer): TValue;
+// A JSON object owned by the template (freed when Render ends); see TTProCompiler.MatchMapLiteral.
+// One object per {{set}} statement, macro nesting level and render: run again (in a loop) the
+// statement refills it, so a variable that took the map in an earlier iteration sees the new content;
+// a recursive macro call has its own object, the caller's one is left alone.
+var
+  lItems: TJDOJsonArray;
+  lMap: TJDOJsonObject;
+  lObj: TObject;
+  lVarValues: TArray<TValue>;
+  I: Integer;
+  lKey, lText: string;
+  lValue: TValue;
+  lMapKey: Int64;
+begin
+  lMapKey := (Int64(fRenderNestingDepth) shl 32) or aTokenIndex;
+  if fMapLiteralItems.TryGetValue(aTokenIndex, lObj) then
+    lItems := TJDOJsonArray(lObj)
+  else
+  begin
+    lItems := TJDOJsonBaseObject.Parse(fTokens[aTokenIndex].Value2) as TJDOJsonArray;
+    fMapLiteralItems.Add(aTokenIndex, lItems);
+  end;
+  // variables first: the map may refer to its own previous content ({"n": m.n})
+  SetLength(lVarValues, lItems.Count);
+  for I := 0 to lItems.Count - 1 do
+    if lItems.A[I].S[1] = 'v' then
+      lVarValues[I] := GetVarAsTValue(lItems.A[I].S[2]);
+  if fMapLiterals.TryGetValue(lMapKey, lObj) then
+  begin
+    lMap := TJDOJsonObject(lObj);
+    lMap.Clear;
+  end
+  else
+  begin
+    lMap := TJDOJsonObject.Create;
+    fOwnedObjects.Add(lMap);
+    fMapLiterals.Add(lMapKey, lMap);
+  end;
+  for I := 0 to lItems.Count - 1 do
+  begin
+    lKey := lItems.A[I].S[0];
+    lText := lItems.A[I].S[2];
+    case lItems.A[I].S[1].Chars[0] of
+      's':
+        lMap.S[lKey] := lText;
+      'n':
+        if lText.Contains('.') then
+          lMap.F[lKey] := StrToFloat(lText, TFormatSettings.Invariant)
+        else
+          lMap.L[lKey] := StrToInt64(lText);
+      'b':
+        lMap.B[lKey] := lText = 'true';
+      'z':
+        lMap.O[lKey] := nil;
+      'v':
+        begin
+          lValue := lVarValues[I];
+          if lValue.IsEmpty then
+            lMap.O[lKey] := nil
+          else if lValue.TypeInfo = TypeInfo(Boolean) then
+            lMap.B[lKey] := lValue.AsBoolean
+          else if lValue.Kind in [tkInteger, tkInt64] then
+            lMap.L[lKey] := lValue.AsInt64
+          else if (lValue.Kind = tkFloat) and not IsDateTimeValue(lValue) then
+            lMap.F[lKey] := lValue.AsExtended
+          else
+            lMap.S[lKey] := ValueAsString(lValue);
+        end;
+    end;
+  end;
+  Result := lMap;
+end;
+
+function TTProCompiledTemplate.IsDateTimeValue(const aValue: TValue): Boolean;
+// True for a date/time value or for a string that formatdatetime can read (ISO 8601): what a date,
+// time or datetime-local input can show formatted. Anything else is shown as is.
+var
+  lText: string;
+begin
+  if aValue.IsEmpty then
+    Exit(False);
+  if (aValue.TypeInfo = TypeInfo(TDateTime)) or (aValue.TypeInfo = TypeInfo(TDate)) or
+    (aValue.TypeInfo = TypeInfo(TTime)) or (aValue.TypeInfo = TypeInfo(TSQLTimeStampOffset)) then
+    Exit(True);
+  if not (aValue.Kind in [tkString, tkUString, tkLString, tkWString]) then
+    Exit(False);
+  lText := aValue.AsString;
+  // yyyy-mm-dd first: most strings are not dates, and the parser reports them with an exception
+  if (lText.Length < 10) or not CharInSet(lText.Chars[0], ['0'..'9']) or not CharInSet(lText.Chars[3], ['0'..'9']) or
+    (lText.Chars[4] <> '-') or (lText.Chars[7] <> '-') or not CharInSet(lText.Chars[9], ['0'..'9']) then
+    Exit(False);
+  try
+    ISOStringToLocalDateTime(lText);
+    Result := True;
+  except
+    Result := False;
+  end;
+end;
+
+function TTProCompiledTemplate.MapToXmlAttr(const aValue: TValue): string;
+// Jinja's xmlattr: ' key="value"' for each item, values HTML-escaped. Null (and a missing value)
+// is left out; unlike Jinja, true is a bare attribute and false is left out, as HTML boolean
+// attributes need. Keys with blanks, quotes, / > = < are rejected, as Jinja does since 3.1.4.
+var
+  lSB: TStringBuilder;
+  lObj: TObject;
+  lJSON: TJDOJsonObject;
+  lKeys: TArray<string>;
+  lKey: string;
+  lTV: TValue;
+  I: Integer;
+
+  procedure AddAttr(const aKey, aText: string; const aBare: Boolean);
+  var
+    C: Char;
+  begin
+    if aKey.IsEmpty then
+      Error('xmlattr: empty attribute name');
+    for C in aKey do
+      if CharInSet(C, [' ', #9, #10, #13, #12, '"', '''', '/', '>', '<', '=']) then
+        Error('xmlattr: invalid attribute name ' + aKey.QuotedString('"'));
+    lSB.Append(' ').Append(aKey);
+    if not aBare then
+      lSB.Append('="').Append(HTMLEncode(aText)).Append('"');
+  end;
+
+begin
+  Result := '';
+  if aValue.IsEmpty then
+    Exit;
+  if not aValue.IsObject then
+  begin
+    if (aValue.Kind in [tkString, tkUString, tkLString, tkWString]) and aValue.AsString.IsEmpty then
+      Exit;
+    Error('xmlattr expects a map: a JSON object, a TDictionary<string, string | TValue> or a TStrings');
+  end;
+  lObj := aValue.AsObject;
+  lSB := TStringBuilder.Create;
+  try
+    if lObj is TJDOJsonObject then
+    begin
+      lJSON := TJDOJsonObject(lObj);
+      for I := 0 to lJSON.Count - 1 do
+        case lJSON.Items[I].Typ of
+          jdtBool:
+            if lJSON.Items[I].BoolValue then
+              AddAttr(lJSON.Names[I], '', True);
+          jdtObject:
+            if lJSON.Items[I].ObjectValue <> nil then
+              AddAttr(lJSON.Names[I], lJSON.Items[I].ObjectValue.ToJSON, False);
+          jdtArray:
+            AddAttr(lJSON.Names[I], lJSON.Items[I].ArrayValue.ToJSON, False);
+        else
+          AddAttr(lJSON.Names[I], lJSON.Items[I].Value, False);
+        end;
+    end
+    else if lObj is TDictionary<string, string> then
+    begin
+      // a TDictionary has no order: sorted by name, the same output on every render
+      lKeys := TDictionary<string, string>(lObj).Keys.ToArray;
+      TArray.Sort<string>(lKeys);
+      for lKey in lKeys do
+        AddAttr(lKey, TDictionary<string, string>(lObj)[lKey], False);
+    end
+    else if lObj is TDictionary<string, TValue> then
+    begin
+      lKeys := TDictionary<string, TValue>(lObj).Keys.ToArray;
+      TArray.Sort<string>(lKeys);
+      for lKey in lKeys do
+      begin
+        lTV := TDictionary<string, TValue>(lObj)[lKey];
+        if lTV.IsEmpty or ((lTV.TypeInfo = TypeInfo(Boolean)) and not lTV.AsBoolean) then
+          Continue
+        else if lTV.TypeInfo = TypeInfo(Boolean) then
+          AddAttr(lKey, '', True)
+        else
+          AddAttr(lKey, ValueAsString(lTV), False);
+      end;
+    end
+    else if lObj is TStrings then
+    begin
+      // Name=Value lines; a line without "=" is a bare attribute, a blank line is skipped
+      for I := 0 to TStrings(lObj).Count - 1 do
+        if TStrings(lObj)[I].Trim.IsEmpty then
+          Continue
+        else if TStrings(lObj)[I].Contains(TStrings(lObj).NameValueSeparator) then
+          AddAttr(TStrings(lObj).Names[I], TStrings(lObj).ValueFromIndex[I], False)
+        else
+          AddAttr(TStrings(lObj)[I], '', True);
+    end
+    else
+      Error('xmlattr expects a map: a JSON object, a TDictionary<string, string | TValue> or a TStrings');
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
   end;
 end;
 

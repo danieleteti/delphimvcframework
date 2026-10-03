@@ -53,7 +53,8 @@ uses
   System.SysUtils,
   System.Classes,
   MVCFramework.Validators,
-  MVCFramework.Filters;
+  MVCFramework.Filters,
+  AuthHandlersU;
 
 type
   TLoginForm = record
@@ -107,6 +108,8 @@ begin
 end;
 
 procedure RegisterMinimalAPIWebRoutes(AEngine: TMVCEngine);
+var
+  lKind: string;
 begin
   // -- routing test: simple .AsWeb GET returns text/html
   AEngine.Root.AsWeb.MapGet('/minimal-web/hello',
@@ -166,6 +169,51 @@ begin
       begin
         Result := RenderView('minimal_web_filter_ok');
       end);
+
+  // -- Html(): a raw HTML fragment, no template; the status can be overridden
+  AEngine.Root.AsWeb.MapGet('/minimal-web/html-fragment',
+    function: IMVCResponse
+    begin
+      Result := Html('<time datetime="2026-09-29">10:32 &amp; ok</time>');
+    end);
+  AEngine.Root.AsWeb.MapGet('/minimal-web/html-fragment-422',
+    function: IMVCResponse
+    begin
+      Result := Html('<p>invalid</p>');
+      Result.StatusCode := HTTP_STATUS.UnprocessableEntity;
+    end);
+
+  // -- route parameter kinds: the same list, the same answers as the controller router
+  for lKind in ['int', 'int64', 'float', 'bool', 'guid', 'date', 'sqids'] do
+    AEngine.Root.MapGet<TWebContext>('/minimal-web/typedroute/' + lKind + '/($v:' + lKind + ')',
+      function (Ctx: TWebContext): IMVCResponse
+      begin
+        Result := Html(Ctx.Request.Params['v']);
+      end);
+
+  // -- BasicAuth filter with a handler: the same session login as TMVCBasicAuthenticationMiddleware
+  AEngine.Root.Prefix('/minimal-web/private').Use(BasicAuth(TMinimalBasicAuthHandler.Create as IMVCAuthenticationHandler))
+    .MapGet<TWebContext>('/role1',
+      function (Ctx: TWebContext): IMVCResponse
+      begin
+        Result := Html(Ctx.LoggedUser.UserName);
+      end);
+
+  // -- SessionStop after reading the session: the same call as in a controller
+  AEngine.Root.MapPost<TWebContext>('/minimal-web/sessionreadthenstop',
+    function (Ctx: TWebContext): IMVCResponse
+    begin
+      Result := Html(Ctx.Session['value']);
+      Ctx.SessionStop;
+    end);
+
+  // -- SessionRegenerateId: the same call as in a controller
+  AEngine.Root.MapPost<TWebContext>('/minimal-web/sessionregenerate',
+    function (Ctx: TWebContext): IMVCResponse
+    begin
+      Ctx.SessionRegenerateId;
+      Result := Html(Ctx.SessionId);
+    end);
 
   // -- OpenAPI: API + Web siblings, plus a web route opted in
   AEngine.Root.MapGet('/minimal-web/api-side',

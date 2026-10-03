@@ -240,6 +240,7 @@ begin
           AContext.LoggedUser.UserName := AuthPieces[0];
           AContext.LoggedUser.LoggedSince := Now;
           AContext.LoggedUser.Realm := FRealm;
+          AContext.SessionRegenerateId; // against session fixation: the id sent before the login dies
           AContext.LoggedUser.SaveToSession(AContext.Session);
           for SessionPair in SessionData do
             AContext.Session[SessionPair.Key] := SessionPair.Value;

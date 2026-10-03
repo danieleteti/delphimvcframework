@@ -690,6 +690,13 @@ function RenderView(const AViewName: string;
 function RenderViews(const AViewNames: TArray<string>;
   const AUseCommonHeadersAndFooters: Boolean = True): IMVCResponse;
 
+// Sends AHtml as the response body, as is: Content-Type text/html;
+// charset=utf-8 and StatusCode 200 (override on the returned instance:
+// Result.StatusCode := N). For small fragments that need no template, e.g. an
+// HTMX swap target. Nothing is escaped: encode any untrusted value it contains.
+// Unlike RenderView it works outside a minimal-API request scope too.
+function Html(const AHtml: string): IMVCResponse;
+
 // -------------------------------------------------------------------------
 // Filter helpers (MemorySession, CORS, JWT, ActiveRecord, StaticFiles,
 // Compression, ETag, IPBlock, RateLimit, RequestLog, CORSFilter, ...) have
@@ -746,6 +753,11 @@ begin
   lResp.StatusCode := http_status.OK;
   lResp.HTMLBody := AHtml;
   Result := lResp; // IMVCResponse holds the reference; ARC manages lifetime.
+end;
+
+function Html(const AHtml: string): IMVCResponse;
+begin
+  Result := BuildHTMLResponse(AHtml);
 end;
 
 function RenderView(const AViewName: string): IMVCResponse;
@@ -1223,6 +1235,8 @@ end;
 function TMVCMinimalRegistry.Add(AVerb: TMVCHTTPMethodType;
   const APath: string; AThunk: TMVCMinimalThunk): TMVCMinimalRoute;
 begin
+  // a misspelled kind fails here, at startup, as for controllers (TMVCEngine.AddController)
+  MVCCheckRoutePath(APath, True);
   Result := TMVCMinimalRoute.Create(AVerb, APath, AThunk);
   Result.fRegistry := Self;
   fRoutes.Add(Result);
@@ -1258,60 +1272,18 @@ begin
   fHTTPFilters[lLen] := AFilter;
 end;
 
-// Apply a route constraint to a captured segment value. Returns False if the
-// constraint rejects the value — the entire route then fails to match,
-// letting the dispatcher consider other routes. Unknown constraint names
-// are silently accepted (treated as "no constraint") so adding new ones
-// later doesn't break existing routes.
-function ApplyConstraint(const AConstraint, AValue: string): Boolean;
-var
-  lInt: Integer;
-  lInt64: Int64;
-  lFloat: Double;
-  lGuid: TGUID;
-  lDate: TDateTime;
-begin
-  if AConstraint = '' then Exit(True);
-  if SameText(AConstraint, 'int') then
-    Exit(TryStrToInt(AValue, lInt));
-  if SameText(AConstraint, 'int64') then
-    Exit(TryStrToInt64(AValue, lInt64));
-  if SameText(AConstraint, 'float') then
-    Exit(TryStrToFloat(AValue, lFloat, TFormatSettings.Invariant));
-  if SameText(AConstraint, 'bool') then
-  begin
-    Result := SameText(AValue, 'true') or SameText(AValue, 'false')
-      or (AValue = '0') or (AValue = '1');
-    Exit;
-  end;
-  if SameText(AConstraint, 'guid') then
-  begin
-    try
-      lGuid := StringToGUID('{' + AValue.Replace('{', '').Replace('}', '') + '}');
-      Exit(True);
-    except
-      Exit(False);
-    end;
-  end;
-  if SameText(AConstraint, 'date') then
-    Exit(TryStrToDate(AValue, lDate, TFormatSettings.Invariant));
-  Result := True; // unknown constraint -> accept
-end;
-
 function MatchPath(const APattern, APath: string;
   const AParamsTable: TMVCRequestParamsTable): Boolean;
 var
   lPatternSegs, lPathSegs: TArray<string>;
   I, J, lColon: Integer;
-  lPSeg, lASeg, lInner, lParamName, lConstraint, lRest, lWildName: string;
+  lPSeg, lASeg, lInner, lParamName, lConstraint, lRest, lWildName, lValue: string;
   lWildcard: Boolean;
 begin
-  // Segment matcher with optional constraints. Syntax:
-  //   ($name)               unconstrained capture
-  //   ($name:int)           accept only integers
-  //   ($name:int64|guid|bool|float|date)  one of the predefined kinds
-  // Static segments match literally. A failed constraint makes the whole
-  // pattern fail to match (the dispatcher moves on to the next route).
+  // Segment matcher with optional kinds, the same as the controller router's
+  // (MVCRouteParamOfKind): ($name), ($name:int|int64|float|bool|guid|date|sqids).
+  // Static segments match literally. A value that does not fit the kind makes
+  // the whole pattern fail to match (the dispatcher moves on to the next route).
   if (APattern = APath) or ((APath = '/') and (APattern = '')) then
     Exit(True);
 
@@ -1373,9 +1345,9 @@ begin
         lParamName := lInner;
         lConstraint := '';
       end;
-      if not ApplyConstraint(lConstraint, lASeg) then
+      if not MVCRouteParamOfKind(lConstraint, lASeg, lValue) then
         Exit(False);
-      AParamsTable.AddOrSetValue(lParamName, lASeg);
+      AParamsTable.AddOrSetValue(lParamName, lValue);
     end
     else if not SameText(lPSeg, lASeg) then
       Exit(False);

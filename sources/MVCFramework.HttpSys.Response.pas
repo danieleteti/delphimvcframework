@@ -100,7 +100,7 @@ implementation
 {$IFDEF MSWINDOWS}
 
 uses
-  System.DateUtils, System.NetEncoding, MVCFramework.Commons;
+  System.NetEncoding, IdGlobal, MVCFramework.Commons;
 
 const
   { Max number of unknown headers we support in a single response }
@@ -337,7 +337,8 @@ begin
     if lCookie.Domain <> '' then
       lCookieStr := lCookieStr + '; Domain=' + lCookie.Domain;
     if lCookie.Expires > 0 then
-      lCookieStr := lCookieStr + '; Expires=' + FormatDateTime('ddd, dd mmm yyyy hh:nn:ss "GMT"', TTimeZone.Local.ToUniversalTime(lCookie.Expires));
+      // Indy's RFC 1123 date: English names whatever the locale ("mar", martedi', reads as March)
+      lCookieStr := lCookieStr + '; Expires=' + LocalDateTimeToHttpStr(lCookie.Expires);
     if lCookie.Secure then
       lCookieStr := lCookieStr + '; Secure';
     if lCookie.HttpOnly then

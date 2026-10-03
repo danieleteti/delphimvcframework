@@ -1,0 +1,76 @@
+{{# ================================================================
+   EDIT PERSON - a form built with the TemplatePro forms library
+   ================================================================
+   lib/forms_bootstrap5.tpro writes the Bootstrap markup of each field:
+   label, control, current value and, when the field is invalid, the
+   is-invalid class and the message.
+
+   Variables (set by EditPerson and SavePerson):
+     formModel   - the values shown: the stored person, or what was typed
+     formErrors  - field name -> message, only after an invalid submit
+     person_id, roles, statuses
+   ================================================================ #}}
+{{extends "../baselayout.html"}}
+{{import "../lib/forms_bootstrap5.tpro" as f}}
+
+{{block "title"}}Edit person{{endblock}}
+
+{{block "body"}}
+
+  <header class="page-header">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/web/people">People</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+      </ol>
+    </nav>
+    <h1>Edit person</h1>
+    <p class="lead">A form rendered by the forms library and checked on the server.
+      Changes are kept in memory until the server stops.</p>
+  </header>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      {{if formErrors}}
+      <div class="alert alert-danger" role="alert">Some fields need attention.</div>
+      {{endif}}
+      {{# novalidate: the server checks every field, so its messages are the ones you see #}}
+      {{set action := @("/web/people/" + person_id)}}
+      {{set formattrs := {"novalidate": true}}}
+      {{set projattrs := {"min": 0}}}
+      {{call f.form(action, attrs=formattrs)}}
+      <div class="row">
+        <div class="col-md-6">{{>f.input("name", label="Name", required=true, maxlength=60)}}</div>
+        <div class="col-md-6">{{>f.input("email", label="Email", type="email", required=true)}}</div>
+        <div class="col-md-6">{{>f.select("role", roles, label="Role", required=true)}}</div>
+        <div class="col-md-6">{{>f.input("city", label="City", maxlength=40)}}</div>
+        <div class="col-md-4">{{>f.select("status", statuses, label="Status")}}</div>
+        <div class="col-md-4">{{>f.input("joined", label="Joined", type="date")}}</div>
+        <div class="col-md-4">{{>f.input("projects", label="Projects", type="number", attrs=projattrs)}}</div>
+      </div>
+      {{call f.actions()}}
+      {{>f.submit("Save")}}
+      <a class="btn btn-outline-secondary" href="/web/people">Cancel</a>
+      {{endcall}}
+      {{endcall}}
+    </div>
+
+    <div class="col-lg-5">
+      <details class="explain">
+        <summary>How this form is built</summary>
+        <p class="text-secondary">Each field is one macro call. The macro reads the value from
+          <code>formModel</code> and the message from <code>formErrors</code>:</p>
+<pre class="source"><code>{{raw}}{{import "../lib/forms_bootstrap5.tpro" as f}}
+{{call f.form(action)}}
+{{>f.input("name", label="Name", required=true)}}
+{{>f.select("role", roles, label="Role")}}
+{{>f.input("joined", label="Joined", type="date")}}
+{{>f.submit("Save")}}
+{{endcall}}{{endraw}}</code></pre>
+        <p class="text-secondary mb-0"><code>{{raw}}{{>f.auto(person)}}{{endraw}}</code> writes a
+          control for every field of an object or a dataset.</p>
+      </details>
+    </div>
+  </div>
+
+{{endblock}}
