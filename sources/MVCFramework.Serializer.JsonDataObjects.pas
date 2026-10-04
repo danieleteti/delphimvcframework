@@ -2885,8 +2885,9 @@ begin
         except
           on E: Exception do
           begin
-            raise EMVCSerializationException.CreateFmt('Cannot serialize field [%s] - [CLS: %s][MSG: %s]',
-              [lKeyName, E.ClassName, E.Message]);
+            // the inner text (SQL, paths, ...) stays in the server log: an EMVCException message reaches the client
+            LogE(Format('Cannot serialize field [%s] - [CLS: %s][MSG: %s]', [lKeyName, E.ClassName, E.Message]));
+            raise EMVCSerializationException.CreateFmt('Cannot serialize field [%s]', [lKeyName]);
           end;
         end;
       end;

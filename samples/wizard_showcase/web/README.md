@@ -20,6 +20,7 @@ endpoint with try-it links.
 | `GET /search` | **record** + `[MVCFromQueryString]` with defaults (`TSearchQuery`) |
 | `GET /signup` | form view, no binding |
 | `POST /signup` | **record** + `[MVCFromContentField]` including `TArray<string>` (multi-checkbox `interests`) |
+| `GET/POST /forms` | the TemplatePro forms library: every macro, validation round trip |
 | `GET /context` | **record** + `[MVCFromHeader]` + `[MVCFromCookie]` (with cookie round-trip) |
 | `GET /docs/(slug:*)` | **wildcard** — a trailing `($slug:*)` segment captures the rest of the path (slashes included) as one `string` |
 
@@ -34,4 +35,6 @@ Session is set up via `MemorySession(30)` filter on the public group;
   records (each field shows a different attribute source).
 - `templates/baselayout.html` + `templates/pages/*.html` — Bootstrap 5.3
   views (dark mode default, `data-bs-theme`).
+- `FormsDemoU.pas` + `templates/pages/forms.html` — the forms library
+  (`templates/lib/forms_bootstrap5.tpro`): model, validation, routes.
 - `ServicesU.pas` — `IPeopleService` registration the routes resolve.

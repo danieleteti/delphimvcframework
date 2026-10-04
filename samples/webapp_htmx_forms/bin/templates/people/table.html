@@ -1,4 +1,4 @@
-{{# ================================================================
+﻿{{# ================================================================
    PEOPLE TABLE (fragment) - TemplatePro + Bootstrap 5.3
    ================================================================
    Status filter, sortable header, rows and footer of the People page.
@@ -13,7 +13,7 @@
      count_all, count_active, count_invited, count_suspended, count_shown
    ================================================================ #}}
 {{# Query string of the page for a given filter and order #}}
-{{macro qs(q, status, sort, dir)}}q={{:q|urlencode}}&amp;status={{:status}}&amp;sort={{:sort}}&amp;dir={{:dir}}{{endmacro}}
+{{macro qs(q, status, sort, dir)}}q={{:q|urlencode}}&amp;status={{:status|urlencode}}&amp;sort={{:sort|urlencode}}&amp;dir={{:dir|urlencode}}{{endmacro}}
 
 {{# Sortable column header: a second click on the same column reverses it #}}
 {{macro th(label, key, cls, q, status, sort, dir)}}
@@ -24,7 +24,7 @@
 </th>
 {{endmacro}}
 
-<div id="people-table">
+<div id="people-table" hx-push-url="true">
   {{# Current filter and order travel with the search box (form="people-search") #}}
   <input type="hidden" name="status" value="{{:status}}" form="people-search">
   <input type="hidden" name="sort" value="{{:sort}}" form="people-search">
@@ -75,7 +75,7 @@
           <td colspan="7" class="empty-state">
             <strong>Nobody matches this search</strong>
             <span class="text-secondary">Search looks at name, email, role and city.</span>
-            <a href="/web/people" hx-get="/web/people">Show everyone</a>
+            <a href="/web/people">Show everyone</a>{{# full load: it clears the search box too #}}
           </td>
         </tr>
         {{endfor}}
@@ -85,6 +85,6 @@
 
   <div class="table-footer">
     <span>{{:count_shown}} of {{:count_all}} shown</span>
-    <span>Sample data from <code>SamplePeople</code> in <code>{{:controller_unit_name}}</code></span>
+    <span>Sample data from <code>PeopleSampleU</code></span>
   </div>
 </div>

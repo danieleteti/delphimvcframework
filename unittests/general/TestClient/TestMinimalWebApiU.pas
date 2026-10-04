@@ -319,10 +319,20 @@ end;
 procedure TTestMinimalWebApi.Test_Record_validation_rejects_invalid;
 var
   lResp: IMVCRESTResponse;
+  lJSON: TJsonObject;
 begin
   // MinLength(3) on the bound query field -> too short -> 422
   lResp := RESTClient.Get('/minimal-feat/validate?q=ab');
   Assert.AreEqual<Integer>(422, lResp.StatusCode);
+  // RFC 7807 body at top level, with the per-field messages a controller gives
+  Assert.Contains(lResp.HeaderValue('Content-Type'), 'application/problem+json');
+  lJSON := StrToJSONObject(lResp.Content);
+  try
+    Assert.AreEqual(1, lJSON.O['errors'].Count, lResp.Content);
+    Assert.IsNotEmpty(lJSON.O['errors'].Items[0].Value, lResp.Content);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 procedure TTestMinimalWebApi.Test_Record_validation_accepts_valid;

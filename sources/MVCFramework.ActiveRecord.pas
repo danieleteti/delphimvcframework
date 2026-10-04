@@ -2283,9 +2283,9 @@ begin
   end;
   ATableMap.fHasValidators := lValidatorsCountTotal > 0;
 
-  // OnValidate is a plain virtual method: we always call it via regular
-  // virtual dispatch inside Validate(). The base class stub is empty, so
-  // non-overriding classes pay only the cost of a virtual call per save.
+  // OnStorageValidate is a plain virtual method: Validate() always calls it.
+  // The base class stub is empty, so non-overriding classes pay only the
+  // cost of a virtual call per save.
 end;
 
 procedure TMVCActiveRecord.InitTableInfo(const aTableName: String);

@@ -404,6 +404,11 @@ const
     lNL: string;
   begin
     Result := LoadTemplate(AName).Replace('{{:program_name}}', AProjectName);
+    if AConfig.B[TConfigKey.program_ai_skills] then
+      Result := Result.Replace('{{:ai_skills_hint}}',
+        ' The AI skills in <code>.claude/skills</code> teach these patterns to your coding agent.')
+    else
+      Result := Result.Replace('{{:ai_skills_hint}}', '');
     if Result.Contains(#13#10) then
       lNL := #13#10
     else
@@ -415,7 +420,6 @@ const
         .Replace('{{:add_page_how}}', 'a <code>MapGet</code> to <code>RoutesU</code>')
         .Replace('{{:info_fragment_source}}', 'RoutesU: MapGet(''/fragment/info'')')
         .Replace('{{:api_source}}', 'RoutesU: MapGet(''/api/server/info'')')
-        .Replace('{{:people_handler}}', 'RoutesU: MapGet(''/people'')')
         .Replace('<!--EXTRA_NAV-->',
           '<li class="nav-item">' + lNL +
           '            <a class="nav-link {{if page_id|eq,"admin"}}active{{endif}}"' + lNL +
@@ -429,7 +433,6 @@ const
         .Replace('{{:add_page_how}}', 'an action to <code>' + CONTROLLER_UNIT + '</code>')
         .Replace('{{:info_fragment_source}}', CONTROLLER_UNIT + '.GetInfoFragment')
         .Replace('{{:api_source}}', CONTROLLER_API_UNIT)
-        .Replace('{{:people_handler}}', CONTROLLER_UNIT + '.People')
         .Replace('          <!--EXTRA_NAV-->' + lNL, '');
   end;
 
@@ -848,16 +851,6 @@ begin
 
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.' + LTemplateExt,
         ViewText('views\error_view.tpro'));
-
-      // People: the table example (one template pair for HTMX and plain pages)
-      // and the edit form built with the forms library
-      TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'people'));
-      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'index.' + LTemplateExt,
-        ViewText('views\people_index.tpro'));
-      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'table.' + LTemplateExt,
-        ViewText('views\people_table.tpro'));
-      SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'people' + PathDelim + 'edit.' + LTemplateExt,
-        ViewText('views\people_edit.tpro'));
 
       // Minimal API web app only: the login form and the page behind RequireLogin
       if AConfig.B['program.minimal_api.web'] then

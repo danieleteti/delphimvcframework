@@ -80,7 +80,7 @@ begin
   // (validatable, requires Name length >= 3 and Qty > 0) is bound from
   // the request body. If validation fails, the framework raises
   // EMVCValidationException which the middleware turns into a
-  // ProblemDetails 400 response.
+  // ProblemDetails 422 response.
   lApi.MapPost<TWidgetDto>('/widgets',
     function (W: TWidgetDto): IMVCResponse
     begin

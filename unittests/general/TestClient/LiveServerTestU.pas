@@ -459,6 +459,8 @@ type
     procedure TestMultipartFormDataTextFields_DMVCClient;
 
     [Test]
+    procedure TestURLEncodedFormPlusIsSpace;
+    [Test]
     procedure TestMultipartFormDataTextFields_IndyRaw;
 
     [Test]
@@ -2839,6 +2841,19 @@ begin
   Assert.Contains(r.Content, 'last_name=Doe', 'last_name missing');
   Assert.Contains(r.Content, 'job=Tester', 'job missing');
   Assert.Contains(r.Content, 'missing=', 'absent field should yield empty');
+end;
+
+procedure TServerTest.TestURLEncodedFormPlusIsSpace;
+var
+  r: IMVCRESTResponse;
+begin
+  // application/x-www-form-urlencoded: '+' is a space, '%2B' is a literal '+' (every host)
+  r := RESTClient.Post('/multipartfields', 'first_name=Mario+Rossi&last_name=a%2Bb&job=x%20y',
+    'application/x-www-form-urlencoded');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, r.Content);
+  Assert.Contains(r.Content, 'first_name=Mario Rossi', r.Content);
+  Assert.Contains(r.Content, 'last_name=a+b', r.Content);
+  Assert.Contains(r.Content, 'job=x y', r.Content);
 end;
 
 procedure TServerTest.TestMultipartFormDataTextFields_IndyRaw;

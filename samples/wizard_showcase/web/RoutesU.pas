@@ -24,6 +24,8 @@ unit RoutesU;
 //   GET    /signup                 form view (no binding)
 //   POST   /signup                 record + [MVCFromContentField] including TArray<string>
 //   GET    /context                record + [MVCFromHeader] + [MVCFromCookie]
+//   GET    /forms                  TemplatePro forms library, every macro (FormsDemoU)
+//   POST   /forms                  server-side validation round trip, 422 on errors
 //
 // /people/* is mounted via Prefix('/people').Use(LogFilter()), so every route
 // under that prefix also demonstrates endpoint-filter composition.
@@ -50,7 +52,8 @@ uses
   MVCFramework.HTMX,
   EntitiesU,
   ShowcaseModelsU,
-  ServicesU;
+  ServicesU,
+  FormsDemoU;
 
 // =============================================================================
 // Endpoint filter — attached to /people group via .Use.
@@ -253,6 +256,10 @@ begin
       ViewData['slug'] := Slug;
       Result := RenderView('pages/docs');
     end);
+
+  // 8. FORMS. GET/POST /forms live in FormsDemoU together with the model and
+  //    its validation, so the whole forms tutorial reads in one unit.
+  MapFormsRoutes(lWeb);
 end;
 
 end.

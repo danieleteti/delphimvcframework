@@ -81,11 +81,6 @@
                href="/web">Home</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{if page_id|eq,"people"}}active{{endif}}"
-               {{if page_id|eq,"people"}}aria-current="page"{{endif}}
-               href="/web/people">People</a>
-          </li>
-          <li class="nav-item">
             <a class="nav-link {{if page_id|eq,"about"}}active{{endif}}"
                {{if page_id|eq,"about"}}aria-current="page"{{endif}}
                href="/web/about">About</a>

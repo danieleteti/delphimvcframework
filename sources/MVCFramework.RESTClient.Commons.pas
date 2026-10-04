@@ -235,7 +235,9 @@ begin
 
 {$IF defined(RIOORBETTER)}
   TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
-  lContentIsString := lMimeKind = TMimeTypes.TKind.Text;
+  // TMimeTypes does not know the RFC 6839 suffixes (application/problem+json, ...)
+  lContentIsString := (lMimeKind = TMimeTypes.TKind.Text) or
+    lContentType.EndsWith('+json', True) or lContentType.EndsWith('+xml', True);
 {$ELSE}
   lContentIsString := (lContentType.StartsWith('text')) or (
        not (

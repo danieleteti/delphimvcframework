@@ -32,7 +32,8 @@ uses
   ServicesU in 'ServicesU.pas',
   TemplateProHelpersU in 'TemplateProHelpersU.pas',
   BootConfigU in 'BootConfigU.pas',
-  EngineConfigU in 'EngineConfigU.pas';
+  EngineConfigU in 'EngineConfigU.pas',
+  FormsDemoU in 'FormsDemoU.pas';
 
 {$R *.res}
 

@@ -31,6 +31,7 @@ uses
   System.Rtti,
   System.Hash,
   System.Zip,
+  System.StrUtils,
   System.Diagnostics,
   IdContext,
   IdTCPServer,
@@ -602,6 +603,7 @@ procedure CreateTestCases(ATestCases: TList<TTestCase>);
 var
   LTestCase: TTestCase;
 begin
+
   // Test 1: Minimal HTTP Console
   LTestCase.Name := 'minimal_http';
   LTestCase.Config := CreateBaseConfig;
@@ -665,22 +667,33 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
-  // The People page is the table example: its views and its action
-  // The edit page, the search box and the table links use the forms library
-  LTestCase.ExpectedFiles := ['bin/templates/people/index.html', 'bin/templates/people/table.html',
-    'bin/templates/people/edit.html', 'bin/templates/lib/forms_bootstrap5.tpro'];
-  LTestCase.MustContain := ['Controllers.HomeU.pas|function THomeController.People(',
-    'Controllers.HomeU.pas|function THomeController.EditPerson(ID: Integer): String;',
-    'Controllers.HomeU.pas|function THomeController.SavePerson(ID: Integer): IMVCResponse;',
-    'bin/templates/people/index.html|{{include "table.html"}}',
-    'bin/templates/people/index.html|Controllers.HomeU.People',
-    'bin/templates/people/index.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
-    'bin/templates/people/index.html|{{>f.input("q"',
-    'bin/templates/people/table.html|{{for p in people}}',
-    'bin/templates/people/table.html|href="/web/people/{{:p.ID}}"',
-    'bin/templates/people/edit.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
-    'bin/templates/people/edit.html|{{call f.form(action',
-    'bin/templates/baselayout.html|href="/web/people"'];
+  // The scaffold is the minimum to add to: the People example is samples/webapp_htmx_forms,
+  // the forms library stays (it is a library)
+  LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro', 'bin/templates/home/index.html'];
+  LTestCase.ForbiddenFiles := ['PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'PeopleRoutesU.pas',
+    'bin/templates/people'];
+  LTestCase.MustContain := [
+    'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms'];
+  LTestCase.MustNotContain := ['Controllers.HomeU.pas|People', 'Controllers.HomeU.pas|PersonRow',
+    'EngineConfigU.pas|People', 'bin/templates/baselayout.html|/web/people', 'bin/templates/home/index.html|/web/people',
+    'bin/templates/home/index.html|{{:ai_skills_hint}}', 'bin/templates/home/index.html|.claude/skills'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Web Application preset shape: controller-based TemplatePro + HTMX on Indy Direct
+  LTestCase.Name := 'indydirect_webapp_htmx';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.program_htmx] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro', 'bin/templates/home/index.html'];
+  LTestCase.ForbiddenFiles := ['PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'bin/templates/people'];
+  LTestCase.MustContain := ['bin/templates/home/index.html|hx-get="/web/fragment/clock"',
+    'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms'];
+  LTestCase.MustNotContain := ['bin/templates/baselayout.html|/web/people', 'bin/templates/home/index.html|/web/people'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1159,24 +1172,22 @@ begin
   // a controller) plus the login-protected Admin area
   LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
     'bin/templates/home/index.html', 'bin/templates/about/index.html',
-    'bin/templates/people/index.html', 'bin/templates/people/table.html',
-    'bin/templates/people/edit.html', 'bin/templates/pages/login.html',
+    'bin/templates/pages/login.html',
     'bin/templates/pages/admin_home.html', 'bin/templates/lib/forms_bootstrap5.tpro'];
   LTestCase.ForbiddenFiles := ['bin/templates/pages/home.html', 'bin/templates/pages/time.html',
-    'bin/templates/index.html', 'Controllers.HomeU.pas'];
+    'bin/templates/index.html', 'Controllers.HomeU.pas',
+    'PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'PeopleRoutesU.pas', 'bin/templates/people'];
   LTestCase.MustContain := [
-    'RoutesU.pas|lWeb.MapGet<TWebContext, TPeopleQuery>(''/people''',
-    'RoutesU.pas|lWeb.MapPost<TWebContext, Integer>(''/people/($id:int)''',
     'RoutesU.pas|Result := Html(',
-    'RoutesU.pas|function BuildPeoplePage(',
     'bin/templates/baselayout.html|href="/web/admin/">Admin</a>',
     'bin/templates/home/index.html|a <code>MapGet</code> to <code>RoutesU</code>',
-    'bin/templates/people/index.html|RoutesU: MapGet(''/people'')',
+    'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms',
     'bin/templates/pages/login.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
     'bin/templates/pages/login.html|{{call f.form("/web/login")}}'];
   LTestCase.MustNotContain := ['bin/templates/baselayout.html|<!--EXTRA_NAV-->',
     'bin/templates/home/index.html|{{:add_page_how}}',
-    'bin/templates/people/table.html|{{:controller_unit_name}}'];
+    'bin/templates/home/index.html|/web/people', 'bin/templates/baselayout.html|/web/people',
+    'RoutesU.pas|People', 'RoutesU.pas|PersonRow', 'RoutesU.pas|TPeopleQuery'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1222,9 +1233,9 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_etag] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
   LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
-    'bin/templates/home/index.html', 'bin/templates/people/edit.html',
+    'bin/templates/home/index.html',
     'bin/templates/pages/login.html', 'bin/templates/pages/admin_home.html'];
-  LTestCase.ForbiddenFiles := [];
+  LTestCase.ForbiddenFiles := ['bin/templates/people'];
   ATestCases.Add(LTestCase);
 
   // From here on the case record is reset first: the four assertion arrays are
@@ -1244,6 +1255,32 @@ begin
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := ['WebModuleU.pas|UseExceptionHandler'];
   LTestCase.MustNotContain := ['WebModuleU.pas|lError := E.Message'];
+  ATestCases.Add(LTestCase);
+
+  // The minimal web scaffold on a WebModule host: builds without any People unit
+  LTestCase := Default(TTestCase);
+  LTestCase.Name := 'apache_webapp_htmx';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.program_htmx] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro'];
+  LTestCase.ForbiddenFiles := ['PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'bin/templates/people'];
+  ATestCases.Add(LTestCase);
+
+  // The minimal web scaffold on a WebModule host: builds without any People unit
+  LTestCase := Default(TTestCase);
+  LTestCase.Name := 'winservice_webapp_htmx';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B[TConfigKey.program_htmx] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro'];
+  LTestCase.ForbiddenFiles := ['PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'bin/templates/people'];
   ATestCases.Add(LTestCase);
 
   // Test 57: Indy Direct + Minimal API + JWT. The combination was never
@@ -1527,7 +1564,8 @@ begin
     '.claude/skills/htmx-skill/SKILL.md', '.claude/skills/dmvcframework/SKILL.md'];
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-jsonrpc'];
   LTestCase.MustContain := ['AGENTS.md|`.claude/skills/htmx-skill/SKILL.md`',
-    'update_ai_skills.bat|dmvcframework-minimal-api dmvcframework-webapp dmvcframework-ui htmx-skill'];
+    'update_ai_skills.bat|dmvcframework-minimal-api dmvcframework-webapp dmvcframework-ui htmx-skill',
+    'bin/templates/home/index.html|The AI skills in <code>.claude/skills</code>'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -2050,6 +2088,33 @@ begin
   TDirectory.Delete(LSaved, True);
 end;
 
+{ The People example lives in samples/webapp_htmx_forms: no generated project
+  may carry its marker or a link to its pages. }
+function RunNoPeopleExampleTest(const ACaseDirs: TArray<string>): Boolean;
+var
+  LDir, LFile, LText: string;
+  LLeft: TArray<string>;
+begin
+  Log('');
+  Log('=== No People example in the generated projects ===');
+  LLeft := [];
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*', TSearchOption.soAllDirectories) do
+    begin
+      if LFile.Contains(PathDelim + '.claude' + PathDelim) or
+        not MatchText(ExtractFileExt(LFile), ['.pas', '.dpr', '.dproj', '.html', '.css', '.tpro', '.env', '.md']) then
+        Continue;
+      LText := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      if LText.Contains('PEOPLE-SAMPLE') or LText.Contains('/web/people') or LText.Contains('PeopleSampleU') then
+        LLeft := LLeft + [LFile];
+    end;
+  Result := Length(LLeft) = 0;
+  if Result then
+    Log(Format('  [PASS] %d projects, no reference to the example', [Length(ACaseDirs)]))
+  else
+    Log('  [FAIL] still referring to the example: ' + string.Join(', ', LLeft));
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -2081,6 +2146,7 @@ var
   LTestCases: TList<TTestCase>;
   LTestCase: TTestCase;
   LDownloadsBefore: Integer;
+  LCaseDirs: TArray<string>;
 begin
   try
     Log('DMVCFramework Template Generator Test Tool');
@@ -2197,6 +2263,15 @@ begin
       Log(Format('Swagger UI release downloads during the generation cases: %d',
         [SwaggerUIDownloadCount - LDownloadsBefore]));
       PrintSummary;
+      LCaseDirs := [];
+      for LTestCase in LTestCases do
+        LCaseDirs := LCaseDirs + [TPath.GetFullPath(TPath.Combine(GOutputDir, LTestCase.Name))];
+      if not RunNoPeopleExampleTest(LCaseDirs) then
+      begin
+        Log('');
+        Log('FAIL: a generated project still refers to the People example.');
+        ExitCode := 1;
+      end;
       if not RunAISkillsBatTest(TPath.GetFullPath(TPath.Combine(GOutputDir, 'indydirect_ai_skills_rest'))) then
       begin
         Log('');

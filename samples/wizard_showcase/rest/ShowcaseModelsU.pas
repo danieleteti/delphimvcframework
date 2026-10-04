@@ -28,7 +28,7 @@ type
   // Body-bound class. TMVCValidatable + [MVCRequired]/[MVCMinLength]/[MVCEmail]
   // attributes trigger TMVCValidationEngine.ValidateAndRaise inside the minimal-
   // API arg resolver BEFORE the handler runs. A failure short-circuits with a
-  // ProblemDetails 400 — the handler body never sees an invalid instance.
+  // ProblemDetails 422 — the handler body never sees an invalid instance.
   TPersonInput = class(TMVCValidatable)
   private
     fFirstName: string;

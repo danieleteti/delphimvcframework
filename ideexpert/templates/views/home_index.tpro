@@ -19,9 +19,6 @@
         <p class="lead">A DelphiMVCFramework web application: {{:page_handlers}} render TemplatePro
           views on the server, and small scripts fetch server-rendered fragments into the page.</p>
         <div class="page-actions">
-          <a class="btn btn-primary" href="/web/people">
-            Open the People table <svg class="icon ms-1" aria-hidden="true"><use href="#i-arrow"/></svg>
-          </a>
           <a class="btn btn-outline-secondary" href="/api/server/info" target="_blank">JSON API</a>
         </div>
       </div>
@@ -53,11 +50,6 @@
              no recompile needed.</p>
         </li>
         <li>
-          <strong>Render your own data</strong>
-          <p>The People page renders a list of objects with <code>&#123;&#123;for&#125;&#125;</code> and sorts and
-             filters it on the server. Copy it for your first real page.</p>
-        </li>
-        <li>
           <strong>Add a page</strong>
           <p>Add {{:add_page_how}} that calls <code>RenderView('folder/name')</code>,
              and a template that extends <code>baselayout.html</code>.</p>
@@ -66,6 +58,12 @@
           <strong>Share the layout</strong>
           <p>Navigation, footer and theme live in <code>baselayout.html</code>; page styles in
              <code>bin/www/css/style.css</code>.</p>
+        </li>
+        <li>
+          <strong>Next steps</strong>
+          <p>A table with HTMX search, filter and sort, forms and server-side validation:
+             <a href="https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms" target="_blank" rel="noopener">samples/webapp_htmx_forms</a>.
+             Everything else is in <a href="https://leanpub.com/delphimvcframework-2nd-edition" target="_blank" rel="noopener">the official guide</a>.{{:ai_skills_hint}}</p>
         </li>
       </ol>
     </section>

@@ -109,7 +109,7 @@ function CORS(
 // JWT bearer-auth filter. Reads the Authorization header, verifies the
 // token against ASecret with AHMACAlgorithm, validates the standard claims
 // listed in AClaimsToCheck, and populates Context.LoggedUser on success.
-// On failure short-circuits with a 401 ProblemDetails response.
+// On failure short-circuits with a 401 (Status response, {"message": ...}).
 // Special-cases the configured login URL: a POST to ALoginURLSegment is
 // forwarded to AAuthenticationHandler.OnAuthentication for credential
 // verification, then a freshly-minted token is returned in the
@@ -292,7 +292,7 @@ function BasicAuth(
   const ARealm: string = 'DelphiMVCFramework REALM'): TMVCEndpointFilter; overload;
 
 // Endpoint filter: require an authenticated user (Context.LoggedUser.IsValid).
-// Replies 401 (ProblemDetails) when no valid user is present. Register AFTER
+// Replies 401 (Status response) when no valid user is present. Register AFTER
 // the authentication filter (JWT / BasicAuth / custom) that populates LoggedUser.
 //
 //   lEngine.Prefix('/admin').Use(JWT(...)).Use(Authorize);
@@ -1003,8 +1003,9 @@ end;
 
 // Forward — defined later under "CORS (EndpointFilter)" because the
 // original classic CORS() helper also calls it. Single source of truth.
+function SplitCORSOrigins(const AConfiguredOrigins: string): TArray<string>; forward;
 procedure StampSimpleCORSHeaders(const AContext: TWebContext;
-  const AAllowedOriginURLs: string;
+  const AAllowedOrigins: TArray<string>;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: string); forward;
 
@@ -1015,7 +1016,10 @@ function CORSFilter(
   const AAllowsHeaders: string;
   const AAllowsMethods: string;
   const AAccessControlMaxAge: Integer): TMVCHTTPFilter;
+var
+  lOrigins: TArray<string>;
 begin
+  lOrigins := SplitCORSOrigins(AAllowedOriginURLs);
   Result :=
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
@@ -1026,7 +1030,7 @@ begin
       if AContext.Request.HTTPMethod = httpOPTIONS then
       begin
         StampSimpleCORSHeaders(AContext,
-          AAllowedOriginURLs, AAllowsCredentials, AExposeHeaders);
+          lOrigins, AAllowsCredentials, AExposeHeaders);
         AContext.Response.SetCustomHeader('Access-Control-Allow-Methods', AAllowsMethods);
         AContext.Response.SetCustomHeader('Access-Control-Allow-Headers', AAllowsHeaders);
         AContext.Response.SetCustomHeader('Access-Control-Max-Age', IntToStr(AAccessControlMaxAge));
@@ -1042,7 +1046,7 @@ begin
         ANext();
       finally
         StampSimpleCORSHeaders(AContext,
-          AAllowedOriginURLs, AAllowsCredentials, AExposeHeaders);
+          lOrigins, AAllowsCredentials, AExposeHeaders);
       end;
     end;
 end;
@@ -1053,25 +1057,41 @@ end;
 // Extracted to a module-level proc because anonymous methods cannot capture
 // nested procedures (E2555). The closure inside CORS() calls it twice — for
 // the preflight branch and the post-handler branch.
-function MVCMatchCORSOrigin(const AConfiguredOrigins, ARequestOrigin: string): string;
+function SplitCORSOrigins(const AConfiguredOrigins: string): TArray<string>;
 var
-  lAllowed, lTrimmed: string;
+  i: Integer;
+begin
+  Result := AConfiguredOrigins.Split([',']);
+  for i := 0 to High(Result) do
+    Result[i] := Result[i].Trim;
+end;
+
+// AAllowedOrigins already split and trimmed (SplitCORSOrigins): the filters
+// do it once at registration, not on every request.
+function MatchCORSOrigin(const AAllowedOrigins: TArray<string>;
+  const ARequestOrigin: string): string;
+var
+  lAllowed: string;
 begin
   Result := '';
   if ARequestOrigin = '' then
     Exit;
-  for lAllowed in AConfiguredOrigins.Split([',']) do
+  for lAllowed in AAllowedOrigins do
   begin
-    lTrimmed := lAllowed.Trim;
-    if lTrimmed = '*' then
+    if lAllowed = '*' then
       Exit('*');
-    if SameText(ARequestOrigin, lTrimmed) then
-      Exit(lTrimmed);
+    if SameText(ARequestOrigin, lAllowed) then
+      Exit(lAllowed);
   end;
 end;
 
+function MVCMatchCORSOrigin(const AConfiguredOrigins, ARequestOrigin: string): string;
+begin
+  Result := MatchCORSOrigin(SplitCORSOrigins(AConfiguredOrigins), ARequestOrigin);
+end;
+
 procedure StampSimpleCORSHeaders(const AContext: TWebContext;
-  const AAllowedOriginURLs: string;
+  const AAllowedOrigins: TArray<string>;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: string);
 var
@@ -1080,7 +1100,7 @@ begin
   // Reflect the request Origin against the configured list instead of emitting
   // the whole (possibly multi-value) configured string verbatim, which is an
   // invalid header and, with '*' + credentials, the forbidden CORS combo.
-  lAllowOrigin := MVCMatchCORSOrigin(AAllowedOriginURLs, AContext.Request.Headers['Origin']);
+  lAllowOrigin := MatchCORSOrigin(AAllowedOrigins, AContext.Request.Headers['Origin']);
   if lAllowOrigin <> '' then
   begin
     AContext.Response.SetCustomHeader('Access-Control-Allow-Origin', lAllowOrigin);
@@ -1104,7 +1124,10 @@ function CORS(
   const AAllowsHeaders: string;
   const AAllowsMethods: string;
   const AAccessControlMaxAge: Integer): TMVCEndpointFilter;
+var
+  lOrigins: TArray<string>;
 begin
+  lOrigins := SplitCORSOrigins(AAllowedOriginURLs);
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -1116,7 +1139,7 @@ begin
       if AContext.Request.HTTPMethod = httpOPTIONS then
       begin
         StampSimpleCORSHeaders(AContext,
-          AAllowedOriginURLs, AAllowsCredentials, AExposeHeaders);
+          lOrigins, AAllowsCredentials, AExposeHeaders);
         AContext.Response.SetCustomHeader('Access-Control-Allow-Methods', AAllowsMethods);
         AContext.Response.SetCustomHeader('Access-Control-Allow-Headers', AAllowsHeaders);
         AContext.Response.SetCustomHeader('Access-Control-Max-Age', IntToStr(AAccessControlMaxAge));
@@ -1133,7 +1156,7 @@ begin
         Result := ANext();
       finally
         StampSimpleCORSHeaders(AContext,
-          AAllowedOriginURLs, AAllowsCredentials, AExposeHeaders);
+          lOrigins, AAllowsCredentials, AExposeHeaders);
       end;
     end;
 end;

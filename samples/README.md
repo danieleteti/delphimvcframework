@@ -121,6 +121,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `htmx_website_with_templatepro` | Full website with HTMX and TemplatePro |
 | `htmx_website_with_webstencils` | Full website with HTMX and WebStencils |
 | `instant_search_with_htmx_and_templatepro` | Live instant-search with HTMX |
+| `webapp_htmx_forms` | Table with HTMX search/filter/sort and new/edit forms (TemplatePro forms library + validators, 422 re-render, Post/Redirect/Get) |
 
 ## JSON-RPC
 

@@ -1395,6 +1395,11 @@ type
     property HTMLBody: string read fHTMLBody write fHTMLBody;
   end;
 
+  // RFC 7807 body built by ProblemDetails: Data (a TJsonObject) is the whole
+  // response body, sent as application/problem+json without the "data" wrapper.
+  TMVCProblemDetailsResponse = class(TMVCResponse)
+  end;
+
   TMVCErrorResponse = class(TMVCResponse)
   private
     fClassname: string;
@@ -1664,19 +1669,28 @@ begin
   Result := procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean)
             var
               lRedirectionURL: String;
+              lClassName, lMessage: String;
             begin
+              // Same rule as TMVCRenderer.Render(AException): outside DEBUG no class
+              // name and no internal message (SQL, paths) in the body or the URL.
+              {$IFDEF DEBUG}
+              lClassName := E.ClassName;
+              {$ELSE}
+              lClassName := '';
+              {$ENDIF}
+              lMessage := MVCClientSafeExceptionMessage(E);
               if E is EMVCException then
               begin
                 WebContext.Response.Content :=
-                  Format('HTTP %d - %s: %s', [EMVCException(E).HTTPStatusCode, E.ClassName, E.Message]);
+                  Format('HTTP %d - %s: %s', [EMVCException(E).HTTPStatusCode, lClassName, lMessage]);
               end
               else
               begin
                WebContext.Response.Content :=
-                  Format('HTTP %d - %s: %s', [HTTP_STATUS.InternalServerError, E.ClassName, E.Message]);
+                  Format('HTTP %d - %s: %s', [HTTP_STATUS.InternalServerError, lClassName, lMessage]);
               end;
               WebContext.Response.StatusCode := HTTP_STATUS.Found;
-              lRedirectionURL := ErrorPageURL + '?class=' + URLEncode(E.ClassName) + '&error=' + URLEncode(E.Message);
+              lRedirectionURL := ErrorPageURL + '?class=' + URLEncode(lClassName) + '&error=' + URLEncode(lMessage);
               WebContext.Response.SetCustomHeader('location', lRedirectionURL);
               ExceptionHandled := True;
             end;
@@ -3315,7 +3329,12 @@ begin
           end
           else
           begin
+            // the class name is reconnaissance: DEBUG only, as in TMVCRenderer.Render(AException)
+            {$IFDEF DEBUG}
             SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message, E.Classname);
+            {$ELSE}
+            SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message);
+            {$ENDIF}
           end;
         end;
         AContext.Data['__duration'] := Format('%dms', [AStopWatch.ElapsedMilliseconds]);
@@ -4647,6 +4666,13 @@ begin
     Controller.SetContentType(TMVCMediaType.TEXT_HTML + '; charset=' + TMVCCharSet.UTF_8);
     Controller.ResponseStatus(MVCResponse.StatusCode);
     Controller.Render(TMVCHTMLResponse(MVCResponse).HTMLBody);
+    Exit;
+  end;
+  if MVCResponse is TMVCProblemDetailsResponse then
+  begin
+    Controller.SetContentType('application/problem+json; charset=' + TMVCCharSet.UTF_8);
+    Controller.ResponseStatus(MVCResponse.StatusCode);
+    Controller.Render(TJsonObject(MVCResponse.Data).ToJSON);
     Exit;
   end;
   if MVCResponse.HasBody then
@@ -6128,6 +6154,7 @@ function ProblemDetails(const StatusCode: Word; const Title: string;
   const Detail: string; const Instance: string): IMVCResponse;
 var
   J: TJsonObject;
+  lResp: TMVCProblemDetailsResponse;
 begin
   J := TJsonObject.Create;
   J.S['type']   := 'about:blank';
@@ -6135,7 +6162,11 @@ begin
   J.I['status'] := StatusCode;
   if Detail <> '' then   J.S['detail']   := Detail;
   if Instance <> '' then J.S['instance'] := Instance;
-  Result := MVCResponseBuilder.StatusCode(StatusCode).Body(J, True).Build;
+  lResp := TMVCProblemDetailsResponse.Create;
+  lResp.StatusCode := StatusCode;
+  lResp.Data := J;
+  lResp.OwnsData := True;
+  Result := lResp;
 end;
 
 function ReasonPhraseFor(const StatusCode: Word): string;

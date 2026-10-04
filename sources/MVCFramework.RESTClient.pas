@@ -1236,7 +1236,9 @@ begin
         lBody := lBody + lName + '=' + lValue;
       end;
     end;
-    AddBody(lBody, lCurrentContentType);
+    // no AddBodyFieldURLEncoded fields: keep a raw body passed to Post/Put/Patch
+    if not lBody.IsEmpty then
+      AddBody(lBody, lCurrentContentType);
     aBodyStream := fRawBody;
   end
   else

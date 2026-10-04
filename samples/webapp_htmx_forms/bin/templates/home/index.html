@@ -1,0 +1,94 @@
+﻿{{# ================================================================
+   HOME PAGE (with HTMX) - Bootstrap 5.3
+   ================================================================
+   Extends baselayout.html. Uses HTMX for server interaction:
+   no JavaScript needed, just HTML attributes.
+
+   Variables available from the controller:
+     app_name, dmvc_version, compiler_version, current_date
+   ================================================================ #}}
+{{extends "../baselayout.html"}}
+
+{{block "title"}}Home{{endblock}}
+
+{{block "body"}}
+
+  <header class="page-header">
+    <div class="row g-4 align-items-end">
+      <div class="col-lg-7">
+        <h1>{{:app_name}} is running</h1>
+        <p class="lead">A DelphiMVCFramework web application: controllers render TemplatePro
+          views on the server, and HTMX swaps server-rendered fragments into the page.</p>
+        <div class="page-actions">
+          <a class="btn btn-primary" href="/web/people">
+            Open the People table <svg class="icon ms-1" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+          <a class="btn btn-outline-secondary" href="/api/server/info" target="_blank">JSON API</a>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <section class="panel" aria-labelledby="serverTitle">
+          <h2 class="panel-title" id="serverTitle"><span class="live-dot" aria-hidden="true"></span>Server</h2>
+          <dl class="meta-list">
+            <dt>Time</dt>
+            <dd hx-get="/web/fragment/clock" hx-trigger="load, every 2s" hx-swap="innerHTML">--:--:--</dd>
+            <dt>Date</dt>
+            <dd>{{:current_date}}</dd>
+            <dt>DMVCFramework</dt>
+            <dd>{{:dmvc_version}}</dd>
+            <dt>Compiler</dt>
+            <dd>{{:compiler_version}}</dd>
+          </dl>
+        </section>
+      </div>
+    </div>
+  </header>
+
+  <div class="row g-4 g-lg-5">
+    <section class="col-lg-7 section" aria-labelledby="startTitle">
+      <h2 class="section-title" id="startTitle">Start here</h2>
+      <ol class="steps">
+        <li>
+          <strong>Change this page</strong>
+          <p>Edit <code>bin/templates/home/index.html</code> and reload: views are read from disk,
+             no recompile needed.</p>
+        </li>
+        <li>
+          <strong>Render your own data</strong>
+          <p>The People page renders a list of objects with <code>&#123;&#123;for&#125;&#125;</code>, sorts and filters it
+             on the server, and updates only the table with HTMX. Copy it for your first real page.</p>
+        </li>
+        <li>
+          <strong>Add a page</strong>
+          <p>Add an action to <code>Controllers.HomeU</code> that calls <code>RenderView('folder/name')</code>,
+             and a template that extends <code>baselayout.html</code>.</p>
+        </li>
+        <li>
+          <strong>Share the layout</strong>
+          <p>Navigation, footer and theme live in <code>baselayout.html</code>; page styles in
+             <code>bin/www/css/style.css</code>.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="col-lg-5 section" aria-labelledby="tryTitle">
+      <h2 class="section-title" id="tryTitle">Try a server fragment</h2>
+      <div class="panel">
+        <p class="text-secondary">The button asks the server for an HTML fragment and HTMX puts it
+          below. The server time above is the same idea, polled every 2 seconds.</p>
+        <button type="button" class="btn btn-outline-primary"
+                hx-get="/web/fragment/info"
+                hx-target="#infoResult"
+                hx-swap="innerHTML"
+                hx-on::after-request="showToast('Server info loaded', 'success')">
+          Load server info
+        </button>
+        <div id="infoResult" class="mt-3 small" aria-live="polite"></div>
+        <p class="small text-secondary mb-0 mt-3">
+          <code>hx-get</code> + <code>hx-target</code> &middot; see <code>Controllers.HomeU.GetInfoFragment</code>
+        </p>
+      </div>
+    </section>
+  </div>
+
+{{endblock}}

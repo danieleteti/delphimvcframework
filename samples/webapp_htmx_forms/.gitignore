@@ -1,0 +1,12 @@
+bin/*.exe
+bin/logs/
+Win32/
+Win64/
+__history/
+__recovery/
+*.dcu
+*.res
+*.identcache
+*.local
+*.dsk
+*.stat

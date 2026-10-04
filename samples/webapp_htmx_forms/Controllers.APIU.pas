@@ -1,0 +1,52 @@
+﻿// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2026 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+
+unit Controllers.APIU;
+
+// JSON API sidecar for a server-side-view app. The SSV project (views,
+// layouts, static files) focuses on HTML output; TAPIController exposes the
+// same server state as JSON so AJAX / HTMX partials and external consumers
+// have a stable, content-type-correct entry point.
+
+interface
+
+uses
+  MVCFramework,
+  MVCFramework.Commons;
+
+type
+  [MVCPath('/api')]
+  TAPIController = class(TMVCController)
+  public
+    [MVCPath('/server/info')]
+    [MVCHTTPMethod([httpGET])]
+    function GetServerInfo: IMVCResponse;
+  end;
+
+implementation
+
+uses
+  System.SysUtils,
+  System.DateUtils,
+  MVCFramework.Serializer.Commons;
+
+function TAPIController.GetServerInfo: IMVCResponse;
+begin
+  Result := OkResponse(
+    StrDict(
+      ['application', 'dmvcVersion', 'serverTime', 'compilerVersion'],
+      ['WebAppHTMXForms', DMVCFRAMEWORK_VERSION,
+       FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now),
+       Format('Delphi %.1f', [CompilerVersion], TFormatSettings.Invariant)]
+    )
+  );
+end;
+
+end.

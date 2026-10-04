@@ -95,7 +95,7 @@ begin
     '<pre>curl -X POST http://localhost:8080/people \' + sLineBreak +
     '     -H "Content-Type: application/json" \' + sLineBreak +
     '     -d ''{"firstName":"Ada","lastName":"Lovelace","email":"ada@example.com"}''</pre>' + sLineBreak +
-    '<p>Try posting an invalid email or empty field &mdash; the validator short-circuits with a 400 ProblemDetails.</p>' + sLineBreak +
+    '<p>Try posting an invalid email or empty field &mdash; the validator short-circuits with a 422 ProblemDetails.</p>' + sLineBreak +
     '<h2><span class="verb">GET</span> <span class="path">/search</span> &mdash; record + [MVCFromQueryString]</h2>' + sLineBreak +
     '<pre>curl "http://localhost:8080/search?q=ada&amp;page=2&amp;size=10"</pre>' + sLineBreak +
     '<p>Omit any query param &mdash; the record fields fall back to the defaults declared in the attribute.</p>' + sLineBreak +
@@ -151,7 +151,7 @@ begin
   //    TMVCValidatable and carries [MVCRequired] / [MVCEmail] attributes;
   //    the arg resolver invokes TMVCValidationEngine.ValidateAndRaise
   //    after JSON deserialization, before this handler. Invalid payloads
-  //    short-circuit with a ProblemDetails 400.
+  //    short-circuit with a ProblemDetails 422.
   //
   //    .WithSummary attaches an OpenAPI operation summary via the chainable
   //    handle. The same record exposes .WithName, .WithDescription, .WithTags,

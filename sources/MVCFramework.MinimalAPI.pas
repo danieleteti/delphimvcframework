@@ -716,6 +716,8 @@ uses
   MVCFramework.Rtti.Utils,
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Intf,
+  JsonDataObjects,
+  MVCFramework.Logger,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Validation,
   MVCFramework.ValidationEngine;
@@ -1827,7 +1829,7 @@ begin
 
       // Auto-validate the bound class if it carries validation attributes
       // (descends from TMVCValidatable). Raises EMVCValidationException on
-      // failure — caught by the middleware and rendered as ProblemDetails 400.
+      // failure — rendered as ProblemDetails 422 (RenderExceptionAsProblem).
       if TMVCValidationEngine.IsValidatableClass(lObj.ClassType) then
         TMVCValidationEngine.ValidateAndRaise(lObj);
     finally
@@ -2018,9 +2020,32 @@ procedure RenderExceptionAsProblem(const ARenderer: TMVCRenderer;
   const ATitle: string; const E: Exception);
 var
   lResp: IMVCResponse;
+  lJSON: TJsonObject;
+  lPair: TPair<string, string>;
+  lErrors: string;
 begin
-  lResp := ProblemDetails(AStatusCode, ATitle, E.Message,
+  // Same log line the controller pipeline writes: the client only gets the
+  // client-safe message, the full text stays here.
+  if E is EMVCValidationException then
+  begin
+    lErrors := '';
+    for lPair in EMVCValidationException(E).ValidationErrors do
+      lErrors := lErrors + IfThen(lErrors <> '', '; ') + lPair.Key + ': ' + lPair.Value;
+    LogW('[%s] %s [%s %s] - %d (Validation Errors: "%s")', [E.ClassName, E.Message,
+      AContext.Request.HTTPMethodAsString, AContext.Request.PathInfo, AStatusCode, lErrors]);
+  end
+  else
+    LogE('[%s] %s [%s %s] - %d', [E.ClassName, E.Message,
+      AContext.Request.HTTPMethodAsString, AContext.Request.PathInfo, AStatusCode]);
+  lResp := ProblemDetails(AStatusCode, ATitle, MVCClientSafeExceptionMessage(E),
     AContext.Request.PathInfo);
+  // RFC 7807 extension member: the per-field messages a controller returns in "items"
+  if E is EMVCValidationException then
+  begin
+    lJSON := TMVCResponse(lResp as TObject).Data as TJsonObject;
+    for lPair in EMVCValidationException(E).ValidationErrors do
+      lJSON.O['errors'].S[lPair.Key] := lPair.Value;
+  end;
   TMVCRenderer.InternalRenderMVCResponse(ARenderer,
     TMVCResponse(lResp as TObject));
 end;

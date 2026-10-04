@@ -160,13 +160,18 @@ certificate you cannot fix.
   `.env`.
 - **Web Application projects from the IDE wizard start from a fuller UI.**
   The TemplatePro views have a page header, a live server panel and a
-  "Start here" list on the home page, drawn icons, themed selection and focus,
-  and a new **People** page (`/web/people`) that shows how to render a table:
-  the controller filters and sorts a list of objects from the query string,
-  `people/table.html` loops over it (`@@index`, filters, the `else` branch as
-  empty state, macros for the sortable headers), and with HTMX only the table
-  is replaced while the address bar keeps a shareable URL. Without HTMX the
-  same templates work as plain GET forms and links.
+  "Start here" list on the home page, drawn icons, themed selection and focus.
+  The scaffold stays the minimum to add to; the home page points to the new
+  sample `samples/webapp_htmx_forms`.
+- **New sample `samples/webapp_htmx_forms`.** A **People** section
+  (`/web/people`) that shows how to render a table and edit its rows: the
+  controller filters and sorts a list of objects from the query string,
+  `people/table.html` loops over it, and with HTMX only the table is replaced
+  (fragment when `IsHTMX` and not boosted and not a history restore, plus
+  `Vary: HX-Request`). The new/edit forms use every macro of the TemplatePro
+  forms library, validate with the DMVCFramework validators and
+  `TMVCValidationEngine`, re-render with 422 on errors and follow
+  Post/Redirect/Get.
 - **The `QUERY` HTTP method (RFC 10008).** `QUERY` is safe and idempotent
   like `GET`, but it carries a request body: the query travels in the
   payload instead of the URL, so it is not URL-length limited and does not
@@ -642,6 +647,43 @@ the same socket.
 
 ### Fixed
 
+- **`ProblemDetails(...)` is now a real RFC 7807 body.** It came out wrapped
+  in `{"data": {...}}` with `Content-Type: application/json`; the problem
+  object is now the whole body, sent as `application/problem+json`. This is
+  what the Minimal API renders for an unhandled exception raised by a route
+  handler or an endpoint filter (engine-wide HTTP filters go through the
+  engine's error response, as classic middleware does).
+- **Minimal API validation errors carry the per-field messages.** The 422
+  body only listed the field names in `detail`; it now adds an `errors`
+  object (property name to message), the same information a controller
+  returns in `items`.
+- **Minimal API: internal exception text no longer reaches the client.** The
+  ProblemDetails `detail` carried `E.Message` of any exception, so in a
+  release build a FireDAC error sent its SQL statement to the caller. It now
+  goes through `MVCClientSafeExceptionMessage`, like the controller pipeline:
+  the framework's own exceptions keep their message, anything else becomes
+  "Internal server error" outside DEBUG.
+- **Minimal API exceptions are logged.** Only the router line (`status=500`)
+  reached the log; now the class, the message and the request are logged as
+  the controller pipeline does (warning with the field errors for a 422).
+- **No exception class name in release error bodies, and `GetErrorPageHandler`
+  follows the same rule.** An `EMVCException` that reached the engine without a
+  controller (e.g. raised by an HTTP filter) sent its class name even in
+  release. `GetErrorPageHandler` put the class name and the raw message in the
+  body and in the redirect URL (`?class=...&error=...`): outside DEBUG the class
+  is now empty and the message is the client-safe one.
+- **Serializer: "Cannot serialize field" no longer carries the inner
+  exception.** The class and message of the getter's exception went into an
+  `EMVCSerializationException` message, which is sent to the client. They are
+  logged server-side; the client gets the field name.
+- **`TMVCRESTClient` returned an empty `Content` for `+json` / `+xml` media
+  types** (`application/problem+json`, `application/vnd.api+json`, ...): they
+  were treated as binary. They are read as text now.
+- **`TMVCRESTClient.Post(Resource, Body, 'application/x-www-form-urlencoded')`
+  sent an empty body.** The body was always rebuilt from the
+  `AddBodyFieldURLEncoded` fields, even when there were none; a raw body is
+  now kept.
+
 - **TemplatePro: more dataset field types, unsigned values.** Fields of type
   `ftShortint`, `ftByte`, `ftLongWord`, `ftExtended`, `ftGuid`, `ftFixedChar`,
   `ftFixedWideChar` and (Delphi 13+) `ftLargeUint` can be used in views, and
@@ -734,6 +776,9 @@ the cross-backend comparison.
 
 `(*)` new benchmark scenarios introduced in 3.5.x exercising the
 streaming serializer.
+
+- `CORS(...)` and `CORSFilter(...)` split and trim the allowed-origins list
+  once when the filter is created, not on every request.
 
 ## [3.4.3-aluminium] - Current Stable
 

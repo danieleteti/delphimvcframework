@@ -1,19 +1,20 @@
-{{# ================================================================
-   EDIT PERSON - a form built with the TemplatePro forms library
+﻿{{# ================================================================
+   NEW / EDIT PERSON - a form built with the TemplatePro forms library
    ================================================================
    lib/forms_bootstrap5.tpro writes the Bootstrap markup of each field:
    label, control, current value and, when the field is invalid, the
    is-invalid class and the message.
 
-   Variables (set by EditPerson and SavePerson):
-     formModel   - the values shown: the stored person, or what was typed
+   Variables (set by RenderForm in the People code):
+     formModel   - the values shown: the stored person, an empty one, or what was typed
      formErrors  - field name -> message, only after an invalid submit
-     person_id, roles, statuses
+     form_action - where the form posts: /web/people/new or /web/people/<id>
+     is_new, person_id, roles, statuses
    ================================================================ #}}
 {{extends "../baselayout.html"}}
 {{import "../lib/forms_bootstrap5.tpro" as f}}
 
-{{block "title"}}Edit person{{endblock}}
+{{block "title"}}{{if is_new}}New person{{else}}Edit person{{endif}}{{endblock}}
 
 {{block "body"}}
 
@@ -21,10 +22,10 @@
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/web/people">People</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        <li class="breadcrumb-item active" aria-current="page">{{if is_new}}New{{else}}Edit{{endif}}</li>
       </ol>
     </nav>
-    <h1>Edit person</h1>
+    <h1>{{if is_new}}New person{{else}}Edit person{{endif}}</h1>
     <p class="lead">A form rendered by the forms library and checked on the server.
       Changes are kept in memory until the server stops.</p>
   </header>
@@ -35,21 +36,29 @@
       <div class="alert alert-danger" role="alert">Some fields need attention.</div>
       {{endif}}
       {{# novalidate: the server checks every field, so its messages are the ones you see #}}
-      {{set action := @("/web/people/" + person_id)}}
       {{set formattrs := {"novalidate": true}}}
       {{set projattrs := {"min": 0}}}
-      {{call f.form(action, attrs=formattrs)}}
+      {{set notesattrs := {"maxlength": 500}}}
+      {{call f.form(form_action, attrs=formattrs)}}
       <div class="row">
+        {{if !is_new}}
+        <div class="col-md-2">{{>f.input("id", label="ID", readonly=true)}}</div>
+        <div class="col-md-5">{{>f.input("name", label="Name", required=true, maxlength=60)}}</div>
+        <div class="col-md-5">{{>f.input("email", label="Email", type="email", required=true)}}</div>
+        {{else}}
         <div class="col-md-6">{{>f.input("name", label="Name", required=true, maxlength=60)}}</div>
         <div class="col-md-6">{{>f.input("email", label="Email", type="email", required=true)}}</div>
-        <div class="col-md-6">{{>f.select("role", roles, label="Role", required=true)}}</div>
+        {{endif}}
+        <div class="col-md-6">{{>f.select("role", roles, label="Role", empty="Choose a role", required=true)}}</div>
         <div class="col-md-6">{{>f.input("city", label="City", maxlength=40)}}</div>
         <div class="col-md-4">{{>f.select("status", statuses, label="Status")}}</div>
         <div class="col-md-4">{{>f.input("joined", label="Joined", type="date")}}</div>
-        <div class="col-md-4">{{>f.input("projects", label="Projects", type="number", attrs=projattrs)}}</div>
+        <div class="col-md-4">{{>f.input("projects", label="Projects", type="number", append="active", attrs=projattrs)}}</div>
+        <div class="col-12">{{>f.textarea("notes", label="Notes", rows=3, attrs=notesattrs)}}</div>
+        <div class="col-12">{{>f.checkbox("remote", label="Works remotely")}}</div>
       </div>
       {{call f.actions()}}
-      {{>f.submit("Save")}}
+      {{if is_new}}{{>f.submit("Create")}}{{else}}{{>f.submit("Save")}}{{endif}}
       <a class="btn btn-outline-secondary" href="/web/people">Cancel</a>
       {{endcall}}
       {{endcall}}
@@ -59,14 +68,20 @@
       <details class="explain">
         <summary>How this form is built</summary>
         <p class="text-secondary">Each field is one macro call. The macro reads the value from
-          <code>formModel</code> and the message from <code>formErrors</code>:</p>
+          <code>formModel</code> and the message from <code>formErrors</code>. The same page
+          creates and edits: only the model and the action change.</p>
 <pre class="source"><code>{{raw}}{{import "../lib/forms_bootstrap5.tpro" as f}}
-{{call f.form(action)}}
+{{call f.form(form_action)}}
+{{>f.input("id", label="ID", readonly=true)}}
 {{>f.input("name", label="Name", required=true)}}
-{{>f.select("role", roles, label="Role")}}
-{{>f.input("joined", label="Joined", type="date")}}
+{{>f.select("role", roles, label="Role", empty="Choose a role")}}
+{{>f.input("projects", type="number", append="active")}}
+{{>f.textarea("notes", label="Notes", rows=3)}}
+{{>f.checkbox("remote", label="Works remotely")}}
 {{>f.submit("Save")}}
 {{endcall}}{{endraw}}</code></pre>
+        <p class="text-secondary">The checkbox posts <code>false</code> from a hidden input and
+          then <code>true</code> when it is ticked: the server keeps the last value.</p>
         <p class="text-secondary mb-0"><code>{{raw}}{{>f.auto(person)}}{{endraw}}</code> writes a
           control for every field of an object or a dataset.</p>
       </details>

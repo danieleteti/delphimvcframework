@@ -20,7 +20,7 @@ type
     // "AR as DTO" pattern: the same AR class is deserialized from the
     // body and used as the storage entity. TMVCActiveRecord inherits
     // TMVCValidatable, so the framework runs the FIELD validators at
-    // the HTTP boundary too (via the OnValidate override). Only
+    // the HTTP boundary too (and OnValidate, if overridden). Only
     // OnStorageValidate stays a strictly save-time rule.
     [MVCPath('/ar')]
     [MVCHTTPMethod([httpPOST])]

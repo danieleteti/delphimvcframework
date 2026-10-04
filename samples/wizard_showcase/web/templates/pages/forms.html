@@ -1,0 +1,209 @@
+{{# ================================================================
+   FORMS - every macro of the TemplatePro forms library
+   ================================================================
+   Variables (set by RenderFormsPage in FormsDemoU.pas):
+     formModel   - the values shown: a TFormsDemo, or Request.ContentFields
+                   (what was typed) after an invalid submit
+     formErrors  - field name -> message, only after an invalid submit
+     demo        - the TFormsDemo object, used by the f.auto() section
+     countries   - TObjectList<TCountry>, the options of the select
+     saved       - True after a valid submit
+   The import must stay at the top level, outside any block.
+   ================================================================ #}}
+{{extends "../baselayout.html"}}
+{{import "../lib/forms_bootstrap5.tpro" as f}}
+
+{{block "title"}}Forms · TestProject{{endblock}}
+
+{{block "body"}}
+<nav><a href="/">&larr; back to index</a></nav>
+<h1 class="mb-3">Forms</h1>
+<p class="lead">The TemplatePro forms library (<code>templates/lib/forms_bootstrap5.tpro</code>)
+   writes the Bootstrap markup of a control: label, control, current value and, when the
+   field is invalid, the <code>is-invalid</code> class and the message. Each section below
+   shows a control next to the line that produced it.</p>
+
+<p>Every macro reads two variables unless told otherwise:
+   <code>formModel</code>, where the value of the field comes from (an object, a dataset,
+   a JSON object, a dictionary or a <code>TStrings</code>), and <code>formErrors</code>,
+   field name &rarr; message. The handler puts both in <code>ViewData</code>: a fresh
+   <code>TFormsDemo</code> on <code>GET</code>; on an invalid <code>POST</code>,
+   <code>Request.ContentFields</code> (exactly what was typed) plus the messages, with
+   status 422. Clear the name, type a future date or a quantity of 0 and submit.</p>
+
+<pre class="bg-body-tertiary border rounded p-3"><code>{{raw}}{{import "../lib/forms_bootstrap5.tpro" as f}}   {{# once, at the top level of the page #}}{{endraw}}</code></pre>
+
+{{if saved}}
+<div class="alert alert-success" role="alert">Saved: every field passed the server-side validation.
+   The form shows the values as the server stored them.</div>
+{{endif}}
+{{if formErrors}}
+<div class="alert alert-danger" role="alert">Some fields need attention (HTTP 422).</div>
+{{endif}}
+
+{{# novalidate: the browser lets everything through, so the messages you see come from the server #}}
+{{set formattrs := {"novalidate": true}}}
+{{set qtyattrs := {"min": 1, "max": 99}}}
+{{set notesattrs := {"maxlength": 500}}}
+{{call f.form("/forms", attrs=formattrs)}}
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.form</code> &mdash; the &lt;form&gt; element</div>
+  <div class="card-body">
+    <p class="mb-2">Called with <code>call</code>: everything up to <code>endcall</code> becomes the
+       content of the form. <code>attrs</code> is a map of extra attributes; <code>true</code>
+       writes a bare attribute (here <code>novalidate</code>).</p>
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{set formattrs := {"novalidate": true}}}
+{{call f.form("/forms", attrs=formattrs)}}
+  ... the controls ...
+{{endcall}}{{endraw}}</code></pre>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.input</code> &mdash; text, with placeholder and maxlength</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.input("fullname", label="Full name", required=true, placeholder="First and last name", maxlength=60)}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.input("fullname", label="Full name", required=true,
+    placeholder="First and last name", maxlength=60)}}{{endraw}}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.input</code> &mdash; type email, with an icon prepended</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.input("email", label="Email", type="email", required=true, prepend="&#9993;")}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.input("email", label="Email", type="email", required=true,
+    prepend="&amp;#9993;")}}{{endraw}}</code></pre>
+      <p class="small text-secondary mt-2 mb-0"><code>prepend</code> and <code>append</code> are written
+         raw, so they can hold text, an HTML entity or an inline SVG.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.input</code> &mdash; type date</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.input("birthdate", label="Birth date", type="date")}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.input("birthdate", label="Birth date", type="date")}}{{endraw}}</code></pre>
+      <p class="small text-secondary mt-2 mb-0">A <code>TDate</code> is written as
+         <code>yyyy-mm-dd</code>; after an invalid submit the posted string is shown as is.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.input</code> &mdash; type number, with text appended and extra attributes</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.input("quantity", label="Quantity", type="number", append="pcs", attrs=qtyattrs)}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{set qtyattrs := {"min": 1, "max": 99}}}
+{{>f.input("quantity", label="Quantity", type="number",
+    append="pcs", attrs=qtyattrs)}}{{endraw}}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.input</code> &mdash; readonly</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.input("id", label="ID", readonly=true)}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.input("id", label="ID", readonly=true)}}{{endraw}}</code></pre>
+      <p class="small text-secondary mt-2 mb-0">A readonly field is still posted: the server
+         ignores it (<code>TFormsDemo.Id</code> has no setter).</p>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.textarea</code></div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.textarea("notes", label="Notes", rows=4, attrs=notesattrs)}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{set notesattrs := {"maxlength": 500}}}
+{{>f.textarea("notes", label="Notes", rows=4, attrs=notesattrs)}}{{endraw}}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.select</code> &mdash; options from a list of objects</div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.select("country", countries, label="Country", valueprop="Code", textprop="Name", empty="Choose a country", required=true)}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.select("country", countries, label="Country",
+    valueprop="Code", textprop="Name",
+    empty="Choose a country", required=true)}}{{endraw}}</code></pre>
+      <p class="small text-secondary mt-2 mb-0"><code>countries</code> is a
+         <code>TObjectList&lt;TCountry&gt;</code>: <code>valueprop</code> and <code>textprop</code>
+         name the members used for the value and the text. With a list of strings, leave both
+         out. <code>empty</code> adds a first option with an empty value.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.checkbox</code></div>
+  <div class="card-body row">
+    <div class="col-md-6">{{>f.checkbox("subscribed", label="Subscribe to the newsletter")}}</div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{>f.checkbox("subscribed", label="Subscribe to the newsletter")}}{{endraw}}</code></pre>
+      <p class="small text-secondary mt-2 mb-0">A hidden input posts <code>false</code>, the box
+         posts <code>true</code> after it when ticked: <code>Request.ContentFields</code> keeps the
+         last value, so an unticked box reads <code>false</code> instead of being missing.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><code>f.actions</code> + <code>f.submit</code></div>
+  <div class="card-body row">
+    <div class="col-md-6">
+      {{call f.actions()}}
+      {{>f.submit("Save")}}
+      <a class="btn btn-outline-secondary" href="/forms">Reset</a>
+      {{endcall}}
+    </div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{call f.actions()}}
+  {{>f.submit("Save")}}
+  &lt;a class="btn btn-outline-secondary" href="/forms"&gt;Reset&lt;/a&gt;
+{{endcall}}{{endraw}}</code></pre>
+    </div>
+  </div>
+</section>
+
+{{endcall}}
+
+<h2 class="h4 mt-5">f.auto &mdash; one control per property</h2>
+<p><code>f.auto</code> walks <code>model.@@fields</code> (the properties of an object, or the
+   fields of a dataset) and picks the macro from the type: <code>string</code> &rarr; text,
+   <code>Integer</code> &rarr; number, <code>TDate</code> &rarr; date, <code>Boolean</code>
+   &rarr; checkbox, a property without setter &rarr; readonly. Below it renders the same
+   <code>TFormsDemo</code> object; this form posts to the same handler.</p>
+<p class="small text-secondary">From the type alone it cannot know that <code>Country</code> is a
+   choice or <code>Notes</code> a memo: both become text inputs. Use the single macros when that
+   matters, or change the metadata with <code>TTProConfiguration.OnGetFieldMetadata</code>.</p>
+
+<section class="card mb-4">
+  <div class="card-body row">
+    <div class="col-md-6">
+      {{call f.form("/forms", attrs=formattrs)}}
+      {{>f.auto(demo)}}
+      {{>f.submit("Save")}}
+      {{endcall}}
+    </div>
+    <div class="col-md-6">
+<pre class="bg-body-tertiary border rounded p-3 mb-0"><code>{{raw}}{{call f.form("/forms", attrs=formattrs)}}
+  {{>f.auto(demo)}}
+  {{>f.submit("Save")}}
+{{endcall}}{{endraw}}</code></pre>
+    </div>
+  </div>
+</section>
+{{endblock}}

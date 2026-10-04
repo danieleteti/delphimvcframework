@@ -1,8 +1,8 @@
 {{include "_license_header.tpro"}}
 unit RoutesU;
 
-// Minimal-API web app: the same pages as the controller-based one (Home,
-// People, About) as lambda routes, plus a login-protected Admin area.
+// Minimal-API web app: the same pages as the controller-based one as
+// lambda routes, plus a login-protected Admin area.
 // Session and login are endpoint filters (.Use); PageDefaults fills the
 // ViewData every page of baselayout.html reads.
 
@@ -19,14 +19,9 @@ implementation
 
 uses
   System.SysUtils,
-  System.StrUtils,
   System.DateUtils,
-  System.Math,
-  System.Generics.Collections,
-  System.Generics.Defaults,
   JsonDataObjects,
-  MVCFramework.Commons,
-  MVCFramework.HTMX;
+  MVCFramework.Commons;
 
 type
   // Form-urlencoded binding for POST /web/login via [MVCFromContentField]
@@ -35,16 +30,6 @@ type
     [MVCFromContentField('username')] Username: string;
     [MVCFromContentField('password')] Password: string;
   end;
-
-  // Query string of the People page; the second argument is the default
-  TPeopleQuery = record
-    [MVCFromQueryString('q', '')] Search: string;
-    [MVCFromQueryString('status', '')] Status: string;
-    [MVCFromQueryString('sort', 'name')] Sort: string;
-    [MVCFromQueryString('dir', 'asc')] Dir: string;
-  end;
-
-{{include "_people_sample.pas.tpro"}}
 
 // Values every page reads from baselayout.html
 function PageDefaults: TMVCEndpointFilter;
@@ -144,94 +129,6 @@ begin
         '</dl>');
     end);
 
-  // Table example: search, status filter and sorting come from the query
-  // string, so every state of the table has its own URL.
-  lWeb.MapGet<TWebContext, TPeopleQuery>('/people',
-    function (Ctx: TWebContext; Q: TPeopleQuery): IMVCResponse
-    var
-      lPage: TPeoplePage;
-    begin
-      lPage := BuildPeoplePage(Q.Search, Q.Status, Q.Sort, Q.Dir);
-      try
-        ViewData['page_id'] := 'people';
-        ViewData['people'] := lPage.Rows;
-        ViewData['q'] := Q.Search;
-        ViewData['query'] := Ctx.Request.QueryParams; // model of the search box
-        ViewData['status'] := LowerCase(Q.Status);
-        ViewData['sort'] := lPage.Sort;
-        ViewData['dir'] := lPage.Dir;
-        ViewData['count_all'] := lPage.CountActive + lPage.CountInvited + lPage.CountSuspended;
-        ViewData['count_active'] := lPage.CountActive;
-        ViewData['count_invited'] := lPage.CountInvited;
-        ViewData['count_suspended'] := lPage.CountSuspended;
-        ViewData['count_shown'] := lPage.Rows.Count;
-        // HTMX asks for the table only; a normal request gets the whole page
-        if Ctx.Request.IsHTMX and not Ctx.Request.HXIsBoosted then
-          Result := RenderView('people/table')
-        else
-          Result := RenderView('people/index');
-      finally
-        lPage.Rows.Free;
-      end;
-    end);
-
-  // Form example: people/edit.html is built with the TemplatePro forms
-  // library (templates/lib/forms_bootstrap5.tpro).
-  lWeb.MapGet<Integer>('/people/($id:int)',
-    function (ID: Integer): IMVCResponse
-    var
-      lPerson: TPersonRow;
-    begin
-      lPerson := FindPerson(ID);
-      if lPerson = nil then
-        raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
-      try
-        ViewData['page_id'] := 'people';
-        // formModel is the variable the forms library reads the values from
-        ViewData['formModel'] := lPerson;
-        ViewData['person_id'] := ID;
-        ViewData['roles'] := GRoles;
-        ViewData['statuses'] := GStatuses;
-        Result := RenderView('people/edit');
-      finally
-        lPerson.Free;
-      end;
-    end);
-
-  lWeb.MapPost<TWebContext, Integer>('/people/($id:int)',
-    function (Ctx: TWebContext; ID: Integer): IMVCResponse
-    var
-      lPerson: TPersonRow;
-      lErrors: TDictionary<string, string>;
-    begin
-      lPerson := FindPerson(ID);
-      if lPerson = nil then
-        raise EMVCException.Create(HTTP_STATUS.NotFound, 'Person not found');
-      lErrors := TDictionary<string, string>.Create; // field name -> message
-      try
-        ReadPerson(lPerson, Ctx.Request.ContentFields, lErrors);
-        if lErrors.Count = 0 then
-        begin
-          StorePerson(lPerson);
-          // Post/Redirect/Get: reloading the list does not submit the form again
-          Exit(Redirect('/web/people'));
-        end;
-
-        // Invalid: the same page, with what was typed and a message per field
-        ViewData['page_id'] := 'people';
-        ViewData['formModel'] := Ctx.Request.ContentFields;
-        ViewData['formErrors'] := lErrors;
-        ViewData['person_id'] := ID;
-        ViewData['roles'] := GRoles;
-        ViewData['statuses'] := GStatuses;
-        Result := RenderView('people/edit');
-        Result.StatusCode := HTTP_STATUS.UnprocessableEntity;
-      finally
-        lErrors.Free;
-        lPerson.Free;
-      end;
-    end);
-
   lWeb.MapGet('/login',
     function: IMVCResponse
     begin
@@ -276,7 +173,5 @@ begin
       Result := Redirect('/web/login');
     end);
 end;
-
-{{include "_people_sample_init.pas.tpro"}}
 
 end.
