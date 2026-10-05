@@ -733,6 +733,16 @@ begin
       ASchema.S['type'] := 'string';
       ASchema.S['format'] := 'date';
     end
+    else if SameText(AConstraint, 'time') then
+    begin
+      ASchema.S['type'] := 'string';
+      ASchema.S['format'] := 'time';
+    end
+    else if SameText(AConstraint, 'datetime') then
+    begin
+      ASchema.S['type'] := 'string';
+      ASchema.S['format'] := 'date-time';
+    end
     else if SameText(AConstraint, 'sqids') then
     begin
       // a sqid travels as a string, whatever the handler parameter type (as for controllers)

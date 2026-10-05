@@ -116,13 +116,17 @@ type
     fJsonSchema: string;
     fJsonSchemaClass: TClass;
     fIsArray: Boolean;
+    fDataEnvelope: Boolean;
     fRecordType: TRttiType;
   public
     constructor Create(const aStatusCode: Integer; const aDescription: string; const aJsonSchema: string = '');
       overload;
 
+    /// <param name="aDataEnvelope">
+    /// The body is the model wrapped in {"data": ...}, as OkResponse/CreatedResponse(Body) render it.
+    /// </param>
     constructor Create(const aStatusCode: Integer; const aDescription: string; const aJsonSchemaClass: TClass;
-      const aIsArray: Boolean = False); overload;
+      const aIsArray: Boolean = False; const aDataEnvelope: Boolean = False); overload;
 
     constructor Create(const aFullyQualifiedRecordName: String; const aStatusCode: Integer; const aDescription: string;
       const aIsArray: Boolean = false; const aJsonSchema: String = ''); overload;
@@ -132,6 +136,7 @@ type
     property JsonSchema: string read fJsonSchema;
     property JsonSchemaClass: TClass read fJsonSchemaClass;
     property IsArray: Boolean read fIsArray;
+    property DataEnvelope: Boolean read fDataEnvelope;
     property RecordType: TRttiType read fRecordType;
   end;
 
@@ -1040,6 +1045,7 @@ var
   lClassName: string;
   lIndex: Integer;
   lJsonSchema: TJsonFieldArray;
+  lEnvelope, lDataRef: TJsonFieldObject;
   lModelClass: TClass;
 begin
   for lAttr in aMethod.GetAttributes do
@@ -1159,7 +1165,32 @@ begin
           finally
             lSwagDef.Free;
           end;
-          if lSwagResponsesAttr.IsArray then
+          if lSwagResponsesAttr.DataEnvelope then
+          begin
+            // {"data": <model>} or {"data": [<model>]}
+            lEnvelope := TJsonFieldObject.Create;
+            try
+              if lSwagResponsesAttr.IsArray then
+              begin
+                lJsonSchema := TJsonFieldArray.Create;
+                lJsonSchema.Name := 'data';
+                lJsonSchema.ItemFieldType := TJsonFieldObject.Create;
+                TJsonFieldObject(lJsonSchema.ItemFieldType).Ref := lClassName;
+                lEnvelope.AddField(lJsonSchema);
+              end
+              else
+              begin
+                lDataRef := TJsonFieldObject.Create;
+                lDataRef.Name := 'data';
+                lDataRef.Ref := lClassName;
+                lEnvelope.AddField(lDataRef);
+              end;
+              lSwagResponse.Schema.JsonSchema := lEnvelope.ToJsonSchema;
+            finally
+              lEnvelope.Free;
+            end;
+          end
+          else if lSwagResponsesAttr.IsArray then
           begin
             lJsonSchema := TJsonFieldArray.Create;
             try
@@ -1806,11 +1837,12 @@ begin
 end;
 
 constructor MVCSwagResponsesAttribute.Create(const aStatusCode: Integer; const aDescription: string;
-  const aJsonSchemaClass: TClass; const aIsArray: Boolean);
+  const aJsonSchemaClass: TClass; const aIsArray: Boolean; const aDataEnvelope: Boolean);
 begin
   Create(aStatusCode, aDescription, '');
   fJsonSchemaClass := aJsonSchemaClass;
   fIsArray := aIsArray;
+  fDataEnvelope := aDataEnvelope;
 end;
 
 constructor MVCSwagResponsesAttribute.Create(const aFullyQualifiedRecordName: String; const aStatusCode: Integer;

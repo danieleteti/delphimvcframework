@@ -127,6 +127,31 @@ certificate you cannot fix.
 
 ### Added
 
+- **`time` and `datetime` route parameter kinds**, in controller routes and
+  Minimal API routes alike: `($at:time)` accepts `hh:nn` or `hh:nn:ss`,
+  `($since:datetime)` an ISO 8601 timestamp (`2026-10-05T14:30:15`, with an
+  optional fraction and `Z` or offset; send `+` as `%2B`). A value of another
+  shape does not match the route. They bind `TTime` / `TDateTime` parameters
+  and are documented as `format: time` / `date-time` by the native OpenAPI
+  emitter. `ISOTimeToTime` also reads `hh:nn`.
+- **`MVCSwagResponses(..., AModelClass, AIsArray, ADataEnvelope)`.** With
+  `ADataEnvelope = True` the documented response is the model wrapped in
+  `{"data": ...}`, the body `OkResponse(Body)` / `CreatedResponse(..., Body)`
+  render, built from the class: the model definition is registered and the
+  name follows `SchemaObjectDefinitionNameSuffixForResponse`, with no JSON
+  schema written by hand. The wizard and the Project Manager menu use it.
+- **New projects come with the AI coding agent files and skills.** Option
+  "AI coding agent files and skills" on the Options page of the IDE wizard,
+  checked by default in every preset: `AGENTS.md` (the project facts, the
+  skills list, where the framework and RTL sources are), `CLAUDE.md` and
+  `GEMINI.md` importing it, `update_ai_skills.bat`, and the
+  [delphi-ai-skills](https://github.com/danieleteti/delphi-ai-skills) that fit
+  the project (Delphi, code review, DMVCFramework with ActiveRecord, security,
+  testing; Minimal API, web app, UI, HTMX, JSON-RPC when the project uses
+  them) downloaded into `.claude\skills` from the branch of the framework line
+  (`dmvc-3.5`). The download has a cancellable progress dialog; a failure is a
+  warning, and the `.bat` repeats the install and refreshes the skills later.
+  Untick the option to generate a project without them.
 - **OpenAPI 3 from the Swagger middleware.** `TMVCSwaggerMiddleware` and the
   `Swagger(...)` HTTP filter take a new optional last parameter,
   `ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2`
@@ -139,7 +164,8 @@ certificate you cannot fix.
   Unless the application passes `AHost`, the document's server is relative
   (`"servers": [{"url": "<basePath>"}]`): "Try it out" calls the origin that
   served the document. Swagger 2.0 stays the default (for the two fixes
-  that touch it see **Fixed**).
+  that touch it see **Fixed**). The OpenAPI 3 support in SwagDoc is by
+  Marcelo Jaloto (PR #916): thank you, Marcelo.
 - **The IDE wizard generates API documentation.** New option "API
   documentation (OpenAPI 3)", on by default for RESTful, Full-Stack, Custom
   and Minimal API RESTful projects. Controller projects register the Swagger

@@ -630,9 +630,15 @@ begin
 end;
 
 function ISOTimeToTime(const ATime: string): TTime;
+var
+  lSeconds: Word;
 begin
-  Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)),
-    StrToInt(Copy(ATime, 7, 2)), 0);
+  // hh:nn:ss, or hh:nn (the "time" route parameter kind accepts both)
+  if Length(ATime) = 5 then
+    lSeconds := 0
+  else
+    lSeconds := StrToInt(Copy(ATime, 7, 2));
+  Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)), lSeconds, 0);
 end;
 
 function MVCStringToTValue(const AValue: string; const ATypeInfo: PTypeInfo;

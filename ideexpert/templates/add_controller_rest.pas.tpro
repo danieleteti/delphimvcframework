@@ -34,12 +34,8 @@ type
     [MVCHTTPMethod([httpGET])]
 {{if openapi_swagger}}
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'List {{:resource}}', 'get{{:tag}}')]
-    // OkResponse(List) is rendered as {"data": [...]}
-{{if crud}}
-    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/definitions/{{:model_title}}"}}}}')]
-{{else}}
-    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"}}}}}}')]
-{{endif}}
+    // last argument: OkResponse renders the body as {"data": ...}
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, True, True)]
 {{endif}}
     function GetAll: IMVCResponse;
 {{if crud}}
@@ -48,7 +44,7 @@ type
     [MVCHTTPMethod([httpGET])]
 {{if openapi_swagger}}
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Get one', 'get{{:model_title}}')]
-    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, False, True)]
     [MVCSwagResponses(404, 'Not found')]
 {{endif}}
     function GetByID(ID: Integer): IMVCResponse;

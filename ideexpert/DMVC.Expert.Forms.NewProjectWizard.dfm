@@ -1268,6 +1268,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           's framework version in .claude\skills (downloaded when the projec' +
           't is created; update_ai_skills.bat refreshes them)'
         Caption = 'AI coding agent files and skills'
+        Checked = True
+        State = cbChecked
         ParentShowHint = False
         ShowHint = True
         TabOrder = 7

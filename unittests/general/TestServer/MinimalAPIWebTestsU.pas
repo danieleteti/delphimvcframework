@@ -192,12 +192,24 @@ begin
     end);
 
   // -- route parameter kinds: the same list, the same answers as the controller router
-  for lKind in ['int', 'int64', 'float', 'bool', 'guid', 'date', 'sqids'] do
+  for lKind in ['int', 'int64', 'float', 'bool', 'guid', 'date', 'time', 'datetime', 'sqids'] do
     AEngine.Root.MapGet<TWebContext>('/minimal-web/typedroute/' + lKind + '/($v:' + lKind + ')',
       function (Ctx: TWebContext): IMVCResponse
       begin
         Result := Html(Ctx.Request.Params['v']);
       end);
+
+  // the time and datetime kinds bound to TTime / TDateTime arguments
+  AEngine.Root.MapGet<TTime>('/minimal-web/typedvalue/time/($v:time)',
+    function (V: TTime): IMVCResponse
+    begin
+      Result := Html(FormatDateTime('hh:nn:ss', V));
+    end);
+  AEngine.Root.MapGet<TDateTime>('/minimal-web/typedvalue/datetime/($v:datetime)',
+    function (V: TDateTime): IMVCResponse
+    begin
+      Result := Html(FormatDateTime('yyyy-mm-dd hh:nn:ss', V));
+    end);
 
   // -- BasicAuth filter with a handler: the same session login as TMVCBasicAuthenticationMiddleware
   AEngine.Root.Prefix('/minimal-web/private').Use(BasicAuth(TMinimalBasicAuthHandler.Create as IMVCAuthenticationHandler))

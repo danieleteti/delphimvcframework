@@ -180,7 +180,7 @@ Each preset pre-populates the same wizard form with different defaults; the user
 
 **Default server backend in every preset: Indy Direct** (not WebBroker).
 
-**AI agent files** (Options page, off by default in every preset): `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` (`@AGENTS.md`), `update_ai_skills.bat`, and the [delphi-ai-skills](https://github.com/danieleteti/delphi-ai-skills) that fit the project, downloaded from the branch `dmvc-<major>.<minor>` of the framework line the wizard was built with into `.claude\skills` (`DMVC.Expert.AISkills.pas`). A failed download is a warning; the `.bat` repeats the install.
+**AI agent files** (Options page, on by default in every preset; the generator's own default, when the config key is missing, stays off): `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` (`@AGENTS.md`), `update_ai_skills.bat`, and the [delphi-ai-skills](https://github.com/danieleteti/delphi-ai-skills) that fit the project, downloaded from the branch `dmvc-<major>.<minor>` of the framework line the wizard was built with into `.claude\skills` (`DMVC.Expert.AISkills.pas`). A failed download is a warning; the `.bat` repeats the install.
 
 Tutorial projects showing the Minimal API scaffolds live in `samples/wizard_showcase/{rest,web}/`.
 

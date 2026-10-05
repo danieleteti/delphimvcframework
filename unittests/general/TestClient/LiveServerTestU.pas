@@ -1068,11 +1068,14 @@ end;
 procedure TServerTest.TestRouteParamKindsAreTheSameInBothRouters;
 const
   // path=expected status; a value that does not fit the kind means "no such route"
-  CASES: array [0..13] of string = (
+  CASES: array [0..23] of string = (
     'int/12=200', 'int/abc=404', 'int64/9999999999=200', 'int64/1.5=404',
     'float/1.5=200', 'float/x=404', 'bool/true=200', 'bool/maybe=404',
     'guid/0F8FAD5B-D9CB-469F-A165-70867728950E=200', 'guid/nope=404',
-    'date/2024-08-20=200', 'date/2024-13-45=404', 'date/20240820=404', 'date/x=404');
+    'date/2024-08-20=200', 'date/2024-13-45=404', 'date/20240820=404', 'date/x=404',
+    'time/14:30=200', 'time/14:30:15=200', 'time/24:00=404', 'time/1430=404', 'time/14:3=404',
+    'datetime/2026-10-05T14:30:15=200', 'datetime/2026-10-05T14:30:15.250Z=200',
+    'datetime/2026-10-05=404', 'datetime/2026-10-05 14:30:15=404', 'datetime/x=404');
 var
   lCase, lPath, lPrefix: string;
   lStatus: Integer;
@@ -1097,6 +1100,16 @@ begin
   lRes := RESTClient.Get('/sqids/stoi/' + TMVCSqids.IntToSqid(1234));
   Assert.AreEqual(200, lRes.StatusCode);
   Assert.AreEqual('1234', lRes.Content.Trim, 'controller: sqid decoded');
+  // time and datetime bind TTime / TDateTime parameters, the same in both routers
+  for lPrefix in ['/typedvalue/', '/minimal-web/typedvalue/'] do
+  begin
+    lRes := RESTClient.Get(lPrefix + 'time/14:30');
+    Assert.AreEqual('14:30:00', lRes.Content.Trim, lPrefix + 'time hh:nn');
+    lRes := RESTClient.Get(lPrefix + 'time/09:05:07');
+    Assert.AreEqual('09:05:07', lRes.Content.Trim, lPrefix + 'time hh:nn:ss');
+    lRes := RESTClient.Get(lPrefix + 'datetime/2026-10-05T14:30:15');
+    Assert.AreEqual('2026-10-05 14:30:15', lRes.Content.Trim, lPrefix + 'datetime');
+  end;
   // an unknown kind stops the server at startup in both routers: TTestRouteParamKinds
   // (ControllerWithAnUnknownKindFailsWhenAdded, MinimalRouteWithAnUnknownKindFailsWhenRegistered)
 end;

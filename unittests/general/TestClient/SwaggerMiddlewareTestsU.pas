@@ -103,6 +103,23 @@ type
     procedure DeletePerson(ID: Integer);
   end;
 
+  // OkResponse(Body) renders {"data": ...}: the documented schema says so
+  [MVCPath('/api/envelope')]
+  [MVCSWAGDefaultModel(TSwagTestPerson, 'Person', 'People')]
+  TSwagTestEnvelopeController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary('Envelope', 'List', 'getEnvelopeList')]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, True, True)]
+    procedure GetList;
+    [MVCPath('/($ID)')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagSummary('Envelope', 'One', 'getEnvelopeOne')]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, False, True)]
+    procedure GetOne(ID: Integer);
+  end;
+
   // a path with a converter: the document must show {ID}, a string
   [MVCPath('/api/codes')]
   TSwagTestSqidsController = class(TMVCController)
@@ -203,6 +220,10 @@ type
     procedure Swagger2KeepsTheJWTApiKeyScheme;
     [Test]
     procedure RawTokenAsSwaggerUISendsItIsAccepted;
+    [Test]
+    procedure DataEnvelopeWrapsTheModelInData;
+    [Test]
+    procedure OpenAPI3DataEnvelopeRefersToComponents;
   end;
 
   [TestFixture]
@@ -260,6 +281,14 @@ begin
 end;
 
 procedure TSwagTestPeopleController.DeletePerson(ID: Integer);
+begin
+end;
+
+procedure TSwagTestEnvelopeController.GetList;
+begin
+end;
+
+procedure TSwagTestEnvelopeController.GetOne(ID: Integer);
 begin
 end;
 
@@ -325,6 +354,7 @@ begin
 
   lEngine := TMVCEngine.Create;
   lEngine.AddController(TSwagTestPeopleController);
+  lEngine.AddController(TSwagTestEnvelopeController);
   lEngine.AddController(TSwagTestSqidsController);
   lEngine.AddController(TMVCActiveRecordController, '/api/entities');
   {old signature, untouched: the default must stay Swagger 2.0}
@@ -400,6 +430,40 @@ begin
     Assert.IsTrue(lDoc.Contains('securityDefinitions'), 'securityDefinitions');
     Assert.IsFalse(lDoc.Contains('openapi'), 'openapi');
     Assert.IsFalse(lDoc.Contains('components'), 'components');
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.DataEnvelopeWrapsTheModelInData;
+var
+  lDoc, lList, lOne: TJsonObject;
+begin
+  lDoc := GetJSON('/swagger.json');
+  try
+    lList := lDoc.O['paths'].O['/api/envelope'].O['get'].O['responses'].O['200'].O['schema'];
+    Assert.AreEqual('object', lList.S['type'], lList.ToJSON);
+    Assert.AreEqual('array', lList.O['properties'].O['data'].S['type'], lList.ToJSON);
+    Assert.AreEqual('#/definitions/SwagTestPerson', lList.O['properties'].O['data'].O['items'].S['$ref'], lList.ToJSON);
+    lOne := lDoc.O['paths'].O['/api/envelope/{ID}'].O['get'].O['responses'].O['200'].O['schema'];
+    Assert.AreEqual('#/definitions/SwagTestPerson', lOne.O['properties'].O['data'].S['$ref'], lOne.ToJSON);
+    // the model is registered even though no other action names it
+    Assert.IsTrue(lDoc.O['definitions'].Contains('SwagTestPerson'), 'definitions.SwagTestPerson');
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.OpenAPI3DataEnvelopeRefersToComponents;
+var
+  lDoc, lSchema: TJsonObject;
+begin
+  lDoc := GetJSON('/openapi3.json');
+  try
+    lSchema := lDoc.O['paths'].O['/api/envelope'].O['get'].O['responses'].O['200']
+      .O['content'].O['application/json'].O['schema'];
+    Assert.AreEqual('#/components/schemas/SwagTestPerson',
+      lSchema.O['properties'].O['data'].O['items'].S['$ref'], lSchema.ToJSON);
   finally
     lDoc.Free;
   end;
@@ -691,6 +755,16 @@ begin
     begin
       Result := Ok(TNativeItem.Create);
     end);
+  lEngine.Root.MapGet<TTime>('/minimal/at/($T:time)',
+    function(T: TTime): IMVCResponse
+    begin
+      Result := Ok('at');
+    end);
+  lEngine.Root.MapGet<TDateTime>('/minimal/since/($S:datetime)',
+    function(S: TDateTime): IMVCResponse
+    begin
+      Result := Ok('since');
+    end);
   lEngine.Root.MapGet<Integer>('/minimal/codes/number/($ID:int)',
     function(ID: Integer): IMVCResponse
     begin
@@ -756,6 +830,9 @@ begin
   {int keeps the integer type}
   Assert.AreEqual('integer', Schema('/api/codes/number/{ID}').S['type'], 'controller, int');
   Assert.AreEqual('integer', Schema('/minimal/codes/number/{ID}').S['type'], 'minimal, int');
+  {time and datetime are strings with the standard formats}
+  Assert.AreEqual('time', Schema('/minimal/at/{T}').S['format'], 'minimal, time');
+  Assert.AreEqual('date-time', Schema('/minimal/since/{S}').S['format'], 'minimal, datetime');
 end;
 
 procedure TNativeOpenAPITests.NullableIsATypeArray;

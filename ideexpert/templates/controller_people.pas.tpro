@@ -29,7 +29,7 @@ type
 {{if program_openapi_swagger}}
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'List all people', 'getPeople')]
     // OkResponse(List) is rendered as {"data": [...]}
-    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/definitions/Person"}}}}')]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, True, True)]
 {{endif}}
 {{if program_service_container_generate}}
     function GetPeople([MVCInject] PeopleService: IPeopleService): IMVCResponse;

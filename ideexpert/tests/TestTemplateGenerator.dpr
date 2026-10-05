@@ -1481,7 +1481,7 @@ begin
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := ['Controllers.PeopleU.pas|[MVCPath(''/($ID:sqids)'')]',
-    'Controllers.PeopleU.pas|"data":{"type":"array"'];
+    'Controllers.PeopleU.pas|SWAGUseDefaultControllerModel, True, True)]'];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -2288,6 +2288,15 @@ begin
     end;
   end;
   Check('OpenAPI detected exactly in the *_openapi* projects (not in *_openapi_off)', LDocMismatch = 0);
+  LDocMismatch := 0;
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+      if TFile.ReadAllText(LFile, TEncoding.UTF8).Contains('"$ref"') then
+      begin
+        Inc(LDocMismatch);
+        Log('    hand-written schema: ' + LFile);
+      end;
+  Check('no generated unit carries a hand-written JSON schema', LDocMismatch = 0);
 
   // --- for real: new units, wired in, compiled
   LRest := NewRestController('Orders', 'orders', 'TOrder', True, False);
@@ -2299,9 +2308,10 @@ begin
   LRoutesDoc := NewRoutesUnit('Orders', 'orders', 'TOrder', True, True, LCallFmt);
   Check('REST controller: Swagger metadata only with OpenAPI',
     LRestDoc.Source.Contains('[MVCSWAGDefaultModel(TOrder, ''Order'', ''Orders'')]') and
-    LRestDoc.Source.Contains('#/definitions/Order"') and not LRest.Source.Contains('MVCSwag'));
-  // without CRUD no action registers the model definition: a $ref would dangle
-  Check('REST controller without CRUD: no $ref in the Swagger metadata',
+    LRestDoc.Source.Contains('SWAGUseDefaultControllerModel, True, True)]') and not LRest.Source.Contains('MVCSwag'));
+  // schemas come from the model class, never from a JSON string
+  Check('REST controller: no hand-written schema, with and without CRUD',
+    not LRestDoc.Source.Contains('$ref') and
     not NewRestController('Orders', 'orders', 'TOrder', False, True).Source.Contains('$ref'));
   Check('route group: OpenAPI metadata only with OpenAPI',
     LRoutesDoc.Source.Contains('.Produces<TArray<TOrder>>;') and LRoutesDoc.Source.Contains('.WithTags(''Orders'')') and

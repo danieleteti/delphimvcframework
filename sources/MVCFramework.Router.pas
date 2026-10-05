@@ -175,7 +175,8 @@ type
 
 /// <summary>
 ///   The kind of a route parameter, "($name:kind)", the same for controller routes and Minimal API
-///   routes: int, int64, float, bool, guid and date accept only a value of that shape; sqids decodes
+///   routes: int, int64, float, bool, guid, date (yyyy-mm-dd), time (hh:nn[:ss]) and datetime (ISO 8601)
+///   accept only a value of that shape; sqids decodes
 ///   the value into its integer. Returns False when the value does not fit, and the route does not
 ///   match (404 if no other route does). An unknown kind raises EMVCException.
 /// </summary>
@@ -207,7 +208,8 @@ function MVCIsRouteParamKind(const AKind: string): Boolean;
 begin
   // the same list as MVCRouteParamOfKind below
   Result := (AKind = '') or SameText(AKind, 'int') or SameText(AKind, 'int64') or SameText(AKind, 'float') or
-    SameText(AKind, 'bool') or SameText(AKind, 'guid') or SameText(AKind, 'date') or SameText(AKind, 'sqids');
+    SameText(AKind, 'bool') or SameText(AKind, 'guid') or SameText(AKind, 'date') or SameText(AKind, 'time') or
+    SameText(AKind, 'datetime') or SameText(AKind, 'sqids');
 end;
 
 procedure MVCCheckRoutePath(const APath: string; const AAllowCatchAll: Boolean);
@@ -290,6 +292,12 @@ begin
   if SameText(AKind, 'date') then
     // yyyy-mm-dd: a path segment cannot hold the slashes of a locale date
     Exit((AValue.Length = 10) and TryISO8601ToDate(AValue, lDate, True));
+  if SameText(AKind, 'time') then
+    // hh:nn or hh:nn:ss, 24 hours
+    Exit(TRegEx.IsMatch(AValue, '^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$'));
+  if SameText(AKind, 'datetime') then
+    // yyyy-mm-ddThh:nn:ss, optional fraction and Z or +hh:nn (send "+" as %2B)
+    Exit((AValue.Length >= 19) and (AValue.Chars[10] = 'T') and TryISO8601ToDate(AValue, lDate, True));
   if SameText(AKind, 'sqids') then
   begin
     try

@@ -553,7 +553,17 @@ type
     [MVCPath('/typedroute/bool/($v:bool)')]
     [MVCPath('/typedroute/guid/($v:guid)')]
     [MVCPath('/typedroute/date/($v:date)')]
+    [MVCPath('/typedroute/time/($v:time)')]
+    [MVCPath('/typedroute/datetime/($v:datetime)')]
     function TypedRoute(v: string): string;
+
+    {the time and datetime kinds bound to TTime / TDateTime parameters}
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/typedvalue/time/($v:time)')]
+    function TypedTime(v: TTime): string;
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/typedvalue/datetime/($v:datetime)')]
+    function TypedDateTime(v: TDateTime): string;
 
     {file upload}
     [MVCPath('/fileupload')]
@@ -1537,6 +1547,16 @@ end;
 function TTestServerController.TypedRoute(v: string): string;
 begin
   Result := v;
+end;
+
+function TTestServerController.TypedTime(v: TTime): string;
+begin
+  Result := FormatDateTime('hh:nn:ss', v);
+end;
+
+function TTestServerController.TypedDateTime(v: TDateTime): string;
+begin
+  Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', v);
 end;
 
 procedure TTestServerController.TestIssue406;
