@@ -3141,6 +3141,16 @@ begin
                       begin
                         if Supports(lInvokeResult.AsInterface, IMVCResponse) then
                         begin
+                          // `Result := CreatedResponse(..., ABody)` hands the
+                          // [MVCFromBody] parameter to the response: the
+                          // response frees it, the outer Free must not.
+                          if (lBodyParameter <> nil) and
+                             ((lInvokeResult.AsInterface as TObject) is TMVCResponse) and
+                             (TMVCResponse(lInvokeResult.AsInterface as TObject).fData = lBodyParameter) then
+                          begin
+                            TMVCResponse(lInvokeResult.AsInterface as TObject).fOwnsData := True;
+                            lBodyParameter := nil;
+                          end;
                           TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lInvokeResult.AsInterface));
                         end
                         else

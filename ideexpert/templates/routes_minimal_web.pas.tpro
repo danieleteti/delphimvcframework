@@ -149,7 +149,7 @@ begin
       begin
         ViewData['page_id'] := 'admin';
         ViewData['error'] := 'Invalid credentials';
-        ViewData['login'] := Ctx.Request.ContentFields; // keeps the username; the password is never sent back
+        ViewData['username'] := F.Username; // the password is never sent back
         Result := RenderView('pages/login');
         Result.StatusCode := HTTP_STATUS.Unauthorized;
       end;

@@ -5,7 +5,19 @@ interface
 
 uses
   MVCFramework,
-  MVCFramework.MinimalAPI;
+  MVCFramework.MinimalAPI,
+  MVCFramework.Validators;
+
+type
+  {{:model_class}} = class
+  private
+    fID: Integer;
+    fName: string;
+  public
+    property ID: Integer read fID write fID;
+    [MVCRequired]
+    property Name: string read fName write fName;
+  end;
 
 procedure {{:procedure_name}}(const AGroup: TMVCRouteGroup<TObject>);
 
@@ -13,59 +25,74 @@ implementation
 
 uses
   System.SysUtils,
-  MVCFramework.Commons,
-  JsonDataObjects;
+  System.Generics.Collections,
+  MVCFramework.Commons;
 
 procedure {{:procedure_name}}(const AGroup: TMVCRouteGroup<TObject>);
 begin
   AGroup.MapGet('',
     function: IMVCResponse
     begin
-      Result := Ok(TJsonArray.Create);
+      Result := Ok(TObjectList<{{:model_class}}>.Create(True));
+{{if openapi_native}}
+    end)
+    .WithTags('{{:tag}}')
+    .WithSummary('List {{:resource}}')
+    .Produces<TArray<{{:model_class}}>>;
+{{else}}
     end);
+{{endif}}
 {{if crud}}
 
   AGroup.MapGet<Integer>('/($id:int)',
     function (ID: Integer): IMVCResponse
     begin
       Result := NotFound;
+{{if openapi_native}}
+    end)
+    .WithTags('{{:tag}}')
+    .WithSummary('Get one')
+    .Produces<{{:model_class}}>;
+{{else}}
     end);
+{{endif}}
 
-  AGroup.MapPost<TWebContext>('',
-    function (Ctx: TWebContext): IMVCResponse
-    var
-      lItem: TJsonObject;
+  // a class argument is bound from the body and validated (422 on failure); the framework frees it
+  AGroup.MapPost<{{:model_class}}>('',
+    function (Item: {{:model_class}}): IMVCResponse
     begin
-      lItem := StrToJSONObject(Ctx.Request.Body);
-      if lItem = nil then
-        Exit(BadRequest('The body is not a JSON object'));
-      try
-        Result := Created('/api/{{:resource}}/1');
-      finally
-        lItem.Free;
-      end;
+      Result := Created('/api/{{:resource}}/' + Item.ID.ToString);
+{{if openapi_native}}
+    end)
+    .WithTags('{{:tag}}')
+    .WithSummary('Create');
+{{else}}
     end);
+{{endif}}
 
-  AGroup.MapPut<Integer, TWebContext>('/($id:int)',
-    function (ID: Integer; Ctx: TWebContext): IMVCResponse
-    var
-      lItem: TJsonObject;
+  AGroup.MapPut<Integer, {{:model_class}}>('/($id:int)',
+    function (ID: Integer; Item: {{:model_class}}): IMVCResponse
     begin
-      lItem := StrToJSONObject(Ctx.Request.Body);
-      if lItem = nil then
-        Exit(BadRequest('The body is not a JSON object'));
-      try
-        Result := NoContent;
-      finally
-        lItem.Free;
-      end;
+      Result := NoContent;
+{{if openapi_native}}
+    end)
+    .WithTags('{{:tag}}')
+    .WithSummary('Update');
+{{else}}
     end);
+{{endif}}
 
   AGroup.MapDelete<Integer>('/($id:int)',
     function (ID: Integer): IMVCResponse
     begin
       Result := NoContent;
+{{if openapi_native}}
+    end)
+    .WithTags('{{:tag}}')
+    .WithSummary('Delete');
+{{else}}
     end);
+{{endif}}
 {{endif}}
 end;
 

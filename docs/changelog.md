@@ -161,11 +161,13 @@ certificate you cannot fix.
 - **"DMVCFramework" menu in the Project Manager (Delphi 12 and 13).** A right
   click on a DMVC project adds, from the same templates as the wizard:
   - **New REST Controller**: `Controllers.<Name>U` under `/api/<segment>`,
-    optionally with CRUD actions;
+    optionally with CRUD actions; request bodies are bound to a model class
+    (`TOrder` for `Orders`, editable) with `[MVCFromBody]` and validated;
   - **New Web Controller and View**: a TemplatePro page controller under
     `/web/<segment>` and its view `<segment>/index.html`;
   - **New Minimal API Route Group**: `<Name>RoutesU` with
-    `Map<Name>Routes`, mounted on `/api/<segment>`;
+    `Map<Name>Routes`, mounted on `/api/<segment>`; bodies bound by type
+    (`MapPost<TOrder>`, `MapPut<Integer, TOrder>`);
   - **New TemplatePro View**: a page that extends `baselayout.html`, or an
     HTMX fragment.
   The new unit is added to the project and wired in through the editor
@@ -173,6 +175,12 @@ certificate you cannot fix.
   `// Controllers - END` marker when present), or the `Map<Name>Routes` call
   at the end of `ConfigureRoutes`, plus the `uses` entry. When no place is
   found, the unit is still created and a message shows the line to add. The
+  When the project publishes an OpenAPI document, the new controller carries
+  the `MVCSwag*` attributes (model, summaries, responses) and the new route
+  group `.WithTags` / `.WithSummary` / `.Produces<T>`, so the model and the
+  operations appear in Swagger UI (Swagger middleware for controllers,
+  `MVCFramework.OpenAPI3` for route groups, looked for in the `.dpr` and in
+  every unit). The
   menu shows only what the project can take: the controllers in controller
   projects, the route group in Minimal API projects (the `.dpr` calls
   `ConfigureRoutes`), the views where a views folder exists. The older Delphi
@@ -686,6 +694,19 @@ the same socket.
 - **Minimal API exceptions are logged.** Only the router line (`status=500`)
   reached the log; now the class, the message and the request are logged as
   the controller pipeline does (warning with the field errors for a 422).
+- **A body of the wrong JSON kind answers 400, not 500.** `[MVCFromBody]` on
+  an object receiving a JSON array (or a list receiving an object), and the
+  same for a Minimal API class argument, raised an `EMVCSerializationException`
+  with the default 500: the client's mistake reported as a server error. It is
+  now 400, like a body that does not parse. A list with a registered type
+  serializer receiving an object raised `EInvalidCast` (500) and leaked the
+  parsed document; it is a 400 too.
+- **Returning the bound body in the response no longer frees it twice.**
+  `Result := OkResponse(Person)` with `[MVCFromBody] Person` freed the object
+  once as body parameter and once with the response (an access violation
+  after the reply was sent). In the Minimal API, `Result := Ok(Item)` with a
+  bound class argument freed it *before* rendering. The response now takes
+  the object over and frees it once, after rendering.
 - **`StrToJSONObject` / `StrToJSONArray` leaked the parsed document** when
   the text was valid JSON of the other kind (an array where an object was
   expected, and the reverse): the function answered nil (or raised) and the

@@ -62,6 +62,12 @@ type
     [Test]
     procedure Test_Record_validation_rejects_invalid;
     [Test]
+    procedure Test_Class_body_binds;
+    [Test]
+    procedure Test_Class_body_of_the_wrong_JSON_kind_is_400;
+    [Test]
+    procedure Test_Class_body_returned_in_the_response;
+    [Test]
     procedure Test_Record_validation_accepts_valid;
     [Test]
     procedure Test_FormFile_single_arg_binds_first_file;
@@ -333,6 +339,34 @@ begin
   finally
     lJSON.Free;
   end;
+end;
+
+procedure TTestMinimalWebApi.Test_Class_body_binds;
+var
+  lResp: IMVCRESTResponse;
+begin
+  lResp := RESTClient.Post('/minimal-feat/body', '{"name":"Ada"}');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  Assert.Contains(lResp.Content, 'name=Ada');
+end;
+
+procedure TTestMinimalWebApi.Test_Class_body_of_the_wrong_JSON_kind_is_400;
+var
+  lResp: IMVCRESTResponse;
+begin
+  // the client sent an array where an object is bound: a client error, not a server one
+  lResp := RESTClient.Post('/minimal-feat/body', '[1,2]');
+  Assert.AreEqual<Integer>(400, lResp.StatusCode, lResp.Content);
+end;
+
+procedure TTestMinimalWebApi.Test_Class_body_returned_in_the_response;
+var
+  lResp: IMVCRESTResponse;
+begin
+  // Ok(B) owns the bound argument: it used to be freed before rendering
+  lResp := RESTClient.Post('/minimal-feat/body-echo', '{"name":"Ada"}');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  Assert.Contains(lResp.Content, 'Ada');
 end;
 
 procedure TTestMinimalWebApi.Test_Record_validation_accepts_valid;

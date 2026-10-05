@@ -461,6 +461,10 @@ type
     [Test]
     procedure TestURLEncodedFormPlusIsSpace;
     [Test]
+    procedure TestFromBodyOfTheWrongJSONKindIs400;
+    [Test]
+    procedure TestFromBodyReturnedInTheResponse;
+    [Test]
     procedure TestMultipartFormDataTextFields_IndyRaw;
 
     [Test]
@@ -2841,6 +2845,27 @@ begin
   Assert.Contains(r.Content, 'last_name=Doe', 'last_name missing');
   Assert.Contains(r.Content, 'job=Tester', 'job missing');
   Assert.Contains(r.Content, 'missing=', 'absent field should yield empty');
+end;
+
+procedure TServerTest.TestFromBodyOfTheWrongJSONKindIs400;
+var
+  r: IMVCRESTResponse;
+begin
+  // [MVCFromBody] Person: TPerson receiving a JSON array: the client's mistake, so 400 (it was 500)
+  r := RESTClient.Post('/injectable30', '[1,2]');
+  Assert.areEqual(HTTP_STATUS.BadRequest, r.StatusCode, r.Content);
+end;
+
+procedure TServerTest.TestFromBodyReturnedInTheResponse;
+var
+  r: IMVCRESTResponse;
+begin
+  // OkResponse(Person) owns the [MVCFromBody] object: it used to be freed twice
+  r := RESTClient.Post('/injectable30/echo', '{"firstname":"Ada","lastname":"Lovelace"}');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, r.Content);
+  Assert.Contains(r.Content, 'Ada');
+  r := RESTClient.Post('/injectable30/echo', '{"firstname":"Grace","lastname":"Hopper"}');
+  Assert.Contains(r.Content, 'Grace');
 end;
 
 procedure TServerTest.TestURLEncodedFormPlusIsSpace;

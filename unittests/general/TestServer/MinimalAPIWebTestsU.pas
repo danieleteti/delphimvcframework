@@ -45,6 +45,14 @@ type
     property Cities: TArray<string> read FCities write FCities;
   end;
 
+  // POST body bound to a class (interface section for the same RTTI reason)
+  TBodyItem = class
+  private
+    FName: string;
+  public
+    property Name: string read FName write FName;
+  end;
+
 procedure RegisterMinimalAPIWebRoutes(AEngine: TMVCEngine);
 
 implementation
@@ -254,6 +262,20 @@ begin
     end);
 
   // ===== Minimal API parity features ======================================
+
+  // class argument bound from the JSON body
+  AEngine.Root.MapPost<TBodyItem>('/minimal-feat/body',
+    function (B: TBodyItem): IMVCResponse
+    begin
+      Result := Ok('name=' + B.Name);
+    end);
+
+  // the response takes over the bound argument: freed once, after rendering
+  AEngine.Root.MapPost<TBodyItem>('/minimal-feat/body-echo',
+    function (B: TBodyItem): IMVCResponse
+    begin
+      Result := Ok(B);
+    end);
 
   // #2 record validation: MinLength(3) on a [MVCFromQueryString] field
   AEngine.Root.MapGet<TValidatedQuery>('/minimal-feat/validate',

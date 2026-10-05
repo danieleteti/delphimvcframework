@@ -15,6 +15,7 @@
                 {{call f.form("/web/login")}}
                 {{set userattrs := {"autocomplete": "username", "autofocus": true}}}
                 {{set pwdattrs := {"autocomplete": "current-password"}}}
+                {{set login := {"username": username}}}
                 {{>f.input("username", label="Username", model=login, required=true, attrs=userattrs)}}
                 {{>f.input("password", label="Password", type="password", required=true, attrs=pwdattrs)}}
                 {{>f.submit("Sign in", class="w-100")}}

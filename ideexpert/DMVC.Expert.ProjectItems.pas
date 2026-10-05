@@ -41,11 +41,20 @@ function IsValidItemName(const AName: string): Boolean;
 /// A relative URL path or view name: letters, digits, '-', '_', '/'; no '..'
 function IsValidPathName(const APath: string): Boolean;
 
-function NewRestController(const AName, AResource: string; ACrud: Boolean): TDMVCNewUnit;
+/// The model class the controller or route group binds bodies to: 'TOrder' for 'Orders'.
+/// A guess (plain English plurals), the dialog lets the user change it.
+function DefaultModelClass(const AName: string): string;
+
+/// ASource sets up the OpenAPI document new items of that kind show up in: the Swagger
+/// middleware for controllers, MVCFramework.OpenAPI3 for the Minimal API.
+function HasOpenAPI(const ASource: string; AMinimalAPI: Boolean): Boolean;
+
+function NewRestController(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean): TDMVCNewUnit;
 /// The controller renders AResource + '/index' (see NewViewSource)
 function NewWebController(const AName, AResource, AProgramName: string): TDMVCNewUnit;
 /// ACallFmt is the argument PlanRoutesRegistration expects
-function NewRoutesUnit(const AName, AResource: string; ACrud: Boolean; out ACallFmt: string): TDMVCNewUnit;
+function NewRoutesUnit(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean;
+  out ACallFmt: string): TDMVCNewUnit;
 /// AViewName relative to the views folder, without extension (e.g. 'orders/index')
 function NewViewSource(const AViewName, ATitle: string; AFragment: Boolean): string;
 
@@ -90,6 +99,35 @@ begin
   Result := TRegEx.IsMatch(APath, '^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$');
 end;
 
+function DefaultModelClass(const AName: string): string;
+begin
+  if AName.EndsWith('ies', True) and (AName.Length > 3) then
+    Result := AName.Substring(0, AName.Length - 3) + 'y'
+  else if AName.EndsWith('s', True) and not AName.EndsWith('ss', True) and (AName.Length > 1) then
+    Result := AName.Substring(0, AName.Length - 1)
+  else
+    Result := AName + 'Item';
+  Result := 'T' + Result;
+end;
+
+function HasOpenAPI(const ASource: string; AMinimalAPI: Boolean): Boolean;
+begin
+  if AMinimalAPI then
+    Result := ASource.Contains('MVCFramework.OpenAPI3')
+  else
+    Result := ASource.Contains('MVCFramework.Middleware.Swagger');
+end;
+
+// what the OpenAPI metadata of a new item needs
+procedure SetOpenAPIData(const AConfig: TJsonObject; const AName, AModelClass: string);
+begin
+  AConfig.S['tag'] := AName;
+  if AModelClass.StartsWith('T') and (AModelClass.Length > 1) then
+    AConfig.S['model_title'] := AModelClass.Substring(1)
+  else
+    AConfig.S['model_title'] := AModelClass;
+end;
+
 function RenderUnit(const ATemplate, AUnitName, ATypeName: string;
   const AConfig: TJsonObject): TDMVCNewUnit;
 begin
@@ -100,13 +138,16 @@ begin
   Result.Source := TDMVCProjectGenerator.RenderTemplate(ATemplate, AConfig);
 end;
 
-function NewRestController(const AName, AResource: string; ACrud: Boolean): TDMVCNewUnit;
+function NewRestController(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean): TDMVCNewUnit;
 var
   lConfig: TJsonObject;
 begin
   lConfig := TJsonObject.Create;
   try
     lConfig.S['class_name'] := 'T' + AName + 'Controller';
+    lConfig.S['model_class'] := AModelClass;
+    lConfig.B['openapi_swagger'] := AOpenAPI;
+    SetOpenAPIData(lConfig, AName, AModelClass);
     lConfig.S['resource'] := AResource;
     lConfig.B['crud'] := ACrud;
     Result := RenderUnit('add_controller_rest.pas.tpro', 'Controllers.' + AName + 'U',
@@ -133,13 +174,17 @@ begin
   end;
 end;
 
-function NewRoutesUnit(const AName, AResource: string; ACrud: Boolean; out ACallFmt: string): TDMVCNewUnit;
+function NewRoutesUnit(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean;
+  out ACallFmt: string): TDMVCNewUnit;
 var
   lConfig: TJsonObject;
 begin
   lConfig := TJsonObject.Create;
   try
     lConfig.S['procedure_name'] := 'Map' + AName + 'Routes';
+    lConfig.S['model_class'] := AModelClass;
+    lConfig.B['openapi_native'] := AOpenAPI;
+    SetOpenAPIData(lConfig, AName, AModelClass);
     lConfig.S['resource'] := AResource;
     lConfig.B['crud'] := ACrud;
     Result := RenderUnit('add_routes.pas.tpro', AName + 'RoutesU', lConfig.S['procedure_name'], lConfig);

@@ -459,6 +459,10 @@ type
     procedure PostInject30(const [MVCFromBody] Person: TPerson);
 
     [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/injectable30/echo')]
+    function PostInject30Echo(const [MVCFromBody] Person: TPerson): IMVCResponse;
+
+    [MVCHTTPMethod([httpPOST])]
     [MVCPath('/injectable40/married/($Married)/id/($ID)')]
     procedure PostInject40(
       const Married: Boolean;
@@ -998,6 +1002,12 @@ end;
 procedure TTestServerController.PostInject30(const Person: TPerson);
 begin
   Render(Person, False);
+end;
+
+function TTestServerController.PostInject30Echo(const Person: TPerson): IMVCResponse;
+begin
+  // the response takes over the body parameter: it must be freed once, after rendering
+  Result := OkResponse(Person);
 end;
 
 procedure TTestServerController.PostInject40(

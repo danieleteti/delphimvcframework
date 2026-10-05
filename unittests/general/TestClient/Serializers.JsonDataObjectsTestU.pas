@@ -121,6 +121,8 @@ type
     [Test]
     procedure TestDeserializeCollection;
     [Test]
+    procedure TestDeserializeCollectionOfTheWrongJSONKindIs400;
+    [Test]
     procedure TestDeserializeDataSet;
     [Test]
     procedure TestSerializeEmptyDataSet;
@@ -353,6 +355,39 @@ begin
 
   finally
     Dm.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeCollectionOfTheWrongJSONKindIs400;
+
+  function StatusOf(const AList: TObject): Integer;
+  begin
+    Result := 0;
+    try
+      fSerializer.DeserializeCollection('{"a":1}', AList, TNote);
+    except
+      on E: EMVCException do
+        Result := E.HTTPStatusCode;
+    end;
+  end;
+
+var
+  lList: TObjectList<TNote>;
+  lCustom: TEntityCustom;
+begin
+  // a list receiving an object is the client's mistake: 400, not 500
+  lList := TObjectList<TNote>.Create(True);
+  try
+    Assert.AreEqual(400, StatusOf(lList), 'duck-typed list');
+  finally
+    lList.Free;
+  end;
+  // the type-serializer branch (TEntityCustom has one registered) used to raise EInvalidCast and leak
+  lCustom := TEntityCustom.Create;
+  try
+    Assert.AreEqual(400, StatusOf(lCustom), 'type-serialized target');
+  finally
+    lCustom.Free;
   end;
 end;
 

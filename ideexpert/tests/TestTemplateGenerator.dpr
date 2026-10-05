@@ -2186,7 +2186,9 @@ var
   LEdits: TDMVCCodeEdits;
   LControllerHosts, LRoutesHosts, LRefused, LWrongKind: Integer;
   LIsMinimal, LHasControllers: Boolean;
-  LRest, LRestPlain, LWeb, LRoutes: TDMVCNewUnit;
+  LRest, LRestPlain, LWeb, LRoutes, LRestDoc, LRoutesDoc: TDMVCNewUnit;
+  LSources: string;
+  LDocMismatch: Integer;
 begin
   Log('');
   Log('=== Project Manager menu: new controller, route group, view ===');
@@ -2272,12 +2274,49 @@ begin
   end;
   Check(Format('project kind from the .dpr matches every generated project (%d)', [Length(ACaseDirs)]),
     LWrongKind = 0);
+  LDocMismatch := 0;
+  for LDir in ACaseDirs do
+  begin
+    LSources := TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8);
+    LIsMinimal := IsMinimalAPIProject(LSources);
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+      LSources := LSources + TFile.ReadAllText(LFile, TEncoding.UTF8);
+    if HasOpenAPI(LSources, LIsMinimal) <> (LDir.Contains('openapi') and not LDir.EndsWith('_off')) then
+    begin
+      Inc(LDocMismatch);
+      Log('    OpenAPI detection wrong: ' + LDir);
+    end;
+  end;
+  Check('OpenAPI detected exactly in the *_openapi* projects (not in *_openapi_off)', LDocMismatch = 0);
 
   // --- for real: new units, wired in, compiled
-  LRest := NewRestController('Orders', 'orders', True);
-  LRestPlain := NewRestController('Orders', 'orders', False);
+  LRest := NewRestController('Orders', 'orders', 'TOrder', True, False);
+  LRestPlain := NewRestController('Orders', 'orders', 'TOrder', False, False);
   LWeb := NewWebController('Orders', 'orders', 'TestProject');
-  LRoutes := NewRoutesUnit('Orders', 'orders', True, LCallFmt);
+  LRoutes := NewRoutesUnit('Orders', 'orders', 'TOrder', True, False, LCallFmt);
+  // with an OpenAPI document the new model and actions are in it
+  LRestDoc := NewRestController('Orders', 'orders', 'TOrder', True, True);
+  LRoutesDoc := NewRoutesUnit('Orders', 'orders', 'TOrder', True, True, LCallFmt);
+  Check('REST controller: Swagger metadata only with OpenAPI',
+    LRestDoc.Source.Contains('[MVCSWAGDefaultModel(TOrder, ''Order'', ''Orders'')]') and
+    LRestDoc.Source.Contains('#/definitions/Order"') and not LRest.Source.Contains('MVCSwag'));
+  // without CRUD no action registers the model definition: a $ref would dangle
+  Check('REST controller without CRUD: no $ref in the Swagger metadata',
+    not NewRestController('Orders', 'orders', 'TOrder', False, True).Source.Contains('$ref'));
+  Check('route group: OpenAPI metadata only with OpenAPI',
+    LRoutesDoc.Source.Contains('.Produces<TArray<TOrder>>;') and LRoutesDoc.Source.Contains('.WithTags(''Orders'')') and
+    not LRoutes.Source.Contains('.WithTags('));
+  // bodies are bound by the framework, never parsed by hand
+  Check('REST controller binds bodies with [MVCFromBody]',
+    LRest.Source.Contains('function CreateItem([MVCFromBody] Item: TOrder): IMVCResponse;') and
+    LRest.Source.Contains('function UpdateItem(ID: Integer; [MVCFromBody] Item: TOrder): IMVCResponse;') and
+    not LRest.Source.Contains('Request.Body'));
+  Check('route group binds bodies by type',
+    LRoutes.Source.Contains('MapPost<TOrder>') and LRoutes.Source.Contains('MapPut<Integer, TOrder>') and
+    not LRoutes.Source.Contains('Request.Body'));
+  Check('default model class from the name', (DefaultModelClass('Orders') = 'TOrder') and
+    (DefaultModelClass('Categories') = 'TCategory') and (DefaultModelClass('Address') = 'TAddressItem') and
+    (DefaultModelClass('Stock') = 'TStockItem'), DefaultModelClass('Address'));
   Check('route call', LCallFmt = 'MapOrdersRoutes(%s.Prefix(''/api/orders''))', LCallFmt);
 
   AddAndCompile('REST controller (CRUD) in EngineConfigU', 'indydirect_with_crud', 'EngineConfigU.pas', LRest,
@@ -2305,6 +2344,16 @@ begin
     function(S: string): TDMVCCodeEdits
     begin
       PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
+    end);
+  AddAndCompile('REST controller with Swagger metadata', 'indydirect_openapi_controllers', 'EngineConfigU.pas', LRestDoc,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRestDoc.UnitName, LRestDoc.TypeName, Result);
+    end);
+  AddAndCompile('route group with OpenAPI metadata', 'indydirect_minimal_api_openapi', 'RoutesU.pas', LRoutesDoc,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanRoutesRegistration(S, LRoutesDoc.UnitName, LCallFmt, Result);
     end);
   AddAndCompile('route group in a Minimal API web app', 'indydirect_minimal_api_web', 'RoutesU.pas', LRoutes,
     function(S: string): TDMVCCodeEdits

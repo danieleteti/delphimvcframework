@@ -1142,9 +1142,23 @@ begin
   begin
     if ARootNode.IsEmpty then
     begin
-      JSONArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
+      try
+        JsonBase := TJDOJsonArray.Parse(ASerializedList);
+      except
+        on E: EJsonParserException do
+          raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
+      end;
+      if not(JsonBase is TJDOJsonArray) then
+      begin
+        try
+          raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid JSON. Expected %s got %s',
+            [TJDOJsonArray.ClassName, JsonBase.ClassName]);
+        finally
+          JsonBase.Free;
+        end;
+      end;
       // Standalone array: it is the owned root; free it via JsonBase below.
-      JsonBase := JSONArray;
+      JSONArray := TJDOJsonArray(JsonBase);
     end
     else
     begin
@@ -1153,7 +1167,7 @@ begin
         if not(JsonBase is TJDOJsonObject) then
         begin
           try
-            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+            raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid JSON. Expected %s got %s',
               [TJDOJsonObject.ClassName, JsonBase.ClassName]);
           finally
             JsonBase.Free;
@@ -1191,7 +1205,7 @@ begin
         begin
           if not(JsonBase is TJDOJsonArray) then
           begin
-            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+            raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid JSON. Expected %s got %s',
               [TJDOJsonArray.ClassName, JsonBase.ClassName]);
           end;
           JSONArray := TJDOJsonArray(JsonBase);
@@ -1200,7 +1214,7 @@ begin
         begin
           if not(JsonBase is TJDOJsonObject) then
           begin
-            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+            raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid JSON. Expected %s got %s',
               [TJDOJsonObject.ClassName, JsonBase.ClassName]);
           end;
           JSONObject := TJDOJsonObject(JsonBase);
@@ -3697,7 +3711,7 @@ begin
     try
       if not(JSONBase is TJDOJsonObject) then
       begin
-        raise EMVCSerializationException.CreateFmt('Body is not a valid JSON Object - Expected %s got %s',
+        raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Body is not a valid JSON Object - Expected %s got %s',
           [TJDOJsonObject.ClassName, JSONBase.ClassName]);
       end;
       JSONObject := TJDOJsonObject(JSONBase);

@@ -4,32 +4,82 @@ unit {{:unit_name}};
 interface
 
 uses
+  System.Generics.Collections,
   MVCFramework,
-  MVCFramework.Commons;
+  MVCFramework.Commons,
+{{if openapi_swagger}}
+  MVCFramework.Swagger.Commons,
+{{endif}}
+  MVCFramework.Validators;
 
 type
+  {{:model_class}} = class
+  private
+    fID: Integer;
+    fName: string;
+  public
+    property ID: Integer read fID write fID;
+    [MVCRequired]
+    property Name: string read fName write fName;
+  end;
+
   [MVCPath('/api/{{:resource}}')]
+{{if openapi_swagger}}
+  [MVCSWAGDefaultModel({{:model_class}}, '{{:model_title}}', '{{:tag}}')]
+  [MVCSWAGDefaultSummaryTags('{{:tag}}')]
+{{endif}}
   {{:class_name}} = class(TMVCController)
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
+{{if openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'List {{:resource}}', 'get{{:tag}}')]
+    // OkResponse(List) is rendered as {"data": [...]}
+{{if crud}}
+    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/definitions/{{:model_title}}"}}}}')]
+{{else}}
+    [MVCSwagResponses(200, 'Success', '{"type":"object","properties":{"data":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"}}}}}}')]
+{{endif}}
+{{endif}}
     function GetAll: IMVCResponse;
 {{if crud}}
 
     [MVCPath('/($ID:int)')]
     [MVCHTTPMethod([httpGET])]
+{{if openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Get one', 'get{{:model_title}}')]
+    [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(404, 'Not found')]
+{{endif}}
     function GetByID(ID: Integer): IMVCResponse;
 
+    // the body is bound to Item and validated (422 on failure); the framework frees it
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    function CreateItem: IMVCResponse;
+{{if openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Create', 'create{{:model_title}}')]
+    [MVCSwagParam(plBody, 'Item', 'The item to create', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(201, 'Created')]
+    [MVCSwagResponses(422, 'Validation failed')]
+{{endif}}
+    function CreateItem([MVCFromBody] Item: {{:model_class}}): IMVCResponse;
 
     [MVCPath('/($ID:int)')]
     [MVCHTTPMethod([httpPUT])]
-    function UpdateItem(ID: Integer): IMVCResponse;
+{{if openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Update', 'update{{:model_title}}')]
+    [MVCSwagParam(plBody, 'Item', 'The new data', SWAGUseDefaultControllerModel)]
+    [MVCSwagResponses(204, 'Updated')]
+    [MVCSwagResponses(422, 'Validation failed')]
+{{endif}}
+    function UpdateItem(ID: Integer; [MVCFromBody] Item: {{:model_class}}): IMVCResponse;
 
     [MVCPath('/($ID:int)')]
     [MVCHTTPMethod([httpDELETE])]
+{{if openapi_swagger}}
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'Delete', 'delete{{:model_title}}')]
+    [MVCSwagResponses(204, 'Deleted')]
+{{endif}}
     function DeleteItem(ID: Integer): IMVCResponse;
 {{endif}}
   end;
@@ -37,12 +87,11 @@ type
 implementation
 
 uses
-  System.SysUtils,
-  JsonDataObjects;
+  System.SysUtils;
 
 function {{:class_name}}.GetAll: IMVCResponse;
 begin
-  Result := OkResponse(TJsonArray.Create);
+  Result := OkResponse(TObjectList<{{:model_class}}>.Create(True));
 end;
 {{if crud}}
 
@@ -51,32 +100,14 @@ begin
   Result := NotFoundResponse;
 end;
 
-function {{:class_name}}.CreateItem: IMVCResponse;
-var
-  lItem: TJsonObject;
+function {{:class_name}}.CreateItem(Item: {{:model_class}}): IMVCResponse;
 begin
-  lItem := StrToJSONObject(Context.Request.Body);
-  if lItem = nil then
-    Exit(BadRequestResponse('The body is not a JSON object'));
-  try
-    Result := CreatedResponse('/api/{{:resource}}/1');
-  finally
-    lItem.Free;
-  end;
+  Result := CreatedResponse('/api/{{:resource}}/' + Item.ID.ToString);
 end;
 
-function {{:class_name}}.UpdateItem(ID: Integer): IMVCResponse;
-var
-  lItem: TJsonObject;
+function {{:class_name}}.UpdateItem(ID: Integer; Item: {{:model_class}}): IMVCResponse;
 begin
-  lItem := StrToJSONObject(Context.Request.Body);
-  if lItem = nil then
-    Exit(BadRequestResponse('The body is not a JSON object'));
-  try
-    Result := NoContentResponse;
-  finally
-    lItem.Free;
-  end;
+  Result := NoContentResponse;
 end;
 
 function {{:class_name}}.DeleteItem(ID: Integer): IMVCResponse;

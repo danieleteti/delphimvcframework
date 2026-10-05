@@ -83,15 +83,16 @@ type
   // Name (+ URL segment) or view path, one option, OK/Cancel
   TItemDialog = class(TForm)
   private
-    fViewMode, fResourceEdited, fSettingResource: Boolean;
-    edtName, edtResource: TEdit;
+    fViewMode, fWithModel, fResourceEdited, fModelEdited, fSettingDefaults: Boolean;
+    edtName, edtResource, edtModel: TEdit;
     chkOption: TCheckBox;
     procedure NameChange(Sender: TObject);
     procedure ResourceChange(Sender: TObject);
+    procedure ModelChange(Sender: TObject);
     procedure DialogCloseQuery(Sender: TObject; var CanClose: Boolean);
   public
     constructor CreateDialog(const ATitle, AHint, AOptionCaption: string;
-      AOptionDefault, AViewMode: Boolean);
+      AOptionDefault, AViewMode, AWithModel: Boolean);
   end;
 
 var
@@ -271,6 +272,24 @@ begin
   Result := '';
 end;
 
+// The .dpr or any unit, as the IDE has them now, sets up the OpenAPI document
+function ProjectHasOpenAPI(const AProject: IOTAProject; AMinimalAPI: Boolean): Boolean;
+var
+  I: Integer;
+  lFile: string;
+begin
+  if HasOpenAPI(DMVCProjectSource(AProject), AMinimalAPI) then
+    Exit(True);
+  for I := 0 to AProject.GetModuleCount - 1 do
+  begin
+    lFile := AProject.GetModule(I).FileName;
+    if SameText(ExtractFileExt(lFile), '.pas') and TFile.Exists(lFile) and
+      HasOpenAPI(CurrentText(lFile), AMinimalAPI) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
 procedure ExplainManualStep(const AWhat, AUnitName, ALine: string);
 begin
   MessageDlg(Format('%s was created, but no place to register it was found.' + sLineBreak + sLineBreak +
@@ -280,16 +299,17 @@ end;
 
 { actions }
 
-function Ask(const ATitle, AHint, AOptionCaption: string; AOptionDefault, AViewMode: Boolean;
-  out AName, AResource: string; out AOption: Boolean): Boolean;
+function Ask(const ATitle, AHint, AOptionCaption: string; AOptionDefault, AViewMode, AWithModel: Boolean;
+  out AName, AResource, AModel: string; out AOption: Boolean): Boolean;
 var
   lDialog: TItemDialog;
 begin
-  lDialog := TItemDialog.CreateDialog(ATitle, AHint, AOptionCaption, AOptionDefault, AViewMode);
+  lDialog := TItemDialog.CreateDialog(ATitle, AHint, AOptionCaption, AOptionDefault, AViewMode, AWithModel);
   try
     Result := lDialog.ShowModal = mrOk;
     AName := Trim(lDialog.edtName.Text);
     AResource := Trim(lDialog.edtResource.Text);
+    AModel := Trim(lDialog.edtModel.Text);
     AOption := lDialog.chkOption.Checked;
   finally
     lDialog.Free;
@@ -308,28 +328,28 @@ end;
 
 procedure NewRestControllerAction(const AProject: IOTAProject);
 var
-  lName, lResource: string;
+  lName, lResource, lModel: string;
   lCrud: Boolean;
   lUnit: TDMVCNewUnit;
 begin
-  if not Ask('New REST controller', 'Creates Controllers.<Name>U.pas under /api/<URL segment> ' +
-    'and registers it next to the other controllers.', 'CRUD actions', True, False,
-    lName, lResource, lCrud) then
+  if not Ask('New REST controller', 'Creates Controllers.<Name>U.pas under /api/<URL segment>, ' +
+    'with the model class the request bodies are bound to, and registers the controller.', 'CRUD actions',
+    True, False, True, lName, lResource, lModel, lCrud) then
     Exit;
-  lUnit := NewRestController(lName, lResource, lCrud);
+  lUnit := NewRestController(lName, lResource, lModel, lCrud, ProjectHasOpenAPI(AProject, False));
   AddNewUnit(AProject, lUnit);
   RegisterController(AProject, lUnit);
 end;
 
 procedure NewWebControllerAction(const AProject: IOTAProject);
 var
-  lName, lResource: string;
+  lName, lResource, lDummyModel: string;
   lDummy: Boolean;
   lUnit: TDMVCNewUnit;
 begin
   if not Ask('New web controller', 'Creates Controllers.<Name>U.pas under /web/<URL segment>, ' +
     'its page <URL segment>/index.html in the views folder, and registers the controller.', '', False, False,
-    lName, lResource, lDummy) then
+    False, lName, lResource, lDummyModel, lDummy) then
     Exit;
   lUnit := NewWebController(lName, lResource, ProjectName(AProject));
   OpenFile(WriteView(AProject, lResource + '/index', lName, False));
@@ -339,15 +359,15 @@ end;
 
 procedure NewRoutesAction(const AProject: IOTAProject);
 var
-  lName, lResource, lCallFmt: string;
+  lName, lResource, lModel, lCallFmt: string;
   lCrud: Boolean;
   lUnit: TDMVCNewUnit;
 begin
-  if not Ask('New Minimal API route group', 'Creates <Name>RoutesU.pas with Map<Name>Routes, ' +
-    'mounted on /api/<URL segment> at the end of ConfigureRoutes.', 'CRUD routes', True, False,
-    lName, lResource, lCrud) then
+  if not Ask('New Minimal API route group', 'Creates <Name>RoutesU.pas with Map<Name>Routes and the ' +
+    'model class the request bodies are bound to, mounted on /api/<URL segment> in ConfigureRoutes.',
+    'CRUD routes', True, False, True, lName, lResource, lModel, lCrud) then
     Exit;
-  lUnit := NewRoutesUnit(lName, lResource, lCrud, lCallFmt);
+  lUnit := NewRoutesUnit(lName, lResource, lModel, lCrud, ProjectHasOpenAPI(AProject, True), lCallFmt);
   AddNewUnit(AProject, lUnit);
   if WireIn(AProject, 'ConfigureRoutes',
     function(S: string): TDMVCCodeEdits
@@ -359,12 +379,12 @@ end;
 
 procedure NewViewAction(const AProject: IOTAProject);
 var
-  lName, lDummy: string;
+  lName, lDummy, lDummyModel: string;
   lFragment: Boolean;
 begin
   if not Ask('New TemplatePro view', 'Path in the views folder, without extension ' +
     '(e.g. orders/index). A page extends baselayout.html; a fragment has no layout.',
-    'HTMX fragment (no layout)', False, True, lName, lDummy, lFragment) then
+    'HTMX fragment (no layout)', False, True, False, lName, lDummy, lDummyModel, lFragment) then
     Exit;
   OpenFile(WriteView(AProject, lName, lName.Substring(lName.LastIndexOf('/') + 1), lFragment));
 end;
@@ -539,7 +559,7 @@ end;
 { TItemDialog }
 
 constructor TItemDialog.CreateDialog(const ATitle, AHint, AOptionCaption: string;
-  AOptionDefault, AViewMode: Boolean);
+  AOptionDefault, AViewMode, AWithModel: Boolean);
 var
   lPPI, lTop: Integer;
 
@@ -581,6 +601,7 @@ begin
   inherited CreateNew(nil);
   lPPI := Screen.MonitorFromPoint(Mouse.CursorPos).PixelsPerInch;
   fViewMode := AViewMode;
+  fWithModel := AWithModel;
   Caption := ATitle;
   BorderStyle := bsDialog;
   Position := poScreenCenter;
@@ -603,6 +624,15 @@ begin
     lTop := edtResource.Top + edtResource.Height + S(12);
     edtResource.OnChange := ResourceChange;
   end;
+  edtModel := TEdit.Create(Self);
+  if AWithModel then
+  begin
+    AddLabel('Model class', 368, False);
+    edtModel.Parent := Self;
+    edtModel.SetBounds(S(16), lTop, S(368), S(24));
+    lTop := edtModel.Top + edtModel.Height + S(12);
+    edtModel.OnChange := ModelChange;
+  end;
   chkOption := TCheckBox.Create(Self);
   chkOption.Checked := AOptionDefault;
   if AOptionCaption <> '' then
@@ -623,20 +653,32 @@ end;
 
 procedure TItemDialog.NameChange(Sender: TObject);
 begin
-  if fViewMode or fResourceEdited then
+  if fViewMode then
     Exit;
-  fSettingResource := True;
+  fSettingDefaults := True;
   try
-    edtResource.Text := LowerCase(Trim(edtName.Text));
+    if not fResourceEdited then
+      edtResource.Text := LowerCase(Trim(edtName.Text));
+    if fWithModel and not fModelEdited then
+      if Trim(edtName.Text) = '' then
+        edtModel.Text := ''
+      else
+        edtModel.Text := DefaultModelClass(Trim(edtName.Text));
   finally
-    fSettingResource := False;
+    fSettingDefaults := False;
   end;
 end;
 
 procedure TItemDialog.ResourceChange(Sender: TObject);
 begin
-  if not fSettingResource then
+  if not fSettingDefaults then
     fResourceEdited := True;
+end;
+
+procedure TItemDialog.ModelChange(Sender: TObject);
+begin
+  if not fSettingDefaults then
+    fModelEdited := True;
 end;
 
 procedure TItemDialog.DialogCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -654,7 +696,13 @@ begin
   else if not IsValidItemName(Trim(edtName.Text)) then
     lProblem := 'The name must be a Delphi identifier (e.g. Orders).'
   else if not IsValidPathName(Trim(edtResource.Text)) then
-    lProblem := 'The URL segment takes letters, digits, "-", "_" and "/" (e.g. orders).';
+    lProblem := 'The URL segment takes letters, digits, "-", "_" and "/" (e.g. orders).'
+  else if fWithModel and not IsValidItemName(Trim(edtModel.Text)) then
+    lProblem := 'The model class must be a Delphi identifier (e.g. TOrder).'
+  else if fWithModel and (SameText(Trim(edtModel.Text), 'TObject') or
+    SameText(Trim(edtModel.Text), 'T' + Trim(edtName.Text) + 'Controller')) then
+    // the new unit would declare it and hide the one it needs
+    lProblem := 'The model class needs a name of its own (e.g. TOrder).';
   CanClose := lProblem = '';
   if not CanClose then
     MessageDlg(lProblem, mtWarning, [mbOK], 0);

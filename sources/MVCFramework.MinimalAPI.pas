@@ -430,6 +430,8 @@ type
   // -------------------------------------------------------------------------
 
   TMVCThunkFactory = class
+  private
+    class procedure HandOverBoundData(const AResponse: IMVCResponse; const ABound: TObjectList<TObject>); static;
   public
     class function Make0(const AHandler: TMVCMinimalFunc): TMVCMinimalThunk; static;
     class function Make1<T1>(const AHandler: TMVCMinimalFunc<T1>): TMVCMinimalThunk; static;
@@ -1886,6 +1888,26 @@ begin
     end;
 end;
 
+type
+  // OwnsData is protected: a response must own the bound object it took over
+  TMVCResponseOwnership = class(TMVCResponse);
+
+// `Result := Created(..., Item)` hands a bound argument to the response, which is
+// rendered after the thunk returns: take it out of the bound list, so it is freed
+// once, by the response, after rendering.
+class procedure TMVCThunkFactory.HandOverBoundData(const AResponse: IMVCResponse; const ABound: TObjectList<TObject>);
+var
+  lData: TObject;
+begin
+  if (AResponse = nil) or (ABound.Count = 0) then
+    Exit;
+  lData := AResponse.Data;
+  if (lData = nil) or (ABound.IndexOf(lData) < 0) or not ((AResponse as TObject) is TMVCResponse) then
+    Exit;
+  ABound.Extract(lData);
+  TMVCResponseOwnership(AResponse as TObject).OwnsData := True;
+end;
+
 class function TMVCThunkFactory.Make1<T1>(
   const AHandler: TMVCMinimalFunc<T1>): TMVCMinimalThunk;
 begin
@@ -1899,6 +1921,7 @@ begin
       try
         lA1 := TMVCMinimalArgResolver.Resolve<T1>(AContext, ARenderer, lBound);
         Result := AHandler(lA1);
+        HandOverBoundData(Result, lBound);
       finally
         lBound.Free;
       end;
@@ -1920,6 +1943,7 @@ begin
         lA1 := TMVCMinimalArgResolver.Resolve<T1>(AContext, ARenderer, lBound);
         lA2 := TMVCMinimalArgResolver.Resolve<T2>(AContext, ARenderer, lBound);
         Result := AHandler(lA1, lA2);
+        HandOverBoundData(Result, lBound);
       finally
         lBound.Free;
       end;
@@ -1943,6 +1967,7 @@ begin
         lA2 := TMVCMinimalArgResolver.Resolve<T2>(AContext, ARenderer, lBound);
         lA3 := TMVCMinimalArgResolver.Resolve<T3>(AContext, ARenderer, lBound);
         Result := AHandler(lA1, lA2, lA3);
+        HandOverBoundData(Result, lBound);
       finally
         lBound.Free;
       end;
@@ -1968,6 +1993,7 @@ begin
         lA3 := TMVCMinimalArgResolver.Resolve<T3>(AContext, ARenderer, lBound);
         lA4 := TMVCMinimalArgResolver.Resolve<T4>(AContext, ARenderer, lBound);
         Result := AHandler(lA1, lA2, lA3, lA4);
+        HandOverBoundData(Result, lBound);
       finally
         lBound.Free;
       end;
