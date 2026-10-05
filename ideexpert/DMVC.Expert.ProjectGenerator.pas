@@ -47,7 +47,6 @@ type
   TDMVCProjectGenerator = class
   private
     class function GetScrambledAlphabet: string;
-    class function LoadTemplate(const ATemplateName: string): string;
     class procedure SaveResourceToFile(const AResName, AFilePath: string);
     class function GetDMVCVersion: string;
     class procedure LogToFile(const AMessage: string);
@@ -86,6 +85,10 @@ type
     /// Renders a template with the given configuration
     /// </summary>
     class function RenderTemplate(const ATemplateName: string; AConfig: TJSONObject): string;
+    /// <summary>
+    /// The template text as it is (views carry TemplatePro syntax of their own)
+    /// </summary>
+    class function LoadTemplate(const ATemplateName: string): string;
   end;
 
 implementation

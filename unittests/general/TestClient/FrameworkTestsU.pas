@@ -551,6 +551,8 @@ type
     [Test]
     procedure StrToJSONObjectSurvivesADeeplyNestedBody;
     [Test]
+    procedure StrToJSONOfTheOtherKindDoesNotLeak;
+    [Test]
     procedure TheDepthCounterDoesNotLeakAcrossParses;
     [Test]
     procedure ClearingTheLimitDoesNotDisableIt;
@@ -3867,6 +3869,38 @@ begin
     begin
       StrToJSONObject(lDeep, True).Free;
     end, EMVCDeserializationException);
+end;
+
+function AllocatedBytes: NativeUInt;
+var
+  lState: TMemoryManagerState;
+  I: Integer;
+begin
+  GetMemoryManagerState(lState);
+  Result := lState.TotalAllocatedMediumBlockSize + lState.TotalAllocatedLargeBlockSize;
+  for I := Low(lState.SmallBlockTypeStates) to High(lState.SmallBlockTypeStates) do
+    Inc(Result, lState.SmallBlockTypeStates[I].AllocatedBlockCount *
+      lState.SmallBlockTypeStates[I].UseableBlockSize);
+end;
+
+procedure TTestJSONNestingDepth.StrToJSONOfTheOtherKindDoesNotLeak;
+var
+  I: Integer;
+  lBefore: NativeUInt;
+  lGrowth: Int64;
+begin
+  // A JSON array where an object is expected (and the reverse) answers nil;
+  // the parsed document used to be lost on the failed cast.
+  StrToJSONObject('[1,2,3]');
+  lBefore := AllocatedBytes;
+  for I := 1 to 1000 do
+  begin
+    Assert.IsNull(StrToJSONObject('[1,2,3]'));
+    Assert.IsNull(StrToJSONArray('{"a":1,"b":2}'));
+  end;
+  lGrowth := Int64(AllocatedBytes) - Int64(lBefore);
+  Assert.IsTrue(lGrowth < 16384,
+    Format('%d bytes still allocated after 2000 parses of the wrong kind', [lGrowth]));
 end;
 
 procedure TTestJSONNestingDepth.TheDepthCounterDoesNotLeakAcrossParses;

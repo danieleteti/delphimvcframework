@@ -46,6 +46,8 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.SwaggerUI.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.SwaggerUIProgress.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.AISkills.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectItems.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectMenu.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Presets.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>

@@ -1,0 +1,43 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+interface
+
+uses
+  MVCFramework,
+  MVCFramework.Commons;
+
+type
+  [MVCPath('/web/{{:resource}}')]
+  {{:class_name}} = class(TMVCController)
+  protected
+    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function Index: String;
+  end;
+
+implementation
+
+uses
+  System.SysUtils,
+  System.DateUtils;
+
+procedure {{:class_name}}.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);
+begin
+  inherited;
+  // baselayout.html reads these
+  ViewData['app_name'] := '{{:program_name}}';
+  ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
+  ViewData['current_year'] := YearOf(Now);
+  ViewData['page_id'] := '{{:resource}}';
+end;
+
+function {{:class_name}}.Index: String;
+begin
+  Result := RenderView('{{:view_name}}');
+end;
+
+end.

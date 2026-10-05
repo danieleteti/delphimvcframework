@@ -3952,11 +3952,13 @@ end;
 
 function StrToJSONObject(const AValue: string; ARaiseExceptionOnError: Boolean): TJDOJsonObject;
 var
+  lParsed: TJsonBaseObject;
   lJSON: TJDOJsonObject;
 begin
-  lJSON := nil;
+  lParsed := nil;
   try
-    lJSON := TJDOJsonObject.Parse(AValue) as TJDOJsonObject;
+    lParsed := TJDOJsonObject.Parse(AValue);
+    lJSON := lParsed as TJDOJsonObject; // the other JSON kind raises here: lParsed is freed below
     if ARaiseExceptionOnError and (lJSON = nil) then
     begin
       raise EMVCException.Create('Invalid JSON');
@@ -3965,7 +3967,7 @@ begin
   except
     on E: Exception do
     begin
-      lJSON.Free;
+      lParsed.Free;
       Result := nil;
       if ARaiseExceptionOnError then
       begin
@@ -3977,11 +3979,13 @@ end;
 
 function StrToJSONArray(const AValue: string; ARaiseExceptionOnError: Boolean): TJDOJsonArray;
 var
+  lParsed: TJsonBaseObject;
   lJSON: TJDOJsonArray;
 begin
-  lJSON := nil;
+  lParsed := nil;
   try
-    lJSON := TJDOJsonObject.Parse(AValue) as TJDOJsonArray;
+    lParsed := TJDOJsonObject.Parse(AValue);
+    lJSON := lParsed as TJDOJsonArray; // the other JSON kind raises here: lParsed is freed below
     if ARaiseExceptionOnError and (lJSON = nil) then
     begin
       raise EMVCException.Create('Invalid JSON');
@@ -3990,7 +3994,7 @@ begin
   except
     on E: Exception do
     begin
-      lJSON.Free;
+      lParsed.Free;
       Result := nil;
       if ARaiseExceptionOnError then
       begin

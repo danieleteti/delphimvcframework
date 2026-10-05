@@ -184,6 +184,8 @@ Each preset pre-populates the same wizard form with different defaults; the user
 
 Tutorial projects showing the Minimal API scaffolds live in `samples/wizard_showcase/{rest,web}/`.
 
+**Project Manager menu** (Delphi 12+ only: the unit is in the `d120`/`d130` DT packages and registered under `{$IF CompilerVersion >= 36}`): right click on a DMVC project → DMVCFramework → new REST controller, web controller + view, Minimal API route group, TemplatePro view, filtered by project kind (`IsMinimalAPIProject`: the `.dpr` calls `ConfigureRoutes`; views only with a views folder). Verbs/names of the menu items must be identifiers: a dot in them hangs the IDE on right click. `DMVC.Expert.ProjectMenu.pas` is the IDE side (menu, dialog, edits through the editor buffer); `DMVC.Expert.ProjectItems.pas` has no ToolsAPI (unit sources from the `add_*.tpro` templates, where to insert `AddController`/`Map<Name>Routes`) and is what the template test suite exercises on every generated project.
+
 ## IDE Expert - Template System (TemplatePro)
 
 Code gen uses TemplatePro `.tpro` templates (migration complete, no legacy files).

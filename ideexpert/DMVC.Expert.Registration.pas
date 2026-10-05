@@ -48,12 +48,18 @@ uses
   System.SysUtils,
   DMVC.Expert.ProjectWizardEx,
   DMVC.Expert.NewUnitWizardEx,
+{$IF CompilerVersion >= 36} // Delphi 12+: Project Manager menu
+  DMVC.Expert.ProjectMenu,
+{$ENDIF}
   Winapi.Windows;
 
 procedure Register;
 begin
   ForceDemandLoadState(dlDisable);
   TDMVCNewProjectWizard.RegisterDMVCProjectWizard(sDelphiPersonality);
+{$IF CompilerVersion >= 36}
+  RegisterProjectMenu;
+{$ENDIF}
   //TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(sDelphiPersonality);
 end;
 

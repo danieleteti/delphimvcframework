@@ -1,0 +1,72 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+interface
+
+uses
+  MVCFramework,
+  MVCFramework.MinimalAPI;
+
+procedure {{:procedure_name}}(const AGroup: TMVCRouteGroup<TObject>);
+
+implementation
+
+uses
+  System.SysUtils,
+  MVCFramework.Commons,
+  JsonDataObjects;
+
+procedure {{:procedure_name}}(const AGroup: TMVCRouteGroup<TObject>);
+begin
+  AGroup.MapGet('',
+    function: IMVCResponse
+    begin
+      Result := Ok(TJsonArray.Create);
+    end);
+{{if crud}}
+
+  AGroup.MapGet<Integer>('/($id:int)',
+    function (ID: Integer): IMVCResponse
+    begin
+      Result := NotFound;
+    end);
+
+  AGroup.MapPost<TWebContext>('',
+    function (Ctx: TWebContext): IMVCResponse
+    var
+      lItem: TJsonObject;
+    begin
+      lItem := StrToJSONObject(Ctx.Request.Body);
+      if lItem = nil then
+        Exit(BadRequest('The body is not a JSON object'));
+      try
+        Result := Created('/api/{{:resource}}/1');
+      finally
+        lItem.Free;
+      end;
+    end);
+
+  AGroup.MapPut<Integer, TWebContext>('/($id:int)',
+    function (ID: Integer; Ctx: TWebContext): IMVCResponse
+    var
+      lItem: TJsonObject;
+    begin
+      lItem := StrToJSONObject(Ctx.Request.Body);
+      if lItem = nil then
+        Exit(BadRequest('The body is not a JSON object'));
+      try
+        Result := NoContent;
+      finally
+        lItem.Free;
+      end;
+    end);
+
+  AGroup.MapDelete<Integer>('/($id:int)',
+    function (ID: Integer): IMVCResponse
+    begin
+      Result := NoContent;
+    end);
+{{endif}}
+end;
+
+end.

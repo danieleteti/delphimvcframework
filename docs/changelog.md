@@ -158,6 +158,26 @@ certificate you cannot fix.
   the system CSPRNG, drawn at every generation, so a new project starts
   without editing `.env` first. The generated `.gitignore` already excludes
   `.env`.
+- **"DMVCFramework" menu in the Project Manager (Delphi 12 and 13).** A right
+  click on a DMVC project adds, from the same templates as the wizard:
+  - **New REST Controller**: `Controllers.<Name>U` under `/api/<segment>`,
+    optionally with CRUD actions;
+  - **New Web Controller and View**: a TemplatePro page controller under
+    `/web/<segment>` and its view `<segment>/index.html`;
+  - **New Minimal API Route Group**: `<Name>RoutesU` with
+    `Map<Name>Routes`, mounted on `/api/<segment>`;
+  - **New TemplatePro View**: a page that extends `baselayout.html`, or an
+    HTMX fragment.
+  The new unit is added to the project and wired in through the editor
+  buffer: `AddController(...)` next to the existing ones (before the
+  `// Controllers - END` marker when present), or the `Map<Name>Routes` call
+  at the end of `ConfigureRoutes`, plus the `uses` entry. When no place is
+  found, the unit is still created and a message shows the line to add. The
+  menu shows only what the project can take: the controllers in controller
+  projects, the route group in Minimal API projects (the `.dpr` calls
+  `ConfigureRoutes`), the views where a views folder exists. The older Delphi
+  versions do not get the menu.
+
 - **Web Application projects from the IDE wizard start from a fuller UI.**
   The TemplatePro views have a page header, a live server panel and a
   "Start here" list on the home page, drawn icons, themed selection and focus.
@@ -666,6 +686,10 @@ the same socket.
 - **Minimal API exceptions are logged.** Only the router line (`status=500`)
   reached the log; now the class, the message and the request are logged as
   the controller pipeline does (warning with the field errors for a 422).
+- **`StrToJSONObject` / `StrToJSONArray` leaked the parsed document** when
+  the text was valid JSON of the other kind (an array where an object was
+  expected, and the reverse): the function answered nil (or raised) and the
+  document was never freed.
 - **No exception class name in release error bodies, and `GetErrorPageHandler`
   follows the same rule.** An `EMVCException` that reached the engine without a
   controller (e.g. raised by an HTTP filter) sent its class name even in

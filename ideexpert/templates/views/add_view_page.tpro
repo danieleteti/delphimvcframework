@@ -1,0 +1,11 @@
+{{extends "{{:layout_path}}"}}
+
+{{block "title"}}{{:view_title}}{{endblock}}
+
+{{block "body"}}
+
+  <header class="page-header">
+    <h1>{{:view_title}}</h1>
+  </header>
+
+{{endblock}}

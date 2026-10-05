@@ -1,0 +1,3 @@
+{{# HTMX fragment: no layout, the page decides where it goes #}}
+<div id="{{:view_id}}">
+</div>

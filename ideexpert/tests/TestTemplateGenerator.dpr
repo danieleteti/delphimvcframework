@@ -33,6 +33,7 @@ uses
   System.Zip,
   System.StrUtils,
   System.Diagnostics,
+  System.RegularExpressions,
   IdContext,
   IdTCPServer,
   Winapi.Windows,
@@ -42,7 +43,8 @@ uses
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas',
   DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
   DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
-  DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas';
+  DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas',
+  DMVC.Expert.ProjectItems in '..\DMVC.Expert.ProjectItems.pas';
 
 type
   TTestCase = record
@@ -2115,6 +2117,204 @@ begin
     Log('  [FAIL] still referring to the example: ' + string.Join(', ', LLeft));
 end;
 
+{ Project Manager "DMVCFramework" menu (DMVC.Expert.ProjectItems): the same
+  functions the menu calls, run against the generated projects. Every controller
+  project must accept a new controller and every Minimal API project a new route
+  group; a few copies get the new units for real and must compile. }
+function RunProjectItemsTests(const ACaseDirs: TArray<string>): Boolean;
+var
+  LFailures: TArray<string>;
+
+  procedure Check(const AName: string; ACondition: Boolean; const ADetail: string = '');
+  begin
+    if ACondition then
+      Log('  [PASS] ' + AName)
+    else
+    begin
+      Log('  [FAIL] ' + AName + IfThen(ADetail <> '', ' - ' + ADetail, ''));
+      LFailures := LFailures + [AName];
+    end;
+  end;
+
+  function Planned(const ASource: string; const AEdits: TDMVCCodeEdits): string;
+  begin
+    Result := ApplyEdits(ASource, AEdits);
+  end;
+
+  // Copy of a generated case, so the case itself stays as generated
+  function CopyCase(const ACase: string): string;
+  begin
+    Result := TPath.GetFullPath(TPath.Combine(GOutputDir, '_items_' + ACase));
+    if TDirectory.Exists(Result) then
+      TDirectory.Delete(Result, True);
+    TDirectory.Copy(TPath.GetFullPath(TPath.Combine(GOutputDir, ACase)), Result);
+  end;
+
+  procedure AddUnit(const ADir: string; const AUnit: TDMVCNewUnit);
+  begin
+    TFile.WriteAllText(TPath.Combine(ADir, AUnit.FileName), AUnit.Source, TEncoding.UTF8);
+  end;
+
+  // Wires AUnit into AHostFile with APlan, writes both, compiles the project
+  procedure AddAndCompile(const AName, ACase, AHostFile: string; const AUnit: TDMVCNewUnit;
+    const APlan: TFunc<string, TDMVCCodeEdits>; const AExtra: TProc<string> = nil);
+  var
+    LDir, LHost, LSource, LError: string;
+    LEdits: TDMVCCodeEdits;
+  begin
+    LDir := CopyCase(ACase);
+    LHost := TPath.Combine(LDir, AHostFile);
+    LSource := TFile.ReadAllText(LHost, TEncoding.UTF8);
+    LEdits := APlan(LSource);
+    if Length(LEdits) = 0 then
+    begin
+      Check(AName, False, 'no insertion point in ' + AHostFile);
+      Exit;
+    end;
+    TFile.WriteAllText(LHost, ApplyEdits(LSource, LEdits), TEncoding.UTF8);
+    AddUnit(LDir, AUnit);
+    if Assigned(AExtra) then
+      AExtra(LDir);
+    if GSkipCompile then
+      Check(AName + ' (generated, compile skipped)', True)
+    else
+      Check(AName + ' compiles', CompileProject(LDir, 'TestProject', LError), LError);
+  end;
+
+var
+  LDir, LFile, LSource, LCallFmt, LView: string;
+  LEdits: TDMVCCodeEdits;
+  LControllerHosts, LRoutesHosts, LRefused, LWrongKind: Integer;
+  LIsMinimal, LHasControllers: Boolean;
+  LRest, LRestPlain, LWeb, LRoutes: TDMVCNewUnit;
+begin
+  Log('');
+  Log('=== Project Manager menu: new controller, route group, view ===');
+  LFailures := [];
+
+  // --- the planner on small sources
+  LSource := 'unit A;'#13#10'interface'#13#10'implementation'#13#10#13#10'procedure X(E: TMVCEngine);'#13#10 +
+    'begin'#13#10'  E.AddController(TA);'#13#10'end;'#13#10'end.';
+  Check('no implementation uses: one is created',
+    PlanControllerRegistration(LSource, 'Controllers.BU', 'TBController', LEdits) and
+    Planned(LSource, LEdits).Contains('implementation'#13#10#13#10'uses'#13#10'  Controllers.BU;') and
+    Planned(LSource, LEdits).Contains('  E.AddController(TA);'#13#10'  E.AddController(TBController);'));
+  LSource := 'unit A;'#10'implementation'#10'uses SysUtils, Classes;'#10'procedure X;'#10'begin'#10 +
+    '  fMVC.AddController(TA);'#10'end;'#10'end.';
+  Check('uses on one line, LF source',
+    PlanControllerRegistration(LSource, 'BU', 'TB', LEdits) and
+    Planned(LSource, LEdits).Contains('uses BU, SysUtils, Classes;') and
+    Planned(LSource, LEdits).Contains('  fMVC.AddController(TB);'#10) and
+    not Planned(LSource, LEdits).Contains(#13));
+  LSource := 'implementation'#13#10'uses BU;'#13#10'begin'#13#10'  E.AddController(TB);'#13#10'end;';
+  Check('already registered: nothing planned',
+    not PlanControllerRegistration(LSource, 'BU', 'TB', LEdits) and (Length(LEdits) = 0));
+  Check('no AddController at all: nothing planned',
+    not PlanControllerRegistration('unit A; implementation end.', 'BU', 'TB', LEdits));
+  Check('names: identifiers and paths', IsValidItemName('Orders') and not IsValidItemName('1Orders') and
+    not IsValidItemName('Ord ers') and IsValidPathName('orders') and IsValidPathName('admin/orders') and
+    not IsValidPathName('../x') and not IsValidPathName('/orders') and not IsValidPathName('a b'));
+
+  // --- views
+  LView := NewViewSource('orders/index', 'Orders', False);
+  Check('page view extends the layout one folder up',
+    LView.Contains('{{extends "../baselayout.html"}}') and LView.Contains('<h1>Orders</h1>'), LView);
+  Check('page view at the root extends baselayout.html',
+    NewViewSource('orders', 'Orders', False).Contains('{{extends "baselayout.html"}}'));
+  LView := NewViewSource('orders/rows', '', True);
+  Check('fragment view: no layout', not LView.Contains('extends') and LView.Contains('id="orders-rows"'), LView);
+
+  // --- every generated project accepts the new item
+  LControllerHosts := 0;
+  LRoutesHosts := 0;
+  LRefused := 0;
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+    begin
+      LSource := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      if LSource.Contains('.AddController(') then
+      begin
+        Inc(LControllerHosts);
+        if not PlanControllerRegistration(LSource, 'Controllers.OrdersU', 'TOrdersController', LEdits) then
+        begin
+          Inc(LRefused);
+          Log('    no controller insertion point: ' + LFile);
+        end;
+      end;
+      if TRegEx.IsMatch(LSource, '(?im)^procedure\s+ConfigureRoutes\b') then
+      begin
+        Inc(LRoutesHosts);
+        if not PlanRoutesRegistration(LSource, 'OrdersRoutesU', 'MapOrdersRoutes(%s)', LEdits) then
+        begin
+          Inc(LRefused);
+          Log('    no routes insertion point: ' + LFile);
+        end;
+      end;
+    end;
+  Check(Format('every generated project accepts the item (%d controller hosts, %d route hosts)',
+    [LControllerHosts, LRoutesHosts]), (LRefused = 0) and (LControllerHosts > 0) and (LRoutesHosts > 0));
+
+  // --- the menu shows only what the project can take: route groups for the
+  // Minimal API projects, controllers for the others
+  LWrongKind := 0;
+  for LDir in ACaseDirs do
+  begin
+    LIsMinimal := IsMinimalAPIProject(TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8));
+    LHasControllers := False;
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+      if TFile.ReadAllText(LFile, TEncoding.UTF8).Contains('.AddController(') then
+        LHasControllers := True;
+    if (LIsMinimal <> TFile.Exists(TPath.Combine(LDir, 'RoutesU.pas'))) or (LIsMinimal = LHasControllers) then
+    begin
+      Inc(LWrongKind);
+      Log('    wrong project kind: ' + LDir);
+    end;
+  end;
+  Check(Format('project kind from the .dpr matches every generated project (%d)', [Length(ACaseDirs)]),
+    LWrongKind = 0);
+
+  // --- for real: new units, wired in, compiled
+  LRest := NewRestController('Orders', 'orders', True);
+  LRestPlain := NewRestController('Orders', 'orders', False);
+  LWeb := NewWebController('Orders', 'orders', 'TestProject');
+  LRoutes := NewRoutesUnit('Orders', 'orders', True, LCallFmt);
+  Check('route call', LCallFmt = 'MapOrdersRoutes(%s.Prefix(''/api/orders''))', LCallFmt);
+
+  AddAndCompile('REST controller (CRUD) in EngineConfigU', 'indydirect_with_crud', 'EngineConfigU.pas', LRest,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRest.UnitName, LRest.TypeName, Result);
+    end);
+  AddAndCompile('REST controller in a WebModule (Apache)', 'apache_webapp_htmx', 'WebModuleU.pas', LRestPlain,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRestPlain.UnitName, LRestPlain.TypeName, Result);
+    end);
+  AddAndCompile('web controller + view in a web app', 'indydirect_webapp_htmx', 'EngineConfigU.pas', LWeb,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LWeb.UnitName, LWeb.TypeName, Result);
+    end,
+    procedure(ADir: string)
+    begin
+      ForceDirectories(TPath.Combine(ADir, 'bin\templates\orders'));
+      TFile.WriteAllText(TPath.Combine(ADir, 'bin\templates\orders\index.html'),
+        NewViewSource('orders/index', 'Orders', False), TEncoding.UTF8);
+    end);
+  AddAndCompile('route group (CRUD) in a Minimal API project', 'indydirect_minimal_api_services', 'RoutesU.pas', LRoutes,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
+    end);
+  AddAndCompile('route group in a Minimal API web app', 'indydirect_minimal_api_web', 'RoutesU.pas', LRoutes,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
+    end);
+
+  Result := Length(LFailures) = 0;
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -2270,6 +2470,12 @@ begin
       begin
         Log('');
         Log('FAIL: a generated project still refers to the People example.');
+        ExitCode := 1;
+      end;
+      if not RunProjectItemsTests(LCaseDirs) then
+      begin
+        Log('');
+        Log('FAIL: Project Manager menu tests did not pass.');
         ExitCode := 1;
       end;
       if not RunAISkillsBatTest(TPath.GetFullPath(TPath.Combine(GOutputDir, 'indydirect_ai_skills_rest'))) then
