@@ -1,0 +1,69 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+// The FireDAC connection of {{:db_caption}} for ActiveRecord, read from the .env (db.* keys).
+// ActiveRecord needs two units per database, both registered by their initialization,
+// so a missing one still compiles and fails only at the first query:
+//   {{:db_phys_unit}}   the FireDAC driver
+//   {{:db_generator_unit}}   the SQL dialect of ActiveRecord
+
+interface
+
+const
+  CON_DEF_NAME = '{{:con_def_name}}';
+
+/// Registers CON_DEF_NAME in FDManager. Call it once, before the first request.
+procedure SetupDatabaseConnection;
+
+implementation
+
+uses
+  System.Classes,
+{{if db_sqlite}}
+  System.SysUtils,
+  System.IOUtils,
+{{endif}}
+  FireDAC.Comp.Client,
+  {{:db_phys_unit}},
+{{if db_sqlite}}
+{$IF CompilerVersion >= 34} // 10.4+: SQLite linked into the executable, no sqlite3.dll
+  FireDAC.Phys.SQLiteWrapper.Stat,
+{$ENDIF}
+{{endif}}
+  {{:db_generator_unit}},
+  MVCFramework.Commons; // dotEnv
+
+procedure SetupDatabaseConnection;
+var
+  lParams: TStringList;
+{{if db_sqlite}}
+  lDatabase: string;
+{{endif}}
+begin
+  lParams := TStringList.Create;
+  try
+{{if db_sqlite}}
+    // relative to the executable, not to the current directory
+    lDatabase := TPath.Combine(AppPath, dotEnv.Env('db.database', '{{:db_default_database}}'));
+    ForceDirectories(ExtractFilePath(lDatabase)); // SQLite creates the file, not the folder
+    lParams.Add('Database=' + lDatabase);
+{{else}}
+{{if db_server}}
+    lParams.Add('Server=' + dotEnv.Env('db.server', 'localhost'));
+{{endif}}
+{{if db_port}}
+    lParams.Add('Port=' + dotEnv.Env('db.port', '{{:db_default_port}}'));
+{{endif}}
+    lParams.Add('Database=' + dotEnv.Env('db.database', '{{:db_default_database}}'));
+    lParams.Add('User_Name=' + dotEnv.Env('db.user', '{{:db_default_user}}'));
+    lParams.Add('Password=' + dotEnv.Env('db.password', ''));
+{{endif}}
+    lParams.Add('Pooled=True');
+    lParams.Add('POOL_MaximumItems=' + dotEnv.Env('db.pool_max', '50'));
+    FDManager.AddConnectionDef(CON_DEF_NAME, '{{:db_driver_id}}', lParams);
+  finally
+    lParams.Free;
+  end;
+end;
+
+end.

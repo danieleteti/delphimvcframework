@@ -10,26 +10,29 @@ uses
 {{if openapi_swagger}}
   MVCFramework.Swagger.Commons,
 {{endif}}
-  MVCFramework.Validators;
+{{if with_service}}
+  {{:service_unit_name}},
+{{endif}}
+  {{:model_unit_name}};
 
 type
-  {{:model_class}} = class
-  private
-    fID: Integer;
-    fName: string;
-  public
-    property ID: Integer read fID write fID;
-    [MVCRequired]
-    property Name: string read fName write fName;
-  end;
-
   [MVCPath('/api/{{:resource}}')]
 {{if openapi_swagger}}
   [MVCSWAGDefaultModel({{:model_class}}, '{{:model_title}}', '{{:tag}}')]
   [MVCSWAGDefaultSummaryTags('{{:tag}}')]
 {{endif}}
   {{:class_name}} = class(TMVCController)
+{{if with_service}}
+  private
+    fService: {{:service_interface_name}};
+{{endif}}
   public
+{{if with_service}}
+    // the service comes from the container (RegisterServices)
+    [MVCInject]
+    constructor Create(const Service: {{:service_interface_name}}); reintroduce;
+
+{{endif}}
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
 {{if openapi_swagger}}
@@ -84,6 +87,48 @@ implementation
 
 uses
   System.SysUtils;
+{{if with_service}}
+
+constructor {{:class_name}}.Create(const Service: {{:service_interface_name}});
+begin
+  inherited Create;
+  fService := Service;
+end;
+
+function {{:class_name}}.GetAll: IMVCResponse;
+begin
+  Result := OkResponse(fService.GetAll);
+end;
+{{if crud}}
+
+function {{:class_name}}.GetByID(ID: Integer): IMVCResponse;
+var
+  lItem: {{:model_class}};
+begin
+  lItem := fService.GetByID(ID);
+  if lItem = nil then
+    Exit(NotFoundResponse);
+  Result := OkResponse(lItem);
+end;
+
+function {{:class_name}}.CreateItem(Item: {{:model_class}}): IMVCResponse;
+begin
+  Result := CreatedResponse('/api/{{:resource}}/' + fService.Add(Item));
+end;
+
+function {{:class_name}}.UpdateItem(ID: Integer; Item: {{:model_class}}): IMVCResponse;
+begin
+  fService.Replace(ID, Item);
+  Result := NoContentResponse;
+end;
+
+function {{:class_name}}.DeleteItem(ID: Integer): IMVCResponse;
+begin
+  fService.Delete(ID);
+  Result := NoContentResponse;
+end;
+{{endif}}
+{{else}}
 
 function {{:class_name}}.GetAll: IMVCResponse;
 begin
@@ -98,7 +143,8 @@ end;
 
 function {{:class_name}}.CreateItem(Item: {{:model_class}}): IMVCResponse;
 begin
-  Result := CreatedResponse('/api/{{:resource}}/' + Item.ID.ToString);
+  // store Item, then answer with its URL: CreatedResponse('/api/{{:resource}}/' + <its key>)
+  Result := CreatedResponse;
 end;
 
 function {{:class_name}}.UpdateItem(ID: Integer; Item: {{:model_class}}): IMVCResponse;
@@ -110,6 +156,7 @@ function {{:class_name}}.DeleteItem(ID: Integer): IMVCResponse;
 begin
   Result := NoContentResponse;
 end;
+{{endif}}
 {{endif}}
 
 end.

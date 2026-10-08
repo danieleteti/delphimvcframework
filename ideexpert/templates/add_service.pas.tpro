@@ -1,0 +1,129 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+// The business logic of {{:tag}}: controllers receive {{:interface_name}} with [MVCInject],
+// RegisterServices maps it to {{:class_name}}. No HTTP here: the controller decides the status.
+
+interface
+{{if crud}}
+
+uses
+  System.Generics.Collections,
+  {{:model_unit_name}};
+{{endif}}
+
+type
+  {{:interface_name}} = interface
+    ['{{:new_guid}}']
+{{if crud}}
+    // Every list and item returned belongs to the caller: an action that returns it
+    // hands it to the framework, which frees it.
+    function GetAll: TObjectList<{{:model_class}}>;
+    // nil when no item has that ID
+    function GetByID(const ID: Integer): {{:model_class}};
+    // Stores Item and returns its key as it goes in a URL. Item belongs to the caller
+    // (for a request body, the framework): never keep the reference.
+    function Add(const Item: {{:model_class}}): string;
+    // Replaces the item with that ID with Item: the ID comes from the URL and wins over the body
+    procedure Replace(const ID: Integer; const Item: {{:model_class}});
+    procedure Delete(const ID: Integer);
+{{else}}
+    function Hello(const Name: string): string;
+{{endif}}
+  end;
+
+  {{:class_name}} = class(TInterfacedObject, {{:interface_name}})
+  protected
+{{if crud}}
+    function GetAll: TObjectList<{{:model_class}}>;
+    function GetByID(const ID: Integer): {{:model_class}};
+    function Add(const Item: {{:model_class}}): string;
+    procedure Replace(const ID: Integer; const Item: {{:model_class}});
+    procedure Delete(const ID: Integer);
+{{else}}
+    function Hello(const Name: string): string;
+{{endif}}
+  end;
+
+implementation
+{{if crud}}
+{{if model_ar}}
+
+uses
+  MVCFramework.ActiveRecord;
+
+// {{:model_class}} is an ActiveRecord entity: a missing row raises EMVCActiveRecordNotFound,
+// which the framework answers with 404.
+
+function {{:class_name}}.GetAll: TObjectList<{{:model_class}}>;
+begin
+  Result := TMVCActiveRecord.All<{{:model_class}}>;
+end;
+
+function {{:class_name}}.GetByID(const ID: Integer): {{:model_class}};
+begin
+  Result := TMVCActiveRecord.GetByPK<{{:model_class}}>(ID, False);
+end;
+
+function {{:class_name}}.Add(const Item: {{:model_class}}): string;
+begin
+  Item.Insert;
+  Result := Item.PKAsURLSegment;
+end;
+
+procedure {{:class_name}}.Replace(const ID: Integer; const Item: {{:model_class}});
+begin
+  Item.SetPK(ID);
+  Item.Update; // no row with that ID: EMVCActiveRecordNotFound
+end;
+
+procedure {{:class_name}}.Delete(const ID: Integer);
+var
+  lItem: {{:model_class}};
+begin
+  lItem := TMVCActiveRecord.GetByPK<{{:model_class}}>(ID); // none: EMVCActiveRecordNotFound
+  try
+    lItem.Delete;
+  finally
+    lItem.Free;
+  end;
+end;
+{{else}}
+
+function {{:class_name}}.GetAll: TObjectList<{{:model_class}}>;
+begin
+  Result := TObjectList<{{:model_class}}>.Create(True);
+  // read the items from the storage here
+end;
+
+function {{:class_name}}.GetByID(const ID: Integer): {{:model_class}};
+begin
+  Result := nil;
+  // read the item from the storage here
+end;
+
+function {{:class_name}}.Add(const Item: {{:model_class}}): string;
+begin
+  Result := '';
+  // store a copy of Item here and return its new key
+end;
+
+procedure {{:class_name}}.Replace(const ID: Integer; const Item: {{:model_class}});
+begin
+  // store Item over the item with this ID here: take the key from ID, not from Item
+end;
+
+procedure {{:class_name}}.Delete(const ID: Integer);
+begin
+  // delete the item from the storage here
+end;
+{{endif}}
+{{else}}
+
+function {{:class_name}}.Hello(const Name: string): string;
+begin
+  Result := 'Hello, ' + Name;
+end;
+{{endif}}
+
+end.
