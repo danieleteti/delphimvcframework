@@ -114,7 +114,6 @@ type
     gbControllerUnitOptions: TGroupBox;
     chkCreateIndexMethod: TCheckBox;
     chkCreateActionFiltersMethods: TCheckBox;
-    chkCreateCRUDMethods: TCheckBox;
     chkProfileActions: TCheckBox;
     gbAdditionalFeatures: TGroupBox;
     lblSSV: TLabel;
@@ -441,13 +440,9 @@ begin
   fIsMinimalAPIPreset := AEnabled;
   if AEnabled then
   begin
-    // Lock the routing model: Minimal API is the typology. chkCreateCRUDMethods
-    // is the generator trigger for RoutesU.pas, so it is locked ON (visible),
-    // not hidden.
+    // Lock the routing model: Minimal API is the typology (RoutesU.pas).
     chkMinimalAPI.Checked := True;
     chkMinimalAPI.Enabled := False;
-    chkCreateCRUDMethods.Checked := True;
-    chkCreateCRUDMethods.Enabled := False;
     // Hide controls with no meaning when no controller class is generated —
     // each edit together with its caption label.
     edtControllerClassName.Visible := False;
@@ -462,7 +457,6 @@ begin
   else
   begin
     chkMinimalAPI.Enabled := True;
-    chkCreateCRUDMethods.Enabled := True;
     edtControllerClassName.Visible := True;
     lblClassName.Visible := True;
     chkCreateIndexMethod.Visible := True;
@@ -546,7 +540,7 @@ begin
   EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
   EdtConnDefName.Enabled := chkActiveRecord.Checked;
   EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
-  chkProfileActions.Enabled := chkCreateIndexMethod.Checked or chkCreateCRUDMethods.Checked;
+  chkProfileActions.Enabled := chkCreateIndexMethod.Checked;
   if not chkProfileActions.Enabled then
     chkProfileActions.Checked := False;
   case rgServerProtocol.ItemIndex of
@@ -879,8 +873,6 @@ procedure TfrmDMVCNewProject.chkMinimalAPIClick(Sender: TObject);
 begin
   // Minimal API mode emits a RoutesU.pas with lambda routes instead of a
   // controller class, so the controller-class options become irrelevant.
-  // CRUD checkbox stays enabled — it now means "generate the CRUD sample
-  // lambdas" instead of "controller CRUD methods".
   chkCreateIndexMethod.Enabled := not chkMinimalAPI.Checked;
   chkCreateActionFiltersMethods.Enabled := not chkMinimalAPI.Checked;
   chkProfileActions.Enabled := not chkMinimalAPI.Checked;
@@ -1192,11 +1184,7 @@ begin
   fModel.S[TConfigKey.controller_classname] := GetControllerClassName;
   fModel.B[TConfigKey.controller_index_methods_generate] := chkCreateIndexMethod.Checked;
   fModel.B[TConfigKey.controller_action_filters_generate] := chkCreateActionFiltersMethods.Checked;
-  fModel.B[TConfigKey.controller_crud_methods_generate] := chkCreateCRUDMethods.Checked;
   fModel.B[TConfigKey.controller_actions_profiling_generate] := chkProfileActions.Checked;
-  fModel.B[TConfigKey.entity_generate] := fModel.B[TConfigKey.controller_crud_methods_generate] or fModel.B[TConfigKey.program_service_container_generate];
-  fModel.S[TConfigKey.entity_classname] := 'TPerson';
-  fModel.S[TConfigKey.entity_unit_name] := 'TBA';
   fModel.B[TConfigKey.jsonrpc_generate] := GetCreateJSONRPCInterface;
   fModel.S[TConfigKey.jsonrpc_classname] := GetJSONRPCClassName;
   fModel.S[TConfigKey.jsonrpc_unit_name] := 'TBA';

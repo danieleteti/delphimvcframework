@@ -80,18 +80,6 @@
           <div class="card-footer text-secondary small">JSON, XML, custom formats</div>
         </div>
       </div>
-{{if controller_crud_methods_generate}}
-      <div class="col">
-        <div class="card h-100">
-          <div class="card-header fw-semibold">CRUD Operations</div>
-          <div class="card-body">
-            <p class="mb-0">Create, Read, Update, and Delete operations
-               ready to use with sample entities.</p>
-          </div>
-          <div class="card-footer text-secondary small">MVCActiveRecord ORM</div>
-        </div>
-      </div>
-{{endif}}
 {{if webmodule_middleware_jwt}}
       <div class="col">
         <div class="card h-100">
@@ -140,11 +128,6 @@
           <a href="https://www.danieleteti.it/delphimvcframework/" target="_blank" class="btn btn-outline-primary">
             View Documentation &rarr;
           </a>
-{{if controller_crud_methods_generate}}
-          <a href="/api/people" target="_blank" class="btn btn-outline-primary">
-            Try People API &rarr;
-          </a>
-{{endif}}
         </div>
       </div>
       <div class="card-footer text-secondary small">

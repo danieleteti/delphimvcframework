@@ -780,21 +780,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Caption = 'Generate Action Filters Methods'
           TabOrder = 1
         end
-        object chkCreateCRUDMethods: TCheckBox
+        object chkProfileActions: TCheckBox
           Left = 16
           Top = 71
           Width = 300
           Height = 17
-          Caption = 'Generate Sample CRUD Actions'
-          TabOrder = 2
-        end
-        object chkProfileActions: TCheckBox
-          Left = 16
-          Top = 94
-          Width = 300
-          Height = 17
           Caption = 'Include Actions Profiling Code'
-          TabOrder = 3
+          TabOrder = 2
         end
       end
       object gbAdditionalFeatures: TGroupBox
@@ -885,6 +877,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Width = 200
           Height = 17
           Caption = 'Use Services Container'
+          Checked = True
+          State = cbChecked
           TabOrder = 5
         end
       end

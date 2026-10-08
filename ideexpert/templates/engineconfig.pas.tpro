@@ -17,9 +17,6 @@ uses
 {{if @(program_ssv_any and (not program_minimal_api))}}
   Controllers.APIU,
 {{endif}}
-{{if @(controller_crud_methods_generate and (not program_minimal_api))}}
-  Controllers.PeopleU,
-{{endif}}
 {{if jsonrpc_generate}}
   {{:jsonrpc_unit_name}},
   MVCFramework.JSONRPC,
@@ -51,6 +48,14 @@ uses
   MVCFramework.Logger,
 {{if @(webmodule_middleware_activerecord and (not program_minimal_api))}}
   MVCFramework.Middleware.ActiveRecord,
+  // ActiveRecord needs the FireDAC driver and the SQL generator of the database in
+  // the connection definitions file: SQLite there by default. Another database:
+  // replace the SQLite units, e.g. FireDAC.Phys.PG + MVCFramework.SQLGenerators.PostgreSQL.
+  FireDAC.Phys.SQLite,
+{$IF CompilerVersion >= 34} // 10.4+: SQLite linked into the executable, no sqlite3.dll
+  FireDAC.Phys.SQLiteWrapper.Stat,
+{$ENDIF}
+  MVCFramework.SQLGenerators.Sqlite,
 {{endif}}
 {{if @(webmodule_middleware_session_memory and (not program_minimal_api))}}
   MVCFramework.Middleware.Session,
@@ -146,9 +151,6 @@ begin
 {{endif}}
 {{if program_ssv_any}}
   AEngine.AddController(TAPIController);
-{{endif}}
-{{if controller_crud_methods_generate}}
-  AEngine.AddController(TPeopleController);
 {{endif}}
   // Controllers - END
 {{endif}}

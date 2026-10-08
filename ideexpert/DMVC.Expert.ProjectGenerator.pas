@@ -386,9 +386,7 @@ class procedure TDMVCProjectGenerator.Generate(const AProjectFolder, AProjectNam
 const
   CONTROLLER_UNIT = 'Controllers.HomeU';
   CONTROLLER_API_UNIT = 'Controllers.APIU';
-  CONTROLLER_PEOPLE_UNIT = 'Controllers.PeopleU';
   WEBMODULE_UNIT = 'WebModuleU';
-  ENTITY_UNIT = 'EntitiesU';
   SERVICES_UNIT = 'ServicesU';
   JSONRPC_UNIT = 'JSONRPCServiceU';
   AUTHENTICATION_UNIT = 'AuthenticationU';
@@ -477,7 +475,6 @@ begin
   AConfig.S[TConfigKey.program_name] := AProjectName;
   AConfig.S[TConfigKey.controller_unit_name] := CONTROLLER_UNIT;
   AConfig.S[TConfigKey.webmodule_unit_name] := WEBMODULE_UNIT;
-  AConfig.S[TConfigKey.entity_unit_name] := ENTITY_UNIT;
   AConfig.S[TConfigKey.program_service_container_unit_name] := SERVICES_UNIT;
   AConfig.S[TConfigKey.jsonrpc_unit_name] := JSONRPC_UNIT;
   AConfig.S[TConfigKey.authentication_unit_name] := AUTHENTICATION_UNIT;
@@ -550,10 +547,18 @@ begin
   // as soon as it is generated. Each generation draws a new one.
   AConfig.S['program.jwt.secret'] := NewJWTSecret;
 
+  // A controller project always gets THomeController with at least one action:
+  // there is no sample resource any more, and the Project Manager menu wires new
+  // controllers next to an existing AddController. A RESTful preset (no index
+  // methods, no SSV) therefore gets the index methods anyway.
+  if not AConfig.B[TConfigKey.program_minimal_api] and
+    not (AConfig.B[TConfigKey.controller_index_methods_generate] or
+         AConfig.B[TConfigKey.controller_action_filters_generate] or
+         AConfig.B['program.ssv.any']) then
+    AConfig.B[TConfigKey.controller_index_methods_generate] := True;
+
   // Main ControllerU.pas is worth generating only when it will contain at
-  // least one method. With the CRUD sample now living in Controllers.PeopleU,
-  // a RESTful preset (no index methods, no SSV) would otherwise leave an
-  // empty TXxxController = class(TMVCController) end; in ControllerU.
+  // least one method.
   // Minimal-API WebApp replaces the controller class with lambda routes in
   // RoutesU.pas, so suppress THomeController even when SSV is on.
   AConfig.B['controller.main.generate'] :=
@@ -633,11 +638,8 @@ begin
   // Generate .dproj with correct output paths (exe -> .\bin, dcu -> .\$(Platform)\$(Config))
   SaveFile(AProjectName + '.dproj', RenderTemplate('project.dproj.tpro', AConfig));
 
-  // Main Controllers.HomeU is generated only when it would contain at least
-  // one method (index samples, action filters override, or SSV OnBeforeAction).
-  // Pure REST projects with only CRUD skip this unit - the sample code lives
-  // in Controllers.PeopleU and an empty THomeController = class(TMVCController)
-  // end; would just be noise.
+  // Main Controllers.HomeU: always in a controller project (see above), never
+  // in a Minimal API one.
   if AConfig.B['controller.main.generate'] then
     SaveFile(CONTROLLER_UNIT + '.pas', RenderTemplate('controller.pas.tpro', AConfig));
 
@@ -648,19 +650,15 @@ begin
     SaveFile(CONTROLLER_API_UNIT + '.pas',
       RenderTemplate('controller_api.pas.tpro', AConfig));
 
-  // CRUD sample: controller class (default) or lambda-route unit (Minimal API).
-  if AConfig.B[TConfigKey.controller_crud_methods_generate] then
-  begin
-    if AConfig.B['program.minimal_api.web'] then
-      SaveFile('RoutesU.pas',
-        RenderTemplate('routes_minimal_web.pas.tpro', AConfig))
-    else if AConfig.B[TConfigKey.program_minimal_api] then
-      SaveFile('RoutesU.pas',
-        RenderTemplate('routes_minimal.pas.tpro', AConfig))
-    else
-      SaveFile(CONTROLLER_PEOPLE_UNIT + '.pas',
-        RenderTemplate('controller_people.pas.tpro', AConfig));
-  end;
+  // Minimal API: RoutesU holds ConfigureRoutes, where route groups are mounted.
+  // Controller projects get no sample resource: Project Manager > DMVCFramework
+  // > New REST Controller... adds one (optionally through a service).
+  if AConfig.B['program.minimal_api.web'] then
+    SaveFile('RoutesU.pas',
+      RenderTemplate('routes_minimal_web.pas.tpro', AConfig))
+  else if AConfig.B[TConfigKey.program_minimal_api] then
+    SaveFile('RoutesU.pas',
+      RenderTemplate('routes_minimal.pas.tpro', AConfig));
 
   // WebModule only for WebBroker non-console cases (ISAPI, Apache, Windows Service, FastCGI).
   // Console WebBroker uses EngineConfigU + TMVCServerFactory.CreateWebBroker instead.
@@ -677,9 +675,6 @@ begin
   end;
 
   // Optional units
-  if AConfig.B[TConfigKey.entity_generate] then
-    SaveFile(ENTITY_UNIT + '.pas', RenderTemplate('entity.pas.tpro', AConfig));
-
   if AConfig.B[TConfigKey.program_service_container_generate] then
     SaveFile(SERVICES_UNIT + '.pas', RenderTemplate('services.pas.tpro', AConfig));
 
@@ -936,6 +931,8 @@ begin
   // Create sample FDConnectionDefs.ini when ActiveRecord middleware is enabled (inside bin)
   if AConfig.B[TConfigKey.webmodule_middleware_activerecord] then
   begin
+    // the .ini below enables SQLite on .\data\database.db: SQLite creates the file, not the folder
+    ForceDirectories(TPath.Combine(AProjectFolder, 'bin' + PathDelim + 'data'));
     TFile.WriteAllText(
       TPath.Combine(AProjectFolder, 'bin' + PathDelim + AConfig.S[TConfigKey.con_def_filename]),
       '; FireDAC Connection Definitions' + sLineBreak +

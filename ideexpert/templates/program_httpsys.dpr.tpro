@@ -32,15 +32,8 @@ uses
 {{if @(program_ssv_any and (not program_minimal_api))}}
   Controllers.APIU in 'Controllers.APIU.pas',
 {{endif}}
-{{if controller_crud_methods_generate}}
 {{if program_minimal_api}}
   RoutesU in 'RoutesU.pas',
-{{else}}
-  Controllers.PeopleU in 'Controllers.PeopleU.pas',
-{{endif}}
-{{endif}}
-{{if entity_generate}}
-  {{:entity_unit_name}} in '{{:entity_unit_name}}.pas',
 {{endif}}
 {{if program_service_container_generate}}
   {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',

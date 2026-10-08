@@ -52,7 +52,7 @@ const
   PRESET_INFOS: array[TDMVCProjectPreset] of TDMVCProjectPresetInfo = (
     ( // ppRESTfulAPI
       Caption: 'RESTful API';
-      Hint: 'REST controller with CRUD methods, CORS, compression, service container. For mobile backends, SPAs, third-party integrations.';
+      Hint: 'REST controllers, CORS, compression, service container (Delphi 12+: add resources from the Project Manager menu). For mobile backends, SPAs, third-party integrations.';
       IDSuffix: '1.RestfulAPI';
       IconResource: 'DMVCPresetRestfulAPI'
     ),
@@ -106,16 +106,14 @@ implementation
 
 procedure ApplyPreset_RESTfulAPI(AForm: TfrmDMVCNewProject);
 begin
-  // Controller. RESTful preset always emits both sample areas:
-  // - Controllers.HomeU with an "index" endpoint that sanity-checks the server
-  // - Controllers.PeopleU with the CRUD sample
+  // Controller: Controllers.HomeU with an "index" endpoint that sanity-checks the
+  // server. Resources are added with Project Manager > DMVCFramework > New REST Controller...
   AForm.edtControllerClassName.Text := 'THomeController';
   // Lambda routes are now a typology (Minimal API REST / WebApp presets).
   // The API Style group is shown only in Custom; here it stays hidden.
   AForm.SetApiStyleVisible(False);
   AForm.chkMinimalAPI.Checked := False;
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -154,14 +152,11 @@ end;
 
 procedure ApplyPreset_MinimalAPIRest(AForm: TfrmDMVCNewProject);
 begin
-  // Controller: Minimal API uses lambda routes, no controller class.
-  // chkCreateCRUDMethods stays checked — in minimal-API mode it means
-  // "generate the sample lambda routes" (RoutesU.pas).
+  // Controller: Minimal API uses lambda routes (RoutesU.pas), no controller class.
   AForm.edtControllerClassName.Text := 'THomeController';
   AForm.SetApiStyleVisible(True);
   AForm.chkMinimalAPI.Checked := True;
   AForm.chkCreateIndexMethod.Checked := False;
-  AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -205,7 +200,6 @@ begin
   AForm.SetApiStyleVisible(False);          // SSV needs controller-based RenderView
   AForm.chkMinimalAPI.Checked := False;
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -250,7 +244,6 @@ begin
   AForm.SetApiStyleVisible(True);
   AForm.chkMinimalAPI.Checked := True;
   AForm.chkCreateIndexMethod.Checked := False;
-  AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -294,7 +287,6 @@ begin
   AForm.SetApiStyleVisible(False);          // JSON-RPC publisher is controller-based
   AForm.chkMinimalAPI.Checked := False;
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -339,7 +331,6 @@ begin
   AForm.SetApiStyleVisible(False);          // RealTime preset wires controller-based companion routes
   AForm.chkMinimalAPI.Checked := False;
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := False;
   AForm.chkCreateActionFiltersMethods.Checked := False;
   AForm.chkProfileActions.Checked := False;
 
@@ -383,7 +374,6 @@ begin
   AForm.SetApiStyleVisible(False);          // SSV + JSON-RPC require controllers
   AForm.chkMinimalAPI.Checked := False;
   AForm.chkCreateIndexMethod.Checked := True;
-  AForm.chkCreateCRUDMethods.Checked := True;
   AForm.chkCreateActionFiltersMethods.Checked := True;
   AForm.chkProfileActions.Checked := True;
 

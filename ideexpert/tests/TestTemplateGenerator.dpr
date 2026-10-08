@@ -325,25 +325,32 @@ begin
   Result.S[TConfigKey.program_server_engine] := 'webbroker';
   Result.B[TConfigKey.program_uses_webmodule] := False;
   Result.S[TConfigKey.program_server_protocol] := 'http';  // http or https
-  Result.B[TConfigKey.program_service_container_generate] := False;
+  Result.B[TConfigKey.program_service_container_generate] := True; // the form's default
   Result.S[TConfigKey.program_service_container_unit_name] := 'ServicesU';
   Result.B[TConfigKey.program_minimal_api] := False;
+
+  // Logging: the wizard form's defaults (Fluent, console + file). Without an appender
+  // the generated project compiles but LoggerPro.Build raises ELoggerPro at startup,
+  // a configuration the form refuses (see CheckAcceptedByTheForm).
+  Result.S[TConfigKey.logging_profile] := TLoggingProfiles.FLUENT;
+  Result.B[TConfigKey.logging_appender_console] := True;
+  Result.B[TConfigKey.logging_appender_file] := True;
+  Result.B[TConfigKey.logging_appender_jsonl] := False;
+  Result.B[TConfigKey.logging_appender_html] := False;
+  Result.B[TConfigKey.logging_appender_odbg] := False;
+  Result.B[TConfigKey.logging_appender_eventlog] := False;
+  Result.B[TConfigKey.logging_appender_syslog] := False;
+  Result.B[TConfigKey.logging_exewatch] := False;
 
   // Controller defaults
   Result.S[TConfigKey.controller_unit_name] := 'Controllers.HomeU';
   Result.S[TConfigKey.controller_classname] := 'THomeController';
   Result.B[TConfigKey.controller_index_methods_generate] := True;
   Result.B[TConfigKey.controller_action_filters_generate] := False;
-  Result.B[TConfigKey.controller_crud_methods_generate] := False;
   Result.B[TConfigKey.controller_actions_profiling_generate] := False;
   // Derived flag mirrored by GenerateProject; declared here too so templates
   // rendered directly (RunDProjAppTypeTest) don't trip the strict engine.
   Result.B['controller.main.generate'] := True;
-
-  // Entity defaults
-  Result.B[TConfigKey.entity_generate] := False;
-  Result.S[TConfigKey.entity_classname] := 'TPerson';
-  Result.S[TConfigKey.entity_unit_name] := 'EntitiesU';
 
   // JSON-RPC defaults
   Result.B[TConfigKey.jsonrpc_generate] := False;
@@ -507,6 +514,17 @@ begin
     AError := 'Content check: ' + String.Join(' | ', LFailures);
 end;
 
+// The rule the wizard form enforces on the logging page (TfrmDMVCNewProject): a case
+// the form would refuse generates a project nobody can get, and that does not start
+function CheckAcceptedByTheForm(const AConfig: TJsonObject): Boolean;
+begin
+  Result := (AConfig.S[TConfigKey.logging_profile] = TLoggingProfiles.DISABLED) or
+    AConfig.B[TConfigKey.logging_appender_console] or AConfig.B[TConfigKey.logging_appender_file] or
+    AConfig.B[TConfigKey.logging_appender_jsonl] or AConfig.B[TConfigKey.logging_appender_html] or
+    AConfig.B[TConfigKey.logging_appender_odbg] or AConfig.B[TConfigKey.logging_appender_eventlog] or
+    AConfig.B[TConfigKey.logging_appender_syslog] or AConfig.B[TConfigKey.logging_exewatch];
+end;
+
 procedure RunTest(const ATestCase: TTestCase);
 var
   LResult: TTestResult;
@@ -614,8 +632,6 @@ begin
   // Test 2: HTTP Console with CRUD
   LTestCase.Name := 'http_with_crud';
   LTestCase.Config := CreateBaseConfig;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   ATestCases.Add(LTestCase);
 
   // Test 3: HTTP Console with all middleware
@@ -648,9 +664,29 @@ begin
   LTestCase.Name := 'with_service_container';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.program_service_container_generate] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   ATestCases.Add(LTestCase);
+
+  // The container is the default: the case without it keeps its coverage
+  LTestCase.Name := 'without_service_container';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.program_service_container_generate] := False;
+  ATestCases.Add(LTestCase);
+
+  // RESTful preset with no index methods and no views: there is no sample resource,
+  // so the generator keeps THomeController with its index actions anyway. A controller
+  // project with no controller would have no route and nothing for the menu to wire next to.
+  LTestCase := Default(TTestCase);
+  LTestCase.Name := 'restful_without_index';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B[TConfigKey.controller_action_filters_generate] := False;
+  LTestCase.ExpectedFiles := ['Controllers.HomeU.pas'];
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.AddController(THomeController);',
+    'Controllers.HomeU.pas|function Index: String;'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 7: With JSON-RPC
   LTestCase.Name := 'with_jsonrpc';
@@ -724,8 +760,6 @@ begin
   LTestCase.Name := 'with_sqids';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.program_sqids] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   ATestCases.Add(LTestCase);
 
   // Test 14: With ActiveRecord Middleware
@@ -744,9 +778,7 @@ begin
   LTestCase.Config.B[TConfigKey.program_service_container_generate] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := True;
   LTestCase.Config.B[TConfigKey.controller_action_filters_generate] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
   LTestCase.Config.B[TConfigKey.controller_actions_profiling_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
   LTestCase.Config.B[TConfigKey.websocket_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
@@ -830,8 +862,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   ATestCases.Add(LTestCase);
 
   // Test 24: Windows Service HTTPS with all middleware
@@ -874,10 +904,8 @@ begin
   LTestCase.Config.B[TConfigKey.program_msheap] := True;
   LTestCase.Config.B[TConfigKey.program_sqids] := True;
   LTestCase.Config.B[TConfigKey.program_service_container_generate] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
   LTestCase.Config.B[TConfigKey.controller_action_filters_generate] := True;
   LTestCase.Config.B[TConfigKey.controller_actions_profiling_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
@@ -900,8 +928,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   ATestCases.Add(LTestCase);
 
   // Test 30: Indy Direct with all middleware
@@ -939,8 +965,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.program_sqids] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
@@ -962,8 +986,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   ATestCases.Add(LTestCase);
@@ -974,8 +996,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
   LTestCase.Config.B[TConfigKey.program_sqids] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.jsonrpc_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
@@ -998,8 +1018,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
@@ -1030,8 +1048,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'http';
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   ATestCases.Add(LTestCase);
@@ -1079,8 +1095,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
@@ -1100,8 +1114,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.APACHE;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
   ATestCases.Add(LTestCase);
@@ -1113,8 +1125,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   // Minimal mode disables index/action-filters/profile; main controller is skipped.
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
@@ -1126,8 +1136,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1138,8 +1146,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTP_CONSOLE;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1150,8 +1156,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_service_container_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
@@ -1163,8 +1167,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
@@ -1201,8 +1203,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1224,8 +1224,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
@@ -1296,8 +1294,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1382,8 +1378,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.program_openapi] := True;
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html', 'bin/www/swagger/index.css',
@@ -1400,7 +1394,6 @@ begin
     'EngineConfigU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
-    'Controllers.PeopleU.pas|[MVCSWAGDefaultModel(TPerson, ''Person'', ''People'')]',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
   LTestCase.MustNotContain := ['bin/www/swagger/swagger-initializer.js|petstore',
     'bin/.env|JWT_SECRET='#13#10]; // the wizard writes a generated key
@@ -1412,13 +1405,11 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_openapi] := False;
   LTestCase.ExpectedFiles := [];
   LTestCase.ForbiddenFiles := ['bin/www/swagger'];
   LTestCase.MustContain := [];
-  LTestCase.MustNotContain := ['EngineConfigU.pas|Swagger', 'Controllers.PeopleU.pas|MVCSwag',
+  LTestCase.MustNotContain := ['EngineConfigU.pas|Swagger', 'Controllers.HomeU.pas|MVCSwag',
     'bin/.env|dmvc.openapi'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1427,8 +1418,6 @@ begin
   LTestCase.Name := 'isapi_openapi';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
   LTestCase.Config.B[TConfigKey.program_openapi] := True;
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
@@ -1447,8 +1436,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1461,27 +1448,26 @@ begin
     'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(LSwaggerUIOptions))',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
-    'RoutesU.pas|.Produces<TArray<TPerson>>',
-    'RoutesU.pas|.WithTags(''People'')',
+    'RoutesU.pas|.WithTags(''Hello'')',
+    'RoutesU.pas|.WithSummary(''Example route'')',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCSwaggerMiddleware'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
-  // Test 66: controller project with Sqids and the option ON: the ($ID:sqids)
-  // path must compile and be documented.
+  // Test 66: controller project with Sqids and the option ON. The ($ID:sqids)
+  // route lived in the People demo, gone: what stays is the setup, which must
+  // compile next to the OpenAPI middleware.
   LTestCase.Name := 'indydirect_openapi_sqids';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_sqids] := True;
   LTestCase.Config.B[TConfigKey.program_openapi] := True;
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
   LTestCase.ForbiddenFiles := [];
-  LTestCase.MustContain := ['Controllers.PeopleU.pas|[MVCPath(''/($ID:sqids)'')]',
-    'Controllers.PeopleU.pas|SWAGUseDefaultControllerModel, True, True)]'];
+  LTestCase.MustContain := ['TestProject.dpr|TMVCSqids.SQIDS_ALPHABET := dotEnv.Env(''dmvc.sqids.alphabet''',
+    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create('];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1491,8 +1477,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
@@ -1519,8 +1503,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
   LTestCase.ExpectedFiles := ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'update_ai_skills.bat',
     '.claude/skills/VERSION', '.claude/skills/delphi/SKILL.md', '.claude/skills/delphi-code-smells/SKILL.md',
@@ -1553,8 +1535,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
-  LTestCase.Config.B[TConfigKey.controller_crud_methods_generate] := True;
-  LTestCase.Config.B[TConfigKey.entity_generate] := True;
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
@@ -2107,7 +2087,11 @@ begin
         not MatchText(ExtractFileExt(LFile), ['.pas', '.dpr', '.dproj', '.html', '.css', '.tpro', '.env', '.md']) then
         Continue;
       LText := TFile.ReadAllText(LFile, TEncoding.UTF8);
-      if LText.Contains('PEOPLE-SAMPLE') or LText.Contains('/web/people') or LText.Contains('PeopleSampleU') then
+      if LText.Contains('PEOPLE-SAMPLE') or LText.Contains('/web/people') or LText.Contains('PeopleSampleU') or
+        // the REST and Minimal API People demo
+        LText.Contains('Controllers.PeopleU') or LText.Contains('TPeopleController') or
+        LText.Contains('IPeopleService') or LText.Contains('TPerson') or LText.Contains('/api/people') or
+        LText.Contains('/v1/people') or LText.Contains('EntitiesU') then
         LLeft := LLeft + [LFile];
     end;
   Result := Length(LLeft) = 0;
@@ -2156,11 +2140,14 @@ var
   end;
 
   // Wires AUnit into AHostFile with APlan, writes both, compiles the project
+  // AMore: units the new one uses (its model, its service), written beside it
   procedure AddAndCompile(const AName, ACase, AHostFile: string; const AUnit: TDMVCNewUnit;
-    const APlan: TFunc<string, TDMVCCodeEdits>; const AExtra: TProc<string> = nil);
+    const APlan: TFunc<string, TDMVCCodeEdits>; const AExtra: TProc<string> = nil;
+    const AMore: TArray<TDMVCNewUnit> = nil);
   var
     LDir, LHost, LSource, LError: string;
     LEdits: TDMVCCodeEdits;
+    LMore: TDMVCNewUnit;
   begin
     LDir := CopyCase(ACase);
     LHost := TPath.Combine(LDir, AHostFile);
@@ -2173,6 +2160,8 @@ var
     end;
     TFile.WriteAllText(LHost, ApplyEdits(LSource, LEdits), TEncoding.UTF8);
     AddUnit(LDir, AUnit);
+    for LMore in AMore do
+      AddUnit(LDir, LMore);
     if Assigned(AExtra) then
       AExtra(LDir);
     if GSkipCompile then
@@ -2187,6 +2176,13 @@ var
   LControllerHosts, LRoutesHosts, LRefused, LWrongKind: Integer;
   LIsMinimal, LHasControllers: Boolean;
   LRest, LRestPlain, LWeb, LRoutes, LRestDoc, LRoutesDoc: TDMVCNewUnit;
+  LService, LServicePlain, LRestSvc, LRestSvcDoc: TDMVCNewUnit;
+  LModel, LModelAR, LServiceAR: TDMVCNewUnit;
+  LIsAR: Boolean;
+  LServiceWired: Boolean;
+  LDatabase: TDMVCDatabase;
+  LDbUnit: TDMVCNewUnit;
+  LDmvcSources, LFireDACSources, LDriverIDs: string;
   LSources: string;
   LDocMismatch: Integer;
 begin
@@ -2299,12 +2295,14 @@ begin
   Check('no generated unit carries a hand-written JSON schema', LDocMismatch = 0);
 
   // --- for real: new units, wired in, compiled
-  LRest := NewRestController('Orders', 'orders', 'TOrder', True, False);
-  LRestPlain := NewRestController('Orders', 'orders', 'TOrder', False, False);
+  LModel := NewModel('Orders', 'TOrder', 'orders', False);
+  LModelAR := NewModel('Orders', 'TOrder', 'orders', True);
+  LRest := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, False);
+  LRestPlain := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', False, False);
   LWeb := NewWebController('Orders', 'orders', 'TestProject');
   LRoutes := NewRoutesUnit('Orders', 'orders', 'TOrder', True, False, LCallFmt);
   // with an OpenAPI document the new model and actions are in it
-  LRestDoc := NewRestController('Orders', 'orders', 'TOrder', True, True);
+  LRestDoc := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, True);
   LRoutesDoc := NewRoutesUnit('Orders', 'orders', 'TOrder', True, True, LCallFmt);
   Check('REST controller: Swagger metadata only with OpenAPI',
     LRestDoc.Source.Contains('[MVCSWAGDefaultModel(TOrder, ''Order'', ''Orders'')]') and
@@ -2312,7 +2310,7 @@ begin
   // schemas come from the model class, never from a JSON string
   Check('REST controller: no hand-written schema, with and without CRUD',
     not LRestDoc.Source.Contains('$ref') and
-    not NewRestController('Orders', 'orders', 'TOrder', False, True).Source.Contains('$ref'));
+    not NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', False, True).Source.Contains('$ref'));
   Check('route group: OpenAPI metadata only with OpenAPI',
     LRoutesDoc.Source.Contains('.Produces<TArray<TOrder>>;') and LRoutesDoc.Source.Contains('.WithTags(''Orders'')') and
     not LRoutes.Source.Contains('.WithTags('));
@@ -2333,12 +2331,12 @@ begin
     function(S: string): TDMVCCodeEdits
     begin
       PlanControllerRegistration(S, LRest.UnitName, LRest.TypeName, Result);
-    end);
+    end, nil, [LModel]);
   AddAndCompile('REST controller in a WebModule (Apache)', 'apache_webapp_htmx', 'WebModuleU.pas', LRestPlain,
     function(S: string): TDMVCCodeEdits
     begin
       PlanControllerRegistration(S, LRestPlain.UnitName, LRestPlain.TypeName, Result);
-    end);
+    end, nil, [LModel]);
   AddAndCompile('web controller + view in a web app', 'indydirect_webapp_htmx', 'EngineConfigU.pas', LWeb,
     function(S: string): TDMVCCodeEdits
     begin
@@ -2359,7 +2357,7 @@ begin
     function(S: string): TDMVCCodeEdits
     begin
       PlanControllerRegistration(S, LRestDoc.UnitName, LRestDoc.TypeName, Result);
-    end);
+    end, nil, [LModel]);
   AddAndCompile('route group with OpenAPI metadata', 'indydirect_minimal_api_openapi', 'RoutesU.pas', LRoutesDoc,
     function(S: string): TDMVCCodeEdits
     begin
@@ -2369,6 +2367,311 @@ begin
     function(S: string): TDMVCCodeEdits
     begin
       PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
+    end);
+
+  // --- services: the planner on small sources
+  LSource := 'unit S;'#13#10'interface'#13#10'procedure RegisterServices(Container: IMVCServiceContainer);'#13#10 +
+    'implementation'#13#10'uses'#13#10'  System.SysUtils;'#13#10#13#10 +
+    'procedure RegisterServices(Container: IMVCServiceContainer);'#13#10'begin'#13#10 +
+    '  Container.RegisterType(TA, IA, TRegistrationType.Transient);'#13#10 +
+    '  // Register other services here'#13#10'end;'#13#10'end.';
+  Check('service: before the scaffold marker, in the implementation, unit used',
+    PlanServiceRegistration(LSource, 'Services.OrdersU', 'TOrdersService', 'IOrdersService', LEdits) and
+    Planned(LSource, LEdits).Contains('uses'#13#10'  Services.OrdersU,'#13#10'  System.SysUtils;') and
+    Planned(LSource, LEdits).Contains(
+      '  Container.RegisterType(TOrdersService, IOrdersService, TRegistrationType.SingletonPerRequest);'#13#10 +
+      '  // Register other services here') and
+    not Planned(LSource, LEdits).Contains(
+      'procedure RegisterServices(Container: IMVCServiceContainer);'#13#10'  Container.'),
+    Planned(LSource, LEdits));
+  LSource := 'unit S;'#10'implementation'#10'procedure RegisterServices(const C: IMVCServiceContainer);'#10 +
+    'begin'#10'    C.RegisterType(TA, IA,'#10'      TRegistrationType.Singleton);'#10'end;'#10'end.';
+  Check('service: after a statement on two lines, its indent and receiver, LF source',
+    PlanServiceRegistration(LSource, 'BU', 'TB', 'IB', LEdits) and
+    Planned(LSource, LEdits).Contains('      TRegistrationType.Singleton);'#10 +
+      '    C.RegisterType(TB, IB, TRegistrationType.SingletonPerRequest);'#10'end;') and
+    not Planned(LSource, LEdits).Contains(#13), Planned(LSource, LEdits));
+  LSource := 'unit S;'#13#10'implementation'#13#10'procedure RegisterServices(Container: IMVCServiceContainer);'#13#10 +
+    'begin'#13#10'end;'#13#10'end.';
+  Check('service: empty RegisterServices, at the end of the body',
+    PlanServiceRegistration(LSource, 'BU', 'TB', 'IB', LEdits) and
+    Planned(LSource, LEdits).Contains('begin'#13#10 +
+      '  Container.RegisterType(TB, IB, TRegistrationType.SingletonPerRequest);'#13#10'end;'),
+    Planned(LSource, LEdits));
+  LSource := 'implementation'#13#10'uses BU;'#13#10'procedure RegisterServices(C: IMVCServiceContainer);'#13#10 +
+    'begin'#13#10'  C.RegisterType(TB, IB, TRegistrationType.Transient);'#13#10'end;';
+  Check('service: already registered, nothing planned',
+    not PlanServiceRegistration(LSource, 'BU', 'TB', 'IB', LEdits) and (Length(LEdits) = 0));
+  Check('service: no RegisterServices, nothing planned',
+    not PlanServiceRegistration('unit A; implementation end.', 'BU', 'TB', 'IB', LEdits) and
+    (Length(LEdits) = 0));
+
+  // --- every generated project with a service container accepts a service
+  LControllerHosts := 0;
+  LRefused := 0;
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+    begin
+      LSource := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      if TRegEx.IsMatch(LSource, '(?im)^procedure\s+RegisterServices\b') then
+      begin
+        Inc(LControllerHosts);
+        if not PlanServiceRegistration(LSource, 'Services.OrdersU', 'TOrdersService', 'IOrdersService', LEdits) then
+        begin
+          Inc(LRefused);
+          Log('    no service insertion point: ' + LFile);
+        end;
+      end;
+    end;
+  Check(Format('every generated service container accepts a service (%d)', [LControllerHosts]),
+    (LRefused = 0) and (LControllerHosts > 0));
+
+  // --- service and controller sources
+  LService := NewService('Orders', 'TOrder', 'Entities.OrderU', True, False);
+  LServiceAR := NewService('Orders', 'TOrder', 'Entities.OrderU', True, True);
+  LServicePlain := NewService('Orders', '', '', False, False);
+  LRestSvc := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, False, True);
+  LRestSvcDoc := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, True, True);
+  // --- the model: its own unit, found when the project declares it
+  Check('model unit name', (ModelUnitName('TOrder') = 'Entities.OrderU') and
+    (ModelUnitName('Order') = 'Entities.OrderU'), ModelUnitName('TOrder'));
+  Check('declared class found, ActiveRecord or not',
+    DeclaresClass('type'#13#10'  TOrder = class'#13#10'  end;', 'TOrder', LIsAR) and not LIsAR and
+    DeclaresClass('type'#13#10'  [MVCTable(''orders'')]'#13#10'  TOrder = class(TMVCActiveRecord)', 'TOrder', LIsAR) and LIsAR and
+    DeclaresClass('type'#10'  TOrder=class(TMyEntity)'#10, 'TOrder', LIsAR) and not LIsAR);
+  Check('not a declaration: forward, class reference, another class, a use',
+    not DeclaresClass('type'#13#10'  TOrder = class;', 'TOrder', LIsAR) and
+    not DeclaresClass('type'#13#10'  TOrder = class of TBase;', 'TOrder', LIsAR) and
+    not DeclaresClass('type'#13#10'  TOrderItem = class', 'TOrder', LIsAR) and
+    not DeclaresClass('  lOrder := TOrder.Create;', 'TOrder', LIsAR));
+  Check('plain model: a class with ID and a required Name',
+    (LModel.UnitName = 'Entities.OrderU') and (LModel.TypeName = 'TOrder') and
+    LModel.Source.Contains('TOrder = class') and LModel.Source.Contains('property ID: Integer') and
+    LModel.Source.Contains('[MVCRequired]') and not LModel.Source.Contains('TMVCActiveRecord'), LModel.Source);
+  Check('ActiveRecord model: entity on the table, autogenerated nullable key',
+    LModelAR.Source.Contains('[MVCTable(''orders'')]') and
+    LModelAR.Source.Contains('TOrder = class(TMVCActiveRecord)') and
+    LModelAR.Source.Contains('[MVCTableField(''id'', [foPrimaryKey, foAutoGenerated])]') and
+    LModelAR.Source.Contains('fID: NullableInt64;'), LModelAR.Source);
+
+  // --- service and controller: they use the model, never declare it, never touch its fields
+  Check('service: unit, interface, class, the model from its unit',
+    (LService.UnitName = 'Services.OrdersU') and (LService.TypeName = 'TOrdersService') and
+    (ServiceInterfaceName('Orders') = 'IOrdersService') and
+    LService.Source.Contains('IOrdersService = interface') and
+    LService.Source.Contains('TOrdersService = class(TInterfacedObject, IOrdersService)') and
+    LService.Source.Contains('  Entities.OrderU;') and not LService.Source.Contains('TOrder = class') and
+    LService.Source.Contains('function Add(const Item: TOrder): string;') and
+    TRegEx.IsMatch(LService.Source, '\[''\{[0-9A-F-]{36}\}''\]'), LService.Source);
+  Check('service: no HTTP, no model field', not LService.Source.Contains('MVCFramework.Commons') and
+    not LService.Source.Contains('HTTP_STATUS') and not LService.Source.Contains('EMVCException') and
+    not LService.Source.Contains('Item.ID') and not LService.Source.Contains('Item.Name'));
+  Check('ActiveRecord service: CRUD implemented, key from the URL, rows freed',
+    LServiceAR.Source.Contains('Result := TMVCActiveRecord.All<TOrder>;') and
+    LServiceAR.Source.Contains('Result := TMVCActiveRecord.GetByPK<TOrder>(ID, False);') and
+    LServiceAR.Source.Contains('Result := Item.PKAsURLSegment;') and
+    LServiceAR.Source.Contains('Item.SetPK(ID);') and LServiceAR.Source.Contains('lItem.Free;') and
+    not LServiceAR.Source.Contains('Item.ID'), LServiceAR.Source);
+  Check('service without CRUD: no model, one example method, no uses',
+    not TRegEx.IsMatch(LServicePlain.Source, '\bTOrder\b') and LServicePlain.Source.Contains('function Hello(') and
+    not TRegEx.IsMatch(LServicePlain.Source, '(?m)^uses'), LServicePlain.Source);
+  Check('controller through a service: injected, key from the service, 404 on nil',
+    LRestSvc.Source.Contains('[MVCInject]') and
+    LRestSvc.Source.Contains('constructor Create(const Service: IOrdersService); reintroduce;') and
+    LRestSvc.Source.Contains('Services.OrdersU,') and LRestSvc.Source.Contains('  Entities.OrderU;') and
+    not LRestSvc.Source.Contains('TOrder = class') and
+    LRestSvc.Source.Contains('CreatedResponse(''/api/orders/'' + fService.Add(Item))') and
+    LRestSvc.Source.Contains('fService.Replace(ID, Item);') and
+    LRestSvc.Source.Contains('Exit(NotFoundResponse);'), LRestSvc.Source);
+  Check('controller without a service: the model from its unit, no model field',
+    not LRest.Source.Contains('TOrder = class') and LRest.Source.Contains('  Entities.OrderU;') and
+    not LRest.Source.Contains('MVCInject') and not LRest.Source.Contains('Services.') and
+    not LRest.Source.Contains('Item.ID'), LRest.Source);
+
+  // --- for real: services wired into RegisterServices, compiled
+  AddAndCompile('service (CRUD) in a controller project', 'with_service_container', 'ServicesU.pas', LService,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanServiceRegistration(S, LService.UnitName, LService.TypeName, 'IOrdersService', Result);
+    end, nil, [LModel]);
+  AddAndCompile('service (no CRUD) in a Minimal API project', 'indydirect_minimal_api_services', 'ServicesU.pas',
+    LServicePlain,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanServiceRegistration(S, LServicePlain.UnitName, LServicePlain.TypeName, 'IOrdersService', Result);
+    end);
+  LServiceWired := False;
+  AddAndCompile('REST controller through a service', 'with_service_container', 'EngineConfigU.pas', LRestSvc,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRestSvc.UnitName, LRestSvc.TypeName, Result);
+    end,
+    procedure(ADir: string)
+    var
+      LHost, LText: string;
+      LServiceEdits: TDMVCCodeEdits;
+    begin
+      // what the menu does before the controller: the service, registered
+      LHost := TPath.Combine(ADir, 'ServicesU.pas');
+      LText := TFile.ReadAllText(LHost, TEncoding.UTF8);
+      LServiceWired := PlanServiceRegistration(LText, LService.UnitName, LService.TypeName, 'IOrdersService',
+        LServiceEdits);
+      TFile.WriteAllText(LHost, ApplyEdits(LText, LServiceEdits), TEncoding.UTF8);
+    end, [LModel, LService]);
+  Check('REST controller through a service: the service registered first', LServiceWired);
+  // the project has an ActiveRecord connection: entity model, service implemented with ActiveRecord
+  LServiceWired := False;
+  AddAndCompile('REST controller through an ActiveRecord service', 'with_activerecord', 'EngineConfigU.pas',
+    LRestSvc,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRestSvc.UnitName, LRestSvc.TypeName, Result);
+    end,
+    procedure(ADir: string)
+    var
+      LHost, LText: string;
+      LServiceEdits: TDMVCCodeEdits;
+    begin
+      LHost := TPath.Combine(ADir, 'ServicesU.pas');
+      LText := TFile.ReadAllText(LHost, TEncoding.UTF8);
+      LServiceWired := PlanServiceRegistration(LText, LServiceAR.UnitName, LServiceAR.TypeName, 'IOrdersService',
+        LServiceEdits);
+      TFile.WriteAllText(LHost, ApplyEdits(LText, LServiceEdits), TEncoding.UTF8);
+    end, [LModelAR, LServiceAR]);
+  Check('REST controller through an ActiveRecord service: the service registered first', LServiceWired);
+
+  // --- database connection: the table against the real sources
+  LDmvcSources := TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)), '..\..\sources'));
+  LFireDACSources := '';
+  if GDelphiPath <> '' then
+    LFireDACSources := TPath.GetFullPath(TPath.Combine(GDelphiPath, '..\source\data\firedac'));
+  LDriverIDs := '';
+  if TFile.Exists(TPath.Combine(LFireDACSources, 'FireDAC.Stan.Consts.pas')) then
+    LDriverIDs := TFile.ReadAllText(TPath.Combine(LFireDACSources, 'FireDAC.Stan.Consts.pas'));
+  Check('database: 7 databases', Length(Databases) = 7);
+  for LDatabase in Databases do
+  begin
+    Check('database ' + LDatabase.Caption + ': SQL generator unit exists',
+      TFile.Exists(TPath.Combine(LDmvcSources, LDatabase.GeneratorUnit + '.pas')), LDatabase.GeneratorUnit);
+    if LFireDACSources <> '' then
+    begin
+      Check('database ' + LDatabase.Caption + ': FireDAC driver unit exists',
+        TFile.Exists(TPath.Combine(LFireDACSources, LDatabase.PhysUnit + '.pas')), LDatabase.PhysUnit);
+      Check('database ' + LDatabase.Caption + ': DriverID is a FireDAC S_FD_*Id',
+        TRegEx.IsMatch(LDriverIDs, '(?m)^\s*S_FD_\w+Id\s*=\s*''' + LDatabase.DriverID + ''';'), LDatabase.DriverID);
+    end;
+    LSource := NewDatabaseConfig(LDatabase, 'MainDB').Source;
+    Check('database ' + LDatabase.Caption + ': both units, the DriverID, no inline var',
+      LSource.Contains('  ' + LDatabase.PhysUnit + ',') and LSource.Contains('  ' + LDatabase.GeneratorUnit + ',') and
+      LSource.Contains('FDManager.AddConnectionDef(CON_DEF_NAME, ''' + LDatabase.DriverID + ''', lParams);') and
+      not TRegEx.IsMatch(LSource, '(?m)^\s*var\s+\w+\s*:='), LSource);
+    Check('database ' + LDatabase.Caption + ': only the parameters the driver has',
+      (LSource.Contains('''Server=''') = LDatabase.HasServer) and (LSource.Contains('''Port=''') = LDatabase.HasPort) and
+      (LSource.Contains('User_Name=') = not LDatabase.IsSQLite), LSource);
+  end;
+  for LDatabase in Databases do
+    if LDatabase.IsSQLite then
+    begin
+      LSource := NewDatabaseConfig(LDatabase, 'MainDB').Source;
+      Check('database SQLite: static link only from 10.4, file next to the executable, folder created',
+        LSource.Contains('{$IF CompilerVersion >= 34}') and LSource.Contains('FireDAC.Phys.SQLiteWrapper.Stat,') and
+        LSource.Contains('TPath.Combine(AppPath,') and LSource.Contains('ForceDirectories('), LSource);
+      Check('database SQLite: .env without user and password',
+        not DatabaseEnvLines(LDatabase).Contains('db.user') and DatabaseEnvLines(LDatabase).Contains('db.database='));
+    end
+    else if LDatabase.HasPort then
+      Check('database ' + LDatabase.Caption + ': .env with port and user',
+        DatabaseEnvLines(LDatabase).Contains('db.port=' + LDatabase.DefaultPort) and
+        DatabaseEnvLines(LDatabase).Contains('db.user='));
+
+  // --- database connection: the planner on small sources
+  LSource := 'unit E;'#13#10'interface'#13#10'implementation'#13#10'uses'#13#10'  MVCFramework.Commons;'#13#10 +
+    'procedure ConfigureEngine(AEngine: TMVCEngine);'#13#10'begin'#13#10'  AEngine.AddController(TA);'#13#10 +
+    '  // Controllers - END'#13#10#13#10'  // Middleware'#13#10'end;'#13#10'end.';
+  Check('database: after the controllers marker, both units used',
+    PlanDatabaseRegistration(LSource, 'FDConnectionConfigU', LEdits) and
+    Planned(LSource, LEdits).Contains('  // Controllers - END'#13#10 +
+      '  // ActiveRecord: the connection of FDConnectionConfigU, one per request'#13#10 +
+      '  SetupDatabaseConnection;'#13#10 +
+      '  AEngine.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));'#13#10) and
+    Planned(LSource, LEdits).Contains('uses'#13#10'  MVCFramework.Middleware.ActiveRecord, FDConnectionConfigU,'#13#10 +
+      '  MVCFramework.Commons;'), Planned(LSource, LEdits));
+  LSource := 'unit W;'#10'implementation'#10'procedure T.WebModuleCreate;'#10'begin'#10 +
+    '  fMVC.AddController(TA);'#10'  fMVC.AddMiddleware(TB.Create);'#10'end;'#10'end.';
+  Check('database: no marker, after the last AddController, its receiver, LF source',
+    PlanDatabaseRegistration(LSource, 'FDConnectionConfigU', LEdits) and
+    Planned(LSource, LEdits).Contains('  fMVC.AddController(TA);'#10 +
+      '  // ActiveRecord: the connection of FDConnectionConfigU, one per request'#10 +
+      '  SetupDatabaseConnection;'#10'  fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME));'#10 +
+      '  fMVC.AddMiddleware(TB.Create);') and not Planned(LSource, LEdits).Contains(#13) and
+    // no uses clause in the source: exactly one is created, with both units
+    Planned(LSource, LEdits).Contains('uses'#10'  MVCFramework.Middleware.ActiveRecord, FDConnectionConfigU;') and
+    (TRegEx.Matches(Planned(LSource, LEdits), '(?m)^uses\b').Count = 1), Planned(LSource, LEdits));
+  LSource := 'implementation'#13#10'begin'#13#10'  E.AddController(TA);'#13#10 +
+    '  E.AddMiddleware(TMVCActiveRecordMiddleware.Create(''x''));'#13#10'end;';
+  Check('database: a project with its ActiveRecord connection is refused',
+    not PlanDatabaseRegistration(LSource, 'FDConnectionConfigU', LEdits) and (Length(LEdits) = 0));
+  Check('database: no AddController, nothing planned',
+    not PlanDatabaseRegistration('unit A; implementation end.', 'FDConnectionConfigU', LEdits) and
+    (Length(LEdits) = 0));
+
+  // --- every controller project takes a connection, unless it has one; the wizard's
+  // ActiveRecord option comes with the SQLite units its .ini enables
+  LControllerHosts := 0;
+  LRefused := 0;
+  LWrongKind := 0;
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+    begin
+      LSource := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      if not LSource.Contains('.AddController(') then
+        Continue;
+      if LSource.Contains('TMVCActiveRecordMiddleware') then
+      begin
+        if PlanDatabaseRegistration(LSource, 'FDConnectionConfigU', LEdits) then
+          Inc(LRefused);
+        if not (LSource.Contains('  FireDAC.Phys.SQLite,') and LSource.Contains('  MVCFramework.SQLGenerators.Sqlite,')) or
+          not TDirectory.Exists(TPath.Combine(LDir, 'bin\data')) then
+        begin
+          Inc(LWrongKind);
+          Log('    ActiveRecord without the SQLite units or bin\data: ' + LFile);
+        end;
+      end
+      else
+      begin
+        Inc(LControllerHosts);
+        if not PlanDatabaseRegistration(LSource, 'FDConnectionConfigU', LEdits) then
+        begin
+          Inc(LRefused);
+          Log('    no database insertion point: ' + LFile);
+        end;
+      end;
+    end;
+  Check(Format('every controller project without ActiveRecord takes a connection (%d), the others refuse it',
+    [LControllerHosts]), (LRefused = 0) and (LControllerHosts > 0));
+  Check('wizard ActiveRecord option: SQLite driver, SQLite generator and bin\data', LWrongKind = 0);
+
+  // --- for real: one project per database, compiled
+  for LDatabase in Databases do
+  begin
+    LDbUnit := NewDatabaseConfig(LDatabase, 'MainDB');
+    AddAndCompile('database ' + LDatabase.Caption, 'indydirect_with_crud', 'EngineConfigU.pas', LDbUnit,
+      function(S: string): TDMVCCodeEdits
+      begin
+        PlanDatabaseRegistration(S, 'FDConnectionConfigU', Result);
+      end);
+  end;
+  AddAndCompile('REST controller through a service, Swagger metadata', 'indydirect_openapi_controllers',
+    'EngineConfigU.pas', LRestSvcDoc,
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanControllerRegistration(S, LRestSvcDoc.UnitName, LRestSvcDoc.TypeName, Result);
+    end,
+    procedure(ADir: string)
+    begin
+      // no container in this project: only the units, for the compiler
+      TFile.WriteAllText(TPath.Combine(ADir, LService.FileName), LService.Source, TEncoding.UTF8);
+      TFile.WriteAllText(TPath.Combine(ADir, LModel.FileName), LModel.Source, TEncoding.UTF8);
     end);
 
   Result := Length(LFailures) = 0;
@@ -2515,6 +2818,11 @@ begin
 
       for LTestCase in LTestCases do
       begin
+        if not CheckAcceptedByTheForm(LTestCase.Config) then
+        begin
+          Log('FAIL: ' + LTestCase.Name + ': logging without an appender, which the wizard form refuses');
+          ExitCode := 1;
+        end;
         RunTest(LTestCase);
         LTestCase.Config.Free;
       end;
