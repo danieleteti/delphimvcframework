@@ -608,6 +608,35 @@ type
     constructor Create(const Connection: TFDConnection); overload; virtual;
     destructor Destroy; override;
     procedure EnsureConnection;
+    /// <summary>
+    ///   Copies the mapped state of ActiveRecord into this instance: every field
+    ///   decorated with MVCTableField, primary key(s) included, regardless of its
+    ///   options (foReadOnly, foDoNotUpdate, foVersion, audit and soft-delete
+    ///   columns are copied too). Nullable fields are copied as they are, so a
+    ///   null in the source becomes a null here.
+    /// </summary>
+    /// <remarks>
+    ///   <para>ActiveRecord must be an instance of this class or of a descendant;
+    ///   otherwise EMVCActiveRecord is raised. Assigning an instance to itself
+    ///   does nothing.</para>
+    ///   <para>Fields without MVCTableField are not copied, nor is the internal
+    ///   state (connection, children, change-tracking snapshot). On a
+    ///   [MVCChangeTracking] entity the copied values therefore count as changes,
+    ///   and the next Update writes them.</para>
+    ///   <para>A TStream field is copied by content, not by reference: the
+    ///   target stream must already exist (create it in the constructor, as
+    ///   loading requires). A nil source stream empties the target.</para>
+    ///   <para>Updating a row from a request body: the primary key is copied
+    ///   too, so set it back from the URL after Assign, or the body decides
+    ///   which row gets updated:</para>
+    ///   <code>
+    ///   lExisting := TMVCActiveRecord.GetByPK&lt;TCustomer&gt;(ID);
+    ///   lExisting.Assign(Customer);  // Customer comes from [MVCFromBody]
+    ///   lExisting.ID := ID;          // the URL, not the body, picks the row
+    ///   lExisting.Update;
+    ///   </code>
+    ///   <para>Override it to copy fewer fields, or to copy unmapped ones.</para>
+    /// </remarks>
     procedure Assign(ActiveRecord: TMVCActiveRecord); virtual;
     procedure InvalidateConnection(const ReacquireAfterInvalidate: Boolean = false);
     function GetBackEnd: string;
@@ -5619,8 +5648,50 @@ begin
 end;
 
 procedure TMVCActiveRecord.Assign(ActiveRecord: TMVCActiveRecord);
+
+  procedure CopyField(const AField: TRttiField);
+  var
+    lValue: TValue;
+    lSource, lTarget: TStream;
+  begin
+    lValue := AField.GetValue(ActiveRecord);
+    if AField.FieldType.TypeKind <> tkClass then
+    begin
+      AField.SetValue(Self, lValue);
+      Exit;
+    end;
+    // The only reference type a mapped field can hold is a TStream (BLOB),
+    // owned by the entity: copy the content, never the reference.
+    if not (AField.FieldType as TRttiInstanceType).MetaclassType.InheritsFrom(TStream) then
+      raise EMVCActiveRecord.CreateFmt('Cannot assign field %s.%s: unsupported reference type %s',
+        [ClassName, AField.Name, AField.FieldType.Name]);
+    lTarget := AField.GetValue(Self).AsObject as TStream;
+    if lTarget = nil then
+      raise EMVCActiveRecord.CreateFmt('Cannot assign field %s.%s: the target stream is nil. ' +
+        '[HINT] Create the stream in the entity constructor', [ClassName, AField.Name]);
+    lSource := lValue.AsObject as TStream;
+    lTarget.Size := 0;
+    if (lSource <> nil) and (lSource.Size > 0) then
+      lTarget.CopyFrom(lSource, 0); // Count = 0 copies the whole source from position 0
+    lTarget.Position := 0;
+    if lSource <> nil then
+      lSource.Position := 0;
+  end;
+
+var
+  lPK: TMVCPKInfo;
+  lPair: TPair<TRTTIField, TFieldInfo>;
 begin
-  //do nothing
+  if ActiveRecord = Self then
+    Exit;
+  if ActiveRecord = nil then
+    raise EMVCActiveRecord.CreateFmt('Cannot assign nil to %s', [ClassName]);
+  if not ActiveRecord.InheritsFrom(ClassType) then
+    raise EMVCActiveRecord.CreateFmt('Cannot assign %s to %s', [ActiveRecord.ClassName, ClassName]);
+  for lPK in fTableMap.fPrimaryKeys do
+    CopyField(lPK.RTTIField);
+  for lPair in fTableMap.fMap do
+    CopyField(lPair.Key);
 end;
 
 class function TMVCActiveRecordHelper.All(const aQualifiedClassName: String): TObjectList<TMVCActiveRecord>;
@@ -5844,11 +5915,35 @@ begin
   inherited;
 end;
 
+// The unit that registers the generator of aBackend, spelled as the file is
+// (the backend names are lowercase); '' when DMVCFramework ships none for it
+function SQLGeneratorUnitName(const aBackend: string): string;
+const
+  BACKENDS: array [0..7] of string = ('postgresql', 'firebird', 'interbase', 'mysql', 'mariadb', 'mssql', 'oracle', 'sqlite');
+  UNITS: array [0..7] of string = ('PostgreSQL', 'Firebird', 'Interbase', 'MySQL', 'MariaDB', 'MSSQL', 'Oracle', 'Sqlite');
+var
+  I: Integer;
+begin
+  for I := Low(BACKENDS) to High(BACKENDS) do
+    if SameText(aBackend, BACKENDS[I]) then
+      Exit('MVCFramework.SQLGenerators.' + UNITS[I]);
+  Result := '';
+end;
+
 function TMVCSQLGeneratorRegistry.GetSQLGenerator(const aBackend: string): TMVCSQLGeneratorClass;
+var
+  lUnitName: string;
 begin
   if not fSQLGenerators.TryGetValue(aBackend, Result) then
   begin
-    raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s". [HINT] Include unit "MVCFramework.SQLGenerators.%s.pas" somewhere in the project code, if available.', [aBackend, aBackend]);
+    lUnitName := SQLGeneratorUnitName(aBackend);
+    if lUnitName.IsEmpty then
+      raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s". [HINT] DMVCFramework ships no ' +
+        'SQL generator for this backend: write a TMVCSQLGenerator descendant and register it with ' +
+        'TMVCSQLGeneratorRegistry.Instance.RegisterSQLGenerator(''%s'', ...).', [aBackend, aBackend]);
+    raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s". [HINT] Add unit %s to the uses ' +
+      'clause of any unit of the project (it registers itself; nothing else references it).',
+      [aBackend, lUnitName]);
   end;
 end;
 
