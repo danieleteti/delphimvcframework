@@ -388,7 +388,8 @@ begin
     Trim(FHandshakeHeaders.Values['X-Forwarded-For']),
     Trim(FHandshakeHeaders.Values['X-Real-IP']),
     lPeerIP,
-    MVCTrustProxyForwardedHeaders);
+    MVCTrustProxyForwardedHeaders,
+    MVCTrustedProxyCount);
 end;
 
 procedure TWebSocketClient.SendText(const AMessage: string);

@@ -818,7 +818,8 @@ begin
     GetHeader('X-Forwarded-For'),
     GetHeader('X-Real-IP'),
     FClientIpStr,
-    MVCTrustProxyForwardedHeaders);
+    MVCTrustProxyForwardedHeaders,
+    MVCTrustedProxyCount);
 end;
 
 function TMVCHttpSysRequest.ClientPreferredLanguage: String;

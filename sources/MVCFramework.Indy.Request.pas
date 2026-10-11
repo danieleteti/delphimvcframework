@@ -720,7 +720,8 @@ begin
     FRequestInfo.RawHeaders.Values['X-Forwarded-For'],
     FRequestInfo.RawHeaders.Values['X-Real-IP'],
     FContext.Binding.PeerIP,
-    MVCTrustProxyForwardedHeaders);
+    MVCTrustProxyForwardedHeaders,
+    MVCTrustedProxyCount);
 end;
 
 function TMVCIndyDirectRequest.PeerIp: string;

@@ -704,9 +704,11 @@ function MVCStripCRLF(const AValue: string): string;
 /// <summary>Resolves the client IP. X-Forwarded-For / X-Real-IP are only
 /// honoured when ATrustProxyHeaders is True, otherwise the direct peer IP is
 /// used — a client can forge those headers, so trusting them without a proxy
-/// in front spoofs the IP (rate-limit bypass, poisoned audit logs).</summary>
+/// in front spoofs the IP (rate-limit bypass, poisoned audit logs).
+/// Of X-Forwarded-For only the last ATrustedProxyCount hops come from a proxy:
+/// the client is the first of those.</summary>
 function MVCResolveClientIP(const AForwardedFor, ARealIP, APeerIP: string;
-  const ATrustProxyHeaders: Boolean): string;
+  const ATrustProxyHeaders: Boolean; const ATrustedProxyCount: Integer = 1): string;
 
 /// <summary>Masks a secret-carrying header value (Authorization, Cookie, ...)
 /// for logging: keeps the scheme/first token for debugging and replaces the
@@ -718,6 +720,11 @@ var
   /// Default False (secure): only enable it when a trusted reverse proxy that
   /// sets these headers is actually in front of the server.</summary>
   MVCTrustProxyForwardedHeaders: Boolean = False;
+
+  /// <summary>How many trusted proxies are in front of the server (default 1).
+  /// Each one appends a hop to X-Forwarded-For; the hops before those are
+  /// written by the client. Set it to 2 behind a CDN plus a reverse proxy.</summary>
+  MVCTrustedProxyCount: Integer = 1;
 
 function B64Encode(const aValue: string): string; overload;
 function B64Encode(const aValue: TBytes): string; overload;
@@ -1010,18 +1017,31 @@ begin
 end;
 
 function MVCResolveClientIP(const AForwardedFor, ARealIP, APeerIP: string;
-  const ATrustProxyHeaders: Boolean): string;
-  function FirstHop(const AValue: string): string;
+  const ATrustProxyHeaders: Boolean; const ATrustedProxyCount: Integer): string;
+  // Every proxy appends the address it received the request from, so only the
+  // last ATrustedProxyCount hops were written by a proxy: the client is the
+  // first of those. What comes before is whatever the client sent.
+  function ClientHop(const AValue: string): string;
+  var
+    lHops: TArray<string>;
+    lIdx: Integer;
   begin
-    Result := AValue.Split([',', ';'])[0].Trim;
+    lHops := AValue.Split([',', ';']);
+    if ATrustedProxyCount > 1 then
+      lIdx := Length(lHops) - ATrustedProxyCount
+    else
+      lIdx := Length(lHops) - 1;
+    if lIdx < 0 then
+      lIdx := 0;
+    Result := lHops[lIdx].Trim;
   end;
 begin
   if ATrustProxyHeaders then
   begin
     if AForwardedFor.Trim <> '' then
-      Exit(FirstHop(AForwardedFor));
+      Exit(ClientHop(AForwardedFor));
     if ARealIP.Trim <> '' then
-      Exit(FirstHop(ARealIP));
+      Exit(ClientHop(ARealIP));
   end;
   Result := APeerIP;
 end;

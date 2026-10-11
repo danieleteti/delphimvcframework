@@ -245,7 +245,8 @@ begin
     String(FWebRequest.GetFieldByName('X-Forwarded-For')),
     String(FWebRequest.GetFieldByName('X-Real-IP')),
     FWebRequest.RemoteAddr,
-    MVCTrustProxyForwardedHeaders);
+    MVCTrustProxyForwardedHeaders,
+    MVCTrustedProxyCount);
 end;
 
 function TMVCWebBrokerRequest.ClientPreferredLanguage: String;

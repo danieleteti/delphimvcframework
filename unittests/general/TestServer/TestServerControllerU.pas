@@ -292,6 +292,11 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestHostileCookieValue;
 
+    {A reason phrase carrying CRLF must not be able to add a header.}
+    [MVCPath('/security/hostilereason')]
+    [MVCHTTPMethod([httpGET])]
+    function TestHostileReasonString: String;
+
     {The two query-string accessors must agree on a repeated key. Returning
      both on the same request is the only way to see them disagree.}
     [MVCPath('/queryparam/duplicated')]
@@ -1513,6 +1518,12 @@ end;
 function TTestServerController.TestPeerIpIgnoresForwardedHeaders: String;
 begin
   Result := Context.Request.PeerIp;
+end;
+
+function TTestServerController.TestHostileReasonString: String;
+begin
+  ResponseStatus(HTTP_STATUS.OK, 'OK'#13#10'X-Injected: evil');
+  Result := 'ok';
 end;
 
 procedure TTestServerController.TestHostileCookieValue;

@@ -187,7 +187,7 @@ end;
 
 procedure TMVCWebBrokerResponse.SetReasonString(const AValue: string);
 begin
-  FWebResponse.ReasonString := AValue;
+  FWebResponse.ReasonString := MVCStripCRLF(AValue);
 end;
 
 procedure TMVCWebBrokerResponse.SetStatusCode(const AValue: Integer);

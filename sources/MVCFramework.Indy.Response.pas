@@ -148,7 +148,7 @@ end;
 
 procedure TMVCIndyDirectResponse.SetReasonString(const AValue: string);
 begin
-  FResponseInfo.ResponseText := AValue;
+  FResponseInfo.ResponseText := MVCStripCRLF(AValue);
 end;
 
 procedure TMVCIndyDirectResponse.SetStatusCode(const AValue: Integer);

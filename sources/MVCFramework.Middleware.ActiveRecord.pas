@@ -86,6 +86,7 @@ implementation
 
 uses
   MVCFramework.ActiveRecord,
+  MVCFramework.Logger,
   System.SyncObjs,
   FireDAC.Comp.Client;
 
@@ -151,8 +152,10 @@ begin
       begin
         if not FDManager.IsConnectionDef(fDefaultConnectionDefName) then
         begin
+          // the full path goes to the log, the client gets the file name
+          LogE('Connection definitions file: ' + FDManager.ActualConnectionDefFileName);
           raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s" - or config file not present',
-            [fDefaultConnectionDefName, FDManager.ActualConnectionDefFileName]);
+            [fDefaultConnectionDefName, ExtractFileName(FDManager.ActualConnectionDefFileName)]);
         end;
       end;
 
@@ -169,8 +172,9 @@ begin
         begin
           if not FDManager.IsConnectionDef(fAdditionalConnectionDefNames[I]) then
           begin
+            LogE('Connection definitions file: ' + FDManager.ActualConnectionDefFileName);
             raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
-              [fAdditionalConnectionDefNames[I], FDManager.ActualConnectionDefFileName]);
+              [fAdditionalConnectionDefNames[I], ExtractFileName(FDManager.ActualConnectionDefFileName)]);
           end;
         end;
       end;

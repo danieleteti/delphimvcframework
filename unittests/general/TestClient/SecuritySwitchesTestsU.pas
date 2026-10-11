@@ -52,6 +52,9 @@ const
   CORS_WILDCARD_PORT = 8893;
   CORS_ORIGIN_PORT   = 8894;
   JWT_PORT           = 8895;
+  IPBLOCK_PEER_PORT  = 8891;
+  IPBLOCK_PROXY_PORT = 8892;
+  FORWARDED_IP       = '9.9.9.9';
   ALLOWED_ORIGIN     = 'https://app.example';
   TEST_SECRET        = 'a-secret-long-enough-not-to-be-refused-at-startup';
 
@@ -86,10 +89,13 @@ type
     FCORSWildcard: IMVCServer;
     FCORSOrigin: IMVCServer;
     FJWTServer: IMVCServer;
+    FIPBlockPeer: IMVCServer;
+    FIPBlockProxy: IMVCServer;
     FJWTMiddleware: TMVCJWTAuthenticationMiddleware;
     FClient: THTTPClient;
     function GetWithOrigin(const AURL, AOrigin: string): IHTTPResponse;
     function Login: string;
+    function GetForwardedFor(const APort: Integer; const AForwardedFor: string): Integer;
   public
     [SetupFixture]
     procedure SetupFixture;
@@ -108,6 +114,10 @@ type
     procedure AccessTokenInTheQueryStringIsAcceptedByDefault;
     [Test]
     procedure AccessTokenInTheQueryStringIsRefusedWhenTheNameIsCleared;
+    [Test]
+    procedure BlockedPeerCannotUnblockItselfWithAForwardedHeader;
+    [Test]
+    procedure BlockedForwardedAddressIsStillBlockedBehindATrustedProxy;
   end;
 
 implementation
@@ -118,6 +128,8 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Middleware.CORS,
   MVCFramework.JWT,
+  MVCFramework.Filters,
+  MVCFramework.MinimalAPI,
   MVCFramework.Server.Factory;
 
 { TSecuritySwitchesController }
@@ -199,6 +211,20 @@ begin
   lEngine.AddMiddleware(lJWTMiddleware);
   FJWTServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   FJWTServer.Listen(JWT_PORT);
+
+  // 4. IPBlock on the address the tests connect from.
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSecuritySwitchesController);
+  lEngine.UseHTTPFilter(IPBlock(['127.0.0.1']));
+  FIPBlockPeer := TMVCServerFactory.CreateIndyDirect(lEngine);
+  FIPBlockPeer.Listen(IPBLOCK_PEER_PORT);
+
+  // 5. IPBlock on an address only a forwarded header can carry.
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSecuritySwitchesController);
+  lEngine.UseHTTPFilter(IPBlock([FORWARDED_IP]));
+  FIPBlockProxy := TMVCServerFactory.CreateIndyDirect(lEngine);
+  FIPBlockProxy.Listen(IPBLOCK_PROXY_PORT);
 end;
 
 procedure TSecuritySwitchesTests.TeardownFixture;
@@ -210,6 +236,10 @@ begin
   FJWTServer.Stop;
   FJWTServer := nil;
   FJWTMiddleware := nil;
+  FIPBlockPeer.Stop;
+  FIPBlockPeer := nil;
+  FIPBlockProxy.Stop;
+  FIPBlockProxy := nil;
 end;
 
 procedure TSecuritySwitchesTests.Setup;
@@ -320,6 +350,61 @@ begin
     Assert.AreEqual(200, lResp.StatusCode, lResp.ContentAsString);
   finally
     FJWTMiddleware.AuthorizationAccessTokenParamName := 'access_token';
+  end;
+end;
+
+function TSecuritySwitchesTests.GetForwardedFor(const APort: Integer;
+  const AForwardedFor: string): Integer;
+var
+  lHeaders: TNetHeaders;
+begin
+  SetLength(lHeaders, 0);
+  if AForwardedFor <> '' then
+  begin
+    SetLength(lHeaders, 1);
+    lHeaders[0] := TNetHeader.Create('X-Forwarded-For', AForwardedFor);
+  end;
+  Result := FClient.Get('http://127.0.0.1:' + APort.ToString + '/api/public',
+    nil, lHeaders).StatusCode;
+end;
+
+procedure TSecuritySwitchesTests.BlockedPeerCannotUnblockItselfWithAForwardedHeader;
+var
+  lSaved: Boolean;
+begin
+  { IPBlock compared the list against ClientIp only. With forwarded headers
+    trusted, a blocked address that reaches the server directly just had to send
+    X-Forwarded-For with any other address. }
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := True;
+  try
+    Assert.AreEqual(403, GetForwardedFor(IPBLOCK_PEER_PORT, ''));
+    Assert.AreEqual(403, GetForwardedFor(IPBLOCK_PEER_PORT, '1.2.3.4'),
+      'a forwarded header took a blocked peer off the blocklist');
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
+  end;
+end;
+
+procedure TSecuritySwitchesTests.BlockedForwardedAddressIsStillBlockedBehindATrustedProxy;
+var
+  lSaved: Boolean;
+begin
+  { The other half: behind a proxy the peer is always the proxy, so the
+    forwarded address has to keep counting or the blocklist blocks nobody. }
+  lSaved := MVCTrustProxyForwardedHeaders;
+  MVCTrustProxyForwardedHeaders := True;
+  try
+    Assert.AreEqual(200, GetForwardedFor(IPBLOCK_PROXY_PORT, ''));
+    Assert.AreEqual(403, GetForwardedFor(IPBLOCK_PROXY_PORT, FORWARDED_IP));
+    { The blocked client sends its own X-Forwarded-For and the proxy appends the
+      real address to it. }
+    Assert.AreEqual(403, GetForwardedFor(IPBLOCK_PROXY_PORT, '1.2.3.4, ' + FORWARDED_IP),
+      'a hop written by the client took a blocked address off the blocklist');
+    Assert.AreEqual(200, GetForwardedFor(IPBLOCK_PROXY_PORT, FORWARDED_IP + ', 1.2.3.4'),
+      'a hop written by the client put another address on the blocklist');
+  finally
+    MVCTrustProxyForwardedHeaders := lSaved;
   end;
 end;
 

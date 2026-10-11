@@ -360,6 +360,8 @@ type
     [Test]
     procedure TestCookieValueCannotInjectAttributes;
     [Test]
+    procedure TestReasonStringCannotInjectHeaders;
+    [Test]
     procedure TestSessionCookieCarriesItsProtections;
     [Test]
     procedure TestDuplicatedAuthorizationHeaderIsNotResolvedInFavourOfTheSecond;
@@ -2116,6 +2118,26 @@ begin
       'a cookie value injected a Domain attribute: ' + lRaw);
     Assert.IsTrue(lRaw.Contains('hostile='),
       'the cookie must still be sent');
+  finally
+    lHTTP.Free;
+  end;
+end;
+
+procedure TServerTest.TestReasonStringCannotInjectHeaders;
+var
+  lHTTP: TIdHTTP;
+  lRaw: String;
+begin
+  { Header names, header values and redirects went through MVCStripCRLF; the
+    reason phrase did not, and it is written on the status line. Read off the
+    wire, as for the cookie. }
+  lHTTP := TIdHTTP.Create(nil);
+  try
+    lHTTP.Get(GetServer + '/security/hostilereason');
+    lRaw := lHTTP.Response.RawHeaders.Text;
+    Assert.AreEqual(200, lHTTP.ResponseCode);
+    Assert.AreEqual('', lHTTP.Response.RawHeaders.Values['X-Injected'],
+      'a reason phrase injected a header: ' + lRaw);
   finally
     lHTTP.Free;
   end;

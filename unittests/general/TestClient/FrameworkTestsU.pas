@@ -274,6 +274,8 @@ type
     procedure TestPBKDF2_SHA1;
     [Test]
     procedure TestPBKDF2_SHA256;
+    [Test]
+    procedure TestPBKDF2_PRFFailureDoesNotReachTheClient;
   end;
 
   [TestFixture]
@@ -566,7 +568,7 @@ uses
   System.DateUtils, System.TimeSpan, System.Math,
   TestControllersU, DBClient,
   Web.HTTPApp, Soap.EncdDecd,
-  IdHashMessageDigest, idHash,
+  IdHashMessageDigest, idHash, IdHMACSHA1,
   System.Threading,
   MVCFramework.RQL.Parser,
   MVCFramework.HMAC, System.Diagnostics,
@@ -2286,6 +2288,34 @@ begin
     BytesToHexString(lOut));
 end;
 
+type
+  TFailingHMAC = class(TIdHMACSHA1)
+  public
+    constructor Create; override;
+  end;
+
+constructor TFailingHMAC.Create;
+begin
+  raise Exception.Create('Could not load C:\inetpub\app\libeay32.dll');
+end;
+
+procedure TTestCryptUtils.TestPBKDF2_PRFFailureDoesNotReachTheClient;
+begin
+  { PBKDF2 wrapped whatever the hash constructor raised in an EMVCException,
+    and the message of an EMVCException is sent to the client as it is. }
+  try
+    PBKDF2(TEncoding.ASCII.GetBytes('pwd'), TEncoding.ASCII.GetBytes('salt'), 1, 20, TFailingHMAC);
+    Assert.Fail('PBKDF2 must fail when the PRF cannot be created');
+  except
+    on E: EMVCException do
+    begin
+      Assert.AreEqual<Integer>(HTTP_STATUS.InternalServerError, E.HTTPStatusCode);
+      Assert.IsFalse(E.Message.Contains('libeay32'),
+        'the internal error reached the client message: ' + E.Message);
+    end;
+  end;
+end;
+
 { TTestUTC }
 
 procedure TTestUTC.TestRFC1123IsNotLocalized;
@@ -3088,8 +3118,16 @@ begin
   // real peer IP wins.
   Assert.AreEqual('10.0.0.1', MVCResolveClientIP('1.2.3.4', '9.9.9.9', '10.0.0.1', False),
     'forwarded headers must be ignored when proxies are not trusted');
-  // Trusted: the first X-Forwarded-For hop wins, then X-Real-IP, then the peer.
-  Assert.AreEqual('1.2.3.4', MVCResolveClientIP('1.2.3.4, 5.6.7.8', '9.9.9.9', '10.0.0.1', True));
+  // Trusted: X-Forwarded-For, then X-Real-IP, then the peer. A proxy appends to
+  // X-Forwarded-For, so with one proxy only the last hop is the proxy's word;
+  // everything before it is what the client sent.
+  Assert.AreEqual('5.6.7.8', MVCResolveClientIP('1.2.3.4, 5.6.7.8', '9.9.9.9', '10.0.0.1', True),
+    'the hop written by the client won over the one written by the proxy');
+  Assert.AreEqual('5.6.7.8', MVCResolveClientIP('5.6.7.8', '9.9.9.9', '10.0.0.1', True));
+  // Two proxies (CDN + reverse proxy): the client is the second hop from the right.
+  Assert.AreEqual('1.2.3.4', MVCResolveClientIP('6.6.6.6, 1.2.3.4, 5.6.7.8', '9.9.9.9', '10.0.0.1', True, 2));
+  // Fewer hops than proxies: the farthest one there is.
+  Assert.AreEqual('1.2.3.4', MVCResolveClientIP('1.2.3.4, 5.6.7.8', '9.9.9.9', '10.0.0.1', True, 5));
   Assert.AreEqual('9.9.9.9', MVCResolveClientIP('', '9.9.9.9', '10.0.0.1', True));
   Assert.AreEqual('10.0.0.1', MVCResolveClientIP('', '', '10.0.0.1', True));
 end;

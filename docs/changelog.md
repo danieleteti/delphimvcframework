@@ -683,6 +683,39 @@ Idle connected clients are not affected. A connection that fails the handshake
 or breaks the protocol is now closed; before, Indy re-entered the handshake on
 the same socket.
 
+**Response splitting, blocklist bypass, internal messages**
+
+- A reason phrase carrying CR/LF (`ResponseStatus(200, 'OK ' + SomeInput)`,
+  `Response.ReasonString := ...`) added a header to the response: header names,
+  header values and redirects were already stripped, the status line was not.
+  It now is, on every host.
+- `IPBlock` compared the list against `ClientIp` only. With
+  `MVCTrustProxyForwardedHeaders` on, a blocked address that reached the server
+  directly sent `X-Forwarded-For` with any other address and passed. The filter
+  now refuses the request when either `ClientIp` or `PeerIp` is in the list.
+- With `MVCTrustProxyForwardedHeaders` on, `ClientIp` (and the WebSocket
+  `RealClientIP`) took the **first** address of `X-Forwarded-For`. A proxy
+  appends to that header, so the first address is whatever the client sent: the
+  IP rate limit, `IPBlock` and the request log followed it. `ClientIp` now takes
+  the address written by the proxy, the last one. **Behind more than one proxy**
+  (a CDN in front of nginx, for example) say how many there are, or `ClientIp`
+  is the address of the outer proxy:
+  ```pascal
+  MVCTrustProxyForwardedHeaders := True;
+  MVCTrustedProxyCount := 2; // default 1
+  ```
+  The proxy must set `X-Forwarded-For` itself: where it sets only `X-Real-IP`, a
+  client that sends `X-Forwarded-For` is still believed.
+- Three places wrapped an internal message in an `EMVCException`, whose message
+  is sent to the client as it is. The detail now goes to the log:
+  - `PBKDF2` answered with the Indy/OpenSSL error; the message is now
+    `Cannot initialize the hash function`.
+  - A TemplatePro or WebStencils error answered with the engine's message and
+    exception class. A **release** build now answers `View [name] error`; a
+    DEBUG build keeps the detail on the page.
+  - `ConnectionDefName "x" not found in config file "..."` carried the absolute
+    path of the FireDAC definitions file; it now carries the file name.
+
 ### Deprecated
 
 - **`TMVCListener` / `TMVCListenerProperties` / `TMVCListenersContext`**

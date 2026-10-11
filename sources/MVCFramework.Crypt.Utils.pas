@@ -42,7 +42,7 @@ procedure MVCCryptInit;
 implementation
 
 uses
-  IdSSLOpenSSL, MVCFramework.Commons;
+  IdSSLOpenSSL, MVCFramework.Commons, MVCFramework.Logger;
 
 {
   PBKDF2 algorithm implementation from
@@ -93,11 +93,13 @@ begin
   except
     on E: Exception do
     begin
+      // E.Message comes from Indy/OpenSSL: to the log, not to the client
       if E.Message.Contains('is not available') then
-        raise EMVCException.Create(HTTP_STATUS.InternalServerError,
-          E.Message +
-          ' [HINT: May be OpenSSL is not been loaded yet. Did you invoked MVCCryptInit?]');
-      raise EMVCException.Create(HTTP_STATUS.InternalServerError, E.Message);
+        LogE('PBKDF2: ' + E.Message +
+          ' [HINT: May be OpenSSL is not been loaded yet. Did you invoked MVCCryptInit?]')
+      else
+        LogE('PBKDF2: ' + E.Message);
+      raise EMVCException.Create(HTTP_STATUS.InternalServerError, 'Cannot initialize the hash function');
     end;
   end;
   try

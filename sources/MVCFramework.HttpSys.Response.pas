@@ -178,7 +178,7 @@ end;
 
 procedure TMVCHttpSysResponse.SetReasonString(const AValue: string);
 begin
-  FReasonString := AValue;
+  FReasonString := MVCStripCRLF(AValue);
 end;
 
 procedure TMVCHttpSysResponse.SetStatusCode(const AValue: Integer);

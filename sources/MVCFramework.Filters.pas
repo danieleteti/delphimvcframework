@@ -173,7 +173,7 @@ function ETag: TMVCHTTPFilter;
 
 // HTTPFilter that short-circuits requests from any client IP in the
 // blocklist with HTTP 403. Comparison is exact-string against
-// Ctx.Request.ClientIp; no CIDR matching. Returns the filter as-is so
+// Ctx.Request.ClientIp and Ctx.Request.PeerIp; no CIDR matching. Returns the filter as-is so
 // callers can chain registration.
 //
 //   lEngine.UseHTTPFilter(IPBlock(['10.0.0.5', '192.168.1.42']));
@@ -577,9 +577,13 @@ begin
                 FDManager.LoadConnectionDefFile;
               if (ADefaultConnectionDefName <> '')
                 and (not FDManager.IsConnectionDef(ADefaultConnectionDefName)) then
+              begin
+                // the full path goes to the log, the client gets the file name
+                LogE('Connection definitions file: ' + FDManager.ActualConnectionDefFileName);
                 raise EMVCConfigException.CreateFmt(
                   'ConnectionDefName "%s" not found in config file "%s" - or config file not present',
-                  [ADefaultConnectionDefName, FDManager.ActualConnectionDefFileName]);
+                  [ADefaultConnectionDefName, ExtractFileName(FDManager.ActualConnectionDefFileName)]);
+              end;
             end;
             lInitialized := True;
           end;
@@ -928,11 +932,13 @@ begin
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
     var
-      lIP, lBan: string;
+      lIP, lPeer, lBan: string;
     begin
+      // the socket peer as well: ClientIp follows headers the client writes
       lIP := AContext.Request.ClientIp;
+      lPeer := AContext.Request.PeerIp;
       for lBan in lBlocked do
-        if SameText(lIP, lBan) then
+        if SameText(lIP, lBan) or SameText(lPeer, lBan) then
         begin
           AContext.Response.StatusCode := 403;
           Exit; // no Next() — short-circuit

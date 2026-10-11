@@ -563,7 +563,7 @@ begin
   try
     lClient := NewClientWithHeaders(['X-Forwarded-For: 203.0.113.7, 10.0.0.1']);
     try
-      Assert.AreEqual('203.0.113.7', lClient.RealClientIP, 'first hop of X-Forwarded-For');
+      Assert.AreEqual('10.0.0.1', lClient.RealClientIP, 'the hop the proxy appended to X-Forwarded-For');
     finally
       lClient.Free;
     end;

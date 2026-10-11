@@ -70,6 +70,7 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
+  MVCFramework.Logger,
   System.Bindings.EvalProtocol,
   System.Bindings.Methods,
   MVCFramework.Cache,
@@ -285,8 +286,14 @@ begin
     except
       on E: EWebStencilsException do
       begin
+        // the detail is for the developer: to the log, and to the client in DEBUG only
+        LogE(Format('View [%s] error: %s (%s)', [ViewName, E.Message, E.ClassName]));
+        {$IFDEF DEBUG}
         raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)',
           [ViewName, E.Message, E.ClassName]);
+        {$ELSE}
+        raise EMVCViewError.CreateFmt('View [%s] error', [ViewName]);
+        {$ENDIF}
       end;
     end;
   finally
