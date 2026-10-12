@@ -154,7 +154,8 @@ certificate you cannot fix.
   - "REST controllers as MCP tools (prototyping)": one `RegisterFromEngine`
     line that turns every REST action except the `DELETE` ones into a tool
     calling the server over HTTP. Controller projects over plain HTTP only.
-  - The "MCP Server" preset has no controller. Started with no arguments it
+  - The "MCP Server" preset has no controller and offers two application
+    types only: console and Windows service (no ISAPI, no Apache). Started with no arguments it
     talks MCP on stdin/stdout; `--transport http` starts the HTTP server,
     which listens on `localhost` (`mcp.http.host` in `.env`), also when the
     project is generated as a Windows service. In the other presets the

@@ -207,6 +207,9 @@ begin
     rlkIPAddress
   );
   // LRateLimitMiddleware.AddExcludedPath('/health');
+{{if mcp_generate}}
+  // An MCP client sends several requests per session: raise the limit above before use.
+{{endif}}
   LRateLimitMiddleware.SetOnRateLimitExceeded(
   procedure(const AContext: TWebContext; const AKey: string;
     const ALimit: Integer; const AWindowSeconds: Integer)

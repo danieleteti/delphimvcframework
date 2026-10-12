@@ -488,6 +488,11 @@ begin
     // no controller class is generated
     edtControllerClassName.Visible := False;
     lblClassName.Visible := False;
+    // ISAPI and Apache modules have no EngineConfigU: nothing MCP to generate
+    // (the two last items; the indexes of the others do not change)
+    rgApplicationType.Items.Delete(3);
+    rgApplicationType.Items.Delete(2);
+    rgApplicationType.Height := MulDiv(rgApplicationType.Height, 5, 8);
   end;
 end;
 
@@ -1237,6 +1242,11 @@ begin
           LSummary.Add('MCP: /mcp over HTTP + stdio (needs mcp-server-delphi)')
         else
           LSummary.Add('MCP: /mcp over HTTP (needs mcp-server-delphi)');
+        // same rule as the generator ('mcp.auth.jwt')
+        if (rgJWTAlgorithm.ItemIndex > 0) and not chkMinimalAPI.Checked and (cbSSV.ItemIndex <= 0) then
+          LSummary.Add('MCP auth: the JWT of /login (Authorization: Bearer)')
+        else
+          LSummary.Add('MCP auth: bearer token generated in .env (mcp.auth.token)');
       end;
 
       lblSummary.Caption := LSummary.Text;

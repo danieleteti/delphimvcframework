@@ -50,6 +50,9 @@ procedure {{:authentication_classname}}.OnRequest(
 begin
 {{if mcp_auth_jwt}}
   // /mcp: the JSON-RPC publisher behind PublishObject and the MCP session controller.
+{{if jsonrpc_generate}}
+  // /jsonrpc is published by the same class: it asks for the same token.
+{{endif}}
   // TODO: add your own protected resources.
   AuthenticationRequired :=
     (ControllerQualifiedClassName = 'MVCFramework.JSONRPC.TMVCJSONRPCPublisher') or
