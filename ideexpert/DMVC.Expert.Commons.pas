@@ -82,6 +82,17 @@ type
       // AGENTS.md / CLAUDE.md / GEMINI.md + delphi-ai-skills in .claude\skills
       // (downloaded when the project is created). Default False.
       program_ai_skills = 'program.ai_skills';
+      // MCP server on /mcp (needs the external mcp-server-delphi library, 0.9.0+).
+      // All default False. Only projects with an EngineConfigU can have it.
+      mcp_generate = 'mcp.generate';
+      // --transport stdio in the same executable (console programs only)
+      mcp_stdio = 'mcp.stdio';
+      // sample resource and prompt providers next to the tool provider
+      mcp_resources_prompts = 'mcp.resources_prompts';
+      // RegisterFromEngine: the REST controllers as MCP tools (prototyping)
+      mcp_bridge = 'mcp.bridge';
+      // the "MCP Server" preset: no controller, HTTP bound to localhost
+      mcp_standalone = 'mcp.standalone';
       mustache_helpers_unit_name = 'mustache.helpers_unit_name';
       templatepro_helpers_unit_name = 'templatepro.helpers_unit_name';
       webstencils_helpers_unit_name = 'webstencils.helpers_unit_name';

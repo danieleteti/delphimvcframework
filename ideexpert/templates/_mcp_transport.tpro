@@ -1,0 +1,18 @@
+{{if mcp_stdio}}
+// --transport stdio: JSON-RPC on stdin/stdout until the client closes the pipe.
+// No HTTP server and no ConfigureEngine: nothing set up there exists in this mode.
+procedure RunMCPStdio;
+var
+  LTransport: TMCPStdioTransport;
+begin
+  TMCPServer.Instance.ServerName := '{{:program_name}}';
+  TMCPServer.Instance.ServerVersion := '1.0.0';
+  LTransport := TMCPStdioTransport.Create(TMCPServer.Instance);
+  try
+    LTransport.Run;
+  finally
+    LTransport.Free;
+  end;
+end;
+
+{{endif}}

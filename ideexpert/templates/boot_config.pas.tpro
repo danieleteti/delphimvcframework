@@ -22,7 +22,7 @@ uses
 {{if logging_appender_console}}
   LoggerPro.ConsoleAppender,
 {{endif}}
-{{if logging_appender_file}}
+{{if @(logging_appender_file or mcp_stdio_file_fallback)}}
   LoggerPro.FileAppender,
 {{endif}}
 {{if logging_appender_jsonl}}
@@ -51,6 +51,9 @@ uses
 {{endif}}
 {{if program_ssv_templatepro}}
   {{:templatepro_helpers_unit_name}},
+{{endif}}
+{{if mcp_stdio}}
+  MVCFramework.MCP.TransportConf,
 {{endif}}
   MVCFramework.DotEnv,
   MVCFramework.Commons,
@@ -84,7 +87,7 @@ begin
 {{if logging_profile_fluent}}
   lBuilder := LoggerProBuilder
     .WithDefaultMinimumLevel(TLogType.Debug)
-{{if logging_appender_console}}
+{{if @(logging_appender_console and (not mcp_stdio))}}
     .WriteToConsole
       .WithUTF8Output
       .WithRenderer(TMVCColorConsoleRenderer.Create)
@@ -133,6 +136,27 @@ begin
       .Done
 {{endif}}
     ;
+{{if @(logging_appender_console and mcp_stdio)}}
+  // --transport stdio: stdout carries JSON-RPC only, so no console appender
+{{if mcp_stdio_file_fallback}}
+  if MCPTransportIsStdio then
+    lBuilder := lBuilder.WriteToFile
+      .WithLogsFolder(dotEnv.Env('logger.file.folder', 'logs'))
+      .WithFileBaseName(dotEnv.Env('logger.file.basename', '{{:program_name}}'))
+      .Done
+  else
+    lBuilder := lBuilder.WriteToConsole
+      .WithUTF8Output
+      .WithRenderer(TMVCColorConsoleRenderer.Create)
+      .Done;
+{{else}}
+  if not MCPTransportIsStdio then
+    lBuilder := lBuilder.WriteToConsole
+      .WithUTF8Output
+      .WithRenderer(TMVCColorConsoleRenderer.Create)
+      .Done;
+{{endif}}
+{{endif}}
 
 {{if logging_exewatch}}
   lBuilder := WithExeWatch(lBuilder)
@@ -146,6 +170,11 @@ begin
   // Config loaded from JSON file (key 'logger.config.file' in dotEnv).
   // Console "renderer" field resolves via LoggerPro.RendererRegistry; "DMVCColorConsole" is registered
   // by MVCFramework.Logger.ColorConsoleRenderer's initialization section.
+{{if mcp_stdio}}
+  if MCPTransportIsStdio then // stdout carries JSON-RPC only: a config without the console appender
+    lConfigFile := dotEnv.Env('logger.config.file.stdio', 'loggerpro.stdio.json')
+  else
+{{endif}}
   lConfigFile := dotEnv.Env('logger.config.file', 'loggerpro.json');
   if not TPath.IsPathRooted(lConfigFile) then
     lConfigFile := TPath.Combine(AppPath, lConfigFile);

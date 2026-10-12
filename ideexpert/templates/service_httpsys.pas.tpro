@@ -141,7 +141,7 @@ begin
 {{if program_server_protocol|eq,"https"}}
     fServer.UseHTTPS := True;
 {{endif}}
-    fServer.Listen(LPort, 'localhost');
+    fServer.Listen(LPort, {{if mcp_standalone}}dotEnv.Env('mcp.http.host', 'localhost'){{else}}'localhost'{{endif}});
 {{if program_server_protocol|eq,"https"}}
     LogI('Service started on port ' + LPort.ToString + ' (HTTP.sys HTTPS kernel-mode)');
     LogI('NOTE: HTTPS requires URL ACL + SSL cert binding via netsh:');

@@ -30,7 +30,7 @@ uses
 {{if program_ssv_webstencils}}
   {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
 {{endif}}
-  BootConfigU in 'BootConfigU.pas',
+{{include "_mcp_uses.tpro"}}  BootConfigU in 'BootConfigU.pas',
   EngineConfigU in 'EngineConfigU.pas';
 
 {$R *.RES}

@@ -38,6 +38,7 @@ type
     ppJSONRPC,
     ppRealTime,
     ppFullStack,
+    ppMCPServer,
     ppCustom
   );
 
@@ -91,6 +92,12 @@ const
       Hint: 'Everything enabled: REST + TemplatePro + WebSocket + HTMX + JWT + ActiveRecord + ETag + RateLimit + Analytics + HTTPS. For complete production apps.';
       IDSuffix: '5.FullStack';
       IconResource: 'DMVCPresetFullStack'
+    ),
+    ( // ppMCPServer
+      Caption: 'MCP Server';
+      Hint: 'MCP server with sample tool, resource and prompt providers, HTTP (/mcp, bearer token) and stdio transports. Requires mcp-server-delphi.';
+      IDSuffix: '5b.MCPServer';
+      IconResource: 'DMVCPresetMCPServer'
     ),
     ( // ppCustom
       Caption: 'Custom Project';
@@ -410,6 +417,56 @@ begin
   AForm.cbNameCase.ItemIndex := 3; // CamelCase (0=AsIs, 1=UpperCase, 2=LowerCase, 3=CamelCase, 4=PascalCase, 5=SnakeCase)
 end;
 
+procedure ApplyPreset_MCPServer(AForm: TfrmDMVCNewProject);
+begin
+  // No controller: the program is the MCP endpoint (HTTP on localhost) and the
+  // stdio transport. SetMCPServerMode locks the MCP option on.
+  AForm.edtControllerClassName.Text := 'THomeController';
+  AForm.SetApiStyleVisible(False);
+  AForm.chkMinimalAPI.Checked := False;
+  AForm.chkCreateIndexMethod.Checked := False;
+  AForm.chkCreateActionFiltersMethods.Checked := False;
+  AForm.chkProfileActions.Checked := False;
+
+  // Features
+  AForm.chkServicesContainer.Checked := True;
+  AForm.chkJSONRPC.Checked := False;
+  AForm.chkWebSocketServer.Checked := False;
+  AForm.cbSSV.ItemIndex := 0; // None
+  AForm.chkSqids.Checked := False;
+  AForm.chkHtmx.Checked := False;
+  AForm.chkHtmx.Visible := False;
+  AForm.chkCustomConfigDotEnv.Checked := False;
+  AForm.rgJWTAlgorithm.ItemIndex := 0; // None: /mcp has its bearer token
+
+  // Middleware
+  AForm.chkCORS.Checked := False;
+  AForm.chkCompression.Checked := False;
+  AForm.chkETAG.Checked := False;
+  AForm.chkStaticFiles.Checked := False;
+  AForm.chkAnalyticsMiddleware.Checked := False;
+  AForm.chkTrace.Checked := False;
+  AForm.chkRateLimit.Checked := False;
+  AForm.chkOpenAPI.Checked := False;
+  AForm.chkActiveRecord.Checked := False;
+  AForm.cbSessionType.ItemIndex := 0; // None
+
+  // MCP
+  AForm.chkMCP.Checked := True;
+  AForm.chkMCPStdio.Checked := True;
+  AForm.chkMCPResourcesPrompts.Checked := True;
+  AForm.chkMCPBridge.Checked := False;
+
+  // Server
+  AForm.rgServerProtocol.ItemIndex := 0; // HTTP
+  AForm.rgApplicationType.ItemIndex := 0; // Console
+  AForm.cbServerEngine.ItemIndex := 1; // Indy Direct
+  AForm.edtServerPort.Text := '8080';
+
+  // Serializer
+  AForm.cbNameCase.ItemIndex := 3; // CamelCase
+end;
+
 procedure ApplyPresetToForm(APreset: TDMVCProjectPreset; AForm: TfrmDMVCNewProject);
 begin
   case APreset of
@@ -420,6 +477,7 @@ begin
     ppJSONRPC:           ApplyPreset_JSONRPC(AForm);
     ppRealTime:          ApplyPreset_RealTime(AForm);
     ppFullStack:         ApplyPreset_FullStack(AForm);
+    ppMCPServer:         ApplyPreset_MCPServer(AForm);
     ppCustom:
     begin
       // Reset visibility that may have been changed by other presets

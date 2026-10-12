@@ -64,7 +64,25 @@ uses
   DMVC.Expert.ProjectGenerator,
   DMVC.Expert.SwaggerUI,
   DMVC.Expert.AISkills,
+  DMVC.Expert.MCPLibrary,
+  System.Win.Registry,
   DMVC.Expert.Forms.SwaggerUIProgress;
+
+// The Win32 library search path of the running IDE ('' when it cannot be read)
+function IDELibrarySearchPath: string;
+var
+  lRegistry: TRegistry;
+begin
+  Result := '';
+  lRegistry := TRegistry.Create(KEY_READ);
+  try
+    if lRegistry.OpenKeyReadOnly((BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Library\Win32') and
+      lRegistry.ValueExists('Search Path') then
+      Result := lRegistry.ReadString('Search Path');
+  finally
+    lRegistry.Free;
+  end;
+end;
 
 procedure ExecuteWizardForPreset(APreset: TDMVCProjectPreset);
 var
@@ -82,6 +100,7 @@ begin
     // Configure wizard mode and setup pages
     WizardForm.SetCustomMode(APreset = ppCustom);
     WizardForm.SetMinimalAPIMode(APreset in [ppMinimalAPIRest, ppMinimalAPIWebApp]);
+    WizardForm.SetMCPServerMode(APreset = ppMCPServer);
     WizardForm.SetPresetCaption(PRESET_INFOS[APreset].Caption);
     ApplyPresetToForm(APreset, WizardForm);
     WizardForm.InitWizardPages;
@@ -117,6 +136,14 @@ begin
         Screen.Cursor := crDefault;
         TDMVCProjectGenerator.SwaggerUIInstaller := nil;
         TDMVCProjectGenerator.AISkillsInstaller := nil;
+      end;
+      // The MCP library is not shipped with the framework: say so now, not at
+      // the first failed compilation. Never stops the generation.
+      if lJSON.B[TConfigKey.mcp_generate] then
+      begin
+        lWarning := MCPLibraryWarning(IDELibrarySearchPath);
+        if lWarning <> '' then
+          TDMVCProjectGenerator.Warnings := TDMVCProjectGenerator.Warnings + [lWarning];
       end;
       for lWarning in TDMVCProjectGenerator.Warnings do
         (BorlandIDEServices as IOTAMessageServices).AddTitleMessage('DMVCFramework wizard: ' + lWarning);

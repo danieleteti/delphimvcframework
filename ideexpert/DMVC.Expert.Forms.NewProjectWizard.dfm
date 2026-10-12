@@ -1255,7 +1255,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       object chkAISkills: TCheckBox
         Left = 250
         Top = 185
-        Width = 330
+        Width = 185
         Height = 17
         Hint =
           'AGENTS.md, CLAUDE.md, GEMINI.md and the delphi-ai-skills for thi' +
@@ -1267,6 +1267,48 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         ParentShowHint = False
         ShowHint = True
         TabOrder = 7
+      end
+      object chkMCP: TCheckBox
+        Left = 450
+        Top = 185
+        Width = 300
+        Height = 17
+        Caption = 'MCP server on /mcp (requires mcp-server-delphi)'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 8
+      end
+      object chkMCPStdio: TCheckBox
+        Left = 468
+        Top = 206
+        Width = 282
+        Height = 17
+        Caption = 'stdio transport (--transport stdio)'
+        Checked = True
+        State = cbChecked
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 9
+      end
+      object chkMCPResourcesPrompts: TCheckBox
+        Left = 468
+        Top = 227
+        Width = 282
+        Height = 17
+        Caption = 'Sample resource and prompt providers'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 10
+      end
+      object chkMCPBridge: TCheckBox
+        Left = 468
+        Top = 248
+        Width = 282
+        Height = 17
+        Caption = 'REST controllers as MCP tools (prototyping)'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 11
       end
       object chkHtmx: TCheckBox
         Left = 250

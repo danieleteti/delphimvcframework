@@ -1,0 +1,12 @@
+{{if mcp_generate}}
+  MVCFramework.MCP.Server,
+{{if mcp_stdio}}
+  MVCFramework.MCP.Stdio,
+  MVCFramework.MCP.TransportConf,
+{{endif}}
+  MCPToolsU in 'MCPToolsU.pas',
+{{if mcp_resources_prompts}}
+  MCPResourcesU in 'MCPResourcesU.pas',
+  MCPPromptsU in 'MCPPromptsU.pas',
+{{endif}}
+{{endif}}

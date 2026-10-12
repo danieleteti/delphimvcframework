@@ -155,6 +155,7 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.SwaggerUI.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.SwaggerUIProgress.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.AISkills.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.MCPLibrary.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>
@@ -178,6 +179,10 @@
         <RcItem Include="..\..\ideexpert\icons\fullstack.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCPresetFullStack</ResourceId>
+        </RcItem>
+        <RcItem Include="..\..\ideexpert\icons\mcp_server.ico">
+            <ResourceType>ICON</ResourceType>
+            <ResourceId>DMVCPresetMCPServer</ResourceId>
         </RcItem>
         <RcItem Include="..\..\ideexpert\icons\custom.ico">
             <ResourceType>ICON</ResourceType>

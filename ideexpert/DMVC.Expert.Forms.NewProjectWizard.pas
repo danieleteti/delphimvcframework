@@ -149,6 +149,10 @@ type
     edtWebModuleName: TEdit;
     chkSqids: TCheckBox;
     chkAISkills: TCheckBox;
+    chkMCP: TCheckBox;
+    chkMCPStdio: TCheckBox;
+    chkMCPResourcesPrompts: TCheckBox;
+    chkMCPBridge: TCheckBox;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
     rgJWTAlgorithm: TRadioGroup;
@@ -190,6 +194,7 @@ type
     fCurrentPage: Integer;
     fIsCustomPreset: Boolean;
     fIsMinimalAPIPreset: Boolean;
+    fIsMCPServerPreset: Boolean;
     fPresetCaption: string;
     procedure UpdateSummary;
     procedure ShowNextStepsDialog(const AProjectName: string;
@@ -204,6 +209,8 @@ type
     function GetProjectFolder: string;
     procedure UpdateProjectNameHint;
     procedure UpdateWebModuleVisibility;
+    procedure UpdateMCPControls;
+    function HasEngineConfig: Boolean;
     procedure NavigateToPage(APageIndex: Integer);
     function GetPageCount: Integer;
     function MapPageIndex(AVisualIndex: Integer): Integer;
@@ -215,6 +222,9 @@ type
     property ProjectFolder: string read GetProjectFolder;
     procedure SetCustomMode(AIsCustom: Boolean);
     procedure SetMinimalAPIMode(AEnabled: Boolean);
+    /// The "MCP Server" preset: the MCP server is the typology (locked on) and
+    /// the program has no controller
+    procedure SetMCPServerMode(AEnabled: Boolean);
     procedure SetApiStyleVisible(AVisible: Boolean);
     procedure SetPresetCaption(const ACaption: string);
     procedure InitWizardPages;
@@ -469,6 +479,70 @@ begin
   UpdateWebModuleVisibility;
 end;
 
+procedure TfrmDMVCNewProject.SetMCPServerMode(AEnabled: Boolean);
+begin
+  fIsMCPServerPreset := AEnabled;
+  if AEnabled then
+  begin
+    chkMCP.Checked := True;
+    // no controller class is generated
+    edtControllerClassName.Visible := False;
+    lblClassName.Visible := False;
+  end;
+end;
+
+// EngineConfigU exists in the console programs (not FastCGI) and in the
+// Indy Direct and HTTP.sys Windows services
+function TfrmDMVCNewProject.HasEngineConfig: Boolean;
+begin
+  Result :=
+    ((rgApplicationType.ItemIndex = 0) and (rgServerProtocol.ItemIndex <> 2)) or
+    ((rgApplicationType.ItemIndex = 1) and (cbServerEngine.ItemIndex in [1, 2]));
+end;
+
+procedure TfrmDMVCNewProject.UpdateMCPControls;
+const
+  HINT_MCP = 'Publishes an MCP endpoint on /mcp (bearer token in .env; the JWT bearer middleware when the ' +
+    'project has it) and generates MCPToolsU with a sample ' +
+    'tool. The project needs mcp-server-delphi 0.9.0 or later in the library path: ' +
+    'https://github.com/danieleteti/mcp-server-delphi';
+  HINT_MCP_OFF = 'Not available for this application type: the MCP endpoint is published in EngineConfigU, ' +
+    'which ISAPI, Apache, FastCGI and WebBroker Windows service projects do not have.';
+var
+  lHasEngineConfig, lOn: Boolean;
+begin
+  lHasEngineConfig := HasEngineConfig;
+  chkMCP.Enabled := lHasEngineConfig and not fIsMCPServerPreset;
+  if lHasEngineConfig then
+    chkMCP.Hint := HINT_MCP
+  else
+    chkMCP.Hint := HINT_MCP_OFF;
+  lOn := chkMCP.Checked and lHasEngineConfig;
+
+  chkMCPStdio.Enabled := lOn and (rgApplicationType.ItemIndex = 0);
+  if (rgApplicationType.ItemIndex = 0) or not lOn then
+    chkMCPStdio.Hint := 'The same executable started with "--transport stdio" talks MCP on stdin/stdout, ' +
+      'the way Claude Code and Claude Desktop launch a local server. Generates .mcp.json. ' +
+      'In this mode no HTTP server runs and ConfigureEngine is not called.'
+  else
+    chkMCPStdio.Hint := 'Not available: a Windows service has no stdin/stdout.';
+
+  chkMCPResourcesPrompts.Enabled := lOn;
+  chkMCPResourcesPrompts.Hint := 'Generates MCPResourcesU and MCPPromptsU with one sample each.';
+
+  chkMCPBridge.Enabled := lOn and not fIsMCPServerPreset and not chkMinimalAPI.Checked and
+    (rgServerProtocol.ItemIndex = 0);
+  if fIsMCPServerPreset then
+    chkMCPBridge.Hint := 'Not available: this project has no REST controllers.'
+  else if chkMinimalAPI.Checked then
+    chkMCPBridge.Hint := 'Not available: the bridge reads controllers, not Minimal API routes.'
+  else if rgServerProtocol.ItemIndex <> 0 then
+    chkMCPBridge.Hint := 'Not available with HTTPS: the bridge calls the API over plain HTTP on localhost.'
+  else
+    chkMCPBridge.Hint := 'Each REST action (DELETE excluded) becomes an MCP tool that calls this server over ' +
+      'HTTP. For trying an API out, not for production. Not available over the stdio transport.';
+end;
+
 procedure TfrmDMVCNewProject.UpdateWebModuleVisibility;
 var
   lShow: Boolean;
@@ -643,6 +717,7 @@ begin
   lblJWTAsymmetricWarning.Enabled := rgJWTAlgorithm.ItemIndex = 2;
 
   UpdateWebModuleVisibility;
+  UpdateMCPControls;
 end;
 
 procedure TfrmDMVCNewProject.btnFinishClick(Sender: TObject);
@@ -663,6 +738,16 @@ begin
       '- No spaces or special characters');
     ModalResult := mrNone;
     edtProjectName.SetFocus;
+    Exit;
+  end;
+
+  UpdateMCPControls;
+  if fIsMCPServerPreset and not HasEngineConfig then
+  begin
+    ShowMessage('An MCP server needs a console application (not FastCGI), or a Windows service ' +
+      'on Indy Direct or HTTP.sys.' + sLineBreak + sLineBreak +
+      'Change the application type or the server engine, or pick another project type.');
+    ModalResult := mrNone;
     Exit;
   end;
 
@@ -1144,6 +1229,15 @@ begin
         LSummary.Add('JSON-RPC: Yes');
       if chkAISkills.Checked then
         LSummary.Add('AI agents: AGENTS.md + skills in .claude\skills');
+      if fIsMCPServerPreset and not HasEngineConfig then
+        LSummary.Add('MCP: NOT AVAILABLE for this application type / server engine')
+      else if chkMCP.Checked and chkMCP.Enabled or fIsMCPServerPreset then
+      begin
+        if chkMCPStdio.Checked and chkMCPStdio.Enabled then
+          LSummary.Add('MCP: /mcp over HTTP + stdio (needs mcp-server-delphi)')
+        else
+          LSummary.Add('MCP: /mcp over HTTP (needs mcp-server-delphi)');
+      end;
 
       lblSummary.Caption := LSummary.Text;
     finally
@@ -1166,6 +1260,17 @@ begin
   fModel.B[TConfigKey.program_msheap] := False;
   fModel.B[TConfigKey.program_sqids] := chkSqids.Checked;
   fModel.B[TConfigKey.program_ai_skills] := chkAISkills.Checked;
+  // a disabled box does not count: its hint says why it cannot apply
+  UpdateMCPControls;
+  fModel.B[TConfigKey.mcp_generate] := chkMCP.Checked and HasEngineConfig and
+    (chkMCP.Enabled or fIsMCPServerPreset);
+  fModel.B[TConfigKey.mcp_stdio] := fModel.B[TConfigKey.mcp_generate] and
+    chkMCPStdio.Checked and chkMCPStdio.Enabled;
+  fModel.B[TConfigKey.mcp_resources_prompts] := fModel.B[TConfigKey.mcp_generate] and
+    chkMCPResourcesPrompts.Checked and chkMCPResourcesPrompts.Enabled;
+  fModel.B[TConfigKey.mcp_bridge] := fModel.B[TConfigKey.mcp_generate] and
+    chkMCPBridge.Checked and chkMCPBridge.Enabled;
+  fModel.B[TConfigKey.mcp_standalone] := fModel.B[TConfigKey.mcp_generate] and fIsMCPServerPreset;
   fModel.B[TConfigKey.program_dotenv] := chkCustomConfigDotEnv.Checked;
   fModel.B[TConfigKey.program_htmx] := chkHtmx.Checked;
   fModel.B[TConfigKey.program_ssv_templatepro] := SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro');

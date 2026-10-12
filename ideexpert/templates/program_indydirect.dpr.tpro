@@ -61,12 +61,12 @@ uses
 {{if program_ssv_webstencils}}
   {{:webstencils_helpers_unit_name}} in '{{:webstencils_helpers_unit_name}}.pas',
 {{endif}}
-  BootConfigU in 'BootConfigU.pas',
+{{include "_mcp_uses.tpro"}}  BootConfigU in 'BootConfigU.pas',
   EngineConfigU in 'EngineConfigU.pas';
 
 {$R *.res}
 
-procedure RunServer(aPort: Integer);
+{{include "_mcp_transport.tpro"}}procedure RunServer(aPort: Integer);
 var
   LEngine: TMVCEngine;
   LServer: IMVCServer;
@@ -74,6 +74,10 @@ var
   LWSServer: TMVCWebSocketServer;
 {{endif}}
 begin
+{{if mcp_auth_token}}
+  if dotEnv.Env('mcp.auth.token', '').Trim.IsEmpty then
+    raise Exception.Create('mcp.auth.token is empty: set it in .env, the /mcp endpoint needs a bearer token');
+{{endif}}
 {{if program_minimal_api}}
   // Built-in defaults, overridden below only where the .env has a say.
   // Add any other TMVCConfigKey to the callback as needed.
@@ -152,7 +156,11 @@ begin
     end;
 {{else}}
     // RunAndWait: Listen + signal wait + shutdown. For non-console hosts use Listen() + Stop().
+{{if mcp_standalone}}
+    LServer.RunAndWait(APort, dotEnv.Env('mcp.http.host', 'localhost'));
+{{else}}
     LServer.RunAndWait(APort);
+{{endif}}
 {{endif}}
     LServer := nil;
   finally
@@ -166,6 +174,14 @@ begin
   IsMultiThread := True;
 
   MVCSerializeNulls := True;
+{{if mcp_stdio_default}}
+  MCPDefaultTransportStdio; // no --transport = stdio, the way MCP clients start it; "--transport http" = HTTP server
+{{endif}}
+{{if mcp_stdio}}
+  // stdio: the MCP client picks the working directory; relative paths (logs, data) stay next to the executable
+  if MCPTransportIsStdio then
+    SetCurrentDir(AppPath);
+{{endif}}
   Boot; // dotEnv + logger + profiler; must run before any LogI call
 
   LogI('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
@@ -195,9 +211,17 @@ begin
     DefaultMVCServiceContainer.Build;
 {{endif}}
 
+{{if mcp_stdio}}
+    if MCPTransportIsStdio then
+      RunMCPStdio
+    else
+{{endif}}
     RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
   except
     on E: Exception do
+    begin
       LogF(E.ClassName + ': ' + E.Message);
+      ExitCode := 1;
+    end;
   end;
 end.

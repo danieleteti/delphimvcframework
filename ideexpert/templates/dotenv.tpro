@@ -76,6 +76,30 @@ dmvc.wsserver.port=9000
 dmvc.sqids.alphabet={{:scrambled_alphabet}}
 dmvc.sqids.min_length=6
 {{endif}}
+{{if mcp_generate}}
+
+# ============================================================================
+# MCP server (/mcp)
+# ============================================================================
+{{if mcp_auth_token}}
+# Bearer token of /mcp, generated for this project by the wizard. Clients send
+# "Authorization: Bearer <token>"; the HTTP server does not start when it is empty.
+# It exists only in this file: keep .env out of version control.
+mcp.auth.token={{:mcp_token}}
+{{endif}}
+# Origins (comma separated) allowed to call /mcp. Empty: a request with an Origin
+# header is refused; clients that are not browsers send none.
+mcp.allowed_origins=
+{{if mcp_standalone}}
+# Address the HTTP server listens on. localhost: reachable from this machine only
+# (127.0.0.1 and ::1). An IP address: that interface. Every interface: 0.0.0.0
+# (HTTP.sys: +). The token travels in clear over plain HTTP: open it up behind TLS.
+mcp.http.host=localhost
+{{if mcp_stdio_default}}
+# This program talks MCP on stdin/stdout unless started with "--transport http".
+{{endif}}
+{{endif}}
+{{endif}}
 {{if webmodule_middleware_jwt}}
 
 # ============================================================================

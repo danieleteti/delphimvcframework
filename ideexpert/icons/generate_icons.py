@@ -21,6 +21,7 @@ PRESETS = {
     'microservice': {'color': (156, 39, 176),   'svg': 'microservice.svg'},
     'realtime':     {'color': (255, 152, 0),    'svg': 'realtime.svg'},
     'fullstack':    {'color': (211, 47, 47),    'svg': 'fullstack.svg'},
+    'mcp_server':   {'color': (0, 172, 193),    'svg': 'mcp_server.svg'},
     'custom':       {'color': (117, 117, 117),  'svg': 'custom.svg'},
 }
 

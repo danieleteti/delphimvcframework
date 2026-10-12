@@ -158,10 +158,10 @@ begin
     fServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
     fServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
     fServer.CertPassword := dotEnv.Env('https.cert.password', '');
-    fServer.Listen(LPort);
+    fServer.Listen(LPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
     LogI('Service started on port ' + LPort.ToString + ' (Indy Direct + TaurusTLS HTTPS)');
 {{else}}
-    fServer.Listen(LPort);
+    fServer.Listen(LPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
     LogI('Service started on port ' + LPort.ToString + ' (Indy Direct)');
 {{endif}}
 {{if websocketserver_generate}}

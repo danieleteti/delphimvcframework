@@ -1,0 +1,32 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+interface
+
+uses
+  MVCFramework.MCP.ToolProvider,
+  MVCFramework.MCP.Attributes;
+
+type
+  // MCP tools: every [MCPTool] method is listed by tools/list; one instance per call
+  {{:class_name}} = class(TMCPToolProvider)
+  public
+    [MCPTool('{{:tool_name}}', 'Returns a greeting for the given name')]
+    function Hello(
+      [MCPParam('Who to greet')] const name: string): TMCPToolResult;
+  end;
+
+implementation
+
+uses
+  MVCFramework.MCP.Server;
+
+function {{:class_name}}.Hello(const name: string): TMCPToolResult;
+begin
+  Result := TMCPToolResult.Text('Hello, ' + name + '!');
+end;
+
+initialization
+  TMCPServer.Instance.RegisterToolProvider({{:class_name}});
+
+end.

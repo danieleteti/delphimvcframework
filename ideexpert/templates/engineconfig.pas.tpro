@@ -101,6 +101,16 @@ uses
   MVCFramework.MinimalAPI,
   MVCFramework.Filters,
 {{endif}}
+{{if mcp_generate}}
+{{if @(not program_minimal_api)}}
+  MVCFramework.MinimalAPI,
+{{endif}}
+  MVCFramework.MCP.Server,
+  MVCFramework.MCP.Guard,
+{{if mcp_bridge}}
+  MVCFramework.MCP.Bridge,
+{{endif}}
+{{endif}}
   System.SysUtils;
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
@@ -143,6 +153,19 @@ begin
   // Static files path (www folder at same level as executable)
   LWwwPath := TPath.Combine(AppPath, 'www');
 {{endif}}
+{{if mcp_generate}}
+
+  // MCP guard: first, before every middleware and before PublishObject
+{{if mcp_auth_jwt}}
+  AEngine.UseHTTPFilter(MCPGuard(TMCPGuardOptions.Create
+    .AuthenticationHandledElsewhere // the JWT middleware below authenticates /mcp
+    .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));
+{{else}}
+  AEngine.UseHTTPFilter(MCPGuard(TMCPGuardOptions.Create
+    .BearerToken('{{:program_name}}', dotEnv.Env('mcp.auth.token', ''))
+    .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));
+{{endif}}
+{{endif}}
 
 {{if @(not program_minimal_api)}}
   // Controllers
@@ -151,6 +174,9 @@ begin
 {{endif}}
 {{if program_ssv_any}}
   AEngine.AddController(TAPIController);
+{{endif}}
+{{if mcp_generate}}
+  AEngine.AddController(TMCPSessionController); // DELETE /mcp: end of an MCP session
 {{endif}}
   // Controllers - END
 {{endif}}
@@ -356,6 +382,30 @@ begin
     begin
       Result := {{:jsonrpc_classname}}.Create;
     end, '/jsonrpc');
+{{endif}}
+{{if mcp_generate}}
+
+{{if program_minimal_api}}
+  // MCP endpoint: POST /mcp (JSON-RPC), DELETE /mcp (session end)
+  AEngine.AddController(TMCPSessionController);
+{{else}}
+  // MCP endpoint: POST /mcp (JSON-RPC)
+{{endif}}
+  TMCPServer.Instance.ServerName := '{{:program_name}}';
+  TMCPServer.Instance.ServerVersion := '1.0.0';
+  AEngine.PublishObject(
+    function : TObject
+    begin
+      Result := TMCPServer.Instance.CreatePublishedEndpoint;
+    end, '/mcp');
+{{if mcp_bridge}}
+
+  // Prototyping: every REST action above becomes an MCP tool that calls this server over HTTP.
+  // HTTP transport only. Replace with hand-written tools before production.
+  TMCPServer.Instance.RegisterFromEngine(AEngine,
+    'http://localhost:' + dotEnv.Env('dmvc.server.port', '{{:program_default_server_port}}'),
+    TMCPBridgeOptions.Create.ExcludeMethods([httpDELETE]));
+{{endif}}
 {{endif}}
 end;
 

@@ -48,8 +48,16 @@ procedure {{:authentication_classname}}.OnRequest(
   const ActionName: string;
   var AuthenticationRequired: Boolean);
 begin
+{{if mcp_auth_jwt}}
+  // /mcp: the JSON-RPC publisher behind PublishObject and the MCP session controller.
+  // TODO: add your own protected resources.
+  AuthenticationRequired :=
+    (ControllerQualifiedClassName = 'MVCFramework.JSONRPC.TMVCJSONRPCPublisher') or
+    (ControllerQualifiedClassName = 'MVCFramework.MCP.Server.TMCPSessionController');
+{{else}}
   // TODO: set AuthenticationRequired := True for protected resources.
   AuthenticationRequired := False;
+{{endif}}
   LogI(Format('OnRequest: %s.%s - Auth Required: %s',
     [ControllerQualifiedClassName, ActionName, BoolToStr(AuthenticationRequired, True)]));
 end;
@@ -82,7 +90,8 @@ begin
     UserRoles.Add('admin');
     UserRoles.Add('user');
 
-    SessionData.AddOrSetValue('username', UserName);
+    // 'username' and 'roles' are claims the middleware writes itself: a session
+    // key with one of those names is refused
     SessionData.AddOrSetValue('login_time', DateTimeToStr(Now));
   end
   else

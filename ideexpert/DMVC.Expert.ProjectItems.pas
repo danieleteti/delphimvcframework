@@ -48,6 +48,8 @@ type
 /// The wizard's Minimal API projects call ConfigureRoutes from the .dpr; the
 /// controller projects never do. Decides which menu items make sense.
 function IsMinimalAPIProject(const ADprSource: string): Boolean;
+/// The .dpr of a project with an MCP server: it uses a unit of mcp-server-delphi
+function IsMCPProject(const ADprSource: string): Boolean;
 
 /// A Pascal identifier, used to build unit, class and procedure names
 function IsValidItemName(const AName: string): Boolean;
@@ -88,6 +90,8 @@ function NewDatabaseConfig(const ADatabase: TDMVCDatabase; const AConDefName: st
 function DatabaseEnvLines(const ADatabase: TDMVCDatabase): string;
 /// The controller renders AResource + '/index' (see NewViewSource)
 function NewWebController(const AName, AResource, AProgramName: string): TDMVCNewUnit;
+/// <Name>ToolsU with T<Name>Tools: an MCP tool provider that registers itself
+function NewMCPToolProvider(const AName: string): TDMVCNewUnit;
 /// ACallFmt is the argument PlanRoutesRegistration expects
 function NewRoutesUnit(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean;
   out ACallFmt: string): TDMVCNewUnit;
@@ -139,6 +143,11 @@ begin
   Result := TRegEx.IsMatch(ADprSource, '(?i)\bConfigureRoutes\s*\(');
 end;
 
+function IsMCPProject(const ADprSource: string): Boolean;
+begin
+  Result := TRegEx.IsMatch(ADprSource, '(?i)\bMVCFramework\.MCP\.');
+end;
+
 function IsValidItemName(const AName: string): Boolean;
 begin
   Result := TRegEx.IsMatch(AName, '^[A-Za-z][A-Za-z0-9_]*$');
@@ -186,6 +195,21 @@ begin
   Result.TypeName := ATypeName;
   Result.FileName := AUnitName + '.pas';
   Result.Source := TDMVCProjectGenerator.RenderTemplate(ATemplate, AConfig);
+end;
+
+function NewMCPToolProvider(const AName: string): TDMVCNewUnit;
+var
+  lConfig: TJsonObject;
+begin
+  lConfig := TJsonObject.Create;
+  try
+    lConfig.S['class_name'] := 'T' + AName + 'Tools';
+    // tool names are unique in the server: the sample one carries the provider name
+    lConfig.S['tool_name'] := AName.ToLower + '_hello';
+    Result := RenderUnit('mcp_tools.pas.tpro', AName + 'ToolsU', lConfig.S['class_name'], lConfig);
+  finally
+    lConfig.Free;
+  end;
 end;
 
 function ServiceInterfaceName(const AName: string): string;

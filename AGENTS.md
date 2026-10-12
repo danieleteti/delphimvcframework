@@ -163,7 +163,7 @@ Indy (HTTP/TCP/WebSocket), FireDAC (DB for ActiveRecord), JsonDataObjects (JSON)
 
 ## IDE Expert - Project Presets
 
-8 presets in `ideexpert/DMVC.Expert.Presets.pas` (`TDMVCProjectPreset`), in enum order:
+9 presets in `ideexpert/DMVC.Expert.Presets.pas` (`TDMVCProjectPreset`), in enum order:
 
 | Preset | Shape |
 |--------|-------|
@@ -174,6 +174,7 @@ Indy (HTTP/TCP/WebSocket), FireDAC (DB for ActiveRecord), JsonDataObjects (JSON)
 | **JSON-RPC Service** | JSON-RPC 2.0 endpoint + MVCDoc |
 | **Real-Time Application** | WebSocket server + session + static files |
 | **Full-Stack Application** | REST + TemplatePro + WebSocket + HTMX + JWT + ActiveRecord + ETag + RateLimit + Analytics + HTTPS |
+| **MCP Server** | MCP tools/resources/prompts, no controller; stdio by default, `--transport http` for `/mcp` over HTTP (bearer token, localhost) |
 | **Custom Project** | Full wizard, every option visible |
 
 Each preset pre-populates the same wizard form with different defaults; the user accepts them (OK) or customizes. The two Minimal API presets additionally run the form in minimal-API mode (`TfrmDMVCNewProject.SetMinimalAPIMode`).
@@ -182,9 +183,11 @@ Each preset pre-populates the same wizard form with different defaults; the user
 
 **AI agent files** (Options page, on by default in every preset; the generator's own default, when the config key is missing, stays off): `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` (`@AGENTS.md`), `update_ai_skills.bat`, and the [delphi-ai-skills](https://github.com/danieleteti/delphi-ai-skills) that fit the project, downloaded from the branch `dmvc-<major>.<minor>` of the framework line the wizard was built with into `.claude\skills` (`DMVC.Expert.AISkills.pas`). A failed download is a warning; the `.bat` repeats the install.
 
+**MCP** (Options page, off by default in every preset but "MCP Server"): config keys `mcp.generate`, `mcp.stdio`, `mcp.resources_prompts`, `mcp.bridge` (+ `mcp.standalone`, set by the preset only). The generated code uses the external library [mcp-server-delphi](https://github.com/danieleteti/mcp-server-delphi) 0.9.0+, which must be in the IDE library path: **no MCP code lives in `sources/`**. The wizard only warns when it is missing (`DMVC.Expert.MCPLibrary.pas`, no ToolsAPI). The generator drops an MCP key that cannot apply (no `EngineConfigU`, Windows service for stdio, Minimal API or HTTPS for the bridge); the form disables the same boxes and says why in the hint. `ideexpert/tests/test_generated_mcp.py` runs the generated servers over HTTP and stdio.
+
 Tutorial projects showing the Minimal API scaffolds live in `samples/wizard_showcase/{rest,web}/`.
 
-**Project Manager menu** (Delphi 12+ only: the unit is in the `d120`/`d130` DT packages and registered under `{$IF CompilerVersion >= 36}`): right click on a DMVC project → DMVCFramework → new REST controller, web controller + view, Minimal API route group, TemplatePro view, filtered by project kind (`IsMinimalAPIProject`: the `.dpr` calls `ConfigureRoutes`; views only with a views folder). Verbs/names of the menu items must be identifiers: a dot in them hangs the IDE on right click. `DMVC.Expert.ProjectMenu.pas` is the IDE side (menu, dialog, edits through the editor buffer); `DMVC.Expert.ProjectItems.pas` has no ToolsAPI (unit sources from the `add_*.tpro` templates, where to insert `AddController`/`Map<Name>Routes`) and is what the template test suite exercises on every generated project.
+**Project Manager menu** (Delphi 12+ only: the unit is in the `d120`/`d130` DT packages and registered under `{$IF CompilerVersion >= 36}`): right click on a DMVC project → DMVCFramework → new REST controller, web controller + view, Minimal API route group, TemplatePro view, MCP tool provider, filtered by project kind (`IsMinimalAPIProject`: the `.dpr` calls `ConfigureRoutes`; views only with a views folder). Verbs/names of the menu items must be identifiers: a dot in them hangs the IDE on right click. `DMVC.Expert.ProjectMenu.pas` is the IDE side (menu, dialog, edits through the editor buffer); `DMVC.Expert.ProjectItems.pas` has no ToolsAPI (unit sources from the `add_*.tpro` templates, where to insert `AddController`/`Map<Name>Routes`) and is what the template test suite exercises on every generated project.
 
 ## IDE Expert - Template System (TemplatePro)
 
@@ -196,11 +199,7 @@ Code gen uses TemplatePro `.tpro` templates (migration complete, no legacy files
 - `DMVC.Expert.Presets.pas` - Preset configs per project type
 - `DMVC.Expert.Templates.rc` / `.res` - Embedded resources
 
-**Template loading (dual-mode):**
-1. External files: `C:\Users\Public\Documents\delphimvcframework_wizard_templates\` (priority)
-2. Embedded resources in BPL (fallback)
-
-Templates with `_` prefix (e.g. `_license_header.tpro`) always use embedded version.
+**Template loading:** the project generator (`TDMVCProjectGenerator.LoadTemplate`) and the Project Manager items read **only the copies embedded in the BPL** (`DMVC.Expert.Templates.rc`); the template test suite reads the `.tpro` files on disk (`TemplateFolder`). A new `.tpro` without its line in the `.rc` therefore passes the suite's generation cases and fails in the IDE: the suite has a check for it. The folder `C:\Users\Public\Documents\delphimvcframework_wizard_templates\` is read only by the legacy "new unit" path (`DMVC.Expert.CodeGen.TemplateEngine`).
 
 **Config Keys -> Template Variables:** JSON keys with dots become underscores (`webmodule.middleware.session.memory` -> `webmodule_middleware_session_memory`).
 

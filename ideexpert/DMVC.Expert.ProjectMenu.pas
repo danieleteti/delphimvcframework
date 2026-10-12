@@ -588,6 +588,18 @@ begin
     ExplainManualStep(lUnit.TypeName, lUnit.UnitName, Format(lCallFmt, ['ARoot']) + ';');
 end;
 
+procedure NewMCPToolProviderAction(const AProject: IOTAProject);
+var
+  lName, lDummy, lDummyModel: string;
+  lDummyOption, lDummyOption2: Boolean;
+begin
+  if not Ask('New MCP tool provider', 'Creates <Name>ToolsU.pas with T<Name>Tools and one sample tool. ' +
+    'The unit registers the provider itself: every [MCPTool] method becomes a tool of the MCP server.',
+    '', False, False, False, False, '', lName, lDummy, lDummyModel, lDummyOption, lDummyOption2) then
+    Exit;
+  AddNewUnit(AProject, NewMCPToolProvider(lName));
+end;
+
 procedure NewViewAction(const AProject: IOTAProject);
 var
   lName, lDummy, lDummyModel: string;
@@ -737,7 +749,7 @@ procedure TDMVCProjectMenuNotifier.AddMenu(const Project: IOTAProject; const Ide
   const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
 var
   lDpr: string;
-  lMinimal, lViews: Boolean;
+  lMinimal, lViews, lMCP: Boolean;
 begin
   try
     if IsMultiSelect or not Assigned(Project) or (IdentList.IndexOf(sProjectContainer) < 0) then
@@ -747,6 +759,7 @@ begin
       Exit;
     lMinimal := IsMinimalAPIProject(lDpr);
     lViews := FindViewsFolder(Project) <> '';
+    lMCP := IsMCPProject(lDpr);
   except
     Exit; // a menu that cannot be built is not worth an IDE error
   end;
@@ -771,6 +784,9 @@ begin
   if lViews then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New TemplatePro View...',
       MENU_VERB + 'View', MENU_VERB, pmmpUserAdd + 40, NewViewAction));
+  if lMCP then
+    ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New MCP Tool Provider...',
+      MENU_VERB + 'MCPToolProvider', MENU_VERB, pmmpUserAdd + 50, NewMCPToolProviderAction));
 end;
 
 { TItemDialog }

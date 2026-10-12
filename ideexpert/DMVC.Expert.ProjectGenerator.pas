@@ -446,6 +446,8 @@ var
   LSwaggerUIError: string;
   LAISkills: TArray<string>;
   LAISkillsError: string;
+  LHasEngineConfig: Boolean;
+  LMCPUnit, LStdioLogConfig: TJSONObject;
 begin
   Warnings := [];
   LogToFile('=== Starting project generation ===');
@@ -547,11 +549,63 @@ begin
   // as soon as it is generated. Each generation draws a new one.
   AConfig.S['program.jwt.secret'] := NewJWTSecret;
 
+  // MCP (mcp-server-delphi): only where ConfigureEngine exists, which is where
+  // the endpoint is published. A key the caller did not mention is off.
+  LHasEngineConfig := (AConfig.S[TConfigKey.program_server_engine] = 'indydirect') or
+    (AConfig.S[TConfigKey.program_server_engine] = 'httpsys') or
+    (AConfig.S[TConfigKey.program_type] = TProgramTypes.HTTP_CONSOLE) or
+    (AConfig.S[TConfigKey.program_type] = TProgramTypes.HTTPS_CONSOLE);
+  AConfig.B[TConfigKey.mcp_generate] := AConfig.B[TConfigKey.mcp_generate] and LHasEngineConfig;
+  AConfig.B[TConfigKey.mcp_standalone] := AConfig.B[TConfigKey.mcp_standalone] and
+    AConfig.B[TConfigKey.mcp_generate] and not AConfig.B[TConfigKey.program_minimal_api];
+  // stdio lives in the console program: a Windows service has no stdin
+  AConfig.B[TConfigKey.mcp_stdio] := AConfig.B[TConfigKey.mcp_stdio] and
+    AConfig.B[TConfigKey.mcp_generate] and
+    (AConfig.S[TConfigKey.program_type] <> TProgramTypes.WINDOWS_SERVICE);
+  // the "MCP Server" preset is a local MCP server first: stdio unless "--transport http"
+  AConfig.B['mcp.stdio.default'] := AConfig.B[TConfigKey.mcp_stdio] and
+    AConfig.B[TConfigKey.mcp_standalone];
+  AConfig.B[TConfigKey.mcp_resources_prompts] := AConfig.B[TConfigKey.mcp_resources_prompts] and
+    AConfig.B[TConfigKey.mcp_generate];
+  // the bridge reads controllers and calls them over plain HTTP
+  AConfig.B[TConfigKey.mcp_bridge] := AConfig.B[TConfigKey.mcp_bridge] and
+    AConfig.B[TConfigKey.mcp_generate] and
+    not AConfig.B[TConfigKey.program_minimal_api] and
+    not AConfig.B[TConfigKey.mcp_standalone] and
+    not SameText(AConfig.S[TConfigKey.program_server_protocol], 'https');
+  // /mcp is authenticated by the JWT bearer middleware when the project has one
+  // (the cookie flavour of the web apps and the Minimal API filter do not see
+  // it), by a static bearer token otherwise: both read "Authorization: Bearer".
+  AConfig.B['mcp.auth.jwt'] := AConfig.B[TConfigKey.mcp_generate] and
+    AConfig.B[TConfigKey.webmodule_middleware_jwt] and
+    not AConfig.B[TConfigKey.program_minimal_api] and
+    not AConfig.B['program.ssv.any'];
+  AConfig.B['mcp.auth.token'] := AConfig.B[TConfigKey.mcp_generate] and
+    not AConfig.B['mcp.auth.jwt'];
+  AConfig.S['mcp.token'] := NewJWTSecret;
+  // stdio never logs to the console: a console-only fluent logger gets a file
+  AConfig.B['mcp.stdio.file_fallback'] := AConfig.B[TConfigKey.mcp_stdio] and
+    AConfig.B['logging.profile.fluent'] and
+    AConfig.B[TConfigKey.logging_appender_console] and
+    not (AConfig.B[TConfigKey.logging_appender_file] or
+         AConfig.B[TConfigKey.logging_appender_jsonl] or
+         AConfig.B[TConfigKey.logging_appender_html] or
+         AConfig.B[TConfigKey.logging_appender_odbg] or
+         AConfig.B[TConfigKey.logging_appender_eventlog] or
+         AConfig.B[TConfigKey.logging_appender_syslog] or
+         AConfig.B[TConfigKey.logging_exewatch]);
+
   // A controller project always gets THomeController with at least one action:
   // there is no sample resource any more, and the Project Manager menu wires new
   // controllers next to an existing AddController. A RESTful preset (no index
   // methods, no SSV) therefore gets the index methods anyway.
-  if not AConfig.B[TConfigKey.program_minimal_api] and
+  // The "MCP Server" preset is the exception: its program has no controller.
+  if AConfig.B[TConfigKey.mcp_standalone] then
+  begin
+    AConfig.B[TConfigKey.controller_index_methods_generate] := False;
+    AConfig.B[TConfigKey.controller_action_filters_generate] := False;
+  end
+  else if not AConfig.B[TConfigKey.program_minimal_api] and
     not (AConfig.B[TConfigKey.controller_index_methods_generate] or
          AConfig.B[TConfigKey.controller_action_filters_generate] or
          AConfig.B['program.ssv.any']) then
@@ -680,6 +734,28 @@ begin
 
   if AConfig.B[TConfigKey.jsonrpc_generate] then
     SaveFile(JSONRPC_UNIT + '.pas', RenderTemplate('jsonrpc.pas.tpro', AConfig));
+
+  if AConfig.B[TConfigKey.mcp_generate] then
+  begin
+    LMCPUnit := TJSONObject.Create;
+    try
+      LMCPUnit.S['unit_name'] := 'MCPToolsU';
+      LMCPUnit.S['class_name'] := 'TMCPTools';
+      LMCPUnit.S['tool_name'] := 'hello';
+      SaveFile('MCPToolsU.pas', RenderTemplate('mcp_tools.pas.tpro', LMCPUnit));
+    finally
+      LMCPUnit.Free;
+    end;
+    if AConfig.B[TConfigKey.mcp_resources_prompts] then
+    begin
+      SaveFile('MCPResourcesU.pas', RenderTemplate('mcp_resources.pas.tpro', AConfig));
+      SaveFile('MCPPromptsU.pas', RenderTemplate('mcp_prompts.pas.tpro', AConfig));
+    end;
+    // Claude Code opened in the project folder finds the server: a relative
+    // path, nothing machine-specific and no secret
+    if AConfig.B[TConfigKey.mcp_stdio] then
+      SaveFileNoBOM('.mcp.json', RenderTemplate('mcp_json.tpro', AConfig));
+  end;
 
   if AConfig.B[TConfigKey.webmodule_middleware_jwt] then
     SaveFile(AUTHENTICATION_UNIT + '.pas', RenderTemplate('authentication.pas.tpro', AConfig));
@@ -925,8 +1001,31 @@ begin
   // executable. The file path is resolved at runtime via dotEnv key
   // 'logger.config.file' (defaulted in dotenv.tpro).
   if SameText(AConfig.S[TConfigKey.logging_profile], TLoggingProfiles.JSON_CONFIG) then
+  begin
     SaveFile('bin' + PathDelim + 'loggerpro.json',
       RenderTemplate('loggerpro.json.tpro', AConfig));
+    // stdio: the same configuration without the console appender, which would
+    // write on the stream the MCP client reads; with nothing left, a file
+    if AConfig.B[TConfigKey.mcp_stdio] then
+    begin
+      LStdioLogConfig := AConfig.Clone as TJSONObject;
+      try
+        LStdioLogConfig.B[TConfigKey.logging_appender_console] := False;
+        if not (LStdioLogConfig.B[TConfigKey.logging_appender_file] or
+                LStdioLogConfig.B[TConfigKey.logging_appender_jsonl] or
+                LStdioLogConfig.B[TConfigKey.logging_appender_html] or
+                LStdioLogConfig.B[TConfigKey.logging_appender_odbg] or
+                LStdioLogConfig.B[TConfigKey.logging_appender_eventlog] or
+                LStdioLogConfig.B[TConfigKey.logging_appender_syslog] or
+                LStdioLogConfig.B[TConfigKey.logging_exewatch]) then
+          LStdioLogConfig.B[TConfigKey.logging_appender_file] := True;
+        SaveFile('bin' + PathDelim + 'loggerpro.stdio.json',
+          RenderTemplate('loggerpro.json.tpro', LStdioLogConfig));
+      finally
+        LStdioLogConfig.Free;
+      end;
+    end;
+  end;
 
   // Create sample FDConnectionDefs.ini when ActiveRecord middleware is enabled (inside bin)
   if AConfig.B[TConfigKey.webmodule_middleware_activerecord] then

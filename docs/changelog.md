@@ -127,6 +127,41 @@ certificate you cannot fix.
 
 ### Added
 
+- **MCP servers from the IDE wizard.** A ninth preset, "MCP Server", and four
+  options on the Options page of every preset generate a project that exposes
+  tools, resources and prompts over the Model Context Protocol. The protocol
+  code is the external library
+  [mcp-server-delphi](https://github.com/danieleteti/mcp-server-delphi)
+  (0.9.0 or later), which must be in the IDE library path: nothing of it is
+  in the framework, and the wizard warns in the Messages view when it does not
+  find it or finds an older one.
+  - "MCP server on /mcp": `MCPToolsU.pas` with a sample tool, the `MCPGuard`
+    filter, the session controller and the published endpoint in
+    `EngineConfigU`. The endpoint asks for a bearer token, generated for the
+    project in `.env` (`mcp.auth.token`); the HTTP server does not start when
+    it is empty. A project with the JWT bearer middleware uses that for
+    `/mcp` and gets no static token. Available where the project has an
+    `EngineConfigU`: the console programs (Indy Direct, HTTP.sys, WebBroker)
+    and the Indy Direct and HTTP.sys Windows services.
+  - "stdio transport": the same executable started with `--transport stdio`
+    talks MCP on stdin/stdout, which is how Claude Code and Claude Desktop
+    launch a local server; `.mcp.json` in the project folder points at it. In
+    this mode no HTTP server runs, the console appender is left out (JSON
+    logging profile: `loggerpro.stdio.json`) and the working directory is the
+    executable's folder. Console programs only.
+  - "Sample resource and prompt providers": `MCPResourcesU.pas` and
+    `MCPPromptsU.pas`.
+  - "REST controllers as MCP tools (prototyping)": one `RegisterFromEngine`
+    line that turns every REST action except the `DELETE` ones into a tool
+    calling the server over HTTP. Controller projects over plain HTTP only.
+  - The "MCP Server" preset has no controller. Started with no arguments it
+    talks MCP on stdin/stdout; `--transport http` starts the HTTP server,
+    which listens on `localhost` (`mcp.http.host` in `.env`), also when the
+    project is generated as a Windows service. In the other presets the
+    default stays the HTTP server.
+  - Project Manager menu (Delphi 12+): "New MCP Tool Provider..." adds
+    `<Name>ToolsU.pas`, a provider that registers itself.
+  With the options off, the generated projects are what they were.
 - **`time` and `datetime` route parameter kinds**, in controller routes and
   Minimal API routes alike: `($at:time)` accepts `hh:nn` or `hh:nn:ss`,
   `($since:datetime)` an ISO 8601 timestamp (`2026-10-05T14:30:15`, with an
@@ -734,6 +769,21 @@ the same socket.
 
 ### Fixed
 
+- **Wizard, JWT: the login of a generated project failed.** The generated
+  authentication handler stored a session value under the key `username`,
+  which the JWT middleware reserves for its own claim, so `/login` answered
+  `JWT Error: "username" is a reserved key name` to valid credentials. The
+  handler no longer writes that key.
+- **`IMVCServer.Listen` / `RunAndWait` honour the host on Indy Direct and
+  WebBroker.** `Listen(8080, 'localhost')` listened on every interface: the
+  second argument was stored and never used (HTTP.sys did use it). It now
+  binds that address only: an IPv4 address, an IPv6 address (with or without
+  brackets) or a host name; `'localhost'` is `127.0.0.1` and `::1`. The
+  default (`'0.0.0.0'`), `''`, `'*'` and `'+'` still mean every interface, so
+  code that passes no host is unaffected. `Listen` on a server that is
+  already listening does nothing: call `Stop` first.
+- **Wizard: a console program that fails at startup ends with exit code 1.**
+  The generated `.dpr` logged the exception and ended with 0.
 - **`ProblemDetails(...)` is now a real RFC 7807 body.** It came out wrapped
   in `{"data": {...}}` with `Content-Type: application/json`; the problem
   object is now the whole body, sent as `application/problem+json`. This is

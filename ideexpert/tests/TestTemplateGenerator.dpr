@@ -44,7 +44,8 @@ uses
   DMVC.Expert.ProjectGenerator in '..\DMVC.Expert.ProjectGenerator.pas',
   DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
   DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas',
-  DMVC.Expert.ProjectItems in '..\DMVC.Expert.ProjectItems.pas';
+  DMVC.Expert.ProjectItems in '..\DMVC.Expert.ProjectItems.pas',
+  DMVC.Expert.MCPLibrary in '..\DMVC.Expert.MCPLibrary.pas';
 
 type
   TTestCase = record
@@ -90,6 +91,8 @@ var
   GTestResults: TList<TTestResult>;
   GDelphiPath: string;
   GSkipCompile: Boolean;
+  GMCPSources: string; // sources of mcp-server-delphi; '' = the MCP cases are generated but not compiled
+  GMCPNotCompiled: TArray<string>;
 
 procedure Log(const AMsg: string);
 begin
@@ -175,6 +178,7 @@ begin
     '-U"C:\DEV\dmvcframework\lib\swagdoc\Source" ' +
     '-U"C:\DLib\indy_extras\TaurusTLS\Source" ' +
     '-U"C:\DLib\indy_extras\TaurusTLS\Source\Extra" ' +
+    IfThen(GMCPSources <> '', '-U"' + GMCPSources + '" ', '') +
     '-NSSystem;Winapi;System.Win;Vcl;Data;Data.Win;Web;Soap;Xml ' +
     '"' + LDprPath + '" > "' + LOutputFile + '" 2>&1' + sLineBreak +
     'exit /b %errorlevel%';
@@ -584,7 +588,14 @@ begin
       end;
 
       // Try to compile if not skipped AND file check passed
-      if (not GSkipCompile) and LResult.FileCheckOK then
+      if (not GSkipCompile) and LResult.FileCheckOK and
+        ATestCase.Config.B[TConfigKey.mcp_generate] and (GMCPSources = '') then
+      begin
+        Log('Compilation: SKIPPED (mcp-server-delphi not found, set MCP_SERVER_DELPHI)');
+        GMCPNotCompiled := GMCPNotCompiled + [ATestCase.Name];
+        LResult.CompilationOK := True;
+      end
+      else if (not GSkipCompile) and LResult.FileCheckOK then
       begin
         LogVerbose('Compiling...');
         LResult.CompilationOK := CompileProject(LOutputDir, ATestCase.Config.S[TConfigKey.program_name], LCompileError);
@@ -1562,6 +1573,294 @@ begin
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-webapp', '.claude/skills/htmx-skill'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
+
+  // === MCP (mcp-server-delphi) ===
+
+  // The "MCP Server" preset: no controller, the three providers, both transports
+  LTestCase.Name := 'mcp_preset';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'MCPResourcesU.pas', 'MCPPromptsU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas', 'AuthenticationU.pas', 'bin/loggerpro.stdio.json'];
+  LTestCase.MustContain := [
+    'TestProject.dpr|MCPToolsU in ''MCPToolsU.pas''',
+    'TestProject.dpr|MVCFramework.MCP.TransportConf',
+    'TestProject.dpr|if MCPTransportIsStdio then' + sLineBreak + '      RunMCPStdio',
+    'TestProject.dpr|SetCurrentDir(AppPath)',
+    'TestProject.dpr|  MCPDefaultTransportStdio;',
+    'TestProject.dpr|ExitCode := 1;',
+    'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';',
+    'TestProject.dpr|mcp.auth.token is empty',
+    'TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))',
+    'EngineConfigU.pas|.BearerToken(''TestProject'', dotEnv.Env(''mcp.auth.token'', ''''))',
+    'EngineConfigU.pas|AEngine.AddController(TMCPSessionController)',
+    'EngineConfigU.pas|TMCPServer.Instance.CreatePublishedEndpoint',
+    'BootConfigU.pas|if not MCPTransportIsStdio then',
+    'bin/.env|mcp.auth.token=', 'bin/.env|mcp.allowed_origins=', 'bin/.env|mcp.http.host=localhost',
+    '.mcp.json|"command": "bin\\TestProject.exe"', '.mcp.json|"--transport", "stdio"'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|THomeController', 'EngineConfigU.pas|RegisterFromEngine',
+    'TestProject.dpr|Controllers.HomeU', 'bin/.env|mcp.auth.token=' + sLineBreak, '.mcp.json|{{'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // The checkboxes on a REST project: /mcp next to the controllers, plus the bridge
+  LTestCase.Name := 'indydirect_mcp_rest_bridge';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
+  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'Controllers.HomeU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['MCPResourcesU.pas', 'MCPPromptsU.pas'];
+  LTestCase.MustContain := [
+    'EngineConfigU.pas|TMCPBridgeOptions.Create.ExcludeMethods([httpDELETE])',
+    'EngineConfigU.pas|AEngine.AddController(THomeController)',
+    'TestProject.dpr|LServer.RunAndWait(APort);'];
+  // stdio is the default only in the "MCP Server" preset
+  LTestCase.MustNotContain := ['TestProject.dpr|MCPResourcesU', 'bin/.env|mcp.http.host',
+    'TestProject.dpr|MCPDefaultTransportStdio'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // HTTP only: no stdio code, no .mcp.json
+  LTestCase.Name := 'indydirect_mcp_http_only';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.ExpectedFiles := ['MCPToolsU.pas'];
+  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
+    'BootConfigU.pas|MCPTransportIsStdio'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // The other two console hosts
+  LTestCase.Name := 'httpsys_mcp';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.MustContain := ['TestProject.dpr|RunMCPStdio', 'TestProject.dpr|CreateHttpSys'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'webbroker_mcp';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
+  LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
+  LTestCase.MustContain := ['TestProject.dpr|RunMCPStdio', 'TestProject.dpr|CreateWebBroker',
+    'EngineConfigU.pas|RegisterFromEngine'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // The preset on the WebBroker console host
+  LTestCase.Name := 'webbroker_mcp_preset';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas'];
+  LTestCase.MustContain := ['TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // JWT bearer middleware: it authenticates /mcp, no static token
+  LTestCase.Name := 'indydirect_mcp_jwt';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|.AuthenticationHandledElsewhere',
+    'AuthenticationU.pas|MVCFramework.JSONRPC.TMVCJSONRPCPublisher',
+    'AuthenticationU.pas|MVCFramework.MCP.Server.TMCPSessionController'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|BearerToken', 'bin/.env|mcp.auth.token',
+    'TestProject.dpr|mcp.auth.token'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // JWT without MCP: the authentication handler is what it was
+  LTestCase.Name := 'indydirect_jwt_no_mcp';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.MustContain := ['AuthenticationU.pas|AuthenticationRequired := False;'];
+  // a session key named like a claim of the middleware makes every login fail
+  LTestCase.MustNotContain := ['AuthenticationU.pas|TMCPSessionController', 'EngineConfigU.pas|MCP',
+    'TestProject.dpr|MCP', 'bin/.env|mcp.', 'AuthenticationU.pas|AddOrSetValue(''username''',
+    'AuthenticationU.pas|AddOrSetValue(''roles'''];
+  LTestCase.ForbiddenFiles := ['MCPToolsU.pas', '.mcp.json'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // A web app with the JWT cookie: the cookie does not reach /mcp, so the static token stays
+  LTestCase.Name := 'indydirect_mcp_webapp_jwt_cookie';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|BearerToken', 'bin/.env|mcp.auth.token=',
+    'AuthenticationU.pas|AuthenticationRequired := False;'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Minimal API: /mcp next to the lambda routes; the bridge reads controllers, so it is dropped
+  LTestCase.Name := 'indydirect_minimal_api_mcp';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
+  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'RoutesU.pas'];
+  LTestCase.MustContain := ['EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // HTTPS: the bridge calls plain HTTP, so it is dropped
+  LTestCase.Name := 'indydirect_mcp_https_no_bridge';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // stdio and the logging profiles: fluent with the console only gets a file in stdio mode
+  LTestCase.Name := 'mcp_stdio_log_console_only';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.logging_appender_file] := False;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.MustContain := ['BootConfigU.pas|LoggerPro.FileAppender',
+    'BootConfigU.pas|if MCPTransportIsStdio then' + sLineBreak + '    lBuilder := lBuilder.WriteToFile'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // JSON profile: a second configuration file without the console appender
+  LTestCase.Name := 'mcp_stdio_log_json';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.logging_profile] := TLoggingProfiles.JSON_CONFIG;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.ExpectedFiles := ['bin/loggerpro.json', 'bin/loggerpro.stdio.json'];
+  LTestCase.MustContain := ['bin/loggerpro.json|"type": "Console"', 'bin/loggerpro.stdio.json|"type": "File"',
+    'BootConfigU.pas|loggerpro.stdio.json'];
+  LTestCase.MustNotContain := ['bin/loggerpro.stdio.json|Console'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'mcp_stdio_log_json_console_only';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.logging_profile] := TLoggingProfiles.JSON_CONFIG;
+  LTestCase.Config.B[TConfigKey.logging_appender_file] := False;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.MustContain := ['bin/loggerpro.stdio.json|"type": "File"'];
+  LTestCase.MustNotContain := ['bin/loggerpro.stdio.json|Console', 'bin/loggerpro.json|"type": "File"'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'mcp_stdio_log_disabled';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.logging_profile] := TLoggingProfiles.DISABLED;
+  LTestCase.Config.B[TConfigKey.logging_appender_console] := False;
+  LTestCase.Config.B[TConfigKey.logging_appender_file] := False;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // A Windows service has ConfigureEngine, so it gets /mcp; it has no stdin, so no stdio
+  LTestCase.Name := 'winservice_indydirect_mcp';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.ExpectedFiles := ['MCPToolsU.pas'];
+  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.MustContain := ['TestProject.dpr|MCPToolsU in ''MCPToolsU.pas''', 'EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustNotContain := ['TestProject.dpr|TransportConf', 'BootConfigU.pas|MCPTransportIsStdio'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // The preset as a Windows service: HTTP only, and still on the address of .env
+  LTestCase.Name := 'winservice_indydirect_mcp_preset';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'Controllers.HomeU.pas'];
+  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(LPort, dotEnv.Env(''mcp.http.host'', ''localhost''));',
+    'bin/.env|mcp.http.host=localhost', 'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';'];
+  LTestCase.MustNotContain := ['ServiceU.pas|fServer.Listen(LPort);', 'TestProject.dpr|MCPDefaultTransportStdio',
+    'bin/.env|stdin/stdout'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'winservice_httpsys_mcp_preset';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'httpsys';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(LPort, dotEnv.Env(''mcp.http.host'', ''localhost''));'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Project types configured in a web module: the option is ignored, the output is what it was
+  LTestCase.Name := 'isapi_mcp_ignored';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.ExpectedFiles := ['Controllers.HomeU.pas'];
+  LTestCase.ForbiddenFiles := ['MCPToolsU.pas', '.mcp.json'];
+  LTestCase.MustNotContain := ['TestProject.dpr|MCP', 'WebModuleU.pas|MCP', 'bin/.env|mcp.'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 end;
 
 procedure PrintSummary;
@@ -1600,6 +1899,8 @@ begin
   Log('Total: ' + IntToStr(LPassed + LFailed) + ' tests');
   Log('Passed: ' + IntToStr(LPassed));
   Log('Failed: ' + IntToStr(LFailed));
+  if Length(GMCPNotCompiled) > 0 then
+    Log('Generated but NOT compiled (mcp-server-delphi not found): ' + String.Join(', ', GMCPNotCompiled));
 
   if LFailed > 0 then
     ExitCode := 1
@@ -2260,8 +2561,16 @@ begin
     LIsMinimal := IsMinimalAPIProject(TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8));
     LHasControllers := False;
     for LFile in TDirectory.GetFiles(LDir, '*.pas') do
-      if TFile.ReadAllText(LFile, TEncoding.UTF8).Contains('.AddController(') then
+    begin
+      // the MCP session controller comes with the library: a Minimal API project with /mcp
+      // has it and still has no controllers of its own; the "MCP Server" preset has only it,
+      // and takes controllers like any other controller project
+      LSource := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      if LIsMinimal then
+        LSource := LSource.Replace('.AddController(TMCPSessionController)', '');
+      if LSource.Contains('.AddController(') then
         LHasControllers := True;
+    end;
     if (LIsMinimal <> TFile.Exists(TPath.Combine(LDir, 'RoutesU.pas'))) or (LIsMinimal = LHasControllers) then
     begin
       Inc(LWrongKind);
@@ -2677,6 +2986,140 @@ begin
   Result := Length(LFailures) = 0;
 end;
 
+{ The MCP option outside the generation cases: the Project Manager item, how
+  the menu recognises an MCP project, and the check on the library path. }
+function RunMCPTests(const ACaseDirs: TArray<string>): Boolean;
+var
+  LFailed: Boolean;
+
+  procedure Check(const AName: string; ACondition: Boolean; const ADetail: string = '');
+  begin
+    if ACondition then
+      Log('  [PASS] ' + AName)
+    else
+    begin
+      Log('  [FAIL] ' + AName + ' ' + ADetail);
+      LFailed := True;
+    end;
+  end;
+
+  procedure FakeLibrary(const AFolder, AVersion: string);
+  begin
+    ForceDirectories(AFolder);
+    TFile.WriteAllText(TPath.Combine(AFolder, 'MVCFramework.MCP.Server.pas'), 'unit MVCFramework.MCP.Server;');
+    if AVersion <> '' then
+      TFile.WriteAllText(TPath.Combine(AFolder, 'MVCFramework.MCP.Types.pas'),
+        'const' + sLineBreak + '  MCP_SERVER_LIBRARY_VERSION = ''' + AVersion + ''';');
+  end;
+
+var
+  LDir, LDpr, LError, LRoot, LFolder, LVersion, LWarning: string;
+  LWrong: Integer;
+  LUnit: TDMVCNewUnit;
+begin
+  Log('');
+  Log('=== MCP: Project Manager item and library check ===');
+  LFailed := False;
+
+  LWrong := 0;
+  for LDir in ACaseDirs do
+    if IsMCPProject(TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8)) <>
+      TFile.Exists(TPath.Combine(LDir, 'MCPToolsU.pas')) then
+    begin
+      Inc(LWrong);
+      Log('    wrong MCP detection: ' + LDir);
+    end;
+  Check(Format('MCP project detected from the .dpr in every generated project (%d)', [Length(ACaseDirs)]),
+    LWrong = 0);
+
+  LUnit := NewMCPToolProvider('Orders');
+  Check('tool provider: unit, class, a tool name of its own, self-registration',
+    (LUnit.UnitName = 'OrdersToolsU') and (LUnit.FileName = 'OrdersToolsU.pas') and
+    (LUnit.TypeName = 'TOrdersTools') and LUnit.Source.Contains('unit OrdersToolsU;') and
+    LUnit.Source.Contains('TOrdersTools = class(TMCPToolProvider)') and
+    LUnit.Source.Contains('[MCPTool(''orders_hello'',') and
+    LUnit.Source.Contains('TMCPServer.Instance.RegisterToolProvider(TOrdersTools);') and
+    not LUnit.Source.Contains('{{'), LUnit.Source);
+
+  // what the IDE does with the new unit: it goes in the .dpr, nothing else changes
+  LDir := TPath.GetFullPath(TPath.Combine(GOutputDir, '_mcp_item'));
+  if TDirectory.Exists(LDir) then
+    TDirectory.Delete(LDir, True);
+  TDirectory.Copy(TPath.GetFullPath(TPath.Combine(GOutputDir, 'mcp_preset')), LDir);
+  TFile.WriteAllText(TPath.Combine(LDir, LUnit.FileName), LUnit.Source, TEncoding.UTF8);
+  LDpr := TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8);
+  Check('the generated .dpr has the provider unit to add next to',
+    LDpr.Contains('  MCPToolsU in ''MCPToolsU.pas'','));
+  TFile.WriteAllText(TPath.Combine(LDir, 'TestProject.dpr'),
+    LDpr.Replace('  MCPToolsU in ''MCPToolsU.pas'',',
+      '  MCPToolsU in ''MCPToolsU.pas'',' + sLineBreak + '  OrdersToolsU in ''OrdersToolsU.pas'','), TEncoding.UTF8);
+  if GSkipCompile or (GMCPSources = '') then
+    Check('second tool provider (generated, compile skipped)', True)
+  else
+    Check('second tool provider compiles', CompileProject(LDir, 'TestProject', LError), LError);
+
+  // --- the library path check
+  Check('versions', MCPVersionAtLeast('0.9.0', '0.9.0') and MCPVersionAtLeast('0.10.0', '0.9.0') and
+    MCPVersionAtLeast('1.0.0', '0.9.0') and MCPVersionAtLeast('0.9.1-beta', '0.9.0') and
+    not MCPVersionAtLeast('0.8.9', '0.9.0') and not MCPVersionAtLeast('0.8', '0.9.0') and
+    not MCPVersionAtLeast('', '0.9.0'));
+  LRoot := TPath.GetFullPath(TPath.Combine(GOutputDir, '_mcp_library'));
+  if TDirectory.Exists(LRoot) then
+    TDirectory.Delete(LRoot, True);
+  FakeLibrary(TPath.Combine(LRoot, 'old'), '0.8.0');
+  FakeLibrary(TPath.Combine(LRoot, 'good'), '0.9.0');
+  FakeLibrary(TPath.Combine(LRoot, 'noversion'), '');
+  ForceDirectories(TPath.Combine(LRoot, 'empty'));
+
+  LWarning := MCPLibraryWarning('C:\nowhere;' + TPath.Combine(LRoot, 'empty'));
+  Check('library missing: a warning with where to get it',
+    LWarning.Contains('not in the library path') and LWarning.Contains(MCP_LIBRARY_URL), LWarning);
+  Check('empty library path: the same warning', MCPLibraryWarning('').Contains(MCP_LIBRARY_URL));
+  LWarning := MCPLibraryWarning(TPath.Combine(LRoot, 'empty') + ';' + TPath.Combine(LRoot, 'old'));
+  Check('library too old: a warning with the version found',
+    LWarning.Contains('0.8.0') and LWarning.Contains(MCP_LIBRARY_MIN_VERSION) and
+    LWarning.Contains(MCP_LIBRARY_URL), LWarning);
+  Check('library without a readable version: a warning',
+    MCPLibraryWarning(TPath.Combine(LRoot, 'noversion')) <> '');
+  Check('quoted entries and characters a path cannot have: no exception, the library is still found',
+    (MCPLibraryWarning('"' + TPath.Combine(LRoot, 'good') + '"') = '') and
+    (MCPLibraryWarning('C:\a<b>|c;"C:\x"y;' + TPath.Combine(LRoot, 'good') + '\') = '') and
+    (MCPLibraryWarning('C:\a<b>|c') <> ''));
+  Check('library found: no warning',
+    MCPLibraryWarning(' ' + TPath.Combine(LRoot, 'empty') + ' ; ' + TPath.Combine(LRoot, 'good') + ' ;') = '');
+  SetEnvironmentVariable('DMVC_MCP_TEST_ROOT', PChar(LRoot));
+  Check('$(NAME) in the library path is expanded from the environment',
+    FindMCPLibrary('$(DMVC_MCP_TEST_ROOT)\good', LFolder, LVersion) and (LVersion = '0.9.0') and
+    (MCPLibraryWarning('$(DMVC_MCP_NOT_SET)\good;$(DMVC_MCP_TEST_ROOT)\good') = ''), LFolder + ' ' + LVersion);
+  if GMCPSources <> '' then
+    Check('the real library is found and is recent enough', MCPLibraryWarning(GMCPSources) = '',
+      MCPLibraryWarning(GMCPSources));
+
+  Result := not LFailed;
+end;
+
+function RunRcCoverageTest: Boolean;
+var
+  LRc, LFile, LRel, LId: string;
+begin
+  Result := True;
+  LRc := #10 + TFile.ReadAllText(TPath.Combine(TPath.GetDirectoryName(
+    ExcludeTrailingPathDelimiter(TTestTemplateEngine.GetTemplatePath)), 'DMVC.Expert.Templates.rc')).ToLower;
+  for LFile in TDirectory.GetFiles(TTestTemplateEngine.GetTemplatePath, '*.tpro', TSearchOption.soAllDirectories) do
+  begin
+    LRel := LFile.Substring(IncludeTrailingPathDelimiter(TTestTemplateEngine.GetTemplatePath).Length);
+    // the id TDMVCProjectGenerator.LoadTemplate derives from the template name
+    LId := ChangeFileExt(LRel, '').Replace('.', '_').Replace('\', '_').ToLower;
+    if not LRc.Contains(#10 + LId + ' rcdata "templates\\' + LRel.Replace('\', '\\').ToLower + '"') then
+    begin
+      Log('[FAIL] no line "' + LId.ToUpper + ' RCDATA <path>" in DMVC.Expert.Templates.rc (the IDE would not find it): ' + LRel);
+      Result := False;
+    end;
+  end;
+  if Result then
+    Log('[PASS] every .tpro template has its line in DMVC.Expert.Templates.rc');
+end;
+
 procedure ParseCommandLine;
 var
   I: Integer;
@@ -2698,6 +3141,13 @@ begin
     else if LArg.StartsWith('--delphi=') then
       GDelphiPath := LArg.Substring(9);
   end;
+
+  GMCPSources := GetEnvironmentVariable('MCP_SERVER_DELPHI');
+  if GMCPSources = '' then
+    GMCPSources := 'C:\DEV\mcp-server-delphi';
+  GMCPSources := TPath.Combine(GMCPSources, 'sources');
+  if not TFile.Exists(TPath.Combine(GMCPSources, 'MVCFramework.MCP.Server.pas')) then
+    GMCPSources := '';
 
   // Auto-detect Delphi if not specified
   if GDelphiPath.IsEmpty and not GSkipCompile then
@@ -2759,6 +3209,14 @@ begin
       begin
         Log('');
         Log('FAIL: project.dproj.tpro AppType tests did not pass.');
+        ExitCode := 1;
+        Exit;
+      end;
+
+      if not RunRcCoverageTest then
+      begin
+        Log('');
+        Log('FAIL: a template is missing from DMVC.Expert.Templates.rc.');
         ExitCode := 1;
         Exit;
       end;
@@ -2843,6 +3301,12 @@ begin
       begin
         Log('');
         Log('FAIL: Project Manager menu tests did not pass.');
+        ExitCode := 1;
+      end;
+      if not RunMCPTests(LCaseDirs) then
+      begin
+        Log('');
+        Log('FAIL: MCP tests did not pass.');
         ExitCode := 1;
       end;
       if not RunAISkillsBatTest(TPath.GetFullPath(TPath.Combine(GOutputDir, 'indydirect_ai_skills_rest'))) then
