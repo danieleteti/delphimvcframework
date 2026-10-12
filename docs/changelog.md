@@ -770,6 +770,10 @@ the same socket.
 
 ### Fixed
 
+- **JSON-RPC: an error raised before routing answers with the id of the
+  request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved
+  method name, was answered with `"id": 0` whatever the request id was, so
+  the client could not match the error to its request.
 - **Wizard, JWT: the login of a generated project failed.** The generated
   authentication handler stored a session value under the key `username`,
   which the JWT middleware reserves for its own claim, so `/login` answered

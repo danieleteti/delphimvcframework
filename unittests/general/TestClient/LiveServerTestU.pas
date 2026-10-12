@@ -4476,6 +4476,7 @@ begin
   var lResp := FExecutor3.ExecuteRequest(lRequest1);
   Assert.isTrue(lResp.IsError, lResp.ToString(true));
   Assert.areEqual(lResp.Error.ErrMessage, 'error_OnBeforeRoutingHook');
+  Assert.areEqual<Int64>(1234, lResp.RequestID.AsOrdinal, 'the error must carry the id of the request');
 end;
 
 procedure TJSONRPCServerTest.TestInvalidEnum;

@@ -1598,6 +1598,9 @@ begin
 
         lJSONRPCReq := CreateRequest(lJSON);
         lMethod := lJSONRPCReq.Method;
+        { From here on an error answers with the id of the request, also when
+          it is raised before routing (reserved method, OnBeforeRoutingHook) }
+        lReqID := lJSONRPCReq.RequestID;
 
         if IsReservedMethodName(lMethod) then
         begin
