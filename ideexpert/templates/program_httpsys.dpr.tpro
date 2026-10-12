@@ -70,10 +70,6 @@ const
   SCHEME = 'http';
 {{endif}}
 begin
-{{if mcp_auth_token}}
-  if dotEnv.Env('mcp.auth.token', '').Trim.IsEmpty then
-    raise Exception.Create('mcp.auth.token is empty: set it in .env, the /mcp endpoint needs a bearer token');
-{{endif}}
 {{if program_minimal_api}}
   // Built-in defaults, overridden below only where the .env has a say.
   // Add any other TMVCConfigKey to the callback as needed.

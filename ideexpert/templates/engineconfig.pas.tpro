@@ -161,6 +161,8 @@ begin
     .AuthenticationHandledElsewhere // the JWT middleware below authenticates /mcp
     .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));
 {{else}}
+  if dotEnv.Env('mcp.auth.token', '').Trim.IsEmpty then
+    raise Exception.Create('mcp.auth.token is empty: set it in .env, the /mcp endpoint needs a bearer token');
   AEngine.UseHTTPFilter(MCPGuard(TMCPGuardOptions.Create
     .BearerToken('{{:program_name}}', dotEnv.Env('mcp.auth.token', ''))
     .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));

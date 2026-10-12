@@ -1595,7 +1595,7 @@ begin
     'TestProject.dpr|  MCPDefaultTransportStdio;',
     'TestProject.dpr|ExitCode := 1;',
     'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';',
-    'TestProject.dpr|mcp.auth.token is empty',
+    'EngineConfigU.pas|mcp.auth.token is empty',
     'TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))',
     'EngineConfigU.pas|.BearerToken(''TestProject'', dotEnv.Env(''mcp.auth.token'', ''''))',
     'EngineConfigU.pas|AEngine.AddController(TMCPSessionController)',
