@@ -32,6 +32,7 @@ uses
   System.IOUtils,
   System.DateUtils,
   System.StrUtils,
+  System.RegularExpressions,
   System.Rtti,
   Vcl.Dialogs,
   JsonDataObjects,
@@ -122,6 +123,20 @@ begin
   for I := 0 to High(lBytes) do
     Result := Result + IntToHex(lBytes[I], 2);
   Result := Result.ToLower;
+end;
+
+{ What the template conditionals leave behind in a Pascal source (LF line ends):
+  trailing spaces, a ";" on a line of its own, runs of blank lines, a blank line
+  right after begin/try/var/uses, right before end;/finally/except or between
+  the declarations of a routine and its begin. }
+function TidyPascal(const ASource: string): string;
+begin
+  Result := TRegEx.Replace(ASource, '(?m)[ \t]+$', '');
+  Result := TRegEx.Replace(Result, '\n+[ ]*;$', ';', [roMultiLine]);
+  Result := TRegEx.Replace(Result, '\n{3,}', #10#10);
+  Result := TRegEx.Replace(Result, '(?mi)^([ ]*(?:begin|try|var|uses))\n\n', '$1'#10);
+  Result := TRegEx.Replace(Result, '(?mi)\n\n([ ]*(?:end;|finally|except)$)', #10'$1');
+  Result := TRegEx.Replace(Result, '(?m)^([ ]+\S.*)\n\n(begin)$', '$1'#10'$2');
 end;
 
 { TDMVCProjectGenerator }
@@ -363,7 +378,10 @@ begin
 
     Result := LTemplate.Render;
     // Normalize line endings to CRLF (required by Delphi IDE)
-    Result := Result.Replace(#13#10, #10).Replace(#10, #13#10);
+    Result := Result.Replace(#13#10, #10);
+    if ATemplateName.EndsWith('.pas.tpro') or ATemplateName.EndsWith('.dpr.tpro') then
+      Result := TidyPascal(Result);
+    Result := Result.Replace(#10, #13#10);
   finally
     LCompiler.Free;
   end;

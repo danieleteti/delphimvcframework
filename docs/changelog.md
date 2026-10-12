@@ -161,8 +161,14 @@ certificate you cannot fix.
     project is generated as a Windows service. In the other presets the
     default stays the HTTP server.
   - Project Manager menu (Delphi 12+): "New MCP Tool Provider..." adds
-    `<Name>ToolsU.pas`, a provider that registers itself.
+    `<Name>ToolsU.pas`, a provider that registers itself. In an "MCP Server"
+    project (no controller) the menu has only "New Service..." and "New MCP
+    Tool Provider...".
   With the options off, the generated projects are what they were.
+- **Wizard: one naming and formatting style in the generated code.** Locals
+  are `lName`, parameters `AName`, fields `fName`, as in the framework
+  sources; the blank lines and trailing spaces the template conditionals
+  left behind are gone. Names only: the generated programs behave as before.
 - **`time` and `datetime` route parameter kinds**, in controller routes and
   Minimal API routes alike: `($at:time)` accepts `hh:nn` or `hh:nn:ss`,
   `($since:datetime)` an ISO 8601 timestamp (`2026-10-05T14:30:15`, with an

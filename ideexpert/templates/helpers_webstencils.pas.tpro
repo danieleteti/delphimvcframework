@@ -50,7 +50,7 @@ begin
   TMVCWebStencilsConfiguration.OnProcessorConfiguration :=
     procedure(const WebStencilsProcessor: TWebStencilsProcessor)
     begin
-      //custom configuration for TWebStencilsProcessor (executed for each view)
+      // custom configuration for TWebStencilsProcessor (executed for each view)
     end;
 
 end;

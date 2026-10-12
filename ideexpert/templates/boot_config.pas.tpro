@@ -70,10 +70,10 @@ begin
     begin
       Result := NewDotEnv
                  .UseStrategy(TMVCDotEnvPriority.FileThenEnv)
-                                     //if available, by default, loads default environment (.env)
-                 .UseProfile('test') //if available loads the test environment (.env.test)
-                 .UseProfile('prod') //if available loads the prod environment (.env.prod)
-                 .Build(AppPath);    //uses the executable folder to look for .env* files
+                                     // if available, by default, loads default environment (.env)
+                 .UseProfile('test') // if available loads the test environment (.env.test)
+                 .UseProfile('prod') // if available loads the prod environment (.env.prod)
+                 .Build(AppPath);    // uses the executable folder to look for .env* files
     end);
 end;
 
@@ -174,8 +174,10 @@ begin
   if MCPTransportIsStdio then // stdout carries JSON-RPC only: a config without the console appender
     lConfigFile := dotEnv.Env('logger.config.file.stdio', 'loggerpro.stdio.json')
   else
-{{endif}}
+    lConfigFile := dotEnv.Env('logger.config.file', 'loggerpro.json');
+{{else}}
   lConfigFile := dotEnv.Env('logger.config.file', 'loggerpro.json');
+{{endif}}
   if not TPath.IsPathRooted(lConfigFile) then
     lConfigFile := TPath.Combine(AppPath, lConfigFile);
   lBuilder := TLoggerProConfig.BuilderFromJSONFile(lConfigFile); 
@@ -185,7 +187,7 @@ begin
   lBuilder := LoggerProBuilder
     .WriteToCallback
       .WithCallback(
-        procedure(const aLogItem: TLogItem; const aFormattedMessage: string)
+        procedure(const ALogItem: TLogItem; const AFormattedMessage: string)
         begin
         end)
       .Done;
@@ -196,7 +198,7 @@ end;
 
 procedure ConfigProfiler;
 begin
-{$IF CompilerVersion >= 34} //SYDNEY+
+{$IF CompilerVersion >= 34} // SYDNEY+
   if dotEnv.Env('dmvc.profiler.enabled', {{:controller_actions_profiling_generate}}) then
   begin
     Profiler.ProfileLogger := Log;

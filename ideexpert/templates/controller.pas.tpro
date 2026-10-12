@@ -105,7 +105,7 @@ end;
 function {{:controller_classname}}.Index: String;
 begin
 {{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
+{$IF CompilerVersion >= 34} // SYDNEY+
   var lProf := Profiler.Start(Context.ActionQualifiedName);
 {$ENDIF}
 {{endif}}
@@ -154,7 +154,7 @@ end;
 function {{:controller_classname}}.GetReversedString(const Value: String): String;
 begin
 {{if controller_actions_profiling_generate}}
-{$IF CompilerVersion >= 34} //SYDNEY+
+{$IF CompilerVersion >= 34} // SYDNEY+
   var lProf := Profiler.Start(Context.ActionQualifiedName);
 {$ENDIF}
 {{endif}}

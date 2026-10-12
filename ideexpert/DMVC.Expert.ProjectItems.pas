@@ -50,6 +50,8 @@ type
 function IsMinimalAPIProject(const ADprSource: string): Boolean;
 /// The .dpr of a project with an MCP server: it uses a unit of mcp-server-delphi
 function IsMCPProject(const ADprSource: string): Boolean;
+/// A unit that registers a controller of the project (the MCP session controller is not one)
+function RegistersControllers(const AUnitSource: string): Boolean;
 
 /// A Pascal identifier, used to build unit, class and procedure names
 function IsValidItemName(const AName: string): Boolean;
@@ -146,6 +148,11 @@ end;
 function IsMCPProject(const ADprSource: string): Boolean;
 begin
   Result := TRegEx.IsMatch(ADprSource, '(?i)\bMVCFramework\.MCP\.');
+end;
+
+function RegistersControllers(const AUnitSource: string): Boolean;
+begin
+  Result := TRegEx.IsMatch(AUnitSource, '(?i)\bAddController\s*\(\s*(?!TMCPSessionController\b)');
 end;
 
 function IsValidItemName(const AName: string): Boolean;

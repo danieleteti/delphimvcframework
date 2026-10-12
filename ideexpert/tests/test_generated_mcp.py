@@ -400,6 +400,8 @@ def test_jwt(case_dir):
         check("no JWT: refused", r.status_code in (401, 403), str(r.status_code))
         r = rpc(url, "initialize", INIT, headers={"Authorization": "Bearer not-a-jwt"})
         check("a bearer that is not a JWT: refused", r.status_code in (401, 403), str(r.status_code))
+        r = requests.delete(url, headers={"Mcp-Session-Id": "none"}, timeout=10)
+        check("DELETE /mcp without a JWT: refused", r.status_code in (401, 403), str(r.status_code))
         login = requests.post(f"http://localhost:{port}/login", auth=("admin", "secret-for-the-test"), timeout=10)
         check("login returns a token", login.status_code == 200 and "token" in login.json(), login.text[:200])
         auth = {"Authorization": "Bearer " + login.json().get("token", "")}

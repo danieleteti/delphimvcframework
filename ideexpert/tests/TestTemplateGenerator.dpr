@@ -1399,7 +1399,7 @@ begin
     'bin/www/swagger/swagger-ui.js', 'bin/www/swagger/swagger-ui-es-bundle.js',
     'bin/www/swagger/swagger-ui-es-bundle-core.js'];
   LTestCase.MustContain := [
-    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create(AEngine, LSwaggerInfo, ''/openapi.json''',
+    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create(AEngine, lSwaggerInfo, ''/openapi.json''',
     'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
     'EngineConfigU.pas|ssvOpenAPI3',
     'EngineConfigU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
@@ -1454,9 +1454,9 @@ begin
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html', 'bin/www/swagger/swagger-initializer.js'];
   LTestCase.ForbiddenFiles := ['bin/www/swagger/README-swagger-ui.txt'];
   LTestCase.MustContain := [
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(OpenAPI(AEngine, LOpenAPIInfo, ''/openapi.json''))',
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(OpenAPI(AEngine, lOpenAPIInfo, ''/openapi.json''))',
     'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(LSwaggerUIOptions))',
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(lSwaggerUIOptions))',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
     'RoutesU.pas|.WithTags(''Hello'')',
@@ -1621,7 +1621,7 @@ begin
   LTestCase.MustContain := [
     'EngineConfigU.pas|TMCPBridgeOptions.Create.ExcludeMethods([httpDELETE])',
     'EngineConfigU.pas|AEngine.AddController(THomeController)',
-    'TestProject.dpr|LServer.RunAndWait(APort);'];
+    'TestProject.dpr|lServer.RunAndWait(APort);'];
   // stdio is the default only in the "MCP Server" preset
   LTestCase.MustNotContain := ['TestProject.dpr|MCPResourcesU', 'bin/.env|mcp.http.host',
     'TestProject.dpr|MCPDefaultTransportStdio'];
@@ -1831,9 +1831,9 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
   LTestCase.ForbiddenFiles := ['.mcp.json', 'Controllers.HomeU.pas'];
-  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(LPort, dotEnv.Env(''mcp.http.host'', ''localhost''));',
+  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(lPort, dotEnv.Env(''mcp.http.host'', ''localhost''));',
     'bin/.env|mcp.http.host=localhost', 'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';'];
-  LTestCase.MustNotContain := ['ServiceU.pas|fServer.Listen(LPort);', 'TestProject.dpr|MCPDefaultTransportStdio',
+  LTestCase.MustNotContain := ['ServiceU.pas|fServer.Listen(lPort);', 'TestProject.dpr|MCPDefaultTransportStdio',
     'bin/.env|stdin/stdout'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1844,7 +1844,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
-  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(LPort, dotEnv.Env(''mcp.http.host'', ''localhost''));'];
+  LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(lPort, dotEnv.Env(''mcp.http.host'', ''localhost''));'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -2400,6 +2400,48 @@ begin
     Log(Format('  [PASS] %d projects, no reference to the example', [Length(ACaseDirs)]))
   else
     Log('  [FAIL] still referring to the example: ' + string.Join(', ', LLeft));
+end;
+
+{ One style in the generated Pascal: lName locals, AName parameters, no blank
+  lines or trailing spaces left by the template conditionals. }
+function RunCodeStyleTest(const ACaseDirs: TArray<string>): Boolean;
+const
+  RULES: array [0 .. 5, 0 .. 1] of string = (
+    ('(?m)[ \t]+\r?$', 'trailing whitespace'),
+    ('(\r?\n){3,}', 'two blank lines in a row'),
+    ('(?mi)^[ ]*(begin|try|var|uses)\r?\n\r?\n', 'blank line after begin/try/var/uses'),
+    ('(?mi)\n\r?\n[ ]*(end;|finally|except)\r?$', 'blank line before end;/finally/except'),
+    ('\b(?!LDAP\b)L[A-Z]\w*\b', 'local not named lName'),
+    ('\ba[A-Z]\w*\b', 'parameter not named AName'));
+var
+  LDir, LFile, LText: string;
+  LWrong: TArray<string>;
+  LMatch: TMatch;
+  I, LFiles: Integer;
+begin
+  Log('');
+  Log('=== Style of the generated Pascal sources ===');
+  LWrong := [];
+  LFiles := 0;
+  for LDir in ACaseDirs do
+    for LFile in TDirectory.GetFiles(LDir, '*', TSearchOption.soTopDirectoryOnly) do
+    begin
+      if not MatchText(ExtractFileExt(LFile), ['.pas', '.dpr']) then
+        Continue;
+      Inc(LFiles);
+      LText := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      for I := Low(RULES) to High(RULES) do
+      begin
+        LMatch := TRegEx.Match(LText, RULES[I, 0]);
+        if LMatch.Success then
+          LWrong := LWrong + [Format('%s: %s ("%s")', [LFile, RULES[I, 1], LMatch.Value.Trim])];
+      end;
+    end;
+  Result := Length(LWrong) = 0;
+  if Result then
+    Log(Format('  [PASS] %d sources in %d projects', [LFiles, Length(ACaseDirs)]))
+  else
+    Log('  [FAIL] ' + string.Join(sLineBreak + '         ', LWrong));
 end;
 
 { Project Manager "DMVCFramework" menu (DMVC.Expert.ProjectItems): the same
@@ -3032,6 +3074,14 @@ begin
   Check(Format('MCP project detected from the .dpr in every generated project (%d)', [Length(ACaseDirs)]),
     LWrong = 0);
 
+  // the Project Manager menu hides the HTTP API items in a project without controllers
+  Check('"MCP Server" projects register no controller of their own',
+    not RegistersControllers(TFile.ReadAllText(TPath.Combine(GOutputDir, 'mcp_preset\EngineConfigU.pas'), TEncoding.UTF8)) and
+    not RegistersControllers(TFile.ReadAllText(TPath.Combine(GOutputDir, 'webbroker_mcp_preset\EngineConfigU.pas'), TEncoding.UTF8)) and
+    not RegistersControllers(TFile.ReadAllText(TPath.Combine(GOutputDir, 'winservice_indydirect_mcp_preset\EngineConfigU.pas'), TEncoding.UTF8)));
+  Check('a REST project with MCP registers its controllers',
+    RegistersControllers(TFile.ReadAllText(TPath.Combine(GOutputDir, 'indydirect_mcp_rest_bridge\EngineConfigU.pas'), TEncoding.UTF8)));
+
   LUnit := NewMCPToolProvider('Orders');
   Check('tool provider: unit, class, a tool name of its own, self-registration',
     (LUnit.UnitName = 'OrdersToolsU') and (LUnit.FileName = 'OrdersToolsU.pas') and
@@ -3295,6 +3345,12 @@ begin
       begin
         Log('');
         Log('FAIL: a generated project still refers to the People example.');
+        ExitCode := 1;
+      end;
+      if not RunCodeStyleTest(LCaseDirs) then
+      begin
+        Log('');
+        Log('FAIL: a generated source breaks the code style.');
         ExitCode := 1;
       end;
       if not RunProjectItemsTests(LCaseDirs) then

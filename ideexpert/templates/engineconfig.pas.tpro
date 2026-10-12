@@ -11,6 +11,8 @@ procedure ConfigureEngine(AEngine: TMVCEngine);
 implementation
 
 uses
+  System.SysUtils,
+  System.IOUtils,
 {{if controller_main_generate}}
   {{:controller_unit_name}},
 {{endif}}
@@ -23,14 +25,13 @@ uses
 {{endif}}
 {{if @(webmodule_middleware_jwt and (not program_minimal_api))}}
   {{:authentication_unit_name}},
+  System.DateUtils,
   MVCFramework.JWT,
   MVCFramework.Middleware.JWT,
 {{if webmodule_middleware_jwt_asymmetric}}
   MVCFramework.JWT.RSA,
 {{endif}}
 {{endif}}
-  System.IOUtils,
-  System.DateUtils,
 {{if program_ssv_templatepro}}
   TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
@@ -44,8 +45,6 @@ uses
 {{if program_ssv_mustache}}
   MVCFramework.View.Renderers.Mustache,
 {{endif}}
-  MVCFramework.Commons,
-  MVCFramework.Logger,
 {{if @(webmodule_middleware_activerecord and (not program_minimal_api))}}
   MVCFramework.Middleware.ActiveRecord,
   // ActiveRecord needs the FireDAC driver and the SQL generator of the database in
@@ -111,47 +110,48 @@ uses
   MVCFramework.MCP.Bridge,
 {{endif}}
 {{endif}}
-  System.SysUtils;
+  MVCFramework.Commons,
+  MVCFramework.Logger;
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
 {{if @((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles))}}
 var
 {{if webmodule_middleware_ratelimit}}
-  LRateLimitMiddleware: TMVCRateLimitMiddleware;
+  lRateLimitMiddleware: TMVCRateLimitMiddleware;
 {{endif}}
 {{if webmodule_middleware_jwt}}
-  LJWTClaimsSetup: TJWTClaimsSetup;
+  lJWTClaimsSetup: TJWTClaimsSetup;
 {{if webmodule_middleware_jwt_asymmetric}}
-  LSigner: IJWTSigner;
+  lSigner: IJWTSigner;
 {{endif}}
 {{endif}}
 {{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
-  LWwwPath: string;
+  lWwwPath: string;
 {{endif}}
 {{endif}}
 {{if @(program_minimal_api and (program_ssv_any or webmodule_middleware_staticfiles))}}
 var
-  LWwwPath: string;
+  lWwwPath: string;
 {{endif}}
 {{if program_openapi_swagger}}
 var
-  LSwaggerInfo: TMVCSwaggerInfo;
+  lSwaggerInfo: TMVCSwaggerInfo;
 {{endif}}
 {{if program_openapi_native}}
 var
-  LOpenAPIInfo: TMVCOpenAPIInfo;
-  LSwaggerUIOptions: TMVCStaticFilesOptions;
+  lOpenAPIInfo: TMVCOpenAPIInfo;
+  lSwaggerUIOptions: TMVCStaticFilesOptions;
 {{endif}}
 begin
 {{if @((not program_minimal_api) and (program_ssv_any or webmodule_middleware_staticfiles))}}
 
   // Static files path (www folder at same level as executable)
-  LWwwPath := TPath.Combine(AppPath, 'www');
+  lWwwPath := TPath.Combine(AppPath, 'www');
 {{endif}}
 {{if @(program_minimal_api and (program_ssv_any or webmodule_middleware_staticfiles))}}
 
   // Static files path (www folder at same level as executable)
-  LWwwPath := TPath.Combine(AppPath, 'www');
+  lWwwPath := TPath.Combine(AppPath, 'www');
 {{endif}}
 {{if mcp_generate}}
 
@@ -203,16 +203,16 @@ begin
 {{if @(not program_minimal_api)}}
 {{if webmodule_middleware_ratelimit}}
 
-  LRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
+  lRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
     10,           // max requests
     60,           // window seconds
     rlkIPAddress
   );
-  // LRateLimitMiddleware.AddExcludedPath('/health');
+  // lRateLimitMiddleware.AddExcludedPath('/health');
 {{if mcp_generate}}
   // An MCP client sends several requests per session: raise the limit above before use.
 {{endif}}
-  LRateLimitMiddleware.SetOnRateLimitExceeded(
+  lRateLimitMiddleware.SetOnRateLimitExceeded(
   procedure(const AContext: TWebContext; const AKey: string;
     const ALimit: Integer; const AWindowSeconds: Integer)
   begin
@@ -223,7 +223,7 @@ begin
 {{endif}}
 {{if webmodule_middleware_jwt}}
 
-  LJWTClaimsSetup := procedure(const JWT: TJWT)
+  lJWTClaimsSetup := procedure(const JWT: TJWT)
     begin
       JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
       JWT.Claims.ExpirationTime := Now + OneHour;
@@ -234,7 +234,7 @@ begin
 {{if webmodule_middleware_jwt_asymmetric}}
 
   // RS256: generate keys with openssl genrsa / openssl rsa -pubout
-  LSigner := TRSAJWTSigner.CreateFromFiles(
+  lSigner := TRSAJWTSigner.CreateFromFiles(
     JWT_RS256,
     dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
     dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
@@ -247,7 +247,7 @@ begin
   AEngine.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/web'));
 {{endif}}
 {{if webmodule_middleware_ratelimit}}
-  AEngine.AddMiddleware(LRateLimitMiddleware);
+  AEngine.AddMiddleware(lRateLimitMiddleware);
 {{endif}}
 {{if webmodule_middleware_jwt}}
 {{if program_ssv_any}}
@@ -255,9 +255,9 @@ begin
   AEngine.AddMiddleware(
     UseJWTCookieAuthentication(
       {{:authentication_classname}}.Create,
-      LJWTClaimsSetup,
+      lJWTClaimsSetup,
 {{if webmodule_middleware_jwt_asymmetric}}
-      LSigner,
+      lSigner,
 {{else}}
       dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
@@ -274,9 +274,9 @@ begin
   AEngine.AddMiddleware(
     UseJWTMiddleware(
       {{:authentication_classname}}.Create,
-      LJWTClaimsSetup,
+      lJWTClaimsSetup,
 {{if webmodule_middleware_jwt_asymmetric}}
-      LSigner,
+      lSigner,
 {{else}}
       dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
 {{endif}}
@@ -301,17 +301,17 @@ begin
   AEngine.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
 {{endif}}
 {{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
-  AEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', LWwwPath));
+  AEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', lWwwPath));
 {{endif}}
 {{if program_openapi_swagger}}
   // API documentation: OpenAPI 3 document at {{:program_openapi_url}}, Swagger UI at /swagger.
   // Published only when .env sets dmvc.openapi.enabled=true (off when the key is missing).
   if dotEnv.Env('dmvc.openapi.enabled', False) then
   begin
-    LSwaggerInfo.Title := '{{:program_name}}';
-    LSwaggerInfo.Version := 'v1';
-    LSwaggerInfo.Description := '{{:program_name}} API';
-    AEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(AEngine, LSwaggerInfo, '{{:program_openapi_url}}',
+    lSwaggerInfo.Title := '{{:program_name}}';
+    lSwaggerInfo.Version := 'v1';
+    lSwaggerInfo.Description := '{{:program_name}} API';
+    AEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(AEngine, lSwaggerInfo, '{{:program_openapi_url}}',
       JWT_DEFAULT_DESCRIPTION, False, '', '', '', {{:program_openapi_schemes}}, False, ssvOpenAPI3));
     AEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/swagger',
       TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger')));
@@ -341,7 +341,7 @@ begin
 
   // HTTPFilter chain (engine-wide). Order matters: first = outermost.
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
-  AEngine.UseHTTPFilter(StaticFiles('/static', LWwwPath));
+  AEngine.UseHTTPFilter(StaticFiles('/static', lWwwPath));
 {{endif}}
 {{if webmodule_middleware_cors}}
   AEngine.UseHTTPFilter(CORSFilter('*'));
@@ -360,14 +360,14 @@ begin
   // Published only when .env sets dmvc.openapi.enabled=true (off when the key is missing).
   if dotEnv.Env('dmvc.openapi.enabled', False) then
   begin
-    LOpenAPIInfo.Title := '{{:program_name}}';
-    LOpenAPIInfo.Version := 'v1';
-    LOpenAPIInfo.Description := '{{:program_name}} API';
-    AEngine.UseHTTPFilter(OpenAPI(AEngine, LOpenAPIInfo, '{{:program_openapi_url}}'));
-    LSwaggerUIOptions := TMVCStaticFilesOptions.Default; // redirects /swagger to /swagger/
-    LSwaggerUIOptions.Prefix := '/swagger';
-    LSwaggerUIOptions.RootFolder := TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger');
-    AEngine.UseHTTPFilter(StaticFiles(LSwaggerUIOptions));
+    lOpenAPIInfo.Title := '{{:program_name}}';
+    lOpenAPIInfo.Version := 'v1';
+    lOpenAPIInfo.Description := '{{:program_name}} API';
+    AEngine.UseHTTPFilter(OpenAPI(AEngine, lOpenAPIInfo, '{{:program_openapi_url}}'));
+    lSwaggerUIOptions := TMVCStaticFilesOptions.Default; // redirects /swagger to /swagger/
+    lSwaggerUIOptions.Prefix := '/swagger';
+    lSwaggerUIOptions.RootFolder := TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger');
+    AEngine.UseHTTPFilter(StaticFiles(lSwaggerUIOptions));
   end;
 {{endif}}
 {{endif}}
@@ -383,7 +383,7 @@ begin
 {{if jsonrpc_generate}}
 
   AEngine.PublishObject(
-    function : TObject
+    function: TObject
     begin
       Result := {{:jsonrpc_classname}}.Create;
     end, '/jsonrpc');
@@ -399,7 +399,7 @@ begin
   TMCPServer.Instance.ServerName := '{{:program_name}}';
   TMCPServer.Instance.ServerVersion := '1.0.0';
   AEngine.PublishObject(
-    function : TObject
+    function: TObject
     begin
       Result := TMCPServer.Instance.CreatePublishedEndpoint;
     end, '/mcp');

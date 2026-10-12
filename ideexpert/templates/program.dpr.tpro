@@ -73,158 +73,158 @@ uses
 {{if program_type|eq,"https.console"}}
 type
   TTLSHandler = class
-    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
-    procedure OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);
-    procedure ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);
+    procedure OnGetSSLPassword(ASender: TObject; var APassword: String; const AIsWrite: Boolean; var AOk: Boolean);
+    procedure OnQuerySSLPort(APort: Word; var vUseSSL: boolean);
+    procedure ConfigureTLS(AServer: TIdHTTPWebBrokerBridge);
   end;
 
 { TTLSHandler }
 
-procedure TTLSHandler.ConfigureTLS(aServer: TIdHTTPWebBrokerBridge);
+procedure TTLSHandler.ConfigureTLS(AServer: TIdHTTPWebBrokerBridge);
 var
   lTaurusTLSHandler: TTaurusTLSServerIOHandler;
 begin
-  lTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(aServer);
+  lTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(AServer);
   lTaurusTLSHandler.SSLOptions.Mode := sslmServer;
   lTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
   lTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
   lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
   lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
-  aServer.IOHandler := lTaurusTLSHandler;
-  aServer.OnQuerySSLPort := OnQuerySSLPort;
+  AServer.IOHandler := lTaurusTLSHandler;
+  AServer.OnQuerySSLPort := OnQuerySSLPort;
 end;
 
-procedure TTLSHandler.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+procedure TTLSHandler.OnGetSSLPassword(ASender: TObject; var APassword: String; const AIsWrite: Boolean; var AOk: Boolean);
 begin
-  aPassword := dotEnv.Env('https.cert.password', '');
-  aOk := True;
+  APassword := dotEnv.Env('https.cert.password', '');
+  AOk := True;
 end;
 
-procedure TTLSHandler.OnQuerySSLPort(aPort: Word; var vUseSSL: boolean);
+procedure TTLSHandler.OnQuerySSLPort(APort: Word; var vUseSSL: boolean);
 begin
   vUseSSL := true;
 end;
 
 {{endif}}
 {{if program_type|eq,"http.console"}}
-procedure RunServer(aPort: Integer);
+procedure RunServer(APort: Integer);
 var
-  LServer: TIdHTTPWebBrokerBridge;
+  lServer: TIdHTTPWebBrokerBridge;
 {{if websocketserver_generate}}
-  LWSServer: TMVCWebSocketServer;
+  lWSServer: TMVCWebSocketServer;
 {{endif}}
-  LProtocol: String;
+  lProtocol: String;
 begin
-  LProtocol := 'http';
-  LServer := TIdHTTPWebBrokerBridge.Create(nil);
+  lProtocol := 'http';
+  lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
-    LServer.DefaultPort := APort;
-    LServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
-    LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
-    LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
-    LServer.Active := True;
-    LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+    lServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    lServer.DefaultPort := APort;
+    lServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
+    lServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
+    lServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
+    lServer.Active := True;
+    LogI('Listening on ' + lProtocol + '://localhost:' + APort.ToString);
 {{if program_openapi}}
     if dotEnv.Env('dmvc.openapi.enabled', False) then
-      LogI('API documentation (Swagger UI): ' + LProtocol + '://localhost:' + APort.ToString + '/swagger/');
+      LogI('API documentation (Swagger UI): ' + lProtocol + '://localhost:' + APort.ToString + '/swagger/');
 {{endif}}
 {{if websocketserver_generate}}
-    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    lWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
     try
-      LWSServer.Active := True;
-      LogI('Listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+      lWSServer.Active := True;
+      LogI('Listening on ws://localhost:' + lWSServer.DefaultPort.ToString);
       LogI('Application started. Press Ctrl+C to shut down.');
       WaitForTerminationSignal;
       EnterInShutdownState;
     finally
-      LWSServer.Free;
+      lWSServer.Free;
     end;
 {{else}}
     LogI('Application started. Press Ctrl+C to shut down.');
     WaitForTerminationSignal;
     EnterInShutdownState;
 {{endif}}
-    LServer.Active := False;
+    lServer.Active := False;
   finally
-    LServer.Free;
+    lServer.Free;
   end;
 end;
 {{endif}}
 {{if program_type|eq,"https.console"}}
-procedure RunServer(aPort: Integer);
+procedure RunServer(APort: Integer);
 var
-  LServer: TIdHTTPWebBrokerBridge;
-  LSSLHandler: TTLSHandler;
+  lServer: TIdHTTPWebBrokerBridge;
+  lSSLHandler: TTLSHandler;
 {{if websocketserver_generate}}
-  LWSServer: TMVCWebSocketServer;
+  lWSServer: TMVCWebSocketServer;
 {{endif}}
-  LProtocol: String;
+  lProtocol: String;
 begin
-  LProtocol := 'http';
-  LServer := TIdHTTPWebBrokerBridge.Create(nil);
+  lProtocol := 'http';
+  lServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
-    LServer.DefaultPort := APort;
-    LServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
-    LServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
-    LServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
-    LSSLHandler := TTLSHandler.Create;
+    lServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    lServer.DefaultPort := APort;
+    lServer.KeepAlive := dotEnv.Env('dmvc.indy.keep_alive', True);
+    lServer.MaxConnections := dotEnv.Env('dmvc.webbroker.max_connections', 0);
+    lServer.ListenQueue := dotEnv.Env('dmvc.indy.listen_queue', 500);
+    lSSLHandler := TTLSHandler.Create;
     try
-      if dotEnv.Env('https.enabled', false) then //enable if you want HTTPS support
+      if dotEnv.Env('https.enabled', false) then // enable if you want HTTPS support
       begin
         LogI('HTTPS is enabled');
-        LSSLHandler.ConfigureTLS(LServer);
-        LProtocol := 'https';
+        lSSLHandler.ConfigureTLS(lServer);
+        lProtocol := 'https';
       end
       else
       begin
         LogW('HTTPS is available but CURRENTLY NOT ENABLED');
       end;
-    LServer.Active := True;
-    LogI('Listening on ' + LProtocol + '://localhost:' + APort.ToString);
+    lServer.Active := True;
+    LogI('Listening on ' + lProtocol + '://localhost:' + APort.ToString);
 {{if program_openapi}}
     if dotEnv.Env('dmvc.openapi.enabled', False) then
-      LogI('API documentation (Swagger UI): ' + LProtocol + '://localhost:' + APort.ToString + '/swagger/');
+      LogI('API documentation (Swagger UI): ' + lProtocol + '://localhost:' + APort.ToString + '/swagger/');
 {{endif}}
 {{if websocketserver_generate}}
-    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    lWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
     try
-      LWSServer.Active := True;
-      LogI('Listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+      lWSServer.Active := True;
+      LogI('Listening on ws://localhost:' + lWSServer.DefaultPort.ToString);
       LogI('Application started. Press Ctrl+C to shut down.');
       WaitForTerminationSignal;
       EnterInShutdownState;
     finally
-      LWSServer.Free;
+      lWSServer.Free;
     end;
 {{else}}
     LogI('Application started. Press Ctrl+C to shut down.');
     WaitForTerminationSignal;
     EnterInShutdownState;
 {{endif}}
-    LServer.Active := False;
+    lServer.Active := False;
     finally
-      LSSLHandler.Free;
+      lSSLHandler.Free;
     end;
   finally
-    LServer.Free;
+    lServer.Free;
   end;
 end;
 {{endif}}
 {{if program_type|eq,"fastcgi.console"}}
-procedure RunServer(aPort: Integer);
+procedure RunServer(APort: Integer);
 var
-  LServer: TFastCGIApplication;
+  lServer: TFastCGIApplication;
 begin
-  LServer := TFastCGIApplication(Application);
-  LServer.DefaultPort := APort;
-  LServer.Active := True;
+  lServer := TFastCGIApplication(Application);
+  lServer.DefaultPort := APort;
+  lServer.Active := True;
   LogI('Listening on fastcgi://localhost:' + APort.ToString);
   LogI('Application started. Press Ctrl+C to shut down.');
   WaitForTerminationSignal;
   EnterInShutdownState;
-  LServer.Active := False;
+  lServer.Active := False;
 end;
 {{endif}}
 

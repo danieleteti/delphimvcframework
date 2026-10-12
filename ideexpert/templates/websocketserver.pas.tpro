@@ -6,7 +6,7 @@ interface
 uses
   MVCFramework.WebSocket.Server;
 
-function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;
+function BuildWebSocketServer(const AWSPort: Word): TMVCWebSocketServer;
 
 implementation
 
@@ -17,7 +17,7 @@ uses
 type
   TWSClientSessionData = class
   private
-    FMessageCount: Integer;
+    fMessageCount: Integer;
   public
     constructor Create;
     property MessageCount: Integer read fMessageCount write fMessageCount;
@@ -28,59 +28,59 @@ type
 constructor TWSClientSessionData.Create;
 begin
   inherited;
-  FMessageCount := 0;
+  fMessageCount := 0;
 end;
 
 
-function BuildWebSocketServer(const aWSPort: Word): TMVCWebSocketServer;
+function BuildWebSocketServer(const AWSPort: Word): TMVCWebSocketServer;
 var
-  LWSServer: TMVCWebSocketServer;
+  lWSServer: TMVCWebSocketServer;
 begin
-  LWSServer := TMVCWebSocketServer.Create(aWSPort);
+  lWSServer := TMVCWebSocketServer.Create(AWSPort);
   try
-    LWSServer.OnClientConnect := procedure(AClient: TWebSocketClient)
+    lWSServer.OnClientConnect := procedure(AClient: TWebSocketClient)
     var
-      LWelcomeMsg: string;
+      lWelcomeMsg: string;
     begin
-      AClient.Data := TWSClientSessionData.Create; //client session
+      AClient.Data := TWSClientSessionData.Create; // client session
       AClient.PeriodicInterval := 1000; // Update interval in milliseconds. If PeriodicInterval is 0 = disabled
-      LWelcomeMsg := Format('[SERVER]: %s joined the chat (%d users online)',
+      lWelcomeMsg := Format('[SERVER]: %s joined the chat (%d users online)',
         [AClient.Username, AClient.ConnectedUsersCount]);
-      AClient.Broadcast(LWelcomeMsg);
+      AClient.Broadcast(lWelcomeMsg);
     end;
 
-    LWSServer.OnMessage := procedure(AClient: TWebSocketClient; const AMessage: string)
+    lWSServer.OnMessage := procedure(AClient: TWebSocketClient; const AMessage: string)
     var
-      LChatMsg: string;
+      lChatMsg: string;
     begin
-      LChatMsg := Format('[%s]: %s', [AClient.Username, AMessage]);
-      AClient.Broadcast(LChatMsg);
+      lChatMsg := Format('[%s]: %s', [AClient.Username, AMessage]);
+      AClient.Broadcast(lChatMsg);
     end;
 
-    LWSServer.OnLog := procedure(const AMessage: string)
+    lWSServer.OnLog := procedure(const AMessage: string)
     begin
       LogI(Format('[%s] %s', [TimeToStr(Now), AMessage]));
     end;
 
-    LWSServer.OnPeriodicMessage := procedure(AClient: TWebSocketClient; out AMessage: String)
+    lWSServer.OnPeriodicMessage := procedure(AClient: TWebSocketClient; out AMessage: String)
     begin
       AMessage := '';
     end;
 
-    LWSServer.OnClientDisconnect := procedure(AClient: TWebSocketClient)
+    lWSServer.OnClientDisconnect := procedure(AClient: TWebSocketClient)
     begin
       //
     end;
 
-    LWSServer.OnError := procedure(AClient: TWebSocketClient; const AError: string)
+    lWSServer.OnError := procedure(AClient: TWebSocketClient; const AError: string)
     begin
       LogE(Format('[%s] ERROR from %s: %s', [TimeToStr(Now), AClient.Username, AError]));
     end;
   except
-    LWSServer.Free;
+    lWSServer.Free;
     raise;
   end;
-  Result := LWSServer;
+  Result := lWSServer;
 end;
 
 end.

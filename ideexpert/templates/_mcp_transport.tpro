@@ -3,15 +3,15 @@
 // No HTTP server and no ConfigureEngine: nothing set up there exists in this mode.
 procedure RunMCPStdio;
 var
-  LTransport: TMCPStdioTransport;
+  lTransport: TMCPStdioTransport;
 begin
   TMCPServer.Instance.ServerName := '{{:program_name}}';
   TMCPServer.Instance.ServerVersion := '1.0.0';
-  LTransport := TMCPStdioTransport.Create(TMCPServer.Instance);
+  lTransport := TMCPStdioTransport.Create(TMCPServer.Instance);
   try
-    LTransport.Run;
+    lTransport.Run;
   finally
-    LTransport.Free;
+    lTransport.Free;
   end;
 end;
 

@@ -291,6 +291,21 @@ begin
   Result := False;
 end;
 
+function ProjectHasControllers(const AProject: IOTAProject): Boolean;
+var
+  I: Integer;
+  lFile: string;
+begin
+  for I := 0 to AProject.GetModuleCount - 1 do
+  begin
+    lFile := AProject.GetModule(I).FileName;
+    if SameText(ExtractFileExt(lFile), '.pas') and TFile.Exists(lFile) and
+      RegistersControllers(CurrentText(lFile)) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
 procedure ExplainManualStep(const AWhat, AUnitName, ALine: string);
 begin
   MessageDlg(Format('%s was created, but no place to register it was found.' + sLineBreak + sLineBreak +
@@ -390,7 +405,7 @@ begin
       PlanServiceRegistration(S, AUnit.UnitName, AUnit.TypeName, AInterfaceName, Result);
     end) = '' then
     ExplainManualStep(AUnit.TypeName, AUnit.UnitName,
-      ServiceRegistrationLine('Container', AUnit.TypeName, AInterfaceName));
+      ServiceRegistrationLine('AContainer', AUnit.TypeName, AInterfaceName));
 end;
 
 procedure NewRestControllerAction(const AProject: IOTAProject);
@@ -749,7 +764,7 @@ procedure TDMVCProjectMenuNotifier.AddMenu(const Project: IOTAProject; const Ide
   const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
 var
   lDpr: string;
-  lMinimal, lViews, lMCP: Boolean;
+  lMinimal, lViews, lMCP, lControllers: Boolean;
 begin
   try
     if IsMultiSelect or not Assigned(Project) or (IdentList.IndexOf(sProjectContainer) < 0) then
@@ -760,28 +775,30 @@ begin
     lMinimal := IsMinimalAPIProject(lDpr);
     lViews := FindViewsFolder(Project) <> '';
     lMCP := IsMCPProject(lDpr);
+    // an "MCP Server" project has no controller: nothing of the HTTP API applies to it
+    lControllers := not lMinimal and (not lMCP or ProjectHasControllers(Project));
   except
     Exit; // a menu that cannot be built is not worth an IDE error
   end;
   // only what can be wired into this kind of project
   ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('DMVCFramework', MENU_VERB, '',
     pmmpUserAdd, nil));
-  if not lMinimal then
+  if lControllers then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New REST Controller...',
       MENU_VERB + 'RestController', MENU_VERB, pmmpUserAdd + 10, NewRestControllerAction));
   // controllers and Minimal API handlers alike take services
   ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New Service...',
     MENU_VERB + 'Service', MENU_VERB, pmmpUserAdd + 15, NewServiceAction));
-  if not lMinimal then
+  if lControllers then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('Add Database Connection...',
       MENU_VERB + 'Database', MENU_VERB, pmmpUserAdd + 17, AddDatabaseAction));
-  if not lMinimal and lViews then
+  if lControllers and lViews then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New Web Controller and View...',
       MENU_VERB + 'WebController', MENU_VERB, pmmpUserAdd + 20, NewWebControllerAction));
   if lMinimal then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New Minimal API Route Group...',
       MENU_VERB + 'Routes', MENU_VERB, pmmpUserAdd + 30, NewRoutesAction));
-  if lViews then
+  if lViews and (lMinimal or lControllers) then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New TemplatePro View...',
       MENU_VERB + 'View', MENU_VERB, pmmpUserAdd + 40, NewViewAction));
   if lMCP then

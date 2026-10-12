@@ -10,13 +10,13 @@ interface
 uses
   MVCFramework.Container;
 
-procedure RegisterServices(Container: IMVCServiceContainer);
+procedure RegisterServices(AContainer: IMVCServiceContainer);
 
 implementation
 
-procedure RegisterServices(Container: IMVCServiceContainer);
+procedure RegisterServices(AContainer: IMVCServiceContainer);
 begin
-  // e.g. Container.RegisterType(TMyService, IMyService, TRegistrationType.SingletonPerRequest);
+  // e.g. AContainer.RegisterType(TMyService, IMyService, TRegistrationType.SingletonPerRequest);
   // Register other services here
 end;
 

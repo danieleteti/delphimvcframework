@@ -35,7 +35,7 @@ type
 function PageDefaults: TMVCEndpointFilter;
 begin
   Result :=
-    function (const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
+    function(const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
     begin
       ViewData['app_name'] := '{{:program_name}}';
       ViewData['dmvc_version'] := DMVCFRAMEWORK_VERSION;
@@ -48,7 +48,7 @@ end;
 function RequireLogin(const ARedirectTo: string): TMVCEndpointFilter;
 begin
   Result :=
-    function (const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
+    function(const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
     begin
       if Ctx.Session['user'].IsEmpty then
         Result := Redirect(ARedirectTo)
@@ -137,7 +137,7 @@ begin
     end);
 
   lWeb.MapPost<TWebContext, TLoginForm>('/login',
-    function (Ctx: TWebContext; F: TLoginForm): IMVCResponse
+    function(Ctx: TWebContext; F: TLoginForm): IMVCResponse
     begin
       if (F.Username = 'admin') and (F.Password = 'admin') then
       begin
@@ -159,7 +159,7 @@ begin
   lAdmin := lWeb.Prefix('/admin').Use(RequireLogin('/web/login'));
 
   lAdmin.MapGet<TWebContext>('/',
-    function (Ctx: TWebContext): IMVCResponse
+    function(Ctx: TWebContext): IMVCResponse
     begin
       ViewData['page_id'] := 'admin';
       ViewData['user'] := Ctx.Session['user'];
@@ -167,7 +167,7 @@ begin
     end);
 
   lAdmin.MapGet<TWebContext>('/logout',
-    function (Ctx: TWebContext): IMVCResponse
+    function(Ctx: TWebContext): IMVCResponse
     begin
       Ctx.SessionStop;
       Result := Redirect('/web/login');

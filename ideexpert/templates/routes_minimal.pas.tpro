@@ -51,8 +51,8 @@ end;
 // Short-circuits with 401 unless the request carries a Bearer token.
 function BearerAuthFilter: TMVCEndpointFilter;
 begin
-  Result := function (const Ctx: TWebContext;
-                       const Next: TMVCEndpointFilterNext): IMVCResponse
+  Result := function(const Ctx: TWebContext;
+                      const Next: TMVCEndpointFilterNext): IMVCResponse
     var
       lAuth: string;
     begin

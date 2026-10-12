@@ -66,12 +66,12 @@ uses
 
 {$R *.res}
 
-{{include "_mcp_transport.tpro"}}procedure RunServer(aPort: Integer);
+{{include "_mcp_transport.tpro"}}procedure RunServer(APort: Integer);
 var
-  LEngine: TMVCEngine;
-  LServer: IMVCServer;
+  lEngine: TMVCEngine;
+  lServer: IMVCServer;
 {{if websocketserver_generate}}
-  LWSServer: TMVCWebSocketServer;
+  lWSServer: TMVCWebSocketServer;
 {{endif}}
 begin
 {{if program_minimal_api}}
@@ -80,61 +80,61 @@ begin
 {{if program_minimal_api_web}}
   // IMPORTANT: ViewCache is OFF by default — enable it for production.
 {{endif}}
-  LEngine := TMVCEngine.Create(
-    procedure(Config: TMVCConfig)
+  lEngine := TMVCEngine.Create(
+    procedure(AConfig: TMVCConfig)
     begin
-      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
-      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
-      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+      AConfig[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      AConfig[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+      AConfig[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end);
 {{else}}
-  LEngine := TMVCEngine.Create(
-    procedure(Config: TMVCConfig)
+  lEngine := TMVCEngine.Create(
+    procedure(AConfig: TMVCConfig)
     begin
-      //default content-type
-      Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
-      //default content charset
-      Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
-      //unhandled actions are permitted?
-      Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
-      //enables or not system controllers loading (available only from localhost requests)
-      Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
-      //default view file extension
-      Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
-      //view path
-      Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+      // default content-type
+      AConfig[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+      // default content charset
+      AConfig[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+      // unhandled actions are permitted?
+      AConfig[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+      // enables or not system controllers loading (available only from localhost requests)
+      AConfig[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+      // default view file extension
+      AConfig[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+      // view path
+      AConfig[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
 {{if program_ssv_templatepro}}
-      //use cache for server side views
-      Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
-      Config[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
+      // use cache for server side views
+      AConfig[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+      AConfig[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
 {{endif}}
-      //Max Record Count for automatic Entities CRUD
-      Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
-      //Enable Server Signature in response
-      Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
-      //Enable X-Powered-By Header in response
-      Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+      // Max Record Count for automatic Entities CRUD
+      AConfig[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+      // Enable Server Signature in response
+      AConfig[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+      // Enable X-Powered-By Header in response
+      AConfig[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
       // Max request size in bytes
-      Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+      AConfig[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
     end);
 {{endif}}
   try
-    ConfigureEngine(LEngine);
+    ConfigureEngine(lEngine);
 {{if program_minimal_api}}
-    ConfigureRoutes(LEngine.Root);
+    ConfigureRoutes(lEngine.Root);
 {{endif}}
-    LServer := TMVCServerFactory.CreateIndyDirect(LEngine);
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
 {{if program_server_protocol|eq,"https"}}
     // TaurusTLS (OpenSSL 1.1.1+). Replace MVCFramework.Server.HTTPS.TaurusTLS to switch TLS stack.
-    LServer.HTTPSConfigurator := TaurusTLSIndyConfigurator();
-    LServer.UseHTTPS := True;
-    LServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
-    LServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
-    LServer.CertPassword := dotEnv.Env('https.cert.password', '');
-    LogI('Starting on https://localhost:' + APort.ToString +
+    lServer.HTTPSConfigurator := TaurusTLSIndyConfigurator();
+    lServer.UseHTTPS := True;
+    lServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+    lServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+    lServer.CertPassword := dotEnv.Env('https.cert.password', '');
+    LogI('Starting on https://{{if mcp_standalone}}' + dotEnv.Env('mcp.http.host', 'localhost') + ':{{else}}localhost:{{endif}}' + APort.ToString +
       ' (Indy Direct + TaurusTLS). Press Ctrl+C to shut down.');
 {{else}}
-    LogI('Starting on http://localhost:' + APort.ToString +
+    LogI('Starting on http://{{if mcp_standalone}}' + dotEnv.Env('mcp.http.host', 'localhost') + ':{{else}}localhost:{{endif}}' + APort.ToString +
       ' (Indy Direct). Press Ctrl+C to shut down.');
 {{endif}}
 {{if program_openapi}}
@@ -142,25 +142,25 @@ begin
       LogI('API documentation (Swagger UI): {{if program_server_protocol|eq,"https"}}https{{else}}http{{endif}}://localhost:' + APort.ToString + '/swagger/');
 {{endif}}
 {{if websocketserver_generate}}
-    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    lWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
     try
-      LWSServer.Active := True;
-      LogI('WebSocket on ws://localhost:' + LWSServer.DefaultPort.ToString);
-      LServer.RunAndWait(APort);
+      lWSServer.Active := True;
+      LogI('WebSocket on ws://localhost:' + lWSServer.DefaultPort.ToString);
+      lServer.RunAndWait(APort);
     finally
-      LWSServer.Free;
+      lWSServer.Free;
     end;
 {{else}}
     // RunAndWait: Listen + signal wait + shutdown. For non-console hosts use Listen() + Stop().
 {{if mcp_standalone}}
-    LServer.RunAndWait(APort, dotEnv.Env('mcp.http.host', 'localhost'));
+    lServer.RunAndWait(APort, dotEnv.Env('mcp.http.host', 'localhost'));
 {{else}}
-    LServer.RunAndWait(APort);
+    lServer.RunAndWait(APort);
 {{endif}}
 {{endif}}
-    LServer := nil;
+    lServer := nil;
   finally
-    LEngine.Free;
+    lEngine.Free;
   end;
 end;
 
@@ -211,8 +211,10 @@ begin
     if MCPTransportIsStdio then
       RunMCPStdio
     else
-{{endif}}
+      RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
+{{else}}
     RunServer(dotEnv.Env('dmvc.server.port', {{:program_default_server_port}}));
+{{endif}}
   except
     on E: Exception do
     begin

@@ -45,7 +45,7 @@ begin
 {{if crud}}
 
   AGroup.MapGet<Integer>('/($id:int)',
-    function (ID: Integer): IMVCResponse
+    function(ID: Integer): IMVCResponse
     begin
       Result := NotFound;
 {{if openapi_native}}
@@ -59,7 +59,7 @@ begin
 
   // a class argument is bound from the body and validated (422 on failure); the framework frees it
   AGroup.MapPost<{{:model_class}}>('',
-    function (Item: {{:model_class}}): IMVCResponse
+    function(Item: {{:model_class}}): IMVCResponse
     begin
       Result := Created('/api/{{:resource}}/' + Item.ID.ToString);
 {{if openapi_native}}
@@ -71,7 +71,7 @@ begin
 {{endif}}
 
   AGroup.MapPut<Integer, {{:model_class}}>('/($id:int)',
-    function (ID: Integer; Item: {{:model_class}}): IMVCResponse
+    function(ID: Integer; Item: {{:model_class}}): IMVCResponse
     begin
       Result := NoContent;
 {{if openapi_native}}
@@ -83,7 +83,7 @@ begin
 {{endif}}
 
   AGroup.MapDelete<Integer>('/($id:int)',
-    function (ID: Integer): IMVCResponse
+    function(ID: Integer): IMVCResponse
     begin
       Result := NoContent;
 {{if openapi_native}}

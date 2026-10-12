@@ -25,7 +25,7 @@ type
   private
     fServer: TIdHTTPWebBrokerBridge;
 {{if program_server_protocol|eq,"https"}}
-    procedure OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+    procedure OnGetSSLPassword(ASender: TObject; var APassword: String; const AIsWrite: Boolean; var AOk: Boolean);
 {{endif}}
   public
     function GetServiceController: TServiceController; override;
@@ -74,17 +74,17 @@ begin
 end;
 
 {{if program_server_protocol|eq,"https"}}
-procedure TDMVCFrameworkWindowsService.OnGetSSLPassword(aSender: TObject; var aPassword: String; const aIsWrite: Boolean; var aOk: Boolean);
+procedure TDMVCFrameworkWindowsService.OnGetSSLPassword(ASender: TObject; var APassword: String; const AIsWrite: Boolean; var AOk: Boolean);
 begin
-  aPassword := dotEnv.Env('https.cert.password', '');
-  aOk := True;
+  APassword := dotEnv.Env('https.cert.password', '');
+  AOk := True;
 end;
 
 {{endif}}
 procedure TDMVCFrameworkWindowsService.ServiceStart(Sender: TService; var Started: Boolean);
 {{if program_server_protocol|eq,"https"}}
 var
-  LTaurusTLSHandler: TTaurusTLSServerIOHandler;
+  lTaurusTLSHandler: TTaurusTLSServerIOHandler;
 {{endif}}
 begin
   LogI('Starting {{:program_name}} Service...');
@@ -92,12 +92,12 @@ begin
     fServer := TIdHTTPWebBrokerBridge.Create(nil);
     try
 {{if program_server_protocol|eq,"https"}}
-      LTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(fServer);
-      LTaurusTLSHandler.SSLOptions.Mode := sslmServer;
-      LTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
-      LTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
-      LTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
-      fServer.IOHandler := LTaurusTLSHandler;
+      lTaurusTLSHandler := TTaurusTLSServerIOHandler.Create(fServer);
+      lTaurusTLSHandler.SSLOptions.Mode := sslmServer;
+      lTaurusTLSHandler.DefaultCert.PublicKey := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
+      lTaurusTLSHandler.DefaultCert.PrivateKey := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
+      lTaurusTLSHandler.OnGetPassword := OnGetSSLPassword;
+      fServer.IOHandler := lTaurusTLSHandler;
       fServer.DefaultPort := StrToIntDef(dotEnv.Env('dmvc.default_server_port', '{{:program_default_server_port}}'), 443);
 {{else}}
       fServer.DefaultPort := StrToIntDef(dotEnv.Env('dmvc.default_server_port', '{{:program_default_server_port}}'), {{:program_default_server_port}});

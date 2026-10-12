@@ -121,32 +121,32 @@ end;
 
 procedure TDMVCFrameworkWindowsService.ServiceStart(Sender: TService; var Started: Boolean);
 var
-  LPort: Integer;
+  lPort: Integer;
 {{if websocketserver_generate}}
-  LWSServer: TMVCWebSocketServer;
+  lWSServer: TMVCWebSocketServer;
 {{endif}}
 begin
   LogI('Starting {{:program_name}} Service (Indy Direct)...');
   try
-    LPort := StrToIntDef(dotEnv.Env('dmvc.server.port', '{{:program_default_server_port}}'), {{:program_default_server_port}});
+    lPort := StrToIntDef(dotEnv.Env('dmvc.server.port', '{{:program_default_server_port}}'), {{:program_default_server_port}});
 
     fEngine := TMVCEngine.Create(
-      procedure(Config: TMVCConfig)
+      procedure(AConfig: TMVCConfig)
       begin
-        Config[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
-        Config[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
-        Config[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
-        Config[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
-        Config[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
-        Config[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
+        AConfig[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
+        AConfig[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
+        AConfig[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
+        AConfig[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+        AConfig[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
+        AConfig[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
 {{if program_ssv_templatepro}}
-        Config[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
-        Config[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
+        AConfig[TMVCConfigKey.ViewCache] := dotEnv.Env('dmvc.view_cache', 'false');
+        AConfig[TMVCConfigKey.ViewCacheCheckChanges] := dotEnv.Env('dmvc.view_cache_check_changes', 'false');
 {{endif}}
-        Config[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
-        Config[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
-        Config[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
-        Config[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
+        AConfig[TMVCConfigKey.MaxEntitiesRecordCount] := dotEnv.Env('dmvc.max_entities_record_count', IntToStr(TMVCConstants.MAX_RECORD_COUNT));
+        AConfig[TMVCConfigKey.ExposeServerSignature] := dotEnv.Env('dmvc.expose_server_signature', 'false');
+        AConfig[TMVCConfigKey.ExposeXPoweredBy] := dotEnv.Env('dmvc.expose_x_powered_by', 'false');
+        AConfig[TMVCConfigKey.MaxRequestSize] := dotEnv.Env('dmvc.max_request_size', IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE));
       end);
     ConfigureEngine(fEngine);
 
@@ -158,18 +158,18 @@ begin
     fServer.CertFile := dotEnv.Env('https.cert.cacert', 'certificates\localhost.crt');
     fServer.KeyFile := dotEnv.Env('https.cert.privkey', 'certificates\localhost.key');
     fServer.CertPassword := dotEnv.Env('https.cert.password', '');
-    fServer.Listen(LPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
-    LogI('Service started on port ' + LPort.ToString + ' (Indy Direct + TaurusTLS HTTPS)');
+    fServer.Listen(lPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
+    LogI('Service started on port ' + lPort.ToString + ' (Indy Direct + TaurusTLS HTTPS)');
 {{else}}
-    fServer.Listen(LPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
-    LogI('Service started on port ' + LPort.ToString + ' (Indy Direct)');
+    fServer.Listen(lPort{{if mcp_standalone}}, dotEnv.Env('mcp.http.host', 'localhost'){{endif}});
+    LogI('Service started on port ' + lPort.ToString + ' (Indy Direct)');
 {{endif}}
 {{if websocketserver_generate}}
 
-    LWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
-    fWSServer := LWSServer;
-    LWSServer.Active := True;
-    LogI('WebSocket listening on ws://localhost:' + LWSServer.DefaultPort.ToString);
+    lWSServer := BuildWebSocketServer(dotEnv.Env('dmvc.wsserver.port', 9000));
+    fWSServer := lWSServer;
+    lWSServer.Active := True;
+    LogI('WebSocket listening on ws://localhost:' + lWSServer.DefaultPort.ToString);
 {{endif}}
     Started := True;
   except
