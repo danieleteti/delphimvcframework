@@ -118,6 +118,10 @@ type
     procedure BlockedPeerCannotUnblockItselfWithAForwardedHeader;
     [Test]
     procedure BlockedForwardedAddressIsStillBlockedBehindATrustedProxy;
+    [Test]
+    procedure ListenOnAHostBindsThatAddressOnly;
+    [Test]
+    procedure ListenAfterStopFollowsTheNewPortAndHost;
   end;
 
 implementation
@@ -130,7 +134,52 @@ uses
   MVCFramework.JWT,
   MVCFramework.Filters,
   MVCFramework.MinimalAPI,
+  IdTCPClient,
+  IdStack,
+  IdGlobal,
   MVCFramework.Server.Factory;
+
+const
+  LISTEN_PORT_A = 8896;
+  LISTEN_PORT_B = 8897;
+
+function CanConnect(const AHost: string; APort: Integer; AIPVersion: TIdIPVersion = Id_IPv4): Boolean;
+var
+  lClient: TIdTCPClient;
+begin
+  lClient := TIdTCPClient.Create(nil);
+  try
+    lClient.IPVersion := AIPVersion;
+    lClient.ConnectTimeout := 2000;
+    try
+      lClient.Connect(AHost, APort);
+      Result := lClient.Connected;
+      lClient.Disconnect;
+    except
+      Result := False;
+    end;
+  finally
+    lClient.Free;
+  end;
+end;
+
+// an IPv4 address of this machine that is not loopback, '' when it has none
+function LanAddress: string;
+var
+  lAddresses: TIdStackLocalAddressList;
+  I: Integer;
+begin
+  Result := '';
+  lAddresses := TIdStackLocalAddressList.Create;
+  try
+    GStack.GetLocalAddressList(lAddresses);
+    for I := 0 to lAddresses.Count - 1 do
+      if (lAddresses[I].IPVersion = Id_IPv4) and not lAddresses[I].IPAddress.StartsWith('127.') then
+        Exit(lAddresses[I].IPAddress);
+  finally
+    lAddresses.Free;
+  end;
+end;
 
 { TSecuritySwitchesController }
 
@@ -225,6 +274,69 @@ begin
   lEngine.UseHTTPFilter(IPBlock([FORWARDED_IP]));
   FIPBlockProxy := TMVCServerFactory.CreateIndyDirect(lEngine);
   FIPBlockProxy.Listen(IPBLOCK_PROXY_PORT);
+end;
+
+procedure TSecuritySwitchesTests.ListenOnAHostBindsThatAddressOnly;
+var
+  lServer: IMVCServer;
+  lLan: string;
+begin
+  TIdStack.IncUsage;
+  try
+    lLan := LanAddress;
+    lServer := TMVCServerFactory.CreateIndyDirect(TMVCEngine.Create);
+    try
+      lServer.Listen(LISTEN_PORT_A, 'localhost');
+      Assert.IsTrue(CanConnect('127.0.0.1', LISTEN_PORT_A), 'localhost must answer on 127.0.0.1');
+      if GStack.SupportsIPv6 then
+        Assert.IsTrue(CanConnect('::1', LISTEN_PORT_A, Id_IPv6), 'localhost must answer on ::1 too');
+      if lLan <> '' then
+        Assert.IsFalse(CanConnect(lLan, LISTEN_PORT_A), 'bound to localhost, it must not answer on ' + lLan);
+      // a second Listen on a listening server changes nothing and does not stop it
+      lServer.Listen(LISTEN_PORT_B, '127.0.0.1');
+      Assert.IsTrue(CanConnect('127.0.0.1', LISTEN_PORT_A), 'a second Listen must leave the server listening');
+      lServer.Stop;
+
+      lServer.Listen(LISTEN_PORT_A, ' [::1] ');
+      if GStack.SupportsIPv6 then
+      begin
+        Assert.IsTrue(CanConnect('::1', LISTEN_PORT_A, Id_IPv6), 'an IPv6 address in brackets must bind');
+        Assert.IsFalse(CanConnect('127.0.0.1', LISTEN_PORT_A), 'bound to ::1, it must not answer on 127.0.0.1');
+      end;
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    TIdStack.DecUsage;
+  end;
+end;
+
+procedure TSecuritySwitchesTests.ListenAfterStopFollowsTheNewPortAndHost;
+var
+  lServer: IMVCServer;
+  lLan: string;
+begin
+  TIdStack.IncUsage;
+  try
+    lLan := LanAddress;
+    lServer := TMVCServerFactory.CreateIndyDirect(TMVCEngine.Create);
+    try
+      lServer.Listen(LISTEN_PORT_A, '127.0.0.1');
+      lServer.Stop;
+      // no host: every interface again, on the new port
+      lServer.Listen(LISTEN_PORT_B);
+      Assert.IsTrue(CanConnect('127.0.0.1', LISTEN_PORT_B), 'the second Listen must use its own port');
+      Assert.IsFalse(CanConnect('127.0.0.1', LISTEN_PORT_A), 'the port of the first Listen must be closed');
+      if lLan <> '' then
+        Assert.IsTrue(CanConnect(lLan, LISTEN_PORT_B), 'without a host it must answer on ' + lLan + ' again');
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    TIdStack.DecUsage;
+  end;
 end;
 
 procedure TSecuritySwitchesTests.TeardownFixture;

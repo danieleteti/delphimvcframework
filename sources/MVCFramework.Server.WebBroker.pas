@@ -105,7 +105,7 @@ implementation
 {$R MVCFramework.Server.WebBroker.dfm}
 
 uses
-  IdHTTPWebBrokerBridge,
+  IdHTTPWebBrokerBridge, IdSocketHandle, IdStack,
   Web.HTTPApp, Web.WebReq,
   MVCFramework.Signal;
 
@@ -192,10 +192,58 @@ begin
   BridgeOf(Self).OnQuerySSLPort := OnQuerySSLPort;
 end;
 
+// False for the values that mean "every interface"
+function HostIsSpecific(const AHost: string): Boolean;
+var
+  lHost: string;
+begin
+  lHost := AHost.Trim;
+  Result := (lHost <> '') and (lHost <> '0.0.0.0') and (lHost <> '*') and (lHost <> '+') and
+    (lHost <> '::') and (lHost <> '[::]');
+end;
+
+// Replaces ABindings with the binding(s) of AHost: none when it means every interface
+procedure BindHost(ABindings: TIdSocketHandles; const AHost: string; APort: Integer);
+
+  procedure Add(const AIP: string; AVersion: TIdIPVersion);
+  var
+    lBinding: TIdSocketHandle;
+  begin
+    lBinding := ABindings.Add;
+    lBinding.IPVersion := AVersion;
+    lBinding.IP := AIP;
+    lBinding.Port := APort;
+  end;
+
+var
+  lHost: string;
+begin
+  ABindings.Clear;
+  if not HostIsSpecific(AHost) then
+    Exit;
+  lHost := AHost.Trim;
+  if lHost.StartsWith('[') and lHost.EndsWith(']') then
+    lHost := lHost.Substring(1, lHost.Length - 2);
+  if SameText(lHost, 'localhost') then
+  begin
+    Add('127.0.0.1', Id_IPv4);
+    if GStack.SupportsIPv6 then
+      Add('::1', Id_IPv6);
+  end
+  else if lHost.Contains(':') then
+    Add(lHost, Id_IPv6)
+  else
+    Add(GStack.ResolveHost(lHost, Id_IPv4), Id_IPv4);
+end;
+
 procedure TMVCWebBrokerServer.Listen(APort: Integer; const AHost: string);
 var
   LBridge: TIdHTTPWebBrokerBridge;
+  LHadHost: Boolean;
 begin
+  if BridgeOf(Self).Active then
+    Exit; // already listening: Stop first to change port or host
+  LHadHost := HostIsSpecific(FHost);
   FPort := APort;
   FHost := AHost;
 
@@ -209,6 +257,11 @@ begin
 
   LBridge := BridgeOf(Self);
   LBridge.DefaultPort := FPort;
+  // AHost names one address to listen on: an IPv4 or IPv6 address, or a host
+  // name. 'localhost' is both loopback addresses. '0.0.0.0', '*', '+' or ''
+  // mean every interface, Indy's behaviour with no binding.
+  if HostIsSpecific(AHost) or LHadHost then
+    BindHost(LBridge.Bindings, AHost, FPort);
   LBridge.MaxConnections := FMaxConnections;
   LBridge.ListenQueue := FListenQueue;
 

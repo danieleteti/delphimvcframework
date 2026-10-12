@@ -1863,7 +1863,7 @@ begin
   FJWT.Claims.JWT_ID := TGUID.NewGuid.ToString;
   FJWT.CustomClaims['username'] := 'dteti';
   FJWT.CustomClaims['userrole'] := 'admin';
-  FJWT.Claims.ExpirationTime := Tomorrow;
+  FJWT.Claims.ExpirationTime := Now + 1; // a full day ahead: "Tomorrow" is midnight, a few minutes away late in the evening
   FJWT.Claims.IssuedAt := Yesterday;
   FJWT.Claims.NotBefore := Yesterday;
   lToken := FJWT.GetToken;
@@ -1888,7 +1888,7 @@ var
   lError: string;
 begin
   FJWT.RegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime];
-  FJWT.Claims.ExpirationTime := Tomorrow;
+  FJWT.Claims.ExpirationTime := Now + 1; // a full day ahead: "Tomorrow" is midnight, a few minutes away late in the evening
   lToken := FJWT.GetToken;
   Assert.isTrue(FJWT.LoadToken(lToken, lError), 'Valid token is considered expired');
 
@@ -1929,7 +1929,7 @@ begin
   lToken := FJWT.GetToken;
   Assert.isTrue(FJWT.LoadToken(lToken, lError), 'Valid token is considered not valid');
 
-  FJWT.Claims.IssuedAt := Tomorrow;
+  FJWT.Claims.IssuedAt := Now + 1; // a full day ahead: "Tomorrow" is midnight, a few minutes away late in the evening
   lToken := FJWT.GetToken;
   Assert.isFalse(FJWT.LoadToken(lToken, lError), 'Still-not-valid token is considered valid');
 
@@ -1991,10 +1991,10 @@ begin
   lToken := FJWT.GetToken;
   Assert.isTrue(FJWT.LoadToken(lToken, lError), 'Valid token is considered not valid');
 
-  FJWT.Claims.NotBefore := Tomorrow;
+  FJWT.Claims.NotBefore := Now + 1; // a full day ahead: "Tomorrow" is midnight, a few minutes away late in the evening
   lToken := FJWT.GetToken;
   Assert.isFalse(FJWT.LoadToken(lToken, lError),
-    'Still-not-valid token is considered valid (near midnight is ok... fix this test) ');
+    'Still-not-valid token is considered valid');
 
   FJWT.Claims.NotBefore := Now;
   lToken := FJWT.GetToken;

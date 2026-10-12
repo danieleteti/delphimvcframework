@@ -30,7 +30,7 @@ interface
 
 uses
   System.SysUtils, System.Classes,
-  IdHTTPServer, IdContext, IdCustomHTTPServer, IdSocketHandle, IdGlobal,
+  IdHTTPServer, IdContext, IdCustomHTTPServer, IdSocketHandle, IdGlobal, IdStack,
   IdHeaderList,
   MVCFramework, MVCFramework.Server.Intf, MVCFramework.Commons;
 
@@ -200,6 +200,50 @@ begin
   inherited;
 end;
 
+// False for the values that mean "every interface"
+function HostIsSpecific(const AHost: string): Boolean;
+var
+  lHost: string;
+begin
+  lHost := AHost.Trim;
+  Result := (lHost <> '') and (lHost <> '0.0.0.0') and (lHost <> '*') and (lHost <> '+') and
+    (lHost <> '::') and (lHost <> '[::]');
+end;
+
+// Replaces ABindings with the binding(s) of AHost: none when it means every interface
+procedure BindHost(ABindings: TIdSocketHandles; const AHost: string; APort: Integer);
+
+  procedure Add(const AIP: string; AVersion: TIdIPVersion);
+  var
+    lBinding: TIdSocketHandle;
+  begin
+    lBinding := ABindings.Add;
+    lBinding.IPVersion := AVersion;
+    lBinding.IP := AIP;
+    lBinding.Port := APort;
+  end;
+
+var
+  lHost: string;
+begin
+  ABindings.Clear;
+  if not HostIsSpecific(AHost) then
+    Exit;
+  lHost := AHost.Trim;
+  if lHost.StartsWith('[') and lHost.EndsWith(']') then
+    lHost := lHost.Substring(1, lHost.Length - 2);
+  if SameText(lHost, 'localhost') then
+  begin
+    Add('127.0.0.1', Id_IPv4);
+    if GStack.SupportsIPv6 then
+      Add('::1', Id_IPv6);
+  end
+  else if lHost.Contains(':') then
+    Add(lHost, Id_IPv6)
+  else
+    Add(GStack.ResolveHost(lHost, Id_IPv4), Id_IPv4);
+end;
+
 procedure TMVCIndyServer.ConfigureHTTPS;
 begin
   if not FUseHTTPS then
@@ -222,11 +266,23 @@ begin
 end;
 
 procedure TMVCIndyServer.Listen(APort: Integer; const AHost: string);
+var
+  lHadHost: Boolean;
 begin
+  if FHTTPServer.Active then
+    Exit; // already listening: Stop first to change port or host
+  lHadHost := HostIsSpecific(FHost);
   FPort := APort;
   FHost := AHost;
 
   FHTTPServer.DefaultPort := FPort;
+  // AHost names one address to listen on: an IPv4 or IPv6 address, or a host
+  // name. 'localhost' is both loopback addresses. '0.0.0.0', '*', '+' or ''
+  // mean every interface, Indy's behaviour with no binding.
+  // Bindings set by the caller on the Indy component are left alone unless a
+  // host is given now or was given to the previous Listen.
+  if HostIsSpecific(AHost) or lHadHost then
+    BindHost(FHTTPServer.Bindings, AHost, FPort);
   FHTTPServer.MaxConnections := FMaxConnections;
   FHTTPServer.KeepAlive := FKeepAlive;
   FHTTPServer.ListenQueue := FListenQueue;
