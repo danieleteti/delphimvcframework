@@ -152,6 +152,25 @@ type
     procedure GetRaw;
   end;
 
+  // only referenced as an array body: no other action registers it first
+  TSwagTestBatchItem = class
+  private
+    fID: Integer;
+    fDescription: string;
+  public
+    property ID: Integer read fID write fID;
+    property Description: string read fDescription write fDescription;
+  end;
+
+  [MVCPath('/api/batch')]
+  TSwagTestBatchController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCSwagParam(plBody, 'items', 'Items', TSwagTestBatchItem, ptArray)]
+    procedure CreateItems;
+  end;
+
   TNativeItem = class
   private
     fFirstName: string;
@@ -224,6 +243,8 @@ type
     procedure DataEnvelopeWrapsTheModelInData;
     [Test]
     procedure OpenAPI3DataEnvelopeRefersToComponents;
+    [Test]
+    procedure ArrayBodyDefinitionIsAnObject;
   end;
 
   [TestFixture]
@@ -308,6 +329,10 @@ procedure TSwagTestCaseController.GetRaw;
 begin
 end;
 
+procedure TSwagTestBatchController.CreateItems;
+begin
+end;
+
 { Saves a document in DMVC_SWAGGER_DUMP_DIR, when set, for the external validators }
 procedure Dump(const AFileName, AContent: string);
 var
@@ -356,6 +381,7 @@ begin
   lEngine.AddController(TSwagTestPeopleController);
   lEngine.AddController(TSwagTestEnvelopeController);
   lEngine.AddController(TSwagTestSqidsController);
+  lEngine.AddController(TSwagTestBatchController);
   lEngine.AddController(TMVCActiveRecordController, '/api/entities');
   {old signature, untouched: the default must stay Swagger 2.0}
   lEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(lEngine, lInfo, '/swagger.json'));
@@ -449,6 +475,21 @@ begin
     Assert.AreEqual('#/definitions/SwagTestPerson', lOne.O['properties'].O['data'].S['$ref'], lOne.ToJSON);
     // the model is registered even though no other action names it
     Assert.IsTrue(lDoc.O['definitions'].Contains('SwagTestPerson'), 'definitions.SwagTestPerson');
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.ArrayBodyDefinitionIsAnObject;
+var
+  lDoc, lParam: TJsonObject;
+begin
+  lDoc := GetJSON('/swagger.json');
+  try
+    lParam := lDoc.O['paths'].O['/api/batch'].O['post'].A['parameters'].O[0];
+    Assert.AreEqual('array', lParam.O['schema'].S['type'], lParam.ToJSON);
+    Assert.AreEqual('object', lDoc.O['definitions'].O['SwagTestBatchItem'].S['type'],
+      lDoc.O['definitions'].O['SwagTestBatchItem'].ToJSON);
   finally
     lDoc.Free;
   end;

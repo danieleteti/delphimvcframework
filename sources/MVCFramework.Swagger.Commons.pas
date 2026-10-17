@@ -499,12 +499,12 @@ begin
           lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(
             aRecordType.QualifiedName,
             aHTTPMethod, False,
-            aMVCSwagParamType = ptArray)
+            False)
         else
           lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
             aParamSchemaClass,
             aHTTPMethod, False,
-            aMVCSwagParamType = ptArray);
+            False);
         aSwagDefinitions.Add(lSwagDefinition);
         lSwagDefinition := nil; // ownership transferred to aSwagDefinitions
       except

@@ -790,6 +790,11 @@ the same socket.
   value, so `-9223372036854775808` came out as about `-2^64`. Win64 was not affected. Fixed in the bundled copy
   (five places); the same fix is proposed upstream, [ahausladen/JsonDataObjects#94](https://github.com/ahausladen/JsonDataObjects/pull/94).
 
+- **Swagger: a class used only as an array body gets an object definition (issue #924).** `[MVCSwagParam]` with
+  `ptArray` produced a definition of the model class that was itself an array ("array of array"), and which of
+  the two came out depended on which route registered the class first. The definition is now always an object;
+  only the parameter schema is an array.
+
 - **JSON-RPC: an error raised before routing answers with the id of the
   request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved
   method name, was answered with `"id": 0` whatever the request id was, so
