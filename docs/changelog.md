@@ -776,6 +776,15 @@ the same socket.
 
 ### Fixed
 
+- **Integers at the edge of their range are deserialized correctly (issues #918, #919).** A JSON number can reach
+  the deserializer as `jdtInt`, `jdtLong`, `jdtULong` or, at the edges of the Int64 range, `jdtFloat`. Only some of
+  those were handled for `NullableInt32`, `NullableInt64` and plain `Int64`, so `2147483647` into a `NullableInt32`
+  raised "Cannot deserialize long integer value" and `-9223372036854775808` raised "Cannot deserialize
+  floating-point value". Every classification is now accepted and the value is checked against the range of the
+  target type (`NullableInt16/32/64`, `NullableUInt16/32/64`, `Int64`, `UInt64`); a value out of range raises
+  `EMVCDeserializationException`. Limit: `-9223372036854775809` cannot be told apart from `-9223372036854775808`
+  once the parser has turned it into a `Double`, so it is accepted as `Low(Int64)`.
+
 - **`JsonDataObjects` (bundled copy): a number below `-(2^63 - 1)` or equal to `2^63` was read with the wrong value
   in 32-bit builds.** The `CPUX86` branches that convert a `UInt64` to a `Double` used the 32-bit field of the
   value, so `-9223372036854775808` came out as about `-2^64`. Win64 was not affected. Fixed in the bundled copy

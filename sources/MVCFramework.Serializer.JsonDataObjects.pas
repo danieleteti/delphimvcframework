@@ -69,6 +69,8 @@ type
     fStringDictionarySerializer: IMVCTypeSerializer;
     function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
       const AttribName: string): Boolean;
+    function TryMapNullableInteger(var Value: TValue; const JSONDataObject: TJsonObject;
+      const AttribName: string): Boolean;
     type
       TFieldMetaInfo = record
         NameAs: String;
@@ -1639,7 +1641,9 @@ begin
     jdtLong, jdtULong:
       begin
         lValueTypeInfo := AValue.TypeInfo;
-        if (lValueTypeInfo = System.TypeInfo(TTimeStamp)) then
+        if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+          // mapped, with its range checked
+        else if (lValueTypeInfo = System.TypeInfo(TTimeStamp)) then
         begin
           AValue := TValue.From<TTimeStamp>(MSecsToTimeStamp(AJSONObject[APropertyName].LongValue))
         end
@@ -1660,7 +1664,9 @@ begin
       end;
 
     jdtFloat:
-      if (AValue.Kind <> tkRecord) then { nullables }
+      if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+        // an integer that arrived as a float (the edges of the Int64 range)
+      else if (AValue.Kind <> tkRecord) then { nullables }
       begin
         AValue := TValue.From<Double>(AJSONObject[APropertyName].FloatValue);
       end
@@ -2032,7 +2038,9 @@ begin
 
     jdtLong, jdtULong:
       begin
-        if (AValue.TypeInfo = System.TypeInfo(TTimeStamp)) then
+        if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+          // mapped, with its range checked
+        else if (AValue.TypeInfo = System.TypeInfo(TTimeStamp)) then
         begin
           AValue := TValue.From<TTimeStamp>(MSecsToTimeStamp(AJSONObject[APropertyName].LongValue))
         end
@@ -2053,7 +2061,9 @@ begin
       end;
 
     jdtFloat:
-      if (AValue.Kind <> tkRecord) then { nullables }
+      if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+        // an integer that arrived as a float (the edges of the Int64 range)
+      else if (AValue.Kind <> tkRecord) then { nullables }
       begin
         AValue := TValue.From<Double>(AJSONObject[APropertyName].FloatValue);
       end
@@ -3479,6 +3489,121 @@ begin
     lJSON.Free;
   end;
 
+end;
+
+function TMVCJsonDataObjectsSerializer.TryMapNullableInteger(var Value: TValue; const JSONDataObject: TJsonObject;
+  const AttribName: string): Boolean;
+const
+  TWO_POW_63 = 9223372036854775808.0;
+  TWO_POW_64 = 18446744073709551616.0;
+
+  procedure OutOfRange;
+  begin
+    raise EMVCDeserializationException.CreateFmt('Integer value out of range for "%s"', [AttribName]);
+  end;
+
+  // JsonDataObjects classifies a number by magnitude and by version: the same
+  // integer can arrive as jdtInt, jdtLong, jdtULong or, at the edges, jdtFloat.
+  // Every class is accepted here; the range is checked against the target.
+  function AsInt64: Int64;
+  var
+    lFloat: Double;
+  begin
+    case JSONDataObject[AttribName].Typ of
+      jdtInt, jdtLong:
+        Result := JSONDataObject[AttribName].LongValue;
+      jdtULong:
+        begin
+          if JSONDataObject[AttribName].ULongValue > UInt64(High(Int64)) then
+            OutOfRange;
+          Result := Int64(JSONDataObject[AttribName].ULongValue);
+        end;
+      jdtFloat:
+        begin
+          lFloat := JSONDataObject[AttribName].FloatValue;
+          // -2^63 is exactly representable and is Low(Int64); 2^63 is out
+          if (Frac(lFloat) <> 0) or (lFloat < -TWO_POW_63) or (lFloat >= TWO_POW_63) then
+            OutOfRange;
+          if lFloat = -TWO_POW_63 then
+            Result := Low(Int64)
+          else
+            Result := Trunc(lFloat);
+        end;
+    else
+      raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [AttribName]);
+    end;
+  end;
+
+  function AsUInt64: UInt64;
+  var
+    lFloat: Double;
+  begin
+    case JSONDataObject[AttribName].Typ of
+      jdtInt, jdtLong:
+        begin
+          if JSONDataObject[AttribName].LongValue < 0 then
+            OutOfRange;
+          Result := UInt64(JSONDataObject[AttribName].LongValue);
+        end;
+      jdtULong:
+        Result := JSONDataObject[AttribName].ULongValue;
+      jdtFloat:
+        begin
+          lFloat := JSONDataObject[AttribName].FloatValue;
+          if (Frac(lFloat) <> 0) or (lFloat < 0) or (lFloat >= TWO_POW_64) then
+            OutOfRange;
+          if lFloat >= TWO_POW_63 then
+            Result := UInt64(Trunc(lFloat - TWO_POW_63)) + UInt64($8000000000000000)
+          else
+            Result := UInt64(Trunc(lFloat));
+        end;
+    else
+      raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [AttribName]);
+    end;
+  end;
+
+var
+  lInt64: Int64;
+begin
+  Result := True;
+  if Value.TypeInfo = TypeInfo(NullableInt32) then
+  begin
+    lInt64 := AsInt64;
+    if (lInt64 < Low(Int32)) or (lInt64 > High(Int32)) then
+      OutOfRange;
+    Value := TValue.From<NullableInt32>(NullableInt32(Int32(lInt64)));
+  end
+  else if Value.TypeInfo = TypeInfo(NullableUInt32) then
+  begin
+    lInt64 := AsInt64;
+    if (lInt64 < 0) or (lInt64 > High(UInt32)) then
+      OutOfRange;
+    Value := TValue.From<NullableUInt32>(NullableUInt32(UInt32(lInt64)));
+  end
+  else if Value.TypeInfo = TypeInfo(NullableInt16) then
+  begin
+    lInt64 := AsInt64;
+    if (lInt64 < Low(Int16)) or (lInt64 > High(Int16)) then
+      OutOfRange;
+    Value := TValue.From<NullableInt16>(NullableInt16(Int16(lInt64)));
+  end
+  else if Value.TypeInfo = TypeInfo(NullableUInt16) then
+  begin
+    lInt64 := AsInt64;
+    if (lInt64 < 0) or (lInt64 > High(UInt16)) then
+      OutOfRange;
+    Value := TValue.From<NullableUInt16>(NullableUInt16(UInt16(lInt64)));
+  end
+  else if Value.TypeInfo = TypeInfo(NullableInt64) then
+    Value := TValue.From<NullableInt64>(NullableInt64(AsInt64()))
+  else if Value.TypeInfo = TypeInfo(NullableUInt64) then
+    Value := TValue.From<NullableUInt64>(NullableUInt64(AsUInt64()))
+  else if Value.TypeInfo = TypeInfo(UInt64) then
+    Value := TValue.From<UInt64>(AsUInt64())
+  else if Value.TypeInfo = TypeInfo(Int64) then
+    Value := TValue.From<Int64>(AsInt64())
+  else
+    Result := False;
 end;
 
 function TMVCJsonDataObjectsSerializer.TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;

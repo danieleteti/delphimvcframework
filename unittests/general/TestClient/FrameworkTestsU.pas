@@ -37,7 +37,7 @@ uses
   MVCFramework.Crypt.Utils, MVCFramework.Filters, MVCFramework.MinimalAPI,
   MVCFramework.Middleware.JWT,
   MVCFramework.Swagger.Commons, Swag.Doc.Path.Operation, Swag.Doc.Definition,
-  Swag.Common.Types, Swag.Common.Consts;
+  Swag.Common.Types, Swag.Common.Consts, MVCFramework.Nullables;
 
 type
 
@@ -378,6 +378,30 @@ type
     procedure TestGenericNullables;
   end;
 
+  TIntBoundsDTO = class
+  public
+    Int32Value: NullableInt32;
+    Int64Value: NullableInt64;
+    PlainInt64: Int64;
+  end;
+
+  [TestFixture]
+  TTestIntegerBoundaries = class(TObject)
+  private
+    function Load(const AJSON: string): TIntBoundsDTO;
+  public
+    [Test]
+    procedure NullableInt32AcceptsTheBounds;
+    [Test]
+    procedure NullableInt32RejectsOverflow;
+    [Test]
+    procedure Int64BoundsAreAccepted;
+    [Test]
+    procedure Int64PositiveOverflowIsRejected;
+    [Test]
+    procedure Int64NegativeOverflowIsRejected;
+  end;
+
   [TestFixture]
   // The session id reaches the engine from a cookie or a query-string
   // parameter and is then used as a file name by the file store and inside a
@@ -584,7 +608,7 @@ uses
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
-  MVCFramework.DotEnv.Parser, MVCFramework.Nullables, System.Rtti,
+  MVCFramework.DotEnv.Parser, System.Rtti,
   MVCFramework.Session, MVCFramework.Middleware.RateLimit, JsonDataObjects,
   MVCFramework.Session.Database;
 
@@ -3633,6 +3657,93 @@ begin
   end;
 end;
 
+{ TTestIntegerBoundaries }
+
+function TTestIntegerBoundaries.Load(const AJSON: string): TIntBoundsDTO;
+begin
+  Result := TIntBoundsDTO.Create;
+  try
+    GetDefaultSerializer.DeserializeObject(AJSON, Result, stFields);
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+procedure TTestIntegerBoundaries.NullableInt32AcceptsTheBounds;
+var
+  lDTO: TIntBoundsDTO;
+begin
+  lDTO := Load('{"int32value":2147483647}');
+  try
+    Assert.IsTrue(lDTO.Int32Value.HasValue);
+    Assert.AreEqual(High(Integer), lDTO.Int32Value.Value);
+  finally
+    lDTO.Free;
+  end;
+  lDTO := Load('{"int32value":-2147483648}');
+  try
+    Assert.IsTrue(lDTO.Int32Value.HasValue);
+    Assert.AreEqual(Low(Integer), lDTO.Int32Value.Value);
+  finally
+    lDTO.Free;
+  end;
+  lDTO := Load('{"int32value":1147483647}');
+  try
+    Assert.AreEqual(1147483647, lDTO.Int32Value.Value);
+  finally
+    lDTO.Free;
+  end;
+end;
+
+procedure TTestIntegerBoundaries.NullableInt32RejectsOverflow;
+begin
+  Assert.WillRaise(procedure begin Load('{"int32value":2147483648}').Free; end,
+    EMVCDeserializationException);
+  Assert.WillRaise(procedure begin Load('{"int32value":-2147483649}').Free; end,
+    EMVCDeserializationException);
+end;
+
+procedure TTestIntegerBoundaries.Int64BoundsAreAccepted;
+var
+  lDTO: TIntBoundsDTO;
+begin
+  lDTO := Load('{"int64value":-9223372036854775808,"plainint64":-9223372036854775808}');
+  try
+    Assert.IsTrue(lDTO.Int64Value.HasValue);
+    Assert.AreEqual(Low(Int64), lDTO.Int64Value.Value);
+    Assert.AreEqual(Low(Int64), lDTO.PlainInt64);
+  finally
+    lDTO.Free;
+  end;
+  lDTO := Load('{"int64value":9223372036854775807,"plainint64":9223372036854775807}');
+  try
+    Assert.AreEqual(High(Int64), lDTO.Int64Value.Value);
+    Assert.AreEqual(High(Int64), lDTO.PlainInt64);
+  finally
+    lDTO.Free;
+  end;
+end;
+
+procedure TTestIntegerBoundaries.Int64PositiveOverflowIsRejected;
+begin
+  Assert.WillRaise(procedure begin Load('{"int64value":9223372036854775808}').Free; end,
+    EMVCDeserializationException);
+  Assert.WillRaise(procedure begin Load('{"plainint64":9223372036854775808}').Free; end,
+    EMVCDeserializationException);
+end;
+
+procedure TTestIntegerBoundaries.Int64NegativeOverflowIsRejected;
+begin
+  // -9223372036854775809 itself cannot be told apart from Low(Int64) once the
+  // parser has turned it into a Double (the two are the same Double), so the
+  // check starts from the first Double below -2^63.
+  Assert.WillRaise(procedure begin Load('{"int64value":-9300000000000000000}').Free; end,
+    EMVCDeserializationException);
+  Assert.WillRaise(procedure begin Load('{"plainint64":-9300000000000000000}').Free; end,
+    EMVCDeserializationException);
+end;
+
 { TTestGenericNullables }
 
 procedure TTestGenericNullables.TestGenericNullables;
@@ -4202,6 +4313,7 @@ TDUnitX.RegisterTestFixture(TTestDotEnvParser);
 TDUnitX.RegisterTestFixture(TTestSqids);
 TDUnitX.RegisterTestFixture(TTestRQLCompiler);
 TDUnitX.RegisterTestFixture(TTestGenericNullables);
+TDUnitX.RegisterTestFixture(TTestIntegerBoundaries);
 TDUnitX.RegisterTestFixture(TTestWizardSecurityDefaults);
 TDUnitX.RegisterTestFixture(TTestClientSafeExceptionMessage);
 TDUnitX.RegisterTestFixture(TTestStaticFileWindowsNames);
