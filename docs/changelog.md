@@ -776,6 +776,11 @@ the same socket.
 
 ### Fixed
 
+- **`JsonDataObjects` (bundled copy): a number below `-(2^63 - 1)` or equal to `2^63` was read with the wrong value
+  in 32-bit builds.** The `CPUX86` branches that convert a `UInt64` to a `Double` used the 32-bit field of the
+  value, so `-9223372036854775808` came out as about `-2^64`. Win64 was not affected. Fixed in the bundled copy
+  (five places); the same fix is proposed upstream, [ahausladen/JsonDataObjects#94](https://github.com/ahausladen/JsonDataObjects/pull/94).
+
 - **JSON-RPC: an error raised before routing answers with the id of the
   request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved
   method name, was answered with `"id": 0` whatever the request id was, so

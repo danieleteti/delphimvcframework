@@ -3761,9 +3761,9 @@ begin
     jdtULong:
       {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
       if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
-        Result := FValue.I
+        Result := FValue.L
       else
-        Result := FValue.I + Single2ToThePowerOf64;
+        Result := FValue.L + Single2ToThePowerOf64;
       {$ELSE}
       Result := FValue.U;
       {$ENDIF CPUX86}
@@ -3824,9 +3824,9 @@ begin
     jdtULong:
       {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
       if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
-        Result := FValue.I
+        Result := FValue.L
       else
-        Result := FValue.I + Single2ToThePowerOf64;
+        Result := FValue.L + Single2ToThePowerOf64;
       {$ELSE}
       Result := FValue.U;
       {$ENDIF CPUX86}
@@ -3889,9 +3889,9 @@ begin
     jdtULong:
       {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
       if TInt64HiLo(FValue.U).Hi and $80000000 = 0 then
-        Result := FValue.I
+        Result := FValue.L
       else
-        Result := FValue.I + Single2ToThePowerOf64;
+        Result := FValue.L + Single2ToThePowerOf64;
       {$ELSE}
       Result := FValue.U;
       {$ENDIF CPUX86}
@@ -8049,9 +8049,9 @@ begin
       {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
       if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
-        Value := FLook.I
+        Value := FLook.L
       else
-        Value := FLook.I + Single2ToThePowerOf64;
+        Value := FLook.L + Single2ToThePowerOf64;
         {$ELSE}
       Value := FLook.U;
         {$ENDIF CPUX86}
@@ -8665,9 +8665,9 @@ begin
       {$IFNDEF KEEP_BIGDECIMAL_PRECISION}
         {$IFDEF CPUX86} // faster and works around an x86 on ARM Prism Emulation bug
       if TInt64HiLo(FLook.U).Hi and $80000000 = 0 then
-        Value := FLook.I
+        Value := FLook.L
       else
-        Value := FLook.I + Single2ToThePowerOf64;
+        Value := FLook.L + Single2ToThePowerOf64;
         {$ELSE}
       Value := FLook.U;
         {$ENDIF CPUX86}
