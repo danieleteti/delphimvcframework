@@ -64,6 +64,7 @@ type
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
     APPLICATION_JSON = 'application/json';
+    APPLICATION_NDJSON = 'application/x-ndjson';
     APPLICATION_OCTET_STREAM = 'application/octet-stream';
     APPLICATION_SVG_XML = 'application/svg+xml';
     APPLICATION_XHTML_XML = 'application/xhtml+xml';

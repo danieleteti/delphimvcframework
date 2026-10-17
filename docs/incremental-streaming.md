@@ -212,9 +212,76 @@ What happens:
 declarative action with flat RAM and broad backend support (Indy + HTTP.sys),
 without writing any socket code.
 
-> `TMVCStreamedResponse` is an abstract base; `TMVCStreamedDataSet` is the only
-> concrete subclass today. New streamed sources (lists, CSV, …) can subclass it
-> later without touching the engine.
+> `TMVCStreamedResponse` is an abstract base; `TMVCStreamedDataSet` streams a
+> dataset and `TMVCStreamedItems<T>` streams a lazy sequence of objects (B.2).
+
+**Content negotiation.** A client sending `Accept: application/x-ndjson` gets
+the dataset as JSON Lines (one record per line, no brackets, no commas); anyone
+else keeps receiving the JSON array.
+
+### B.2 `StreamItems` / `StreamEach` — a lazy sequence of objects
+
+**Unit:** `MVCFramework.Serializer.Streaming.Items` (helpers on `TMVCController`).
+**Action shape:** ordinary `function: TMVCStreamedResponse`.
+
+The source is not a dataset but anything that can produce objects one at a
+time. Nobody builds the whole list: the engine asks for the next item when the
+previous one is on the socket, serializes it, and asks again.
+
+```pascal
+// PULL: return True with AItem filled, or False at the end. State lives in the
+// captured variables, so the closure is the generator.
+function GetCustomers: TMVCStreamedResponse;
+var
+  lQry: TFDQuery; lConn: TFDConnection;
+begin
+  lQry := OpenCursor(lConn);
+  Result := StreamItems<TCustomer>(
+    function(out AItem: TCustomer): Boolean
+    begin
+      Result := not lQry.Eof;
+      if Result then
+      begin
+        AItem := TCustomer.Create(lQry.FieldByName('id').AsInteger, ...);
+        lQry.Next;
+      end;
+    end,
+    True,                                  // AOwnsItems: freed after being written
+    procedure begin lQry.Free; lConn.Free end);   // AOnDone
+end;
+
+// PUSH, like a Python generator: a loop that yields each item.
+function GetTicks(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
+begin
+  Result := StreamEach<TTick>(
+    procedure(const AYield: TMVCYield<TTick>)
+    var I: Integer;
+    begin
+      for I := 1 to ACount do
+        if not AYield(TTick.Create(I)) then Exit;   // False = client gone
+    end);
+end;
+```
+
+`StreamItems<T>` also accepts an `IEnumerable<T>` (a reusable generator class).
+`T` is a class. Note that `TList<T>` / `TObjectList<T>` are classes, not
+`IEnumerable<T>`.
+
+- **Format from `Accept`:** JSON array (default), `application/x-ndjson`, or
+  `text/event-stream` (one `data:` event per item).
+- **`AOnDone`** runs once at the end — also when the client disconnects or an
+  item fails. Close cursors and files there. A closure has no destructor.
+- **`AOwnsItems`:** the engine frees each item after writing it. Pass `False`
+  when the source owns them (a list, or an enumerator that owns `Current`).
+- **Backpressure:** free. The next item is requested only after the previous
+  chunk has been accepted by the socket.
+- **Errors:** a failure before the first item is answered as a normal error
+  response (the headers go out with the first item). Afterwards the body is
+  truncated, the error is logged, and the connection closes.
+- **Serialization:** each item goes through the streaming serializer plan of its
+  class and falls back to the classic serializer for classes the plan does not
+  cover. The output of one item is a single line, so NDJSON and SSE stay valid.
+- **Backends:** Indy Direct and HTTP.sys; WebBroker answers 501 before any byte.
 
 ---
 
@@ -250,7 +317,8 @@ unbounded results, use **A** or **B**.
 | Line-delimited stream | `TMVCJSONLWriter` | `procedure` | NDJSON | no (close) | yes | Indy-based |
 | One big JSON array, custom loop | `TMVCJSONArrayWriter` | `procedure` | JSON array | no (close) | yes | Indy-based |
 | CSV download | `TMVCCSVWriter` | `procedure` | CSV | no (close) | yes | Indy-based |
-| Large dataset, declarative | `StreamDataSet → TMVCStreamedResponse` | `function` | JSON array | no (chunked/close) | yes | Indy Direct + HTTP.sys |
+| Large dataset, declarative | `StreamDataSet → TMVCStreamedResponse` | `function` | JSON array / NDJSON by `Accept` | no (chunked/close) | yes | Indy Direct + HTTP.sys |
+| Lazy sequence of objects | `StreamItems` / `StreamEach → TMVCStreamedResponse` | `function` | JSON array / NDJSON / SSE by `Accept` | no (chunked/close) | yes | Indy Direct + HTTP.sys |
 | Small/moderate dataset, any backend | return `TDataSet`/`TObjectList` | `function` | JSON | **yes** | no (payload buffered) | all |
 
 **Rules of thumb**

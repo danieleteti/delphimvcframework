@@ -761,7 +761,104 @@ type
 
   end;
 
+  /// <summary>Item produced by the /streamitems endpoints.</summary>
+  TStreamItem = class
+  private
+    fID: Integer;
+    fName: string;
+  public
+    constructor Create(const AID: Integer);
+    property ID: Integer read fID write fID;
+    property Name: string read fName write fName;
+  end;
 
+  /// <summary>Counters the tests read back from /streamitems/stats.</summary>
+  TStreamItemsStats = class
+  public
+    class var Produced: Integer; // items created
+    class var Done: Integer;     // times an OnDone callback ran
+    class procedure Reset;
+  end;
+
+  // The non-generic half of IEnumerable / IEnumerator cannot share a class with the
+  // generic one (the method resolution clause is not accepted): it lives in a base.
+  TStreamItemEnumerableBase = class(TInterfacedObject, IEnumerable)
+  protected
+    function IEnumerable.GetEnumerator = GetNonGenEnumerator;
+    function GetNonGenEnumerator: IEnumerator; virtual; abstract;
+  end;
+
+  TStreamItemEnumeratorBase = class(TInterfacedObject, IEnumerator)
+  protected
+    function IEnumerator.GetCurrent = GetCurrentObject;
+    function GetCurrentObject: TObject; virtual; abstract;
+    function MoveNext: Boolean; virtual; abstract;
+    procedure Reset; virtual; abstract;
+  end;
+
+  /// <summary>A hand-written generator: produces TStreamItem on demand.</summary>
+  TStreamItemEnumerator = class(TStreamItemEnumeratorBase, IEnumerator<TStreamItem>)
+  private
+    fCount: Integer;
+    fIndex: Integer;
+    fCurrent: TStreamItem;
+  protected
+    function GetCurrent: TStreamItem;
+    function GetCurrentObject: TObject; override;
+    function MoveNext: Boolean; override;
+    procedure Reset; override;
+  public
+    constructor Create(const ACount: Integer);
+  end;
+
+  TStreamItemGenerator = class(TStreamItemEnumerableBase, IEnumerable<TStreamItem>)
+  private
+    fCount: Integer;
+  protected
+    function GetEnumerator: IEnumerator<TStreamItem>;
+    function GetNonGenEnumerator: IEnumerator; override;
+  public
+    constructor Create(const ACount: Integer);
+  end;
+
+  [MVCPath('/streamitems')]
+  TTestStreamItemsController = class(TMVCController)
+  public
+    [MVCPath('/stats')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces('text/plain')]
+    function Stats: string;
+
+    [MVCPath('/stats/reset')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces('text/plain')]
+    function ResetStats: string;
+
+    [MVCPath('/pull')]
+    [MVCHTTPMethod([httpGET])]
+    function Pull(const [MVCFromQueryString('count', 10)] ACount: Integer): TMVCStreamedResponse;
+
+    [MVCPath('/enumerable')]
+    [MVCHTTPMethod([httpGET])]
+    function Enumerable(const [MVCFromQueryString('count', 10)] ACount: Integer): TMVCStreamedResponse;
+
+    [MVCPath('/yield')]
+    [MVCHTTPMethod([httpGET])]
+    function YieldItems(const [MVCFromQueryString('count', 10)] ACount: Integer): TMVCStreamedResponse;
+
+    // never ends on its own (capped, so a broken disconnect check cannot hang the suite)
+    [MVCPath('/endless')]
+    [MVCHTTPMethod([httpGET])]
+    function Endless: TMVCStreamedResponse;
+
+    [MVCPath('/failbefore')]
+    [MVCHTTPMethod([httpGET])]
+    function FailBefore: TMVCStreamedResponse;
+
+    [MVCPath('/failmid')]
+    [MVCHTTPMethod([httpGET])]
+    function FailMid: TMVCStreamedResponse;
+  end;
 
 implementation
 
@@ -2252,6 +2349,199 @@ begin
   finally
     lParts.Free;
   end;
+end;
+
+{ TStreamItem }
+
+constructor TStreamItem.Create(const AID: Integer);
+begin
+  inherited Create;
+  fID := AID;
+  fName := 'item' + IntToStr(AID);
+  TInterlocked.Increment(TStreamItemsStats.Produced);
+end;
+
+{ TStreamItemsStats }
+
+class procedure TStreamItemsStats.Reset;
+begin
+  TInterlocked.Exchange(Produced, 0);
+  TInterlocked.Exchange(Done, 0);
+end;
+
+{ TStreamItemEnumerator }
+
+constructor TStreamItemEnumerator.Create(const ACount: Integer);
+begin
+  inherited Create;
+  fCount := ACount;
+end;
+
+function TStreamItemEnumerator.GetCurrent: TStreamItem;
+begin
+  Result := fCurrent;
+end;
+
+function TStreamItemEnumerator.GetCurrentObject: TObject;
+begin
+  Result := fCurrent;
+end;
+
+function TStreamItemEnumerator.MoveNext: Boolean;
+begin
+  Result := fIndex < fCount;
+  if Result then
+  begin
+    Inc(fIndex);
+    fCurrent := TStreamItem.Create(fIndex);
+  end;
+end;
+
+procedure TStreamItemEnumerator.Reset;
+begin
+  fIndex := 0;
+end;
+
+{ TStreamItemGenerator }
+
+constructor TStreamItemGenerator.Create(const ACount: Integer);
+begin
+  inherited Create;
+  fCount := ACount;
+end;
+
+function TStreamItemGenerator.GetEnumerator: IEnumerator<TStreamItem>;
+begin
+  Result := TStreamItemEnumerator.Create(fCount);
+end;
+
+function TStreamItemGenerator.GetNonGenEnumerator: IEnumerator;
+begin
+  Result := TStreamItemEnumerator.Create(fCount);
+end;
+
+{ TTestStreamItemsController }
+
+function TTestStreamItemsController.Stats: string;
+begin
+  Result := Format('produced=%d;done=%d',
+    [TStreamItemsStats.Produced, TStreamItemsStats.Done]);
+end;
+
+function TTestStreamItemsController.ResetStats: string;
+begin
+  TStreamItemsStats.Reset;
+  Result := Stats;
+end;
+
+function TTestStreamItemsController.Pull(const ACount: Integer): TMVCStreamedResponse;
+var
+  lCount, lIndex: Integer;
+begin
+  lCount := ACount;
+  lIndex := 0;
+  Result := StreamItems<TStreamItem>(
+    function(out AItem: TStreamItem): Boolean
+    begin
+      Result := lIndex < lCount;
+      if Result then
+      begin
+        Inc(lIndex);
+        AItem := TStreamItem.Create(lIndex);
+      end;
+    end,
+    True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
+end;
+
+function TTestStreamItemsController.Enumerable(const ACount: Integer): TMVCStreamedResponse;
+begin
+  Result := StreamItems<TStreamItem>(TStreamItemGenerator.Create(ACount), True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
+end;
+
+function TTestStreamItemsController.YieldItems(const ACount: Integer): TMVCStreamedResponse;
+var
+  lCount: Integer;
+begin
+  lCount := ACount;
+  Result := StreamEach<TStreamItem>(
+    procedure(const AYield: TMVCYield<TStreamItem>)
+    var
+      I: Integer;
+    begin
+      for I := 1 to lCount do
+        if not AYield(TStreamItem.Create(I)) then
+          Exit; // client gone
+    end,
+    True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
+end;
+
+function TTestStreamItemsController.Endless: TMVCStreamedResponse;
+var
+  lIndex: Integer;
+begin
+  lIndex := 0;
+  Result := StreamItems<TStreamItem>(
+    function(out AItem: TStreamItem): Boolean
+    begin
+      Result := lIndex < 5000000;
+      if Result then
+      begin
+        Inc(lIndex);
+        AItem := TStreamItem.Create(lIndex);
+      end;
+    end,
+    True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
+end;
+
+function TTestStreamItemsController.FailBefore: TMVCStreamedResponse;
+begin
+  Result := StreamItems<TStreamItem>(
+    function(out AItem: TStreamItem): Boolean
+    begin
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, 'failbefore');
+    end,
+    True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
+end;
+
+function TTestStreamItemsController.FailMid: TMVCStreamedResponse;
+var
+  lIndex: Integer;
+begin
+  lIndex := 0;
+  Result := StreamItems<TStreamItem>(
+    function(out AItem: TStreamItem): Boolean
+    begin
+      Inc(lIndex);
+      if lIndex = 3 then
+        raise Exception.Create('failmid');
+      AItem := TStreamItem.Create(lIndex);
+      Result := True;
+    end,
+    True,
+    procedure
+    begin
+      TInterlocked.Increment(TStreamItemsStats.Done);
+    end);
 end;
 
 initialization

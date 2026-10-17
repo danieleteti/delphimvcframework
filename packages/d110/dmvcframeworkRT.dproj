@@ -224,6 +224,7 @@
         <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.DataSet.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.Items.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.MinimalAPI.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Filters.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.StaticFiles.pas"/>

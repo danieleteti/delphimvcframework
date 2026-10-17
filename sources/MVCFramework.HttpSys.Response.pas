@@ -469,23 +469,26 @@ end;
 type
   TMVCHttpSysChunkedWriter = class(TInterfacedObject, IMVCChunkedResponseWriter)
   private
+    FOwner: TMVCHttpSysResponse;
     FReqQueueHandle: THandle;
     FRequestId: HTTP_REQUEST_ID;
     FConnected: Boolean;
     FContentTypeAnsi: UTF8String; // kept alive while the response is open
     FReasonAnsi: UTF8String;
   public
-    constructor Create(AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID);
+    constructor Create(AOwner: TMVCHttpSysResponse; AReqQueueHandle: THandle;
+      ARequestId: HTTP_REQUEST_ID);
     procedure SendHeaders(const AContentType, ACharset: string);
     procedure WriteChunk(const ABytes: TBytes);
     procedure Finish;
     function Connected: Boolean;
   end;
 
-constructor TMVCHttpSysChunkedWriter.Create(AReqQueueHandle: THandle;
-  ARequestId: HTTP_REQUEST_ID);
+constructor TMVCHttpSysChunkedWriter.Create(AOwner: TMVCHttpSysResponse;
+  AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID);
 begin
   inherited Create;
+  FOwner := AOwner;
   FReqQueueHandle := AReqQueueHandle;
   FRequestId := ARequestId;
   FConnected := True;
@@ -497,6 +500,12 @@ var
   lBytesSent: ULONG;
   lResult: ULONG;
 begin
+  // From here the reply is ours: the engine must skip the function-return
+  // render and Flush becomes a no-op. Marked now, not when the writer is
+  // created, so a failure before the first byte still gets a normal error
+  // response.
+  FOwner.StreamingHandled := True;
+  FOwner.MarkStreamingHandled;
   FillChar(lResponse, SizeOf(lResponse), 0);
   lResponse.Version.MajorVersion := 1;
   lResponse.Version.MinorVersion := 1;
@@ -561,9 +570,7 @@ end;
 
 function TMVCHttpSysResponse.CreateChunkedWriter: IMVCChunkedResponseWriter;
 begin
-  StreamingHandled := True;
-  MarkStreamingHandled;
-  Result := TMVCHttpSysChunkedWriter.Create(FReqQueueHandle, FRequestId);
+  Result := TMVCHttpSysChunkedWriter.Create(Self, FReqQueueHandle, FRequestId);
 end;
 
 {$ENDIF}

@@ -127,6 +127,28 @@ certificate you cannot fix.
 
 ### Added
 
+- **`StreamItems` and `StreamEach`: stream a lazy sequence of objects.** An
+  action returns a `TMVCStreamedResponse` built from a source that produces
+  objects one at a time, so nobody has to hand the framework the whole list:
+  `StreamItems<T>(function(out AItem: T): Boolean ...)` is called for the next
+  item only after the previous one is on the socket (it also takes an
+  `IEnumerable<T>`), and `StreamEach<T>(procedure(const AYield: TMVCYield<T>) ...)`
+  is the same written as a plain loop, like `yield` in a Python generator. An
+  `AOnDone` callback runs at the end, also when the client disconnects or an
+  item fails, to close cursors and files. The format follows the `Accept`
+  header: JSON array, `application/x-ndjson` or `text/event-stream`. Indy
+  Direct and HTTP.sys; WebBroker answers 501 as for `StreamDataSet`. Additive:
+  nothing changes for existing actions. A streamed response that fails before
+  its first byte is now answered with the normal error response instead of an
+  empty one. Showcase in `samples/streamed_array_writer`.
+
+- **`StreamDataSet` answers in JSON Lines on request.** A client sending
+  `Accept: application/x-ndjson` receives one record per line
+  (`application/x-ndjson`, no brackets, no commas) instead of the JSON array,
+  with the same flat server memory. Without that header nothing changes: the
+  action stays `Result := StreamDataSet(qry)` and the response is the same
+  array as before. New constant `TMVCMediaType.APPLICATION_NDJSON`.
+
 - **MCP servers from the IDE wizard.** A ninth preset, "MCP Server", and four
   options on the Options page of every preset generate a project that exposes
   tools, resources and prompts over the Model Context Protocol. The protocol
@@ -789,6 +811,11 @@ the same socket.
   in 32-bit builds.** The `CPUX86` branches that convert a `UInt64` to a `Double` used the 32-bit field of the
   value, so `-9223372036854775808` came out as about `-2^64`. Win64 was not affected. Fixed in the bundled copy
   (five places); the same fix is proposed upstream, [ahausladen/JsonDataObjects#94](https://github.com/ahausladen/JsonDataObjects/pull/94).
+
+- **HTTP.sys: a streamed response that fails before its first byte answers with the error instead of hanging.**
+  The chunk writer marked the reply as already handled when it was created, so the error response built for a
+  failure before the headers was never sent and the client waited for its timeout. The mark is now set when the
+  headers go out. Indy Direct was not affected.
 
 - **Swagger: a class used only as an array body gets an object definition (issue #924).** `[MVCSwagParam]` with
   `ptArray` produced a definition of the model class that was itself an array ("array of array"), and which of

@@ -500,10 +500,33 @@ type
   /// MVCFramework.Serializer.Streaming.DataSet).
   /// </summary>
   TMVCStreamedResponse = class abstract
+  protected
+    /// Set by StreamTo right after the headers go out. Until then a failure is
+    /// still answered with a normal error response; afterwards the body is
+    /// just truncated.
+    fHeadersSent: Boolean;
   public
     procedure StreamTo(const AWriter: IMVCChunkedResponseWriter;
       const AContext: TWebContext); virtual; abstract;
+    property HeadersSent: Boolean read fHeadersSent;
   end;
+
+  /// <summary>
+  /// Pull source for StreamItems: fill AItem and return True, or return False
+  /// when the sequence is over. Called again only after the previous item has
+  /// been written to the socket.
+  /// </summary>
+  TMVCItemSource<T: class> = reference to function(out AItem: T): Boolean;
+  /// <summary>
+  /// Hands one item to the response. Returns False once the client is gone:
+  /// the producer must stop.
+  /// </summary>
+  TMVCYield<T: class> = reference to function(const AItem: T): Boolean;
+  /// <summary>
+  /// Push source for StreamEach: a plain loop that calls AYield for each item,
+  /// like a Python generator calls yield.
+  /// </summary>
+  TMVCItemProducer<T: class> = reference to procedure(const AYield: TMVCYield<T>);
 
   TMVCWebResponse = class
   private
@@ -921,6 +944,27 @@ type
       const ANameCase: TMVCNameCase = ncLowerCase;
       const AOwnsDataSet: Boolean = True;
       const AIgnoredFields: TMVCIgnoredList = nil): TMVCStreamedResponse;
+    /// <summary>
+    /// Stream a lazily produced sequence of objects, one at a time. The engine
+    /// calls ANext for the next item only after the previous one is on the
+    /// socket, so the caller never builds the whole list. AOwnsItems frees
+    /// each item after it is written; AOnDone runs once at the end, also when
+    /// the client disconnects or an item fails (close cursors/files here).
+    ///   function GetAll: TMVCStreamedResponse;
+    ///   begin Result := StreamItems&lt;TCustomer&gt;(function(out AItem: TCustomer): Boolean ... end); end;
+    /// The format follows the Accept header: JSON array, application/x-ndjson
+    /// or text/event-stream.
+    /// </summary>
+    function StreamItems<T: class>(const ANext: TMVCItemSource<T>;
+      const AOwnsItems: Boolean = True; const AOnDone: TProc = nil): TMVCStreamedResponse; overload;
+    function StreamItems<T: class>(const AItems: IEnumerable<T>;
+      const AOwnsItems: Boolean = True; const AOnDone: TProc = nil): TMVCStreamedResponse; overload;
+    /// <summary>
+    /// Same as StreamItems, written like a Python generator: a loop calling
+    /// AYield for each item, which returns False when the client is gone.
+    /// </summary>
+    function StreamEach<T: class>(const AProducer: TMVCItemProducer<T>;
+      const AOwnsItems: Boolean = True; const AOnDone: TProc = nil): TMVCStreamedResponse;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
     procedure Render(const AStatusCode: Integer; const AContent: string); overload;
@@ -1585,6 +1629,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Streaming,
   MVCFramework.Serializer.Streaming.DataSet,
+  MVCFramework.Serializer.Streaming.Items,
   MVCFramework.JSONRPC,
   MVCFramework.Router,
   MVCFramework.Rtti.Utils,
@@ -5417,6 +5462,9 @@ begin
   except
     on E: Exception do
     begin
+      // Nothing sent yet: still a normal error response.
+      if not AStreamed.HeadersSent then
+        raise;
       // Mid-stream failure: headers already sent, so no HTTP error is
       // possible. Do NOT Finish (leave the body truncated) and do NOT
       // re-raise past the handler. Log and let the connection close.
@@ -5430,6 +5478,24 @@ function TMVCRenderer.StreamDataSet(const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList): TMVCStreamedResponse;
 begin
   Result := TMVCStreamedDataSet.Create(ADataSet, ANameCase, AOwnsDataSet, AIgnoredFields);
+end;
+
+function TMVCRenderer.StreamItems<T>(const ANext: TMVCItemSource<T>;
+  const AOwnsItems: Boolean; const AOnDone: TProc): TMVCStreamedResponse;
+begin
+  Result := TMVCStreamedItems<T>.Create(ANext, AOwnsItems, AOnDone);
+end;
+
+function TMVCRenderer.StreamItems<T>(const AItems: IEnumerable<T>;
+  const AOwnsItems: Boolean; const AOnDone: TProc): TMVCStreamedResponse;
+begin
+  Result := TMVCStreamedItems<T>.Create(AItems, AOwnsItems, AOnDone);
+end;
+
+function TMVCRenderer.StreamEach<T>(const AProducer: TMVCItemProducer<T>;
+  const AOwnsItems: Boolean; const AOnDone: TProc): TMVCStreamedResponse;
+begin
+  Result := TMVCStreamedItems<T>.CreateProducer(AProducer, AOwnsItems, AOnDone);
 end;
 
 procedure TMVCRenderer.RenderSSE(const EventID, EventData: string; EventName: string;

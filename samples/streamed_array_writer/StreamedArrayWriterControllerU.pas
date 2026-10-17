@@ -26,6 +26,13 @@ unit StreamedArrayWriterControllerU;
 //      /stream/datasetfunc      return TDataSet    -> buffered, has Content-Length
 //      /stream/datasetstreamed  return TMVCStreamedResponse -> chunked, no CL
 //
+//  Three lazy-sequence paths (StreamItems / StreamEach, TMVCStreamedResponse):
+//      /stream/items            pull function over a DB cursor, one TPerson at a time
+//      /stream/itemsfile        pull function over a lazy file reader
+//      /stream/each             a plain loop that "yields" each TPerson
+//  The wire format follows the Accept header: JSON array, application/x-ndjson
+//  or text/event-stream.
+//
 //  All DB-backed procedures share the private OpenPeopleCursor helper so the
 //  forward-only cursor setup is written exactly once.
 //
@@ -173,6 +180,38 @@ type
     [MVCPath('/datasetstreamed')]
     [MVCHTTPMethod([httpGET])]
     function GetStreamedDataSet: TMVCStreamedResponse;
+
+    // -----------------------------------------------------------------------
+    //  Lazy sequences: the engine asks for the next item only when the
+    //  previous one is on the socket. Format negotiated from Accept.
+    // -----------------------------------------------------------------------
+
+    /// <summary>
+    /// PULL function over a forward-only DB cursor, mapped to TPerson. The
+    /// closure is the whole "generator": its state lives in the captured
+    /// cursor. The OnDone callback closes the cursor, also when the client
+    /// disconnects halfway.
+    /// </summary>
+    [MVCPath('/items')]
+    [MVCHTTPMethod([httpGET])]
+    function GetItems: TMVCStreamedResponse;
+
+    /// <summary>
+    /// PULL function over a lazy file reader: one line read, one TPerson built,
+    /// one item written. The enumerator owns the current person, so the
+    /// engine must not free it (AOwnsItems = False).
+    /// </summary>
+    [MVCPath('/itemsfile')]
+    [MVCHTTPMethod([httpGET])]
+    function GetItemsFromFile: TMVCStreamedResponse;
+
+    /// <summary>
+    /// PUSH, written like a Python generator: a plain loop calling AYield for
+    /// each item. AYield returns False once the client is gone.
+    /// </summary>
+    [MVCPath('/each')]
+    [MVCHTTPMethod([httpGET])]
+    function GetEach(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
   end;
 
 implementation
@@ -484,6 +523,72 @@ begin
     TMVCActiveRecord.SelectUnidirectionalDataSet(
       'SELECT id, full_name, country, age FROM people ORDER BY id', []),
     ncLowerCase, True);
+end;
+
+function TStreamedArrayWriterController.GetItems: TMVCStreamedResponse;
+var
+  lConn: TFDConnection;
+  lQry: TFDQuery;
+begin
+  lQry := OpenPeopleCursor(lConn);
+  Result := StreamItems<TPerson>(
+    function(out AItem: TPerson): Boolean
+    begin
+      Result := not lQry.Eof;
+      if Result then
+      begin
+        AItem := TPerson.Create(lQry.FieldByName('id').AsInteger,
+          lQry.FieldByName('full_name').AsString,
+          lQry.FieldByName('country').AsString,
+          lQry.FieldByName('age').AsInteger);
+        lQry.Next;
+      end;
+    end,
+    True,
+    procedure
+    begin
+      lQry.Free;
+      lConn.Free;
+    end);
+end;
+
+function TStreamedArrayWriterController.GetItemsFromFile: TMVCStreamedResponse;
+var
+  lSource: TPersonFileSource;
+  lEnumerator: TEnumerator<TPerson>;
+begin
+  lSource := TPersonFileSource.Create(GetPeopleFeedPath);
+  lEnumerator := lSource.GetEnumerator;
+  Result := StreamItems<TPerson>(
+    function(out AItem: TPerson): Boolean
+    begin
+      Result := lEnumerator.MoveNext;
+      if Result then
+        AItem := lEnumerator.Current;
+    end,
+    False, // the enumerator owns the current person
+    procedure
+    begin
+      lEnumerator.Free;
+      lSource.Free;
+    end);
+end;
+
+function TStreamedArrayWriterController.GetEach(const ACount: Integer): TMVCStreamedResponse;
+var
+  lCount: Integer;
+begin
+  lCount := ACount;
+  Result := StreamEach<TPerson>(
+    procedure(const AYield: TMVCYield<TPerson>)
+    var
+      I: Integer;
+    begin
+      for I := 1 to lCount do
+        if not AYield(TPerson.Create(I, FIRST[I mod 10] + ' ' + LAST[(I div 10) mod 10],
+          COUNTRIES[I mod 6], 18 + (I mod 60))) then
+          Exit; // client gone
+    end);
 end;
 
 end.

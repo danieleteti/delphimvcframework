@@ -153,6 +153,7 @@ contains
   MVCFramework.WebBroker.Response in '..\..\sources\MVCFramework.WebBroker.Response.pas',
   MVCFramework.Serializer.Streaming in '..\..\sources\MVCFramework.Serializer.Streaming.pas',
   MVCFramework.Serializer.Streaming.DataSet in '..\..\sources\MVCFramework.Serializer.Streaming.DataSet.pas',
+  MVCFramework.Serializer.Streaming.Items in '..\..\sources\MVCFramework.Serializer.Streaming.Items.pas',
   MVCFramework.Server.Intf in '..\..\sources\MVCFramework.Server.Intf.pas',
   MVCFramework.Server.Indy in '..\..\sources\MVCFramework.Server.Indy.pas',
   MVCFramework.Indy.Request in '..\..\sources\MVCFramework.Indy.Request.pas',

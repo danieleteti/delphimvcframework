@@ -12,7 +12,9 @@ type
   /// <summary>
   /// Streams a forward-only TDataSet to the client as a single JSON array,
   /// record by record, with flat server RAM (one record string + a fixed
-  /// flush buffer). Owns the dataset by default. Return it from a functional
+  /// flush buffer). A client sending "Accept: application/x-ndjson" gets
+  /// JSON Lines instead: one record per line, no brackets. Owns the dataset
+  /// by default. Return it from a functional
   /// action; the engine renders it via the active backend's chunk writer.
   /// </summary>
   TMVCStreamedDataSet = class(TMVCStreamedResponse)
@@ -65,6 +67,7 @@ var
   lSer: TMVCJsonDataObjectsSerializer;
   lBuff: TStringBuilder;
   lFirst: Boolean;
+  lJSONL: Boolean;
 
   procedure FlushBuffer;
   begin
@@ -75,29 +78,43 @@ var
   end;
 
 begin
-  AWriter.SendHeaders(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8);
+  // Opt-in: only a client asking for NDJSON gets one record per line; anyone
+  // else keeps receiving the JSON array.
+  lJSONL := Pos(TMVCMediaType.APPLICATION_NDJSON, LowerCase(AContext.Request.Accept)) > 0;
+  if lJSONL then
+    AWriter.SendHeaders(TMVCMediaType.APPLICATION_NDJSON, TMVCCharSet.UTF_8)
+  else
+    AWriter.SendHeaders(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8);
+  fHeadersSent := True;
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try
     lBuff := TStringBuilder.Create;
     try
       lFirst := True;
-      lBuff.Append('[');
+      if not lJSONL then
+        lBuff.Append('[');
       // Forward-only iteration: no First, no bookmarks. Honors unidirectional
       // datasets (a unidirectional FireDAC cursor raises on First/GotoBookmark).
       while not fDataSet.Eof do
       begin
         if not AWriter.Connected then
           Exit; // client gone: abort, no terminator (caller will not Finish)
-        if lFirst then
-          lFirst := False
-        else
-          lBuff.Append(',');
+        if not lJSONL then
+        begin
+          if lFirst then
+            lFirst := False
+          else
+            lBuff.Append(',');
+        end;
         lBuff.Append(lSer.SerializeDataSetRecord(fDataSet, fIgnoredFields, fNameCase, nil));
+        if lJSONL then
+          lBuff.Append(#10);
         if lBuff.Length >= FLUSH_THRESHOLD_CHARS then
           FlushBuffer;
         fDataSet.Next;
       end;
-      lBuff.Append(']');
+      if not lJSONL then
+        lBuff.Append(']');
       FlushBuffer;
     finally
       lBuff.Free;

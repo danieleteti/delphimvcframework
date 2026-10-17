@@ -151,6 +151,7 @@ contains
   MVCFramework.Validators in '..\..\sources\MVCFramework.Validators.pas',
   MVCFramework.Serializer.Streaming in '..\..\sources\MVCFramework.Serializer.Streaming.pas',
   MVCFramework.Serializer.Streaming.DataSet in '..\..\sources\MVCFramework.Serializer.Streaming.DataSet.pas',
+  MVCFramework.Serializer.Streaming.Items in '..\..\sources\MVCFramework.Serializer.Streaming.Items.pas',
   MVCFramework.WebBroker.Request in '..\..\sources\MVCFramework.WebBroker.Request.pas',
   MVCFramework.WebBroker.Response in '..\..\sources\MVCFramework.WebBroker.Response.pas',
   MVCFramework.Server.Intf in '..\..\sources\MVCFramework.Server.Intf.pas',

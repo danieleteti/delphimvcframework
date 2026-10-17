@@ -315,6 +315,10 @@ type
     // body so the framework fails cleanly (5xx) before any byte is written.
     [Test]
     procedure TestStreamedDataSetChunked_EndToEnd;
+    // Same endpoint, but a client sending "Accept: application/x-ndjson" gets
+    // JSON Lines: one record per line, no array brackets.
+    [Test]
+    procedure TestStreamedDataSetChunked_NDJSON;
   end;
 
   // MariaDB runs from the copy bundled under TestClient\mariadb, started on its
@@ -5382,6 +5386,63 @@ begin
     lResp := lRESTClient.Get('/streameddatasetchunked');
     Assert.AreEqual<Integer>(200, lResp.StatusCode,
       'streamed endpoint not repeatable (second request failed)');
+  finally
+    ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL('DROP TABLE IF EXISTS streamed_people');
+  end;
+end;
+
+procedure TTestActiveRecordPostgreSQL.TestStreamedDataSetChunked_NDJSON;
+const
+  ROW_COUNT = 10000;
+var
+  lRESTClient: IMVCRESTClient;
+  lResp: IMVCRESTResponse;
+  lLines: TArray<string>;
+  lObj: TJsonObject;
+  lBase: TJsonBaseObject;
+  I: Integer;
+begin
+  ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL('DROP TABLE IF EXISTS streamed_people');
+  ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL(
+    'CREATE TABLE streamed_people (id INTEGER PRIMARY KEY, first_name VARCHAR(50), last_name VARCHAR(50))');
+  ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL(
+    'INSERT INTO streamed_people (id, first_name, last_name) ' +
+    'SELECT g, ''First'' || g, ''Last'' || g FROM generate_series(1, ' + IntToStr(ROW_COUNT) + ') g');
+  try
+    lRESTClient := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
+    lRESTClient.ReadTimeout(15000);
+    lRESTClient.Accept('application/x-ndjson');
+    lResp := lRESTClient.Get('/streameddatasetchunked');
+
+    if lResp.StatusCode <> 200 then
+    begin
+      // Classic WebBroker cannot chunk: clean 5xx before any byte.
+      Assert.IsTrue(lResp.StatusCode >= 500,
+        'unsupported backend must fail cleanly, got ' + IntToStr(lResp.StatusCode));
+      Exit;
+    end;
+
+    Assert.IsTrue(lResp.ContentType.StartsWith('application/x-ndjson'),
+      'content type is ' + lResp.ContentType);
+    Assert.AreEqual('', lResp.HeaderValue('Content-Length'),
+      'a streamed response must not carry a Content-Length header');
+
+    Assert.IsTrue(lResp.Content.EndsWith(#10), 'last record is not newline-terminated');
+    lLines := lResp.Content.TrimRight([#10, #13]).Split([#10]);
+    Assert.AreEqual<Integer>(ROW_COUNT, Length(lLines), 'line count mismatch');
+    for I := 0 to High(lLines) do
+    begin
+      // each line must parse on its own and be an object (no '[' / ',' wrapper)
+      lBase := TJsonBaseObject.Parse(lLines[I]);
+      try
+        Assert.IsTrue(lBase is TJsonObject, 'line ' + IntToStr(I) + ' is not a JSON object');
+        lObj := TJsonObject(lBase);
+        Assert.AreEqual<Integer>(I + 1, lObj.I['id']);
+        Assert.AreEqual('First' + IntToStr(I + 1), lObj.S['first_name']);
+      finally
+        lBase.Free;
+      end;
+    end;
   finally
     ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL('DROP TABLE IF EXISTS streamed_people');
   end;

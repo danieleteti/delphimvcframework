@@ -47,6 +47,7 @@ begin
     .AddController(TTestPrivateServerControllerCustomAuth)
     .AddController(TTestMultiPathController)
     .AddController(TTestActionResultController)
+    .AddController(TTestStreamItemsController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .AddController(TMVCActiveRecordController, '/api/entities')

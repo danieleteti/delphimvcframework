@@ -573,6 +573,41 @@ type
     procedure InitExecutors; override;
   end;
 
+  // StreamItems / StreamEach: lazily produced sequences streamed item by item.
+  // In-memory sources, no database. The classic WebBroker host cannot chunk and
+  // answers 5xx before any byte: every test returns early there.
+  [TestFixture]
+  [Category('streaming')]
+  TStreamItemsTest = class(TObject)
+  private
+    function NewClient(const AAccept: string = ''): IMVCRESTClient;
+    function ReadStat(const AName: string): Integer;
+    function WaitForDone(const AMin: Integer; const ATimeoutMS: Integer = 10000): Boolean;
+    procedure CheckArray(const APath: string; const ACount: Integer);
+    procedure CheckLines(const APath: string; const ACount: Integer);
+  public
+    [Setup]
+    procedure Setup;
+    [Test]
+    procedure TestPullJSONArray;
+    [Test]
+    procedure TestPullNDJSON;
+    [Test]
+    procedure TestPullSSE;
+    [Test]
+    procedure TestEnumerableJSONArray;
+    [Test]
+    procedure TestYieldNDJSON;
+    [Test]
+    procedure TestEmptySource;
+    [Test]
+    procedure TestFailureBeforeFirstItemIsANormalErrorResponse;
+    [Test]
+    procedure TestFailureMidStreamTruncatesAndReleasesTheSource;
+    [Test]
+    procedure TestClientDisconnectStopsThePullAndReleasesTheSource;
+  end;
+
 implementation
 
 uses
@@ -4951,8 +4986,232 @@ begin
     ':8888/jsonrpcclass1withget', false, jrpcGet);
 end;
 
+{ TStreamItemsTest }
+
+function TStreamItemsTest.NewClient(const AAccept: string): IMVCRESTClient;
+begin
+  Result := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 8888);
+  Result.ReadTimeout(15000);
+  if AAccept <> '' then
+    Result.Accept(AAccept);
+end;
+
+function TStreamItemsTest.ReadStat(const AName: string): Integer;
+var
+  lPart: string;
+begin
+  Result := -1;
+  for lPart in NewClient.Get('/streamitems/stats').Content.Split([';']) do
+    if lPart.StartsWith(AName + '=') then
+      Exit(StrToInt(lPart.Substring(Length(AName) + 1)));
+end;
+
+function TStreamItemsTest.WaitForDone(const AMin, ATimeoutMS: Integer): Boolean;
+var
+  lStart: Cardinal;
+begin
+  lStart := TThread.GetTickCount;
+  repeat
+    Result := ReadStat('done') >= AMin;
+    if not Result then
+      Sleep(50);
+  until Result or (TThread.GetTickCount - lStart > Cardinal(ATimeoutMS));
+end;
+
+procedure CheckItem(const AJSON: TJDOJsonObject; const AIndex: Integer);
+begin
+  Assert.AreEqual<Integer>(AIndex + 1, AJSON.I['id'], 'wrong id at ' + IntToStr(AIndex));
+  Assert.AreEqual('item' + IntToStr(AIndex + 1), AJSON.S['name'], 'wrong name at ' + IntToStr(AIndex));
+end;
+
+procedure TStreamItemsTest.CheckArray(const APath: string; const ACount: Integer);
+var
+  lRes: IMVCRESTResponse;
+  lBase: TJDOJsonBaseObject;
+  I: Integer;
+begin
+  lRes := NewClient.Get(APath);
+  if lRes.StatusCode >= 500 then
+    Exit; // host without chunked streaming (classic WebBroker)
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.IsTrue(lRes.ContentType.StartsWith('application/json'), 'content type is ' + lRes.ContentType);
+  Assert.AreEqual('', lRes.HeaderValue('Content-Length'),
+    'a streamed response must not carry a Content-Length header');
+  lBase := TJDOJsonBaseObject.Parse(lRes.Content);
+  try
+    Assert.IsTrue(lBase is TJDOJsonArray, 'not a JSON array');
+    Assert.AreEqual<Integer>(ACount, TJDOJsonArray(lBase).Count);
+    for I := 0 to TJDOJsonArray(lBase).Count - 1 do
+      CheckItem(TJDOJsonArray(lBase).O[I], I);
+  finally
+    lBase.Free;
+  end;
+  Assert.IsTrue(WaitForDone(1), 'the source was not released');
+  Assert.AreEqual<Integer>(ACount, ReadStat('produced'));
+end;
+
+procedure TStreamItemsTest.CheckLines(const APath: string; const ACount: Integer);
+var
+  lRes: IMVCRESTResponse;
+  lLines: TArray<string>;
+  lBase: TJDOJsonBaseObject;
+  I: Integer;
+begin
+  lRes := NewClient('application/x-ndjson').Get(APath);
+  if lRes.StatusCode >= 500 then
+    Exit;
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.IsTrue(lRes.ContentType.StartsWith('application/x-ndjson'), 'content type is ' + lRes.ContentType);
+  Assert.IsTrue(lRes.Content.EndsWith(#10), 'last record is not newline-terminated');
+  lLines := lRes.Content.TrimRight([#10, #13]).Split([#10]);
+  Assert.AreEqual<Integer>(ACount, Length(lLines));
+  for I := 0 to High(lLines) do
+  begin
+    // each line is a complete object on its own: no brackets, no commas around it
+    lBase := TJDOJsonBaseObject.Parse(lLines[I]);
+    try
+      Assert.IsTrue(lBase is TJDOJsonObject, 'line ' + IntToStr(I) + ' is not a JSON object');
+      CheckItem(TJDOJsonObject(lBase), I);
+    finally
+      lBase.Free;
+    end;
+  end;
+  Assert.IsTrue(WaitForDone(1), 'the source was not released');
+end;
+
+procedure TStreamItemsTest.Setup;
+begin
+  NewClient.Get('/streamitems/stats/reset');
+end;
+
+procedure TStreamItemsTest.TestPullJSONArray;
+begin
+  CheckArray('/streamitems/pull?count=1000', 1000);
+end;
+
+procedure TStreamItemsTest.TestPullNDJSON;
+begin
+  CheckLines('/streamitems/pull?count=1000', 1000);
+end;
+
+procedure TStreamItemsTest.TestPullSSE;
+var
+  lRes: IMVCRESTResponse;
+  lEvents: TArray<string>;
+  lBase: TJDOJsonBaseObject;
+  I: Integer;
+begin
+  lRes := NewClient('text/event-stream').Get('/streamitems/pull?count=1000');
+  if lRes.StatusCode >= 500 then
+    Exit;
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.IsTrue(lRes.ContentType.StartsWith('text/event-stream'), 'content type is ' + lRes.ContentType);
+  Assert.IsTrue(lRes.Content.EndsWith(#10#10), 'last event is not blank-line-terminated');
+  lEvents := lRes.Content.Substring(0, lRes.Content.Length - 2).Split([#10#10]);
+  Assert.AreEqual<Integer>(1000, Length(lEvents));
+  for I := 0 to High(lEvents) do
+  begin
+    Assert.IsTrue(lEvents[I].StartsWith('data: '), 'event ' + IntToStr(I) + ' has no data field');
+    lBase := TJDOJsonBaseObject.Parse(lEvents[I].Substring(6));
+    try
+      Assert.IsTrue(lBase is TJDOJsonObject, 'event ' + IntToStr(I) + ' is not a JSON object');
+      CheckItem(TJDOJsonObject(lBase), I);
+    finally
+      lBase.Free;
+    end;
+  end;
+  Assert.IsTrue(WaitForDone(1), 'the source was not released');
+end;
+
+procedure TStreamItemsTest.TestEnumerableJSONArray;
+begin
+  CheckArray('/streamitems/enumerable?count=50', 50);
+end;
+
+procedure TStreamItemsTest.TestYieldNDJSON;
+begin
+  CheckLines('/streamitems/yield?count=50', 50);
+end;
+
+procedure TStreamItemsTest.TestEmptySource;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := NewClient.Get('/streamitems/pull?count=0');
+  if lRes.StatusCode >= 500 then
+    Exit;
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.AreEqual('[]', lRes.Content, 'an empty source is an empty JSON array');
+  lRes := NewClient('application/x-ndjson').Get('/streamitems/pull?count=0');
+  Assert.AreEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
+  Assert.AreEqual('', lRes.Content, 'an empty source is an empty NDJSON body');
+  Assert.IsTrue(WaitForDone(2), 'the source was not released');
+end;
+
+procedure TStreamItemsTest.TestFailureBeforeFirstItemIsANormalErrorResponse;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := NewClient.Get('/streamitems/failbefore');
+  if lRes.StatusCode = HTTP_STATUS.NotImplemented then
+    Exit;
+  // nothing had been sent: the error pipeline answers as for any other action
+  Assert.AreEqual<Integer>(HTTP_STATUS.BadRequest, lRes.StatusCode);
+  Assert.Contains(lRes.Content, 'failbefore');
+  Assert.IsTrue(WaitForDone(1), 'the source was not released');
+end;
+
+procedure TStreamItemsTest.TestFailureMidStreamTruncatesAndReleasesTheSource;
+var
+  lRes: IMVCRESTResponse;
+  lThrew: Boolean;
+begin
+  lThrew := False;
+  lRes := nil;
+  try
+    lRes := NewClient.Get('/streamitems/failmid');
+  except
+    lThrew := True; // the client noticed the truncated chunked body
+  end;
+  if (not lThrew) and (lRes.StatusCode = HTTP_STATUS.NotImplemented) then
+    Exit;
+  if not lThrew then
+    Assert.IsFalse(lRes.Content.EndsWith(']'), 'a truncated body must not look complete');
+  Assert.IsTrue(WaitForDone(1), 'the source was not released');
+end;
+
+procedure TStreamItemsTest.TestClientDisconnectStopsThePullAndReleasesTheSource;
+var
+  lClient: TIdTCPClient;
+  lLine: string;
+  lBytes: TIdBytes;
+begin
+  lClient := TIdTCPClient.Create(nil);
+  try
+    lClient.Host := TEST_SERVER_ADDRESS;
+    lClient.Port := 8888;
+    lClient.ReadTimeout := 10000;
+    lClient.Connect;
+    lClient.IOHandler.Write('GET /streamitems/endless HTTP/1.1' + #13#10 +
+      'Host: ' + TEST_SERVER_ADDRESS + #13#10 +
+      'Accept: application/x-ndjson' + #13#10 + #13#10);
+    if not lClient.IOHandler.ReadLn.Contains(' 200') then
+      Exit; // host without chunked streaming
+    repeat
+      lLine := lClient.IOHandler.ReadLn;
+    until lLine = '';
+    // take some of the body, then walk away
+    lClient.IOHandler.ReadBytes(lBytes, 200 * 1024, False);
+  finally
+    lClient.Free;
+  end;
+  Assert.IsTrue(WaitForDone(1), 'the source was not released after the client left');
+  Assert.IsTrue(ReadStat('produced') < 5000000, 'the server kept pulling after the client left');
+end;
+
 initialization
 
+TDUnitX.RegisterTestFixture(TStreamItemsTest);
 TDUnitX.RegisterTestFixture(TServerTest);
 TDUnitX.RegisterTestFixture(TJSONRPCServerTest);
 TDUnitX.RegisterTestFixture(TJSONRPCServerWithGETTest);

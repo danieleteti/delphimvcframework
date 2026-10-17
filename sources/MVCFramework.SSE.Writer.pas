@@ -458,7 +458,7 @@ end;
 constructor TMVCJSONLWriter.Create(const AContext: TWebContext;
   const ACharset: string);
 begin
-  inherited Create(AContext, 'application/x-ndjson', ACharset);
+  inherited Create(AContext, TMVCMediaType.APPLICATION_NDJSON, ACharset);
 end;
 
 procedure TMVCJSONLWriter.Send(const AJSONLine: string);
