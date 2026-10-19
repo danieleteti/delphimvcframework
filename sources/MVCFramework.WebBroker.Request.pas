@@ -121,6 +121,19 @@ begin
   Result := False;
 end;
 
+{ Same RTTI-by-name approach for TISAPIRequest (Web.Win.IsapiHTTP), so that
+  non-Windows builds and the other hosts do not depend on the ISAPI unit. }
+function IsOrInheritsFromTISAPIRequest(AClass: TClass): Boolean;
+begin
+  while AClass <> nil do
+  begin
+    if AClass.ClassName = 'TISAPIRequest' then
+      Exit(True);
+    AClass := AClass.ClassParent;
+  end;
+  Result := False;
+end;
+
 { TMVCWebBrokerRequest }
 
 constructor TMVCWebBrokerRequest.Create(const AWebRequest: TWebRequest;
@@ -519,6 +532,11 @@ begin
   // TWebRequest.URL maps to Apache's unparsed_uri (and to the full URL
   // under the Indy bridge), so stripping the query string yields the
   // same original path in every WebBroker host.
+  // ISAPI: IIS's URL server variable includes the extension's own path
+  // (e.g. /app.dll/api/x), so it cannot be routed. IIS splits SCRIPT_NAME
+  // and PATH_INFO reliably, and PathInfo is what pre-3.5 versions routed on.
+  if IsOrInheritsFromTISAPIRequest(FWebRequest.ClassType) then
+    Exit(FWebRequest.PathInfo);
   Result := FWebRequest.URL;
   LQueryPos := Pos('?', Result);
   if LQueryPos > 0 then
