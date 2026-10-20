@@ -96,6 +96,8 @@ type
     [MVCSwagParam(plQuery, 'per_page', 'Items per page', ptInteger, False, '50')]
     [MVCSwagParam(plQuery, 'enumparam', 'Enum param sample', ptString, False, 'enumvalue1',
       'enumvalue1,enumvalue2,enumvalue3,enumvalue4')]
+    [MVCSwagParam(plQuery, 'types', 'Array param with allowed values', ptArray, False, '',
+      'money,loading,unloading')]
     [MVCSwagResponses(200, 'Success', TPerson, True)]
     [MVCSwagResponses(500, 'Internal Server Error')]
     procedure GetAllPeople;

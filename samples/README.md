@@ -43,6 +43,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `middleware_jwt_httponly_cookie` | JWT stored in HTTP-only cookies (XSS-safe) |
 | `middleware_jwtblacklist` | JWT with token revocation/blacklist |
 | `middleware_basicauthentication` | HTTP Basic Authentication |
+| `middleware_basic_and_jwt` | HTTP Basic and JWT on the same engine: each middleware takes the requests meant for it through `OnRequest` |
 | `middleware_oidc` | OpenID Connect (Keycloak, Entra ID, Auth0, Google...) |
 | `middleware_oidc_docker` | OIDC with Docker Compose, PostgreSQL, user provisioning |
 | `middleware_oidc_jwks` | OIDC with cryptographic ID-token signature verification via JWKS |
