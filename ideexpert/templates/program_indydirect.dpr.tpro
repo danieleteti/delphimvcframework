@@ -38,7 +38,7 @@ uses
   Controllers.APIU in 'Controllers.APIU.pas',
 {{endif}}
 {{if program_minimal_api}}
-  RoutesU in 'RoutesU.pas',
+  Routes.RootU in 'Routes.RootU.pas',
 {{endif}}
 {{if program_service_container_generate}}
   {{:program_service_container_unit_name}} in '{{:program_service_container_unit_name}}.pas',

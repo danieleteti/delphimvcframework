@@ -585,15 +585,17 @@ end;
 
 procedure NewRoutesAction(const AProject: IOTAProject);
 var
-  lName, lResource, lModel, lCallFmt: string;
-  lCrud: Boolean;
+  lName, lResource, lModel, lModelUnit, lCallFmt: string;
+  lCrud, lModelIsAR: Boolean;
   lUnit: TDMVCNewUnit;
 begin
-  if not Ask('New Minimal API route group', 'Creates <Name>RoutesU.pas with Map<Name>Routes and the ' +
-    'model class the request bodies are bound to, mounted on /api/<URL segment> in ConfigureRoutes.',
+  if not Ask('New Minimal API route group', 'Creates Routes.<Name>U.pas with Map<Name>Routes and the ' +
+    'model class the request bodies are bound to (reused when the project declares it, otherwise created in ' +
+    'Entities.<Model>U), mounted on /api/<URL segment> in ConfigureRoutes.',
     'CRUD routes', True, False, True, lName, lResource, lModel, lCrud) then
     Exit;
-  lUnit := NewRoutesUnit(lName, lResource, lModel, lCrud, ProjectHasOpenAPI(AProject, True), lCallFmt);
+  EnsureModel(AProject, lName, lModel, LowerCase(lName), lModelUnit, lModelIsAR);
+  lUnit := NewRoutesUnit(lName, lResource, lModel, lModelUnit, lCrud, ProjectHasOpenAPI(AProject, True), lCallFmt);
   AddNewUnit(AProject, lUnit);
   if WireIn(AProject, 'ConfigureRoutes',
     function(S: string): TDMVCCodeEdits
@@ -608,7 +610,7 @@ var
   lName, lDummy, lDummyModel: string;
   lDummyOption, lDummyOption2: Boolean;
 begin
-  if not Ask('New MCP tool provider', 'Creates <Name>ToolsU.pas with T<Name>Tools and one sample tool. ' +
+  if not Ask('New MCP tool provider', 'Creates Tools.<Name>U.pas with T<Name>Tools and one sample tool. ' +
     'The unit registers the provider itself: every [MCPTool] method becomes a tool of the MCP server.',
     '', False, False, False, False, '', lName, lDummy, lDummyModel, lDummyOption, lDummyOption2) then
     Exit;

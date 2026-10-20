@@ -92,10 +92,10 @@ function NewDatabaseConfig(const ADatabase: TDMVCDatabase; const AConDefName: st
 function DatabaseEnvLines(const ADatabase: TDMVCDatabase): string;
 /// The controller renders AResource + '/index' (see NewViewSource)
 function NewWebController(const AName, AResource, AProgramName: string): TDMVCNewUnit;
-/// <Name>ToolsU with T<Name>Tools: an MCP tool provider that registers itself
+/// Tools.<Name>U with T<Name>Tools: an MCP tool provider that registers itself
 function NewMCPToolProvider(const AName: string): TDMVCNewUnit;
 /// ACallFmt is the argument PlanRoutesRegistration expects
-function NewRoutesUnit(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean;
+function NewRoutesUnit(const AName, AResource, AModelClass, AModelUnit: string; ACrud, AOpenAPI: Boolean;
   out ACallFmt: string): TDMVCNewUnit;
 /// AViewName relative to the views folder, without extension (e.g. 'orders/index')
 function NewViewSource(const AViewName, ATitle: string; AFragment: Boolean): string;
@@ -213,7 +213,7 @@ begin
     lConfig.S['class_name'] := 'T' + AName + 'Tools';
     // tool names are unique in the server: the sample one carries the provider name
     lConfig.S['tool_name'] := AName.ToLower + '_hello';
-    Result := RenderUnit('mcp_tools.pas.tpro', AName + 'ToolsU', lConfig.S['class_name'], lConfig);
+    Result := RenderUnit('mcp_tools.pas.tpro', 'Tools.' + AName + 'U', lConfig.S['class_name'], lConfig);
   finally
     lConfig.Free;
   end;
@@ -402,7 +402,7 @@ begin
   end;
 end;
 
-function NewRoutesUnit(const AName, AResource, AModelClass: string; ACrud, AOpenAPI: Boolean;
+function NewRoutesUnit(const AName, AResource, AModelClass, AModelUnit: string; ACrud, AOpenAPI: Boolean;
   out ACallFmt: string): TDMVCNewUnit;
 var
   lConfig: TJsonObject;
@@ -411,11 +411,12 @@ begin
   try
     lConfig.S['procedure_name'] := 'Map' + AName + 'Routes';
     lConfig.S['model_class'] := AModelClass;
+    lConfig.S['model_unit_name'] := AModelUnit;
     lConfig.B['openapi_native'] := AOpenAPI;
     SetOpenAPIData(lConfig, AName, AModelClass);
     lConfig.S['resource'] := AResource;
     lConfig.B['crud'] := ACrud;
-    Result := RenderUnit('add_routes.pas.tpro', AName + 'RoutesU', lConfig.S['procedure_name'], lConfig);
+    Result := RenderUnit('add_routes.pas.tpro', 'Routes.' + AName + 'U', lConfig.S['procedure_name'], lConfig);
   finally
     lConfig.Free;
   end;

@@ -6,18 +6,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.MinimalAPI,
-  MVCFramework.Validators;
-
-type
-  {{:model_class}} = class
-  private
-    fID: Integer;
-    fName: string;
-  public
-    property ID: Integer read fID write fID;
-    [MVCRequired]
-    property Name: string read fName write fName;
-  end;
+  {{:model_unit_name}};
 
 procedure {{:procedure_name}}(const AGroup: TMVCRouteGroup<TObject>);
 
@@ -61,7 +50,7 @@ begin
   AGroup.MapPost<{{:model_class}}>('',
     function(Item: {{:model_class}}): IMVCResponse
     begin
-      Result := Created('/api/{{:resource}}/' + Item.ID.ToString);
+      Result := Created('/api/{{:resource}}');
 {{if openapi_native}}
     end)
     .WithTags('{{:tag}}')

@@ -1290,25 +1290,30 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         ShowHint = True
         TabOrder = 9
       end
-      object chkMCPResourcesPrompts: TCheckBox
-        Left = 468
-        Top = 227
-        Width = 282
-        Height = 17
-        Caption = 'Sample resource and prompt providers'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 10
-      end
       object chkMCPBridge: TCheckBox
         Left = 468
-        Top = 248
+        Top = 227
         Width = 282
         Height = 17
         Caption = 'REST controllers as MCP tools (prototyping)'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 11
+      end
+      object lblMCPDependency: TLabel
+        Left = 450
+        Top = 249
+        Width = 300
+        Height = 56
+        AutoSize = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clMaroon
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Visible = False
+        WordWrap = True
       end
       object chkHtmx: TCheckBox
         Left = 250

@@ -159,7 +159,7 @@ end;
 
 procedure ApplyPreset_MinimalAPIRest(AForm: TfrmDMVCNewProject);
 begin
-  // Controller: Minimal API uses lambda routes (RoutesU.pas), no controller class.
+  // Controller: Minimal API uses lambda routes (Routes.RootU.pas), no controller class.
   AForm.edtControllerClassName.Text := 'THomeController';
   AForm.SetApiStyleVisible(True);
   AForm.chkMinimalAPI.Checked := True;
@@ -176,7 +176,7 @@ begin
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the BearerAuthFilter in RoutesU
+  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the BearerAuthFilter in Routes.RootU
 
   // Middleware
   AForm.chkCORS.Checked := True;
@@ -263,7 +263,7 @@ begin
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the RequireLogin filter in RoutesU
+  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the RequireLogin filter in Routes.RootU
 
   // Middleware
   AForm.chkCORS.Checked := False;
@@ -275,7 +275,7 @@ begin
   AForm.chkRateLimit.Checked := False;
   AForm.chkOpenAPI.Checked := False;      // web routes are hidden from OpenAPI: the document would be empty
   AForm.chkActiveRecord.Checked := False;
-  AForm.cbSessionType.ItemIndex := 0; // None — session is the MemorySession filter in RoutesU
+  AForm.cbSessionType.ItemIndex := 0; // None — session is the MemorySession filter in Routes.RootU
 
   // Server
   AForm.rgServerProtocol.ItemIndex := 0; // HTTP
@@ -454,7 +454,6 @@ begin
   // MCP
   AForm.chkMCP.Checked := True;
   AForm.chkMCPStdio.Checked := True;
-  AForm.chkMCPResourcesPrompts.Checked := True;
   AForm.chkMCPBridge.Checked := False;
 
   // Server

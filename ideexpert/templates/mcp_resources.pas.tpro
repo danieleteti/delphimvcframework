@@ -1,5 +1,5 @@
 {{include "_license_header.tpro"}}
-unit MCPResourcesU;
+unit Resources.SampleU;
 
 interface
 
@@ -9,7 +9,7 @@ uses
 
 type
   // MCP resources: every [MCPResource] method is listed by resources/list
-  TMCPResources = class(TMCPResourceProvider)
+  TSampleResources = class(TMCPResourceProvider)
   public
     [MCPResource('info://{{:program_name}}/about', 'About',
       'What this server is', 'text/plain')]
@@ -21,12 +21,12 @@ implementation
 uses
   MVCFramework.MCP.Server;
 
-function TMCPResources.GetAbout(const URI: string): TMCPResourceResult;
+function TSampleResources.GetAbout(const URI: string): TMCPResourceResult;
 begin
   Result := TMCPResourceResult.Text(URI, '{{:program_name}}, an MCP server built with DMVCFramework', 'text/plain');
 end;
 
 initialization
-  TMCPServer.Instance.RegisterResourceProvider(TMCPResources);
+  TMCPServer.Instance.RegisterResourceProvider(TSampleResources);
 
 end.

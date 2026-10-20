@@ -1183,7 +1183,7 @@ begin
   LTestCase.Config.B[TConfigKey.program_htmx] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
-  // Same pages as the controller-based web app (shared views, RoutesU instead of
+  // Same pages as the controller-based web app (shared views, Routes.RootU instead of
   // a controller) plus the login-protected Admin area
   LTestCase.ExpectedFiles := ['bin/templates/baselayout.html', 'bin/templates/error.html',
     'bin/templates/home/index.html', 'bin/templates/about/index.html',
@@ -1193,16 +1193,16 @@ begin
     'bin/templates/index.html', 'Controllers.HomeU.pas',
     'PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'PeopleRoutesU.pas', 'bin/templates/people'];
   LTestCase.MustContain := [
-    'RoutesU.pas|Result := Html(',
+    'Routes.RootU.pas|Result := Html(',
     'bin/templates/baselayout.html|href="/web/admin/">Admin</a>',
-    'bin/templates/home/index.html|a <code>MapGet</code> to <code>RoutesU</code>',
+    'bin/templates/home/index.html|a <code>MapGet</code> to <code>Routes.RootU</code>',
     'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms',
     'bin/templates/pages/login.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
     'bin/templates/pages/login.html|{{call f.form("/web/login")}}'];
   LTestCase.MustNotContain := ['bin/templates/baselayout.html|<!--EXTRA_NAV-->',
     'bin/templates/home/index.html|{{:add_page_how}}',
     'bin/templates/home/index.html|/web/people', 'bin/templates/baselayout.html|/web/people',
-    'RoutesU.pas|People', 'RoutesU.pas|PersonRow', 'RoutesU.pas|TPeopleQuery'];
+    'Routes.RootU.pas|People', 'Routes.RootU.pas|PersonRow', 'Routes.RootU.pas|TPeopleQuery'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1311,7 +1311,7 @@ begin
   LTestCase.ExpectedFiles := [];
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := [
-    'RoutesU.pas|Result := JWT(',
+    'Routes.RootU.pas|Result := JWT(',
     'TestProject.dpr|expose_server_signature',
     'bin/.env|dmvc.expose_x_powered_by=false'];
   LTestCase.MustNotContain := ['AuthenticationU.pas|UserName.Equals(Password)'];
@@ -1459,8 +1459,8 @@ begin
     'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(lSwaggerUIOptions))',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
-    'RoutesU.pas|.WithTags(''Hello'')',
-    'RoutesU.pas|.WithSummary(''Example route'')',
+    'Routes.RootU.pas|.WithTags(''Hello'')',
+    'Routes.RootU.pas|.WithSummary(''Example route'')',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCSwaggerMiddleware'];
   ATestCases.Add(LTestCase);
@@ -1495,7 +1495,7 @@ begin
   LTestCase.ExpectedFiles := [];
   LTestCase.ForbiddenFiles := ['bin/www/swagger'];
   LTestCase.MustContain := [];
-  LTestCase.MustNotContain := ['EngineConfigU.pas|OpenAPI', 'RoutesU.pas|WithSummary',
+  LTestCase.MustNotContain := ['EngineConfigU.pas|OpenAPI', 'Routes.RootU.pas|WithSummary',
     'bin/.env|dmvc.openapi'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1583,12 +1583,11 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
-  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
-  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'MCPResourcesU.pas', 'MCPPromptsU.pas', '.mcp.json'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas', '.mcp.json'];
   LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas', 'AuthenticationU.pas', 'bin/loggerpro.stdio.json'];
   LTestCase.MustContain := [
-    'TestProject.dpr|MCPToolsU in ''MCPToolsU.pas''',
+    'TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''',
     'TestProject.dpr|MVCFramework.MCP.TransportConf',
     'TestProject.dpr|if MCPTransportIsStdio then' + sLineBreak + '      RunMCPStdio',
     'TestProject.dpr|SetCurrentDir(AppPath)',
@@ -1614,17 +1613,31 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
-  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'Controllers.HomeU.pas', '.mcp.json'];
-  LTestCase.ForbiddenFiles := ['MCPResourcesU.pas', 'MCPPromptsU.pas'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas',
+    'Controllers.HomeU.pas'];
+  LTestCase.ForbiddenFiles := ['.mcp.json'];
   LTestCase.MustContain := [
     'EngineConfigU.pas|TMCPBridgeOptions.Create.ExcludeMethods([httpDELETE])',
     'EngineConfigU.pas|AEngine.AddController(THomeController)',
     'TestProject.dpr|lServer.RunAndWait(APort);'];
   // stdio is the default only in the "MCP Server" preset
-  LTestCase.MustNotContain := ['TestProject.dpr|MCPResourcesU', 'bin/.env|mcp.http.host',
-    'TestProject.dpr|MCPDefaultTransportStdio'];
+  LTestCase.MustContain := LTestCase.MustContain + ['TestProject.dpr|Resources.SampleU'];
+  LTestCase.MustNotContain := ['bin/.env|mcp.http.host', 'TestProject.dpr|MCPDefaultTransportStdio'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // stdio asked for outside the "MCP Server" type: dropped, the console stays the program's own
+  LTestCase.Name := 'indydirect_mcp_stdio_needs_the_preset';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Controllers.HomeU.pas'];
+  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
+    'TestProject.dpr|MVCFramework.MCP.Stdio', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1634,7 +1647,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.ExpectedFiles := ['MCPToolsU.pas'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
   LTestCase.ForbiddenFiles := ['.mcp.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
     'BootConfigU.pas|MCPTransportIsStdio'];
@@ -1648,7 +1661,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.HTTPSYS;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
-  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
   LTestCase.MustContain := ['TestProject.dpr|RunMCPStdio', 'TestProject.dpr|CreateHttpSys'];
   ATestCases.Add(LTestCase);
@@ -1657,11 +1669,9 @@ begin
   LTestCase.Name := 'webbroker_mcp';
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
-  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
-  LTestCase.MustContain := ['TestProject.dpr|RunMCPStdio', 'TestProject.dpr|CreateWebBroker',
-    'EngineConfigU.pas|RegisterFromEngine'];
+  LTestCase.MustContain := ['TestProject.dpr|CreateWebBroker', 'EngineConfigU.pas|RegisterFromEngine'];
+  LTestCase.MustNotContain := ['TestProject.dpr|RunMCPStdio'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1670,7 +1680,6 @@ begin
   LTestCase.Config := CreateBaseConfig;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
-  LTestCase.Config.B[TConfigKey.mcp_resources_prompts] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
   LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas'];
   LTestCase.MustContain := ['TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))'];
@@ -1684,7 +1693,6 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.MustContain := ['EngineConfigU.pas|.AuthenticationHandledElsewhere',
     'AuthenticationU.pas|MVCFramework.JSONRPC.TMVCJSONRPCPublisher',
     'AuthenticationU.pas|MVCFramework.MCP.Server.TMCPSessionController'];
@@ -1704,7 +1712,7 @@ begin
   LTestCase.MustNotContain := ['AuthenticationU.pas|TMCPSessionController', 'EngineConfigU.pas|MCP',
     'TestProject.dpr|MCP', 'bin/.env|mcp.', 'AuthenticationU.pas|AddOrSetValue(''username''',
     'AuthenticationU.pas|AddOrSetValue(''roles'''];
-  LTestCase.ForbiddenFiles := ['MCPToolsU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1730,9 +1738,8 @@ begin
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
-  LTestCase.ExpectedFiles := ['MCPToolsU.pas', 'RoutesU.pas'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Routes.RootU.pas'];
   LTestCase.MustContain := ['EngineConfigU.pas|MCPGuard'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
   ATestCases.Add(LTestCase);
@@ -1815,9 +1822,9 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.WINDOWS_SERVICE;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
-  LTestCase.ExpectedFiles := ['MCPToolsU.pas'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
   LTestCase.ForbiddenFiles := ['.mcp.json'];
-  LTestCase.MustContain := ['TestProject.dpr|MCPToolsU in ''MCPToolsU.pas''', 'EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|MCPGuard'];
   LTestCase.MustNotContain := ['TestProject.dpr|TransportConf', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1857,7 +1864,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
   LTestCase.ExpectedFiles := ['Controllers.HomeU.pas'];
-  LTestCase.ForbiddenFiles := ['MCPToolsU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCP', 'WebModuleU.pas|MCP', 'bin/.env|mcp.'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -2414,7 +2421,7 @@ const
     ('\b(?!LDAP\b)L[A-Z]\w*\b', 'local not named lName'),
     ('\ba[A-Z]\w*\b', 'parameter not named AName'));
 var
-  LDir, LFile, LText: string;
+  LDir, LFile, LText, LCode: string;
   LWrong: TArray<string>;
   LMatch: TMatch;
   I, LFiles: Integer;
@@ -2430,9 +2437,14 @@ begin
         Continue;
       Inc(LFiles);
       LText := TFile.ReadAllText(LFile, TEncoding.UTF8);
+      // identifiers only: a string literal (the random sqids alphabet) is not code
+      LCode := TRegEx.Replace(LText, '''[^'']*''', '''''');
       for I := Low(RULES) to High(RULES) do
       begin
-        LMatch := TRegEx.Match(LText, RULES[I, 0]);
+        if I >= 4 then
+          LMatch := TRegEx.Match(LCode, RULES[I, 0])
+        else
+          LMatch := TRegEx.Match(LText, RULES[I, 0]);
         if LMatch.Success then
           LWrong := LWrong + [Format('%s: %s ("%s")', [LFile, RULES[I, 1], LMatch.Value.Trim])];
       end;
@@ -2585,7 +2597,7 @@ begin
       if TRegEx.IsMatch(LSource, '(?im)^procedure\s+ConfigureRoutes\b') then
       begin
         Inc(LRoutesHosts);
-        if not PlanRoutesRegistration(LSource, 'OrdersRoutesU', 'MapOrdersRoutes(%s)', LEdits) then
+        if not PlanRoutesRegistration(LSource, 'Routes.OrdersU', 'MapOrdersRoutes(%s)', LEdits) then
         begin
           Inc(LRefused);
           Log('    no routes insertion point: ' + LFile);
@@ -2613,7 +2625,7 @@ begin
       if LSource.Contains('.AddController(') then
         LHasControllers := True;
     end;
-    if (LIsMinimal <> TFile.Exists(TPath.Combine(LDir, 'RoutesU.pas'))) or (LIsMinimal = LHasControllers) then
+    if (LIsMinimal <> TFile.Exists(TPath.Combine(LDir, 'Routes.RootU.pas'))) or (LIsMinimal = LHasControllers) then
     begin
       Inc(LWrongKind);
       Log('    wrong project kind: ' + LDir);
@@ -2651,10 +2663,10 @@ begin
   LRest := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, False);
   LRestPlain := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', False, False);
   LWeb := NewWebController('Orders', 'orders', 'TestProject');
-  LRoutes := NewRoutesUnit('Orders', 'orders', 'TOrder', True, False, LCallFmt);
+  LRoutes := NewRoutesUnit('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, False, LCallFmt);
   // with an OpenAPI document the new model and actions are in it
   LRestDoc := NewRestController('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, True);
-  LRoutesDoc := NewRoutesUnit('Orders', 'orders', 'TOrder', True, True, LCallFmt);
+  LRoutesDoc := NewRoutesUnit('Orders', 'orders', 'TOrder', 'Entities.OrderU', True, True, LCallFmt);
   Check('REST controller: Swagger metadata only with OpenAPI',
     LRestDoc.Source.Contains('[MVCSWAGDefaultModel(TOrder, ''Order'', ''Orders'')]') and
     LRestDoc.Source.Contains('SWAGUseDefaultControllerModel, True, True)]') and not LRest.Source.Contains('MVCSwag'));
@@ -2699,26 +2711,26 @@ begin
       TFile.WriteAllText(TPath.Combine(ADir, 'bin\templates\orders\index.html'),
         NewViewSource('orders/index', 'Orders', False), TEncoding.UTF8);
     end);
-  AddAndCompile('route group (CRUD) in a Minimal API project', 'indydirect_minimal_api_services', 'RoutesU.pas', LRoutes,
+  AddAndCompile('route group (CRUD) in a Minimal API project', 'indydirect_minimal_api_services', 'Routes.RootU.pas', LRoutes,
     function(S: string): TDMVCCodeEdits
     begin
       PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
-    end);
+    end, nil, [LModel]);
   AddAndCompile('REST controller with Swagger metadata', 'indydirect_openapi_controllers', 'EngineConfigU.pas', LRestDoc,
     function(S: string): TDMVCCodeEdits
     begin
       PlanControllerRegistration(S, LRestDoc.UnitName, LRestDoc.TypeName, Result);
     end, nil, [LModel]);
-  AddAndCompile('route group with OpenAPI metadata', 'indydirect_minimal_api_openapi', 'RoutesU.pas', LRoutesDoc,
+  AddAndCompile('route group with OpenAPI metadata', 'indydirect_minimal_api_openapi', 'Routes.RootU.pas', LRoutesDoc,
     function(S: string): TDMVCCodeEdits
     begin
       PlanRoutesRegistration(S, LRoutesDoc.UnitName, LCallFmt, Result);
-    end);
-  AddAndCompile('route group in a Minimal API web app', 'indydirect_minimal_api_web', 'RoutesU.pas', LRoutes,
+    end, nil, [LModel]);
+  AddAndCompile('route group in a Minimal API web app', 'indydirect_minimal_api_web', 'Routes.RootU.pas', LRoutes,
     function(S: string): TDMVCCodeEdits
     begin
       PlanRoutesRegistration(S, LRoutes.UnitName, LCallFmt, Result);
-    end);
+    end, nil, [LModel]);
 
   // --- services: the planner on small sources
   LSource := 'unit S;'#13#10'interface'#13#10'procedure RegisterServices(Container: IMVCServiceContainer);'#13#10 +
@@ -3066,7 +3078,7 @@ begin
   LWrong := 0;
   for LDir in ACaseDirs do
     if IsMCPProject(TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8)) <>
-      TFile.Exists(TPath.Combine(LDir, 'MCPToolsU.pas')) then
+      TFile.Exists(TPath.Combine(LDir, 'Tools.SampleU.pas')) then
     begin
       Inc(LWrong);
       Log('    wrong MCP detection: ' + LDir);
@@ -3084,8 +3096,8 @@ begin
 
   LUnit := NewMCPToolProvider('Orders');
   Check('tool provider: unit, class, a tool name of its own, self-registration',
-    (LUnit.UnitName = 'OrdersToolsU') and (LUnit.FileName = 'OrdersToolsU.pas') and
-    (LUnit.TypeName = 'TOrdersTools') and LUnit.Source.Contains('unit OrdersToolsU;') and
+    (LUnit.UnitName = 'Tools.OrdersU') and (LUnit.FileName = 'Tools.OrdersU.pas') and
+    (LUnit.TypeName = 'TOrdersTools') and LUnit.Source.Contains('unit Tools.OrdersU;') and
     LUnit.Source.Contains('TOrdersTools = class(TMCPToolProvider)') and
     LUnit.Source.Contains('[MCPTool(''orders_hello'',') and
     LUnit.Source.Contains('TMCPServer.Instance.RegisterToolProvider(TOrdersTools);') and
@@ -3099,10 +3111,10 @@ begin
   TFile.WriteAllText(TPath.Combine(LDir, LUnit.FileName), LUnit.Source, TEncoding.UTF8);
   LDpr := TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'), TEncoding.UTF8);
   Check('the generated .dpr has the provider unit to add next to',
-    LDpr.Contains('  MCPToolsU in ''MCPToolsU.pas'','));
+    LDpr.Contains('  Tools.SampleU in ''Tools.SampleU.pas'','));
   TFile.WriteAllText(TPath.Combine(LDir, 'TestProject.dpr'),
-    LDpr.Replace('  MCPToolsU in ''MCPToolsU.pas'',',
-      '  MCPToolsU in ''MCPToolsU.pas'',' + sLineBreak + '  OrdersToolsU in ''OrdersToolsU.pas'','), TEncoding.UTF8);
+    LDpr.Replace('  Tools.SampleU in ''Tools.SampleU.pas'',',
+      '  Tools.SampleU in ''Tools.SampleU.pas'',' + sLineBreak + '  Tools.OrdersU in ''Tools.OrdersU.pas'','), TEncoding.UTF8);
   if GSkipCompile or (GMCPSources = '') then
     Check('second tool provider (generated, compile skipped)', True)
   else

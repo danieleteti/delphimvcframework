@@ -101,6 +101,11 @@ begin
     WizardForm.SetCustomMode(APreset = ppCustom);
     WizardForm.SetMinimalAPIMode(APreset in [ppMinimalAPIRest, ppMinimalAPIWebApp]);
     WizardForm.SetMCPServerMode(APreset = ppMCPServer);
+    WizardForm.MCPLibraryProbe :=
+      function: string
+      begin
+        Result := MCPLibraryWarning(IDELibrarySearchPath);
+      end;
     WizardForm.SetPresetCaption(PRESET_INFOS[APreset].Caption);
     ApplyPresetToForm(APreset, WizardForm);
     WizardForm.InitWizardPages;

@@ -4,9 +4,9 @@
   MVCFramework.MCP.Stdio,
   MVCFramework.MCP.TransportConf,
 {{endif}}
-  MCPToolsU in 'MCPToolsU.pas',
+  Tools.SampleU in 'Tools.SampleU.pas',
 {{if mcp_resources_prompts}}
-  MCPResourcesU in 'MCPResourcesU.pas',
-  MCPPromptsU in 'MCPPromptsU.pas',
+  Resources.SampleU in 'Resources.SampleU.pas',
+  Prompts.SampleU in 'Prompts.SampleU.pas',
 {{endif}}
 {{endif}}

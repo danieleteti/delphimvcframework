@@ -151,8 +151,8 @@ type
     chkAISkills: TCheckBox;
     chkMCP: TCheckBox;
     chkMCPStdio: TCheckBox;
-    chkMCPResourcesPrompts: TCheckBox;
     chkMCPBridge: TCheckBox;
+    lblMCPDependency: TLabel;
     chkHtmx: TCheckBox;
     chkCustomConfigDotEnv: TCheckBox;
     rgJWTAlgorithm: TRadioGroup;
@@ -195,7 +195,12 @@ type
     fIsCustomPreset: Boolean;
     fIsMinimalAPIPreset: Boolean;
     fIsMCPServerPreset: Boolean;
+    fMCPLibraryProbe: TFunc<string>;
+    fMCPLibraryNote: string;
+    fMCPLibraryMissing: Boolean;
+    fMCPLibraryNoteReady: Boolean;
     fPresetCaption: string;
+    function MCPLibraryNote: string;
     procedure UpdateSummary;
     procedure ShowNextStepsDialog(const AProjectName: string;
       const AHints: TArray<string>);
@@ -225,6 +230,10 @@ type
     /// The "MCP Server" preset: the MCP server is the typology (locked on) and
     /// the program has no controller
     procedure SetMCPServerMode(AEnabled: Boolean);
+    /// Tells whether mcp-server-delphi is where the IDE will find it: '' when it is,
+    /// otherwise what to tell the user. Not set (the standalone test): the notice
+    /// states the requirement without checking it.
+    property MCPLibraryProbe: TFunc<string> read fMCPLibraryProbe write fMCPLibraryProbe;
     procedure SetApiStyleVisible(AVisible: Boolean);
     procedure SetPresetCaption(const ACaption: string);
     procedure InitWizardPages;
@@ -239,6 +248,7 @@ uses
   System.StrUtils,
   System.IOUtils,
   DMVC.Expert.Commons,
+  DMVC.Expert.MCPLibrary,
   System.TypInfo,
   Winapi.Winsock2;
 
@@ -450,7 +460,7 @@ begin
   fIsMinimalAPIPreset := AEnabled;
   if AEnabled then
   begin
-    // Lock the routing model: Minimal API is the typology (RoutesU.pas).
+    // Lock the routing model: Minimal API is the typology (Routes.RootU.pas).
     chkMinimalAPI.Checked := True;
     chkMinimalAPI.Enabled := False;
     // Hide controls with no meaning when no controller class is generated —
@@ -505,35 +515,80 @@ begin
     ((rgApplicationType.ItemIndex = 1) and (cbServerEngine.ItemIndex in [1, 2]));
 end;
 
+function TfrmDMVCNewProject.MCPLibraryNote: string;
+var
+  lWarning: string;
+begin
+  // the library path does not change while the wizard is open, and this runs on every idle
+  if not fMCPLibraryNoteReady then
+  begin
+    lWarning := '';
+    if Assigned(fMCPLibraryProbe) then
+      lWarning := fMCPLibraryProbe();
+    fMCPLibraryMissing := lWarning <> '';
+    if lWarning <> '' then
+      fMCPLibraryNote := 'mcp-server-delphi ' + MCP_LIBRARY_MIN_VERSION + ' or later is not in the IDE library ' +
+        'path: the project will not compile until it is installed. ' + MCP_LIBRARY_URL
+    else if Assigned(fMCPLibraryProbe) then
+      fMCPLibraryNote := 'Uses mcp-server-delphi (found in the IDE library path): ' + MCP_LIBRARY_URL
+    else
+      fMCPLibraryNote := 'Needs mcp-server-delphi ' + MCP_LIBRARY_MIN_VERSION +
+        ' or later in the IDE library path: ' + MCP_LIBRARY_URL;
+    fMCPLibraryNoteReady := True;
+  end;
+  Result := fMCPLibraryNote;
+end;
+
 procedure TfrmDMVCNewProject.UpdateMCPControls;
 const
   HINT_MCP = 'Publishes an MCP endpoint on /mcp (bearer token in .env; the JWT bearer middleware when the ' +
-    'project has it) and generates MCPToolsU with a sample ' +
+    'project has it) and generates Tools.SampleU with a sample ' +
     'tool. The project needs mcp-server-delphi 0.9.0 or later in the library path: ' +
     'https://github.com/danieleteti/mcp-server-delphi';
   HINT_MCP_OFF = 'Not available for this application type: the MCP endpoint is published in EngineConfigU, ' +
     'which ISAPI, Apache, FastCGI and WebBroker Windows service projects do not have.';
+  HINT_MCP_OTHER_TYPE = 'Not available here: an MCP server is the "MCP Server" project type (or Custom Project). ' +
+    'A REST, web or real-time server keeps its console and its API for its own job.';
+  HINT_STDIO_OTHER_TYPE = 'Only in the "MCP Server" project type: stdio takes over the console of the program, ' +
+    'which a server with an API uses for its own output.';
 var
-  lHasEngineConfig, lOn: Boolean;
+  lHasEngineConfig, lOn, lMCPAllowed: Boolean;
 begin
   lHasEngineConfig := HasEngineConfig;
-  chkMCP.Enabled := lHasEngineConfig and not fIsMCPServerPreset;
-  if lHasEngineConfig then
+  // MCP belongs to the "MCP Server" type; Custom Project, where every option is visible, may add /mcp over HTTP
+  lMCPAllowed := fIsMCPServerPreset or fIsCustomPreset;
+  chkMCP.Enabled := lHasEngineConfig and lMCPAllowed and not fIsMCPServerPreset;
+  if not lMCPAllowed then
+    chkMCP.Hint := HINT_MCP_OTHER_TYPE
+  else if lHasEngineConfig then
     chkMCP.Hint := HINT_MCP
   else
     chkMCP.Hint := HINT_MCP_OFF;
   lOn := chkMCP.Checked and lHasEngineConfig;
 
-  chkMCPStdio.Enabled := lOn and (rgApplicationType.ItemIndex = 0);
-  if (rgApplicationType.ItemIndex = 0) or not lOn then
+  chkMCPStdio.Enabled := lOn and fIsMCPServerPreset and (rgApplicationType.ItemIndex = 0);
+  if not fIsMCPServerPreset then
+  begin
+    chkMCPStdio.Checked := False;
+    chkMCPStdio.Hint := HINT_STDIO_OTHER_TYPE;
+  end
+  else if (rgApplicationType.ItemIndex = 0) or not lOn then
     chkMCPStdio.Hint := 'The same executable started with "--transport stdio" talks MCP on stdin/stdout, ' +
       'the way Claude Code and Claude Desktop launch a local server. Generates .mcp.json. ' +
       'In this mode no HTTP server runs and ConfigureEngine is not called.'
   else
     chkMCPStdio.Hint := 'Not available: a Windows service has no stdin/stdout.';
 
-  chkMCPResourcesPrompts.Enabled := lOn;
-  chkMCPResourcesPrompts.Hint := 'Generates MCPResourcesU and MCPPromptsU with one sample each.';
+  // every MCP option generates code that uses mcp-server-delphi: say so as soon as one is on
+  lblMCPDependency.Visible := (lOn or (fIsMCPServerPreset and lHasEngineConfig));
+  if lblMCPDependency.Visible then
+  begin
+    lblMCPDependency.Caption := MCPLibraryNote;
+    if fMCPLibraryMissing then
+      lblMCPDependency.Font.Color := clMaroon
+    else
+      lblMCPDependency.Font.Color := clGrayText;
+  end;
 
   chkMCPBridge.Enabled := lOn and not fIsMCPServerPreset and not chkMinimalAPI.Checked and
     (rgServerProtocol.ItemIndex = 0);
@@ -961,7 +1016,7 @@ end;
 
 procedure TfrmDMVCNewProject.chkMinimalAPIClick(Sender: TObject);
 begin
-  // Minimal API mode emits a RoutesU.pas with lambda routes instead of a
+  // Minimal API mode emits a Routes.RootU.pas with lambda routes instead of a
   // controller class, so the controller-class options become irrelevant.
   chkCreateIndexMethod.Enabled := not chkMinimalAPI.Checked;
   chkCreateActionFiltersMethods.Enabled := not chkMinimalAPI.Checked;
@@ -1276,8 +1331,6 @@ begin
     (chkMCP.Enabled or fIsMCPServerPreset);
   fModel.B[TConfigKey.mcp_stdio] := fModel.B[TConfigKey.mcp_generate] and
     chkMCPStdio.Checked and chkMCPStdio.Enabled;
-  fModel.B[TConfigKey.mcp_resources_prompts] := fModel.B[TConfigKey.mcp_generate] and
-    chkMCPResourcesPrompts.Checked and chkMCPResourcesPrompts.Enabled;
   fModel.B[TConfigKey.mcp_bridge] := fModel.B[TConfigKey.mcp_generate] and
     chkMCPBridge.Checked and chkMCPBridge.Enabled;
   fModel.B[TConfigKey.mcp_standalone] := fModel.B[TConfigKey.mcp_generate] and fIsMCPServerPreset;

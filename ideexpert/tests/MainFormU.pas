@@ -31,6 +31,7 @@ uses
   DMVC.Expert.Forms.NewProjectWizard,
   DMVC.Expert.ProjectGenerator,
   DMVC.Expert.Commons,
+  DMVC.Expert.MCPLibrary,
   JsonDataObjects,
   System.IOUtils;
 
@@ -54,6 +55,12 @@ var
 begin
   LWizardForm := TfrmDMVCNewProject.Create(nil);
   try
+    // the library path to check comes from DMVC_MCP_LIBRARY_PATH, as the IDE one does in the real wizard
+    LWizardForm.MCPLibraryProbe :=
+      function: string
+      begin
+        Result := MCPLibraryWarning(GetEnvironmentVariable('DMVC_MCP_LIBRARY_PATH'));
+      end;
     if LWizardForm.ShowModal = mrOk then
     begin
       Memo1.Lines.Add('');

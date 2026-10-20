@@ -1,5 +1,5 @@
 {{include "_license_header.tpro"}}
-unit RoutesU;
+unit Routes.RootU;
 
 // Minimal-API web app: the same pages as the controller-based one as
 // lambda routes, plus a login-protected Admin area.

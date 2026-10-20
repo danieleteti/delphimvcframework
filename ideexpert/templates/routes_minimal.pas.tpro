@@ -1,5 +1,5 @@
 {{include "_license_header.tpro"}}
-unit RoutesU;
+unit Routes.RootU;
 
 // Minimal API routes: versioned /api/v1 surface, one example route + Bearer-protected admin group.
 // Add route groups with Project Manager > DMVCFramework > New Minimal API Route Group... (Delphi 12+)

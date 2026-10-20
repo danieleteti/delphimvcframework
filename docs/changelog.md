@@ -189,8 +189,11 @@ certificate you cannot fix.
     this mode no HTTP server runs, the console appender is left out (JSON
     logging profile: `loggerpro.stdio.json`) and the working directory is the
     executable's folder. Console programs only.
-  - "Sample resource and prompt providers": `Resources.SampleU.pas` and
-    `Prompts.SampleU.pas`.
+  - `Resources.SampleU.pas` and `Prompts.SampleU.pas`, next to `Tools.SampleU.pas`, in
+    every MCP project (no box for them).
+  - MCP is a project type of its own: the box is selectable only in "MCP Server" (fixed on) and in
+    "Custom Project" (/mcp over HTTP, off by default). The stdio transport exists only in "MCP Server":
+    it takes over the console, which a server with an API uses for its own output.
   - "REST controllers as MCP tools (prototyping)": one `RegisterFromEngine`
     line that turns every REST action except the `DELETE` ones into a tool
     calling the server over HTTP. Controller projects over plain HTTP only.
@@ -850,6 +853,11 @@ the same socket.
   base64/JSON (for example `Authorization: Bearer not.a.token`) raised a JSON parser exception out of
   `TJWT.IsValidToken`, and the client got a 500 with the parser's message. It is now an invalid token like any
   other (`TJWT.LoadToken` returns `False`, the middleware and the filter answer 401).
+
+- **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
+  options is on, a notice under them says that the generated code uses mcp-server-delphi
+  and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it
+  is installed (red). The same warning in the Messages window after the generation is unchanged.
 
 - **JSON-RPC: an error raised before routing answers with the id of the
   request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved

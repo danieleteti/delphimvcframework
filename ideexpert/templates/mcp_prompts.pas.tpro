@@ -1,5 +1,5 @@
 {{include "_license_header.tpro"}}
-unit MCPPromptsU;
+unit Prompts.SampleU;
 
 interface
 
@@ -10,7 +10,7 @@ uses
 
 type
   // MCP prompts: every [MCPPrompt] method is listed by prompts/list
-  TMCPPrompts = class(TMCPPromptProvider)
+  TSamplePrompts = class(TMCPPromptProvider)
   public
     [MCPPrompt('summarize', 'Asks for a summary of the given text')]
     [MCPPromptArg('text', 'The text to summarize', TMCPParamPresence.Required)]
@@ -23,13 +23,13 @@ uses
   System.SysUtils,
   MVCFramework.MCP.Server;
 
-function TMCPPrompts.Summarize(const Arguments: TJDOJsonObject): TMCPPromptResult;
+function TSamplePrompts.Summarize(const Arguments: TJDOJsonObject): TMCPPromptResult;
 begin
   Result := TMCPPromptResult.Create('Text summarization',
     [PromptMessage('user', 'Summarize the following text:' + sLineBreak + sLineBreak + Arguments.S['text'])]);
 end;
 
 initialization
-  TMCPServer.Instance.RegisterPromptProvider(TMCPPrompts);
+  TMCPServer.Instance.RegisterPromptProvider(TSamplePrompts);
 
 end.

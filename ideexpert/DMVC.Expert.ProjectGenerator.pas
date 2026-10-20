@@ -434,11 +434,11 @@ const
       lNL := #10;
     if AConfig.B['program.minimal_api.web'] then
       Result := Result
-        .Replace('{{:controller_unit_name}}', 'RoutesU')
+        .Replace('{{:controller_unit_name}}', 'Routes.RootU')
         .Replace('{{:page_handlers}}', 'minimal API routes')
-        .Replace('{{:add_page_how}}', 'a <code>MapGet</code> to <code>RoutesU</code>')
-        .Replace('{{:info_fragment_source}}', 'RoutesU: MapGet(''/fragment/info'')')
-        .Replace('{{:api_source}}', 'RoutesU: MapGet(''/api/server/info'')')
+        .Replace('{{:add_page_how}}', 'a <code>MapGet</code> to <code>Routes.RootU</code>')
+        .Replace('{{:info_fragment_source}}', 'Routes.RootU: MapGet(''/fragment/info'')')
+        .Replace('{{:api_source}}', 'Routes.RootU: MapGet(''/api/server/info'')')
         .Replace('<!--EXTRA_NAV-->',
           '<li class="nav-item">' + lNL +
           '            <a class="nav-link {{if page_id|eq,"admin"}}active{{endif}}"' + lNL +
@@ -510,7 +510,7 @@ begin
                                    AConfig.B[TConfigKey.program_ssv_webstencils];
 
   // Minimal API + server-side views (TemplatePro) => the "Web App" flavor.
-  // Drives RoutesU template selection and the minimal-web view block, and
+  // Drives Routes.RootU template selection and the minimal-web view block, and
   // suppresses the controller-oriented SSV scaffolding.
   AConfig.B['program.minimal_api.web'] :=
     AConfig.B[TConfigKey.program_minimal_api] and
@@ -576,15 +576,17 @@ begin
   AConfig.B[TConfigKey.mcp_generate] := AConfig.B[TConfigKey.mcp_generate] and LHasEngineConfig;
   AConfig.B[TConfigKey.mcp_standalone] := AConfig.B[TConfigKey.mcp_standalone] and
     AConfig.B[TConfigKey.mcp_generate] and not AConfig.B[TConfigKey.program_minimal_api];
-  // stdio lives in the console program: a Windows service has no stdin
+  // stdio takes over the console: only the "MCP Server" type, whose program is the MCP server, has it
+  // (a server with an API uses its console for its own output). A Windows service has no stdin
   AConfig.B[TConfigKey.mcp_stdio] := AConfig.B[TConfigKey.mcp_stdio] and
     AConfig.B[TConfigKey.mcp_generate] and
+    AConfig.B[TConfigKey.mcp_standalone] and
     (AConfig.S[TConfigKey.program_type] <> TProgramTypes.WINDOWS_SERVICE);
   // the "MCP Server" preset is a local MCP server first: stdio unless "--transport http"
   AConfig.B['mcp.stdio.default'] := AConfig.B[TConfigKey.mcp_stdio] and
     AConfig.B[TConfigKey.mcp_standalone];
-  AConfig.B[TConfigKey.mcp_resources_prompts] := AConfig.B[TConfigKey.mcp_resources_prompts] and
-    AConfig.B[TConfigKey.mcp_generate];
+  // every MCP project comes with a sample of each kind of provider: tools, resources, prompts
+  AConfig.B[TConfigKey.mcp_resources_prompts] := AConfig.B[TConfigKey.mcp_generate];
   // the bridge reads controllers and calls them over plain HTTP
   AConfig.B[TConfigKey.mcp_bridge] := AConfig.B[TConfigKey.mcp_bridge] and
     AConfig.B[TConfigKey.mcp_generate] and
@@ -632,7 +634,7 @@ begin
   // Main ControllerU.pas is worth generating only when it will contain at
   // least one method.
   // Minimal-API WebApp replaces the controller class with lambda routes in
-  // RoutesU.pas, so suppress THomeController even when SSV is on.
+  // Routes.RootU.pas, so suppress THomeController even when SSV is on.
   AConfig.B['controller.main.generate'] :=
     (not AConfig.B['program.minimal_api.web']) and
     (AConfig.B[TConfigKey.controller_index_methods_generate] or
@@ -722,14 +724,14 @@ begin
     SaveFile(CONTROLLER_API_UNIT + '.pas',
       RenderTemplate('controller_api.pas.tpro', AConfig));
 
-  // Minimal API: RoutesU holds ConfigureRoutes, where route groups are mounted.
+  // Minimal API: Routes.RootU holds ConfigureRoutes, where route groups are mounted.
   // Controller projects get no sample resource: Project Manager > DMVCFramework
   // > New REST Controller... adds one (optionally through a service).
   if AConfig.B['program.minimal_api.web'] then
-    SaveFile('RoutesU.pas',
+    SaveFile('Routes.RootU.pas',
       RenderTemplate('routes_minimal_web.pas.tpro', AConfig))
   else if AConfig.B[TConfigKey.program_minimal_api] then
-    SaveFile('RoutesU.pas',
+    SaveFile('Routes.RootU.pas',
       RenderTemplate('routes_minimal.pas.tpro', AConfig));
 
   // WebModule only for WebBroker non-console cases (ISAPI, Apache, Windows Service, FastCGI).
@@ -757,17 +759,17 @@ begin
   begin
     LMCPUnit := TJSONObject.Create;
     try
-      LMCPUnit.S['unit_name'] := 'MCPToolsU';
-      LMCPUnit.S['class_name'] := 'TMCPTools';
+      LMCPUnit.S['unit_name'] := 'Tools.SampleU';
+      LMCPUnit.S['class_name'] := 'TSampleTools';
       LMCPUnit.S['tool_name'] := 'hello';
-      SaveFile('MCPToolsU.pas', RenderTemplate('mcp_tools.pas.tpro', LMCPUnit));
+      SaveFile('Tools.SampleU.pas', RenderTemplate('mcp_tools.pas.tpro', LMCPUnit));
     finally
       LMCPUnit.Free;
     end;
     if AConfig.B[TConfigKey.mcp_resources_prompts] then
     begin
-      SaveFile('MCPResourcesU.pas', RenderTemplate('mcp_resources.pas.tpro', AConfig));
-      SaveFile('MCPPromptsU.pas', RenderTemplate('mcp_prompts.pas.tpro', AConfig));
+      SaveFile('Resources.SampleU.pas', RenderTemplate('mcp_resources.pas.tpro', AConfig));
+      SaveFile('Prompts.SampleU.pas', RenderTemplate('mcp_prompts.pas.tpro', AConfig));
     end;
     // Claude Code opened in the project folder finds the server: a relative
     // path, nothing machine-specific and no secret
