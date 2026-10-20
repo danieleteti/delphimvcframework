@@ -106,6 +106,7 @@ uses
   RangeMediaMiddlewareTestsU in 'RangeMediaMiddlewareTestsU.pas',
   SecuritySwitchesTestsU in 'SecuritySwitchesTestsU.pas',
   SwaggerMiddlewareTestsU in 'SwaggerMiddlewareTestsU.pas',
+  MultiAuthTestsU in 'MultiAuthTestsU.pas',
   MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas',
   MVCFramework.Server.Intf in '..\..\..\sources\MVCFramework.Server.Intf.pas',
   MVCFramework.Server.Indy in '..\..\..\sources\MVCFramework.Server.Indy.pas',

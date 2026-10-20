@@ -395,6 +395,24 @@ begin
       'To use asymmetric signatures instead, pass an IJWTSigner (e.g. TRSAJWTSigner).');
 end;
 
+{ A token is input from the network: a segment that is not base64 or not a JSON object
+  is an invalid token (nil), not an exception that reaches the client as a 500. }
+function TryParseTokenSegment(const aSegment: string): TJDOJSONObject;
+var
+  lParsed: TJDOJsonBaseObject;
+begin
+  Result := nil;
+  try
+    lParsed := TJDOJsonBaseObject.Parse(URLSafeB64Decode(aSegment, IndyTextEncoding_UTF8));
+  except
+    Exit(nil);
+  end;
+  if lParsed is TJDOJSONObject then
+    Result := TJDOJSONObject(lParsed)
+  else
+    lParsed.Free;
+end;
+
 { TJWTRegisteredClaims }
 
 function TJWTRegisteredClaims.GetAudience: string;
@@ -739,6 +757,8 @@ var
   lAlgName: string;
 begin
   Result := False;
+  Header := nil;
+  Payload := nil;
   Error := 'Invalid Token';
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
@@ -747,7 +767,7 @@ begin
     Exit(False);
   end;
 
-  Header := TJDOJsonBaseObject.Parse(URLSafeB64Decode(lPieces[0], IndyTextEncoding_UTF8)) as TJDOJSONObject;
+  Header := TryParseTokenSegment(lPieces[0]);
   try
     if not Assigned(Header) then
     begin
@@ -755,7 +775,7 @@ begin
       Exit(False);
     end;
 
-    Payload := TJDOJsonBaseObject.Parse(URLSafeB64Decode(lPieces[1], IndyTextEncoding_UTF8)) as TJDOJSONObject;
+    Payload := TryParseTokenSegment(lPieces[1]);
     try
       if not Assigned(Payload) then
       begin

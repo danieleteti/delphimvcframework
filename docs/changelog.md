@@ -846,6 +846,11 @@ the same socket.
   the values of `AEnumValues` move into `items.enum`. The same applies to the OpenAPI 3 document, where the
   `items` were missing altogether. Body parameters (`AJsonSchema`, model class) are unchanged.
 
+- **JWT: a malformed token is refused with 401, not 500.** A token whose header or payload segment was not valid
+  base64/JSON (for example `Authorization: Bearer not.a.token`) raised a JSON parser exception out of
+  `TJWT.IsValidToken`, and the client got a 500 with the parser's message. It is now an invalid token like any
+  other (`TJWT.LoadToken` returns `False`, the middleware and the filter answer 401).
+
 - **JSON-RPC: an error raised before routing answers with the id of the
   request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved
   method name, was answered with `"id": 0` whatever the request id was, so
