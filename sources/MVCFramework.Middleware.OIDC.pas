@@ -1127,6 +1127,7 @@ begin
         lJWTValue.RegClaimsToChecks := FClaimsToChecks;
         if lJWTValue.LoadToken(lAuthToken, lErrorMsg) then
         begin
+          AContext.LoggedUser.Clear;
           AContext.LoggedUser.UserName := lJWTValue.CustomClaims['username'];
           AContext.LoggedUser.Roles.AddRange(
             lJWTValue.CustomClaims['roles'].Split([',']));
@@ -1183,6 +1184,7 @@ begin
     end;
 
     // Populate the LoggedUser from the validated JWT
+    AContext.LoggedUser.Clear;
     AContext.LoggedUser.UserName := lJWTValue.CustomClaims['username'];
     AContext.LoggedUser.Roles.AddRange(
       lJWTValue.CustomClaims['roles'].Split([',']));
