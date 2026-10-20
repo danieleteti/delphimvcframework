@@ -39,9 +39,39 @@ uses
   System.Generics.Collections,
   Data.DB,
   BusinessObjectsU, MVCFramework.Serializer.Commons, System.Classes,
-  System.UITypes, JsonDataObjects;
+  System.UITypes, JsonDataObjects, System.Rtti;
 
 type
+
+  /// <summary>
+  /// A list held through an interface (issue #689): reference counted, so the
+  /// action does not free it after handing it to ViewData.
+  /// </summary>
+  TViewItem = class
+  private
+    fName: string;
+  public
+    constructor Create(const aName: string);
+    property Name: string read fName write fName;
+  end;
+
+  IViewItemList = interface
+    ['{5B1E6D3A-0C3F-4C0B-9B53-8D7B2D4E1A11}']
+  end;
+
+  TViewItemList = class(TInterfacedObject, IViewItemList)
+  private
+    fItems: TObjectList<TViewItem>;
+    function GetCount: Integer;
+    function GetItem(const aIndex: Integer): TViewItem;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Add(const aItem: TViewItem);
+    procedure Clear;
+    property Count: Integer read GetCount;
+    property Items[const aIndex: Integer]: TViewItem read GetItem; default;
+  end;
 
   /// <summary>
   /// Instrumented DTO used by the double-free regression test. Each
@@ -505,6 +535,14 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/website/list')]
     procedure Tmpl_ListOfDataUsingDatasets;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/website/interfacelist')]
+    procedure Tmpl_ListFromInterface;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/website/nestedpartials')]
+    procedure Tmpl_NestedPartials;
 
     { issues }
     [MVCHTTPMethod([httpGET])]
@@ -2008,6 +2046,79 @@ begin
   finally
     lDS.Free;
   end;
+end;
+
+procedure TTestServerController.Tmpl_ListFromInterface;
+var
+  lList: TViewItemList;
+begin
+  lList := TViewItemList.Create;
+  lList.Add(TViewItem.Create('one'));
+  lList.Add(TViewItem.Create('two'));
+  lList.Add(TViewItem.Create('three'));
+  // the interface reference owns the list: no try..finally, no Free
+  ViewData['items'] := TValue.From<IViewItemList>(lList);
+  ResponseStream.Append(RenderView('interface_list'));
+  RenderResponseStream;
+end;
+
+procedure TTestServerController.Tmpl_NestedPartials;
+var
+  lList: TObjectList<TViewItem>;
+begin
+  lList := TObjectList<TViewItem>.Create(True);
+  try
+    lList.Add(TViewItem.Create('a'));
+    lList.Add(TViewItem.Create('b'));
+    ViewData['title'] := 'T';
+    ViewData['items'] := lList;
+    ResponseStream.Append(RenderView('nested_partials_1'));
+    RenderResponseStream;
+  finally
+    lList.Free;
+  end;
+end;
+
+{ TViewItem }
+
+constructor TViewItem.Create(const aName: string);
+begin
+  inherited Create;
+  fName := aName;
+end;
+
+{ TViewItemList }
+
+constructor TViewItemList.Create;
+begin
+  inherited Create;
+  fItems := TObjectList<TViewItem>.Create(True);
+end;
+
+destructor TViewItemList.Destroy;
+begin
+  fItems.Free;
+  inherited;
+end;
+
+procedure TViewItemList.Add(const aItem: TViewItem);
+begin
+  fItems.Add(aItem);
+end;
+
+procedure TViewItemList.Clear;
+begin
+  fItems.Clear;
+end;
+
+function TViewItemList.GetCount: Integer;
+begin
+  Result := fItems.Count;
+end;
+
+function TViewItemList.GetItem(const aIndex: Integer): TViewItem;
+begin
+  Result := fItems[aIndex];
 end;
 
 { TTestPrivateServerController }

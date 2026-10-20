@@ -438,6 +438,12 @@ type
     [Test]
     [Category('renders')]
     procedure TestIssue406;
+    [Test]
+    [Category('renders')]
+    procedure TestViewDataHoldsAnInterfaceList;
+    [Test]
+    [Category('renders')]
+    procedure TestNestedPartials;
 
     [Test]
     procedure TestIssue542;
@@ -4252,6 +4258,24 @@ begin
     Assert.areEqual(lCount, lLinePieces[0].ToInteger);
     Inc(lCount);
   end;
+end;
+
+procedure TServerTest.TestViewDataHoldsAnInterfaceList;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/website/interfacelist');
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode, lRes.Content);
+  Assert.areEqual('one;two;three;', lRes.Content);
+end;
+
+procedure TServerTest.TestNestedPartials;
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/website/nestedpartials');
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode, lRes.Content);
+  Assert.areEqual('1[T:2[3(a)3(b)]]', lRes.Content);
 end;
 
 procedure TServerTest.TestWrongJSONBody;
