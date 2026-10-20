@@ -127,6 +127,22 @@ certificate you cannot fix.
 
 ### Added
 
+- **`TMVCCSRFMiddleware`: CSRF protection for cookie-authenticated web apps.**
+  Stateless synchronizer token: the token is the HMAC-SHA256 of a session id
+  that the caller supplies (`TMVCCSRFMiddleware.TokenFor(Secret, SessionId)`),
+  so it does not depend on the session type (the JWT of the auth cookie works).
+  POST, PUT, PATCH and DELETE must carry it in the `X-CSRF-Token` header or in
+  the `csrf_token` form field, otherwise the answer is 403 and the action is
+  not run; the comparison is constant-time, a request without a session is
+  refused, paths listed as exempt skip the check, and an `Origin` header that
+  does not match `Host` is refused (`Host` header only: `X-Forwarded-Host` is not trusted). Exempt
+  entries are matched case-sensitively against `PathInfo` (without the engine
+  base path), on a `/` boundary. Optional `AAllowedHosts` (`host[:port]`, case-insensitive, no wildcards;
+  invalid entries raise) accepts extra `Origin` hosts for apps behind a proxy that rewrites `Host`. The secret must be at least 16 characters; exempt entries must start
+  with `/` and cannot be `/` alone (it would disable the check): `Create` raises.
+  New unit `MVCFramework.Middleware.CSRF`;
+  additive.
+
 - **`StreamItems` and `StreamEach`: stream a lazy sequence of objects.** An
   action returns a `TMVCStreamedResponse` built from a source that produces
   objects one at a time, so nobody has to hand the framework the whole list:
@@ -140,7 +156,9 @@ certificate you cannot fix.
   Direct and HTTP.sys; WebBroker answers 501 as for `StreamDataSet`. Additive:
   nothing changes for existing actions. A streamed response that fails before
   its first byte is now answered with the normal error response instead of an
-  empty one. Showcase in `samples/streamed_array_writer`.
+  empty one. Showcase in `samples/streamed_array_writer`; `samples/streamed_array_client` reads the stream line by
+  line and prints the peak memory of the client (about 11 MB as JSON Lines against about 64 MB as an array, for
+  200,000 rows).
 
 - **`StreamDataSet` answers in JSON Lines on request.** A client sending
   `Accept: application/x-ndjson` receives one record per line
@@ -157,7 +175,7 @@ certificate you cannot fix.
   (0.9.0 or later), which must be in the IDE library path: nothing of it is
   in the framework, and the wizard warns in the Messages view when it does not
   find it or finds an older one.
-  - "MCP server on /mcp": `MCPToolsU.pas` with a sample tool, the `MCPGuard`
+  - "MCP server on /mcp": `Tools.SampleU.pas` with a sample tool, the `MCPGuard`
     filter, the session controller and the published endpoint in
     `EngineConfigU`. The endpoint asks for a bearer token, generated for the
     project in `.env` (`mcp.auth.token`); the HTTP server does not start when
@@ -171,8 +189,8 @@ certificate you cannot fix.
     this mode no HTTP server runs, the console appender is left out (JSON
     logging profile: `loggerpro.stdio.json`) and the working directory is the
     executable's folder. Console programs only.
-  - "Sample resource and prompt providers": `MCPResourcesU.pas` and
-    `MCPPromptsU.pas`.
+  - "Sample resource and prompt providers": `Resources.SampleU.pas` and
+    `Prompts.SampleU.pas`.
   - "REST controllers as MCP tools (prototyping)": one `RegisterFromEngine`
     line that turns every REST action except the `DELETE` ones into a tool
     calling the server over HTTP. Controller projects over plain HTTP only.
@@ -255,7 +273,7 @@ certificate you cannot fix.
     (`TOrder` for `Orders`, editable) with `[MVCFromBody]` and validated;
   - **New Web Controller and View**: a TemplatePro page controller under
     `/web/<segment>` and its view `<segment>/index.html`;
-  - **New Minimal API Route Group**: `<Name>RoutesU` with
+  - **New Minimal API Route Group**: `Routes.<Name>U` with
     `Map<Name>Routes`, mounted on `/api/<segment>`; bodies bound by type
     (`MapPost<TOrder>`, `MapPut<Integer, TOrder>`);
   - **New TemplatePro View**: a page that extends `baselayout.html`, or an
@@ -821,6 +839,12 @@ the same socket.
   `ptArray` produced a definition of the model class that was itself an array ("array of array"), and which of
   the two came out depended on which route registered the class first. The definition is now always an object;
   only the parameter schema is an array.
+
+- **Swagger/OpenAPI: `[MVCSwagParam]` with `ptArray` describes its elements (issue #377).** A query/header/path
+  parameter declared as `ptArray` was emitted as `"type": "array"` with the allowed values in a top-level `enum`
+  and no `items`, which is not a valid array parameter. The parameter now has `"items": {"type": "string"}` and
+  the values of `AEnumValues` move into `items.enum`. The same applies to the OpenAPI 3 document, where the
+  `items` were missing altogether. Body parameters (`AJsonSchema`, model class) are unchanged.
 
 - **JSON-RPC: an error raised before routing answers with the id of the
   request.** An exception in `OnBeforeRoutingHook`, or a call to a reserved

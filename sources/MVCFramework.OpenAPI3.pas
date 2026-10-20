@@ -1129,7 +1129,7 @@ var
   lParameters: TArray<TRttiParameter>;
   lParameter: TRttiParameter;
   lAttr: TCustomAttribute;
-  lParamName, lParamLocation, lTypeName, lOperationId: string;
+  lParamName, lParamLocation, lTypeName, lOperationId, lEnumValue: string;
   lFromQS, lFromHeader, lFromCookie, lFromBody: Boolean;
   lSchema: TJsonObject;
   lAttrType: TRttiType;
@@ -1358,7 +1358,15 @@ begin
             ptNumber: lSchema.S['type'] := 'number';
             ptInteger: lSchema.S['type'] := 'integer';
             ptBoolean: lSchema.S['type'] := 'boolean';
-            ptArray: lSchema.S['type'] := 'array';
+            ptArray:
+              begin
+                // "items" is required on an array; the allowed values belong to the items (issue #377)
+                lSchema.S['type'] := 'array';
+                lSchema.O['items'].S['type'] := 'string';
+                for lEnumValue in EnumValues do
+                  if lEnumValue <> '' then
+                    lSchema.O['items'].A['enum'].Add(lEnumValue);
+              end;
             ptFile: begin lSchema.S['type'] := 'string'; lSchema.S['format'] := 'binary'; end;
           else
             lSchema.S['type'] := 'string';

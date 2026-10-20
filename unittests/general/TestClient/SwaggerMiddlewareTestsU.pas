@@ -169,6 +169,10 @@ type
     [MVCHTTPMethod([httpPOST])]
     [MVCSwagParam(plBody, 'items', 'Items', TSwagTestBatchItem, ptArray)]
     procedure CreateItems;
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagParam(plQuery, 'types', 'Types', ptArray, False, '', 'money,loading,unloading')]
+    procedure FilterByTypes;
   end;
 
   TNativeItem = class
@@ -245,6 +249,10 @@ type
     procedure OpenAPI3DataEnvelopeRefersToComponents;
     [Test]
     procedure ArrayBodyDefinitionIsAnObject;
+    [Test]
+    procedure ArrayQueryParamKeepsEnumInItems;
+    [Test]
+    procedure OpenAPI3ArrayQueryParamKeepsEnumInItems;
   end;
 
   [TestFixture]
@@ -330,6 +338,10 @@ begin
 end;
 
 procedure TSwagTestBatchController.CreateItems;
+begin
+end;
+
+procedure TSwagTestBatchController.FilterByTypes;
 begin
 end;
 
@@ -490,6 +502,38 @@ begin
     Assert.AreEqual('array', lParam.O['schema'].S['type'], lParam.ToJSON);
     Assert.AreEqual('object', lDoc.O['definitions'].O['SwagTestBatchItem'].S['type'],
       lDoc.O['definitions'].O['SwagTestBatchItem'].ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.ArrayQueryParamKeepsEnumInItems;
+var
+  lDoc, lParam: TJsonObject;
+begin
+  lDoc := GetJSON('/swagger.json');
+  try
+    lParam := lDoc.O['paths'].O['/api/batch'].O['get'].A['parameters'].O[0];
+    Assert.AreEqual('array', lParam.S['type'], lParam.ToJSON);
+    Assert.IsFalse(lParam.Contains('enum'), 'enum must not stay on the parameter: ' + lParam.ToJSON);
+    Assert.AreEqual('string', lParam.O['items'].S['type'], lParam.ToJSON);
+    Assert.AreEqual('money,loading,unloading', string.Join(',', [lParam.O['items'].A['enum'].S[0],
+      lParam.O['items'].A['enum'].S[1], lParam.O['items'].A['enum'].S[2]]), lParam.ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.OpenAPI3ArrayQueryParamKeepsEnumInItems;
+var
+  lDoc, lSchema: TJsonObject;
+begin
+  lDoc := GetJSON('/openapi3.json');
+  try
+    lSchema := lDoc.O['paths'].O['/api/batch'].O['get'].A['parameters'].O[0].O['schema'];
+    Assert.AreEqual('array', lSchema.S['type'], lSchema.ToJSON);
+    Assert.AreEqual('string', lSchema.O['items'].S['type'], lSchema.ToJSON);
+    Assert.AreEqual(3, lSchema.O['items'].A['enum'].Count, lSchema.ToJSON);
   finally
     lDoc.Free;
   end;

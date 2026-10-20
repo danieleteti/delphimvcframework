@@ -446,6 +446,27 @@ uses
   Json.Schema.Field.Enums,
   Json.Schema.Field.Booleans;
 
+{ Swagger 2.0: a parameter of type "array" describes its elements in "items", and the
+  allowed values belong there too (issue #377). A schema-based parameter (body) is left alone. }
+procedure MoveEnumToArrayItems(const aReqParam: TSwagRequestParameter);
+var
+  lItems: TJSONObject;
+  lValues: TJSONArray;
+  lValue: string;
+begin
+  lItems := TJSONObject.Create;
+  lItems.AddPair('type', 'string');
+  if aReqParam.Enum.Count > 0 then
+  begin
+    lValues := TJSONArray.Create;
+    for lValue in aReqParam.Enum do
+      lValues.Add(lValue);
+    lItems.AddPair('enum', lValues);
+    aReqParam.Enum.Clear;
+  end;
+  aReqParam.Items := lItems;
+end;
+
 function GetRecordType(const aQualifiedName: String): TRttiType;
 var
   lContext: TRttiContext;
@@ -1555,6 +1576,9 @@ begin
               lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
               lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
               lSwagReqParam.Description := ApplyModelName(lMVCParam.ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+              if (lMVCParam.ParamType = ptArray) and lMVCParam.JsonSchema.IsEmpty and
+                not Assigned(lMVCParam.JsonSchemaClass) and not Assigned(lMVCParam.RecordType) then
+                MoveEnumToArrayItems(lSwagReqParam);
               if not lMVCParam.JsonSchema.IsEmpty then
               begin
                 lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
@@ -1602,6 +1626,9 @@ begin
         lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
         lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
         lSwagReqParam.Description := ApplyModelName(lMVCSwagParams[I].ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
+        if (lMVCSwagParams[I].ParamType = ptArray) and lMVCSwagParams[I].JsonSchema.IsEmpty and
+          not Assigned(lMVCSwagParams[I].JsonSchemaClass) and not Assigned(lMVCSwagParams[I].RecordType) then
+          MoveEnumToArrayItems(lSwagReqParam);
         if not lMVCSwagParams[I].JsonSchema.IsEmpty then
         begin
           lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
