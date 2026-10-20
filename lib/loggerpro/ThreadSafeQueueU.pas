@@ -42,6 +42,8 @@ type
     fShutDown: Boolean;
   public
     function Enqueue(const Item: T): Boolean;
+    { Single attempt, never sleeps. Returns False if the queue is full or shut down. }
+    function TryEnqueue(const Item: T): Boolean;
     function Dequeue(out Item: T): TWaitResult; overload;
     function Dequeue(out QueueSize: UInt64; out Item: T): TWaitResult; overload;
     function Dequeue: T; overload;
@@ -157,7 +159,7 @@ function TThreadSafeQueue<T>.Enqueue(const Item: T): Boolean;
 const
   cRetryCount: Byte = 20;
 var
-  lCount: Integer;
+  lCount, lWaitMs: Integer;
 begin
   if fShutDown then
     Exit(False);
@@ -166,7 +168,16 @@ begin
   lCount := 0;
   while lCount < cRetryCount do
   begin
-    Sleep(lCount * lCount * lCount * 10);  //let's slow down the enqueue call using a cubic function
+    lWaitMs := lCount * lCount * lCount * 10;  //let's slow down the enqueue call using a cubic function
+    // sliced, so that a queue that drains meanwhile releases the caller at once
+    while (lWaitMs > 0) and (fQueue.Count >= fMaxSize) do
+    begin
+      if lWaitMs < 100 then
+        Sleep(lWaitMs)
+      else
+        Sleep(100);
+      Dec(lWaitMs, 100);
+    end;
     fCriticalSection.Enter;
     try
       if fQueue.Count >= fMaxSize then
@@ -181,6 +192,23 @@ begin
     finally
       fCriticalSection.Leave;
     end;
+  end;
+end;
+
+function TThreadSafeQueue<T>.TryEnqueue(const Item: T): Boolean;
+begin
+  if fShutDown then
+    Exit(False);
+  fCriticalSection.Enter;
+  try
+    Result := fQueue.Count < fMaxSize;
+    if Result then
+    begin
+      fQueue.Enqueue(Item);
+      fEvent.SetEvent;
+    end;
+  finally
+    fCriticalSection.Leave;
   end;
 end;
 

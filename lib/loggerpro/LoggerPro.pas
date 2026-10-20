@@ -322,8 +322,11 @@ type
     FLogAppender: ILogAppender;
     FAppenderQueue: TAppenderQueue;
     FFailing: Boolean;
+    FWriting: Boolean;
+    FWriteStartTick: Cardinal;
     FReadyEvent: TEvent;
     procedure SetFailing(const Value: Boolean);
+    function GetWriteStalled: Boolean;
   protected
     procedure Execute; override;
 
@@ -339,6 +342,10 @@ type
       this point can be lost to "thread not scheduled yet" races. }
     function WaitUntilReady(aTimeoutMs: Cardinal): Boolean;
     property Failing: Boolean read FFailing write SetFailing;
+    { True while a single WriteLog has been running for longer than
+      cWriteStallMs without returning or raising (e.g. a WriteFile stuck in a
+      file-system filter driver). Unlike Failing, there is no exception. }
+    property WriteStalled: Boolean read GetWriteStalled;
   end;
 
   TLoggerThread = class(TThread)
@@ -2489,9 +2496,34 @@ end;
 function TLoggerThread.TAppenderAdapter.EnqueueLog(const aLogItem: TLogItem): Boolean;
 var
   lLogItem: TLogItem;
+  lAttempt, lWaitMs: Integer;
 begin
   lLogItem := aLogItem.Clone;
-  Result := FAppenderQueue.Enqueue(lLogItem); // = TWaitResult.wrSignaled;
+  { A failing appender does not drain its queue (it sits in WaitAfterFail),
+    so the back-off in Enqueue (up to ~6 minutes per item) cannot help: it
+    would only block the logger thread and, once the main queue is full,
+    every caller of Log.*. Try once and let the QueueFull path handle it.
+    Healthy but slow appenders keep the blocking back-pressure. }
+  Result := FAppenderQueue.TryEnqueue(lLogItem);
+  lAttempt := 0;
+  // same cubic back-off as TThreadSafeQueue.Enqueue, but sliced so that an
+  // appender that fails or stalls (WriteFile stuck, no exception) while we
+  // wait releases us at once instead of after minutes
+  while (not Result) and (lAttempt < 20) and (FAppenderThread <> nil) and
+    not (FAppenderThread.Failing or FAppenderThread.WriteStalled) do
+  begin
+    lWaitMs := lAttempt * lAttempt * lAttempt * 10;
+    while (lWaitMs > 0) and not (FAppenderThread.Failing or FAppenderThread.WriteStalled) do
+    begin
+      if lWaitMs < 100 then
+        Sleep(lWaitMs)
+      else
+        Sleep(100);
+      Dec(lWaitMs, 100);
+    end;
+    Result := FAppenderQueue.TryEnqueue(lLogItem);
+    Inc(lAttempt);
+  end;
   if not Result then
   begin
     lLogItem.Free;
@@ -2645,6 +2677,8 @@ begin
               except
                 if lSetupFailCount = 10 then
                 begin
+                  Failing := True;
+                  FLogAppender.LastErrorTimeStamp := now;
                   lStatus := TAppenderStatus.WaitAfterFail;
                 end
                 else
@@ -2689,9 +2723,15 @@ begin
                   lStatus := TAppenderStatus.WaitAfterFail;
                 end;
               except
+                // a raising TryToRestart is a failed restart: back off
+                // instead of retrying immediately (busy loop)
                 lRestarted := False;
+                FLogAppender.LastErrorTimeStamp := now;
+                lStatus := TAppenderStatus.WaitAfterFail;
               end;
-              Failing := not lRestarted;
+              // Failing is cleared only by the first successful WriteLog
+              if not lRestarted then
+                Failing := True;
             end;
 
           TAppenderStatus.WaitAfterFail:
@@ -2736,8 +2776,16 @@ begin
                 begin
                   try
                     try
-                      if FLogAppender.IsEnabled then
-                        FLogAppender.WriteLog(lLogItem);
+                      FWriteStartTick := TThread.GetTickCount;
+                      FWriting := True;
+                      try
+                        if FLogAppender.IsEnabled then
+                          FLogAppender.WriteLog(lLogItem);
+                      finally
+                        FWriting := False;
+                      end;
+                      if Failing then
+                        Failing := False;
                     except
                       Failing := true;
                       FLogAppender.LastErrorTimeStamp := now;
@@ -2767,6 +2815,14 @@ end;
 procedure TAppenderThread.SetFailing(const Value: Boolean);
 begin
   FFailing := Value;
+end;
+
+function TAppenderThread.GetWriteStalled: Boolean;
+const
+  cWriteStallMs = 2000;
+begin
+  // benign race: at worst one call is judged late or early
+  Result := FWriting and (Cardinal(TThread.GetTickCount - FWriteStartTick) > cWriteStallMs);
 end;
 
 { TLoggerThread.TAppenderAdaptersList }

@@ -138,6 +138,10 @@ type
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); overload; override;
+    { Called by the appender thread after a failed WriteLog (e.g. log file
+      locked by another process during rotation). Drops all writers; they are
+      re-created lazily by the next WriteLog. }
+    procedure TryToRestart(var Restarted: Boolean); override;
     { Returns the current log file name for the given tag, or '' if no log
       has yet been written under that tag. The file may not exist on disk
       until the first WriteLog for that tag. }
@@ -176,6 +180,8 @@ type
     procedure Setup; override;
     procedure TearDown; override;
     procedure WriteLog(const aLogItem: TLogItem); overload; override;
+    { Re-opens the current log file if a failed rotation left no writer. }
+    procedure TryToRestart(var Restarted: Boolean); override;
     function GetCurrentLogFileName: string;
     constructor Create(
       aMaxBackupFileCount: Integer = TLoggerProFileAppenderBase.DEFAULT_MAX_BACKUP_FILE_COUNT;
@@ -694,6 +700,19 @@ begin
   end;
 end;
 
+procedure TLoggerProFileAppender.TryToRestart(var Restarted: Boolean);
+begin
+  Restarted := False;
+  try
+    fWritersDictionary.Clear; // doOwnsValues: closes the file handles
+    fFileNamesDictionary.Clear;
+    // If the file is still not writable, the next WriteLog fails again and
+    // the appender thread retries after its normal back-off.
+    Restarted := True;
+  except
+  end;
+end;
+
 function TLoggerProFileAppender.GetCurrentLogFileName(const aLogTag: string): string;
 begin
   if not fFileNamesDictionary.TryGetValue(aLogTag, Result) then
@@ -761,7 +780,7 @@ var
 begin
   EmitEndRotateLogItem(fFileWriter);
   // remove the writer during rename
-  fFileWriter.Free;
+  FreeAndNil(fFileWriter); // nil (not dangling) if RotateFile/CreateWriter raises
   RotateFile('', lLogFileName);
   if Assigned(fOnAfterRotate) then
     fOnAfterRotate(GetLogFileName('', 1));
@@ -780,9 +799,27 @@ end;
 
 procedure TLoggerProSimpleFileAppender.TearDown;
 begin
-  fFileWriter.Flush;
-  fFileWriter.Free;
+  if fFileWriter <> nil then
+  begin
+    fFileWriter.Flush;
+    FreeAndNil(fFileWriter);
+  end;
   inherited;
+end;
+
+procedure TLoggerProSimpleFileAppender.TryToRestart(var Restarted: Boolean);
+begin
+  Restarted := False;
+  try
+    if fFileWriter = nil then
+    begin
+      fCurrentLogFileName := GetLogFileName('', 0);
+      fFileWriter := CreateWriter(fCurrentLogFileName);
+      EmitStartRotateLogItem(fFileWriter);
+    end;
+    Restarted := True;
+  except
+  end;
 end;
 
 procedure TLoggerProSimpleFileAppender.WriteLog(const aLogItem: TLogItem);
