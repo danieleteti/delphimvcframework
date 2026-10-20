@@ -854,6 +854,11 @@ the same socket.
   `TJWT.IsValidToken`, and the client got a 500 with the parser's message. It is now an invalid token like any
   other (`TJWT.LoadToken` returns `False`, the middleware and the filter answer 401).
 
+- **JWT: a Bearer token sent on a session that Basic authentication opened no longer fails with 500.** The user
+  of the request was loaded from the session, and the JWT middleware/filter then filled it in over the session's
+  identity (`TMVCUser.LoggedSince already set`, roles added twice). The JWT code now starts from an empty user, so
+  the token is the identity of that request. A request without a token keeps its session identity.
+
 - **Swagger/OpenAPI: `[MVCSwagExample]` puts an example value on a DTO field (issue #927).** Swagger UI builds the
   sample request body from the type alone, so an optional integer id showed up as `0` (a valid id in many
   databases), and `Nullable` does not help because the UI drops `null` from the type. The new attribute takes the

@@ -1276,6 +1276,7 @@ begin
           Exit(Status(http_status.Unauthorized, 'Invalid token: ' + lError));
         // Make claims available to the handler via the framework's
         // LoggedUser slot — same surface controller-based apps use.
+        AContext.LoggedUser.Clear;
         AContext.LoggedUser.UserName := lJWT.Claims.Subject;
         AContext.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
         AContext.LoggedUser.CustomData := nil;

@@ -33,8 +33,7 @@ curl -i -H "Authorization: Bearer not.a.token" http://localhost:8099/api/secure
 ## Notes
 
 - The Basic middleware keeps the login in a session (`UseMemorySessionMiddleware`). A client that keeps the session
-  cookie after a Basic request and then sends a Bearer token can get a 500 (`TMVCUser.LoggedSince already set`).
-  Send either one or the other from a given client.
+  cookie after a Basic request can then send a Bearer token: the token replaces the identity the session carried.
 - The credentials and the JWT secret are demo values. Use your own user store, and read the secret from the
   environment (`dotEnv`).
 - `MultiAuthTestsU` in `unittests/general/TestClient` runs the same combination as an automated test.

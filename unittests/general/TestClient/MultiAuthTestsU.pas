@@ -69,6 +69,8 @@ type
     procedure BearerTokenIsAccepted;
     [Test]
     procedure WrongBearerTokenIsRefused;
+    [Test]
+    procedure BearerAfterBasicSessionOnTheSameClientIsAccepted;
   end;
 
 implementation
@@ -226,6 +228,33 @@ var
 begin
   lRes := Get('Bearer not.a.token');
   Assert.AreEqual(401, lRes.StatusCode, lRes.ContentAsString);
+end;
+
+procedure TMultiAuthTests.BearerAfterBasicSessionOnTheSameClientIsAccepted;
+var
+  lRes: IHTTPResponse;
+  lToken: string;
+  lClient: THTTPClient;
+  lBody: TStringStream;
+  lUrl: string;
+begin
+  // one client keeps the session cookie the Basic middleware opens: the token must still be read
+  lUrl := 'http://localhost:' + MULTIAUTH_PORT.ToString;
+  lClient := THTTPClient.Create;
+  lBody := TStringStream.Create('');
+  try
+    lRes := lClient.Post(lUrl + '/login', lBody, nil, [TNameValuePair.Create('Authorization', BasicHeader(USER, USER))]);
+    Assert.AreEqual(200, lRes.StatusCode, lRes.ContentAsString);
+    lToken := StrToJSONObject(lRes.ContentAsString).S['token'];
+    lRes := lClient.Get(lUrl + '/api/secure', nil, [TNameValuePair.Create('Authorization', BasicHeader(USER, USER))]);
+    Assert.AreEqual(200, lRes.StatusCode, 'Basic: ' + lRes.ContentAsString);
+    lRes := lClient.Get(lUrl + '/api/secure', nil, [TNameValuePair.Create('Authorization', 'Bearer ' + lToken)]);
+    Assert.AreEqual(200, lRes.StatusCode, 'Bearer after Basic: ' + lRes.ContentAsString);
+    Assert.AreEqual('ok', lRes.ContentAsString);
+  finally
+    lBody.Free;
+    lClient.Free;
+  end;
 end;
 
 initialization
