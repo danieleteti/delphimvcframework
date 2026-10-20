@@ -11,6 +11,11 @@ unit PeopleSourcesU;
 //                       "enumerator of objects read from a file (or a DB
 //                       cursor)" case: usable with a plain "for p in source do"
 //                       loop, exactly like any TEnumerable<T>.
+//  TPeopleRange       - a reusable generator that implements IEnumerable<TPerson>
+//                       (the interface, not the TEnumerable<T> class): what
+//                       StreamItems<T> takes as its second overload. It builds
+//                       one TPerson per MoveNext and does NOT own it: the
+//                       response frees each item after writing it.
 // ===========================================================================
 
 interface
@@ -66,10 +71,60 @@ type
     constructor Create(const AFileName: string);
   end;
 
+  // IEnumerable<T> inherits the non-generic IEnumerable, and a class that lists
+  // both does not accept the method resolution clause for the non-generic one.
+  // So the non-generic halves live in two small base classes.
+  TEnumerableBase = class(TInterfacedObject, IEnumerable)
+  protected
+    function IEnumerable.GetEnumerator = GetNonGenericEnumerator;
+    function GetNonGenericEnumerator: IEnumerator; virtual; abstract;
+  end;
+
+  TEnumeratorBase = class(TInterfacedObject, IEnumerator)
+  protected
+    function IEnumerator.GetCurrent = GetCurrentObject;
+    function GetCurrentObject: TObject; virtual; abstract;
+    function MoveNext: Boolean; virtual; abstract;
+    procedure Reset; virtual; abstract;
+  end;
+
+  TPeopleRangeEnumerator = class(TEnumeratorBase, IEnumerator<TPerson>)
+  private
+    FFirst: Integer;
+    FNext: Integer;
+    FLast: Integer;
+    FCurrent: TPerson;
+  protected
+    function GetCurrent: TPerson;
+    function GetCurrentObject: TObject; override;
+    function MoveNext: Boolean; override;
+    procedure Reset; override;
+  public
+    constructor Create(const AFirst, ALast: Integer);
+  end;
+
+  /// <summary>
+  /// The people with ID AFirst..ALast, built one at a time. Every
+  /// GetEnumerator starts again from AFirst.
+  /// </summary>
+  TPeopleRange = class(TEnumerableBase, IEnumerable<TPerson>)
+  private
+    FFirst: Integer;
+    FLast: Integer;
+  protected
+    function GetEnumerator: IEnumerator<TPerson>;
+    function GetNonGenericEnumerator: IEnumerator; override;
+  public
+    constructor Create(const AFirst, ALast: Integer);
+  end;
+
 implementation
 
 uses
   System.SysUtils;
+
+const
+  RANGE_COUNTRIES: array [0 .. 3] of string = ('IT', 'FR', 'DE', 'ES');
 
 { TPerson }
 
@@ -125,6 +180,62 @@ begin
     Exit(True);
   end;
   Result := False;
+end;
+
+{ TPeopleRangeEnumerator }
+
+constructor TPeopleRangeEnumerator.Create(const AFirst, ALast: Integer);
+begin
+  inherited Create;
+  FFirst := AFirst;
+  FNext := AFirst;
+  FLast := ALast;
+end;
+
+function TPeopleRangeEnumerator.GetCurrent: TPerson;
+begin
+  Result := FCurrent;
+end;
+
+function TPeopleRangeEnumerator.GetCurrentObject: TObject;
+begin
+  Result := FCurrent;
+end;
+
+function TPeopleRangeEnumerator.MoveNext: Boolean;
+begin
+  Result := FNext <= FLast;
+  if Result then
+  begin
+    // the person belongs to whoever consumes it: not freed here
+    FCurrent := TPerson.Create(FNext, 'Person ' + IntToStr(FNext),
+      RANGE_COUNTRIES[FNext mod Length(RANGE_COUNTRIES)], 18 + (FNext mod 60));
+    Inc(FNext);
+  end;
+end;
+
+procedure TPeopleRangeEnumerator.Reset;
+begin
+  FNext := FFirst;
+end;
+
+{ TPeopleRange }
+
+constructor TPeopleRange.Create(const AFirst, ALast: Integer);
+begin
+  inherited Create;
+  FFirst := AFirst;
+  FLast := ALast;
+end;
+
+function TPeopleRange.GetEnumerator: IEnumerator<TPerson>;
+begin
+  Result := TPeopleRangeEnumerator.Create(FFirst, FLast);
+end;
+
+function TPeopleRange.GetNonGenericEnumerator: IEnumerator;
+begin
+  Result := TPeopleRangeEnumerator.Create(FFirst, FLast);
 end;
 
 { TPersonFileSource }

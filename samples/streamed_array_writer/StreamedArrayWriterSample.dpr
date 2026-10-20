@@ -4,7 +4,7 @@ program StreamedArrayWriterSample;
 //  Comprehensive showcase of every incremental (socket-level) streaming
 //  mechanism in DelphiMVCFramework.
 //
-//  Three wire-format families, nine endpoints total:
+//  Three wire-format families plus lazy sequences, thirteen endpoints total:
 //
 //    TMVCJSONArrayWriter  application/json       (well-formed JSON array)
 //      /stream/dataset      DB cursor, raw record shape    streamed, no CL

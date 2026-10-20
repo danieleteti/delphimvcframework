@@ -30,6 +30,7 @@ unit StreamedArrayWriterControllerU;
 //      /stream/items            pull function over a DB cursor, one TPerson at a time
 //      /stream/itemsfile        pull function over a lazy file reader
 //      /stream/each             a plain loop that "yields" each TPerson
+//      /stream/enumerable       an IEnumerable<TPerson> generator class
 //  The wire format follows the Accept header: JSON array, application/x-ndjson
 //  or text/event-stream.
 //
@@ -212,6 +213,16 @@ type
     [MVCPath('/each')]
     [MVCHTTPMethod([httpGET])]
     function GetEach(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
+
+    /// <summary>
+    /// An IEnumerable&lt;TPerson&gt;: a reusable generator class (TPeopleRange)
+    /// instead of a closure. The interface is reference counted, so nothing to
+    /// free. The generator does not own the people it builds: the response
+    /// frees each one after writing it (AOwnsItems = True, the default).
+    /// </summary>
+    [MVCPath('/enumerable')]
+    [MVCHTTPMethod([httpGET])]
+    function GetEnumerable(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
   end;
 
 implementation
@@ -589,6 +600,11 @@ begin
           COUNTRIES[I mod 6], 18 + (I mod 60))) then
           Exit; // client gone
     end);
+end;
+
+function TStreamedArrayWriterController.GetEnumerable(const ACount: Integer): TMVCStreamedResponse;
+begin
+  Result := StreamItems<TPerson>(TPeopleRange.Create(1, ACount));
 end;
 
 end.

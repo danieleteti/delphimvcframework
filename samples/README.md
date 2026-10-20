@@ -102,7 +102,8 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | Sample | Description |
 |--------|-------------|
 | `http_streaming` | SSE, JSON Lines and CSV writers driving a browser UI |
-| `streamed_array_writer` | Every incremental streaming mechanism in one project: nine endpoints over a 200k-row table |
+| `streamed_array_writer` | Every incremental streaming mechanism in one project: thirteen endpoints over a 200k-row table, including lazy sequences (`StreamItems`, `StreamEach`) |
+| `streamed_array_client` | Console client for `streamed_array_writer`: reads 200k rows as JSON Lines and as an array and prints the peak memory of each |
 
 ## Server-Side Views & Templating
 

@@ -231,18 +231,23 @@ previous one is on the socket, serializes it, and asks again.
 ```pascal
 // PULL: return True with AItem filled, or False at the end. State lives in the
 // captured variables, so the closure is the generator.
-function GetCustomers: TMVCStreamedResponse;
+// (samples/streamed_array_writer: OpenPeopleCursor opens a forward-only TFDQuery)
+function TMyController.GetItems: TMVCStreamedResponse;
 var
-  lQry: TFDQuery; lConn: TFDConnection;
+  lConn: TFDConnection;
+  lQry: TFDQuery;
 begin
-  lQry := OpenCursor(lConn);
-  Result := StreamItems<TCustomer>(
-    function(out AItem: TCustomer): Boolean
+  lQry := OpenPeopleCursor(lConn);
+  Result := StreamItems<TPerson>(
+    function(out AItem: TPerson): Boolean
     begin
       Result := not lQry.Eof;
       if Result then
       begin
-        AItem := TCustomer.Create(lQry.FieldByName('id').AsInteger, ...);
+        AItem := TPerson.Create(lQry.FieldByName('id').AsInteger,
+          lQry.FieldByName('full_name').AsString,
+          lQry.FieldByName('country').AsString,
+          lQry.FieldByName('age').AsInteger);
         lQry.Next;
       end;
     end,
@@ -251,21 +256,38 @@ begin
 end;
 
 // PUSH, like a Python generator: a loop that yields each item.
-function GetTicks(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
+function TMyController.GetEach(const [MVCFromQueryString('count', 100)] ACount: Integer): TMVCStreamedResponse;
+var
+  lCount: Integer;
 begin
-  Result := StreamEach<TTick>(
-    procedure(const AYield: TMVCYield<TTick>)
-    var I: Integer;
+  lCount := ACount;
+  Result := StreamEach<TPerson>(
+    procedure(const AYield: TMVCYield<TPerson>)
+    var
+      I: Integer;
     begin
-      for I := 1 to ACount do
-        if not AYield(TTick.Create(I)) then Exit;   // False = client gone
+      for I := 1 to lCount do
+        if not AYield(TPerson.Create(I, 'Person ' + IntToStr(I), 'IT', 18 + (I mod 60))) then
+          Exit;   // False = client gone
     end);
 end;
 ```
 
 `StreamItems<T>` also accepts an `IEnumerable<T>` (a reusable generator class).
 `T` is a class. Note that `TList<T>` / `TObjectList<T>` are classes, not
-`IEnumerable<T>`.
+`IEnumerable<T>`, and that a class implementing both `IEnumerable<T>` and the
+non-generic `IEnumerable` needs the non-generic half in a base class (the
+method resolution clause is not accepted otherwise): see `TPeopleRange` and
+`TEnumerableBase` in `samples/streamed_array_writer/PeopleSourcesU.pas`, served
+by `/stream/enumerable`. For a source that
+is not an `IEnumerable<T>`, such as a `TEnumerable<T>` class, a pull function
+that calls its enumerator is simpler (`/stream/itemsfile` in the sample).
+
+**Reading it on the client.** `TMVCRESTClient` buffers the whole response, so
+it does not show the benefit. `THTTPClient.Get(url, stream)` writes into the
+stream while the body arrives. `samples/streamed_array_client` reads
+`/stream/items` (200,000 rows) as an array and as NDJSON: same result, peak
+memory about 64 MB against about 11 MB.
 
 - **Format from `Accept`:** JSON array (default), `application/x-ndjson`, or
   `text/event-stream` (one `data:` event per item).

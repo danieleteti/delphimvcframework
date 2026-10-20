@@ -1,8 +1,8 @@
 # Streamed Array Writer — Comprehensive Streaming Showcase
 
 Single-file reference for every incremental (socket-level) streaming mechanism
-in DelphiMVCFramework. Twelve endpoints, three wire-format families plus two
-declarative paths and three lazy-sequence paths, all driven from the same SQLite `people` table (200k rows)
+in DelphiMVCFramework. Thirteen endpoints, three wire-format families plus two
+declarative paths and four lazy-sequence paths, all driven from the same SQLite `people` table (200k rows)
 or from an in-memory / file source.
 
 ## Endpoints at a glance
@@ -21,6 +21,7 @@ or from an in-memory / file source.
 | `GET /stream/items` | `StreamItems<TPerson>` (pull) | `function: TMVCStreamedResponse` | by `Accept` | no | DB cursor → `TPerson`, one at a time |
 | `GET /stream/itemsfile` | `StreamItems<TPerson>` (pull) | `function: TMVCStreamedResponse` | by `Accept` | no | Lazy file reader, one line → one `TPerson` |
 | `GET /stream/each?count=N` | `StreamEach<TPerson>` (push) | `function: TMVCStreamedResponse` | by `Accept` | no | A plain loop that "yields" each person |
+| `GET /stream/enumerable?count=N` | `StreamItems<TPerson>` (`IEnumerable<T>`) | `function: TMVCStreamedResponse` | by `Accept` | no | A reusable generator class, `TPeopleRange` |
 
 All streaming-writer endpoints have no `Content-Length` because the total size
 is not known before streaming starts. `/stream/datasetfunc` is the contrast
@@ -73,6 +74,10 @@ curl -s -D - -H "Accept: application/x-ndjson" http://localhost:8991/stream/item
 curl -s -D - -H "Accept: text/event-stream"    http://localhost:8991/stream/items      -o out.txt
 curl -s -D - -H "Accept: application/x-ndjson" http://localhost:8991/stream/itemsfile  -o out.ndjson
 curl -s -D - -H "Accept: application/x-ndjson" "http://localhost:8991/stream/each?count=1000000" -o out.ndjson
+curl -s -D - -H "Accept: application/x-ndjson" "http://localhost:8991/stream/enumerable?count=1000000" -o out.ndjson
+
+# the same dataset endpoint as JSON Lines: one record per line
+curl -s -D - -H "Accept: application/x-ndjson" http://localhost:8991/stream/datasetstreamed -o out.ndjson
 
 # buffered: this one HAS Content-Length
 curl -s -D - http://localhost:8991/stream/datasetfunc   -o out.json
@@ -120,6 +125,13 @@ previous one is on the socket, serializes it, and asks again.
   The closure fills `AItem` and returns `True`, or returns `False` at the end.
   State lives in the variables it captures. There is also an overload taking an
   `IEnumerable<T>`.
+- **`IEnumerable<T>`**: `StreamItems<T>(TPeopleRange.Create(1, N))`. A generator
+  class you can reuse and test on its own (`PeopleSourcesU.pas`). Two things to
+  know: `TList<T>` and `TObjectList<T>` are classes, not `IEnumerable<T>`; and
+  a class implementing both `IEnumerable<T>` and the non-generic `IEnumerable`
+  needs the non-generic half in a base class (`TEnumerableBase`,
+  `TEnumeratorBase`), because the method resolution clause is not accepted
+  otherwise.
 - **Push**: `StreamEach<T>(procedure(const AYield: TMVCYield<T>) ... end)`. A
   plain loop calling `AYield(item)`, like `yield` in a Python generator;
   `AYield` returns `False` when the client has gone.
@@ -129,6 +141,10 @@ previous one is on the socket, serializes it, and asks again.
   `application/x-ndjson`, `text/event-stream`.
 - A failure before the first item is answered as a normal error; afterwards the
   body is truncated and the error is logged.
+
+To see the client side of it, run `samples/streamed_array_client`: it reads
+`/stream/items` as an array and as JSON Lines and prints the peak memory of
+each (about 64 MB against about 11 MB for 200,000 rows).
 
 ## Further reading
 
