@@ -157,9 +157,16 @@ type
   private
     fID: Integer;
     fDescription: string;
+    fParentID: Integer;
+    fQuantity: Integer;
   public
     property ID: Integer read fID write fID;
     property Description: string read fDescription write fDescription;
+    [MVCSwagJSONSchemaField('parentId', 'Parent record. null = no parent.', False, True)]
+    [MVCSwagExample('null')]
+    property ParentID: Integer read fParentID write fParentID;
+    [MVCSwagExample('42')]
+    property Quantity: Integer read fQuantity write fQuantity;
   end;
 
   [MVCPath('/api/batch')]
@@ -253,6 +260,10 @@ type
     procedure ArrayQueryParamKeepsEnumInItems;
     [Test]
     procedure OpenAPI3ArrayQueryParamKeepsEnumInItems;
+    [Test]
+    procedure FieldExampleIsWrittenAsExample;
+    [Test]
+    procedure OpenAPI3FieldExampleIsWrittenAsExamples;
   end;
 
   [TestFixture]
@@ -536,6 +547,37 @@ begin
     Assert.AreEqual(3, lSchema.O['items'].A['enum'].Count, lSchema.ToJSON);
   finally
     lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.FieldExampleIsWrittenAsExample;
+var
+  lProps: TJsonObject;
+begin
+  with GetJSON('/swagger.json') do
+  try
+    lProps := O['definitions'].O['SwagTestBatchItem'].O['properties'];
+    Assert.IsTrue(lProps.O['ParentID'].Contains('example'), lProps.ToJSON);
+    Assert.IsTrue(lProps.O['ParentID'].IsNull('example'), lProps.ToJSON);
+    Assert.AreEqual(42, lProps.O['Quantity'].I['example'], lProps.ToJSON);
+    Assert.IsFalse(lProps.O['ID'].Contains('example'), lProps.ToJSON);
+  finally
+    Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.OpenAPI3FieldExampleIsWrittenAsExamples;
+var
+  lProps: TJsonObject;
+begin
+  with GetJSON('/openapi3.json') do
+  try
+    lProps := O['components'].O['schemas'].O['SwagTestBatchItem'].O['properties'];
+    Assert.AreEqual(1, lProps.O['ParentID'].A['examples'].Count, lProps.ToJSON);
+    Assert.IsTrue(lProps.O['ParentID'].A['examples'].IsNull(0), lProps.ToJSON);
+    Assert.AreEqual(42, lProps.O['Quantity'].A['examples'].I[0], lProps.ToJSON);
+  finally
+    Free;
   end;
 end;
 

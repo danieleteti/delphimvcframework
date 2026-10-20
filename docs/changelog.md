@@ -854,6 +854,14 @@ the same socket.
   `TJWT.IsValidToken`, and the client got a 500 with the parser's message. It is now an invalid token like any
   other (`TJWT.LoadToken` returns `False`, the middleware and the filter answer 401).
 
+- **Swagger/OpenAPI: `[MVCSwagExample]` puts an example value on a DTO field (issue #927).** Swagger UI builds the
+  sample request body from the type alone, so an optional integer id showed up as `0` (a valid id in many
+  databases), and `Nullable` does not help because the UI drops `null` from the type. The new attribute takes the
+  value as JSON text - `[MVCSwagExample('null')]`, `[MVCSwagExample('42')]`, `[MVCSwagExample('"abc"')]` - and the
+  field is written with `"examples": [value]` in the OpenAPI 3 document and `"example": value` in the Swagger 2.0
+  one. It works with or without `[MVCSwagJSONSchemaField]` on the same property. Additive: a field without the
+  attribute is emitted exactly as before. Text that is not valid JSON raises an error when the document is built.
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it

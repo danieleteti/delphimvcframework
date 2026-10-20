@@ -40,6 +40,7 @@ type
     fDescription: string;
     fRequired: Boolean;
     fNullable: Boolean;
+    fExample: string;
 
     function GetTypeName: string; virtual;
 
@@ -59,6 +60,13 @@ type
     /// as defined by JSON Schema 2020-12, and in a Swagger 2.0 document the x-nullable extension is written.
     /// </summary>
     property Nullable: Boolean read fNullable write fNullable;
+
+    /// <summary>
+    /// An example value written as JSON text ('null', '42', '"abc"', '{"a":1}'). Empty means no example. It is
+    /// written as the examples keyword (OpenAPI 3.1) and becomes example in Swagger 2.0. Swagger UI builds the
+    /// sample request body from it instead of from the type alone.
+    /// </summary>
+    property Example: string read fExample write fExample;
   end;
 
 implementation
@@ -76,6 +84,7 @@ begin
   Result.Description := Self.fDescription;
   Result.Required := Self.fRequired;
   Result.Nullable := Self.fNullable;
+  Result.Example := Self.fExample;
 end;
 
 constructor TJsonField.Create;
@@ -108,6 +117,9 @@ begin
 end;
 
 function TJsonField.ToJsonSchema: TJsonObject;
+var
+  vExample: TJSONValue;
+  vExamples: TJSONArray;
 begin
   Result := TJsonObject.Create;
   Result.AddPair('type', GetTypeName);
@@ -115,6 +127,18 @@ begin
     Result.AddPair('description', fDescription);
   if fNullable then
     Result.AddPair('nullable', TJSONBool.Create(True));
+  if not fExample.IsEmpty then
+  begin
+    vExample := TJSONObject.ParseJSONValue(fExample);
+    if vExample = nil then
+    begin
+      Result.Free;
+      raise Exception.CreateFmt('Example of field "%s" is not valid JSON: %s', [fName, fExample]);
+    end;
+    vExamples := TJSONArray.Create;
+    vExamples.AddElement(vExample);
+    Result.AddPair('examples', vExamples);
+  end;
 end;
 
 

@@ -184,6 +184,19 @@ type
   end;
 
   /// <summary>
+  /// An example value for a property or field of a class used in the json schema, written as JSON:
+  /// MVCSwagExample('null'), MVCSwagExample('42'), MVCSwagExample('"abc"'). Swagger UI shows it in the
+  /// sample request body instead of a value built from the type alone (an optional integer id is 0 there).
+  /// </summary>
+  MVCSwagExampleAttribute = class(TCustomAttribute)
+  private
+    fJsonValue: string;
+  public
+    constructor Create(const aJsonValue: string);
+    property JsonValue: string read fJsonValue;
+  end;
+
+  /// <summary>
   /// Specifies the field definition in the json schema.
   /// Use this attribute on a class property that will be mapped to a json schema
   /// </summary>
@@ -607,6 +620,16 @@ begin
   Result := aRttiType.GetMethod('GetEnumerator') <> nil;
 end;
 
+function SwagExampleOf(const aAttributes: TArray<TCustomAttribute>): string;
+var
+  lAttr: TCustomAttribute;
+begin
+  Result := '';
+  for lAttr in aAttributes do
+    if lAttr is MVCSwagExampleAttribute then
+      Exit(MVCSwagExampleAttribute(lAttr).JsonValue);
+end;
+
 type
   TFieldSchemaDefinition = record
     SchemaFieldType: TMVCSwagSchemaType;
@@ -796,6 +819,7 @@ begin
       lJsonField.Name := lFieldSchemaDef.FieldName;
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
+      lJsonField.Example := SwagExampleOf(lProp.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
         TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
 
@@ -1034,6 +1058,7 @@ begin
       lJsonField.Name := lFieldSchemaDef.FieldName;
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
+      lJsonField.Example := SwagExampleOf(lField.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
       begin
         TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
@@ -1939,6 +1964,14 @@ begin
   fMinLength := aMinLength;
   fMaxLength := aMaxLength;
   fFieldSerializationType := aFieldSerializationType;
+end;
+
+{ MVCSwagExampleAttribute }
+
+constructor MVCSwagExampleAttribute.Create(const aJsonValue: string);
+begin
+  inherited Create;
+  fJsonValue := aJsonValue;
 end;
 
 { TFieldSchemaDefinition }
