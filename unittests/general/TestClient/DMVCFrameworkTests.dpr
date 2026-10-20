@@ -105,6 +105,8 @@ uses
   MVCFramework.SSEClient in '..\..\..\sources\MVCFramework.SSEClient.pas',
   RangeMediaMiddlewareTestsU in 'RangeMediaMiddlewareTestsU.pas',
   SecuritySwitchesTestsU in 'SecuritySwitchesTestsU.pas',
+  CSRFMiddlewareTestsU in 'CSRFMiddlewareTestsU.pas',
+  MVCFramework.Middleware.CSRF in '..\..\..\sources\MVCFramework.Middleware.CSRF.pas',
   SwaggerMiddlewareTestsU in 'SwaggerMiddlewareTestsU.pas',
   MultiAuthTestsU in 'MultiAuthTestsU.pas',
   MVCFramework.Middleware.RangeMedia in '..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas',

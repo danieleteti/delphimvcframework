@@ -160,6 +160,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Compression.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.CORS.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.CSRF.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.MultiMap.pas"/>

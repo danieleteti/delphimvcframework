@@ -73,6 +73,7 @@ contains
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler in '..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas',
   MVCFramework.Middleware.Compression in '..\..\sources\MVCFramework.Middleware.Compression.pas',
   MVCFramework.Middleware.CORS in '..\..\sources\MVCFramework.Middleware.CORS.pas',
+  MVCFramework.Middleware.CSRF in '..\..\sources\MVCFramework.Middleware.CSRF.pas',
   MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
   MVCFramework.Middleware.SecurityHeaders in '..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas',
   MVCFramework.MultiMap in '..\..\sources\MVCFramework.MultiMap.pas',
