@@ -62,6 +62,8 @@ type
     [Test]
     procedure Delete_WithoutToken_Returns403;
     [Test]
+    procedure Query_WithoutToken_Returns403;
+    [Test]
     procedure Get_NeverRequiresToken;
     [Test]
     procedure ExemptPath_PassesWithoutToken;
@@ -228,6 +230,12 @@ end;
 procedure TCSRFMiddlewareTests.Delete_WithoutToken_Returns403;
 begin
   Assert.AreEqual(403, Send('DELETE', '/api/thing', 'sess-1', '', ''));
+end;
+
+procedure TCSRFMiddlewareTests.Query_WithoutToken_Returns403;
+begin
+  // QUERY carries a body like POST: it is not a safe method for CSRF
+  Assert.AreEqual(403, Send('QUERY', '/api/thing', 'sess-1', '', ''));
 end;
 
 procedure TCSRFMiddlewareTests.Get_NeverRequiresToken;

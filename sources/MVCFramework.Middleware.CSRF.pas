@@ -29,7 +29,7 @@ unit MVCFramework.Middleware.CSRF;
 // stored server-side. The session id comes from the caller (e.g. the JWT in
 // the auth cookie): the middleware does not depend on the session type.
 //
-// Unsafe methods (POST, PUT, PATCH, DELETE) must carry the token in the
+// Unsafe methods (POST, PUT, PATCH, DELETE, QUERY: it has a body, like POST) must carry the token in the
 // header or, failing that, in the form field; otherwise 403 and the action
 // is never run. If an Origin header is present its host must match the Host
 // header (X-Forwarded-Host is NOT trusted: behind a proxy that rewrites Host,
@@ -212,7 +212,7 @@ procedure TMVCCSRFMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled
 var
   lSessionId, lReceived: string;
 begin
-  if not (AContext.Request.HTTPMethod in [httpPOST, httpPUT, httpPATCH, httpDELETE]) then
+  if not (AContext.Request.HTTPMethod in [httpPOST, httpPUT, httpPATCH, httpDELETE, httpQUERY]) then
     Exit;
   if IsExempt(AContext.Request.PathInfo) then
     Exit;

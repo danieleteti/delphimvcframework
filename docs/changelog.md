@@ -131,7 +131,7 @@ certificate you cannot fix.
   Stateless synchronizer token: the token is the HMAC-SHA256 of a session id
   that the caller supplies (`TMVCCSRFMiddleware.TokenFor(Secret, SessionId)`),
   so it does not depend on the session type (the JWT of the auth cookie works).
-  POST, PUT, PATCH and DELETE must carry it in the `X-CSRF-Token` header or in
+  POST, PUT, PATCH, DELETE and QUERY (it has a body, like POST) must carry it in the `X-CSRF-Token` header or in
   the `csrf_token` form field, otherwise the answer is 403 and the action is
   not run; the comparison is constant-time, a request without a session is
   refused, paths listed as exempt skip the check, and an `Origin` header that
