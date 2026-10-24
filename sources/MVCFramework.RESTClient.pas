@@ -1586,15 +1586,20 @@ end;
 procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
 const aCertificate: TCertificate; var aAccepted: Boolean);
 begin
-  { The RTL calls this only when the certificate has ALREADY failed platform
-    validation, and with no handler installed it raises - fail-closed. Answering
-    True here turned that into "accept self-signed, expired, wrong hostname,
-    unknown CA" for every outgoing HTTPS call, MITM included. The caller's own
-    proc still decides when it installs one. }
+  { aAccepted arrives as the RTL's own verdict: True when SecureFailureReasons
+    is empty. A certificate the platform rejected arrives as False and stays
+    refused; answering True for it would accept self-signed, expired, wrong
+    hostname and unknown CA certificates, MITM included.
+    The RTL also calls this for a certificate it accepted. WinHTTP asks an
+    installed handler before every HTTPS request. On Linux an installed
+    handler makes libcurl demand a stapled OCSP response; a server without
+    stapling fails with no failure reason, and the retry after the accept still
+    verifies chain and host name. Overwriting the verdict refused those hosts.
+    The caller's own proc still decides when it installs one. }
   if Assigned(fValidateServerCertificate) then
     fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
   else
-    aAccepted := MVCRESTClientAcceptInvalidCertificates;
+    aAccepted := aAccepted or MVCRESTClientAcceptInvalidCertificates;
 end;
 
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
