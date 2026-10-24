@@ -909,7 +909,8 @@ begin
     Exit(httpTRACE);
   if aValue = 'QUERY' then
     Exit(httpQUERY);
-  raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
+  // RFC 9110 9.1: a method the server does not recognize is answered 501
+  raise EMVCException.CreateFmt(HTTP_STATUS.NotImplemented, 'Unknown HTTP method [%s]', [aValue]);
 end;
 
 { TMVCActionParamCacheItem }

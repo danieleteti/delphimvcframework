@@ -41,6 +41,7 @@ type
     FEngine: TMVCEngine;
     FPort: Integer;
     FHost: string;
+    fHasListened: Boolean; // Indy keeps the default bindings of an activation: they carry its port
     FMaxConnections: Integer;
     FKeepAlive: Boolean;
     FListenQueue: Integer;
@@ -280,8 +281,9 @@ begin
   // name. 'localhost' is both loopback addresses. '0.0.0.0', '*', '+' or ''
   // mean every interface, Indy's behaviour with no binding.
   // Bindings set by the caller on the Indy component are left alone unless a
-  // host is given now or was given to the previous Listen.
-  if HostIsSpecific(AHost) or lHadHost then
+  // host is given now or was given to the previous Listen, or this server has
+  // listened before: Indy filled the empty bindings with the old port then.
+  if HostIsSpecific(AHost) or lHadHost or fHasListened then
     BindHost(FHTTPServer.Bindings, AHost, FPort);
   FHTTPServer.MaxConnections := FMaxConnections;
   FHTTPServer.KeepAlive := FKeepAlive;
@@ -290,6 +292,7 @@ begin
   ConfigureHTTPS;
 
   FHTTPServer.Active := True;
+  fHasListened := True;
 end;
 
 procedure TMVCIndyServer.Stop;
@@ -396,7 +399,6 @@ begin
         { The chunked path leaves ContentLength at -1, so the engine's guard
           cannot see this one. }
         LResponse.StatusCode := http_status.RequestEntityTooLarge;
-        LResponse.ReasonString := 'Request Entity Too Large';
         LResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
         LResponse.Content := 'Request size exceeded the max allowed size';
       end

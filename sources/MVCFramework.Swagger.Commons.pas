@@ -457,7 +457,8 @@ uses
   Json.Schema.Field.Arrays,
   Json.Schema.Field.DateTimes,
   Json.Schema.Field.Enums,
-  Json.Schema.Field.Booleans;
+  Json.Schema.Field.Booleans,
+  MVCFramework.Validators;
 
 { Swagger 2.0: a parameter of type "array" describes its elements in "items", and the
   allowed values belong there too (issue #377). A schema-based parameter (body) is left alone. }
@@ -630,6 +631,48 @@ begin
       Exit(MVCSwagExampleAttribute(lAttr).JsonValue);
 end;
 
+// MVCSwagFormat / MaxLength / Minimum / Maximum / Pattern onto the schema field.
+// A keyword that does not apply to the field's type is left out.
+procedure ApplySwagSchemaKeywords(const aJsonField: TJsonField; const aAttributes: TArray<TCustomAttribute>);
+var
+  lAttr: TCustomAttribute;
+begin
+  for lAttr in aAttributes do
+    if lAttr is MVCSwagFormatAttribute then
+    begin
+      if aJsonField is TJsonFieldString then
+        TJsonFieldString(aJsonField).Format := MVCSwagFormatAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldInteger then
+        TJsonFieldInteger(aJsonField).Format := MVCSwagFormatAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldInt64 then
+        TJsonFieldInt64(aJsonField).Format := MVCSwagFormatAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldNumber then
+        TJsonFieldNumber(aJsonField).Format := MVCSwagFormatAttribute(lAttr).Value;
+    end
+    else if (lAttr is MVCSwagMaxLengthAttribute) and (aJsonField is TJsonFieldString) then
+      TJsonFieldString(aJsonField).MaxLength := MVCSwagMaxLengthAttribute(lAttr).Value
+    else if (lAttr is MVCSwagPatternAttribute) and (aJsonField is TJsonFieldString) then
+      TJsonFieldString(aJsonField).Pattern := MVCSwagPatternAttribute(lAttr).Value
+    else if lAttr is MVCSwagMinimumAttribute then
+    begin
+      if aJsonField is TJsonFieldInteger then
+        TJsonFieldInteger(aJsonField).MinValue := MVCSwagMinimumAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldInt64 then
+        TJsonFieldInt64(aJsonField).MinValue := MVCSwagMinimumAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldNumber then
+        TJsonFieldNumber(aJsonField).MinValue := MVCSwagMinimumAttribute(lAttr).Value;
+    end
+    else if lAttr is MVCSwagMaximumAttribute then
+    begin
+      if aJsonField is TJsonFieldInteger then
+        TJsonFieldInteger(aJsonField).MaxValue := MVCSwagMaximumAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldInt64 then
+        TJsonFieldInt64(aJsonField).MaxValue := MVCSwagMaximumAttribute(lAttr).Value
+      else if aJsonField is TJsonFieldNumber then
+        TJsonFieldNumber(aJsonField).MaxValue := MVCSwagMaximumAttribute(lAttr).Value;
+    end;
+end;
+
 type
   TFieldSchemaDefinition = record
     SchemaFieldType: TMVCSwagSchemaType;
@@ -707,6 +750,9 @@ begin
 
     if lSkipProp then
       Continue;
+    // the validator says the field must be there: so does the schema
+    if TMVCSerializerHelper.AttributeExists<MVCRequired>(lProp.GetAttributes) then
+      lFieldSchemaDef.Required := True;
 
     if lFieldSchemaDef.SchemaFieldType = stUnknown then
     begin
@@ -820,6 +866,7 @@ begin
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
       lJsonField.Example := SwagExampleOf(lProp.GetAttributes);
+      ApplySwagSchemaKeywords(lJsonField, lProp.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
         TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
 
@@ -964,6 +1011,8 @@ begin
 
     if lSkipProp then
       Continue;
+    if TMVCSerializerHelper.AttributeExists<MVCRequired>(lField.GetAttributes) then
+      lFieldSchemaDef.Required := True;
 
     if lFieldSchemaDef.SchemaFieldType = stUnknown then
     begin
@@ -1059,6 +1108,7 @@ begin
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
       lJsonField.Example := SwagExampleOf(lField.GetAttributes);
+      ApplySwagSchemaKeywords(lJsonField, lField.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
       begin
         TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;

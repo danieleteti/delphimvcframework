@@ -266,6 +266,10 @@ begin
       LogE('RQL Compiler not found. Did you included MVCFramework.RQL.AST2<yourdatabase>.pas?');
       raise;
     end;
+    on E: ERQLException do
+      // the RQL came from the request: a syntax error or a field the entity does
+      // not map is the client's mistake
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
   end;
 end;
 

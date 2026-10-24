@@ -167,6 +167,33 @@ certificate you cannot fix.
   action stays `Result := StreamDataSet(qry)` and the response is the same
   array as before. New constant `TMVCMediaType.APPLICATION_NDJSON`.
 
+- **Request guards as HTTP filters.** `MVCFramework.Filters` gets three
+  engine-wide filters that decide who may talk to a path and from where, each
+  with an optional `APathPrefix` (the full routed path they guard, `''` for
+  every request):
+  - `BearerAuthFilter(validator, prefix)`: `Authorization: Bearer <token>` is
+    checked by the validator (`function(const AToken: string; out AUserName:
+    string; var ARoles: TArray<string>): Boolean`); on success it fills
+    `Context.LoggedUser`, otherwise 401 with `WWW-Authenticate: Bearer`.
+    `StaticBearerTokens` is the validator for a fixed set of tokens (constant-
+    time comparison; an empty or space-padded token is refused at startup).
+  - `AllowedOriginFilter(origins, prefix)`: 403 when a request carries an
+    `Origin` that is not in the list. `CORSFilter` only decides what the browser
+    may read, this one stops the request on the server.
+  - `AllowedHostFilter(hosts, prefix)`: 403 when the `Host` header (port
+    ignored) is not `localhost`, `127.0.0.1`, `[::1]` or a declared host: DNS
+    rebinding on a service that listens on loopback.
+
+  The path is normalised as the router does (case, trailing `/`, query) and
+  tested in its raw and URL-decoded forms, so `/MCP/` or `%2f` do not slip past
+  a guard; `MVCNormalizePath` and `MVCRequestTargetsPath` are public for custom
+  guards. The `MCPGuard` filter of mcp-server-delphi is gone: the wizard's MCP
+  projects use these filters plus `MCPEndpoint` (unit `MVCFramework.MCP.Endpoint`).
+
+- **The wizard's look.** Segoe UI, a header rule in the brand amber, a "Step n of
+  m" indicator, and the project summary in its own box on the last page, where
+  it used to be cut off under the buttons.
+
 - **MCP servers from the IDE wizard.** A ninth preset, "MCP Server", and four
   options on the Options page of every preset generate a project that exposes
   tools, resources and prompts over the Model Context Protocol. The protocol
@@ -175,8 +202,9 @@ certificate you cannot fix.
   (0.9.0 or later), which must be in the IDE library path: nothing of it is
   in the framework, and the wizard warns in the Messages view when it does not
   find it or finds an older one.
-  - "MCP server on /mcp": `Tools.SampleU.pas` with a sample tool, the `MCPGuard`
-    filter, the session controller and the published endpoint in
+  - "MCP server on /mcp": `Tools.SampleU.pas` with a sample tool, the guard
+    filters (`BearerAuthFilter`, `AllowedOriginFilter` and the library's
+    `MCPEndpoint`), the session controller and the published endpoint in
     `EngineConfigU`. The endpoint asks for a bearer token, generated for the
     project in `.env` (`mcp.auth.token`); the HTTP server does not start when
     it is empty. A project with the JWT bearer middleware uses that for
@@ -185,7 +213,8 @@ certificate you cannot fix.
     and the Indy Direct and HTTP.sys Windows services.
   - "stdio transport": the same executable started with `--transport stdio`
     talks MCP on stdin/stdout, which is how Claude Code and Claude Desktop
-    launch a local server; `.mcp.json` in the project folder points at it. In
+    launch a local server; `.mcp.json` in the project folder points at it, and
+    `opencode.json` does the same for OpenCode. In
     this mode no HTTP server runs, the console appender is left out (JSON
     logging profile: `loggerpro.stdio.json`) and the working directory is the
     executable's folder. Console programs only.
@@ -819,6 +848,95 @@ the same socket.
 
 ### Fixed
 
+- **Request body: an integer out of the range of its target is a 400, on every integer type.** The range check
+  covered only `jdtLong`/`jdtULong`; a number the parser classifies as `jdtInt` went straight in, so `70000`
+  into a `NullableUInt16` became `4464`, `-1` became `65535`, `-1` was accepted into `UInt64`/`NullableUInt64`,
+  and `2147483648` into a plain `Integer` became `-2147483648`. Now every integer target (`Integer`, `Cardinal`,
+  `Word`, `Byte`, `ShortInt`, `SmallInt`, `Int64`, `UInt64`, subranges, and the supported `Nullable*` integers)
+  is checked against its RTTI bounds, and the refusal, like "Cannot deserialize integer value" and the other
+  value errors, carries status 400 instead of 500: `Integer value out of range for "altitude"`.
+- **`UInt64`, `NullableUInt64` and `Cardinal` above the signed range were serialized negative**
+  (`18446744073709551615` came out as `-1`), and `NullableUInt32` above `2^31` too. Fixed in the
+  JsonDataObjects serializer and in the streaming serializer used by `OKResponse(obj)`.
+- **`OKResponse(obj)` wrote `TTime` and `TDate` as a full timestamp** (`"1899-12-30T20:00:00.000+01:00"`) while
+  returning the object directly gave `"20:00:00"`. The streaming serializer now writes `TTime` as `hh:nn:ss`
+  and `TDate` as `YYYY-MM-DD`, as the other path does.
+- **Swagger: `MVCSwagFormat`, `MVCSwagMaxLength`, `MVCSwagMinimum`, `MVCSwagMaximum`, `MVCSwagPattern` were
+  never read.** They now appear in the schema of the field (`format`, `maxLength`, `minimum`, `maximum`,
+  `pattern`) in both the Swagger 2.0 and the OpenAPI 3 document. SwagDoc: a number field writes its `format`.
+- **Swagger: an action with only `[MVCHTTPMethod([httpQUERY])]` made `/swagger.json` and `/openapi.json`
+  answer 500** (access violation). The path was created before the verb loop skipped QUERY, and the path sort
+  comparer was not a total order, so QuickSort read past the list. The path is now created on the first
+  operation the document can express and the comparer is consistent. In the OpenAPI 3 document (3.2.1) a QUERY
+  action is a `query` operation; in Swagger 2.0, which has no such key, it is left out.
+- **Swagger 2.0: a body parameter carried `type`/`items` next to `schema`** (`MVCSwagParam(plBody, ..., ptArray)`
+  and every ActiveRecord controller body), which `openapi-spec-validator` rejects. A body parameter is now
+  described by its schema alone. The documents of the test suite validate clean (2.0, 3.2.1, 3.1.0).
+- **`JWT(...)` endpoint filter: `Authorize` and `RequireRole` always answered 401.** The filter read the user
+  name from `sub`, which its own login never writes, did not copy the roles, and a token with no `iat` left
+  `LoggedUser.LoggedSince` invalid. The login now writes `username`, `roles` and `iat` as
+  `TMVCJWTAuthenticationMiddleware` does, and the filter fills `LoggedUser` (user name, roles, custom claims)
+  from them; `sub` stays a fallback for tokens issued elsewhere.
+- **`CORS(...)` endpoint filter documentation.** It said it handles preflight; an endpoint filter runs only on a
+  matched route, so an `OPTIONS` on a GET/POST-only route is a 404 from the router. The comment now says so and
+  points to `CORSFilter`, the HTTP filter that runs before routing.
+- **Minimal API: `WithName` on a `MapMethods` whose first verb is QUERY was lost** (QUERY has no OpenAPI 3.1
+  key, so the name never reached the document). The name now lands on the first verb that is not QUERY.
+- **JSON-RPC: an invalid request whose id can be read answers with that id.** `"jsonrpc":"1.0","id":12` answered
+  `"id":0`, because the version was checked before the id was read. Log message grammar: "has not been found".
+- **ActiveRecord controller: an RQL error caused by the request is a 400** (bad syntax, or an unmapped field
+  with `AllowUnmappedRQLFields = False`), not a 500.
+- **TemplatePro: compile errors and a damaged view cache now go through the view error handler.** They were
+  raised outside it, so they were not logged as "View [x] error" and, in a release build, a raw
+  `ETProCompilerException` with the server path reached the client.
+- **WebBroker: `ContentParam` gives the last value of a repeated form field**, as Indy Direct and HTTP.sys do
+  (the forms-library checkbox posts "false" then "true").
+- **WebBroker (Indy bridge): cookie values are decoded**, as on the other hosts: `ciao+Bruce%3B+100%25` reads
+  `ciao Bruce; 100%`. A stray `%` no host wrote is handed over as it came on every host, instead of a 500 on
+  Indy Direct and HTTP.sys.
+- **One reason phrase per status code on every host, the RFC 9110 one.** The response adapters set the phrase
+  from the framework table whenever the status is set, so the host's own table (Indy, WebBroker, HTTP.sys) no
+  longer decides. The table now uses the RFC 9110 names: 413 `Content Too Large`, 414 `URI Too Long`,
+  416 `Range Not Satisfiable`, 422 `Unprocessable Content`, 506 `Variant Also Negotiates`. HTTP.sys no longer
+  answers `413 OK` and its 413 has the body the other hosts give.
+- **Unknown verbs (`PROPFIND`, `MOVE`, `BREW`) answer 501 on every host** (RFC 9110 9.1); they were 500 on
+  Indy Direct and WebBroker.
+- **A malformed percent-escape in the query string (`?q=100%`) is a 400 on every host**, not a 500.
+  `[MVCFromQueryString]` no longer decodes the value a second time (`%2541` reached the action as `A`).
+- **A bad value in a path parameter no longer echoes the converter's exception** (`[CLASS: EConvertError]
+  [MSG: ...]`) to the client: the message is `Invalid Integer value for param [ID]`, the detail is logged.
+- **HTTP.sys and WebBroker (Indy bridge): `RawPathInfo` is the path as sent** (`/a%41b`), as on Indy Direct; it
+  was the decoded one.
+- **Indy Direct and WebBroker: `Stop` then `Listen` on another port kept the old port** when both hosts meant
+  every interface (Indy keeps the bindings of the first activation).
+- **Console log with stdout redirected: per-request lines were empty `[INFO]` lines.** The plain renderer of
+  `TMVCColorConsoleRenderer` now writes the request context (`200 | 3ms | 127.0.0.1 | GET "/people"`) and the
+  context of other log items.
+- **`ProblemDetails` comment** said `application/json`; it is `application/problem+json`.
+- **The status line never carries request text.** An error raised before a controller is chosen used the
+  exception message as reason phrase (`HTTP/1.1 501 Unknown HTTP method [PROPFIND]`); it is now the RFC 9110
+  phrase (`501 Not Implemented`), the message stays in the body and the log. The basic/custom authentication
+  middleware no longer puts the server name in the 403 status line.
+- **HTTP.sys: `Listen` on a server that is already listening is a no-op**, as on Indy Direct and WebBroker (it
+  raised `HTTP.sys error in HttpAddUrl`). Stop, then Listen, to change port or host.
+- **HTTP.sys: one `Server` header.** The framework's `Server` header goes into the known header slot, so HTTP.sys
+  does not add a second one. An error response rendered for the client's `Accept` now carries the charset
+  (`application/json; charset=utf-8`) on every host; Indy was adding it on its own, HTTP.sys and WebBroker were not.
+- **A string or a fraction for an integer field is a 400 with a message that says so.** `{"heading":"north"}` into
+  a plain `Integer`/`Int64` raised `EConvertError` (500); `{"heading":12.5}` said "Integer value out of range". Both
+  now answer 400 `Integer value expected for "..."`.
+- **An empty response has no body on every host.** An action that only sets a status (`202` for an MCP
+  notification, `200`) went out on Indy Direct and the WebBroker Indy bridge as `text/html` with
+  `<HTML><BODY><B>202 Accepted</B></BODY></HTML>`, Indy's default content. Now `Content-Length: 0` and no body.
+- **Swagger / OpenAPI 3: a property with `[MVCRequired]` is in the schema's `required` list**, in both documents.
+
+- **HTTP.sys: a request with two or more custom headers was never answered.**
+  The headers HTTP.sys does not know (`X-Foo`, `jwtusername`, ...) were read through an
+  `array[0..0]` indexed in a loop; with range checking on (any Debug build of a
+  service) the second one raised `ERangeError` in the worker thread and the client
+  waited for a response that never came. They are now walked by pointer, and any
+  other exception while the request is read is answered with 500. Seen as a
+  `/login` that never replied when the credentials travelled in two headers.
 - **Integers at the edge of their range are deserialized correctly (issues #918, #919).** A JSON number can reach
   the deserializer as `jdtInt`, `jdtLong`, `jdtULong` or, at the edges of the Int64 range, `jdtFloat`. Only some of
   those were handled for `NullableInt32`, `NullableInt64` and plain `Int64`, so `2147483647` into a `NullableInt32`
@@ -1017,6 +1135,28 @@ the same socket.
   shutdown. Visibility fixed; `tests32` / `tests64` now report a clean
   shutdown. Users of the framework were never affected - the leak
   only showed up during CI test runs, never at runtime.
+- **Wizard, Minimal API preset: the admin routes are fail-closed.** `Routes.RootU`
+  used to guard `/api/v1/admin/*` with a placeholder filter that let in any
+  `Authorization: Bearer <anything>`. Without JWT the project now gets a token of
+  its own in `.env` (`api.admin.token`, 384 random bits, like `mcp.auth.token`),
+  checked by the standard `BearerAuthFilter(StaticBearerTokens(...), ADMIN_PATH)`
+  in `EngineConfigU`; the server does not start when the token is empty, and the
+  group adds `Authorize()` so a lost filter still answers 401. With JWT the group
+  keeps the `JWT(...)` endpoint filter.
+- **Wizard, generated `.dproj`.** The Debug configuration now defines `DEBUG`
+  (`<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>`; it defined nothing, so a Debug
+  build behaved as Release: no exception class names in error responses), Release
+  defines `RELEASE`, the unit scope names are set (`DCC_Namespace`: an HTTPS
+  project failed under command-line msbuild on TaurusTLS's `uses Classes`), the
+  unit search path is `$(DMVC)`, and the `DCCReference` list is read from the
+  generated `.dpr`, so it no longer misses `AuthenticationU`, `ServiceU`,
+  `WebModuleU` or the MCP sample providers.
+- **Wizard, Project Manager items.** "New REST Controller" proposes `TPerson` for
+  `People` (irregular plurals and `-sses`/`-xes`/`-shes` handled); "New Web
+  Controller" creates `Controllers.<Name>WebU` / `T<Name>WebController`, so it no
+  longer collides with a REST controller of the same name; a blank line always
+  separates a `uses` clause from the routine after it; `ConfigureEngine` and
+  `WebModuleCreate` declare their locals in one `var` section.
 
 ### Performance
 

@@ -298,6 +298,13 @@ begin
   Result := StrToFloat(LStr, gSingleFormatSettings);
 end;
 
+// UInt64 is a tkInt64 whose RTTI bounds are stored signed: High(UInt64) reads as -1
+function IsUnsignedInt64(const ATypeInfo: PTypeInfo): Boolean;
+begin
+  Result := (ATypeInfo <> nil) and (ATypeInfo.Kind = tkInt64) and
+    (GetTypeData(ATypeInfo).MinInt64Value > GetTypeData(ATypeInfo).MaxInt64Value);
+end;
+
 function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
 begin
   if RootNode.IsEmpty then
@@ -406,6 +413,10 @@ begin
       begin
         AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsInteger);
       end
+      else if GetTypeData(AValue.TypeInfo).OrdType = otULong then
+      begin
+        AJSONObject.L[AName] := Cardinal(AValue.AsInteger); // a Cardinal above MaxInt is not negative
+      end
       else
       begin
         AJSONObject.I[AName] := AValue.AsInteger;
@@ -417,6 +428,10 @@ begin
       if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(ACustomAttributes) then
       begin
         AJSONObject.S[AName] := TMVCSqids.IntToSqid(AValue.AsInt64);
+      end
+      else if IsUnsignedInt64(AValue.TypeInfo) then
+      begin
+        AJSONObject.U[AName] := AValue.AsUInt64;
       end
       else
       begin
@@ -616,7 +631,10 @@ begin
               tkInteger:
                 AJSONObject.A[AName].Add(lCurrentArrayItem.AsInteger);
               tkInt64:
-                AJSONObject.A[AName].Add(lCurrentArrayItem.AsInt64);
+                if IsUnsignedInt64(lCurrentArrayItem.TypeInfo) then
+                  AJSONObject.A[AName].Add(lCurrentArrayItem.AsUInt64)
+                else
+                  AJSONObject.A[AName].Add(lCurrentArrayItem.AsInt64);
               tkFloat:
                 begin
                   if lCurrentArrayItem.TypeInfo = TypeInfo(TDate) then
@@ -1614,6 +1632,8 @@ begin
           TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, AJSONObject[APropertyName].IntValue)),
             AValue.TypeInfo, AValue)
         end
+        else if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+          // mapped, with its range checked against the target type
         else if (AValue.Kind <> tkRecord) then { nullables }
         begin
           AValue := TValue.From<Integer>(AJSONObject[APropertyName].IntValue);
@@ -1634,7 +1654,7 @@ begin
           else if lValueTypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJSONObject[APropertyName].LongValue))
           else if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [APropertyName]);
+            raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize integer value for "%s"', [APropertyName]);
         end;
       end;
 
@@ -1658,7 +1678,7 @@ begin
           else if lValueTypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJSONObject[APropertyName].LongValue))
           else if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize long integer value for "%s"',
+            raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize long integer value for "%s"',
               [APropertyName]);
         end;
       end;
@@ -1680,7 +1700,7 @@ begin
           end
           else
           begin
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for "%s"', [APropertyName]);
+            raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize floating-point value for "%s"', [APropertyName]);
           end;
         end;
       end;
@@ -1699,7 +1719,7 @@ begin
         else if AValue.TypeInfo = TypeInfo(NullableTTime) then
           AValue := TValue.From<NullableTTime>(NullableTTime(AJSONObject[APropertyName].DateTimeValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize date or time value for "%s"',
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize date or time value for "%s"',
             [APropertyName]);
       end;
 
@@ -1713,7 +1733,7 @@ begin
         if AValue.TypeInfo = TypeInfo(NullableBoolean) then
           AValue := TValue.From<NullableBoolean>(NullableBoolean(AJSONObject[APropertyName].BoolValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize boolean value for "%s"', [APropertyName]);
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize boolean value for "%s"', [APropertyName]);
       end;
 
     jdtObject:
@@ -1750,7 +1770,7 @@ begin
                   end
                   else
                   begin
-                    raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for "%s"',
+                    raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize object value for "%s"',
                       [APropertyName]);
                   end;
                 end
@@ -1959,7 +1979,7 @@ begin
             AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJSONObject[APropertyName].Value)))
           end
           else
-            raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
+            raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize property "%s" from string', [APropertyName]);
         end
         else if (AValue.Kind = tkEnumeration) then
         begin
@@ -1979,7 +1999,7 @@ begin
           begin
             LMappedValueIndex := LEnumMappedValues.IndexOf(AJSONObject[APropertyName].Value);
             if LMappedValueIndex < 0 then
-              raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from mapped values',
+              raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize property "%s" from mapped values',
                 [APropertyName]);
 
             TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
@@ -1993,6 +2013,11 @@ begin
         else if (AValue.Kind = tkInt64) and (TryStrToInt64(AJSONObject[APropertyName].Value, lOutInteger64)) then
         begin
           AValue := lOutInteger64;
+        end
+        else if AValue.Kind in [tkInteger, tkInt64] then
+        begin
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Integer value expected for "%s"',
+            [APropertyName]);
         end
         else if AValue.TypeInfo.Kind = tkSet then
         begin
@@ -2013,6 +2038,8 @@ begin
           TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, AJSONObject[APropertyName].IntValue)),
             AValue.TypeInfo, AValue)
         end
+        else if TryMapNullableInteger(AValue, AJSONObject, APropertyName) then
+          // mapped, with its range checked against the target type
         else if (AValue.Kind <> tkRecord) then { nullables }
         begin
           AValue := TValue.From<Integer>(AJSONObject[APropertyName].IntValue);
@@ -2032,7 +2059,7 @@ begin
           else if AValue.TypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJSONObject[APropertyName].LongValue))
           else if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [APropertyName]);
+            raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize integer value for "%s"', [APropertyName]);
         end;
       end;
 
@@ -2055,7 +2082,7 @@ begin
           else if AValue.TypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJSONObject[APropertyName].LongValue))
           else if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize long integer value for "%s"',
+            raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize long integer value for "%s"',
               [APropertyName]);
         end;
       end;
@@ -2070,7 +2097,7 @@ begin
       else
       begin
         if not TryMapNullableFloat(AValue, AJSONObject, APropertyName) then
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for "%s"',
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize floating-point value for "%s"',
             [APropertyName]);
       end;
 
@@ -2088,7 +2115,7 @@ begin
         else if AValue.TypeInfo = TypeInfo(NullableTTime) then
           AValue := TValue.From<NullableTTime>(NullableTTime(AJSONObject[APropertyName].DateTimeValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize date or time value for "%s"',
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize date or time value for "%s"',
             [APropertyName]);
       end;
 
@@ -2102,7 +2129,7 @@ begin
         if AValue.TypeInfo = TypeInfo(NullableBoolean) then
           AValue := TValue.From<NullableBoolean>(NullableBoolean(AJSONObject[APropertyName].BoolValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize boolean value for "%s"', [APropertyName]);
+          raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize boolean value for "%s"', [APropertyName]);
       end;
 
     jdtObject:
@@ -3112,11 +3139,11 @@ begin
       else if lValueTypeInfo = TypeInfo(NullableInt64) then
         AValue := TValue.From<NullableInt64>(TMVCSqids.SqidToInt(AStringValue))
       else
-        raise EMVCSerializationException.CreateFmt('Cannot deserialize Sqids "%s" from string to integer', [ExceptionHintString]);
+        raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize Sqids "%s" from string to integer', [ExceptionHintString]);
     end
     else
     begin
-      raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from string', [ExceptionHintString]);
+      raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize "%s" from string', [ExceptionHintString]);
     end;
   end
   else if (lValueTypeInfo.Kind = tkEnumeration) then
@@ -3134,7 +3161,7 @@ begin
       lOutInteger := GetEnumValue(lValueTypeInfo, AStringValue);
       if lOutInteger = -1 then
       begin
-        raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from mapped values',
+        raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize "%s" from mapped values',
           [ExceptionHintString]);
       end;
       TValue.Make(lOutInteger, lValueTypeInfo, AValue)
@@ -3143,7 +3170,7 @@ begin
     begin
       lMappedValueIndex := lEnumMappedValues.IndexOf(AStringValue);
       if lMappedValueIndex < 0 then
-        raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from mapped values',
+        raise EMVCSerializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize "%s" from mapped values',
           [ExceptionHintString]);
 
       TValue.Make(GetEnumValue(lValueTypeInfo, GetEnumName(lValueTypeInfo, lMappedValueIndex)),
@@ -3154,16 +3181,18 @@ begin
   begin
     if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(AAttributes) then
       lOutInteger := TMVCSqids.SqidToInt(AStringValue)
-    else
-      lOutInteger := StrToInt(AStringValue);
+    else if not TryStrToInt(AStringValue, lOutInteger) then // "north" is the client's mistake, not a 500
+      raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Integer value expected for "%s"',
+        [ExceptionHintString]);
     AValue := lOutInteger;
   end
   else if lValueTypeInfo.Kind = tkInt64 then
   begin
     if TMVCSerializerHelper.AttributeExists<MVCSerializeAsSqidsAttribute>(AAttributes) then
       lOutInteger64 := TMVCSqids.SqidToInt(AStringValue)
-    else
-      lOutInteger64 := StrToInt64(AStringValue);
+    else if not TryStrToInt64(AStringValue, lOutInteger64) then
+      raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Integer value expected for "%s"',
+        [ExceptionHintString]);
     AValue := lOutInteger64;
   end
   else if lValueTypeInfo.Kind = tkSet then
@@ -3499,7 +3528,12 @@ const
 
   procedure OutOfRange;
   begin
-    raise EMVCDeserializationException.CreateFmt('Integer value out of range for "%s"', [AttribName]);
+    raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Integer value out of range for "%s"', [AttribName]);
+  end;
+
+  procedure NotAnInteger;
+  begin
+    raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Integer value expected for "%s"', [AttribName]);
   end;
 
   // JsonDataObjects classifies a number by magnitude and by version: the same
@@ -3521,8 +3555,10 @@ const
       jdtFloat:
         begin
           lFloat := JSONDataObject[AttribName].FloatValue;
+          if Frac(lFloat) <> 0 then
+            NotAnInteger;
           // -2^63 is exactly representable and is Low(Int64); 2^63 is out
-          if (Frac(lFloat) <> 0) or (lFloat < -TWO_POW_63) or (lFloat >= TWO_POW_63) then
+          if (lFloat < -TWO_POW_63) or (lFloat >= TWO_POW_63) then
             OutOfRange;
           if lFloat = -TWO_POW_63 then
             Result := Low(Int64)
@@ -3530,7 +3566,7 @@ const
             Result := Trunc(lFloat);
         end;
     else
-      raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [AttribName]);
+      raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize integer value for "%s"', [AttribName]);
     end;
   end;
 
@@ -3550,7 +3586,9 @@ const
       jdtFloat:
         begin
           lFloat := JSONDataObject[AttribName].FloatValue;
-          if (Frac(lFloat) <> 0) or (lFloat < 0) or (lFloat >= TWO_POW_64) then
+          if Frac(lFloat) <> 0 then
+            NotAnInteger;
+          if (lFloat < 0) or (lFloat >= TWO_POW_64) then
             OutOfRange;
           if lFloat >= TWO_POW_63 then
             Result := UInt64(Trunc(lFloat - TWO_POW_63)) + UInt64($8000000000000000)
@@ -3558,12 +3596,14 @@ const
             Result := UInt64(Trunc(lFloat));
         end;
     else
-      raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [AttribName]);
+      raise EMVCDeserializationException.CreateFmt(HTTP_STATUS.BadRequest, 'Cannot deserialize integer value for "%s"', [AttribName]);
     end;
   end;
 
 var
   lInt64: Int64;
+  lUInt64: UInt64;
+  lTypeData: PTypeData;
 begin
   Result := True;
   if Value.TypeInfo = TypeInfo(NullableInt32) then
@@ -3598,10 +3638,38 @@ begin
     Value := TValue.From<NullableInt64>(NullableInt64(AsInt64()))
   else if Value.TypeInfo = TypeInfo(NullableUInt64) then
     Value := TValue.From<NullableUInt64>(NullableUInt64(AsUInt64()))
-  else if Value.TypeInfo = TypeInfo(UInt64) then
-    Value := TValue.From<UInt64>(AsUInt64())
-  else if Value.TypeInfo = TypeInfo(Int64) then
-    Value := TValue.From<Int64>(AsInt64())
+  else if Value.Kind = tkInteger then
+  begin
+    // Integer, Cardinal, Word, Byte, ShortInt, SmallInt and subranges: the bounds come from RTTI
+    lTypeData := GetTypeData(Value.TypeInfo);
+    lInt64 := AsInt64;
+    if lTypeData.OrdType = otULong then
+    begin
+      if (lInt64 < Cardinal(lTypeData.MinValue)) or (lInt64 > Cardinal(lTypeData.MaxValue)) then
+        OutOfRange;
+    end
+    else if (lInt64 < lTypeData.MinValue) or (lInt64 > lTypeData.MaxValue) then
+      OutOfRange;
+    TValue.Make(@lInt64, Value.TypeInfo, Value); // little endian: the low bytes are the value
+  end
+  else if Value.Kind = tkInt64 then
+  begin
+    lTypeData := GetTypeData(Value.TypeInfo);
+    if lTypeData.MinInt64Value > lTypeData.MaxInt64Value then // unsigned: High(UInt64) is stored as -1
+    begin
+      lUInt64 := AsUInt64;
+      if (lUInt64 < UInt64(lTypeData.MinInt64Value)) or (lUInt64 > UInt64(lTypeData.MaxInt64Value)) then
+        OutOfRange;
+      TValue.Make(@lUInt64, Value.TypeInfo, Value);
+    end
+    else
+    begin
+      lInt64 := AsInt64;
+      if (lInt64 < lTypeData.MinInt64Value) or (lInt64 > lTypeData.MaxInt64Value) then
+        OutOfRange;
+      TValue.Make(@lInt64, Value.TypeInfo, Value);
+    end;
+  end
   else
     Result := False;
 end;
@@ -3774,7 +3842,7 @@ begin
       end
       else
       begin
-        AJSONObject.I[AName] := AValue.AsType<NullableUInt32>().Value;
+        AJSONObject.L[AName] := AValue.AsType<NullableUInt32>().Value;
       end;
       Result := True;
     end;
@@ -3789,7 +3857,7 @@ begin
       end
       else
       begin
-        AJSONObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
+        AJSONObject.U[AName] := AValue.AsType<NullableUInt64>().Value;
       end;
       Result := True;
     end;
@@ -3924,7 +3992,10 @@ begin
       end;
     tkInt64:
       begin
-        JSON.Add(Value.AsInt64);
+        if IsUnsignedInt64(Value.TypeInfo) then
+          JSON.Add(Value.AsUInt64)
+        else
+          JSON.Add(Value.AsInt64);
       end;
     tkEnumeration:
       begin
@@ -4009,7 +4080,10 @@ begin
       end;
     tkInt64:
       begin
-        JSON.I[KeyName] := Value.AsInt64;
+        if IsUnsignedInt64(Value.TypeInfo) then
+          JSON.U[KeyName] := Value.AsUInt64
+        else
+          JSON.L[KeyName] := Value.AsInt64;
       end;
     tkEnumeration:
       begin

@@ -60,6 +60,7 @@ type
     procedure DocumentApi(ASwagDoc: TSwagDoc);
     procedure DocumentActiveRecordControllerApi(ASwagDoc: TSwagDoc);
     procedure SortApiPaths(ASwagDoc: TSwagDoc);
+    function SwagOperationFor(const AMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
     constructor Create(
@@ -300,30 +301,31 @@ begin
                 end;
               end;
 
-              if not Assigned(lSwagPath) then
-              begin
-                lSwagPath := TSwagPath.Create;
-                try
-                  lSwagPath.Uri := lPathUri;
-                  ASwagDoc.Paths.Add(lSwagPath);
-                except
-                  lSwagPath.Free;
-                  raise;
-                end;
-              end;
-
               for I in lMVCHttpMethods do
               begin
-                {A verb MVCHttpMethodToSwagPathOperation cannot map (e.g. QUERY) comes back as
+                {A verb the document cannot express (QUERY in Swagger 2.0) comes back as
                  ohvNotDefined: emitting it would write an empty operation key}
-                if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
+                if SwagOperationFor(I) = ohvNotDefined then
                 begin
                   Continue;
                 end;
-                if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
+                if Assigned(lSwagPath) and SwagPathHasOperation(lSwagPath, SwagOperationFor(I),
                   lObjType.Name, lMethod.Name) then
                 begin
                   Continue;
+                end;
+                {created on the first verb the document can express: a path with no
+                 operation is what made the sort of the paths fail}
+                if not Assigned(lSwagPath) then
+                begin
+                  lSwagPath := TSwagPath.Create;
+                  try
+                    lSwagPath.Uri := lPathUri;
+                    ASwagDoc.Paths.Add(lSwagPath);
+                  except
+                    lSwagPath.Free;
+                    raise;
+                  end;
                 end;
                 lSwagPathOp := TSwagPathOperation.Create;
                 try
@@ -351,7 +353,7 @@ begin
                       lControllerDefaultModelPluralName)
                     );
                   PathConvertersAsStrings(lControllerPath + lMethodPath, lSwagPathOp.Parameters);
-                  lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+                  lSwagPathOp.Operation := SwagOperationFor(I);
                   lSwagPath.Operations.Add(lSwagPathOp);
                   lSwagPathOp := nil; // ownership transferred to lSwagPath.Operations
                 except
@@ -502,30 +504,31 @@ begin
               end;
             end;
 
-            if not Assigned(lSwagPath) then
-            begin
-              lSwagPath := TSwagPath.Create;
-              try
-                lSwagPath.Uri := lPathUri;
-                ASwagDoc.Paths.Add(lSwagPath);
-              except
-                lSwagPath.Free;
-                raise;
-              end;
-            end;
-
             for I in lMVCHttpMethods do
             begin
-              {A verb MVCHttpMethodToSwagPathOperation cannot map (e.g. QUERY) comes back as
+              {A verb the document cannot express (QUERY in Swagger 2.0) comes back as
                  ohvNotDefined: emitting it would write an empty operation key}
-              if TMVCSwagger.MVCHttpMethodToSwagPathOperation(I) = ohvNotDefined then
+              if SwagOperationFor(I) = ohvNotDefined then
               begin
                 Continue;
               end;
-              if SwagPathHasOperation(lSwagPath, TMVCSwagger.MVCHttpMethodToSwagPathOperation(I),
+              if Assigned(lSwagPath) and SwagPathHasOperation(lSwagPath, SwagOperationFor(I),
                 lObjType.Name, lMethod.Name) then
               begin
                 Continue;
+              end;
+              {created on the first verb the document can express: a path with no
+               operation is what made the sort of the paths fail}
+              if not Assigned(lSwagPath) then
+              begin
+                lSwagPath := TSwagPath.Create;
+                try
+                  lSwagPath.Uri := lPathUri;
+                  ASwagDoc.Paths.Add(lSwagPath);
+                except
+                  lSwagPath.Free;
+                  raise;
+                end;
               end;
               lSwagPathOp := TSwagPathOperation.Create;
               try
@@ -553,7 +556,7 @@ begin
                     lControllerDefaultModelPluralName)
                   );
                 PathConvertersAsStrings(lControllerPath + lMethodPath, lSwagPathOp.Parameters);
-                lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+                lSwagPathOp.Operation := SwagOperationFor(I);
                 if lSwagPathOp.OperationID.IsEmpty then
                 begin
                   {Named after the concrete controller, not after the class declaring the
@@ -771,6 +774,25 @@ begin
   end;
 end;
 
+function SwagPathSortRank(const APath: TSwagPath): Integer;
+begin
+  if (APath.Operations.Count = 0) or (APath.Operations[0].Tags.Count = 0) then
+    Result := 2 // untagged last
+  else if SameText(APath.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
+    Result := 0 // the JWT login first
+  else
+    Result := 1;
+end;
+
+function TMVCSwaggerMiddleware.SwagOperationFor(const AMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
+begin
+  // OpenAPI 3.2 has a "query" operation; Swagger 2.0 has none, so there it stays undefined
+  if (AMethod = httpQUERY) and (fSpecVersion = ssvOpenAPI3) then
+    Result := ohvQuery
+  else
+    Result := TMVCSwagger.MVCHttpMethodToSwagPathOperation(AMethod);
+end;
+
 procedure TMVCSwaggerMiddleware.SortApiPaths(ASwagDoc: TSwagDoc);
 var
   lPathComparer: IComparer<TSwagPath>;
@@ -785,20 +807,11 @@ begin
   lPathComparer := TDelegatedComparer<TSwagPath>.Create(
     function(const Left, Right: TSwagPath): Integer
     begin
-      if (Left.Operations.Count = 0) or (Left.Operations[0].Tags.Count = 0) or
-        (Right.Operations.Count = 0) or (Right.Operations[0].Tags.Count = 0) then
-      begin
-        Result := 1;
-      end
-      else if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
-        SameText(Right.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
-      begin
-        Result := -1;
-      end
-      else
-      begin
+      {a total order, as QuickSort needs: the old comparer answered 1 to both
+       (A, B) and (B, A) for an untagged path and read past the list end}
+      Result := SwagPathSortRank(Left) - SwagPathSortRank(Right);
+      if (Result = 0) and (SwagPathSortRank(Left) = 1) then
         Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
-      end;
     end);
 
 {$IF defined(RIOORBETTER)}

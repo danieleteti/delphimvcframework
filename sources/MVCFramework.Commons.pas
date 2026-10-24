@@ -325,7 +325,7 @@ type
     RequestedRangeNotSatisfiable = 416;
     ExpectationFailed = 417;
     /// <summary>
-    /// The 422 (Unprocessable Entity) status code means the server
+    /// The 422 (Unprocessable Content) status code means the server
     /// understands the content type of the request entity (hence a
     /// 415(Unsupported Media Type) status code is inappropriate), and the
     /// syntax of the request entity is correct (thus a 400 (Bad Request)
@@ -391,6 +391,10 @@ type
     ///   Returns standard ReasonString for a given HTTP status code
     /// </summary>
     class function ReasonStringFor(const HTTPStatusCode: Integer): String; static;
+    /// <summary>
+    ///   As ReasonStringFor, but returns an empty string for a code not in the table
+    /// </summary>
+    class function ReasonStringOrEmpty(const HTTPStatusCode: Integer): String; static;
   end;
 
   EMVCException = class(Exception)
@@ -828,12 +832,12 @@ const
       (Code: 410; ReasonString: 'Gone'),
       (Code: 411; ReasonString: 'Length Required'),
       (Code: 412; ReasonString: 'Precondition Failed'),
-      (Code: 413; ReasonString: 'Request Entity Too Large'),
-      (Code: 414; ReasonString: 'Request-URI Too Long'),
+      (Code: 413; ReasonString: 'Content Too Large'),
+      (Code: 414; ReasonString: 'URI Too Long'),
       (Code: 415; ReasonString: 'Unsupported Media Type'),
-      (Code: 416; ReasonString: 'Requested Range Not Satisfiable'),
+      (Code: 416; ReasonString: 'Range Not Satisfiable'),
       (Code: 417; ReasonString: 'Expectation Failed'),
-      (Code: 422; ReasonString: 'Unprocessable Entity'),
+      (Code: 422; ReasonString: 'Unprocessable Content'),
       (Code: 423; ReasonString: 'Locked'),
       (Code: 424; ReasonString: 'Failed Dependency'),
       (Code: 426; ReasonString: 'Upgrade Required'),
@@ -846,7 +850,7 @@ const
       (Code: 503; ReasonString: 'Service Unavailable'),
       (Code: 504; ReasonString: 'Gateway Timeout'),
       (Code: 505; ReasonString: 'HTTP Version Not Supported'),
-      (Code: 506; ReasonString: 'Variant Also Negotiates (Experimental)'),
+      (Code: 506; ReasonString: 'Variant Also Negotiates'),
       (Code: 507; ReasonString: 'Insufficient Storage'),
       (Code: 508; ReasonString: 'Loop Detected'),
       (Code: 510; ReasonString: 'Not Extended'),
@@ -2082,6 +2086,16 @@ end;
 class function HTTP_STATUS.ReasonStringFor(const HTTPStatusCode: Integer): String;
 begin
   Result := ReasonStringByHTTPStatusCode(HTTPStatusCode);
+end;
+
+class function HTTP_STATUS.ReasonStringOrEmpty(const HTTPStatusCode: Integer): String;
+var
+  I: Integer;
+begin
+  for I := Low(MVC_HTTP_STATUS_CODES) to High(MVC_HTTP_STATUS_CODES) do
+    if MVC_HTTP_STATUS_CODES[I].Code = HTTPStatusCode then
+      Exit(MVC_HTTP_STATUS_CODES[I].ReasonString);
+  Result := '';
 end;
 
 procedure dotEnvConfigure(const dotEnvDelegate: TFunc<IMVCDotEnv>);

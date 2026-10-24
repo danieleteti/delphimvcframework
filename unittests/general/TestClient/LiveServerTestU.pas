@@ -70,6 +70,9 @@ type
     procedure TestMultiMVCPathOnControllerAndAction(const URLSegment: string);
 
     [Test]
+    procedure TestRequestWithManyCustomHeaders;
+
+    [Test]
     procedure TestReqWithParams;
 
     [Test]
@@ -3625,6 +3628,22 @@ begin
   end;
 end;
 
+procedure TServerTest.TestRequestWithManyCustomHeaders;
+var
+  lRes: IMVCRESTResponse;
+begin
+  { HTTP.sys kept the custom headers in an array[0..0] indexed in a loop: with range
+    checking on, the second one raised ERangeError in the worker and the client waited
+    for a response that never came. Any number of custom headers must be answered. }
+  lRes := RESTClient
+    .AddHeader('X-Custom-1', 'a')
+    .AddHeader('X-Custom-2', 'b')
+    .AddHeader('X-Custom-3', 'c')
+    .AddHeader('X-Custom-4', 'd')
+    .Get('/security/peerip');
+  Assert.areEqual(200, lRes.StatusCode);
+end;
+
 procedure TServerTest.TestReqWithParams;
 var
   ss: TStringStream;
@@ -4176,8 +4195,9 @@ var
 begin
   res := RESTClient.Get('/typed/integer1/boom');
   Assert.isTrue(res.StatusCode = HTTP_STATUS.BadRequest, 'Cannot route');
-  Assert.Contains(res.Content, 'EConvertError');
-  Assert.Contains(res.Content, '''boom'' is not a valid');
+  Assert.Contains(res.Content, 'Invalid Integer value for param [value]');
+  // the converter's class and message stay in the log
+  Assert.DoesNotContain(res.Content, 'EConvertError');
 end;
 
 procedure TServerTest.TestTypedSingle1;

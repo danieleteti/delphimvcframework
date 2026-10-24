@@ -151,78 +151,80 @@ begin
     lInMemory := TryGetCachedView(lCacheKey, lCachedView);
   end;
 
-  if lInMemory and not lCheckChanges then
-  begin
-    // production: compiled once per process, never checked again (changes are picked up on restart)
-    lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
-  end
-  else
-  begin
-    lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
-    if lViewFileName.IsEmpty then
-      raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
-    if FUseViewCache then
-    begin
-      lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
-      if not TDirectory.Exists(lCacheDir) then
-      begin
-        TDirectory.CreateDirectory(lCacheDir);
-      end;
-      lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
-
-      if not FileAge(lViewFileName, lActualFileTimeStamp) then
-      begin
-        raise EMVCSSVException.CreateFmt('View [%s] not found',
-          [ViewName]);
-      end;
-
-      if lInMemory and (lCachedView.ViewTimeStamp = lActualFileTimeStamp) then
-      begin
-        lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
-        lInMemory := not lCompiledTemplate.IsStale;
-      end
-      else
-      begin
-        lInMemory := False;
-      end;
-
-      if (not lInMemory) and FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
-      begin
-        lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
-      end;
-    end;
-
-    if lUseCompiledVersion then
-    begin
-      lCompiledTemplate := TTProCompiledTemplate.CreateFromFile(lCompiledViewFileName);
-      // a changed partial, layout or import (the view file itself is checked above by timestamp)
-      lUseCompiledVersion := not lCompiledTemplate.IsStale;
-    end;
-
-    if (not lUseCompiledVersion) and (not lInMemory) then
-    begin
-      lTP := TTProCompiler.Create;
-      try
-        lViewTemplate := TFile.ReadAllText(lViewFileName);
-        lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
-        if FUseViewCache then
-        begin
-          lCompiledTemplate.SaveToFile(lCompiledViewFileName);
-        end;
-      finally
-        lTP.Free;
-      end;
-    end;
-
-    if FUseViewCache and not lInMemory then
-    begin
-      lCachedView.Compiled := lCompiledTemplate.SaveToBytes;
-      lCachedView.ViewTimeStamp := lActualFileTimeStamp;
-      CacheView(lCacheKey, lCachedView);
-    end;
-  end;
-
+  // compiling (a circular include) and loading a damaged cache raise too: the same
+  // handler logs them and keeps their detail away from the client in a release build
   try
+    if lInMemory and not lCheckChanges then
+    begin
+      // production: compiled once per process, never checked again (changes are picked up on restart)
+      lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
+    end
+    else
+    begin
+      lViewFileName := GetRealFileName(ViewName, lActualCalculatedFileName);
+      if lViewFileName.IsEmpty then
+        raise EMVCSSVException.CreateFmt('View [%s] not found', [TPath.GetFileName(lActualCalculatedFileName)]);
+      if FUseViewCache then
+      begin
+        lCacheDir := TPath.Combine(TPath.GetDirectoryName(lViewFileName), '__cache__');
+        if not TDirectory.Exists(lCacheDir) then
+        begin
+          TDirectory.CreateDirectory(lCacheDir);
+        end;
+        lCompiledViewFileName := TPath.Combine(lCacheDir, TPath.ChangeExtension(TPath.GetFileName(lViewFileName), '.' + TEMPLATEPRO_VERSION + '.tpcu'));
+
+        if not FileAge(lViewFileName, lActualFileTimeStamp) then
+        begin
+          raise EMVCSSVException.CreateFmt('View [%s] not found',
+            [ViewName]);
+        end;
+
+        if lInMemory and (lCachedView.ViewTimeStamp = lActualFileTimeStamp) then
+        begin
+          lCompiledTemplate := TTProCompiledTemplate.CreateFromBytes(lCachedView.Compiled);
+          lInMemory := not lCompiledTemplate.IsStale;
+        end
+        else
+        begin
+          lInMemory := False;
+        end;
+
+        if (not lInMemory) and FileAge(lCompiledViewFileName, lActualCompiledFileTimeStamp) then
+        begin
+          lUseCompiledVersion := lActualFileTimeStamp < lActualCompiledFileTimeStamp;
+        end;
+      end;
+
+      if lUseCompiledVersion then
+      begin
+        lCompiledTemplate := TTProCompiledTemplate.CreateFromFile(lCompiledViewFileName);
+        // a changed partial, layout or import (the view file itself is checked above by timestamp)
+        lUseCompiledVersion := not lCompiledTemplate.IsStale;
+      end;
+
+      if (not lUseCompiledVersion) and (not lInMemory) then
+      begin
+        lTP := TTProCompiler.Create;
+        try
+          lViewTemplate := TFile.ReadAllText(lViewFileName);
+          lCompiledTemplate := lTP.Compile(lViewTemplate, lViewFileName);
+          if FUseViewCache then
+          begin
+            lCompiledTemplate.SaveToFile(lCompiledViewFileName);
+          end;
+        finally
+          lTP.Free;
+        end;
+      end;
+
+      if FUseViewCache and not lInMemory then
+      begin
+        lCachedView.Compiled := lCompiledTemplate.SaveToBytes;
+        lCachedView.ViewTimeStamp := lActualFileTimeStamp;
+        CacheView(lCacheKey, lCachedView);
+      end;
+    end;
+
     if Assigned(ViewModel) then
     begin
       for lPair in ViewModel do

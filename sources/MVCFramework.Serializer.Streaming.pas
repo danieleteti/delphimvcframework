@@ -642,6 +642,32 @@ end;
 
 { --- Emit ------------------------------------------------------------------ }
 
+{ Cardinal and UInt64 must not come out negative above the signed range. }
+procedure WriteIntegerKind(const AWriter: TJsonTextWriter; const ATypeInfo: PTypeInfo;
+  const AValue: TValue);
+begin
+  if (ATypeInfo <> nil) and (ATypeInfo.Kind = tkInt64) and
+    (GetTypeData(ATypeInfo).MinInt64Value > GetTypeData(ATypeInfo).MaxInt64Value) then
+    AWriter.WriteValue(AValue.AsUInt64)
+  else if (ATypeInfo <> nil) and (ATypeInfo.Kind = tkInteger) and (GetTypeData(ATypeInfo).OrdType = otULong) then
+    AWriter.WriteValue(Int64(Cardinal(AValue.AsInteger)))
+  else
+    AWriter.WriteValue(AValue.AsInt64);
+end;
+
+{ TDate and TTime keep the text the legacy serializer gives them: the writer
+  would turn both into a full timestamp. }
+procedure WriteDateTimeKind(const AWriter: TJsonTextWriter; const ATypeInfo: PTypeInfo;
+  const AValue: Extended);
+begin
+  if ATypeInfo = TypeInfo(TDate) then
+    AWriter.WriteValue(DateToISODate(AValue))
+  else if ATypeInfo = TypeInfo(TTime) then
+    AWriter.WriteValue(TimeToISOTime(AValue))
+  else
+    AWriter.WriteValue(TDateTime(AValue));
+end;
+
 { [PERF] Emit a single primitive kind's value via the Json writer. Shared
   between the top-level object walk and the Nullable unwrap path. }
 procedure EmitPrimitive(const AWriter: TJsonTextWriter;
@@ -649,13 +675,12 @@ procedure EmitPrimitive(const AWriter: TJsonTextWriter;
   const AValue: TValue);
 begin
   case AKind of
-    ekInt32:    AWriter.WriteValue(AValue.AsInteger);
-    ekInt64:    AWriter.WriteValue(AValue.AsInt64);
+    ekInt32, ekInt64: WriteIntegerKind(AWriter, ATypeInfo, AValue);
     ekFloat:    AWriter.WriteRawValue(JsonFloat(AValue.AsExtended, 15));
     ekSingle:   AWriter.WriteRawValue(JsonFloat(AValue.AsExtended, 7));
     ekString:   AWriter.WriteValue(AValue.AsString);
     ekBoolean:  AWriter.WriteValue(AValue.AsBoolean);
-    ekDateTime: AWriter.WriteValue(TDateTime(AValue.AsExtended));
+    ekDateTime: WriteDateTimeKind(AWriter, ATypeInfo, AValue.AsExtended);
     ekEnumByName:
       AWriter.WriteValue(GetEnumName(ATypeInfo, AValue.AsOrdinal));
     ekGUID:
@@ -764,7 +789,7 @@ begin
       if AValue.AsType<NullableUInt64>().HasValue then
       begin
         EmitName;
-        AWriter.WriteValue(Int64(AValue.AsType<NullableUInt64>().Value));
+        AWriter.WriteValue(AValue.AsType<NullableUInt64>().Value);
       end
       else
       begin
@@ -961,13 +986,12 @@ var
   LObjPlan: TMVCStreamingPlan;
 begin
   case AEntry.ArrayElemKind of
-    ekInt32:    AWriter.WriteValue(AValue.AsInteger);
-    ekInt64:    AWriter.WriteValue(AValue.AsInt64);
+    ekInt32, ekInt64: WriteIntegerKind(AWriter, AEntry.ArrayElemTypeInfo, AValue);
     ekFloat:    AWriter.WriteRawValue(JsonFloat(AValue.AsExtended, 15));
     ekSingle:   AWriter.WriteRawValue(JsonFloat(AValue.AsExtended, 7));
     ekString:   AWriter.WriteValue(AValue.AsString);
     ekBoolean:  AWriter.WriteValue(AValue.AsBoolean);
-    ekDateTime: AWriter.WriteValue(TDateTime(AValue.AsExtended));
+    ekDateTime: WriteDateTimeKind(AWriter, AEntry.ArrayElemTypeInfo, AValue.AsExtended);
     ekEnumByName:
       AWriter.WriteValue(GetEnumName(AEntry.ArrayElemTypeInfo, AValue.AsOrdinal));
     ekGUID:
@@ -1060,8 +1084,7 @@ begin
     end;
     AWriter.WritePropertyName(APlan.Entries[I].Name);
     case APlan.Entries[I].Kind of
-      ekInt32:    AWriter.WriteValue(LValue.AsInteger);
-      ekInt64:    AWriter.WriteValue(LValue.AsInt64);
+      ekInt32, ekInt64: WriteIntegerKind(AWriter, APlan.Entries[I].TypeInfo, LValue);
       ekFloat:
         { Legacy JsonDataObjects always emits a decimal marker for floats
           (0.0, not 0). TJsonTextWriter.WriteValue(Double) drops the
@@ -1078,7 +1101,7 @@ begin
       ekString:   AWriter.WriteValue(LValue.AsString);
       ekBoolean:  AWriter.WriteValue(LValue.AsBoolean);
       ekDateTime:
-        AWriter.WriteValue(TDateTime(LValue.AsExtended));
+        WriteDateTimeKind(AWriter, APlan.Entries[I].TypeInfo, LValue.AsExtended);
       ekEnumByName:
         AWriter.WriteValue(GetEnumName(APlan.Entries[I].TypeInfo, LValue.AsOrdinal));
       ekGUID:

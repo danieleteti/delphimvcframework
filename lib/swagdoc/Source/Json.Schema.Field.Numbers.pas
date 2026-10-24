@@ -81,6 +81,7 @@ begin
   TJsonFieldNumber<T>(Result).fMinValue := Self.fMinValue;
   TJsonFieldNumber<T>(Result).fMaxValue := Self.fMaxValue;
   TJsonFieldNumber<T>(Result).fDefaultValue := Self.fDefaultValue;
+  TJsonFieldNumber<T>(Result).fFormat := Self.fFormat;
 end;
 
 function TJsonFieldNumber<T>.GetDefaultValue: T;
@@ -122,6 +123,8 @@ begin
     Result.AddPair('maximum', fMaxValue.AsExtended);
   if not fDefaultValue.IsEmpty then
     Result.AddPair('default', fDefaultValue.AsExtended);
+  if fFormat <> '' then
+    Result.AddPair('format', fFormat);
 end;
 
 { TJsonFieldInt64 }
@@ -129,7 +132,8 @@ end;
 function TJsonFieldInt64.ToJsonSchema: TJsonObject;
 begin
   Result := inherited ToJsonSchema;
-  Result.AddPair('format', 'int64');
+  if Self.Format = '' then // an explicit format was written by the inherited call
+    Result.AddPair('format', 'int64');
 end;
 
 initialization

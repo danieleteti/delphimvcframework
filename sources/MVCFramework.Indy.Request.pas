@@ -180,6 +180,17 @@ var
   lPairs: TArray<string>;
   lPair: string;
   lEqPos: Integer;
+  // a value this host did not encode (a stray '%') is handed over as it came, not a 500
+  function CookieDecode(const AValue: string): string;
+  begin
+    try
+      Result := TNetEncoding.URL.Decode(AValue);
+    except
+      on EConvertError do
+        Result := AValue;
+    end;
+  end;
+
 begin
   if FCookieParsed then Exit;
   FCookieParsed := True;
@@ -197,8 +208,8 @@ begin
       or an '=' into a different value on the next request, on these two hosts
       only. }
     if lEqPos > 0 then
-      FCookies.Values[TNetEncoding.URL.Decode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
-        TNetEncoding.URL.Decode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
+      FCookies.Values[CookieDecode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
+        CookieDecode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
     else
       FCookies.Values[Trim(lPair)] := '';
   end;
@@ -217,25 +228,34 @@ begin
   lQueryStr := FRequestInfo.QueryParams;
   if lQueryStr = '' then Exit;
   lPairs := lQueryStr.Split(['&']);
-  for lPair in lPairs do
-  begin
-    lEqPos := Pos('=', lPair);
-    if lEqPos > 0 then
+  try
+    for lPair in lPairs do
     begin
-      { TNetEncoding, not TIdURI, and the difference is the point. TIdURI.URLDecode
-        accepts the non-standard IIS form %uXXXX - so %u003Cscript%u003E arrives
-        as <script> with no '<' anywhere in the bytes a WAF inspected - and it
-        silently drops a malformed escape, turning ad%zzmin into admin. The other
-        two hosts use TNetEncoding, which leaves both forms literal. The host was
-        the only thing deciding which of the two an action received.
-        '+' is already turned into a space above, so nothing changes there. }
-      lName := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
-      lValue := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
-      FQueryStringParams.Add(lName + '=' + lValue);
-    end
-    else
+      lEqPos := Pos('=', lPair);
+      if lEqPos > 0 then
+      begin
+        { TNetEncoding, not TIdURI, and the difference is the point. TIdURI.URLDecode
+          accepts the non-standard IIS form %uXXXX - so %u003Cscript%u003E arrives
+          as <script> with no '<' anywhere in the bytes a WAF inspected - and it
+          silently drops a malformed escape, turning ad%zzmin into admin. The other
+          two hosts use TNetEncoding, which leaves both forms literal. The host was
+          the only thing deciding which of the two an action received.
+          '+' is already turned into a space above, so nothing changes there. }
+        lName := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
+        lValue := TNetEncoding.URL.Decode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
+        FQueryStringParams.Add(lName + '=' + lValue);
+      end
+      else
+      begin
+        FQueryStringParams.Add(TNetEncoding.URL.Decode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
+      end;
+    end;
+  except
+    on EConvertError do
     begin
-      FQueryStringParams.Add(TNetEncoding.URL.Decode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
+      // a malformed escape is the client's mistake: 400, and no half-parsed list left behind
+      FreeAndNil(FQueryStringParams);
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Malformed percent-escape in the query string');
     end;
   end;
 end;

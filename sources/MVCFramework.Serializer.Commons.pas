@@ -512,6 +512,7 @@ implementation
 uses
   Data.FmtBcd,
   Data.SqlTimSt,
+  MVCFramework.Logger,
   MVCFramework.Nullables,
   System.Generics.Defaults;
 
@@ -659,9 +660,11 @@ var
 
   function BadValue(const ATypeName: string; E: Exception): EMVCException;
   begin
+    // the message reaches the client: the converter's own class and text stay in the log
+    LogW(Format('Invalid %s value for param [%s] - [CLASS: %s][MSG: %s]',
+      [ATypeName, ParamName, E.ClassName, E.Message]));
     Result := EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
-      'Invalid %s value for param [%s] - [CLASS: %s][MSG: %s]',
-      [ATypeName, ParamName, E.ClassName, E.Message]);
+      'Invalid %s value for param [%s]', [ATypeName, ParamName]);
   end;
 
 begin

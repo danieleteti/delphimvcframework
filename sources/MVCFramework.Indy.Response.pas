@@ -152,8 +152,14 @@ begin
 end;
 
 procedure TMVCIndyDirectResponse.SetStatusCode(const AValue: Integer);
+var
+  lReason: string;
 begin
   FResponseInfo.ResponseNo := AValue;
+  // Indy has its own phrase table: the framework's wins, so every host says the same
+  lReason := HTTP_STATUS.ReasonStringOrEmpty(AValue);
+  if lReason <> '' then
+    FResponseInfo.ResponseText := lReason;
 end;
 
 procedure TMVCIndyDirectResponse.SetContentType(const AValue: string);
@@ -254,6 +260,12 @@ begin
       {$ENDIF}
     end;
   end;
+
+  // Indy fills a response with no body with "<HTML><BODY><B>202 Accepted</B></BODY></HTML>":
+  // an empty response stays empty
+  if (FResponseInfo.ContentText = '') and (not Assigned(FResponseInfo.ContentStream)) and
+    (FResponseInfo.ContentLength = -1) then
+    FResponseInfo.ContentLength := 0;
 
   if FSingleFlushResponse then
   begin

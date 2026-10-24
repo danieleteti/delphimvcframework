@@ -182,8 +182,14 @@ begin
 end;
 
 procedure TMVCHttpSysResponse.SetStatusCode(const AValue: Integer);
+var
+  lReason: string;
 begin
   FStatusCode := AValue;
+  // without this the reason stayed the constructor's 'OK' (a "413 OK")
+  lReason := HTTP_STATUS.ReasonStringOrEmpty(AValue);
+  if lReason <> '' then
+    FReasonString := lReason;
 end;
 
 procedure TMVCHttpSysResponse.SetContentType(const AValue: string);
@@ -250,6 +256,7 @@ var
   lCookie: TCookie;
   lCookieStr: string;
   lHeaderName, lHeaderValue: string;
+  lServerAnsi: UTF8String;
 begin
   if FHeadersSent then Exit;
   FHeadersSent := True;
@@ -312,6 +319,15 @@ begin
     lHeaderValue := MVCStripCRLF(Trim(FCustomHeaders.ValueFromIndex[I]));
     if lHeaderName = '' then
       Continue;
+    if SameText(lHeaderName, 'Server') then
+    begin
+      // the known header: HTTP.sys adds its own "Server: Microsoft-HTTPAPI/2.0" next
+      // to a custom one, and the response would carry two
+      lServerAnsi := UTF8String(lHeaderValue);
+      lResponse.Headers.KnownHeaders[Ord(HttpHeaderResponseServer)].RawValueLength := Length(lServerAnsi);
+      lResponse.Headers.KnownHeaders[Ord(HttpHeaderResponseServer)].pRawValue := PAnsiChar(lServerAnsi);
+      Continue;
+    end;
 
     lUnknownHeaderNames[lUnknownCount] := UTF8String(lHeaderName);
     lUnknownHeaderValues[lUnknownCount] := UTF8String(lHeaderValue);

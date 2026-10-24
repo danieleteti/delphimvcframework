@@ -49,6 +49,7 @@ type
     FRealHTTPCommandLoaded: Boolean;
     procedure EnsureMultipartFallback;
     function GetRealHTTPCommand: string;
+    function QueryFields: TStrings;
   protected
     function GetHeader(const AName: string): string; override;
     function GetPathInfo: string; override;
@@ -102,6 +103,7 @@ implementation
 
 uses
   System.Rtti,
+  System.NetEncoding,
   MVCFramework.Router;
 
 { TIdHTTPAppRequest is reached by RTTI, never by a unit reference: pulling in
@@ -122,6 +124,18 @@ begin
 end;
 
 { TMVCWebBrokerRequest }
+
+function TMVCWebBrokerRequest.QueryFields: TStrings;
+begin
+  // WebBroker decodes the whole query on first access and raises EConvertError on
+  // a malformed escape: that is the client's mistake, a 400 as on the other hosts
+  try
+    Result := FWebRequest.QueryFields;
+  except
+    on EConvertError do
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Malformed percent-escape in the query string');
+  end;
+end;
 
 constructor TMVCWebBrokerRequest.Create(const AWebRequest: TWebRequest;
   const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -258,20 +272,56 @@ begin
   end;
 end;
 
+// The last occurrence of a repeated field, as Indy Direct and HTTP.sys answer:
+// TStrings.Values would give the first (a checkbox posts "false" then "true").
+function LastValueOf(const AStrings: TStrings; const AName: string): string;
+var
+  I: Integer;
+begin
+  for I := AStrings.Count - 1 downto 0 do
+    if SameText(AStrings.Names[I], AName) then
+      Exit(AStrings.ValueFromIndex[I]);
+  Result := '';
+end;
+
 function TMVCWebBrokerRequest.ContentParam(const AName: string): string;
 begin
-  Result := FWebRequest.ContentFields.Values[AName];
+  Result := LastValueOf(FWebRequest.ContentFields, AName);
   if Result = '' then
   begin
     EnsureMultipartFallback;
     if Assigned(FMultipartFallback) then
-      Result := FMultipartFallback.Values[AName];
+      Result := LastValueOf(FMultipartFallback, AName);
   end;
 end;
 
 function TMVCWebBrokerRequest.Cookie(const AName: string): string;
+
+  function Decoded(const AValue: string): string;
+  begin
+    try
+      Result := TNetEncoding.URL.Decode(AValue);
+    except
+      on EConvertError do
+        Result := AValue; // not an escape this host wrote: hand it over as it came
+    end;
+  end;
+
+var
+  I: Integer;
 begin
-  Result := FWebRequest.CookieFields.Values[AName];
+  { The Indy bridge fills CookieFields with the raw header text, while ISAPI and
+    Apache go through TWebRequest.ExtractCookieFields, which decodes. Decoding
+    only under the bridge gives the value the other hosts give. }
+  if (FWebRequest <> nil) and IsOrInheritsFromTIdHTTPAppRequest(FWebRequest.ClassType) then
+  begin
+    for I := 0 to FWebRequest.CookieFields.Count - 1 do
+      if SameText(Decoded(FWebRequest.CookieFields.Names[I]), AName) then
+        Exit(Decoded(FWebRequest.CookieFields.ValueFromIndex[I]));
+    Result := '';
+  end
+  else
+    Result := FWebRequest.CookieFields.Values[AName];
 end;
 
 function TMVCWebBrokerRequest.DoGetContent: string;
@@ -461,11 +511,11 @@ begin
       end;
     end;
 
-    if (FWebRequest.QueryFields.Count > 0) then
+    if (QueryFields.Count > 0) then
     begin
-      for I := 0 to FWebRequest.QueryFields.Count - 1 do
+      for I := 0 to QueryFields.Count - 1 do
       begin
-        Names.Add(FWebRequest.QueryFields.Names[I]);
+        Names.Add(QueryFields.Names[I]);
       end;
     end;
 
@@ -503,7 +553,7 @@ begin
       string(FWebRequest.ContentType).StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
       Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
-      Result := FWebRequest.QueryFields.Values[AParamName];
+      Result := QueryFields.Values[AParamName];
   end;
 end;
 
@@ -536,17 +586,17 @@ begin
   if not Assigned(FQueryParams) then
   begin
     FQueryParams := TDictionary<string, string>.Create;
-    for I := 0 to Pred(FWebRequest.QueryFields.Count) do
+    for I := 0 to Pred(QueryFields.Count) do
     begin
       { First value wins, matching QueryStringParam (TStringList.Values returns
         the first match) and the other two hosts. Add() alone would also raise
         on a repeated key, turning ?a=1&a=2 into a 500 on this host only. }
-      lRow := FWebRequest.QueryFields[i];
+      lRow := QueryFields[i];
       if lRow.Contains('=') then
       begin
-        lName := LowerCase(Trim(FWebRequest.QueryFields.Names[I]));
+        lName := LowerCase(Trim(QueryFields.Names[I]));
         if not FQueryParams.ContainsKey(lName) then
-          FQueryParams.Add(lName, FWebRequest.QueryFields.ValueFromIndex[I]);
+          FQueryParams.Add(lName, QueryFields.ValueFromIndex[I]);
       end
       else
       begin
@@ -567,7 +617,7 @@ end;
 function TMVCWebBrokerRequest.GetQueryParamsMulti(
   const AParamName: string): TArray<string>;
 begin
-  Result := GetMultiParamsAsArray(AParamName, FWebRequest.QueryFields);
+  Result := GetMultiParamsAsArray(AParamName, QueryFields);
 end;
 
 function TMVCWebBrokerRequest.GetRawWebRequest: TWebRequest;
@@ -590,9 +640,9 @@ begin
     accessors disagreeing on the same request is how a value gets validated
     through one and used through the other. }
   lNameLen := Length(AName);
-  for I := 0 to FWebRequest.QueryFields.Count - 1 do
+  for I := 0 to QueryFields.Count - 1 do
   begin
-    lRow := FWebRequest.QueryFields[I];
+    lRow := QueryFields[I];
     if SameText(lRow, AName) then
       Exit('');
     if (Length(lRow) > lNameLen) and (lRow[lNameLen + 1] = '=') and
@@ -609,13 +659,25 @@ end;
 
 function TMVCWebBrokerRequest.QueryStringParams: TStrings;
 begin
-  Result := FWebRequest.QueryFields;
+  Result := QueryFields;
 end;
 
 function TMVCWebBrokerRequest.GetRawPathInfo: string;
+var
+  lQueryPos: Integer;
 begin
-  // See comment on GetPathInfo: TWebRequest.URL is the only field that
-  // carries the full original path intact under every WebBroker host.
+  // The Indy bridge has the path as it came on the wire (TIdHTTPRequestInfo.URI),
+  // the one Indy Direct and HTTP.sys give. Elsewhere see the comment on
+  // GetPathInfo: TWebRequest.URL is the only field intact under every host.
+  if (FWebRequest <> nil) and IsOrInheritsFromTIdHTTPAppRequest(FWebRequest.ClassType) then
+  begin
+    Result := FWebRequest.RawPathInfo;
+    lQueryPos := Pos('?', Result);
+    if lQueryPos > 0 then
+      Result := Copy(Result, 1, lQueryPos - 1);
+    if Result <> '' then
+      Exit;
+  end;
   Result := GetPathInfo;
 end;
 
@@ -678,7 +740,7 @@ end;
 
 function TMVCWebBrokerRequest.GetQueryFieldsDelimitedText: string;
 begin
-  Result := FWebRequest.QueryFields.DelimitedText;
+  Result := QueryFields.DelimitedText;
 end;
 
 function TMVCWebBrokerRequest.GetRawContent: TBytes;

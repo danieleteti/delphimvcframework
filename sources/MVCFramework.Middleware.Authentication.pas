@@ -185,8 +185,7 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
       AContext.Response.Content := CONTENT_403_FORBIDDEN + sLineBreak + AContext.Config
         [TMVCConfigKey.ServerName];
     end;
-    AContext.Response.StatusCode := HTTP_STATUS.Forbidden;
-    AContext.Response.ReasonString := AContext.Config[TMVCConfigKey.ServerName];
+    AContext.Response.StatusCode := HTTP_STATUS.Forbidden; // the phrase comes with the status
     AHandled := True;
   end;
 

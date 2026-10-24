@@ -106,7 +106,13 @@ procedure TMVCWebBrokerResponse.Flush;
 begin
   StripCRLFFromHeaders;
   if not FWebResponse.Sent then
+  begin
+    // an empty response stays empty: with no body the Indy bridge writes
+    // "<HTML><BODY><B>202 Accepted</B></BODY></HTML>"; a zero-length stream is Content-Length: 0
+    if (FWebResponse.ContentStream = nil) and (FWebResponse.Content = '') then
+      FWebResponse.ContentStream := TMemoryStream.Create;
     FWebResponse.SendResponse;
+  end;
 end;
 
 function TMVCWebBrokerResponse.GetContent: string;
@@ -191,8 +197,14 @@ begin
 end;
 
 procedure TMVCWebBrokerResponse.SetStatusCode(const AValue: Integer);
+var
+  lReason: string;
 begin
   FWebResponse.StatusCode := AValue;
+  // WebBroker's StatusString table is older than RFC 9110: the framework's wins
+  lReason := HTTP_STATUS.ReasonStringOrEmpty(AValue);
+  if lReason <> '' then
+    FWebResponse.ReasonString := lReason;
 end;
 
 function TMVCWebBrokerResponse.GetContentStream: TStream;

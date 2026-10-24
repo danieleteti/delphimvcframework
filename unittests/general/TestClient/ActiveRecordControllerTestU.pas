@@ -59,6 +59,9 @@ type
     // proves the JSON-array segment removes any delimiter-collision limit.
     [Test]
     procedure TestCompositePKCRUD_StringKeyWithDelimiters;
+    // RQL is the client's: bad syntax or an unmapped field is a 400, not a 500
+    [Test]
+    procedure TestBadRQLIsAClientError;
   end;
 
 implementation
@@ -72,6 +75,7 @@ uses
   MVCFramework.Middleware.Session, MVCFramework.Middleware.ActiveRecord,
   MVCFramework.ActiveRecordController,
   MVCFramework.RESTClient, JsonDataObjects, System.StrUtils,
+  MVCFramework.RQL.Parser,
   MVCFramework.Commons;
 
 const
@@ -248,6 +252,25 @@ begin
   finally
     lJSON.Free;
   end;
+end;
+
+procedure TTestActiveRecordController.TestBadRQLIsAClientError;
+var
+  lResp: IMVCRESTResponse;
+  lSaved: Boolean;
+begin
+  lResp := fClient.Get('/api/entities/customers?rql=eq(');
+  Assert.AreEqual<Integer>(400, lResp.StatusCode, 'syntax: ' + lResp.Content);
+  lSaved := TRQLCompiler.AllowUnmappedRQLFields;
+  TRQLCompiler.AllowUnmappedRQLFields := False;
+  try
+    lResp := fClient.Get('/api/entities/customers?rql=eq(NotAField,1)');
+    Assert.AreEqual<Integer>(400, lResp.StatusCode, 'unmapped: ' + lResp.Content);
+  finally
+    TRQLCompiler.AllowUnmappedRQLFields := lSaved;
+  end;
+  lResp := fClient.Get('/api/entities/customers?rql=eq(city,"Rome")');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
 end;
 
 procedure TTestActiveRecordController.TestCRUD;

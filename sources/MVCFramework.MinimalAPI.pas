@@ -292,7 +292,8 @@ type
     // A handle can cover more than one route: MapMethods registers one route
     // per verb, and OpenAPI metadata / route-scoped filters set through the
     // handle apply to every one of them. WithName is the exception, because an
-    // operationId must stay unique, so it targets the primary route only.
+    // operationId must stay unique, so it targets one route: the first verb
+    // the OpenAPI document can express (see WithName).
     fRoutes: TArray<TMVCMinimalRoute>;
     function GetPrimary: TMVCMinimalRoute;
     procedure SetMeta(const AKey: string; const AValue: TValue);
@@ -1134,10 +1135,20 @@ begin
 end;
 
 function TMVCRouteHandle.WithName(const AName: string): TMVCRouteHandle;
+var
+  lRoute, lNamed: TMVCMinimalRoute;
 begin
   // An operationId must be unique across the engine, so a multi-verb handle
-  // names only its primary (first) route; the sibling verbs stay unnamed.
-  GetPrimary.Name := AName;
+  // names one route only: the first whose verb the OpenAPI document can carry.
+  // QUERY has no operation key in OpenAPI 3.1, so a name put there was lost.
+  lNamed := GetPrimary;
+  for lRoute in fRoutes do
+    if lRoute.Verb <> httpQUERY then
+    begin
+      lNamed := lRoute;
+      Break;
+    end;
+  lNamed.Name := AName;
   Result := Self;
 end;
 
@@ -2478,8 +2489,8 @@ begin
     lRoutes := lRoutes + [RegisterRoute(V, APath, AThunk, AParamTypes)];
   // The returned handle covers every verb's route: OpenAPI metadata
   // (WithSummary/WithTags/WithOpenAPI/...) and route-scoped filters set on it
-  // apply to all of them. WithName targets the primary (first) verb only,
-  // because an operationId must stay unique; register each verb separately if
+  // apply to all of them. WithName targets one verb only (the first that is
+  // not QUERY), because an operationId must stay unique; register each verb separately if
   // you need per-verb names.
   Result := TMVCRouteHandle.Create(lRoutes);
 end;

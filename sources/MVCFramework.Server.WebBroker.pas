@@ -48,6 +48,7 @@ type
     FEngine: TMVCEngine;
     FPort: Integer;
     FHost: string;
+    fHasListened: Boolean; // Indy keeps the default bindings of an activation: they carry its port
     FMaxConnections: Integer;
     FKeepAlive: Boolean;
     FListenQueue: Integer;
@@ -260,7 +261,8 @@ begin
   // AHost names one address to listen on: an IPv4 or IPv6 address, or a host
   // name. 'localhost' is both loopback addresses. '0.0.0.0', '*', '+' or ''
   // mean every interface, Indy's behaviour with no binding.
-  if HostIsSpecific(AHost) or LHadHost then
+  // after a first Listen the bindings are the ones Indy filled in, with the old port
+  if HostIsSpecific(AHost) or LHadHost or fHasListened then
     BindHost(LBridge.Bindings, AHost, FPort);
   LBridge.MaxConnections := FMaxConnections;
   LBridge.ListenQueue := FListenQueue;
@@ -268,6 +270,7 @@ begin
   ConfigureHTTPS;
 
   LBridge.Active := True;
+  fHasListened := True;
 end;
 
 procedure TMVCWebBrokerServer.Stop;

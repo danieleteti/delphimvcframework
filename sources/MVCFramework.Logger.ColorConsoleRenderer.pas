@@ -51,6 +51,8 @@ type
     function LevelLabel(const aLogType: TLogType): string;
     function RenderHTTPANSI(const aLogItem: TLogItem): string;
     function RenderAppANSI(const aLogItem: TLogItem): string;
+  public
+    /// <summary>The format used when ANSI is not available, e.g. stdout redirected to a file</summary>
     function RenderPlain(const aLogItem: TLogItem): string;
   protected
     procedure Setup; override;
@@ -222,15 +224,36 @@ end;
 
 function TMVCColorConsoleRenderer.RenderPlain(const aLogItem: TLogItem): string;
 var
-  lTime: string;
+  lTime, lText: string;
+  I: Integer;
 begin
-  // Fallback: same format as TLogItemRendererNoTag for backward compatibility
+  // Fallback: same format as TLogItemRendererNoTag for backward compatibility.
+  // A per-request line carries everything in its context and no message: the
+  // context is written out, or the line would be an empty "[INFO]".
   lTime := DateTimeToStr(aLogItem.TimeStamp, fFormatSettings);
+  if IsHTTPLog(aLogItem) then
+  begin
+    lText := Format('%s | %s | %s | %s "%s"', [
+      GetContextValue(aLogItem, 'status'),
+      GetContextValue(aLogItem, 'duration'),
+      GetContextValue(aLogItem, 'ip'),
+      GetContextValue(aLogItem, 'method'),
+      GetContextValue(aLogItem, 'path')]);
+    if aLogItem.LogMessage <> '' then
+      lText := lText + ' ' + aLogItem.LogMessage;
+  end
+  else
+  begin
+    lText := aLogItem.LogMessage;
+    if aLogItem.HasContext then
+      for I := 0 to High(aLogItem.Context) do
+        lText := lText + ' ' + aLogItem.Context[I].Key + '=' + aLogItem.Context[I].Value.ToString;
+  end;
   Result := Format('%s[TID %d][%s] %s', [
     lTime,
     aLogItem.ThreadID,
     aLogItem.LogTypeAsString,
-    aLogItem.LogMessage
+    lText
   ]);
 end;
 

@@ -380,27 +380,30 @@ end;
 procedure TMVCHttpSysRequest.CopyUnknownHeaders(const AHeaders: HTTP_REQUEST_HEADERS);
 var
   I: Integer;
-  lUnknowns: PHTTP_UNKNOWN_HEADER_ARRAY;
+  lUnknown: PHTTP_UNKNOWN_HEADER;
   lName, lValue: string;
   lAnsiName, lAnsiValue: AnsiString;
 begin
   if (AHeaders.UnknownHeaderCount = 0) or (AHeaders.pUnknownHeaders = nil) then
     Exit;
 
-  lUnknowns := PHTTP_UNKNOWN_HEADER_ARRAY(AHeaders.pUnknownHeaders);
+  // pointer arithmetic, not an index into HTTP_UNKNOWN_HEADER_ARRAY (array[0..0]):
+  // with range checking on, the second custom header raised ERangeError and the
+  // request was never answered
+  lUnknown := AHeaders.pUnknownHeaders;
   for I := 0 to AHeaders.UnknownHeaderCount - 1 do
   begin
-    if lUnknowns^[I].NameLength > 0 then
+    if lUnknown^.NameLength > 0 then
     begin
-      SetString(lAnsiName, lUnknowns^[I].pName, lUnknowns^[I].NameLength);
+      SetString(lAnsiName, lUnknown^.pName, lUnknown^.NameLength);
       lName := string(lAnsiName);
     end
     else
       lName := '';
 
-    if lUnknowns^[I].RawValueLength > 0 then
+    if lUnknown^.RawValueLength > 0 then
     begin
-      SetString(lAnsiValue, lUnknowns^[I].pRawValue, lUnknowns^[I].RawValueLength);
+      SetString(lAnsiValue, lUnknown^.pRawValue, lUnknown^.RawValueLength);
       lValue := string(lAnsiValue);
     end
     else
@@ -408,6 +411,7 @@ begin
 
     if lName <> '' then
       FAllHeaders.Add(lName + ':' + lValue);
+    Inc(lUnknown);
   end;
 end;
 
@@ -762,8 +766,28 @@ begin
 end;
 
 function TMVCHttpSysRequest.GetRawPathInfo: string;
+var
+  lPos: Integer;
 begin
-  Result := FPathInfo;
+  // FPathInfo comes from the kernel's CookedUrl, already decoded: the raw path
+  // is the request target as sent, without the query and without an absolute
+  // form's scheme and authority
+  Result := FRawUrl;
+  lPos := Pos('?', Result);
+  if lPos > 0 then
+    Result := Copy(Result, 1, lPos - 1);
+  lPos := Pos('://', Result);
+  if (lPos > 0) and (lPos < Pos('/', Result + '/')) then
+  begin
+    Result := Copy(Result, lPos + 3, MaxInt);
+    lPos := Pos('/', Result);
+    if lPos > 0 then
+      Result := Copy(Result, lPos, MaxInt)
+    else
+      Result := '/';
+  end;
+  if Result = '' then
+    Result := FPathInfo;
 end;
 
 function TMVCHttpSysRequest.GetContentLength: Int64;
@@ -877,6 +901,17 @@ var
   lPairs: TArray<string>;
   lPair: string;
   lEqPos: Integer;
+  // a value this host did not encode (a stray '%') is handed over as it came, not a 500
+  function CookieDecode(const AValue: string): string;
+  begin
+    try
+      Result := TNetEncoding.URL.Decode(AValue);
+    except
+      on EConvertError do
+        Result := AValue;
+    end;
+  end;
+
 begin
   if FCookieParsed then Exit;
   FCookieParsed := True;
@@ -894,8 +929,8 @@ begin
       or an '=' into a different value on the next request, on these two hosts
       only. }
     if lEqPos > 0 then
-      FCookies.Values[TNetEncoding.URL.Decode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
-        TNetEncoding.URL.Decode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
+      FCookies.Values[CookieDecode(Trim(Copy(lPair, 1, lEqPos - 1)))] :=
+        CookieDecode(Trim(Copy(lPair, lEqPos + 1, MaxInt)))
     else
       FCookies.Values[Trim(lPair)] := '';
   end;
@@ -912,18 +947,27 @@ begin
   FQueryStringParams := TStringList.Create;
   if FQueryStr = '' then Exit;
   lPairs := FQueryStr.Split(['&']);
-  for lPair in lPairs do
-  begin
-    lEqPos := Pos('=', lPair);
-    if lEqPos > 0 then
+  try
+    for lPair in lPairs do
     begin
-      lName := URLDecode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
-      lValue := URLDecode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
-      FQueryStringParams.Add(lName + '=' + lValue);
-    end
-    else
+      lEqPos := Pos('=', lPair);
+      if lEqPos > 0 then
+      begin
+        lName := URLDecode(StringReplace(Copy(lPair, 1, lEqPos - 1), '+', ' ', [rfReplaceAll]));
+        lValue := URLDecode(StringReplace(Copy(lPair, lEqPos + 1, MaxInt), '+', ' ', [rfReplaceAll]));
+        FQueryStringParams.Add(lName + '=' + lValue);
+      end
+      else
+      begin
+        FQueryStringParams.Add(URLDecode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
+      end;
+    end;
+  except
+    on EConvertError do
     begin
-      FQueryStringParams.Add(URLDecode(StringReplace(lPair, '+', ' ', [rfReplaceAll])) + '=');
+      // a malformed escape is the client's mistake: 400, and no half-parsed list left behind
+      FreeAndNil(FQueryStringParams);
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Malformed percent-escape in the query string');
     end;
   end;
 end;

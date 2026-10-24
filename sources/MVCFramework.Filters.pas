@@ -44,6 +44,7 @@
 //   HTTPFilter (engine-wide):
 //     StaticFiles, Compression, ETag, IPBlock, RateLimit, RequestLog,
 //     CORSFilter, SecurityHeaders, Shutdown, RangeMedia,
+//     BearerAuthFilter, AllowedOriginFilter, AllowedHostFilter,
 //     Analytics, Trace, Redirect, OpenAPI, Swagger
 //
 //   Plus top-level helpers: WaitForShutdownOrConsoleReturn.
@@ -94,10 +95,14 @@ function MemorySession(const ATimeoutInMinutes: Integer = 0;
   const AHttpOnly: Boolean = True;
   const ASecure: Boolean = False): TMVCEndpointFilter;
 
-// CORS filter. Handles preflight OPTIONS requests directly (short-circuits
-// with 200 + Access-Control-* headers) and stamps the same headers on every
-// other response. Defaults match the typical permissive setup used by the
-// classic TMVCCORSMiddleware.
+// CORS endpoint filter: stamps the Access-Control-* headers on the responses of
+// the group's routes. Like every endpoint filter it runs only on a matched route,
+// so it answers a browser preflight (OPTIONS) only on a route registered for
+// OPTIONS too; an OPTIONS on a GET/POST-only route is a 404 from the router
+// before this filter runs. To answer preflights for the whole API use
+// CORSFilter, the HTTP filter, which runs before routing.
+// Defaults match the typical permissive setup used by the classic
+// TMVCCORSMiddleware.
 function CORS(
   const AAllowedOriginURLs: string = '*';
   const AAllowsCredentials: Boolean = True;
@@ -229,6 +234,69 @@ function MVCMatchCORSOrigin(const AConfiguredOrigins, ARequestOrigin: string): s
 //
 //   lEngine.UseHTTPFilter(SecurityHeaders);
 function SecurityHeaders: TMVCHTTPFilter;
+
+// -------------------------------------------------------------------------
+// Request guards (HTTPFilter): who may talk to a path, and from where.
+// All three take an optional APathPrefix, the full routed path (engine path
+// prefix included) they guard; '' guards every request. A request is guarded
+// when its path, normalized as the router does, is the prefix or below it.
+// The path is tested as PathInfo, as RawPathInfo and as the URL-decoded
+// RawPathInfo, so a guard and the router cannot disagree on what they see.
+// Register the guards before any classic middleware.
+// -------------------------------------------------------------------------
+
+type
+  // Token validator for BearerAuthFilter. Return True to accept the token and
+  // set AUserName (and ARoles) of the identity it stands for; False to refuse.
+  TMVCBearerValidator = reference to function(const AToken: string;
+    out AUserName: string; var ARoles: TArray<string>): Boolean;
+
+// The path as the router sees it before matching: query dropped, trimmed,
+// leading '/', lower case, no trailing '/'. '/' and '' both give ''.
+function MVCNormalizePath(const APath: string): string;
+
+// True when the request targets APathPrefix or something below it (see above).
+// AExact is True when it targets the prefix itself (not a sub-path) on every
+// form tested. APathPrefix '' matches every request (AExact False).
+function MVCRequestTargetsPath(const AContext: TWebContext;
+  const APathPrefix: string; out AExact: Boolean): Boolean;
+
+// Validator for a fixed set of tokens (name = identity, value = secret). The
+// comparison does not stop at the first different character. A token that is
+// empty or has leading/trailing whitespace is refused with an exception: a
+// client token is trimmed, so it could never match.
+function StaticBearerTokens(const ATokens: TArray<TPair<string, string>>): TMVCBearerValidator;
+
+// HTTPFilter: `Authorization: Bearer <token>` checked with AValidator on the
+// guarded paths. On success fills Context.LoggedUser (UserName, Roles,
+// LoggedSince); otherwise 401 with `WWW-Authenticate: Bearer`.
+//
+//   lEngine.UseHTTPFilter(BearerAuthFilter(
+//     StaticBearerTokens([TPair<string, string>.Create('cli', lToken)]), '/mcp'));
+// No verb is exempt: a browser CORS preflight (OPTIONS) carries no Authorization and
+// gets 401 on the guarded paths. The prefix must be the full routed path.
+function BearerAuthFilter(const AValidator: TMVCBearerValidator;
+  const APathPrefix: string = ''): TMVCHTTPFilter;
+
+// HTTPFilter: refuses with 403 a request that carries an Origin not in the
+// list (case-insensitive, exact). A request with no Origin header passes: it
+// is not a browser cross-origin request. CORSFilter only decides what the
+// browser may read; this one stops the request on the server.
+function AllowedOriginFilter(const AOrigins: TArray<string>;
+  const APathPrefix: string = ''): TMVCHTTPFilter;
+
+// HTTPFilter against DNS rebinding: refuses with 403 a request whose Host
+// header (port ignored) is not localhost, 127.0.0.1, [::1] or one of AHosts.
+// Meant for services that listen on loopback without authentication.
+function AllowedHostFilter(const AHosts: TArray<string>;
+  const APathPrefix: string = ''): TMVCHTTPFilter;
+
+// HTTPFilter: limits APath (exact, not its sub-paths) to the verbs in AMethods.
+// A request that does not target APath goes on; one that targets it with a
+// verb not in AMethods, or that targets a sub-path of it, gets 405 with
+// `Allow: <verbs>` (listed in TMVCHTTPMethodType order).
+function AllowedMethodsFilter(const AMethods: TMVCHTTPMethods;
+  const APath: string): TMVCHTTPFilter;
 
 // HTTPFilter that intercepts a POST request to AURLSegment carrying the
 // configured API key query-string param and triggers an orderly engine
@@ -842,6 +910,325 @@ begin
     end;
 end;
 
+// --- Request guards -------------------------------------------------------
+
+function MVCNormalizePath(const APath: string): string;
+var
+  lPos: Integer;
+begin
+  Result := APath;
+  lPos := Result.IndexOf('?');
+  if lPos >= 0 then
+    Result := Result.Substring(0, lPos);
+  Result := Result.Trim;
+  if Result = '' then
+    Exit;
+  if not Result.StartsWith('/') then
+    Result := '/' + Result;
+  Result := Result.ToLower.TrimRight(['/']);
+end;
+
+// A malformed %-sequence must not make a guard raise on a path that has
+// nothing to do with it.
+function SafeURLDecodePath(const APath: string): string;
+begin
+  try
+    Result := TNetEncoding.URL.Decode(APath);
+  except
+    Result := '';
+  end;
+end;
+
+// The match itself, with the prefix already normalised (ASlashPrefix = prefix + '/'):
+// the guards prepare both once, when the filter is built, not on every request.
+// A form of the path is tested only when it can differ from one already tested
+// (PathInfo equal to RawPathInfo, no '%' to decode).
+function PathMatchesNormalized(const AContext: TWebContext;
+  const ANormPrefix, ASlashPrefix: string; out AExact: Boolean): Boolean;
+var
+  lRaw, lPathInfo: string;
+  lAnyMatch, lAllExact: Boolean;
+
+  procedure Test(const ARawCandidate: string);
+  var
+    lCandidate: string;
+  begin
+    lCandidate := MVCNormalizePath(ARawCandidate);
+    if (lCandidate = ANormPrefix) or lCandidate.StartsWith(ASlashPrefix) then
+    begin
+      lAnyMatch := True;
+      if lCandidate <> ANormPrefix then
+        lAllExact := False;
+    end;
+  end;
+
+begin
+  AExact := False;
+  if ANormPrefix = '' then
+    Exit(True);
+  lAnyMatch := False;
+  lAllExact := True;
+  lRaw := AContext.Request.RawPathInfo;
+  lPathInfo := AContext.Request.PathInfo;
+  Test(lRaw);
+  if lPathInfo <> lRaw then
+    Test(lPathInfo);
+  if lRaw.IndexOf('%') >= 0 then
+    Test(SafeURLDecodePath(lRaw));
+  Result := lAnyMatch;
+  AExact := lAnyMatch and lAllExact;
+end;
+
+function MVCRequestTargetsPath(const AContext: TWebContext;
+  const APathPrefix: string; out AExact: Boolean): Boolean;
+var
+  lPrefix: string;
+begin
+  lPrefix := MVCNormalizePath(APathPrefix);
+  Result := PathMatchesNormalized(AContext, lPrefix, lPrefix + '/', AExact);
+end;
+
+// Same length is not secret, the content is: no early exit on the first
+// different character.
+function SameSecret(const A, B: string): Boolean;
+var
+  I, lDiff: Integer;
+begin
+  if Length(A) <> Length(B) then
+    Exit(False);
+  lDiff := 0;
+  for I := 1 to Length(A) do
+    lDiff := lDiff or (Ord(A[I]) xor Ord(B[I]));
+  Result := lDiff = 0;
+end;
+
+function StaticBearerTokens(const ATokens: TArray<TPair<string, string>>): TMVCBearerValidator;
+var
+  lTokens: TArray<TPair<string, string>>;
+  lToken: TPair<string, string>;
+begin
+  lTokens := Copy(ATokens);
+  for lToken in lTokens do
+  begin
+    if lToken.Key.Trim.IsEmpty then
+      raise EMVCException.Create('A bearer token needs a name: it becomes the logged user');
+    if lToken.Value.Trim.IsEmpty then
+      raise EMVCException.CreateFmt('The bearer token "%s" is empty', [lToken.Key]);
+    if lToken.Value <> lToken.Value.Trim then
+      raise EMVCException.CreateFmt('The bearer token "%s" has leading or trailing ' +
+        'whitespace; a client token is trimmed, so it could never match', [lToken.Key]);
+  end;
+  Result :=
+    function (const AToken: string; out AUserName: string;
+              var ARoles: TArray<string>): Boolean
+    var
+      lItem: TPair<string, string>;
+    begin
+      Result := False;
+      AUserName := '';
+      // every token is compared: the time does not tell which one matched
+      for lItem in lTokens do
+        if SameSecret(AToken, lItem.Value) and not Result then
+        begin
+          AUserName := lItem.Key;
+          Result := True;
+        end;
+    end;
+end;
+
+function BearerAuthFilter(const AValidator: TMVCBearerValidator;
+  const APathPrefix: string): TMVCHTTPFilter;
+var
+  lPrefix, lSlashPrefix: string;
+begin
+  lPrefix := MVCNormalizePath(APathPrefix);
+  lSlashPrefix := lPrefix + '/';
+  Result :=
+    procedure (const AContext: TWebContext;
+               const ANext: TMVCHTTPFilterNext)
+    var
+      lExact: Boolean;
+      lAuth, lToken, lUserName: string;
+      lRoles: TArray<string>;
+    begin
+      if not PathMatchesNormalized(AContext, lPrefix, lSlashPrefix, lExact) then
+      begin
+        ANext();
+        Exit;
+      end;
+      lAuth := AContext.Request.Headers['Authorization'];
+      lToken := '';
+      if lAuth.StartsWith('Bearer ', True) then
+        lToken := lAuth.Substring(7).Trim;
+      lUserName := '';
+      lRoles := nil;
+      // an accepted token must name a user: LoggedUser without a name is "nobody"
+      if lToken.IsEmpty or not AValidator(lToken, lUserName, lRoles) or lUserName.IsEmpty then
+      begin
+        AContext.Response.SetCustomHeader('WWW-Authenticate', 'Bearer');
+        AContext.Response.StatusCode := 401;
+        Exit; // no Next() - short-circuit
+      end;
+      AContext.LoggedUser.UserName := lUserName;
+      AContext.LoggedUser.LoggedSince := Now;
+      AContext.LoggedUser.Roles.Clear;
+      AContext.LoggedUser.Roles.AddRange(lRoles);
+      ANext();
+    end;
+end;
+
+function InListIgnoreCase(const AValue: string; const AList: TArray<string>): Boolean;
+var
+  lItem: string;
+begin
+  for lItem in AList do
+    if SameText(AValue, lItem) then
+      Exit(True);
+  Result := False;
+end;
+
+function TrimmedNonEmpty(const AValues: TArray<string>): TArray<string>;
+var
+  lValue: string;
+begin
+  Result := nil;
+  for lValue in AValues do
+    if not lValue.Trim.IsEmpty then
+      Result := Result + [lValue.Trim];
+end;
+
+function AllowedOriginFilter(const AOrigins: TArray<string>;
+  const APathPrefix: string): TMVCHTTPFilter;
+var
+  lOrigins: TArray<string>;
+  lPrefix, lSlashPrefix: string;
+begin
+  lOrigins := TrimmedNonEmpty(AOrigins);
+  lPrefix := MVCNormalizePath(APathPrefix);
+  lSlashPrefix := lPrefix + '/';
+  Result :=
+    procedure (const AContext: TWebContext;
+               const ANext: TMVCHTTPFilterNext)
+    var
+      lExact: Boolean;
+      lOrigin: string;
+    begin
+      if PathMatchesNormalized(AContext, lPrefix, lSlashPrefix, lExact) then
+      begin
+        lOrigin := AContext.Request.Headers['Origin'];
+        if (lOrigin <> '') and not InListIgnoreCase(lOrigin, lOrigins) then
+        begin
+          AContext.Response.StatusCode := 403;
+          Exit; // no Next() - short-circuit
+        end;
+      end;
+      ANext();
+    end;
+end;
+
+// ':' followed by digits only
+function IsPortSuffix(const ASuffix: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := (Length(ASuffix) > 1) and (ASuffix[1] = ':');
+  if Result then
+    for I := 2 to Length(ASuffix) do
+      if (ASuffix[I] < '0') or (ASuffix[I] > '9') then
+        Exit(False);
+end;
+
+// The host of a Host header without its port. Only host[:port] and [ipv6][:port]
+// are Hosts; anything else (`localhost:80@evil`, `[::1]evil`, a bare IPv6 literal)
+// gives '', which is in no list.
+function HostWithoutPort(const AHost: string): string;
+var
+  lPos: Integer;
+  lRest: string;
+begin
+  Result := AHost.Trim;
+  if Result.StartsWith('[') then // [::1]:8080
+  begin
+    lPos := Result.IndexOf(']');
+    if lPos < 0 then
+      Exit('');
+    lRest := Result.Substring(lPos + 1);
+    if (lRest <> '') and not IsPortSuffix(lRest) then
+      Exit('');
+    Exit(Result.Substring(0, lPos + 1));
+  end;
+  lPos := Result.IndexOf(':');
+  if lPos < 0 then
+    Exit;
+  if (lPos <> Result.LastIndexOf(':')) or not IsPortSuffix(Result.Substring(lPos)) then
+    Exit('');
+  Result := Result.Substring(0, lPos);
+end;
+
+function AllowedHostFilter(const AHosts: TArray<string>;
+  const APathPrefix: string): TMVCHTTPFilter;
+var
+  lHosts: TArray<string>;
+  lPrefix, lSlashPrefix: string;
+begin
+  lHosts := TrimmedNonEmpty(AHosts) + ['localhost', '127.0.0.1', '[::1]'];
+  lPrefix := MVCNormalizePath(APathPrefix);
+  lSlashPrefix := lPrefix + '/';
+  Result :=
+    procedure (const AContext: TWebContext;
+               const ANext: TMVCHTTPFilterNext)
+    var
+      lExact: Boolean;
+    begin
+      if PathMatchesNormalized(AContext, lPrefix, lSlashPrefix, lExact) and
+         not InListIgnoreCase(HostWithoutPort(AContext.Request.Headers['Host']), lHosts) then
+      begin
+        AContext.Response.StatusCode := 403;
+        Exit; // no Next() - short-circuit
+      end;
+      ANext();
+    end;
+end;
+
+function AllowedMethodsFilter(const AMethods: TMVCHTTPMethods;
+  const APath: string): TMVCHTTPFilter;
+var
+  lPrefix, lSlashPrefix, lAllow: string;
+  lMethod: TMVCHTTPMethodType;
+begin
+  lPrefix := MVCNormalizePath(APath);
+  if lPrefix = '' then
+    raise EMVCException.Create('AllowedMethodsFilter needs a path: '''' would limit the whole application');
+  lSlashPrefix := lPrefix + '/';
+  lAllow := '';
+  for lMethod := Low(TMVCHTTPMethodType) to High(TMVCHTTPMethodType) do
+    if lMethod in AMethods then
+    begin
+      if lAllow <> '' then
+        lAllow := lAllow + ', ';
+      lAllow := lAllow + GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(lMethod)).Substring(4);
+    end;
+  Result :=
+    procedure (const AContext: TWebContext;
+               const ANext: TMVCHTTPFilterNext)
+    var
+      lExact: Boolean;
+    begin
+      if not PathMatchesNormalized(AContext, lPrefix, lSlashPrefix, lExact) then
+      begin
+        ANext();
+        Exit;
+      end;
+      if not lExact or not (AContext.Request.HTTPMethod in AMethods) then
+      begin
+        AContext.Response.SetCustomHeader('Allow', lAllow);
+        AContext.Response.StatusCode := HTTP_STATUS.MethodNotAllowed;
+        Exit; // no Next() - short-circuit
+      end;
+      ANext();
+    end;
+end;
+
 // --- Shutdown ------------------------------------------------------------
 
 function Shutdown(const AAPIKeyQueryStringParamName: string;
@@ -1172,6 +1559,7 @@ end;
 // Module-level helper extracted from JWT() so the closure can call it
 // (anonymous methods cannot capture nested procedures — E2555).
 function BuildJWTLoginResponse(const AContext: TWebContext;
+  const AUserName: string;
   const ARolesList: TList<string>;
   const ASessionData: TDictionary<string, string>;
   const AClaimsSetup: TJWTClaimsSetup;
@@ -1189,10 +1577,16 @@ begin
     // Apply caller-provided baseline claims (issuer, audience, expiry).
     if Assigned(AClaimsSetup) then
       AClaimsSetup(lJWT);
+    // LoggedUser.IsValid needs a login time: "iat" unless the setup gave one
+    if lJWT.Claims.IssuedAt <= 0 then // an absent claim reads as 0001-01-01, not 0
+      lJWT.Claims.IssuedAt := Now;
     // Custom claims: roles + session data set by the auth handler.
     // All roles go into ONE comma-joined 'roles' claim (the framework's standard
     // shape, read back via Split(',')). The previous per-iteration assignment
     // overwrote the claim each loop and kept only the last role.
+    // 'username' + 'roles': the claims TMVCJWTAuthenticationMiddleware writes and
+    // reads, so a token from either side fills LoggedUser on the other
+    lJWT.CustomClaims.Items['username'] := AUserName;
     if ARolesList.Count > 0 then
       lJWT.CustomClaims.Items['roles'] := string.Join(',', ARolesList.ToArray);
     if Assigned(ASessionData) then
@@ -1253,7 +1647,7 @@ begin
             lUserName, lPassword, lRoles, lAccepted, lSession);
           if not lAccepted then
             Exit(Status(http_status.Unauthorized, 'Invalid credentials'));
-          Result := BuildJWTLoginResponse(AContext, lRoles, lSession,
+          Result := BuildJWTLoginResponse(AContext, lUserName, lRoles, lSession,
             AClaimsSetup, ASecret, AHMACAlgorithm, ALeewaySeconds);
         finally
           lRoles.Free;
@@ -1276,10 +1670,19 @@ begin
           Exit(Status(http_status.Unauthorized, 'Invalid token: ' + lError));
         // Make claims available to the handler via the framework's
         // LoggedUser slot — same surface controller-based apps use.
+        // Filled as TMVCJWTAuthenticationMiddleware does, so Authorize / RequireRole
+        // work behind JWT(...). "sub" stays a fallback for tokens issued elsewhere.
         AContext.LoggedUser.Clear;
-        AContext.LoggedUser.UserName := lJWT.Claims.Subject;
-        AContext.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
-        AContext.LoggedUser.CustomData := nil;
+        AContext.LoggedUser.UserName := lJWT.CustomClaims['username'];
+        if AContext.LoggedUser.UserName = '' then
+          AContext.LoggedUser.UserName := lJWT.Claims.Subject;
+        if lJWT.CustomClaims['roles'] <> '' then
+          AContext.LoggedUser.Roles.AddRange(lJWT.CustomClaims['roles'].Split([',']));
+        if lJWT.Claims.IssuedAt > 0 then
+          AContext.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt
+        else // a valid token with no "iat" (it reads as 0001-01-01): IsValid needs a time
+          AContext.LoggedUser.LoggedSince := Now;
+        AContext.LoggedUser.CustomData := lJWT.CustomClaims.AsCustomData;
       finally
         lJWT.Free;
       end;

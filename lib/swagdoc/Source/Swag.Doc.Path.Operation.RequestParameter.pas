@@ -313,16 +313,18 @@ begin
     else if Assigned(fSchema.JsonSchema) then
       vJsonObject.AddPair(c_SwagRequestParameterSchema, fSchema.JsonSchema.Clone as TJSONObject);
   end;
-  if (fTypeParameter <> stpNotDefined) then
+  // a body parameter is described by its schema alone: type, items, format and
+  // enum next to it make the Swagger 2.0 document invalid
+  if (fTypeParameter <> stpNotDefined) and (fInLocation <> rpiBody) then
     vJsonObject.AddPair(c_SwagRequestParameterType, c_SwagTypeParameter[fTypeParameter]);
 
-  if Assigned(fItems) then
+  if Assigned(fItems) and (fInLocation <> rpiBody) then
     vJsonObject.AddPair(c_SwagRequestParameterItems, fItems.Clone as TJSONObject);
 
-  if not fFormat.IsEmpty then
+  if (not fFormat.IsEmpty) and (fInLocation <> rpiBody) then
     vJsonObject.AddPair(c_SwagRequestParameterFormat, fFormat);
 
-  if fEnum.Count > 0 then
+  if (fEnum.Count > 0) and (fInLocation <> rpiBody) then
   begin
     vJsonEnum := TJSONArray.Create;
     for vIndex := 0 to fEnum.Count - 1 do

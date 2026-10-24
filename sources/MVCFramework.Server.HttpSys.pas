@@ -74,7 +74,8 @@ type
     function ReadFullBody(ARequest: PHTTP_REQUEST; AInitialBodyBytes: TBytes;
       out ARequestTooLarge: Boolean): TBytes;
     function MaxRequestSize: Int64;
-    procedure SendBareStatus(ARequest: PHTTP_REQUEST; const AStatusCode: Integer);
+    procedure SendBareStatus(ARequest: PHTTP_REQUEST; const AStatusCode: Integer;
+      const AContent: string = '');
     { [FIX-HS-ASYNC] Dispatch body drain + pipeline to the default task pool
       so the listener thread never blocks on a single request. ARequestBuffer
       and AInitialBody are managed TBytes; the anonymous method keeps them
@@ -185,13 +186,18 @@ begin
 end;
 
 procedure TMVCHttpSysServer.SendBareStatus(ARequest: PHTTP_REQUEST;
-  const AStatusCode: Integer);
+  const AStatusCode: Integer; const AContent: string);
 var
   LResponse: TMVCHttpSysResponse;
 begin
   LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
   try
     LResponse.StatusCode := AStatusCode;
+    if AContent <> '' then
+    begin
+      LResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
+      LResponse.Content := AContent;
+    end;
     LResponse.Flush;
   finally
     LResponse.Free;
@@ -316,6 +322,8 @@ var
 begin
   if not Assigned(FEngine) then
     raise EMVCException.Create('Engine not assigned');
+  if FActive then
+    Exit; // already listening: Stop first to change port or host, as on Indy Direct and WebBroker
 
   FPort := APort;
   FHost := AHost;
@@ -446,6 +454,17 @@ begin
       SendBareStatus(ARequest, HTTP_STATUS.NotImplemented);
       Exit;
     end;
+    on Exception do
+    begin
+      // whatever else went wrong while reading the request: answer, do not leave
+      // the client waiting for a response that will never come
+      try
+        SendBareStatus(ARequest, HTTP_STATUS.InternalServerError);
+      except
+        // the connection may already be gone: nothing left to answer
+      end;
+      Exit;
+    end;
   end;
   try
     LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
@@ -482,7 +501,8 @@ begin
         begin
           { Raising here would be caught by the handler below, which only logs -
             the client would get a dropped connection instead of an answer. }
-          SendBareStatus(LReq, HTTP_STATUS.RequestEntityTooLarge);
+          SendBareStatus(LReq, HTTP_STATUS.RequestEntityTooLarge,
+            'Request size exceeded the max allowed size'); // the body Indy Direct gives
           Exit;
         end;
         HandleRequest(LReq, LFullBody);

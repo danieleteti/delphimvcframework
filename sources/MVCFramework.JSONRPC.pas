@@ -1279,27 +1279,25 @@ begin
 end;
 
 
+function JSONRPCRequestIDOf(const JSON: TJDOJsonObject): TValue;
+begin
+  if JSON.Types[JSONRPC_ID] = jdtString then
+    Result := JSON.S[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] in [jdtInt, jdtLong]  then
+    Result := JSON.L[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtULong then
+    Result := JSON.U[JSONRPC_ID]
+  else
+    Result := TValue.Empty;
+end;
+
 function TMVCJSONRPCController.CreateRequest(const JSON: TJDOJsonObject): IJSONRPCRequest;
-var
-  lReqID: TValue;
-  lMethodName: string;
 begin
   { JSON-RPC 2.0 Specification (https://www.jsonrpc.org/specification#request_object):
     "A String specifying the version of the JSON-RPC protocol. MUST be exactly '2.0'." }
   if JSON.S[JSONRPC_HEADER] <> JSONRPC_VERSION then
     raise EMVCJSONRPCInvalidRequest.Create(JSONRPC_HEADER + ' must be "2.0"');
-
-  if JSON.Types[JSONRPC_ID] = jdtString then
-    lReqID := JSON.S[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] in [jdtInt, jdtLong]  then
-    lReqID := JSON.L[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtULong then
-    lReqID := JSON.U[JSONRPC_ID]
-  else
-    lReqID := TValue.Empty;
-
-  lMethodName := JSON.S[JSONRPC_METHOD];
-  Result := TJSONRPCRequest.Create(lReqID, lMethodName);
+  Result := TJSONRPCRequest.Create(JSONRPCRequestIDOf(JSON), JSON.S[JSONRPC_METHOD]);
 end;
 
 function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
@@ -1596,6 +1594,10 @@ begin
         end;
         lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
 
+        { read before CreateRequest checks the version: an invalid request whose
+          id can be read answers with that id (the spec wants null only when it
+          cannot be detected) }
+        lReqID := JSONRPCRequestIDOf(lJSON);
         lJSONRPCReq := CreateRequest(lJSON);
         lMethod := lJSONRPCReq.Method;
         { From here on an error answers with the id of the request, also when
@@ -1676,7 +1678,7 @@ begin
         end
         else
         begin
-          LogW(Format('Method "%s" has not be found in "%s" - [HINT] Only public methods can be invoked.',
+          LogW(Format('Method "%s" has not been found in "%s" - [HINT] Only public methods can be invoked.',
             [lMethod, fRPCInstance.QualifiedClassName]));
           raise EMVCJSONRPCMethodNotFound.Create(lMethod);
         end;

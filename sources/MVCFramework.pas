@@ -1608,9 +1608,9 @@ function Status(const StatusCode: Word; const Message: string): IMVCResponse; ov
 function Status(const StatusCode: Word; const Body: TObject; const Owns: Boolean = True): IMVCResponse; overload;
 
 // RFC 7807 problem-details response. Body shape is the standard
-// {type, title, status, detail, instance} JSON object. Content-Type
-// emitted is application/json (acceptable per RFC 7807; switch to
-// application/problem+json explicitly if strict media-type matters).
+// {type, title, status, detail, instance} JSON object, sent as
+// application/problem+json (RFC 9457, formerly RFC 7807) without the
+// "data" wrapper.
 function ProblemDetails(const StatusCode: Word; const Title: string;
   const Detail: string = ''; const Instance: string = ''): IMVCResponse;
 
@@ -2983,7 +2983,6 @@ begin
       ExecuteAction instead, where the raise is still in place and WebBroker
       does map it to 413. }
     AResponse.StatusCode := http_status.RequestEntityTooLarge;
-    AResponse.ReasonString := 'Request Entity Too Large';
     AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
     AResponse.Content := Format('Request size exceeded the max allowed size [%d KiB]',
       [(FConfigCache_MaxRequestSize div 1024)]);
@@ -3653,8 +3652,8 @@ begin
         lFromQueryStringAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := URLDecode(AContext.Request.QueryStringParam
-          (lFromQueryStringAttribute.ParamName));
+        // every host hands the value over decoded: decoding again turned %2541 into A
+        lInjectedParamValue := AContext.Request.QueryStringParam(lFromQueryStringAttribute.ParamName);
         HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromQueryStringAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
@@ -3863,8 +3862,9 @@ begin
     AContext.Response.SetContentType(
       BuildContentType(lItem, AContext.Config[TMVCConfigKey.DefaultContentCharset]));
     AContext.Response.SetContent(lSer.SerializeObject(lError, stDefault, lIgnored));
+    // the phrase comes from the RFC 9110 table (set with the status): the
+    // message is request text ("Unknown HTTP method [PROPFIND]"), body and log only
     AContext.Response.SetStatusCode(HTTPStatusCode);
-    AContext.Response.SetReasonString(lError.Message);
   finally
     lError.Free;
   end;
@@ -3892,6 +3892,7 @@ begin
   if IsShuttingDown then
   begin
     AResponse.StatusCode := http_status.ServiceUnavailable;
+    AResponse.ReasonString := HTTP_STATUS.ReasonStringFor(http_status.ServiceUnavailable);
     AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
     AResponse.Content := 'Server is shutting down';
     AHandled := True;
@@ -3915,6 +3916,8 @@ begin
         begin
           AResponse.StatusCode := (E as EMVCException).HTTPStatusCode;
         end;
+        // a raw TWebResponse: without this the host's own phrase table answers
+        AResponse.ReasonString := HTTP_STATUS.ReasonStringOrEmpty(AResponse.StatusCode);
 
         AResponse.Content := E.Message;
         AResponse.SendResponse;
@@ -5608,10 +5611,13 @@ begin
 
 
       //We try to honor the client ACCEPT for exception as well...
+      // with the charset: Indy adds one on its own, HTTP.sys and WebBroker do not
       if Serializer(FContext.Request.BestAccept, False) <> nil then
-        GetContext.Response.ContentType := FContext.Request.BestAccept
+        GetContext.Response.ContentType := BuildContentType(FContext.Request.BestAccept,
+          Engine.FConfigCache_DefaultContentCharset)
       else
-        GetContext.Response.ContentType := Engine.FConfigCache_DefaultContentType;
+        GetContext.Response.ContentType := BuildContentType(Engine.FConfigCache_DefaultContentType,
+          Engine.FConfigCache_DefaultContentCharset);
 
       Render(R, False, nil, R.GetIgnoredList);
     finally
@@ -6247,32 +6253,9 @@ end;
 
 function ReasonPhraseFor(const StatusCode: Word): string;
 begin
-  case StatusCode of
-    100: Result := 'Continue';
-    200: Result := 'OK';
-    201: Result := 'Created';
-    202: Result := 'Accepted';
-    204: Result := 'No Content';
-    301: Result := 'Moved Permanently';
-    302: Result := 'Found';
-    304: Result := 'Not Modified';
-    400: Result := 'Bad Request';
-    401: Result := 'Unauthorized';
-    403: Result := 'Forbidden';
-    404: Result := 'Not Found';
-    405: Result := 'Method Not Allowed';
-    406: Result := 'Not Acceptable';
-    409: Result := 'Conflict';
-    410: Result := 'Gone';
-    415: Result := 'Unsupported Media Type';
-    422: Result := 'Unprocessable Content';
-    429: Result := 'Too Many Requests';
-    500: Result := 'Internal Server Error';
-    501: Result := 'Not Implemented';
-    503: Result := 'Service Unavailable';
-  else
+  Result := HTTP_STATUS.ReasonStringOrEmpty(StatusCode);
+  if Result = '' then
     Result := 'Error';
-  end;
 end;
 
 function TMVCResponseBuilder.Body(const MessageText: String): IMVCResponseBuilder;
