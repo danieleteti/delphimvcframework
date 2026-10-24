@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "{{:program_name}}": {
+      "type": "local",
+      "command": ["bin\\{{:program_name}}.exe", "--transport", "stdio"],
+      "enabled": true
+    }
+  }
+}

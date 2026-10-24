@@ -3,23 +3,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'DMVCFramework :: New Project Wizard'
-  ClientHeight = 623
+  ClientHeight = 683
   ClientWidth = 764
-  Color = clBtnFace
+  Color = 16316664
   Constraints.MinHeight = 145
   Constraints.MinWidth = 250
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
   Font.Style = []
   Position = poMainFormCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
     764
-    623)
-  TextHeight = 13
+    683)
+  TextHeight = 15
   object Shape1: TShape
     Left = 0
     Top = 0
@@ -420,7 +420,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
-    Font.Name = 'Tahoma'
+    Font.Name = 'Segoe UI'
     Font.Style = [fsBold]
     ParentFont = False
     OnClick = lblFrameworkVersionClick
@@ -442,7 +442,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
-    Font.Name = 'Tahoma'
+    Font.Name = 'Segoe UI'
     Font.Style = [fsBold]
     ParentFont = False
     Layout = tlCenter
@@ -459,8 +459,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Copyright (c) 2010-0000 Daniele Teti and the DMVCFramework Team'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'Tahoma'
+    Font.Height = -12
+    Font.Name = 'Segoe UI'
     Font.Style = []
     ParentFont = False
   end
@@ -507,7 +507,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
-    Font.Name = 'Tahoma'
+    Font.Name = 'Segoe UI'
     Font.Style = [fsBold]
     ParentColor = False
     ParentFont = False
@@ -518,37 +518,37 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblPageTitle: TLabel
     Left = 24
-    Top = 127
+    Top = 134
     Width = 148
-    Height = 22
+    Height = 28
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Application Type'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -18
-    Font.Name = 'Tahoma'
+    Font.Color = 3615263
+    Font.Height = -22
+    Font.Name = 'Segoe UI'
     Font.Style = [fsBold]
     ParentFont = False
   end
   object lblPageHint: TLabel
     Left = 24
-    Top = 153
+    Top = 163
     Width = 208
-    Height = 13
+    Height = 15
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Select the type of application to be created'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clGray
-    Font.Height = -11
-    Font.Name = 'Tahoma'
+    Font.Color = 8417899
+    Font.Height = -12
+    Font.Name = 'Segoe UI'
     Font.Style = []
     ParentFont = False
   end
   object pcWizard: TPageControl
     Left = 0
-    Top = 175
+    Top = 181
     Width = 764
-    Height = 407
+    Height = 461
     ActivePage = tsLogging
     Anchors = [akLeft, akTop, akRight, akBottom]
     Style = tsFlatButtons
@@ -571,7 +571,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clGray
         Font.Height = -12
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
         WordWrap = True
@@ -602,14 +602,16 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Left = 16
           Top = 44
           Width = 345
-          Height = 13
+          Height = 30
+          AutoSize = False
+          WordWrap = True
           Caption =
             'Lambda routes registered on TMVCEngine.Root (FastAPI / .NET sty' +
             'le).'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clGray
-          Font.Height = -11
-          Font.Name = 'Tahoma'
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
         end
@@ -657,8 +659,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Caption = 'Standard HTTP server.'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clGray
-        Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
         WordWrap = True
@@ -801,7 +803,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Top = 22
           Width = 167
           Height = 13
-          Caption = 'Server Side Views Template Engine'
+          Caption = 'Server Side Views'
         end
         object lblSessionType: TLabel
           Left = 200
@@ -852,7 +854,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Top = 72
           Width = 170
           Height = 17
-          Caption = 'Create JSON-RPC 2.0 end-point'
+          Caption = 'JSON-RPC 2.0 endpoint'
           TabOrder = 2
         end
         object EdtJSONRPCClassName: TEdit
@@ -1058,8 +1060,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
             ' profile).'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clGrayText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
         end
@@ -1141,8 +1143,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
             'omerid, exewatch.appversion. Sign up at https://exewatch.com'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clGrayText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
         end
@@ -1183,33 +1185,38 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Height = 13
         Caption = 'WebModule Class Name'
       end
-      object lblSummary: TLabel
-        Left = 24
-        Top = 360
-        Width = 710
-        Height = 200
-        AutoSize = False
+      object memSummary: TMemo
+        Left = 450
+        Top = 16
+        Width = 288
+        Height = 160
+        TabStop = False
+        BorderStyle = bsSingle
+        Color = clWhite
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clGray
-        Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Color = 3615263
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
-        WordWrap = True
+        ReadOnly = True
+        ScrollBars = ssVertical
+        WantReturns = False
+        TabOrder = 12
       end
       object lblJWTAsymmetricWarning: TLabel
         Left = 24
-        Top = 328
+        Top = 330
         Width = 700
-        Height = 13
+        Height = 15
         AutoSize = False
         Caption = 
           'RS256 requires TaurusTLS in search path + OpenSSL DLLs in output' +
           ' directory'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clMaroon
-        Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
         Font.Style = [fsItalic]
         ParentFont = False
       end
@@ -1308,8 +1315,8 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         AutoSize = False
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clMaroon
-        Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
         Visible = False
@@ -1348,30 +1355,30 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnBack: TButton
     Left = 430
-    Top = 588
+    Top = 646
     Width = 77
-    Height = 27
+    Height = 29
     Anchors = [akRight, akBottom]
-    Caption = '<< Back'
+    Caption = 'Back'
     TabOrder = 1
     OnClick = btnBackClick
   end
   object btnNext: TButton
     Left = 513
-    Top = 588
+    Top = 646
     Width = 77
-    Height = 27
+    Height = 29
     Anchors = [akRight, akBottom]
-    Caption = 'Next >>'
+    Caption = 'Next'
     Default = True
     TabOrder = 2
     OnClick = btnNextClick
   end
   object btnFinish: TButton
     Left = 596
-    Top = 588
+    Top = 646
     Width = 77
-    Height = 27
+    Height = 29
     Anchors = [akRight, akBottom]
     Caption = 'Finish'
     Enabled = False
@@ -1381,9 +1388,9 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnCancel: TButton
     Left = 679
-    Top = 588
+    Top = 646
     Width = 77
-    Height = 27
+    Height = 29
     Anchors = [akRight, akBottom]
     Cancel = True
     Caption = 'Cancel'

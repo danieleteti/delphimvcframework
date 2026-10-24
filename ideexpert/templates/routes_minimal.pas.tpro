@@ -10,6 +10,12 @@ uses
   MVCFramework,
   MVCFramework.MinimalAPI;
 
+{{if @(not webmodule_middleware_jwt)}}
+const
+  // Full routed path of the admin group: EngineConfigU guards it with the bearer token of .env
+  ADMIN_PATH = '/api/v1/admin';
+
+{{endif}}
 procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
 
 implementation
@@ -21,6 +27,8 @@ uses
   MVCFramework.Filters,
   MVCFramework.JWT,
   {{:authentication_unit_name}},
+{{else}}
+  MVCFramework.Filters,
 {{endif}}
   System.SysUtils,
   MVCFramework.Commons;
@@ -47,23 +55,6 @@ begin
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
     300);
 end;
-{{else}}
-// Short-circuits with 401 unless the request carries a Bearer token.
-function BearerAuthFilter: TMVCEndpointFilter;
-begin
-  Result := function(const Ctx: TWebContext;
-                      const Next: TMVCEndpointFilterNext): IMVCResponse
-    var
-      lAuth: string;
-    begin
-      // Placeholder: any Bearer string gets in. Replace with a real validator
-      // (JWT signer, opaque-token store, ...) before this goes anywhere near production.
-      lAuth := Ctx.Request.Headers['Authorization'];
-      if not lAuth.StartsWith('Bearer ', True) then
-        Exit(Status(401, 'Bearer token required'));
-      Result := Next();
-    end;
-end;
 {{endif}}
 
 // Auth filter applied locally: every route on lAdmin requires Bearer. Use() returns a modified copy.
@@ -71,7 +62,13 @@ procedure RegisterAdminRoutes(const AGroup: TMVCRouteGroup<TObject>);
 var
   lAdmin: TMVCRouteGroup<TObject>;
 begin
+{{if webmodule_middleware_jwt}}
   lAdmin := AGroup.Use(BearerAuthFilter());
+{{else}}
+  // The token is checked by BearerAuthFilter in EngineConfigU; Authorize refuses with 401
+  // anything that reaches these routes without a logged user, so a lost filter fails closed.
+  lAdmin := AGroup.Use(Authorize());
+{{endif}}
 
   lAdmin.MapGet('/health',
     function: IMVCResponse
@@ -116,7 +113,7 @@ begin
     end);
 {{endif}}
 
-  // Auth gate is applied inside RegisterAdminRoutes via .Use(BearerAuthFilter()).
+  // Auth gate is applied inside RegisterAdminRoutes.
   RegisterAdminRoutes(lApiV1.Prefix('/admin'));
 end;
 

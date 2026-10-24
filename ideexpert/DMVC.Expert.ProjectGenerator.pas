@@ -137,6 +137,9 @@ begin
   Result := TRegEx.Replace(Result, '(?mi)^([ ]*(?:begin|try|var|uses))\n\n', '$1'#10);
   Result := TRegEx.Replace(Result, '(?mi)\n\n([ ]*(?:end;|finally|except)$)', #10'$1');
   Result := TRegEx.Replace(Result, '(?m)^([ ]+\S.*)\n\n(begin)$', '$1'#10'$2');
+  // a uses/var/const section and the routine after it: one blank line (a conditional may have eaten it)
+  Result := TRegEx.Replace(Result, '(?mi)^([ ]+\S.*;)\n((?:class )?(?:function|procedure|constructor|destructor) )',
+    '$1'#10#10'$2');
 end;
 
 { TDMVCProjectGenerator }
@@ -387,6 +390,29 @@ begin
   end;
 end;
 
+// The DCCReference items of the .dproj, one per "X in 'X.pas'" of the .dpr: read
+// from the program itself, so the two cannot disagree. A unit with a designer
+// (a "Name: TClass" comment after it) is a web module or a service.
+function DProjUnitReferences(const ADprSource: string): string;
+var
+  lMatch: TMatch;
+begin
+  Result := '';
+  for lMatch in TRegEx.Matches(ADprSource,
+    '^\s*[\w.]+\s+in\s+''([^'']+)''(?:\s*\{\s*(\w+)\s*:\s*(\w+)\s*\})?', [roMultiLine]) do
+    if (lMatch.Groups.Count > 3) and lMatch.Groups[3].Success then
+      Result := Result + Format('        <DCCReference Include="%s">' + sLineBreak +
+        '            <Form>%s</Form>' + sLineBreak +
+        '            <FormType>dfm</FormType>' + sLineBreak +
+        '            <DesignClass>%s</DesignClass>' + sLineBreak +
+        '        </DCCReference>' + sLineBreak,
+        [lMatch.Groups[1].Value, lMatch.Groups[2].Value,
+         IfThen(SameText(lMatch.Groups[3].Value, 'TWebModule'), 'TWebModule', 'TService')])
+    else
+      Result := Result + Format('        <DCCReference Include="%s"/>' + sLineBreak,
+        [lMatch.Groups[1].Value]);
+end;
+
 class procedure TDMVCProjectGenerator.Generate(const AProjectFolder, AProjectName: string; AConfig: TJSONObject);
 
   procedure SaveFile(const AFileName, AContent: string);
@@ -566,6 +592,11 @@ begin
   // A new project gets its own JWT signing key in .env, so the server starts
   // as soon as it is generated. Each generation draws a new one.
   AConfig.S['program.jwt.secret'] := NewJWTSecret;
+  // The Minimal API admin group without JWT is guarded by a static bearer token,
+  // generated the same way: fail-closed, the server does not start without it.
+  AConfig.B['program.minimal_api.admin_token'] := AConfig.B[TConfigKey.program_minimal_api] and
+    not AConfig.B['program.minimal_api.web'] and not AConfig.B[TConfigKey.webmodule_middleware_jwt];
+  AConfig.S['program.admin.token'] := NewJWTSecret;
 
   // MCP (mcp-server-delphi): only where ConfigureEngine exists, which is where
   // the endpoint is published. A key the caller did not mention is off.
@@ -710,6 +741,8 @@ begin
   end;
 
   // Generate .dproj with correct output paths (exe -> .\bin, dcu -> .\$(Platform)\$(Config))
+  AConfig.S['dproj.units'] := DProjUnitReferences(
+    TFile.ReadAllText(TPath.Combine(AProjectFolder, AProjectName + '.dpr'), TEncoding.UTF8));
   SaveFile(AProjectName + '.dproj', RenderTemplate('project.dproj.tpro', AConfig));
 
   // Main Controllers.HomeU: always in a controller project (see above), never
@@ -772,9 +805,12 @@ begin
       SaveFile('Prompts.SampleU.pas', RenderTemplate('mcp_prompts.pas.tpro', AConfig));
     end;
     // Claude Code opened in the project folder finds the server: a relative
-    // path, nothing machine-specific and no secret
+    // path, nothing machine-specific and no secret. OpenCode reads opencode.json, not .mcp.json
     if AConfig.B[TConfigKey.mcp_stdio] then
+    begin
       SaveFileNoBOM('.mcp.json', RenderTemplate('mcp_json.tpro', AConfig));
+      SaveFileNoBOM('opencode.json', RenderTemplate('opencode_json.tpro', AConfig));
+    end;
   end;
 
   if AConfig.B[TConfigKey.webmodule_middleware_jwt] then

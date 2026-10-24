@@ -158,7 +158,7 @@ type
     rgJWTAlgorithm: TRadioGroup;
     lblJWTAsymmetricWarning: TLabel;
     chkCreateSubfolder: TCheckBox;
-    lblSummary: TLabel;
+    memSummary: TMemo;
     // Buttons
     btnBack: TButton;
     btnNext: TButton;
@@ -195,11 +195,16 @@ type
     fIsCustomPreset: Boolean;
     fIsMinimalAPIPreset: Boolean;
     fIsMCPServerPreset: Boolean;
+    fEngineChoice: Integer; // engine picked by the user, restored when ISAPI/Apache/FastCGI release the combo
     fMCPLibraryProbe: TFunc<string>;
     fMCPLibraryNote: string;
     fMCPLibraryMissing: Boolean;
     fMCPLibraryNoteReady: Boolean;
     fPresetCaption: string;
+    fSteps: TArray<TShape>;
+    fStepLabel: TLabel;
+    procedure ApplyLook;
+    procedure UpdateStepIndicator;
     function MCPLibraryNote: string;
     procedure UpdateSummary;
     procedure ShowNextStepsDialog(const AProjectName: string;
@@ -356,6 +361,7 @@ begin
   if LIsLast then
     UpdateSummary;
 
+  UpdateStepIndicator;
   btnBack.Enabled := not LIsFirst;
   btnNext.Enabled := not LIsLast;
   btnFinish.Enabled := LIsLast;
@@ -615,6 +621,84 @@ begin
   lblWbModule.Visible := lShow;
 end;
 
+const
+  // brand amber and the neutral greys of the generated web apps' style.css
+  CLR_ACCENT = TColor($0024BFFB);
+  CLR_INK    = TColor($00372A1F);
+  CLR_RULE   = TColor($00EBE7E5);
+  CLR_IDLE   = TColor($00DBD5D1);
+
+procedure TfrmDMVCNewProject.ApplyLook;
+var
+  lAccent, lRule: TShape;
+begin
+  // header: white band, then an amber rule that separates it from the page
+  lAccent := TShape.Create(Self);
+  lAccent.Parent := Self;
+  lAccent.SetBounds(0, Shape1.Height, ClientWidth, 3);
+  lAccent.Anchors := [akLeft, akTop, akRight];
+  lAccent.Brush.Color := CLR_ACCENT;
+  lAccent.Pen.Style := psClear;
+  Shape2.Pen.Color := CLR_IDLE;
+  lblPageTitle.Font.Color := CLR_INK;
+
+  // footer: a hairline above the buttons
+  lRule := TShape.Create(Self);
+  lRule.Parent := Self;
+  lRule.SetBounds(0, btnBack.Top - 11, ClientWidth, 1);
+  lRule.Anchors := [akLeft, akRight, akBottom];
+  lRule.Brush.Color := CLR_RULE;
+  lRule.Pen.Style := psClear;
+
+  // "Step n of m" with one pill per page, right-aligned on the title line
+  fStepLabel := TLabel.Create(Self);
+  fStepLabel.Parent := Self;
+  fStepLabel.Alignment := taRightJustify;
+  fStepLabel.AutoSize := False;
+  fStepLabel.SetBounds(ClientWidth - 24 - 160, lblPageTitle.Top + 2, 160, 16);
+  fStepLabel.Anchors := [akTop, akRight];
+  fStepLabel.Font.Color := lblPageHint.Font.Color;
+
+  btnNext.Font.Style := [fsBold];
+  btnFinish.Font.Style := [fsBold];
+  Shape1.SendToBack;
+end;
+
+procedure TfrmDMVCNewProject.UpdateStepIndicator;
+const
+  PILL_W = 26;
+  PILL_H = 5;
+  PILL_GAP = 4;
+var
+  lCount, I, lLeft: Integer;
+begin
+  lCount := GetPageCount;
+  if Length(fSteps) <> lCount then
+  begin
+    for I := 0 to High(fSteps) do
+      fSteps[I].Free;
+    SetLength(fSteps, lCount);
+    lLeft := ClientWidth - 24 - lCount * PILL_W - (lCount - 1) * PILL_GAP;
+    for I := 0 to lCount - 1 do
+    begin
+      fSteps[I] := TShape.Create(Self);
+      fSteps[I].Parent := Self;
+      fSteps[I].Shape := stRoundRect;
+      fSteps[I].Pen.Style := psClear;
+      fSteps[I].Anchors := [akTop, akRight];
+      fSteps[I].SetBounds(lLeft + I * (PILL_W + PILL_GAP), lblPageTitle.Top + 24, PILL_W, PILL_H);
+    end;
+  end;
+  for I := 0 to lCount - 1 do
+    if I < fCurrentPage then
+      fSteps[I].Brush.Color := CLR_INK
+    else if I = fCurrentPage then
+      fSteps[I].Brush.Color := CLR_ACCENT
+    else
+      fSteps[I].Brush.Color := CLR_IDLE;
+  fStepLabel.Caption := Format('Step %d of %d', [fCurrentPage + 1, lCount]);
+end;
+
 procedure TfrmDMVCNewProject.InitWizardPages;
 begin
   NavigateToPage(0);
@@ -629,6 +713,8 @@ begin
   edtControllerClassName.TextHint := TDefaultValues.sDefaultControllerName;
   edtWebModuleName.TextHint := TDefaultValues.sDefaultWebModuleName;
   edtServerPort.TextHint := TDefaultValues.sDefaultServerPort;
+  cbServerEngine.ItemIndex := 1; // Indy Direct, whatever the DFM streaming order left
+  fEngineChoice := 1;
   lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
   EdtJSONRPCClassName.TextHint := 'TMyJSONRPCService';
@@ -648,6 +734,7 @@ begin
 
   UpdateProjectNameHint;
   UpdateWebModuleVisibility;
+  ApplyLook;
 
   {$IF not Defined(FASTCGI)}
   rgServerProtocol.Items.Delete(rgServerProtocol.Items.Count-1);
@@ -696,6 +783,8 @@ begin
   // no listening socket → no WebSocket. Web server fronts everything.
   if (rgApplicationType.ItemIndex = 2) or (rgApplicationType.ItemIndex = 3) then
   begin
+    if cbServerEngine.Enabled then
+      fEngineChoice := cbServerEngine.ItemIndex;
     cbServerEngine.ItemIndex := 0; // WebBroker
     cbServerEngine.Enabled := False;
     lblServerEngine.Enabled := False;
@@ -718,6 +807,8 @@ begin
   // FastCGI requires WebBroker (forces engine + disables combo)
   else if rgServerProtocol.ItemIndex = 2 then
   begin
+    if cbServerEngine.Enabled then
+      fEngineChoice := cbServerEngine.ItemIndex;
     cbServerEngine.ItemIndex := 0; // WebBroker
     cbServerEngine.Enabled := False;
     lblServerEngine.Enabled := False;
@@ -735,6 +826,8 @@ begin
     edtServerPort.Enabled := True;
     btnTestPort.Enabled := True;
     lblServerPort.Enabled := True;
+    if not cbServerEngine.Enabled then
+      cbServerEngine.ItemIndex := fEngineChoice;
     cbServerEngine.Enabled := True;
     lblServerEngine.Enabled := True;
     case cbServerEngine.ItemIndex of
@@ -1243,8 +1336,7 @@ begin
   try
     LMiddlewares := TStringList.Create;
     try
-      LSummary.Add('--- Project Summary ---');
-      LSummary.Add('');
+      LSummary.Add('Project summary');
 
       // Application type
       case rgApplicationType.ItemIndex of
@@ -1303,8 +1395,12 @@ begin
         else
           LSummary.Add('MCP auth: bearer token generated in .env (mcp.auth.token)');
       end;
+      // same rule as the generator ('program.minimal_api.admin_token')
+      if chkMinimalAPI.Checked and (rgJWTAlgorithm.ItemIndex <= 0) and
+        not SameText(cbSSV.Items[cbSSV.ItemIndex], 'templatepro') then
+        LSummary.Add('Admin routes: bearer token generated in .env (api.admin.token)');
 
-      lblSummary.Caption := LSummary.Text;
+      memSummary.Text := LSummary.Text;
     finally
       LMiddlewares.Free;
     end;

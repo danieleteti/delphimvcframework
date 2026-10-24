@@ -573,7 +573,7 @@ var
   lDummy: Boolean;
   lUnit: TDMVCNewUnit;
 begin
-  if not Ask('New web controller', 'Creates Controllers.<Name>U.pas under /web/<URL segment>, ' +
+  if not Ask('New web controller', 'Creates Controllers.<Name>WebU.pas (T<Name>WebController) under /web/<URL segment>, ' +
     'its page <URL segment>/index.html in the views folder, and registers the controller.', '', False, False,
     False, lName, lResource, lDummyModel, lDummy) then
     Exit;

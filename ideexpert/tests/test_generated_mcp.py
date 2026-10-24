@@ -316,6 +316,11 @@ def test_stdio(case_dir, expect_resources, expect_log_file=True):
     check(".mcp.json points at the built executable, relative to the project",
           os.path.isfile(os.path.join(project, server["command"])) and server["args"] == ["--transport", "stdio"],
           str(server))
+    # OpenCode does not read .mcp.json: it has its own file and its own shape
+    oc = json.load(open(os.path.join(project, "opencode.json"), encoding="utf-8"))["mcp"]["TestProject"]
+    check("opencode.json: local server, one command array pointing at the built executable",
+          oc["type"] == "local" and oc["enabled"] is True and oc["command"][1:] == ["--transport", "stdio"]
+          and os.path.isfile(os.path.join(project, oc["command"][0])), str(oc))
     return project
 
 

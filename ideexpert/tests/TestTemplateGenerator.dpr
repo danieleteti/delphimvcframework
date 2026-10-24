@@ -215,6 +215,56 @@ begin
     AErrorOutput := 'Failed to start compiler process';
 end;
 
+{ The build the IDE and a CI server do: msbuild on the generated .dproj, with only
+  $(DMVC) given (the IDE has it in its environment). Unlike CompileProject it passes
+  no namespaces and no defines: those must come from the .dproj. }
+function MSBuildProject(const AProjectDir, ABuildConfig: string; out AOutput: string): Boolean;
+var
+  LDir, LBatFile, LOutputFile, LCmdLine: string;
+  LPaths: TArray<string>;
+  LStartInfo: TStartupInfo;
+  LProcInfo: TProcessInformation;
+  LExitCode: DWORD;
+begin
+  Result := False;
+  AOutput := '';
+  LDir := TPath.GetFullPath(AProjectDir);
+  LOutputFile := TPath.Combine(LDir, 'msbuild_output.txt');
+  LBatFile := TPath.Combine(LDir, 'msbuild.bat');
+  LPaths := ['C:\DEV\dmvcframework\sources', 'C:\DEV\dmvcframework\lib\loggerpro',
+    'C:\DEV\dmvcframework\lib\dmustache', 'C:\DEV\dmvcframework\lib\swagdoc\Source',
+    'C:\DLib\indy_extras\TaurusTLS\Source', 'C:\DLib\indy_extras\TaurusTLS\Source\Extra'];
+  if GMCPSources <> '' then
+    LPaths := LPaths + [GMCPSources];
+  TFile.WriteAllText(LBatFile,
+    '@echo off' + sLineBreak +
+    'cd /d "' + LDir + '"' + sLineBreak +
+    'call "' + GDelphiPath + 'rsvars.bat"' + sLineBreak +
+    'msbuild TestProject.dproj /t:Build /p:Config=' + ABuildConfig + ' /p:Platform=Win32 /v:minimal /nologo ' +
+    // a ';' would split the property: %3B, doubled for the batch file
+    '"/p:DMVC=' + String.Join('%%3B', LPaths) + '" > "' + LOutputFile + '" 2>&1' + sLineBreak +
+    'exit /b %errorlevel%', TEncoding.ASCII);
+  FillChar(LStartInfo, SizeOf(LStartInfo), 0);
+  LStartInfo.cb := SizeOf(LStartInfo);
+  LStartInfo.dwFlags := STARTF_USESHOWWINDOW;
+  LStartInfo.wShowWindow := SW_HIDE;
+  FillChar(LProcInfo, SizeOf(LProcInfo), 0);
+  LCmdLine := 'cmd.exe /c "' + LBatFile + '"';
+  if not CreateProcess(nil, PChar(LCmdLine), nil, nil, False, CREATE_NO_WINDOW, nil, PChar(LDir),
+    LStartInfo, LProcInfo) then
+  begin
+    AOutput := 'Failed to start msbuild';
+    Exit;
+  end;
+  WaitForSingleObject(LProcInfo.hProcess, 300000);
+  GetExitCodeProcess(LProcInfo.hProcess, LExitCode);
+  CloseHandle(LProcInfo.hProcess);
+  CloseHandle(LProcInfo.hThread);
+  Result := LExitCode = 0;
+  if TFile.Exists(LOutputFile) then
+    AOutput := TFile.ReadAllText(LOutputFile);
+end;
+
 { TTestTemplateEngine }
 
 class function TTestTemplateEngine.GetTemplatePath: string;
@@ -355,6 +405,7 @@ begin
   // Derived flag mirrored by GenerateProject; declared here too so templates
   // rendered directly (RunDProjAppTypeTest) don't trip the strict engine.
   Result.B['controller.main.generate'] := True;
+  Result.S['dproj.units'] := ''; // filled by the generator from the .dpr
 
   // JSON-RPC defaults
   Result.B[TConfigKey.jsonrpc_generate] := False;
@@ -1140,7 +1191,17 @@ begin
   // Minimal mode disables index/action-filters/profile; main controller is skipped.
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
+  // the admin group is fail-closed: a token of its own in .env, checked by the standard filters
+  LTestCase.MustContain := [
+    'Routes.RootU.pas|ADMIN_PATH = ''/api/v1/admin'';',
+    'Routes.RootU.pas|lAdmin := AGroup.Use(Authorize());',
+    'EngineConfigU.pas|api.admin.token is empty',
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(BearerAuthFilter(',
+    'EngineConfigU.pas|StaticBearerTokens([TPair<string, string>.Create(''admin'', dotEnv.Env(''api.admin.token'', ''''))]),',
+    'bin/.env|api.admin.token='];
+  LTestCase.MustNotContain := ['Routes.RootU.pas|any Bearer string', 'bin/.env|api.admin.token=' + sLineBreak];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 50: HTTP.sys + Minimal API + CRUD
   LTestCase.Name := 'httpsys_minimal_api';
@@ -1314,7 +1375,9 @@ begin
     'Routes.RootU.pas|Result := JWT(',
     'TestProject.dpr|expose_server_signature',
     'bin/.env|dmvc.expose_x_powered_by=false'];
-  LTestCase.MustNotContain := ['AuthenticationU.pas|UserName.Equals(Password)'];
+  // the JWT filter guards the admin group: no static token
+  LTestCase.MustNotContain := ['AuthenticationU.pas|UserName.Equals(Password)', 'bin/.env|api.admin.token',
+    'EngineConfigU.pas|api.admin.token', 'Routes.RootU.pas|ADMIN_PATH'];
   ATestCases.Add(LTestCase);
 
   // Test 58: Indy Direct over HTTPS. The .env must carry the certificate keys
@@ -1584,7 +1647,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
-  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas', '.mcp.json'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas', '.mcp.json', 'opencode.json'];
   LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas', 'AuthenticationU.pas', 'bin/loggerpro.stdio.json'];
   LTestCase.MustContain := [
     'TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''',
@@ -1596,14 +1659,18 @@ begin
     'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';',
     'EngineConfigU.pas|mcp.auth.token is empty',
     'TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))',
-    'EngineConfigU.pas|.BearerToken(''TestProject'', dotEnv.Env(''mcp.auth.token'', ''''))',
+    'EngineConfigU.pas|BearerAuthFilter(',
+    'EngineConfigU.pas|StaticBearerTokens([TPair<string, string>.Create(''TestProject'', dotEnv.Env(''mcp.auth.token'', ''''))])',
+    'EngineConfigU.pas|TMCPServer.Instance.AllowedOrigins := dotEnv.Env(''mcp.allowed_origins'', '''').Split(['',''])',
+    'EngineConfigU.pas|AEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
     'EngineConfigU.pas|AEngine.AddController(TMCPSessionController)',
     'EngineConfigU.pas|TMCPServer.Instance.CreatePublishedEndpoint',
     'BootConfigU.pas|if not MCPTransportIsStdio then',
     'bin/.env|mcp.auth.token=', 'bin/.env|mcp.allowed_origins=', 'bin/.env|mcp.http.host=localhost',
-    '.mcp.json|"command": "bin\\TestProject.exe"', '.mcp.json|"--transport", "stdio"'];
+    '.mcp.json|"command": "bin\\TestProject.exe"', '.mcp.json|"--transport", "stdio"',
+    'opencode.json|"type": "local"', 'opencode.json|"command": ["bin\\TestProject.exe", "--transport", "stdio"]'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|THomeController', 'EngineConfigU.pas|RegisterFromEngine',
-    'TestProject.dpr|Controllers.HomeU', 'bin/.env|mcp.auth.token=' + sLineBreak, '.mcp.json|{{'];
+    'TestProject.dpr|Controllers.HomeU', 'bin/.env|mcp.auth.token=' + sLineBreak, '.mcp.json|{{', 'opencode.json|{{'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1616,7 +1683,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas',
     'Controllers.HomeU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
   LTestCase.MustContain := [
     'EngineConfigU.pas|TMCPBridgeOptions.Create.ExcludeMethods([httpDELETE])',
     'EngineConfigU.pas|AEngine.AddController(THomeController)',
@@ -1635,7 +1702,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Controllers.HomeU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
     'TestProject.dpr|MVCFramework.MCP.Stdio', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
@@ -1648,7 +1715,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
     'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
@@ -1693,10 +1760,10 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|.AuthenticationHandledElsewhere',
+  LTestCase.MustContain := ['EngineConfigU.pas|// the JWT middleware below authenticates /mcp', 'EngineConfigU.pas|AEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
     'AuthenticationU.pas|MVCFramework.JSONRPC.TMVCJSONRPCPublisher',
     'AuthenticationU.pas|MVCFramework.MCP.Server.TMCPSessionController'];
-  LTestCase.MustNotContain := ['EngineConfigU.pas|BearerToken', 'bin/.env|mcp.auth.token',
+  LTestCase.MustNotContain := ['EngineConfigU.pas|BearerAuthFilter', 'bin/.env|mcp.auth.token',
     'TestProject.dpr|mcp.auth.token'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1712,7 +1779,7 @@ begin
   LTestCase.MustNotContain := ['AuthenticationU.pas|TMCPSessionController', 'EngineConfigU.pas|MCP',
     'TestProject.dpr|MCP', 'bin/.env|mcp.', 'AuthenticationU.pas|AddOrSetValue(''username''',
     'AuthenticationU.pas|AddOrSetValue(''roles'''];
-  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json', 'opencode.json'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1725,7 +1792,7 @@ begin
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|BearerToken', 'bin/.env|mcp.auth.token=',
+  LTestCase.MustContain := ['EngineConfigU.pas|BearerAuthFilter', 'bin/.env|mcp.auth.token=',
     'AuthenticationU.pas|AuthenticationRequired := False;'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1740,7 +1807,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Routes.RootU.pas'];
-  LTestCase.MustContain := ['EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsFilter'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1753,7 +1820,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|MCPGuard'];
+  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsFilter'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1823,8 +1890,8 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json'];
-  LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|MCPGuard'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
+  LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|AllowedMethodsFilter'];
   LTestCase.MustNotContain := ['TestProject.dpr|TransportConf', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1837,7 +1904,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
-  LTestCase.ForbiddenFiles := ['.mcp.json', 'Controllers.HomeU.pas'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json', 'Controllers.HomeU.pas'];
   LTestCase.MustContain := ['ServiceU.pas|fServer.Listen(lPort, dotEnv.Env(''mcp.http.host'', ''localhost''));',
     'bin/.env|mcp.http.host=localhost', 'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';'];
   LTestCase.MustNotContain := ['ServiceU.pas|fServer.Listen(lPort);', 'TestProject.dpr|MCPDefaultTransportStdio',
@@ -1864,7 +1931,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
   LTestCase.ExpectedFiles := ['Controllers.HomeU.pas'];
-  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json'];
+  LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json', 'opencode.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCP', 'WebModuleU.pas|MCP', 'bin/.env|mcp.'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -2413,7 +2480,10 @@ end;
   lines or trailing spaces left by the template conditionals. }
 function RunCodeStyleTest(const ACaseDirs: TArray<string>): Boolean;
 const
-  RULES: array [0 .. 5, 0 .. 1] of string = (
+  RULES: array [0 .. 7, 0 .. 1] of string = (
+    ('(?mi)^[ ]+\S.*;\r?\n(class )?(function|procedure|constructor|destructor) ',
+      'no blank line between a section and the routine after it'),
+    ('(?ms)^var\r?$((?!^(begin|procedure|function|constructor|destructor)\b).)*?^var\r?$', 'two var sections in one routine'),
     ('(?m)[ \t]+\r?$', 'trailing whitespace'),
     ('(\r?\n){3,}', 'two blank lines in a row'),
     ('(?mi)^[ ]*(begin|try|var|uses)\r?\n\r?\n', 'blank line after begin/try/var/uses'),
@@ -2441,7 +2511,7 @@ begin
       LCode := TRegEx.Replace(LText, '''[^'']*''', '''''');
       for I := Low(RULES) to High(RULES) do
       begin
-        if I >= 4 then
+        if I >= 6 then
           LMatch := TRegEx.Match(LCode, RULES[I, 0])
         else
           LMatch := TRegEx.Match(LText, RULES[I, 0]);
@@ -2454,6 +2524,131 @@ begin
     Log(Format('  [PASS] %d sources in %d projects', [LFiles, Length(ACaseDirs)]))
   else
     Log('  [FAIL] ' + string.Join(sLineBreak + '         ', LWrong));
+end;
+
+{ The .dproj of every case: one DCCReference per unit of the .dpr (the IDE shows
+  and builds what the .dproj lists), DEBUG defined in Debug through DCC_Define
+  (<Defines> is ignored by the compiler), and the unit scope names, without which
+  a unit that says "uses Classes" (TaurusTLS) does not compile under msbuild. }
+function RunDProjTest(const ACaseDirs: TArray<string>): Boolean;
+var
+  LDir, LDpr, LDproj, LUnit: string;
+  LMatch: TMatch;
+  LWrong: TArray<string>;
+  LUnits, LRefs: Integer;
+begin
+  Log('');
+  Log('=== .dproj of the generated projects ===');
+  LWrong := [];
+  for LDir in ACaseDirs do
+  begin
+    if not TFile.Exists(TPath.Combine(LDir, 'TestProject.dproj')) then
+      Continue;
+    LDpr := TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dpr'));
+    LDproj := TFile.ReadAllText(TPath.Combine(LDir, 'TestProject.dproj'));
+    LUnits := 0;
+    for LMatch in TRegEx.Matches(LDpr, '^\s*[\w.]+\s+in\s+''([^'']+)''', [roMultiLine]) do
+    begin
+      Inc(LUnits);
+      LUnit := LMatch.Groups[1].Value;
+      if not LDproj.Contains('<DCCReference Include="' + LUnit + '"') then
+        LWrong := LWrong + [LDir + ': no DCCReference for ' + LUnit];
+    end;
+    LRefs := TRegEx.Matches(LDproj, '<DCCReference Include=').Count;
+    if LRefs <> LUnits then
+      LWrong := LWrong + [Format('%s: %d DCCReference for %d units of the .dpr', [LDir, LRefs, LUnits])];
+    if not TRegEx.IsMatch(LDproj,
+      '<PropertyGroup Condition="''\$\(Cfg_1\)''!=''''">\s*<DCC_Define>DEBUG;\$\(DCC_Define\)</DCC_Define>') then
+      LWrong := LWrong + [LDir + ': Debug does not define DEBUG in DCC_Define'];
+    if LDproj.Contains('<Defines>') then
+      LWrong := LWrong + [LDir + ': <Defines> (ignored by the compiler)'];
+    if not LDproj.Contains('<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;System.Win;') then
+      LWrong := LWrong + [LDir + ': no unit scope names (DCC_Namespace)'];
+  end;
+  Result := Length(LWrong) = 0;
+  if Result then
+    Log(Format('  [PASS] %d projects', [Length(ACaseDirs)]))
+  else
+    Log('  [FAIL] ' + string.Join(sLineBreak + '         ', LWrong));
+end;
+
+{ msbuild on one project per preset (and per host kind), on a copy of the case. A
+  Debug build must carry the DEBUG-only error text of the framework (the class name
+  of the exception in the error response), a Release build must not. }
+function RunMSBuildTest: Boolean;
+const
+  CASES: array [0 .. 13] of string = ('indydirect_openapi_controllers', 'indydirect_jwt_no_mcp',
+    'indydirect_minimal_api_openapi', 'indydirect_minimal_api_jwt', 'indydirect_webapp_htmx',
+    'indydirect_minimal_api_web', 'indydirect_jsonrpc', 'indydirect_full_featured', 'indydirect_https',
+    'mcp_preset', 'isapi_minimal', 'winservice_http_minimal', 'winservice_indydirect_https', 'httpsys_minimal');
+  DEBUG_ONLY_TEXT = 'Exception raised of class: ';
+
+  function HasDebugText(const ADir: string): Boolean;
+  var
+    LExe: string;
+  begin
+    LExe := TPath.Combine(ADir, 'bin' + PathDelim + 'TestProject.exe');
+    if not TFile.Exists(LExe) then
+      LExe := TPath.ChangeExtension(LExe, '.dll');
+    Result := TEncoding.Unicode.GetString(TFile.ReadAllBytes(LExe)).Contains(DEBUG_ONLY_TEXT);
+  end;
+
+var
+  LCase, LDir, LOutput: string;
+  LFailures: Integer;
+
+  // short folder names: .\Win32\Release\<long unit>.dcu under a deep output dir passes MAX_PATH
+  function CopyDir(const ACase: string): string;
+  begin
+    Result := TPath.GetFullPath(TPath.Combine(GOutputDir, '_mb' + IntToStr(IndexText(ACase, CASES))));
+  end;
+
+begin
+  Log('');
+  Log('=== msbuild of the generated .dproj ===');
+  LFailures := 0;
+  if GSkipCompile then
+  begin
+    Log('  SKIPPED (no compilation)');
+    Exit(True);
+  end;
+  for LCase in CASES do
+  begin
+    LDir := CopyDir(LCase);
+    if TDirectory.Exists(LDir) then
+      TDirectory.Delete(LDir, True);
+    TDirectory.Copy(TPath.GetFullPath(TPath.Combine(GOutputDir, LCase)), LDir);
+    if TDirectory.Exists(TPath.Combine(LDir, 'Win32')) then
+      TDirectory.Delete(TPath.Combine(LDir, 'Win32'), True);
+    if not MSBuildProject(LDir, 'Debug', LOutput) then
+    begin
+      Log('  [FAIL] ' + LCase + ' (Debug): ' + Copy(LOutput, LOutput.Length - 600, 601));
+      Inc(LFailures);
+      Continue;
+    end;
+    if HasDebugText(LDir) then
+      Log('  [PASS] ' + LCase + ': Debug builds with DEBUG defined')
+    else
+    begin
+      Log('  [FAIL] ' + LCase + ': Debug build without DEBUG');
+      Inc(LFailures);
+    end;
+  end;
+  // one Release build: DEBUG must not leak into it
+  LDir := CopyDir(CASES[0]);
+  if not MSBuildProject(LDir, 'Release', LOutput) then
+  begin
+    Log('  [FAIL] ' + CASES[0] + ' (Release): ' + Copy(LOutput, LOutput.Length - 600, 601));
+    Inc(LFailures);
+  end
+  else if HasDebugText(LDir) then
+  begin
+    Log('  [FAIL] ' + CASES[0] + ': Release build with DEBUG defined');
+    Inc(LFailures);
+  end
+  else
+    Log('  [PASS] ' + CASES[0] + ': Release builds without DEBUG');
+  Result := LFailures = 0;
 end;
 
 { Project Manager "DMVCFramework" menu (DMVC.Expert.ProjectItems): the same
@@ -2688,6 +2883,15 @@ begin
   Check('default model class from the name', (DefaultModelClass('Orders') = 'TOrder') and
     (DefaultModelClass('Categories') = 'TCategory') and (DefaultModelClass('Address') = 'TAddressItem') and
     (DefaultModelClass('Stock') = 'TStockItem'), DefaultModelClass('Address'));
+  Check('default model class: irregular and -es plurals', (DefaultModelClass('People') = 'TPerson') and
+    (DefaultModelClass('SalesPeople') = 'TSalesPerson') and (DefaultModelClass('Children') = 'TChild') and
+    (DefaultModelClass('Addresses') = 'TAddress') and (DefaultModelClass('Boxes') = 'TBox') and
+    (DefaultModelClass('Wishes') = 'TWish') and (DefaultModelClass('Houses') = 'THouse'),
+    DefaultModelClass('People') + ' ' + DefaultModelClass('Addresses') + ' ' + DefaultModelClass('Houses'));
+  Check('a web and a REST controller of the same name do not collide',
+    (LWeb.UnitName = 'Controllers.OrdersWebU') and (LWeb.TypeName = 'TOrdersWebController') and
+    (LRest.UnitName = 'Controllers.OrdersU') and (LRest.TypeName = 'TOrdersController'),
+    LWeb.UnitName + ' / ' + LRest.UnitName);
   Check('route call', LCallFmt = 'MapOrdersRoutes(%s.Prefix(''/api/orders''))', LCallFmt);
 
   AddAndCompile('REST controller (CRUD) in EngineConfigU', 'indydirect_with_crud', 'EngineConfigU.pas', LRest,
@@ -3369,6 +3573,25 @@ begin
       begin
         Log('');
         Log('FAIL: Project Manager menu tests did not pass.');
+        ExitCode := 1;
+      end;
+      // the units the menu adds follow the same style
+      if not RunCodeStyleTest(TDirectory.GetDirectories(TPath.GetFullPath(GOutputDir), '_items_*')) then
+      begin
+        Log('');
+        Log('FAIL: a unit added by the Project Manager menu breaks the code style.');
+        ExitCode := 1;
+      end;
+      if not RunDProjTest(LCaseDirs) then
+      begin
+        Log('');
+        Log('FAIL: a generated .dproj does not match its program.');
+        ExitCode := 1;
+      end;
+      if not RunMSBuildTest then
+      begin
+        Log('');
+        Log('FAIL: a generated project does not build with msbuild.');
         ExitCode := 1;
       end;
       if not RunMCPTests(LCaseDirs) then

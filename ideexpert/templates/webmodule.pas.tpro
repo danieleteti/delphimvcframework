@@ -110,8 +110,9 @@ uses
   System.SysUtils;
 
 procedure {{:webmodule_classname}}.WebModuleCreate(Sender: TObject);
-{{if @(webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles)}}
+{{if @(webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger)}}
 var
+{{endif}}
 {{if webmodule_middleware_ratelimit}}
   lRateLimitMiddleware: TMVCRateLimitMiddleware;
 {{endif}}
@@ -124,9 +125,7 @@ var
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   lWwwPath: string;
 {{endif}}
-{{endif}}
 {{if program_openapi_swagger}}
-var
   lSwaggerInfo: TMVCSwaggerInfo;
 {{endif}}
 begin

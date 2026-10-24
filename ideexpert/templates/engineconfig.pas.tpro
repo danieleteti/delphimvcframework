@@ -100,12 +100,20 @@ uses
   MVCFramework.MinimalAPI,
   MVCFramework.Filters,
 {{endif}}
+{{if program_minimal_api_admin_token}}
+{{if @(not mcp_generate)}}
+  System.Generics.Collections,
+{{endif}}
+  Routes.RootU,
+{{endif}}
 {{if mcp_generate}}
 {{if @(not program_minimal_api)}}
   MVCFramework.MinimalAPI,
+  MVCFramework.Filters,
 {{endif}}
+  System.Generics.Collections,
+  MVCFramework.MCP.Types,
   MVCFramework.MCP.Server,
-  MVCFramework.MCP.Guard,
 {{if mcp_bridge}}
   MVCFramework.MCP.Bridge,
 {{endif}}
@@ -114,31 +122,25 @@ uses
   MVCFramework.Logger;
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
-{{if @((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles))}}
+{{if @(((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt)) or program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger or program_openapi_native)}}
 var
-{{if webmodule_middleware_ratelimit}}
+{{endif}}
+{{if @((not program_minimal_api) and webmodule_middleware_ratelimit)}}
   lRateLimitMiddleware: TMVCRateLimitMiddleware;
 {{endif}}
-{{if webmodule_middleware_jwt}}
+{{if @((not program_minimal_api) and webmodule_middleware_jwt)}}
   lJWTClaimsSetup: TJWTClaimsSetup;
 {{if webmodule_middleware_jwt_asymmetric}}
   lSigner: IJWTSigner;
 {{endif}}
 {{endif}}
-{{if @((program_ssv_any or webmodule_middleware_staticfiles) and (not program_minimal_api))}}
-  lWwwPath: string;
-{{endif}}
-{{endif}}
-{{if @(program_minimal_api and (program_ssv_any or webmodule_middleware_staticfiles))}}
-var
+{{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
   lWwwPath: string;
 {{endif}}
 {{if program_openapi_swagger}}
-var
   lSwaggerInfo: TMVCSwaggerInfo;
 {{endif}}
 {{if program_openapi_native}}
-var
   lOpenAPIInfo: TMVCOpenAPIInfo;
   lSwaggerUIOptions: TMVCStaticFilesOptions;
 {{endif}}
@@ -153,20 +155,29 @@ begin
   // Static files path (www folder at same level as executable)
   lWwwPath := TPath.Combine(AppPath, 'www');
 {{endif}}
+{{if program_minimal_api_admin_token}}
+
+  // Admin guard: first, before every other filter. The token is the one the wizard wrote in .env
+  if dotEnv.Env('api.admin.token', '').Trim.IsEmpty then
+    raise Exception.Create('api.admin.token is empty: set it in .env, ' + ADMIN_PATH + ' needs a bearer token');
+  AEngine.UseHTTPFilter(BearerAuthFilter(
+    StaticBearerTokens([TPair<string, string>.Create('admin', dotEnv.Env('api.admin.token', ''))]),
+    ADMIN_PATH));
+{{endif}}
 {{if mcp_generate}}
 
-  // MCP guard: first, before every middleware and before PublishObject
+  // MCP guards: first, before every middleware and before PublishObject. Every path given to a filter is the full routed one (engine path prefix included)
 {{if mcp_auth_jwt}}
-  AEngine.UseHTTPFilter(MCPGuard(TMCPGuardOptions.Create
-    .AuthenticationHandledElsewhere // the JWT middleware below authenticates /mcp
-    .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));
+  // the JWT middleware below authenticates /mcp
 {{else}}
   if dotEnv.Env('mcp.auth.token', '').Trim.IsEmpty then
     raise Exception.Create('mcp.auth.token is empty: set it in .env, the /mcp endpoint needs a bearer token');
-  AEngine.UseHTTPFilter(MCPGuard(TMCPGuardOptions.Create
-    .BearerToken('{{:program_name}}', dotEnv.Env('mcp.auth.token', ''))
-    .AllowedOrigins(dotEnv.Env('mcp.allowed_origins', '').Split([',']))));
+  AEngine.UseHTTPFilter(BearerAuthFilter(
+    StaticBearerTokens([TPair<string, string>.Create('{{:program_name}}', dotEnv.Env('mcp.auth.token', ''))]),
+    MCP_ENDPOINT));
 {{endif}}
+  TMCPServer.Instance.AllowedOrigins := dotEnv.Env('mcp.allowed_origins', '').Split([',']);
+  AEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST, httpDELETE], MCP_ENDPOINT));
 {{endif}}
 
 {{if @(not program_minimal_api)}}

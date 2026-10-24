@@ -76,6 +76,16 @@ dmvc.wsserver.port=9000
 dmvc.sqids.alphabet={{:scrambled_alphabet}}
 dmvc.sqids.min_length=6
 {{endif}}
+{{if program_minimal_api_admin_token}}
+
+# ============================================================================
+# Admin routes (/api/v1/admin)
+# ============================================================================
+# Bearer token of /api/v1/admin, generated for this project by the wizard. Clients
+# send "Authorization: Bearer <token>"; the server does not start when it is empty.
+# It exists only in this file: keep .env out of version control.
+api.admin.token={{:program_admin_token}}
+{{endif}}
 {{if mcp_generate}}
 
 # ============================================================================

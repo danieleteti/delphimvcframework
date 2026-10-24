@@ -166,8 +166,18 @@ begin
 end;
 
 function DefaultModelClass(const AName: string): string;
+const
+  // plurals the suffix rules below get wrong
+  IRREGULAR: array [0 .. 1, 0 .. 1] of string = (('People', 'Person'), ('Children', 'Child'));
+var
+  I: Integer;
 begin
-  if AName.EndsWith('ies', True) and (AName.Length > 3) then
+  for I := Low(IRREGULAR) to High(IRREGULAR) do
+    if AName.EndsWith(IRREGULAR[I, 0], True) then
+      Exit('T' + AName.Substring(0, AName.Length - IRREGULAR[I, 0].Length) + IRREGULAR[I, 1]);
+  if AName.EndsWith('sses', True) or AName.EndsWith('xes', True) or AName.EndsWith('shes', True) then
+    Result := AName.Substring(0, AName.Length - 2)
+  else if AName.EndsWith('ies', True) and (AName.Length > 3) then
     Result := AName.Substring(0, AName.Length - 3) + 'y'
   else if AName.EndsWith('s', True) and not AName.EndsWith('ss', True) and (AName.Length > 1) then
     Result := AName.Substring(0, AName.Length - 1)
@@ -391,11 +401,12 @@ var
 begin
   lConfig := TJsonObject.Create;
   try
-    lConfig.S['class_name'] := 'T' + AName + 'Controller';
+    // "Web" in the names: a REST controller of the same name (Controllers.<Name>U) can live beside it
+    lConfig.S['class_name'] := 'T' + AName + 'WebController';
     lConfig.S['resource'] := AResource;
     lConfig.S['view_name'] := AResource + '/index';
     lConfig.S['program_name'] := AProgramName;
-    Result := RenderUnit('add_controller_web.pas.tpro', 'Controllers.' + AName + 'U',
+    Result := RenderUnit('add_controller_web.pas.tpro', 'Controllers.' + AName + 'WebU',
       lConfig.S['class_name'], lConfig);
   finally
     lConfig.Free;

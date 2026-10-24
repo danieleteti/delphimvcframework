@@ -176,7 +176,7 @@ begin
   AForm.chkHtmx.Checked := False;
   AForm.chkHtmx.Visible := False;
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the BearerAuthFilter in Routes.RootU
+  AForm.rgJWTAlgorithm.ItemIndex := 0; // None: /api/v1/admin has its bearer token (api.admin.token in .env)
 
   // Middleware
   AForm.chkCORS.Checked := True;
