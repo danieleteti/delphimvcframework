@@ -4,3 +4,6 @@
 # in that folder is ever edited here. Without this, git would rewrite their
 # line endings on checkout depending on core.autocrlf.
 unittests/general/TestClient/mariadb/** -text
+
+# The dotEnv tests compare these byte for byte with a file written with CRLF.
+unittests/general/TestClient/dotEnv/*.correct.txt -text
