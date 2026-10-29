@@ -1561,6 +1561,16 @@ the same socket.
   one. It works with or without `[MVCSwagJSONSchemaField]` on the same property. Additive: a field without the
   attribute is emitted exactly as before. Text that is not valid JSON raises an error when the document is built.
 
+- **An exception raised in an HTTP filter is answered as the dispatcher answers it (issue #933).** In DEBUG builds
+  the message of an exception raised in an HTTP filter was prefixed with its class name:
+  `raise EMVCException.Create(429, 'Too many attempts')` answered `"message":"[EMVCException] Too many attempts"`,
+  while the same exception raised in a controller action or in a classic middleware answered
+  `"message":"Too many attempts"`. A filter exception now goes through the same code as the dispatcher's: same
+  status, message, class name (DEBUG only), log line and custom exception handler call (`SetExceptionHandler`, with
+  `Controller = nil` as before). As a result, an `ESqidsException` raised in a filter answers 400 there too, and an
+  `EMVCSessionExpiredException` stops the session when there is one (also in the dispatcher: without a session
+  factory it no longer turns into a configuration error).
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it

@@ -207,6 +207,18 @@ type
     [TestCase('IndyDirect', '8935')]
     [TestCase('HttpSys', '8937')]
     procedure AFilterThatRaisesIsAnswered(const APort: Integer);
+    // issue #933: the message without a "[ClassName]" prefix, in DEBUG too
+    [Test]
+    [TestCase('TestServer', '8888')]
+    [TestCase('IndyDirect', '8935')]
+    [TestCase('HttpSys', '8937')]
+    procedure AFilterThatRaisesAnswersAsAnActionThatRaises(const APort: Integer);
+    // the custom exception handler answers for a filter too, without a controller
+    [Test]
+    procedure TheExceptionHandlerAnswersWhatAFilterRaises;
+    // no session filter: the session cannot be stopped, the exception is still answered
+    [Test]
+    procedure ASessionExpiredInAFilterWithoutSessionsIsAnswered;
     [Test]
     [TestCase('TestServer', '8888')]
     [TestCase('IndyDirect', '8935')]
@@ -276,6 +288,7 @@ uses
   System.IOUtils,
   IdTCPClient,
   FireDAC.Comp.Client,
+  JsonDataObjects,
   FireDAC.Phys.SQLite,
   MVCFramework.SQLGenerators.Sqlite,
   MVCFramework.Server.Factory,
@@ -710,6 +723,114 @@ procedure THTTPFilterTests.AFilterThatRaisesIsAnswered(const APort: Integer);
 begin
   // nothing inside the dispatcher can catch what a filter raises: the engine answers
   Assert.AreEqual(403, Client(APort).Get('/fexc/filter-raises').StatusCode);
+end;
+
+procedure THTTPFilterTests.AFilterThatRaisesAnswersAsAnActionThatRaises(const APort: Integer);
+var
+  lAction, lFilter: IMVCRESTResponse;
+  lActionBody, lFilterBody: TJsonObject;
+begin
+  lAction := Client(APort).Get('/fexc/toomany');
+  lFilter := Client(APort).Get('/fexc/filter-toomany');
+  Assert.AreEqual(429, lAction.StatusCode, 'the action');
+  Assert.AreEqual(429, lFilter.StatusCode, 'the filter');
+  Assert.AreEqual(lAction.ContentType, lFilter.ContentType, 'content type');
+  lActionBody := StrToJSONObject(lAction.Content);
+  lFilterBody := StrToJSONObject(lFilter.Content);
+  try
+    Assert.IsNotNull(lActionBody, lAction.Content);
+    Assert.IsNotNull(lFilterBody, lFilter.Content);
+    Assert.AreEqual('Too many attempts', lFilterBody.S['message'], lFilter.Content);
+    Assert.AreEqual(lActionBody.S['message'], lFilterBody.S['message'], 'message');
+    // the class name only in DEBUG builds, for the filter as for the action
+    Assert.AreEqual(lActionBody.S['classname'], lFilterBody.S['classname'], 'classname');
+  finally
+    lActionBody.Free;
+    lFilterBody.Free;
+  end;
+end;
+
+procedure THTTPFilterTests.TheExceptionHandlerAnswersWhatAFilterRaises;
+var
+  lEngine: TMVCEngine;
+  lServer: IMVCServer;
+  lRes: IMVCRESTResponse;
+  lCalls: Integer;
+  lWithoutController: Boolean;
+  lRaise: TMVCHTTPFilter;
+begin
+  lCalls := 0;
+  lWithoutController := False;
+  lEngine := TMVCEngine.Create;
+  try
+    lEngine.SetExceptionHandler(
+      procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var Handled: Boolean)
+      begin
+        Inc(lCalls);
+        lWithoutController := SelectedController = nil;
+        WebContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+        WebContext.Response.Content := 'handled: ' + E.Message;
+        WebContext.Response.StatusCode := http_status.Conflict;
+        Handled := True;
+      end);
+    lRaise :=
+      procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+      begin
+        raise EMVCException.Create(http_status.TooManyRequests, 'Too many attempts');
+      end;
+    lEngine.Use(lRaise);
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
+    try
+      lServer.Listen(HF_STREAM_INDY_PORT, 'localhost');
+      lRes := Client(HF_STREAM_INDY_PORT).Get('/anything');
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    lEngine.Free;
+  end;
+  Assert.AreEqual(1, lCalls, 'the handler is called once');
+  Assert.IsTrue(lWithoutController, 'SelectedController = nil');
+  Assert.AreEqual(409, lRes.StatusCode);
+  Assert.AreEqual('handled: Too many attempts', lRes.Content);
+end;
+
+procedure THTTPFilterTests.ASessionExpiredInAFilterWithoutSessionsIsAnswered;
+var
+  lEngine: TMVCEngine;
+  lServer: IMVCServer;
+  lRes: IMVCRESTResponse;
+  lCalls: Integer;
+  lRaise: TMVCHTTPFilter;
+begin
+  lCalls := 0;
+  lEngine := TMVCEngine.Create;
+  try
+    lEngine.SetExceptionHandler(
+      procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var Handled: Boolean)
+      begin
+        Inc(lCalls);
+      end);
+    lRaise :=
+      procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+      begin
+        raise EMVCSessionExpiredException.Create;
+      end;
+    lEngine.Use(lRaise);
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
+    try
+      lServer.Listen(HF_STREAM_INDY_PORT, 'localhost');
+      lRes := Client(HF_STREAM_INDY_PORT).Get('/anything');
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    lEngine.Free;
+  end;
+  Assert.AreEqual(1, lCalls, 'the handler is called once');
+  Assert.AreEqual(http_status.Unauthorized, lRes.StatusCode, lRes.Content);
 end;
 
 procedure THTTPFilterTests.RedirectAnswers301OrTheDefault302(const APort: Integer);

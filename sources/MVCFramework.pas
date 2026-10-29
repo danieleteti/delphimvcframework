@@ -1326,6 +1326,10 @@ type
     procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
       const InjectableParamAttribute: MVCInjectableParamAttribute);
     function ErrorViewExists(const AContext: TWebContext; const AViewName: string): Boolean;
+    // the answer to an exception of the request: the dispatcher passes the controller of the action, if any; the
+    // HTTP filters, outside of it, nil
+    procedure HandleDispatchException(const AException: Exception; const ASelectedController: TMVCController;
+      const AContext: TWebContext);
   protected
     procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
     procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
@@ -3109,6 +3113,112 @@ begin
   end;
 end;
 
+procedure TMVCEngine.HandleDispatchException(const AException: Exception;
+  const ASelectedController: TMVCController; const AContext: TWebContext);
+var
+  E: EMVCException;
+  lRespStatus: Integer;
+  lEValidException: EMVCValidationException;
+  lValidationErrorsStr: string;
+  lValidationError: TPair<string, string>;
+begin
+  if AException is EMVCException then
+  begin
+    E := EMVCException(AException);
+    // without a session factory (an HTTP filter raising before the session one) there is nothing to stop
+    if (E is EMVCSessionExpiredException) and AContext.HasSessionSupport then
+    begin
+      AContext.SessionStop(False);
+    end;
+    if not CustomExceptionHandling(E, ASelectedController, AContext) then
+    begin
+      if E is EMVCValidationException then
+      begin
+        lEValidException := EMVCValidationException(E);
+        lValidationErrorsStr := '';
+        for lValidationError in lEValidException.ValidationErrors do
+        begin
+          if lValidationErrorsStr <> '' then
+            lValidationErrorsStr := lValidationErrorsStr + '; ';
+          lValidationErrorsStr := lValidationErrorsStr + lValidationError.Key + ': ' + lValidationError.Value;
+        end;
+        Log.Warn('[%s] %s [PathInfo "%s"] - %d %s (Validation Errors: "%s")',
+          [
+            lEValidException.Classname,
+            lEValidException.Message,
+            GetRequestShortDescription(AContext.Request),
+            lEValidException.HTTPStatusCode,
+            HTTP_STATUS.ReasonStringFor(lEValidException.HTTPStatusCode),
+            lValidationErrorsStr
+          ], LOGGERPRO_TAG)
+      end
+      else
+        Log.Error('[%s] %s [PathInfo "%s"] - %d %s%s',
+          [
+            E.Classname,
+            E.Message,
+            GetRequestShortDescription(AContext.Request),
+            E.HTTPStatusCode,
+            HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
+            IfThen(E.DetailedMessage <> '', ' - ' + E.DetailedMessage)
+          ], LOGGERPRO_TAG);
+      if Assigned(ASelectedController) then
+      begin
+        ASelectedController.ResponseStatus(E.HTTPStatusCode);
+        ASelectedController.Render(E);
+      end
+      else
+      begin
+        // the class name is reconnaissance: DEBUG only, as in TMVCRenderer.Render(AException)
+        {$IFDEF DEBUG}
+        SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message, E.Classname);
+        {$ELSE}
+        SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message);
+        {$ENDIF}
+      end;
+    end;
+  end
+  else
+  begin
+    if AException is ESqidsException then
+    begin
+      lRespStatus := HTTP_STATUS.BadRequest;
+    end
+    else
+    begin
+      lRespStatus := HTTP_STATUS.InternalServerError;
+    end;
+
+    if not CustomExceptionHandling(AException, ASelectedController, AContext) then
+    begin
+      Log.Error('[%s] %s [PathInfo "%s"] - %d %s - Global Action Exception Handler',
+        [
+          AException.Classname,
+          AException.Message,
+          GetRequestShortDescription(AContext.Request),
+          lRespStatus,
+          HTTP_STATUS.ReasonStringFor(lRespStatus)
+        ], LOGGERPRO_TAG);
+      if Assigned(ASelectedController) then
+      begin
+        ASelectedController.ResponseStatus(lRespStatus);
+        ASelectedController.Render(AException);
+      end
+      else
+      begin
+        { Same reasoning as TMVCRenderer.Render(AException): outside DEBUG
+          neither the class name nor the raw message reaches the client. }
+        {$IFDEF DEBUG}
+        SendHTTPStatus(AContext, lRespStatus,
+          Format('[%s] %s', [AException.Classname, AException.Message]), AException.Classname);
+        {$ELSE}
+        SendHTTPStatus(AContext, lRespStatus, MVCClientSafeExceptionMessage(AException));
+        {$ENDIF}
+      end;
+    end;
+  end;
+end;
+
 procedure TMVCEngine.DefineDefaultResponseHeaders(const AContext: TWebContext);
 begin
   if FConfigCache_ExposeServerSignature and (not IsLibrary) then
@@ -3503,7 +3613,6 @@ var
   lEnded: Boolean;
   lResult: Boolean;
   lNext: TMVCHTTPFilterNext;
-  lStatus: Integer;
   I: Integer;
 begin
   lStopWatch := AStopWatch;
@@ -3530,22 +3639,8 @@ begin
   except
     on Ex: Exception do
     begin
-      // a filter raised, outside of the handlers of the dispatcher
-      if Ex is EMVCException then
-        lStatus := EMVCException(Ex).HTTPStatusCode
-      else
-        lStatus := HTTP_STATUS.InternalServerError;
-      if not AEngine.CustomExceptionHandling(Ex, nil, AContext) then
-      begin
-        Log.Error('[%s] %s [PathInfo "%s"] - %d %s - HTTP filter',
-          [Ex.Classname, Ex.Message, GetRequestShortDescription(AContext.Request), lStatus,
-          HTTP_STATUS.ReasonStringFor(lStatus)], LOGGERPRO_TAG);
-        {$IFDEF DEBUG}
-        AEngine.SendHTTPStatus(AContext, lStatus, Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
-        {$ELSE}
-        AEngine.SendHTTPStatus(AContext, lStatus, MVCClientSafeExceptionMessage(Ex));
-        {$ENDIF}
-      end;
+      // a filter raised, outside of the handlers of the dispatcher: answered as they answer (issue #933)
+      AEngine.HandleDispatchException(Ex, nil, AContext);
       // raised before ANext() (e.g. a login refused): end the request as one answered by a filter
       if not (lDispatched or lEnded) then
         try
@@ -3579,15 +3674,7 @@ var
   lRouterMethodToCallName: string;
   lRouterControllerClazzQualifiedClassName: string;
   lSelectedController: TMVCController;
-
-
-
-
-  lRespStatus: Integer;
   lRouterResult: TMVCRouterResult;
-  lEValidException: EMVCValidationException;
-  lValidationErrorsStr: string;
-  lValidationError: TPair<string, string>;
   lLocalTable: TMVCRouteTable;
   lMatched: Boolean;
   lRoutingPath: string;
@@ -3712,100 +3799,9 @@ begin
         end; // end-execute-routing
       end; // if not handled by beforerouting
     except
-      on E: EMVCException do
-      begin
-        if E is EMVCSessionExpiredException then
-        begin
-          AContext.SessionStop(False);
-        end;
-        if not CustomExceptionHandling(E, lSelectedController, AContext) then
-        begin
-          if E is EMVCValidationException then
-          begin
-            lEValidException := EMVCValidationException(E);
-            lValidationErrorsStr := '';
-            for lValidationError in lEValidException.ValidationErrors do
-            begin
-              if lValidationErrorsStr <> '' then
-                lValidationErrorsStr := lValidationErrorsStr + '; ';
-              lValidationErrorsStr := lValidationErrorsStr + lValidationError.Key + ': ' + lValidationError.Value;
-            end;
-            Log.Warn('[%s] %s [PathInfo "%s"] - %d %s (Validation Errors: "%s")',
-              [
-                lEValidException.Classname,
-                lEValidException.Message,
-                GetRequestShortDescription(AContext.Request),
-                lEValidException.HTTPStatusCode,
-                HTTP_STATUS.ReasonStringFor(lEValidException.HTTPStatusCode),
-                lValidationErrorsStr
-              ], LOGGERPRO_TAG)
-          end
-          else
-            Log.Error('[%s] %s [PathInfo "%s"] - %d %s%s',
-              [
-                E.Classname,
-                E.Message,
-                GetRequestShortDescription(AContext.Request),
-                E.HTTPStatusCode,
-                HTTP_STATUS.ReasonStringFor(E.HTTPStatusCode),
-                IfThen(E.DetailedMessage <> '', ' - ' + E.DetailedMessage)
-              ], LOGGERPRO_TAG);
-          if Assigned(lSelectedController) then
-          begin
-            lSelectedController.ResponseStatus(E.HTTPStatusCode);
-            lSelectedController.Render(E);
-          end
-          else
-          begin
-            // the class name is reconnaissance: DEBUG only, as in TMVCRenderer.Render(AException)
-            {$IFDEF DEBUG}
-            SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message, E.Classname);
-            {$ELSE}
-            SendHTTPStatus(AContext, E.HTTPStatusCode, E.Message);
-            {$ENDIF}
-          end;
-        end;
-        AContext.Data['__duration'] := Format('%dms', [AStopWatch.ElapsedMilliseconds]);
-        fOnRouterLog(rlsRouteFound, AContext);
-      end;
       on Ex: Exception do
       begin
-        if Ex is ESqidsException then
-        begin
-          lRespStatus := HTTP_STATUS.BadRequest;
-        end
-        else
-        begin
-          lRespStatus := HTTP_STATUS.InternalServerError;
-        end;
-
-        if not CustomExceptionHandling(Ex, lSelectedController, AContext) then
-        begin
-          Log.Error('[%s] %s [PathInfo "%s"] - %d %s - Global Action Exception Handler',
-            [
-              Ex.Classname,
-              Ex.Message,
-              GetRequestShortDescription(AContext.Request),
-              lRespStatus,
-              HTTP_STATUS.ReasonStringFor(lRespStatus)
-            ], LOGGERPRO_TAG);
-          if Assigned(lSelectedController) then
-          begin
-            lSelectedController.ResponseStatus(lRespStatus);
-            lSelectedController.Render(Ex);
-          end
-          else
-          begin
-            { Same reasoning as TMVCRenderer.Render(AException): outside DEBUG
-              neither the class name nor the raw message reaches the client. }
-            {$IFDEF DEBUG}
-            SendHTTPStatus(AContext, lRespStatus,
-              Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
-            {$ELSE}
-            SendHTTPStatus(AContext, lRespStatus, MVCClientSafeExceptionMessage(Ex));
-            {$ENDIF}
-          end;
-        end;
+        HandleDispatchException(Ex, lSelectedController, AContext);
         AContext.Data['__duration'] := Format('%dms', [AStopWatch.ElapsedMilliseconds]);
         fOnRouterLog(rlsRouteFound, AContext);
       end;

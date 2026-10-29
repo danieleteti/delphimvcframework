@@ -92,6 +92,10 @@ type
     [MVCPath('/boom')]
     [MVCHTTPMethod([httpGET])]
     function Boom: String;
+    // the same exception that the filter on /fexc/filter-toomany raises
+    [MVCPath('/toomany')]
+    [MVCHTTPMethod([httpGET])]
+    function TooMany: String;
   end;
 
   [MVCPath('/ftrace')]
@@ -166,6 +170,11 @@ begin
   raise Exception.Create('boom');
 end;
 
+function TFilterExceptionsController.TooMany: String;
+begin
+  raise EMVCException.Create(http_status.TooManyRequests, 'Too many attempts');
+end;
+
 { TFilterTraceController }
 
 function TFilterTraceController.Echo: String;
@@ -231,6 +240,11 @@ begin
     procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
     begin
       raise EMVCException.Create(http_status.Forbidden, 'no way');
+    end));
+  AEngine.Use(OnlyFor('/fexc/filter-toomany',
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+    begin
+      raise EMVCException.Create(http_status.TooManyRequests, 'Too many attempts');
     end));
 
   AEngine.Use(RedirectHTTPFilter(['/fold'], '/fnew', rdkPermanent));
