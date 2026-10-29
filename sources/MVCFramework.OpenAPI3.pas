@@ -104,6 +104,10 @@ type
       const AName: string);
     procedure EnsureRecordSchemaRegistered(ATypeInfo: PTypeInfo;
       const AName: string);
+    procedure ApplyFieldAttributes(const AObjectSchema, AFieldSchema: TJsonObject;
+      const AKey: string; const AAttributes: TArray<TCustomAttribute>; const ATypeInfo: PTypeInfo);
+    procedure SetExampleFromFields(const AObjectSchema: TJsonObject;
+      AType: TRttiType);
     function NewRefObject(const ASchemaName: string): TJsonObject;
   public
     constructor Create(AComponentsSchemas: TJsonObject);
@@ -234,7 +238,9 @@ uses
   System.SyncObjs,
   MVCFramework.Router,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  MVCFramework.Validators,
+  MVCFramework.Logger;
 
 function IsNullableTypeInfo_External(ATypeInfo: PTypeInfo): Boolean;
 begin
@@ -309,6 +315,9 @@ end;
 
 procedure TMVCOpenAPISchemaBuilder.FillPrimitiveSchema(
   const ASchema: TJsonObject; ATypeInfo: PTypeInfo);
+var
+  lTypeData: PTypeData;
+  I: Integer;
 begin
   // Coarse mapping over the kinds the framework actually binds at the
   // route layer. Unknown kinds fall back to "string".
@@ -403,8 +412,11 @@ begin
       end;
     tkEnumeration:
       begin
-        // OpenAPI enum: string with restricted values
+        // the names, as the serializer writes an enum by default (estEnumName) and the Swagger path lists them
         ASchema.S['type'] := 'string';
+        lTypeData := GetTypeData(ATypeInfo);
+        for I := lTypeData.MinValue to lTypeData.MaxValue do
+          ASchema.A['enum'].Add(GetEnumName(ATypeInfo, I));
       end;
   else
     ASchema.S['type'] := 'string';
@@ -458,6 +470,216 @@ begin
   end;
 end;
 
+// MVCSwagJSONSchemaField with an explicit schema type (the stXxx overload): its name and its type, as the
+// Swagger path documents them. nil without one, or for an enum, object or array: the field's own schema says more.
+function NewSchemaForExplicitType(const AAttributes: TArray<TCustomAttribute>; var AKey: string): TJsonObject;
+var
+  lAttr: TCustomAttribute;
+  lField: MVCSwagJSONSchemaFieldAttribute;
+  lType, lFormat: string;
+begin
+  Result := nil;
+  for lAttr in AAttributes do
+    if lAttr is MVCSwagJSONSchemaFieldAttribute then
+    begin
+      lField := MVCSwagJSONSchemaFieldAttribute(lAttr);
+      if lField.SchemaFieldType = stUnknown then
+        Exit;
+      AKey := lField.FieldName;
+      lFormat := '';
+      case lField.SchemaFieldType of
+        stInteger: begin lType := 'integer'; lFormat := 'int32'; end;
+        stInt64: begin lType := 'integer'; lFormat := 'int64'; end;
+        stNumber: begin lType := 'number'; lFormat := 'double'; end;
+        stDateTime: begin lType := 'string'; lFormat := 'date-time'; end;
+        stDate: begin lType := 'string'; lFormat := 'date'; end;
+        stTime: begin lType := 'string'; lFormat := 'time'; end;
+        stGuid: begin lType := 'string'; lFormat := 'uuid'; end;
+        stBoolean: lType := 'boolean';
+        stString, stChar: lType := 'string';
+      else
+        Exit;
+      end;
+      Result := TJsonObject.Create;
+      Result.S['type'] := lType;
+      if lFormat <> '' then
+        Result.S['format'] := lFormat;
+      Exit;
+    end;
+end;
+
+// a field of a type without RTTI (array[0..3] of Byte) has no TRttiType
+function HandleOf(const AType: TRttiType): PTypeInfo;
+begin
+  if AType = nil then
+    Result := nil
+  else
+    Result := AType.Handle;
+end;
+
+// MVCEnumSerialization on the field: the values the serializer writes, as the Swagger path lists them
+procedure ApplyEnumSerialization(const ASchema: TJsonObject; const ATypeInfo: PTypeInfo;
+  const AAttribute: MVCEnumSerializationAttribute);
+var
+  lTypeData: PTypeData;
+  lValue: string;
+  I: Integer;
+begin
+  if AAttribute.SerializationType = estEnumName then
+    Exit; // the names FillPrimitiveSchema wrote
+  ASchema.Remove('enum');
+  if AAttribute.SerializationType = estEnumOrd then
+  begin
+    ASchema.S['type'] := 'integer';
+    lTypeData := GetTypeData(ATypeInfo);
+    for I := lTypeData.MinValue to lTypeData.MaxValue do
+      ASchema.A['enum'].Add(I);
+  end
+  else
+    for lValue in AAttribute.MappedValues do
+      ASchema.A['enum'].Add(lValue);
+end;
+
+// MVCSwagExample: the value, written as JSON text, as the one item of "examples"
+function ParseExample(const AJson, AKey: string): TJsonArray;
+begin
+  try
+    // a scalar ('42', '"abc"', 'null') is not a document for the parser: wrapped in the array it goes in
+    Result := TJsonBaseObject.Parse('[' + AJson + ']') as TJsonArray;
+  except
+    on EJsonParserException do
+      Result := nil;
+  end;
+  if (Result = nil) or (Result.Count <> 1) then
+  begin
+    Result.Free;
+    raise EMVCSWAGError.CreateFmt('Example of field "%s" is not valid JSON: %s', [AKey, AJson]);
+  end;
+end;
+
+// The per-field attributes the Swagger path reads, on the one schema a type has here: requests and
+// responses share it. The property keeps the serializer's name, not the one in MVCSwagJSONSchemaField.
+procedure TMVCOpenAPISchemaBuilder.ApplyFieldAttributes(const AObjectSchema,
+  AFieldSchema: TJsonObject; const AKey: string;
+  const AAttributes: TArray<TCustomAttribute>; const ATypeInfo: PTypeInfo);
+var
+  lAttr: TCustomAttribute;
+  lField: MVCSwagJSONSchemaFieldAttribute;
+  lType, lRef: string;
+  lIsNumber, lRequired, lNullable: Boolean;
+  lSerialization: TMVCSwagFieldSerializationType;
+  lTypes: TJsonArray;
+begin
+  // the JSON type the keywords apply to: a Nullable* is already ["<type>", "null"], a $ref has none
+  if AFieldSchema.Types['type'] = jdtArray then
+    lType := AFieldSchema.A['type'].S[0]
+  else
+    lType := AFieldSchema.S['type'];
+  // an enum takes no string or number keyword, as in the Swagger path
+  if AFieldSchema.Contains('enum') then
+    lType := '';
+  lIsNumber := (lType = 'integer') or (lType = 'number');
+  lRequired := False;
+  lNullable := False;
+  lSerialization := fsNotDefined;
+  for lAttr in AAttributes do
+    if lAttr is MVCSwagJSONSchemaFieldAttribute then
+    begin
+      lField := MVCSwagJSONSchemaFieldAttribute(lAttr);
+      if lField.Description <> '' then
+        AFieldSchema.S['description'] := lField.Description;
+      lRequired := lRequired or lField.Required;
+      lNullable := lField.Nullable;
+      if (lType = 'string') and (lField.MinLength > 0) then
+        AFieldSchema.I['minLength'] := lField.MinLength;
+      if (lType = 'string') and (lField.MaxLength > 0) then
+        AFieldSchema.I['maxLength'] := lField.MaxLength;
+      if lField.FieldSerializationType <> fsNotDefined then
+        lSerialization := lField.FieldSerializationType;
+    end
+    else if lAttr is MVCRequired then
+      lRequired := True
+    else if (lAttr is MVCEnumSerializationAttribute) and AFieldSchema.Contains('enum') then
+      ApplyEnumSerialization(AFieldSchema, ATypeInfo, MVCEnumSerializationAttribute(lAttr))
+    else if lAttr is MVCSWAGFieldSerializationTypeAttribute then
+      lSerialization := MVCSWAGFieldSerializationTypeAttribute(lAttr).FieldSerializationType
+    else if (lAttr is MVCSwagExampleAttribute) and (MVCSwagExampleAttribute(lAttr).JsonValue <> '') then
+      AFieldSchema.A['examples'] := ParseExample(MVCSwagExampleAttribute(lAttr).JsonValue, AKey)
+    else if (lAttr is MVCSwagFormatAttribute) and ((lType = 'string') or lIsNumber) then
+      AFieldSchema.S['format'] := MVCSwagFormatAttribute(lAttr).Value
+    else if (lAttr is MVCSwagMaxLengthAttribute) and (lType = 'string') then
+      AFieldSchema.L['maxLength'] := MVCSwagMaxLengthAttribute(lAttr).Value
+    else if (lAttr is MVCSwagPatternAttribute) and (lType = 'string') then
+      AFieldSchema.S['pattern'] := MVCSwagPatternAttribute(lAttr).Value
+    else if (lAttr is MVCSwagMinimumAttribute) and lIsNumber then
+      AFieldSchema.L['minimum'] := MVCSwagMinimumAttribute(lAttr).Value
+    else if (lAttr is MVCSwagMaximumAttribute) and lIsNumber then
+      AFieldSchema.L['maximum'] := MVCSwagMaximumAttribute(lAttr).Value;
+
+  if lRequired then
+    AObjectSchema.A['required'].Add(AKey);
+  if lNullable then
+  begin
+    if AFieldSchema.Types['type'] = jdtString then
+    begin
+      lTypes := TJsonArray.Create;
+      lTypes.Add(AFieldSchema.S['type']);
+      lTypes.Add('null');
+      AFieldSchema.A['type'] := lTypes;
+      if AFieldSchema.Contains('enum') then
+        AFieldSchema.A['enum'].Add(TJsonObject(nil)); // null is one of the values too
+    end
+    else if AFieldSchema.Contains('$ref') then
+    begin
+      // a $ref has no type to extend
+      lRef := AFieldSchema.S['$ref'];
+      AFieldSchema.Remove('$ref');
+      AFieldSchema.A['anyOf'].AddObject.S['$ref'] := lRef;
+      AFieldSchema.A['anyOf'].AddObject.S['type'] := 'null';
+    end;
+  end;
+  // fsFillSingle and fsEditable (in some requests only) have no JSON Schema keyword: the property stays as it is
+  if lSerialization = fsReadOnly then
+    AFieldSchema.B['readOnly'] := True;
+end;
+
+function IsRequired(const AObjectSchema: TJsonObject; const AKey: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if AObjectSchema.Types['required'] = jdtArray then
+    for I := 0 to AObjectSchema.A['required'].Count - 1 do
+      if AObjectSchema.A['required'].S[I] = AKey then
+        Exit(True);
+end;
+
+// MVCSwagExampleFromFields (#929): the sample request body, made of the properties that have an example,
+// the readOnly ones left out. A required field without an example is left out with a warning, as in the
+// Swagger path: the example is a sample, the document stays valid.
+procedure TMVCOpenAPISchemaBuilder.SetExampleFromFields(
+  const AObjectSchema: TJsonObject; AType: TRttiType);
+var
+  lProps, lProp, lExample: TJsonObject;
+  I: Integer;
+begin
+  if not TMVCSerializerHelper.AttributeExists<MVCSwagExampleFromFieldsAttribute>(AType.GetAttributes) then
+    Exit;
+  lProps := AObjectSchema.O['properties'];
+  lExample := AObjectSchema.A['examples'].AddObject;
+  for I := 0 to lProps.Count - 1 do
+  begin
+    lProp := lProps.Items[I].ObjectValue;
+    if lProp.B['readOnly'] then
+      Continue;
+    if lProp.Contains('examples') then
+      lExample.Values[lProps.Names[I]] := lProp.A['examples'].Values[0]
+    else if IsRequired(AObjectSchema, lProps.Names[I]) then
+      LogW(Format('MVCSwagExampleFromFields: the required field "%s" of "%s" has no MVCSwagExample; ' +
+        'it is left out of the example', [lProps.Names[I], AType.Name]));
+  end;
+end;
+
 procedure TMVCOpenAPISchemaBuilder.EnsureClassSchemaRegistered(
   AClass: TClass; const AName: string);
 var
@@ -465,6 +687,7 @@ var
   lRttiType: TRttiType;
   lProp: TRttiProperty;
   lFieldSchema: TJsonObject;
+  lKey: string;
 begin
   if fComponentsSchemas.Contains(AName) then Exit;
 
@@ -486,10 +709,15 @@ begin
       if lProp.Visibility <> mvPublic then Continue;
     end;
     if TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(lProp) then Continue;
-    lFieldSchema := NewSchemaForRttiType(lProp.PropertyType);
     // the key the serializer writes: MVCNameAs, MVCNameCase, MVCNameCaseDefault
-    lProps.O[TMVCSerializerHelper.GetKeyName(lProp, lRttiType)] := lFieldSchema;  // takes ownership
+    lKey := TMVCSerializerHelper.GetKeyName(lProp, lRttiType);
+    lFieldSchema := NewSchemaForExplicitType(lProp.GetAttributes, lKey);
+    if lFieldSchema = nil then
+      lFieldSchema := NewSchemaForRttiType(lProp.PropertyType);
+    lProps.O[lKey] := lFieldSchema;  // takes ownership
+    ApplyFieldAttributes(lSchema, lFieldSchema, lKey, lProp.GetAttributes, HandleOf(lProp.PropertyType));
   end;
+  SetExampleFromFields(lSchema, lRttiType);
 end;
 
 procedure TMVCOpenAPISchemaBuilder.EnsureRecordSchemaRegistered(
@@ -499,6 +727,7 @@ var
   lRttiType: TRttiType;
   lField: TRttiField;
   lFieldSchema: TJsonObject;
+  lKey: string;
 begin
   if fComponentsSchemas.Contains(AName) then Exit;
 
@@ -511,10 +740,15 @@ begin
   for lField in lRttiType.GetFields do
   begin
     if TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(lField) then Continue;
-    lFieldSchema := NewSchemaForRttiType(lField.FieldType);
     // the key the serializer writes for a record field
-    lProps.O[TMVCSerializerHelper.GetKeyName(lField, lRttiType)] := lFieldSchema;
+    lKey := TMVCSerializerHelper.GetKeyName(lField, lRttiType);
+    lFieldSchema := NewSchemaForExplicitType(lField.GetAttributes, lKey);
+    if lFieldSchema = nil then
+      lFieldSchema := NewSchemaForRttiType(lField.FieldType);
+    lProps.O[lKey] := lFieldSchema;
+    ApplyFieldAttributes(lSchema, lFieldSchema, lKey, lField.GetAttributes, HandleOf(lField.FieldType));
   end;
+  SetExampleFromFields(lSchema, lRttiType);
 end;
 
 function TMVCOpenAPISchemaBuilder.NewSchemaFor(

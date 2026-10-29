@@ -1568,13 +1568,12 @@ the same socket.
   new attribute writes on its definition an example object made only of the fields that have a `[MVCSwagExample]`:
   `"examples": [{...}]` in the OpenAPI 3
   document, `"example": {...}` in the Swagger 2.0 one. Swagger UI shows that object as the sample body and puts it
-  in "Try it out". The names and the field filters are those of the schema (a `fsReadOnly` id is not in a request
-  body), a nested object or array is in the example only through the example on its own property, and every field
-  is still documented in `properties`. In a request body a required field without an example raises an error when
-  the document is built; a response model is not checked. Not applied to a class nested inline in another one.
-  Additive: a class without the attribute is emitted as before. Like `[MVCSwagExample]`, it is read by the
-  Swagger document (`SwaggerHTTPFilter`, `TMVCSwaggerMiddleware`), not by the native OpenAPI 3.1 emitter
-  (`OpenAPIHTTPFilter`).
+  in "Try it out". The names are those of the schema and a `readOnly` field is not part of it, a nested object or
+  array is in the example only through the example on its own property, and every field is still documented in
+  `properties`. A required field without an example is left out with a warning in the log. Not applied to a class
+  nested inline in another one. Additive: a class without the attribute is emitted as before. Read by the Swagger
+  document (`SwaggerHTTPFilter`, `TMVCSwaggerMiddleware`) and by the native OpenAPI 3.1 emitter
+  (`OpenAPIHTTPFilter`) alike.
 
 - **An exception raised in an HTTP filter is answered as the dispatcher answers it (issue #933).** In DEBUG builds
   the message of an exception raised in an HTTP filter was prefixed with its class name:
@@ -1613,6 +1612,23 @@ the same socket.
   and Apache and the Indy bridge are unchanged. The ISAPI test run now also checks the DLL addressed in the URL. Fix
   by Frederic Schenckel (PR #925): thank you, Frederic.
 
+- **OpenAPI 3.1 (native emitter): the DTO documentation attributes, as the Swagger document reads them.**
+  `OpenAPIHTTPFilter` (and the deprecated `TMVCOpenAPI3Middleware`) built a component schema from the property type
+  and the serializer's name only, so a DTO lost its descriptions, required list, nullability and examples, and a
+  Minimal API route, which only the native emitter documents, could not have them. A class or record now gets what
+  the Swagger document gives it: `MVCSwagJSONSchemaField` (description, required, nullable as a type with `"null"`
+  or `anyOf` with `{"type":"null"}` on a `$ref`, min/max length, and with an explicit schema type its name and
+  type), `MVCRequired`, `MVCSwagExample` (`"examples"`), `MVCSwagFormat`, `MVCSwagMaxLength`, `MVCSwagPattern`,
+  `MVCSwagMinimum`, `MVCSwagMaximum` where they apply to the type, `MVCSwagExampleFromFields`, and an enum lists
+  its values (the names, or the ordinals and mapped values of `MVCEnumSerialization`).
+- **Swagger/OpenAPI: `fsReadOnly` is `readOnly`, in both documents.** A field with `fsReadOnly` was left out of the
+  request schemas of the Swagger document, and a model used both as a request body and as a response got one
+  definition, the one of the first action documented: the read-only field was then missing from the response or
+  present in the request, depending on the order of the actions. It is now in every schema with
+  `"readOnly": true` (Swagger UI leaves it out of a request sample), as the native emitter documents it. A model
+  whose fields still differ between a create, an update and a response (`fsFillSingle`, `fsEditable`) gets a
+  definition for each use, named with the suffix `New`, `Custom` or `Response` (and a number when that name is taken
+  too), instead of sharing the first one.
 - **Trace: passwords, tokens and secrets in a body or query string are logged as `***` (request in issue #931).**
   The value of a JSON member (string, number, flat array or object), form field, query string field or XML element
   whose name has `password`, `passwd`, `passphrase`, `pwd`, `secret`, `token`, `jwt`, `api key`, `private key`,

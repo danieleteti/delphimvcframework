@@ -41,6 +41,7 @@ type
     fRequired: Boolean;
     fNullable: Boolean;
     fExample: string;
+    fReadOnly: Boolean;
 
     function GetTypeName: string; virtual;
 
@@ -67,6 +68,12 @@ type
     /// sample request body from it instead of from the type alone.
     /// </summary>
     property Example: string read fExample write fExample;
+
+    /// <summary>
+    /// The value is set by the server: it is in the responses and not sent in a request. Written as the
+    /// readOnly keyword, the same in Swagger 2.0 and OpenAPI 3; Swagger UI leaves it out of a request sample.
+    /// </summary>
+    property ReadOnly: Boolean read fReadOnly write fReadOnly;
   end;
 
 implementation
@@ -85,6 +92,7 @@ begin
   Result.Required := Self.fRequired;
   Result.Nullable := Self.fNullable;
   Result.Example := Self.fExample;
+  Result.ReadOnly := Self.fReadOnly;
 end;
 
 constructor TJsonField.Create;
@@ -127,6 +135,8 @@ begin
     Result.AddPair('description', fDescription);
   if fNullable then
     Result.AddPair('nullable', TJSONBool.Create(True));
+  if fReadOnly then
+    Result.AddPair('readOnly', TJSONBool.Create(True));
   if not fExample.IsEmpty then
   begin
     vExample := TJSONObject.ParseJSONValue(fExample);

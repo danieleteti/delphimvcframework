@@ -199,8 +199,9 @@ type
   /// <summary>
   /// On a class or record used as a body or response model: its definition gets an example object made of the
   /// fields that have a MVCSwagExample, and only of those. Swagger UI uses it as the sample body, so the sample of a
-  /// PATCH changes only those fields and the others stay absent. In a request body a required field without an
-  /// example raises an error when the document is built. Not applied to a class nested inline in another one.
+  /// PATCH changes only those fields and the others stay absent. A readOnly field is not part of it; a required field
+  /// without an example is left out with a warning in the log. Read by the Swagger document and by the native
+  /// OpenAPI 3.1 emitter alike. Not applied to a class nested inline in another one.
   /// </summary>
   MVCSwagExampleFromFieldsAttribute = class(TCustomAttribute)
   end;
@@ -273,7 +274,8 @@ type
   /// Use this attribute on the model field to define whether the field needs to be serialized according to the URI method verb.
   /// This can be applied to the serialization of a JSON field in the body of a POST, PUT or PATCH request,
   /// or also to the return of a JSON from a GET, POST, PUT or PATCH response.
-  /// This attribute can be configured with fsReadOnly in which it serializes only in the response of a GET;
+  /// This attribute can be configured with fsReadOnly in which the field is in every schema, marked readOnly (in the
+  /// responses, not sent in a request: the native OpenAPI 3.1 emitter documents it the same way);
   /// fsFillSingle in which it serializes only in the request of a POST and in the response of a GET;
   /// or fsEditable in which it serializes the field in all cases of response and request of the verbs POST, PUT or PATCH.
   /// </summary>
@@ -368,6 +370,9 @@ type
     class function TypeKindToMVCSwagSchemaType(aPropType: TRttiType): TMVCSwagSchemaType; static;
     class function TypeIsEnumerable(const aRttiType: TRttiType): Boolean; static;
     class function ApplyModelName(const Value: String; const Singular: String; const Plural: String): String;
+    class function RegisterDefinition(const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aComparer: IComparer<TSwagDefinition>; const aName, aDistinctSuffix: string;
+      const aSchema: TJSONObject): string;
     class procedure AddRequestModelDefinition(
       const aSwagReqParam:  TSwagRequestParameter;
       const aParamSchemaClass: TClass;
@@ -467,7 +472,8 @@ uses
   Json.Schema.Field.DateTimes,
   Json.Schema.Field.Enums,
   Json.Schema.Field.Booleans,
-  MVCFramework.Validators;
+  MVCFramework.Validators,
+  MVCFramework.Logger;
 
 { Swagger 2.0: a parameter of type "array" describes its elements in "items", and the
   allowed values belong there too (issue #377). A schema-based parameter (body) is left alone. }
@@ -504,6 +510,61 @@ end;
 
 { TSwaggerUtils }
 
+// The definition of aSchema, under aName; or under aName + aDistinctSuffix when aName already holds a different
+// schema of the same model: with empty definition-name suffixes a create, an update and a response share a name,
+// and fsFillSingle / fsEditable make them differ. Each use is then documented as it is, whatever the order of the
+// actions. Takes aSchema.
+class function TMVCSwagger.RegisterDefinition(const aSwagDefinitions: TObjectList<TSwagDefinition>;
+  const aComparer: IComparer<TSwagDefinition>; const aName, aDistinctSuffix: string;
+  const aSchema: TJSONObject): string;
+
+  function Find(const aDefinitionName: string): TSwagDefinition;
+  var
+    lDefinition: TSwagDefinition;
+  begin
+    for lDefinition in aSwagDefinitions do
+      if SameText(lDefinition.Name, aDefinitionName) then
+        Exit(lDefinition);
+    Result := nil;
+  end;
+
+var
+  lExisting: TSwagDefinition;
+  lDefinition: TSwagDefinition;
+  lSchemaText: string;
+  lCounter: Integer;
+begin
+  lSchemaText := aSchema.ToString;
+  Result := aName;
+  lExisting := Find(Result);
+  lCounter := 1;
+  // the suffixed name can be taken too (a model named like it, a third use): a number then
+  while Assigned(lExisting) and (lExisting.JsonSchema.ToString <> lSchemaText) do
+  begin
+    Result := aName + aDistinctSuffix;
+    if lCounter > 1 then
+      Result := Result + IntToStr(lCounter);
+    Inc(lCounter);
+    lExisting := Find(Result);
+  end;
+  if Assigned(lExisting) then
+  begin
+    aSchema.Free;
+    Exit;
+  end;
+  lDefinition := TSwagDefinition.Create;
+  try
+    lDefinition.Name := Result;
+    lDefinition.JsonSchema := aSchema;
+  except
+    lDefinition.Free;
+    aSchema.Free;
+    raise;
+  end;
+  aSwagDefinitions.Add(lDefinition);
+  aSwagDefinitions.Sort(aComparer);
+end;
+
 class procedure TMVCSwagger.AddRequestModelDefinition(
   const aSwagReqParam: TSwagRequestParameter; const aParamSchemaClass: TClass;
   const aSwagDefinitions: TObjectList<TSwagDefinition>;
@@ -513,9 +574,8 @@ class procedure TMVCSwagger.AddRequestModelDefinition(
   const aRecordType: TRttiType);
 var
   lClassName: String;
-  lSwagDef: TSwagDefinition;
-  lSwagDefinition: TSwagDefinition;
-  lIndex: Integer;
+  lDistinctSuffix: string;
+  lSchema: TJSONObject;
   lJsonSchema: TJsonFieldArray;
 begin
   if Assigned(aRecordType) then
@@ -526,39 +586,20 @@ begin
     lClassName := lClassName.Remove(0, 1);
 
   if aHTTPMethod = httpPOST then
-    lClassName := lClassName + SchemaObjectDefinitionNameSuffixForNewRequest
+  begin
+    lClassName := lClassName + SchemaObjectDefinitionNameSuffixForNewRequest;
+    lDistinctSuffix := 'New';
+  end
   else
+  begin
     lClassName := lClassName + SchemaObjectDefinitionNameSuffixForCustomRequest;
-
-  aSwagDefinitions.Sort(aComparer);
-  lSwagDef := TSwagDefinition.Create;
-  try
-    lSwagDef.Name := lClassName;
-    if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, aComparer) then
-    begin
-      lSwagDefinition := TSwagDefinition.Create;
-      try
-        lSwagDefinition.Name := lClassName;
-        if Assigned(aRecordType) then
-          lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(
-            aRecordType.QualifiedName,
-            aHTTPMethod, False,
-            False)
-        else
-          lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
-            aParamSchemaClass,
-            aHTTPMethod, False,
-            False);
-        aSwagDefinitions.Add(lSwagDefinition);
-        lSwagDefinition := nil; // ownership transferred to aSwagDefinitions
-      except
-        lSwagDefinition.Free;
-        raise;
-      end;
-    end;
-  finally
-    lSwagDef.Free;
+    lDistinctSuffix := 'Custom';
   end;
+  if Assigned(aRecordType) then
+    lSchema := ExtractJsonSchemaFromRecord(aRecordType.QualifiedName, aHTTPMethod, False, False)
+  else
+    lSchema := ExtractJsonSchemaFromClass(aParamSchemaClass, aHTTPMethod, False, False);
+  lClassName := RegisterDefinition(aSwagDefinitions, aComparer, lClassName, lDistinctSuffix, lSchema);
   if aMVCSwagParamType = ptArray then
   begin
     lJsonSchema := TJsonFieldArray.Create;
@@ -640,12 +681,27 @@ begin
       Exit(MVCSwagExampleAttribute(lAttr).JsonValue);
 end;
 
+// fsReadOnly, from MVCSWAGFieldSerializationType or from MVCSwagJSONSchemaField: the field is in every schema,
+// marked readOnly, so a class has the same definition as a request body and as a response
+function SwagIsReadOnly(const aAttributes: TArray<TCustomAttribute>): Boolean;
+var
+  lAttr: TCustomAttribute;
+begin
+  Result := False;
+  for lAttr in aAttributes do
+    if ((lAttr is MVCSWAGFieldSerializationTypeAttribute) and
+        (MVCSWAGFieldSerializationTypeAttribute(lAttr).FieldSerializationType = fsReadOnly)) or
+       ((lAttr is MVCSwagJSONSchemaFieldAttribute) and
+        (MVCSwagJSONSchemaFieldAttribute(lAttr).FieldSerializationType = fsReadOnly)) then
+      Exit(True);
+end;
+
 // MVCSwagExampleFromFields: the example of the schema is an object made of the fields that have an example.
 // The fields are the ones already in the schema (filters and names applied); a nested object or array is in it
-// only through the example on its own property. A request body is a sample to send: there a required field
-// needs an example; a response is not, and is left as it is.
-procedure SetExampleFromFields(const aJsonRoot: TJsonFieldObject; const aRttiType: TRttiType;
-  const aIsResponseSchema: Boolean);
+// only through the example on its own property; a readOnly field is not part of it. A required field without
+// an example is left out with a warning, as in the native OpenAPI 3.1 emitter: the example is a sample, the
+// document stays valid.
+procedure SetExampleFromFields(const aJsonRoot: TJsonFieldObject; const aRttiType: TRttiType);
 var
   lExample: TJSONObject;
   lValue: TJSONValue;
@@ -659,12 +715,13 @@ begin
     for I := 0 to aJsonRoot.FieldsCount - 1 do
     begin
       lField := aJsonRoot.Fields[I];
+      if lField.ReadOnly then
+        Continue;
       if lField.Example.IsEmpty then
       begin
-        if lField.Required and not aIsResponseSchema then
-          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError, Format(
-            'SWAGGER Definition Error: "%s" has MVCSwagExampleFromFields, so its required field "%s" needs a MVCSwagExample',
-            [aRttiType.Name, lField.Name]));
+        if lField.Required then
+          LogW(Format('MVCSwagExampleFromFields: the required field "%s" of "%s" has no MVCSwagExample; ' +
+            'it is left out of the example', [lField.Name, aRttiType.Name]));
         Continue;
       end;
       lValue := TJSONObject.ParseJSONValue(lField.Example);
@@ -913,6 +970,7 @@ begin
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
       lJsonField.Example := SwagExampleOf(lProp.GetAttributes);
+      lJsonField.ReadOnly := SwagIsReadOnly(lProp.GetAttributes);
       ApplySwagSchemaKeywords(lJsonField, lProp.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
         TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
@@ -952,7 +1010,7 @@ begin
     end;
 
     ExtractJsonSchemaFromClass(lJsonRoot, aClass, aHTTPMethod, aIsResponseSchema);
-    SetExampleFromFields(lJsonRoot, fRttiContext.GetType(aClass), aIsResponseSchema);
+    SetExampleFromFields(lJsonRoot, fRttiContext.GetType(aClass));
     Result := lJsonSchema.ToJsonSchema;
   finally
     lJsonSchema.Free;
@@ -996,7 +1054,7 @@ begin
             'SWAGGER Definition Error: Type "'+aTypeName+'" not found. Is the unit name included to create a fully '+
             'qualified name for "'+aTypeName+'"?');
     ExtractJsonSchemaFromRecord(lTypeInfo, lJsonRoot, aHTTPMethod, aIsResponseSchema);
-    SetExampleFromFields(lJsonRoot, lTypeInfo, aIsResponseSchema);
+    SetExampleFromFields(lJsonRoot, lTypeInfo);
     Result := lJsonSchema.ToJsonSchema;
   finally
     lJsonSchema.Free;
@@ -1157,6 +1215,7 @@ begin
       lJsonField.Required := lFieldSchemaDef.Required;
       lJsonField.Nullable := lFieldSchemaDef.Nullable;
       lJsonField.Example := SwagExampleOf(lField.GetAttributes);
+      lJsonField.ReadOnly := SwagIsReadOnly(lField.GetAttributes);
       ApplySwagSchemaKeywords(lJsonField, lField.GetAttributes);
       if not lFieldSchemaDef.Description.IsEmpty then
       begin
@@ -1185,10 +1244,8 @@ var
   lSwagResponse: TSwagResponse;
   lSwagResponsesAttr: MVCSwagResponsesAttribute;
   lComparer: IComparer<TSwagDefinition>;
-  lSwagDefinition: TSwagDefinition;
-  lSwagDef: TSwagDefinition;
   lClassName: string;
-  lIndex: Integer;
+  lResponseSchema: TJSONObject;
   lJsonSchema: TJsonFieldArray;
   lEnvelope, lDataRef: TJsonFieldObject;
   lModelClass: TClass;
@@ -1287,29 +1344,11 @@ begin
           if lClassName.ToUpper.StartsWith('T') then
             lClassName := lClassName.Remove(0, 1);
           lClassName := lClassName + SchemaObjectDefinitionNameSuffixForResponse;
-          aSwagDefinitions.Sort(lComparer);
-          lSwagDef := TSwagDefinition.Create;
-          try
-            lSwagDef.Name := lClassName;
-            if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
-            begin              
-              lSwagDefinition := TSwagDefinition.Create;
-              try
-                lSwagDefinition.Name := lClassName;
-                if Assigned(lSwagResponsesAttr.RecordType) then
-                  lSwagDefinition.JsonSchema := ExtractJsonSchemaFromRecord(lSwagResponsesAttr.RecordType.QualifiedName, aHTTPMethod, True, False)
-                else
-                  lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, aHTTPMethod, True, False);
-                aSwagDefinitions.Add(lSwagDefinition);
-                lSwagDefinition := nil; // ownership transferred to aSwagDefinitions
-              except
-                lSwagDefinition.Free;
-                raise;
-              end;
-            end;
-          finally
-            lSwagDef.Free;
-          end;
+          if Assigned(lSwagResponsesAttr.RecordType) then
+            lResponseSchema := ExtractJsonSchemaFromRecord(lSwagResponsesAttr.RecordType.QualifiedName, aHTTPMethod, True, False)
+          else
+            lResponseSchema := ExtractJsonSchemaFromClass(lModelClass, aHTTPMethod, True, False);
+          lClassName := RegisterDefinition(aSwagDefinitions, lComparer, lClassName, 'Response', lResponseSchema);
           if lSwagResponsesAttr.DataEnvelope then
           begin
             // {"data": <model>} or {"data": [<model>]}
@@ -1921,7 +1960,7 @@ begin
   Result := False;
   case aFieldSerializationType of
     fsNotDefined: Result := True;
-    fsReadOnly  : Result := aIsResponseSchema;
+    fsReadOnly  : Result := True; // in every schema, marked readOnly: see SwagIsReadOnly
     fsFillSingle: Result := (aMVCHTTPMethod in [httpGET, httpPOST]);
     fsEditable  : Result := (aMVCHTTPMethod in [httpGET, httpPOST, httpPUT, httpPATCH]);
   end;

@@ -46,6 +46,7 @@ uses
   MVCFramework.Swagger.Commons,
   MVCFramework.Serializer.Commons,
   MVCFramework.Nullables,
+  MVCFramework.Validators,
   MVCFramework.Server.Intf;
 
 const
@@ -186,7 +187,7 @@ type
     property ParentID: Integer read fParentID write fParentID;
   end;
 
-  // not registered on any engine: its document cannot be built
+  // its required field has no example: left out of the example, as the native emitter does
   [MVCSwagExampleFromFields]
   TSwagTestRequiredWithoutExample = class
   private
@@ -213,6 +214,34 @@ type
     property ID: Integer read fID write fID;
     [MVCSwagExample('"Podatelna"')]
     property Name: string read fName write fName;
+  end;
+
+  // a code set on create only: in a POST body and in a response, not in a PUT body
+  TSwagTestCreateOnce = class
+  private
+    fName: string;
+    fCode: string;
+  public
+    property Name: string read fName write fName;
+    [MVCSWAGFieldSerializationType(fsFillSingle)]
+    property Code: string read fCode write fCode;
+  end;
+
+  [MVCPath('/api/once')]
+  TSwagTestCreateOnceController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpPUT])]
+    [MVCSwagParam(plBody, 'item', 'Item', TSwagTestCreateOnce)]
+    procedure UpdateOne;
+    [MVCPath]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCSwagParam(plBody, 'item', 'Item', TSwagTestCreateOnce)]
+    procedure CreateOne;
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagResponses(200, 'OK', TSwagTestCreateOnce)]
+    procedure GetOne;
   end;
 
   [MVCPath('/api/answers')]
@@ -251,6 +280,107 @@ type
     property Code: NullableInt32 read fCode write fCode;
     [MVCNameAs('nick')]
     property NickName: string read fNickName write fNickName;
+  end;
+
+  TNativeColor = (ncRed, ncGreen);
+
+  // the per-field documentation attributes of the Swagger path, read by the native emitter too
+  TNativeDocumented = class
+  private
+    fTitle: string;
+    fCode: string;
+    fParentID: Integer;
+    fParent: TNativeItem;
+    fQuantity: Integer;
+    fCreatedBy: string;
+    fVersion: Integer;
+    fNote: string;
+    fStamp: string;
+    fColor: TNativeColor;
+    fShade: TNativeColor;
+  public
+    [MVCSwagJSONSchemaField('swagTitle', 'The title', True, False, 3, 40)]
+    [MVCSwagExample('"Podatelna"')]
+    property Title: string read fTitle write fTitle;
+    [MVCRequired]
+    [MVCSwagMaxLength(10)]
+    [MVCSwagPattern('^[A-Z]+$')]
+    [MVCSwagFormat('code')]
+    property Code: string read fCode write fCode;
+    [MVCSwagJSONSchemaField('parentId', 'Parent record. null = no parent.', False, True)]
+    [MVCSwagExample('null')]
+    property ParentID: Integer read fParentID write fParentID;
+    [MVCSwagJSONSchemaField('parent', 'The parent item', False, True)]
+    property Parent: TNativeItem read fParent write fParent;
+    [MVCSwagMinimum(1)]
+    [MVCSwagMaximum(99)]
+    [MVCSwagFormat('int64')]
+    [MVCSwagPattern('^[0-9]+$')] // no keyword of an integer
+    property Quantity: Integer read fQuantity write fQuantity;
+    [MVCSWAGFieldSerializationType(fsReadOnly)]
+    property CreatedBy: string read fCreatedBy write fCreatedBy;
+    [MVCSwagJSONSchemaField(stInteger, 'version', 'Set by the server', False, False, 0, 0, fsReadOnly)]
+    property Version: Integer read fVersion write fVersion;
+    [MVCSwagJSONSchemaField(stString, 'note', 'Sent and received', False, False, 0, 0, fsEditable)]
+    property Note: string read fNote write fNote;
+    // an explicit schema type: the name and type of the attribute, as the Swagger path documents them
+    [MVCSwagJSONSchemaField(stDateTime, 'createdOn', 'When it was created', False)]
+    property Stamp: string read fStamp write fStamp;
+    // string keywords do not apply to an enum, as in the Swagger path
+    [MVCSwagPattern('^r')]
+    [MVCSwagMaxLength(3)]
+    property Color: TNativeColor read fColor write fColor;
+    [MVCSwagJSONSchemaField('shade', 'A nullable enum', False, True)]
+    property Shade: TNativeColor read fShade write fShade;
+  end;
+
+  // the same attributes, so that the Minimal API route registers a schema of its own
+  TNativeDocumentedMinimal = class(TNativeDocumented);
+
+  TNativeDocRecord = record
+    [MVCSwagJSONSchemaField('code', 'The code', True)]
+    [MVCSwagExample('"A1"')]
+    Code: string;
+    [MVCSwagMaximum(10)]
+    Level: Integer;
+    Buf: array[0..3] of Byte; // a type without RTTI
+  end;
+
+  // a PATCH body (issue #929): the sample holds only the fields with an example
+  [MVCSwagExampleFromFields]
+  TNativePatch = class
+  private
+    fID: Integer;
+    fDescription: string;
+    fParentID: Integer;
+  public
+    [MVCSWAGFieldSerializationType(fsReadOnly)]
+    [MVCSwagExample('7')]
+    property ID: Integer read fID write fID;
+    [MVCSwagExample('"Podatelna"')]
+    property Description: string read fDescription write fDescription;
+    [MVCSwagJSONSchemaField('parentId', 'Required, and without an example', True)]
+    property ParentID: Integer read fParentID write fParentID;
+  end;
+
+  // not registered on any engine: its example is not JSON
+  TNativeBadExample = class
+  private
+    fName: string;
+  public
+    [MVCSwagExample('not json')]
+    property Name: string read fName write fName;
+  end;
+
+  [MVCPath('/api/documented')]
+  TNativeDocumentedController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpPOST])]
+    function CreateOne([MVCFromBody] const ADoc: TNativeDocumented): TNativeDocumented;
+    [MVCPath('/record')]
+    [MVCHTTPMethod([httpGET])]
+    function GetRecord: TNativeDocRecord;
   end;
 
   TSwagTestAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler)
@@ -331,9 +461,15 @@ type
     [Test]
     procedure OpenAPI3ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
     [Test]
-    procedure ExampleFromFieldsRejectsARequiredFieldWithoutExample;
+    procedure ExampleFromFieldsLeavesOutARequiredFieldWithoutExample;
+    // fsReadOnly is readOnly in every schema, as in the native emitter: a request one too
+    [Test]
+    procedure AReadOnlyFieldIsInTheRequestSchemaAsReadOnly;
     [Test]
     procedure ExampleFromFieldsOnAResponseNeedsNoRequiredExample;
+    // a model that differs between a create, an update and a response: each use has a definition of its own
+    [Test]
+    procedure EachUseOfAModelIsDocumentedAsItIs;
     [Test]
     procedure JWTBundleIsDocumentedAsTheJWTMiddleware;
     [Test]
@@ -349,11 +485,23 @@ type
     fEngine: TMVCEngine; // the server does not own its engine
     FDoc: TJsonObject;
     FText: string;
+    function Schema(const AName: string): TJsonObject;
+    procedure AssertDocumentedFields(const ASchemaName: string);
   public
     [SetupFixture]
     procedure SetupFixture;
     [TeardownFixture]
     procedure TeardownFixture;
+    [Test]
+    procedure FieldAttributesOnAControllerBody;
+    [Test]
+    procedure FieldAttributesOnAMinimalAPIBody;
+    [Test]
+    procedure FieldAttributesOnARecord;
+    [Test]
+    procedure ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+    [Test]
+    procedure ExampleThatIsNotJSONRaises;
     [Test]
     procedure PathConstraintsBecomeTemplates;
     [Test]
@@ -447,8 +595,30 @@ procedure TSwagTestResponseController.GetOne;
 begin
 end;
 
+procedure TSwagTestCreateOnceController.UpdateOne;
+begin
+end;
+
+procedure TSwagTestCreateOnceController.CreateOne;
+begin
+end;
+
+procedure TSwagTestCreateOnceController.GetOne;
+begin
+end;
+
 procedure TSwagTestBatchController.FilterByTypes;
 begin
+end;
+
+function TNativeDocumentedController.CreateOne(const ADoc: TNativeDocumented): TNativeDocumented;
+begin
+  Result := TNativeDocumented.Create;
+end;
+
+function TNativeDocumentedController.GetRecord: TNativeDocRecord;
+begin
+  Result := Default(TNativeDocRecord);
 end;
 
 { Saves a document in DMVC_SWAGGER_DUMP_DIR, when set, for the external validators }
@@ -694,7 +864,7 @@ begin
   try
     lSchema := O['definitions'].O['SwagTestItemPatch'];
     Assert.IsTrue(lSchema.Types['example'] = jdtObject, lSchema.ToJSON);
-    // the read-only id has an example but is not in a request body
+    // the read-only id has an example but is not part of the sample
     Assert.AreEqual(1, lSchema.O['example'].Count, lSchema.ToJSON);
     Assert.AreEqual('Podatelna', lSchema.O['example'].S[KeyOf('Description')], lSchema.ToJSON);
     // left out of the sample, still documented
@@ -720,25 +890,39 @@ begin
   end;
 end;
 
-procedure TSwaggerMiddlewareTests.ExampleFromFieldsRejectsARequiredFieldWithoutExample;
+procedure TSwaggerMiddlewareTests.ExampleFromFieldsLeavesOutARequiredFieldWithoutExample;
 var
   lContext: TRttiContext;
   lMethod: TRttiMethod;
   lDefinitions: TObjectList<TSwagDefinition>;
+  lParam: TSwagRequestParameter;
 begin
   lMethod := lContext.GetType(TSwagTestRequiredWithoutExampleActions).GetMethod('Patch');
   lDefinitions := TObjectList<TSwagDefinition>.Create;
   try
-    Assert.WillRaise(
-      procedure
-      var
-        lParam: TSwagRequestParameter;
-      begin
-        for lParam in TMVCSwagger.GetParamsFromMethod('/items', lMethod, lDefinitions, httpPATCH, nil, '', '') do
-          lParam.Free; // only when nothing was raised
-      end, EMVCSWAGError);
+    for lParam in TMVCSwagger.GetParamsFromMethod('/items', lMethod, lDefinitions, httpPATCH, nil, '', '') do
+      lParam.Free;
+    Assert.AreEqual(1, Integer(lDefinitions.Count)); // NativeInt on Win64
+    Assert.IsTrue(lDefinitions[0].JsonSchema.ToString.Contains('"examples":[{}]'), lDefinitions[0].JsonSchema.ToString);
   finally
     lDefinitions.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.AReadOnlyFieldIsInTheRequestSchemaAsReadOnly;
+begin
+  with GetJSON('/swagger.json') do
+  try
+    Assert.IsTrue(O['definitions'].O['SwagTestItemPatch'].O['properties'].O[KeyOf('ID')].B['readOnly'], ToJSON);
+  finally
+    Free;
+  end;
+  with GetJSON('/openapi3.json') do
+  try
+    Assert.IsTrue(O['components'].O['schemas'].O['SwagTestItemPatch'].O['properties'].O[KeyOf('ID')].B['readOnly'],
+      ToJSON);
+  finally
+    Free;
   end;
 end;
 
@@ -1025,6 +1209,7 @@ const
   JWT_NO_LOGIN_BUNDLE_TEST_PORT = 8912;
   JWT_GROUP_BUNDLES_TEST_PORT = 8913;
   RESPONSE_EXAMPLE_TEST_PORT = 8914;
+  MODEL_USES_TEST_PORT = 8915;
   SWAGGER_TEST_SECRET = 'swagger_tests_secret_not_used_to_sign_anything_7c1f';
 
 function SwagTestClaimsSetup: TJWTClaimsSetup;
@@ -1193,6 +1378,34 @@ begin
   end;
 end;
 
+procedure TSwaggerMiddlewareTests.EachUseOfAModelIsDocumentedAsItIs;
+var
+  lEngine: TMVCEngine;
+  lInfo: TMVCSwaggerInfo;
+  lDoc, lOperations: TJsonObject;
+
+  function HasCode(const ARef: string): Boolean;
+  begin
+    Assert.IsTrue(ARef.StartsWith('#/definitions/'), ARef);
+    Result := lDoc.O['definitions'].O[ARef.Substring(Length('#/definitions/'))].O['properties'].Contains(KeyOf('Code'));
+  end;
+
+begin
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSwagTestCreateOnceController);
+  lInfo.Title := 'Swagger model uses tests';
+  lEngine.Use(SwaggerHTTPFilter(lEngine, lInfo, '/swagger.json'));
+  lDoc := TJsonObject.Parse(DocumentsOf(lEngine, MODEL_USES_TEST_PORT, ['/swagger.json'])[0]) as TJsonObject;
+  try
+    lOperations := lDoc.O['paths'].O['/api/once'];
+    Assert.IsTrue(HasCode(lOperations.O['post'].A['parameters'].O[0].O['schema'].S['$ref']), 'create: ' + lDoc.ToJSON);
+    Assert.IsFalse(HasCode(lOperations.O['put'].A['parameters'].O[0].O['schema'].S['$ref']), 'update: ' + lDoc.ToJSON);
+    Assert.IsTrue(HasCode(lOperations.O['get'].O['responses'].O['200'].O['schema'].S['$ref']), 'response: ' + lDoc.ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
 procedure TSwaggerMiddlewareTests.ExampleFromFieldsOnAResponseNeedsNoRequiredExample;
 var
   lEngine: TMVCEngine;
@@ -1224,6 +1437,17 @@ begin
   lInfo.Version := 'v1';
   lEngine := TMVCEngine.Create;
   lEngine.AddController(TSwagTestSqidsController);
+  lEngine.AddController(TNativeDocumentedController);
+  lEngine.Root.MapPost<TNativeDocumentedMinimal>('/minimal/documented',
+    function(ADoc: TNativeDocumentedMinimal): IMVCResponse
+    begin
+      Result := Ok('created');
+    end);
+  lEngine.Root.MapPatch<TNativePatch>('/minimal/patch',
+    function(APatch: TNativePatch): IMVCResponse
+    begin
+      Result := Ok('patched');
+    end);
   lEngine.Root.MapGet<Integer>('/items/($id:int)',
     function(ID: Integer): IMVCResponse
     begin
@@ -1270,6 +1494,129 @@ begin
   FServer.Stop;
   FServer := nil;
   FreeAndNil(fEngine);
+end;
+
+function TNativeOpenAPITests.Schema(const AName: string): TJsonObject;
+begin
+  Result := FDoc.O['components'].O['schemas'].O[AName];
+end;
+
+procedure TNativeOpenAPITests.AssertDocumentedFields(const ASchemaName: string);
+var
+  lSchema, lProps, lProp: TJsonObject;
+  lRequired: TJsonArray;
+begin
+  lSchema := Schema(ASchemaName);
+  lProps := lSchema.O['properties'];
+  {MVCSwagJSONSchemaField: the serializer's name, not the attribute's}
+  Assert.IsFalse(lProps.Contains('swagTitle'), 'the attribute field name');
+  lProp := lProps.O[KeyOf('Title')];
+  Assert.AreEqual('The title', lProp.S['description'], 'title description');
+  Assert.AreEqual(3, lProp.I['minLength'], 'title minLength');
+  Assert.AreEqual(40, lProp.I['maxLength'], 'title maxLength');
+  Assert.AreEqual('["Podatelna"]', lProp.A['examples'].ToJSON, 'title examples');
+  {MVCRequired + MVCSwagMaxLength / Pattern / Format}
+  lProp := lProps.O[KeyOf('Code')];
+  Assert.AreEqual(10, lProp.I['maxLength'], 'code maxLength');
+  Assert.AreEqual('^[A-Z]+$', lProp.S['pattern'], 'code pattern');
+  Assert.AreEqual('code', lProp.S['format'], 'code format');
+  {required: the MVCSwagJSONSchemaField default and MVCRequired, nothing else}
+  lRequired := lSchema.A['required'];
+  Assert.AreEqual('["' + KeyOf('Title') + '","' + KeyOf('Code') + '"]', lRequired.ToJSON, 'required');
+  {nullable: a type array with "null", as for Nullable* types}
+  lProp := lProps.O[KeyOf('ParentID')];
+  Assert.AreEqual('["integer","null"]', lProp.A['type'].ToJSON, 'parentId type');
+  Assert.AreEqual('[null]', lProp.A['examples'].ToJSON, 'parentId examples');
+  {a nullable $ref has no type to extend: anyOf}
+  lProp := lProps.O[KeyOf('Parent')];
+  Assert.IsFalse(lProp.Contains('$ref'), 'parent $ref beside anyOf');
+  Assert.AreEqual('[{"$ref":"#/components/schemas/TNativeItem"},{"type":"null"}]', lProp.A['anyOf'].ToJSON, 'parent anyOf');
+  Assert.AreEqual('The parent item', lProp.S['description'], 'parent description');
+  {numeric keywords; pattern does not apply to an integer}
+  lProp := lProps.O[KeyOf('Quantity')];
+  Assert.AreEqual(1, lProp.I['minimum'], 'quantity minimum');
+  Assert.AreEqual(99, lProp.I['maximum'], 'quantity maximum');
+  Assert.AreEqual('int64', lProp.S['format'], 'quantity format');
+  Assert.IsFalse(lProp.Contains('pattern'), 'quantity pattern');
+  {fsReadOnly is readOnly (one schema for request and response); fsEditable leaves the property as it is}
+  Assert.IsTrue(lProps.O[KeyOf('CreatedBy')].B['readOnly'], 'createdBy readOnly');
+  Assert.IsTrue(lProps.O[KeyOf('Version')].B['readOnly'], 'version readOnly');
+  Assert.AreEqual('Sent and received', lProps.O[KeyOf('Note')].S['description'], 'note description');
+  {an explicit schema type: its name and type, as in the Swagger path}
+  Assert.IsFalse(lProps.Contains(KeyOf('Stamp')), 'stamp: the attribute names it');
+  Assert.AreEqual('string', lProps.O['createdOn'].S['type'], 'createdOn type');
+  Assert.AreEqual('date-time', lProps.O['createdOn'].S['format'], 'createdOn format');
+  {no string keyword on an enum, as in the Swagger path}
+  Assert.IsFalse(lProps.O[KeyOf('Color')].Contains('pattern'), 'color pattern');
+  Assert.IsFalse(lProps.O[KeyOf('Color')].Contains('maxLength'), 'color maxLength');
+  Assert.AreEqual('["ncRed","ncGreen"]', lProps.O[KeyOf('Color')].A['enum'].ToJSON, 'color enum');
+  {a nullable enum: null is a type and a value}
+  Assert.AreEqual('["string","null"]', lProps.O[KeyOf('Shade')].A['type'].ToJSON, 'shade type');
+  Assert.AreEqual('["ncRed","ncGreen",null]', lProps.O[KeyOf('Shade')].A['enum'].ToJSON, 'shade enum');
+  Assert.IsFalse(lProps.O[KeyOf('Note')].Contains('readOnly'), 'note readOnly');
+  {no MVCSwagExampleFromFields: no example of the whole object}
+  Assert.IsFalse(lSchema.Contains('examples'), 'schema examples');
+end;
+
+procedure TNativeOpenAPITests.FieldAttributesOnAControllerBody;
+begin
+  Assert.AreEqual('#/components/schemas/TNativeDocumented', FDoc.O['paths'].O['/api/documented'].O['post']
+    .O['requestBody'].O['content'].O['application/json'].O['schema'].S['$ref']);
+  AssertDocumentedFields('TNativeDocumented');
+end;
+
+procedure TNativeOpenAPITests.FieldAttributesOnAMinimalAPIBody;
+begin
+  Assert.AreEqual('#/components/schemas/TNativeDocumentedMinimal', FDoc.O['paths'].O['/minimal/documented'].O['post']
+    .O['requestBody'].O['content'].O['application/json'].O['schema'].S['$ref']);
+  AssertDocumentedFields('TNativeDocumentedMinimal');
+end;
+
+procedure TNativeOpenAPITests.FieldAttributesOnARecord;
+var
+  lSchema: TJsonObject;
+begin
+  Assert.AreEqual('#/components/schemas/TNativeDocRecord', FDoc.O['paths'].O['/api/documented/record'].O['get']
+    .O['responses'].O['200'].O['content'].O['application/json'].O['schema'].S['$ref']);
+  lSchema := Schema('TNativeDocRecord');
+  Assert.AreEqual('The code', lSchema.O['properties'].O[KeyOf('Code')].S['description']);
+  Assert.AreEqual('["A1"]', lSchema.O['properties'].O[KeyOf('Code')].A['examples'].ToJSON);
+  Assert.AreEqual(10, lSchema.O['properties'].O[KeyOf('Level')].I['maximum']);
+  Assert.AreEqual('["' + KeyOf('Code') + '"]', lSchema.A['required'].ToJSON);
+end;
+
+procedure TNativeOpenAPITests.ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+var
+  lSchema: TJsonObject;
+begin
+  Assert.AreEqual('#/components/schemas/TNativePatch', FDoc.O['paths'].O['/minimal/patch'].O['patch']
+    .O['requestBody'].O['content'].O['application/json'].O['schema'].S['$ref']);
+  lSchema := Schema('TNativePatch');
+  {the readOnly id is not sent; the required parentId has no example: left out, no error (the schema is also a response's)}
+  Assert.AreEqual('[{"' + KeyOf('Description') + '":"Podatelna"}]', lSchema.A['examples'].ToJSON);
+  Assert.AreEqual('[7]', lSchema.O['properties'].O[KeyOf('ID')].A['examples'].ToJSON, 'the id keeps its own example');
+end;
+
+procedure TNativeOpenAPITests.ExampleThatIsNotJSONRaises;
+var
+  lSchemas: TJsonObject;
+  lBuilder: TMVCOpenAPISchemaBuilder;
+begin
+  lSchemas := TJsonObject.Create;
+  try
+    lBuilder := TMVCOpenAPISchemaBuilder.Create(lSchemas);
+    try
+      Assert.WillRaiseWithMessage(
+        procedure
+        begin
+          lBuilder.NewSchemaFor(TypeInfo(TNativeBadExample)).Free;
+        end, EMVCSWAGError, Format('Example of field "%s" is not valid JSON: not json', [KeyOf('Name')]));
+    finally
+      lBuilder.Free;
+    end;
+  finally
+    lSchemas.Free;
+  end;
 end;
 
 procedure TNativeOpenAPITests.PathConstraintsBecomeTemplates;
