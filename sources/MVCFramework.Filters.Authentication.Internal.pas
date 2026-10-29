@@ -22,11 +22,12 @@
 //
 // ***************************************************************************
 //
-// INTERNAL - not an API: shared by the authentication filters and the deprecated
-// middleware; goes away with them in 4.0. The mechanisms of the bundles of
-// MVCFramework.Filters.Authentication (login, check, cookie, blacklist, custom
-// authentication), which the deprecated middleware of MVCFramework.Middleware.JWT
-// and MVCFramework.Middleware.Authentication are built on too.
+// INTERNAL - not an API: shared by the authentication filters, the deprecated
+// middleware and the Swagger document; goes away with them in 4.0. The
+// mechanisms of the bundles of MVCFramework.Filters.Authentication (login,
+// check, cookie, blacklist, custom authentication), which the deprecated
+// middleware of MVCFramework.Middleware.JWT and
+// MVCFramework.Middleware.Authentication are built on too.
 
 unit MVCFramework.Filters.Authentication.Internal;
 
@@ -40,6 +41,14 @@ uses
   MVCFramework.Filters.Authentication;         // TMVCOnAcceptTokenProc, TMVCOnNewJWTToBlackList
 
 type
+  // A JWTAuthenticationBundle, as the Swagger document (MVCFramework.Filters.Swagger.Internal) finds it among
+  // TMVCEngine.FilterBundles: the bearer scheme, and the login documented as the one of the JWT middleware.
+  IMVCJWTAuthenticationBundle = interface(IMVCFilterBundle)
+    ['{6C1E2B57-0F4D-4E8A-9B3C-7A5D2E81F094}']
+    // '': no login answering {"token": ...} (none, or the refresh-token login answering the pair)
+    function LoginURL: string;
+  end;
+
   // The JWT in the Authorization header: JWTAuthenticationBundle, TMVCJWTAuthenticationMiddleware.
   TMVCJWTAuthenticationCore = record
     Handler: IMVCAuthenticationHandler;         // nil: every action needs a token, and every token is authorized

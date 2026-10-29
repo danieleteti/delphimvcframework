@@ -1439,6 +1439,11 @@ type
     /// raises EMVCConfigException when the bundle has no endpoint part. Call AGroup.Use(ABundle) instead.
     /// </summary>
     function UseBundleOnGroup(const ABundle: IMVCFilterBundle): TArray<TMVCEndpointFilter>;
+    /// <summary>
+    /// The bundles registered with Use: the engine-wide ones, then those of the Minimal API route groups (their
+    /// HTTP part is on the engine too). For a filter that describes the others, such as the Swagger document.
+    /// </summary>
+    function FilterBundles: TArray<IMVCFilterBundle>;
 
     procedure SendHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
       const AReasonString: string = ''; const AClassName: string = '');
@@ -2848,6 +2853,11 @@ end;
 function TMVCEngine.UseBundleOnGroup(const ABundle: IMVCFilterBundle): TArray<TMVCEndpointFilter>;
 begin
   Result := RegisterBundle(ABundle, bsGroup);
+end;
+
+function TMVCEngine.FilterBundles: TArray<IMVCFilterBundle>;
+begin
+  Result := fEngineBundles + fGroupBundles;
 end;
 
 function ContainsBundle(const ABundles: TArray<IMVCFilterBundle>; const ABundle: IMVCFilterBundle): Boolean;

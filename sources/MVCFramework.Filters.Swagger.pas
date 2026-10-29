@@ -47,7 +47,9 @@ type
 // Swagger HTTPFilter — exposes the Swagger JSON document at AURL: Swagger 2.0
 // by default, OpenAPI 3 with ASpecVersion = ssvOpenAPI3 (same URL, same
 // attributes). Same document as TMVCSwaggerMiddleware: auto-discovers the JWT
-// middleware, supports MVCSwagAuthentication / MVCSwagJSONSchemaField /
+// middleware and JWTAuthenticationBundle (the bearer scheme, and the login
+// unless LoginURL is '' or the bundle has a refresh token store), supports
+// MVCSwagAuthentication / MVCSwagJSONSchemaField /
 // MVCSWAGDefaultModel / MVCRequiresAuthentication / TMVCActiveRecordController
 // CRUD doc generation — features the newer OpenAPI 3 helper does not yet cover.
 // SwagDoc is required.

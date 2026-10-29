@@ -1571,6 +1571,16 @@ the same socket.
   `EMVCSessionExpiredException` stops the session when there is one (also in the dispatcher: without a session
   factory it no longer turns into a configuration error).
 
+- **Swagger: `JWTAuthenticationBundle` is documented as the JWT middleware is (issue #932).** `SwaggerHTTPFilter`
+  and `TMVCSwaggerMiddleware` looked for the deprecated `TMVCJWTAuthenticationMiddleware` only: after the move to
+  `AEngine.Use(JWTAuthenticationBundle(...))` the document lost the login path and the `bearer` security
+  definition. Now a JWT bundle, engine-wide or on a Minimal API route group, gives the same login operation on its
+  `LoginURL` (headers `jwtusername`/`jwtpassword`), the `basic` definition that operation refers to, and `bearer`.
+  With `LoginURL = ''`, or with a `RefreshTokenStore` (its login answers the token pair, not the documented
+  `{"token": ...}`), the document has `bearer` only. Two bundles on the same login URL give one path. The document
+  of a server with the JWT middleware does not change. `JWTCookieAuthenticationBundle` is not documented, as the
+  cookie middleware was not. New: `TMVCEngine.FilterBundles`, the bundles registered with `Use`.
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it

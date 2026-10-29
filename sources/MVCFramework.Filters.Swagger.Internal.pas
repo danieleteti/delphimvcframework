@@ -107,7 +107,9 @@ uses
   System.StrUtils,
   MVCFramework.Serializer.Commons,
   Json.Common.Helpers,
-  MVCFramework.ActiveRecord;
+  MVCFramework.ActiveRecord,
+  MVCFramework.Filters.Authentication,          // TMVCJWTDefaults
+  MVCFramework.Filters.Authentication.Internal; // IMVCJWTAuthenticationBundle
 
 { An action inherited by more controllers mapped on the same MVCPath produces the
   same URI more than once (the router serves the first one only). Documenting it
@@ -617,14 +619,66 @@ var
   lObjType: TRttiType;
   lJWTType: TRttiType;
   lJwtUrlProp: TRttiProperty;
-  lJwtUrlSegment: string;
+  lBundle: IMVCFilterBundle;
+  lJWTBundle: IMVCJWTAuthenticationBundle;
+  lHasJWTBundle: Boolean;
+  lHasJWTBundleLogin: Boolean;
   lSecurityDefsBearer: TSwagSecurityDefinition;
   lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
+
+  procedure AddJWTLoginPath(ALoginURL: string; const AUserNameHeaderName, APasswordHeaderName: string);
+  var
+    lIndex: Integer;
+  begin
+    if ALoginURL.StartsWith(ASwagDoc.BasePath) then
+      ALoginURL := ALoginURL.Remove(0, ASwagDoc.BasePath.Length);
+    if not ALoginURL.StartsWith('/') then
+      ALoginURL := '/' + ALoginURL;
+    // more bundles on the same login URL: the first one answers it
+    for lIndex := 0 to Pred(ASwagDoc.Paths.Count) do
+      if SameText(ASwagDoc.Paths[lIndex].Uri, ALoginURL) then
+        Exit;
+    ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(ALoginURL, AUserNameHeaderName, APasswordHeaderName));
+  end;
+
 begin
   lJwtUrlProp := nil;
   lJWTMiddleware := FindJWTMiddleware(fEngine, lJWTClass);
+  if Assigned(lJWTMiddleware) then
+  begin
+    lRttiContext := TRttiContext.Create;
+    try
+      lObjType := lRttiContext.GetType(lJWTMiddleware.ClassInfo);
+      lJwtUrlProp := lObjType.GetProperty('LoginURLSegment');
+      if Assigned(lJwtUrlProp) then
+      begin
+        // Path operation Middleware JWT
+        lJWTType := lRttiContext.GetType(lJWTClass);
+        AddJWTLoginPath(lJwtUrlProp.GetValue(lJWTMiddleware).AsString,
+          lJWTType.GetProperty('UserNameHeaderName').GetValue(lJWTMiddleware).AsString,
+          lJWTType.GetProperty('PasswordHeaderName').GetValue(lJWTMiddleware).AsString);
+      end;
+    finally
+      lRttiContext.Free;
+    end;
+  end;
 
-  if Assigned(lJWTMiddleware) or (sauBasic in fAuthentications) then
+  // JWTAuthenticationBundle, engine-wide or on a route group: its login is on the engine either way
+  lHasJWTBundle := False;
+  lHasJWTBundleLogin := False;
+  for lBundle in fEngine.FilterBundles do
+    if Supports(lBundle, IMVCJWTAuthenticationBundle, lJWTBundle) then
+    begin
+      lHasJWTBundle := True;
+      if lJWTBundle.LoginURL <> '' then
+      begin
+        lHasJWTBundleLogin := True;
+        AddJWTLoginPath(lJWTBundle.LoginURL, TMVCJWTDefaults.USERNAME_HEADER, TMVCJWTDefaults.PASSWORD_HEADER);
+      end;
+    end;
+
+  // the JWT login operation refers to it (and MVCSwagAuthentication(atBasic), with sauBasic)
+  if Assigned(lJWTMiddleware) or lHasJWTBundleLogin or (sauBasic in fAuthentications) then
   begin
     lSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
     try
@@ -637,33 +691,8 @@ begin
     end;
   end;
 
-  if Assigned(lJWTMiddleware) then
-  begin
-    lRttiContext := TRttiContext.Create;
-    try
-      lObjType := lRttiContext.GetType(lJWTMiddleware.ClassInfo);
-      lJwtUrlProp := lObjType.GetProperty('LoginURLSegment');
-      if Assigned(lJwtUrlProp) then
-      begin
-        lJwtUrlSegment := lJwtUrlProp.GetValue(lJWTMiddleware).AsString;
-        if lJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
-          lJwtUrlSegment := lJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
-        if not lJwtUrlSegment.StartsWith('/') then
-          lJwtUrlSegment.Insert(0, '/');
-
-        // Path operation Middleware JWT
-        lJWTType := lRttiContext.GetType(lJWTClass);
-        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(lJwtUrlSegment,
-          lJWTType.GetProperty('UserNameHeaderName').GetValue(lJWTMiddleware).AsString,
-          lJWTType.GetProperty('PasswordHeaderName').GetValue(lJWTMiddleware).AsString));
-      end;
-    finally
-      lRttiContext.Free;
-    end;
-  end;
-
   // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
-  if (sauBearer in fAuthentications) or
+  if (sauBearer in fAuthentications) or lHasJWTBundle or
    (Assigned(lJWTMiddleware) and Assigned(lJwtUrlProp)) then
   begin
     {OpenAPI 3 has a real bearer scheme: Swagger UI then takes the raw token and

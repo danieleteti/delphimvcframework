@@ -215,6 +215,7 @@ type
     fCaseEngine: TMVCEngine;
     FClient: THTTPClient;
     function GetDoc(const APath: string; const APort: Integer = SWAGGER_TEST_PORT): string;
+    function DocumentsOf(const AEngine: TMVCEngine; const APort: Integer; const APaths: array of string): TArray<string>;
     function GetJSON(const APath: string; const APort: Integer = SWAGGER_TEST_PORT): TJsonObject;
   public
     [SetupFixture]
@@ -266,6 +267,12 @@ type
     procedure FieldExampleIsWrittenAsExample;
     [Test]
     procedure OpenAPI3FieldExampleIsWrittenAsExamples;
+    [Test]
+    procedure JWTBundleIsDocumentedAsTheJWTMiddleware;
+    [Test]
+    procedure JWTBundleWithoutLoginHasTheBearerSchemeOnly;
+    [Test]
+    procedure JWTBundlesOnGroupsDocumentEachLoginOnce;
   end;
 
   [TestFixture]
@@ -304,6 +311,7 @@ uses
   MVCFramework.Middleware.JWT,
   MVCFramework.Middleware.Swagger,
   MVCFramework.Filters,
+  MVCFramework.Filters.Authentication,
   MVCFramework.Filters.Swagger,
   MVCFramework.Filters.OpenAPI,
   MVCFramework.MinimalAPI,
@@ -872,6 +880,178 @@ begin
     FClient.CustomHeaders['Authorization'] := '';
   end;
   Assert.IsTrue(lResp.StatusCode in [200, 201, 204], 'with token: ' + lResp.StatusCode.ToString);
+end;
+
+const
+  JWT_BUNDLE_TEST_PORT = 8911;
+  JWT_NO_LOGIN_BUNDLE_TEST_PORT = 8912;
+  JWT_GROUP_BUNDLES_TEST_PORT = 8913;
+  SWAGGER_TEST_SECRET = 'swagger_tests_secret_not_used_to_sign_anything_7c1f';
+
+function SwagTestClaimsSetup: TJWTClaimsSetup;
+begin
+  Result :=
+    procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := 'swagger-tests';
+      JWT.Claims.ExpirationTime := Now + 1;
+    end;
+end;
+
+// The Swagger documents of AEngine: Swagger 2.0 from the filter (/swagger.json) and from the
+// deprecated middleware (/mw/swagger.json), OpenAPI 3 from the filter (/openapi3.json).
+procedure UseSwaggerDocuments(const AEngine: TMVCEngine);
+var
+  lInfo: TMVCSwaggerInfo;
+begin
+  lInfo.Title := 'Swagger JWT bundle tests';
+  lInfo.Version := 'v1';
+  AEngine.Use(SwaggerHTTPFilter(AEngine, lInfo, '/swagger.json'));
+  AEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(AEngine, lInfo, '/mw/swagger.json'));
+  AEngine.Use(SwaggerHTTPFilter(AEngine, lInfo, '/openapi3.json', JWT_DEFAULT_DESCRIPTION, [], '', '', '',
+    [psHTTP, psHTTPS], ssvOpenAPI3));
+end;
+
+// The documents at APaths, served by AEngine on a server of its own; AEngine is freed.
+function TSwaggerMiddlewareTests.DocumentsOf(const AEngine: TMVCEngine; const APort: Integer;
+  const APaths: array of string): TArray<string>;
+var
+  lServer: IMVCServer;
+  I: Integer;
+begin
+  SetLength(Result, Length(APaths));
+  try
+    lServer := TMVCServerFactory.CreateIndyDirect(AEngine);
+    lServer.Listen(APort);
+    try
+      for I := 0 to High(APaths) do
+        Result[I] := GetDoc(APaths[I], APort);
+    finally
+      lServer.Stop;
+    end;
+  finally
+    lServer := nil;
+    AEngine.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.JWTBundleIsDocumentedAsTheJWTMiddleware;
+var
+  lEngine: TMVCEngine;
+  lDocs: TArray<string>;
+  lMiddleware2, lMiddleware3, lDoc: TJsonObject;
+  I: Integer;
+begin
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSwagTestPeopleController);
+  lEngine.Use(JWTAuthenticationBundle(TSwagTestAuthHandler.Create, SwagTestClaimsSetup(), SWAGGER_TEST_SECRET, '/login'));
+  UseSwaggerDocuments(lEngine);
+  lDocs := DocumentsOf(lEngine, JWT_BUNDLE_TEST_PORT, ['/swagger.json', '/mw/swagger.json', '/openapi3.json']);
+  {the engine of the fixture has the deprecated JWT middleware, on the same login URL}
+  lMiddleware2 := GetJSON('/swagger.json');
+  lMiddleware3 := GetJSON('/filter/openapi3.json');
+  try
+    for I := 0 to 1 do
+    begin
+      lDoc := TJsonObject.Parse(lDocs[I]) as TJsonObject;
+      try
+        Assert.AreEqual(lMiddleware2.O['securityDefinitions'].ToJSON, lDoc.O['securityDefinitions'].ToJSON,
+          'securityDefinitions of document ' + I.ToString);
+        Assert.AreEqual(lMiddleware2.O['paths'].O['/login'].ToJSON, lDoc.O['paths'].O['/login'].ToJSON,
+          '/login of document ' + I.ToString);
+      finally
+        lDoc.Free;
+      end;
+    end;
+    lDoc := TJsonObject.Parse(lDocs[2]) as TJsonObject;
+    try
+      Assert.AreEqual(lMiddleware3.O['components'].O['securitySchemes'].ToJSON,
+        lDoc.O['components'].O['securitySchemes'].ToJSON, 'securitySchemes');
+      Assert.AreEqual(lMiddleware3.O['paths'].O['/login'].ToJSON, lDoc.O['paths'].O['/login'].ToJSON, '/login');
+    finally
+      lDoc.Free;
+    end;
+  finally
+    lMiddleware3.Free;
+    lMiddleware2.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.JWTBundleWithoutLoginHasTheBearerSchemeOnly;
+var
+  lEngine: TMVCEngine;
+  lOptions: TMVCJWTAuthenticationOptions;
+  lDocs: TArray<string>;
+  lMiddleware2, lMiddleware3, lDoc: TJsonObject;
+  I: Integer;
+begin
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSwagTestEnvelopeController);
+  lOptions := TMVCJWTAuthenticationOptions.Default;
+  lOptions.Handler := TSwagTestAuthHandler.Create;
+  lOptions.Secret := SWAGGER_TEST_SECRET;
+  lOptions.LoginURL := '';
+  lEngine.Use(JWTAuthenticationBundle(lOptions));
+  UseSwaggerDocuments(lEngine);
+  lDocs := DocumentsOf(lEngine, JWT_NO_LOGIN_BUNDLE_TEST_PORT, ['/swagger.json', '/mw/swagger.json', '/openapi3.json']);
+  lMiddleware2 := GetJSON('/swagger.json');
+  lMiddleware3 := GetJSON('/filter/openapi3.json');
+  try
+    for I := 0 to 2 do
+      Assert.IsFalse(lDocs[I].Contains('"' + JWT_AUTHENTICATION_TAG + '"'), 'a login in document ' + I.ToString);
+    for I := 0 to 1 do
+    begin
+      lDoc := TJsonObject.Parse(lDocs[I]) as TJsonObject;
+      try
+        Assert.AreEqual(lMiddleware2.O['securityDefinitions'].O['bearer'].ToJSON,
+          lDoc.O['securityDefinitions'].O['bearer'].ToJSON, 'bearer of document ' + I.ToString);
+        {the login operation is what refers to it}
+        Assert.IsFalse(lDoc.O['securityDefinitions'].Contains('basic'), 'basic of document ' + I.ToString);
+      finally
+        lDoc.Free;
+      end;
+    end;
+    lDoc := TJsonObject.Parse(lDocs[2]) as TJsonObject;
+    try
+      Assert.AreEqual(lMiddleware3.O['components'].O['securitySchemes'].O['bearer'].ToJSON,
+        lDoc.O['components'].O['securitySchemes'].O['bearer'].ToJSON, 'bearer');
+      Assert.IsFalse(lDoc.O['components'].O['securitySchemes'].Contains('basic'), 'basic');
+    finally
+      lDoc.Free;
+    end;
+  finally
+    lMiddleware3.Free;
+    lMiddleware2.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.JWTBundlesOnGroupsDocumentEachLoginOnce;
+var
+  lEngine: TMVCEngine;
+  lInfo: TMVCSwaggerInfo;
+  lText: string;
+  lDoc: TJsonObject;
+begin
+  lEngine := TMVCEngine.Create;
+  lEngine.Use(JWTAuthenticationBundle(TSwagTestAuthHandler.Create, SwagTestClaimsSetup(), SWAGGER_TEST_SECRET));
+  {on a group the login is on the engine all the same}
+  lEngine.Root.Prefix('/admin').Use(JWTAuthenticationBundle(TSwagTestAuthHandler.Create, SwagTestClaimsSetup(),
+    SWAGGER_TEST_SECRET, '/admin/login'));
+  {/login again: the bundle on the engine answers it}
+  lEngine.Root.Prefix('/staff').Use(JWTAuthenticationBundle(TSwagTestAuthHandler.Create, SwagTestClaimsSetup(),
+    SWAGGER_TEST_SECRET));
+  lInfo.Title := 'Swagger JWT bundle tests';
+  lEngine.Use(SwaggerHTTPFilter(lEngine, lInfo, '/swagger.json'));
+  lText := DocumentsOf(lEngine, JWT_GROUP_BUNDLES_TEST_PORT, ['/swagger.json'])[0];
+  Assert.AreEqual(lText.IndexOf('"/login"'), lText.LastIndexOf('"/login"'), 'one /login');
+  lDoc := TJsonObject.Parse(lText) as TJsonObject;
+  try
+    Assert.IsTrue(lDoc.O['paths'].Contains('/login'), '/login');
+    Assert.IsTrue(lDoc.O['paths'].Contains('/admin/login'), '/admin/login');
+    Assert.IsTrue(lDoc.O['securityDefinitions'].Contains('bearer'), 'bearer');
+  finally
+    lDoc.Free;
+  end;
 end;
 
 { TNativeOpenAPITests }

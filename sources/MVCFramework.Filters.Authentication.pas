@@ -252,6 +252,28 @@ uses
   MVCFramework.Filters.Internal,               // FilterAuthHandler, CheckHandler
   MVCFramework.Filters.Authentication.Internal; // the cores of the bundles
 
+type
+  TMVCJWTAuthenticationBundle = class(TMVCFilterBundle, IMVCJWTAuthenticationBundle)
+  private
+    fLoginURL: string;
+  public
+    constructor Create(const AHTTPFilters: TArray<TMVCHTTPFilter>; const AEndpointFilters: TArray<TMVCEndpointFilter>;
+      const ALoginURL: string);
+    function LoginURL: string;
+  end;
+
+constructor TMVCJWTAuthenticationBundle.Create(const AHTTPFilters: TArray<TMVCHTTPFilter>;
+  const AEndpointFilters: TArray<TMVCEndpointFilter>; const ALoginURL: string);
+begin
+  inherited Create(AHTTPFilters, AEndpointFilters);
+  fLoginURL := ALoginURL;
+end;
+
+function TMVCJWTAuthenticationBundle.LoginURL: string;
+begin
+  Result := fLoginURL;
+end;
+
 // --- The parts of the bundles ---------------------------------------------------
 
 // TryLogin finds out only at the first login, with a 500
@@ -548,11 +570,13 @@ var
   lHTTP: TArray<TMVCHTTPFilter>;
   lRefresh: TMVCRefreshTokenConfig;
   lOnNewJWTToBlackList: TMVCOnNewJWTToBlackList;
+  lDocumentedLoginURL: string;
 begin
   lSigner := BundleSigner(AOptions.Secret, AOptions.Signer, AOptions.HMACAlgorithm, NAME);
   // without a handler the login would give a token to anybody
   CheckHandler(AOptions.Handler, NAME);
   lHTTP := nil;
+  lDocumentedLoginURL := AOptions.LoginURL;
   if Assigned(AOptions.OnAcceptToken) or Assigned(AOptions.OnNewJWTToBlackList) then
   begin
     lOnNewJWTToBlackList := AOptions.OnNewJWTToBlackList;
@@ -568,6 +592,7 @@ begin
         'RefreshToken only; leave ClaimsSetup nil');
     lRefresh := AOptions.RefreshToken;
     lRefresh.Signer := lSigner; // the very signer the check verifies with
+    lDocumentedLoginURL := ''; // it answers the pair: the Swagger document describes {"token": ...}
     if AOptions.LoginURL <> '' then
       lHTTP := lHTTP + [JWTRefreshLoginHTTPFilter(AOptions.Handler, lSigner, AOptions.LoginURL,
         AOptions.LeewaySeconds, lRefresh, AOptions.RefreshTokenStore)];
@@ -585,8 +610,8 @@ begin
     lHTTP := lHTTP + [JWTLoginHTTPFilter(AOptions.Handler, AOptions.ClaimsSetup, lSigner, AOptions.LoginURL,
       AOptions.LeewaySeconds)];
   end;
-  Result := TMVCFilterBundle.Create(lHTTP, [JWTEndpointFilter(AOptions.Handler, lSigner, AOptions.ClaimsToCheck,
-    AOptions.LeewaySeconds, AOptions.AccessTokenParamName)]);
+  Result := TMVCJWTAuthenticationBundle.Create(lHTTP, [JWTEndpointFilter(AOptions.Handler, lSigner,
+    AOptions.ClaimsToCheck, AOptions.LeewaySeconds, AOptions.AccessTokenParamName)], lDocumentedLoginURL);
 end;
 
 function JWTCookieAuthenticationBundle(const AHandler: IMVCAuthenticationHandler; const AClaimsSetup: TJWTClaimsSetup;
