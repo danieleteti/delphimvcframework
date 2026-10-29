@@ -1,2 +1,2 @@
 const
-  LOGGERPRO_VERSION = '2.1.1';
+  LOGGERPRO_VERSION = '2.1.2';

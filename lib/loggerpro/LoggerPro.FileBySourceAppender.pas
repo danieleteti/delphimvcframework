@@ -341,8 +341,8 @@ var
 begin
   lKey := GetWriterKey(aSource, aTag, aDateStr);
 
-  // Close current writer
-  FWriters.ExtractPair(lKey);
+  // Close current writer (doOwnsValues frees it; ExtractPair would hand it back to us)
+  FWriters.Remove(lKey);
 
   // Get next sequence
   if FSequences.TryGetValue(lKey, lSeq) then
