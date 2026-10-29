@@ -222,6 +222,11 @@ type
     // no session filter: the session cannot be stopped, the exception is still answered
     [Test]
     procedure ASessionExpiredInAFilterWithoutSessionsIsAnswered;
+    // a text body without a charset goes out as UTF-8, on Indy Direct as on HTTP.sys
+    [Test]
+    [TestCase('IndyDirect', 'IndyDirect')]
+    [TestCase('HttpSys', 'HttpSys')]
+    procedure ATextBodyWithoutCharsetIsUTF8(const AHost: string);
     [Test]
     [TestCase('TestServer', '8888')]
     [TestCase('IndyDirect', '8935')]
@@ -306,11 +311,13 @@ type
     [TestCase('filter', 'filter')]
     [TestCase('middleware', 'middleware')]
     procedure AUTF8BodyIsLoggedIntact(const AKind: string);
-    // on HTTP.sys: on Indy Direct the ContentType of the response has no charset, Indy keeps it apart
+    // Indy keeps the charset apart from the ContentType: the adapter gives it back as the other hosts do
     [Test]
-    [TestCase('filter', 'filter')]
-    [TestCase('middleware', 'middleware')]
-    procedure ABodyIsLoggedInTheCharsetOfItsContentType(const AKind: string);
+    [TestCase('filter.IndyDirect', 'filter,IndyDirect')]
+    [TestCase('middleware.IndyDirect', 'middleware,IndyDirect')]
+    [TestCase('filter.HttpSys', 'filter,HttpSys')]
+    [TestCase('middleware.HttpSys', 'middleware,HttpSys')]
+    procedure ABodyIsLoggedInTheCharsetOfItsContentType(const AKind, AHost: string);
     [Test]
     [TestCase('filter', 'filter')]
     [TestCase('middleware', 'middleware')]
@@ -328,6 +335,11 @@ type
     [TestCase('filter', 'filter')]
     [TestCase('middleware', 'middleware')]
     procedure ABodyWithoutCharsetIsLoggedAsItWasWritten(const AKind: string);
+    // Indy kept the previous charset of the response (the default one) when the new Content-Type had none
+    [Test]
+    [TestCase('IndyDirect', 'IndyDirect')]
+    [TestCase('HttpSys', 'HttpSys')]
+    procedure TheContentTypeIsSentAsItWasSet(const AHost: string);
     // the middleware takes an unsigned size: only the filter can get a negative one
     [Test]
     procedure ANegativeSizeLimitDoesNotBreakAStreamResponse;
@@ -852,6 +864,40 @@ begin
   Assert.AreEqual('handled: Too many attempts', lRes.Content);
 end;
 
+procedure THTTPFilterTests.ATextBodyWithoutCharsetIsUTF8(const AHost: string);
+var
+  lEngine: TMVCEngine;
+  lServer: IMVCServer;
+  lRes: IMVCRESTResponse;
+  lAnswer: TMVCHTTPFilter;
+begin
+  lEngine := TMVCEngine.Create;
+  try
+    lAnswer :=
+      procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+      begin
+        AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+        AContext.Response.Content := 'Perch'#$00E9' '#$20AC;
+      end;
+    lEngine.Use(lAnswer);
+    if AHost = 'HttpSys' then
+      lServer := TMVCServerFactory.CreateHttpSys(lEngine)
+    else
+      lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
+    try
+      lServer.Listen(HF_STREAM_INDY_PORT, 'localhost');
+      lRes := Client(HF_STREAM_INDY_PORT).Get('/anything');
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    lEngine.Free;
+  end;
+  Assert.AreEqual(Length(TEncoding.UTF8.GetBytes('Perch'#$00E9' '#$20AC)), Length(lRes.ContentRawBytes), 'bytes');
+  Assert.AreEqual('Perch'#$00E9' '#$20AC, TEncoding.UTF8.GetString(lRes.ContentRawBytes));
+end;
+
 procedure THTTPFilterTests.ASessionExpiredInAFilterWithoutSessionsIsAnswered;
 var
   lEngine: TMVCEngine;
@@ -1339,9 +1385,9 @@ begin
   Assert.AreEqual(TRACE_JSON, LoggedBody(ResponseBodyMarker(AKind)));
 end;
 
-procedure THTTPFilterTraceTests.ABodyIsLoggedInTheCharsetOfItsContentType(const AKind: string);
+procedure THTTPFilterTraceTests.ABodyIsLoggedInTheCharsetOfItsContentType(const AKind, AHost: string);
 begin
-  Listen(AKind, 1024, 'HttpSys');
+  Listen(AKind, 1024, AHost);
   Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/latin5').StatusCode);
   Assert.AreEqual(TRACE_TURKISH, LoggedBody(ResponseBodyMarker(AKind)));
 end;
@@ -1389,6 +1435,16 @@ begin
   // as the ANSI code page of this machine has it (the text needs a Latin one to be meaningful)
   Assert.AreEqual(TEncoding.Default.GetString(TEncoding.Default.GetBytes(TRACE_ANSI)),
     LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.TheContentTypeIsSentAsItWasSet(const AHost: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  Listen('filter', 1024, AHost);
+  lRes := Client(HF_TRACE_PORT).Get('/trace931/ansi');
+  Assert.AreEqual(200, lRes.StatusCode);
+  Assert.AreEqual(TMVCMediaType.TEXT_PLAIN, lRes.HeaderValue('Content-Type'));
 end;
 
 procedure THTTPFilterTraceTests.ANegativeSizeLimitDoesNotBreakAStreamResponse;

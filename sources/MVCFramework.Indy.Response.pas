@@ -128,7 +128,11 @@ end;
 
 function TMVCIndyDirectResponse.GetContentType: string;
 begin
-  Result := FResponseInfo.ContentType;
+  // Indy keeps the charset apart (TIdEntityHeaderInfo.SetContentType): give it back as the other hosts do
+  if (FResponseInfo.CharSet = '') or (FResponseInfo.ContentType = '') then
+    Result := FResponseInfo.ContentType
+  else
+    Result := FResponseInfo.ContentType + '; charset=' + FResponseInfo.CharSet;
 end;
 
 function TMVCIndyDirectResponse.GetContentEncoding: string;
@@ -165,6 +169,10 @@ end;
 procedure TMVCIndyDirectResponse.SetContentType(const AValue: string);
 begin
   FResponseInfo.ContentType := AValue;
+  // without a charset in AValue Indy keeps the previous one (or gives text/* ISO-8859-1), and the response
+  // would declare a charset its body is not in: send what was set, as the other hosts do
+  if Pos('charset=', LowerCase(AValue)) = 0 then
+    FResponseInfo.CharSet := '';
 end;
 
 procedure TMVCIndyDirectResponse.SetLocation(const AValue: string);
@@ -225,6 +233,15 @@ begin
     Exit;
   end;
   FHeadersSent := True;
+
+  // Without a charset Indy would write a text body as 8-bit: UTF-8, as HTTP.sys writes it
+  if (FResponseInfo.CharSet = '') and (FResponseInfo.ContentText <> '') and
+    not Assigned(FResponseInfo.ContentStream) then
+  begin
+    FResponseInfo.ContentStream := TBytesStream.Create(TEncoding.UTF8.GetBytes(FResponseInfo.ContentText));
+    FResponseInfo.FreeContentStream := True;
+    FResponseInfo.ContentText := '';
+  end;
 
   // Sync custom headers to Indy response
   for I := 0 to FCustomHeaders.Count - 1 do

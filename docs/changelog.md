@@ -1603,8 +1603,7 @@ the same socket.
   writes such a body in. A UTF-8 character cut in two by the size limit is left out, and bytes that are not UTF-8
   when the charset says so are logged as `<N bytes not decodable as utf-8>`: before, a request body that was not
   valid UTF-8 made the trace raise `EEncodingError` and the request answer 500. Only the first characters of a
-  request body are decoded, not the whole body. On Indy Direct the charset of a response is kept apart from its
-  `ContentType`, so a response is read as UTF-8 or ANSI there.
+  request body are decoded, not the whole body.
 
 - **ISAPI: routing with the DLL addressed in the URL or a handler mapped on a path (PR #925).** Since 3.5 the
   WebBroker adapter routed on `TWebRequest.URL`, which under IIS is only the part of the path that selected the
@@ -1614,6 +1613,12 @@ the same socket.
   and Apache and the Indy bridge are unchanged. The ISAPI test run now also checks the DLL addressed in the URL. Fix
   by Frederic Schenckel (PR #925): thank you, Frederic.
 
+- **Indy Direct: the `Content-Type` of a response is the one that was set.** Indy keeps the charset apart from the
+  media type and, when a new `Content-Type` names none, keeps the previous one: a `text/plain` body written in the
+  ANSI code page went out as `text/plain; charset=utf-8`, the default of the engine. The response now declares what
+  was set, as HTTP.sys, ISAPI and Apache do, a text body without a charset is written as UTF-8 as HTTP.sys writes it,
+  and `Response.ContentType` returns the charset too, so a filter sees it (the Trace filter decodes a body with it).
+  WebBroker over the Indy bridge keeps Indy's handling of the charset, as in 3.4.
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it
