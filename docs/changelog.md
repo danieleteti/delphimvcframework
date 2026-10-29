@@ -1581,6 +1581,16 @@ the same socket.
   of a server with the JWT middleware does not change. `JWTCookieAuthenticationBundle` is not documented, as the
   cookie middleware was not. New: `TMVCEngine.FilterBundles`, the bundles registered with `Use`.
 
+- **The Trace filter and `TMVCTraceMiddleware` garbled a body with non-ASCII characters (issue #931).** A response
+  written as a stream was decoded with the Windows ANSI code page, so `{"message":"Çıkış yapıldı"}` was logged as
+  `{"message":"Ã‡Ä±kÄ±ÅŸ yapÄ±ldÄ±"}`. Request and response bodies are now decoded with the charset of their
+  `Content-Type` (quoted or not); when it names none, as UTF-8, or in the ANSI code page that `Render(string)`
+  writes such a body in. A UTF-8 character cut in two by the size limit is left out, and bytes that are not UTF-8
+  when the charset says so are logged as `<N bytes not decodable as utf-8>`: before, a request body that was not
+  valid UTF-8 made the trace raise `EEncodingError` and the request answer 500. Only the first characters of a
+  request body are decoded, not the whole body. On Indy Direct the charset of a response is kept apart from its
+  `ContentType`, so a response is read as UTF-8 or ANSI there.
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it

@@ -25,7 +25,7 @@
 // INTERNAL to the framework: not an API, it changes without notice. The pieces
 // MVCFramework.Filters, MVCFramework.Filters.Authentication and MVCFramework.Filters.OIDC share: a classic
 // middleware as a filter, and how an authentication filter asks its handler. Also
-// the checks that a filter and its deprecated middleware share (CSRF, RateLimit).
+// the checks that a filter and its deprecated middleware share (CSRF, RateLimit, Trace).
 
 unit MVCFramework.Filters.Internal;
 
@@ -77,6 +77,19 @@ function MVCIsValidHost(const AHost: string): Boolean;
 // True when the request is over the limit, with the 429 written.
 function MVCRateLimitExceeded(const AContext: TWebContext;
   const AOptions: TMVCRateLimitOptions): Boolean;
+
+// A body as the Trace filter and TMVCTraceMiddleware log it: ABytes decoded with
+// the charset of AContentType; when it names none, UTF-8, or the ANSI code page
+// that Render(string) writes such a body in. ABytes can be only the start of a
+// body of ABodySize bytes, cut by the size limit: in UTF-8 a character cut in two
+// at the end is left out. Never raises: bytes that are not UTF-8 when the charset
+// says so, or an unknown charset, give '<N bytes not decodable as charset>'.
+function MVCTraceBodyText(const ABytes: TBytes; const ABodySize: Int64;
+  const AContentType: string): string;
+
+// The start of ABytes that can give AMaxChars characters (4 bytes at most each):
+// a large body is not decoded whole to log its first characters.
+function MVCTraceBodyBytes(const ABytes: TBytes; const AMaxChars: Int64): TBytes;
 
 implementation
 
@@ -426,6 +439,58 @@ begin
     // Add Retry-After header (RFC 6585)
     AContext.Response.SetCustomHeader('Retry-After', SecondsBetween(lResetTime, Now).ToString);
   end;
+end;
+
+// --- Trace ------------------------------------------------------------------
+
+function MVCTraceBodyText(const ABytes: TBytes; const ABodySize: Int64;
+  const AContentType: string): string;
+var
+  lMediaType, lCharset: string;
+  lEncoding: TEncoding;
+  lCount, lMinCount: Integer;
+begin
+  if Length(ABytes) = 0 then
+    Exit('');
+  // a character cut by the size limit: up to 3 of its bytes at the end
+  lMinCount := Length(ABytes);
+  if Length(ABytes) < ABodySize then
+    lMinCount := Max(1, lMinCount - 3);
+  lCharset := '';
+  try
+    SplitContentMediaTypeAndCharset(AContentType, lMediaType, lCharset);
+    lCharset := lCharset.DeQuotedString('"'); // charset="utf-8" is valid too (RFC 9110)
+    if (lCharset = '') or SameText(lCharset, TMVCCharSet.UTF_8) or
+      SameText(lCharset, TMVCCharSet.UTF_8_WITHOUT_DASH) then
+      lEncoding := TEncoding.UTF8
+    else
+      lEncoding := TEncoding.GetEncoding(lCharset);
+    try
+      // GetCharCount answers 0, without raising, for bytes that are not UTF-8
+      for lCount := Length(ABytes) downto lMinCount do
+        if lEncoding.GetCharCount(ABytes, 0, lCount) > 0 then
+          Exit(lEncoding.GetString(ABytes, 0, lCount));
+    finally
+      if not TEncoding.IsStandardEncoding(lEncoding) then
+        lEncoding.Free;
+    end;
+    if lCharset = '' then
+      Exit(TEncoding.Default.GetString(ABytes));
+  except
+    // an unknown charset, or a decoder that raises: the trace never breaks a response
+  end;
+  if lCharset = '' then
+    lCharset := TMVCCharSet.UTF_8;
+  Result := Format('<%d bytes not decodable as %s>', [Length(ABytes), lCharset]);
+end;
+
+function MVCTraceBodyBytes(const ABytes: TBytes; const AMaxChars: Int64): TBytes;
+begin
+  if AMaxChars <= 0 then
+    Exit(nil);
+  if AMaxChars >= Length(ABytes) then
+    Exit(ABytes);
+  Result := Copy(ABytes, 0, Integer(Min(Int64(Length(ABytes)), AMaxChars * 4)));
 end;
 
 end.

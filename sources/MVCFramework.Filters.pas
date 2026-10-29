@@ -530,8 +530,14 @@ function GetAnalyticsDefaultLogger: ILogWriter;
 // ALogTag, as TMVCTraceMiddleware does. Every line carries a correlation id
 // ([rid:...]): the one the request brings in the ACorrelationHeaderName header
 // (or X-Correlation-ID), otherwise a generated one; it is echoed in the
-// response header of the same name. The body is cut to AMaxBodySize characters;
-// non-text content types are hidden unless AFlags has tfLogNonTextBody. The
+// response header of the same name. The body is decoded with the charset of its
+// Content-Type (UTF-8 when it names none, or the ANSI code page Render(string)
+// writes such a body in) and cut to AMaxBodySize characters (to AMaxBodySize bytes
+// when the response is a stream, leaving out a UTF-8 character cut in two); bytes
+// that are not UTF-8 when the charset says so are logged as
+// '<N bytes not decodable as utf-8>'. Indy Direct keeps the charset of a response
+// apart from its ContentType: there a response is read as UTF-8 or ANSI.
+// Non-text content types are hidden unless AFlags has tfLogNonTextBody. The
 // request Authorization is masked ('Bearer ***'), and so are Authorization,
 // Cookie and Set-Cookie among the response headers; tfLogAuthorization logs the
 // request Authorization raw (useful for debugging, leaks bearer tokens to your
@@ -794,7 +800,7 @@ uses
   MVCFramework.HMAC,                // HMAC (CSRF token)
   LoggerPro.FileAppender,           // TLoggerProSimpleFileAppender (Analytics default logger)
   LoggerPro.Builder,                // LoggerProBuilder (Analytics default logger)
-  MVCFramework.Filters.Internal;    // FilterAuthHandler, CheckHandler, SameSecret, CSRFCheck, MVCRateLimitExceeded
+  MVCFramework.Filters.Internal;    // FilterAuthHandler, CheckHandler, SameSecret, CSRFCheck, MVCRateLimitExceeded, MVCTraceBodyText
 
 const
   { Largest slice served in a single 206 response. }
@@ -2214,7 +2220,7 @@ begin
       lSW: TStopwatch;
       lReq: TMVCWebRequest;
       lAuth, lBody, lId, lRid: string;
-      lDump: TStringStream;
+      lBytes: TBytes;
     begin
       // Correlation id: honor the one of the caller (proxy, gateway, tracing),
       // otherwise a short process-unique one, and echo it to the caller.
@@ -2242,7 +2248,11 @@ begin
       begin
         if (tfLogNonTextBody in AFlags) or
            TraceIsTextContentType(lReq.Headers['content-type']) then
-          lBody := TraceClamp(TEncoding.UTF8.GetString(lReq.RawContent), AMaxBodySize)
+        begin
+          lBytes := lReq.RawContent;
+          lBody := TraceClamp(MVCTraceBodyText(MVCTraceBodyBytes(lBytes, AMaxBodySize), Length(lBytes),
+            lReq.Headers['content-type']), AMaxBodySize);
+        end
         else
           lBody := '<hidden non text content>';
         Log.Debug(lRid + '[TRACE][REQ][BODY] ' + lBody, ALogTag);
@@ -2268,21 +2278,19 @@ begin
         if (tfLogNonTextBody in AFlags) or
            TraceIsTextContentType(AContext.Response.ContentType) then
         begin
-          lDump := TStringStream.Create;
-          try
-            if Assigned(AContext.Response.ContentStream) then
-            begin
-              AContext.Response.ContentStream.Position := 0;
-              lDump.CopyFrom(AContext.Response.ContentStream,
-                Min(AContext.Response.ContentStream.Size, AMaxBodySize));
-              AContext.Response.ContentStream.Position := 0;
-            end
-            else
-              lDump.WriteString(TraceClamp(AContext.Response.Content, AMaxBodySize));
-            Log.Debug(lRid + '[TRACE][RES][BODY] ' + lDump.DataString, ALogTag);
-          finally
-            lDump.Free;
-          end;
+          if Assigned(AContext.Response.ContentStream) then
+          begin
+            lBytes := nil; // still the request's: SetLength would copy it first
+            SetLength(lBytes, Max(Int64(0), Min(AContext.Response.ContentStream.Size, AMaxBodySize)));
+            AContext.Response.ContentStream.Position := 0;
+            AContext.Response.ContentStream.ReadBuffer(lBytes, Length(lBytes));
+            AContext.Response.ContentStream.Position := 0;
+            lBody := MVCTraceBodyText(lBytes, AContext.Response.ContentStream.Size,
+              AContext.Response.ContentType);
+          end
+          else
+            lBody := TraceClamp(AContext.Response.Content, AMaxBodySize);
+          Log.Debug(lRid + '[TRACE][RES][BODY] ' + lBody, ALogTag);
         end
         else
           Log.Debug(lRid + '[TRACE][RES][BODY] <hidden non text content>', ALogTag);

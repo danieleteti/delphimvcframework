@@ -77,7 +77,8 @@ uses
   System.Classes,
   System.Math,
   System.Diagnostics,
-  System.SyncObjs;
+  System.SyncObjs,
+  MVCFramework.Filters.Internal; // MVCTraceBodyText
 
 const
   // keys used to carry per-request state across the middleware hooks
@@ -126,6 +127,7 @@ var
   lContentType: string;
   lReq: TMVCWebRequest;
   lCorrelationId: string;
+  lBytes: TBytes;
 begin
   lCorrelationId := ResolveCorrelationId(AContext);
   AContext.Data[TRACE_DATA_REQUESTID] := lCorrelationId;
@@ -156,8 +158,10 @@ begin
       lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
       lContentType.StartsWith('text/') then
     begin
+      lBytes := AContext.Request.RawContent;
       Log.Debug('%s [BEFORE ROUTING][REQUEST][BODY] %s',
-        [RequestId(AContext), ClampBody(TEncoding.UTF8.GetString(AContext.Request.RawContent))], fLogTag);
+        [RequestId(AContext), ClampBody(MVCTraceBodyText(MVCTraceBodyBytes(lBytes, fMaxBodySize), Length(lBytes),
+        lContentType))], fLogTag);
     end
     else
     begin
@@ -178,7 +182,7 @@ procedure TMVCTraceMiddleware.OnAfterControllerAction(AContext: TWebContext;
   const AControllerQualifiedClassName: string; const AActionName: string;
   const AHandled: Boolean);
 var
-  lContentStream: TStringStream;
+  lBytes: TBytes;
   lBody: string;
 begin
   Log.Debug('%s [AFTER ACTION][RESPONSE][STATUS] %d: %s',
@@ -190,15 +194,11 @@ begin
 
   if Assigned(AContext.Response.ContentStream) then
   begin
-    lContentStream := TStringStream.Create;
-    try
-      lContentStream.CopyFrom(AContext.Response.ContentStream,
-        Min(AContext.Response.ContentStream.Size, fMaxBodySize));
-      AContext.Response.ContentStream.Position := 0;
-      lBody := lContentStream.DataString;
-    finally
-      lContentStream.Free;
-    end;
+    SetLength(lBytes, Min(AContext.Response.ContentStream.Size, fMaxBodySize));
+    AContext.Response.ContentStream.Position := 0;
+    AContext.Response.ContentStream.ReadBuffer(lBytes, Length(lBytes));
+    AContext.Response.ContentStream.Position := 0;
+    lBody := MVCTraceBodyText(lBytes, AContext.Response.ContentStream.Size, AContext.Response.ContentType);
   end
   else
   begin

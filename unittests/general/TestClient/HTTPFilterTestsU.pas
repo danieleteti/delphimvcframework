@@ -46,7 +46,9 @@ uses
   System.SysUtils,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Server.Intf;
+  MVCFramework.Logger,
+  MVCFramework.Server.Intf,
+  LoggerPro.MemoryAppender;
 
 const
   HF_TESTSERVER_PORT = 8888;
@@ -55,6 +57,7 @@ const
   HF_SESSION_INDY_PORT = 8939;
   HF_SESSION_HTTPSYS_PORT = 8941;
   HF_STREAM_INDY_PORT = 8945;
+  HF_TRACE_PORT = 8947;
 
 type
   [TestFixture]
@@ -281,12 +284,65 @@ type
     procedure ActiveRecordFilterGivesAControllerAConnectionAndTakesItBack(const APort: Integer);
   end;
 
+  // What the Trace filter and the classic Trace middleware log of a body (issue #931): its bytes decoded with the
+  // charset of its Content-Type, UTF-8 when it names none, and never an exception out of the trace. During each test
+  // the global logger is one in memory, and the server an in-process Indy Direct of its own.
+  [TestFixture]
+  THTTPFilterTraceTests = class
+  private
+    fAppender: TLoggerProMemoryRingBufferAppender;
+    fVerbosity: TLogLevel;
+    fEngine: TMVCEngine;
+    fServer: IMVCServer;
+    procedure Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string = 'IndyDirect');
+    function LoggedBody(const AMarker: string): string;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure AUTF8BodyIsLoggedIntact(const AKind: string);
+    // on HTTP.sys: on Indy Direct the ContentType of the response has no charset, Indy keeps it apart
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ABodyIsLoggedInTheCharsetOfItsContentType(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ACharacterCutByTheSizeLimitIsLeftOut(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ARequestBodyNotInItsCharsetIsAnswered(const AKind: string);
+    // charset="utf-8" is as valid as charset=utf-8 (RFC 9110)
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure AQuotedCharsetIsDecoded(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ABodyWithoutCharsetIsLoggedAsItWasWritten(const AKind: string);
+    // the middleware takes an unsigned size: only the filter can get a negative one
+    [Test]
+    procedure ANegativeSizeLimitDoesNotBreakAStreamResponse;
+  end;
+
 implementation
 
 uses
   System.Classes,
   System.IOUtils,
+  System.Generics.Collections,
   IdTCPClient,
+  LoggerPro,
+  LoggerPro.Builder,
+  MVCFramework.Middleware.Trace,
   FireDAC.Comp.Client,
   JsonDataObjects,
   FireDAC.Phys.SQLite,
@@ -1134,8 +1190,220 @@ begin
   Assert.Contains(lRes.Content, 'True', 'the connection is given back when the action raised');
 end;
 
+{ THTTPFilterTraceTests }
+
+type
+  [MVCPath('/trace931')]
+  TTraceCharsetController = class(TMVCController)
+  public
+    [MVCPath('/json')]
+    [MVCHTTPMethod([httpGET])]
+    function Json: string;
+    // in ISO-8859-9 (Turkish): read as the Windows ANSI code page, its bytes are other letters
+    [MVCPath('/latin5')]
+    [MVCHTTPMethod([httpGET])]
+    function Latin5: TStream;
+    [MVCPath('/body')]
+    [MVCHTTPMethod([httpPOST])]
+    function Body: string;
+    // no charset in the Content-Type: Render(string) writes the Windows ANSI code page
+    [MVCPath('/ansi')]
+    [MVCHTTPMethod([httpGET])]
+    function Ansi: string;
+  end;
+
+const
+  TRACE_TAG = 'trace931';
+  // "Cikis yapildi" with its Turkish letters (the text of the issue), by code point: the unit has no BOM
+  TRACE_TURKISH = #$00C7#$0131'k'#$0131#$015F' yap'#$0131'ld'#$0131;
+  TRACE_JSON = '{"message":"' + TRACE_TURKISH + '"}';
+  TRACE_ANSI = 'Perch'#$00E9' citt'#$00E0;
+
+function TTraceCharsetController.Json: string;
+begin
+  ContentType := TMVCMediaType.APPLICATION_JSON + '; charset=utf-8';
+  Result := TRACE_JSON;
+end;
+
+function TTraceCharsetController.Latin5: TStream;
+var
+  lEncoding: TEncoding;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN + '; charset=iso-8859-9';
+  lEncoding := TEncoding.GetEncoding('iso-8859-9');
+  try
+    Result := TBytesStream.Create(lEncoding.GetBytes(TRACE_TURKISH));
+  finally
+    lEncoding.Free;
+  end;
+end;
+
+function TTraceCharsetController.Body: string;
+begin
+  Result := 'ok';
+end;
+
+function TTraceCharsetController.Ansi: string;
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Result := TRACE_ANSI;
+end;
+
+// the line of the body, as the filter and the middleware write it
+function ResponseBodyMarker(const AKind: string): string;
+begin
+  if AKind = 'middleware' then
+    Result := '[AFTER ACTION][RESPONSE][BODY] '
+  else
+    Result := '[TRACE][RES][BODY] ';
+end;
+
+function RequestBodyMarker(const AKind: string): string;
+begin
+  if AKind = 'middleware' then
+    Result := '[BEFORE ROUTING][REQUEST][BODY] '
+  else
+    Result := '[TRACE][REQ][BODY] ';
+end;
+
+procedure THTTPFilterTraceTests.Setup;
+begin
+  fVerbosity := UseLoggerVerbosityLevel;
+  UseLoggerVerbosityLevel := TLogLevel.levDebug;
+  ReleaseGlobalLogger;
+  fAppender := TLoggerProMemoryRingBufferAppender.Create;
+  SetDefaultLogger(LoggerProBuilder.WithMinimumLevel(TLogType.Debug).WriteToAppender(fAppender).Build);
+end;
+
+procedure THTTPFilterTraceTests.TearDown;
+begin
+  if fServer <> nil then
+    fServer.Stop;
+  fServer := nil;
+  FreeAndNil(fEngine);
+  ReleaseGlobalLogger; // frees the memory appender: the next Log builds the default logger again
+  fAppender := nil;
+  UseLoggerVerbosityLevel := fVerbosity;
+end;
+
+procedure THTTPFilterTraceTests.Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string);
+begin
+  fEngine := TMVCEngine.Create;
+  fEngine.AddController(TTraceCharsetController);
+  if AKind = 'middleware' then
+  begin
+    {$WARN SYMBOL_DEPRECATED OFF}
+    fEngine.AddMiddleware(TMVCTraceMiddleware.Create(AMaxBodySize, TRACE_TAG));
+    {$WARN SYMBOL_DEPRECATED DEFAULT}
+  end
+  else
+    fEngine.Use(TraceHTTPFilter(AMaxBodySize, TRACE_TAG));
+  if AHost = 'HttpSys' then
+    fServer := TMVCServerFactory.CreateHttpSys(fEngine)
+  else
+    fServer := TMVCServerFactory.CreateIndyDirect(fEngine);
+  fServer.Listen(HF_TRACE_PORT, 'localhost');
+end;
+
+function THTTPFilterTraceTests.LoggedBody(const AMarker: string): string;
+var
+  lItems: TList<TLogItem>;
+  lItem: TLogItem;
+  lPos, lTry: Integer;
+begin
+  Result := '';
+  for lTry := 1 to 100 do // the logger writes on a thread of its own
+  begin
+    lItems := fAppender.GetLogItemsByTag(TRACE_TAG);
+    try
+      for lItem in lItems do
+      begin
+        lPos := lItem.LogMessage.IndexOf(AMarker);
+        if lPos >= 0 then
+          Exit(lItem.LogMessage.Substring(lPos + AMarker.Length));
+      end;
+    finally
+      for lItem in lItems do
+        lItem.Free;
+      lItems.Free;
+    end;
+    Sleep(30);
+  end;
+  Assert.Fail('no "' + AMarker + '" line in the log');
+end;
+
+procedure THTTPFilterTraceTests.AUTF8BodyIsLoggedIntact(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/json').StatusCode);
+  Assert.AreEqual(TRACE_JSON, LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ABodyIsLoggedInTheCharsetOfItsContentType(const AKind: string);
+begin
+  Listen(AKind, 1024, 'HttpSys');
+  Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/latin5').StatusCode);
+  Assert.AreEqual(TRACE_TURKISH, LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ACharacterCutByTheSizeLimitIsLeftOut(const AKind: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  // 13 bytes: {"message":" and the first of the two bytes of the C with cedilla
+  Listen(AKind, 13);
+  lRes := Client(HF_TRACE_PORT).Get('/trace931/json');
+  Assert.AreEqual(200, lRes.StatusCode);
+  Assert.AreEqual(TRACE_JSON, lRes.Content, 'the response is whole');
+  Assert.AreEqual('{"message":"', LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ARequestBodyNotInItsCharsetIsAnswered(const AKind: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  Listen(AKind, 1024);
+  lRes := Client(HF_TRACE_PORT)
+    .AddBody(TBytesStream.Create(TBytes.Create($7B, $FF, $FE, $7D)), True, 'application/json; charset=utf-8')
+    .Post('/trace931/body');
+  Assert.AreEqual(200, lRes.StatusCode, lRes.Content);
+  Assert.AreEqual('<4 bytes not decodable as utf-8>', LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.AQuotedCharsetIsDecoded(const AKind: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  Listen(AKind, 1024);
+  lRes := Client(HF_TRACE_PORT)
+    .AddBody(TBytesStream.Create(TEncoding.UTF8.GetBytes(TRACE_JSON)), True, 'application/json; charset="utf-8"')
+    .Post('/trace931/body');
+  Assert.AreEqual(200, lRes.StatusCode, lRes.Content);
+  Assert.AreEqual(TRACE_JSON, LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ABodyWithoutCharsetIsLoggedAsItWasWritten(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/ansi').StatusCode);
+  // as the ANSI code page of this machine has it (the text needs a Latin one to be meaningful)
+  Assert.AreEqual(TEncoding.Default.GetString(TEncoding.Default.GetBytes(TRACE_ANSI)),
+    LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ANegativeSizeLimitDoesNotBreakAStreamResponse;
+var
+  lRes: IMVCRESTResponse;
+begin
+  Listen('filter', -1);
+  lRes := Client(HF_TRACE_PORT).Get('/trace931/json');
+  Assert.AreEqual(200, lRes.StatusCode, lRes.Content);
+  Assert.AreEqual(TRACE_JSON, lRes.Content);
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(THTTPFilterTests);
   TDUnitX.RegisterTestFixture(THTTPFilterSessionTests);
+  TDUnitX.RegisterTestFixture(THTTPFilterTraceTests);
 
 end.
